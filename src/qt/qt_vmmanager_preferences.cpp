@@ -70,6 +70,8 @@ VMManagerPreferences(QWidget *parent) : ui(new Ui::VMManagerPreferences)
 #endif
     const auto useRegexSearch = config->getStringValue("regex_search").toInt();
     ui->regexSearchCheckBox->setChecked(useRegexSearch);
+    const auto rememberSizePosition = config->getStringValue("window_remember").toInt();
+    ui->rememberSizePositionCheckBox->setChecked(rememberSizePosition);
 
     ui->radioButtonSystem->setChecked(color_scheme == 0);
     ui->radioButtonLight->setChecked(color_scheme == 1);
@@ -112,6 +114,7 @@ VMManagerPreferences::accept()
 #if EMU_BUILD_NUM != 0
     config->setStringValue("update_check", ui->updateCheckBox->isChecked() ? "1" : "0");
 #endif
+    config->setStringValue("window_remember", ui->rememberSizePositionCheckBox->isChecked() ? "1" : "0");
     config->setStringValue("regex_search", ui->regexSearchCheckBox->isChecked() ? "1" : "0");
     QDialog::accept();
 }

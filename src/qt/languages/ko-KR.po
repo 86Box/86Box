@@ -15,8 +15,8 @@ msgstr "키보드는 캡쳐가 필요함(&K)"
 msgid "&Right CTRL is left ALT"
 msgstr "우측CTRL로 좌측ALT 입력(&R)"
 
-msgid "&Hard Reset..."
-msgstr "재시작(&H)..."
+msgid "&Hard reset"
+msgstr "재시작(&H)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del(&C)"
@@ -50,6 +50,9 @@ msgstr "창 크기 조절 가능하게 하기(&R)"
 
 msgid "R&emember size && position"
 msgstr "창 크기와 위치를 기억하기(&E)"
+
+msgid "Remember size && position"
+msgstr "창 크기와 위치를 기억하기"
 
 msgid "Re&nderer"
 msgstr "렌더러(&N)"
@@ -1073,6 +1076,12 @@ msgstr "강제 종료"
 
 msgid "Start"
 msgstr "시작"
+
+msgid "&Force shutdown"
+msgstr "강제 종료(&F)"
+
+msgid "&Start"
+msgstr "시작(&S)"
 
 msgid "Not running"
 msgstr "실행 중이 아닙니다"
@@ -2135,6 +2144,9 @@ msgstr "낮은 DMA"
 
 msgid "Enable Game port"
 msgstr "게임 포트 사용"
+
+msgid "Enable Adlib ports"
+msgstr "Adlib 포트 활성화"
 
 msgid "SID Model"
 msgstr "SID 모델"

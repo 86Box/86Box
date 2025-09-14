@@ -37,6 +37,13 @@
 #define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
 
+#define I_NORMAL 0
+#define I_MUSIC  1
+#define I_WT     2
+#define I_CD     3
+#define I_FDD    4
+#define I_MIDI   5
+
 ALuint        buffers[4];       /* front and back buffers */
 ALuint        buffers_music[4]; /* front and back buffers */
 ALuint        buffers_wt[4];    /* front and back buffers */
@@ -171,13 +178,47 @@ inital(void)
     // Create sources: 0=main, 1=music, 2=wt, 3=cd, 4=fdd, 5=midi(optional)
     alGenSources(sources, source);
 
-    // Initialize all sources
-    for (int i = 0; i < sources; i++) {
-        alSource3f(source[i], AL_POSITION, 0.0f, 0.0f, 0.0f);
-        alSource3f(source[i], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
-        alSource3f(source[i], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
-        alSourcef(source[i], AL_ROLLOFF_FACTOR, 0.0f);
-        alSourcei(source[i], AL_SOURCE_RELATIVE, AL_TRUE);
+    if (init_midi)
+        alGenSources(5, source);
+    else
+        alGenSources(4, source);
+
+    alSource3f(source[I_NORMAL], AL_POSITION, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_NORMAL], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_NORMAL], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
+    alSourcef(source[I_NORMAL], AL_ROLLOFF_FACTOR, 0.0f);
+    alSourcei(source[I_NORMAL], AL_SOURCE_RELATIVE, AL_TRUE);
+
+    alSource3f(source[I_MUSIC], AL_POSITION, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_MUSIC], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_MUSIC], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
+    alSourcef(source[I_MUSIC], AL_ROLLOFF_FACTOR, 0.0f);
+    alSourcei(source[I_MUSIC], AL_SOURCE_RELATIVE, AL_TRUE);
+
+    alSource3f(source[I_WT], AL_POSITION, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_WT], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_WT], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
+    alSourcef(source[I_WT], AL_ROLLOFF_FACTOR, 0.0f);
+    alSourcei(source[I_WT], AL_SOURCE_RELATIVE, AL_TRUE);
+
+    alSource3f(source[I_CD], AL_POSITION, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_CD], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_CD], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
+    alSourcef(source[I_CD], AL_ROLLOFF_FACTOR, 0.0f);
+    alSourcei(source[I_CD], AL_SOURCE_RELATIVE, AL_TRUE);
+
+    alSource3f(source[I_FDD], AL_POSITION, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_FDD], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+    alSource3f(source[I_FDD], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
+    alSourcef(source[I_FDD], AL_ROLLOFF_FACTOR, 0.0f);
+    alSourcei(source[I_FDD], AL_SOURCE_RELATIVE, AL_TRUE);
+  
+    if (init_midi) {
+        alSource3f(source[I_MIDI], AL_POSITION, 0.0f, 0.0f, 0.0f);
+        alSource3f(source[I_MIDI], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+        alSource3f(source[I_MIDI], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
+        alSourcef(source[I_MIDI], AL_ROLLOFF_FACTOR, 0.0f);
+        alSourcei(source[I_MIDI], AL_SOURCE_RELATIVE, AL_TRUE);
     }
 
     if (sound_is_float) {
@@ -233,6 +274,20 @@ inital(void)
     alSourcePlay(source[4]);
     if (init_midi)
         alSourcePlay(source[5]);
+    alSourceQueueBuffers(source[I_NORMAL], 4, buffers);
+    alSourceQueueBuffers(source[I_MUSIC], 4, buffers_music);
+    alSourceQueueBuffers(source[I_WT], 4, buffers_wt);
+    alSourceQueueBuffers(source[I_CD], 4, buffers_cd);
+    alSourceQueueBuffers(source[I_FDD], 4, buffers_fdd);
+    if (init_midi)
+        alSourceQueueBuffers(source[I_MIDI], 4, buffers_midi);
+    alSourcePlay(source[I_NORMAL]);
+    alSourcePlay(source[I_MUSIC]);
+    alSourcePlay(source[I_WT]);
+    alSourcePlay(source[I_CD]);
+    alSourcePlay(source[I_FDD]);
+    if (init_midi)
+        alSourcePlay(source[I_MIDI]);
 
     if (sound_is_float) {
         if (init_midi)

@@ -15,8 +15,8 @@ msgstr "&Tastatur benötigt das Einfangen des Mauszeigers"
 msgid "&Right CTRL is left ALT"
 msgstr "&Die rechte Strg-Taste ist die linke Alt-Taste"
 
-msgid "&Hard Reset..."
-msgstr "&Kaltstart..."
+msgid "&Hard reset"
+msgstr "&Kaltstart"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Strg+Alt+Entf"
@@ -50,6 +50,9 @@ msgstr "G&rößenverstellbares Fenster"
 
 msgid "R&emember size && position"
 msgstr "Größe && &Position merken"
+
+msgid "Remember size && position"
+msgstr "Größe && Position merken"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -1073,6 +1076,12 @@ msgstr "Abschaltung erzwingen"
 
 msgid "Start"
 msgstr "Einschalten"
+
+msgid "&Force shutdown"
+msgstr "&Abschaltung erzwingen"
+
+msgid "&Start"
+msgstr "&Einschalten"
 
 msgid "Not running"
 msgstr "Läuft nicht"
@@ -2135,6 +2144,9 @@ msgstr "Niedrige DMA"
 
 msgid "Enable Game port"
 msgstr "Game-Port einschalten"
+
+msgid "Enable Adlib ports"
+msgstr "Adlib-Ports einschalten"
 
 msgid "SID Model"
 msgstr "SID-Modell"

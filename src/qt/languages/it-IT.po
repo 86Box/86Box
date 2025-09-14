@@ -15,8 +15,8 @@ msgstr "&Tastiera richiede la cattura"
 msgid "&Right CTRL is left ALT"
 msgstr "CTRL &destro è ALT sinistro"
 
-msgid "&Hard Reset..."
-msgstr "&Riavvia..."
+msgid "&Hard reset"
+msgstr "&Riavvia"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Canc"
@@ -50,6 +50,9 @@ msgstr "&Finestra ridimensionabile"
 
 msgid "R&emember size && position"
 msgstr "R&icorda dimensioni e posizione"
+
+msgid "Remember size && position"
+msgstr "Ricorda dimensioni e posizione"
 
 msgid "Re&nderer"
 msgstr "Re&nderizzatore"
@@ -1073,6 +1076,12 @@ msgstr "Forza arresto"
 
 msgid "Start"
 msgstr "Avvia"
+
+msgid "&Force shutdown"
+msgstr "&Forza arresto"
+
+msgid "&Start"
+msgstr "&Avvia"
 
 msgid "Not running"
 msgstr "Inattivo"
@@ -2135,6 +2144,9 @@ msgstr "DMA basso"
 
 msgid "Enable Game port"
 msgstr "Abilita la porta giochi"
+
+msgid "Enable Adlib ports"
+msgstr "Abilita porte Adlib"
 
 msgid "SID Model"
 msgstr "Modello SID"

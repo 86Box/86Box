@@ -15,8 +15,8 @@ msgstr "&Клавіатура потребує захвату"
 msgid "&Right CTRL is left ALT"
 msgstr "&Правий CTRL - це лівий ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Холодне перезавантаження..."
+msgid "&Hard reset"
+msgstr "&Холодне перезавантаження"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Змінний розмір вікна"
 
 msgid "R&emember size && position"
 msgstr "&Запам'ятати розмір і становище"
+
+msgid "Remember size && position"
+msgstr "Запам'ятати розмір і становище"
 
 msgid "Re&nderer"
 msgstr "&Рендеринг"
@@ -1073,6 +1076,12 @@ msgstr "Примусове завершення роботи"
 
 msgid "Start"
 msgstr "Пуск"
+
+msgid "&Force shutdown"
+msgstr "Примусове &завершення роботи"
+
+msgid "&Start"
+msgstr "&Пуск"
 
 msgid "Not running"
 msgstr "Не працює"
@@ -2135,6 +2144,9 @@ msgstr "Низький рівень DMA"
 
 msgid "Enable Game port"
 msgstr "Увімкнути ігровий порт"
+
+msgid "Enable Adlib ports"
+msgstr "Увімкнути порти Adlib"
 
 msgid "SID Model"
 msgstr "Модель SID"

@@ -812,7 +812,7 @@ ide_set_signature(ide_t *ide)
     ide->tf->sector   = 1;
     ide->tf->head     = 0;
     ide->tf->secount  = 1;
-    ide->tf->cylinder = ide_signatures[ide->type & ~IDE_SHADOW];
+    ide->tf->cylinder = (ide->type == IDE_ATAPI_SHADOW) ? 0x0000 : ide_signatures[ide->type & ~IDE_SHADOW];
 
     if (ide->type == IDE_HDD)
         ide->drive = 0;
@@ -1581,7 +1581,7 @@ ide_reset_registers(ide_t *ide)
     ide->tf->atastat  = DRDY_STAT | DSC_STAT;
     ide->tf->error    = 1;
     ide->tf->secount  = 1;
-    ide->tf->cylinder = ide_signatures[ide->type & ~IDE_SHADOW];
+    ide->tf->cylinder = (ide->type == IDE_ATAPI_SHADOW) ? 0x0000 : ide_signatures[ide->type & ~IDE_SHADOW];
     ide->tf->sector   = 1;
     ide->tf->head     = 0;
 
