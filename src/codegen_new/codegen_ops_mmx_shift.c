@@ -16,6 +16,7 @@
 #include "codegen_ops_mmx_shift.h"
 #include "codegen_ops_helpers.h"
 
+extern void codegen_print_mmx(void);
 uint32_t
 ropPSxxW_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
@@ -39,6 +40,7 @@ ropPSxxW_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
             return 0;
     }
 
+    uop_CALL_FUNC(ir, codegen_print_mmx);
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
     return op_pc + 2;
 }
@@ -65,6 +67,7 @@ ropPSxxD_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
             return 0;
     }
 
+    uop_CALL_FUNC(ir, codegen_print_mmx);
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
     return op_pc + 2;
 }
@@ -91,6 +94,7 @@ ropPSxxQ_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
             return 0;
     }
 
+    uop_CALL_FUNC(ir, codegen_print_mmx);
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
     return op_pc + 2;
 }

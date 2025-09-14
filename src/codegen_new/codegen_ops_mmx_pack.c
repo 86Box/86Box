@@ -16,6 +16,7 @@
 #include "codegen_ops_mmx_pack.h"
 #include "codegen_ops_helpers.h"
 
+extern void codegen_print_mmx(void);
 #define ropPpack(func)                                                                             \
     uint32_t rop##func(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode),                  \
                        uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)                          \
@@ -37,6 +38,7 @@
             uop_##func(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);                    \
         }                                                                                          \
                                                                                                    \
+        uop_CALL_FUNC(ir, codegen_print_mmx);                                                      \
         return op_pc + 1;                                                                          \
     }
 

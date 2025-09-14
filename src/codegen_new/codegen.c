@@ -30,6 +30,12 @@ static struct {
     int      TOP;
 } codegen_instructions[MAX_INSTRUCTION_COUNT];
 
+void
+codegen_print_mmx(void)
+{
+    pclog("MMX results: %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX\n", cpu_state.MM[0], cpu_state.MM[1], cpu_state.MM[2], cpu_state.MM[3], cpu_state.MM[4], cpu_state.MM[5], cpu_state.MM[6], cpu_state.MM[7]);
+}
+
 int
 codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP)
 {
