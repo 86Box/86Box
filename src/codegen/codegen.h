@@ -42,8 +42,6 @@
 
 #ifdef __amd64__
 #    include "codegen_x86-64.h"
-#elif defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64
-#    include "codegen_x86.h"
 #else
 #    error Dynamic recompiler not implemented on your platform
 #endif

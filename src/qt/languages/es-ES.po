@@ -15,8 +15,8 @@ msgstr "&Teclado requiere captura"
 msgid "&Right CTRL is left ALT"
 msgstr "CTRL &derecho es ALT izquierdo"
 
-msgid "&Hard Reset..."
-msgstr "&Hard Reset..."
+msgid "&Hard reset"
+msgstr "&Hard reset"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "Ven&tana redimensionable"
 
 msgid "R&emember size && position"
 msgstr "&Recordar tamaño y posición"
+
+msgid "Remember size && position"
+msgstr "Recordar tamaño y posición"
 
 msgid "Re&nderer"
 msgstr "Re&nderizador"
@@ -1073,6 +1076,12 @@ msgstr "Apagqar forzadamente"
 
 msgid "Start"
 msgstr "Iniciar"
+
+msgid "&Force shutdown"
+msgstr "&Apagqar forzadamente"
+
+msgid "&Start"
+msgstr "&Iniciar"
 
 msgid "Not running"
 msgstr "No en ejecución"
@@ -2135,6 +2144,9 @@ msgstr "DMA bajo"
 
 msgid "Enable Game port"
 msgstr "Habilitar puerto de juegos"
+
+msgid "Enable Adlib ports"
+msgstr "Habilitar puertos Adlib"
 
 msgid "SID Model"
 msgstr "Modelo de SID"

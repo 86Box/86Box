@@ -13,6 +13,7 @@
 #include <86box/io.h>
 #include <86box/midi.h>
 #include <86box/nmi.h>
+#include <86box/gameport.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include "cpu.h"
@@ -43,9 +44,32 @@ enum {
 };
 
 enum {
-    GUS_CLASSIC = 0,
-    GUS_MAX     = 1,
+    GUS_CLASSIC    = 0,
+    GUS_CLASSIC_37 = 1,
+    GUS_MAX        = 2,
+    GUS_ACE        = 3
 };
+
+enum {
+    GUS_ICS2101_MIC_IN  = 0,
+    GUS_ICS2101_LINE_IN = 1,
+    GUS_ICS2101_CD_IN   = 2,
+    GUS_ICS2101_GF1_OUT = 3,
+    GUS_ICS2101_UNUSED  = 4,
+    GUS_ICS2101_MASTER  = 5,
+    GUS_ICS2101_MAX     = 6
+};
+
+typedef struct ics2101_chan_t {
+    uint8_t ctrl[2];
+    double level[2];
+    uint8_t pan;
+} ics2101_chan_t;
+
+typedef struct ics2101_t {
+    uint8_t        addr;
+    ics2101_chan_t channels[GUS_ICS2101_MAX];
+} ics2101_t;
 
 typedef struct gus_t {
     int reset;
@@ -120,7 +144,9 @@ typedef struct gus_t {
     uint8_t sb_ctrl;
     int     sb_nmi;
 
+    uint8_t joy_trim;
     uint8_t reg_ctrl;
+    uint8_t jumper;
 
     uint8_t ad_status;
     uint8_t ad_data;
@@ -143,9 +169,13 @@ typedef struct gus_t {
 
     uint8_t usrr;
 
+    void   *gameport;
+
     uint8_t max_ctrl;
 
     ad1848_t ad1848;
+
+    ics2101_t ics2101;
 } gus_t;
 
 static int gus_gf1_irqs[8]  = { -1, 2, 5, 3, 7, 11, 12, 15 };
@@ -158,6 +188,15 @@ int gusfreqs[] = {
 };
 
 double vol16bit[4096];
+
+double ics2101_att[128];
+
+double ics2101_pan[] = { 0.35481, 0.35481, 0.35481, 0.37584, 0.47315, 0.53088, 0.59566, 0.66834,
+                         0.70795,
+                         0.74989, 0.79433, 0.84140, 0.89125, 0.94406, 1.00000, 1.00000, 1.00000 };
+
+void    gus_write(uint16_t addr, uint8_t val, void *priv);
+uint8_t gus_read(uint16_t addr, void *priv);
 
 void
 gus_update_int_status(gus_t *gus)
@@ -254,6 +293,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
     int      old;
     uint16_t port;
     uint16_t csioport;
+
+    ics2101_t *ics2101 = &gus->ics2101;
+    uint8_t    mixer_ch;
+    uint8_t    mixer_lr;
 
     if ((addr == 0x388) || (addr == 0x389))
         port = addr;
@@ -537,6 +580,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     gus->t2on          = 1;
                     break;
 
+                case 0x4B: /*Joystick trim DAC*/
+                    gus->joy_trim = val;
+                    break;
+
                 case 0x4c: /*Reset*/
                     gus->reset = val;
                     break;
@@ -634,9 +681,25 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     gus->gp2_addr = val;
                     break;
                 case 5:
-                    gus->usrr = 0;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->usrr = 0;
                     break;
                 case 6:
+                    if (gus->type > GUS_CLASSIC) {
+                        if (gus->type != GUS_ACE) {
+                            if (!(val & 0x2) && (gus->jumper & 0x2))
+                                io_removehandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+                            else if ((val & 0x2) && !(gus->jumper & 0x2))
+                                io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+
+                            if (!(val & 0x4) && (gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x0);
+                            else if ((val & 0x4) && !(gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x201);
+                        }
+
+                        gus->jumper = val;
+                    }
                     break;
 
                 default:
@@ -672,11 +735,47 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
             gus->sb_2xe = val;
             break;
         case 0x20f:
-            gus->reg_ctrl = val;
+            if (gus->type > GUS_CLASSIC)
+               gus->reg_ctrl = val;
             break;
         case 0x306:
+            if (gus->type == GUS_CLASSIC_37) {
+                mixer_ch = (ics2101->addr >> 3) & 0x7; /* current attenuator */
+                mixer_lr = ics2101->addr & 1; /* left or right channel */
+                switch (ics2101->addr & 0x6) {
+                    case 0: /* Set control */
+                        ics2101->channels[mixer_ch].ctrl[mixer_lr] = val & 0xF;
+                        if ((mixer_lr == 0) && (val & 0xC)) /* copy to right channel if not normal mode */
+                            ics2101->channels[mixer_ch].ctrl[1] = val & 0xF;
+                        break;
+                    case 2: /* Set attenuator */
+                        switch (ics2101->channels[mixer_ch].ctrl[mixer_lr] & 0xC) {
+                            case 0: /* Normal mode */
+                                ics2101->channels[mixer_ch].level[mixer_lr] = ics2101_att[val & 0x7F];
+                                break;
+                            case 4: /* Stereo mode */
+                                ics2101->channels[mixer_ch].level[0] = ics2101_att[val & 0x7F];
+                                ics2101->channels[mixer_ch].level[1] = ics2101_att[val & 0x7F];
+                                break;
+                            case 8: /* Balance/Pan mode */
+                                ics2101->channels[mixer_ch].level[0] = ics2101_att[val & 0x7F] * ics2101_pan[ics2101->channels[mixer_ch].pan + 1];
+                                ics2101->channels[mixer_ch].level[1] = ics2101_att[val & 0x7F] * ics2101_pan[16 - ics2101->channels[mixer_ch].pan];
+                                break;
+                        }
+                        break;
+                    case 4: /* Set panning */
+                        ics2101->channels[mixer_ch].pan = val & 0xF;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            }
+            fallthrough;
         case 0x706:
-            if (gus->type == GUS_MAX) {
+            if (gus->type == GUS_CLASSIC_37) {
+                gus->ics2101.addr = val & 0x3F;
+            } else if (gus->type == GUS_MAX) {
                 if (gus->dma >= 4)
                     val |= 0x10;
                 if (gus->dma2 >= 4)
@@ -746,10 +845,10 @@ gus_read(uint16_t addr, void *priv)
             return val;
 
         case 0x20F:
-            if (gus->type == GUS_MAX)
-                val = 0x02;
+            if (gus->type > GUS_CLASSIC)
+                val = gus->jumper;
             else
-                val = 0x00;
+                val = 0xff;
             break;
 
         case 0x302:
@@ -842,6 +941,9 @@ gus_read(uint16_t addr, void *priv)
                 case 0x49: /*Sampling control*/
                     return 0;
 
+                case 0x4B: /*Joystick trim DAC*/
+                    return gus->joy_trim;
+
                 case 0x00:
                 case 0x01:
                 case 0x02:
@@ -867,10 +969,14 @@ gus_read(uint16_t addr, void *priv)
             break;
         case 0x306:
         case 0x706:
-            if (gus->type == GUS_MAX)
+            if (gus->type == GUS_CLASSIC_37)
+                val = 0x06; /* 3.7x - mixer, no reverse channels bug */
+            else if (gus->type == GUS_MAX)
                 val = 0x0a; /* GUS MAX */
+            else if (gus->type == GUS_ACE)
+                val = 0x30; /* GUS ACE */
             else
-                val = 0xff; /*Pre 3.7 - no mixer*/
+                val = 0xff; /* Pre 3.7 - no mixer */
             break;
 
         case 0x307: /*DRAM access*/
@@ -884,22 +990,24 @@ gus_read(uint16_t addr, void *priv)
             return 0;
 
         case 0x20b:
-            switch (gus->reg_ctrl & 0x07) {
-                case 1:
-                    val = gus->gp1;
-                    break;
-                case 2:
-                    val = gus->gp2;
-                    break;
-                case 3:
-                    val = gus->gp1_addr;
-                    break;
-                case 4:
-                    val = gus->gp2_addr;
-                    break;
+            if (gus->type > GUS_CLASSIC) {
+                switch (gus->reg_ctrl & 0x07) {
+                    case 1:
+                        val = gus->gp1;
+                        break;
+                    case 2:
+                        val = gus->gp2;
+                        break;
+                    case 3:
+                        val = gus->gp1_addr;
+                        break;
+                    case 4:
+                        val = gus->gp2_addr;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
             }
             break;
 
@@ -911,8 +1019,11 @@ gus_read(uint16_t addr, void *priv)
         case 0x20e:
             return gus->sb_2xe;
 
-        case 0x208:
         case 0x388:
+            if ((gus->type == GUS_ACE) && !device_get_config_int("adlib_ports"))
+                break;
+            fallthrough;
+        case 0x208:
             if (gus->tctrl & GUS_TIMER_CTRL_AUTO)
                 val = gus->sb_2xa;
             else {
@@ -927,9 +1038,11 @@ gus_read(uint16_t addr, void *priv)
 #ifdef OLD_NMI_BEHAVIOR
             nmi = 0;
 #endif /* OLD_NMI_BEHAVIOR */
-            fallthrough;
-        case 0x389:
             val = gus->ad_data;
+            break;
+        case 0x389:
+            if ((gus->type != GUS_ACE) || device_get_config_int("adlib_ports"))
+                val = gus->ad_data;
             break;
 
         case 0x20A:
@@ -1164,6 +1277,58 @@ gus_poll_wave(void *priv)
         gus_update_int_status(gus);
 }
 
+void
+gus_ics2101_filter(void *priv, int channel, double *out_l, double *out_r)
+{
+    ics2101_t *ics2101 = (ics2101_t *) priv;
+
+    double temp_l = 0.0;
+    double temp_r = 0.0;
+    double master_l = 0.0;
+    double master_r = 0.0;
+
+    uint8_t ctrl_l = ics2101->channels[channel].ctrl[0];
+    uint8_t ctrl_r = ics2101->channels[channel].ctrl[1];
+    if (!(ctrl_l & 0xC)) { /* Normal mode */
+        if (ctrl_l & 1)
+            temp_l += *out_l * ics2101->channels[channel].level[0];
+        if (ctrl_l & 2)
+            temp_r += *out_l * ics2101->channels[channel].level[0];
+        if (ctrl_r & 1)
+            temp_l += *out_r * ics2101->channels[channel].level[1];
+        if (ctrl_r & 2)
+            temp_r += *out_r * ics2101->channels[channel].level[1];
+    } else { /* Stereo or Balance/Pan mode */
+        if (ctrl_l & 2) { /* Mono/Pan */
+            temp_l = (*out_l + *out_r) * 0.5 * ics2101->channels[channel].level[(ctrl_l & 1)];
+            temp_r = (*out_r + *out_l) * 0.5 * ics2101->channels[channel].level[!(ctrl_l & 1)];
+        } else { /* Stereo/Balance */
+            temp_l = ((ctrl_l & 1) ? *out_l : *out_r) * ics2101->channels[channel].level[(ctrl_l & 1)];
+            temp_r = ((ctrl_l & 1) ? *out_r : *out_l) * ics2101->channels[channel].level[!(ctrl_l & 1)];
+        }
+    }
+
+    /* Master */
+    ctrl_l = ics2101->channels[GUS_ICS2101_MASTER].ctrl[0];
+    ctrl_r = ics2101->channels[GUS_ICS2101_MASTER].ctrl[1];
+    if (!(ctrl_l & 0xC)) { /* Normal mode */
+        if (ctrl_l & 1)
+            master_l += temp_l * ics2101->channels[GUS_ICS2101_MASTER].level[0];
+        if (ctrl_l & 2)
+            master_r += temp_l * ics2101->channels[GUS_ICS2101_MASTER].level[0];
+        if (ctrl_r & 1)
+            master_l += temp_r * ics2101->channels[GUS_ICS2101_MASTER].level[1];
+        if (ctrl_r & 2)
+            master_r += temp_r * ics2101->channels[GUS_ICS2101_MASTER].level[1];
+    } else { /* Stereo or Balance mode - no mono/pan for master */
+        master_l = ((ctrl_l & 1) ? temp_l : temp_r) * ics2101->channels[GUS_ICS2101_MASTER].level[(ctrl_l & 1)];
+        master_r = ((ctrl_l & 1) ? temp_r : temp_l) * ics2101->channels[GUS_ICS2101_MASTER].level[!(ctrl_l & 1)];
+    }
+
+    *out_l = master_l;
+    *out_r = master_r;
+}
+
 static void
 gus_get_buffer(int32_t *buffer, int len, void *priv)
 {
@@ -1173,17 +1338,43 @@ gus_get_buffer(int32_t *buffer, int len, void *priv)
         ad1848_update(&gus->ad1848);
 
     gus_update(gus);
-
-    for (int c = 0; c < len * 2; c++) {
-        if ((gus->type == GUS_MAX) && (gus->max_ctrl))
-            buffer[c] += (int32_t) (gus->ad1848.buffer[c] / 2);
-        buffer[c] += (int32_t) gus->buffer[c & 1][c >> 1];
+    for (int c = 0; c < len * 2; c += 2) {
+        double temp_l = 0.0;
+        double temp_r = 0.0;
+        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX)) {
+            temp_l = (double) gus->buffer[0][c >> 1];
+            temp_r = (double) gus->buffer[1][c >> 1];
+            if (gus->type == GUS_MAX) {
+                if (gus->max_ctrl) {
+                    buffer[c]     += (int32_t) (gus->ad1848.buffer[c] / 2);
+                    buffer[c + 1] += (int32_t) (gus->ad1848.buffer[c + 1] / 2);
+                }
+                ad1848_filter_channel(&gus->ad1848, AD1848_AUX1, &temp_l, &temp_r);
+            } else
+                gus_ics2101_filter(&gus->ics2101, GUS_ICS2101_GF1_OUT, &temp_l, &temp_r);
+            buffer[c]     += (int32_t) temp_l;
+            buffer[c + 1] += (int32_t) temp_r;
+        } else {
+            buffer[c]     += (int32_t) gus->buffer[0][c >> 1];
+            buffer[c + 1] += (int32_t) gus->buffer[1][c >> 1];
+        }
     }
 
     if ((gus->type == GUS_MAX) && (gus->max_ctrl))
         gus->ad1848.pos = 0;
 
     gus->pos = 0;
+}
+
+void
+gus_filter_cd_audio(int channel, double *buffer, void *priv)
+{
+    const gus_t *gus = (gus_t *) priv;
+    /* FIXME: No channel remapping possible with the current architecture */
+    if (gus->ics2101.channels[GUS_ICS2101_CD_IN].ctrl[channel] && gus->ics2101.channels[GUS_ICS2101_MASTER].ctrl[channel])
+        *buffer *= gus->ics2101.channels[GUS_ICS2101_CD_IN].level[channel] * gus->ics2101.channels[GUS_ICS2101_MASTER].level[channel];
+    else
+        *buffer *= 0.0;
 }
 
 static void
@@ -1292,6 +1483,7 @@ gus_reset(void *priv)
     gus->sb_ctrl = 0;
     gus->sb_nmi = 0;
 
+    gus->joy_trim = 29;
     gus->reg_ctrl = 0;
 
     gus->ad_status = 0;
@@ -1320,6 +1512,13 @@ gus_reset(void *priv)
     gus->irq_state = 0;
     gus->midi_irq_state = 0;
 
+    for (int i = 0; i < GUS_ICS2101_MAX; i++) {
+        gus->ics2101.channels[i].level[0] = gus->ics2101.channels[i].level[1] = 1.0;
+        gus->ics2101.channels[i].ctrl[0] = 1;
+        gus->ics2101.channels[i].ctrl[1] = 2;
+        gus->ics2101.channels[i].pan = 7;
+    }
+
     gus_update_int_status(gus);
 }
 
@@ -1328,6 +1527,7 @@ gus_init(UNUSED(const device_t *info))
 {
     int     c;
     double  out     = 1.0;
+    double  gain;
     uint8_t gus_ram = device_get_config_int("gus_ram");
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
@@ -1355,15 +1555,46 @@ gus_init(UNUSED(const device_t *info))
 
     gus->type = info->local;
 
+    gus->jumper = 0x06;
+
+    for (int i = 0; i < GUS_ICS2101_MAX; i++) {
+        gus->ics2101.channels[i].level[0] = gus->ics2101.channels[i].level[1] = 1.0;
+        gus->ics2101.channels[i].ctrl[0] = 1;
+        gus->ics2101.channels[i].ctrl[1] = 2;
+        gus->ics2101.channels[i].pan = 7;
+    }
+
     gus->base = device_get_config_hex16("base");
 
     io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
-    io_sethandler(0x0100 + gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    if (gus->type != GUS_ACE)
+        io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0102 + gus->base, 0x000e, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     io_sethandler(0x0506 + gus->base, 0x0001, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
     io_sethandler(0x0388, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    if (gus->type == GUS_CLASSIC && device_get_config_int("gameport"))
+        gus->gameport = gameport_add(&gameport_201_device);
+    else if (gus->type != GUS_ACE) {
+        gus->gameport = gameport_add(&gameport_pnp_1io_device);
+        gameport_remap(gus->gameport, 0x201);
+    }
+
+    if (gus->type == GUS_CLASSIC_37) {
+        /* Precalculate the attenuation table for ICS2101 */
+        for (int i = 0; i < 128; i++) {
+            gain = (127 - i) * -0.5;
+            if (i < 16)
+                for (int j = 0; j < (16 - i); j++)
+                    gain += -0.5 - 0.13603 * (j + 1);
+            ics2101_att[i] = pow(10.0, gain / 20.0);
+        }
+
+        sound_set_cd_audio_filter(gus_filter_cd_audio, gus);
+    }
 
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
+        ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
         ad1848_setirq(&gus->ad1848, 5);
         ad1848_setdma(&gus->ad1848, 3);
         io_sethandler(0x10C + gus->base, 4,
@@ -1376,7 +1607,7 @@ gus_init(UNUSED(const device_t *info))
 
     sound_add_handler(gus_get_buffer, gus);
 
-    if (device_get_config_int("receive_input"))
+    if ((gus->type != GUS_ACE) && (device_get_config_int("receive_input")))
         midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
 
     return gus;
@@ -1443,11 +1674,176 @@ static const device_config_t gus_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
+static const device_config_t gus_v37_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 0 },
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
+static const device_config_t gus_max_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
+static const device_config_t gus_ace_config[] = {
+    // clang-format off
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x260,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "210H", .value = 0x210 },
+            { .description = "220H", .value = 0x220 },
+            { .description = "230H", .value = 0x230 },
+            { .description = "240H", .value = 0x240 },
+            { .description = "250H", .value = 0x250 },
+            { .description = "260H", .value = 0x260 },
+            { NULL                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "adlib_ports",
+        .description    = "Enable Adlib ports",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
@@ -1471,6 +1867,20 @@ const device_t gus_device = {
     .config        = gus_config
 };
 
+const device_t gus_v37_device = {
+    .name          = "Gravis UltraSound (rev 3.7)",
+    .internal_name = "gusv37",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_CLASSIC_37,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_v37_config
+};
+
 const device_t gus_max_device = {
     .name          = "Gravis UltraSound MAX",
     .internal_name = "gusmax",
@@ -1482,5 +1892,19 @@ const device_t gus_max_device = {
     .available     = NULL,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
-    .config        = gus_config
+    .config        = gus_max_config
+};
+
+const device_t gus_ace_device = {
+    .name          = "Gravis UltraSound ACE",
+    .internal_name = "gusace",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_ACE,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_ace_config
 };

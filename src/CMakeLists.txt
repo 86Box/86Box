@@ -84,6 +84,10 @@ if(DEBUGREGS486)
     add_compile_definitions(USE_DEBUG_REGS_486)
 endif()
 
+if(SCREENSHOT_MODE)
+    add_compile_definitions(SCREENSHOT_MODE)
+endif()
+
 if(VNC)
     find_package(LibVNCServer)
     if(LibVNCServer_FOUND)
@@ -129,14 +133,6 @@ target_link_libraries(86Box
 
 if(HAIKU)
     target_link_libraries(86Box be)
-endif()
-
-if(WIN32 AND ARCH STREQUAL "i386")
-    if(MINGW)
-        target_link_options(86Box PRIVATE "LINKER:--large-address-aware")
-    else()
-        target_link_options(86Box PRIVATE "LINKER:/LARGEADDRESSAWARE")
-    endif()
 endif()
 
 if(STATIC_BUILD)

@@ -200,7 +200,11 @@ MainWindow::MainWindow(QWidget *parent)
     frameRateTimer->setInterval(1000);
     frameRateTimer->setSingleShot(false);
     connect(frameRateTimer, &QTimer::timeout, [hertz_label] {
-        hertz_label->setText(tr("%1 Hz").arg(QString::number(monitors[0].mon_actualrenderedframes.load()) + (monitors[0].mon_interlace ? "i" : "")));
+        auto hz = monitors[0].mon_actualrenderedframes.load();
+#ifdef SCREENSHOT_MODE
+        hz = ((hz + 2) / 5) * 5;
+#endif
+        hertz_label->setText(tr("%1 Hz").arg(QString::number(hz) + (monitors[0].mon_interlace ? "i" : "")));
     });
     statusBar()->addPermanentWidget(hertz_label);
     frameRateTimer->start(1000);

@@ -305,7 +305,8 @@ machine_at_portableiii_init(const machine_t *model)
 }
 
 int
-machine_at_grid1520_init(const machine_t *model) {
+machine_at_grid1520_init(const machine_t *model)
+{
     int ret = 0;
 
     ret = bios_load_linear("roms/machines/grid1520/grid1520_891025.rom",
@@ -329,7 +330,8 @@ machine_at_grid1520_init(const machine_t *model) {
 }
 
 int
-machine_at_mpfpc900_init(const machine_t *model) {
+machine_at_pc900_init(const machine_t *model)
+{
     int ret = 0;
 
     ret = bios_load_linear("roms/machines/pc900/mpf_pc900_v207a.bin",
@@ -734,6 +736,28 @@ machine_at_tg286m_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_px286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/px286/KENITEC.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    device_add(&neat_device);
+
+    return ret;
+}
+
 // TODO
 // Onboard Paradise PVGA1A-JK VGA Graphics
 // Data Technology Corporation DTC7187 RLL Controller (Optional)
@@ -810,28 +834,6 @@ machine_at_3302_init(const machine_t *model)
         device_add(machine_get_vid_device(machine));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    return ret;
-}
-
-int
-machine_at_px286_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/px286/KENITEC.BIN",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-    device_add(&neat_device);
 
     return ret;
 }

@@ -5,20 +5,12 @@
 
 ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
 
-ifeq ($(ARCH), $(filter $(ARCH), amd64 i386))
-	NDR=off
-	ifeq ($(ARCH),amd64)
-		TOOLCHAIN=cmake/flags-gcc-x86_64.cmake
-	else
-		TOOLCHAIN=cmake/flags-gcc-i686.cmake
-	endif
+ifeq ($(ARCH), $(filter $(ARCH), amd64))
+	NDR=off		
+	TOOLCHAIN=cmake/flags-gcc-x86_64.cmake
 else
 	NDR=on
-	ifeq ($(ARCH),armhf)
-		TOOLCHAIN=cmake/flags-gcc-armv7.cmake
-	else
-		TOOLCHAIN=cmake/flags-gcc-aarch64.cmake
-	endif
+	TOOLCHAIN=cmake/flags-gcc-aarch64.cmake
 endif
 
 %:

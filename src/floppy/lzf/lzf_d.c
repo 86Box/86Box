@@ -44,7 +44,7 @@
 #endif
 
 #if USE_REP_MOVSB /* small win on amd, big loss on intel */
-#if (__i386 || __amd64) && __GNUC__ >= 3
+#if (__amd64) && __GNUC__ >= 3
 # define lzf_movsb(dst, src, len)                \
    asm ("rep movsb"                              \
         : "=D" (dst), "=S" (src), "=c" (len)     \

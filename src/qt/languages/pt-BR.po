@@ -15,8 +15,8 @@ msgstr "O &teclado requer captura"
 msgid "&Right CTRL is left ALT"
 msgstr "CTR&L direito é o ALT esquerdo"
 
-msgid "&Hard Reset..."
-msgstr "&Reinicialização completa..."
+msgid "&Hard reset"
+msgstr "&Reinicialização completa"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+&Del"
@@ -50,6 +50,9 @@ msgstr "&Janela redimensionável"
 
 msgid "R&emember size && position"
 msgstr "&Lembrar tamanho e posição"
+
+msgid "Remember size && position"
+msgstr "Lembrar tamanho e posição"
 
 msgid "Re&nderer"
 msgstr "&Renderizador"
@@ -1073,6 +1076,12 @@ msgstr "Forçar desligamento"
 
 msgid "Start"
 msgstr "Iniciar"
+
+msgid "&Force shutdown"
+msgstr "&Forçar desligamento"
+
+msgid "&Start"
+msgstr "&Iniciar"
 
 msgid "Not running"
 msgstr "Parado"
@@ -2135,6 +2144,9 @@ msgstr "DMA baixo"
 
 msgid "Enable Game port"
 msgstr "Ativar a porta do jogo"
+
+msgid "Enable Adlib ports"
+msgstr "Ativar portas Adlib"
 
 msgid "SID Model"
 msgstr "Modelo do SID"
