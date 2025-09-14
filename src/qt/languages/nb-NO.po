@@ -15,8 +15,8 @@ msgstr "&Tastatur krever opptak"
 msgid "&Right CTRL is left ALT"
 msgstr "&Høyre CTRL er venstre ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Hard tilbakestilling..."
+msgid "&Hard reset"
+msgstr "&Hard tilbakestilling"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Justerbart vindu"
 
 msgid "R&emember size && position"
 msgstr "H&usk størrelse &og plassering"
+
+msgid "Remember size && position"
+msgstr "Husk størrelse og plassering"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -1073,6 +1076,12 @@ msgstr "Tvangsavslutt"
 
 msgid "Start"
 msgstr "Start"
+
+msgid "&Force shutdown"
+msgstr "&Tvangsavslutt"
+
+msgid "&Start"
+msgstr "&Start"
 
 msgid "Not running"
 msgstr "Ikke kjørende"
@@ -2135,6 +2144,9 @@ msgstr "Lav DMA"
 
 msgid "Enable Game port"
 msgstr "Aktiver spillport"
+
+msgid "Enable Adlib ports"
+msgstr "Aktiver Adlib-porter"
 
 msgid "SID Model"
 msgstr "SID-modell"

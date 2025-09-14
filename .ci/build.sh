@@ -600,8 +600,8 @@ then
 		cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
 	fi
 
-	# Enable Libserialport 
-		cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
+	# Enable libserialport.
+	cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
 
 	# Install dependencies only if we're in a new build and/or MacPorts prefix.
 	if check_buildtag "$(basename "$macports")"

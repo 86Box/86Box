@@ -425,6 +425,16 @@ VMManagerSystem::launchMainProcess() {
     QStringList args;
     args << "--vmpath" << config_dir;
     args << "--vmname" << displayName;
+    if (rom_path[0] != '\0')
+        args << "--rompath" << QString(rom_path);
+    if (global_cfg_overridden)
+        args << "--global" << QString(global_cfg_path);
+    if (!hook_enabled)
+        args << "--nohook";
+    if (start_in_fullscreen)
+        args << "--fullscreen";
+    if (!confirm_exit_cmdl)
+        args << "--noconfirm";
     process->setProgram(program);
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
@@ -481,6 +491,10 @@ VMManagerSystem::launchSettings() {
     QStringList open_command_args;
     QStringList args;
     args << "--vmpath" << config_dir << "--settings";
+    if (rom_path[0] != '\0')
+        args << "--rompath" << QString(rom_path);
+    if (global_cfg_overridden)
+        args << "--global" << QString(global_cfg_path);
     process->setProgram(program);
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
@@ -711,7 +725,7 @@ VMManagerSystem::setupVars() {
     }
 
     static auto floppy_match = QRegularExpression("fdd_\\d\\d_type", QRegularExpression::CaseInsensitiveOption);
-    static auto cdrom_match  = QRegularExpression("cdrom_\\d\\d_type", QRegularExpression::CaseInsensitiveOption);
+    static auto cdrom_match  = QRegularExpression("cdrom_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
     for(const auto& key: floppy_cdrom_config.keys()) {
         if(key.contains(floppy_match)) {
             // auto device_number = key.split("_").at(1);
@@ -727,22 +741,23 @@ VMManagerSystem::setupVars() {
         }
         if(key.contains(cdrom_match)) {
             auto device_number = key.split("_").at(1);
-            auto cdrom_internal_name = QString(floppy_cdrom_config[key]);
+            auto cdrom_parameters = QString(floppy_cdrom_config[key]);
+            auto cdrom_bus = cdrom_parameters.split(",").at(1).trimmed().toUpper();
+
+            auto cdrom_type_key = QString("cdrom_%1_type").arg(device_number);
+            auto cdrom_internal_name = QString(floppy_cdrom_config[cdrom_type_key]);
+            if (cdrom_internal_name.isEmpty())
+                cdrom_internal_name = "86cd";
             auto cdrom_type = cdrom_get_from_internal_name(cdrom_internal_name.toUtf8().data());
 
             auto cdrom_speed_key = QString("cdrom_%1_speed").arg(device_number);
-            auto cdrom_parameters_key = QString("cdrom_%1_parameters").arg(device_number);
             auto cdrom_speed = QString(floppy_cdrom_config[cdrom_speed_key]);
-            auto cdrom_parameters = QString(floppy_cdrom_config[cdrom_parameters_key]);
-            auto cdrom_bus = cdrom_parameters.split(",").at(1).trimmed().toUpper();
+            if (cdrom_speed.isEmpty())
+                cdrom_speed = "8";
 
-            if(cdrom_type != -1) {
-                if(!cdrom_speed.isEmpty()) {
-                    cdrom_speed = QString("%1x ").arg(cdrom_speed);
-                }
-                if(!cdrom_bus.isEmpty()) {
-                    cdrom_bus = QString(" (%1)").arg(cdrom_bus);
-                }
+            if ((cdrom_bus != "NONE") && (cdrom_type != -1)) {
+                cdrom_speed = QString("%1x ").arg(cdrom_speed);
+                cdrom_bus = QString(" (%1)").arg(cdrom_bus);
                 cdromDevices.append(QString("%1%2 %3 %4%5").arg(cdrom_speed, cdrom_drive_types[cdrom_type].vendor, cdrom_drive_types[cdrom_type].model, cdrom_drive_types[cdrom_type].revision, cdrom_bus));
             }
         }

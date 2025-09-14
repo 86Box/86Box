@@ -109,6 +109,53 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
         if (indexAt.isValid()) {
             QMenu contextMenu(tr("Context Menu"), ui->listView);
 
+            QAction startAction(tr("&Start"));
+            contextMenu.addAction(&startAction);
+            connect(&startAction, &QAction::triggered, [this] {
+                selected_sysconfig->startButtonPressed();
+            });
+            startAction.setEnabled(selected_sysconfig->process->state() == QProcess::NotRunning);
+            startAction.setVisible(selected_sysconfig->process->state() == QProcess::NotRunning);
+
+            QAction pauseAction(tr("&Pause"));
+            contextMenu.addAction(&pauseAction);
+            connect(&pauseAction, &QAction::triggered, [this] {
+                selected_sysconfig->pauseButtonPressed();
+            });
+            pauseAction.setEnabled(selected_sysconfig->process->state() == QProcess::Running);
+            pauseAction.setVisible(selected_sysconfig->process->state() == QProcess::Running);
+            if (selected_sysconfig->getProcessStatus() != VMManagerSystem::ProcessStatus::Running)
+                pauseAction.setText(tr("Re&sume"));
+
+            QAction resetAction(tr("&Hard reset"));
+            contextMenu.addAction(&resetAction);
+            connect(&resetAction, &QAction::triggered, [this] {
+                selected_sysconfig->restartButtonPressed();
+            });
+            resetAction.setEnabled(selected_sysconfig->process->state() == QProcess::Running);
+
+            QAction forceShutdownAction(tr("&Force shutdown"));
+            contextMenu.addAction(&forceShutdownAction);
+            connect(&forceShutdownAction, &QAction::triggered, [this] {
+                selected_sysconfig->shutdownForceButtonPressed();
+            });
+            forceShutdownAction.setEnabled(selected_sysconfig->process->state() == QProcess::Running);
+
+            QAction cadAction(tr("&Ctrl+Alt+Del"));
+            contextMenu.addAction(&cadAction);
+            connect(&cadAction, &QAction::triggered, [this] {
+                selected_sysconfig->cadButtonPressed();
+            });
+            cadAction.setEnabled(selected_sysconfig->process->state() == QProcess::Running);
+
+            contextMenu.addSeparator();
+
+            QAction settingsAction(tr("&Settings..."));
+            contextMenu.addAction(&settingsAction);
+            connect(&settingsAction, &QAction::triggered, [this] {
+                selected_sysconfig->launchSettings();
+            });
+
             QAction nameChangeAction(tr("Change &display name..."));
             contextMenu.addAction(&nameChangeAction);
             // Use a lambda to call a function so indexAt can be passed
@@ -343,7 +390,7 @@ illegal_chars:
         } else {
             QMenu contextMenu(tr("Context Menu"), ui->listView);
 
-            QAction newMachineAction(tr("New machine..."));
+            QAction newMachineAction(tr("&New machine..."));
             contextMenu.addAction(&newMachineAction);
             connect(&newMachineAction, &QAction::triggered, this, &VMManagerMain::newMachineWizard);
 
@@ -738,6 +785,18 @@ VMManagerMain::machineCountString(QString states) const
     states.append(tr("%1 total").arg(count));
 
     return tr("VMs: %1").arg(states);
+}
+
+QList<int>
+VMManagerMain::getPaneSizes() const
+{
+    return ui->splitter->sizes();
+}
+
+void
+VMManagerMain::setPaneSizes(const QList<int> &sizes)
+{
+    ui->splitter->setSizes(sizes);
 }
 
 void

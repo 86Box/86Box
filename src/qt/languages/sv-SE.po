@@ -15,8 +15,8 @@ msgstr "&Tangentbord behöver uppfångas"
 msgid "&Right CTRL is left ALT"
 msgstr "&Höger CTRL är vänster ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Hård omstart..."
+msgid "&Hard reset"
+msgstr "&Hård omstart"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Ändringsbar fönsterstorlek"
 
 msgid "R&emember size && position"
 msgstr "K&om ihåg storlek && position"
+
+msgid "Remember size && position"
+msgstr "Kom ihåg storlek && position"
 
 msgid "Re&nderer"
 msgstr "Re&nderare"
@@ -1073,6 +1076,12 @@ msgstr "Tvinga avstängning"
 
 msgid "Start"
 msgstr "Starta"
+
+msgid "&Force shutdown"
+msgstr "&Tvinga avstängning"
+
+msgid "&Start"
+msgstr "&Starta"
 
 msgid "Not running"
 msgstr "Körs ej"
@@ -2135,6 +2144,9 @@ msgstr "Låg DMA"
 
 msgid "Enable Game port"
 msgstr "Aktivera spelport"
+
+msgid "Enable Adlib ports"
+msgstr "Aktivera Adlib-portar"
 
 msgid "SID Model"
 msgstr "SID-modell"

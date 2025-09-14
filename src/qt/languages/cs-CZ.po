@@ -15,7 +15,7 @@ msgstr "&Klávesnice vyžaduje záběr myši"
 msgid "&Right CTRL is left ALT"
 msgstr "&Pravý Ctrl je levý Alt"
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr "&Resetovat"
 
 msgid "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Měnitelná velikost okna"
 
 msgid "R&emember size && position"
 msgstr "&Pamatovat velikost a pozici"
+
+msgid "Remember size && position"
+msgstr "Pamatovat velikost a pozici"
 
 msgid "Re&nderer"
 msgstr "&Renderer"
@@ -1073,6 +1076,12 @@ msgstr "Vynutit vypnutí"
 
 msgid "Start"
 msgstr "Spustit"
+
+msgid "&Force shutdown"
+msgstr "&Vynutit vypnutí"
+
+msgid "&Start"
+msgstr "&Spustit"
 
 msgid "Not running"
 msgstr "Neběží"
@@ -2136,6 +2145,9 @@ msgstr "Nízký DMA kanál"
 msgid "Enable Game port"
 msgstr "Povolit herní port"
 
+msgid "Enable Adlib ports"
+msgstr "Povolit porty Adlib"
+
 msgid "SID Model"
 msgstr "Model SID"
 
@@ -2968,16 +2980,16 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "Soubor EDID \"%ls\" je příliš velký."
 
 msgid "OpenGL input scale"
-msgstr "Vstupní měřítko OpenGL"
+msgstr "Měřítko vstupu OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "režim roztažení vstupu OpenGL"
+msgstr "Režim roztažení vstupu OpenGL"
 
 msgid "Color scheme"
 msgstr "Barevné schéma"
 
 msgid "Light"
-msgstr "Světlo"
+msgstr "Světlé"
 
 msgid "Dark"
-msgstr "Tmavá"
+msgstr "Tmavé"
