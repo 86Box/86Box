@@ -95,7 +95,7 @@ int reset_iso_files()
     scroll_offset = 0;
 
     file_count = 0;
-    memzero(files, sizeof(files));
+    memset(files, 0, sizeof(files));
 }
 
 static int endswith(char *s1, char *mask)
@@ -199,7 +199,7 @@ void draw_menu(SDL_Renderer *renderer, int selected)
 // ------------------- Disegna selezione file -------------------
 void draw_file_selector(SDL_Renderer *renderer,
                         char *title,
-                        char files[][256], int file_count,
+                        char files[][1024], int file_count,
                         int selected, int scroll_offset, int max_visible)
 {
     int x0 = (SCREEN_W - BOX_W) / 2;
@@ -477,7 +477,7 @@ int osd_handle(SDL_Event event)
 
                     case SDLK_RETURN:
                     case SDLK_KP_ENTER:
-                        char cmd[1024] = "";
+                        char cmd[1280] = "";
 
                         if (state == STATE_FILESELECT_FLOPPY)
                             sprintf(cmd, "fddload 0 %s 0", files[file_selected]);
