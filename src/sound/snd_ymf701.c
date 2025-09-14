@@ -185,8 +185,7 @@ ymf701_add_opl(ymf701_t *ymf701)
 static void
 ymf701_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    ymf701_t      *ymf701           = (ymf701_t *) priv;
-    static uint8_t reg_enable_phase = 0;
+    ymf701_t *ymf701 = (ymf701_t *) priv;
 
     if (ymf701->reg_enabled) {
         ymf701_log(ymf701->log, "Write with reg access enabled:\n");
