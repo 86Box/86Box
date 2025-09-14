@@ -353,10 +353,7 @@ int osd_handle(SDL_Event event)
             // debug: fprintf(stderr, "OSD HANDLE: escape\n");
             return 0;
         }
-    }
 
-    if (event.type == SDL_KEYDOWN)
-    {
         if (state == STATE_MENU)
         {
             switch (event.key.keysym.sym)
