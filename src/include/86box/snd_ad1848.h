@@ -70,7 +70,6 @@ typedef struct ad1848_t {
     uint64_t   timer_latch;
 
     pc_timer_t cs4231a_irq_timer;
-    uint8_t    is_opl3sa;
 
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
@@ -91,7 +90,6 @@ extern void ad1848_update(ad1848_t *ad1848);
 extern void ad1848_speed_changed(ad1848_t *ad1848);
 extern void ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void ad1848_filter_aux2(void* priv, double* out_l, double* out_r);
-extern void ad1848_is_opl3sa(ad1848_t *ad1848);
 
 extern void ad1848_init(ad1848_t *ad1848, uint8_t type);
 

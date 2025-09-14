@@ -447,7 +447,6 @@ ymf701_init(const device_t *info)
 
     sound_add_handler(ymf701_get_buffer, ymf701);
     music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
-    ad1848_is_opl3sa(&ymf701->ad1848);
     //sound_set_cd_audio_filter(sbpro_filter_cd_audio, ymf701->sb); /* CD audio filter for the default context */
     sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf701->ad1848);
 

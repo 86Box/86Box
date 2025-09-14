@@ -77,12 +77,6 @@ ad1848_setdma(ad1848_t *ad1848, int newdma)
 }
 
 void
-ad1848_is_opl3sa(ad1848_t *ad1848)
-{
-    ad1848->is_opl3sa = 1;
-}
-
-void
 ad1848_updatevolmask(ad1848_t *ad1848)
 {
     if ((ad1848->type == AD1848_TYPE_CS4236B) && !(ad1848->xregs[4] & 0x10) && !ad1848->wten)
@@ -524,8 +518,6 @@ readonly_x:
                 ad1848_updatefreq(ad1848);
 
             temp = (ad1848->type < AD1848_TYPE_CS4231) ? 2 : ((ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4);
-            if (ad1848->is_opl3sa)
-                temp = 2; /* OPL3-SA CODEC is CS4231-based but uses Aux1 for CD audio */
             if (ad1848->regs[temp] & 0x80)
                 ad1848->cd_vol_l = 0;
             else
