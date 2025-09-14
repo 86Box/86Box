@@ -33,7 +33,7 @@ static struct {
 void
 codegen_print_mmx(void)
 {
-    pclog("MMX results: %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX\n", cpu_state.MM[0].q, cpu_state.MM[1].q, cpu_state.MM[2].q, cpu_state.MM[3].q, cpu_state.MM[4].q, cpu_state.MM[5].q, cpu_state.MM[6].q, cpu_state.MM[7].q);
+    pclog("MMX results: %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX\n", (unsigned long long)cpu_state.MM[0].q, (unsigned long long)cpu_state.MM[1].q, (unsigned long long)cpu_state.MM[2].q, (unsigned long long)cpu_state.MM[3].q, (unsigned long long)cpu_state.MM[4].q, (unsigned long long)cpu_state.MM[5].q, (unsigned long long)cpu_state.MM[6].q, (unsigned long long)cpu_state.MM[7].q);
 }
 
 int
