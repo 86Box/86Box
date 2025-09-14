@@ -72,7 +72,7 @@ Collection of ROMs for use with 86Box.
 %autosetup -p1 -a1
 
 %build
-%ifarch i386 x86_64
+%ifarch x86_64
   %cmake -DRELEASE=on
 %else
   %ifarch arm aarch64

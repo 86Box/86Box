@@ -139,7 +139,7 @@ option(DISCORD      "Discord Rich Presence support"                             
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 
-if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
+if((ARCH STREQUAL "arm64"))
     set(NEW_DYNAREC ON)
 else()
     option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)

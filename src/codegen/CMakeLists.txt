@@ -10,9 +10,11 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #          Jasmine Iwanek, <jriwanek@gmail.com>
+#          Connor Hyde, <mario64crashed@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
 #          Copyright 2024      Jasmine Iwanek.
+#          Copyright 2025      Connor Hyde / starfrost
 #
 
 if(DYNAREC)
@@ -21,19 +23,15 @@ if(DYNAREC)
         codegen_ops.c
     )
 
-    if(ARCH STREQUAL "i386")
-        target_sources(dynarec PRIVATE
-            codegen_x86.c
-            codegen_accumulate_x86.c
-        )
-    elseif(ARCH STREQUAL "x86_64")
+
+    if(ARCH STREQUAL "x86_64")
         target_sources(dynarec PRIVATE
             codegen_x86-64.c
             codegen_accumulate_x86-64.c
         )
     else()
         message(SEND_ERROR
-            "Dynarec is incompatible with target platform ${ARCH}")
+            "Old dynarec is incompatible with target platform ${ARCH}")
     endif()
 
     target_link_libraries(86Box dynarec cgt)
