@@ -259,21 +259,6 @@ inital(void)
         }
     }
 
-    alSourceQueueBuffers(source[0], 4, buffers);
-    alSourceQueueBuffers(source[1], 4, buffers_music);
-    alSourceQueueBuffers(source[2], 4, buffers_wt);
-    alSourceQueueBuffers(source[3], 4, buffers_cd);
-    alSourceQueueBuffers(source[4], 4, buffers_fdd);
-    if (init_midi)
-        alSourceQueueBuffers(source[5], 4, buffers_midi);
-
-    alSourcePlay(source[0]);
-    alSourcePlay(source[1]);
-    alSourcePlay(source[2]);
-    alSourcePlay(source[3]);
-    alSourcePlay(source[4]);
-    if (init_midi)
-        alSourcePlay(source[5]);
     alSourceQueueBuffers(source[I_NORMAL], 4, buffers);
     alSourceQueueBuffers(source[I_MUSIC], 4, buffers_music);
     alSourceQueueBuffers(source[I_WT], 4, buffers_wt);
