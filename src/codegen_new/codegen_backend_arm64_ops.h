@@ -244,6 +244,7 @@ void host_arm64_USHR_V2D(codeblock_t *block, int dst_reg, int src_reg, int shift
 void host_arm64_ZIP1_V8B(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_ZIP1_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_ZIP1_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_ZIP1_V2D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_ZIP2_V8B(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_ZIP2_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_ZIP2_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);

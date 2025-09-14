@@ -208,6 +208,7 @@
 #    define OPCODE_ZIP1_V8B           (0x0e003800)
 #    define OPCODE_ZIP1_V4H           (0x0e403800)
 #    define OPCODE_ZIP1_V2S           (0x0e803800)
+#    define OPCODE_ZIP1_V2D           (0x4ec03800)
 #    define OPCODE_ZIP2_V8B           (0x0e007800)
 #    define OPCODE_ZIP2_V4H           (0x0e407800)
 #    define OPCODE_ZIP2_V2S           (0x0e807800)
@@ -1481,6 +1482,11 @@ void
 host_arm64_ZIP1_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_ZIP1_V2S | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_ZIP1_V2D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_ZIP1_V2D | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 void
 host_arm64_ZIP2_V8B(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
