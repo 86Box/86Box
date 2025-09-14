@@ -226,11 +226,11 @@
 
 #    define IMM_LOGICAL(imm)          ((imm) << 10)
 
-#    define BIT_TBxZ(bit)             ((((bit) &0x1f) << 19) | (((bit) &0x20) ? (1 << 31) : 0))
+#    define BIT_TBxZ(bit)             ((((bit) & 0x1f) << 19) | (((bit) & 0x20) ? (1 << 31) : 0))
 
 #    define OFFSET14(offset)          (((offset >> 2) << 5) & 0x0007ffe0)
 #    define OFFSET19(offset)          (((offset >> 2) << 5) & 0x00ffffe0)
-#    define OFFSET20(offset)          (((offset & 3) << 29) | ((((offset) &0x1fffff) >> 2) << 5))
+#    define OFFSET20(offset)          (((offset & 3) << 29) | ((((offset) & 0x1fffff) >> 2) << 5))
 #    define OFFSET26(offset)          ((offset >> 2) & 0x03ffffff)
 
 #    define OFFSET12_B(offset)        (offset << 10)
@@ -1227,7 +1227,8 @@ host_arm64_SQXTN_V8B_8H(codeblock_t *block, int dst_reg, int src_reg)
     codegen_addlong(block, OPCODE_SQXTN_V8B_8H | Rd(dst_reg) | Rn(src_reg));
 }
 
-void host_arm64_SQXTUN_V8B_8H(codeblock_t *block, int dst_reg, int src_reg)
+void
+host_arm64_SQXTUN_V8B_8H(codeblock_t *block, int dst_reg, int src_reg)
 {
     codegen_addlong(block, OPCODE_SQXTUN_V8B_8H | Rd(dst_reg) | Rn(src_reg));
 }

@@ -801,7 +801,8 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.tag[0] - (uintptr_t) &cpu_state);
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.tag[4] - (uintptr_t) &cpu_state);
     host_arm64_STR_IMM_W(block, REG_WZR, REG_CPUSTATE, (uintptr_t) &cpu_state.TOP - (uintptr_t) &cpu_state);
-    host_arm64_STRB_IMM(block, REG_WZR, REG_CPUSTATE, (uintptr_t) &cpu_state.ismmx - (uintptr_t) &cpu_state);
+    host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, 1);
+    host_arm64_STRB_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.ismmx - (uintptr_t) &cpu_state);
 
     return 0;
 }
