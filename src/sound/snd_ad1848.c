@@ -285,6 +285,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
     ad1848_t *ad1848 = (ad1848_t *) priv;
     uint8_t   temp = 0;
     uint8_t   updatefreq = 0;
+    double    i8_timebase = 0;
 
     switch (addr & 3) {
         case 0: /* Index */
@@ -342,6 +343,21 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 14:
                     ad1848->count = ad1848->regs[15] | (val << 8);
+                    break;
+
+                case 16:
+                    if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235)) {
+                        if (val & 0x40) {
+                            ad1848_log("Timer Enable\n");
+                            ad1848_log("Timer value: %04X\n", ((ad1848->regs[21] << 8) + (ad1848->regs[20])));
+                            i8_timebase = (ad1848->regs[8] & 1) ? 9.92 : 9.969;
+                            timer_set_delay_u64(&ad1848->cs4231a_irq_timer, (((ad1848->regs[21] << 8) + (ad1848->regs[20])) * i8_timebase * TIMER_USEC));
+                        }
+                        else {
+                            ad1848_log("Timer Disable\n");
+                            timer_disable(&ad1848->cs4231a_irq_timer);
+                        }
+                    }
                     break;
 
                 case 18 ... 19:
@@ -747,6 +763,16 @@ ad1848_poll(void *priv)
 }
 
 void
+cs4231a_irq_poll(void *priv)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+    ad1848_log("Firing timer IRQ\n");
+    picint(1 << ad1848->irq);
+    ad1848_log("Setting timer interrupt bit in I24\n");
+    ad1848->regs[24] |= 0x40;
+}
+
+void
 ad1848_set_cd_audio_channel(void *priv, int channel)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
@@ -910,4 +936,7 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
 
     if ((ad1848->type != AD1848_TYPE_DEFAULT) && (ad1848->type != AD1848_TYPE_CS4248))
         sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);
+
+    if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235))
+        timer_add(&ad1848->cs4231a_irq_timer, cs4231a_irq_poll, ad1848, 0);
 }
