@@ -155,18 +155,9 @@ row_allocate(uint8_t row_id, uint8_t set)
         mem_mapping_set_exec(&rows[row_id].mapping, rows[row_id].buf + rows[row_id].ram_base);
         mem_mapping_set_mask(&rows[row_id].mapping, rows[row_id].ram_mask);
         if ((rows[row_id].host_base == rows[row_id].ram_base) && (rows[row_id].host_size == rows[row_id].ram_size)) {
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
             mem_mapping_set_handler(&rows[row_id].mapping, mem_read_ram,mem_read_ramw,mem_read_raml,
                                     mem_write_ram,mem_write_ramw,mem_write_raml);
-#else
-            if (rows[row_id].buf == ram2) {
-                mem_mapping_set_handler(&rows[row_id].mapping, mem_read_ram_2gb,mem_read_ram_2gbw,mem_read_ram_2gbl,
-                                        mem_write_ram,mem_write_ramw,mem_write_raml);
-            } else {
-                mem_mapping_set_handler(&rows[row_id].mapping, mem_read_ram,mem_read_ramw,mem_read_raml,
-                                        mem_write_ram,mem_write_ramw,mem_write_raml);
-            }
-#endif
+
         } else {
             mem_mapping_set_handler(&rows[row_id].mapping, row_read, row_readw, row_readl,
                                     row_write, row_writew, row_writel);
@@ -268,10 +259,6 @@ row_init(const device_t *info)
     mem_mapping_disable(&ram_low_mapping);
     mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    if (mem_size > 1048576)
-        mem_mapping_disable(&ram_2gb_mapping);
-#endif
 
     for (uint32_t c = 0; c < pages_sz; c++) {
         pages[c].mem = page_ff;
@@ -303,12 +290,7 @@ row_init(const device_t *info)
         rows[i].ram_size -= rows[i].ram_base;
 
         rows[i].buf = ram;
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-        if (rows[i].ram_base >= (1 << 30)) {
-            rows[i].ram_base -= (1 << 30);
-            rows[i].buf = ram2;
-        }
-#endif
+
 
         rows[i].ram_mask = rows[i].ram_size - 1;
 

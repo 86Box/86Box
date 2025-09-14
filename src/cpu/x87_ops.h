@@ -22,15 +22,11 @@
  */
 #include <math.h>
 #include <fenv.h>
-#if defined(_MSC_VER) && !defined(__clang__)
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
+
+#if defined _M_X64 || defined __amd64__
 #        define X87_INLINE_ASM
-#    endif
-#else
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
-#        define X87_INLINE_ASM
-#    endif
 #endif
+
 
 #ifdef X87_INLINE_ASM
 #include <immintrin.h>
