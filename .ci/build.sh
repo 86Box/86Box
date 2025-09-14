@@ -325,9 +325,7 @@ echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 toolchain_prefix=flags-gcc
 is_mac && toolchain_prefix=llvm-macos
 case $arch in
-	32 | x86)	toolchain="$toolchain_prefix-i686";;
 	64 | x86_64*)	toolchain="$toolchain_prefix-x86_64";;
-	ARM32 | arm32)	toolchain="$toolchain_prefix-armv7";;
 	ARM64 | arm64)	toolchain="$toolchain_prefix-aarch64";;
 	*)		toolchain="$toolchain_prefix-$arch";;
 esac
@@ -600,8 +598,8 @@ then
 		cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
 	fi
 
-	# Enable Libserialport 
-		cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
+	# Enable libserialport.
+	cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
 
 	# Install dependencies only if we're in a new build and/or MacPorts prefix.
 	if check_buildtag "$(basename "$macports")"
@@ -670,9 +668,7 @@ then
 else
 	# Determine Debian architecture.
 	case $arch in
-		x86)	arch_deb="i386";;
 		x86_64)	arch_deb="amd64";;
-		arm32)	arch_deb="armhf";;
 		*)	arch_deb="$arch";;
 	esac
         grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
@@ -710,15 +706,12 @@ else
 
 	# Determine toolchain architecture triplet.
 	case $arch in
-		x86)	arch_triplet="i686-linux-gnu";;
-		arm32)	arch_triplet="arm-linux-gnueabihf";;
 		arm64)	arch_triplet="aarch64-linux-gnu";;
 		*)	arch_triplet="$arch-linux-gnu";;
 	esac
 
 	# Determine library directory name for this architecture.
 	case $arch in
-		x86)	libdir="i386-linux-gnu";;
 		*)	libdir="$arch_triplet";;
 	esac
 
@@ -791,9 +784,7 @@ rm -rf build
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
-	32 | x86)	cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
 	64 | x86_64*)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm -D NEW_DYNAREC=ON";;
 	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64 -D NEW_DYNAREC=ON";;
 	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
@@ -1185,8 +1176,6 @@ then
 else
 	# Determine AppImage runtime architecture.
 	case $arch in
-		x86)	arch_appimage="i686";;
-		arm32)	arch_appimage="armhf";;
 		arm64)	arch_appimage="aarch64";;
 		*)	arch_appimage="$arch";;
 	esac

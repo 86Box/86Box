@@ -15,8 +15,8 @@ msgstr "&Tipkovnica potrebuje zajem"
 msgid "&Right CTRL is left ALT"
 msgstr "&Desni CTRL je levi ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Ponovni zagon..."
+msgid "&Hard reset"
+msgstr "&Ponovni zagon"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "S&premenljiva velikost okna"
 
 msgid "R&emember size && position"
 msgstr "&Zapomni si velikost in položaj"
+
+msgid "Remember size && position"
+msgstr "Zapomni si velikost in položaj"
 
 msgid "Re&nderer"
 msgstr "&Upodabljanje"
@@ -1073,6 +1076,12 @@ msgstr "Prisilno prekini"
 
 msgid "Start"
 msgstr "Zaženi"
+
+msgid "&Force shutdown"
+msgstr "&Prisilno prekini"
+
+msgid "&Start"
+msgstr "&Zaženi"
 
 msgid "Not running"
 msgstr "Se ne izvaja"
@@ -2135,6 +2144,9 @@ msgstr "Nizki DMA"
 
 msgid "Enable Game port"
 msgstr "Omogočanje igralnih vrat"
+
+msgid "Enable Adlib ports"
+msgstr "Omogoči vrata Adlib"
 
 msgid "SID Model"
 msgstr "Model SID-a"

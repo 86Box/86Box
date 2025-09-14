@@ -830,6 +830,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 {
     svga_t *svga = &s3->svga;
 
+    s3_log("OUTB FIFO=%04x, val=%02x.\n", port, val);
     switch (port) {
         case 0x8148:
         case 0x82e8:
@@ -5025,12 +5026,13 @@ s3_updatemapping(s3_t *s3)
     if (s3->chip >= S3_86C928) {
         s3->linear_base = (svga->crtc[0x5a] << 16) | (svga->crtc[0x59] << 24);
 
-        if (s3->chip >= S3_86C928 && s3->chip <= S3_86C805) {
+        if (s3->chip <= S3_86C805) {
             if (s3->vlb)
                 s3->linear_base &= 0x03ffffff;
             else if (!s3->pci)
                 s3->linear_base &= 0x00ffffff;
         }
+
         if ((svga->crtc[0x58] & 0x10) || (s3->accel.advfunc_cntl & 0x10)) {
             /*Linear framebuffer*/
             mem_mapping_disable(&svga->mapping);
@@ -8806,6 +8808,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                 if ((s3->bpp == 0) && s3->color_16bit) {
                     s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00) && rd_mask;
+                    s3_log("CMD2: RDMASK16CHECK=%d, rdmask=%04x.\n", s3->accel.rd_mask_16bit_check, rd_mask);
                     if (s3->accel.rd_mask_16bit_check) {
                         if (s3->accel.cmd == 0x41b3) {
                             if (frgd_mix == 0) {
@@ -9210,6 +9213,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                 if ((s3->bpp == 0) && s3->color_16bit) {
                     s3->accel.rd_mask_16bit_check = ((rd_mask & 0xff00) != 0xff00) && rd_mask;
+                    s3_log("CMD6: RDMASK16CHECK=%d.\n", s3->accel.rd_mask_16bit_check);
                     if (s3->accel.rd_mask_16bit_check) {
                         if (!(clip_r & 0x400))
                             s3->accel.start = 1;
@@ -10263,8 +10267,10 @@ s3_reset(void *priv)
     s3_t *s3 = (s3_t *) priv;
 
     if (reset_state != NULL) {
-        s3->accel.multifunc[0xe] &= ~(0x200 | 0x10);
         s3_disable_handlers(s3);
+        s3->accel.multifunc[0xd] = 0xd000;
+        s3->accel.multifunc[0xe] = 0xe000;
+        s3_log("S3 reset done.\n");
         s3->force_busy = 0;
         s3->blitter_busy = 0;
         s3->fifo_read_idx = 0;
@@ -10273,7 +10279,8 @@ s3_reset(void *priv)
             reset_state->pci_slot = s3->pci_slot;
 
         *s3 = *reset_state;
-    }
+    } else
+        s3_log("NULL reset.\n");
 }
 
 static uint16_t
@@ -10774,6 +10781,7 @@ s3_init(const device_t *info)
             s3->id_ext        = stepping;
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
+            s3->accel.rd_mask = 0xff;
 
             svga->ramdac    = device_add(&sc11483_ramdac_device);
             s3->ramdac_type = SC1148X;
@@ -10795,6 +10803,7 @@ s3_init(const device_t *info)
             s3->id_ext        = stepping;
             s3->id_ext_pci    = 0;
             s3->packed_mmio   = 0;
+            s3->accel.rd_mask = 0xff;
 
             svga->ramdac    = device_add(&sc11483_ramdac_device);
             s3->ramdac_type = SC1148X;

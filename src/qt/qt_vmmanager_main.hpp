@@ -87,6 +87,9 @@ public slots:
     void onConfigUpdated(const QString &uuid);
     int  getActiveMachineCount();
 
+    QList<int> getPaneSizes() const;
+    void       setPaneSizes(const QList<int> &sizes);
+
 private:
     Ui::VMManagerMain *ui;
 

@@ -15,8 +15,8 @@ msgstr "&Klawiatura wymaga przechwytu myszy"
 msgid "&Right CTRL is left ALT"
 msgstr "Prawy C&TRL to lewy ALT"
 
-msgid "&Hard Reset..."
-msgstr "Twardy &reset..."
+msgid "&Hard reset"
+msgstr "Twardy &reset"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Okno o zmiennym rozmiarze"
 
 msgid "R&emember size && position"
 msgstr "P&amiętaj rozmiar i pozycję"
+
+msgid "Remember size && position"
+msgstr "Pamiętaj rozmiar i pozycję"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -1073,6 +1076,12 @@ msgstr "Wymuś zamknięcie"
 
 msgid "Start"
 msgstr "Uruchom"
+
+msgid "&Force shutdown"
+msgstr "&Wymuś zamknięcie"
+
+msgid "&Start"
+msgstr "&Uruchom"
 
 msgid "Not running"
 msgstr "Wyłączona"
@@ -2135,6 +2144,9 @@ msgstr "Niski poziom DMA"
 
 msgid "Enable Game port"
 msgstr "Włącz port gier"
+
+msgid "Enable Adlib ports"
+msgstr "Włącz porty Adlib"
 
 msgid "SID Model"
 msgstr "Model SID"

@@ -15,8 +15,8 @@ msgstr "鍵盤需要捕捉(&K)"
 msgid "&Right CTRL is left ALT"
 msgstr "將右 CTRL 鍵映射為左 ALT 鍵(&R)"
 
-msgid "&Hard Reset..."
-msgstr "硬重設(&H)..."
+msgid "&Hard reset"
+msgstr "硬重設(&H)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del(&C)"
@@ -50,6 +50,9 @@ msgstr "視窗大小可調(&R)"
 
 msgid "R&emember size && position"
 msgstr "記住視窗大小和位置(&E)"
+
+msgid "Remember size && position"
+msgstr "記住視窗大小和位置"
 
 msgid "Re&nderer"
 msgstr "渲染器(&N)"
@@ -1073,6 +1076,12 @@ msgstr "強制關機"
 
 msgid "Start"
 msgstr "開始"
+
+msgid "&Force shutdown"
+msgstr "強制關機(&F)"
+
+msgid "&Start"
+msgstr "開始(&S)"
 
 msgid "Not running"
 msgstr "未執行"
@@ -2135,6 +2144,9 @@ msgstr "低 DMA"
 
 msgid "Enable Game port"
 msgstr "啟用遊戲埠"
+
+msgid "Enable Adlib ports"
+msgstr "啟用 Adlib 連接埠"
 
 msgid "SID Model"
 msgstr "SID 型號"

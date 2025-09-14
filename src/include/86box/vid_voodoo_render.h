@@ -1,7 +1,7 @@
 #ifndef VIDEO_VOODOO_RENDER_H
 #define VIDEO_VOODOO_RENDER_H
 
-#if !(defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined __amd64__ || defined _M_X64)
+#if !(defined __amd64__ || defined _M_X64)
 #    define NO_CODEGEN
 #endif
 

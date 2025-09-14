@@ -974,13 +974,88 @@ machine_xt_micoms_xl7turbo_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pc500_config[] = {
+    // clang-format off
+    {
+        .name       = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc500_330",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "3.30",
+                .internal_name = "pc500_330",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/pc500/rom330.bin", "" }
+            },
+            {
+                .name          = "3.10",
+                .internal_name = "pc500_310",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/pc500/rom310.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc500_device = {
+    .name          = "Multitech PC-500",
+    .internal_name = "pc500_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pc500_config
+};
+
 int
 machine_xt_pc500_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret          = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_pc500plus_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/pc500/rom404.bin",
-                           0x000f8000, 32768, 0);
+                           0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
         return ret;

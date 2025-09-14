@@ -39,8 +39,8 @@
 static void *xaudio2_handle = NULL;
 static HRESULT(WINAPI *pXAudio2Create)(IXAudio2 **ppXAudio2, uint32_t Flags, XAUDIO2_PROCESSOR XAudio2Processor);
 static dllimp_t xaudio2_imports[] = {
-    {"XAudio2Create", &pXAudio2Create},
-    { NULL,           NULL           },
+    {"XAudio2Create", &pXAudio2Create },
+    { NULL,           NULL            },
 };
 #    define XAudio2Create pXAudio2Create
 #endif
@@ -119,22 +119,18 @@ void
 inital(void)
 {
 #if defined(_WIN32) && !defined(USE_FAUDIO)
-    if (xaudio2_handle == NULL) {
+    if (xaudio2_handle == NULL)
         xaudio2_handle = dynld_module("xaudio2_9.dll", xaudio2_imports);
-    }
 
-    if (xaudio2_handle == NULL) {
+    if (xaudio2_handle == NULL)
         xaudio2_handle = dynld_module("xaudio2_9redist.dll", xaudio2_imports);
-    }
 
-    if (xaudio2_handle == NULL) {
+    if (xaudio2_handle == NULL)
         return;
-    }
 #endif
 
-    if (XAudio2Create(&xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR)) {
+    if (XAudio2Create(&xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR))
         return;
-    }
 
     if (IXAudio2_CreateMasteringVoice(xaudio2, &mastervoice, 2, FREQ, 0, 0, NULL, 0)) {
         IXAudio2_Release(xaudio2);
@@ -209,6 +205,7 @@ closeal(void)
 {
     if (!initialized)
         return;
+
     initialized = 0;
     (void) IXAudio2SourceVoice_Stop(srcvoice, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoice);
@@ -229,9 +226,11 @@ closeal(void)
     IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
     IXAudio2_Release(xaudio2);
-    srcvoice = srcvoicecd = srcvoicemidi = NULL;
-    mastervoice                          = NULL;
-    xaudio2                              = NULL;
+    srcvoice     = NULL;
+    srcvoicecd   = NULL;
+    srcvoicemidi = NULL;
+    mastervoice  = NULL;
+    xaudio2      = NULL;
 
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     dynld_close(xaudio2_handle);

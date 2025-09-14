@@ -141,6 +141,7 @@ typedef struct svga_t {
     int render_line_offset;
     int start_retrace_latch;
     int vga_mode;
+    int half_pixel;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
