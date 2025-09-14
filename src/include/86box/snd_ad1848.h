@@ -78,6 +78,8 @@ typedef struct ad1848_t {
     pc_timer_t timer_count;
     uint64_t   timer_latch;
 
+    pc_timer_t cs4231a_irq_timer;
+
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 
