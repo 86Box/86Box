@@ -467,8 +467,10 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
-                for (uint8_t c = 0; c < 8; c++)
-                    buffer32->line[line][ef_x + (c << 1)] = buffer32->line[line][ef_x + (c << 1) + 1] = dat <<= 2;
+                for (uint8_t c = 0; c < 8; c++) {
+                    buffer32->line[line][ef_x + (c << 1)] = buffer32->line[line][ef_x + (c << 1) + 1] = cols[dat >> 14];
+                    dat <<= 2;
+                }
             }
             break;
         case 0x102: /*640x200x2*/
