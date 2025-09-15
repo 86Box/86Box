@@ -1484,10 +1484,6 @@ codegen_PACKUSWB(codeblock_t *block, uop_t *uop)
         host_arm64_INS_D(block, REG_V_TEMP, dest_reg, 0, 0);
         host_arm64_INS_D(block, REG_V_TEMP, src_reg_b, 1, 0);
         host_arm64_SQXTUN_V8B_8H(block, dest_reg, REG_V_TEMP);
-        //host_arm64_ADD_V4H(block, dest_reg, dest_reg, src_reg_b);
-        //host_arm64_SQXTUN_V8B_8H(block, REG_V_TEMP, src_reg_b);
-        //host_arm64_SQXTUN_V8B_8H(block, dest_reg, dest_reg);
-        //host_arm64_ZIP1_V2S(block, dest_reg, dest_reg, REG_V_TEMP);
     } else
         fatal("PACKUSWB %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
