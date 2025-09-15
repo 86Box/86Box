@@ -30,12 +30,6 @@ static struct {
     int      TOP;
 } codegen_instructions[MAX_INSTRUCTION_COUNT];
 
-void
-codegen_print_mmx(const char* str, uint32_t fetchdat)
-{
-    pclog("MMX results: %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX (%s, fetchdat 0x%08X)\n", (unsigned long long)cpu_state.MM[0].q, (unsigned long long)cpu_state.MM[1].q, (unsigned long long)cpu_state.MM[2].q, (unsigned long long)cpu_state.MM[3].q, (unsigned long long)cpu_state.MM[4].q, (unsigned long long)cpu_state.MM[5].q, (unsigned long long)cpu_state.MM[6].q, (unsigned long long)cpu_state.MM[7].q, str, fetchdat);
-}
-
 int
 codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP)
 {
@@ -746,12 +740,9 @@ codegen_skip:
     else
         uop_MOV_IMM(ir, IREG_pc, op_pc + pc_off);
     uop_MOV_IMM(ir, IREG_oldpc, old_pc);
-    if (op_32 != last_op_32)
-        uop_MOV_IMM(ir, IREG_op32, op_32);
-    if (op_ea_seg != last_op_ea_seg)
-        uop_MOV_PTR(ir, IREG_ea_seg, (void *) op_ea_seg);
-    if (op_ssegs != last_op_ssegs)
-        uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
+    uop_MOV_IMM(ir, IREG_op32, op_32);
+    uop_MOV_PTR(ir, IREG_ea_seg, (void *) op_ea_seg);
+    uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
     uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
     codegen_flags_changed = 0;
     codegen_mark_code_present(block, cs + cpu_state.pc, 8);
