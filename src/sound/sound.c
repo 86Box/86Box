@@ -160,6 +160,8 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_vibra16xv_device          },
     { &wss_device                   },
     { &ymf701_device                },
+    { &ymf718_device                },
+    { &ymf719_device                },
     /* MCA */
     { &adlib_mca_device             },
     { &ess_chipchat_16_mca_device   },
