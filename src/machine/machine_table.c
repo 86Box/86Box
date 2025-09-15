@@ -15352,7 +15352,7 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -15371,7 +15371,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &ymf715_onboard_device,
         .net_device = NULL
     },
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior.
