@@ -44,6 +44,7 @@ static void
 sc1502x_ramdac_bpp(sc1502x_ramdac_t *ramdac, svga_t *svga)
 {
     int oldbpp = svga->bpp;
+    //pclog("BPP Val=%02x, truecolortype=%02x.\n", ramdac->ctrl, ramdac->regs[0x10] & 0x01);
     if (ramdac->ctrl & 0x80) {
         if (ramdac->ctrl & 0x40) {
             svga->bpp = 16;
@@ -60,6 +61,7 @@ sc1502x_ramdac_bpp(sc1502x_ramdac_t *ramdac, svga_t *svga)
         } else
             svga->bpp = 8;
     }
+    //pclog("SVGA BPP=%d.\n", svga->bpp);
     if (oldbpp != svga->bpp)
         svga_recalctimings(svga);
 }
@@ -135,9 +137,11 @@ sc1502x_rs2_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *
     uint8_t rs = (addr & 0x03);
     rs |= ((!!rs2) << 2);
 
+    //pclog("RS=%02x, Write=%02x.\n", rs, val);
     switch (rs) {
         case 0x00:
             if (ramdac->ctrl & 0x10) {
+                //pclog("RAMDAC IDX=%02x, Write=%02x.\n", ramdac->idx, val);
                 switch (ramdac->idx) {
                     case 8:
                         ramdac->regs[8] = val;
