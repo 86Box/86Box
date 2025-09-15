@@ -16,7 +16,7 @@
 #include "codegen_ops_mmx_logic.h"
 #include "codegen_ops_helpers.h"
 
-extern void codegen_print_mmx(void);
+extern void codegen_print_mmx(const char* str);
 uint32_t
 ropPAND(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
@@ -37,6 +37,7 @@ ropPAND(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
         uop_AND(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);
     }
 
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }
@@ -60,6 +61,7 @@ ropPANDN(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         uop_ANDN(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);
     }
 
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }
@@ -83,6 +85,7 @@ ropPOR(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetch
         uop_OR(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);
     }
 
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }
@@ -106,6 +109,7 @@ ropPXOR(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
         uop_XOR(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);
     }
 
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }

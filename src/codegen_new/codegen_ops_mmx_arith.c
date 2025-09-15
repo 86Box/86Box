@@ -16,7 +16,7 @@
 #include "codegen_ops_mmx_arith.h"
 #include "codegen_ops_helpers.h"
 
-extern void codegen_print_mmx(void);
+extern void codegen_print_mmx(const char* str);
 
 #define ropParith(func)                                                                            \
     uint32_t rop##func(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode),                  \
@@ -39,6 +39,7 @@ extern void codegen_print_mmx(void);
             uop_##func(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);                    \
         }                                                                                          \
                                                                                                    \
+        uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);                                         \
         uop_CALL_FUNC(ir, codegen_print_mmx);                                                      \
         return op_pc + 1;                                                                          \
     }

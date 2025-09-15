@@ -31,9 +31,9 @@ static struct {
 } codegen_instructions[MAX_INSTRUCTION_COUNT];
 
 void
-codegen_print_mmx(void)
+codegen_print_mmx(const char* str)
 {
-    pclog("MMX results: %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX\n", (unsigned long long)cpu_state.MM[0].q, (unsigned long long)cpu_state.MM[1].q, (unsigned long long)cpu_state.MM[2].q, (unsigned long long)cpu_state.MM[3].q, (unsigned long long)cpu_state.MM[4].q, (unsigned long long)cpu_state.MM[5].q, (unsigned long long)cpu_state.MM[6].q, (unsigned long long)cpu_state.MM[7].q);
+    pclog("MMX results: %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX, %016llX (%s)\n", (unsigned long long)cpu_state.MM[0].q, (unsigned long long)cpu_state.MM[1].q, (unsigned long long)cpu_state.MM[2].q, (unsigned long long)cpu_state.MM[3].q, (unsigned long long)cpu_state.MM[4].q, (unsigned long long)cpu_state.MM[5].q, (unsigned long long)cpu_state.MM[6].q, (unsigned long long)cpu_state.MM[7].q, str);
 }
 
 int

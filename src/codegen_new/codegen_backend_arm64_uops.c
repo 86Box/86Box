@@ -850,28 +850,28 @@ codegen_LOAD_FUNC_ARG3(codeblock_t *block, uop_t *uop)
 static int
 codegen_LOAD_FUNC_ARG0_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG0, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG0, uop->imm_data);
 
     return 0;
 }
 static int
 codegen_LOAD_FUNC_ARG1_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG1, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG1, uop->imm_data);
 
     return 0;
 }
 static int
 codegen_LOAD_FUNC_ARG2_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG2, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG2, uop->imm_data);
 
     return 0;
 }
 static int
 codegen_LOAD_FUNC_ARG3_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG3, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG3, uop->imm_data);
 
     return 0;
 }
