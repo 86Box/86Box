@@ -72,6 +72,7 @@ void host_arm64_CSEL_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_
 void host_arm64_CSEL_VS(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 
 void host_arm64_DUP_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int element);
+void host_arm64_INS_D(codeblock_t *block, int dst_reg, int src_reg, int dst_index, int src_index);
 
 void host_arm64_EOR_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint32_t imm_data);
 void host_arm64_EOR_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift);

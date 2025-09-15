@@ -102,6 +102,10 @@
 #    define OPCODE_SUB_LSR            (0x25a << 21)
 #    define OPCODE_SUBX_LSL           (0x658 << 21)
 
+#    define OPCODE_INS_B              (0x6e010400)
+#    define OPCODE_INS_H              (0x6e020400)
+#    define OPCODE_INS_S              (0x6e040400)
+#    define OPCODE_INS_D              (0x6e080400)
 #    define OPCODE_ADD_V8B            (0x0e208400)
 #    define OPCODE_ADD_V4H            (0x0e608400)
 #    define OPCODE_ADD_V2S            (0x0ea08400)
@@ -180,7 +184,7 @@
 #    define OPCODE_SQSUB_V8B          (0x0e202c00)
 #    define OPCODE_SQSUB_V4H          (0x0e602c00)
 #    define OPCODE_SQXTN_V8B_8H       (0x0e214800)
-#    define OPCODE_SQXTUN_V8B_8H      (0x7e212800)
+#    define OPCODE_SQXTUN_V8B_8H      (0x2e212800)
 #    define OPCODE_SQXTN_V4H_4S       (0x0e614800)
 #    define OPCODE_SHL_VD             (0x0f005400)
 #    define OPCODE_SHL_VQ             (0x4f005400)
@@ -716,6 +720,12 @@ void
 host_arm64_DUP_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int element)
 {
     codegen_addlong(block, OPCODE_DUP_V2S | Rd(dst_reg) | Rn(src_n_reg) | DUP_ELEMENT(element));
+}
+
+void
+host_arm64_INS_D(codeblock_t *block, int dst_reg, int src_reg, int dst_index, int src_index)
+{
+    codegen_addlong(block, OPCODE_INS_D | Rd(dst_reg) | Rn(src_reg) | ((dst_index & 1) << 20) | ((src_index & 1) << 14));
 }
 
 void

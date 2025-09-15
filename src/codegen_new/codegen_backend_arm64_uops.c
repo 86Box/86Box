@@ -1449,7 +1449,8 @@ codegen_PACKSSWB(codeblock_t *block, uop_t *uop)
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
-        host_arm64_ZIP1_V2D(block, REG_V_TEMP, dest_reg, src_reg_b);
+        host_arm64_INS_D(block, REG_V_TEMP, dest_reg, 0, 0);
+        host_arm64_INS_D(block, REG_V_TEMP, src_reg_b, 1, 0);
         host_arm64_SQXTN_V8B_8H(block, dest_reg, REG_V_TEMP);
     } else
         fatal("PACKSSWB %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
@@ -1465,7 +1466,8 @@ codegen_PACKSSDW(codeblock_t *block, uop_t *uop)
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
-        host_arm64_ZIP1_V2D(block, REG_V_TEMP, dest_reg, src_reg_b);
+        host_arm64_INS_D(block, REG_V_TEMP, dest_reg, 0, 0);
+        host_arm64_INS_D(block, REG_V_TEMP, src_reg_b, 1, 0);
         host_arm64_SQXTN_V4H_4S(block, dest_reg, REG_V_TEMP);
     } else
         fatal("PACKSSDW %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
@@ -1479,8 +1481,13 @@ codegen_PACKUSWB(codeblock_t *block, uop_t *uop)
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real), src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
-        host_arm64_ZIP1_V2D(block, REG_V_TEMP, dest_reg, src_reg_b);
+        host_arm64_INS_D(block, REG_V_TEMP, dest_reg, 0, 0);
+        host_arm64_INS_D(block, REG_V_TEMP, src_reg_b, 1, 0);
         host_arm64_SQXTUN_V8B_8H(block, dest_reg, REG_V_TEMP);
+        //host_arm64_ADD_V4H(block, dest_reg, dest_reg, src_reg_b);
+        //host_arm64_SQXTUN_V8B_8H(block, REG_V_TEMP, src_reg_b);
+        //host_arm64_SQXTUN_V8B_8H(block, dest_reg, dest_reg);
+        //host_arm64_ZIP1_V2S(block, dest_reg, dest_reg, REG_V_TEMP);
     } else
         fatal("PACKUSWB %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 

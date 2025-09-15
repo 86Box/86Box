@@ -16,7 +16,7 @@
 #include "codegen_ops_mmx_loadstore.h"
 #include "codegen_ops_helpers.h"
 
-extern void codegen_print_mmx(const char* str);
+extern void codegen_print_mmx(const char* str, uint32_t fetchdat);
 
 uint32_t
 ropMOVD_r_d(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
@@ -39,6 +39,7 @@ ropMOVD_r_d(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
     }
 
     uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
+    uop_LOAD_FUNC_ARG_IMM(ir, 1, fetchdat);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }
@@ -67,6 +68,7 @@ ropMOVD_d_r(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
     }
 
     uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
+    uop_LOAD_FUNC_ARG_IMM(ir, 1, fetchdat);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }
@@ -91,6 +93,7 @@ ropMOVQ_r_q(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
     }
 
     uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
+    uop_LOAD_FUNC_ARG_IMM(ir, 1, fetchdat);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }
@@ -116,6 +119,7 @@ ropMOVQ_q_r(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t 
     }
 
     uop_LOAD_FUNC_ARG_IMM(ir, 0, (uintptr_t)__func__);
+    uop_LOAD_FUNC_ARG_IMM(ir, 1, fetchdat);
     uop_CALL_FUNC(ir, codegen_print_mmx);
     return op_pc + 1;
 }
