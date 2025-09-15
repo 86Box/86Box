@@ -29,4 +29,14 @@ These are the steps to install a machine fully dedicated to 86Box and tuned to m
 - 86Box will complain to be unable to find readline, this is fine, we don't need the command line at all
 - ALSOFT will complain it can't connect to PipeWire, no problem, sounds will come from standard ALSA
 
+8) additional steps
+	add a new udev rule to automount any USB key to a known location so files in it can be listed in the OSD floppy/cd mount options
+
+	create /etc/udev/rules.d/99-automount.rules
+
+	with:
+	ACTION=="add", ENV{ID_BUS}=="usb", ENV{ID_TYPE}=="disk", ENV{ID_FS_TYPE}=="exfat", RUN+="/usr/bin/systemd-mount --no-block --automount=yes --collect /dev/%k '/mnt'"
+
+	replicate this line for each filesystem you expect the usb key to be formatted, in this example "exfat"
+	this is going to conflict if multiple keys are inserted, don't do it
 
