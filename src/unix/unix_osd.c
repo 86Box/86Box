@@ -48,7 +48,10 @@ static SDL_Texture *font_texture = NULL;
 typedef enum {
     STATE_MENU,
     STATE_FILESELECT_FLOPPY,
-    STATE_FILESELECT_CD
+    STATE_FILESELECT_CD,
+    STATE_FILESELECT_RDISK,
+    STATE_FILESELECT_CART,
+    STATE_FILESELECT_MO
 } AppState;
 
 static const char *menu_items[] = {
@@ -63,7 +66,7 @@ static const char *menu_items[] = {
     "carteject - eject cartridge",
     "moeject - eject image from MO drive",
     "hardreset - hard reset the emulated system",
-    "pause - pause the the emulated system",
+    // "pause - pause the the emulated system",
     "fullscreen - toggle fullscreen",
     "version - print version and license information",
     "exit - exit 86Box",
@@ -335,6 +338,16 @@ void osd_present()
     else if (state == STATE_FILESELECT_CD) {
         draw_file_selector(sdl_render, "SELECT CD ISO IMAGE", files, file_count, file_selected, scroll_offset, max_visible);
     }
+    else if (state == STATE_FILESELECT_RDISK) {
+        draw_file_selector(sdl_render, "SELECT REMOVABLE DISK IMAGE", files, file_count, file_selected, scroll_offset, max_visible);
+    }
+    else if (state == STATE_FILESELECT_CART) {
+        draw_file_selector(sdl_render, "SELECT CARTRIDGE IMAGE", files, file_count, file_selected, scroll_offset, max_visible);
+    }
+    else if (state == STATE_FILESELECT_MO) {
+        draw_file_selector(sdl_render, "SELECT MO IMAGE", files, file_count, file_selected, scroll_offset, max_visible);
+    }
+
 
 #ifndef OSD_INSIDE_MAIN_LOOP
     SDL_UnlockMutex(sdl_mutex);
@@ -388,14 +401,26 @@ int osd_handle(SDL_Event event)
 
                         case 2 : // "rdiskload - Load removable disk image",
                             reset_iso_files();
+                            file_count = load_iso_files(".", files, 100, ".img");
+                            file_count = load_iso_files("/mnt", files, 100, ".img");
+                            file_count = load_iso_files("/mnt/usbkey", files, 100, ".img");
+                            state = STATE_FILESELECT_RDISK;
                             break;
 
                         case 3 : // "cartload - Load cartridge image",
                             reset_iso_files();
+                            file_count = load_iso_files(".", files, 100, ".img");
+                            file_count = load_iso_files("/mnt", files, 100, ".img");
+                            file_count = load_iso_files("/mnt/usbkey", files, 100, ".img");
+                            state = STATE_FILESELECT_CART;
                             break;
 
                         case 4 : // "moload - Load MO image",
                             reset_iso_files();
+                            file_count = load_iso_files(".", files, 100, ".img");
+                            file_count = load_iso_files("/mnt", files, 100, ".img");
+                            file_count = load_iso_files("/mnt/usbkey", files, 100, ".img");
+                            state = STATE_FILESELECT_MO;
                             break;
 
                         case 5 : // "fddeject - eject disk from floppy drive",
@@ -422,30 +447,32 @@ int osd_handle(SDL_Event event)
                             osd_cmd_run("hardreset");
                             return 0;
 
+                        /* better not pause ourself, we will be unable to get out of it
                         case 11 : // "pause - pause the the emulated system",
                             osd_cmd_run("pause");
                             return 0;
+                        */
 
-                        case 12 : // "fullscreen - toggle fullscreen",
+                        case 11 : // "fullscreen - toggle fullscreen",
                             osd_cmd_run("fullscreen");
                             return 0;
 
-                        case 13 : // "version - print version and license information",
+                        case 12 : // "version - print version and license information",
                             osd_cmd_run("version");
                             return 0;
 
-                        case 14 : // "exit - exit 86Box",
+                        case 13 : // "exit - exit 86Box",
                             osd_cmd_run("exit");
                             return 0;
 
-                        case 15 : // "close OSD"
+                        case 14 : // "close OSD"
                             // return zero does directly close the OSD
                             return 0;
                     }
                     break;
             }
         }
-        else if (state == STATE_FILESELECT_FLOPPY || state == STATE_FILESELECT_CD)
+        else if (state == STATE_FILESELECT_FLOPPY || state == STATE_FILESELECT_CD || state == STATE_FILESELECT_RDISK || state == STATE_FILESELECT_CART || state == STATE_FILESELECT_MO)
         {
             if (file_count == 0)
             {
@@ -476,15 +503,23 @@ int osd_handle(SDL_Event event)
 
                     case SDLK_RETURN:
                     case SDLK_KP_ENTER:
+                    {
                         char cmd[1280] = "";
 
                         if (state == STATE_FILESELECT_FLOPPY)
                             sprintf(cmd, "fddload 0 %s 0", files[file_selected]);
                         if (state == STATE_FILESELECT_CD)
                             sprintf(cmd, "cdload 0 %s", files[file_selected]);
+                        if (state == STATE_FILESELECT_RDISK)
+                            sprintf(cmd, "rdiskload 0 %s 0", files[file_selected]);
+                        if (state == STATE_FILESELECT_CART)
+                            sprintf(cmd, "cartload 0 %s 0", files[file_selected]);
+                        if (state == STATE_FILESELECT_MO)
+                            sprintf(cmd, "moload 0 %s 0", files[file_selected]);
 
                         unix_executeLine(cmd);
                         state = STATE_MENU;
+                    }
                         return 0;
 
                     case SDLK_ESCAPE:
