@@ -740,9 +740,12 @@ codegen_skip:
     else
         uop_MOV_IMM(ir, IREG_pc, op_pc + pc_off);
     uop_MOV_IMM(ir, IREG_oldpc, old_pc);
-    uop_MOV_IMM(ir, IREG_op32, op_32);
-    uop_MOV_PTR(ir, IREG_ea_seg, (void *) op_ea_seg);
-    uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
+    if (op_32 != last_op_32)
+        uop_MOV_IMM(ir, IREG_op32, op_32);
+    if (op_ea_seg != last_op_ea_seg)
+        uop_MOV_PTR(ir, IREG_ea_seg, (void *) op_ea_seg);
+    if (op_ssegs != last_op_ssegs)
+        uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
     uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
     codegen_flags_changed = 0;
     codegen_mark_code_present(block, cs + cpu_state.pc, 8);
