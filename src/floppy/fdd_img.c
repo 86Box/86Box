@@ -13,8 +13,6 @@
  *          re-merged with the other files. Much of it is generic to
  *          all formats.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

@@ -22,7 +22,6 @@
  *
  *          Copyright 2024-2025 Akamaki.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -96,20 +95,20 @@
 #define DA2_POSID_L 0xfe
 /*
      [Identification]
-    POS ID	SYS ID
-    EFFFh	*		Display Adapter (PS/55 Model 5571-S0A) [Toledo]
-    E013h	*		Layout Display Terminal (PS/55-5571 RPQ model) [LDT]
-    EFFEh	*		Display Adapter II (I/O 3E0:0A = xx0x xxxx) [Atlas]
-    |-		FFF2h	Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5530Z-SX)
-    |-		FDFEh	Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5550-V2)
-    |-		*		Display Adapter III,V (I/O 3E0:0A = xx1x xxxx)
-    ECECh	FF4Fh	Display Adapter B1 (PS/55 Model 5531Z-SX) [Atlas-KENT]
-    |-		*		Display Adapter IV
-    ECCEh	*		Display Adapter IV
-    901Fh	*		Display Adapter A2
-    901Dh	*		Display Adapter A1 [Atlas II]
-    901Eh	*		Plasma Display Adapter
-    EFD8h	*		Display Adapter/J [Atlas-SP2]
+    POS ID  SYS ID
+    EFFFh   *       Display Adapter (PS/55 Model 5571-S0A) [Toledo]
+    E013h   *       Layout Display Terminal (PS/55-5571 RPQ model) [LDT]
+    EFFEh   *       Display Adapter II (I/O 3E0:0A = xx0x xxxx) [Atlas]
+    |-      FFF2h   Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5530Z-SX)
+    |-      FDFEh   Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5550-V2)
+    |-      *       Display Adapter III,V (I/O 3E0:0A = xx1x xxxx)
+    ECECh   FF4Fh   Display Adapter B1 (PS/55 Model 5531Z-SX) [Atlas-KENT]
+    |-      *       Display Adapter IV
+    ECCEh   *       Display Adapter IV
+    901Fh   *       Display Adapter A2
+    901Dh   *       Display Adapter A1 [Atlas II]
+    901Eh   *       Plasma Display Adapter
+    EFD8h   *       Display Adapter/J [Atlas-SP2]
 
      [Japanese DOS and Display Adapter compatibility]
     |            |                             | 5605JBK | 5605PAA | 5605PCA | 5605PDE | 5605PAW | 5605PXB |

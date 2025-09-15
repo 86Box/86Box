@@ -8,8 +8,6 @@
  *
  *          Implementation of the ETEQ Cheetah ET6000 chipset.
  *
- *
- *
  * Authors: Tiseno100
  *
  *          Copyright 2021 Tiseno100

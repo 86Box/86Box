@@ -9,8 +9,6 @@
  *          Emulation of the Brooktree BT484-485A true colour RAMDAC
  *          family.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          TheCollector1995,
  *

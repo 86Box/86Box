@@ -11,8 +11,6 @@
  *            - SMC/WD 8013EBT (ISA 16-bit);
  *            - SMC/WD 8013EP/A (MCA).
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          Miran Grca, <mgrca8@gmail.com>

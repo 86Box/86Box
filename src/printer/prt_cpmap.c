@@ -6,8 +6,6 @@
  *
  *          Various ASCII to Unicode maps, for the various codepages.
  *
- *
- *
  * Authors: Michael Drüing, <michael@drueing.de>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

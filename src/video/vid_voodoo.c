@@ -8,8 +8,6 @@
  *
  *          Voodoo Graphics, 2, Banshee, 3 emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          leilei
  *

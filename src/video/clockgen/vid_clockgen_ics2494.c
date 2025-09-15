@@ -10,8 +10,6 @@
  *
  *          Used by the AMI S3 924.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.

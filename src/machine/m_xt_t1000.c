@@ -51,8 +51,6 @@
  * NOTE:    Still need to figure out a way to load/save ConfigSys and
  *          HardRAM stuff. Needs to be linked in to the NVR code.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          John Elliott, <jce@seasip.info>

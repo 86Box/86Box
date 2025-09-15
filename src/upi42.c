@@ -8,8 +8,6 @@
  *
  *          Intel UPI-42/MCS-48 microcontroller emulation.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.

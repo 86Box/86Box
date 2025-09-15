@@ -8,8 +8,6 @@
  *
  *          Sigma Color 400 emulation.
  *
- *
- *
  * Authors: John Elliott,
  *
  *          Copyright 2018 John Elliott.

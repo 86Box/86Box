@@ -8,8 +8,6 @@
  *
  *          Implementation of the Intel PCISet chips from 420TX to 440GX.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2019-2020 Miran Grca.

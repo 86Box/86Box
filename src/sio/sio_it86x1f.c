@@ -8,8 +8,6 @@
  *
  *          Emulation of the ITE IT86x1F Super I/O chips.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2023 RichardG.

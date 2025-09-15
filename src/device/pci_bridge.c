@@ -8,13 +8,10 @@
  *
  *          Implementation of PCI-PCI and host-AGP bridges.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

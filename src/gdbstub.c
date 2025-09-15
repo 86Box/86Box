@@ -8,8 +8,6 @@
  *
  *          GDB stub server for remote debugging.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.

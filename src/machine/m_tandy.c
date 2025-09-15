@@ -8,8 +8,6 @@
  *
  *          Emulation of Tandy models 1000, 1000HX and 1000SL2.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *

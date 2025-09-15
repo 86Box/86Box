@@ -41,8 +41,6 @@
  *          Since all controllers (including the ones made by DTC) use
  *          (mostly) the same API, we keep them all in this module.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *

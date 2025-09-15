@@ -8,8 +8,6 @@
  *
  *          Driver for the ESDI controller (WD1007-vse1) for PC/AT.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

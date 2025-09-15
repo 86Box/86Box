@@ -9,8 +9,6 @@
  *          Implementation of the Tekram DC-390 SCSI and related MCA
  *          controllers using the NCR 53c9x series of chips.
  *
- *
- *
  * Authors: Fabrice Bellard (QEMU)
  *          Herve Poussineau (QEMU)
  *          TheCollector1995, <mariogplayer@gmail.com>

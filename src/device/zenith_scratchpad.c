@@ -9,8 +9,6 @@
  *          Emulation of various Zenith PC compatible machines.
  *          Currently only the Zenith Data Systems Supersport is emulated.
  *
- *
- *
  * Authors: Tux,
  *          Miran Grca, <mgrca8@gmail.com>
  *          TheCollector1995, <mariogplayer@gmail.com>

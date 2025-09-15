@@ -8,8 +8,6 @@
  *
  *          Implementation of the VLSI VL82c480 chipset.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.

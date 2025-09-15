@@ -8,8 +8,6 @@
  *
  *          Yamaha YMF-71x (OPL3-SA2/3) audio controller emulation.
  *
- *
- *
  * Authors: Cacodemon345
  *          Eluan Costa Miranda <eluancm@gmail.com>
  *          win2kgamer
@@ -18,7 +16,6 @@
  *          Copyright 2020 Eluan Costa Miranda.
  *          Copyright 2025 win2kgamer
  */
-
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -118,11 +115,11 @@ typedef struct ymf71x_t {
     uint8_t index;
     uint8_t regs[0x20];
     uint8_t max_reg;
-    double master_l;
-    double master_r;
+    double  master_l;
+    double  master_r;
 
-    void    *pnp_card;
-    uint8_t pnp_rom[512];
+    void                   *pnp_card;
+    uint8_t                 pnp_rom[512];
     uint8_t                 key_pos : 5;
     uint8_t                 configidx;
     uint8_t                 ramwrite_enable;
@@ -176,8 +173,8 @@ static uint8_t
 ymf71x_wss_read(uint16_t addr, void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
-    uint8_t ret = 0x00;
-    uint8_t port = addr - ymf71x->cur_wss_addr;
+    uint8_t   ret = 0x00;
+    uint8_t   port = addr - ymf71x->cur_wss_addr;
 
     switch (port) {
         case 0:
@@ -227,7 +224,7 @@ static void
 ymf71x_wss_write(uint16_t addr, uint8_t val, void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
-    uint8_t port = addr - ymf71x->cur_wss_addr;
+    uint8_t   port   = addr - ymf71x->cur_wss_addr;
 
     ymf71x_log(ymf71x->log, "WSS Write: addr = %02X, val = %02X\n", addr, val);
     switch (port) {
@@ -257,7 +254,7 @@ ymf71x_update_mastervol(void *priv)
 static void
 ymf71x_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    ymf71x_t      *ymf71x           = (ymf71x_t *) priv;
+    ymf71x_t *ymf71x = (ymf71x_t *) priv;
     uint8_t   port   = addr - ymf71x->cur_ctrl_addr;
 
     switch (port) {
@@ -528,11 +525,11 @@ ymf71x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 void
 ymf71x_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    ymf71x_t *ymf71x = (ymf71x_t *) priv;
+    ymf71x_t    *ymf71x = (ymf71x_t *) priv;
     const double cd_vol = channel ? ymf71x->ad1848.cd_vol_r : ymf71x->ad1848.cd_vol_l;
-    double master = channel ? ymf71x->master_r : ymf71x->master_l;
-    double c      = ((*buffer  * cd_vol / 3.0) * master) / 65536.0;
-    double bass_treble;
+    double       master = channel ? ymf71x->master_r : ymf71x->master_l;
+    double       c      = ((*buffer  * cd_vol / 3.0) * master) / 65536.0;
+    double       bass_treble;
 
     if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
         bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
@@ -565,7 +562,7 @@ static void
 ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
-    double bass_treble;
+    double    bass_treble;
 
     /* Don't play audio if the FM DAC or OPL3 digital sections are powered down */
     if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x10)) && (!(ymf71x->regs[0x13] & 0x10)) ) {

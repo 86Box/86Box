@@ -1,20 +1,20 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Roland MPU-401 emulation.
+ *          Roland MPU-401 emulation.
  *
- * Authors:  DOSBox Team,
- *           Miran Grca, <mgrca8@gmail.com>
- *           TheCollector1995, <mariogplayer@gmail.com>
+ * Authors: DOSBox Team,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
  *
- *           Copyright 2008-2024 DOSBox Team.
- *           Copyright 2016-2024 Miran Grca.
- *           Copyright 2016-2024 TheCollector1995.
+ *          Copyright 2008-2024 DOSBox Team.
+ *          Copyright 2016-2024 Miran Grca.
+ *          Copyright 2016-2024 TheCollector1995.
  */
 #include <inttypes.h>
 #include <stdarg.h>
