@@ -278,7 +278,7 @@ fdd_seek_complete_callback(void *priv)
 
     fdd_log("fdd_seek_complete_callback(drive=%d) - TIMER FIRED! seek_in_progress=1\n", drive->id);
     fdd_log("Notifying FDC of seek completion\n");
-
+    fdd_do_seek(drive->id, fdd[drive->id].track);
     fdc_seek_complete_interrupt(fdd_fdc, drive->id);
 }
 
@@ -313,13 +313,13 @@ fdd_seek(int drive, int track_diff)
     
     // Count actual seek time (6ms per track + 50ms base)
     // 80 tracks -> 50 + 6 * 80 = 530ms
-    uint64_t seek_time_us = (50000 + (abs(track_diff) * 6000)) * TIMER_USEC;
+    double   seek_ratio   = 80.0 / (double)drive_types[fdd[drive].type].max_track;
+    uint64_t seek_time_us = (50000 + (abs(actual_track_diff) * 6000 * seek_ratio)) * TIMER_USEC;
     if (!fdd_seek_timer[drive].callback) {
         timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
     }    
     
-    timer_set_delay_u64(&fdd_seek_timer[drive], seek_time_us);
-    fdd_do_seek(drive, fdd[drive].track);
+    timer_set_delay_u64(&fdd_seek_timer[drive], seek_time_us);    
 }
 
 int

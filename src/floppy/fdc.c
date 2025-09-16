@@ -675,16 +675,21 @@ fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
         return;
     }
 
+    if (FDC_FLAG_PCJR & fdc->flags) {
+        fdc->fintr     = 1;
+        fdc->interrupt = -4;
+        fdc_callback(fdc);
+        return;
+    }
+
     fdc_log("FDD %c: Seek complete interrupt\n", 0x41 + drive);
 
     fdc->fintr = 1;
     fdc->st0   = 0x20 | (drive & 3);
-
     if (fdd_get_head(drive))
         fdc->st0 |= 0x04;
 
     fdc_int(fdc, 1);
-
     fdc->stat = (fdc->stat & 0xf) | 0x80;
 }
 
@@ -1927,17 +1932,7 @@ fdc_callback(void *priv)
         case 0x0f: /*Seek*/
             fdc->st0  = 0x20 | (fdc->params[0] & 3);
             fdc->stat = 0x80 | (1 << fdc->rw_drive);
-            if (fdc->flags & FDC_FLAG_PCJR) {
-                fdc->fintr     = 1;
-                fdc->interrupt = -4;
-                timer_set_delay_u64(&fdc->timer, 1024 * TIMER_USEC);
-            } else {
-                fdc->interrupt = -3;
-                // 10 seconds before timeout -> error, Usually BIOS gets angry before this happens
-                // FDD does the seeking and calls callback when done
-                timer_set_delay_u64(&fdc->timer, 1024 * 1024 * 10 * TIMER_USEC);
-                // fdc_callback(fdc); // Immediate callback causes seek to be instant
-            }
+            // Interrupts and callbacks in the fdd callback function
             return;
         case 0x10: /*Version*/
         case 0x18: /*NSC*/
