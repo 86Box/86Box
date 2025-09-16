@@ -53,8 +53,6 @@
 
 #define YMF71X_NO_EEPROM 0x100
 
-#define ENABLE_YMF71X_LOG 1
-
 #ifdef ENABLE_YMF71X_LOG
 int ymf71x_do_log = ENABLE_YMF71X_LOG;
 
@@ -76,12 +74,6 @@ static const uint8_t ymf71x_init_key[32] = { 0xB1, 0xD8, 0x6C, 0x36, 0x9B, 0x4D,
                                              0x69, 0xB4, 0x5A, 0xAD, 0xD6, 0xEB, 0x75, 0xBA,
                                              0xDD, 0xEE, 0xF7, 0x7B, 0x3D, 0x9E, 0xCF, 0x67,
                                              0x33, 0x19, 0x8C, 0x46, 0xA3, 0x51, 0xA8, 0x54 };
-
-/* Attenuation values borrowed from snd_sb.c */
-//static const double sb_att_2dbstep_4bits[] = {
-//      164.0,  1304.0,  1641.0,  2067.0,  2602.0,  3276.0,  4125.0,  5192.0,
-//     6537.0,  8230.0, 10362.0, 13044.0, 16422.0, 20674.0, 26027.0, 32767.0
-//};
 
 /* Reversed attenuation values borrowed from snd_sb.c */
 /* YMF-71x master volume attenuation is -30dB when all bits are 1, 0dB when all bits are 0 */
@@ -108,7 +100,6 @@ typedef struct ymf71x_t {
     int   cur_wss_irq;
     int   cur_wss_dma;
     int   cur_mpu401_irq;
-    int   cur_mpu401_enabled;
     void *gameport;
 
     ad1848_t ad1848;
@@ -145,9 +136,7 @@ ymf71x_config_write(uint16_t addr, uint8_t val, void *priv)
             ymf71x->key_pos = 0x01;
         /* Check for YAMAHA Key */
         if (val == ymf71x_init_key[ymf71x->key_pos]) {
-            ymf71x_log(ymf71x->log, "Key position before inc: %02X\n", ymf71x->key_pos);
             ymf71x->key_pos++;
-            ymf71x_log(ymf71x->log, "Key position after inc: %02X\n", ymf71x->key_pos);
             if (!ymf71x->key_pos) {
                 ymf71x_log(ymf71x->log, "YMF71x: Config unlocked\n");
                 /* Force CSN to 0x81 */
@@ -220,7 +209,7 @@ ymf71x_wss_read(uint16_t addr, void *priv)
             ret = 0x04;
             break;
     }
-    ymf71x_log(ymf71x->log, "WSS Read: addr = %02X, val = %02X\n", addr, ret);
+    ymf71x_log(ymf71x->log, "WSS Read: addr = %02X, ret = %02X\n", addr, ret);
     return ret;
 
 }
@@ -257,7 +246,6 @@ ymf71x_reg_write(uint16_t addr, uint8_t val, void *priv)
                         ymf71x->regs[0x01] = val;
                         break;
                     case 0x02: /* System Control */
-                        /* TODO: Implement switchable SB DSP version */
                         ymf71x->regs[0x02] = val;
                         break;
                     case 0x03: /* Interrupt Channel Config */
@@ -367,7 +355,7 @@ ymf71x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
-    ymf71x_log(ymf71x->log, "PnP Config changed!\n");
+    ymf71x_log(ymf71x->log, "PnP Config changed\n");
 
     switch (ld) {
         case 0: /* WSS/OPL3/SBPro/MPU401/CTRL */
@@ -395,61 +383,47 @@ ymf71x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
                 io_removehandler(ymf71x->cur_ctrl_addr, 2, ymf71x_reg_read, NULL, NULL, ymf71x_reg_write, NULL, NULL, ymf71x);
             }
 
-            ymf71x_log(ymf71x->log, "Old I/O ports removed!\n");
-
             ad1848_setirq(&ymf71x->ad1848, 0);
             sb_dsp_setirq(&ymf71x->sb->dsp, 0);
 
             ad1848_setdma(&ymf71x->ad1848, 0);
             sb_dsp_setdma8(&ymf71x->sb->dsp, 0);
 
-            ymf71x_log(ymf71x->log, "Old IRQ/DMA removed!\n");
-
             if (config->activate) {
-                ymf71x_log(ymf71x->log, "config activate!\n");
                 if (config->io[0].base != ISAPNP_IO_DISABLED) {
                     ymf71x->cur_sb_addr = config->io[0].base;
-                    ymf71x_log(ymf71x->log, "Updating SB DSP I/O ports! SB Addr = %04X\n", ymf71x->cur_sb_addr);
+                    ymf71x_log(ymf71x->log, "Updating SB DSP I/O port, SB Addr = %04X\n", ymf71x->cur_sb_addr);
                     sb_dsp_setaddr(&ymf71x->sb->dsp, ymf71x->cur_sb_addr);
                     io_sethandler(ymf71x->cur_sb_addr, 4, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
                     io_sethandler(ymf71x->cur_sb_addr + 8, 2, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
                     io_sethandler(ymf71x->cur_sb_addr + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf71x->sb);
                 }
 
-                ymf71x_log(ymf71x->log, "Updated SB I/O ports!\n");
-
                 if (config->io[1].base != ISAPNP_IO_DISABLED) {
                     ymf71x->cur_wss_addr = config->io[1].base;
                     ymf71x->cur_wss_enabled = 1;
-                    ymf71x_log(ymf71x->log, "Updating WSS I/O ports! WSS Addr = %04X\n", ymf71x->cur_wss_addr);
+                    ymf71x_log(ymf71x->log, "Updating WSS I/O port, WSS Addr = %04X\n", ymf71x->cur_wss_addr);
                     io_sethandler(ymf71x->cur_wss_addr, 0x0004, ymf71x_wss_read, NULL, NULL, ymf71x_wss_write, NULL, NULL, ymf71x);
                     io_sethandler(ymf71x->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &ymf71x->ad1848);
                 }
 
-                ymf71x_log(ymf71x->log, "Updated WSS I/O ports!\n");
-
                 if (config->io[2].base != ISAPNP_IO_DISABLED) {
                     ymf71x->cur_opl_addr = config->io[2].base;
-                    ymf71x_log(ymf71x->log, "Updating OPL I/O ports! OPL Addr = %04X\n", ymf71x->cur_opl_addr);
+                    ymf71x_log(ymf71x->log, "Updating OPL I/O port, OPL Addr = %04X\n", ymf71x->cur_opl_addr);
                     io_sethandler(ymf71x->cur_opl_addr, 4, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
                 }
 
-                ymf71x_log(ymf71x->log, "Updated OPL I/O ports!\n");
-
                 if (config->io[3].base != ISAPNP_IO_DISABLED) {
                     ymf71x->cur_mpu401_addr = config->io[3].base;
-                    ymf71x_log(ymf71x->log, "Updating MPU401 I/O ports! MPU Addr = %04X\n", ymf71x->cur_mpu401_addr);
+                    ymf71x_log(ymf71x->log, "Updating MPU401 I/O port, MPU Addr = %04X\n", ymf71x->cur_mpu401_addr);
                     mpu401_change_addr(ymf71x->mpu, ymf71x->cur_mpu401_addr);
                 }
 
-                ymf71x_log(ymf71x->log, "Updated MPU401 I/O ports!\n");
-
                 if (config->io[4].base != ISAPNP_IO_DISABLED) {
                     ymf71x->cur_ctrl_addr = config->io[4].base;
+                    ymf71x_log(ymf71x->log, "Updating CTRL I/O port, CTRL Addr = %04X\n", ymf71x->cur_ctrl_addr);
                     io_sethandler(ymf71x->cur_ctrl_addr, 2, ymf71x_reg_read, NULL, NULL, ymf71x_reg_write, NULL, NULL, ymf71x);
                 }
-
-                ymf71x_log(ymf71x->log, "Updated CTRL I/O ports!\n");
 
                 if (config->irq[0].irq != ISAPNP_IRQ_DISABLED) {
                     if (ymf71x->regs[0x03] & 0x01) {
@@ -552,8 +526,6 @@ ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
 
     /* wss part */
     ad1848_update(&ymf71x->ad1848);
-    //for (int c = 0; c < len * 2; c++)
-    //    buffer[c] += (ymf71x->ad1848.buffer[c] / 2);
     for (int c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
@@ -571,23 +543,6 @@ ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
     sb_get_buffer_sbpro(buffer, len, ymf71x->sb);
 }
 
-static void
-ymf71x_remove_opl(ymf71x_t *ymf71x)
-{
-    io_removehandler(ymf71x->cur_sb_addr + 0, 0x0004, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
-    io_removehandler(ymf71x->cur_sb_addr + 8, 0x0002, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
-    io_removehandler(0x0388, 0x0004, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
-}
-
-static void
-ymf71x_add_opl(ymf71x_t *ymf71x)
-{
-    /* DSP I/O handler is activated in sb_dsp_setaddr */
-    io_sethandler(ymf71x->cur_sb_addr + 0, 0x0004, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
-    io_sethandler(ymf71x->cur_sb_addr + 8, 0x0002, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
-    io_sethandler(0x0388, 0x0004, ymf71x->sb->opl.read, NULL, NULL, ymf71x->sb->opl.write, NULL, NULL, ymf71x->sb->opl.priv);
-}
-
 static void *
 ymf71x_init(const device_t *info)
 {
@@ -602,7 +557,6 @@ ymf71x_init(const device_t *info)
     ymf71x->cur_sb_dma         = 1;
     ymf71x->cur_mpu401_irq     = 5;
     ymf71x->cur_mpu401_addr    = 0;
-    ymf71x->cur_mpu401_enabled = 1;
     ymf71x->cur_wss_dma        = 0;
     ymf71x->cur_wss_irq        = 11;
 
