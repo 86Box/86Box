@@ -2845,6 +2845,8 @@ et4000w32p_init(const device_t *info)
             et4000->svga.ramdac    = device_add(&stg_ramdac_device);
             et4000->svga.clock_gen = device_add(&icd2061_device);
             et4000->svga.getclock  = icd2061_getclock;
+            icd2061_set_ref_clock(et4000->svga.ramdac, 14318184.0f);
+            svga_recalctimings(&et4000->svga);
             break;
 
         default:

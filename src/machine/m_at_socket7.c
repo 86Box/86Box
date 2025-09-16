@@ -320,6 +320,9 @@ machine_at_tc430hx_gpio_init(void)
     else if (cpu_busspeed > 60000000)
         gpio |= 0xffff00ff;
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        gpio |= 0xffff04ff;
+
     machine_set_gpio_default(gpio);
 }
 
@@ -353,6 +356,9 @@ machine_at_tc430hx_init(const machine_t *model)
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&i430hx_device);
     device_add(&piix3_device);
@@ -455,6 +461,9 @@ machine_at_pcv90_init(const machine_t *model)
     device_add(&piix3_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     return ret;
 }
