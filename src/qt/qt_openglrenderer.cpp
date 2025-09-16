@@ -1713,6 +1713,11 @@ OpenGLRenderer::render()
         glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
 
+        for (uint32_t idx = 0; idx < (uint32_t)(width * height); idx++)
+        {
+            rgba[idx * 4] = 255;
+        }
+
         QImage image(rgba, width, height, QImage::Format_RGBA8888);
         image.mirrored(false, true).save(path, "png");
         monitors[r_monitor_index].mon_screenshots--;
