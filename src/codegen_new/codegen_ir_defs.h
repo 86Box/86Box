@@ -336,7 +336,7 @@ typedef struct uop_t {
     ir_reg_t      src_reg_a;
     ir_reg_t      src_reg_b;
     ir_reg_t      src_reg_c;
-    uintptr_t     imm_data;
+    uint32_t      imm_data;
     void         *p;
     ir_host_reg_t dest_reg_a_real;
     ir_host_reg_t src_reg_a_real, src_reg_b_real, src_reg_c_real;
@@ -601,7 +601,7 @@ uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_re
 }
 
 static inline void
-uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uintptr_t imm)
+uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
 
