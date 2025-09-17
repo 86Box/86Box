@@ -101,7 +101,7 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_
     switch (rs) {
         case 0x00: /* Palette Write Index Register (RS value = 0000) */
         case 0x04: /* Ext Palette Write Index Register (RS value = 0100) */
-        case 0x03:
+        case 0x03: /* Palette Read Index Register (RS value = 0011) */
         case 0x07: /* Ext Palette Read Index Register (RS value = 0111) */
             svga->dac_pos    = 0;
             svga->dac_status = addr & 0x03;
@@ -362,14 +362,21 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
 void
 bt48x_recalctimings(void *priv, svga_t *svga)
 {
-    const bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
 
-    svga->interlace = ramdac->cmd_r2 & 0x08;
-    if (ramdac->cmd_r3 & 0x08) {
-        svga->hdisp <<= 1; /* x2 clock multiplier */
-        svga->dots_per_clock <<= 1;
-        svga->clock *= 2.0;
+    svga->interlace = !!(ramdac->cmd_r2 & 0x08);
+    svga->clock_multiplier = 0;
+    svga->multiplexing_rate = 0;
+    svga->true_color_bypass = 0;
+    if (ramdac->cmd_r3 & 0x08) { /* x2 clock multiplier */
+        //pclog("2x multiplier.\n");
+        svga->clock_multiplier = 1;
     }
+    svga->multiplexing_rate = (ramdac->cmd_r1 & 0x60) >> 5;
+    if (svga->bpp >= 15)
+        svga->true_color_bypass = !!(ramdac->cmd_r1 & 0x10);
+
+    //pclog("CR0=%02x, CR1=%02x, CR2=%02x.\n", ramdac->cmd_r0, ramdac->cmd_r1, ramdac->cmd_r2);
 }
 
 void

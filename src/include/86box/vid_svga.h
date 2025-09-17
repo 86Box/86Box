@@ -142,6 +142,9 @@ typedef struct svga_t {
     int start_retrace_latch;
     int vga_mode;
     int half_pixel;
+    int clock_multiplier;
+    int true_color_bypass;
+    int multiplexing_rate;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -450,7 +453,7 @@ extern void    ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float r
 
 extern void  icd2061_write(void *priv, int val);
 extern float icd2061_getclock(int clock, void *priv);
-extern void  icd2061_set_ref_clock(void *priv, svga_t *svga, float ref_clock);
+extern void  icd2061_set_ref_clock(void *priv, float ref_clock);
 
 /* The code is the same, the #define's are so that the correct name can be used. */
 #    define ics9161_write    icd2061_write
