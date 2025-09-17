@@ -38,7 +38,7 @@ typedef struct t1kvid_t {
 
     uint8_t  baseline_hsyncpos;
     uint8_t  baseline_vsyncpos;
-    int      baseline_ready;
+    bool     baseline_ready;
     int      hsync_offset;
     int      vsync_offset;
 
