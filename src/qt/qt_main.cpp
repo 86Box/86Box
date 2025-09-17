@@ -515,6 +515,8 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
+QTimer discordupdate;
+
 #ifdef Q_OS_WINDOWS
 WindowsDarkModeFilter* vmm_dark_mode_filter = nullptr;
 #endif
@@ -865,7 +867,6 @@ main(int argc, char *argv[])
     onesec.start(1000);
 
 #ifdef DISCORD
-    QTimer discordupdate;
     if (discord_loaded) {
         QTimer::singleShot(1000, &app, [] {
             if (enable_discord) {
@@ -877,7 +878,8 @@ main(int argc, char *argv[])
         QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
             discord_run_callbacks();
         });
-        discordupdate.start(1000);
+        if (enable_discord)
+            discordupdate.start(1000);
     }
 #endif
 
