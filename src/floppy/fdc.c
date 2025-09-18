@@ -685,12 +685,12 @@ fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
     fdc_log("FDD %c: Seek complete interrupt\n", 0x41 + drive);
 
     fdc->fintr = 1;
+    fdc->interrupt = -3;
     fdc->st0   = 0x20 | (drive & 3);
     if (fdd_get_head(drive))
         fdc->st0 |= 0x04;
 
-    fdc_int(fdc, 1);
-    fdc->stat = (fdc->stat & 0xf) | 0x80;
+    fdc_callback(fdc);
 }
 
 void
