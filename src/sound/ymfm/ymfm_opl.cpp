@@ -1716,8 +1716,14 @@ uint8_t ymf278b::read_status()
 uint8_t ymf278b::read_data_pcm()
 {
 	// read from PCM
-	if (bitfield(m_address, 9) != 0)
-		return m_pcm.read(m_address & 0xff);
+	if (bitfield(m_address, 9) != 0) {
+		auto ret = m_pcm.read(m_address & 0xff);
+		if (m_address == 0x202) {
+			ret &= ~0xe0;
+			ret |= 0x20;
+		}
+		return ret;
+	}
     return 0;
 }
 
