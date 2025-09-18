@@ -1806,9 +1806,6 @@ pc_close(UNUSED(thread_t *ptr))
 
     gdbstub_close();
 
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    mem_free();
-#endif
 }
 
 #ifdef __APPLE__

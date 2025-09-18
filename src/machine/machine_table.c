@@ -14075,7 +14075,7 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal sound: Yamaha YMF701-S */
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal sound: Yamaha YMF701-S */
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -14094,7 +14094,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &s3_virge_375_pci_device,
-        .snd_device = NULL,
+        .snd_device = &ymf701_device,
         .net_device = NULL
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
@@ -14134,7 +14134,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &m7shi_device,
         .kbd_device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
@@ -14212,7 +14212,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -14231,7 +14231,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &ymf701_device,
         .net_device = NULL
     },
     /* [TEST] The board doesn't seem to have a KBC at all, which probably means it's an on-chip one on the PC87306 SIO.
@@ -19589,11 +19589,7 @@ machine_get_min_ram(int m)
 int
 machine_get_max_ram(int m)
 {
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    return MIN(((int) machines[m].ram.max), 2097152);
-#else
     return MIN(((int) machines[m].ram.max), 3145728);
-#endif
 }
 
 int

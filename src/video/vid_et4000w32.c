@@ -2654,9 +2654,9 @@ et4000w32p_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x31:
             return 0x00;
         case 0x32:
-            return 0x00;
+            return et4000->pci_regs[0x32];
         case 0x33:
-            return et4000->pci_regs[0x33] & 0xf0;
+            return et4000->pci_regs[0x33];
 
         default:
             break;
@@ -2695,20 +2695,13 @@ et4000w32p_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x30:
-        case 0x31:
         case 0x32:
         case 0x33:
             et4000->pci_regs[addr] = val;
-            et4000->pci_regs[0x30] = 1;
-            et4000->pci_regs[0x31] = 0;
-            et4000->pci_regs[0x32] = 0;
-            et4000->pci_regs[0x33] &= 0xf0;
             if (et4000->pci_regs[0x30] & 0x01) {
-                uint32_t biosaddr = (et4000->pci_regs[0x33] << 24);
-                if (!biosaddr)
-                    biosaddr = 0xc0000;
-                et4000w32_log("ET4000 bios_rom enabled at %08x\n", biosaddr);
-                mem_mapping_set_addr(&et4000->bios_rom.mapping, biosaddr, 0x8000);
+                uint32_t addr = (et4000->pci_regs[0x32] << 16) | (et4000->pci_regs[0x33] << 24);
+                et4000w32_log("ET4000 bios_rom enabled at %08x\n", addr);
+                mem_mapping_set_addr(&et4000->bios_rom.mapping, addr, 0x8000);
             } else {
                 et4000w32_log("ET4000 bios_rom disabled\n");
                 mem_mapping_disable(&et4000->bios_rom.mapping);
@@ -2845,6 +2838,8 @@ et4000w32p_init(const device_t *info)
             et4000->svga.ramdac    = device_add(&stg_ramdac_device);
             et4000->svga.clock_gen = device_add(&icd2061_device);
             et4000->svga.getclock  = icd2061_getclock;
+            icd2061_set_ref_clock(et4000->svga.ramdac, 14318184.0f);
+            svga_recalctimings(&et4000->svga);
             break;
 
         default:

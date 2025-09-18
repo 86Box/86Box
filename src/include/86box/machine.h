@@ -174,11 +174,7 @@
 #define CPU_BLOCK_NONE           0
 
 /* Make sure it's always an invalid value to avoid misdetections. */
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
-#    define MACHINE_AVAILABLE 0xffffffffffffffffULL
-#else
-#    define MACHINE_AVAILABLE 0xffffffff
-#endif
+#define MACHINE_AVAILABLE 0xffffffffffffffffULL
 
 enum {
     MACHINE_TYPE_NONE       = 0,
@@ -996,6 +992,9 @@ extern int             machine_at_cu430hx_init(const machine_t *);
 extern const device_t  tc430hx_device;
 #endif
 extern int             machine_at_tc430hx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  m7shi_device;
+#endif
 extern int             machine_at_m7shi_init(const machine_t *);
 extern int             machine_at_epc2102_init(const machine_t *);
 extern int             machine_at_pcv90_init(const machine_t *);

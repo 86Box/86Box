@@ -714,11 +714,6 @@ compaq_386_init(UNUSED(const device_t *info))
     mem_mapping_disable(&ram_low_mapping);
     mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    /* Should never be the case, but you never know what a user may set. */
-    if (mem_size > 1048576)
-        mem_mapping_disable(&ram_2gb_mapping);
-#endif
 
     /* Initialize in reverse order for memory mapping precedence
        reasons. */

@@ -16,6 +16,7 @@
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -3000,6 +3001,8 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->getclock == icd2061_getclock) {
                     if (((val >> 2) & 3) != 3)
                         icd2061_write(svga->clock_gen, (val >> 2) & 3);
+                    else
+                        icd2061_write(svga->clock_gen, svga->crtc[0x42] & 0x0f);
                 }
                 break;
 
@@ -3026,7 +3029,9 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
             }
             if (svga->seqaddr == 4) /*Chain-4 - update banking*/
             {
-                if (val & 0x08)
+                svga->chain2_write = !(val & 4);
+                svga->chain4 = (svga->chain4 & ~8) | (val & 8);
+                if (svga->chain4)
                     svga->write_bank = svga->read_bank = s3->bank << 16;
                 else
                     svga->write_bank = svga->read_bank = s3->bank << 14;
@@ -3212,7 +3217,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     svga->hwcursor.addr = ((((svga->crtc[0x4c] << 8) | svga->crtc[0x4d]) & 0xfff) * 1024) + (svga->hwcursor.yoff * 16);
                     if ((s3->chip >= S3_TRIO32) && (svga->bpp == 32))
                         svga->hwcursor.x <<= 1;
-                    else if ((s3->chip >= S3_86C928 && s3->chip <= S3_86C805) && ((svga->bpp == 15) || (svga->bpp == 16))) {
+                    else if ((s3->chip >= S3_86C928) && (s3->chip <= S3_86C805) && ((svga->bpp == 15) || (svga->bpp == 16))) {
                         if ((s3->card_type == S3_MIROCRYSTAL10SD_805) && !(svga->crtc[0x45] & 0x04) && (svga->bpp == 16))
                             svga->hwcursor.x >>= 2;
                         else
@@ -3787,7 +3792,6 @@ s3_recalctimings(svga_t *svga)
             case 0xc0:
                 s3->width = 1280;
                 break;
-
             default:
                 break;
         }
@@ -3823,112 +3827,51 @@ s3_recalctimings(svga_t *svga)
 
     if ((svga->crtc[0x3a] & 0x10) && !svga->lowres) {
         s3_log("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, "
-               "attr=%02x, hdisp=%d.\n", svga->bpp, s3->width, svga->crtc[0x50],
-               svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 4,
-               svga->attrregs[0x10] & 0x40, svga->hdisp);
+               "attr=%02x, hdisp=%d, dotsperclock=%x, clksel=%x, clockmultiplier=%d, multiplexingrate=%d.\n", svga->bpp, s3->width, svga->crtc[0x50],
+               svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 0x04,
+               svga->attrregs[0x10] & 0x40, svga->hdisp, svga->dots_per_clock, clk_sel, svga->clock_multiplier, svga->multiplexing_rate);
         switch (svga->bpp) {
             case 8:
                 svga->render = svga_render_8bpp_highres;
                 switch (s3->chip) {
                     case S3_86C928:
-                        switch (s3->card_type) {
-                            case S3_METHEUS_86C928:
-                                s3_log("928 8bpp: ClockSel=%02x, width=%d, hdisp=%d, dotsperclock=%d.\n", clk_sel, s3->width, svga->hdisp, svga->dots_per_clock);
-                                switch (s3->width) {
-                                    case 1280: /*Account for the 1280x1024 resolution*/
-                                        switch (svga->hdisp) {
-                                            case 320:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                                break;
-                                            case 640:
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        switch (s3->ramdac_type) {
+                            case BT48X: /*BT485 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if ((svga->clock_multiplier == 1) || (s3->width >= 1024)) {
+                                        if (svga->multiplexing_rate == 2) {
+                                            svga->hdisp <<= 2;
+                                            svga->dots_per_clock <<= 2;
+                                        } else {
+                                            if (!svga->clock_multiplier) {
                                                 svga->hdisp <<= 1;
                                                 svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                break;
+                                            }
                                         }
-                                        break;
-                                    case 2048: /*Account for the 1280x1024 resolution*/
-                                        switch (svga->hdisp) {
-                                            case 320:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                                break;
-                                            case 640:
-                                                svga->hdisp <<= 1;
-                                                svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                break;
+                                        svga->clock *= 2.0;
+                                    } else {
+                                        if (svga->multiplexing_rate == 0) {
+                                            svga->hdisp <<= 1;
+                                            svga->dots_per_clock <<= 1;
+                                            svga->clock *= 2.0;
                                         }
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-                            case S3_ELSAWIN1K_86C928:
-                            case S3_ELSAWIN2K_86C928:
-                                switch (s3->width) {
-                                    case 1024:
-                                        switch (svga->hdisp) {
-                                            case 256:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                                break;
-                                            case 512:
-                                                svga->hdisp <<= 1;
-                                                svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                break;
+                                    }
+                                } else if (svga->getclock == ics2494_getclock) { /*ICS2494 clock chip*/
+                                    if (svga->clock_multiplier == 1) {
+                                        if (svga->multiplexing_rate == 2) {
+                                            svga->hdisp <<= 2;
+                                            svga->dots_per_clock <<= 2;
                                         }
-                                        break;
-                                    case 1280: /*Account for the 1280x1024 resolution*/
-                                        switch (svga->hdisp) {
-                                            case 320:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                                break;
-                                            case 640:
-                                                svga->hdisp <<= 1;
-                                                svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                break;
+                                        svga->clock *= 2.0;
+                                    } else {
+                                        if (svga->multiplexing_rate == 2) {
+                                            svga->hdisp <<= 2;
+                                            svga->dots_per_clock <<= 2;
+                                            svga->clock *= 4.0;
                                         }
-                                        break;
-                                    case 2048: /*Account for the 1280x1024 resolution and the ELSA EEPROM resolutions*/
-                                        switch (svga->hdisp) {
-                                            case 320:
-                                            case 384:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                            break;
-                                            case 576:
-                                            case 640:
-                                                svga->hdisp <<= 1;
-                                                svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                if (s3->ramdac_type == BT48X) {
-                                                    if (!svga->interlace) {
-                                                        if (svga->dispend >= 1024) {
-                                                            svga->hdisp <<= 1;
-                                                            svga->dots_per_clock <<= 1;
-                                                        }
-                                                    } else {
-                                                        if (svga->dispend >= 512) {
-                                                            svga->hdisp <<= 1;
-                                                            svga->dots_per_clock <<= 1;
-                                                        }
-                                                    }
-                                                }
-                                                break;
-                                        }
-                                        break;
-                                    default:
-                                        break;
+                                    }
                                 }
                                 break;
                             default:
@@ -3936,72 +3879,8 @@ s3_recalctimings(svga_t *svga)
                         }
                         break;
                     case S3_86C928PCI:
-                        switch (s3->card_type) {
-                            case S3_ELSAWIN1KPCI_86C928:
-                                switch (s3->width) {
-                                    case 1024:
-                                        switch (svga->hdisp) {
-                                            case 256:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                                break;
-                                            case 512:
-                                                svga->hdisp <<= 1;
-                                                svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        break;
-                                    case 1280: /*Account for the 1280x1024 resolution*/
-                                        switch (svga->hdisp) {
-                                            case 320:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                                break;
-                                            case 640:
-                                                svga->hdisp <<= 1;
-                                                svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        break;
-                                    case 2048: /*Account for the 1280x1024 resolution and the ELSA EEPROM resolutions*/
-                                        switch (svga->hdisp) {
-                                            case 320:
-                                            case 384:
-                                                svga->hdisp <<= 2;
-                                                svga->dots_per_clock <<= 2;
-                                            break;
-                                            case 576:
-                                            case 640:
-                                                svga->hdisp <<= 1;
-                                                svga->dots_per_clock <<= 1;
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-
-                            case S3_SPEA_MERCURY_LITE_PCI:
-                                switch (s3->width) {
-                                    case 640:
-                                        svga->hdisp >>= 1;
-                                        svga->dots_per_clock >>= 1;
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-
-                            default:
-                                break;
-                        }
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
                         break;
                     case S3_VISION964:
                         switch (s3->card_type) {
@@ -4126,69 +4005,82 @@ s3_recalctimings(svga_t *svga)
                         }
                         break;
                     case S3_86C928:
-                        switch (s3->card_type) {
-                            case S3_METHEUS_86C928:
-                                if (!s3->color_16bit) {
-                                    s3_log("928 15bpp: ClockSel=%02x, width=%d, hdisp=%d, dotsperclock=%d.\n", clk_sel, s3->width, svga->hdisp, svga->dots_per_clock);
-                                    svga->hdisp <<= 1;
-                                    svga->dots_per_clock <<= 1;
-                                    svga->clock *= 2.0;
-                                }
-                                switch (svga->hdisp) { /*This might be a driver issue*/
-                                    case 800:
-                                        s3->width = 1024;
-                                        break;
-                                    case 1280:
-                                        s3->width = 2048;
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-                            case S3_ELSAWIN1K_86C928:
-                            case S3_ELSAWIN2K_86C928:
-                                switch (s3->width) {
-                                    case 2048:
-                                        if (s3->ramdac_type == SC1502X) {
-                                            svga->hdisp >>= 1;
-                                            svga->dots_per_clock >>= 1;
-                                        } else {
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        switch (s3->ramdac_type) {
+                            case BT48X: /*BT485 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if ((svga->clock_multiplier == 1) || (s3->width >= 1024)) {
+                                        if (svga->multiplexing_rate == 1) {
+                                            if (svga->true_color_bypass) {
+                                                if (svga->crtc[0x31] & 0x02) {
+                                                    svga->hdisp <<= 2;
+                                                    svga->dots_per_clock <<= 2;
+                                                } else {
+                                                    svga->hdisp <<= 1;
+                                                    svga->dots_per_clock <<= 1;
+                                                }
+                                                svga->clock *= 2.0;
+                                            } else {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                                if (!svga->clock_multiplier)
+                                                    svga->clock *= 2.0;
+                                            }
+                                        }
+                                    } else {
+                                        if (svga->multiplexing_rate == 1) {
                                             svga->hdisp <<= 1;
                                             svga->dots_per_clock <<= 1;
+                                            svga->clock *= 2.0;
                                         }
-                                        break;
-                                    default:
-                                        if (s3->ramdac_type == BT48X)
-                                            svga->clock /= 2.0;
-                                        else if (s3->ramdac_type == SC1502X) {
-                                            svga->hdisp >>= 1;
-                                            svga->dots_per_clock >>= 1;
-                                        }
-                                        break;
+                                    }
+                                } else if (svga->getclock == ics2494_getclock) { /*ICS2494 clock chip*/
+                                    if (svga->multiplexing_rate == 1) {
+                                        svga->hdisp <<= 1;
+                                        svga->dots_per_clock <<= 1;
+                                        svga->clock *= 2.0;
+                                    }
                                 }
                                 break;
-
+                            case SC1502X: /*SC15025 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if (svga->dots_per_clock == 16) {
+                                        svga->dots_per_clock >>= 1;
+                                        svga->clock *= 2.0;
+                                    } else {
+                                        svga->hdisp >>= 1;
+                                        svga->dots_per_clock >>= 1;
+                                    }
+                                }
+                                break;
                             default:
                                 break;
                         }
                         break;
                     case S3_86C928PCI:
-                        switch (s3->card_type) {
-                            case S3_ELSAWIN1KPCI_86C928:
-                                svga->hdisp >>= 1;
-                                svga->dots_per_clock >>= 1;
-                                break;
-                            case S3_SPEA_MERCURY_LITE_PCI:
-                                switch (s3->width) {
-                                    case 640:
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        switch (s3->ramdac_type) {
+                            case SC1502X: /*SC15025 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if (svga->dots_per_clock == 16) {
+                                        svga->dots_per_clock >>= 1;
+                                        svga->clock *= 2.0;
+                                    } else {
                                         svga->hdisp >>= 1;
                                         svga->dots_per_clock >>= 1;
-                                        break;
-                                    default:
-                                        break;
+                                    }
+                                } else if (svga->getclock == av9194_getclock) { /*AV9194 clock chip*/
+                                    if (svga->dots_per_clock == 16) {
+                                        svga->dots_per_clock >>= 1;
+                                        svga->clock *= 2.0;
+                                    } else {
+                                        if (s3->width == 640)
+                                            svga->hdisp >>= 1;
+                                    }
                                 }
                                 break;
-
                             default:
                                 break;
                         }
@@ -4350,67 +4242,82 @@ s3_recalctimings(svga_t *svga)
                         }
                         break;
                     case S3_86C928:
-                        switch (s3->card_type) {
-                            case S3_METHEUS_86C928:
-                                s3_log("928 16bpp: ClockSel=%02x, width=%d, hdisp=%d, dotsperclock=%d.\n", clk_sel, s3->width, svga->hdisp, svga->dots_per_clock);
-                                svga->hdisp <<= 1;
-                                svga->dots_per_clock <<= 1;
-                                svga->clock *= 2.0;
-                                switch (svga->hdisp) { /*This might be a driver issue*/
-                                    case 800:
-                                        s3->width = 1024;
-                                        break;
-                                    case 1280:
-                                        s3->width = 2048;
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                break;
-                            case S3_ELSAWIN1K_86C928:
-                            case S3_ELSAWIN2K_86C928:
-                                switch (s3->width) {
-                                    case 2048:
-                                        if (s3->ramdac_type == SC1502X) {
-                                            svga->hdisp >>= 1;
-                                            svga->dots_per_clock >>= 1;
-                                        } else {
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        switch (s3->ramdac_type) {
+                            case BT48X: /*BT485 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if ((svga->clock_multiplier == 1) || (s3->width >= 1024)) {
+                                        if (svga->multiplexing_rate == 1) {
+                                            if (svga->true_color_bypass) {
+                                                if (svga->crtc[0x31] & 0x02) {
+                                                    svga->hdisp <<= 2;
+                                                    svga->dots_per_clock <<= 2;
+                                                } else {
+                                                    svga->hdisp <<= 1;
+                                                    svga->dots_per_clock <<= 1;
+                                                }
+                                                svga->clock *= 2.0;
+                                            } else {
+                                                svga->hdisp <<= 1;
+                                                svga->dots_per_clock <<= 1;
+                                                if (!svga->clock_multiplier)
+                                                    svga->clock *= 2.0;
+                                            }
+                                        }
+                                    } else {
+                                        if (svga->multiplexing_rate == 1) {
                                             svga->hdisp <<= 1;
                                             svga->dots_per_clock <<= 1;
+                                            svga->clock *= 2.0;
                                         }
-                                        break;
-                                    default:
-                                        if (s3->ramdac_type == BT48X)
-                                            svga->clock /= 2.0;
-                                        else if (s3->ramdac_type == SC1502X) {
-                                            svga->hdisp >>= 1;
-                                            svga->dots_per_clock >>= 1;
-                                        }
-                                        break;
+                                    }
+                                } else if (svga->getclock == ics2494_getclock) { /*ICS2494 clock chip*/
+                                    if (svga->multiplexing_rate == 1) {
+                                        svga->hdisp <<= 1;
+                                        svga->dots_per_clock <<= 1;
+                                        svga->clock *= 2.0;
+                                    }
                                 }
                                 break;
-
+                            case SC1502X: /*SC15025 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if (svga->dots_per_clock == 16) {
+                                        svga->dots_per_clock >>= 1;
+                                        svga->clock *= 2.0;
+                                    } else {
+                                        svga->hdisp >>= 1;
+                                        svga->dots_per_clock >>= 1;
+                                    }
+                                }
+                                break;
                             default:
                                 break;
                         }
                         break;
                     case S3_86C928PCI:
-                        switch (s3->card_type) {
-                            case S3_ELSAWIN1KPCI_86C928:
-                                svga->hdisp >>= 1;
-                                svga->dots_per_clock >>= 1;
-                                break;
-                            case S3_SPEA_MERCURY_LITE_PCI:
-                                switch (s3->width) {
-                                    case 640:
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        switch (s3->ramdac_type) {
+                            case SC1502X: /*SC15025 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if (svga->dots_per_clock == 16) {
+                                        svga->dots_per_clock >>= 1;
+                                        svga->clock *= 2.0;
+                                    } else {
                                         svga->hdisp >>= 1;
                                         svga->dots_per_clock >>= 1;
-                                      break;
-                                    default:
-                                        break;
+                                    }
+                                } else if (svga->getclock == av9194_getclock) { /*AV9194 clock chip*/
+                                    if (svga->dots_per_clock == 16) {
+                                        svga->dots_per_clock >>= 1;
+                                        svga->clock *= 2.0;
+                                    } else {
+                                        if (s3->width == 640)
+                                            svga->hdisp >>= 1;
+                                    }
                                 }
                                 break;
-
                             default:
                                 break;
                         }
@@ -4561,8 +4468,22 @@ s3_recalctimings(svga_t *svga)
                                 break;
                         }
                         break;
-                    case S3_86C928PCI:
+                    case S3_86C928: /*Technically the 928 cards don't support 24bpp.*/
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        break;
+                    case S3_86C928PCI: /*Technically the 928 cards don't support 24bpp.*/
                         switch (s3->card_type) {
+                            case S3_ELSAWIN1KPCI_86C928:
+                                if (svga->dots_per_clock == 16) {
+                                    svga->dots_per_clock >>= 1;
+                                    svga->hdisp = (svga->hdisp << 1) / 3;
+                                    svga->dots_per_clock = (svga->dots_per_clock << 1) / 3;
+                                    svga->clock /= (2.0 / 3.0);
+                                    if (svga->hdisp == 640)
+                                        s3->width = 640;
+                                }
+                                break;
                             case S3_SPEA_MERCURY_LITE_PCI:
                                 svga->hdisp = (svga->hdisp << 1) / 3;
                                 svga->dots_per_clock = (svga->dots_per_clock << 1) / 3;
@@ -4602,22 +4523,54 @@ s3_recalctimings(svga_t *svga)
                 svga->render = svga_render_32bpp_highres;
                 switch (s3->chip) {
                     case S3_86C928:
-                        switch (s3->card_type) {
-                            case S3_ELSAWIN1K_86C928:
-                                svga->hdisp >>= 2;
-                                svga->dots_per_clock >>= 2;
-                                svga->clock *= 2.0;
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        switch (s3->ramdac_type) {
+                            case BT48X: /*BT485 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if ((svga->clock_multiplier == 1) || (s3->width >= 1024)) {
+                                        if (svga->true_color_bypass) {
+                                            svga->hdisp <<= 1;
+                                            svga->dots_per_clock <<= 1;
+                                            svga->clock *= 2.0;
+                                        }
+                                    }
+                                    if (svga->hdisp == 800)
+                                        s3->width = 1024;
+                                }
+                                break;
+                            case SC1502X: /*SC15025 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if (svga->crtc[0x31] & 0x02) {
+                                        svga->hdisp >>= 1;
+                                        svga->dots_per_clock >>= 1;
+                                        if (svga->hdisp == 640)
+                                            s3->width = 1024;
+                                    } else {
+                                        svga->hdisp >>= 2;
+                                        svga->dots_per_clock >>= 2;
+                                        if (svga->hdisp == 800)
+                                            s3->width = 1024;
+                                    }
+                                }
                                 break;
                             default:
                                 break;
                         }
                         break;
                     case S3_86C928PCI:
-                        switch (s3->card_type) {
-                            case S3_ELSAWIN1KPCI_86C928:
-                                svga->hdisp >>= 2;
-                                svga->dots_per_clock >>= 2;
-                                svga->clock *= 2.0;
+                        if (!svga->chain4)
+                            svga->chain4 |= 0x08;
+                        switch (s3->ramdac_type) {
+                            case SC1502X: /*SC15025 RAMDAC*/
+                                if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    if (!(svga->crtc[0x31] & 0x02)) {
+                                        svga->hdisp >>= 2;
+                                        svga->dots_per_clock >>= 2;
+                                        if (s3->width >= 800)
+                                            svga->clock *= 2.0;
+                                    }
+                                }
                                 break;
                             default:
                                 break;
@@ -10792,7 +10745,8 @@ s3_init(const device_t *info)
                 /* DCS2824-0 = Diamond ICD2061A-compatible. */
                 svga->clock_gen   = device_add(&icd2061_device);
                 svga->getclock    = icd2061_getclock;
-                icd2061_set_ref_clock(svga->ramdac, svga, 14318184.0f);
+                icd2061_set_ref_clock(svga->ramdac, 14318184.0f);
+                svga_recalctimings(svga);
             }
             break;
 
@@ -10890,7 +10844,8 @@ s3_init(const device_t *info)
             svga->clock_gen   = device_add(&icd2061_device);
             svga->getclock    = icd2061_getclock;
             s3->elsa_eeprom   = 1;
-            icd2061_set_ref_clock(svga->ramdac, svga, 28322000.0f);
+            icd2061_set_ref_clock(svga->ramdac, 28322000.0f);
+            svga_recalctimings(svga);
             break;
 
         case S3_ELSAWIN2K_86C928:
@@ -10906,7 +10861,8 @@ s3_init(const device_t *info)
             svga->clock_gen   = device_add(&ics9161_device);
             svga->getclock    = ics9161_getclock;
             s3->elsa_eeprom   = 1;
-            icd2061_set_ref_clock(svga->ramdac, svga, 28322000.0f);
+            icd2061_set_ref_clock(svga->ramdac, 28322000.0f);
+            svga_recalctimings(svga);
             break;
 
         case S3_METHEUS_86C928:
@@ -10936,7 +10892,8 @@ s3_init(const device_t *info)
             svga->clock_gen   = device_add(&icd2061_device);
             svga->getclock    = icd2061_getclock;
             s3->elsa_eeprom   = 1;
-            icd2061_set_ref_clock(svga->ramdac, svga, 28322000.0f);
+            icd2061_set_ref_clock(svga->ramdac, 28322000.0f);
+            svga_recalctimings(svga);
             break;
 
         case S3_SPEA_MERCURY_LITE_PCI:
@@ -10996,7 +10953,8 @@ s3_init(const device_t *info)
                     s3->ramdac_type = BT48X;
                     svga->clock_gen = device_add(&icd2061_device);
                     svga->getclock  = icd2061_getclock;
-                    icd2061_set_ref_clock(svga->ramdac, svga, 14318184.0f);
+                    icd2061_set_ref_clock(svga->ramdac, 14318184.0f);
+                    svga_recalctimings(svga);
                     break;
             }
             break;
@@ -11075,7 +11033,8 @@ s3_init(const device_t *info)
                 s3->ramdac_type = ATT498;
                 svga->clock_gen = device_add(&icd2061_device);
                 svga->getclock  = icd2061_getclock;
-                icd2061_set_ref_clock(svga->ramdac, svga, 14318184.0f);
+                icd2061_set_ref_clock(svga->ramdac, 14318184.0f);
+                svga_recalctimings(svga);
             } else {
                 svga->ramdac    = device_add(&sdac_ramdac_device);
                 s3->ramdac_type = S3_SDAC;

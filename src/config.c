@@ -1035,7 +1035,7 @@ load_storage_controllers(void)
                 if (!hdc_current[j]) {
                     if (!legacy_cards[i]) {
                         if (!p) {
-                            hdc_current[j] = hdc_get_from_internal_name("internal");
+                            hdc_current[j] = hdc_get_from_internal_name((j == 0) ? "internal" : "none");
                         } else if (!strcmp(p, "xtide_plus")) {
                             hdc_current[j] = hdc_get_from_internal_name("xtide");
                             sprintf(temp, "PC/XT XTIDE #%i", j + 1);
@@ -3069,7 +3069,7 @@ save_storage_controllers(void)
         else
             def_hdc = "none";
 
-        if (!strcmp(hdc_get_internal_name(hdc_current[c]), def_hdc))
+        if (!strcmp(hdc_get_internal_name(hdc_current[c]), def_hdc) || ((c > 0) && (hdc_current[c] == 1)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp,
