@@ -24,16 +24,8 @@
 #include <86box/fdd.h>
 #include <86box/fdd_audio.h>
 #include <86box/sound.h>
-
-// TODO:
-// OK 1. Implement spindle motor spin-up and spin-down
-// OK 2. Move audio emulation to separate code file
-// OK 3. Implement sound support for all drives (not only for drive 0)
-// OK 4. Single sector read/write sound emulation
-// OK 5. Multi-track seek sound emulation
-// OK 6. Volume control for drive sounds
-// OK 7. Multi drive support
-// OK 8. Configuration option to enable/disable drive sounds
+#include <86box/plat.h>
+#include <86box/path.h>
 
 #ifndef DISABLE_FDD_AUDIO
 
@@ -42,22 +34,22 @@ typedef struct {
     const char *filename;
     int16_t    *buffer;
     int         samples;
-    float       volume;  /* Volume control: 0.0 = mute, 1.0 = full volume */
+    float       volume;
 } audio_sample_t;
 
 /* Single step audio state */
 typedef struct {
-    int             position;
-    int             active;
+    int position;
+    int active;
 } single_step_state_t;
 
 /* Multi-track seek audio state */
 typedef struct {
-    int             position;
-    int             active;
-    int             duration_samples;
-    int             from_track;
-    int             to_track;
+    int position;
+    int active;
+    int duration_samples;
+    int from_track;
+    int to_track;
 } multi_seek_state_t;
 
 /* Static audio sample definitions */
@@ -108,7 +100,8 @@ static single_step_state_t single_step_state[FDD_NUM] = {};
 /* Multi-track seek audio state for each drive */
 static multi_seek_state_t multi_seek_state[FDD_NUM] = {};
 
-extern uint64_t   motoron[FDD_NUM];
+extern uint64_t motoron[FDD_NUM];
+extern char     exe_path[2048]; /* path (dir) of executable */
 
 /* Forward declaration */
 static int16_t *load_wav(const char *filename, int *sample_count);
@@ -116,9 +109,20 @@ static int16_t *load_wav(const char *filename, int *sample_count);
 static int16_t *
 load_wav(const char *filename, int *sample_count)
 {
-    FILE *f = fopen(filename, "rb");
-    if (!f)
-        return NULL;
+    FILE *f = NULL;
+    char  full_path[2048];
+
+    path_append_filename(full_path, exe_path, "samples");
+    path_slash(full_path);
+    strcat(full_path, filename);
+
+    f = fopen(full_path, "rb");
+    if (!f) {
+        path_append_filename(full_path, exe_path, filename);
+        f = fopen(full_path, "rb");
+        if (!f)
+            return NULL;
+    }
 
     wav_header_t hdr;
     if (fread(&hdr, sizeof(hdr), 1, f) != 1) {
@@ -200,14 +204,14 @@ fdd_audio_init(void)
         spindlemotor_state[i]                  = MOTOR_STATE_STOPPED;
         spindlemotor_fade_volume[i]            = 1.0f;
         spindlemotor_fade_samples_remaining[i] = 0;
-        
+
         /* Initialize single step state */
         single_step_state[i].position = 0;
         single_step_state[i].active   = 0;
-        
+
         /* Initialize multi-track seek state */
-        multi_seek_state[i].position        = 0;
-        multi_seek_state[i].active          = 0;
+        multi_seek_state[i].position         = 0;
+        multi_seek_state[i].active           = 0;
         multi_seek_state[i].duration_samples = 0;
         multi_seek_state[i].from_track       = -1;
         multi_seek_state[i].to_track         = -1;
@@ -222,27 +226,27 @@ fdd_audio_close(void)
 {
     if (spindlemotor_start.buffer) {
         free(spindlemotor_start.buffer);
-        spindlemotor_start.buffer = NULL;
+        spindlemotor_start.buffer  = NULL;
         spindlemotor_start.samples = 0;
     }
     if (spindlemotor_loop.buffer) {
         free(spindlemotor_loop.buffer);
-        spindlemotor_loop.buffer = NULL;
+        spindlemotor_loop.buffer  = NULL;
         spindlemotor_loop.samples = 0;
     }
     if (spindlemotor_stop.buffer) {
         free(spindlemotor_stop.buffer);
-        spindlemotor_stop.buffer = NULL;
+        spindlemotor_stop.buffer  = NULL;
         spindlemotor_stop.samples = 0;
     }
     if (single_track_step.buffer) {
         free(single_track_step.buffer);
-        single_track_step.buffer = NULL;
+        single_track_step.buffer  = NULL;
         single_track_step.samples = 0;
     }
     if (multi_track_seek.buffer) {
         free(multi_track_seek.buffer);
-        multi_track_seek.buffer = NULL;
+        multi_track_seek.buffer  = NULL;
         multi_track_seek.samples = 0;
     }
 
@@ -290,7 +294,7 @@ fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
         return;
     if (abs(from_track - to_track) != 1)
         return; /* Only single track movements */
-    
+
     single_step_state[drive].position = 0;
     single_step_state[drive].active   = 1;
 }
@@ -443,19 +447,19 @@ fdd_audio_callback(int16_t *buffer, int length)
             }
 
             /* Process single step audio */
-            if (single_step_state[drive].active) {                
+            if (single_step_state[drive].active) {
                 if (single_track_step.buffer && single_step_state[drive].position < single_track_step.samples) {
                     /* Mix step sound with motor sound with volume control */
                     float step_left  = (float) single_track_step.buffer[single_step_state[drive].position * 2] / 32768.0f * single_track_step.volume;
                     float step_right = (float) single_track_step.buffer[single_step_state[drive].position * 2 + 1] / 32768.0f * single_track_step.volume;
-                    
-                    left_sample  += step_left;
+
+                    left_sample += step_left;
                     right_sample += step_right;
-                    
+
                     single_step_state[drive].position++;
                 } else {
                     /* Step sound finished */
-                    single_step_state[drive].active = 0;
+                    single_step_state[drive].active   = 0;
                     single_step_state[drive].position = 0;
                 }
             }
@@ -468,15 +472,15 @@ fdd_audio_callback(int16_t *buffer, int length)
                     /* Mix seek sound with motor sound with volume control */
                     float seek_left  = (float) multi_track_seek.buffer[multi_seek_state[drive].position * 2] / 32768.0f * multi_track_seek.volume;
                     float seek_right = (float) multi_track_seek.buffer[multi_seek_state[drive].position * 2 + 1] / 32768.0f * multi_track_seek.volume;
-                    
-                    left_sample  += seek_left;
+
+                    left_sample += seek_left;
                     right_sample += seek_right;
-                    
+
                     multi_seek_state[drive].position++;
                 } else {
                     /* Seek sound finished */
-                    multi_seek_state[drive].active = 0;
-                    multi_seek_state[drive].position = 0;
+                    multi_seek_state[drive].active           = 0;
+                    multi_seek_state[drive].position         = 0;
                     multi_seek_state[drive].duration_samples = 0;
                     multi_seek_state[drive].from_track       = -1;
                     multi_seek_state[drive].to_track         = -1;
@@ -484,12 +488,12 @@ fdd_audio_callback(int16_t *buffer, int length)
             }
 
             /* Mix this drive's audio into the buffer */
-            float_buffer[i * 2]     += left_sample;
+            float_buffer[i * 2] += left_sample;
             float_buffer[i * 2 + 1] += right_sample;
         }
     }
 }
-#else 
+#else
 
 void fdd_audio_init(void) {}
 void fdd_audio_close(void) {}
