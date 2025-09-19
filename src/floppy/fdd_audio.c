@@ -113,9 +113,8 @@ load_wav(const char *filename, int *sample_count)
     char  full_path[2048];
 
     path_append_filename(full_path, exe_path, "samples");
-    path_slash(full_path);
-    strcat(full_path, filename);
-
+    path_append_filename(full_path, full_path, filename);
+    
     f = fopen(full_path, "rb");
     if (!f) {
         path_append_filename(full_path, exe_path, filename);
