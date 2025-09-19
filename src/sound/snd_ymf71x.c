@@ -498,6 +498,29 @@ ymf71x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
     }
 }
 
+void
+ymf71x_filter_cd_audio(int channel, double *buffer, void *priv)
+{
+    ymf71x_t *ymf71x = (ymf71x_t *) priv;
+    const double cd_vol = channel ? ymf71x->ad1848.cd_vol_r : ymf71x->ad1848.cd_vol_l;
+
+    /* Master volume attenuation */
+    if (ymf71x->regs[0x07] & 0x80)
+        ymf71x->master_l = 0;
+    else
+        ymf71x->master_l = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x07] & 0x0F] / 32767.0;
+
+    if (ymf71x->regs[0x08] & 0x80)
+        ymf71x->master_r = 0;
+    else
+        ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
+
+    double master = channel ? ymf71x->master_r : ymf71x->master_l;
+    double c      = ((*buffer  * cd_vol ) * master) / 65536.0;
+
+    *buffer = c;
+}
+
 static void
 ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
 {
@@ -625,7 +648,8 @@ ymf71x_init(const device_t *info)
     sound_add_handler(ymf71x_get_buffer, ymf71x);
     music_add_handler(sb_get_music_buffer_sbpro, ymf71x->sb);
     ad1848_set_cd_audio_channel(&ymf71x->ad1848, AD1848_AUX1);
-    sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf71x->ad1848);
+    sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */
+    sound_set_cd_audio_filter(ymf71x_filter_cd_audio, ymf71x);
 
     ymf71x->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(ymf71x->mpu, ymf71x->cur_mpu401_addr, ymf71x->cur_mpu401_irq, M_UART, device_get_config_int("receive_input401"));
