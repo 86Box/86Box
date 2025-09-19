@@ -105,6 +105,7 @@ SoftwareRenderer::resizeEvent(QResizeEvent *event)
 #else
     QWindow::resizeEvent(event);
     m_backingStore->resize(event->size());
+    render();
 #endif
 }
 
