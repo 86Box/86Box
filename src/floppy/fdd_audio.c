@@ -101,31 +101,31 @@ static drive_audio_samples_t samples_525 = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_start_48000_16_1_PCM.wav",
         .buffer   = NULL,
         .samples  = 0,
-        .volume   = 0.2f
+        .volume   = 1.0f
     },
     .spindlemotor_loop = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_loop_48000_16_1_PCM.wav",
         .buffer   = NULL,
         .samples  = 0,
-        .volume   = 0.2f
+        .volume   = 1.0f
     },
     .spindlemotor_stop = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_stop_48000_16_1_PCM.wav",
         .buffer   = NULL,
         .samples  = 0,
-        .volume   = 0.2f
+        .volume   = 1.0f
     },
     .single_track_step = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_track_step_48000_16_1_PCM.wav",
         .buffer   = NULL,
         .samples  = 0,
-        .volume   = 1.0f
+        .volume   = 2.0f
     },
     .multi_track_seek = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_seekup_40_tracks_285ms_5ms_per_track_48000_16_1_PCM.wav",
         .buffer   = NULL,
         .samples  = 0,
-        .volume   = 1.0f
+        .volume   = 2.0f
     }
 };
 
