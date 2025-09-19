@@ -2402,10 +2402,10 @@ fdc_reset(void *priv)
        need to use a dual-RPM 5.25" drive - but hey, that finally gets those
        drives some usage as well.
      */
-    fdc_update_drvrate(fdc, 0, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 1, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 2, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 3, !strcmp(machine_get_internal_name(),  "if386sx"));
+    fdc_update_drvrate(fdc, 0, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 1, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 2, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 3, (machines[machine].init == machine_at_if386sx_init));
     fdc_update_drv2en(fdc, 1);
     fdc_update_rates(fdc);
 

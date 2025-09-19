@@ -368,7 +368,7 @@ sio_config_read(uint16_t port, UNUSED(void *priv))
                        - 1, 0 = M;
                        - 1, 1 = M.
              */
-            if (!strcmp(machine_get_internal_name(), "opti560l"))
+            if (machines[machine].init == machine_at_opti560l_init)
                 ret = 0x20;
             else
                 ret = 0xd3;

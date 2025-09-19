@@ -524,7 +524,7 @@ sst_init(const device_t *info)
         dev->is_39    = 1;
 
     dev->size = info->local & 0xffff0000;
-    if ((dev->size == 0x20000) && (strstr(machine_get_internal_name_ex(machine), "xi8088")) && !xi8088_bios_128kb())
+    if ((dev->size == 0x20000) && ((machines[machine].init == machine_xt_xi8088_init) && !xi8088_bios_128kb()))
         dev->size = 0x10000;
 
     dev->mask         = dev->size - 1;
