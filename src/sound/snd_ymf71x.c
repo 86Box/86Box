@@ -503,6 +503,20 @@ ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
+    /* Master volume attenuation */
+    if (ymf71x->regs[0x07] & 0x80)
+        ymf71x->master_l = 0;
+    else
+        ymf71x->master_l = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x07] & 0x0F] / 32767.0;
+
+    if (ymf71x->regs[0x08] & 0x80)
+        ymf71x->master_r = 0;
+    else
+        ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
+
+    *out_l *= ymf71x->master_l;
+    *out_r *= ymf71x->master_r;
+
     if (ymf71x->cur_wss_enabled) {
         ad1848_filter_channel((void *) &ymf71x->ad1848, AD1848_AUX2, out_l, out_r);
     }
