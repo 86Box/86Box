@@ -413,6 +413,16 @@ plat_dir_check(char *path)
 }
 
 int
+plat_file_check(const char *path)
+{
+    struct stat dummy;
+    if (stat(path, &dummy) < 0) {
+        return 0;
+    }
+    return !S_ISDIR(dummy.st_mode);
+}
+
+int
 plat_dir_create(char *path)
 {
     return mkdir(path, S_IRWXU);

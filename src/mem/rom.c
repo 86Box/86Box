@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -129,6 +130,34 @@ rom_get_full_path(char *dest, const char *fn)
     }
 }
 
+bool
+rom_fcheck(const char *fn)
+{
+    char temp[1024];
+    bool exists = false;
+
+    if (fn == NULL)
+        return false;
+    
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
+
+            exists = plat_file_check(temp);
+
+            if (exists) {
+                return exists;
+            }
+        }
+
+        return exists;
+    } else {
+        /* Absolute path */
+        return plat_file_check(fn);
+    }
+}
+
 FILE *
 rom_fopen(const char *fn, char *mode)
 {
@@ -186,15 +215,7 @@ rom_getfile(char *fn, char *s, int size)
 int
 rom_present(const char *fn)
 {
-    FILE *fp;
-
-    fp = rom_fopen(fn, "rb");
-    if (fp != NULL) {
-        (void) fclose(fp);
-        return 1;
-    }
-
-    return 0;
+    return rom_fcheck(fn);
 }
 
 uint8_t
