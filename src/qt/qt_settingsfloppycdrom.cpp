@@ -34,43 +34,41 @@ extern "C" {
 #include <86box/cdrom.h>
 }
 
-#include <QStandardItemModel>
-
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_progsettings.hpp"
 
-static void
-setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type)
+void
+SettingsFloppyCDROM::setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type)
 {
     QIcon icon;
     if (type == 0)
-        icon = QIcon(":/settings/qt/icons/floppy_disabled.ico");
+        icon = floppy_disabled_icon;
     else if (type >= 1 && type <= 6)
-        icon = QIcon(":/settings/qt/icons/floppy_525.ico");
+        icon = floppy_525_icon;
     else
-        icon = QIcon(":/settings/qt/icons/floppy_35.ico");
+        icon = floppy_35_icon;
 
     model->setData(idx, QObject::tr(fdd_getname(type)));
     model->setData(idx, type, Qt::UserRole);
     model->setData(idx, icon, Qt::DecorationRole);
 }
 
-static void
-setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
+void
+SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
 {
     QIcon icon;
 
     switch (bus) {
         case CDROM_BUS_DISABLED:
-            icon = QIcon(":/settings/qt/icons/cdrom_disabled.ico");
+            icon = cdrom_disabled_icon;
             break;
         case CDROM_BUS_ATAPI:
         case CDROM_BUS_SCSI:
         case CDROM_BUS_MITSUMI:
         case CDROM_BUS_MKE:
-            icon = QIcon(":/settings/qt/icons/cdrom.ico");
+            icon = cdrom_icon;
             break;
     }
 
@@ -116,6 +114,10 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 {
     ui->setupUi(this);
 
+    floppy_disabled_icon = QIcon(":/settings/qt/icons/floppy_disabled.ico");
+    floppy_525_icon = QIcon(":/settings/qt/icons/floppy_525.ico");
+    floppy_35_icon = QIcon(":/settings/qt/icons/floppy_35.ico");
+
     auto *model = ui->comboBoxFloppyType->model();
     int   i     = 0;
     while (true) {
@@ -149,6 +151,9 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     connect(ui->tableViewFloppy->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onFloppyRowChanged);
     ui->tableViewFloppy->setCurrentIndex(model->index(0, 0));
+
+    cdrom_disabled_icon = QIcon(":/settings/qt/icons/cdrom_disabled.ico");
+    cdrom_icon = QIcon(":/settings/qt/icons/cdrom.ico");
 
     Harddrives::populateCDROMBuses(ui->comboBoxBus->model());
     model = ui->comboBoxSpeed->model();
