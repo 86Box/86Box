@@ -1223,6 +1223,9 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
         destination.y(),
         destination.width(),
         destination.height());
+    
+    if (video_framerate == -1)
+        render();
 }
 
 void
