@@ -59,13 +59,12 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     /* TODO: should look into deleteLater() */
     auto  tval    = this;
-    void *nuldata = 0;
-    if (memcmp(&tval, &nuldata, sizeof(void *)) == 0)
+    if ((void *) tval == nullptr)
         return;
     auto origSource = source;
 
     cur_image = buf_idx;
-    buf_usage[(buf_idx + 1) % 2].clear();
+    buf_usage[buf_idx ^ 1].clear();
 
     source.setRect(x, y, w, h);
 
