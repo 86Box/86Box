@@ -258,13 +258,12 @@ plat_file_check(const char *path)
 #ifdef _WIN32
     auto data = QString::fromUtf8(path).toStdWString();
     auto res = GetFileAttributesW(data.c_str());
-    return (res != INVALID_FILE_ATTRIBUTES && !(res & FILE_ATTRIBUTE_DIRECTORY));
+    return (res != INVALID_FILE_ATTRIBUTES) && !(res & FILE_ATTRIBUTE_DIRECTORY);
 #else
-    struct stat dummy;
-    if (stat(path, &dummy) < 0) {
+    struct stat stats;
+    if (stat(path, &stats) < 0)
         return 0;
-    }
-    return !S_ISDIR(dummy.st_mode);
+    return !S_ISDIR(stats.st_mode);
 #endif
 }
 

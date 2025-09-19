@@ -92,8 +92,9 @@ rom_check(const char *fn)
 {
     FILE *fp = NULL;
     int ret = 0;
+    char last = fn[strlen(fn) - 1];
 
-    if ((fn[strlen(fn) - 1] == '/') || (fn[strlen(fn) - 1] == '\\'))
+    if ((last == '/') || (last == '\\'))
         ret = plat_dir_check((char *) fn);
     else {
         fp = fopen(fn, "rb");
@@ -112,7 +113,7 @@ rom_get_full_path(char *dest, const char *fn)
 
     dest[0] = 0x00;
 
-    if (strstr(fn, "roms/") == fn) {
+    if (!strncmp(fn, "roms/", 5)) {
         /* Relative path */
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
@@ -130,34 +131,6 @@ rom_get_full_path(char *dest, const char *fn)
     }
 }
 
-bool
-rom_fcheck(const char *fn)
-{
-    char temp[1024];
-    bool exists = false;
-
-    if (fn == NULL)
-        return false;
-    
-    if (strstr(fn, "roms/") == fn) {
-        /* Relative path */
-        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
-            path_append_filename(temp, rom_path->path, fn + 5);
-
-            exists = plat_file_check(temp);
-
-            if (exists) {
-                return exists;
-            }
-        }
-
-        return exists;
-    } else {
-        /* Absolute path */
-        return plat_file_check(fn);
-    }
-}
-
 FILE *
 rom_fopen(const char *fn, char *mode)
 {
@@ -167,14 +140,13 @@ rom_fopen(const char *fn, char *mode)
     if ((fn == NULL) || (mode == NULL))
         return NULL;
 
-    if (strstr(fn, "roms/") == fn) {
+    if (!strncmp(fn, "roms/", 5)) {
         /* Relative path */
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
 
-            if ((fp = plat_fopen(temp, mode)) != NULL) {
+            if ((fp = plat_fopen(temp, mode)) != NULL)
                 return fp;
-            }
         }
 
         return fp;
@@ -185,16 +157,16 @@ rom_fopen(const char *fn, char *mode)
 }
 
 int
-rom_getfile(char *fn, char *s, int size)
+rom_getfile(const char *fn, char *s, int size)
 {
     char        temp[1024];
 
-    if (strstr(fn, "roms/") == fn) {
+    if (!strncmp(fn, "roms/", 5)) {
         /* Relative path */
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
 
-            if (rom_present(temp)) {
+            if (plat_file_check(temp)) {
                 strncpy(s, temp, size);
                 return 1;
             }
@@ -203,7 +175,7 @@ rom_getfile(char *fn, char *s, int size)
         return 0;
     } else {
         /* Absolute path */
-        if (rom_present(fn)) {
+        if (plat_file_check(fn)) {
             strncpy(s, fn, size);
             return 1;
         }
@@ -215,7 +187,25 @@ rom_getfile(char *fn, char *s, int size)
 int
 rom_present(const char *fn)
 {
-    return rom_fcheck(fn);
+    char temp[1024];
+
+    if (fn == NULL)
+        return 0;
+
+    if (!strncmp(fn, "roms/", 5)) {
+        /* Relative path */
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
+
+            if (plat_file_check(temp))
+                return 1;
+        }
+
+        return 0;
+    } else {
+        /* Absolute path */
+        return plat_file_check(fn);
+    }
 }
 
 uint8_t
