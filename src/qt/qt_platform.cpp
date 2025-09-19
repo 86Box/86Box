@@ -64,6 +64,8 @@
 #    include <sys/mman.h>
 #endif
 
+#include <sys/stat.h>
+
 #ifdef Q_OS_OPENBSD
 #    include <pthread_np.h>
 #endif
@@ -248,6 +250,22 @@ plat_dir_check(char *path)
 {
     QFileInfo fi(path);
     return fi.isDir() ? 1 : 0;
+}
+
+int
+plat_file_check(const char *path)
+{
+#ifdef _WIN32
+    auto data = QString::fromUtf8(path).toStdWString();
+    auto res = GetFileAttributesW(data.c_str());
+    return (res != INVALID_FILE_ATTRIBUTES && !(res & FILE_ATTRIBUTE_DIRECTORY));
+#else
+    struct stat dummy;
+    if (stat(path, &dummy) < 0) {
+        return 0;
+    }
+    return !S_ISDIR(dummy.st_mode);
+#endif
 }
 
 int
