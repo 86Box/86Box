@@ -609,13 +609,14 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
      */
     if (!bios_only)
         ptr = (flags & FLAG_AUX) ? rom : rom_reset(addr, sz);
+    else
+        return (!fn1 || rom_present(fn1)) && (!fn2 || rom_present(fn2));
 
     if (!(flags & FLAG_AUX) && ((addr + sz) > 0x00100000))
         sz = 0x00100000 - addr;
 
 #ifdef ENABLE_ROM_LOG
-    if (!bios_only)
-        rom_log("%sing %i bytes of %sBIOS starting with ptr[%08X] (ptr = %08X)\n", (bios_only) ? "Check" : "Load", sz, (flags & FLAG_AUX) ? "auxiliary " : "", addr - biosaddr, ptr);
+    rom_log("%sing %i bytes of %sBIOS starting with ptr[%08X] (ptr = %08X)\n", (bios_only) ? "Check" : "Load", sz, (flags & FLAG_AUX) ? "auxiliary " : "", addr - biosaddr, ptr);
 #endif
 
     if (flags & FLAG_INT)
@@ -627,7 +628,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
             ret = rom_load_linear(fn1, addr - biosaddr, sz, off, ptr);
     }
 
-    if (!bios_only && (flags & FLAG_REP) && (old_sz >= 65536) && (sz < old_sz)) {
+    if ((flags & FLAG_REP) && (old_sz >= 65536) && (sz < old_sz)) {
         old_sz /= sz;
         for (int i = 0; i < (old_sz - 1); i++) {
             rom_log("Copying ptr[%08X] to ptr[%08X]\n", addr - biosaddr, i * sz);
@@ -635,7 +636,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
         }
     }
 
-    if (!bios_only && ret && !(flags & FLAG_AUX))
+    if (ret && !(flags & FLAG_AUX))
         bios_add();
 
     return ret;
@@ -644,42 +645,28 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
 int
 bios_load_linear_combined(const char *fn1, const char *fn2, int sz, UNUSED(int off))
 {
-    uint8_t ret = 0;
-
-    ret = bios_load_linear(fn1, 0x000f0000, 131072, 128);
-    ret &= bios_load_aux_linear(fn2, 0x000e0000, sz - 65536, 128);
-
-    return ret;
+    return bios_load_linear(fn1, 0x000f0000, 131072, 128) && \
+        bios_load_aux_linear(fn2, 0x000e0000, sz - 65536, 128);
 }
 
 int
 bios_load_linear_combined2(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
-    uint8_t ret = 0;
-
-    ret = bios_load_linear(fn3, 0x000f0000, 262144, off);
-    ret &= bios_load_aux_linear(fn1, 0x000d0000, 65536, off);
-    ret &= bios_load_aux_linear(fn2, 0x000c0000, 65536, off);
-    ret &= bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off);
-    if (fn5 != NULL)
-        ret &= bios_load_aux_linear(fn5, 0x000ec000, 16384, 0);
-
-    return ret;
+    return bios_load_linear(fn3, 0x000f0000, 262144, off) && \
+        bios_load_aux_linear(fn1, 0x000d0000, 65536, off) && \
+        bios_load_aux_linear(fn2, 0x000c0000, 65536, off) && \
+        bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off) && \
+        (!fn5 || bios_load_aux_linear(fn5, 0x000ec000, 16384, 0));
 }
 
 int
 bios_load_linear_combined2_ex(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
-    uint8_t ret = 0;
-
-    ret = bios_load_linear(fn3, 0x000e0000, 262144, off);
-    ret &= bios_load_aux_linear(fn1, 0x000c0000, 65536, off);
-    ret &= bios_load_aux_linear(fn2, 0x000d0000, 65536, off);
-    ret &= bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off);
-    if (fn5 != NULL)
-        ret &= bios_load_aux_linear(fn5, 0x000fc000, 16384, 0);
-
-    return ret;
+    return bios_load_linear(fn3, 0x000e0000, 262144, off) && \
+        bios_load_aux_linear(fn1, 0x000c0000, 65536, off) && \
+        bios_load_aux_linear(fn2, 0x000d0000, 65536, off) && \
+        bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off) && \
+        (!fn5 || bios_load_aux_linear(fn5, 0x000fc000, 16384, 0));
 }
 
 int
