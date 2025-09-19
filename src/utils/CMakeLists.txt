@@ -19,7 +19,6 @@ add_library(utils OBJECT
     cJSON.c
     crc.c
     crc32.c
-    edid_parse.cpp
     fifo.c
     fifo8.c
     ini.c

@@ -15,8 +15,8 @@ msgstr "キーボードはキャプチャが必要(&K)"
 msgid "&Right CTRL is left ALT"
 msgstr "右CTRLを左ALTへ変換(&R)"
 
-msgid "&Hard Reset..."
-msgstr "ハード リセット(&H)..."
+msgid "&Hard reset"
+msgstr "ハード リセット(&H)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del(&C)"
@@ -50,6 +50,9 @@ msgstr "ウィンドウのサイズを変更可能(&R)"
 
 msgid "R&emember size && position"
 msgstr "ウィンドウのサイズと位置を保存(&E)"
+
+msgid "Remember size && position"
+msgstr "ウィンドウのサイズと位置を保存"
 
 msgid "Re&nderer"
 msgstr "レンダラー(&N)"
@@ -1073,6 +1076,12 @@ msgstr "強制終了"
 
 msgid "Start"
 msgstr "スタート"
+
+msgid "&Force shutdown"
+msgstr "強制終了(&F)"
+
+msgid "&Start"
+msgstr "スタート(&S)"
 
 msgid "Not running"
 msgstr "停止した"
@@ -2135,6 +2144,9 @@ msgstr "低DMA"
 
 msgid "Enable Game port"
 msgstr "ゲームポートを有効にする"
+
+msgid "Enable Adlib ports"
+msgstr "Adlibポートを有効にする"
 
 msgid "SID Model"
 msgstr "SIDモデル"

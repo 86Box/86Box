@@ -21,6 +21,7 @@
 #include "qt_softwarerenderer.hpp"
 #include <QApplication>
 #include <QPainter>
+#include <QResizeEvent>
 
 extern "C" {
 #include <86box/86box.h>
@@ -31,7 +32,7 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
 #ifdef __HAIKU__
     : QWidget(parent)
 #else
-    : QRasterWindow(parent->windowHandle())
+    : QWindow(parent->windowHandle()), m_backingStore(new QBackingStore(this))
 #endif
 {
     RendererCommon::parentWidget = parent;
@@ -47,11 +48,29 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
 #endif
 }
 
+#ifdef __HAIKU__
 void
 SoftwareRenderer::paintEvent(QPaintEvent *event)
 {
     (void) event;
     onPaint(this);
+}
+#endif
+
+void
+SoftwareRenderer::render()
+{
+    if (!isExposed())
+        return;
+
+    QRect rect(0, 0, width(), height());
+    m_backingStore->beginPaint(rect);
+
+    QPaintDevice *device = m_backingStore->paintDevice();
+    onPaint(device);
+
+    m_backingStore->endPaint();
+    m_backingStore->flush(rect);
 }
 
 void
@@ -59,19 +78,22 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     /* TODO: should look into deleteLater() */
     auto  tval    = this;
-    void *nuldata = 0;
-    if (memcmp(&tval, &nuldata, sizeof(void *)) == 0)
+    if ((void *) tval == nullptr)
         return;
     auto origSource = source;
 
     cur_image = buf_idx;
-    buf_usage[(buf_idx + 1) % 2].clear();
+    buf_usage[buf_idx ^ 1].clear();
 
     source.setRect(x, y, w, h);
 
     if (source != origSource)
         onResize(this->width(), this->height());
+#ifdef __HAIKU__
     update();
+#else
+    render();
+#endif
 }
 
 void
@@ -81,7 +103,9 @@ SoftwareRenderer::resizeEvent(QResizeEvent *event)
 #ifdef __HAIKU__
     QWidget::resizeEvent(event);
 #else
-    QRasterWindow::resizeEvent(event);
+    QWindow::resizeEvent(event);
+    m_backingStore->resize(event->size());
+    render();
 #endif
 }
 
@@ -93,7 +117,7 @@ SoftwareRenderer::event(QEvent *event)
 #ifdef __HAIKU__
         return QWidget::event(event);
 #else
-        return QRasterWindow::event(event);
+        return QWindow::event(event);
 #endif
     return res;
 }
@@ -113,6 +137,9 @@ SoftwareRenderer::onPaint(QPaintDevice *device)
 #endif
     painter.setCompositionMode(QPainter::CompositionMode_Plus);
     painter.drawImage(destination, *images[cur_image], source);
+#ifndef __HAIKU__
+    painter.end();
+#endif
 }
 
 std::vector<std::tuple<uint8_t *, std::atomic_flag *>>

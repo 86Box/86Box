@@ -15,7 +15,7 @@ msgstr "Bàn phím &hoạt động cần 'bắt' chuột"
 msgid "&Right CTRL is left ALT"
 msgstr "Gắn ALT trái vào CTRL ph&ải"
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr "Buộc khởi độn&g lại"
 
 msgid "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "Tùy chỉnh cỡ cử&a sổ"
 
 msgid "R&emember size && position"
 msgstr "Ghi nhớ vị trí và kíc&h thước cửa sổ"
+
+msgid "Remember size && position"
+msgstr "Ghi nhớ vị trí và kích thước cửa sổ"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -1073,6 +1076,12 @@ msgstr "Buộc tắt nguồn máy"
 
 msgid "Start"
 msgstr "Khởi động"
+
+msgid "&Force shutdown"
+msgstr "&Buộc tắt nguồn máy"
+
+msgid "&Start"
+msgstr "&Khởi động"
 
 msgid "Not running"
 msgstr "Đang không chạy"
@@ -2135,6 +2144,9 @@ msgstr "DMA thấp"
 
 msgid "Enable Game port"
 msgstr "Bật cổng trò chơi"
+
+msgid "Enable Adlib ports"
+msgstr "Bật cổng Adlib"
 
 msgid "SID Model"
 msgstr "Mẫu SID"

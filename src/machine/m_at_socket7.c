@@ -151,10 +151,14 @@ static const device_config_t cu430hx_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Intel AMIBIOS - Revision 1.00.03.DK08 (Toshiba Equium 5200D)", .internal_name = "equium5200", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.03.DK08 (Toshiba Equium 5xx0D)", .internal_name = "equium5200", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/cu430hx/1003DK08.BIO", "roms/machines/cu430hx/1003DK08.BI1",
                                                                     "roms/machines/cu430hx/1003DK08.BI2", "roms/machines/cu430hx/1003DK08.BI3",
                                                                     "roms/machines/cu430hx/1003DK08.RCV", "" } },
+            { .name = "Intel AMIBIOS - Revision 1.00.04.DK0K (NEC PowerMate V2xxx/P2xxx)", .internal_name = "powermatev2p2", .bios_type = BIOS_NORMAL, 
+              .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/cu430hx/1004DK0K.BIO", "roms/machines/cu430hx/1004DK0K.BI1",
+                                                                    "roms/machines/cu430hx/1004DK0K.BI2", "roms/machines/cu430hx/1004DK0K.BI3",
+                                                                    "roms/machines/cu430hx/1004DK0K.RCV", "" } },
             { .name = "Intel AMIBIOS - Revision 1.00.06.DK0", .internal_name = "cu430hx", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/cu430hx/1006DK0_.BIO", "roms/machines/cu430hx/1006DK0_.BI1",
                                                                     "roms/machines/cu430hx/1006DK0_.BI2", "roms/machines/cu430hx/1006DK0_.BI3",
@@ -266,7 +270,7 @@ static const device_config_t tc430hx_config[] = {
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/tc430hx/1007DH0_.BIO", "roms/machines/tc430hx/1007DH0_.BI1",
                                                                     "roms/machines/tc430hx/1007DH0_.BI2", "roms/machines/tc430hx/1007DH0_.BI3",
                                                                     "roms/machines/tc430hx/1007DH0_.RCV", "" } },
-            { .name = "Intel AMIBIOS - Revision 1.00.08.DH08 (Toshiba Infinia 7201)", .internal_name = "infinia7200", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.08.DH08 (Toshiba Infinia 7xx1)", .internal_name = "infinia7200", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/tc430hx/1008DH08.BIO", "roms/machines/tc430hx/1008DH08.BI1",
                                                                     "roms/machines/tc430hx/1008DH08.BI2", "roms/machines/tc430hx/1008DH08.BI3",
                                                                     "roms/machines/tc430hx/1008DH08.RCV", "" } },
@@ -316,6 +320,9 @@ machine_at_tc430hx_gpio_init(void)
     else if (cpu_busspeed > 60000000)
         gpio |= 0xffff00ff;
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        gpio |= 0xffff04ff;
+
     machine_set_gpio_default(gpio);
 }
 
@@ -350,6 +357,9 @@ machine_at_tc430hx_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
     device_add(&i430hx_device);
     device_add(&piix3_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);
@@ -358,16 +368,56 @@ machine_at_tc430hx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t m7shi_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "m7shi",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "PhoenixBIOS 4.0 Release 6.0 - Revision 05/20/97", .internal_name = "m7shi", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/m7shi/m7shi2n.rom", "" } },
+            { .name = "PhoenixBIOS 4.0 Release 6.0 - Revision 01/21/98", .internal_name = "m7shi_4", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/m7shi/M7ns04.rom", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t m7shi_device = {
+    .name          = "Micronics M7S-Hi",
+    .internal_name = "m7shi_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = m7shi_config
+};
+
 int
 machine_at_m7shi_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/m7shi/m7shi2n.rom",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 
@@ -451,6 +501,9 @@ machine_at_pcv90_init(const machine_t *model)
     device_add(&piix3_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);
     device_add(&intel_flash_bxt_ami_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -1753,9 +1806,9 @@ static const device_config_t m5ata_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Award Modular BIOS v4.51PG - Revision 12/23/97", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 12/23/97", .internal_name = "m5ata_1223", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA1223.BIN", "" } },
-            { .name = "Award Modular BIOS v4.51PG - Revision 05/27/98", .internal_name = "m5ata_0527b", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 05/27/98", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA0527B.BIN", "" } },
             { .files_no = 0 }
         },

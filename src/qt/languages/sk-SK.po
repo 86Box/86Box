@@ -15,7 +15,7 @@ msgstr "&Klávesnica vyžaduje záber"
 msgid "&Right CTRL is left ALT"
 msgstr "&Pravý Ctrl je ľavý Alt"
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr "&Resetovať"
 
 msgid "&Ctrl+Alt+Del"
@@ -50,6 +50,9 @@ msgstr "&Premenná veľkosť okna"
 
 msgid "R&emember size && position"
 msgstr "&Pamätať si veľkosť a polohu"
+
+msgid "Remember size && position"
+msgstr "Pamätať si veľkosť a polohu"
 
 msgid "Re&nderer"
 msgstr "&Renderer"
@@ -1073,6 +1076,12 @@ msgstr "Vynútiť vypnutie"
 
 msgid "Start"
 msgstr "Spustiť"
+
+msgid "&Force shutdown"
+msgstr "&Vynútiť vypnutie"
+
+msgid "&Start"
+msgstr "&Spustiť"
 
 msgid "Not running"
 msgstr "Nebeží"
@@ -2135,6 +2144,9 @@ msgstr "Nízka hodnota DMA"
 
 msgid "Enable Game port"
 msgstr "Povolenie herného portu"
+
+msgid "Enable Adlib ports"
+msgstr "Povoliť porty Adlib"
 
 msgid "SID Model"
 msgstr "Model SID"

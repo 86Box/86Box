@@ -36,7 +36,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 5.1
+    VERSION 5.2
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -139,7 +139,7 @@ option(DISCORD      "Discord Rich Presence support"                             
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 
-if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
+if((ARCH STREQUAL "arm64"))
     set(NEW_DYNAREC ON)
 else()
     option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)

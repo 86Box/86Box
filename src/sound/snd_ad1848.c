@@ -285,6 +285,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
     ad1848_t *ad1848 = (ad1848_t *) priv;
     uint8_t   temp = 0;
     uint8_t   updatefreq = 0;
+    double    i8_timebase = 0;
 
     switch (addr & 3) {
         case 0: /* Index */
@@ -342,6 +343,21 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 14:
                     ad1848->count = ad1848->regs[15] | (val << 8);
+                    break;
+
+                case 16:
+                    if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235)) {
+                        if (val & 0x40) {
+                            ad1848_log("Timer Enable\n");
+                            ad1848_log("Timer value: %04X\n", ((ad1848->regs[21] << 8) + (ad1848->regs[20])));
+                            i8_timebase = (ad1848->regs[8] & 1) ? 9.92 : 9.969;
+                            timer_set_delay_u64(&ad1848->cs4231a_irq_timer, (((ad1848->regs[21] << 8) + (ad1848->regs[20])) * i8_timebase * TIMER_USEC));
+                        }
+                        else {
+                            ad1848_log("Timer Disable\n");
+                            timer_disable(&ad1848->cs4231a_irq_timer);
+                        }
+                    }
                     break;
 
                 case 18 ... 19:
@@ -501,16 +517,16 @@ readonly_x:
             if (updatefreq)
                 ad1848_updatefreq(ad1848);
 
-            temp = (ad1848->type < AD1848_TYPE_CS4231) ? 2 : ((ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4);
-            if (ad1848->regs[temp] & 0x80)
-                ad1848->cd_vol_l = 0;
-            else
-                ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
-            temp++;
-            if (ad1848->regs[temp] & 0x80)
-                ad1848->cd_vol_r = 0;
-            else
-                ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
+            if (ad1848->cd_vol_reg > -1) {
+                if (ad1848->regs[ad1848->cd_vol_reg] & 0x80)
+                    ad1848->cd_vol_l = 0;
+                else
+                    ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[ad1848->cd_vol_reg] & 0x1f];
+                if (ad1848->regs[ad1848->cd_vol_reg + 1] & 0x80)
+                    ad1848->cd_vol_r = 0;
+                else
+                    ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[ad1848->cd_vol_reg + 1] & 0x1f];
+            }
 
 readonly_i:
             ad1848_log("AD1848: write(I%d, %02X)\n", ad1848->index, val);
@@ -747,6 +763,28 @@ ad1848_poll(void *priv)
 }
 
 void
+cs4231a_irq_poll(void *priv)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+    ad1848_log("Firing timer IRQ\n");
+    picint(1 << ad1848->irq);
+    ad1848_log("Setting timer interrupt bit in I24\n");
+    ad1848->regs[24] |= 0x40;
+}
+
+void
+ad1848_set_cd_audio_channel(void *priv, int channel)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+
+    const int max_channel = (ad1848->type >= AD1848_TYPE_CS4231) ? 31 : 15;
+    if (channel > max_channel)
+        channel = max_channel;
+
+    ad1848->cd_vol_reg = channel;
+}
+
+void
 ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 {
     const ad1848_t *ad1848 = (ad1848_t *) priv;
@@ -758,20 +796,24 @@ ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 }
 
 void
-ad1848_filter_aux2(void *priv, double *out_l, double *out_r)
+ad1848_filter_channel(void *priv, int channel, double *out_l, double *out_r)
 {
     const ad1848_t *ad1848 = (ad1848_t *) priv;
 
-    if (ad1848->regs[4] & 0x80) {
+    const int max_channel = (ad1848->type >= AD1848_TYPE_CS4231) ? 31 : 15;
+    if (channel > max_channel)
+        channel = max_channel;
+
+    if (ad1848->regs[channel] & 0x80) {
         *out_l = 0.0;
     } else {
-        *out_l = ((*out_l) * ad1848_vols_5bits_aux_gain[ad1848->regs[4] & 0x1f]) / 65536.0;
+        *out_l = ((*out_l) * ad1848_vols_5bits_aux_gain[ad1848->regs[channel] & 0x1f]) / 65536.0;
     }
 
-    if (ad1848->regs[5] & 0x80) {
+    if (ad1848->regs[channel + 1] & 0x80) {
         *out_r = 0.0;
     } else {
-        *out_r = ((*out_r) * ad1848_vols_5bits_aux_gain[ad1848->regs[5] & 0x1f]) / 65536.0;
+        *out_r = ((*out_r) * ad1848_vols_5bits_aux_gain[ad1848->regs[channel + 1] & 0x1f]) / 65536.0;
     }
 }
 
@@ -837,6 +879,8 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
 
     ad1848->out_l = ad1848->out_r = 0;
     ad1848->fm_vol_l = ad1848->fm_vol_r = 65536;
+    ad1848->cd_vol_l = ad1848->cd_vol_r = 65536;
+    ad1848->cd_vol_reg = -1;
     ad1848_updatevolmask(ad1848);
     if (type >= AD1848_TYPE_CS4235)
         ad1848->fmt_mask = 0x50;
@@ -892,4 +936,7 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
 
     if ((ad1848->type != AD1848_TYPE_DEFAULT) && (ad1848->type != AD1848_TYPE_CS4248))
         sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);
+
+    if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235))
+        timer_add(&ad1848->cs4231a_irq_timer, cs4231a_irq_poll, ad1848, 0);
 }

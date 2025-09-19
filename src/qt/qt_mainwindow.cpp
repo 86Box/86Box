@@ -200,7 +200,11 @@ MainWindow::MainWindow(QWidget *parent)
     frameRateTimer->setInterval(1000);
     frameRateTimer->setSingleShot(false);
     connect(frameRateTimer, &QTimer::timeout, [hertz_label] {
-        hertz_label->setText(tr("%1 Hz").arg(QString::number(monitors[0].mon_actualrenderedframes.load()) + (monitors[0].mon_interlace ? "i" : "")));
+        auto hz = monitors[0].mon_actualrenderedframes.load();
+#ifdef SCREENSHOT_MODE
+        hz = ((hz + 2) / 5) * 5;
+#endif
+        hertz_label->setText(tr("%1 Hz").arg(QString::number(hz) + (monitors[0].mon_interlace ? "i" : "")));
     });
     statusBar()->addPermanentWidget(hertz_label);
     frameRateTimer->start(1000);
@@ -2340,8 +2344,11 @@ MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
     if (enable_discord) {
         discord_init();
         discord_update_activity(dopause);
-    } else
+        discordupdate.start(1000);
+    } else {
         discord_close();
+        discordupdate.stop();
+    }
 #endif
 }
 

@@ -388,11 +388,7 @@ typedef struct {
     uint32_t old_fp_control;
     uint32_t new_fp_control;
 #    endif
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
-    uint16_t old_fp_control2;
-    uint16_t new_fp_control2;
-#    endif
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined __amd64__ || defined _M_X64
+#    if defined __amd64__ || defined _M_X64
     uint32_t trunc_fp_control;
 #    endif
 #else

@@ -55,7 +55,6 @@ int wavetable_pos_global               = 0;
 int sound_gain                         = 0;
 
 static sound_handler_t sound_handlers[8];
-
 static sound_handler_t music_handlers[8];
 static sound_handler_t wavetable_handlers[8];
 
@@ -139,7 +138,9 @@ static const SOUND_CARD sound_cards[] = {
     { &cs4235_device                },
     { &cs4236b_device               },
     { &gus_device                   },
+    { &gus_v37_device               },
     { &gus_max_device               },
+    { &gus_ace_device               },
     { &mirosound_pcm10_device       },
     { &pas16_device                 },
     { &pas16d_device                },
@@ -158,6 +159,7 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_vibra16s_device           },
     { &sb_vibra16xv_device          },
     { &wss_device                   },
+    { &ymf701_device                },
     /* MCA */
     { &adlib_mca_device             },
     { &ess_chipchat_16_mca_device   },

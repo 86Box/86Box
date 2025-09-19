@@ -15,7 +15,7 @@ msgstr ""
 msgid "&Right CTRL is left ALT"
 msgstr ""
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr ""
 
 msgid "&Ctrl+Alt+Del"
@@ -49,6 +49,9 @@ msgid "&Resizeable window"
 msgstr ""
 
 msgid "R&emember size && position"
+msgstr ""
+
+msgid "Remember size && position"
 msgstr ""
 
 msgid "Re&nderer"
@@ -1072,6 +1075,12 @@ msgid "Force shutdown"
 msgstr ""
 
 msgid "Start"
+msgstr ""
+
+msgid "&Force shutdown"
+msgstr ""
+
+msgid "&Start"
 msgstr ""
 
 msgid "Not running"
@@ -2134,6 +2143,9 @@ msgid "Low DMA"
 msgstr ""
 
 msgid "Enable Game port"
+msgstr ""
+
+msgid "Enable Adlib ports"
 msgstr ""
 
 msgid "SID Model"

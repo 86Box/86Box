@@ -664,8 +664,17 @@ static void
 mo_buf_alloc(mo_t *dev, uint32_t len)
 {
     mo_log(dev->log, "Allocated buffer length: %i\n", len);
-    if (dev->buffer == NULL)
+
+    if (dev->buffer == NULL) {
         dev->buffer = (uint8_t *) malloc(len);
+        dev->buffer_sz = len;
+    }
+
+    if (len > dev->buffer_sz) {
+        uint8_t *buf = (uint8_t *) realloc(dev->buffer, len);
+        dev->buffer = buf;
+        dev->buffer_sz = len;
+    }
 }
 
 static void

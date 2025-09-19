@@ -32,6 +32,14 @@ enum {
     AD1848_TYPE_CS4235  = 6
 };
 
+enum {
+    AD1848_AUX1    = 2,
+    AD1848_AUX2    = 4,
+    AD1848_OUT     = 6,
+    AD1848_LINE_IN = 18,
+    AD1848_MONO    = 26
+};
+
 typedef struct ad1848_t {
     uint8_t type;
     uint8_t index;
@@ -47,6 +55,7 @@ typedef struct ad1848_t {
 
     int16_t out_l;
     int16_t out_r;
+    int8_t  cd_vol_reg;
     double  cd_vol_l;
     double  cd_vol_r;
     int     fm_vol_l;
@@ -69,6 +78,8 @@ typedef struct ad1848_t {
     pc_timer_t timer_count;
     uint64_t   timer_latch;
 
+    pc_timer_t cs4231a_irq_timer;
+
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 
@@ -86,8 +97,9 @@ extern void    ad1848_write(uint16_t addr, uint8_t val, void *priv);
 
 extern void ad1848_update(ad1848_t *ad1848);
 extern void ad1848_speed_changed(ad1848_t *ad1848);
+extern void ad1848_set_cd_audio_channel(void *priv, int channel);
 extern void ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
-extern void ad1848_filter_aux2(void* priv, double* out_l, double* out_r);
+extern void ad1848_filter_channel(void* priv, int channel, double* out_l, double* out_r);
 
 extern void ad1848_init(ad1848_t *ad1848, uint8_t type);
 

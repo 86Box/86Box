@@ -203,9 +203,11 @@ extern const device_t es1373_onboard_device;
 extern const device_t ct5880_device;
 extern const device_t ct5880_onboard_device;
 
-/* Gravis UltraSound and UltraSound Max */
+/* Gravis UltraSound family */
 extern const device_t gus_device;
+extern const device_t gus_v37_device;
 extern const device_t gus_max_device;
+extern const device_t gus_ace_device;
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
@@ -235,6 +237,9 @@ extern const device_t tndy_device;
 /* Windows Sound System */
 extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
+
+/* Yamaha YMF-7xx */
+extern const device_t ymf701_device;
 
 #ifdef USE_LIBSERIALPORT
 /* External Audio device OPL2Board (Host Connected hardware)*/

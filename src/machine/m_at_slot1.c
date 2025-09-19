@@ -348,16 +348,56 @@ machine_at_bf6_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t bx6_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "bx6",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "Award Modular BIOS v4.51PG - Revision EG", .internal_name = "bx6_eg", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/bx6/BX6_EG.BIN", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision QS", .internal_name = "bx6", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/bx6/BX6_QS.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t bx6_device = {
+    .name          = "ABIT AB-BX6",
+    .internal_name = "bx6_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = bx6_config
+};
+
 int
 machine_at_bx6_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/bx6/BX6_EG.BIN",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 
@@ -519,16 +559,60 @@ machine_at_686bx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ms6119_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "ms6119",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "AMIBIOS 6 (071595) - Revision 1.90 (Packard Bell Tacoma)", .internal_name = "tacoma", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/A19P2190.ROM", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 2.10", .internal_name = "ms6119", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/w6119ims.2a0", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 2.12 (Viglen Vig69M)", .internal_name = "vig69m", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/vig69m.212", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet i x7G)", .internal_name = "lgibmx7g", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/ms6119.331", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ms6119_device = {
+    .name          = "MSI MS-6119",
+    .internal_name = "ms6119_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ms6119_config
+};
+
 int
-machine_at_lgibmx7g_init(const machine_t *model)
+machine_at_ms6119_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/lgibmx7g/ms6119.331",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 
@@ -545,7 +629,7 @@ machine_at_lgibmx7g_init(const machine_t *model)
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&winbond_flash_w29c020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-
+    
     return ret;
 }
 

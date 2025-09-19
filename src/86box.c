@@ -230,6 +230,7 @@ int      other_scsi_present = 0;                                  /* SCSI contro
 int      is_pcjr = 0;                                             /* The current machine is PCjr. */
 int      portable_mode = 0;                                       /* We are running in portable mode
                                                                      (global dirs = exe path) */
+int      global_cfg_overridden = 0;                               /* Global config file was overriden on command line */
 
 int      monitor_edid = 0;                                        /* (C) Which EDID to use. 0=default, 1=custom. */
 char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to custom EDID */
@@ -852,6 +853,7 @@ usage:
             if ((c + 1) == argc || plat_dir_check(argv[c + 1]))
                 goto usage;
 
+            global_cfg_overridden = 1;
             global = argv[++c];
         } else if (!strcasecmp(argv[c], "--image") || !strcasecmp(argv[c], "-I")) {
             if ((c + 1) == argc)
@@ -1151,11 +1153,13 @@ usage:
         start_vmm = 1;
     } else {
         strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path) - 1);
+        vmm_path[sizeof(vmm_path) - 1] = '\0';
     }
 
     if (start_vmm) {
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
         strncpy(usr_path, vmm_path, sizeof(usr_path) - 1);
+        usr_path[sizeof(usr_path) - 1] = '\0';
     } else
 #endif
     {
@@ -1801,9 +1805,6 @@ pc_close(UNUSED(thread_t *ptr))
 
     gdbstub_close();
 
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    mem_free();
-#endif
 }
 
 #ifdef __APPLE__
@@ -1864,6 +1865,12 @@ pc_run(void)
 
     if (title_update) {
         mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
+#ifdef SCREENSHOT_MODE
+        if (force_10ms)
+            fps = ((fps + 2) / 5) * 5;
+        else
+            fps = ((fps + 20) / 50) * 50;
+#endif
         swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps / (force_10ms ? 1 : 10), force_10ms ? 0 : (fps % 10));
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */

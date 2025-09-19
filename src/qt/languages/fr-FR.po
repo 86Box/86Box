@@ -15,8 +15,8 @@ msgstr "C&apturer le clavier"
 msgid "&Right CTRL is left ALT"
 msgstr "CTRL &Droite devient ALT Gauche"
 
-msgid "&Hard Reset..."
-msgstr "&Hard Reset..."
+msgid "&Hard reset"
+msgstr "&Hard reset"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Suppr"
@@ -50,6 +50,9 @@ msgstr "Fenêtre &redimensionnable"
 
 msgid "R&emember size && position"
 msgstr "S&auvegarder taille && position"
+
+msgid "Remember size && position"
+msgstr "Sauvegarder taille && position"
 
 msgid "Re&nderer"
 msgstr "Moteur de re&ndu vidéo"
@@ -1073,6 +1076,12 @@ msgstr "Arrêt forcé"
 
 msgid "Start"
 msgstr "Démarrer"
+
+msgid "&Force shutdown"
+msgstr "&Arrêt forcé"
+
+msgid "&Start"
+msgstr "&Démarrer"
 
 msgid "Not running"
 msgstr "Inactive"
@@ -2135,6 +2144,9 @@ msgstr "DMA bas"
 
 msgid "Enable Game port"
 msgstr "Activer le port de jeu"
+
+msgid "Enable Adlib ports"
+msgstr "Activer les ports Adlib"
 
 msgid "SID Model"
 msgstr "Modèle SID"

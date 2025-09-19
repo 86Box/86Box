@@ -161,7 +161,8 @@ VMManagerDetailSection::setupMainLayout()
 void
 VMManagerDetailSection::setSections()
 {
-    int row = 0;
+    int row    = 0;
+    bool empty = true;
 
     for (const auto& section : sections) {
         QStringList sectionsToAdd = section.value.split(sectionSeparator);
@@ -189,12 +190,13 @@ VMManagerDetailSection::setSections()
 
             const auto hSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
             frameGridLayout->addItem(hSpacer, row, 2);
+            empty = false;
             row++;
         }
     }
 
     collapseButton->setContent(ui->detailFrame);
-    if (sections.size())
+    if (!empty)
         setVisible(true);
 }
 void

@@ -163,28 +163,6 @@ machine_at_pbl300sx_init(const machine_t *model)
 
 /* ALi M1217 */
 int
-machine_at_arb1374_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/arb1374/1374s.rom",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&ali1217_device);
-    device_add(&ide_isa_device);
-    device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0 | W83XX7_IDE_PRI));
-
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    return ret;
-}
-
-int
 machine_at_sbc350a_init(const machine_t *model)
 {
     int ret;
@@ -200,6 +178,28 @@ machine_at_sbc350a_init(const machine_t *model)
     device_add(&ali1217_device);
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_at_arb1374_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/arb1374/1374s.rom",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&ide_isa_device);
+    device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0 | W83XX7_IDE_PRI));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -254,7 +254,7 @@ static const device_config_t c325ax_config[] = {
 };
 
 const device_t c325ax_device = {
-    .name          = "Chaintech 325AX",
+    .name          = "Chaintech 3xxAX/AXB",
     .internal_name = "325ax_device",
     .flags         = 0,
     .local         = 0,
