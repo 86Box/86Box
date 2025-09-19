@@ -2344,8 +2344,11 @@ MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
     if (enable_discord) {
         discord_init();
         discord_update_activity(dopause);
-    } else
+        discordupdate.start(1000);
+    } else {
         discord_close();
+        discordupdate.stop();
+    }
 #endif
 }
 

@@ -114,10 +114,6 @@ int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc,
 static inline int
 codegen_can_unroll(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
 {
-    /* TODO: Re-enable this again after fixing mysterious crashes on ARM64 with MMX instructions used. */
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
-    return 0;
-#endif
     if (block->flags & CODEBLOCK_BYTE_MASK)
         return 0;
 
