@@ -525,7 +525,7 @@ ymf71x_filter_cd_audio(int channel, double *buffer, void *priv)
         ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
 
     double master = channel ? ymf71x->master_r : ymf71x->master_l;
-    double c      = ((*buffer  * cd_vol ) * master) / 65536.0;
+    double c      = ((*buffer  * cd_vol / 3.0) * master) / 65536.0;
     double bass_treble;
 
     if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
