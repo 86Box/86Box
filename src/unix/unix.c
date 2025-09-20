@@ -405,11 +405,19 @@ path_append_filename(char *dest, const char *s1, const char *s2)
 int
 plat_dir_check(char *path)
 {
-    struct stat dummy;
-    if (stat(path, &dummy) < 0) {
+    struct stat stats;
+    if (stat(path, &stats) < 0)
         return 0;
-    }
-    return S_ISDIR(dummy.st_mode);
+    return S_ISDIR(stats.st_mode);
+}
+
+int
+plat_file_check(const char *path)
+{
+    struct stat stats;
+    if (stat(path, &stats) < 0)
+        return 0;
+    return !S_ISDIR(stats.st_mode);
 }
 
 int

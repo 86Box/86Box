@@ -151,7 +151,7 @@ static const device_config_t cu430hx_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Intel AMIBIOS - Revision 1.00.03.DK08 (Toshiba Equium 5200D)", .internal_name = "equium5200", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.03.DK08 (Toshiba Equium 5xx0D)", .internal_name = "equium5200", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/cu430hx/1003DK08.BIO", "roms/machines/cu430hx/1003DK08.BI1",
                                                                     "roms/machines/cu430hx/1003DK08.BI2", "roms/machines/cu430hx/1003DK08.BI3",
                                                                     "roms/machines/cu430hx/1003DK08.RCV", "" } },
@@ -270,7 +270,7 @@ static const device_config_t tc430hx_config[] = {
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/tc430hx/1007DH0_.BIO", "roms/machines/tc430hx/1007DH0_.BI1",
                                                                     "roms/machines/tc430hx/1007DH0_.BI2", "roms/machines/tc430hx/1007DH0_.BI3",
                                                                     "roms/machines/tc430hx/1007DH0_.RCV", "" } },
-            { .name = "Intel AMIBIOS - Revision 1.00.08.DH08 (Toshiba Infinia 7201)", .internal_name = "infinia7200", .bios_type = BIOS_NORMAL, 
+            { .name = "Intel AMIBIOS - Revision 1.00.08.DH08 (Toshiba Infinia 7xx1)", .internal_name = "infinia7200", .bios_type = BIOS_NORMAL, 
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/tc430hx/1008DH08.BIO", "roms/machines/tc430hx/1008DH08.BI1",
                                                                     "roms/machines/tc430hx/1008DH08.BI2", "roms/machines/tc430hx/1008DH08.BI3",
                                                                     "roms/machines/tc430hx/1008DH08.RCV", "" } },
@@ -1809,9 +1809,9 @@ static const device_config_t m5ata_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Award Modular BIOS v4.51PG - Revision 12/23/97", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 12/23/97", .internal_name = "m5ata_1223", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA1223.BIN", "" } },
-            { .name = "Award Modular BIOS v4.51PG - Revision 05/27/98", .internal_name = "m5ata_0527b", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision 05/27/98", .internal_name = "m5ata", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/m5ata/ATA0527B.BIN", "" } },
             { .files_no = 0 }
         },

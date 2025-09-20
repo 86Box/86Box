@@ -68,9 +68,9 @@ static const device_config_t deskpro386_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "September 1986", .internal_name = "deskpro386", .bios_type = BIOS_NORMAL, 
+            { .name = "September 1986", .internal_name = "deskpro386_09_1986", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/deskpro386/1986-09-04-HI.json.bin", "" } },
-            { .name = "May 1988", .internal_name = "deskpro386_05_1988", .bios_type = BIOS_NORMAL, 
+            { .name = "May 1988", .internal_name = "deskpro386", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/deskpro386/1988-05-10.json.bin", "" } },
             { .files_no = 0 }
         },

@@ -527,7 +527,7 @@ w83877_init(const device_t *info)
 
     dev->has_ide = (info->local >> 16) & 0xff;
 
-    if (!strcmp(machine_get_internal_name(), "ficpa2012")) {
+    if (machines[machine].init == machine_at_ficpa2012_init) {
         dev->dma_map[0] = 4;
         dev->dma_map[1] = 3;
         dev->dma_map[2] = 1;

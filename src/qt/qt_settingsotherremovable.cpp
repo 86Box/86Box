@@ -26,8 +26,6 @@ extern "C" {
 #include <86box/rdisk.h>
 }
 
-#include <QStandardItemModel>
-
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
@@ -47,17 +45,17 @@ rdiskDriveTypeName(int i)
                                    rdisk_drive_types[i].revision);
 }
 
-static void
-setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
+void
+SettingsOtherRemovable::setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
 {
     QIcon icon;
     switch (bus) {
         case MO_BUS_DISABLED:
-            icon = QIcon(":/settings/qt/icons/mo_disabled.ico");
+            icon = mo_disabled_icon;
             break;
         case MO_BUS_ATAPI:
         case MO_BUS_SCSI:
-            icon = QIcon(":/settings/qt/icons/mo.ico");
+            icon = mo_icon;
             break;
 
         default:
@@ -71,17 +69,17 @@ setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t
     model->setData(i, icon, Qt::DecorationRole);
 }
 
-static void
-setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
+void
+SettingsOtherRemovable::setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
 {
     QIcon icon;
     switch (bus) {
         case RDISK_BUS_DISABLED:
-            icon = QIcon(":/settings/qt/icons/rdisk_disabled.ico");
+            icon = rdisk_disabled_icon;
             break;
         case RDISK_BUS_ATAPI:
         case RDISK_BUS_SCSI:
-            icon = QIcon(":/settings/qt/icons/rdisk.ico");
+            icon = rdisk_icon;
             break;
 
         default:
@@ -123,6 +121,9 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 {
     ui->setupUi(this);
 
+    mo_disabled_icon = QIcon(":/settings/qt/icons/mo_disabled.ico");
+    mo_icon = QIcon(":/settings/qt/icons/mo.ico");
+
     Harddrives::populateRemovableBuses(ui->comboBoxMOBus->model());
     ui->comboBoxMOBus->model()->removeRows(3, ui->comboBoxMOBus->model()->rowCount() - 3);
     auto *model = ui->comboBoxMOType->model();
@@ -146,6 +147,9 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 
     connect(ui->tableViewMO->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onMORowChanged);
     ui->tableViewMO->setCurrentIndex(model->index(0, 0));
+
+    rdisk_disabled_icon = QIcon(":/settings/qt/icons/rdisk_disabled.ico");
+    rdisk_icon = QIcon(":/settings/qt/icons/rdisk.ico");
 
     Harddrives::populateRemovableBuses(ui->comboBoxRDiskBus->model());
     if ((ui->comboBoxRDiskBus->model()->rowCount() - 3) > 0)

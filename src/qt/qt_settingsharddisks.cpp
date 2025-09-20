@@ -44,6 +44,8 @@ const int DataBusChannel         = Qt::UserRole + 1;
 const int DataBusPrevious        = Qt::UserRole + 2;
 const int DataBusChannelPrevious = Qt::UserRole + 3;
 
+QIcon hard_disk_icon;
+
 #if 0
 static void
 normalize_hd_list()
@@ -78,28 +80,31 @@ addRow(QAbstractItemModel *model, hard_disk_t *hd)
 
     model->insertRow(row);
 
+    auto busIndex = model->index(row, ColumnBus);
     QString busName = Harddrives::BusChannelName(hd->bus_type, hd->channel);
-    model->setData(model->index(row, ColumnBus), busName);
-    model->setData(model->index(row, ColumnBus), QIcon(":/settings/qt/icons/hard_disk.ico"), Qt::DecorationRole);
-    model->setData(model->index(row, ColumnBus), hd->bus_type, DataBus);
-    model->setData(model->index(row, ColumnBus), hd->bus_type, DataBusPrevious);
-    model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannel);
-    model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannelPrevious);
+    model->setData(busIndex, busName);
+    model->setData(busIndex, hard_disk_icon, Qt::DecorationRole);
+    model->setData(busIndex, hd->bus_type, DataBus);
+    model->setData(busIndex, hd->bus_type, DataBusPrevious);
+    model->setData(busIndex, hd->channel, DataBusChannel);
+    model->setData(busIndex, hd->channel, DataBusChannelPrevious);
     Harddrives::busTrackClass->device_track(1, DEV_HDD, hd->bus_type, hd->channel);
+    auto filenameIndex = model->index(row, ColumnFilename);
     QString fileName = hd->fn;
     if (fileName.startsWith(userPath, Qt::CaseInsensitive))
-        model->setData(model->index(row, ColumnFilename), fileName.mid(userPath.size()));
+        model->setData(filenameIndex, fileName.mid(userPath.size()));
     else
-        model->setData(model->index(row, ColumnFilename), fileName);
+        model->setData(filenameIndex, fileName);
 
-    model->setData(model->index(row, ColumnFilename), fileName, Qt::UserRole);
+    model->setData(filenameIndex, fileName, Qt::UserRole);
 
     model->setData(model->index(row, ColumnCylinders), hd->tracks);
     model->setData(model->index(row, ColumnHeads), hd->hpc);
     model->setData(model->index(row, ColumnSectors), hd->spt);
     model->setData(model->index(row, ColumnSize), (hd->tracks * hd->hpc * hd->spt) >> 11);
-    model->setData(model->index(row, ColumnSpeed), QObject::tr(hdd_preset_getname(hd->speed_preset)));
-    model->setData(model->index(row, ColumnSpeed), hd->speed_preset, Qt::UserRole);
+    auto speedIndex = model->index(row, ColumnSpeed);
+    model->setData(speedIndex, QObject::tr(hdd_preset_getname(hd->speed_preset)));
+    model->setData(speedIndex, hd->speed_preset, Qt::UserRole);
 }
 
 SettingsHarddisks::SettingsHarddisks(QWidget *parent)
@@ -107,6 +112,8 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     , ui(new Ui::SettingsHarddisks)
 {
     ui->setupUi(this);
+
+    hard_disk_icon = QIcon(":/settings/qt/icons/hard_disk.ico");
 
     QAbstractItemModel *model = new QStandardItemModel(0, 7, this);
     model->setHeaderData(ColumnBus, Qt::Horizontal, tr("Bus"));
