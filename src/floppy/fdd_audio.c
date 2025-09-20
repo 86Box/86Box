@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -164,6 +165,20 @@ load_wav(const char *filename, int *sample_count)
 {
     FILE *f = NULL;
     char  full_path[2048];
+
+    if (!filename || strlen(filename) == 0) {
+        return NULL;
+    }
+
+    if (strstr(filename, "..") != NULL || strchr(filename, '/') != NULL || strchr(filename, '\\') != NULL) {
+        return NULL;
+    }
+
+    for (const char *p = filename; *p; p++) {
+        if (!isalnum(*p) && *p != '.' && *p != '_' && *p != '-') {
+            return NULL;
+        }
+    }
 
     path_append_filename(full_path, exe_path, "samples");
     path_append_filename(full_path, full_path, filename);
