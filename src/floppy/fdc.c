@@ -854,16 +854,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     fdc_soft_reset(fdc);
                 /* We can now simplify this since each motor now spins separately. */
                 for (int i = 0; i < FDD_NUM; i++) {
-                    int phys = real_drive(fdc, i);
-                    if (phys >= FDD_NUM || !fdd_get_flags(phys)) {
-                        /* Clear the logical motor bit for a non‑present drive */
-                        val &= ~(0x10 << i);
-                        fdd_set_motor_enable(phys, 0);
-                        continue;
-                    }
-                    /* Motor bit positions are tied to logical index i (bits 4..7) */
-                    int on = (val & (0x10 << i)) ? 1 : 0;
-                    fdd_set_motor_enable(phys, on);
+                    drive_num = real_drive(fdc, i);
+                    if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
+                        val &= ~(0x10 << drive_num);
+                    else
+                        fdd_set_motor_enable(i, (val & (0x10 << drive_num)));
                 }
                 drive_num     = real_drive(fdc, val & 0x03);
                 current_drive = drive_num;
