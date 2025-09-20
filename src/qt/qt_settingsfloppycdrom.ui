@@ -66,32 +66,43 @@
    </item>
    <item>
     <widget class="QWidget" name="floppyControls" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QVBoxLayout" name="floppyVerticalLayout">
       <item>
-       <widget class="QLabel" name="labelFloppyType">
-        <property name="text">
-         <string>Type:</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QLabel" name="labelFloppyType">
+          <property name="text">
+           <string>Type:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBoxFloppyType">
+          <property name="maxVisibleItems">
+           <number>30</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxTurboTimings">
+          <property name="text">
+           <string>Turbo timings</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxCheckBPB">
+          <property name="text">
+           <string>Check BPB</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
-       <widget class="QComboBox" name="comboBoxFloppyType">
-        <property name="maxVisibleItems">
-         <number>30</number>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkBoxTurboTimings">
+       <widget class="QCheckBox" name="checkBoxFloppySounds">
         <property name="text">
-         <string>Turbo timings</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkBoxCheckBPB">
-        <property name="text">
-         <string>Check BPB</string>
+         <string>Enable floppy sounds for all drives</string>
         </property>
        </widget>
       </item>
@@ -205,6 +216,7 @@
   <tabstop>comboBoxFloppyType</tabstop>
   <tabstop>checkBoxTurboTimings</tabstop>
   <tabstop>checkBoxCheckBPB</tabstop>
+  <tabstop>checkBoxFloppySounds</tabstop>
   <tabstop>tableViewCDROM</tabstop>
   <tabstop>comboBoxBus</tabstop>
   <tabstop>comboBoxChannel</tabstop>

@@ -8,6 +8,8 @@ Makefile
 /src/*.exe
 /src/86Box
 /src/include/86box/version.h
+/src/.vs
+/src/out
 
 # Legacy Makefile
 /src/*.o

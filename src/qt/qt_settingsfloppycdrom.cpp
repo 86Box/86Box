@@ -218,6 +218,12 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     ui->comboBoxCDROMType->setEnabled(eligibleRows > 1);
     ui->comboBoxCDROMType->setCurrentIndex(-1);
     ui->comboBoxCDROMType->setCurrentIndex(selectedTypeRow);
+#ifndef DISABLE_FDD_AUDIO
+    ui->checkBoxFloppySounds->setVisible(true);
+    ui->checkBoxFloppySounds->setChecked(fdd_sounds_enabled > 0);
+#else
+    ui->checkBoxFloppySounds->setVisible(false);
+#endif
 }
 
 SettingsFloppyCDROM::~SettingsFloppyCDROM()
@@ -250,6 +256,12 @@ SettingsFloppyCDROM::save()
         cdrom[i].speed = model->index(i, 1).data(Qt::UserRole).toUInt();
         cdrom_set_type(i, model->index(i, 2).data(Qt::UserRole).toInt());
     }
+
+#ifdef DISABLE_FDD_AUDIO
+    fdd_sounds_enabled = 0;
+#else
+    fdd_sounds_enabled = ui->checkBoxFloppySounds->isChecked() ? 1 : 0;
+#endif
 }
 
 void
@@ -328,6 +340,12 @@ SettingsFloppyCDROM::on_checkBoxCheckBPB_stateChanged(int arg1)
     auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
     ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ?
                                           tr("On") : tr("Off"));
+}
+
+void
+SettingsFloppyCDROM::on_checkBoxFloppySounds_stateChanged(int arg1)
+{
+    fdd_sounds_enabled = (arg1 == Qt::Checked) ? 1 : 0;
 }
 
 void

@@ -265,6 +265,7 @@ load_general(void)
 
     do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
+    fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
     p = ini_section_get_string(cat, "uuid", NULL);
     if (p != NULL)
@@ -2478,6 +2479,11 @@ save_general(void)
         ini_section_set_int(cat, "force_constant_mouse", force_constant_mouse);
     else
         ini_section_delete_var(cat, "force_constant_mouse");
+
+    if (fdd_sounds_enabled == 1)
+        ini_section_delete_var(cat, "fdd_sounds_enabled");
+    else
+        ini_section_set_int(cat, "fdd_sounds_enabled", fdd_sounds_enabled);
 
     char cpu_buf[128] = { 0 };
     plat_get_cpu_string(cpu_buf, 128);
