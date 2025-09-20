@@ -320,7 +320,7 @@ fdd_seek(int drive, int track_diff)
         timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
     }
 
-    double   initial_seek_time = FDC_FLAG_PCJR & fdd_fdc->flags ? 50000.0 : 15000.0;
+    double   initial_seek_time = FDC_FLAG_PCJR & fdd_fdc->flags ? 40000.0 : 15000.0;
     double   track_seek_time   = FDC_FLAG_PCJR & fdd_fdc->flags ? 10000.0 : 6000.0;
     uint64_t seek_time_us      = (initial_seek_time + (abs(actual_track_diff) * track_seek_time)) * TIMER_USEC;
     timer_set_delay_u64(&fdd_seek_timer[drive], seek_time_us);
