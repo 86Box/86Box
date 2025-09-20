@@ -1407,6 +1407,12 @@ OpenGLRenderer::render()
     glw.glBindTexture(GL_TEXTURE_2D, 0);
 
     GLfloat orig_output_size[] = { (GLfloat)window_rect.w, (GLfloat)window_rect.h };
+    GLfloat shader_input_size[] = { orig_output_size[0], orig_output_size[1] };
+    
+    ogl3_log("DEBUG: orig_output_size = %.0f x %.0f",
+         orig_output_size[0], orig_output_size[1]);
+    ogl3_log("DEBUG: shader_input_size = %.0f x %.0f",
+         shader_input_size[0], shader_input_size[1]);
 
     if (active_shader->srgb)
         glw.glEnable(GL_FRAMEBUFFER_SRGB);
@@ -1494,15 +1500,28 @@ OpenGLRenderer::render()
             memcpy(pass->state.input_texture_size, input->state.output_texture_size, 2 * sizeof(GLfloat));
 
             for (uint8_t j = 0; j < 2; ++j) {
-                if (pass->scale.mode[j] == SCALE_VIEWPORT)
-                    pass->state.output_size[j] = orig_output_size[j] * pass->scale.value[j];
-                else if (pass->scale.mode[j] == SCALE_ABSOLUTE)
-                    pass->state.output_size[j] = pass->scale.value[j];
-                else
-                    pass->state.output_size[j] = pass->state.input_size[j] * pass->scale.value[j];
+    if (pass->scale.mode[j] == SCALE_VIEWPORT) {
+        if (pass->scale.value[j] == 0.0f)
+            pass->state.output_size[j] = shader_input_size[j];
+        else
+            pass->state.output_size[j] = orig_output_size[j] * pass->scale.value[j];
+    } else if (pass->scale.mode[j] == SCALE_ABSOLUTE) {
+        pass->state.output_size[j] = pass->scale.value[j];
+    } else {
+        pass->state.output_size[j] = pass->state.input_size[j] * pass->scale.value[j];
+    }
 
-                pass->state.output_texture_size[j] = next_pow2(pass->state.output_size[j]);
-            }
+    if (pass->state.output_size[j] < 1.0f)
+        pass->state.output_size[j] = 1.0f;
+
+    int texsz = next_pow2((unsigned int)ceilf(pass->state.output_size[j]));
+    if (texsz < 1) texsz = 1;
+    pass->state.output_texture_size[j] = texsz;
+
+    ogl3_log("DEBUG: pass axis %d output_size=%.1f texture=%d",
+             j, pass->state.output_size[j], pass->state.output_texture_size[j]);
+}
+
 
             if (pass->fbo.id >= 0) {
                 recreate_fbo(&pass->fbo, pass->state.output_texture_size[0], pass->state.output_texture_size[1]);
@@ -1625,15 +1644,28 @@ OpenGLRenderer::render()
         memcpy(pass->state.input_texture_size, input->state.output_texture_size, 2 * sizeof(GLfloat));
 
         for (uint8_t j = 0; j < 2; ++j) {
-            if (pass->scale.mode[j] == SCALE_VIEWPORT)
-                pass->state.output_size[j] = orig_output_size[j] * pass->scale.value[j];
-            else if (pass->scale.mode[j] == SCALE_ABSOLUTE)
-                pass->state.output_size[j] = pass->scale.value[j];
-            else
-                pass->state.output_size[j] = pass->state.input_size[j] * pass->scale.value[j];
+    if (pass->scale.mode[j] == SCALE_VIEWPORT) {
+        if (pass->scale.value[j] == 0.0f)
+            pass->state.output_size[j] = shader_input_size[j];
+        else
+            pass->state.output_size[j] = orig_output_size[j] * pass->scale.value[j];
+    } else if (pass->scale.mode[j] == SCALE_ABSOLUTE) {
+        pass->state.output_size[j] = pass->scale.value[j];
+    } else {
+        pass->state.output_size[j] = pass->state.input_size[j] * pass->scale.value[j];
+    }
 
-            pass->state.output_texture_size[j] = next_pow2(pass->state.output_size[j]);
-        }
+    if (pass->state.output_size[j] < 1.0f)
+        pass->state.output_size[j] = 1.0f;
+
+    int texsz = next_pow2((unsigned int)ceilf(pass->state.output_size[j]));
+    if (texsz < 1) texsz = 1;
+    pass->state.output_texture_size[j] = texsz;
+
+    ogl3_log("DEBUG: pass axis %d output_size=%.1f texture=%d",
+             j, pass->state.output_size[j], pass->state.output_texture_size[j]);
+}
+
 
         glw.glBindTexture(GL_TEXTURE_2D, input->fbo.texture.id);
         glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
