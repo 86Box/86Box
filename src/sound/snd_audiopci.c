@@ -438,8 +438,8 @@ es137x_reset(void *priv)
 
     /* Default subsystem ID. */
     dev->subsys_lock                   = 0x00;
-    *((uint16_t *) &dev->subsys_id[0]) = (dev->type == AUDIOPCI_ES1370) ? 0x4942 : 0x1274;
-    *((uint16_t *) &dev->subsys_id[2]) = (dev->type == AUDIOPCI_ES1370) ? 0x4c4c : 0x1371;
+    AS_U16(dev->subsys_id[0]) = (dev->type == AUDIOPCI_ES1370) ? 0x4942 : 0x1274;
+    AS_U16(dev->subsys_id[2]) = (dev->type == AUDIOPCI_ES1370) ? 0x4c4c : 0x1371;
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as byte, word, longword */
