@@ -46,6 +46,7 @@
 #include <86box/isapnp.h>
 #include <86box/nvr.h>
 #include <86box/snd_opl.h>
+#include <86box/filters.h>
 #include "cpu.h"
 
 #define PNP_ROM_YMF718 "roms/sound/ymf71x/UFC-101.BIN"
@@ -81,6 +82,14 @@ static const double ymf71x_att_2dbstep_4bits[] = {
       32767.0, 26027.0, 20674.0, 16422.0, 13044.0, 10362.0, 8230.0, 6537.0,
        5192.0,  4125.0,  3276.0,  2602.0,  2067.0,  1641.0, 1304.0,  164.0
 };
+
+/* Taken from the SoundBlaster code, not quite correct but provides the desired effect
+   without causing distortion when applied to CD audio (at lower settings, highest settings
+   still do this to CD audio) */
+static const double ymf71x_bass_treble_3bits[] = {
+    0, 0.25892541, 0.584893192, 1, 1.511886431, 2.16227766, 3, 4.011872336
+};
+
 
 static int ymf71x_wss_dma[4] = { 0, 0, 1, 3 };
 static int ymf71x_wss_irq[8] = { 0, 7, 9, 10, 11, 0, 0, 0 };
@@ -517,6 +526,31 @@ ymf71x_filter_cd_audio(int channel, double *buffer, void *priv)
 
     double master = channel ? ymf71x->master_r : ymf71x->master_l;
     double c      = ((*buffer  * cd_vol ) * master) / 65536.0;
+    double bass_treble;
+
+    if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
+
+        c += (low_iir(2, 0, c) * bass_treble);
+    }
+
+    if (((ymf71x->regs[0x15] >> 4) & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[((ymf71x->regs[0x15] >> 4) & 0x07)];
+
+        c += (low_iir(2, 1, c) * bass_treble);
+    }
+
+    if ((ymf71x->regs[0x16] & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[ymf71x->regs[0x16] & 0x07];
+
+        c += (high_iir(2, 0, c) * bass_treble);
+    }
+
+    if (((ymf71x->regs[0x16] >> 4) & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x16] >> 4) & 0x07];
+
+        c += (high_iir(2, 1, c) * bass_treble);
+    }
 
     *buffer = c;
 }
@@ -525,6 +559,7 @@ static void
 ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
+    double bass_treble;
 
     /* Master volume attenuation */
     if (ymf71x->regs[0x07] & 0x80)
@@ -536,6 +571,30 @@ ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
         ymf71x->master_r = 0;
     else
         ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
+
+    if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
+
+        *out_l += (low_iir(1, 0, *out_l) * bass_treble);
+    }
+
+    if (((ymf71x->regs[0x15] >> 4) & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[((ymf71x->regs[0x15] >> 4) & 0x07)];
+
+        *out_r += (low_iir(1, 1, *out_r) * bass_treble);
+    }
+
+    if ((ymf71x->regs[0x16] & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[ymf71x->regs[0x16] & 0x07];
+
+        *out_l += (high_iir(1, 0, *out_l) * bass_treble);
+    }
+
+    if (((ymf71x->regs[0x16] >> 4) & 0x07) != 0x00) {
+        bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x16] >> 4) & 0x07];
+
+        *out_r += (high_iir(1, 1, *out_r) * bass_treble);
+    }
 
     *out_l *= ymf71x->master_l;
     *out_r *= ymf71x->master_r;
@@ -566,9 +625,37 @@ ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
     for (int c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
+        double bass_treble;
 
         out_l += (ymf71x->ad1848.buffer[c] * ymf71x->master_l);
         out_r += (ymf71x->ad1848.buffer[c +1] * ymf71x->master_r);
+
+        if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
+
+            out_l += (low_iir(0, 0, out_l) * bass_treble);
+        }
+
+        if (((ymf71x->regs[0x15] >> 4) & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[((ymf71x->regs[0x15] >> 4) & 0x07)];
+
+            out_r += (low_iir(0, 1, out_r) * bass_treble);
+        }
+
+        if ((ymf71x->regs[0x16] & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[ymf71x->regs[0x16] & 0x07];
+
+            out_l += (high_iir(0, 0, out_l) * bass_treble);
+        }
+
+        if (((ymf71x->regs[0x16] >> 4) & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x16] >> 4) & 0x07];
+
+            out_r += (high_iir(0, 1, out_r) * bass_treble);
+        }
+
+        out_l *= ymf71x->master_l;
+        out_r *= ymf71x->master_r;
 
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
