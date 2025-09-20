@@ -488,6 +488,8 @@ readonly_x:
                         ad1848_log("AD1848: write(X%d, %02X)\n", ad1848->xindex, val);
                         return;
                     }
+                    if (ad1848->type == AD1848_TYPE_CS4231) /* I23 is reserved and read-only on CS4231 non-A */
+                        goto readonly_i;
                     break;
 
                 case 24:
