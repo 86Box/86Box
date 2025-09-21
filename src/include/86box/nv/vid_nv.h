@@ -136,6 +136,10 @@ typedef struct nv_base_s
     bool pixel_clock_enabled;                   // Pixel Clock Enabled - stupid crap used to prevent us enabling the timer multiple times
     double memory_clock_frequency;              // Source Frequency for PTIMER
     rivatimer_t* memory_clock_timer;            // Timer for measuring memory/gpu clock
+    
+    // VCLK / NVCLK do not have timers set here.
+    pc_timer_t* nv4_vclk_timer;                 // NV4+ MCLK (Video RAM) timer
+
     bool memory_clock_enabled;                  // Memory Clock Enabled - stupid crap used to prevent us eanbling the timer multiple times
     void* i2c;                                  // I2C for monitor EDID
     void* ddc;                                  // Display Data Channel for EDID

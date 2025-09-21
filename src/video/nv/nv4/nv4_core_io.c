@@ -44,12 +44,47 @@ void nv4_svga_write(uint16_t addr, uint8_t val, void* priv);
 
 uint32_t nv4_mmio_arbitrate_read(uint32_t addr)
 {
-    nv_log_verbose_only("MMIO read from address=0x%08x\n", addr);
+    uint32_t ret = 0x00;
+
+    if (addr >= NV4_PTIMER_START && addr <= NV4_PTIMER_END)
+        ret = nv4_ptimer_read(addr);
+    else if (addr >= NV4_PRAMDAC_START && addr <= NV4_PRAMDAC_END)
+        ret = nv4_pramdac_read(addr);
+
+    #ifdef NV_LOG
+    nv_register_t reg = nv_get_register(addr, &nv4_registers, sizeof(nv4_registers)/sizeof(nv4_registers[0]));
+
+    if (reg)
+    {
+        if (reg->on_read)
+            ret = reg->on_read();
+        
+        nv_log_verbose_only("Register read from 0x%08x value=%08x", addr, ret);
+        
+    }
+    #endif 
+
 }
 
 void nv4_mmio_arbitrate_write(uint32_t addr, uint32_t val)
 {
-    nv_log_verbose_only("MMIO write to address=0x%08x value %08x\n", addr, val);
+    if (addr >= NV4_PTIMER_START && addr <= NV4_PTIMER_END)
+        nv4_ptimer_write(addr, val);
+    else if (addr >= NV4_PRAMDAC_START && addr <= NV4_PRAMDAC_END)
+        nv4_pramdac_write(addr, val);
+
+    #ifdef NV_LOG
+    nv_register_t reg = nv_get_register(addr, &nv4_registers, sizeof(nv4_registers)/sizeof(nv4_registers[0]));
+
+    if (reg)
+    {
+        if (reg->on_write)
+            reg->on_write(val);
+        
+        nv_log_verbose_only("Register write from 0x%08x value=%08x", addr, val);
+        
+    }
+    #endif 
 }
 
 // Determine if this address needs to be redirected to the SVGA subsystem.

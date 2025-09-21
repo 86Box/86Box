@@ -62,6 +62,7 @@ typedef struct nv4_pramdac_s
     uint32_t mclk;
     uint32_t vclk;
     uint32_t nvclk;
+    uint32_t clk_coeff_select;          // Clock coefficient selection
     uint32_t cursor_address;
 } nv4_pramdac_t;
 
@@ -82,6 +83,13 @@ typedef struct nv4_s
 extern const device_config_t nv4_config[];                              
 
 extern nv4_t* nv4;                                                      // Allocated at device startup
+
+#ifdef NV_LOG
+
+// Debug register list
+extern nv_register_t nv4_registers[];
+
+#endif
 
 //
 // Functions
@@ -120,9 +128,22 @@ void        nv4_ramin_write32(uint32_t addr, uint32_t val, void* priv);
 uint8_t     nv4_pci_read(int32_t func, int32_t addr, void* priv);
 void        nv4_pci_write(int32_t func, int32_t addr, uint8_t val, void* priv);
 
-// PRAMDAC  
-
+// SVGA
 uint8_t     nv4_svga_read(uint16_t addr, void* priv);
 void        nv4_svga_write(uint16_t addr, uint8_t val, void* priv);
 
+// Memory
 void        nv4_update_mappings();
+
+// PRAMDAC  
+uint32_t    nv4_pramdac_read(uint32_t address);
+void        nv4_pramdac_write(uint32_t address, uint32_t data);
+
+// We don't implement NVCLK/VCLK because they are too fast
+void        nv4_pramdac_set_vclk();
+
+void        nv4_vclk_tick();
+
+// PTIMER
+uint32_t    nv4_ptimer_read(uint32_t address);
+void        nv4_ptimer_write(uint32_t address, uint32_t data);

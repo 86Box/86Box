@@ -199,7 +199,6 @@ bool nv4_init()
     /* Set log device name based on card model */
     const char* log_device_name = "NV4";
 
-
     /* Just hardcode full logging */
 
     if (device_get_config_int("nv_debug_fulllog"))
@@ -234,6 +233,15 @@ bool nv4_init()
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_nv4_agp);
 
+    // Setup clock information. These values don't matter, I pulled them out of an STB BIOS, we don't need to macro them
+    nv4->pramdac.nvclk = 0x17809;
+    nv4->pramdac.mclk = 0x1a30a;
+    nv4->pramdac.vclk = 0x1400c;
+
+    //timer_add(nv4->pramdac.nvclk, )
+
+    
+
     nv4_init_mappings();
     //nv4_update_mappings();
 
@@ -248,6 +256,21 @@ void* nv4_init_stb4400(const device_t *info)
         return nv4;
     else
         return NULL;
+}
+
+void nv4_nvclk_tick()
+{
+
+}
+
+void nv4_mclk_tick()
+{
+
+}
+
+void nv4_vclk_tick()
+{
+
 }
 
 void nv4_close(void* priv)
@@ -278,7 +301,7 @@ void nv4_recalc_timings(svga_t* svga)
  
     nv4_t* nv4 = (nv4_t*)svga->priv;
  
-    // TODO: Everything, this code sucks, incl. NV4_PRAMDAC_GENERAL_CONTROL_BPC and the OFFSET register 
+    // TODO: Everything, this code sucks, incl. NV4_PRAMDAC_GENERAL_CONTROL_BPC and the offset register 
     uint32_t pixel_mode = svga->crtc[NV4_CIO_CRE_PIXEL_INDEX] & 0x03;
 
     svga->memaddr_latch += (svga->crtc[NV4_CIO_CRE_RPC0_INDEX] & 0x1F) << 16;
