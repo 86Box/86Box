@@ -4337,7 +4337,7 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5436:
             if ((info->local & 0x200) &&
-                (machines[machine].init == machine_at_sb486pv_init)) {
+                (machines[machine].init != machine_at_sb486pv_init)) {
                 romfn            = NULL;
                 gd54xx->has_bios = 0;
             } else
