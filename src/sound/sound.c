@@ -93,7 +93,6 @@ static int          cd_thread_enable = 0;
 static thread_t     *sound_fdd_thread_h;
 static event_t      *sound_fdd_event;
 static event_t      *sound_fdd_start_event;
-static int16_t      fdd_out_buffer[SOUNDBUFLEN * 2];
 static volatile int fddaudioon = 0;
 static int          fdd_thread_enable = 0;
 

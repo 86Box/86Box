@@ -24,6 +24,8 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdd_audio.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/plat.h>
 #include <86box/path.h>
@@ -65,23 +67,23 @@ typedef struct {
 /* 5.25" Teac FD-55GFR sample set */
 static drive_audio_samples_t samples_teac = {
     .spindlemotor_start = {
-        .filename = "TeacFD-55GFR_5.25_1.2MB_motor_start_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/TeacFD-55GFR_5.25_1.2MB_motor_start_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples = 0, .volume = 3.0f
     },
     .spindlemotor_loop = {
-        .filename = "TeacFD-55GFR_5.25_1.2MB_motor_loop_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/TeacFD-55GFR_5.25_1.2MB_motor_loop_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples = 0, .volume = 3.0f
     },
     .spindlemotor_stop = {
-        .filename = "TeacFD-55GFR_5.25_1.2MB_motor_stop_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/TeacFD-55GFR_5.25_1.2MB_motor_stop_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples = 0, .volume = 3.0f
     },
     .single_track_step = {
-        .filename = "TeacFD-55GFR_5.25_1.2MB_track_step_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/TeacFD-55GFR_5.25_1.2MB_track_step_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples = 0, .volume = 2.0f
     },
     .multi_track_seek = {
-        .filename = "TeacFD-55GFR_5.25_1.2MB_seekupdown_80_tracks1100ms_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/TeacFD_55GFR_5.25_1.2MB_seekupdown_80_tracks1100ms_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples = 0, .volume = 2.0f
     }
 };
@@ -89,23 +91,23 @@ static drive_audio_samples_t samples_teac = {
 /* 3.5" drive audio samples (Mitsumi) */
 static drive_audio_samples_t samples_35 = {
     .spindlemotor_start = {
-        .filename = "mitsumi_spindle_motor_start_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/mitsumi_spindle_motor_start_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 0.2f
     },
     .spindlemotor_loop = {
-        .filename = "mitsumi_spindle_motor_loop_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/mitsumi_spindle_motor_loop_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 0.2f
     },
     .spindlemotor_stop = {
-        .filename = "mitsumi_spindle_motor_stop_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/mitsumi_spindle_motor_stop_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 0.2f
     },
     .single_track_step = {
-        .filename = "mitsumi_track_step_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/mitsumi_track_step_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .multi_track_seek = {
-        .filename = "mitsumi_seek_80_tracks_495ms_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/mitsumi_seek_80_tracks_495ms_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     }
 };
@@ -113,23 +115,23 @@ static drive_audio_samples_t samples_35 = {
 /* 5.25" drive audio samples (Panasonic) */
 static drive_audio_samples_t samples_525 = {
     .spindlemotor_start = {
-        .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_start_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/Panasonic_JU-475-5_5.25_1.2MB_motor_start_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .spindlemotor_loop = {
-        .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_loop_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/Panasonic_JU-475-5_5.25_1.2MB_motor_loop_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .spindlemotor_stop = {
-        .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_stop_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/Panasonic_JU-475-5_5.25_1.2MB_motor_stop_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .single_track_step = {
-        .filename = "Panasonic_JU-475-5_5.25_1.2MB_track_step_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/Panasonic_JU-475-5_5.25_1.2MB_track_step_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 2.0f
     },
     .multi_track_seek = {
-        .filename = "Panasonic_JU-475-5_5.25_1.2MB_seekup_40_tracks_285ms_5ms_per_track_48000_16_1_PCM.wav",
+        .filename = "roms/floppy/samples/Panasonic_JU-475-5_5.25_1.2MB_seekup_40_tracks_285ms_5ms_per_track_48000_16_1_PCM.wav",
         .buffer   = NULL, .samples  = 0, .volume   = 2.0f
     }
 };
@@ -174,34 +176,16 @@ static int16_t *
 load_wav(const char *filename, int *sample_count)
 {
     FILE *f = NULL;
-    char  full_path[2048];
 
-    if (!filename || strlen(filename) == 0) {
+    if ((filename == NULL) || (strlen(filename) == 0))
         return NULL;
-    }
 
-    if (strstr(filename, "..") != NULL || strchr(filename, '/') != NULL || strchr(filename, '\\') != NULL) {
+    if (strstr(filename, "..") != NULL)
         return NULL;
-    }
 
-    for (const char *p = filename; *p; p++) {
-        if (!isalnum(*p) && *p != '.' && *p != '_' && *p != '-') {
-            return NULL;
-        }
-    }
-
-    path_append_filename(full_path, exe_path, "roms");
-    path_append_filename(full_path, full_path, "samples");
-    path_append_filename(full_path, full_path, "fdd");
-    path_append_filename(full_path, full_path, filename);
-    f = fopen(full_path, "rb");
-    if (!f) {
-        path_append_filename(full_path, exe_path, "samples");
-        path_append_filename(full_path, full_path, filename);
-        f = fopen(full_path, "rb");
-        if (!f)
-            return NULL;
-    }
+    f = rom_fopen(filename, "rb");
+    if (f == NULL)
+        return NULL;
 
     wav_header_t hdr;
     if (fread(&hdr, sizeof(hdr), 1, f) != 1) {
