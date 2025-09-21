@@ -50,7 +50,7 @@
 #include "cpu.h"
 
 #define PNP_ROM_YMF718 "roms/sound/ymf71x/UFC-101.BIN"
-#define PNP_ROM_YMF719 "roms/sound/ymf71x/ymf719.bin"
+#define PNP_ROM_YMF719 "roms/sound/ymf71x/PnP1.BIN"
 
 #define YMF71X_NO_EEPROM 0x100
 
