@@ -26,6 +26,7 @@ private slots:
     void on_comboBoxFloppyType_activated(int index);
     void on_checkBoxTurboTimings_stateChanged(int arg1);
     void on_checkBoxCheckBPB_stateChanged(int arg1);
+    void on_comboBoxFloppyAudio_activated(int index);
 
     void onCDROMRowChanged(const QModelIndex &current);
     void on_comboBoxBus_activated(int index);
