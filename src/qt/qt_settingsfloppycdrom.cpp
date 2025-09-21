@@ -127,11 +127,12 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         ++i;
     }
 
-    model = new QStandardItemModel(0, 3, this);
+    model = new QStandardItemModel(0, 4, this);
     ui->tableViewFloppy->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Type"));
     model->setHeaderData(1, Qt::Horizontal, tr("Turbo"));
     model->setHeaderData(2, Qt::Horizontal, tr("Check BPB"));
+    model->setHeaderData(3, Qt::Horizontal, tr("Audio"));
 
     model->insertRows(0, FDD_NUM);
     /* Floppy drives category */
@@ -141,6 +142,26 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         setFloppyType(model, idx, type);
         model->setData(idx.siblingAtColumn(1), fdd_get_turbo(i) > 0 ? tr("On") : tr("Off"));
         model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(i) > 0 ? tr("On") : tr("Off"));
+
+        int prof = fdd_get_audio_profile(i);
+        QString profName;
+        switch (prof) {
+            case FDD_AUDIO_PROFILE_PANASONIC:
+                profName = tr("Panasonic");
+                break;
+            case FDD_AUDIO_PROFILE_TEAC:
+                profName = tr("Teac");
+                break;
+            case FDD_AUDIO_PROFILE_MITSUMI:
+                profName = tr("Mitsumi");
+                break;
+            default:
+                profName = tr("None");
+                break;
+        }
+        auto audioIdx = model->index(i, 3);
+        model->setData(audioIdx, profName);
+        model->setData(audioIdx, prof, Qt::UserRole);
     }
 
     ui->tableViewFloppy->resizeColumnsToContents();
@@ -148,7 +169,22 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
     connect(ui->tableViewFloppy->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onFloppyRowChanged);
+    
+#ifndef DISABLE_FDD_AUDIO
+    ui->comboBoxFloppyAudio->setVisible(true);
+    ui->comboBoxFloppyAudio->addItem(tr("None"), FDD_AUDIO_PROFILE_NONE);
+    ui->comboBoxFloppyAudio->addItem(tr("Generic Mitsumi 3.5\" 1.44MB"), FDD_AUDIO_PROFILE_MITSUMI);
+    ui->comboBoxFloppyAudio->addItem(tr("Panasonic JU-475-5 5.25\" 1.2MB"), FDD_AUDIO_PROFILE_PANASONIC);
+    ui->comboBoxFloppyAudio->addItem(tr("Teac FD-55GFR 5.25\" 1.2MB"), FDD_AUDIO_PROFILE_TEAC);
+    ui->comboBoxFloppyAudio->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+#else
+    ui->comboBoxFloppyAudio->setVisible(false);
+#endif
+
+    // Set initial selection and trigger the row changed event to update controls
     ui->tableViewFloppy->setCurrentIndex(model->index(0, 0));
+    // Manually trigger the row changed event to ensure audio selection is updated
+    onFloppyRowChanged(model->index(0, 0));
 
     Harddrives::populateCDROMBuses(ui->comboBoxBus->model());
     model = ui->comboBoxSpeed->model();
@@ -213,12 +249,6 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     ui->comboBoxCDROMType->setEnabled(eligibleRows > 1);
     ui->comboBoxCDROMType->setCurrentIndex(-1);
     ui->comboBoxCDROMType->setCurrentIndex(selectedTypeRow);
-#ifndef DISABLE_FDD_AUDIO
-    ui->checkBoxFloppySounds->setVisible(true);
-    ui->checkBoxFloppySounds->setChecked(fdd_sounds_enabled > 0);
-#else
-    ui->checkBoxFloppySounds->setVisible(false);
-#endif
 }
 
 SettingsFloppyCDROM::~SettingsFloppyCDROM()
@@ -234,6 +264,9 @@ SettingsFloppyCDROM::save()
         fdd_set_type(i, model->index(i, 0).data(Qt::UserRole).toInt());
         fdd_set_turbo(i, model->index(i, 1).data() == tr("On") ? 1 : 0);
         fdd_set_check_bpb(i, model->index(i, 2).data() == tr("On") ? 1 : 0);
+#ifndef DISABLE_FDD_AUDIO
+        fdd_set_audio_profile(i, model->index(i, 3).data(Qt::UserRole).toInt());
+#endif
     }
 
     /* Removable devices category */
@@ -255,7 +288,7 @@ SettingsFloppyCDROM::save()
 #ifdef DISABLE_FDD_AUDIO
     fdd_sounds_enabled = 0;
 #else
-    fdd_sounds_enabled = ui->checkBoxFloppySounds->isChecked() ? 1 : 0;
+    fdd_sounds_enabled = 1;
 #endif
 }
 
@@ -266,6 +299,10 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     ui->comboBoxFloppyType->setCurrentIndex(type);
     ui->checkBoxTurboTimings->setChecked(current.siblingAtColumn(1).data() == tr("On"));
     ui->checkBoxCheckBPB->setChecked(current.siblingAtColumn(2).data() == tr("On"));
+
+    int prof = current.siblingAtColumn(3).data(Qt::UserRole).toInt();
+    int comboIndex = ui->comboBoxFloppyAudio->findData(prof);
+    ui->comboBoxFloppyAudio->setCurrentIndex(comboIndex);
 }
 
 void
@@ -325,7 +362,7 @@ void
 SettingsFloppyCDROM::on_checkBoxTurboTimings_stateChanged(int arg1)
 {
     auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ?
+    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ? 
                                           tr("On") : tr("Off"));
 }
 
@@ -333,21 +370,44 @@ void
 SettingsFloppyCDROM::on_checkBoxCheckBPB_stateChanged(int arg1)
 {
     auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ?
+    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ? 
                                           tr("On") : tr("Off"));
 }
 
-void
-SettingsFloppyCDROM::on_checkBoxFloppySounds_stateChanged(int arg1)
-{
-    fdd_sounds_enabled = (arg1 == Qt::Checked) ? 1 : 0;
-}
 
 void
 SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 {
     setFloppyType(ui->tableViewFloppy->model(),
                   ui->tableViewFloppy->selectionModel()->currentIndex(), index);
+}
+
+void
+SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
+{
+    auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
+    int prof = ui->comboBoxFloppyAudio->currentData().toInt();
+    QString profName;
+    switch (prof) {
+        case FDD_AUDIO_PROFILE_NONE:
+            profName = tr("None");
+            break;
+        case FDD_AUDIO_PROFILE_PANASONIC:
+            profName = tr("Panasonic");
+            break;
+        case FDD_AUDIO_PROFILE_TEAC:
+            profName = tr("Teac");
+            break;
+        case FDD_AUDIO_PROFILE_MITSUMI:
+            profName = tr("Mitsumi");
+            break;
+        default:
+            profName = tr("None");
+            break;
+    }
+    auto audioIdx = idx.siblingAtColumn(3);
+    ui->tableViewFloppy->model()->setData(audioIdx, profName);
+    ui->tableViewFloppy->model()->setData(audioIdx, prof, Qt::UserRole);
 }
 
 void SettingsFloppyCDROM::reloadBusChannels() {

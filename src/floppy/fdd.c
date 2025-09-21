@@ -89,6 +89,7 @@ pc_timer_t fdd_seek_timer[FDD_NUM];
 
 static int fdd_notfound = 0;
 static int driveloaders[FDD_NUM];
+static int fdd_audio_profile[FDD_NUM] = { 0 };
 
 int writeprot[FDD_NUM];
 int fwriteprot[FDD_NUM];
@@ -222,6 +223,24 @@ fdd_log(const char *fmt, ...)
 #else
 #    define fdd_log(fmt, ...)
 #endif
+
+void
+fdd_set_audio_profile(int drive, int profile)
+{
+    if (drive < 0 || drive >= FDD_NUM)
+        return;
+    if (profile < 0 || profile >= FDD_AUDIO_PROFILE_MAX)
+        profile = 0;
+    fdd_audio_profile[drive] = profile;
+}
+
+int
+fdd_get_audio_profile(int drive)
+{
+    if (drive < 0 || drive >= FDD_NUM)
+        return 0;
+    return fdd_audio_profile[drive];
+}
 
 char *
 fdd_getname(int type)

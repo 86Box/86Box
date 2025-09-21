@@ -25,6 +25,13 @@
 #define FLOPPY_IMAGE_HISTORY 10
 #define SEEK_RECALIBRATE     -999
 
+/* Per-drive audio profiles */
+#define FDD_AUDIO_PROFILE_NONE       0
+#define FDD_AUDIO_PROFILE_MITSUMI    1
+#define FDD_AUDIO_PROFILE_PANASONIC  2
+#define FDD_AUDIO_PROFILE_TEAC       3
+#define FDD_AUDIO_PROFILE_MAX        4
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,6 +61,10 @@ extern int  fdd_get_check_bpb(int drive);
 
 extern void fdd_set_type(int drive, int type);
 extern int  fdd_get_type(int drive);
+
+/* New audio profile accessors */
+extern void fdd_set_audio_profile(int drive, int profile);
+extern int  fdd_get_audio_profile(int drive);
 
 extern int fdd_get_flags(int drive);
 extern int fdd_get_densel(int drive);
