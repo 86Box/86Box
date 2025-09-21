@@ -873,7 +873,7 @@ upi42_exec(void *priv)
     }
 
     /* Fetch instruction. */
-    uint32_t fetchdat = *((uint32_t *) &upi42->rom[upi42->pc]);
+    uint32_t fetchdat = AS_U32(upi42->rom[upi42->pc]);
 
     /* Decode instruction. */
     uint8_t insn = fetchdat & 0xff;
