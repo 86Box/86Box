@@ -572,35 +572,38 @@ ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
     else
         ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
 
-    if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
-        bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
+    /* Don't play audio if the FM DAC or OPL3 digital sections are powered down */
+    if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x10)) && (!(ymf71x->regs[0x13] & 0x10)) ) {
+        if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
 
-        *out_l += (low_iir(1, 0, *out_l) * bass_treble);
-    }
+            *out_l += (low_iir(1, 0, *out_l) * bass_treble);
+        }
 
-    if (((ymf71x->regs[0x15] >> 4) & 0x07) != 0x00) {
-        bass_treble = ymf71x_bass_treble_3bits[((ymf71x->regs[0x15] >> 4) & 0x07)];
+        if (((ymf71x->regs[0x15] >> 4) & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[((ymf71x->regs[0x15] >> 4) & 0x07)];
 
-        *out_r += (low_iir(1, 1, *out_r) * bass_treble);
-    }
+            *out_r += (low_iir(1, 1, *out_r) * bass_treble);
+        }
 
-    if ((ymf71x->regs[0x16] & 0x07) != 0x00) {
-        bass_treble = ymf71x_bass_treble_3bits[ymf71x->regs[0x16] & 0x07];
+        if ((ymf71x->regs[0x16] & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[ymf71x->regs[0x16] & 0x07];
 
-        *out_l += (high_iir(1, 0, *out_l) * bass_treble);
-    }
+            *out_l += (high_iir(1, 0, *out_l) * bass_treble);
+        }
 
-    if (((ymf71x->regs[0x16] >> 4) & 0x07) != 0x00) {
-        bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x16] >> 4) & 0x07];
+        if (((ymf71x->regs[0x16] >> 4) & 0x07) != 0x00) {
+            bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x16] >> 4) & 0x07];
 
-        *out_r += (high_iir(1, 1, *out_r) * bass_treble);
-    }
+            *out_r += (high_iir(1, 1, *out_r) * bass_treble);
+        }
 
-    *out_l *= ymf71x->master_l;
-    *out_r *= ymf71x->master_r;
+        *out_l *= ymf71x->master_l;
+        *out_r *= ymf71x->master_r;
 
-    if (ymf71x->cur_wss_enabled) {
-        ad1848_filter_channel((void *) &ymf71x->ad1848, AD1848_AUX2, out_l, out_r);
+        if (ymf71x->cur_wss_enabled) {
+            ad1848_filter_channel((void *) &ymf71x->ad1848, AD1848_AUX2, out_l, out_r);
+        }
     }
 }
 
@@ -621,50 +624,57 @@ ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
         ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
 
     /* wss part */
-    ad1848_update(&ymf71x->ad1848);
-    for (int c = 0; c < len * 2; c += 2) {
-        double out_l = 0.0;
-        double out_r = 0.0;
-        double bass_treble;
 
-        out_l += (ymf71x->ad1848.buffer[c] * ymf71x->master_l);
-        out_r += (ymf71x->ad1848.buffer[c +1] * ymf71x->master_r);
+    /* Don't play audio if the WSS Playback analog or digital sections are powered down */
+    if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x04)) && (!(ymf71x->regs[0x13] & 0x04)) ) {
+        ad1848_update(&ymf71x->ad1848);
+        for (int c = 0; c < len * 2; c += 2) {
+            double out_l = 0.0;
+            double out_r = 0.0;
+            double bass_treble;
 
-        if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
-            bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
+            out_l += (ymf71x->ad1848.buffer[c] * ymf71x->master_l);
+            out_r += (ymf71x->ad1848.buffer[c +1] * ymf71x->master_r);
 
-            out_l += (low_iir(0, 0, out_l) * bass_treble);
+            if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
+                bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
+
+                out_l += (low_iir(0, 0, out_l) * bass_treble);
+            }
+
+            if (((ymf71x->regs[0x15] >> 4) & 0x07) != 0x00) {
+                bass_treble = ymf71x_bass_treble_3bits[((ymf71x->regs[0x15] >> 4) & 0x07)];
+
+                out_r += (low_iir(0, 1, out_r) * bass_treble);
+            }
+
+            if ((ymf71x->regs[0x16] & 0x07) != 0x00) {
+                bass_treble = ymf71x_bass_treble_3bits[ymf71x->regs[0x16] & 0x07];
+
+                out_l += (high_iir(0, 0, out_l) * bass_treble);
+            }
+
+            if (((ymf71x->regs[0x16] >> 4) & 0x07) != 0x00) {
+                bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x16] >> 4) & 0x07];
+
+                out_r += (high_iir(0, 1, out_r) * bass_treble);
+            }
+
+            out_l *= ymf71x->master_l;
+            out_r *= ymf71x->master_r;
+
+            buffer[c] += (int32_t) out_l;
+            buffer[c + 1] += (int32_t) out_r;
         }
 
-        if (((ymf71x->regs[0x15] >> 4) & 0x07) != 0x00) {
-            bass_treble = ymf71x_bass_treble_3bits[((ymf71x->regs[0x15] >> 4) & 0x07)];
-
-            out_r += (low_iir(0, 1, out_r) * bass_treble);
-        }
-
-        if ((ymf71x->regs[0x16] & 0x07) != 0x00) {
-            bass_treble = ymf71x_bass_treble_3bits[ymf71x->regs[0x16] & 0x07];
-
-            out_l += (high_iir(0, 0, out_l) * bass_treble);
-        }
-
-        if (((ymf71x->regs[0x16] >> 4) & 0x07) != 0x00) {
-            bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x16] >> 4) & 0x07];
-
-            out_r += (high_iir(0, 1, out_r) * bass_treble);
-        }
-
-        out_l *= ymf71x->master_l;
-        out_r *= ymf71x->master_r;
-
-        buffer[c] += (int32_t) out_l;
-        buffer[c + 1] += (int32_t) out_r;
+        ymf71x->ad1848.pos = 0;
     }
 
-    ymf71x->ad1848.pos = 0;
-
     /* sbprov2 part */
-    sb_get_buffer_sbpro(buffer, len, ymf71x->sb);
+    /* Don't play audio if the SB Compatibility analog or digital sections are powered down */
+    if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x02)) && (!(ymf71x->regs[0x13] & 0x02)) ) {
+        sb_get_buffer_sbpro(buffer, len, ymf71x->sb);
+    }
 }
 
 static void *
