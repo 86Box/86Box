@@ -152,15 +152,15 @@ ymf71x_config_write(uint16_t addr, uint8_t val, void *priv)
     }
     if (addr == 0xA79) {
         if ((ymf71x->configidx == 0x21) && (val & 0x01)) {
-            ymf71x_log(ymf71x->log, "Enable internal RAM write");
+            ymf71x_log(ymf71x->log, "Enable internal RAM write\n");
             ymf71x->ramwrite_enable = 1;
         }
         if ((ymf71x->configidx == 0x21) && (val == 0x00)) {
-            ymf71x_log(ymf71x->log, "Disable internal RAM write");
+            ymf71x_log(ymf71x->log, "Disable internal RAM write\n");
             isapnp_update_card_rom(ymf71x->pnp_card, &ymf71x->ram_data[0], 512);
         }
         if ((ymf71x->configidx == 0x20) && (ymf71x->ramwrite_enable == 0x01)) {
-            ymf71x_log(ymf71x->log, "Write to internal RAM addr %04X, val %02X", ymf71x->ram_addr, val);
+            ymf71x_log(ymf71x->log, "Write to internal RAM addr %04X, val %02X\n", ymf71x->ram_addr, val);
             ymf71x->ram_data[ymf71x->ram_addr++] = val;
         }
     }
@@ -765,6 +765,8 @@ ymf71x_init(const device_t *info)
 
     io_sethandler(0x0279, 0x0001, NULL, NULL, NULL, ymf71x_config_write, NULL, NULL, ymf71x);
     io_sethandler(0x0A79, 0x0001, NULL, NULL, NULL, ymf71x_config_write, NULL, NULL, ymf71x);
+
+    ymf71x_update_mastervol(ymf71x);
 
     return ymf71x;
 }
