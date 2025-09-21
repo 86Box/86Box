@@ -54,7 +54,7 @@ void nv4_pramdac_set_vclk()
     uint64_t final_hz = nv4_pramdac_get_hz(nv4->pramdac.nvclk, false);
 
     //TODO: Everything
-    if (!nv4->nvbase.nv4_vclk_timer)
+    if (nv4->nvbase.nv4_vclk_timer)
         timer_set_delay_u64(nv4->nvbase.nv4_vclk_timer, final_hz / TIMER_USEC);
 
 }
