@@ -55,6 +55,7 @@ jobs:
           - name: SDL GUI
             qt: off
             qt6: off
+            slug: -SDL
             static: on
           - name: Qt 5 GUI
             qt: on
@@ -121,10 +122,9 @@ jobs:
 
       - name: Configure CMake
         run: >-
-          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain  ${{ matrix.environment.toolchain }}
+          cmake -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
 
