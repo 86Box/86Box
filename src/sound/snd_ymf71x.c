@@ -150,7 +150,7 @@ ymf71x_config_write(uint16_t addr, uint8_t val, void *priv)
                 ymf71x_log(ymf71x->log, "YMF71x: Config unlocked\n");
                 /* Force CSN to 0x81 */
                 isapnp_set_csn(ymf71x->pnp_card, 0x81);
-                /* Set card to CONFIG state */
+                /* Set card to SLEEP state */
                 isapnp_enable_card(ymf71x->pnp_card, ISAPNP_CARD_FORCE_SLEEP);
             }
         }
@@ -373,7 +373,7 @@ ymf71x_reg_read(uint16_t addr, void *priv)
             break;
     }
 
-    ymf71x_log(ymf71x->log, "[%04X:%08X] Read: addr = %02X, ret = %02X\n", CS, cpu_state.pc, addr, temp);
+    ymf71x_log(ymf71x->log, "Read: addr = %02X, ret = %02X\n", addr, temp);
     return temp;
 }
 
