@@ -27,6 +27,9 @@
 #include <86box/midi.h>
 #include <86box/plat.h>
 
+#define MIDI_SYSEX_MAX_ITERATIONS 1000
+#define MIDI_SYSEX_TIMEOUT_MS 5000
+
 int        midi_output_device_current = 0;
 static int midi_output_device_last    = 0;
 int        midi_input_device_current  = 0;
@@ -568,15 +571,44 @@ midi_do_sysex(void)
 void
 midi_in_sysex(uint8_t *buffer, uint32_t len)
 {
+    int max_iterations = MIDI_SYSEX_MAX_ITERATIONS;
+    int iteration_count = 0;
+    uint32_t start_time = plat_get_ticks();
+    uint32_t max_timeout_ms = MIDI_SYSEX_TIMEOUT_MS;
+
+    /* Input validation */
+    if (!buffer || len == 0) {
+        return;
+    }
+
     midi_start_sysex(buffer, len);
 
-    while (1) {
-        /* This will return 0 if all theh handlers have either
-           timed out or otherwise indicated it is time to stop. */
-        if (midi_do_sysex())
-            plat_delay_ms(5); /* msec */
-        else
+    while (iteration_count < max_iterations) {
+        /* Check for timeout */
+        uint32_t elapsed_time = plat_get_ticks() - start_time;
+        if (elapsed_time > max_timeout_ms) {
+            /* Force abort all handlers on timeout */
+            midi_in_handler_t *temp = mih_first;
+            while (temp != NULL) {
+                if (temp->sysex) {
+                    temp->sysex(temp->priv, NULL, 0, 1); /* Call with abort=1 */
+                }
+                temp->cnt = 0;
+                temp->len = 0;
+                temp = temp->next;
+            }
+            /* pclog("MIDI: SYSEX processing timed out after %d ms\n", elapsed_time); */
             break;
+        }
+
+        /* This will return 0 if all the handlers have either
+           timed out or otherwise indicated it is time to stop. */
+        if (midi_do_sysex()) {
+            plat_delay_ms(5); /* msec */
+            iteration_count++;
+        } else {
+            break;
+        }
     }
 }
 
