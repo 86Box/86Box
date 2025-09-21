@@ -239,6 +239,22 @@ ymf71x_wss_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
+ymf71x_update_mastervol(void *priv)
+{
+    ymf71x_t *ymf71x = (ymf71x_t *) priv;
+    /* Master volume attenuation */
+    if (ymf71x->regs[0x07] & 0x80)
+        ymf71x->master_l = 0;
+    else
+        ymf71x->master_l = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x07] & 0x0F] / 32767.0;
+
+    if (ymf71x->regs[0x08] & 0x80)
+        ymf71x->master_r = 0;
+    else
+        ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
+}
+
+static void
 ymf71x_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     ymf71x_t      *ymf71x           = (ymf71x_t *) priv;
@@ -269,9 +285,11 @@ ymf71x_reg_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x07: /* Master Volume Left Channel */
                         ymf71x->regs[0x07] = val;
+                        ymf71x_update_mastervol(ymf71x);
                         break;
                     case 0x08: /* Master Volume Right Channel */
                         ymf71x->regs[0x08] = val;
+                        ymf71x_update_mastervol(ymf71x);
                         break;
                     case 0x09: /* Mic Volume */
                         ymf71x->regs[0x09] = val;
@@ -512,18 +530,6 @@ ymf71x_filter_cd_audio(int channel, double *buffer, void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
     const double cd_vol = channel ? ymf71x->ad1848.cd_vol_r : ymf71x->ad1848.cd_vol_l;
-
-    /* Master volume attenuation */
-    if (ymf71x->regs[0x07] & 0x80)
-        ymf71x->master_l = 0;
-    else
-        ymf71x->master_l = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x07] & 0x0F] / 32767.0;
-
-    if (ymf71x->regs[0x08] & 0x80)
-        ymf71x->master_r = 0;
-    else
-        ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
-
     double master = channel ? ymf71x->master_r : ymf71x->master_l;
     double c      = ((*buffer  * cd_vol / 3.0) * master) / 65536.0;
     double bass_treble;
@@ -560,17 +566,6 @@ ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
     double bass_treble;
-
-    /* Master volume attenuation */
-    if (ymf71x->regs[0x07] & 0x80)
-        ymf71x->master_l = 0;
-    else
-        ymf71x->master_l = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x07] & 0x0F] / 32767.0;
-
-    if (ymf71x->regs[0x08] & 0x80)
-        ymf71x->master_r = 0;
-    else
-        ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
 
     /* Don't play audio if the FM DAC or OPL3 digital sections are powered down */
     if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x10)) && (!(ymf71x->regs[0x13] & 0x10)) ) {
@@ -611,17 +606,6 @@ static void
 ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
-
-    /* Master volume attenuation */
-    if (ymf71x->regs[0x07] & 0x80)
-        ymf71x->master_l = 0;
-    else
-        ymf71x->master_l = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x07] & 0x0F] / 32767.0;
-
-    if (ymf71x->regs[0x08] & 0x80)
-        ymf71x->master_r = 0;
-    else
-        ymf71x->master_r = ymf71x_att_2dbstep_4bits[ymf71x->regs[0x08] & 0x0F] / 32767.0;
 
     /* wss part */
 
