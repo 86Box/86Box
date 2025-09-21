@@ -1365,6 +1365,9 @@ machine_at_an430tx_init(const machine_t *model)
     device_add(&intel_flash_bxt_ami_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
     return ret;
 }
 

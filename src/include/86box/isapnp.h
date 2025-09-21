@@ -28,7 +28,8 @@ enum {
     ISAPNP_CARD_DISABLE      = 0,
     ISAPNP_CARD_ENABLE       = 1,
     ISAPNP_CARD_FORCE_CONFIG = 2, /* cheat code for UMC UM8669F */
-    ISAPNP_CARD_NO_KEY       = 3  /* cheat code for Crystal CS423x */
+    ISAPNP_CARD_NO_KEY       = 3, /* cheat code for Crystal CS423x */
+    ISAPNP_CARD_FORCE_SLEEP  = 4  /* cheat code for Yamaha YMF-71x */
 };
 
 typedef struct isapnp_device_config_t {
