@@ -8,8 +8,6 @@
  *
  *          3M MicroTouch Serial emulation.
  *
- *
- *
  * Authors: Cacodemon345, mourix
  *
  *          Copyright 2024 Cacodemon345

@@ -8,8 +8,6 @@
  *
  *          Win32 CD-ROM support via IOCTL.
  *
- *
- *
  * Authors: TheCollector1995, <mariogplayer@gmail.com>,
  *          Miran Grca, <mgrca8@gmail.com>
  *

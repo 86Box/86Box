@@ -8,8 +8,6 @@
  *
  *          Implementation of an SST flash chip.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *

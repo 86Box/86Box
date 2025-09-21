@@ -8,7 +8,6 @@
  *
  *          Fast, high-frequency, guest CPU-independent timer for Riva emulation.
  *
- *
  * Authors: Connor Hyde, <mario64crashed@gmail.com> I need a better email address ;^)
  *
  *          Copyright 2024-2025 starfrost

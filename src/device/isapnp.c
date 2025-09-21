@@ -8,8 +8,6 @@
  *
  *          Implementation of ISA Plug and Play.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *

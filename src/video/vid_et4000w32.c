@@ -10,8 +10,6 @@
  *
  * Known bugs: Accelerator doesn't work in planar modes
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *

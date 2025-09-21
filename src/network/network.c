@@ -10,8 +10,6 @@
  *          it should be malloc'ed and then linked to the NETCARD def.
  *          Will be done later.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.

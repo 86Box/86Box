@@ -8,8 +8,6 @@
  *
  *          Implementation of the OPTi 82C283 chipset.
  *
- *
- *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *

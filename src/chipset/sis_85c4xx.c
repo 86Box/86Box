@@ -9,8 +9,6 @@
  *          Emulation of the SiS 85c401/85c402, 85c460, 85c461, and
  *          85c407/85c471 chipsets.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2019-2020 Miran Grca.

@@ -12,8 +12,6 @@
  *          - pc2386 video BIOS is underdumped (16k instead of 24k)
  *          - c386sx16 BIOS fails checksum
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

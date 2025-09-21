@@ -8,8 +8,6 @@
  *
  *          Distributed DMA emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.

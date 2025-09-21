@@ -26,8 +26,6 @@
  * NOTE:    The IRQ functionalities have been implemented, but not yet
  *          tested, as I need to write test software for them first :)
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018 Fred N. van Kempen.

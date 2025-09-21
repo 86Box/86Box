@@ -9,8 +9,6 @@
  *          IBM CGA composite filter, borrowed from reenigne's DOSBox
  *          patch and ported to C.
  *
- *
- *
  * Authors: reenigne,
  *          Miran Grca, <mgrca8@gmail.com>
  *

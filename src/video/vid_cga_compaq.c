@@ -8,8 +8,6 @@
  *
  *          Emulation of the Compaq CGA graphics cards.
  *
- *
- *
  * Authors: John Elliott, <jce@seasip.info>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>

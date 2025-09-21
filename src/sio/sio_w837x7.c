@@ -9,6 +9,7 @@
  *          Emulation of the Winbond W837x7F/IF Super I/O Chip.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
  *          Copyright 2020-2025 Miran Grca.
  */
 #include <stdarg.h>

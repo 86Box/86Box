@@ -8,8 +8,6 @@
  *
  *          Matrox MGA graphics card emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2008-2020 Sarah Walker.

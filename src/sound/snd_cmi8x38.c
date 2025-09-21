@@ -8,8 +8,6 @@
  *
  *          C-Media CMI8x38 PCI audio controller emulation.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.

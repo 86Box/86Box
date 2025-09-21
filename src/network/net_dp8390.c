@@ -7,8 +7,6 @@
  *          Emulation of the DP8390 Network Interface Controller used by
  *          the WD family, NE1000/NE2000 family, and 3Com 3C503 NIC's.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Bochs project,
  *

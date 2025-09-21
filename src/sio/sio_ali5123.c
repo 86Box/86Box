@@ -8,8 +8,6 @@
  *
  *          Implementation of the ALi M5123/1543C Super I/O Chip.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

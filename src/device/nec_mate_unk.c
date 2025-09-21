@@ -8,8 +8,6 @@
  *
  *          Implementation of the NEC Mate NX MA30D/23D Unknown Readout.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020-2023 Miran Grca.

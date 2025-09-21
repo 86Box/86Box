@@ -8,8 +8,6 @@
  *
  *          S3 emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -530,9 +528,8 @@ s3_queue(s3_t *s3, uint32_t addr, uint32_t val, uint32_t type)
 
     if (FIFO_FULL) {
         thread_reset_event(s3->fifo_not_full_event);
-        if (FIFO_FULL) {
+        if (FIFO_FULL)
             thread_wait_event(s3->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-        }
     }
 
     fifo->val       = val;

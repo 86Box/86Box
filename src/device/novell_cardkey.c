@@ -9,12 +9,10 @@
  *          Implementation of the Novell NetWare 2.x Key Card, which
  *          was used for anti-piracy protection.
  *
- *
  * Authors: Cacodemon345
  *
  *          Copyright 2024 Cacodemon345.
  */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

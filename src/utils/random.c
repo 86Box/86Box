@@ -9,8 +9,6 @@
  *          A better random number generation, used for floppy weak bits
  *          and network MAC address generation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

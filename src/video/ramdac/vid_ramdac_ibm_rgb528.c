@@ -8,8 +8,6 @@
  *
  *          Emulation of the IBM RGB 528 true colour RAMDAC.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.

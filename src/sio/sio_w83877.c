@@ -9,6 +9,7 @@
  *          Emulation of the Winbond W83877 family of Super I/O Chips.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
  *          Copyright 2016-2025 Miran Grca.
  */
 #include <stdio.h>

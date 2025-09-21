@@ -11,8 +11,6 @@
  *              word 0 - base address
  *              word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.

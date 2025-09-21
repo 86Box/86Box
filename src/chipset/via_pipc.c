@@ -8,8 +8,6 @@
  *
  *          Emulation of the VIA PIPC southbridges.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *
