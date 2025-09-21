@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -61,37 +62,51 @@ typedef struct {
     audio_sample_t multi_track_seek;
 } drive_audio_samples_t;
 
+/* 5.25" Teac FD-55GFR sample set */
+static drive_audio_samples_t samples_teac = {
+    .spindlemotor_start = {
+        .filename = "TeacFD-55GFR_5.25_1.2MB_motor_start_48000_16_1_PCM.wav",
+        .buffer   = NULL, .samples = 0, .volume = 3.0f
+    },
+    .spindlemotor_loop = {
+        .filename = "TeacFD-55GFR_5.25_1.2MB_motor_loop_48000_16_1_PCM.wav",
+        .buffer   = NULL, .samples = 0, .volume = 3.0f
+    },
+    .spindlemotor_stop = {
+        .filename = "TeacFD-55GFR_5.25_1.2MB_motor_stop_48000_16_1_PCM.wav",
+        .buffer   = NULL, .samples = 0, .volume = 3.0f
+    },
+    .single_track_step = {
+        .filename = "TeacFD-55GFR_5.25_1.2MB_track_step_48000_16_1_PCM.wav",
+        .buffer   = NULL, .samples = 0, .volume = 2.0f
+    },
+    .multi_track_seek = {
+        .filename = "TeacFD-55GFR_5.25_1.2MB_seekupdown_80_tracks1100ms_48000_16_1_PCM.wav",
+        .buffer   = NULL, .samples = 0, .volume = 2.0f
+    }
+};
+
 /* 3.5" drive audio samples (Mitsumi) */
 static drive_audio_samples_t samples_35 = {
     .spindlemotor_start = {
         .filename = "mitsumi_spindle_motor_start_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 0.2f
+        .buffer   = NULL, .samples  = 0, .volume   = 0.2f
     },
     .spindlemotor_loop = {
         .filename = "mitsumi_spindle_motor_loop_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 0.2f
+        .buffer   = NULL, .samples  = 0, .volume   = 0.2f
     },
     .spindlemotor_stop = {
         .filename = "mitsumi_spindle_motor_stop_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 0.2f
+        .buffer   = NULL, .samples  = 0, .volume   = 0.2f
     },
     .single_track_step = {
         .filename = "mitsumi_track_step_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 1.0f
+        .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .multi_track_seek = {
         .filename = "mitsumi_seek_80_tracks_495ms_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 1.0f
+        .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     }
 };
 
@@ -99,33 +114,23 @@ static drive_audio_samples_t samples_35 = {
 static drive_audio_samples_t samples_525 = {
     .spindlemotor_start = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_start_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 1.0f
+        .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .spindlemotor_loop = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_loop_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 1.0f
+        .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .spindlemotor_stop = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_motor_stop_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 1.0f
+        .buffer   = NULL, .samples  = 0, .volume   = 1.0f
     },
     .single_track_step = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_track_step_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 2.0f
+        .buffer   = NULL, .samples  = 0, .volume   = 2.0f
     },
     .multi_track_seek = {
         .filename = "Panasonic_JU-475-5_5.25_1.2MB_seekup_40_tracks_285ms_5ms_per_track_48000_16_1_PCM.wav",
-        .buffer   = NULL,
-        .samples  = 0,
-        .volume   = 2.0f
+        .buffer   = NULL, .samples  = 0, .volume   = 2.0f
     }
 };
 
@@ -144,18 +149,24 @@ static multi_seek_state_t multi_seek_state[FDD_NUM] = {};
 extern uint64_t motoron[FDD_NUM];
 extern char     exe_path[2048]; /* path (dir) of executable */
 
+extern int fdd_get_audio_profile(int drive); /* from fdd.h */
+
 /* Forward declaration */
 static int16_t *load_wav(const char *filename, int *sample_count);
 
-/* Helper function to get drive-specific audio samples */
+
 static drive_audio_samples_t *
 get_drive_samples(int drive)
 {
-    /* Check if drive is 5.25" */
-    if (fdd_is_525(drive)) {
-        return &samples_525;
-    } else {
-        return &samples_35;
+    switch (fdd_get_audio_profile(drive)) {
+        case FDD_AUDIO_PROFILE_PANASONIC:
+            return &samples_525;
+        case FDD_AUDIO_PROFILE_TEAC:
+            return &samples_teac;
+        case FDD_AUDIO_PROFILE_MITSUMI:
+            return &samples_35;
+        default:
+            return NULL;
     }
 }
 
@@ -165,11 +176,27 @@ load_wav(const char *filename, int *sample_count)
     FILE *f = NULL;
     char  full_path[2048];
 
-    path_append_filename(full_path, exe_path, "samples");
+    if (!filename || strlen(filename) == 0) {
+        return NULL;
+    }
+
+    if (strstr(filename, "..") != NULL || strchr(filename, '/') != NULL || strchr(filename, '\\') != NULL) {
+        return NULL;
+    }
+
+    for (const char *p = filename; *p; p++) {
+        if (!isalnum(*p) && *p != '.' && *p != '_' && *p != '-') {
+            return NULL;
+        }
+    }
+
+    path_append_filename(full_path, exe_path, "roms");
+    path_append_filename(full_path, full_path, "samples");
+    path_append_filename(full_path, full_path, "fdd");
     path_append_filename(full_path, full_path, filename);
-    
     f = fopen(full_path, "rb");
     if (!f) {
+        path_append_filename(full_path, full_path, "samples");
         path_append_filename(full_path, exe_path, filename);
         f = fopen(full_path, "rb");
         if (!f)
@@ -256,6 +283,12 @@ fdd_audio_init(void)
     samples_525.single_track_step.buffer  = load_wav(samples_525.single_track_step.filename, &samples_525.single_track_step.samples);
     samples_525.multi_track_seek.buffer   = load_wav(samples_525.multi_track_seek.filename, &samples_525.multi_track_seek.samples);
 
+    samples_teac.spindlemotor_start.buffer = load_wav(samples_teac.spindlemotor_start.filename, &samples_teac.spindlemotor_start.samples);
+    samples_teac.spindlemotor_loop.buffer  = load_wav(samples_teac.spindlemotor_loop.filename, &samples_teac.spindlemotor_loop.samples);
+    samples_teac.spindlemotor_stop.buffer  = load_wav(samples_teac.spindlemotor_stop.filename, &samples_teac.spindlemotor_stop.samples);
+    samples_teac.single_track_step.buffer  = load_wav(samples_teac.single_track_step.filename, &samples_teac.single_track_step.samples);
+    samples_teac.multi_track_seek.buffer   = load_wav(samples_teac.multi_track_seek.filename, &samples_teac.multi_track_seek.samples);
+
     /* Initialize audio state for all drives */
     for (i = 0; i < FDD_NUM; i++) {
         spindlemotor_pos[i]                    = 0;
@@ -336,6 +369,32 @@ fdd_audio_close(void)
         samples_525.multi_track_seek.samples = 0;
     }
 
+    if (samples_teac.spindlemotor_start.buffer) {
+        free(samples_teac.spindlemotor_start.buffer);
+        samples_teac.spindlemotor_start.buffer  = NULL;
+        samples_teac.spindlemotor_start.samples = 0;
+    }
+    if (samples_teac.spindlemotor_loop.buffer) {
+        free(samples_teac.spindlemotor_loop.buffer);
+        samples_teac.spindlemotor_loop.buffer  = NULL;
+        samples_teac.spindlemotor_loop.samples = 0;
+    }
+    if (samples_teac.spindlemotor_stop.buffer) {
+        free(samples_teac.spindlemotor_stop.buffer);
+        samples_teac.spindlemotor_stop.buffer  = NULL;
+        samples_teac.spindlemotor_stop.samples = 0;
+    }
+    if (samples_teac.single_track_step.buffer) {
+        free(samples_teac.single_track_step.buffer);
+        samples_teac.single_track_step.buffer  = NULL;
+        samples_teac.single_track_step.samples = 0;
+    }
+    if (samples_teac.multi_track_seek.buffer) {
+        free(samples_teac.multi_track_seek.buffer);
+        samples_teac.multi_track_seek.buffer  = NULL;
+        samples_teac.multi_track_seek.samples = 0;
+    }
+
     /* End sound thread */
     sound_fdd_thread_end();
 }
@@ -347,6 +406,8 @@ fdd_audio_set_motor_enable(int drive, int motor_enable)
         return;
 
     drive_audio_samples_t *samples = get_drive_samples(drive);
+    if (!samples)
+        return;
 
     if (motor_enable && !motoron[drive]) {
         /* Motor starting up */
@@ -401,7 +462,7 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
         return; /* Use single step for 1 track movements */
 
     drive_audio_samples_t *samples = get_drive_samples(drive);
-    if (!samples->multi_track_seek.buffer || samples->multi_track_seek.samples == 0)
+    if (!samples || !samples->multi_track_seek.buffer || samples->multi_track_seek.samples == 0)
         return; /* No multi-track seek sample loaded */
 
     /* Check if a seek is already active */
@@ -460,6 +521,8 @@ fdd_audio_callback(int16_t *buffer, int length)
     /* Process audio for all drives */
     for (int drive = 0; drive < FDD_NUM; drive++) {
         drive_audio_samples_t *samples = get_drive_samples(drive);
+        if (!samples)
+            continue;
         
         for (int i = 0; i < samples_in_buffer; i++) {
             float left_sample  = 0.0f;

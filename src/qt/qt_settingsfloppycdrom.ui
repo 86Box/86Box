@@ -100,11 +100,35 @@
        </layout>
       </item>
       <item>
-       <widget class="QCheckBox" name="checkBoxFloppySounds">
-        <property name="text">
-         <string>Enable floppy sounds for all drives</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="audioLayout">
+        <item>
+         <widget class="QLabel" name="labelFloppyAudio">
+          <property name="text">
+           <string>Audio:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBoxFloppyAudio">
+          <property name="maxVisibleItems">
+           <number>10</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="audioSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>
@@ -216,7 +240,7 @@
   <tabstop>comboBoxFloppyType</tabstop>
   <tabstop>checkBoxTurboTimings</tabstop>
   <tabstop>checkBoxCheckBPB</tabstop>
-  <tabstop>checkBoxFloppySounds</tabstop>
+  <tabstop>comboBoxFloppyAudio</tabstop>
   <tabstop>tableViewCDROM</tabstop>
   <tabstop>comboBoxBus</tabstop>
   <tabstop>comboBoxChannel</tabstop>
