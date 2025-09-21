@@ -88,9 +88,6 @@ static const double ymf71x_bass_treble_3bits[] = {
 };
 
 
-static int ymf71x_wss_dma[4] = { 0, 0, 1, 3 };
-static int ymf71x_wss_irq[8] = { 0, 7, 9, 10, 11, 0, 0, 0 };
-
 typedef struct ymf71x_t {
     uint8_t type;
 
