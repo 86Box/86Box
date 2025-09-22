@@ -401,6 +401,7 @@ net_netswitch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, c
     memcpy(ns_args.mac_addr, net_netswitch->mac_addr, 6);
     /* The remote switch hostname */
     strncpy(ns_args.nrs_hostname, netcard->nrs_hostname, sizeof(ns_args.nrs_hostname) - 1);
+    ns_args.nrs_hostname[127] = 0x00;
 
     net_switch_log("%s Net Switch: Starting up virtual switch with group %d, flags %d\n", net_netswitch->switch_type, ns_args.group, ns_args.flags);
 

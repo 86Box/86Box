@@ -242,6 +242,7 @@ ns_open(struct ns_open_args *open_args) {
 
     /* Remote switch hostname */
     strncpy(conn->nrs_hostname, open_args->nrs_hostname, sizeof(conn->nrs_hostname) - 1);
+    conn->nrs_hostname[127] = 0x00;
 
     /* Switch type */
     if(conn->switch_type == SWITCH_TYPE_REMOTE) {
