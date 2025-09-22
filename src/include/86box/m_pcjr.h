@@ -66,6 +66,9 @@ typedef struct pcjr_s {
     int        serial_pos;
     uint8_t    pa;
     uint8_t    pb;
+
+    uint8_t    option_fdc;
+
     pc_timer_t send_delay_timer;
 
 } pcjr_t; 
