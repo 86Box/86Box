@@ -653,8 +653,8 @@ fdd_audio_callback(int16_t *buffer, int length)
                     case MOTOR_STATE_STARTING:
                         if (samples->spindlemotor_start.buffer && spindlemotor_pos[drive] < samples->spindlemotor_start.samples) {
                             /* Play start sound with volume control */
-                            left_sample  = (int16_t) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 32768.0f * samples->spindlemotor_start.volume;
-                            right_sample = (int16_t) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f * samples->spindlemotor_start.volume;
+                            left_sample  = (int16_t) (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 2.0f * samples->spindlemotor_start.volume;
+                            right_sample = (int16_t) (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 2.0f * samples->spindlemotor_start.volume;
                             spindlemotor_pos[drive]++;
                         } else {
                             /* Start sound finished, transition to loop */
@@ -666,8 +666,8 @@ fdd_audio_callback(int16_t *buffer, int length)
                     case MOTOR_STATE_RUNNING:
                         if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
                             /* Play loop sound with volume control */
-                            left_sample  = (int16_t) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 32768.0f * samples->spindlemotor_loop.volume;
-                            right_sample = (int16_t) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 32768.0f * samples->spindlemotor_loop.volume;
+                            left_sample  = (int16_t) (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 2.0f * samples->spindlemotor_loop.volume;
+                            right_sample = (int16_t) (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 2.0f * samples->spindlemotor_loop.volume;
                             spindlemotor_pos[drive]++;
 
                             /* Loop back to beginning */
