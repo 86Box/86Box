@@ -8,8 +8,6 @@
  *
  *          IBM XGA emulation.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2022 TheCollector1995.
@@ -2718,15 +2716,15 @@ xga_hwcursor_draw(svga_t *svga, int displine)
         if (x >= idx) {
             switch (comb) {
                 case 0x00:
-					/* Cursor Color 1 */
+                    /* Cursor Color 1 */
                     p[x_pos] = xga->hwc_color0;
                     break;
                 case 0x01:
-					/* Cursor Color 2 */
+                    /* Cursor Color 2 */
                     p[x_pos] = xga->hwc_color1;
                     break;
                 case 0x03:
-					/* Complement */
+                    /* Complement */
                     p[x_pos] ^= 0xffffff;
                     break;
 

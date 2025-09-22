@@ -6,8 +6,6 @@
  *
  *          Emulation of the IBM Expansion Unit (5161).
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

@@ -15,6 +15,8 @@
 
 #include "qt_vmmanager_protocol.hpp"
 
+extern QTimer discordupdate;
+
 class MediaMenu;
 class RendererStack;
 

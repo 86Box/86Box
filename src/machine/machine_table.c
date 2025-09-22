@@ -4077,7 +4077,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 512,
             .max = 1024,
-            .step = 512
+            .step = 128
         },
         .nvrmask = 63,
         .jumpered_ecp_dma = 0,
@@ -5246,6 +5246,50 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has a JetKey KBC without version, which is a clone of AMI '8'. */
+    {
+        .name = "[ALi M1217] Chaintech 3xxAX/AXB",
+        .internal_name = "325ax",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_325ax_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_AMI | 0x00003800,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &c325ax_device,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has a VIA VT82C42N KBC. */
     {
         .name = "[ALi M1217] Flytech A36",
@@ -5287,50 +5331,6 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &tvga8900d_device,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* Has a JetKey KBC without version, which is a clone of AMI '8'. */
-    {
-        .name = "[ALi M1217] Chaintech 325AX",
-        .internal_name = "325ax",
-        .type = MACHINE_TYPE_386SX,
-        .chipset = MACHINE_CHIPSET_ALI_M1217,
-        .init = machine_at_325ax_init,
-        .p1_handler = machine_generic_p1_handler,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_386SX,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 1024,
-            .max = 16384,
-            .step = 1024
-        },
-        .nvrmask = 127,
-        .jumpered_ecp_dma = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device = &kbc_at_device,
-        .kbc_params = KBC_VEN_AMI | 0x00003800,
-        .kbc_p1 = 0x000004f0,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = &c325ax_device,
-        .kbd_device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -7387,7 +7387,7 @@ const machine_t machines[] = {
     /* Has AMIKey H KBC firmware, per the screenshot in "How computers & MS-DOS work".
        Also seen with an AMI 'F'. */
     {
-        .name = "[SiS 401] Chaintech 433SC",
+        .name = "[SiS 401] Chaintech 4xxSX/SC",
         .internal_name = "sis401",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_401,
@@ -7431,7 +7431,7 @@ const machine_t machines[] = {
     },
     /* Seen with both AMIKey F and AMIKey-2 H KBC firmwares. */
     {
-        .name = "[SiS 460] ABIT AV4",
+        .name = "[SiS 460] ABIT AB-AV4",
         .internal_name = "av4",
         .type = MACHINE_TYPE_486,
         .chipset = MACHINE_CHIPSET_SIS_460,
@@ -10684,7 +10684,7 @@ const machine_t machines[] = {
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
-        .name = "[UMC 8881] PC Chips M919",
+        .name = "[UMC 8881] PCChips M919",
         .internal_name = "m919",
         .type = MACHINE_TYPE_486_S3_PCI,
         .chipset = MACHINE_CHIPSET_UMC_UM8881,
@@ -13471,7 +13471,7 @@ const machine_t machines[] = {
     },
     /* Has a VIA VT82C42N KBC. */
     {
-        .name = "[i430FX] PC Partner MB500N",
+        .name = "[i430FX] PCPartner MB500N",
         .internal_name = "mb500n",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
@@ -14148,7 +14148,7 @@ const machine_t machines[] = {
     },
     /* Has the ALi M1543 southbridge with on-chip KBC. */
     {
-        .name = "[ALi ALADDiN IV+] PC Chips M560",
+        .name = "[ALi ALADDiN IV+] PCChips M560",
         .internal_name = "m560",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS,
@@ -14395,7 +14395,7 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal sound: Yamaha YMF701-S */
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_USB, /* Has internal sound: Yamaha YMF701-S */
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -14414,7 +14414,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &s3_virge_375_pci_device,
-        .snd_device = NULL,
+        .snd_device = &ymf701_device,
         .net_device = NULL
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
@@ -14454,7 +14454,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &m7shi_device,
         .kbd_device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
@@ -14532,7 +14532,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
         .ram = {
             .min = 8192,
             .max = 524288,
@@ -14551,7 +14551,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &ymf701_device,
         .net_device = NULL
     },
     /* [TEST] The board doesn't seem to have a KBC at all, which probably means it's an on-chip one on the PC87306 SIO.
@@ -15233,7 +15233,7 @@ const machine_t machines[] = {
     /* This has the AMIKey 'H' firmware, possibly AMIKey-2. Photos show it with a BestKey, so it
        likely clones the behavior of AMIKey 'H'. */
     {
-        .name = "[i430VX] PC Partner MB520N",
+        .name = "[i430VX] PCPartner MB520N",
         .internal_name = "mb520n",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430VX,
@@ -15672,7 +15672,7 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
         .ram = {
             .min = 8192,
             .max = 262144,
@@ -15691,13 +15691,13 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &ymf715_onboard_device,
         .net_device = NULL
     },
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior.
        A picture shows a VIA VT82C42N KBC though, so it could be a case of that KBC with AMI firmware. */
     {
-        .name = "[i430TX] PC Partner MB540N",
+        .name = "[i430TX] PCPartner MB540N",
         .internal_name = "mb540n",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430TX,
@@ -15796,7 +15796,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_Cx6x86MX),
             .min_bus = 50000000,
             .max_bus = 75000000,
             .min_voltage = 2100,
@@ -16238,7 +16238,7 @@ const machine_t machines[] = {
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name = "[VIA VP3] PC Partner VIA809DS",
+        .name = "[VIA VP3] PCPartner VIA809DS",
         .internal_name = "via809ds",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_VIA_APOLLO_VP3,
@@ -16306,51 +16306,6 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal sound: ESS Solo-1 */
-        .ram = {
-            .min = 8192,
-            .max = 1572864,
-            .step = 8192
-        },
-        .nvrmask = 255,
-        .jumpered_ecp_dma = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device = NULL,
-        .kbc_params = 0x00000000,
-        .kbc_p1 = 0x00000cf0,
-        .gpio = 0xffffffff,
-        .gpio_acpi = 0xffffffff,
-        .device = NULL,
-        .kbd_device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
-       with on-chip KBC. */
-    {
-        .name = "[ALi ALADDiN V] PC Chips M579",
-        .internal_name = "m579",
-        .type = MACHINE_TYPE_SOCKETS7,
-        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
-        .init = machine_at_m579_init,
-        .p1_handler = machine_generic_p1_handler,
-        .gpio_handler = NULL,
-        .available_flag = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu = {
-            .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 66666667,
-            .max_bus = 100000000,
-            .min_voltage = 2000,
-            .max_voltage = 3520,
-            .min_multi = 1.5,
-            .max_multi = 5.5
-        },
-        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
         .ram = {
             .min = 8192,
             .max = 1572864,
@@ -16483,6 +16438,51 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram = {
+            .min = 8192,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = NULL,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
+       with on-chip KBC. */
+    {
+        .name = "[ALi ALADDiN V] PCChips M579",
+        .internal_name = "m579",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init = machine_at_m579_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 2000,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal sound: C-Media CMI8330 */
         .ram = {
             .min = 8192,
             .max = 1572864,
@@ -17274,7 +17274,7 @@ const machine_t machines[] = {
     },
     /* Has a VIA VT82C42N KBC. */
     {
-        .name = "[i440FX] PC Partner MB600N",
+        .name = "[i440FX] PCPartner MB600N",
         .internal_name = "mb600n",
         .type = MACHINE_TYPE_SOCKET8,
         .chipset = MACHINE_CHIPSET_INTEL_440FX,
@@ -17321,7 +17321,7 @@ const machine_t machines[] = {
     /* ALi ALADDiN-PRO II */
     /* Has the ALi M1543C southbridge with on-chip KBC. */
     {
-        .name = "[ALi ALADDiN-PRO II] PC Chips M729",
+        .name = "[ALi ALADDiN-PRO II] PCChips M729",
         .internal_name = "m729",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_ALI_ALADDIN_PRO_II,
@@ -17503,7 +17503,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[i440LX] ABIT LX6",
+        .name = "[i440LX] ABIT AB-LX6",
         .internal_name = "lx6",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440LX,
@@ -17732,7 +17732,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[i440BX] ABIT BF6",
+        .name = "[i440BX] ABIT AB-BF6",
         .internal_name = "bf6",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440BX,
@@ -17777,7 +17777,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[i440BX] ABIT BX6",
+        .name = "[i440BX] ABIT AB-BX6",
         .internal_name = "bx6",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440BX,
@@ -18318,7 +18318,7 @@ const machine_t machines[] = {
     },
     /* Has the SiS (5)600 chipset with on-chip KBC. */
     {
-        .name = "[SiS 5600] PC Chips M747",
+        .name = "[SiS 5600] PCChips M747",
         .internal_name = "m747",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_SIS_5600,
@@ -19199,7 +19199,7 @@ const machine_t machines[] = {
     /* Has an ITE IT8671F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[SMSC VictoryBX-66] PC Chips M773",
+        .name = "[SMSC VictoryBX-66] PCChips M773",
         .internal_name = "m773",
         .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_SMSC_VICTORYBX_66,
@@ -19246,7 +19246,7 @@ const machine_t machines[] = {
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name = "[VIA Apollo Pro] PC Partner APAS3",
+        .name = "[VIA Apollo Pro] PCPartner APAS3",
         .internal_name = "apas3",
         .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO,
@@ -19851,7 +19851,7 @@ machine_has_bus(int m, int bus_flags)
     if ((bus_flags & MACHINE_BUS_XT_KBD) &&
         !(machines[m].bus_flags & MACHINE_BUS_ISA16) &&
         (!(machines[m].bus_flags & MACHINE_BUS_PS2_PORTS) ||
-        !(strcmp(machine_get_internal_name(), "pc5086"))))
+        (machines[m].init == machine_xt_pc5086_init)))
         ret |= MACHINE_BUS_XT_KBD;
 
 #ifdef ONLY_AT_KBD_ON_AT_KBC
@@ -19909,11 +19909,7 @@ machine_get_min_ram(int m)
 int
 machine_get_max_ram(int m)
 {
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    return MIN(((int) machines[m].ram.max), 2097152);
-#else
     return MIN(((int) machines[m].ram.max), 3145728);
-#endif
 }
 
 int

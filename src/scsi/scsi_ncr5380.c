@@ -9,8 +9,6 @@
  *          Implementation of the NCR 5380 chip made by NCR
  *          and used in various controllers.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

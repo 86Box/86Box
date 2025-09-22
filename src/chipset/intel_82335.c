@@ -8,8 +8,6 @@
  *
  *          Implementation of the Intel 82335(KU82335) chipset.
  *
- *
- *
  * Authors: Tiseno100
  *
  *          Copyright 2021 Tiseno100.

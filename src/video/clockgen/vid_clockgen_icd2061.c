@@ -14,8 +14,6 @@
  *          Used by ET4000w32/p (Diamond Stealth 32) and the S3
  *          Vision964 family.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
@@ -33,19 +31,8 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/vid_clockgen_icd2061.h>
 #include <86box/plat_unused.h>
-
-typedef struct icd2061_t {
-    float    freq[3];
-    float    ref_clock;
-
-    int      count;
-    int      bit_count;
-    int      unlocked;
-    int      state;
-    uint32_t data;
-    uint32_t ctrl;
-} icd2061_t;
 
 #ifdef ENABLE_ICD2061_LOG
 int icd2061_do_log = ENABLE_ICD2061_LOG;
@@ -155,14 +142,12 @@ icd2061_getclock(int clock, void *priv)
 }
 
 void
-icd2061_set_ref_clock(void *priv, svga_t *svga, float ref_clock)
+icd2061_set_ref_clock(void *priv, float ref_clock)
 {
     icd2061_t *icd2061 = (icd2061_t *) priv;
 
-    if (icd2061)
+    if (icd2061 != NULL)
         icd2061->ref_clock = ref_clock;
-
-    svga_recalctimings(svga);
 }
 
 static void *

@@ -22,8 +22,6 @@
  *             The reserved 384K is remapped to the top of extended memory.
  *             If this is not done then you get an error on startup.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

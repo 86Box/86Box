@@ -265,6 +265,7 @@ load_general(void)
 
     do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
+    fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
     p = ini_section_get_string(cat, "uuid", NULL);
     if (p != NULL)
@@ -572,7 +573,7 @@ load_input_devices(void)
     p = ini_section_get_string(cat, "keyboard_type", NULL);
     if (p != NULL)
         keyboard_type = keyboard_get_from_internal_name(p);
-    else if (strstr(machine_get_internal_name(), "pc5086"))
+    else if (machines[machine].init == machine_xt_pc5086_init)
         keyboard_type = KEYBOARD_TYPE_PC_XT;
     else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
         if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
@@ -1034,7 +1035,7 @@ load_storage_controllers(void)
                 if (!hdc_current[j]) {
                     if (!legacy_cards[i]) {
                         if (!p) {
-                            hdc_current[j] = hdc_get_from_internal_name("internal");
+                            hdc_current[j] = hdc_get_from_internal_name((j == 0) ? "internal" : "none");
                         } else if (!strcmp(p, "xtide_plus")) {
                             hdc_current[j] = hdc_get_from_internal_name("xtide");
                             sprintf(temp, "PC/XT XTIDE #%i", j + 1);
@@ -1436,6 +1437,15 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_check_bpb", c + 1);
             ini_section_delete_var(cat, temp);
         }
+        sprintf(temp, "fdd_%02i_audio", c + 1);
+        int def_prof = FDD_AUDIO_PROFILE_NONE;
+        int prof     = ini_section_get_int(cat, temp, def_prof);
+        if (prof < 0 || prof >= FDD_AUDIO_PROFILE_MAX)
+            prof = def_prof;
+        fdd_set_audio_profile(c, prof);
+        if (prof == def_prof)
+            ini_section_delete_var(cat, temp);
+
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             fdd_image_history[c][i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
@@ -2479,6 +2489,11 @@ save_general(void)
     else
         ini_section_delete_var(cat, "force_constant_mouse");
 
+    if (fdd_sounds_enabled == 1)
+        ini_section_delete_var(cat, "fdd_sounds_enabled");
+    else
+        ini_section_set_int(cat, "fdd_sounds_enabled", fdd_sounds_enabled);
+
     char cpu_buf[128] = { 0 };
     plat_get_cpu_string(cpu_buf, 128);
     ini_section_set_string(cat, "host_cpu", cpu_buf);
@@ -3063,7 +3078,7 @@ save_storage_controllers(void)
         else
             def_hdc = "none";
 
-        if (!strcmp(hdc_get_internal_name(hdc_current[c]), def_hdc))
+        if (!strcmp(hdc_get_internal_name(hdc_current[c]), def_hdc) || ((c > 0) && (hdc_current[c] == 1)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp,
@@ -3416,6 +3431,14 @@ save_floppy_and_cdrom_drives(void)
             else
                 save_image_file(cat, temp, fdd_image_history[c][i]);
         }
+
+        sprintf(temp, "fdd_%02i_audio", c + 1);
+        int def_prof = FDD_AUDIO_PROFILE_NONE;
+        int prof = fdd_get_audio_profile(c);
+        if (prof == def_prof)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, prof);
     }
 
     for (c = 0; c < CDROM_NUM; c++) {

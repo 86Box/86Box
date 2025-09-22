@@ -52,15 +52,12 @@
  *          however, are auto-configured by the system software as
  *          shown above.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2017-2018 Fred N. van Kempen.
  */
-
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>

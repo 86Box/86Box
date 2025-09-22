@@ -8,8 +8,6 @@
  *
  *          Implementation of the OPTi 82C391/392 chipset.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Miran Grca.

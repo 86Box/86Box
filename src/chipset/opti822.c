@@ -9,8 +9,6 @@
  *          Implementation of the OPTi 82C822 VESA Local Bus to PCI
  *          Bridge Interface.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2022 Miran Grca.

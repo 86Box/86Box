@@ -9,13 +9,13 @@
  *          Implementation of the NEC uPD-765 and compatible floppy disk
  *          controller.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Toni Riikonen, <riikonen.toni@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2025 Toni Riikonen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -664,6 +664,33 @@ real_drive(fdc_t *fdc, int drive)
         return drive;
 }
 
+/* FDD notifies FDC when seek operation is complete */
+void
+fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
+{
+    if (!fdc) {
+        fdc_log("ERROR: fdc_seek_complete_interrupt called with NULL fdc!\n");
+        return;
+    }
+
+    if (FDC_FLAG_PCJR & fdc->flags) {
+        fdc->fintr     = 1;
+        fdc->interrupt = -4;
+        fdc_callback(fdc);
+        return;
+    }
+
+    fdc_log("FDD %c: Seek complete interrupt\n", 0x41 + drive);
+
+    fdc->fintr = 1;
+    fdc->interrupt = -3;
+    fdc->st0   = 0x20 | (drive & 3);
+    if (fdd_get_head(drive))
+        fdc->st0 |= 0x04;
+
+    fdc_callback(fdc);
+}
+
 void
 fdc_seek(fdc_t *fdc, int drive, int params)
 {
@@ -1231,7 +1258,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x0f: /* Seek */
                             fdc->rw_drive = fdc->params[0] & 3;
                             fdc->stat     = (1 << fdc->drive);
-                            if (!(fdc->flags & FDC_FLAG_PCJR))
+                             if (!(fdc->flags & FDC_FLAG_PCJR))
                                 fdc->stat |= 0x80;
                             fdc->head = 0; /* TODO: See if this is correct. */
                             fdc->st0  = fdc->params[0] & 0x03;
@@ -1903,14 +1930,7 @@ fdc_callback(void *priv)
         case 0x0f: /*Seek*/
             fdc->st0  = 0x20 | (fdc->params[0] & 3);
             fdc->stat = 0x80 | (1 << fdc->rw_drive);
-            if (fdc->flags & FDC_FLAG_PCJR) {
-                fdc->fintr     = 1;
-                fdc->interrupt = -4;
-                timer_set_delay_u64(&fdc->timer, 1024 * TIMER_USEC);
-            } else {
-                fdc->interrupt = -3;
-                fdc_callback(fdc);
-            }
+            // Interrupts and callbacks in the fdd callback function
             return;
         case 0x10: /*Version*/
         case 0x18: /*NSC*/
@@ -2402,10 +2422,10 @@ fdc_reset(void *priv)
        need to use a dual-RPM 5.25" drive - but hey, that finally gets those
        drives some usage as well.
      */
-    fdc_update_drvrate(fdc, 0, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 1, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 2, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 3, !strcmp(machine_get_internal_name(),  "if386sx"));
+    fdc_update_drvrate(fdc, 0, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 1, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 2, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 3, (machines[machine].init == machine_at_if386sx_init));
     fdc_update_drv2en(fdc, 1);
     fdc_update_rates(fdc);
 

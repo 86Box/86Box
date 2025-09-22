@@ -1,18 +1,16 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           VIA AC'97 audio controller emulation.
+ *          VIA AC'97 audio controller emulation.
  *
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *
- * Authors:  RichardG, <richardg867@gmail.com>
- *
- *           Copyright 2021 RichardG.
+ *          Copyright 2021 RichardG.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -348,7 +346,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         dev->sgd_regs[modem][addr & 0xf0] = (dev->sgd_regs[modem][addr & 0xf0] & ~0x47) | 0x80;
 
                         /* Start at the specified entry pointer. */
-                        dev->sgd[modem][addr >> 4].entry_ptr  = *((uint32_t *) &dev->sgd_regs[modem][(addr & 0xf0) | 0x4]) & 0xfffffffe;
+                        dev->sgd[modem][addr >> 4].entry_ptr  = AS_U32(dev->sgd_regs[modem][(addr & 0xf0) | 0x4]) & 0xfffffffe;
                         dev->sgd[modem][addr >> 4].restart    = 2;
 
                         /* Start the actual SGD process. */
@@ -403,14 +401,14 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         if (val & 1) { /* return 0x0000 on unaligned reads (real 686B behavior) */
                             dev->sgd_regs[modem][0x80] = dev->sgd_regs[modem][0x81] = 0x00;
                         } else {
-                            *((uint16_t *) &dev->codec_shadow[modem].regs_codec[i][val & 0x7f]) = *((uint16_t *) &dev->sgd_regs[modem][0x80]) = ac97_codec_readw(codec, val);
+                            AS_U16(dev->codec_shadow[modem].regs_codec[i][val & 0x7f]) = AS_U16(dev->sgd_regs[modem][0x80]) = ac97_codec_readw(codec, val);
                         }
 
                         /* Flag data/status/index for this codec as valid. */
                         dev->sgd_regs[modem][0x83] |= 0x02 << (i << 1);
                     } else if (!(val & 1)) { /* do nothing on unaligned writes */
                         ac97_codec_writew(codec, val,
-                                          *((uint16_t *) &dev->codec_shadow[modem].regs_codec[i][val & 0x7f]) = *((uint16_t *) &dev->sgd_regs[modem][0x80]));
+                                          AS_U16(dev->codec_shadow[modem].regs_codec[i][val & 0x7f]) = AS_U16(dev->sgd_regs[modem][0x80]));
 
                         /* Update primary audio codec state if that codec was written to. */
                         if (!modem && !i) {
@@ -579,7 +577,7 @@ ac97_via_sgd_process(void *priv)
         if (sgd->restart) {
             /* (Re)load entry pointer if required. */
             if (sgd->restart & 2)
-                sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->modem][sgd->id | 0x4]) & 0xfffffffe; /* TODO: probe real hardware - does "even addr" actually mean dword aligned? */
+                sgd->entry_ptr = AS_U32(dev->sgd_regs[sgd->modem][sgd->id | 0x4]) & 0xfffffffe; /* TODO: probe real hardware - does "even addr" actually mean dword aligned? */
             sgd->restart = 0;
 
             /* Read entry. */
@@ -605,11 +603,11 @@ ac97_via_sgd_process(void *priv)
 
         if (sgd->id & 0x10) {
             /* Write channel: read data from FIFO. */
-            // mem_writel_phys(sgd->sample_ptr, *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
+            // mem_writel_phys(sgd->sample_ptr, AS_U32(sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
             dma_bm_write(sgd->sample_ptr, &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)], 4, 4);
         } else {
             /* Read channel: write data to FIFO. */
-            // *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]) = mem_readl_phys(sgd->sample_ptr);
+            // AS_U32(sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]) = mem_readl_phys(sgd->sample_ptr);
             dma_bm_read(sgd->sample_ptr, &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)], 4, 4);
         }
         sgd->fifo_end += 4;
@@ -709,7 +707,7 @@ ac97_via_poll_stereo(void *priv)
 
         case 0x20: /* Mono, 16-bit PCM */
             if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
-                sgd->out_l = sgd->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+                sgd->out_l = sgd->out_r = AS_U16(sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
                 sgd->fifo_pos += 2;
                 return;
             }
@@ -717,9 +715,9 @@ ac97_via_poll_stereo(void *priv)
 
         case 0x30: /* Stereo, 16-bit PCM */
             if ((sgd->fifo_end - sgd->fifo_pos) >= 4) {
-                sgd->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+                sgd->out_l = AS_U16(sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
                 sgd->fifo_pos += 2;
-                sgd->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+                sgd->out_r = AS_U16(sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
                 sgd->fifo_pos += 2;
                 return;
             }
@@ -749,9 +747,9 @@ ac97_via_poll_fm(void *priv)
     /* Feed next sample from the FIFO.
        The data format is not documented, but it probes as 16-bit stereo at 24 KHz. */
     if ((sgd->fifo_end - sgd->fifo_pos) >= 4) {
-        sgd->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+        sgd->out_l = AS_U16(sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
         sgd->fifo_pos += 2;
-        sgd->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+        sgd->out_r = AS_U16(sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
         sgd->fifo_pos += 2;
         return;
     }

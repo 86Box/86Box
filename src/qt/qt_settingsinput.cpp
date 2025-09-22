@@ -123,7 +123,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         int         ikbd          = (i == KEYBOARD_TYPE_INTERNAL);
 
         int         pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") &&
-                                    strstr(machine_get_internal_name_ex(machineId), "pc5086"));
+                                    machines[machineId].init == machine_xt_pc5086_init);
 
         if ((ikbd != has_int_kbd) || !device_is_valid(dev, machineId) || pc5086_filter)
             continue;

@@ -12,8 +12,6 @@
  *          packet driver. PLIP is not particularly fast, as it's a 4-bit
  *          half-duplex protocol operating over SPP.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *          Copyright 2020 RichardG.
  */

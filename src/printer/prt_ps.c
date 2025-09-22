@@ -9,15 +9,12 @@
  *          Implementation of a generic PostScript printer and a
  *          generic PCL 5e printer.
  *
- *
- *
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *          Cacodemon345
  *
  *          Copyright 2019 David Hrdlička.
  *          Copyright 2024 Cacodemon345.
  */
-
 #include <inttypes.h>
 #include <memory.h>
 #include <stdbool.h>
@@ -48,13 +45,8 @@
 #define gs_error_Quit        -101
 
 #ifdef _WIN32
-#    if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-#        define PATH_GHOSTSCRIPT_DLL "gsdll32.dll"
-#        define PATH_GHOSTPCL_DLL    "gpcl6dll32.dll"
-#    else
-#        define PATH_GHOSTSCRIPT_DLL "gsdll64.dll"
-#        define PATH_GHOSTPCL_DLL    "gpcl6dll64.dll"
-#    endif
+#    define PATH_GHOSTSCRIPT_DLL "gsdll64.dll"
+#    define PATH_GHOSTPCL_DLL    "gpcl6dll64.dll"
 #elif defined __APPLE__
 #    define PATH_GHOSTSCRIPT_DLL "libgs.dylib"
 #    define PATH_GHOSTPCL_DLL    "libgpcl6.9.54.dylib"

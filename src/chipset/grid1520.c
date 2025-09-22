@@ -9,6 +9,7 @@
  *          Implementation of the GRiD GRiDcase 1520
  *
  *          The GRiDcase 1520 is a 286-based portable.
+ *
  * These are HDDs supported by GRiD1520 (and probably other 15XX) BIOS
  * "CP3022",5
  * "CP3024",5, 615,4,17 BIOS table type 2

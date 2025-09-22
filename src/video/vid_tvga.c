@@ -8,8 +8,6 @@
  *
  *          Trident TVGA (8900D) emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *

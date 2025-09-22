@@ -64,6 +64,8 @@
 #    include <sys/mman.h>
 #endif
 
+#include <sys/stat.h>
+
 #ifdef Q_OS_OPENBSD
 #    include <pthread_np.h>
 #endif
@@ -248,6 +250,21 @@ plat_dir_check(char *path)
 {
     QFileInfo fi(path);
     return fi.isDir() ? 1 : 0;
+}
+
+int
+plat_file_check(const char *path)
+{
+#ifdef _WIN32
+    auto data = QString::fromUtf8(path).toStdWString();
+    auto res = GetFileAttributesW(data.c_str());
+    return (res != INVALID_FILE_ATTRIBUTES) && !(res & FILE_ATTRIBUTE_DIRECTORY);
+#else
+    struct stat stats;
+    if (stat(path, &stats) < 0)
+        return 0;
+    return !S_ISDIR(stats.st_mode);
+#endif
 }
 
 int
@@ -614,13 +631,8 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #endif
 
 #ifdef _WIN32
-#    if defined(__amd64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
-#        define LIB_NAME_GS   "gsdll64.dll"
-#        define LIB_NAME_GPCL "gpcl6dll64.dll"
-#    else
-#        define LIB_NAME_GS   "gsdll32.dll"
-#        define LIB_NAME_GPCL "gpcl6dll32.dll"
-#    endif
+#    define LIB_NAME_GS          "gsdll64.dll"
+#    define LIB_NAME_GPCL        "gpcl6dll64.dll"
 #    define LIB_NAME_PCAP        "Npcap"
 #else
 #    define LIB_NAME_GS          "libgs"

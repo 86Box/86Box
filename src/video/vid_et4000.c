@@ -8,8 +8,6 @@
  *
  *          Emulation of the Tseng Labs ET4000.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          GreatPsycho, <greatpsycho@yahoo.com>

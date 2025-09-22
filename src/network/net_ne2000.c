@@ -13,8 +13,6 @@
  *              - Realtek RTL8019AS (ISA 16-bit, PnP);
  *              - Realtek RTL8029AS (PCI).
  *
- *
- *
  * Based on    @(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>

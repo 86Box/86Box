@@ -8,8 +8,6 @@
  *
  *          Implementation of the Phoenix 486 Jumper Readout.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Tiseno100,
  *

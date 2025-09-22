@@ -9,8 +9,6 @@
  *          Implementation of the Toshiba T1000 plasma display, which
  *          has a fixed resolution of 640x200 pixels.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          John Elliott, <jce@seasip.info>

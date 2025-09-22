@@ -8,8 +8,6 @@
  *
  *          Hayes AT-compliant modem emulation.
  *
- *
- *
  * Authors: Cacodemon345
  *          The DOSBox Team
  *
@@ -17,7 +15,6 @@
  *          Copyright (C) 2022       The DOSBox Staging Team
  *          Copyright (C) 2002-2021  The DOSBox Team
  */
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>

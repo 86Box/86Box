@@ -178,11 +178,11 @@ static const device_config_t j403tg_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Award Modular BIOS v4.50G", .internal_name = "403tg", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/403TG.BIN", "" } },
-            { .name = "AMI WinBIOS (121593)", .internal_name = "403tg_d", .bios_type = BIOS_NORMAL, 
+            { .name = "AMI WinBIOS (121593)", .internal_name = "403tg", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/J403TGRevD.BIN", "" } },
-            { .name = "MR BIOS V2.02", .internal_name = "403tg_d_mr", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.50G", .internal_name = "403tg_award", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/403TG.BIN", "" } },
+            { .name = "MR BIOS V2.02", .internal_name = "403tg_mr", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/MRBiosOPT895.bin", "" } },
             { .files_no = 0 }
         },

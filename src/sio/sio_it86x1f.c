@@ -8,8 +8,6 @@
  *
  *          Emulation of the ITE IT86x1F Super I/O chips.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2023 RichardG.
@@ -43,7 +41,7 @@ enum {
     ITE_IT8671F = 0x8681
 };
 
-#define CHIP_ID *((uint16_t *) &dev->global_regs[0])
+#define CHIP_ID AS_U16(dev->global_regs[0])
 
 static void it8671f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
 static void it8661f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
@@ -571,7 +569,7 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 
                 case 0x7e3:
                     if ((CHIP_ID == ITE_IT8671F) && (val & 0x80))
-                        *((uint16_t *) &dev->gpio_regs[0x22]) = 0x0000;
+                        AS_U16(dev->gpio_regs[0x22]) = 0x0000;
                     break;
 
                 case 0x7fb:

@@ -12,8 +12,6 @@
  *
  *          Copyright 2024 cold-brewed
  */
-
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

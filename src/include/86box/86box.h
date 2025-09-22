@@ -79,6 +79,17 @@
 #define BCD16(x)  ((((x) / 1000) << 12) | (((x) / 100) << 8) | BCD8(x))
 #define BCD32(x)  ((((x) / 10000000) << 28) | (((x) / 1000000) << 24) | (((x) / 100000) << 20) | (((x) / 10000) << 16) | BCD16(x))
 
+#define AS_U8(x)     (*((uint8_t *) &(x)))
+#define AS_U16(x)    (*((uint16_t *) &(x)))
+#define AS_U32(x)    (*((uint32_t *) &(x)))
+#define AS_U64(x)    (*((uint64_t *) &(x)))
+#define AS_I8(x)     (*((int8_t *) &(x)))
+#define AS_I16(x)    (*((int16_t *) &(x)))
+#define AS_I32(x)    (*((int32_t *) &(x)))
+#define AS_I64(x)    (*((int64_t *) &(x)))
+#define AS_FLOAT(x)  (*((float *) &(x)))
+#define AS_DOUBLE(x) (*((double *) &(x)))
+
 #if defined(__GNUC__) || defined(__clang__)
 #    define UNLIKELY(x) __builtin_expect((x), 0)
 #    define LIKELY(x)   __builtin_expect((x), 1)
@@ -208,6 +219,7 @@ extern int  monitor_edid;                   /* (C) Which EDID to use. 0=default,
 extern char monitor_edid_path[1024];        /* (C) Path to custom EDID */
 
 extern int color_scheme;                    /* (C) Color scheme of UI (Windows-only) */
+extern int fdd_sounds_enabled;              /* (C) Enable floppy drive sounds */
 
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */

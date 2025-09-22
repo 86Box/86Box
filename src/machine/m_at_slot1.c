@@ -359,9 +359,9 @@ static const device_config_t bx6_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "1998/07/28 - BIOS EG", .internal_name = "bx6", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision EG", .internal_name = "bx6_eg", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/bx6/BX6_EG.BIN", "" } },
-            { .name = "2000/03/10 - BIOS QS", .internal_name = "bx6_qs", .bios_type = BIOS_NORMAL, 
+            { .name = "Award Modular BIOS v4.51PG - Revision QS", .internal_name = "bx6", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/bx6/BX6_QS.bin", "" } },
             { .files_no = 0 }
         },
@@ -371,7 +371,7 @@ static const device_config_t bx6_config[] = {
 };
 
 const device_t bx6_device = {
-    .name          = "ABIT BX6",
+    .name          = "ABIT AB-BX6",
     .internal_name = "bx6_device",
     .flags         = 0,
     .local         = 0,
@@ -570,14 +570,14 @@ static const device_config_t ms6119_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Award Modular BIOS v4.51PG - Version 3.30b1 (LG IBM Multinet i x7G)", .internal_name = "lgibmx7g", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/ms6119.331", "" } },
-            { .name = "Award Modular BIOS v4.51PG - Version 2.12 (Viglen Vig69M)", .internal_name = "vig69m", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/vig69m.212", "" } },
-            { .name = "Award Modular BIOS v4.51PG - Version 2.10", .internal_name = "ms6119", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/w6119ims.2a0", "" } },
-            { .name = "AMIBIOS 071595 - Version 1.90 (Packard Bell Tacoma)", .internal_name = "tacoma", .bios_type = BIOS_NORMAL, 
+            { .name = "AMIBIOS 6 (071595) - Revision 1.90 (Packard Bell Tacoma)", .internal_name = "tacoma", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/A19P2190.ROM", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 2.10", .internal_name = "ms6119", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/w6119ims.2a0", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 2.12 (Viglen Vig69M)", .internal_name = "vig69m", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/vig69m.212", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet i x7G)", .internal_name = "lgibmx7g", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/ms6119/ms6119.331", "" } },
             { .files_no = 0 }
         },
     },

@@ -8,8 +8,6 @@
  *
  *          Implementation of the ALi M6117 SoC.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

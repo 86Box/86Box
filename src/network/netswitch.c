@@ -1,21 +1,17 @@
 /*
-* 86Box    A hypervisor and IBM PC system emulator that specializes in
-*          running old operating systems and software designed for IBM
-*          PC systems and compatibles from 1981 through fairly recent
-*          system designs based on the PCI bus.
-*
-*          This file is part of the 86Box distribution.
-*
-*          Network Switch backend
-*
-*
-*
-* Authors: cold-brewed
-*
-*          Copyright 2024 cold-brewed
-*/
-
-
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Network Switch backend
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
+ */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -246,6 +242,7 @@ ns_open(struct ns_open_args *open_args) {
 
     /* Remote switch hostname */
     strncpy(conn->nrs_hostname, open_args->nrs_hostname, sizeof(conn->nrs_hostname) - 1);
+    conn->nrs_hostname[127] = 0x00;
 
     /* Switch type */
     if(conn->switch_type == SWITCH_TYPE_REMOTE) {

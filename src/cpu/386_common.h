@@ -357,22 +357,17 @@ fastreadb(uint32_t a)
     mem_debug_check_addr(a, read_type);
     read_type = 4;
 #    endif
+
     if ((a >> 12) == pccache)
-#    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         return *((uint8_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
-#    else
-        return *((uint8_t *) &pccache2[a]);
-#    endif
+
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
     pccache  = a >> 12;
     pccache2 = t;
-#    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+
     return *((uint8_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
-#    else
-    return *((uint8_t *) &pccache2[a]);
-#    endif
 }
 
 static __inline uint16_t
@@ -392,22 +387,16 @@ fastreadw(uint32_t a)
         return val;
     }
     if ((a >> 12) == pccache)
-#    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
-#    else
-        return *((uint16_t *) &pccache2[a]);
-#    endif
+
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
 
     pccache  = a >> 12;
     pccache2 = t;
-#    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+
     return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
-#    else
-    return *((uint16_t *) &pccache2[a]);
-#    endif
 }
 
 static __inline uint32_t
@@ -431,11 +420,8 @@ fastreadl(uint32_t a)
             pccache2 = t;
             pccache  = a >> 12;
         }
-#    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        
         return *((uint32_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
-#    else
-        return *((uint32_t *) &pccache2[a]);
-#    endif
     }
     val = fastreadw(a);
     val |= (fastreadw(a + 2) << 16);
@@ -447,18 +433,10 @@ static __inline void *
 get_ram_ptr(uint32_t a)
 {
     if ((a >> 12) == pccache)
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         return (void *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL));
-#else
-        return &pccache2[a];
-#endif
     else {
         uint8_t *t = getpccache(a);
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         return (void *) (((uintptr_t) &t[a] & 0x00000000ffffffffULL) | ((uintptr_t) &t[0] & 0xffffffff00000000ULL));
-#else
-        return &t[a];
-#endif
     }
 }
 
@@ -528,22 +506,16 @@ fastreadw_fetch(uint32_t a)
         return val;
     }
     if ((a >> 12) == pccache)
-#    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
-#    else
-        return *((uint16_t *) &pccache2[a]);
-#    endif
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
 
     pccache  = a >> 12;
     pccache2 = t;
-#    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+
     return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
-#    else
-    return *((uint16_t *) &pccache2[a]);
-#    endif
+
 }
 
 static __inline uint32_t
@@ -570,7 +542,7 @@ fastreadl_fetch(uint32_t a)
 #    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         return *((uint32_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
 #    else
-        return *((uint32_t *) &pccache2[a]);
+        return AS_U32(pccache2[a]);
 #    endif
     }
     val = fastreadw_fetch(a);

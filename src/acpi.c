@@ -8,8 +8,6 @@
  *
  *          ACPI emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.
@@ -41,6 +39,7 @@
 #include <86box/i2c.h>
 #include <86box/video.h>
 #include <86box/smbus.h>
+#include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/sis_55xx.h>
@@ -1219,8 +1218,11 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x36:
         case 0x37:
             /* GPOREG - General Purpose Output Register (IO) */
-            if (size == 1)
+            if (size == 1) {
                 dev->regs.gporeg[addr & 3] = val;
+                if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
+                    hdc_onboard_enabled = (val & 0x01);
+            }
             break;
         default:
             acpi_reg_write_common_regs(size, addr, val, priv);
@@ -1745,7 +1747,7 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x1c:
             dev->regs.gpe_pin = ((dev->regs.gpe_pin & ~(0xff << shift32)) | ((val & 0xff) << shift32));
-            if (!strcmp(machine_get_internal_name(), "m747") && (val & 0x10) &&
+            if ((machines[machine].init == machine_at_m747_init) && (val & 0x10) &&
                 !(dev->regs.gpe_io & 0x00000010))
                 resetx86();
             break;
@@ -2361,7 +2363,7 @@ acpi_reset(void *priv)
     /* PC Chips M773:
        - Bit 3: 80-conductor cable on unknown IDE channel (active low)
        - Bit 1: 80-conductor cable on unknown IDE channel (active low) */
-    dev->regs.gpireg[0] = !strcmp(machine_get_internal_name(), "m773") ? 0xf5 : 0xff;
+    dev->regs.gpireg[0] = (machines[machine].init == machine_at_m773_init) ? 0xf5 : 0xff;
     dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)
@@ -2395,9 +2397,9 @@ acpi_reset(void *priv)
                - Bit 19: password cleared (active low).
          */
         dev->regs.gpi_val = 0xfff57fc1;
-        if (!strcmp(machine_get_internal_name(), "ficva503a") || !strcmp(machine_get_internal_name(), "6via90ap"))
+        if ((machines[machine].init == machine_at_ficva503a_init) || (machines[machine].init == machine_at_6via90ap_init))
             dev->regs.gpi_val |= 0x00000004;
-        else if (!strcmp(machine_get_internal_name(), "ficka6130"))
+        else if ((machines[machine].init == machine_at_ficka6130_init))
             dev->regs.gpi_val |= 0x00080000;
          /*
             TriGem Delhi-III second GPI word:
@@ -2405,7 +2407,7 @@ acpi_reset(void *priv)
                 - Bit 6 = Password jumper (must be set);
                 - Bit 5 = Enable Setup (must be set).
          */
-        else if (!strcmp(machine_get_internal_name(), "delhi3"))
+        else if (machines[machine].init == machine_at_delhi3_init)
             dev->regs.gpi_val |= 0x00008000;
     }
 
@@ -2416,7 +2418,7 @@ acpi_reset(void *priv)
     }
 
     /* The Gateway Tomahawk requires the LID polarity bit to be set. */
-    if (!strcmp(machine_get_internal_name(), "tomahawk"))
+    if (machines[machine].init == machine_at_tomahawk_init)
         dev->regs.glbctl |= 0x02000000;
 
     acpi_rtc_status = 0;

@@ -9,8 +9,6 @@
  *          Emulation of the 8514/A-compatible Mach8 and Mach32 graphics
  *          chips from ATI for the ISA/VLB/MCA/PCI buses.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2022-2024 TheCollector1995.

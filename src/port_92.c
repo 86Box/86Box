@@ -9,8 +9,6 @@
  *          Implementation of Port 92 used by PS/2 machines and 386+
  *          clones.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2019 Miran Grca.
