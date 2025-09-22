@@ -8,8 +8,6 @@
  *
  *          Emulation of the Genesys Logic GL518SM hardware monitoring chip.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

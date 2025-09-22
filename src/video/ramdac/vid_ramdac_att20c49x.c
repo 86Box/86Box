@@ -8,8 +8,6 @@
  *
  *          Emulation of a AT&T 20c490/491 and 492/493 RAMDAC.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

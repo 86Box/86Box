@@ -1,16 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		DRAM row handling.
+ *          DRAM row handling.
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -266,9 +266,9 @@ row_init(const device_t *info)
         pages[c].write_w = NULL;
         pages[c].write_l = NULL;
 #ifdef USE_NEW_DYNAREC
-	pages[c].evict_prev = EVICT_NOT_IN_LIST;
-	pages[c].byte_dirty_mask = &byte_dirty_mask[c * 64];
-	pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
+    pages[c].evict_prev = EVICT_NOT_IN_LIST;
+    pages[c].byte_dirty_mask = &byte_dirty_mask[c * 64];
+    pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
 #endif
     }
 

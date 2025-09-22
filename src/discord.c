@@ -8,8 +8,6 @@
  *
  *          Discord integration module.
  *
- *
- *
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2019 David Hrdlička.

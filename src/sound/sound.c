@@ -8,8 +8,6 @@
  *
  *          Sound emulation core.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
@@ -95,7 +93,6 @@ static int          cd_thread_enable = 0;
 static thread_t     *sound_fdd_thread_h;
 static event_t      *sound_fdd_event;
 static event_t      *sound_fdd_start_event;
-static int16_t      fdd_out_buffer[SOUNDBUFLEN * 2];
 static volatile int fddaudioon = 0;
 static int          fdd_thread_enable = 0;
 
@@ -168,6 +165,8 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_vibra16xv_device          },
     { &wss_device                   },
     { &ymf701_device                },
+    { &ymf718_device                },
+    { &ymf719_device                },
     /* MCA */
     { &adlib_mca_device             },
     { &ess_chipchat_16_mca_device   },

@@ -10,8 +10,6 @@
  *
  *          Used by the S3 86c801 (V7-Mirage) card.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

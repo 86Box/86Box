@@ -8,8 +8,6 @@
  *
  *          Handling of the emulated machines.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

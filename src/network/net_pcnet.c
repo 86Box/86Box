@@ -4,10 +4,10 @@
  *          PC systems and compatibles from 1981 through fairly recent
  *          system designs based on the PCI bus.
  *
+ *          This file is part of the 86Box distribution.
+ *
  *          Emulation of the AMD PCnet LANCE NIC controller for both the ISA, VLB,
  *          and PCI buses.
- *
- *
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          TheCollector1995, <mariogplayer@gmail.com>

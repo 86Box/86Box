@@ -254,7 +254,7 @@ static const device_config_t c325ax_config[] = {
 };
 
 const device_t c325ax_device = {
-    .name          = "Chaintech 325AX",
+    .name          = "Chaintech 3xxAX/AXB",
     .internal_name = "325ax_device",
     .flags         = 0,
     .local         = 0,

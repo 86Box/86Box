@@ -8,8 +8,6 @@
  *
  *          Implementation of the SiS 5571 Chipset.
  *
- *
- *
  * Authors: Tiseno100,
  *
  *          Copyright 2021 Tiseno100.

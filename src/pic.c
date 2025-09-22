@@ -9,8 +9,6 @@
  *          Implementation of the Intel PIC chip emulation, partially
  *          ported from reenigne's XTCE.
  *
- *
- *
  * Authors: Andrew Jenner, <https://www.reenigne.org>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -254,7 +252,7 @@ void
 pic_reset(void)
 {
     int is_at = IS_AT(machine);
-    is_at     = is_at || !strcmp(machine_get_internal_name(), "xi8088");
+    is_at     = is_at || (machines[machine].init == machine_xt_xi8088_init);
 
     memset(&pic, 0, sizeof(pic_t));
     memset(&pic2, 0, sizeof(pic_t));

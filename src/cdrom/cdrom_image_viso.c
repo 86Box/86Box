@@ -880,7 +880,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         if (dirp) {                /* create empty directory if opendir failed */
             while ((readdir_entry = readdir(dirp))) {
                 /* Ignore . and .. pseudo-directories. */
-                if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
+                if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (AS_U16(readdir_entry->d_name[1]) == '.')))
                     continue;
                 children_count++;
             }
@@ -927,7 +927,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                 /* Ignore . and .. pseudo-directories. */
                 if ((readdir_entry->d_name[0] == '.') &&
                     ((readdir_entry->d_name[1] == '\0') ||
-                    (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
+                    (AS_U16(readdir_entry->d_name[1]) == '.')))
                     continue;
 
                 /* Add and fill entry. */
@@ -1245,8 +1245,8 @@ next_dir:
         /* Calculate checksum. */
         uint16_t eltorito_checksum = 0;
         for (int i = 0; i < (p - data); i += 2)
-            eltorito_checksum -= le16_to_cpu(*((uint16_t *) &data[i]));
-        *((uint16_t *) &data[28]) = cpu_to_le16(eltorito_checksum);
+            eltorito_checksum -= le16_to_cpu(AS_U16(data[i]));
+        AS_U16(data[28]) = cpu_to_le16(eltorito_checksum);
 
         /* Now fill the default boot entry. */
         *p++ = 0x88;          /* bootable flag */
@@ -1552,11 +1552,11 @@ next_entry:
                 uint32_t boot_size = entry->stats.st_size;
                 if (boot_size % 512) /* round up */
                     boot_size += 512 - (boot_size % 512);
-                *((uint16_t *) &data[0]) = cpu_to_le16(boot_size / 512);
+                AS_U16(data[0]) = cpu_to_le16(boot_size / 512);
             } else { /* emulation */
-                *((uint16_t *) &data[0]) = cpu_to_le16(1);
+                AS_U16(data[0]) = cpu_to_le16(1);
             }
-            *((uint32_t *) &data[2]) = cpu_to_le32(viso->all_sectors * base_factor);
+            AS_U32(data[2]) = cpu_to_le32(viso->all_sectors * base_factor);
             viso_pwrite(data, eltorito_offset, 6, 1, viso->tf.fp);
         } else {
             p = data;

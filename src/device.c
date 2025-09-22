@@ -9,8 +9,6 @@
  *          Implementation of the generic device interface to handle
  *          all devices attached to the emulator.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>

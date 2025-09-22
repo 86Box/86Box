@@ -1,21 +1,17 @@
 /*
-* 86Box    A hypervisor and IBM PC system emulator that specializes in
-*          running old operating systems and software designed for IBM
-*          PC systems and compatibles from 1981 through fairly recent
-*          system designs based on the PCI bus.
-*
-*          This file is part of the 86Box distribution.
-*
-*          Network Switch network driver
-*
-*
-*
-* Authors: cold-brewed
-*
-*          Copyright 2024 cold-brewed
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Network Switch network driver
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
  */
-
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -405,6 +401,7 @@ net_netswitch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, c
     memcpy(ns_args.mac_addr, net_netswitch->mac_addr, 6);
     /* The remote switch hostname */
     strncpy(ns_args.nrs_hostname, netcard->nrs_hostname, sizeof(ns_args.nrs_hostname) - 1);
+    ns_args.nrs_hostname[127] = 0x00;
 
     net_switch_log("%s Net Switch: Starting up virtual switch with group %d, flags %d\n", net_netswitch->switch_type, ns_args.group, ns_args.flags);
 

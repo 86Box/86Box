@@ -13,8 +13,6 @@
  *          8MB of DRAM chips', because it works fine with bus-based
  *          memory expansion.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2020 Sarah Walker.

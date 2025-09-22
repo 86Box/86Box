@@ -68,8 +68,6 @@
  *
  * WARNING THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Inspired by the "jim.c" file originally present, but a

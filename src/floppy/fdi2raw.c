@@ -12,8 +12,6 @@
  *          addition of get_last_head and C++ callability by Thomas
  *          Harte.
  *
- *
- *
  * Authors: Toni Wilen, <twilen@arabuusimiehet.com>
  *          and Vincent Joguin,
  *          Thomas Harte, <T.Harte@excite.co.uk>

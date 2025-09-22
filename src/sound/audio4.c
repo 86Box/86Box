@@ -1,17 +1,16 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Interface to audio(4) for NetBSD/OpenBSD.
+ *          Interface to audio(4) for NetBSD/OpenBSD.
  *
+ * Authors: Nishi
  *
- * Authors:  Nishi
- *
- *           Copyright 2025 Nishi.
+ *          Copyright 2025 Nishi.
  */
 #include <stdint.h>
 #include <fcntl.h>

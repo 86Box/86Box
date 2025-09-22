@@ -8,7 +8,6 @@
  *
  *          ESFMu ESFM emulator.
  *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Alexey Khokholov (Nuke.YKT)
@@ -19,7 +18,6 @@
  *          Copyright 2013-2018 Alexey Khokholov (Nuke.YKT)
  *          Copyright 2024 Cacodemon345
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

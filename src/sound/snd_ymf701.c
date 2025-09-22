@@ -8,8 +8,6 @@
  *
  *          Yamaha YMF-701 (OPL3-SA) audio controller emulation.
  *
- *
- *
  * Authors: Cacodemon345
  *          Eluan Costa Miranda <eluancm@gmail.com>
  *          win2kgamer
@@ -18,7 +16,6 @@
  *          Copyright 2020 Eluan Costa Miranda.
  *          Copyright 2025 win2kgamer
  */
-
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>

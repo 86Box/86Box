@@ -11,8 +11,6 @@
  * Note:    This chipset has no datasheet, everything were done via
  *          reverse engineering.
  *
- *
- *
  * Authors: Jose Phillips, <jose@latinol.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *

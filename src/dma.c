@@ -8,8 +8,6 @@
  *
  *          Implementation of the Intel DMA controllers.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1008,7 +1006,7 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
 
     if (((addr & 0xfffc) == 0x80) && (CS == 0xf000) &&
         ((cpu_state.pc & 0xfffffff8) == 0x00007278) &&
-        !strcmp(machine_get_internal_name(), "megapc"))  switch (addr) {
+        (machines[machine].init == machine_at_wd76c10_init))  switch (addr) {
         /* The Amstrad MegaPC Quadtel BIOS times a sequence of:
                mov ax,di
                div bx

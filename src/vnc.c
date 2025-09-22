@@ -8,8 +8,6 @@
  *
  *          Implement the VNC remote renderer with LibVNCServer.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Based on raw code by RichardG, <richardg867@gmail.com>
  *

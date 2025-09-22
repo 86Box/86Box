@@ -1,22 +1,20 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           AD1848 / CS4248 / CS4231 (Windows Sound System) codec emulation.
+ *          AD1848 / CS4248 / CS4231 (Windows Sound System) codec emulation.
  *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          RichardG, <richardg867@gmail.com>
  *
- *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           TheCollector1995, <mariogplayer@gmail.com>
- *           RichardG, <richardg867@gmail.com>
- *
- *           Copyright 2008-2020 Sarah Walker.
- *           Copyright 2018-2020 TheCollector1995.
- *           Copyright 2021-2025 RichardG.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2018-2020 TheCollector1995.
+ *          Copyright 2021-2025 RichardG.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -488,6 +486,8 @@ readonly_x:
                         ad1848_log("AD1848: write(X%d, %02X)\n", ad1848->xindex, val);
                         return;
                     }
+                    if (ad1848->type == AD1848_TYPE_CS4231) /* I23 is reserved and read-only on CS4231 non-A */
+                        goto readonly_i;
                     break;
 
                 case 24:

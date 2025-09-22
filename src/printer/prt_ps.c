@@ -9,15 +9,12 @@
  *          Implementation of a generic PostScript printer and a
  *          generic PCL 5e printer.
  *
- *
- *
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *          Cacodemon345
  *
  *          Copyright 2019 David Hrdlička.
  *          Copyright 2024 Cacodemon345.
  */
-
 #include <inttypes.h>
 #include <memory.h>
 #include <stdbool.h>

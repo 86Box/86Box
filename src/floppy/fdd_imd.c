@@ -8,8 +8,6 @@
  *
  *          Implementation of the IMD floppy image format.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *

@@ -8,8 +8,6 @@
  *
  *          Implementation of ISA Plug and Play.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *
@@ -815,22 +813,22 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         isapnp_log("ISAPnP: >>%s Memory range %d with %d bytes at %06X-%06X to %06X-%06X, align %d",
                                    /* %s   */ in_df ? ">" : "",
                                    /* %d   */ mem_range,
-                                   /* %d   */ *((uint16_t *) &card->rom[i + 8]),
-                                   /* %06X */ *((uint16_t *) &card->rom[i + 4]) << 8,
+                                   /* %d   */ AS_U16(card->rom[i + 8]),
+                                   /* %06X */ AS_U16(card->rom[i + 4]) << 8,
                                    /* %06X */ ((card->rom[i + 3] & 0x4) ?
                                               /* High address. */
-                                              (*((uint16_t *) &card->rom[i + 10]) << 8) :
+                                              (AS_U16(card->rom[i + 10]) << 8) :
                                               /* Range. */
-                                              (*((uint16_t *) &card->rom[i + 4]) << 8)) +
-                                              (*((uint16_t *) &card->rom[i + 10]) << 8),
-                                   /* %06X */ *((uint16_t *) &card->rom[i + 6]) << 8,
+                                              (AS_U16(card->rom[i + 4]) << 8)) +
+                                              (AS_U16(card->rom[i + 10]) << 8),
+                                   /* %06X */ AS_U16(card->rom[i + 6]) << 8,
                                    /* %06X */ ((card->rom[i + 3] & 0x4) ?
                                               /* High address. */
-                                              (*((uint16_t *) &card->rom[i + 10]) << 8) :
+                                              (AS_U16(card->rom[i + 10]) << 8) :
                                               /* Range. */
-                                              (*((uint16_t *) &card->rom[i + 6]) << 8)) +
-                                              (*((uint16_t *) &card->rom[i + 10]) << 8),
-                                   /* %d   */ *((uint16_t *) &card->rom[i + 8]));
+                                              (AS_U16(card->rom[i + 6]) << 8)) +
+                                              (AS_U16(card->rom[i + 10]) << 8),
+                                   /* %d   */ AS_U16(card->rom[i + 8]));
                         res = 1 << mem_range;
                         mem_range++;
                     } else {
@@ -847,22 +845,22 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         isapnp_log("ISAPnP: >>%s 32-bit memory range %d with %d bytes at %08X-%08X, align %d",
                                    /* %s   */ in_df ? ">" : "",
                                    /* %d   */ mem_range_32,
-                                   /* %d   */ *((uint32_t *) &card->rom[i + 12]),
-                                   /* %08X */ *((uint32_t *) &card->rom[i + 4]),
+                                   /* %d   */ AS_U32(card->rom[i + 12]),
+                                   /* %08X */ AS_U32(card->rom[i + 4]),
                                    /* %08X */ ((card->rom[i + 3] & 0x4) ?
                                               /* High address. */
-                                              *((uint32_t *) &card->rom[i + 16]) :
+                                              AS_U32(card->rom[i + 16]) :
                                               /* Range. */
-                                              *((uint32_t *) &card->rom[i + 4])) +
-                                              *((uint32_t *) &card->rom[i + 16]),
-                                   /* %08X */ *((uint32_t *) &card->rom[i + 8]),
+                                              AS_U32(card->rom[i + 4])) +
+                                              AS_U32(card->rom[i + 16]),
+                                   /* %08X */ AS_U32(card->rom[i + 8]),
                                    /* %08X */ ((card->rom[i + 3] & 0x4) ?
                                               /* High address. */
-                                              *((uint32_t *) &card->rom[i + 16]) :
+                                              AS_U32(card->rom[i + 16]) :
                                               /* Range. */
-                                              *((uint32_t *) &card->rom[i + 8])) +
-                                              *((uint32_t *) &card->rom[i + 16]),
-                                   /* %d   */ *((uint32_t *) &card->rom[i + 12]));
+                                              AS_U32(card->rom[i + 8])) +
+                                              AS_U32(card->rom[i + 16]),
+                                   /* %d   */ AS_U32(card->rom[i + 12]));
                         res = 1 << (4 + mem_range_32);
                         mem_range_32++;
                     }
@@ -972,7 +970,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                     else            /* specific */
                         res = card->rom[i + 3] & 0x0f;
 
-                    isapnp_log("ISAPnP: >>%s IRQ index %d with mask %04X, types %01X\n", in_df ? ">" : "", irq, *((uint16_t *) &card->rom[i + 1]), res);
+                    isapnp_log("ISAPnP: >>%s IRQ index %d with mask %04X, types %01X\n", in_df ? ">" : "", irq, AS_U16(card->rom[i + 1]), res);
 
                     ld->irq_types &= ~(0x0f << (4 * irq));
                     ld->irq_types |= res << (4 * irq);
@@ -1038,7 +1036,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         break;
                     }
 
-                    isapnp_log("ISAPnP: >>%s I/O range %d with %d ports at %04X-%04X, align %d, %d-bit decode\n", in_df ? ">" : "", io, card->rom[i + 7], *((uint16_t *) &card->rom[i + 2]), *((uint16_t *) &card->rom[i + 4]), card->rom[i + 6], (card->rom[i + 1] & 0x01) ? 16 : 10);
+                    isapnp_log("ISAPnP: >>%s I/O range %d with %d ports at %04X-%04X, align %d, %d-bit decode\n", in_df ? ">" : "", io, card->rom[i + 7], AS_U16(card->rom[i + 2]), AS_U16(card->rom[i + 4]), card->rom[i + 6], (card->rom[i + 1] & 0x01) ? 16 : 10);
 
                     if (card->rom[i + 1] & 0x01)
                         ld->io_16bit |= 1 << io;
@@ -1063,7 +1061,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         break;
                     }
 
-                    isapnp_log("ISAPnP: >>%s Fixed I/O range %d with %d ports at %04X\n", in_df ? ">" : "", io, card->rom[i + 3], *((uint16_t *) &card->rom[i + 1]));
+                    isapnp_log("ISAPnP: >>%s Fixed I/O range %d with %d ports at %04X\n", in_df ? ">" : "", io, card->rom[i + 3], AS_U16(card->rom[i + 1]));
 
                     /* Fixed I/O port ranges of this kind are always 10-bit. */
                     ld->io_16bit &= ~(1 << io);
@@ -1117,6 +1115,8 @@ isapnp_enable_card(void *priv, uint8_t enable)
             /* Enable or disable the card. */
             if (!!enable ^ !!card->enable)
                 card->state = (enable == ISAPNP_CARD_FORCE_CONFIG) ? PNP_STATE_CONFIG : PNP_STATE_WAIT_FOR_KEY;
+            if (enable == ISAPNP_CARD_FORCE_SLEEP)
+                card->state = PNP_STATE_SLEEP;
             int old_enable = card->enable;
             card->enable = enable;
 

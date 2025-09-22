@@ -8,8 +8,6 @@
  *
  *          Implementation of Chips&Technology's 82C100 chipset.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Miran Grca.

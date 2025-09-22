@@ -11,8 +11,6 @@
  *          Some of the code was borrowed from libvdeslirp
  *          <https://github.com/virtualsquare/libvdeslirp>
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          RichardG, <richardg867@gmail.com>
  *

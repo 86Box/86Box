@@ -244,6 +244,9 @@ extern const device_t ncr_business_audio_device;
 
 /* Yamaha YMF-7xx */
 extern const device_t ymf701_device;
+extern const device_t ymf715_onboard_device;
+extern const device_t ymf718_device;
+extern const device_t ymf719_device;
 
 #ifdef USE_LIBSERIALPORT
 /* External Audio device OPL2Board (Host Connected hardware)*/

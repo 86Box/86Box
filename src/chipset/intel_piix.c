@@ -11,8 +11,6 @@
  *              word 0 - base address
  *              word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.
@@ -1595,7 +1593,7 @@ piix_init(const device_t *info)
            - Bit 4: CMOS clear jumper, must be clear;
            - Bit 0: Password switch, must be clear.
          */
-        if (!strcmp(machine_get_internal_name(), "richmond"))
+        if (machines[machine].init == machine_at_richmond_init)
             acpi_set_gpireg2_default(dev->acpi, 0xee);
         else
             acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);

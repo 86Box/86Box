@@ -8,8 +8,6 @@
  *
  *          Configuration file handler.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -25,7 +23,6 @@
  *          it on Windows XP, and possibly also Vista. Use the
  *          -DANSI_CFG for use on these systems.
  */
-
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>

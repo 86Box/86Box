@@ -8,8 +8,6 @@
  *
  *          Implementation of the Contaq/Cypress 82C596(A) and 597 chipsets.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Miran Grca.

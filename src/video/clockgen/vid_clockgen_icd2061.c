@@ -14,8 +14,6 @@
  *          Used by ET4000w32/p (Diamond Stealth 32) and the S3
  *          Vision964 family.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

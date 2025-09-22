@@ -8,8 +8,6 @@
  *
  *          SVGA renderers.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -157,7 +155,7 @@ svga_render_text_40(svga_t *svga)
     svga->lastline_draw = svga->displine;
 
     if (svga->fullchange) {
-        p    = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+        p    = &svga->monitor->target_buffer->line[(svga->displine + svga->y_add) & 2047][(svga->x_add) & 2047];
         xinc = (svga->seqregs[1] & 1) ? 16 : 18;
 
         for (int x = 0; x < (svga->hdisp + svga->scrollcache); x += xinc) {
@@ -240,7 +238,7 @@ svga_render_text_80(svga_t *svga)
     svga->lastline_draw = svga->displine;
 
     if (svga->fullchange) {
-        p    = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+        p    = &svga->monitor->target_buffer->line[(svga->displine + svga->y_add) & 2047][(svga->x_add) & 2047];
         xinc = (svga->seqregs[1] & 1) ? 8 : 9;
 
         static uint32_t col = 0x00000000;

@@ -8,7 +8,6 @@
  *
  *          Interface to the YMFM emulator.
  *
- *
  * Authors: Adrien Moulin, <adrien@elyosh.org>
  *
  *          Copyright 2022 Adrien Moulin.

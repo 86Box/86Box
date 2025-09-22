@@ -542,7 +542,7 @@ fastreadl_fetch(uint32_t a)
 #    if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
         return *((uint32_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
 #    else
-        return *((uint32_t *) &pccache2[a]);
+        return AS_U32(pccache2[a]);
 #    endif
     }
     val = fastreadw_fetch(a);

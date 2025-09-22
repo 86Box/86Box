@@ -8,8 +8,6 @@
  *
  *          Emulation of the plasma displays on early Compaq Portables and laptops.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
