@@ -853,7 +853,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
         int32_t highpass;
 
         /*Output is deliberately halved to avoid clipping*/
-        temp     = ((int32_t) adgold_buffer[c] * adgold->vol_l) >> 17;
+        temp     = ((int32_t) adgold_buffer[c] * adgold->vol_l) >> 18;
         lowpass  = adgold_lowpass_iir(0, 0, temp);
         highpass = adgold_highpass_iir(0, 0, temp);
         if (adgold->bass > 6)
@@ -870,7 +870,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
             temp = 32767;
         buffer[c] += temp;
 
-        temp     = ((int32_t) adgold_buffer[c + 1] * adgold->vol_r) >> 17;
+        temp     = ((int32_t) adgold_buffer[c + 1] * adgold->vol_r) >> 18;
         lowpass  = adgold_lowpass_iir(0, 1, temp);
         highpass = adgold_highpass_iir(0, 1, temp);
         if (adgold->bass > 6)
@@ -968,7 +968,7 @@ adgold_get_music_buffer(int32_t *buffer, int len, void *priv)
         int32_t highpass;
 
         /*Output is deliberately halved to avoid clipping*/
-        temp     = ((int32_t) adgold_buffer[c] * adgold->vol_l) >> 17;
+        temp     = ((int32_t) adgold_buffer[c] * adgold->vol_l) >> 18;
         lowpass  = adgold_lowpass_iir(1, 0, temp);
         highpass = adgold_highpass_iir(1, 0, temp);
         if (adgold->bass > 6)
@@ -985,7 +985,7 @@ adgold_get_music_buffer(int32_t *buffer, int len, void *priv)
             temp = 32767;
         buffer[c] += temp;
 
-        temp     = ((int32_t) adgold_buffer[c + 1] * adgold->vol_r) >> 17;
+        temp     = ((int32_t) adgold_buffer[c + 1] * adgold->vol_r) >> 18;
         lowpass  = adgold_lowpass_iir(1, 1, temp);
         highpass = adgold_highpass_iir(1, 1, temp);
         if (adgold->bass > 6)
