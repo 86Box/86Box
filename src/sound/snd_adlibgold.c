@@ -82,7 +82,7 @@ typedef struct adgold_t {
     int treble;
     int bass;
 
-    int16_t opl_buffer[SOUNDBUFLEN * 2];
+    int16_t opl_buffer[MUSICBUFLEN * 2];
     int16_t mma_buffer[2][SOUNDBUFLEN];
 
     int pos;
@@ -829,7 +829,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
             /*Filter left channel, leave right channel unchanged*/
             /*Filter cutoff is largely a guess*/
             for (c = 0; c < len * 2; c += 2)
-                adgold_buffer[c] += adgold_pseudo_stereo_iir(adgold_buffer[c]);
+                adgold_buffer[c] += adgold_pseudo_stereo_iir(0, adgold_buffer[c]);
             break;
         case 0x18: /*Spatial stereo*/
             /*Quite probably wrong, I only have the diagram in the TDA8425 datasheet
@@ -944,7 +944,7 @@ adgold_get_music_buffer(int32_t *buffer, int len, void *priv)
             /*Filter left channel, leave right channel unchanged*/
             /*Filter cutoff is largely a guess*/
             for (c = 0; c < len * 2; c += 2)
-                adgold_buffer[c] += adgold_pseudo_stereo_iir(adgold_buffer[c]);
+                adgold_buffer[c] += adgold_pseudo_stereo_iir(1, adgold_buffer[c]);
             break;
         case 0x18: /*Spatial stereo*/
             /*Quite probably wrong, I only have the diagram in the TDA8425 datasheet
