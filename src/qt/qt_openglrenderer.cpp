@@ -814,6 +814,7 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     format.setVersion(3, 2);
 #endif
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+    format.setRenderableType(QSurfaceFormat::OpenGL);
     format.setSwapInterval(video_vsync ? 1 : 0);
 
     setFormat(format);
