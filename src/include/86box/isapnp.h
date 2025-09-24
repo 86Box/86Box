@@ -72,6 +72,9 @@ extern void     isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp
 extern void     isapnp_reset_card(void *priv);
 extern void     isapnp_reset_device(void *priv, uint8_t ld);
 extern void     isapnp_set_rt(void *priv, uint8_t is_rt);
+extern void     isapnp_set_normal(void *priv, uint8_t normal);
+extern void     isapnp_activate(void *priv, uint16_t base, uint8_t irq);
+extern void     isapnp_set_single_ld(void *priv);
 extern uint8_t *isapnp_get_csnsav(void *priv);
 
 #endif /*EMU_ISAPNP_H*/

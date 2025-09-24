@@ -69,6 +69,7 @@
 #include <86box/isapnp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "cpu.h"
 
 /* ROM BIOS file paths. */
 #define ROM_PATH_NE1000  "roms/network/ne1000/ne1000.rom"
@@ -340,7 +341,7 @@ page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
 
             case 0x3: /* CONFIG0 */
                 if (dev->board == NE2K_RTL8019AS_PNP)
-                    ret = (dev->config0 & 0xc0) | 0x10; /* Cable not BNC */
+                    ret = dev->config0;
                 else
                     ret = 0x00; /* Cable not BNC */
                 break;
@@ -418,20 +419,20 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
                 if ((val & 0xc0) == 0x80)
                     nmc93cxx_eeprom_write(dev->eeprom, !!(val & 0x08), !!(val & 0x04), !!(val & 0x02));
                 else if ((val & 0xc0) == 0x40) {
-                    uint8_t *data = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
+                    uint8_t *data          = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
 
-                    data[0x00] = 0x80;
-                    data[0x01] = 0x00;
-                    data[0x02] = 0x80;
-                    data[0x03] = 0x00;
+                    dev->config1           = (data[0x00] & 0x7f) | 0x80;
+                    dev->config2           = (data[0x01] & 0xdf);
+                    dev->config3           = (data[0x02] & 0x77) | 0x80;
+                    dev->_9346cr           = 0x21;
 
-                    dev->_9346cr = 0x21;
+                    isapnp_set_normal(dev->pnp_card, !!(dev->config3 & 0x80));
                 }
                 break;
 
             case 0x03: /* CONFIG0 */
                 if (cfg_write_enable && (dev->board == NE2K_RTL8019AS_PNP))
-                    dev->config0 = (val & 0xc0);
+                    dev->config0 = (dev->config0 & 0x3f) | (val & 0xc0);
                 break;
 
             case 0x04: /* CONFIG1 */
@@ -442,7 +443,7 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
             case 0x05: /* CONFIG2 */
                 if (cfg_write_enable) {
                     if (dev->board == NE2K_RTL8019AS_PNP)
-                        dev->config2 = val;
+                        dev->config2 = (dev->config2 & 0x1f) | (val & 0xe0);
                     else
                         dev->config2 = (val & 0xe0);
                 }
@@ -451,7 +452,7 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
             case 0x06: /* CONFIG3 */
                 if (cfg_write_enable) {
                     if (dev->board == NE2K_RTL8019AS_PNP)
-                        dev->config3 = val;
+                        dev->config3 = (dev->config3 & 0xf9) | (val & 0x06);
                     else
                         dev->config3 = (val & 0x46);
                 }
@@ -582,9 +583,11 @@ static void nic_ioremove(nic_t *dev, uint16_t addr);
 static void
 nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
+#if 0
     uint8_t irq_map[16] = { 0x00, 0x00, 0x00, 0x10, 0x20, 0x30, 0x00, 0x00,
                             0x00, 0x00, 0x40, 0x50, 0x60, 0x00, 0x00, 0x70 };
     uint8_t ios         = 0x00;
+#endif
 
     if (ld)
         return;
@@ -600,18 +603,22 @@ nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     nic_interrupt(dev, 0);
     dev->base_irq     = config->irq[0].irq;
+#if 0
     if ((dev->base_irq >= 0x00) && (dev->base_irq <= 0x0f))
         dev->config1      = (dev->config1 & 0x8f) | irq_map[dev->base_irq];
     else
         dev->config1      = (dev->config1 & 0x8f);
+#endif
 
     if (config->activate && (dev->base_address != ISAPNP_IO_DISABLED)) {
         nic_ioset(dev, dev->base_address);
+#if 0
         ios              |= (dev->base_address & 0x0100) ? 0x00 : 0x04;
         ios              |= (dev->base_address & 0x0080) ? 0x08 : 0x00;
         ios              |= (dev->base_address & 0x0040) ? 0x02 : 0x00;
         ios              |= (dev->base_address & 0x0020) ? 0x01 : 0x00;
         dev->config1      = (dev->config1 & 0xf0) | ios;
+#endif
     }
 }
 
@@ -626,39 +633,46 @@ nic_pnp_csn_changed(uint8_t csn, void *priv)
 static uint8_t
 nic_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
 {
-    if (ld != 0)
-        return 0x00;
+    uint8_t ret = 0x00;
 
     const nic_t *dev = (nic_t *) priv;
 
-    switch (reg) {
+    if (ld == 0)  switch (reg) {
+        default:
+            break;
+
         case 0xf0:    /* CONFIG0 */
-            return 0x00; /* Cable not BNC */
+            ret = dev->config0;
+            break;
 
         case 0xf1:    /* CONFIG1 */
-            return dev->config1;
+            ret = dev->config1;
             break;
 
         case 0xf2:    /* CONFIG2 */
-            return dev->config2;
+            ret = dev->config2;
+            break;
 
         case 0xf3:    /* CONFIG3 */
-            return dev->config3;
+            ret = dev->config3;
+            break;
 
         case 0xf5:
-            return *dev->pnp_csnsav;
-
-        default:
+            ret = *dev->pnp_csnsav;
             break;
     }
 
-    return 0x00;
+    nelog(3, "[R] Vendor register: %02X (LD = %02X) = %02X\n", reg, ld, ret);
+
+    return ret;
 }
 
 static void
 nic_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 {
     nic_t *dev = (nic_t *) priv;
+
+    nelog(3, "[W] Vendor register: %02X (LD = %02X) = %02X\n", reg, ld, val);
 
     if ((ld == 0) && (reg == 0xf6) && (val & 0x04)) {
         uint8_t csn = *dev->pnp_csnsav;
@@ -1307,7 +1321,7 @@ nic_init(const device_t *info)
                                                              nic_pnp_read_vendor_reg, nic_pnp_write_vendor_reg,
                                                              dev);
                     dev->pnp_csnsav        = isapnp_get_csnsav(dev->pnp_card);
-                    dev->config0           = 0x00;
+                    dev->config0           = 0x10 /* Cable not BNC */;
                     dev->config1           = 0x80;
                     dev->config2           = 0x00;
                     dev->config3           = 0x80;
@@ -1315,7 +1329,7 @@ nic_init(const device_t *info)
 
                     dev->eeprom_data[0x00] = 0x80;
                     dev->eeprom_data[0x01] = 0x00;
-                    dev->eeprom_data[0x02] = 0x80;
+                    dev->eeprom_data[0x02] = 0x81;
                     dev->eeprom_data[0x03] = 0x01;
                     memcpy(&dev->eeprom_data[0x04], dev->maclocal, 6);
                     break;
@@ -1339,6 +1353,32 @@ nic_init(const device_t *info)
         if (dev->eeprom == NULL) {
             free(dev);
             return NULL;
+        }
+        if (info->local == NE2K_RTL8019AS_PNP) {
+            uint8_t *data = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
+
+            dev->config1           = (data[0x00] & 0x7f) | 0x80;
+            dev->config2           = (data[0x01] & 0xdf);
+            dev->config3           = (data[0x02] & 0xf7);
+
+            isapnp_set_normal(dev->pnp_card, !!(dev->config3 & 0x80));
+            isapnp_set_single_ld(dev->pnp_card);
+
+            if (!(dev->config3 & 0x01)) {
+                uint8_t  irq_map[8]    = { 9, 3, 4, 5, 10, 11, 12, 15 };
+                dev->base_address      = 0x0000;
+
+                dev->base_irq          = irq_map[(dev->config1 >> 4) & 0x07];
+
+                dev->base_address      = (dev->config1 & 0x01) ? 0x0020 : 0x0000;
+                dev->base_address     |= (dev->config1 & 0x02) ? 0x0040 : 0x0000;
+                dev->base_address     |= (dev->config1 & 0x04) ? 0x0000 : 0x0100;
+                dev->base_address     |= (dev->config1 & 0x08) ? 0x0080 : 0x0000;
+
+                nic_ioset(dev, dev->base_address);
+
+                isapnp_activate(dev->pnp_card, dev->base_address, dev->base_irq);
+            }
         }
     }
 
