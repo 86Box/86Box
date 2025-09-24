@@ -67,6 +67,8 @@ if(VCPKG_TOOLCHAIN)
     set(USE_QT6 ON)
 endif()
 
+set(USE_QT6 ON)
+
 if(WIN32)
     # Prefer static builds on Windows
     set(PREFER_STATIC ON)
