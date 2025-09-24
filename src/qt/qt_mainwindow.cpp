@@ -24,8 +24,6 @@
 
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
-#include "ui_qt_gpudebug_vram.h"
-#include "ui_qt_gpudebug_visualnv.h"
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
@@ -107,8 +105,6 @@ void qt_set_sequence_auto_mnemonic(bool b);
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
-
-#include "qt_gpudebug_vram.hpp"
 
 #if defined __unix__ && !defined __HAIKU__
 #    ifndef Q_OS_MACOS
@@ -289,7 +285,29 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
-        onHardResetCompleted();
+        ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
+        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
+                         (keyboard_type == KEYBOARD_TYPE_AX);
+        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
+                         !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+        kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+        while (QApplication::overrideCursor())
+            QApplication::restoreOverrideCursor();
+#ifdef USE_WACOM
+        ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);
+#else
+        ui->menuTablet_tool->menuAction()->setVisible(false);
+#endif
+
+        bool enable_comp_option = false;
+        for (int i = 0; i < MONITORS_NUM; i++) {
+            if (monitors[i].mon_composite) { enable_comp_option = true; break; }
+        }
+
+        ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
@@ -889,50 +907,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 	updateShortcuts();
 }
-
-void MainWindow::onHardResetCompleted()
-{
-        ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-        num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                         (keyboard_type == KEYBOARD_TYPE_AX);
-        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
-                         !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
-        kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
-        while (QApplication::overrideCursor())
-            QApplication::restoreOverrideCursor();
-#ifdef USE_WACOM
-        ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);
-#else
-        ui->menuTablet_tool->menuAction()->setVisible(false);
-#endif
-
-        bool enable_comp_option = false;
-        for (int i = 0; i < MONITORS_NUM; i++) {
-            if (monitors[i].mon_composite) { enable_comp_option = true; break; }
-        }
-
-        ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
-
-#ifdef ENABLE_NV_LOG
-        /* 
-            THIS CODE SUCKS AND THIS DESIGN IS TERRIBLE - EVERYTHING ABOUT IT IS BAD AND WRONG. 
-            ENTIRE DEVICE SUBSYSTEM IDEALLY WOULD BE DECOUPLED FROM UI BUT MEH
-        */
-
-        const device_t* vid_device = video_card_getdevice(gfxcard[0]);
-        
-        bool is_nv3 = (vid_device == &nv3_device_agp
-        || vid_device == &nv3_device_pci
-        || vid_device == &nv3t_device_agp
-        || vid_device == &nv3t_device_pci);
-
-        ui->actionDebug_GPUDebug_VisualNv->setVisible(is_nv3);
-#endif 
-}
-
 
 void
 MainWindow::closeEvent(QCloseEvent *event)
@@ -2551,29 +2525,3 @@ void MainWindow::on_actionCGA_composite_settings_triggered()
     config_save();
 }
 
-
-void MainWindow::on_actionDebug_GPUDebug_VRAM_triggered()
-{
-    debugVramDialog = new GPUDebugVRAMDialog(this);
-    debugVramDialog->setWindowFlag(Qt::CustomizeWindowHint, true);
-    debugVramDialog->setWindowFlag(Qt::WindowTitleHint, true);
-    debugVramDialog->setWindowFlag(Qt::WindowSystemMenuHint, false);
-    // If I have this as a NON-MODAL dialog, input is just eaten without doing anything
-    // WTF?!?!?!?!? 
-    //debugVramDialog->show();
-    debugVramDialog->exec();
-
-}
-
-
-void MainWindow::on_actionDebug_GPUDebug_VisualNv_triggered()
-{
-    visualNvDialog = new VisualNVDialog(this);
-    visualNvDialog->setWindowFlag(Qt::CustomizeWindowHint, true);
-    visualNvDialog->setWindowFlag(Qt::WindowTitleHint, true);
-    visualNvDialog->setWindowFlag(Qt::WindowSystemMenuHint, false);
-    // If I have this as a NON-MODAL dialog, input is just eaten without doing anything
-    // WTF?!?!?!?!?
-    //visualNvDialog->show();
-    visualNvDialog->exec();
-}

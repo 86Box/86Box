@@ -139,15 +139,7 @@ option(DISCORD      "Discord Rich Presence support"                             
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 
-if (NV_LOG)
-    add_compile_definitions(ENABLE_NV_LOG)
-endif()
-
-if (NV_LOG_ULTRA)
-    add_compile_definitions(ENABLE_NV_LOG_ULTRA)
-endif()
-
-if((ARCH STREQUAL "arm64") OR (ARCH STREQUAL "arm"))
+if((ARCH STREQUAL "arm64"))
     set(NEW_DYNAREC ON)
 else()
     option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
@@ -192,11 +184,8 @@ cmake_dependent_option(PCL            "Generic PCL5e Printer"                   
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"               ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(WACOM          "Wacom Input Devices"                      ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"        ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(NV3            "NVidia RIVA 128/128ZX (NV3/NV3T)"         ON    "DEV_BRANCH"  OFF)
-
 cmake_dependent_option(NETSWITCH      "Network Switch Support"                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(VFIO           "Virtual Function I/O"                     ON    "DEV_BRANCH"  OFF)
-
 
 # Ditto but for Qt
 if(QT)

@@ -44,7 +44,6 @@ typedef struct log_t {
     char   **cyclic_buff;
     int32_t  cyclic_last_line;
     int32_t  log_cycles;
-    int32_t  last_repeat_order;
 } log_t;
 
 /* File to log output to. */
@@ -220,18 +219,9 @@ log_out_cyclic(void* priv, const char* fmt, va_list ap)
             
         }
 
-    if (is_cycle)
-    {
-        if (log->cyclic_last_line % repeat_order == 0)
-        {
-            log->log_cycles++;
-
-            // If the order of the log repeat changes
-            if (log->last_repeat_order != repeat_order
-            && log->last_repeat_order > 0)
-            {
-                log->log_cycles = 1;
-            }
+        if (is_cycle) {
+            if (log->cyclic_last_line % repeat_order == 0) {
+                log->log_cycles++;
 
                 if (log->log_cycles == 1) {
                     /* 
@@ -275,12 +265,9 @@ log_out_cyclic(void* priv, const char* fmt, va_list ap)
         }
 
         log->cyclic_last_line++;
-        
-        log->last_repeat_order = repeat_order;
     }
 }
 #endif
-
 
 void
 log_fatal(void *priv, const char *fmt, ...)

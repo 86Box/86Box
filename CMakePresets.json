@@ -35,10 +35,7 @@
         {
             "name": "debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "NV_LOG": "ON",
-                "NV_LOG_ULTRA": "ON"
-
+                "CMAKE_BUILD_TYPE": "Debug"
             },
             "inherits": "base"
         },
