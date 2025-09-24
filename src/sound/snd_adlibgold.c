@@ -1063,7 +1063,7 @@ adgold_init(UNUSED(const device_t *info))
     adgold->surround_enabled = device_get_config_int("surround");
     adgold->gameport_enabled = device_get_config_int("gameport");
 
-    fm_driver_get(FM_YMF262, &adgold->opl);
+    fm_driver_get(FM_YMF289B, &adgold->opl);
     if (adgold->surround_enabled)
         ym7128_init(&adgold->ym7128);
 
