@@ -583,11 +583,9 @@ static void nic_ioremove(nic_t *dev, uint16_t addr);
 static void
 nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
-#if 0
     uint8_t irq_map[16] = { 0x00, 0x00, 0x00, 0x10, 0x20, 0x30, 0x00, 0x00,
                             0x00, 0x00, 0x40, 0x50, 0x60, 0x00, 0x00, 0x70 };
     uint8_t ios         = 0x00;
-#endif
 
     if (ld)
         return;
@@ -603,22 +601,18 @@ nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     nic_interrupt(dev, 0);
     dev->base_irq     = config->irq[0].irq;
-#if 0
     if ((dev->base_irq >= 0x00) && (dev->base_irq <= 0x0f))
         dev->config1      = (dev->config1 & 0x8f) | irq_map[dev->base_irq];
     else
         dev->config1      = (dev->config1 & 0x8f);
-#endif
 
     if (config->activate && (dev->base_address != ISAPNP_IO_DISABLED)) {
         nic_ioset(dev, dev->base_address);
-#if 0
         ios              |= (dev->base_address & 0x0100) ? 0x00 : 0x04;
         ios              |= (dev->base_address & 0x0080) ? 0x08 : 0x00;
         ios              |= (dev->base_address & 0x0040) ? 0x02 : 0x00;
         ios              |= (dev->base_address & 0x0020) ? 0x01 : 0x00;
         dev->config1      = (dev->config1 & 0xf0) | ios;
-#endif
     }
 }
 
