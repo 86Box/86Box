@@ -1,0 +1,81 @@
+Memory map (RIVA 128)
+
+32 megabytes of MMIO starting at <nvAddr> 	0x0000000-0x01FFFFFF
+
+MC (Master Control)	0x00000000-0x00000FFF
+	Config/Boot	0x00000000-0x000000FF
+	Master Config	0x00000100-0x00000FFF
+	Also used to define DMA channel IDs?
+
+MPU-401 I/O		0x00000330-0x00000331	Probably NV1 leftover, NV1 has mpu401 emulation -- no audio in nv3
+VGA emulated ports	0x000003B0-0x000003DF	Emulated I/O ports for VGA
+
+Bus Control (PBUS)	0x00001000-0x00001FFF
+FIFO (PFIFO)		0x00002000-0x00003FFF	Submit starting at 0x00800000. Used to configure RAMHT,RAMFC,RAMRO structures & cache
+
+PRM			0x00004000-0x00005FFF	Realmode DOS device support
+
+PRMIO			0x00007000-0x00007FFF	Realmode access to PCI BAR (Base Address Register) + PCI I/O
+PTIMER			0x00009000-0x00009FFF	Timer
+
+VGA emulation		0x0000A000-0x0000BFFF
+
+VGA vram emulation	0x000A0000-0x000BFFFF	(PRMVGA) 
+VGA 			0x000C0000-0x000C7FFF	VGA sequencer + graph controller registers (PRMVIO)
+ 
+(All of this up to 0x0000FFFF can be traced)
+
+PFB (Framebuffer)	0x00100000-0x00100FFF	Interface to vram
+PEXTDEV 		0x00101000-0x00101FFF	External device interface - contains straps
+	Straps		0x00101000		11 bits of cfg
+
+ROM (VBIOS?)		0x00110000-0x0011FFFF
+PALT (?)		0x00120000-0x00120FFF
+
+PEXTDEV 		0x00101000-0x00101FFF	External Devices
+
+Media Engine (PME)	0x00200000-0x00200FFF	Allows for external video capture according to envytools?
+
+PGRAPH (3D rendering)	0x00400000-0x00401FFF
+
+PGRAPH objects (using RAMHT???)
+*i assume that when you submit an object these are the registers used to actually draw the current object
+
+Beta blending factor	0x00410000-0x00411FFF
+ROP 			0x00420000-0x00421FFF	Global bitwise operation (Render OPeration) for filtering the final pixel
+Color Key		0x00430000-0x00431FFF
+Plane Switch		0x00440000-0x00441FFF	Something to do with color formats and objects?
+Clipping		0x00450000-0x00451FFF
+Blend Pattern		0x00460000-0x00461FFF	Used for specific blending modes
+Quad [OBSOLETE]		0x00470000-0x00471FFF	A rectangle. NV1 LEFTOVER, OBSOLETE
+Point			0x00480000-0x00481FFF	A single point
+Line			0x00490000-0x00491FFF	A line (with an optional colour). Can also draw a polygon made out of lines - polyline
+Lin			0x004A0000-0x004A1FFF	A line, without starting or ending pixel (with an optional colour). Can also draw a "polylin"
+Triangle [OBSOLETE]	0x004B0000-0x004B1FFF	A triangle. NV1 LEFTOVER, OBSOLETE?
+Win95 GDI text		0x004C0000-0x004C1FFF	Win95 text acceleration
+Memory to memory xfer	0x004D0000-0x004D1FFF	Represents a memory to memory transfer
+Scaled image from vram	0x004E0000-0x004E1FFF	Scaled image from GPU VRAM
+Image blit from vram 	0x00500000-0x00501FFF	Image from GPU VRAM
+Image blit from cpu 	0x00510000-0x00511FFF	Image from CPU
+Bitmap from cpu		0x00520000-0x00521FFF	Bitmap from CPU
+Image to memory		0x00540000-0x00541FFF	Image to GPU VRAM
+Stretch image from cpu 	0x00550000-0x00551FFF	Stretched image from CPU
+Direct3D 5.0 triangle	0x00570000-0x00571FFF	A triangle optimised explicitly for directx3/directx5 rendering - supercedes UTRI
+PointZ			0x00580000-0x00581FFF	A single point with "zeta factor" (not sure what this is yet)
+Image in memory		0x005C0000-0x005C0FFF	Image in vram(?)
+
+PVIDEO (Video Control)	0x00680000-0x006802FF
+External DAC		0x00680000-0x006800FF
+
+PRMCIO			0x00601000-0x00601FFF	VGA emulation - CRTC + attribute controller
+
+PRAMDAC			0x00680300-0x00680FFF	(used for color lookup tables, hardware cursor, video overlay, PLL for clocking and pixel generation)
+"USER" DAC		0x00681200-0x00681FFF
+
+DMA submission w/FIFO	0x00800000-0x00FFFFFF	NV_USER - uses FIFO buffer
+
+PNVM / PDFB / VRAM	0x01000000-0x017FFFFF 	(actual VRAM amount depends on card, but max is 8MB)
+
+RAMIN			0x01C00000-0x01FFFFFF 	(note that this is actually mapped in the last 1mb of vram)
+
+contains ramht that has obj parameters for submission, configurable

@@ -1,0 +1,90 @@
+nv3_disp:
+
+0x10fe -> DrvBitBlt
+0x19be -> DrvCopyBits
+0x597c -> DrvCreateDeviceBitmap
+0x5a6e -> DrvDeleteDeviceBitmap
+0x60b8 -> DrvTextOut
+0x6248 -> DrvDestroyFont
+0x64b8 -> DrvRealizeBrush
+0x6a46 -> DrvDitherColor
+0x797a -> DrvGetDirectDrawInfo
+0x7b14 -> DrvEnableDirectDraw
+0x7b70 -> DrvDisableDirectDraw
+0x817c -> DrvPaint
+0x81c2 -> DrvResetPDEV
+0x82dc -> DrvEnableDriver
+0x8312 -> DrvEnablePDEV
+0x83ee -> DrvDisablePDEV
+0x840a -> DrvCompletePDEV
+0x8418 -> DrvSynchronise
+0x845a -> DrvEnableSurface
+0x851a -> DrvDisableSurface
+0x8554 -> DrvAssertMode
+0x8690 -> DrvGetModes
+0xe59a -> DrvEscape
+0xf3ee -> DrvFillPath
+0xf3f6 -> DrvStrokePath
+0xfa08 -> DrvLineTo
+0x12fee -> DrvSetPalette
+0x132a4 -> DrvMovePointer
+0x13d20 -> DrvSetPointerShape
+0x13dea -> DrvStretchBlt
+0x147f2 -> DrvSetPixelFormat
+0x1483c -> DrvDescribePixelFormat
+0x1495a -> DrvClipChanged
+0x255b8 -> DrvSwapBuffers
+
+DrvEnableDriver										SUCCESS
+DrvEnablePDEV										SUCCESS			23:28 09/02/2025
+	Check for cjCaps >= 0x130 && cjDevInfo >= 0x12C					SUCCESS 		23:31 09/02/2025
+	EngAllocMem call								SUCCESS			23:38 09/02/2025
+	CreateOglGlobalMemory call							SUCCESS			23:40 09/02/2025
+	bInitializeModeFields call							SUCCESS			23:41 09/02/2025
+	bInitializePalette call								SUCCESS			23:42 09/02/2025
+	EngDeviceIoControl IOCTL 0x232020 (CHECK mini)					SUCCESS
+	EngDeviceIoControl IOCTL 0x232044 (CHECK mini)					SUCCESS (eax=0)
+DrvCompletePDEV										SUCCESS			23:52 09/02/2025
+DrvEnableSurface				
+	bEnableHardware call								SUCCESS			22:36 13/02/2025
+		EngCreateSemaphore call #1 csCrtc					SUCCESS			00:55 10/02/2025
+		EngCreateSemaphore call #2 csFifo					SUCCESS			00:57 10/02/2025
+		EngDeviceIoControl IOCTL 0x230460					SUCCESS			00:57 10/02/2025
+		EngDeviceIoControl IOCTL 0x230458					SUCCESS			00:57 10/02/2025
+		NvAllocRoot								SUCCESS			01:03 10/02/2025
+		NvAllocDevice								SUCCESS			01:04 10/02/2025
+		NV3/NV4 architecture check						SUCCESS			01:14 10/02/2025
+		bAssertModeHardware call (bEnable=1)					SUCCESS			Passing starting with build at 02:23 10/02/2025
+			EngDeviceIoControl IOCTL 0x23040C]				SUCCESS	 		Passing starting with build at 02:23 10/02/2025
+				nv3_mini NVStartIO ioctlcode=0x23040C
+					NVSetMode
+						NV3SetMode				SUCCESS			01:53 10/02/2025
+							RmUnloadState			SUCCESS			01:48 10/02/2025
+							VBESetModeEx			SUCCESS			01:51 10/02/2025
+							NV_OEMEnableExtensions		SUCCESS			01:52 10/02/2025
+							UpdateArbitrationSettings	SUCCESS			01:52 10/02/2025
+							RmLoadState			SUCCESS			01:53 10/02/2025
+						NV3EnableCursor				SUCCESS			01:54 10/02/2025
+						NV3WaitUntilFinished			SUCCESS			02:23 10/02/2025
+			EngDeviceIoControl IOCTL 0x230408				SUCCESS			02:26 10/02/2025
+			EngDeviceIoControl IOCTL 0x232024				SUCCESS			02:26 10/02/2025				
+			NvAllocHardware							SUCCESS			02:29 10/02/2025
+			bCreateStdPatches(?)						SUCCESS (EAX=1!!!)	22:24 13/02/2025
+			CHECK - NV4							N/A
+			vDestroyStdPatches(?)						N/A
+			NV3_WaitForOneVerticalRefresh					SUCCESS
+			EngDeviceIoControl IOCTL 0x230410				SUCCESS
+				
+
+		SET UP CORRECT FUNCTION POINTERS
+	Indirect call (call dword [edi]) to NV3_WaitWhileGraphicsEngineBusy		HANG			22:14 16/02/2025 
+	_heap_init call
+	bEnableOffscreenHeap call
+	bEnablePointer call
+	bEnableText call
+	bEnablePalette call
+	bEnableDirectDraw call
+	EngCreateBitmap call
+	EngAssociateBitmap call
+
+DrvDisableSurface: ONLY IN THE CASE OF FAILURE

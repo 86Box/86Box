@@ -1,0 +1,21 @@
+NV3/NV3T/NV4 hardware cursor
+
+Unlock extended CRTC registers
+
+CIO_CRE_HCUR_ADDR0
+	Bits [6:0] 	= Address
+
+CIO_CRE_HCUR_ADDR1
+	Bits [7:3]	= Bits [11:7] of address
+	Bit 1		= Cursor Doubling
+	Bit 0		= Enable
+
+PRAMDAC_CU_START_POS (MMIO 0x680300)
+	Bits [11:0]	= X Pos
+	Bits [27:16]	= Y Pos
+
+CursorAddress >> 16 written to addr0
+(((CursorAddress >> 11) & 0x1F) << 3) | 1 (for enable) written to addr1
+
+Lock extended CRTC registers
+Enable - write 

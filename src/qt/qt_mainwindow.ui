@@ -251,11 +251,19 @@
     <addaction name="actionAbout_86Box"/>
     <addaction name="actionAbout_Qt"/>
    </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+      <string>&amp;Debugging Tools</string>
+    </property>
+    <addaction name="actionDebug_GPUDebug_VRAM"/>
+    <addaction name="actionDebug_GPUDebug_VisualNv"/>
+   </widget>
    <addaction name="menuAction"/>
    <addaction name="menuView"/>
    <addaction name="menuMedia"/>
    <addaction name="menuTools"/>
    <addaction name="menuAbout"/>
+   <addaction name="menuDebug"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -919,7 +927,27 @@
   <action name="actionCGA_composite_settings">
    <property name="text">
     <string>&amp;CGA composite settings...</string>
-   </property>
+</property>
+  </action>
+  <action name="actionDebug_GPUDebug_VRAM">
+    <property name="text">
+      <string>GPU Debug - VRAM Viewer</string>
+    </property>
+  </action>
+  <action name="actionDebug_GPUDebug_VisualNv">
+    <property name="text">
+      <string>RIVA 128 Realtime Debugger</string>
+    </property>
+  </action>
+  <action name="actionDebug_GPUDebug_VRAM">
+    <property name="text">
+      <string>GPU Debug - VRAM Viewer</string>
+    </property>
+  </action>
+  <action name="actionDebug_GPUDebug_VisualNv">
+    <property name="text">
+      <string>RIVA 128 Realtime Debugger</string>
+    </property>
   </action>
   <action name="action_Full_screen_stretch_gl">
    <property name="checkable">
@@ -1047,6 +1075,54 @@
    </property>
    <property name="text">
     <string>&amp;8x</string>
+   </property>
+  </action>
+  <action name="action_Full_screen_stretch_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Full screen stretch</string>
+   </property>
+  </action>
+  <action name="action_4_3_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4:3</string>
+   </property>
+  </action>
+  <action name="action_Square_pixels_keep_ratio_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Square pixels (Keep ratio)</string>
+   </property>
+  </action>
+  <action name="action_Integer_scale_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Integer scale</string>
+   </property>
+  </action>
+  <action name="action4_3_Integer_scale_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4:&amp;3 Integer scale</string>
+   </property>
+  </action>
+  <action name="action_1x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;1x</string>
    </property>
   </action>
  </widget>

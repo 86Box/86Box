@@ -1,0 +1,112 @@
+Driver version: Windows 2000 Version 3.37 (23 March 1999) - SDK: Windows 2000 build 1996.1
+Features:
+
+Resource Manager	Yes
+DirectDraw		Yes
+OpenGL			Yes
+Direct3D		No
+
+
+get started:
+MUST USE X86 WINDBG
+Does older windbg support coff???
+
+sxe ld nv3_mini.sys
+bp nv3_mini + 0x409ac - 0x10000 (nv3_mini+0x309ac)
+
+offset		purpose
+30a1a		RmInitRm call
+
+6be7		initClientInfo call
+6878		initClientInfo
+6bec		Check for initClientInfo success
+6bf4		initGrPatchPool call
+6bf9		Check for initGrPatchPool success
+6c01		initDmaListElementPool call
+6c06		Check for initDmaListElementPool
+6c1c		initDisplayInfo call
+
+6c26		rmInitRm End
+			Success: eax=FFFFFFFFh /  -1
+6c26			Fail eax=0
+
+30c8b		NvFindAdapter
+30cb6		NvFindAdapter -> NVIsPresent call
+1010		NVIsPresent function
+102f		NVIsPresent VideoPortGetAccessRanges call
+103b		NVIsPresent VideoPortGetAccessRanges call success check (only possible way to fail)
+127c		NVIsPresent end
+30cbb		NvFindAdapter -> NVIsPresent success check
+			Success: al=1
+			Failure: al=0
+30cca		NVIsPresent NVMapMemoryRanges call
+e9e		NVIsPresent NVMapMemoryRanges VideoPortGetDeviceBase call #1			[PCI Space]
+ea4		NVIsPresent NVMapMemoryRanges VideoPortGetDeviceBase call #1 success check	[PCI Space]
+ebd		NVIsPresent NVMapMemoryRanges VideoPortFreeDeviceBase [conditional]
+ec3		NVIsPresent NVMapMemoryRanges VideoPortFreeDeviceBase [conditional] success check
+ed6		NVIsPresent NVMapMemoryRanges VideoPortGetDeviceBase call #2  			[MMIO]
+edc		NVIsPresent NVMapMemoryRanges VideoPortGetDeviceBase call #2 success check	[MMIO]
+f0c		NVIsPresent NVMapMemoryRanges VideoPortGetDeviceBase call #3  			[LFB/RAMIN?]
+f12		NVIsPresent NVMapMemoryRanges VideoPortGetDeviceBase call #3 success check 	[LFB/RAMIN?]
+
+30ccf		NvFindAdapter NVMapMemoryRanges success check
+			Success: eax=0
+			Failure: eax=87
+30cf1		NvFindAdapter RmInitNvMapping call
+6ce6		NvFindAdapter RmInitNvMapping
+30cf6		NVIsPresent RmInitNvMapping success check
+			Success: eax!=0 (in practice 0xFFFFFFFF/-1)
+			Failure: eax=0
+30d5c		NvFindAdapter
+30d64		NvFindAdapter RmPostNvDevice call
+6d88		RmPostNvDevice function
+6d91		NvFindAdapter DevinitInitializeDevice call
+6d96		NvFindAdapter DevinitInitializeDevice success check
+			Success: eax=0 (?)
+			Failure: eax=1
+e546		DevinitInitializeDevice function
+			[very complicated]
+			[several register reads]
+e61d			DevinitPrepDeviceForInit call
+e641			DevinitPrepDeviceForInit function
+e627			InitNV call
+e67a			InitNV function
+
+30d64		NVIsPresent RmPostNvDevice success check
+			Success: eax=0 (?)
+			Failure: eax=1						
+30d78		NVIsPresent NVGetNVInfo call
+30d7d		NVIsPresent NVGetNVInfo success check
+
+3e9a		NvFindAdapter end
+			Success: eax=0
+			Fail eax=55 (RmInitNvMapping or NVIsPresent failed)
+			Fail eax=87 (NVMapMemoryRanges or NVMapFrameBuffer failed)
+
+30ea3		NVInitialize
+30f02		NVStartIO
+2aa6		NVInterrupt
+30a2d		NVGetChildDescriptor
+30a9c		NVGetPowerState
+30b20		NVSetPowerState
+
+
+Driver Init Status:
+DriverEntry								Success
+rmInitRm -> initClientInfo						Success
+rmInitRm -> initGrPatchPool						Success
+rmInitRm -> initDmaListElementPool					Success
+rmInitRm -> initDisplayInfo						Success
+rmInitRm overall							Success
+NvFindAdapter								Success 17:32 27/11/2024
+NvFindAdapter -> NvIsPresent						Success 16:19 24/11/2024
+NvFindAdapter -> NvMapMemoryRanges					Success 19:15 26/11/2024
+NvFindAdapter -> RmInitNvMapping					Success 19:18 26/11/2024
+NvFindAdapter -> RmPostNvDevice						Success 17:32 27/11/2024
+NvFindAdapter -> NVGetNVInfo						Success 17:32 27/11/2024
+NvFindAdapter -> NVMapFrameBuffer					Success 17:32 27/11/2024
+
+00:00 30/12/2024: stateGr -> i2c_Write 
+22:31 31/12/2024: fifoService
+
+fix ptimer issue

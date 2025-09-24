@@ -17,6 +17,11 @@
 
 extern QTimer discordupdate;
 
+// NON-modal dialogs
+#include "qt_gpudebug_vram.hpp"
+#include "qt_gpudebug_visualnv.hpp"
+
+
 class MediaMenu;
 class RendererStack;
 
@@ -74,6 +79,8 @@ signals:
 public slots:
     void showSettings();
     void hardReset();
+    void onHardResetCompleted();
+
     void togglePause();
     void initRendererMonitorSlot(int monitor_index);
     void destroyRendererMonitorSlot(int monitor_index);
@@ -136,7 +143,9 @@ private slots:
     void on_actionPreferences_triggered();
     void on_actionEnable_Discord_integration_triggered(bool checked);
     void on_actionRenderer_options_triggered();
-
+    void on_actionDebug_GPUDebug_VRAM_triggered();
+    void on_actionDebug_GPUDebug_VisualNv_triggered();
+    
     void refreshMediaMenu();
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done = nullptr);
     void getTitle_(wchar_t *title);
@@ -175,6 +184,10 @@ private slots:
 
 private:
     Ui::MainWindow                *ui;
+
+    // NON-modal dialogs - these use ::show() and therefore have to be maintained as objects
+    GPUDebugVRAMDialog            *debugVramDialog;
+    VisualNVDialog                *visualNvDialog;          
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 

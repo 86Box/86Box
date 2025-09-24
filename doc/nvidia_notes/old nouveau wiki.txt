@@ -1,0 +1,9 @@
+old nouveau wiki:
+real VRAM address = VRAM_size - (ramin_address - (ramin_address % reversal_unit_size)) - reversal_unit_size + (ramin_address % reversal_unit_size) 
+
+nv3=16 bytes
+
+0x400000 - ((0x100000) - (0x100000 % 16)) - 16 + (0x100000 % 16) = 2ffff0
+
+
+ 

@@ -1,0 +1,37 @@
+Object classes as understood by the GPU.
+
+(May be represented, in RAMFC, as 0x40+ 22:16)
+
+0x00 = Invalid
+0x01 = beta factor		
+0x02 = ROP5 operation
+0x03 = Chroma key
+0x04 = Plane mask
+0x05 = Clipping rectangle
+0x06 = Pattern
+0x07 = Rectangle
+0x08 = Point
+0x09 = Line
+0x0A = Lin (line without starting or ending pixel)
+0x0B = Triangle
+0x0C = Windows 95 GDI text acceleration
+0x0D = Memory to memory format
+0x0E = Scaled image from memory
+0x0F = INVALID
+0x10 = Blit
+0x11 = Image
+0x12 = Bitmap
+0x13 = INVALID
+0x14 = Transfer to Memory
+0x15 = Stretched image from CPU
+0x16 = INVALID
+0x17 = Direct3D 5.0 accelerated textured triangle w/zeta buffer
+0x18 = Point w/zeta buffer
+0x19 = INVALID
+0x1A = INVALID
+0x1B = INVALID
+0x1C = Image in memory
+0x1D = INVALID
+0x1E = INVALID
+0x1F = INVALID
+ 

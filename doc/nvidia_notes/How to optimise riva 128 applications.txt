@@ -1,0 +1,6 @@
+How to optimise riva 128 applications:
+* Ensure any set of polygons with one texture is close to a multiple of 128 polygons.
+* Try to sort areas of a model with one texture to as close to 128 polygons as possible for efficient submission due to the lack of texturing.
+* Try to have around (32*128) for nv3 or (64*128) for nv3t polygons
+* Get coding
+* Alcohol

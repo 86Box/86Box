@@ -1,0 +1,2238 @@
+
+
+Riva 128 documentation
+======================
+
+This document is based on kernel sources, XFree86 sources, open sources 
+released by nVidia and pure deduction. To make nVidia happy:
+ 
+ /***************************************************************************\
+|*                                                                           *|
+|*        Copyright (c) 1996-1998 NVIDIA, Corp.  All rights reserved.        *|
+|*                                                                           *|
+|*     NOTICE TO USER:   The source code  is copyrighted under  U.S. and     *|
+|*     international laws.   NVIDIA, Corp. of Sunnyvale, California owns     *|
+|*     the copyright  and as design patents  pending  on the design  and     *|
+|*     interface  of the NV chips.   Users and possessors of this source     *|
+|*     code are hereby granted  a nonexclusive,  royalty-free  copyright     *|
+|*     and  design  patent license  to use this code  in individual  and     *|
+|*     commercial software.                                                  *|
+|*                                                                           *|
+|*     Any use of this source code must include,  in the user documenta-     *|
+|*     tion and  internal comments to the code,  notices to the end user     *|
+|*     as follows:                                                           *|
+|*                                                                           *|
+|*     Copyright (c) 1996-1998  NVIDIA, Corp.    NVIDIA  design  patents     *|
+|*     pending in the U.S. and foreign countries.                            *|
+|*                                                                           *|
+|*     NVIDIA, CORP.  MAKES  NO REPRESENTATION ABOUT  THE SUITABILITY OF     *|
+|*     THIS SOURCE CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT     *|
+|*     EXPRESS OR IMPLIED WARRANTY OF ANY KIND.  NVIDIA, CORP. DISCLAIMS     *|
+|*     ALL WARRANTIES  WITH REGARD  TO THIS SOURCE CODE,  INCLUDING  ALL     *|
+|*     IMPLIED   WARRANTIES  OF  MERCHANTABILITY  AND   FITNESS   FOR  A     *|
+|*     PARTICULAR  PURPOSE.   IN NO EVENT SHALL NVIDIA, CORP.  BE LIABLE     *|
+|*     FOR ANY SPECIAL, INDIRECT, INCIDENTAL,  OR CONSEQUENTIAL DAMAGES,     *|
+|*     OR ANY DAMAGES  WHATSOEVER  RESULTING  FROM LOSS OF USE,  DATA OR     *|
+|*     PROFITS,  WHETHER IN AN ACTION  OF CONTRACT,  NEGLIGENCE OR OTHER     *|
+|*     TORTIOUS ACTION, ARISING OUT  OF OR IN CONNECTION WITH THE USE OR     *|
+|*     PERFORMANCE OF THIS SOURCE CODE.                                      *|
+|*                                                                           *|
+ \***************************************************************************/
+
+Feel free to send me corrections, updates, suggestions about this document to:
+fero@drama.obuda.kando.hu or rivatv-devel@lists.sourceforge.net
+Any kind of info, hint or idea may be helpful.
+Please visit the rivatv homepage at:
+http://fero.koli.kando.hu/rivatv/
+
+
+
+Rendering
+=========
+
+DMA vs PIO
+----------
+
+Theese two methods are used to program the hardware. DMA method provides
+better performance but it is harder to implement. Almost all of the released
+sources uses PIO method. The rest of this document describes the PIO method.
+
+
+Objects
+-------
+
+The Riva rendering engine is an object-oriented hardware. (See the nVidia 
+docs at https://www.nvidia.com/nv/nvarch.nsf/Home?OpenView -> Documents -> 
+NV Programmer's Reference Manual) Do not take it serious, it's simplified 
+for the hardware, it is not like C++.
+Each object has a name. The name is 32 bits long and should be unique.
+
+
+FIFO Channels
+-------------
+
+There are 8 channels for submitting graphical objects to the rendering engine. 
+Each channel contains 8 subchannels. The rules how channels and subchannels 
+are working is not clear for me yet. Channel 0 is usable without extra coding.
+Other channels can not be used until the 'context switching' code is done.
+FIFO channels are located in the CTRL memory at 0x00800000-0x0087FFFF. Each
+channel is 64 kbytes long, each subchannel is 8 kbytes long. Registers of 
+subchannels are variable: their function depends on the type of the submitted 
+object. Registers are write only and 32 bits long except the 'Free' register.
+
+Offset  Name(s)                        Valid object types
+------  -----------------------------  ------------------
+0000    Object                         all
+0010    Free (2 bytes, read only!)     all
+0100    Synchronize                    t            V  s3
+0100    NoOperation                     BKPCLTRbISMr DG
+0104    StopAlarm                      t
+0104    Notify                          BKPCLTRbISMr DG
+0104    StopImage                                   V
+0108    StopCursor                                  V
+010c    StopDac                                     V
+0180    DmaNotifies                    tBKPCLTRbISMrVDGs3
+0184    ClipRectangle                       LTR
+0184    ColorKey                               bIS
+0184    DmaImage                                  M V
+0184    DmaTexture                                   D
+0184    Pattern                                       G
+0184    DmaSource                                      s
+0184    DmaSurfaces                                     3
+0188    Pattern                             LTR  SM
+0188    ClipRectangle                          bI    D
+0188    Rop                                           G
+0188    DmaDestin                                      s
+018c    Rop                                 LTR  SM
+018c    Pattern                                bI
+018c    DmaLut                                      V
+018c    Surfaces3D                                   D
+018c    Beta1                                         G
+0190    Beta1                               LTR  SM
+0190    Rop                                    bI
+0190    Surfaces                                      G
+0194    Surfaces                            LTR  SM
+0194    Beta1                                  bI
+0194    DmaCursor                                   V
+0198    Surfaces                                I
+019c    Surfaces                               b
+02fc    Operation                           LTRbIS    G
+02fc    Get                                         V
+0300    Time0                          t
+0300    Beta1d31                        B
+0300    ColorFormat                      KP LTR ISM   G
+0300    Point                              C
+0300    ControlPointIn                         b
+0300    Rop                                        r
+0300    Image                                       V
+0300    Format                                         s
+0300    Pitch                                           3
+0304    Time1                          t
+0304    Color                            K  LTR
+0304    MonochromeFormat                  P           G
+0304    Size                               C
+0304    ControlPointOut                        b
+0304    Point                                   I
+0304    SizeIn                                   S
+0304    TextureOffset                                D
+0304    Pitch                                          s
+0304    OffsetColor                                     3
+0300    Operation                                 M
+0308    AlarmNotify                    t
+0308    MonochromeShape                   P
+0308    Size                                   b
+0308    SizeOut                                 I
+0308    DxDu                                     S
+0308    ClipPoint                                 M
+0308    TextureFormat                                D
+0308    OffsetSource                                   s
+0308    OffsetZeta                                      3
+030c    SizeIn                                  I
+030c    DyDv                                     S
+030c    ClipSize                                  M
+030c    TextureFilter                                D
+030c    OffsetDestin                                   s
+0310    MonochromeColor0                  P
+0310    TrianglePoint0                       T
+0310    ClipPoint                                S
+0310    ImageOutPoint                             M
+0310    FogColor                                     D
+0314    MonochromeColor1                  P
+0314    TrianglePoint1                       T
+0314    ClipSize                                 S
+0314    ImageOutSize                              M
+0314    Control0                                     D
+0318    MonochromePattern0                P
+0318    TrianglePoint2                       T
+0318    Point12d4                                S
+0318    DxDu                                      M
+0318    Control1                                     D
+031c    MonochromePattern1                P
+031c    DyDv                                      M
+0320    Triangle32Point0X                    T
+0324    Triangle32Point0Y                    T
+0328    Triangle32Point1X                    T
+032c    Triangle32Point1Y                    T
+0330    Triangle32Point2X                    T
+0334    Triangle32Point2Y                    T
+0340    Cursor                                      V
+0358    CursorPointOutA                             V
+0380    Dac                                         V
+03a0    PixelClock                                  V
+03fc    Color1A                                       G
+0400    Lin                                 L
+0400    Trimesh                              T
+0400    Rectangle                             R
+0400    Color                                   IS
+0400    ImageInSize                               M
+0400    UnclippedRectangle                            G
+0404    ImageInFormat                             M
+0408    ImageInOffset                             M
+040c    ImageInPoint                              M
+0480    Lin32                               L
+0480    Trimesh32                            T
+0500    PolyLin                             L
+0500    ColorTriangle                        T
+0580    PolyLin32                           L
+0580    ColorTrimesh                         T
+0600    ColorPolyLin                        L
+07f4    ClipPoint0B                                   G
+07f8    ClipPoint0B                                   G
+07fc    Color1B                                       G
+0800    ClippedRectangle                              G
+0bec    ClipPoint0C                                   G
+0bf0    ClipPoint1C                                   G
+0bf4    Color1C                                       G
+0bf8    SizeC                                         G
+0bfc    PointC                                        G
+0c00    MonochromeColor1C                             G
+0fe8    ClipPoint0D                                   G
+0fec    ClipPoint1D                                   G
+0ff0    Color1D                                       G
+0ff4    SizeInD                                       G
+0ff8    SizeOutD                                      G
+0ffc    PointD                                        G
+1000    Tlvertex                                     D
+1000    MonochromeColor1D                             G
+13e4    ClipPoint0E                                   G
+13e8    ClipPoint1E                                   G
+13ec    Color0E                                       G
+13f0    Color1E                                       G
+13f4    SizeInE                                       G
+13f8    SizeOutE                                      G
+13fc    PointE                                        G
+1400    MonochromeColor01E                            G
+
+t=timer
+B=beta1 (0x41)
+K=color key (0x43)
+P=pattern (0x46)
+C=clip rectangle (0x45)
+L=solid line (0x4a)
+T=solid triangle (0x4b)
+R=solid rectangle (0x47)
+b=image blit (0x50)
+I=image from CPU (0x51)
+S=stretched image from CPU (0x55)
+M=scaled image from memory (0x4e)
+r=raster operation (0x42)
+V=video lut cursor dac
+D=DX3 textured triangle (0x57)
+G=GDI rectangle text (0x4c?)
+s=Surfaces 2D
+3=Surfaces 3D
+
+Contexts
+--------
+
+Context is a 32 bit record of channel id, object type and pointer to the 
+object.
+
+Bits 24-30: channel id
+Bit 23:     rendering
+            0x0 other object (DMA?)
+            0x1 renderable object
+Bits 16-22: object type
+            0x41 beta1
+            0x42 raster operation
+            0x43 color key
+            0x44 plane
+            0x45 clipping rectangle
+            0x46 pattern
+            0x47 solid rectangle
+            0x49 unknown line
+            0x4A solid line
+            0x4B solid triangle
+            0x4C GDI rectangle
+            0x4E scaled image from memory
+            0x50 blit
+            0x51 image from CPU
+            0x52 bitmap
+            0x55 streched image from CPU
+            0x57 DX3 textured triangle
+            0x?? Surfaces 2D
+            0x?? Surfaces 3D
+            0x?? Timer
+            0x?? Video lut cursor dac
+            and many more...
+Bits 0-15:  offset in instance memory (RAMIN) / 16
+
+Each graphic object has a context. Context determines the type (triangle, 
+raster operation, bitmap, etc) of the object. Don't ask me why this thingy 
+is called context: I really don't know.
+
+
+Hash table
+----------
+
+The hash table (HT) is located in the instance memory area (RAMIN). 
+See RAMHT register in section FIFO registers.
+The HT contains 8 byte length records of object names and contexts. Each 
+record is placed in the table  by it's hash key. The key is computed as 
+follows: each byte of the object's name and the channel id are XOR-ed 
+together, and this value is multiplied by the hash depth. More explanation
+on hash tables can be found in database books.
+The purpose of HT is to provide connection between object names and contexts
+for the graphic hardware. But it may be useful for your software driver too.
+
+
+FIFO context table
+------------------
+
+The FIFO context table (FC) is located in the instance memory area (RAMIN). 
+See RAMFC register in section FIFO registers.
+FC contains the context values for each subchannel. E.g. if FC begins 
+at 0x1C00:
+0x1C00 Context of object in channel 0, subchannel 0
+0x1C04 Context of object in channel 0, subchannel 1
+0x1C08 Context of object in channel 0, subchannel 2
+...
+0x1C1C Context of object in channel 0, subchannel 7
+0x1C20 Context of object in channel 1, subchannel 0
+0x1C24 Context of object in channel 1, subchannel 1
+...
+0x1CFC Context of object in channel 7, subchannel 7
+
+
+Example: How to render a solid rectangle?
+-----------------------------------------
+
+- Choose a name for your rectangle. E.g.: 0x01020304
+- Select an unused area in the instance memory. Let it be 0x00c04000
+- Calculate the context:
+	Channel = 0x00
+	Render object = 1
+	Object type = 0x47 (rectangle)
+	Offset in intance memory = 0x4000 / 16 = 0x0400
+	Context = 0x00c70400
+- Place the name - context pair in the hash table (HT begins at 0x00c00000):
+	Hash key = 01 xor 02 xor 03 xor 04 xor 00 = 0x04
+	           (each byte of the name)     (channel id)
+	*(0x00c00000 + 0x04 * 16) = 0x00000001; // name
+	*(0x00c00000 + 0x04 * 16) + 4 = 0x00c70400; // context
+- Fill in the instace ram:
+	*(0x00c04000) = 0x00100000; // 15bpp (TODO: decode this magic)
+	*(0x00c04004) = 0x00000000; // not used yet
+	*(0x00c04008) = 0x00000000; // not used yet
+	*(0x00c0400c) = 0x00000000; // not used yet
+- At this point the FIFO channel is ready for submitting rectangles.
+- Submit the first rectangle:
+	write the object's name to channel 0 (subchannel 0):
+	*(0x00800000) = 0x00000001;
+- At this point subchannel 0 becomes a rectangle.
+- Submit the attributes of the rectangle:
+	write x,y coordinates:
+	(0x00800400) = 0x01000200; // x=0x100 y=0x200
+	size:
+	(0x00800404) = 0x00100020; // width=0x10 height=0x20
+- After size is submitted, our rectangle appears on the screen.
+- Subsequent rectangles may be submitted by re-sending new attributes.
+
+
+Speculation: How to make video in working?
+------------------------------------------
+
+V4L stuff and hardware rendered rectangles have some similarities: 
+- both have color keys
+- both have clipping rectangles
+- both are stretchable
+I suppose video in feature is implemented by rendered objects. A chroma-keyed
+and clipped rectangle with 'live texture' is blitted on the screen. 
+Thats all. :)
+
+
+
+Memory layout
+=============
+
+Three memory regions are accessible via the PCI (or AGP) interface:
+- CTRL region (PCI base 0)
+- FB region (PCI base 1)
+- BIOS ROM (PCI base 2)
+
+
+CTRL region
+-----------
+
+The CTRL region contains memory mapped IO ports. Most of them are 32-bit
+registers. The registers are grouped by functionality:
+
+- MC:     master control                           (0x00000000-0x00000FFF)
+- BUS:                                             (0x00001000-0x00001FFF)
+- FIFO:   for DMA and PIO stuff                    (0x00002000-0x00003FFF)
+- TIMER:  built-in timer                           (0x00009000-0x00009FFF)
+- VIO:    8 bit SVGA (MISC, GRAPH, SEQ) registers  (0x000C0000-0x00C00FFF)
+- FB:     framebuffer properties                   (0x00100000-0x00100FFF)
+- EXTDEV: external devices                         (0x00101000-0x00101FFF)
+- GRAPH:                                           (0x00400000-0x00401FFF)
+- PCIO:   8 bit SVGA (CRTC, ATTR) registers        (0x00601000-0x00601FFF)
+- RAMDAC: RAMDAC timings                           (0x00680000-0x00680FFF)
+- PDIO:   8 bit registers                          (0x00681000-0x00681FFF)
+- FIFO channels:                                   (0x00800000-0x0087FFFF)
+(List in not complete.)
+
+
+FB region
+---------
+
+This region contains the video memory and the instance memory. 
+Video memory begins at offset 0x00000000. Instance memory (RAMIN) 
+begins at offset 0x00C00000. (Note: Riva TNT (and higher) cards have
+their instance memory in the CTRL region.) 
+
+
+
+Master control
+==============
+
+The MC registers begin at 0x00000000 in the CTRL region. They control the
+master IRQ.
+
+Interrupt 0 register
+--------------------
+Name:       INTR_0
+Offset:     0x00000100 
+4 bytes, read-write
+
+Bit 0:      PAUDIO (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 4:      PMEDIA (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 8:      PFIFO (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 12:     PGRAPH0 (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 13:     PGRAPH1 (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 16:     PVIDEO (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 20:     PTIMER (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 24:     PFB (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 28:     PBUS (-V, read-only)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+
+Bit 31:     SOFTWARE (IV, read-write)
+            NOT_PENDING 0x0 (default, read-write)
+            PENDING     0x1 (read-write)
+
+Interrupt 0 enable register
+---------------------------
+Name:       INTR_EN_0
+Offset:     0x00000140
+4 bytes, read-write
+
+Bits 0-1:   INTA (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            HARDWARE 0x1 (read-write)
+            SOFTWARE 0x2 (read-write)
+
+Enable (what?) register
+-----------------------
+Name:       ENABLE
+Offset:     0x00000200
+4 bytes, read-write
+
+
+
+Bus
+===
+
+The BUS registers begin at 0x00001000 in the CTRL region. They are 
+undiscovered.
+
+Debug 0 register
+----------------
+Name:       DEBUG_0
+Offset:     0x00001080
+4 bytes, read-write
+
+Bit 0:      MODE (IV, read-write)
+            MODE_DISABLED 0x0 (default, read-write)
+            MODE_ENABLED  0x1 (read-write)
+
+Bit 4:      DESKEWER (IV, read-write)
+            ENABLED 0x0 (default, read-write)
+
+Bits 8-11:  FBIO_SCLK_DELAY (IV, read-write)
+            0x0 (default, read-write)
+
+Bits 12-15: FBIO_FBCLK_DELAY (IV, read-write)
+            0x3 (default, read-write)
+
+Debug 1 register
+----------------
+Name:       DEBUG_1
+Offset:     0x00001084
+4 bytes, read-write
+
+Bit 0:      PCIM_THROTTLE (IV, read-write)
+            DISABLED 0x0 (read-write)
+            ENABLED  0x1 (default, read-write)
+
+Bit 1:      PCIM_CMD (IV, read-write)
+            SIZE_BASED 0x0 (default, read-write)
+            MRL_ONLY   0x1 (read-write)
+
+Bit 2:      PCIM_AGP (IV, read-write)
+            IS_AGP 0x0 (default, read-write)
+            IS_PCI 0x1 (read-write)
+
+Bits 3-4:   AGPM_CMD (IV, read-write)
+            HP_ON_1ST 0x0 (read-write)
+            LP_ONLY   0x1 (default, read-write)
+            HP_ONLY   0x2 (read-write)
+
+Bit 5:      PCIS_WRITE (IV, read-write)
+            0_CYCLE 0x0 (read-write)
+            1_CYCLE 0x1 (default, read-write)
+
+Bit 6:      PCIS_2_1 (IV, read-write)
+            DISABLED 0x0 (read-write)
+            ENABLED  0x1 (default, read-write)
+
+Bit 7:      PCIS_RETRY (IV, read-write)
+            DISABLED 0x0 (read-write)
+            ENABLED  0x1 (default, read-write)
+
+Bit 8:      PCIS_RD_BURST (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 9:      PCIS_WR_BURST (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 10:     PCIS_EARLY_RTY (IV, read-write)
+            DISABLED 0x0 (read-write)
+            ENABLED  0x1 (default, read-write)
+
+Bit 11:     PCIS_RMAIO (IV, read-write)
+            DISABLED 0x0 (read-write)
+            ENABLED  0x1 (default, read-write)
+
+Bit 12:     PCIS_CPUQ (IV, read-write)
+            DISABLED 0x0 (read-write)
+            ENABLED  0x1 (default, read-write)
+
+Bit 13:     DPSH_PIPE (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 14:     SPARE1 (IV, read-write)
+            ZERO 0x0 (default, read-write)
+            ONE  0x1 (read-write)
+
+Bit 15:     SPARE2 (IV, read-write)
+            ZERO 0x0 (default, read-write)
+            ONE  0x1 (read-write)
+
+Bit 16:     SPARE3 (IV, read-write)
+            ZERO 0x0 (default, read-write)
+            ONE  0x1 (read-write)
+
+
+
+FIFO
+====
+
+The BUS registers begin at 0x00002000 in the CTRL region.
+
+Interrupt 0 register
+--------------------
+
+Name:       INTR_0
+Offset:     0x00002100
+4 bytes, read-write
+
+Bit 0:      CACHE_ERROR (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 4:      RUNOUT (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 8:      RUNOUT_OVERFLOW (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 12:     DMA_PUSHER (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 16:     DMA_PTE (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Interrupt 0 enable register
+---------------------------
+
+Name:       INTR_EN_0
+Offset:     0x00002140
+4 bytes, read-write
+
+Bit 0:      CACHE_ERROR (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 4:      RUNOUT (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 8:      RUNOUT_OVERFLOW (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Config 0 register
+-----------------
+
+Name:       CONFIG_0
+Offset:     0x00002200
+4 bytes, read-write
+
+Hash table register
+-------------------
+
+Hardware hash table offset (in instance memory) and size.
+
+Name:       RAMHT
+Offset:     0x00002210
+4 bytes, read-write
+
+Bits 12-15: BASE_ADDRESS (XV, read-write)
+
+Bits 16-17: SIZE (XV, read-write)
+            4K  0x0 (default, read-write)
+            8K  0x1 (read-write)
+            16K 0x2 (read-write)
+            32K 0x3 (read-write)
+
+FIFO context table offset
+-------------------------
+
+Name:       RAMFC
+Offset:     0x00002214
+4 bytes, read-write
+
+Bits 9-15:  BASE_ADDRESS (XV, read-write)
+
+Runout table register
+---------------------
+
+FIFO runout table offset and size.
+
+Name:       RAMRO
+Offset:     0x00002218
+4 bytes, read-write
+
+Bits 9-15:  BASE_ADDRESS (XV, read-write)
+
+Bit 16:     SIZE (XV, read-write)
+            512 0x0 (default, read-write)
+            8K  0x1 (read-write)
+
+Runout status register
+----------------------
+
+Name:       RUNOUT_STATUS
+Offset:     0x00002400
+4 bytes, read-only
+
+Runout put register
+-------------------
+
+Index in runout table.
+
+Name:       RUNOUT_PUT
+Offset:     0x00002410
+4 bytes, read-write
+
+Runout get register
+-------------------
+
+Index in runout table.
+
+Name:       RUNOUT_GET
+Offset:     0x00002420
+4 bytes, read-write
+
+Caches register
+---------------
+
+Name:       CACHES
+Offset:     0x00002500
+4 bytes, read-write
+
+Bit 0:      REASSIGN (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Cache 0 push 0 register
+-----------------------
+
+Name:       CACHE0_PUSH0
+Offset:     0x00003000
+4 bytes, read-write
+
+Bit 0:      ACCESS (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Cache 0 push 1 register
+-----------------------
+
+Name:       CACHE0_PUSH1
+Offset:     0x00003004
+4 bytes, read-write
+
+Bits 0-6:   CHID (XU, read-write)
+
+Cache 0 pull 0 register
+-----------------------
+
+Name:       CACHE0_PULL0
+Offset:     0x00003040
+4 bytes, read-write
+
+Bit 0:      ACCESS (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Cache 1 push 0 register
+-----------------------
+
+Name:       CACHE1_PUSH0
+Offset:     0x00003200
+4 bytes, read-write
+
+Bit 0:      ACCESS (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Cache 1 push 1 register
+-----------------------
+
+Name:       CACHE1_PUSH1
+Offset:     0x00003204
+4 bytes, read-write
+
+Bits 0-6:   CHID (XU, read-write)
+
+Cache 1 put register
+--------------------
+
+Name:       CACHE1_PUT
+Offset:     0x00003210
+4 bytes, read-write
+
+Bits 2-6:   ADDRESS (XU, read-write)
+
+Cache 1 DMA 0 register
+-----------------------
+
+Name:       CACHE1_DMA0
+Offset:     0x00003220
+4 bytes, read-write
+
+Cache 1 DMA 1 register
+-----------------------
+
+Name:       CACHE1_DMA1
+Offset:     0x00003224
+4 bytes, read-write
+
+Cache 1 DMA 2 register
+-----------------------
+
+Name:       CACHE1_DMA2
+Offset:     0x00003228
+4 bytes, read-write
+
+Cache 1 pull 0 register
+-----------------------
+
+Name:       CACHE1_PULL0
+Offset:     0x00003240
+4 bytes, read-write
+
+Bit 0:      ACCESS (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Cache 1 pull 1 register
+-----------------------
+
+Name:       CACHE1_PULL1
+Offset:     0x00003250
+4 bytes, read-write
+
+Bit 4:      CTX (XV, read-write)
+            CLEAN 0x0 (read-write)
+            DIRTY 0x1 (read-write)
+
+Cache 1 get register
+--------------------
+
+Name:       CACHE1_GET
+Offset:     0x00003270
+4 bytes, read-write
+
+Bits 2-6:   ADDRESS (XU, read-write)
+
+Cache 1 context registers
+-------------------------
+
+8 context registers for each channel (I guess).
+
+Name:       CACHE1_CTX
+Offset:     0x00003280+i*16 (0 <= i < 8)
+8*16(4?) bytes, read-write
+
+
+
+Framebuffer properties
+======================
+
+The FB registers begin at 0x00100000 in the CTRL region. 
+
+Boot 0 register
+---------------
+
+Name:       BOOT_0
+Offset:     0x00100000
+4 bytes, read-write
+
+Bits 0-1:   RAM_AMOUNT (IV, read-write)
+            1MB       0x0 (read-write)
+            2MB       0x1 (read-write)
+            4MB       0x2 (read-write)
+            8MB       0x0 (read-write)
+            UNDEFINED 0x3 (read-write)
+            DEFAULT   0x2 (default, read-write)
+
+Bit 2:      RAM_WIDTH_128 (-V, read-write)
+            OFF 0x0 (read-write)
+            ON  0x1 (read-write)
+
+Bit 3:      RAM_BANKS (IV, read-write)
+            2BANK 0x0 (default, read-write)
+            4BANK 0x1 (read-write)
+
+Bit 4:      RAMDATA_TWIDDLE (IV, read-write)
+            OFF 0x0 (default, read-write)
+            ON  0x1 (read-write)
+
+Bit 5:      RAM_AMOUNT_EXTENSION (IV, read-write)
+            OFF 0x0 (default, read-write)
+            8MB 0x1 (read-write)
+
+Delay 1 register
+----------------
+
+Name:       DELAY_1
+Offset:     0x00100044
+4 bytes, read-write
+
+Bits 0-1:   WRITE_ENABLE_RISE (IU, read-write)
+            WRITE_ENABLE_RISE_0 0x0 (default, read-write)
+
+Bits 4-5:   WRITE_ENABLE_FALL (IU, read-write)
+            WRITE_ENABLE_FALL_0 0x0 (default, read-write)
+
+Bits 8-9:   CAS_ENABLE_RISE (IU, read-write)
+            CAS_ENABLE_RISE_0 0x0 (default, read-write)
+
+Bits 12-13: CAS_ENABLE_FALL (IU, read-write)
+            CAS_ENABLE_FALL_0 0x0 (default, read-write)
+
+Bits 16-17: OUTPUT_DATA (IU, read-write)
+            OUTPUT_DATA_0 0x0 (default, read-write)
+
+Bits 20-21: RAS_ENABLE (IU, read-write)
+            RAS_ENABLE_0 0x0 (default, read-write)
+
+Debug 0 register
+----------------
+
+Name:       DEBUG_0
+Offset:     0x00100080
+4 bytes, read-write
+
+Bit 4:      REFRESH (IV, read-write)
+            ENABLED  0x0 (default, read-write)
+            DISABLED 0x1 (read-write)
+
+Green 0 register
+----------------
+
+Name:       GREEN_0
+Offset:     0x001000C0
+4 bytes, read-write
+
+Bits 0-1:   LEVEL (IV, read-write)
+            VIDEO_ENABLED   0x0 (read-write)
+            VIDEO_DISABLED  0x1 (read-write)
+            TIMING_DISABLED 0x2 (read-write)
+            MEMORY_DISABLED 0x3 (default, read-write)
+
+Config 0 register
+-----------------
+
+Name:       CONFIG_0
+Offset:     0x00100200
+4 bytes, read-write
+
+Bits 0-5:   RESOLUTION (IV, read-write)
+            320_PIXELS  0x0a (read-write)
+            400_PIXELS  0x0d (read-write)
+            480_PIXELS  0x0f (read-write)
+            512_PIXELS  0x10 (read-write)
+            640_PIXELS  0x14 (read-write)
+            800_PIXELS  0x19 (read-write)
+            960_PIXELS  0x1e (read-write)
+            1024_PIXELS 0x20 (read-write)
+            1152_PIXELS 0x24 (read-write)
+            1280_PIXELS 0x28 (read-write)
+            1600_PIXELS 0x32 (read-write)
+            DEFAULT     0x14 (default, read-write)
+
+Bits 8-9:   PIXEL_DEPTH (IV, read-write)
+            8_BITS  0x1 (read-write)
+            16_BITS 0x2 (read-write)
+            32_BITS 0x3 (read-write)
+            DEFAULT 0x1 (default, read-write)
+
+Bit 12:     TILING (IV, read-write)
+            ENABLED  0x0 (read-write)
+            DISABLED 0x1 (default, read-write)
+
+
+Bits 13-23: TILING_DEBUG (IV, read-write)
+            DISABLED 0x0 (read-write)
+
+RTL(?) register
+---------------
+
+Name:       RTL
+Offset:     0x00100???
+4 bytes, read-write
+
+Bits 0-1:   S (IU, read-write)
+            DEFAULT 0x2 (default, read-write)
+
+Bits 4-5:   V (IU, read-write)
+            DEFAULT 0x2 (default, read-write)
+
+Bits 8-9:   M (IU, read-write)
+            DEFAULT 0x2 (default, read-write)
+
+Bits 12-13: H (IU, read-write)
+            DEFAULT 0x1 (default, read-write)
+
+Bits 16-17: A (IU, read-write)
+            DEFAULT 0x1 (default, read-write)
+
+Bits 20-21: G (IU, read-write)
+            DEFAULT 0x1 (default, read-write)
+
+Bit 24:     ARB_GR_HI_PRIOR (IU, read-write)
+            DEFAULT 0x0 (default, read-write)
+
+Bit 28:     ARB_MEDIA_HI_PRIOR (IU, read-write)
+            DEFAULT 0x0 (default, read-write)
+
+
+
+External devices
+================
+
+The EXTDEV registers begin at 0x00101000 in the CTRL region.
+
+Boot 0 register
+---------------
+
+Name:       BOOT_0
+Offset:     0x00101000
+4 bytes, read-write
+
+Bit 2:      STRAP_RAM_TYPE (XV, read-write)
+            SGRAM_8MBIT  0x1 (read-write)
+            SGRAM_16MBIT 0x0 (read-write)
+
+Bit 11:     STRAP_OVERWRITE (IV, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 4:      STRAP_RAM_WIDTH (XV, read-write)
+            64  0x0 (read-write)
+            128 0x1 (read-write)
+
+
+
+GRAPH
+=====
+
+The GRAPH registers begin at 0x00400000 in the CTRL region. 
+
+Debug 0 register
+----------------
+
+Name:       DEBUG_0
+Offset:     0x00400080
+4 bytes, read-write
+
+Bit 0:      STATE (-V, clear(check?)-write)
+            NORMAL 0x0 (clear(check?)-write)
+            RESET  0x1 (write-only)
+
+Bit 4:      BULK_READS (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 20:     WRITE_ONLY_ROPS_2D (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 24:     DRAWDIR_AUTO (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Debug 1 register
+----------------
+
+Name:       DEBUG_1
+Offset:     0x00400084
+4 bytes, read-write
+
+Bit 0:      VOLATILE_RESET (IV, read-write)
+            NOT_LAST 0x0 (default, read-write)
+            LAST     0x1 (read-write)
+
+Bit 16:     INSTANCE (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 20:     CTX (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Debug 2 register
+----------------
+
+Name:       DEBUG_2
+Offset:     0x00400088
+4 bytes, read-write
+
+Bit 0:      AVOID_RMW_BLEND (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 8:      DPWR_FIFO (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Bit 28:     VOLATILE_RESET (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Debug 3 register
+----------------
+
+Name:       DEBUG_3
+Offset:     0x0040008C
+4 bytes, read-write
+
+Bit 24:     HONOR_ALPHA (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Interrupt 0 register
+--------------------
+
+Name:       INTR_0
+Offset:     0x00400100
+4 bytes, read-write
+
+Bit 0:      RESERVED (-V, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 4:      CONTEXT_SWITCH (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 8:      VBLANK (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 12:     RANGE (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 16:     METHOD_COUNT (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 20:     FORMAT (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 24:     COMPLEX_CLIP (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 28:     NOTIFY (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Interrupt 1 register
+--------------------
+
+Name:       INTR_1
+Offset:     0x00400104
+4 bytes, read-write
+
+Bit 0:      METHOD (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 4:      DATA (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 12:     DOUBLE_NOTIFY (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 16:     CTXSW_NOTIFY (IV, read-write)
+            NOT_PENDING 0x0 (default, read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Interrupt 0 enable register
+---------------------------
+
+Name:       INTR_EN_0
+Offset:     0x00400140
+4 bytes, read-write
+
+Interrupt 1 enable register
+---------------------------
+
+Name:       INTR_EN_1
+Offset:     0x00400144
+4 bytes, read-write
+
+Context switch register
+-----------------------
+
+Name:       CTX_SWITCH
+Offset:     0x00400180
+4 bytes, read-write
+
+Context control register
+------------------------
+
+Name:       CTX_CONTROL
+Offset:     0x00400190
+4 bytes, read-write
+
+Bits 0-1:   MINIMUM_TIME (IV, read-write)
+            33US  0x0 (default, read-write)
+            262US 0x1 (read-write)
+            2MS   0x2 (read-write)
+            17MS  0x3 (read-write)
+
+Bit 8:      TIME (IV, read-write)
+            EXPIRED     0x0 (default, read-write)
+            NOT_EXPIRED 0x1 (read-write)
+
+Bit 16:     CHID (IV, read-write)
+            INVALID 0x0 (default, read-write)
+            VALID   0x1 (read-write)
+
+Bit 20:     SWITCH (-V, read-only)
+            UNAVAILABLE 0x0 (read-only)
+            AVAILABLE   0x1 (read-only)
+
+Bit 24:     SWITCHING (IV, read-write)
+            IDLE 0x0 (default, read-write)
+            BUSY 0x1 (read-write)
+
+Bit 28:     DEVICE (IV, read-write)
+            DISABLED 0x0 (default, read-write)
+            ENABLED  0x1 (read-write)
+
+Context user register
+---------------------
+
+Name:       CTX_USER
+Offset:     0x00400194
+4 bytes, read-write
+
+Context cache registers
+-----------------------
+
+8 context registers for each channel (I guess).
+
+Name:       CTX_CACHE
+Offset:     0x004001a0+i*4 (0 <= i Í8)
+8*4 bytes, read-write
+
+Absolute X RAM registers
+------------------------
+
+Name:       ABS_X_RAM
+Offset:     0x00400400+i*4 (0 <= i < 32)
+32*4 bytes, read-write
+
+Absolute Y RAM registers
+------------------------
+
+Name:       ABS_Y_RAM
+Offset:     0x00400480+i*4 (0 <= i < 32)
+32*4 bytes, read-write
+
+X misc register
+---------------
+
+Name:       X_MISC
+Offset:     0x00400500
+4 bytes, read-write
+
+Y misc register
+---------------
+
+Name:       Y_MISC
+Offset:     0x00400504
+4 bytes, read-write
+
+Exceptions register
+-------------------
+
+Name:       EXCEPTIONS
+Offset:     0x00400508
+4 bytes, read-write
+
+Source color register
+---------------------
+
+Name:       SOURCE_COLOR
+Offset:     0x0040050C
+4 bytes, read-write
+
+XY logic misc 0 register
+------------------------
+
+Name:       XY_LOGIC_MISC0
+Offset:     0x00400514
+4 bytes, read-write
+
+XY logic misc 1 register
+------------------------
+
+Name:       XY_LOGIC_MISC1
+Offset:     0x00400518
+4 bytes, read-write
+
+            DVDY_VALUE 0x0 (default, read-write) (???)
+
+XY logic misc 2 register
+------------------------
+
+Name:       XY_LOGIC_MISC2
+Offset:     0x0040051C
+4 bytes, read-write
+
+XY logic misc 3 register
+------------------------
+
+Name:       XY_LOGIC_MISC3
+Offset:     0x00400520
+4 bytes, read-write
+
+Clip X 0 register
+-----------------
+
+Name:       CLIPX_0
+Offset:     0x00400524
+4 bytes, read-write
+
+Clip X 1 register
+-----------------
+
+Name:       CLIPX_1
+Offset:     0x00400528
+4 bytes, read-write
+
+Clip Y 0 register
+-----------------
+
+Name:       CLIPY_0
+Offset:     0x0040052c
+4 bytes, read-write
+
+Clip Y 1 register
+-----------------
+
+Name:       CLIPY_1
+Offset:     0x00400530
+4 bytes, read-write
+
+Absolute iclip X max. register
+------------------------------
+
+Name:       ABS_ICLIP_XMAX
+Offset:     0x00400534
+4 bytes, read-write
+
+Absolute iclip Y max. register
+------------------------------
+
+Name:       ABS_ICLIP_YMAX
+Offset:     0x00400538
+4 bytes, read-write
+
+Absolute uclip X min. register
+------------------------------
+
+Name:       ABS_UCLIP_XMIN
+Offset:     0x0040053C
+4 bytes, read-write
+
+Absolute uclip Y min. register
+------------------------------
+
+Name:       ABS_UCLIP_YMIN
+Offset:     0x00400540
+4 bytes, read-write
+
+Absolute uclip X max. register
+------------------------------
+
+Name:       ABS_UCLIP_XMAX
+Offset:     0x00400544
+4 bytes, read-write
+
+Absolute uclip Y max. register
+------------------------------
+
+Name:       ABS_UCLIP_YMAX
+Offset:     0x00400548
+4 bytes, read-write
+
+Absolute uclipa X min. register
+------------------------------
+
+Name:       ABS_UCLIPA_XMIN
+Offset:     0x00400560
+4 bytes, read-write
+
+Absolute uclipa Y min. register
+------------------------------
+
+Name:       ABS_UCLIPA_YMIN
+Offset:     0x00400564
+4 bytes, read-write
+
+Absolute uclipa X max. register
+------------------------------
+
+Name:       ABS_UCLIPA_XMAX
+Offset:     0x00400568
+4 bytes, read-write
+
+Absolute uclipa Y max. register
+------------------------------
+
+Name:       ABS_UCLIPA_YMAX
+Offset:     0x0040056C
+4 bytes, read-write
+
+Source canvas min. register
+---------------------------
+
+Name:       SRC_CANVAS_MIN
+Offset:     0x00400550
+4 bytes, read-write
+
+Source canvas max. register
+---------------------------
+
+Name:       SRC_CANVAS_MAX
+Offset:     0x00400554
+4 bytes, read-write
+
+Destination canvas min. register
+--------------------------------
+
+Name:       DST_CANVAS_MIN
+Offset:     0x00400558
+4 bytes, read-write
+
+Destination canvas max. register
+--------------------------------
+
+Name:       DST_CANVAS_MAX
+Offset:     0x0040055C
+4 bytes, read-write
+
+Pattern color 0 0 register
+--------------------------
+
+Name:       PATT_COLOR0_0
+Offset:     0x00400600
+4 bytes, read-write
+
+Pattern color 0 1 register
+--------------------------
+
+Name:       PATT_COLOR0_1
+Offset:     0x00400604
+4 bytes, read-write
+
+Pattern color 1 0 register
+--------------------------
+
+Name:       PATT_COLOR1_0
+Offset:     0x00400608
+4 bytes, read-write
+
+Pattern color 1 1 register
+--------------------------
+
+Name:       PATT_COLOR1_1
+Offset:     0x0040060C
+4 bytes, read-write
+
+Pattern registers
+-----------------
+
+Name:       PATTERN
+Offset:     0x00400610+i*4 (0 <=i < 2)
+2*4 bytes, read-write
+
+Pattern shape register
+----------------------
+
+Name:       PATTERN_SHAPE
+Offset:     0x00400618
+4 bytes, read-write
+
+Bits 0-1:   VALUE (XV, read-write)
+            8X8  0x0 (read-write)
+            64X1 0x1 (read-write)
+            1X64 0x2 (read-write)
+
+Monochrome color 0 register
+---------------------------
+
+Name:       MONO_COLOR0
+Offset:     0x0040061C
+4 bytes, read-write
+
+Raster operation register
+-------------------------
+
+Name:       ROP3
+Offset:     0x00400624
+4 bytes, read-write
+
+Plane mask register
+-------------------
+
+Name:       PLANE_MASK
+Offset:     0x00400628
+4 bytes, read-write
+
+Chroma register
+---------------
+
+Name:       CHROMA
+Offset:     0x0040062C
+4 bytes, read-write
+
+B(?) offset 0 register
+----------------------
+
+Name:       BOFFSET0
+Offset:     0x00400630
+4 bytes, read-write
+
+B(?) offset 1 register
+----------------------
+
+Name:       BOFFSET1
+Offset:     0x00400634
+4 bytes, read-write
+
+B(?) offset 2 register
+----------------------
+
+Name:       BOFFSET2
+Offset:     0x00400638
+4 bytes, read-write
+
+B(?) offset 3 register
+----------------------
+
+Name:       BOFFSET3
+Offset:     0x0040063C
+4 bytes, read-write
+
+Beta register
+-------------
+
+Name:       BETA
+Offset:     0x00400640
+4 bytes, read-write
+
+Control out register
+--------------------
+
+Name:       CONTROL_OUT
+Offset:     0x00400644
+4 bytes, read-write
+
+B(?) pitch 0 register
+---------------------
+
+Name:       BPITCH0
+Offset:     0x00400650
+4 bytes, read-write
+
+B(?) pitch 1 register
+---------------------
+
+Name:       BPITCH1
+Offset:     0x00400654
+4 bytes, read-write
+
+B(?) pitch 2 register
+---------------------
+
+Name:       BPITCH2
+Offset:     0x00400658
+4 bytes, read-write
+
+B(?) pitch 3 register
+---------------------
+
+Name:       BPITCH3
+Offset:     0x0040065C
+4 bytes, read-write
+
+DMA register
+------------
+
+Name:       DMA
+Offset:     0x00400680
+4 bytes, read-write
+
+Notify register
+---------------
+
+Name:       NOTIFY
+Offset:     0x00400684
+4 bytes, read-write
+
+Bits 0-15:  INST_MEM_LOC ???
+
+Instance register
+-----------------
+
+Name:       INSTANCE
+Offset:     0x00400688
+4 bytes, read-write
+
+Memory format register
+----------------------
+
+Name:       MEMFMT
+Offset:     0x0040068C
+4 bytes, read-write
+
+Clip 0 min. register
+--------------------
+
+Name:       CLIP0_MIN
+Offset:     0x00400690
+4 bytes, read-write
+
+Clip 0 max. register
+--------------------
+
+Name:       CLIP0_MAX
+Offset:     0x00400694
+4 bytes, read-write
+
+Clip 1 min. register
+--------------------
+
+Name:       CLIP1_MIN
+Offset:     0x00400698
+4 bytes, read-write
+
+Clip 1 max. register
+--------------------
+
+Name:       CLIP1_MAX
+Offset:     0x0040069C
+4 bytes, read-write
+
+Clip misc register
+------------------
+
+Name:       CLIP_MISC
+Offset:     0x004006A0
+4 bytes, read-write
+
+FIFO register
+-------------
+
+Name:       FIFO
+Offset:     0x004006A4
+4 bytes, read-write
+
+Bit 0:      ACCESS (IV, read-write)
+            DISABLED 0x0 (read-write)
+            ENABLED  0x1 (default, read-write)
+
+B(?) pixel register
+-------------------
+
+Name:       BPIXEL
+Offset:     0x004006A8
+4 bytes, read-write
+
+Bits 0-1:   DEPTH0_FMT (XV, read-write)
+            Y16_BITS 0x0 (read-write)
+            BITS_8   0x1 (read-write)
+            BITS_16  0x2 (read-write)
+            BITS_32  0x3 (read-write)
+
+Bit 2:      DEPTH0 (XV, read-write)
+            NOT_VALID 0x0 (read-write)
+            VALID     0x1 (read-write)
+
+Bits 4-5:   DEPTH1_FMT (XV, read-write)
+            Y16_BITS 0x0 (read-write)
+            BITS_8   0x1 (read-write)
+            BITS_16  0x2 (read-write)
+            BITS_32  0x3 (read-write)
+
+Bit 6:      DEPTH1 (XV, read-write)
+            NOT_VALID 0x0 (read-write)
+            VALID     0x1 (read-write)
+
+Bits 8-9:   DEPTH2_FMT (XV, read-write)
+            Y16_BITS 0x0 (read-write)
+            BITS_8   0x1 (read-write)
+            BITS_16  0x2 (read-write)
+            BITS_32  0x3 (read-write)
+
+Bit 10:     DEPTH2 (XV, read-write)
+            NOT_VALID 0x0 (read-write)
+            VALID     0x1 (read-write)
+
+Bits 12-13: DEPTH3_FMT (XV, read-write)
+            Y16_BITS 0x0 (read-write)
+            BITS_8   0x1 (read-write)
+            BITS_16  0x2 (read-write)
+            BITS_32  0x3 (read-write)
+
+Bit 14:     DEPTH3 (XV, read-write)
+            NOT_VALID 0x0 (read-write)
+            VALID     0x1 (read-write)
+
+Status register
+---------------
+
+Name:       STATUS
+Offset:     0x004006B0
+4 bytes, read-only
+
+DMA interrupt 0 register
+------------------------
+
+Name:       DMA_INTR_0
+Offset:     0x00401100
+4 bytes, read-write
+
+Bit 0:      INSTANCE (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 4:      PRESENT (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 8:      PROTECTION (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 12:     LINEAR (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+Bit 16:     NOTIFY (XV, read-write)
+            NOT_PENDING 0x0 (read-only)
+            PENDING     0x1 (read-only)
+            RESET       0x1 (write-only)
+
+DMA interrupt 0 enable register
+-------------------------------
+
+Name:       DMA_INTR_EN_0
+Offset:     0x00401140
+4 bytes, read-write
+
+DMA control register
+--------------------
+
+Name:       DMA_CONTROL
+Offset:     0x00401210
+4 bytes, read-write
+
+
+
+RAMDAC
+======
+
+The RAMDAC registers begin at 0x00680000 in the CTRL region.
+
+Graphic cursor starting position register
+-----------------------------------------
+
+Name:       GRCURSOR_START_POS
+Offset:     0x00680300
+4 bytes, read-write
+
+Bits 0-11:  X (XS, read-write)
+
+Bits 16-27: Y (XS, read-write)
+
+MPLL coeff register
+-------------------
+
+Name:       MPLL_COEFF
+Offset:     0x00680504
+4 bytes, read-write
+
+Bits 0-7:   MDIV (IU, read-write)
+
+Bits 8-15:  NDIV (IU, read-write)
+
+Bits 16-18: PDIV (IV, read-write)
+
+VPLL coeff register
+-------------------
+
+Name:       VPLL_COEFF
+Offset:     0x00680508
+4 bytes, read-write
+
+Bits 0-7:   MDIV (IU, read-write)
+
+Bits 8-15:  NDIV (IU, read-write)
+
+Bits 16-18: PDIV (IV, read-write)
+
+PLL coeff select register
+-------------------------
+
+Name:       PLL_COEFF_SELECT
+Offset:     0x0068050C
+4 bytes, read-write
+
+Bit 4:      DLL_BYPASS (IV, read-write)
+            FALSE 0x0 (default, read-write)
+            TRUE  0x1 (read-write)
+
+Bit 8:      MPLL_SOURCE (IV, read-write)
+            DEFAULT 0x0 (default, read-write)
+            PROG    0x1 (read-write)
+
+Bit 12:     MPLL_BYPASS (IV, read-write)
+            FALSE 0x0 (default, read-write)
+            TRUE  0x1 (read-write)
+
+Bit 16:     VPLL_SOURCE (IV, read-write)
+            DEFAULT 0x0 (default, read-write)
+            PROG    0x1 (read-write)
+
+Bit 20:     VPLL_BYPASS (IV, read-write)
+            FALSE 0x0 (default, read-write)
+            TRUE  0x1 (read-write)
+
+Bits 24-25: PCLK_SOURCE (IV, read-write)
+            VPLL    0x0 (default, read-write)
+            VIP     0x1 (read-write)
+            XTALOSC 0x2 (read-write)
+
+Bit 28:     VCLK_RATIO (IV, read-write)
+            DB1 0x0 (default, read-write)
+            DB2 0x1 (read-write)
+
+General control register
+------------------------
+
+Various flags for DAC. BPC controls the width of the palette.
+
+Name:       GENERAL_CONTROL
+Offset:     0x00680600
+4 bytes, read-write
+
+Bits 0-1:   FF_COEFF (IV, read-write)
+            DEF 0x0 (default, read-write)
+
+Bit 4:      IDC_MODE (IV, read-write)
+            GAMMA 0x0 (default, read-write)
+            INDEX 0x1 (read-write)
+
+Bit 8:      VGA_STATE (IV, read-write)
+            NOTSEL 0x0 (default, read-write)
+            SEL    0x1 (read-write)
+
+Bit 12:     565_MODE (IV, read-write)
+            NOTSEL 0x0 (default, read-write)
+            SEL    0x1 (read-write)
+
+Bit 16:     BLK_PEDSTL (IV, read-write)
+            OFF 0x0 (default, read-write)
+            ON  0x1 (read-write)
+
+Bit 17:     TERMINATION (IV, read-write)
+            37OHM 0x0 (default, read-write)
+            75OHM 0x1 (read-write)
+
+Bit 20:     BPC (IV, read-write)
+            6BITS 0x0 (default, read-write)
+            8BITS 0x1 (read-write)
+
+Bit 24:     DAC_SLEEP (IV, read-write)
+            DIS 0x0 (default, read-write)
+            EN  0x1 (read-write)
+
+Bit 28:     PALETTE_CLK (IV, read-write)
+            EN  0x0 (default, read-write)
+            DIS 0x1 (read-write)
+
+VSERR width register
+--------------------
+
+Name:       VSERR_WIDTH
+Offset:     0x00680700
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+VEQU end register
+-----------------
+
+Name:       VEQU_END
+Offset:     0x00680704
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Vertical B(?) blank end register
+--------------------------------
+
+Name:       VBBLANK_END
+Offset:     0x00680708
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Vertical blank end register
+---------------------------
+
+Name:       VBLANK_END
+Offset:     0x0068070C
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Vertical blank start register
+-----------------------------
+
+Name:       VBLANK_START
+Offset:     0x00680710
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Vertical (B?) blank start register
+----------------------------------
+
+Name:       VBBLANK_START
+Offset:     0x00680714
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+VEQU start register
+-------------------
+
+Name:       VEQU_START
+Offset:     0x00680718
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Vertical total register
+-----------------------
+
+Name:       VTOTAL
+Offset:     0x0068071C
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Horizontal sync width register
+------------------------------
+
+Name:       HSYNC_WIDTH
+Offset:     0x00680720
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Horizontal burst start register
+-------------------------------
+
+Name:       HBURST_START
+Offset:     0x00680724
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Horizontal burst end register
+-----------------------------
+
+Name:       HBURST_END
+Offset:     0x00680728
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Horizontal blank start register
+-------------------------------
+
+Name:       HBLANK_START
+Offset:     0x0068072C
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Horizontal blank end register
+-----------------------------
+
+Name:       HBLANK_END
+Offset:     0x00680730
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+Horizontal total register
+-------------------------
+
+Name:       HTOTAL
+Offset:     0x00680734
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+HEQU width register
+-------------------
+
+Name:       HEQU_WIDTH
+Offset:     0x00680738
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+HSERR width register
+--------------------
+
+Name:       HSERR_WIDTH
+Offset:     0x0068073C
+4 bytes, read-write
+
+Bits 0-10:  VAL (IV, read-write)
+
+
+
+'Standard' SVGA registers
+=========================
+
+ATTR, CTRC, GRAPH, SEQ and MISC registers are available throught MMIO too.
+
+Name:       ATTR_REG_INDEX
+Offset:     0x006013c0
+1 byte, read-write
+
+Name:       ATTR_REG_DATA
+Offset:     0x006013c1
+1 byte, read-write
+
+Name:       CRTC_REG_INDEX
+Offset:     0x006013d4
+1 byte, read-write
+
+Name:       CRTC_REG_DATA
+Offset:     0x006013d5
+1 byte, read-write
+
+Name:       GRA_REG_INDEX
+Offset:     0x000C03ce
+1 byte, read-write
+
+Name:       GRA_REG_DATA
+Offset:     0x000C03cf
+1 byte, read-write
+
+Name:       SEQ_REG_INDEX
+Offset:     0x000C03c4
+1 byte, read-write
+
+Name:       SEQ_REG_DATA
+Offset:     0x000C03c5
+1 byte, read-write
+
+Name:       MISC_REG
+Offset:     0x000C03c2
+1 byte, read-write
+
+
+
+Extra CRTC registers
+====================
+
+Repaint 0 register
+------------------
+
+Extended offset and start address.
+
+Name:       REPAINT0
+Index:      0x19
+1 byte
+
+Bits 0-4:   START_ADDR_20_16
+
+Bits 5-7:   OFFSET_10_8 
+
+Repaint 1 register
+------------------
+
+Various flags.
+
+Name:       REPAINT1
+Index:      0x1a
+1 byte
+
+Bit 1:      PALETTE_WIDTH
+            8BITS 0x0
+            6BITS 0x1
+
+Bit 2:      LARGE_SCREEN 
+            DISABLE 0x1
+            ENABLE  0x0 ( >= 1280 )
+
+Bit 4:      COMPATIBLE_TEXT
+            ENABLE  0x1
+            DISABLE 0x0
+
+Bit 6:      VSYNC
+            DISABLE 0x1
+            ENABLE  0x0
+
+Bit 7:      HSYNC
+            DISABLE 0x1
+            ENABLE  0x0
+
+FIFO control register
+---------------------
+
+Controls how much data the refresh fifo requests.
+
+Name:       FIFO_CONTROL
+Index:      0x1b
+1 byte
+
+Bits 0-2:   BURST_LENGTH
+            BURST_LENGTH_8   0x0
+            BURST_LENGTH_32  0x1
+            BURST_LENGTH_64  0x2
+            BURST_LENGTH_128 0x3
+            BURST_LENGTH_256 0x4
+
+Bit 7:      UNDERFLOW_WARN
+
+FIFO register
+-------------
+
+When the fifo occupancy falls below *twice* the watermark,
+the refresh fifo will start to be refilled. If this value is 
+too low, you will get junk on the screen. Too high, and performance
+will suffer. Watermark in units of 8 bytes.
+
+Name:       FIFO
+Index:      0x20
+1 byte
+
+Bits 0-5:   WATERMARK
+
+Bit 7:      RESET
+
+Extra register
+--------------
+
+Assorted extra bits.
+
+Name:       EXTRA
+Index:      0x25
+1 byte
+
+Bit 0:      VERT_TOTAL_10
+
+Bit 1:      VERT_DISPLAY_END_10
+
+Bit 2:      VERT_RETRACE_START_10
+
+Bit 3:      VERT_BLANK_START_10
+
+Bit 4:      HORIZ_BLANK_END_6
+
+Bit 5:      OFFSET_11
+
+Pixel register
+--------------
+
+Controls what the format of the framebuffer is.
+
+Name:       PIXEL
+Index:      0x28
+1 byte
+
+Bits 0-1:   FORMAT
+            VGA   0x0
+            8BPP  0x1
+            16BPP 0x2
+            32BPP 0x3
+
+Bits 3-5:   TV_HORIZ_ADJUST
+
+Bit 6:      TV_MODE
+            NTSC 0x0
+            PAL  0x1
+
+Bit 7:      MODE
+            TV  0x1
+            VGA 0x0
+
+Horizontal extra register
+-------------------------
+
+Horizonal extended bits.
+
+Name:       HORIZ_EXTRA
+Index:      0x2d
+1 byte
+
+Bit 0:      DISPLAY_TOTAL_8
+
+Bit 1:      DISPLAY_END_8
+
+Bit 2:      HORIZ_BLANK_START_8
+
+Bit 3:      HORIZ_RETRACE_START_8
+
+Bit 4:      INTER_HALF_START_8
+
+Graphic cursor 0 register
+-------------------------
+
+Name:       GRCURSOR0
+Index:      0x30
+1 byte
+
+Bits 0-5:   START_ADDR_21_16
+
+Graphic cursor 1 register
+-------------------------
+
+Name:       GRCURSOR1
+Index:      0x31
+1 byte
+
+Bit 0:      CURSOR
+            DISABLE 0x0
+            ENABLE  0x1
+
+Bit 1:      SCAN_DBL
+            DISABLE 0x0
+            ENABLE  0x1
+
+Bits 3-7:   START_ADDR_15_11
+
+EOF
