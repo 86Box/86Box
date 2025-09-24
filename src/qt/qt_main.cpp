@@ -542,6 +542,17 @@ main(int argc, char *argv[])
 #endif
     QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
 
+    QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
+    fmt.setSwapInterval(0);
+    fmt.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+    fmt.setRenderableType(QSurfaceFormat::OpenGL);
+#ifdef Q_OS_MACOS
+    fmt.setVersion(4, 1);
+#else
+    fmt.setVersion(3, 2);
+#endif
+    QSurfaceFormat::setDefaultFormat(fmt);
+
     QApplication app(argc, argv);
     QLocale::setDefault(QLocale::C);
     setlocale(LC_NUMERIC, "C");
@@ -573,9 +584,6 @@ main(int argc, char *argv[])
 
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
-    QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
-    fmt.setSwapInterval(0);
-    QSurfaceFormat::setDefaultFormat(fmt);
 
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
