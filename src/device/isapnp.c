@@ -98,6 +98,8 @@ typedef struct _isapnp_card_ {
     uint8_t  serial_read_pair;
     uint8_t  serial_read_pos;
     uint8_t  is_rt;
+    uint8_t  normal;
+    uint8_t  multiple_lds;
     uint8_t *rom;
     uint16_t rom_pos;
     uint16_t rom_size;
@@ -449,15 +451,16 @@ isapnp_write_addr(UNUSED(uint16_t addr), uint8_t val, void *priv)
             if (!dev->key_pos) {
                 isapnp_log("ISAPnP: Key unlocked, putting cards to SLEEP\n");
                 while (card) {
-                    int is_rt = (!dev->using_key2 || card->is_rt);
-                    if (card->enable && is_rt && (card->enable != ISAPNP_CARD_NO_KEY) && (card->state == PNP_STATE_WAIT_FOR_KEY))
+                    int match_rt = (dev->using_key2 && card->is_rt);
+                    int match_normal = (!dev->using_key2 && card->normal);
+                    if (card->enable && (match_rt || match_normal) &&
+                        (card->enable != ISAPNP_CARD_NO_KEY) && (card->state == PNP_STATE_WAIT_FOR_KEY))
                         card->state = PNP_STATE_SLEEP;
                     card = card->next;
                 }
             }
-        } else {
+        } else
             dev->key_pos = 0;
-        }
     }
 }
 
@@ -527,8 +530,22 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                 if (card->csn == val) {
                     card->rom_pos     = 0;
                     card->id_checksum = isapnp_init_key[0];
-                    if (card->state == PNP_STATE_SLEEP)
+                    if (card->state == PNP_STATE_SLEEP) {
                         card->state = (val == 0) ? PNP_STATE_ISOLATION : PNP_STATE_CONFIG;
+
+                        if (!card->multiple_lds) {
+                            ld = card->first_ld;
+                            while (ld) {
+                                if (ld->number == 0x00) {
+                                    isapnp_log("ISAPnP: Select CSN %02X device 00\n", card->csn);
+                                    dev->current_ld_card = card;
+                                    dev->current_ld      = ld;
+                                    break;
+                                }
+                                ld = ld->next;
+                            }
+                        }
+                    }
                 } else
                     card->state = PNP_STATE_SLEEP;
 
@@ -549,27 +566,28 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
             break;
 
         case 0x07: /* Logical Device Number */
-            CHECK_CURRENT_CARD();
+            if (card->multiple_lds) {
+                CHECK_CURRENT_CARD();
 
-            card->ld = val;
-            ld = card->first_ld;
-            while (ld) {
-                if (ld->number == val) {
-                    isapnp_log("ISAPnP: Select CSN %02X device %02X\n", card->csn, val);
-                    dev->current_ld_card = card;
-                    dev->current_ld      = ld;
-                    break;
+                card->ld = val;
+                ld = card->first_ld;
+                while (ld) {
+                    if (ld->number == val) {
+                        isapnp_log("ISAPnP: Select CSN %02X device %02X\n", card->csn, val);
+                        dev->current_ld_card = card;
+                        dev->current_ld      = ld;
+                        break;
+                    }
+                    ld = ld->next;
                 }
-                ld = ld->next;
-            }
 
-            if (!ld) {
-                isapnp_log("ISAPnP: CSN %02X has no device %02X, creating one\n", card->csn, val);
-                dev->current_ld_card    = card;
-                dev->current_ld         = isapnp_create_ld(card);
-                dev->current_ld->number = val;
+                if (!ld) {
+                    isapnp_log("ISAPnP: CSN %02X has no device %02X, creating one\n", card->csn, val);
+                    dev->current_ld_card    = card;
+                    dev->current_ld         = isapnp_create_ld(card);
+                    dev->current_ld->number = val;
+                }
             }
-
             break;
 
         case 0x30: /* Activate */
@@ -759,11 +777,13 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     isapnp_card_t *card = (isapnp_card_t *) calloc(1, sizeof(isapnp_card_t));
 
     card->enable           = 1;
+    card->normal           = 1;
     card->priv             = priv;
     card->config_changed   = config_changed;
     card->csn_changed      = csn_changed;
     card->read_vendor_reg  = read_vendor_reg;
     card->write_vendor_reg = write_vendor_reg;
+    card->multiple_lds     = 1;
 
     if (!dev->first_card) {
         dev->first_card = card;
@@ -1199,6 +1219,45 @@ isapnp_set_rt(void *priv, uint8_t is_rt)
     isapnp_card_t *card = (isapnp_card_t *) priv;
 
     card->is_rt = is_rt;
+}
+
+void
+isapnp_set_normal(void *priv, uint8_t normal)
+{
+    isapnp_card_t *card = (isapnp_card_t *) priv;
+
+    card->normal = normal;
+}
+
+void
+isapnp_activate(void *priv, uint16_t base, uint8_t irq)
+{
+    isapnp_card_t   *card = (isapnp_card_t *) priv;
+    isapnp_device_t *ld   = card->first_ld;
+
+    while (ld) {
+        if (ld->number == 0x00)
+            break;
+        ld = ld->next;
+    }
+
+    if (ld != NULL) {
+        ld->regs[0x30] = 0x01;
+        ld->regs[0x60] = base >> 4;
+        if (!(ld->io_16bit & (1 << ((0x60 >> 1) & 0x07))))
+            ld->regs[0x60] &= 0x03;
+        ld->regs[0x61] = base & 0x0f;
+        ld->regs[0x70] = irq;
+    }
+}
+
+void
+isapnp_set_single_ld(void *priv)
+{
+    isapnp_card_t   *card = (isapnp_card_t *) priv;
+
+    card->multiple_lds    = 0;
+    card->ld              = 0x00;
 }
 
 uint8_t *
