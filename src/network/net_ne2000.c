@@ -1360,14 +1360,14 @@ nic_init(const device_t *info)
 
             if (!(dev->config3 & 0x01)) {
                 uint8_t  irq_map[8]    = { 9, 3, 4, 5, 10, 11, 12, 15 };
-                dev->base_address      = 0x0000;
 
-                dev->base_irq          = irq_map[(dev->config1 >> 4) & 0x07];
-
-                dev->base_address      = (dev->config1 & 0x01) ? 0x0020 : 0x0000;
+                dev->base_address      = 0x0200;
+                dev->base_address     |= (dev->config1 & 0x01) ? 0x0020 : 0x0000;
                 dev->base_address     |= (dev->config1 & 0x02) ? 0x0040 : 0x0000;
                 dev->base_address     |= (dev->config1 & 0x04) ? 0x0000 : 0x0100;
                 dev->base_address     |= (dev->config1 & 0x08) ? 0x0080 : 0x0000;
+
+                dev->base_irq          = irq_map[(dev->config1 >> 4) & 0x07];
 
                 nic_ioset(dev, dev->base_address);
 
