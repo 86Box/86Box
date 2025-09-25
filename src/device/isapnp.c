@@ -465,9 +465,40 @@ isapnp_write_addr(UNUSED(uint16_t addr), uint8_t val, void *priv)
 }
 
 static void
-isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uint8_t reg, uint8_t val)
+isapnp_ld_io_remove(isapnp_device_t *ld)
 {
     uint16_t io_addr;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        if (!ld->io_len[i])
+            continue;
+
+        io_addr = (ld->regs[0x60 + (2 * i)] << 8) | ld->regs[0x61 + (2 * i)];
+
+        io_removehandler(io_addr, ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, ld);
+    }
+}
+
+static void
+isapnp_ld_io_set(isapnp_device_t *ld)
+{
+    uint16_t io_addr;
+
+    for (uint8_t i = 0; i < 8; i++) {
+        if (!ld->io_len[i])
+            continue;
+
+        io_addr = (ld->regs[0x60 + (2 * i)] << 8) | ld->regs[0x61 + (2 * i)];
+        int ior = !(ld->regs[0x30] & 0x01) && (ld->regs[0x31] & 0x02);
+
+        if (ior)
+            io_sethandler(io_addr, ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, ld);
+    }
+}
+
+static void
+isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uint8_t reg, uint8_t val)
+{
     uint16_t reset_cards = 0;
 
     isapnp_log("ISAPnP: write_common(%02X, %02X)\n", reg, val);
@@ -591,46 +622,22 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
             break;
 
         case 0x30: /* Activate */
-            CHECK_CURRENT_LD();
-
-            isapnp_log("ISAPnP: %sctivate CSN %02X device %02X\n", (val & 0x01) ? "A" : "Dea", card->csn, ld->number);
-
-            ld->regs[reg] = val & 0x01;
-            isapnp_device_config_changed(card, ld);
-
-            for (uint8_t i = 0; i < 8; i++) {
-                if (!ld->io_len[i])
-                    continue;
-
-                io_addr = (ld->regs[0x60 + (2 * i)] << 8) | ld->regs[0x61 + (2 * i)];
-                if (val & 0x01) {
-                    if (ld->regs[0x31] & 0x02)
-                        io_removehandler(io_addr, ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, ld);
-                } else {
-                    if (ld->regs[0x31] & 0x02)
-                        io_sethandler(io_addr, ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, ld);
-                }
-            }
-
-            break;
-
         case 0x31: /* I/O Range Check */
             CHECK_CURRENT_LD();
 
-            for (uint8_t i = 0; i < 8; i++) {
-                if (!ld->io_len[i])
-                    continue;
+            isapnp_log("ISAPnP: %sctivate CSN %02X device %02X\n", (ld->regs[0x30] & 0x01) ? "A" : "Dea",
+                       card->csn, ld->number);
 
-                io_addr = (ld->regs[0x60 + (2 * i)] << 8) | ld->regs[0x61 + (2 * i)];
-                if (ld->regs[reg] & 0x02)
-                    io_removehandler(io_addr, ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, ld);
-                if ((val & 0x02) && !(ld->regs[0x30] & 0x01))
-                    io_sethandler(io_addr, ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, ld);
-            }
+            isapnp_ld_io_remove(ld);
 
-            ld->regs[reg] = val & 0x03;
+            if (reg == 0x30)
+                ld->regs[reg] = val & 0x01;
+            else
+                ld->regs[reg] = val & 0x03;
+
+            isapnp_ld_io_set(ld);
+
             isapnp_device_config_changed(card, ld);
-
             break;
 
         case 0x20 ... 0x2f:
@@ -696,7 +703,9 @@ vendor_defined:
                         break;
                 }
 
+                isapnp_ld_io_remove(ld);
                 ld->regs[reg] = val;
+                isapnp_ld_io_set(ld);
                 isapnp_device_config_changed(card, ld);
             }
             break;
