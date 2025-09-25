@@ -441,6 +441,7 @@ RendererStack::createRenderer(Renderer renderer)
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     current->setStyleSheet("background-color: black");
+    current->setAttribute(Qt::WA_AlwaysStackOnTop);
     addWidget(current.get());
 
     this->setStyleSheet("background-color: black");

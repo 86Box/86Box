@@ -172,6 +172,19 @@ nic_interrupt(void *priv, int set)
     }
 }
 
+static void
+nic_config_reset(void *priv)
+{
+    nic_t   *dev           = (nic_t *) priv;
+    uint8_t *data          = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
+
+    dev->config1           = (data[0x00] & 0x7f) | 0x80;
+    dev->config2           = (data[0x01] & 0xdf);
+    dev->config3           = (data[0x02] & 0xf7);
+
+    isapnp_set_normal(dev->pnp_card, !!(dev->config3 & 0x80));
+}
+
 /* reset - restore state to power-up, cancelling all i/o */
 static void
 nic_reset(void *priv)
@@ -181,6 +194,9 @@ nic_reset(void *priv)
     nelog(1, "%s: reset\n", dev->name);
 
     dp8390_reset(dev->dp8390);
+
+    if (dev->board >= NE2K_RTL8019AS_PNP)
+        nic_config_reset(priv);
 }
 
 static void
@@ -189,6 +205,9 @@ nic_soft_reset(void *priv)
     nic_t *dev = (nic_t *) priv;
 
     dp8390_soft_reset(dev->dp8390);
+
+    if (dev->board >= NE2K_RTL8019AS_PNP)
+        nic_config_reset(priv);
 }
 
 /*
@@ -423,7 +442,7 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
 
                     dev->config1           = (data[0x00] & 0x7f) | 0x80;
                     dev->config2           = (data[0x01] & 0xdf);
-                    dev->config3           = (data[0x02] & 0x77) | 0x80;
+                    dev->config3           = (data[0x02] & 0xf7);
                     dev->_9346cr           = 0x21;
 
                     isapnp_set_normal(dev->pnp_card, !!(dev->config3 & 0x80));
@@ -583,11 +602,9 @@ static void nic_ioremove(nic_t *dev, uint16_t addr);
 static void
 nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
-#if 0
     uint8_t irq_map[16] = { 0x00, 0x00, 0x00, 0x10, 0x20, 0x30, 0x00, 0x00,
                             0x00, 0x00, 0x40, 0x50, 0x60, 0x00, 0x00, 0x70 };
     uint8_t ios         = 0x00;
-#endif
 
     if (ld)
         return;
@@ -603,22 +620,18 @@ nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     nic_interrupt(dev, 0);
     dev->base_irq     = config->irq[0].irq;
-#if 0
     if ((dev->base_irq >= 0x00) && (dev->base_irq <= 0x0f))
         dev->config1      = (dev->config1 & 0x8f) | irq_map[dev->base_irq];
     else
         dev->config1      = (dev->config1 & 0x8f);
-#endif
 
     if (config->activate && (dev->base_address != ISAPNP_IO_DISABLED)) {
         nic_ioset(dev, dev->base_address);
-#if 0
         ios              |= (dev->base_address & 0x0100) ? 0x00 : 0x04;
         ios              |= (dev->base_address & 0x0080) ? 0x08 : 0x00;
         ios              |= (dev->base_address & 0x0040) ? 0x02 : 0x00;
         ios              |= (dev->base_address & 0x0020) ? 0x01 : 0x00;
         dev->config1      = (dev->config1 & 0xf0) | ios;
-#endif
     }
 }
 
@@ -1366,14 +1379,14 @@ nic_init(const device_t *info)
 
             if (!(dev->config3 & 0x01)) {
                 uint8_t  irq_map[8]    = { 9, 3, 4, 5, 10, 11, 12, 15 };
-                dev->base_address      = 0x0000;
 
-                dev->base_irq          = irq_map[(dev->config1 >> 4) & 0x07];
-
-                dev->base_address      = (dev->config1 & 0x01) ? 0x0020 : 0x0000;
+                dev->base_address      = 0x0200;
+                dev->base_address     |= (dev->config1 & 0x01) ? 0x0020 : 0x0000;
                 dev->base_address     |= (dev->config1 & 0x02) ? 0x0040 : 0x0000;
                 dev->base_address     |= (dev->config1 & 0x04) ? 0x0000 : 0x0100;
                 dev->base_address     |= (dev->config1 & 0x08) ? 0x0080 : 0x0000;
+
+                dev->base_irq          = irq_map[(dev->config1 >> 4) & 0x07];
 
                 nic_ioset(dev, dev->base_address);
 
@@ -1963,7 +1976,7 @@ const device_t rtl8019as_pnp_device = {
     .local         = NE2K_RTL8019AS_PNP,
     .init          = nic_init,
     .close         = nic_close,
-    .reset         = NULL,
+    .reset         = nic_config_reset,
     .available     = rtl8019as_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1977,7 +1990,7 @@ const device_t de220p_device = {
     .local         = NE2K_DE220P,
     .init          = nic_init,
     .close         = nic_close,
-    .reset         = NULL,
+    .reset         = nic_config_reset,
     .available     = de220p_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -1991,7 +2004,7 @@ const device_t rtl8029as_device = {
     .local         = NE2K_RTL8029AS,
     .init          = nic_init,
     .close         = nic_close,
-    .reset         = NULL,
+    .reset         = nic_config_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
