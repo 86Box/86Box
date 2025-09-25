@@ -77,6 +77,7 @@ enum {
 
 typedef struct _isapnp_device_ {
     uint8_t                       number;
+    uint8_t                       defs[256];
     uint8_t                       regs[256];
     uint8_t                       mem_upperlimit;
     uint8_t                       irq_types;
@@ -278,6 +279,18 @@ isapnp_reset_ld_regs(isapnp_device_t *ld)
 
     /* Reset configuration registers to match the default configuration. */
     isapnp_reset_ld_config(ld);
+
+    if (ld->defs[0x30] != 0x00)
+        ld->regs[0x30] = ld->defs[0x30];
+
+    if (ld->defs[0x60] != 0x00)
+        ld->regs[0x60] = ld->defs[0x60];
+
+    if (ld->defs[0x61] != 0x00)
+        ld->regs[0x61] = ld->defs[0x61];
+
+    if (ld->defs[0x70] != 0x00)
+        ld->regs[0x70] = ld->defs[0x70];
 }
 
 static uint8_t
@@ -1251,12 +1264,14 @@ isapnp_activate(void *priv, uint16_t base, uint8_t irq)
     }
 
     if (ld != NULL) {
-        ld->regs[0x30] = 0x01;
-        ld->regs[0x60] = base >> 4;
+        ld->defs[0x30] = 0x01;
+        ld->defs[0x60] = base >> 8;
         if (!(ld->io_16bit & (1 << ((0x60 >> 1) & 0x07))))
-            ld->regs[0x60] &= 0x03;
-        ld->regs[0x61] = base & 0x0f;
-        ld->regs[0x70] = irq;
+            ld->defs[0x60] &= 0x03;
+        ld->defs[0x61] = base & 0xff;
+        ld->defs[0x70] = irq;
+
+        isapnp_reset_ld_regs(ld);
     }
 }
 
