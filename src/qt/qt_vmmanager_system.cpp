@@ -654,6 +654,9 @@ VMManagerSystem::setupVars() {
                 voodoo_name = tr("3Dfx Voodoo 2");
                 break;
         }
+
+        if (voodoo_config["sli"].toInt() == 1)
+            voodoo_name.append(" (SLI)");
     }
     display_table[VMManager::Display::Name::Voodoo] = voodoo_name;
 
