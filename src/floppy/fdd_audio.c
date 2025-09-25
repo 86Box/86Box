@@ -180,30 +180,13 @@ load_wav(const char *filename, int *sample_count)
 
     if ((filename == NULL) || (strlen(filename) == 0))
         return NULL;
-    }
 
     if (strstr(filename, "..") != NULL)
         return NULL;
-    }
 
     f = rom_fopen(filename, "rb");
     if (f == NULL)
         return NULL;
-        }
-    }
-
-    path_append_filename(full_path, exe_path, "roms");
-    path_append_filename(full_path, full_path, "samples");
-    path_append_filename(full_path, full_path, "fdd");
-    path_append_filename(full_path, full_path, filename);
-    f = fopen(full_path, "rb");
-    if (!f) {
-        path_append_filename(full_path, full_path, "samples");
-        path_append_filename(full_path, exe_path, filename);
-        f = fopen(full_path, "rb");
-        if (!f)
-            return NULL;
-    }
 
     wav_header_t hdr;
     if (fread(&hdr, sizeof(hdr), 1, f) != 1) {
