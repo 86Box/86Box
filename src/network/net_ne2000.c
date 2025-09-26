@@ -92,11 +92,12 @@ typedef struct nic_t {
     uint8_t     csnsav;
 
     /* RTL8019AS/RTL8029AS registers */
+    uint8_t     _9346cr;
     uint8_t     config0;
     uint8_t     config1;
     uint8_t     config2;
     uint8_t     config3;
-    uint8_t     _9346cr;
+    uint8_t     res;
 
     uint8_t     pci_regs[PCI_REGSIZE];
 
@@ -112,6 +113,7 @@ typedef struct nic_t {
     int         is_mca;
     int         is_8bit;
     int         base_irq;
+    int         irq_level;
     int         has_bios;
 
     uint32_t    base_address;
@@ -153,6 +155,9 @@ nic_interrupt(void *priv, int set)
     nic_t *dev     = (nic_t *) priv;
     int    enabled = 1;
 
+    if (!dev->irq_level)
+        set    ^= 1;
+
     if (dev->board == NE2K_RTL8019AS_PNP)
         enabled = dev->config1 & 0x80;
 
@@ -176,13 +181,16 @@ static void
 nic_config_reset(void *priv)
 {
     nic_t   *dev           = (nic_t *) priv;
+
     uint8_t *data          = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
 
     dev->config1           = (data[0x00] & 0x7f) | 0x80;
     dev->config2           = (data[0x01] & 0xdf);
     dev->config3           = (data[0x02] & 0xf7);
+    dev->irq_level         = 0x02;
 
-    isapnp_set_normal(dev->pnp_card, !!(dev->config3 & 0x80));
+    if (dev->pnp_card != NULL)
+        isapnp_set_normal(dev->pnp_card, !!(dev->config3 & 0x80));
 }
 
 /* reset - restore state to power-up, cancelling all i/o */
@@ -197,6 +205,8 @@ nic_reset(void *priv)
 
     if (dev->board >= NE2K_RTL8019AS_PNP)
         nic_config_reset(priv);
+    else
+        dev->irq_level         = 0x02;
 }
 
 static void
@@ -208,6 +218,8 @@ nic_soft_reset(void *priv)
 
     if (dev->board >= NE2K_RTL8019AS_PNP)
         nic_config_reset(priv);
+    else
+        dev->irq_level         = 0x02;
 }
 
 /*
@@ -384,8 +396,18 @@ page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
                     ret = (dev->config3 & 0x46);
                 break;
 
+            case 0x7: /* Reserved, Do not write */
+                if (dev->board == NE2K_RTL8019AS_PNP)
+                    ret = dev->res;
+                break;
+
             case 0x8: /* CSNSAV */
                 ret = ((dev->board == NE2K_RTL8019AS_PNP) ? *dev->pnp_csnsav : 0x00);
+                break;
+
+            case 0x9: case 0xa:
+            case 0xc:
+                ret = 0xff;
                 break;
 
             case 0xb: /* INTR */
@@ -411,11 +433,15 @@ page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
             case 0xe: /* 8029ASID0 */
                 if (dev->board == NE2K_RTL8029AS)
                     ret = 0x29;
+                else
+                    ret = 0xff;
                 break;
 
             case 0xf: /* 8029ASID1 */
                 if (dev->board == NE2K_RTL8029AS)
                     ret = 0x80;
+                else
+                    ret = 0xff;
                 break;
         }
 
@@ -475,6 +501,11 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
                     else
                         dev->config3 = (val & 0x46);
                 }
+                break;
+
+            case 0x7: /* Reserved, Do not write */
+                if (dev->board == NE2K_RTL8019AS_PNP)
+                    dev->res = val;
                 break;
 
             case 0x09: /* HLTCLK  */
@@ -618,8 +649,10 @@ nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     dev->base_address = config->io[0].base;
 
+    dev->irq_level    = 0x02;
     nic_interrupt(dev, 0);
     dev->base_irq     = config->irq[0].irq;
+    dev->irq_level    = config->irq[0].level;
     if ((dev->base_irq >= 0x00) && (dev->base_irq <= 0x0f))
         dev->config1      = (dev->config1 & 0x8f) | irq_map[dev->base_irq];
     else
