@@ -481,8 +481,11 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
                 break;
 
             case 0x04: /* CONFIG1 */
-                if (cfg_write_enable && (dev->board == NE2K_RTL8019AS_PNP))
+                if (cfg_write_enable && (dev->board == NE2K_RTL8019AS_PNP)) {
                     dev->config1 = (dev->config1 & 0x7f) | (val & 0x80);
+                    if (val & 0x80)
+                        nic_interrupt(dev, 1);
+                }
                 break;
 
             case 0x05: /* CONFIG2 */
@@ -649,8 +652,6 @@ nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     dev->base_address = config->io[0].base;
 
-    dev->irq_level    = 0x02;
-    nic_interrupt(dev, 0);
     dev->base_irq     = config->irq[0].irq;
     dev->irq_level    = config->irq[0].level;
     if ((dev->base_irq >= 0x00) && (dev->base_irq <= 0x0f))
