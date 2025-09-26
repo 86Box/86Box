@@ -155,7 +155,7 @@ nic_interrupt(void *priv, int set)
     nic_t *dev     = (nic_t *) priv;
     int    enabled = 1;
 
-    if (dev->irq_level)
+    if (!dev->irq_level)
         set    ^= 1;
 
     if (dev->board == NE2K_RTL8019AS_PNP)
