@@ -113,6 +113,7 @@ typedef struct nic_t {
     int         is_mca;
     int         is_8bit;
     int         base_irq;
+    int         irq_level;
     int         has_bios;
 
     uint32_t    base_address;
@@ -154,6 +155,9 @@ nic_interrupt(void *priv, int set)
     nic_t *dev     = (nic_t *) priv;
     int    enabled = 1;
 
+    if (dev->irq_level)
+        set    ^= 1;
+
     if (dev->board == NE2K_RTL8019AS_PNP)
         enabled = dev->config1 & 0x80;
 
@@ -183,6 +187,7 @@ nic_config_reset(void *priv)
     dev->config1           = (data[0x00] & 0x7f) | 0x80;
     dev->config2           = (data[0x01] & 0xdf);
     dev->config3           = (data[0x02] & 0xf7);
+    dev->irq_level         = 0x02;
 
     if (dev->pnp_card != NULL)
         isapnp_set_normal(dev->pnp_card, !!(dev->config3 & 0x80));
@@ -200,6 +205,8 @@ nic_reset(void *priv)
 
     if (dev->board >= NE2K_RTL8019AS_PNP)
         nic_config_reset(priv);
+    else
+        dev->irq_level         = 0x02;
 }
 
 static void
@@ -211,6 +218,8 @@ nic_soft_reset(void *priv)
 
     if (dev->board >= NE2K_RTL8019AS_PNP)
         nic_config_reset(priv);
+    else
+        dev->irq_level         = 0x02;
 }
 
 /*
@@ -640,8 +649,10 @@ nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     dev->base_address = config->io[0].base;
 
+    dev->irq_level    = 0x02;
     nic_interrupt(dev, 0);
     dev->base_irq     = config->irq[0].irq;
+    dev->irq_level    = config->irq[0].level;
     if ((dev->base_irq >= 0x00) && (dev->base_irq <= 0x0f))
         dev->config1      = (dev->config1 & 0x8f) | irq_map[dev->base_irq];
     else
