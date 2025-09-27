@@ -1963,13 +1963,13 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 break;
             case 0x8198:
                 virge->streams.sec_filter     = val;
-                virge->streams.k1_horiz_scale = val & 0x7ff;
-                if (val & 0x800)
-                    virge->streams.k1_horiz_scale |= ~0x7ff;
+                virge->streams.k1_horiz_scale = val & 0x3ff;
+                if (val & 0x400)
+                    virge->streams.k1_horiz_scale |= ~0x3ff;
 
-                virge->streams.k2_horiz_scale = (val >> 16) & 0x7ff;
-                if ((val >> 16) & 0x800)
-                    virge->streams.k2_horiz_scale |= ~0x7ff;
+                virge->streams.k2_horiz_scale = (val >> 16) & 0x3ff;
+                if ((val >> 16) & 0x400)
+                    virge->streams.k2_horiz_scale |= ~0x3ff;
 
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
@@ -2020,14 +2020,14 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 virge->streams.overlay_ctrl = val;
                 break;
             case 0x81e0:
-                virge->streams.k1_vert_scale = val & 0x7ff;
-                if (val & 0x800)
-                    virge->streams.k1_vert_scale |= ~0x7ff;
+                virge->streams.k1_vert_scale = val & 0x3ff;
+                if (val & 0x400)
+                    virge->streams.k1_vert_scale |= ~0x3ff;
                 break;
             case 0x81e4:
-                virge->streams.k2_vert_scale = val & 0x7ff;
-                if (val & 0x800)
-                    virge->streams.k2_vert_scale |= ~0x7ff;
+                virge->streams.k2_vert_scale = val & 0x3ff;
+                if (val & 0x400)
+                    virge->streams.k2_vert_scale |= ~0x3ff;
                 break;
             case 0x81e8:
                 virge->streams.dda_vert_accumulator = val & 0x7ff;
