@@ -184,7 +184,7 @@ fdc_ctrl_reset(void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
-    fdc->stat             = 0x10;
+    fdc->stat             = 0x80;
     fdc->pnum = fdc->ptot = 0;
     fdc->st0              = 0;
     fdc->head             = 0;
@@ -1211,7 +1211,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 
                             case 0x07: /* Recalibrate */
                                 fdc->rw_drive = fdc->params[0] & 3;
-                                fdc->stat     = 0x10 | (1 << real_drive(fdc, fdc->drive));
+                                fdc->stat     = (1 << real_drive(fdc, fdc->drive));
                                 if (!(fdc->flags & FDC_FLAG_PCJR))
                                     fdc->stat |= 0x80;
                                 fdc->st0 = fdc->params[0] & 3;
@@ -1266,7 +1266,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 break;
                             case 0x0f: /* Seek */
                                 fdc->rw_drive = fdc->params[0] & 3;
-                                fdc->stat     = 0x10 | (1 << fdc->drive);
+                                fdc->stat     = (1 << fdc->drive);
                                 if (!(fdc->flags & FDC_FLAG_PCJR))
                                     fdc->stat |= 0x80;
                                 fdc->head = 0; /* TODO: See if this is correct. */
