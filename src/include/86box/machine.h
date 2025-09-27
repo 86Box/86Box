@@ -1134,6 +1134,9 @@ extern int             machine_at_p65up5_cpknd_init(const machine_t *);
 extern int             machine_at_kn97_init(const machine_t *);
 
 /* i440LX */
+#ifdef EMU_DEVICE_H
+extern const device_t  lx6_device;
+#endif
 extern int             machine_at_lx6_init(const machine_t *);
 extern int             machine_at_optiplexgxa_init(const machine_t *);
 extern int             machine_at_spitfire_init(const machine_t *);

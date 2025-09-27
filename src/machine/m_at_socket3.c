@@ -216,7 +216,7 @@ machine_at_403tg_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    int nvr_hack = !strcmp(device_get_config_bios("bios"), "403tg_d");
+    int nvr_hack = !strcmp(device_get_config_bios("bios"), "403tg");
     fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
 
