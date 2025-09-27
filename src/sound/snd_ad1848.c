@@ -56,9 +56,22 @@ ad1848_log(const char *fmt, ...)
 static int    ad1848_vols_7bits[128];
 static double ad1848_vols_5bits_aux_gain[32];
 
-/* Borrowed from snd_sb_dsp */
-extern int8_t  scaleMap4[64];
-extern uint8_t adjustMap4[64];
+/* Borrowed from ffmpeg. */
+static const int8_t adpcm_index_table[16] = {
+    -1, -1, -1, -1, 2, 4, 6, 8,
+    -1, -1, -1, -1, 2, 4, 6, 8
+};
+static const int16_t adpcm_step_table[89] = {
+        7,     8,     9,    10,    11,    12,    13,    14,    16,    17,
+       19,    21,    23,    25,    28,    31,    34,    37,    41,    45,
+       50,    55,    60,    66,    73,    80,    88,    97,   107,   118,
+      130,   143,   157,   173,   190,   209,   230,   253,   279,   307,
+      337,   371,   408,   449,   494,   544,   598,   658,   724,   796,
+      876,   963,  1060,  1166,  1282,  1411,  1552,  1707,  1878,  2066,
+     2272,  2499,  2749,  3024,  3327,  3660,  4026,  4428,  4871,  5358,
+     5894,  6484,  7132,  7845,  8630,  9493, 10442, 11487, 12635, 13899,
+    15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
+};
 
 void
 ad1848_setirq(ad1848_t *ad1848, int irq)
@@ -311,6 +324,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 case 9:
                     if (!ad1848->enable && (val & 0x41) == 0x01) {
                         ad1848->adpcm_pos = 0;
+                        ad1848->adpcm_predictor[0] = ad1848->adpcm_predictor[1] = 0;
+                        ad1848->adpcm_step_index[0] = ad1848->adpcm_step_index[1] = 0;
                         ad1848->dma_ff = 0;
                         if (ad1848->timer_latch)
                             timer_set_delay_u64(&ad1848->timer_count, ad1848->timer_latch);
@@ -356,6 +371,11 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                             timer_disable(&ad1848->cs4231a_irq_timer);
                         }
                     }
+                    break;
+
+                case 17:
+                    if (val & 0x08)
+                        ad1848->adpcm_predictor[0] = ad1848->adpcm_predictor[1] = 0;
                     break;
 
                 case 18 ... 19:
@@ -622,29 +642,33 @@ ad1848_dma_channel_read(ad1848_t *ad1848, int channel)
 }
 
 static int16_t
-ad1848_process_adpcm(ad1848_t *ad1848)
+ad1848_process_adpcm(ad1848_t *ad1848, int channel)
 {
     int temp;
     if (ad1848->adpcm_pos++ & 1) {
-        temp = (ad1848->adpcm_data & 0x0f) + ad1848->adpcm_step;
+        temp = ad1848->adpcm_data >> 4;
     } else {
-        ad1848->adpcm_data = (int) (ad1848_dma_channel_read(ad1848, ad1848->dma) & 0xffff);
-        temp               = (ad1848->adpcm_data >> 4) + ad1848->adpcm_step;
+        ad1848->adpcm_data = ad1848_dma_channel_read(ad1848, ad1848->dma);
+        temp               = ad1848->adpcm_data & 0x0f;
     }
-    if (temp < 0)
-        temp = 0;
-    else if (temp > 63)
-        temp = 63;
 
-    ad1848->adpcm_ref += scaleMap4[temp];
-    if (ad1848->adpcm_ref > 0xff)
-        ad1848->adpcm_ref = 0xff;
-    else if (ad1848->adpcm_ref < 0x00)
-        ad1848->adpcm_ref = 0x00;
+    int step       = adpcm_step_table[ad1848->adpcm_step_index[channel]];
+    int step_index = ad1848->adpcm_step_index[channel] + adpcm_index_table[temp];
+    if (step_index < 0)
+        step_index = 0;
+    else if (step_index > 88)
+        step_index = 88;
 
-    ad1848->adpcm_step = (int8_t) ((ad1848->adpcm_step + adjustMap4[temp]) & 0xff);
+    int diff      = ((2 * (temp & 7) + 1) * step) >> 3;
+    int predictor = ad1848->adpcm_predictor[channel] + ((temp & 8) ? -diff : diff);
+    if (predictor < -32768)
+        predictor = -32768;
+    else if (predictor > 32767)
+        predictor = 32767;
+    ad1848->adpcm_predictor[channel]  = predictor;
+    ad1848->adpcm_step_index[channel] = step_index;
 
-    return (int16_t) ((ad1848->adpcm_ref ^ 0x80) << 8);
+    return (int16_t) predictor;
 }
 
 static void
@@ -705,12 +729,12 @@ ad1848_poll(void *priv)
                 /* 0x80 and 0x90 reserved */
 
             case 0xa0: /* Mono, 4-bit ADPCM */
-                ad1848->out_l = ad1848->out_r = ad1848_process_adpcm(ad1848);
+                ad1848->out_l = ad1848->out_r = ad1848_process_adpcm(ad1848, 0);
                 break;
 
             case 0xb0: /* Stereo, 4-bit ADPCM */
-                ad1848->out_l = ad1848_process_adpcm(ad1848);
-                ad1848->out_r = ad1848_process_adpcm(ad1848);
+                ad1848->out_l = ad1848_process_adpcm(ad1848, 0);
+                ad1848->out_r = ad1848_process_adpcm(ad1848, 1);
                 break;
 
             case 0xc0: /* Mono, 16-bit PCM big endian */
