@@ -1252,7 +1252,7 @@ isapnp_set_normal(void *priv, uint8_t normal)
 }
 
 void
-isapnp_activate(void *priv, uint16_t base, uint8_t irq)
+isapnp_activate(void *priv, uint16_t base, uint8_t irq, int active)
 {
     isapnp_card_t   *card = (isapnp_card_t *) priv;
     isapnp_device_t *ld   = card->first_ld;
@@ -1264,7 +1264,7 @@ isapnp_activate(void *priv, uint16_t base, uint8_t irq)
     }
 
     if (ld != NULL) {
-        ld->defs[0x30] = 0x01;
+        ld->defs[0x30] = active;
         ld->defs[0x60] = base >> 8;
         if (!(ld->io_16bit & (1 << ((0x60 >> 1) & 0x07))))
             ld->defs[0x60] &= 0x03;

@@ -176,6 +176,7 @@ static int16_t *
 load_wav(const char *filename, int *sample_count)
 {
     FILE *f = NULL;
+    char  full_path[2048];
 
     if ((filename == NULL) || (strlen(filename) == 0))
         return NULL;
