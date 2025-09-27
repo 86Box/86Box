@@ -936,8 +936,11 @@ MainWindow::closeEvent(QCloseEvent *event)
         const bool wasMax = isMaximized();
         QRect normal = wasMax ? this->normalGeometry() : this->geometry();
         // Save WINDOW size (not the content widget’s 4:3 box)
+        const int chromeHeight = geometry().height() - ui->stackedWidget->height();
         window_w = normal.width();
-        window_h = normal.height();
+        window_h = normal.height() - chromeHeight;
+        if (window_h < 0)
+            window_h = 0;
         if (!QApplication::platformName().contains("wayland")) {
             window_x = normal.x();
             window_y = normal.y();
