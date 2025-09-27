@@ -16021,8 +16021,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 50000000,
-            .max_bus = 66666667,
+            .min_bus = 60000000,
+            .max_bus = 100000000,
             .min_voltage = 2200,
             .max_voltage = 3200,
             .min_multi = 1.5,
@@ -16053,7 +16053,7 @@ const machine_t machines[] = {
     },
     /* M1534c kbc */
     {
-        .name = "[ALi ALADDiN V] Gateway Lucas",
+        .name = "[ALi ALADDiN V] Gateway Lucas (MSI MS-5185)",
         .internal_name = "gwlucas",
         .type = MACHINE_TYPE_SOCKETS7,
         .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
