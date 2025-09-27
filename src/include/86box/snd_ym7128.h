@@ -19,18 +19,18 @@ typedef struct ym7128_t {
     int c1;
     int t[9];
 
-    int16_t filter_dat[2];
-    int16_t prev_l[2];
-    int16_t prev_r[2];
+    int16_t filter_dat;
+    int16_t prev_l;
+    int16_t prev_r;
 
-    int16_t delay_buffer[2][2400];
-    int     delay_pos[2];
+    int16_t delay_buffer[2400];
+    int     delay_pos;
 
     int16_t last_samp;
 } ym7128_t;
 
 void ym7128_init(ym7128_t *ym7128);
 void ym7128_write(ym7128_t *ym7128, uint8_t val);
-void ym7128_apply(ym7128_t *ym7128, int16_t *buffer, int i, int len);
+void ym7128_apply(ym7128_t *ym7128, int16_t *buffer, int len);
 
 #endif /*SOUND_YM7128_H*/
