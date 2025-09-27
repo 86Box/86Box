@@ -86,9 +86,9 @@ static const device_config_t fr510_config[] = {
         .spinner = { 0 },
         .bios = {
             { .name = "Award Modular BIOS v4.51PG - Revision 1.19 (01/15/1999)", .internal_name = "fr510_1999", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/fr510/fr510119.BIN", "" } },
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/fr510/FR510119.bin", "" } },
             { .name = "Award Modular BIOS v4.51PG - Revision SCC-128 (11/27/2002)", .internal_name = "fr510", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/fr510/510s228.BIN", "" } },
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/fr510/510S128.BIN", "" } },
             { .files_no = 0 }
         },
     },
