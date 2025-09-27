@@ -16009,7 +16009,7 @@ const machine_t machines[] = {
     },
     /* M1534c kbc */
     {
-        .name = "[ALi ALADDiN V] Gateway Lucas",
+        .name = "[ALi ALADDiN V] Gateway Lucas (MSI MS-5185)",
         .internal_name = "gwlucas",
         .type = MACHINE_TYPE_SOCKETS7,
         .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
