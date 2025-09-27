@@ -12388,7 +12388,7 @@ const machine_t machines[] = {
     },
     /* The BIOS sends KBC command B3 which indicates an AMI (or VIA VT82C42N) KBC. */
     {
-        .name = "[i430FX] NEC PowerMate V",
+        .name = "[i430FX] NEC PowerMate Vxxx",
         .internal_name = "powermatev",
         .type = MACHINE_TYPE_SOCKET5,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
@@ -15329,7 +15329,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has the Phoenix MultiKey KBC firmware on the NSC Suepr I/O chip. */
+    /* This has the Phoenix MultiKey KBC firmware on the NSC Super I/O chip. */
     {
         .name = "[i430TX] Packard Bell PB790",
         .internal_name = "an430tx",
@@ -16028,7 +16028,7 @@ const machine_t machines[] = {
             .min_multi = 1.5,
             .max_multi = 5.5
         },
-        .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB, /* Has internal video: ATI 3D Rage IIc AGP (Rage 2) */
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Has internal video: ATI 3D Rage IIc AGP (Rage 2) */
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB,
         .ram = {
             .min = 8192,
