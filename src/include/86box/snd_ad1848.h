@@ -66,10 +66,10 @@ typedef struct ad1848_t {
     uint8_t enable : 1;
     uint8_t irq    : 4;
     uint8_t dma    : 3;
-    uint8_t adpcm_ref;
-    int8_t  adpcm_step;
+    int     adpcm_predictor[2];
+    int16_t adpcm_step_index[2];
     int     freq;
-    int     adpcm_data;
+    uint8_t adpcm_data;
     int     adpcm_pos;
 
     uint8_t  dma_ff;
