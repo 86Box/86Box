@@ -12973,7 +12973,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
-        .name = "[i430FX] HP Vectra VL 5 Series 4",
+        .name = "[i430FX] HP Vectra VL 5/xxx Series 4 (Chimay)",
         .internal_name = "vectra54",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
