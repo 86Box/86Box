@@ -79,11 +79,34 @@ typedef struct fdd_t {
 
 fdd_t fdd[FDD_NUM];
 
+enum {
+    FDD_OP_NONE = 0,
+    FDD_OP_READ,
+    FDD_OP_WRITE,
+    FDD_OP_COMPARE,
+    FDD_OP_READADDR,
+    FDD_OP_FORMAT
+};
+
+typedef struct fdd_pending_op_t {
+    int     pending;
+    int     op;
+    int     sector;
+    int     track;
+    int     side;
+    int     density;
+    int     sector_size;
+    uint8_t fill;
+} fdd_pending_op_t;
+
+static fdd_pending_op_t fdd_pending[FDD_NUM];
+
 char  floppyfns[FDD_NUM][512];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];
 pc_timer_t fdd_seek_timer[FDD_NUM];
+int        fdd_seek_in_progress[FDD_NUM] = { 0, 0, 0, 0 };
 
 static int fdd_notfound = 0;
 static int driveloaders[FDD_NUM];
@@ -293,10 +316,49 @@ fdd_seek_complete_callback(void *priv)
 {
     DRIVE *drive = (DRIVE *) priv;
 
+    fdd_seek_in_progress[drive->id] = 0;
+
     fdd_log("fdd_seek_complete_callback(drive=%d) - TIMER FIRED! seek_in_progress=1\n", drive->id);
     fdd_log("Notifying FDC of seek completion\n");
     fdd_do_seek(drive->id, fdd[drive->id].track);
-    fdc_seek_complete_interrupt(fdd_fdc, drive->id);
+
+    int had_pending = fdd_pending[drive->id].pending;
+    if (had_pending) {
+        fdd_pending_op_t *po = &fdd_pending[drive->id];
+        fdd_log("Starting deferred op %d after seek on drive %d (trk=%d, side=%d, sec=%d)\n",
+                po->op, drive->id, po->track, po->side, po->sector);
+
+        switch (po->op) {
+            case FDD_OP_READ:
+                if (drives[drive->id].readsector)
+                    drives[drive->id].readsector(drive->id, po->sector, po->track, po->side, po->density, po->sector_size);
+                break;
+            case FDD_OP_WRITE:
+                if (drives[drive->id].writesector)
+                    drives[drive->id].writesector(drive->id, po->sector, po->track, po->side, po->density, po->sector_size);
+                break;
+            case FDD_OP_COMPARE:
+                if (drives[drive->id].comparesector)
+                    drives[drive->id].comparesector(drive->id, po->sector, po->track, po->side, po->density, po->sector_size);
+                break;
+            case FDD_OP_READADDR:
+                if (drives[drive->id].readaddress)
+                    drives[drive->id].readaddress(drive->id, po->side, po->density);
+                break;
+            case FDD_OP_FORMAT:
+                if (drives[drive->id].format)
+                    drives[drive->id].format(drive->id, po->side, po->density, po->fill);
+                break;
+            default:
+                break;
+        }
+
+        po->pending = 0;
+        po->op      = FDD_OP_NONE;
+    }
+
+    if (!had_pending)
+        fdc_seek_complete_interrupt(fdd_fdc, drive->id);
 }
 
 void
@@ -305,6 +367,11 @@ fdd_seek(int drive, int track_diff)
     fdd_log("fdd_seek(drive=%d, track_diff=%d)\n", drive, track_diff);
     if (!track_diff)
         return;
+
+    if (fdd_seek_in_progress[drive]) {
+        fdd_log("Seek already in progress for drive %d, ignoring new seek request\n", drive);
+        return;
+    }
 
     int old_track = fdd[drive].track;
 
@@ -327,11 +394,13 @@ fdd_seek(int drive, int track_diff)
         /* Multi-track seek */
         fdd_audio_play_multi_track_seek(drive, old_track, fdd[drive].track);
     }
-    
+
     if (old_track + track_diff < 0) {
         fdd_do_seek(drive, fdd[drive].track);
         return;
     }
+
+    fdd_seek_in_progress[drive] = 1;
 
     if (!fdd_seek_timer[drive].callback) {
         timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
@@ -629,7 +698,7 @@ fdd_set_motor_enable(int drive, int motor_enable)
 {
     fdd_log("fdd_set_motor_enable(%d, %d)\n", drive, motor_enable);
     fdd_audio_set_motor_enable(drive, motor_enable);
-    
+
     if (motor_enable && !motoron[drive]) {
         timer_set_delay_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
     } else if (!motor_enable && motoron[drive]) {
@@ -700,6 +769,22 @@ void
 fdd_readsector(int drive, int sector, int track, int side, int density, int sector_size)
 {
     fdd_log("fdd_readsector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
+
+    if (fdd_seek_in_progress[drive]) {
+        fdd_log("Seek in progress on drive %d, deferring READ (trk=%d->%d, side=%d, sec=%d)\n",
+                drive, fdd[drive].track, track, side, sector);
+        fdd_pending[drive] = (fdd_pending_op_t) {
+            .pending     = 1,
+            .op          = FDD_OP_READ,
+            .sector      = sector,
+            .track       = track,
+            .side        = side,
+            .density     = density,
+            .sector_size = sector_size
+        };
+        return;
+    }
+
     if (drives[drive].readsector)
         drives[drive].readsector(drive, sector, track, side, density, sector_size);
     else
@@ -710,6 +795,22 @@ void
 fdd_writesector(int drive, int sector, int track, int side, int density, int sector_size)
 {
     fdd_log("fdd_writesector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
+
+    if (fdd_seek_in_progress[drive]) {
+        fdd_log("Seek in progress on drive %d, deferring WRITE (trk=%d->%d, side=%d, sec=%d)\n",
+                drive, fdd[drive].track, track, side, sector);
+        fdd_pending[drive] = (fdd_pending_op_t) {
+            .pending     = 1,
+            .op          = FDD_OP_WRITE,
+            .sector      = sector,
+            .track       = track,
+            .side        = side,
+            .density     = density,
+            .sector_size = sector_size
+        };
+        return;
+    }
+
     if (drives[drive].writesector)
         drives[drive].writesector(drive, sector, track, side, density, sector_size);
     else
@@ -719,6 +820,21 @@ fdd_writesector(int drive, int sector, int track, int side, int density, int sec
 void
 fdd_comparesector(int drive, int sector, int track, int side, int density, int sector_size)
 {
+    if (fdd_seek_in_progress[drive]) {
+        fdd_log("Seek in progress on drive %d, deferring COMPARE (trk=%d->%d, side=%d, sec=%d)\n",
+                drive, fdd[drive].track, track, side, sector);
+        fdd_pending[drive] = (fdd_pending_op_t) {
+            .pending     = 1,
+            .op          = FDD_OP_COMPARE,
+            .sector      = sector,
+            .track       = track,
+            .side        = side,
+            .density     = density,
+            .sector_size = sector_size
+        };
+        return;
+    }
+
     if (drives[drive].comparesector)
         drives[drive].comparesector(drive, sector, track, side, density, sector_size);
     else
@@ -728,6 +844,19 @@ fdd_comparesector(int drive, int sector, int track, int side, int density, int s
 void
 fdd_readaddress(int drive, int side, int density)
 {
+    if (fdd_seek_in_progress[drive]) {
+        fdd_log("Seek in progress on drive %d, deferring READADDRESS (trk=%d, side=%d)\n",
+                drive, fdd[drive].track, side);
+        fdd_pending[drive] = (fdd_pending_op_t) {
+            .pending = 1,
+            .op      = FDD_OP_READADDR,
+            .track   = fdd[drive].track,
+            .side    = side,
+            .density = density
+        };
+        return;
+    }
+
     if (drives[drive].readaddress)
         drives[drive].readaddress(drive, side, density);
 }
@@ -735,6 +864,20 @@ fdd_readaddress(int drive, int side, int density)
 void
 fdd_format(int drive, int side, int density, uint8_t fill)
 {
+    if (fdd_seek_in_progress[drive]) {
+        fdd_log("Seek in progress on drive %d, deferring FORMAT (trk=%d, side=%d)\n",
+                drive, fdd[drive].track, side);
+        fdd_pending[drive] = (fdd_pending_op_t) {
+            .pending = 1,
+            .op      = FDD_OP_FORMAT,
+            .track   = fdd[drive].track,
+            .side    = side,
+            .density = density,
+            .fill    = fill
+        };
+        return;
+    }
+
     if (drives[drive].format)
         drives[drive].format(drive, side, density, fill);
     else
@@ -777,7 +920,7 @@ fdd_init(void)
 
     if (fdd_sounds_enabled) {
         fdd_audio_init();
-    }    
+    }
 }
 
 void

@@ -12388,7 +12388,7 @@ const machine_t machines[] = {
     },
     /* The BIOS sends KBC command B3 which indicates an AMI (or VIA VT82C42N) KBC. */
     {
-        .name = "[i430FX] NEC PowerMate V",
+        .name = "[i430FX] NEC PowerMate Vxxx",
         .internal_name = "powermatev",
         .type = MACHINE_TYPE_SOCKET5,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
@@ -12973,7 +12973,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
-        .name = "[i430FX] HP Vectra VL 5 Series 4",
+        .name = "[i430FX] HP Vectra VL 5/xxx Series 4 (Chimay)",
         .internal_name = "vectra54",
         .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
@@ -15329,7 +15329,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* This has the Phoenix MultiKey KBC firmware on the NSC Suepr I/O chip. */
+    /* This has the Phoenix MultiKey KBC firmware on the NSC Super I/O chip. */
     {
         .name = "[i430TX] Packard Bell PB790",
         .internal_name = "an430tx",
@@ -16009,7 +16009,7 @@ const machine_t machines[] = {
     },
     /* M1534c kbc */
     {
-        .name = "[ALi ALADDiN V] Gateway Lucas",
+        .name = "[ALi ALADDiN V] Gateway Lucas (MSI MS-5185)",
         .internal_name = "gwlucas",
         .type = MACHINE_TYPE_SOCKETS7,
         .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
