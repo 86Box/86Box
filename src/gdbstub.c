@@ -879,6 +879,7 @@ e22:
 
             /* Read by qwords, then by dwords, then by words, then by bytes. */
             i = 0;
+            cpl_override = 1;
             if (is386) {
                 for (; i < (k & ~7); i += 8) {
                     *((uint64_t *) buf) = readmemql(j);
@@ -900,6 +901,7 @@ e22:
                 buf[0] = readmembl(j++);
                 gdbstub_client_respond_hex(client, buf, 1);
             }
+            cpl_override = 0;
             break;
 
         case 'M': /* write memory */
@@ -934,6 +936,7 @@ e22:
             /* Write by qwords, then by dwords, then by words, then by bytes. */
             p = client->packet;
             i = 0;
+            cpl_override = 1;
             if (is386) {
                 for (; i < (k & ~7); i += 8) {
                     writememql(j, *((uint64_t *) p));
@@ -955,6 +958,7 @@ e22:
                 writemembl(j++, p[0]);
                 p++;
             }
+            cpl_override = 0;
 
             /* Respond positively. */
             goto ok;
