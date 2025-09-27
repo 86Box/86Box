@@ -514,7 +514,7 @@ dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned le
 {
     uint8_t val2;
 
-    dp8390_log("DP839: Page0 write to register 0x%02x, value=0x%02x\n",
+    dp8390_log("DP8390: Page0 write to register 0x%02x, value=0x%02x\n",
                off, val);
 
     switch (off) {

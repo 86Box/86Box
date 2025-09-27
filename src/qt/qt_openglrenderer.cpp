@@ -75,7 +75,11 @@ extern int video_focus_dim;
 extern int video_refresh_rate;
 
 const char* vertex_shader_default_tex_src =
+#ifdef __APPLE__
         "#version 150\n"
+#else
+        "#version 130\n"
+#endif
         "\n"
         "in vec4 VertexCoord;\n"
         "in vec2 TexCoord;\n"
@@ -89,7 +93,11 @@ const char* vertex_shader_default_tex_src =
         "}\n";
 
 const char* fragment_shader_default_tex_src =
+#ifdef __APPLE__
         "#version 150\n"
+#else
+        "#version 130\n"
+#endif
         "\n"
         "in vec2 texCoord;\n"
         "uniform sampler2D Texture;\n"
@@ -103,7 +111,11 @@ const char* fragment_shader_default_tex_src =
         "}\n";
 
 const char* vertex_shader_default_color_src =
+#ifdef __APPLE__
         "#version 150\n"
+#else
+        "#version 130\n"
+#endif
         "\n"
         "in vec4 VertexCoord;\n"
         "in vec4 Color;\n"
@@ -117,7 +129,11 @@ const char* vertex_shader_default_color_src =
         "}\n";
 
 const char* fragment_shader_default_color_src =
+#ifdef __APPLE__
         "#version 150\n"
+#else
+        "#version 130\n"
+#endif
         "\n"
         "in vec4 color;\n"
         "\n"
@@ -814,11 +830,9 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     format.setVersion(3, 2);
 #endif
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
-        format.setRenderableType(QSurfaceFormat::OpenGLES);
-
+    format.setRenderableType(QSurfaceFormat::OpenGL);
     format.setSwapInterval(video_vsync ? 1 : 0);
+    format.setAlphaBufferSize(0);
 
     setFormat(format);
 

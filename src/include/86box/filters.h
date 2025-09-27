@@ -75,7 +75,7 @@ adgold_lowpass_iir(int c, int i, float NewSample)
 
 /* fc=56Hz */
 static inline float
-adgold_pseudo_stereo_iir(float NewSample)
+adgold_pseudo_stereo_iir(int i, float NewSample)
 {
     float ACoef[NCoef + 1] = {
         0.00001409030866231767,
@@ -89,23 +89,23 @@ adgold_pseudo_stereo_iir(float NewSample)
         0.98738361004063568000
     };
 
-    static float y[NCoef + 1]; /* output samples */
-    static float x[NCoef + 1]; /* input samples */
+    static float y[2][NCoef + 1]; /* output samples */
+    static float x[2][NCoef + 1]; /* input samples */
     int          n;
 
     /* shift the old samples */
     for (n = NCoef; n > 0; n--) {
-        x[n] = x[n - 1];
-        y[n] = y[n - 1];
+        x[i][n] = x[i][n - 1];
+        y[i][n] = y[i][n - 1];
     }
 
     /* Calculate the new output */
-    x[0] = NewSample;
-    y[0] = ACoef[0] * x[0];
+    x[i][0] = NewSample;
+    y[i][0] = ACoef[0] * x[i][0];
     for (n = 1; n <= NCoef; n++)
-        y[0] += ACoef[n] * x[n] - BCoef[n] * y[n];
+        y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
 
-    return y[0];
+    return y[i][0];
 }
 
 /* fc=3.2kHz - probably incorrect */
