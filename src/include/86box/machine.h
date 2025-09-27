@@ -1069,10 +1069,6 @@ extern int             machine_at_m560_init(const machine_t *);
 /* m_at_sockets7.c */
 /* ALi ALADDiN V */
 extern int             machine_at_p5a_init(const machine_t *);
-#ifdef EMU_DEVICE_H
-extern const device_t  fr510_device;
-#endif
-extern int             machine_at_fr510_init(const machine_t *);
 extern int             machine_at_m579_init(const machine_t *);
 extern int             machine_at_gwlucas_init(const machine_t *);
 extern int             machine_at_5aa_init(const machine_t *);
