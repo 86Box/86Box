@@ -186,7 +186,7 @@ isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
     for (uint8_t i = 0; i < 2; i++) {
         reg_base                  = 0x70 + (2 * i);
         card->config.irq[i].irq   = ld->regs[reg_base];
-        card->config.irq[i].level = ld->regs[reg_base + 1] & 0x02;
+        card->config.irq[i].level = !!(ld->regs[reg_base + 1] & 0x02);
         card->config.irq[i].type  = ld->regs[reg_base + 1] & 0x01;
     }
     for (uint8_t i = 0; i < 2; i++) {
@@ -268,13 +268,13 @@ isapnp_reset_ld_regs(isapnp_device_t *ld)
     /* Set the default IRQ type bits. */
     for (uint8_t i = 0; i < 2; i++) {
         if (ld->irq_types & (0x1 << (4 * i)))
-            ld->regs[0x70 + (2 * i)] = 0x02;
+            ld->regs[0x71 + (2 * i)] = 0x02;
         else if (ld->irq_types & (0x2 << (4 * i)))
-            ld->regs[0x70 + (2 * i)] = 0x00;
+            ld->regs[0x71 + (2 * i)] = 0x00;
         else if (ld->irq_types & (0x4 << (4 * i)))
-            ld->regs[0x70 + (2 * i)] = 0x03;
+            ld->regs[0x71 + (2 * i)] = 0x03;
         else if (ld->irq_types & (0x8 << (4 * i)))
-            ld->regs[0x70 + (2 * i)] = 0x01;
+            ld->regs[0x71 + (2 * i)] = 0x01;
     }
 
     /* Reset configuration registers to match the default configuration. */
@@ -1252,7 +1252,7 @@ isapnp_set_normal(void *priv, uint8_t normal)
 }
 
 void
-isapnp_activate(void *priv, uint16_t base, uint8_t irq)
+isapnp_activate(void *priv, uint16_t base, uint8_t irq, int active)
 {
     isapnp_card_t   *card = (isapnp_card_t *) priv;
     isapnp_device_t *ld   = card->first_ld;
@@ -1264,7 +1264,7 @@ isapnp_activate(void *priv, uint16_t base, uint8_t irq)
     }
 
     if (ld != NULL) {
-        ld->defs[0x30] = 0x01;
+        ld->defs[0x30] = active;
         ld->defs[0x60] = base >> 8;
         if (!(ld->io_16bit & (1 << ((0x60 >> 1) & 0x07))))
             ld->defs[0x60] &= 0x03;
