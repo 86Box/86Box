@@ -1373,6 +1373,20 @@ main(int argc, char **argv)
                             }
                             break;
                         }
+                    /* Touch events */
+                    /* SDL_FINGERDOWN, */
+                    /* SDL_FINGERUP, */
+                    case SDL_FINGERMOTION:
+                        {
+                            // See SDL_TouchFingerEvent
+                            if (mouse_capture || video_fullscreen) {
+                                SDL_LockMutex(mousemutex);
+                                mouse_scale((int)(event.tfinger.dx * 10), (int)(event.tfinger.dy * 10));
+                                SDL_UnlockMutex(mousemutex);
+                            }
+                            break;
+                        }
+
                     case SDL_MOUSEBUTTONDOWN:
                     case SDL_MOUSEBUTTONUP:
                         {
