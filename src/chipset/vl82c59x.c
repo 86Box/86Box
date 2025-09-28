@@ -66,7 +66,6 @@ vl82c59x_log(void *priv, const char *fmt, ...)
 #endif
 
 typedef struct vl82c59x_t {
-    uint8_t    index;
     uint8_t    nb_slot;
     uint8_t    sb_slot;
     uint8_t    type;
@@ -74,7 +73,6 @@ typedef struct vl82c59x_t {
 
     uint8_t    pci_conf[256];
     uint8_t    pci_conf_sb[256];
-    uint8_t    regs[256];
 
     uint16_t   pmio;
     uint8_t    pmio_set;
@@ -82,10 +80,7 @@ typedef struct vl82c59x_t {
 
     smram_t   *smram[4];
     port_92_t *port_92;
-    void      *pit;
     nvr_t     *nvr;
-
-    uint8_t  (*pit_read_reg)(void *priv, uint8_t reg);
 
     void *    log;  /* New logging system */
 } vl82c59x_t;
@@ -167,13 +162,11 @@ static void
 vl82c59x_pm_write(uint16_t addr, uint8_t val, void *priv)
 {
     vl82c59x_t *dev = (vl82c59x_t *) priv;
-    vl82c59x_log(dev->log, "VL82c593 ISA: [W] (%04X) = %02X\n", addr, val);
 
-    vl82c59x_log(dev->log, "write to I/O port %04X\n", dev->pmio);
-    vl82c59x_log(dev->log, "val = %02X\n", val);
+    vl82c59x_log(dev->log, "VL82c593 SMI I/O: [W] (%04X) = %02X\n", addr, val);
+
     /* Verify SMI Global Enable and Software SMI Enable are set */
     if ((dev->pci_conf_sb[0x6D] & 0x80) && (dev->pci_conf_sb[0x60] & 0x80)) {
-        vl82c59x_log(dev->log, "I/O port SMI trigger!\n");
         dev->pci_conf_sb[0x61] = 0x80;
         dev->pmreg = val;
         smi_raise();
@@ -188,7 +181,7 @@ vl82c59x_pm_read(uint16_t addr, void *priv)
     uint8_t ret = 0x00;
 
     ret = dev->pmreg;
-    vl82c59x_log(dev->log, "VL82c593 ISA: [R] (%04X) = %02X\n", addr, ret);
+    vl82c59x_log(dev->log, "VL82c593 SMI I/O: [R] (%04X) = %02X\n", addr, ret);
 
     return ret;
 }
@@ -317,7 +310,7 @@ vl82c59x_read(int func, int addr, void *priv)
         }
     }
 
-    vl82c59x_log(dev->log, "VL82c591: [R] (%02X, %02X) = %02X\n", func, addr, ret);
+    vl82c59x_log(dev->log, "[%04X:%08X] VL82c591: [R] (%02X, %02X) = %02X\n", CS, cpu_state.pc, func, addr, ret);
 
     return ret;
 }
@@ -649,4 +642,3 @@ const device_t vl82c59x_wildcat_compaq_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-
