@@ -386,7 +386,7 @@ fdd_audio_close(void)
 void
 fdd_audio_set_motor_enable(int drive, int motor_enable)
 {
-    if (!fdd_sounds_enabled)
+    if (!fdd_sounds_enabled || fdd_get_turbo(drive))
         return;
 
     drive_audio_samples_t *samples = get_drive_samples(drive);
@@ -420,7 +420,7 @@ fdd_audio_set_motor_enable(int drive, int motor_enable)
 void
 fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
 {
-    if (!fdd_sounds_enabled)
+    if (!fdd_sounds_enabled || fdd_get_turbo(drive))
         return;
 
     if (drive < 0 || drive >= FDD_NUM)
@@ -435,7 +435,7 @@ fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
 void
 fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
 {
-    if (!fdd_sounds_enabled)
+    if (!fdd_sounds_enabled || fdd_get_turbo(drive))
         return;
 
     if (drive < 0 || drive >= FDD_NUM)
