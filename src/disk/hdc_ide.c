@@ -810,7 +810,7 @@ ide_set_signature(ide_t *ide)
     ide->tf->sector   = 1;
     ide->tf->head     = 0;
     ide->tf->secount  = 1;
-    ide->tf->cylinder = (ide->type == IDE_ATAPI_SHADOW) ? 0x0000 : ide_signatures[ide->type & ~IDE_SHADOW];
+    ide->tf->cylinder = ide_signatures[ide->type & ~IDE_SHADOW];
 
     if (ide->type == IDE_HDD)
         ide->drive = 0;
@@ -1579,7 +1579,7 @@ ide_reset_registers(ide_t *ide)
     ide->tf->atastat  = DRDY_STAT | DSC_STAT;
     ide->tf->error    = 1;
     ide->tf->secount  = 1;
-    ide->tf->cylinder = (ide->type == IDE_ATAPI_SHADOW) ? 0x0000 : ide_signatures[ide->type & ~IDE_SHADOW];
+    ide->tf->cylinder = ide_signatures[ide->type & ~IDE_SHADOW];
     ide->tf->sector   = 1;
     ide->tf->head     = 0;
 
@@ -1676,6 +1676,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x6: /* Drive/Head */
+            pclog("ch = %i, current = %i\n", ch, ((val >> 4) & 1) + (ide->board << 1));
             if (ch != ((val >> 4) & 1) + (ide->board << 1)) {
                 if (!ide->reset && !ide_other->reset && ide->irqstat) {
                     ide_irq_lower(ide);
@@ -1684,6 +1685,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
                 ide_boards[ide->board]->cur_dev = ((val >> 4) & 1) + (ide->board << 1);
                 ch                              = ide_boards[ide->board]->cur_dev;
+                pclog("Current device: %i, ch = %i\n", ide_boards[ide->board]->cur_dev, ch);
 
                 ide           = ide_drives[ch];
                 ide->selected = 1;
@@ -2098,6 +2100,8 @@ ide_readb(uint16_t addr, void *priv)
         case 0x4: /* Cylinder low */
             if (ide->type == IDE_NONE)
                 ret = 0x7f;
+            else if (ide->type == IDE_ATAPI_SHADOW)
+                ret = 0x00;
             else
                 ret = ide->tf->cylinder & 0xff;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
@@ -2109,6 +2113,8 @@ ide_readb(uint16_t addr, void *priv)
         case 0x5: /* Cylinder high */
             if (ide->type == IDE_NONE)
                 ret = 0x7f;
+            else if (ide->type == IDE_ATAPI_SHADOW)
+                ret = 0x00;
             else
                 ret = ide->tf->cylinder >> 8;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
