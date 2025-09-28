@@ -1232,6 +1232,8 @@ monitor_thread(UNUSED(void *param))
 #endif
 }
 
+#define FINGER_MOTION_MULTIPLIER 100
+
 extern int gfxcard[GFXCARD_MAX];
 int
 main(int argc, char **argv)
@@ -1381,7 +1383,7 @@ main(int argc, char **argv)
                             // See SDL_TouchFingerEvent
                             if (mouse_capture || video_fullscreen) {
                                 SDL_LockMutex(mousemutex);
-                                mouse_scale((int)(event.tfinger.dx * 10), (int)(event.tfinger.dy * 10));
+                                mouse_scale((int)(event.tfinger.dx * FINGER_MOTION_MULTIPLIER), (int)(event.tfinger.dy * FINGER_MOTION_MULTIPLIER));
                                 SDL_UnlockMutex(mousemutex);
                             }
                             break;
