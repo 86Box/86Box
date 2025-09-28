@@ -1378,6 +1378,7 @@ main(int argc, char **argv)
                     /* Touch events */
                     /* SDL_FINGERDOWN, */
                     /* SDL_FINGERUP, */
+                    /*
                     case SDL_FINGERMOTION:
                         {
                             // See SDL_TouchFingerEvent
@@ -1388,6 +1389,7 @@ main(int argc, char **argv)
                             }
                             break;
                         }
+                    */
 
                     case SDL_MOUSEBUTTONDOWN:
                     case SDL_MOUSEBUTTONUP:

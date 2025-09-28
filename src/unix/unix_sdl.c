@@ -419,6 +419,10 @@ sdl_init_common(int flags)
         return (0);
     }
 
+    // Ensure mouse and touchpads behaves the same for us
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1");
+    SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
+
     if (flags & RENDERER_HARDWARE) {
         if (flags & RENDERER_OPENGL) {
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, "OpenGL");
