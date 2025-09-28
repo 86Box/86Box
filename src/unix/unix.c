@@ -53,6 +53,8 @@
 #define __USE_GNU 1 /* shouldn't be done, yet it is */
 #include <pthread.h>
 
+extern SDL_Window         *sdl_win;
+
 static int      first_use = 1;
 static uint64_t StartingTime;
 static uint64_t Frequency;
@@ -1376,14 +1378,27 @@ main(int argc, char **argv)
                             break;
                         }
                     /* Touch events */
-                    /* SDL_FINGERDOWN, */
-                    /* SDL_FINGERUP, */
+                    case SDL_FINGERDOWN:
+                        {
+                            // Trap these but ignore them for now
+                            break;
+                        }
+                    case SDL_FINGERUP:
+                        {
+                            // Trap these but ignore them for now
+                            break;
+                        }
                     case SDL_FINGERMOTION:
                         {
                             // See SDL_TouchFingerEvent
                             if (mouse_capture || video_fullscreen) {
                                 SDL_LockMutex(mousemutex);
-                                mouse_scale((int)(event.tfinger.dx * FINGER_MOTION_MULTIPLIER), (int)(event.tfinger.dy * FINGER_MOTION_MULTIPLIER));
+
+                                // Real multiplier is the window size
+                                int w, h;
+                                SDL_GetWindowSize(sdl_win, &w, &h);
+
+                                mouse_scale((int)(event.tfinger.dx * w), (int)(event.tfinger.dy * h));
                                 SDL_UnlockMutex(mousemutex);
                             }
                             break;
@@ -1477,6 +1492,7 @@ main(int argc, char **argv)
                             }
 
                             keyboard_input(event.key.state == SDL_PRESSED, xtkey);
+                            break;
                         }
                     case SDL_WINDOWEVENT:
                         {
@@ -1488,7 +1504,13 @@ main(int argc, char **argv)
                                     mouse_inside = 0;
                                     break;
                             }
+                            break;
                         }
+                    default:
+                    {
+                        printf("Unhandled SDL event: %d\n", event.type);
+                        break;
+                    }
                 }
             }
         }
