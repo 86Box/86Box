@@ -1676,7 +1676,6 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x6: /* Drive/Head */
-            pclog("ch = %i, current = %i\n", ch, ((val >> 4) & 1) + (ide->board << 1));
             if (ch != ((val >> 4) & 1) + (ide->board << 1)) {
                 if (!ide->reset && !ide_other->reset && ide->irqstat) {
                     ide_irq_lower(ide);
@@ -1685,7 +1684,6 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
                 ide_boards[ide->board]->cur_dev = ((val >> 4) & 1) + (ide->board << 1);
                 ch                              = ide_boards[ide->board]->cur_dev;
-                pclog("Current device: %i, ch = %i\n", ide_boards[ide->board]->cur_dev, ch);
 
                 ide           = ide_drives[ch];
                 ide->selected = 1;
