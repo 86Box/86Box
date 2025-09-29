@@ -1072,11 +1072,11 @@ machine_at_i430vx_init(const machine_t *model)
 }
 
 int
-machine_at_54a5_init(const machine_t *model)
+machine_at_54a5s_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/54a5/54as-s3.BIN",
+    ret = bios_load_linear("roms/machines/54a5s/54as-s3.BIN",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
