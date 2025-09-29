@@ -92,5 +92,6 @@ add_library(chipset OBJECT
     via_apollo.c
     via_pipc.c
     vl82c480.c
+    vl82c59x.c
     wd76c10.c
 )
