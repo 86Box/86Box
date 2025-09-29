@@ -147,7 +147,7 @@ struct _opl3_chip {
 typedef struct {
     opl3_chip opl;
     int8_t    flags;
-    int8_t    pad;
+    int8_t    is_48k;
 
     uint16_t port;
     uint8_t  status;
@@ -159,6 +159,8 @@ typedef struct {
 
     int     pos;
     int32_t buffer[MUSICBUFLEN * 2];
+
+    int32_t *(*update)(void *priv);
 } nuked_drv_t;
 
 enum {

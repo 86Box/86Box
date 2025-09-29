@@ -49,6 +49,9 @@ enum fm_type {
     FM_MAX       = 26
 };
 
+#define FM_TYPE_MASK 255
+#define FM_FORCE_48K 256
+
 enum fm_driver {
     FM_DRV_NUKED = 0,
     FM_DRV_YMFM  = 1,
@@ -65,9 +68,11 @@ typedef struct fm_drv_t {
     void     (*generate)(void *priv, int32_t *data, uint32_t num_samples); /* daughterboard only. */
 } fm_drv_t;
 
+extern uint8_t fm_driver_get_ex(int chip_id, fm_drv_t *drv, int is_48k);
 extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);
 
 extern const fm_drv_t nuked_opl_drv;
+extern const fm_drv_t nuked_opl_drv_48k;
 extern const fm_drv_t ymfm_drv;
 extern const fm_drv_t esfmu_opl_drv;
 extern const fm_drv_t ymfm_opl2board_drv;
