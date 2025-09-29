@@ -139,19 +139,19 @@ vl82c59x_smram(vl82c59x_t *dev)
     /* A/B region SMRAM seems to not be controlled by 591 reg 0x7C/SMRAM enable */
     /* Dell Dimension BIOS breaks if A0000 region is controlled by SMRAM enable */
     if (dev->pci_conf[0x64] & 0x55) {
-        smram_enable(dev->smram[1], 0x000a0000, 0x000a0000, 0x10000, dev->pci_conf[0x64] & 0xAA, dev->pci_conf[0x64] & 0x55);
+        smram_enable(dev->smram[0], 0x000a0000, 0x000a0000, 0x10000, dev->pci_conf[0x64] & 0xAA, dev->pci_conf[0x64] & 0x55);
     }
     if (dev->pci_conf[0x65] & 0x55) {
-        smram_enable(dev->smram[2], 0x000b0000, 0x000b0000, 0x10000, dev->pci_conf[0x65] & 0xAA, dev->pci_conf[0x65] & 0x55);
+        smram_enable(dev->smram[1], 0x000b0000, 0x000b0000, 0x10000, dev->pci_conf[0x65] & 0xAA, dev->pci_conf[0x65] & 0x55);
     }
 
     /* Handle E region SMRAM */
     if (dev->pci_conf[0x7C] & 0x80) {
         if (dev->pci_conf[0x68] & 0x05) {
-            smram_enable(dev->smram[3], 0x000e0000, 0x000e0000, 0x8000, dev->pci_conf[0x68] & 0x0A, dev->pci_conf[0x68] & 0x05);
+            smram_enable(dev->smram[2], 0x000e0000, 0x000e0000, 0x8000, dev->pci_conf[0x68] & 0x0A, dev->pci_conf[0x68] & 0x05);
         }
         if (dev->pci_conf[0x68] & 0x50) {
-            smram_enable(dev->smram[4], 0x000e8000, 0x000e8000, 0x8000, dev->pci_conf[0x68] & 0xA0, dev->pci_conf[0x68] & 0x50);
+            smram_enable(dev->smram[3], 0x000e8000, 0x000e8000, 0x8000, dev->pci_conf[0x68] & 0xA0, dev->pci_conf[0x68] & 0x50);
         }
     }
 
@@ -542,10 +542,10 @@ vl82c59x_close(void *priv)
 {
     vl82c59x_t *dev = (vl82c59x_t *) priv;
 
+    smram_del(dev->smram[0]);
     smram_del(dev->smram[1]);
     smram_del(dev->smram[2]);
     smram_del(dev->smram[3]);
-    smram_del(dev->smram[4]);
 
     if (dev->log != NULL) {
         log_close(dev->log);
@@ -577,10 +577,10 @@ vl82c59x_init(UNUSED(const device_t *info))
     /* NVR */
     dev->nvr = device_add(&at_nvr_device);
 
+    dev->smram[0] = smram_add();
     dev->smram[1] = smram_add();
     dev->smram[2] = smram_add();
     dev->smram[3] = smram_add();
-    dev->smram[4] = smram_add();
 
     vl82c59x_reset(dev);
 
