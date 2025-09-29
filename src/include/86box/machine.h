@@ -1020,7 +1020,7 @@ extern int             machine_at_pb680_init(const machine_t *);
 extern int             machine_at_pb810_init(const machine_t *);
 extern int             machine_at_mb520n_init(const machine_t *);
 extern int             machine_at_i430vx_init(const machine_t *);
-extern int             machine_at_54a5_init(const machine_t *);
+extern int             machine_at_54a5s_init(const machine_t *);
 
 /* i430TX */
 extern int             machine_at_nupro592_init(const machine_t *);
