@@ -733,7 +733,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     else
         ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
 
-    if (implied_seek) {
+    if (implied_seek && !fdd_get_turbo(real_drive(fdc, fdc->drive))) {
         fdc->stat = (fdc->stat & 0x0F) | 0x10 | (1 << real_drive(fdc, fdc->drive)); /* CB=1, per-drive busy */
         return;
     }
@@ -1940,7 +1940,7 @@ fdc_callback(void *priv)
         case 0x0f: /*Seek*/
             fdc->st0  = 0x20 | (fdc->params[0] & 3);
             fdc->stat = 0x10 | (1 << fdc->rw_drive);
-            if (fdd_get_turbo(1 << fdc->rw_drive)) {
+            if (fdd_get_turbo(real_drive(fdc, fdc->rw_drive))) {
                 if (fdc->flags & FDC_FLAG_PCJR) {
                     fdc->fintr     = 1;
                     fdc->interrupt = -4;
