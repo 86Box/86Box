@@ -142,16 +142,56 @@ machine_at_ambx133_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t cubx_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "cubx",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "Award Modular BIOS v4.51PG - Revision 1007", .internal_name = "cubx", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/cubx/1007cu.awd", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 1008 Beta 004", .internal_name = "cubx_1008b004", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/cubx/1008cu.004", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t cubx_device = {
+    .name          = "ASUS CUBX",
+    .internal_name = "cubx_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = cubx_config
+};
+
 int
 machine_at_cubx_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/cubx/1008cu.004",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 
@@ -385,16 +425,56 @@ machine_at_6via90ap_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t cuv4xls_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "cuv4xls",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "Award Modular BIOS v4.51PG - Revision 1004", .internal_name = "cuv4xls", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/cuv4xls/1004ls.awd", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision 1005 Beta 001", .internal_name = "cuv4xls_1005b001", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 262144, .files = { "roms/machines/cuv4xls/1005ls.001", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t cuv4xls_device = {
+    .name          = "ASUS CUV4X-LS",
+    .internal_name = "cuv4xls_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = cuv4xls_config
+};
+
 int
 machine_at_cuv4xls_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/cuv4xls/1005LS.001",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 
