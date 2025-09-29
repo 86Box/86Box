@@ -15003,10 +15003,10 @@ const machine_t machines[] = {
     /* This has the AMIKey 'H' firmware (AMIKey-2). */
     {
         .name = "[i430VX] Soltek SL-54A5-S",
-        .internal_name = "54a5",
+        .internal_name = "54a5s",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_INTEL_430VX,
-        .init = machine_at_54a5_init,
+        .init = machine_at_54a5s_init,
         .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -15232,7 +15232,7 @@ const machine_t machines[] = {
         .snd_device = &cs4236b_device,
         .net_device = &pcnet_am79c973_onboard_device
     },
-    /* This has the AMIKey 'H' firmware (AMIKey-2). */
+    /* This has the VIA VT82C42N or Holtek HT6542B KBC. */
     {
         .name = "[i430TX] Gigabyte GA-586ATX",
         .internal_name = "ga586atx",
