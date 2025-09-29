@@ -736,7 +736,7 @@ machine_at_ms6147_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&winbond_flash_w29c020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
