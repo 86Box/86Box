@@ -101,4 +101,5 @@ machine_at_celebris5xx_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
+    return ret;
 }
