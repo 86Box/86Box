@@ -1020,3 +1020,36 @@ machine_at_ms5124_init(const machine_t *model)
 
     return ret;
 }
+
+/* VLSI Wildcat */
+int
+machine_at_zeoswildcat_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/zeoswildcat/003606.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_IDE, 1, 2, 0, 0); /* Onboard device */
+    pci_register_slot(0x0E, PCI_CARD_SCSI, 1, 0, 0, 0); /* Onboard device */
+    pci_register_slot(0x0F, PCI_CARD_NETWORK, 1, 0, 0, 0); /* Onboard device */
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 03 */
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 4, 2, 3, 1); /* Slot 04 */
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 05 */
+    /* Per the machine's manual there was an option for AMD SCSI and/or LAN controllers */
+    device_add(&vl82c59x_wildcat_device);
+    device_add(&intel_flash_bxt_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&ide_rz1001_pci_device);
+
+    return ret;
+}

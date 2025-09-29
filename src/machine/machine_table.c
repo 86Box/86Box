@@ -163,6 +163,8 @@ const machine_filter_t machine_chipsets[] = {
     { "VLSI VL82C480",              MACHINE_CHIPSET_VLSI_VL82C480       },
     { "VLSI VL82C481",              MACHINE_CHIPSET_VLSI_VL82C481       },
     { "VLSI VL82C486",              MACHINE_CHIPSET_VLSI_VL82C486       },
+    { "VLSI SuperCore",             MACHINE_CHIPSET_VLSI_SUPERCORE      },
+    { "VLSI Wildcat",               MACHINE_CHIPSET_VLSI_WILDCAT        },
     { "WD76C10",                    MACHINE_CHIPSET_WD76C10             }
 };
 
@@ -11939,6 +11941,51 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* VLSI SuperCore */
+    /* This has Phoenix KBC firmware. */
+    {
+        .name = "[VLSI SuperCore] DEC Celebris 5xx",
+        .internal_name = "celebris5xx",
+        .type = MACHINE_TYPE_SOCKET4_5,
+        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
+        .init = machine_at_celebris5xx_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4 | CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_Cx6x86),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 5000,
+            .min_multi = 1.0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 4096,
+            .max = 131072,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_PHOENIX | 0x00021400, /* Guess */
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &s3_phoenix_vision864_pci_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* Socket 5 machines */
     /* 430NX */
@@ -12879,6 +12926,232 @@ const machine_t machines[] = {
         .net_device = NULL
     },
 
+    /* VLSI SuperCore */
+    /* This has AST KBC firmware, likely a Phoenix variant since the BIOS */
+    /* calls KBC command D5h to read the KBC revision. */
+    {
+        .name = "[VLSI SuperCore] AST Bravo MS P/90",
+        .internal_name = "bravoms586",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
+        .init = machine_at_bravoms586_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_Cx6x86),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 4096,
+            .max = 131072,
+            .step = 4096
+        }, 
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_USE_CONFIG,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_PHOENIX | 0x00021400, /* Guess */
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5434_onboard_pci_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has a VIA KBC chip */
+    {
+        .name = "[VLSI SuperCore] DFI G586VPM Rev C",
+        .internal_name = "g586vpmc",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
+        .init = machine_at_g586vpmc_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 4096,
+            .max = 262144,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_VIA | 0x00424600, /* Guess */
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* KBC firmware is unknown. No commands outside of the base PS/2 */
+    /* KBC command set are used. */
+    {
+        .name = "[VLSI SuperCore] Micronics M54Si",
+        .internal_name = "m54si",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
+        .init = machine_at_m54si_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_Cx6x86),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 4096,
+            .max = 131072,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 4,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_PHOENIX | 0x00021400, /* Guess */
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* This has Phoenix KBC firmware. */
+    {
+        .name = "[VLSI SuperCore] Packard Bell PB600",
+        .internal_name = "pb600",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_VLSI_SUPERCORE,
+        .init = machine_at_pb600_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 139264,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_PHOENIX | 0x00012900, /* Guess */
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &gd5430_onboard_pci_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+
+    /* VLSI Wildcat */
+    /* This has Phoenix KBC firmware. */
+    {
+        .name = "[VLSI Wildcat] AT&T Globalyst 620/630 (NCR 3248/3348)",
+        .internal_name = "globalyst620",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_VLSI_WILDCAT,
+        .init = machine_at_globalyst620_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_Cx6x86),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 4096,
+            .max = 196608,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = KBC_VEN_PHOENIX | 0x00012900, /* Guess */
+        .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = &s3_phoenix_trio64_onboard_pci_device,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+
     /* Socket 7 (Single Voltage) machines */
     /* 430FX */
     /* This has an AMIKey-2, which is type 'H'.
@@ -13725,6 +13998,53 @@ const machine_t machines[] = {
         .kbc_device = &kbc_at_device,
         .kbc_params = KBC_VEN_AMI | 0x00004800,
         .kbc_p1 = 0x00000cf0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+
+    /* VLSI Wildcat */
+    /* KBC firmware is unknown. No PS/2 port is present and no commands outside */
+    /* of the base AT KBC command set are used. */
+    {
+        .name = "[VLSI Wildcat] Zeos Pantera Wildcat",
+        .internal_name = "zeoswildcat",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_VLSI_WILDCAT,
+        .init = machine_at_zeoswildcat_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_Cx6x86, CPU_PENTIUMMMX),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.5
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 4096,
+            .max = 393216,
+            .step = 4096
+        },
+        .nvrmask = 127,
+        .jumpered_ecp_dma = MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
         .device = NULL,
