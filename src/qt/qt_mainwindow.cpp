@@ -84,6 +84,7 @@ extern bool cpu_thread_running;
 #include <QMenuBar>
 #include <QCheckBox>
 #include <QActionGroup>
+#include <QSize>
 #include <QOpenGLContext>
 #include <QScreen>
 #include <QString>
@@ -170,8 +171,6 @@ extern void     qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 extern MainWindow *main_window;
-
-bool MainWindow::s_adjustingForce43 = false;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -933,11 +932,18 @@ MainWindow::closeEvent(QCloseEvent *event)
         }
     }
     if (window_remember) {
-        window_w = ui->stackedWidget->width();
-        window_h = ui->stackedWidget->height();
+        // If maximized, persist the normal (restorable) geometry
+        const bool wasMax = isMaximized();
+        QRect normal = wasMax ? this->normalGeometry() : this->geometry();
+        // Save WINDOW size (not the content widget’s 4:3 box)
+        const int chromeHeight = geometry().height() - ui->stackedWidget->height();
+        window_w = normal.width();
+        window_h = normal.height() - chromeHeight;
+        if (window_h < 0)
+            window_h = 0;
         if (!QApplication::platformName().contains("wayland")) {
-            window_x = this->geometry().x();
-            window_y = this->geometry().y();
+            window_x = normal.x();
+            window_y = normal.y();
         }
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (renderers[i]) {
@@ -1021,65 +1027,56 @@ void MainWindow::updateShortcuts()
 	seq = QKeySequence::fromString(acc_keys[accID].seq);
 	ui->actionMute_Unmute->setShortcut(seq);
 }
-		
-void 
-MainWindow::adjustForForce43(const QSize &newWinSize)
+
+void
+MainWindow::applyContentLayoutForCurrentState()
 {
-    // Only act in resizable mode with Force 4:3 enabled and not fullscreen
-    if (!(vid_resize == 1 && force_43 > 0) || video_fullscreen || s_adjustingForce43)
-        return;
+    auto applyFill = [this](const QRect& r){
+        ui->stackedWidget->setGeometry(r);
+        ui->stackedWidget->onResize(r.width(), r.height());
+        if (monitors[0].mon_scrnsz_x != r.width() || monitors[0].mon_scrnsz_y != r.height()) {
+            monitors[0].mon_scrnsz_x = r.width();
+            monitors[0].mon_scrnsz_y = r.height();
+            plat_resize_request(r.width(), r.height(), 0);
+        }
+    };
 
-    s_adjustingForce43 = true;
+    auto apply43 = [this](const QRect& area){
+        int areaW = area.width();
+        int areaH = area.height();
+        if (areaW <= 0 || areaH <= 0) return;
 
-    // Height consumed by menu/status/toolbars
-    int chromeH = menuBar()->height()
-                + (hide_status_bar ? 0 : statusBar()->height())
-                + (hide_tool_bar   ? 0 : ui->toolBar->height());
+        int targetW = areaW;
+        int targetH = (areaW * 3) / 4;
+        if (targetH > areaH) {
+            targetH = areaH;
+            targetW = (areaH * 4) / 3;
+        }
 
-    // Compute client area size in device‑independent pixels
-    double dpr = (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.0);
-    int winW = newWinSize.width();
-    int winH = newWinSize.height();
-    int clientW = static_cast<int>(winW / dpr);
-    int clientH = static_cast<int>((winH - chromeH) / dpr);
+        const int x = area.x() + (areaW - targetW) / 2;
+        const int y = area.y() + (areaH - targetH) / 2;
 
-    if (clientW <= 0 || clientH <= 0) {
-        s_adjustingForce43 = false;
-        return;
-    }
+        ui->stackedWidget->setGeometry(x, y, targetW, targetH);
+        ui->stackedWidget->onResize(targetW, targetH);
 
-    // Decide which dimension the user changed most – adjust the other
-    int curW = static_cast<int>(width() / dpr);
-    int curH = static_cast<int>((height() - chromeH) / dpr);
-    bool widthChanged = std::abs(clientW - curW) >= std::abs(clientH - curH);
+        if (monitors[0].mon_scrnsz_x != targetW || monitors[0].mon_scrnsz_y != targetH) {
+            monitors[0].mon_scrnsz_x = targetW;
+            monitors[0].mon_scrnsz_y = targetH;
+            plat_resize_request(targetW, targetH, 0);
+        }
+    };
 
-    int targetW, targetH;
-    if (widthChanged) {
-        // user dragged width – compute matching height for 4:3
-        targetW = clientW;
-        targetH = (clientW * 3) / 4;
-    } else {
-        // user dragged height – compute matching width for 4:3
-        targetH = clientH;
-        targetW = (clientH * 4) / 3;
-    }
+    QWidget *cw = this->centralWidget();
+    if (!cw) return;
 
-    // Convert back to window size including chrome and apply
-    int newW = static_cast<int>(targetW * dpr);
-    int newH = static_cast<int>(targetH * dpr) + chromeH;
-    if (newW != winW || newH != winH)
-        resize(newW, newH);
+    const QRect area = cw->contentsRect();
 
-    // Update emulator framebuffer size and notify platform
-    monitors[0].mon_scrnsz_x = targetW;
-    monitors[0].mon_scrnsz_y = targetH;
-    plat_resize_request(targetW, targetH, 0);
+    // Fullscreen always fills (legacy behavior)
+    if (video_fullscreen) { applyFill(area); return; }
 
-    // Allow renderer widget to grow and recompute scaling
-    ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-    ui->stackedWidget->onResize(width(), height());
-
-    s_adjustingForce43 = false;
+    // Windowed: enforce 4:3 only when requested, otherwise fill
+    if (force_43 > 0) apply43(area);
+    else              applyFill(area);
 }
 
 void
@@ -1088,26 +1085,10 @@ MainWindow::resizeEvent(QResizeEvent *event)
     //qDebug() << pos().x() + event->size().width();
     //qDebug() << pos().y() + event->size().height();
 	
-    // Enforce 4:3 aspect ratio in resizable mode when the option is set
-    adjustForForce43(event->size());
-	
-    if (vid_resize == 1 || video_fullscreen)
-        return;
+    // Always let QMainWindow do its layout first
+    QMainWindow::resizeEvent(event);
 
-    int newX = pos().x();
-    int newY = pos().y();
-
-    if (((frameGeometry().x() + event->size().width() + 1) > util::screenOfWidget(this)->availableGeometry().right())) {
-        //move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
-        newX = util::screenOfWidget(this)->availableGeometry().right() - frameGeometry().width() - 1;
-        if (newX < 1) newX = 1;
-    }
-
-    if (((frameGeometry().y() + event->size().height() + 1) > util::screenOfWidget(this)->availableGeometry().bottom())) {
-        newY = util::screenOfWidget(this)->availableGeometry().bottom() - frameGeometry().height() - 1;
-        if (newY < 1) newY = 1;
-    }
-    move(newX, newY);
+    applyContentLayoutForCurrentState();
 }
 
 void
@@ -1201,12 +1182,25 @@ MainWindow::showEvent(QShowEvent *event)
         monitors[0].mon_scrnsz_y = fixed_size_y;
     }
     if (window_remember && vid_resize == 1) {
-        ui->stackedWidget->setFixedSize(window_w, window_h);
+        const QSize target(window_w, window_h);
+        const QSize prevMin = ui->stackedWidget->minimumSize();
+        const QSize prevMax = ui->stackedWidget->maximumSize();
+
+        ui->stackedWidget->setMinimumSize(target);
+        ui->stackedWidget->setMaximumSize(target);
 #ifndef Q_OS_MACOS
         QApplication::processEvents();
 #endif
         this->adjustSize();
+
+        ui->stackedWidget->setMinimumSize(prevMin);
+        ui->stackedWidget->setMaximumSize(prevMax);
+        ui->stackedWidget->resize(target);
     }
+
+    QTimer::singleShot(0, this, [this]{
+        applyContentLayoutForCurrentState();
+    });
 }
 
 void
@@ -1509,6 +1503,7 @@ MainWindow::on_actionFullscreen_triggered()
 {
     if (video_fullscreen > 0) {
         showNormal();
+        QTimer::singleShot(0, this, [this]{ applyContentLayoutForCurrentState(); });
         ui->menubar->show();
         if (!hide_status_bar)
             ui->statusbar->show();
@@ -2146,16 +2141,7 @@ MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
 
-    // When turning on Force 4:3 in resizable mode, immediately snap to 4:3
-    if (vid_resize == 1 && !video_fullscreen) {
-        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        if (force_43 > 0) {
-            adjustForForce43(size());
-        } else {
-            // Turning off: refresh renderer scaling
-            ui->stackedWidget->onResize(width(), height());
-        }
-    }
+    QTimer::singleShot(0, this, [this]{ applyContentLayoutForCurrentState(); });
 }
 
 void
@@ -2524,4 +2510,3 @@ void MainWindow::on_actionCGA_composite_settings_triggered()
     isNonPause = false;
     config_save();
 }
-
