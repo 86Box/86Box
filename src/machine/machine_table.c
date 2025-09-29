@@ -17961,7 +17961,7 @@ const machine_t machines[] = {
         .internal_name = "686bx",
         .type = MACHINE_TYPE_SLOT1,
         .chipset = MACHINE_CHIPSET_INTEL_440BX,
-        .init = machine_at_686bx_init,
+        .init = machine_at_ga686_init,
         .p1_handler = machine_generic_p1_handler,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -17991,13 +17991,13 @@ const machine_t machines[] = {
         .kbc_p1 = 0x00000cf0,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &ga686_device
         .kbd_device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
-        .net_device = &686bx_device
+        .net_device = NULL
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 (updated 'H') KBC firmware. */
     {

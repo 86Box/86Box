@@ -563,7 +563,7 @@ machine_at_ax6bc_init(const machine_t *model)
     return ret;
 }
 
-static const device_config_t 686bx_config[] = {
+static const device_config_t ga686_config[] = {
     // clang-format off
     {
         .name = "bios",
@@ -593,9 +593,9 @@ static const device_config_t 686bx_config[] = {
     // clang-format on
 };
 
-const device_t 686bx_device = {
+const device_t ga686_device = {
     .name          = "Gigabyte GA-686BX",
-    .internal_name = "686bx_device",
+    .internal_name = "ga686_device",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -604,11 +604,11 @@ const device_t 686bx_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = 686bx_config
+    .config        = ga686_config
 };
 
 int
-machine_at_686bx_init(const machine_t *model)
+machine_at_ga686_init(const machine_t *model)
 {
     int ret = 0;
     const char* fn;
