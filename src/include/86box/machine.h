@@ -1087,6 +1087,9 @@ extern int             machine_at_m560_init(const machine_t *);
 
 /* m_at_sockets7.c */
 /* ALi ALADDiN V */
+#ifdef EMU_DEVICE_H
+extern const device_t  p5a_device;
+#endif
 extern int             machine_at_p5a_init(const machine_t *);
 extern int             machine_at_m579_init(const machine_t *);
 extern int             machine_at_gwlucas_init(const machine_t *);
@@ -1154,7 +1157,13 @@ extern const device_t  bx6_device;
 #endif
 extern int             machine_at_bx6_init(const machine_t *);
 extern int             machine_at_ax6bc_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  p2bls_device;
+#endif
 extern int             machine_at_p2bls_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  p3bf_device;
+#endif
 extern int             machine_at_p3bf_init(const machine_t *);
 extern int             machine_at_686bx_init(const machine_t *);
 #ifdef EMU_DEVICE_H
@@ -1180,9 +1189,15 @@ extern int             machine_at_atc6310bxii_init(const machine_t *);
 extern int             machine_at_ficka6130_init(const machine_t *);
 
 /* VIA Apollo Pro 133 */
+#ifdef EMU_DEVICE_H
+extern const device_t  p3v133_device;
+#endif
 extern int             machine_at_p3v133_init(const machine_t *);
 
 /* VIA Apollo Pro 133A */
+#ifdef EMU_DEVICE_H
+extern const device_t  p3v4x_device;
+#endif
 extern int             machine_at_p3v4x_init(const machine_t *);
 extern int             machine_at_gt694va_init(const machine_t *);
 
@@ -1214,6 +1229,9 @@ extern int             machine_at_s370slm_init(const machine_t *);
 /* i440BX */
 extern int             machine_at_awo671r_init(const machine_t *);
 extern int             machine_at_ambx133_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  cubx_device;
+#endif
 extern int             machine_at_cubx_init(const machine_t *);
 
 /* i440ZX */
@@ -1231,6 +1249,9 @@ extern int             machine_at_p6bap_init(const machine_t *);
 
 /* VIA Apollo Pro 133A */
 extern int             machine_at_6via90ap_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  cuv4xls_device;
+#endif
 extern int             machine_at_cuv4xls_init(const machine_t *);
 
 /* SiS 600 */
