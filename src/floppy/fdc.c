@@ -184,7 +184,7 @@ fdc_ctrl_reset(void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
-    fdc->stat             = 0x10;
+    fdc->stat             = 0x80;
     fdc->pnum = fdc->ptot = 0;
     fdc->st0              = 0;
     fdc->head             = 0;
