@@ -173,16 +173,60 @@ machine_at_5aa_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t g5x_config[] = {
+    // clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS Version",
+        .type = CONFIG_BIOS,
+        .default_string = "5ax",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .bios = {
+            { .name = "Award Modular BIOS v4.51PG - Revision 1.5", .internal_name = "5ax_15", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5ax/5AX.15", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision F3", .internal_name = "5ax_f3", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5ax/5AX.F3", "" } },
+            { .name = "Award Modular BIOS v4.51PG - Revision F4", .internal_name = "5ax", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5ax/5AX.F4", "" } },
+            { .name = "Phoenix - AwardBIOS v6.00PG - Release 4.1 (by eSupport)", .internal_name = "5ax_esupport", .bios_type = BIOS_NORMAL, 
+              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5ax/6Z5KKG09.bin", "" } },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t g5x_device = {
+    .name          = "Gigabyte GA-5AX",
+    .internal_name = "g5x_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = g5x_config
+};
+
 int
-machine_at_5ax_init(const machine_t *model)
+machine_at_g5x_init(const machine_t *model)
 {
-    int ret;
+    int ret = 0;
+    const char* fn;
 
-    ret = bios_load_linear("roms/machines/5ax/5AX.F4",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
 

@@ -1089,7 +1089,10 @@ extern int             machine_at_p5a_init(const machine_t *);
 extern int             machine_at_m579_init(const machine_t *);
 extern int             machine_at_gwlucas_init(const machine_t *);
 extern int             machine_at_5aa_init(const machine_t *);
-extern int             machine_at_5ax_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  g5x_device;
+#endif
+extern int             machine_at_g5x_init(const machine_t *);
 
 /* VIA MVP3 */
 extern int             machine_at_ax59pro_init(const machine_t *);
