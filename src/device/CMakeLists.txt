@@ -18,6 +18,8 @@
 
 add_library(dev OBJECT
     access_bus.c
+    ast_nvr.c
+    ast_readout.c
     bugger.c
     cartridge.c
     cassette.c

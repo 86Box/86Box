@@ -76,6 +76,7 @@ extern const device_t ide_cmd640_pci_device;                    /* CMD PCI-640B 
 extern const device_t ide_cmd640_pci_legacy_only_device;        /* CMD PCI-640B PCI (Legacy Mode Only) */
 extern const device_t ide_cmd640_pci_single_channel_device;     /* CMD PCI-640B PCI (Only primary channel) */
 extern const device_t ide_cmd640_pci_single_channel_sec_device; /* CMD PCI-640B PCI (Only secondary channel) */
+extern const device_t ide_cmd640_pci_single_channel_legacy_only_device; /* CMD PCI-640B PCI (Legacy Mode Only/Only primary channel) */
 extern const device_t ide_cmd646_device;                        /* CMD PCI-646 */
 extern const device_t ide_cmd646_legacy_only_device;            /* CMD PCI-646 (Legacy Mode Only) */
 extern const device_t ide_cmd646_single_channel_device;         /* CMD PCI-646 (Only primary channel) */
@@ -89,6 +90,7 @@ extern const device_t ide_opti611_vlb_sec_device;               /* OPTi 82c611/6
 
 extern const device_t ide_rz1000_pci_device;                    /* PC Technology RZ-1000 PCI */
 extern const device_t ide_rz1000_pci_single_channel_device;     /* PC Technology RZ-1000 PCI (Only primary channel) */
+extern const device_t ide_rz1001_pci_device;                    /* PC Technology RZ-1001 PCI */
 
 extern const device_t ide_um8673f_device;                       /* UMC UM8673F */
 extern const device_t ide_um8886af_device;                      /* UMC UM8886AF */
