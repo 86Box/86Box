@@ -8,8 +8,6 @@
  *
  *          Implementation of the VIA VT82C49X chipset.
  *
- *
- *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *

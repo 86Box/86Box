@@ -11,8 +11,6 @@
  *          This is intended to be used by another SVGA driver,
  *          and not as a card in its own right.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *

@@ -8,8 +8,6 @@
  *
  *          Implementation of the ALi M1543 Desktop South Bridge.
  *
- *
- *
  * Authors: Tiseno100,
  *
  *          Copyright 2021 Tiseno100.

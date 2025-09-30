@@ -8,8 +8,6 @@
  *
  *          Generic CD-ROM drive core.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2018-2021 Miran Grca.

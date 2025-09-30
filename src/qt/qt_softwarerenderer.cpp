@@ -74,6 +74,12 @@ SoftwareRenderer::render()
 }
 
 void
+SoftwareRenderer::exposeEvent(QExposeEvent* event)
+{
+    render();
+}
+
+void
 SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     /* TODO: should look into deleteLater() */

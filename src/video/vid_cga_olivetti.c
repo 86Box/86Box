@@ -9,8 +9,6 @@
  *          Emulation of the Olivetti OGC 8-bit ISA (GO708) and
  *          M21/M24/M28 16-bit bus (GO317/318/380/709) video cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -21,7 +19,6 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2020      EngiNerd.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

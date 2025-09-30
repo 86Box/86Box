@@ -9,8 +9,6 @@
  *          Universal Serial Bus emulation (currently dummy UHCI and
  *          OHCI).
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.

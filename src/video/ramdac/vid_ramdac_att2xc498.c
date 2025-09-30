@@ -8,8 +8,6 @@
  *
  *          Emulation of a AT&T 2xc498 RAMDAC.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

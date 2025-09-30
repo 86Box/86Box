@@ -8,8 +8,6 @@
  *
  *          Handling of the PS/2 series CMOS devices.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *

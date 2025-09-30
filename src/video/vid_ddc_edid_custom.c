@@ -8,15 +8,12 @@
  *
  *          Custom monitor EDID file loader.
  *
- *
- *
  * Authors: Cacodemon345,
  *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2025 Cacodemon.
  *          Copyright 2025 David Hrdlička.
  */
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>

@@ -8,8 +8,6 @@
  *
  *          ATi Mach64 graphics card emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -41,6 +39,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_ati_eeprom.h>
+#include <86box/bswap.h>
 
 #ifdef CLAMP
 #    undef CLAMP
@@ -82,6 +81,7 @@ enum {
 typedef struct mach64_t {
     mem_mapping_t linear_mapping;
     mem_mapping_t mmio_mapping;
+    mem_mapping_t linear_mapping_big_endian;
     mem_mapping_t mmio_linear_mapping;
     mem_mapping_t mmio_linear_mapping_2;
 
@@ -99,6 +99,8 @@ typedef struct mach64_t {
 
     uint8_t pci_slot;
     uint8_t irq_state;
+
+    uint8_t on_board;
 
     uint8_t pci_regs[256];
     uint8_t int_line;
@@ -274,7 +276,7 @@ typedef struct mach64_t {
     uint32_t cur_clr0;
     uint32_t cur_clr1;
 
-    uint32_t overlay_dat[1024];
+    uint32_t overlay_dat[2048];
     uint32_t overlay_graphics_key_clr;
     uint32_t overlay_graphics_key_msk;
     uint32_t overlay_video_key_clr;
@@ -288,11 +290,16 @@ typedef struct mach64_t {
     uint32_t scaler_height_width;
     int      scaler_format;
     int      scaler_update;
+    int      scaler_yuv_aper;
 
     uint32_t buf_offset[2];
     uint32_t buf_pitch[2];
 
     int overlay_v_acc;
+
+    uint32_t overlay_uv_addr;
+    uint32_t overlay_cur_y;
+    uint32_t overlay_base;
 
     uint8_t thread_run;
     void   *i2c;
@@ -382,6 +389,9 @@ uint32_t mach64_ext_readl(uint32_t addr, void *priv);
 void     mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv);
 void     mach64_ext_writew(uint32_t addr, uint16_t val, void *priv);
 void     mach64_ext_writel(uint32_t addr, uint32_t val, void *priv);
+
+uint8_t  mach64_readb_be(uint32_t addr, void *priv);
+void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);
 
 #ifdef ENABLE_MACH64_LOG
 int mach64_do_log = ENABLE_MACH64_LOG;
@@ -593,6 +603,7 @@ mach64_updatemapping(mach64_t *mach64)
         mach64_log("Update mapping - PCI disabled\n");
         mem_mapping_disable(&svga->mapping);
         mem_mapping_disable(&mach64->linear_mapping);
+        mem_mapping_disable(&mach64->linear_mapping_big_endian);
         mem_mapping_disable(&mach64->mmio_mapping);
         mem_mapping_disable(&mach64->mmio_linear_mapping);
         mem_mapping_disable(&mach64->mmio_linear_mapping_2);
@@ -647,14 +658,16 @@ mach64_updatemapping(mach64_t *mach64)
             }
         } else {
             /*2*8 MB aperture*/
-            mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
+            mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 4096);
+            mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 4096), 4096);
+            mem_mapping_set_addr(&mach64->linear_mapping_big_endian, mach64->linear_base + (8 << 20), (8 << 20) - 0x1000);
+            mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x1000), 0x1000);
         }
     } else {
         mem_mapping_disable(&mach64->linear_mapping);
         mem_mapping_disable(&mach64->mmio_linear_mapping);
         mem_mapping_disable(&mach64->mmio_linear_mapping_2);
+        mem_mapping_disable(&mach64->linear_mapping_big_endian);
     }
 }
 
@@ -2312,8 +2325,11 @@ mach64_vblank_start(svga_t *svga)
 
     svga->overlay.ena = (mach64->overlay_scale_cntl & OVERLAY_EN) && (overlay_cmp_mix != 1);
 
-    mach64->overlay_v_acc = 0;
-    mach64->scaler_update = 1;
+    mach64->overlay_v_acc   = 0;
+    mach64->scaler_update   = 1;
+    mach64->overlay_uv_addr = svga->overlay.addr;
+    mach64->overlay_cur_y   = 0;
+    mach64->overlay_base    = svga->overlay.addr;
 }
 
 uint8_t
@@ -2390,6 +2406,10 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
             case 0x4a:
                 ret = mach64->scaler_format;
+                break;
+            
+            case 0x4b:
+                ret = mach64->scaler_yuv_aper;
                 break;
 
             default:
@@ -2560,7 +2580,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
             case 0xc7:
                 READ8(addr, mach64->dac_cntl);
-                if (mach64->type == MACH64_VT2) {
+                if (mach64->type >= MACH64_VT2) {
                     ret &= 0xf9;
                     if (i2c_gpio_get_scl(mach64->i2c))
                         ret |= 0x04;
@@ -2959,7 +2979,8 @@ mach64_ext_readw(uint32_t addr, void *priv)
 
     if (!(addr & 0x400)) {
         mach64_log("mach64_ext_readw: addr=%04x\n", addr);
-        ret = 0xffff;
+        ret = mach64_ext_readb(addr, priv);
+        ret |= mach64_ext_readb(addr + 1, priv) << 8;
     } else
         switch (addr & 0x3ff) {
             case 0xb4:
@@ -2988,7 +3009,8 @@ mach64_ext_readl(uint32_t addr, void *priv)
 
     if (!(addr & 0x400)) {
         mach64_log("mach64_ext_readl: addr=%04x\n", addr);
-        ret = 0xffffffff;
+        ret = mach64_ext_readw(addr, priv);
+        ret |= mach64_ext_readw(addr + 2, priv) << 16;
     } else
         switch (addr & 0x3ff) {
             case 0x18:
@@ -3088,6 +3110,10 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 
             case 0x4a:
                 mach64->scaler_format = val & 0xf;
+                break;
+            
+            case 0x4b:
+                mach64->scaler_yuv_aper = val;
                 break;
 
             case 0x80:
@@ -4108,76 +4134,113 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
         }                                                            \
     } while (0)
 
-#define DECODE_VYUY422()                                                \
-    do {                                                                \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x += 2) { \
-            uint8_t y1, y2;                                             \
-            int8_t  u, v;                                               \
-            int     dR, dG, dB;                                         \
-            int     r, g, b;                                            \
-                                                                        \
-            y1 = src[0];                                                \
-            u  = src[1] - 0x80;                                         \
-            y2 = src[2];                                                \
-            v  = src[3] - 0x80;                                         \
-            src += 4;                                                   \
-                                                                        \
-            dR = (359 * v) >> 8;                                        \
-            dG = (88 * u + 183 * v) >> 8;                               \
-            dB = (453 * u) >> 8;                                        \
-                                                                        \
-            r = y1 + dR;                                                \
-            CLAMP(r);                                                   \
-            g = y1 - dG;                                                \
-            CLAMP(g);                                                   \
-            b = y1 + dB;                                                \
-            CLAMP(b);                                                   \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;          \
-                                                                        \
-            r = y2 + dR;                                                \
-            CLAMP(r);                                                   \
-            g = y2 - dG;                                                \
-            CLAMP(g);                                                   \
-            b = y2 + dB;                                                \
-            CLAMP(b);                                                   \
-            mach64->overlay_dat[x + 1] = (r << 16) | (g << 8) | b;      \
-        }                                                               \
+#define DECODE_VYUY422()                                                 \
+    do {                                                                 \
+        for (x = 0; x < src_w; x += 1) {                                 \
+            uint8_t y1, y2;                                              \
+            int8_t  u, v;                                                \
+            int     dR, dG, dB;                                          \
+            int     r, g, b;                                             \
+                                                                         \
+            y1 = src[0];                                                 \
+            u  = src[1] - 0x80;                                          \
+            y2 = src[2];                                                 \
+            v  = src[3] - 0x80;                                          \
+            src += 4;                                                    \
+                                                                         \
+            dR = (359 * v) >> 8;                                         \
+            dG = (88 * u + 183 * v) >> 8;                                \
+            dB = (453 * u) >> 8;                                         \
+                                                                         \
+            r = y1 + dR;                                                 \
+            CLAMP(r);                                                    \
+            g = y1 - dG;                                                 \
+            CLAMP(g);                                                    \
+            b = y1 + dB;                                                 \
+            CLAMP(b);                                                    \
+            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
+                                                                         \
+            r = y2 + dR;                                                 \
+            CLAMP(r);                                                    \
+            g = y2 - dG;                                                 \
+            CLAMP(g);                                                    \
+            b = y2 + dB;                                                 \
+            CLAMP(b);                                                    \
+            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
+        }                                                                \
     } while (0)
 
-#define DECODE_YVYU422()                                                \
-    do {                                                                \
-        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x += 2) { \
-            uint8_t y1, y2;                                             \
-            int8_t  u, v;                                               \
-            int     dR, dG, dB;                                         \
-            int     r, g, b;                                            \
-                                                                        \
-            u  = src[0] - 0x80;                                         \
-            y1 = src[1];                                                \
-            v  = src[2] - 0x80;                                         \
-            y2 = src[3];                                                \
-            src += 4;                                                   \
-                                                                        \
-            dR = (359 * v) >> 8;                                        \
-            dG = (88 * u + 183 * v) >> 8;                               \
-            dB = (453 * u) >> 8;                                        \
-                                                                        \
-            r = y1 + dR;                                                \
-            CLAMP(r);                                                   \
-            g = y1 - dG;                                                \
-            CLAMP(g);                                                   \
-            b = y1 + dB;                                                \
-            CLAMP(b);                                                   \
-            mach64->overlay_dat[x] = (r << 16) | (g << 8) | b;          \
-                                                                        \
-            r = y2 + dR;                                                \
-            CLAMP(r);                                                   \
-            g = y2 - dG;                                                \
-            CLAMP(g);                                                   \
-            b = y2 + dB;                                                \
-            CLAMP(b);                                                   \
-            mach64->overlay_dat[x + 1] = (r << 16) | (g << 8) | b;      \
-        }                                                               \
+#define DECODE_YVYU422()                                                 \
+    do {                                                                 \
+        for (x = 0; x < src_w; x += 1) {                                 \
+            uint8_t y1, y2;                                              \
+            int8_t  u, v;                                                \
+            int     dR, dG, dB;                                          \
+            int     r, g, b;                                             \
+                                                                         \
+            u  = src[0] - 0x80;                                          \
+            y1 = src[1];                                                 \
+            v  = src[2] - 0x80;                                          \
+            y2 = src[3];                                                 \
+            src += 4;                                                    \
+                                                                         \
+            dR = (359 * v) >> 8;                                         \
+            dG = (88 * u + 183 * v) >> 8;                                \
+            dB = (453 * u) >> 8;                                         \
+                                                                         \
+            r = y1 + dR;                                                 \
+            CLAMP(r);                                                    \
+            g = y1 - dG;                                                 \
+            CLAMP(g);                                                    \
+            b = y1 + dB;                                                 \
+            CLAMP(b);                                                    \
+            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
+                                                                         \
+            r = y2 + dR;                                                 \
+            CLAMP(r);                                                    \
+            g = y2 - dG;                                                 \
+            CLAMP(g);                                                    \
+            b = y2 + dB;                                                 \
+            CLAMP(b);                                                    \
+            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
+        }                                                                \
+    } while (0)
+
+#define DECODE_YUV12_PACKED()                                            \
+    do {                                                                 \
+        for (x = 0; x < src_w; x += 1) {                                 \
+            uint8_t y1, y2;                                              \
+            int8_t  u, v;                                                \
+            int     dR, dG, dB;                                          \
+            int     r, g, b;                                             \
+                                                                         \
+            u  = uvsrc[3] - 0x80;                                        \
+            y1 = src[0];                                                 \
+            v  = uvsrc[2] - 0x80;                                        \
+            y2 = src[1];                                                 \
+            src += 4;                                                    \
+            uvsrc += 4;                                                  \
+                                                                         \
+            dR = (359 * v) >> 8;                                         \
+            dG = (88 * u + 183 * v) >> 8;                                \
+            dB = (453 * u) >> 8;                                         \
+                                                                         \
+            r = y1 + dR;                                                 \
+            CLAMP(r);                                                    \
+            g = y1 - dG;                                                 \
+            CLAMP(g);                                                    \
+            b = y1 + dB;                                                 \
+            CLAMP(b);                                                    \
+            mach64->overlay_dat[x * 2] = (r << 16) | (g << 8) | b;       \
+                                                                         \
+            r = y2 + dR;                                                 \
+            CLAMP(r);                                                    \
+            g = y2 - dG;                                                 \
+            CLAMP(g);                                                    \
+            b = y2 + dB;                                                 \
+            CLAMP(b);                                                    \
+            mach64->overlay_dat[(x * 2) + 1] = (r << 16) | (g << 8) | b; \
+        }                                                                \
     } while (0)
 
 void
@@ -4187,11 +4250,13 @@ mach64_overlay_draw(svga_t *svga, int displine)
     int       x;
     int       h_acc = 0;
     int       h_max = (mach64->scaler_height_width >> 16) & 0x3ff;
+    int       src_w = h_max;
     int       h_inc = mach64->overlay_scale_inc >> 16;
     int       v_max = mach64->scaler_height_width & 0x3ff;
     int       v_inc = mach64->overlay_scale_inc & 0xffff;
     uint32_t *p;
     uint8_t  *src   = &svga->vram[svga->overlay.addr];
+    uint8_t  *uvsrc = src;
     int       old_y = mach64->overlay_v_acc;
     int       y_diff;
     int       video_key_fn    = mach64->overlay_key_cntl & 5;
@@ -4199,6 +4264,11 @@ mach64_overlay_draw(svga_t *svga, int displine)
     int       overlay_cmp_mix = (mach64->overlay_key_cntl >> 8) & 0xf;
 
     p = &buffer32->line[displine][svga->x_add + mach64->svga.overlay_latch.x];
+
+    if (mach64->overlay_cur_y >= 2) {
+        /* Avoid corrupt UV data on YUV12 packed modes */
+        uvsrc = &svga->vram[mach64->overlay_base + svga->overlay.pitch * 2 * (!(mach64->overlay_cur_y & 1) ? (mach64->overlay_cur_y + 1) : mach64->overlay_cur_y)];
+    }
 
     if (mach64->scaler_update) {
         switch (mach64->scaler_format) {
@@ -4211,6 +4281,9 @@ mach64_overlay_draw(svga_t *svga, int displine)
             case 0x6:
                 DECODE_ARGB8888();
                 break;
+            case 0xa:
+                DECODE_YUV12_PACKED();
+                break;
             case 0xb:
                 DECODE_VYUY422();
                 break;
@@ -4219,7 +4292,7 @@ mach64_overlay_draw(svga_t *svga, int displine)
                 break;
 
             default:
-                mach64_log("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
+                pclog("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
                 /*Fill buffer with something recognisably wrong*/
                 for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
                     mach64->overlay_dat[x] = 0xff00ff;
@@ -4356,6 +4429,7 @@ mach64_overlay_draw(svga_t *svga, int displine)
         svga->overlay.addr += svga->overlay.pitch * 2 * y_diff;
 
     mach64->scaler_update = y_diff;
+    mach64->overlay_cur_y += y_diff;
 }
 
 static void
@@ -4391,7 +4465,7 @@ mach64_io_remove(mach64_t *mach64)
     io_removehandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     if (mach64->block_decoded_io && mach64->block_decoded_io < 0x10000)
-        io_removehandler(mach64->block_decoded_io, 0x0400, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
+        io_removehandler(mach64->block_decoded_io, 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
 }
 
 static void
@@ -4431,7 +4505,7 @@ mach64_io_set(mach64_t *mach64)
     io_sethandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     if (mach64->use_block_decoded_io && mach64->block_decoded_io && mach64->block_decoded_io < 0x10000)
-        io_sethandler(mach64->block_decoded_io, 0x0400, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
+        io_sethandler(mach64->block_decoded_io, 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
 }
 
 static uint8_t
@@ -4480,7 +4554,6 @@ static void
 mach64_write_linear(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-
     cycles -= svga->monitor->mon_video_timing_write_b;
 
     addr &= svga->decode_mask;
@@ -4509,9 +4582,37 @@ mach64_writew_linear(uint32_t addr, uint16_t val, void *priv)
 static void
 mach64_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t   *svga   = (svga_t *) priv;
+    mach64_t *mach64 = (mach64_t *) svga->priv;
 
     cycles -= svga->monitor->mon_video_timing_write_l;
+
+    if (((mach64->scaler_yuv_aper >> 4) & 0xc) && !!(addr & 0x800000) == !(mach64->scaler_yuv_aper & 0x20)) {
+        uint32_t offset_from_base = addr & 0x7FFFFF;
+        if (addr & 0x800000) bswap32s(&val);
+        if (((mach64->scaler_yuv_aper >> 4) & 0xc) == 0x4) { // Y plane
+            offset_from_base <<= 1;
+            svga->vram[offset_from_base & svga->vram_mask] = (val & 0xFF);
+            svga->vram[(offset_from_base + 1) & svga->vram_mask] = ((val >> 8) & 0xFF);
+            svga->vram[(offset_from_base + 4) & svga->vram_mask] = ((val >> 16) & 0xFF);
+            svga->vram[(offset_from_base + 5) & svga->vram_mask] = ((val >> 24) & 0xFF);
+        }
+        else if (((mach64->scaler_yuv_aper >> 4) & 0xc) == 0x8 || ((mach64->scaler_yuv_aper >> 4) & 0xc) == 0xc) {
+            offset_from_base <<= 2;
+            if (((mach64->scaler_yuv_aper >> 4) & 0xc) == 0x8) { // U plane
+                svga->vram[(offset_from_base + 3) & svga->vram_mask] = (val & 0xFF);
+                svga->vram[(offset_from_base + 7) & svga->vram_mask] = ((val >> 8) & 0xFF);
+                svga->vram[(offset_from_base + 11) & svga->vram_mask] = ((val >> 16) & 0xFF);
+                svga->vram[(offset_from_base + 15) & svga->vram_mask] = ((val >> 24) & 0xFF);
+            } else { // V plane
+                svga->vram[(offset_from_base + 2) & svga->vram_mask] = (val & 0xFF);
+                svga->vram[(offset_from_base + 6) & svga->vram_mask] = ((val >> 8) & 0xFF);
+                svga->vram[(offset_from_base + 10) & svga->vram_mask] = ((val >> 16) & 0xFF);
+                svga->vram[(offset_from_base + 14) & svga->vram_mask] = ((val >> 24) & 0xFF);
+            }
+        }
+        return;
+    }
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -4519,6 +4620,42 @@ mach64_writel_linear(uint32_t addr, uint32_t val, void *priv)
     addr &= svga->vram_mask;
     svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
     *(uint32_t *) &svga->vram[addr] = val;
+}
+
+uint8_t
+mach64_readb_be(uint32_t addr, void *priv)
+{
+    return mach64_read_linear(addr, priv);
+}
+
+uint16_t
+mach64_readw_be(uint32_t addr, void *priv)
+{
+    return bswap16(mach64_readw_linear(addr, priv));
+}
+
+uint32_t
+mach64_readl_be(uint32_t addr, void *priv)
+{
+    return bswap32(mach64_readl_linear(addr, priv));
+}
+
+void
+mach64_writeb_be(uint32_t addr, uint8_t val, void *priv)
+{
+    return mach64_write_linear(addr, val, priv);
+}
+
+void
+mach64_writew_be(uint32_t addr, uint16_t val, void *priv)
+{
+    return mach64_writew_linear(addr, bswap16(val), priv);
+}
+
+void
+mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
+{
+    return mach64_writel_linear(addr, bswap32(val), priv);
 }
 
 uint8_t
@@ -4566,30 +4703,31 @@ mach64_pci_read(UNUSED(int func), int addr, void *priv)
             return mach64->linear_base >> 24;
 
         case 0x14:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return 0x01; /*Block decoded IO address*/
             return 0x00;
         case 0x15:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return mach64->block_decoded_io >> 8;
             return 0x00;
         case 0x16:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return mach64->block_decoded_io >> 16;
             return 0x00;
         case 0x17:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 return mach64->block_decoded_io >> 24;
             return 0x00;
 
+
         case 0x30:
-            return mach64->pci_regs[0x30] & 0x01; /*BIOS ROM address*/
+            return (mach64->on_board) ? 0 : (mach64->pci_regs[0x30] & 0x01); /*BIOS ROM address*/
         case 0x31:
             return 0x00;
         case 0x32:
-            return mach64->pci_regs[0x32];
+            return (mach64->on_board) ? 0 : mach64->pci_regs[0x32];
         case 0x33:
-            return mach64->pci_regs[0x33];
+            return (mach64->on_board) ? 0 : mach64->pci_regs[0x33];
 
         case 0x3c:
             return mach64->int_line;
@@ -4621,7 +4759,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x12:
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 val = 0;
             mach64->linear_base = (mach64->linear_base & 0xff000000) | ((val & 0x80) << 16);
             mach64_updatemapping(mach64);
@@ -4632,16 +4770,16 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x15:
-            if (mach64->type == MACH64_VT2) {
+            if (mach64->type >= MACH64_VT2) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
-                mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff0000) | ((val & 0xfc) << 8);
+                mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff0000) | ((val & 0xff) << 8);
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_set(mach64);
             }
             break;
         case 0x16:
-            if (mach64->type == MACH64_VT2) {
+            if (mach64->type >= MACH64_VT2) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0xff00fc00) | (val << 16);
@@ -4650,7 +4788,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             }
             break;
         case 0x17:
-            if (mach64->type == MACH64_VT2) {
+            if (mach64->type >= MACH64_VT2) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0x00fffc00) | (val << 24);
@@ -4662,6 +4800,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x30:
         case 0x32:
         case 0x33:
+            if (mach64->on_board) return;
             mach64->pci_regs[addr] = val;
             if (mach64->pci_regs[0x30] & 0x01) {
                 uint32_t biosaddr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
@@ -4681,7 +4820,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_remove(mach64);
             mach64->io_base = val & 0x03;
-            if (mach64->type == MACH64_VT2)
+            if (mach64->type >= MACH64_VT2)
                 mach64->use_block_decoded_io = val & 0x04;
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_set(mach64);
@@ -4702,7 +4841,7 @@ mach64_common_init(const device_t *info)
     svga = &mach64->svga;
 
     mach64->type = info->local & 0xff;
-    mach64->vram_size = device_get_config_int("memory");
+    mach64->vram_size = (info->local & (1 << 20)) ? 4 : device_get_config_int("memory");
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
 
     if (mach64->type > MACH64_GX)
@@ -4719,9 +4858,10 @@ mach64_common_init(const device_t *info)
                   mach64_overlay_draw);
 
     mem_mapping_add(&mach64->linear_mapping, 0, 0, mach64_read_linear, mach64_readw_linear, mach64_readl_linear, mach64_write_linear, mach64_writew_linear, mach64_writel_linear, NULL, MEM_MAPPING_EXTERNAL, svga);
+    mem_mapping_add(&mach64->linear_mapping_big_endian, 0, 0, mach64_readb_be, mach64_readw_be, mach64_readl_be, mach64_writeb_be, mach64_writew_be, mach64_writel_be, NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&mach64->mmio_linear_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_add(&mach64->mmio_linear_mapping_2, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
-    mem_mapping_add(&mach64->mmio_mapping, 0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    mem_mapping_add(&mach64->mmio_mapping, 0xbf000, 0x1000, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_disable(&mach64->mmio_mapping);
 
     mach64_io_set(mach64);

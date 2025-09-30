@@ -9,7 +9,6 @@
  *          Emulation of the Texas Instruments TVP3026 true colour RAMDAC
  *          family.
  *
- *
  * TODO:    Clock and other parts.
  *
  * Authors: TheCollector1995,

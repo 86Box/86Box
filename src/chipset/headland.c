@@ -8,8 +8,6 @@
  *
  *          Implementation of the HEADLAND AT286 chipset.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Original by GreatPsycho for PCem.

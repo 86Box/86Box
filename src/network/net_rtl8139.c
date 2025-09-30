@@ -835,7 +835,7 @@ rtl8139_do_receive(void *priv, uint8_t *buf, int size_)
         uint32_t rx_space = rxdw0 & CP_RX_BUFFER_SIZE_MASK;
 
         /* write VLAN info to descriptor variables. */
-        if (s->CpCmd & CPlusRxVLAN && bswap16(*((uint16_t *) &buf[ETH_ALEN * 2])) == 0x8100) {
+        if (s->CpCmd & CPlusRxVLAN && bswap16(AS_U16(buf[ETH_ALEN * 2])) == 0x8100) {
             dot1q_buf = &buf[ETH_ALEN * 2];
             size -= VLAN_HLEN;
             /* if too small buffer, use the tailroom added duing expansion */
@@ -849,7 +849,7 @@ rtl8139_do_receive(void *priv, uint8_t *buf, int size_)
 
             rtl8139_log("C+ Rx mode : extracted vlan tag with tci: "
                         "%u\n",
-                        bswap16(*((uint16_t *) &dot1q_buf[ETHER_TYPE_LEN])));
+                        bswap16(AS_U16(dot1q_buf[ETHER_TYPE_LEN])));
         } else {
             /* reset VLAN tag flag */
             rxdw1 &= ~CP_RX_TAVA;

@@ -9,8 +9,6 @@
  *          Implementation of the following network controller:
  *            - 3Com Etherlink 3c500/3c501 (ISA 8-bit).
  *
- *
- *
  * Based on @(#)Dev3C501.cpp Oracle (VirtualBox)
  *
  * Authors: TheCollector1995, <mariogplayer@gmail.com>

@@ -8,8 +8,6 @@
  *
  *          Tandy 1000 video emulation
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Connor Hyde / starfrost, <mario64crashed@gmail.com>

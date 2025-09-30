@@ -7,7 +7,6 @@
  *          This file is part of the 86Box distribution.
  *
  *          Interface to the OPL2Board External audio device (USB)
- *        
  *
  * Authors: Jose Phillips <jose@hddlive.net>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -17,7 +16,6 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

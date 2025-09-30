@@ -8,8 +8,6 @@
  *
  *          Configure-time architecture detection for the CMake build.
  *
- *
- *
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2020-2021 David Hrdlička.

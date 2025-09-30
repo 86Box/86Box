@@ -53,7 +53,8 @@ static bool checkreturn buf_write(pb_ostream_t *stream, const pb_byte_t *buf, si
 {
     pb_byte_t *dest = (pb_byte_t*)stream->state;
     stream->state = dest + count;
-    
+
+    if ((dest != NULL) && (buf != NULL))
     memcpy(dest, buf, count * sizeof(pb_byte_t));
     
     return true;

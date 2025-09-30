@@ -11,8 +11,6 @@
  *          series of SCSI Host Adapters made by Mylex.
  *          These controllers were designed for various buses.
  *
- *
- *
  * Authors: TheCollector1995, <mariogplayer@gmail.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

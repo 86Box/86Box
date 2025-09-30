@@ -160,7 +160,7 @@ cs8220_init(UNUSED(const device_t *info))
     /*
        Dell System 200: 640 kB soldered on-board, any other RAM is expansion.
      */
-    if (!strcmp(machine_get_internal_name(), "dells200"))  switch (mem_size) {
+    if ((machines[machine].init == machine_at_dells200_init))  switch (mem_size) {
         default:
             dev->ram_banks[2].virt = 0x00100000;
             dev->ram_banks[2].phys = 0x000a0000;

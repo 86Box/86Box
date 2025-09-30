@@ -1,3 +1,17 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          3DFX Voodoo emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *
+ *          Copyright 2008-2020 Sarah Walker.
+ */
 /*Current issues :
   - missing YUV blits (YUV -> 32-bit, 24-bit, or 16-bit RGB now done)
   - missing wait for vsync

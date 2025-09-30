@@ -9,8 +9,6 @@
  *          Emulation of select Cirrus Logic cards (CL-GD 5428,
  *          CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          tonioni,
  *          TheCollector1995,
@@ -4339,7 +4337,7 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5436:
             if ((info->local & 0x200) &&
-                !strstr(machine_get_internal_name(), "sb486pv")) {
+                (machines[machine].init != machine_at_sb486pv_init)) {
                 romfn            = NULL;
                 gd54xx->has_bios = 0;
             } else

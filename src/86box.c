@@ -107,6 +107,7 @@
 #include <86box/apm.h>
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
+#include <86box/vfio.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -238,6 +239,7 @@ char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to
 double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 3.x input scale */
 int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
 int      color_scheme = 0;                                        /* (C) Color scheme of UI (Windows-only) */
+int      fdd_sounds_enabled = 1;                                  /* (C) Floppy drive sounds enabled */
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
@@ -1645,6 +1647,11 @@ pc_reset_hard_init(void)
     /* Initialize the Voodoo cards here inorder to minimize
        the chances of the SCSI controller ending up on the bridge. */
     video_voodoo_init();
+
+#if defined(USE_VFIO) && defined(__linux__)
+    /* Initialize VFIO */
+    vfio_init();
+#endif
 
     /* installs first game port if no device provides one, must be late */
     if (joystick_type[0])

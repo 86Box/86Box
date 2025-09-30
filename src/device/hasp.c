@@ -12,8 +12,6 @@
  *          emulation is enough to satisfy that game, but not Aladdin's
  *          DiagnostiX utility.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *          Peter Ferrie
  *

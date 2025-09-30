@@ -1460,6 +1460,15 @@ OPL3_GenerateStream(opl3_chip *chip, int32_t *sndptr, uint32_t numsamples)
     }
 }
 
+void
+OPL3_GenerateResampledStream(opl3_chip *chip, int32_t *sndptr, uint32_t numsamples)
+{
+    for (uint_fast32_t i = 0; i < numsamples; i++) {
+        OPL3_GenerateResampled(chip, sndptr);
+        sndptr += 2;
+    }
+}
+
 static void
 nuked_timer_tick(nuked_drv_t *dev, int tmr)
 {
@@ -1525,32 +1534,6 @@ nuked_drv_set_do_cycles(void *priv, int8_t do_cycles)
         dev->flags &= ~FLAG_CYCLES;
 }
 
-static void *
-nuked_drv_init(const device_t *info)
-{
-    nuked_drv_t *dev = (nuked_drv_t *) calloc(1, sizeof(nuked_drv_t));
-    dev->flags       = FLAG_CYCLES;
-    if (info->local == FM_YMF262)
-        dev->flags |= FLAG_OPL3;
-    else
-        dev->status = 0x06;
-
-    /* Initialize the NukedOPL object. */
-    OPL3_Reset(&dev->opl, FREQ_49716);
-
-    timer_add(&dev->timers[0], nuked_timer_1, dev, 0);
-    timer_add(&dev->timers[1], nuked_timer_2, dev, 0);
-
-    return dev;
-}
-
-static void
-nuked_drv_close(void *priv)
-{
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
-    free(dev);
-}
-
 static int32_t *
 nuked_drv_update(void *priv)
 {
@@ -1560,10 +1543,30 @@ nuked_drv_update(void *priv)
         return dev->buffer;
 
     OPL3_GenerateStream(&dev->opl,
-                          &dev->buffer[dev->pos * 2],
-                          music_pos_global - dev->pos);
+                        &dev->buffer[dev->pos * 2],
+                        music_pos_global - dev->pos);
 
     for (; dev->pos < music_pos_global; dev->pos++) {
+        dev->buffer[dev->pos * 2] /= 2;
+        dev->buffer[(dev->pos * 2) + 1] /= 2;
+    }
+
+    return dev->buffer;
+}
+
+static int32_t *
+nuked_drv_update_48k(void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *) priv;
+
+    if (dev->pos >= sound_pos_global)
+        return dev->buffer;
+
+    OPL3_GenerateResampledStream(&dev->opl,
+                                 &dev->buffer[dev->pos * 2],
+                                 sound_pos_global - dev->pos);
+
+    for (; dev->pos < sound_pos_global; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
         dev->buffer[(dev->pos * 2) + 1] /= 2;
     }
@@ -1579,7 +1582,7 @@ nuked_drv_read(uint16_t port, void *priv)
     if (dev->flags & FLAG_CYCLES)
         cycles -= ((int) (isa_timing * 8));
 
-    nuked_drv_update(dev);
+    dev->update(dev);
 
     uint8_t ret = 0xff;
 
@@ -1598,7 +1601,8 @@ static void
 nuked_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     nuked_drv_t *dev = (nuked_drv_t *) priv;
-    nuked_drv_update(dev);
+
+    dev->update(dev);
 
     if ((port & 0x0001) == 0x0001) {
         OPL3_WriteRegBuffered(&dev->opl, dev->port, val);
@@ -1649,6 +1653,40 @@ nuked_drv_reset_buffer(void *priv)
     dev->pos = 0;
 }
 
+static void
+nuked_drv_close(void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    free(dev);
+}
+
+static void *
+nuked_drv_init(const device_t *info)
+{
+    nuked_drv_t *dev = (nuked_drv_t *) calloc(1, sizeof(nuked_drv_t));
+    dev->flags       = FLAG_CYCLES;
+    if ((info->local & FM_TYPE_MASK) == FM_YMF262)
+        dev->flags |= FLAG_OPL3;
+    else
+        dev->status = 0x06;
+
+    dev->is_48k      = !!(info->local & FM_FORCE_48K);
+
+    /* Initialize the NukedOPL object. */
+    if (dev->is_48k) {
+        dev->update      = nuked_drv_update_48k;
+        OPL3_Reset(&dev->opl, FREQ_48000);
+    } else {
+        dev->update      = nuked_drv_update;
+        OPL3_Reset(&dev->opl, FREQ_49716);
+    }
+
+    timer_add(&dev->timers[0], nuked_timer_1, dev, 0);
+    timer_add(&dev->timers[1], nuked_timer_2, dev, 0);
+
+    return dev;
+}
+
 const device_t ym3812_nuked_device = {
     .name          = "Yamaha YM3812 OPL2 (NUKED)",
     .internal_name = "ym3812_nuked",
@@ -1681,6 +1719,16 @@ const fm_drv_t nuked_opl_drv = {
     .read          = &nuked_drv_read,
     .write         = &nuked_drv_write,
     .update        = &nuked_drv_update,
+    .reset_buffer  = &nuked_drv_reset_buffer,
+    .set_do_cycles = &nuked_drv_set_do_cycles,
+    .priv          = NULL,
+    .generate      = NULL,
+};
+
+const fm_drv_t nuked_opl_drv_48k = {
+    .read          = &nuked_drv_read,
+    .write         = &nuked_drv_write,
+    .update        = &nuked_drv_update_48k,
     .reset_buffer  = &nuked_drv_reset_buffer,
     .set_do_cycles = &nuked_drv_set_do_cycles,
     .priv          = NULL,

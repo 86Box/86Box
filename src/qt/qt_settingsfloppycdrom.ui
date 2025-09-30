@@ -66,32 +66,46 @@
    </item>
    <item>
     <widget class="QWidget" name="floppyControls" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
+     <layout class="QGridLayout" name="floppyLayout">
+      <item row="0" column="0">
        <widget class="QLabel" name="labelFloppyType">
         <property name="text">
          <string>Type:</string>
         </property>
        </widget>
       </item>
-      <item>
+      <item row="0" column="1">
        <widget class="QComboBox" name="comboBoxFloppyType">
         <property name="maxVisibleItems">
          <number>30</number>
         </property>
        </widget>
       </item>
-      <item>
+      <item row="0" column="2">
        <widget class="QCheckBox" name="checkBoxTurboTimings">
         <property name="text">
          <string>Turbo timings</string>
         </property>
        </widget>
       </item>
-      <item>
+      <item row="0" column="3">
        <widget class="QCheckBox" name="checkBoxCheckBPB">
         <property name="text">
          <string>Check BPB</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelFloppyAudio">
+        <property name="text">
+         <string>Audio:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="comboBoxFloppyAudio">
+        <property name="maxVisibleItems">
+         <number>30</number>
         </property>
        </widget>
       </item>
@@ -205,6 +219,7 @@
   <tabstop>comboBoxFloppyType</tabstop>
   <tabstop>checkBoxTurboTimings</tabstop>
   <tabstop>checkBoxCheckBPB</tabstop>
+  <tabstop>comboBoxFloppyAudio</tabstop>
   <tabstop>tableViewCDROM</tabstop>
   <tabstop>comboBoxBus</tabstop>
   <tabstop>comboBoxChannel</tabstop>

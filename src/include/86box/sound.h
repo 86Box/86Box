@@ -103,12 +103,16 @@ extern void sound_card_reset(void);
 extern void sound_cd_thread_end(void);
 extern void sound_cd_thread_reset(void);
 
+extern void sound_fdd_thread_init(void);
+extern void sound_fdd_thread_end(void);
+
 extern void closeal(void);
 extern void inital(void);
 extern void givealbuffer(const void *buf);
 extern void givealbuffer_music(const void *buf);
 extern void givealbuffer_wt(const void *buf);
 extern void givealbuffer_cd(const void *buf);
+extern void givealbuffer_fdd(const void *buf, const uint32_t size);
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 #define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
@@ -240,6 +244,9 @@ extern const device_t ncr_business_audio_device;
 
 /* Yamaha YMF-7xx */
 extern const device_t ymf701_device;
+extern const device_t ymf715_onboard_device;
+extern const device_t ymf718_device;
+extern const device_t ymf719_device;
 
 #ifdef USE_LIBSERIALPORT
 /* External Audio device OPL2Board (Host Connected hardware)*/

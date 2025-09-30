@@ -25,6 +25,8 @@ public:
     void paintEvent(QPaintEvent *event) override;
 #endif
 
+    void exposeEvent(QExposeEvent* event) override;
+
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
 
 public slots:
