@@ -341,7 +341,7 @@ machine_at_d824_init(const machine_t *model)
 
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C651);
-    
+
     return ret;
 }
 
@@ -364,14 +364,14 @@ machine_at_pcs44c_init(const machine_t *model)
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_pcs44c_device);
-     
+
     device_add(&vl82c113_device);
 
     device_add(&ide_isa_device);
     device_add_params(&pc873xx_device, (void *) (PCX73XX_IDE_PRI | PCX730X_398));
 
     device_add(&intel_flash_bxt_device);
-    
+
     return ret;
 }
 
@@ -401,8 +401,9 @@ machine_at_tuliptc38_init(const machine_t *model)
                              0x000c0000, 32768, 0);
 
         device_add(machine_get_vid_device(machine));
-    } else  for (uint16_t i = 0; i < 32768; i++)
-        rom[i] = mem_readb_phys(0x000c0000 + i);
+    } else
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
 
     mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
     mem_mapping_set_exec(&bios_mapping, rom);

@@ -55,12 +55,13 @@ machine_at_prosignias31x_bx_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_SOUND,  4, 3, 2, 1); /* assumed */
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0d, PCI_CARD_SOUND,       4, 3, 2, 1); /* assumed */
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -101,6 +102,7 @@ machine_at_s1857_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -132,12 +134,13 @@ machine_at_p6bat_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 4, 3, 2, 1);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0d, PCI_CARD_NORMAL,      4, 3, 2, 1);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&via_apro133_device);
     device_add(&via_vt82c596b_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));

@@ -61,16 +61,16 @@ machine_v86p_init(const machine_t *model)
     if (!ret) {
         /* Try an older version of the BIOS. */
         rom_id = 1;
-        ret = bios_load_interleavedr("roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Even.rom",
-                                     "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Odd.rom",
-                                     0x000f8000, 65536, 0);
+        ret    = bios_load_interleavedr("roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Even.rom",
+                                        "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Odd.rom",
+                                        0x000f8000, 65536, 0);
     }
 
     if (!ret) {
         /* Try JVERNET's BIOS. */
         rom_id = 2;
-        ret = bios_load_linear("roms/machines/v86p/V86P.ROM",
-                               0x000f0000, 65536, 0);
+        ret    = bios_load_linear("roms/machines/v86p/V86P.ROM",
+                                  0x000f0000, 65536, 0);
     }
 
     if (bios_only || !ret)

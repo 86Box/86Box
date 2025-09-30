@@ -675,23 +675,24 @@ europc_close(UNUSED(void *priv))
 }
 
 static const device_config_t europc_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "js9",
-        .description = "JS9 Jumper (JIM)",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0x0250,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "js9",
+        .description    = "JS9 Jumper (JIM)",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x0250,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Disabled (250h)", .value = 0x0250 },
             { .description = "Enabled (350h)",  .value = 0x0350 },
-            { .description = ""                            }
+            { .description = ""                                 }
         },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t europc_device = {
