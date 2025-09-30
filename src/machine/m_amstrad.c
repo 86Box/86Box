@@ -75,14 +75,14 @@
 #include <86box/m_amstrad.h>
 #include <86box/plat_unused.h>
 
-#define STAT_PARITY   0x80
-#define STAT_RTIMEOUT 0x40
-#define STAT_TTIMEOUT 0x20
-#define STAT_LOCK     0x10
-#define STAT_CD       0x08
-#define STAT_SYSFLAG  0x04
-#define STAT_IFULL    0x02
-#define STAT_OFULL    0x01
+#define STAT_PARITY               0x80
+#define STAT_RTIMEOUT             0x40
+#define STAT_TTIMEOUT             0x20
+#define STAT_LOCK                 0x10
+#define STAT_CD                   0x08
+#define STAT_SYSFLAG              0x04
+#define STAT_IFULL                0x02
+#define STAT_OFULL                0x01
 
 #define DOUBLE_NONE               0
 #define DOUBLE_SIMPLE             1
@@ -90,17 +90,17 @@
 #define DOUBLE_INTERPOLATE_LINEAR 3
 
 typedef struct amsvid_t {
-    rom_t      bios_rom;    /* 1640 */
-    cga_t      cga;         /* 1640/200 */
-    mda_t      mda;         /* 1512/200/PPC512/640*/
-    ega_t      ega;         /* 1640 */
-    uint8_t    emulation;   /* Which display are we emulating? */
-    uint8_t    dipswitches; /* DIP switches 1-3 */
-    uint8_t    crtc_index;  /* CRTC index readback
-                             * Bit 7: CGA control port written
-                             * Bit 6: Operation control port written
-                             * Bit 5: CRTC register written
-                             * Bits 0-4: Last CRTC register selected */
+    rom_t   bios_rom;    /* 1640 */
+    cga_t   cga;         /* 1640/200 */
+    mda_t   mda;         /* 1512/200/PPC512/640*/
+    ega_t   ega;         /* 1640 */
+    uint8_t emulation;   /* Which display are we emulating? */
+    uint8_t dipswitches; /* DIP switches 1-3 */
+    uint8_t crtc_index;  /* CRTC index readback
+                          * Bit 7: CGA control port written
+                          * Bit 6: Operation control port written
+                          * Bit 5: CRTC register written
+                          * Bits 0-4: Last CRTC register selected */
     uint8_t    operation_ctrl;
     uint8_t    reg_3df;
     uint8_t    type;
@@ -161,8 +161,8 @@ typedef struct amstrad_t {
     /* Video stuff. */
     amsvid_t *vid;
 
-    fdc_t    *fdc;
-    lpt_t    *lpt;
+    fdc_t *fdc;
+    lpt_t *lpt;
 } amstrad_t;
 
 uint32_t amstrad_latch;
@@ -345,20 +345,18 @@ vid_read_1512(uint32_t addr, void *priv)
 static void
 ams1512_render(amsvid_t *vid, int line)
 {
-    uint16_t  cursoraddr  = (vid->crtc[15] | (vid->crtc[14] << 8)) & 0x3fff;
-    int       drawcursor;
-    int       x;
-    int       c;
-    uint8_t   chr;
-    uint8_t   attr;
-    uint16_t  dat;
-    uint16_t  dat2;
-    uint16_t  dat3;
-    uint16_t  dat4;
-    int       cols[4];
-    int       col;
+    uint16_t cursoraddr = (vid->crtc[15] | (vid->crtc[14] << 8)) & 0x3fff;
+    int      drawcursor;
+    uint8_t  chr;
+    uint8_t  attr;
+    uint16_t dat;
+    uint16_t dat2;
+    uint16_t dat3;
+    uint16_t dat4;
+    int      cols[4];
+    int      col;
 
-    for (c = 0; c < 8; c++) {
+    for (uint8_t c = 0; c < 8; c++) {
         if ((vid->cgamode & 0x12) == 0x12) {
             buffer32->line[line][c] = buffer32->line[(line) + 1][c] = (vid->border & 15) + 16;
             if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
@@ -376,10 +374,10 @@ ams1512_render(amsvid_t *vid, int line)
         }
     }
     if (vid->cgamode & CGA_MODE_FLAG_HIGHRES) {
-        for (x = 0; x < 80; x++) {
-            chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
-            attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
-            drawcursor = ((vid->memaddr== cursoraddr) && vid->cursorvisible && vid->cursoron);
+        for (uint8_t x = 0; x < 80; x++) {
+            chr        = vid->vram[(vid->memaddr << 1) & 0x3fff];
+            attr       = vid->vram[((vid->memaddr << 1) + 1) & 0x3fff];
+            drawcursor = ((vid->memaddr == cursoraddr) && vid->cursorvisible && vid->cursoron);
             if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
                 cols[1] = (attr & 15) + 16;
                 cols[0] = ((attr >> 4) & 7) + 16;
@@ -390,21 +388,21 @@ ams1512_render(amsvid_t *vid, int line)
                 cols[0] = (attr >> 4) + 16;
             }
             if (drawcursor)
-                for (c = 0; c < 8; c++)
+                for (uint8_t c = 0; c < 8; c++)
                     buffer32->line[line][(x << 3) + c + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
             else
-                for (c = 0; c < 8; c++)
+                for (uint8_t c = 0; c < 8; c++)
                     buffer32->line[line][(x << 3) + c + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
             vid->memaddr++;
         }
     } else if (!(vid->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
-        for (x = 0; x < 40; x++) {
-            chr        = vid->vram[(vid->memaddr<< 1) & 0x3fff];
-            attr       = vid->vram[((vid->memaddr<< 1) + 1) & 0x3fff];
-            drawcursor = ((vid->memaddr == cursoraddr)  && vid->cursorvisible && vid->cursoron);
-                    
+        for (uint8_t x = 0; x < 40; x++) {
+            chr        = vid->vram[(vid->memaddr << 1) & 0x3fff];
+            attr       = vid->vram[((vid->memaddr << 1) + 1) & 0x3fff];
+            drawcursor = ((vid->memaddr == cursoraddr) && vid->cursorvisible && vid->cursoron);
+
             if (vid->cgamode & CGA_MODE_FLAG_BLINK) {
                 cols[1] = (attr & 15) + 16;
                 cols[0] = ((attr >> 4) & 7) + 16;
@@ -416,12 +414,12 @@ ams1512_render(amsvid_t *vid, int line)
             }
             vid->memaddr++;
             if (drawcursor)
-                for (c = 0; c < 8; c++)
+                for (uint8_t c = 0; c < 8; c++)
                     buffer32->line[line][(x << 4) + (c << 1) + 8] =
                     buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
             else
-                for (c = 0; c < 8; c++)
+                for (uint8_t c = 0; c < 8; c++)
                     buffer32->line[line][(x << 4) + (c << 1) + 8] =
                     buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] =
                         cols[(fontdat[vid->fontbase + chr][vid->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
@@ -442,26 +440,26 @@ ams1512_render(amsvid_t *vid, int line)
             cols[2] = col | 4;
             cols[3] = col | 6;
         }
-        for (x = 0; x < 40; x++) {
+        for (uint8_t x = 0; x < 40; x++) {
             dat = (vid->vram[((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000)] << 8) |
                   vid->vram[((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000) + 1];
             vid->memaddr++;
-            for (c = 0; c < 8; c++) {
+            for (uint8_t c = 0; c < 8; c++) {
                 buffer32->line[line][(x << 4) + (c << 1) + 8] =
                 buffer32->line[line][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
                 dat <<= 2;
             }
         }
     } else {
-        for (x = 0; x < 40; x++) {
-            cursoraddr   = ((vid->memaddr<< 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000);
-            dat  = (vid->vram[cursoraddr] << 8) | vid->vram[cursoraddr + 1];
-            dat2 = (vid->vram[cursoraddr + 0x4000] << 8) | vid->vram[cursoraddr + 0x4001];
-            dat3 = (vid->vram[cursoraddr + 0x8000] << 8) | vid->vram[cursoraddr + 0x8001];
-            dat4 = (vid->vram[cursoraddr + 0xc000] << 8) | vid->vram[cursoraddr + 0xc001];
+        for (uint8_t x = 0; x < 40; x++) {
+            cursoraddr = ((vid->memaddr << 1) & 0x1fff) + ((vid->scanline & 1) * 0x2000);
+            dat        = (vid->vram[cursoraddr] << 8) | vid->vram[cursoraddr + 1];
+            dat2       = (vid->vram[cursoraddr + 0x4000] << 8) | vid->vram[cursoraddr + 0x4001];
+            dat3       = (vid->vram[cursoraddr + 0x8000] << 8) | vid->vram[cursoraddr + 0x8001];
+            dat4       = (vid->vram[cursoraddr + 0xc000] << 8) | vid->vram[cursoraddr + 0xc001];
 
             vid->memaddr++;
-            for (c = 0; c < 16; c++) {
+            for (uint8_t c = 0; c < 16; c++) {
                 buffer32->line[line][(x << 4) + c + 8] =  (((dat >> 15) | ((dat2 >> 15) << 1) |
                                                           ((dat3 >> 15) << 2) | ((dat4 >> 15) << 3)) & (vid->cgacol & 15)) + 16;
                 dat <<= 1;
@@ -498,7 +496,7 @@ vid_poll_1512(void *priv)
         timer_advance_u64(&vid->timer, vid->dispofftime);
         vid->status |= 1;
         vid->linepos = 1;
-        scanline_old        = vid->scanline;
+        scanline_old = vid->scanline;
         if (vid->dispon) {
             if (vid->displine < vid->firstline) {
                 vid->firstline = vid->displine;
@@ -520,18 +518,19 @@ vid_poll_1512(void *priv)
                     ams1512_render(vid, (vid->displine << 1) + 1);
                     break;
             }
-        } else  switch (vid->double_type) {
-            default:
-                ams1512_render_blank(vid, vid->displine << 1);
-                break;
-            case DOUBLE_NONE:
-                ams1512_render_blank(vid, vid->displine);
-                break;
-            case DOUBLE_SIMPLE:
-                ams1512_render_blank(vid, vid->displine << 1);
-                ams1512_render_blank(vid, (vid->displine << 1) + 1);
-                break;
-        }
+        } else
+            switch (vid->double_type) {
+                default:
+                    ams1512_render_blank(vid, vid->displine << 1);
+                    break;
+                case DOUBLE_NONE:
+                    ams1512_render_blank(vid, vid->displine);
+                    break;
+                case DOUBLE_SIMPLE:
+                    ams1512_render_blank(vid, vid->displine << 1);
+                    ams1512_render_blank(vid, (vid->displine << 1) + 1);
+                    break;
+            }
 
         if (vid->cgamode & CGA_MODE_FLAG_HIGHRES)
             x = (vid->crtc[1] << 3) + 16;
@@ -567,21 +566,21 @@ vid_poll_1512(void *priv)
                 vid->status &= ~8;
         }
         if (vid->scanline == (vid->crtc[11] & 31)) {
-            vid->cursorvisible  = 0;
+            vid->cursorvisible = 0;
         }
         if (vid->vadj) {
             vid->scanline++;
             vid->scanline &= 31;
-            vid->memaddr= vid->memaddr_backup;
+            vid->memaddr = vid->memaddr_backup;
             vid->vadj--;
             if (!vid->vadj) {
-                vid->dispon = 1;
-                vid->memaddr= vid->memaddr_backup = (vid->crtc[13] | (vid->crtc[12] << 8)) & 0x3fff;
-                vid->scanline               = 0;
+                vid->dispon  = 1;
+                vid->memaddr = vid->memaddr_backup = (vid->crtc[13] | (vid->crtc[12] << 8)) & 0x3fff;
+                vid->scanline                      = 0;
             }
         } else if (vid->scanline == vid->crtc[9]) {
             vid->memaddr_backup = vid->memaddr;
-            vid->scanline     = 0;
+            vid->scanline       = 0;
             vid->vc++;
             vid->vc &= 127;
 
@@ -652,7 +651,7 @@ vid_poll_1512(void *priv)
         } else {
             vid->scanline++;
             vid->scanline &= 31;
-            vid->memaddr= vid->memaddr_backup;
+            vid->memaddr = vid->memaddr_backup;
         }
         if (vid->scanline == (vid->crtc[10] & 31))
             vid->cursorvisible = 1;
@@ -662,10 +661,8 @@ vid_poll_1512(void *priv)
 static void
 vid_init_1512(amstrad_t *ams)
 {
-    amsvid_t *vid;
-
     /* Allocate a video controller block. */
-    vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
+    amsvid_t *vid = (amsvid_t *) calloc(1, sizeof(amsvid_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc1512);
 
@@ -712,20 +709,21 @@ vid_speed_change_1512(void *priv)
 }
 
 const device_config_t vid_1512_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "display_type",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "display_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "PC-CM (Colour)",     .value = 0 },
             { .description = "PC-MM (Monochrome)", .value = 3 },
             { .description = ""                               }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "double_type",
@@ -745,29 +743,30 @@ const device_config_t vid_1512_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name = "codepage",
-        .description = "Hardware font",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "codepage",
+        .description    = "Hardware font",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "US English", .value = 3 },
             { .description = "Danish",     .value = 1 },
             { .description = "Greek",      .value = 0 },
             { .description = ""                       }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "language",
-        .description = "BIOS language",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "language",
+        .description    = "BIOS language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "English",         .value = 7 },
             { .description = "German",          .value = 6 },
             { .description = "French",          .value = 5 },
@@ -777,10 +776,11 @@ const device_config_t vid_1512_config[] = {
             { .description = "Italian",         .value = 1 },
             { .description = "Diagnostic mode", .value = 0 },
             { .description = ""                            }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t vid_1512_device = {
@@ -915,7 +915,7 @@ vid_init_1640(amstrad_t *ams)
     cga_palette = 0;
     cgapal_rebuild();
 
-    vid->double_type = device_get_config_int("double_type");
+    vid->double_type     = device_get_config_int("double_type");
     vid->cga.double_type = device_get_config_int("double_type");
     cga_interpolate_init();
 
@@ -941,7 +941,7 @@ vid_speed_changed_1640(void *priv)
 }
 
 const device_config_t vid_1640_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name           = "double_type",
         .description    = "Line doubling type",
@@ -960,14 +960,14 @@ const device_config_t vid_1640_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name = "language",
-        .description = "BIOS language",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "language",
+        .description    = "BIOS language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "English",         .value = 7 },
             { .description = "German",          .value = 6 },
             { .description = "French",          .value = 5 },
@@ -977,10 +977,11 @@ const device_config_t vid_1640_config[] = {
             { .description = "Italian",         .value = 1 },
             { .description = "Diagnostic mode", .value = 0 },
             { .description = ""                            }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t vid_1640_device = {
@@ -1357,8 +1358,8 @@ lcd_draw_char_40(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 static void
 lcdm_poll(amsvid_t *vid)
 {
-    mda_t   *mda = &vid->mda;
-    uint16_t cursoraddr  = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
+    mda_t   *mda        = &vid->mda;
+    uint16_t cursoraddr = (mda->crtc[MDA_CRTC_CURSOR_ADDR_LOW] | (mda->crtc[MDA_CRTC_CURSOR_ADDR_HIGH] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      oldvc;
@@ -1371,7 +1372,7 @@ lcdm_poll(amsvid_t *vid)
         timer_advance_u64(&vid->timer, mda->dispofftime);
         mda->status |= 1;
         mda->linepos = 1;
-        scanline_old        = mda->scanline;
+        scanline_old = mda->scanline;
         if ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3)
             mda->scanline = (mda->scanline << 1) & 7;
         if (mda->dispon) {
@@ -1379,9 +1380,9 @@ lcdm_poll(amsvid_t *vid)
                 mda->firstline = mda->displine;
             mda->lastline = mda->displine;
             for (x = 0; x < mda->crtc[MDA_CRTC_HDISP]; x++) {
-                chr        = mda->vram[(mda->memaddr<< 1) & 0xfff];
-                attr       = mda->vram[((mda->memaddr<< 1) + 1) & 0xfff];
-                drawcursor = ((mda->memaddr== cursoraddr) && mda->cursorvisible && mda->cursoron);
+                chr        = mda->vram[(mda->memaddr << 1) & 0xfff];
+                attr       = mda->vram[((mda->memaddr << 1) + 1) & 0xfff];
+                drawcursor = ((mda->memaddr == cursoraddr) && mda->cursorvisible && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->mode & MDA_MODE_BLINK) && (attr & 0x80) && !drawcursor);
 
                 lcd_draw_char_80(vid, &(buffer32->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->scanline, 0, mda->mode);
@@ -1405,22 +1406,22 @@ lcdm_poll(amsvid_t *vid)
                 mda->status &= ~8;
         }
         if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_END] & 31) || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_END] & 31) >> 1))) {
-            mda->cursorvisible  = 0;
+            mda->cursorvisible = 0;
         }
         if (mda->vadj) {
             mda->scanline++;
             mda->scanline &= 31;
-            mda->memaddr= mda->memaddr_backup;
+            mda->memaddr = mda->memaddr_backup;
             mda->vadj--;
             if (!mda->vadj) {
-                mda->dispon = 1;
-                mda->memaddr= mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-                mda->scanline               = 0;
+                mda->dispon  = 1;
+                mda->memaddr = mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                mda->scanline                      = 0;
             }
         } else if (mda->scanline == mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 && mda->scanline == (mda->crtc[MDA_CRTC_MAX_SCANLINE_ADDR] >> 1))) {
             mda->memaddr_backup = mda->memaddr;
-            mda->scanline     = 0;
-            oldvc       = mda->vc;
+            mda->scanline       = 0;
+            oldvc               = mda->vc;
             mda->vc++;
             mda->vc &= 127;
             if (mda->vc == mda->crtc[MDA_CRTC_VDISP])
@@ -1431,7 +1432,7 @@ lcdm_poll(amsvid_t *vid)
                 if (!mda->vadj)
                     mda->dispon = 1;
                 if (!mda->vadj)
-                    mda->memaddr= mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
+                    mda->memaddr = mda->memaddr_backup = (mda->crtc[MDA_CRTC_START_ADDR_LOW] | (mda->crtc[MDA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
                 if ((mda->crtc[MDA_CRTC_CURSOR_START] & 0x60) == 0x20)
                     mda->cursoron = 0;
                 else
@@ -1469,7 +1470,7 @@ lcdm_poll(amsvid_t *vid)
         } else {
             mda->scanline++;
             mda->scanline &= 31;
-            mda->memaddr= mda->memaddr_backup;
+            mda->memaddr = mda->memaddr_backup;
         }
         if (mda->scanline == (mda->crtc[MDA_CRTC_CURSOR_START] & 31) || ((mda->crtc[MDA_CRTC_INTERLACE] & 3) == 3 && mda->scanline == ((mda->crtc[MDA_CRTC_CURSOR_START] & 31) >> 1)))
             mda->cursorvisible = 1;
@@ -1498,7 +1499,7 @@ lcdc_poll(amsvid_t *vid)
         timer_advance_u64(&vid->timer, cga->dispofftime);
         cga->cgastat |= 1;
         cga->linepos = 1;
-        scanline_old        = cga->scanline;
+        scanline_old = cga->scanline;
         if ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3)
             cga->scanline = ((cga->scanline << 1) + cga->oddeven) & 7;
         if (cga->cgadispon) {
@@ -1568,7 +1569,7 @@ lcdc_poll(amsvid_t *vid)
                 cga->cgastat &= ~8;
         }
         if (cga->scanline == (cga->crtc[CGA_CRTC_CURSOR_END] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 && cga->scanline == ((cga->crtc[CGA_CRTC_CURSOR_END] & 31) >> 1))) {
-            cga->cursorvisible  = 0;
+            cga->cursorvisible = 0;
         }
         if ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 && cga->scanline == (cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] >> 1))
             cga->memaddr_backup = cga->memaddr;
@@ -1580,12 +1581,12 @@ lcdc_poll(amsvid_t *vid)
             if (!cga->vadj) {
                 cga->cgadispon = 1;
                 cga->memaddr = cga->memaddr_backup = (cga->crtc[CGA_CRTC_START_ADDR_LOW] | (cga->crtc[CGA_CRTC_START_ADDR_HIGH] << 8)) & 0x3fff;
-                cga->scanline               = 0;
+                cga->scanline                      = 0;
             }
         } else if (cga->scanline == cga->crtc[CGA_CRTC_MAX_SCANLINE_ADDR]) {
             cga->memaddr_backup = cga->memaddr;
-            cga->scanline     = 0;
-            oldvc       = cga->vc;
+            cga->scanline       = 0;
+            oldvc               = cga->vc;
             cga->vc++;
             cga->vc &= 127;
 
@@ -1828,68 +1829,71 @@ vid_close_200(void *priv)
 }
 
 const device_config_t vid_200_config[] = {
-  /* TODO: Should have options here for:
-  *
-  * > Display port (TTL or RF)
-  */
-  // clang-format off
+    /* TODO: Should have options here for:
+     *
+     * > Display port (TTL or RF)
+     */
+    // clang-format off
     {
-        .name = "video_emulation",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = PC200_CGA,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "video_emulation",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = PC200_CGA,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "CGA monitor", .value = PC200_CGA },
             { .description = "MDA monitor", .value = PC200_MDA },
             { .description = "Television",  .value = PC200_TV  },
             { .description = ""                                }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "display_type",
-        .description = "Monitor type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "display_type",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "RGB",              .value = 0 },
             { .description = "RGB (no brown)",   .value = 4 },
             { .description = "Green Monochrome", .value = 1 },
             { .description = "Amber Monochrome", .value = 2 },
             { .description = "White Monochrome", .value = 3 },
             { .description = ""                             }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "codepage",
-        .description = "Hardware font",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "codepage",
+        .description    = "Hardware font",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "US English", .value = 3 },
             { .description = "Portugese",  .value = 2 },
             { .description = "Norwegian",  .value = 1 },
             { .description = "Greek",      .value = 0 },
             { .description = ""                       }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "language",
-        .description = "BIOS language",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "language",
+        .description    = "BIOS language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "English",         .value = 7 },
             { .description = "German",          .value = 6 },
             { .description = "French",          .value = 5 },
@@ -1899,10 +1903,11 @@ const device_config_t vid_200_config[] = {
             { .description = "Italian",         .value = 1 },
             { .description = "Diagnostic mode", .value = 0 },
             { .description = ""                            }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t vid_200_device = {
@@ -1920,36 +1925,37 @@ const device_t vid_200_device = {
 };
 
 const device_config_t vid_ppc512_config[] = {
-  /* TODO: Should have options here for:
-  *
-  * > Display port (TTL or RF)
-  */
-  // clang-format off
+    /* TODO: Should have options here for:
+     *
+     * > Display port (TTL or RF)
+     */
+    // clang-format off
     {
-        .name = "video_emulation",
-        .description = "Display type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = PC200_LCDC,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "video_emulation",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = PC200_LCDC,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "CGA monitor",    .value = PC200_CGA  },
             { .description = "MDA monitor",    .value = PC200_MDA  },
             { .description = "LCD (CGA mode)", .value = PC200_LCDC },
             { .description = "LCD (MDA mode)", .value = PC200_LCDM },
             { .description = ""                                    }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "display_type",
-        .description = "Monitor type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "display_type",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "RGB",              .value = 0 },
             { .description = "RGB (no brown)",   .value = 4 },
             { .description = "Green Monochrome", .value = 1 },
@@ -1957,32 +1963,34 @@ const device_config_t vid_ppc512_config[] = {
             { .description = "White Monochrome", .value = 3 },
             { .description = ""                             }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "codepage",
-        .description = "Hardware font",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 3,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "codepage",
+        .description    = "Hardware font",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 3,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "US English", .value = 3 },
             { .description = "Portugese",  .value = 2 },
             { .description = "Norwegian",  .value = 1 },
             { .description = "Greek",      .value = 0 },
             { .description = ""                       }
         },
+        .bios           = { { 0 } }
     },
     {
-        .name = "language",
-        .description = "BIOS language",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "language",
+        .description    = "BIOS language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "English",         .value = 7 },
             { .description = "German",          .value = 6 },
             { .description = "French",          .value = 5 },
@@ -1992,17 +2000,22 @@ const device_config_t vid_ppc512_config[] = {
             { .description = "Italian",         .value = 1 },
             { .description = "Diagnostic mode", .value = 0 },
             { .description = ""                            }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "invert",
-        .description = "Invert LCD colors",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 0
+        .name           = "invert",
+        .description    = "Invert LCD colors",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t vid_ppc512_device = {
@@ -2020,23 +2033,24 @@ const device_t vid_ppc512_device = {
 };
 
 const device_config_t vid_pc2086_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "language",
-        .description = "BIOS language",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "language",
+        .description    = "BIOS language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "English",         .value = 7 },
             { .description = "Diagnostic mode", .value = 0 },
             { .description = ""                            }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t vid_pc2086_device = {
@@ -2054,23 +2068,24 @@ const device_t vid_pc2086_device = {
 };
 
 const device_config_t vid_pc3086_config[] = {
-  // clang-format off
+    // clang-format off
     {
-        .name = "language",
-        .description = "BIOS language",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = 7,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "language",
+        .description    = "BIOS language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "English",         .value = 7 },
             { .description = "Diagnostic mode", .value = 3 },
             { .description = ""                            }
-        }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t vid_pc3086_device = {
@@ -2119,7 +2134,7 @@ static int
 ms_poll(void *priv)
 {
     amstrad_t *ams = (amstrad_t *) priv;
-    int b = mouse_get_buttons_ex();
+    int        b   = mouse_get_buttons_ex();
 
     if ((b & 1) && !(ams->oldb & 1))
         keyboard_send(0x7e);
@@ -2431,7 +2446,7 @@ ams_read(uint16_t port, void *priv)
 }
 
 static const scancode scancode_pc200[512] = {
-  // clang-format off
+    // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
     { .mk = {      0x01, 0 }, .brk = {             0x81, 0 } }, /* 001 */
     { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 002 */
@@ -2944,7 +2959,7 @@ static const scancode scancode_pc200[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
     { .mk = {0xe0, 0xfe, 0 }, .brk = {                   0 } }, /* 1fe */
     { .mk = {0xe0, 0xff, 0 }, .brk = {                   0 } }  /* 1ff */
-  // clang-format on
+    // clang-format on
 };
 
 static void
@@ -2952,7 +2967,7 @@ machine_amstrad_init(const machine_t *model, int type)
 {
     amstrad_t *ams;
 
-    ams = (amstrad_t *) calloc(1, sizeof(amstrad_t));
+    ams           = (amstrad_t *) calloc(1, sizeof(amstrad_t));
     ams->type     = type;
     amstrad_latch = 0x80000000;
 

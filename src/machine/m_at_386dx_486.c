@@ -103,18 +103,33 @@ machine_at_c747_init(const machine_t *model)
 static const device_config_t opti495_ami_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "ami495",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "AMI 060692", .internal_name = "ami495", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/ami495/opt495sx.ami", "" } },
-            { .name = "MR BIOS V1.60", .internal_name = "mr495", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/ami495/opt495sx.mr", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMI 060692",
+                .internal_name = "ami495",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ami495/opt495sx.ami", "" }
+            },
+            {
+                .name          = "MR BIOS V1.60",
+                .internal_name = "mr495",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ami495/opt495sx.mr", "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -139,15 +154,15 @@ const device_t opti495_ami_device = {
 int
 machine_at_opti495_ami_init(const machine_t *model)
 {
-    int ret = 0;
-    const char* fn;
+    int         ret = 0;
+    const char *fn;
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
 
     machine_at_common_init(model);

@@ -228,16 +228,16 @@ machine_at_cobalt_init(const machine_t *model)
 
     if (bios_only || !ret)
         return ret;
-	
+
     machine_at_common_init(model);
 
     device_add(&opti499_device);
     device_add(&ide_opti611_vlb_device);
     device_add(&ide_isa_sec_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-	
+
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-	
+
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
@@ -374,6 +374,6 @@ machine_at_martin_init(const machine_t *model)
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
 
     device_add(&intel_flash_bxt_device);
-    
+
     return ret;
 }
