@@ -152,7 +152,7 @@ ps2_isa_setup(int model, int cpu_type)
     ps2_isa_t *ps2;
     void      *priv;
 
-    ps2 = (ps2_isa_t *) calloc(1, sizeof(ps2_isa_t));
+    ps2           = (ps2_isa_t *) calloc(1, sizeof(ps2_isa_t));
     ps2->model    = model;
     ps2->cpu_type = cpu_type;
 
@@ -167,7 +167,7 @@ ps2_isa_setup(int model, int cpu_type)
 
     ps2->uart = device_add_inst(&ns16450_device, 1);
 
-    ps2->lpt  = device_add_inst(&lpt_port_device, 1);
+    ps2->lpt = device_add_inst(&lpt_port_device, 1);
     lpt_set_ext(ps2->lpt, 1);
 
     lpt_port_remove(ps2->lpt);

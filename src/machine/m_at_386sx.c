@@ -98,20 +98,35 @@ machine_at_quadt386sx_init(const machine_t *model)
 static const device_config_t pbl300sx_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "pbl300sx",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision 19910723091302", .internal_name = "pbl300sx_1991", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/V1.10_1113_910723.bin", "" } },
-            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision 19920910", .internal_name = "pbl300sx", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/pbl300sx/pb_l300sx_1992.bin", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision 19910723091302",
+                .internal_name = "pbl300sx_1991",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pbl300sx/V1.10_1113_910723.bin", "" }
+            },
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision 19920910",
+                .internal_name = "pbl300sx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pbl300sx/pb_l300sx_1992.bin", "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -134,15 +149,15 @@ const device_t pbl300sx_device = {
 int
 machine_at_pbl300sx_init(const machine_t *model)
 {
-    int ret = 0;
-    const char* fn;
+    int         ret = 0;
+    const char *fn;
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 
@@ -234,20 +249,35 @@ machine_at_flytech386_init(const machine_t *model)
 static const device_config_t c325ax_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "325ax",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios = {
-            { .name = "AMIBIOS 070791", .internal_name = "325ax", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/325ax/M27C512.BIN", "" } },
-            { .name = "MR BIOS V1.41", .internal_name = "mr1217", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/325ax/mrbios.BIN", "" } },
+            {
+                .name          = "AMIBIOS 070791",
+                .internal_name = "325ax",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/325ax/M27C512.BIN", "" }
+            },
+            {
+                .name          = "MR BIOS V1.41",
+                .internal_name = "mr1217",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/325ax/mrbios.BIN", "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -270,15 +300,15 @@ const device_t c325ax_device = {
 int
 machine_at_325ax_init(const machine_t *model)
 {
-    int ret = 0;
-    const char* fn;
+    int         ret = 0;
+    const char *fn;
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
 
     machine_at_common_init(model);
@@ -309,9 +339,9 @@ machine_at_acer100t_init(const machine_t *model)
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti077_acer100t_device);
-     
+
     device_add_params(&pc87310_device, (void *) (PC87310_ALI));
-    
+
     return ret;
 }
 
@@ -575,20 +605,34 @@ machine_at_dataexpert386sx_init(const machine_t *model)
 static const device_config_t dells333sl_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "dells333sl",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision J01 (Jostens Learning Corporation OEM)", .internal_name = "dells333sl_j01", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/DELL386.BIN", "" } },
-            { .name = "Phoenix ROM BIOS PLUS 1.10 - Revision A02", .internal_name = "dells333sl", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/dells333sl/Dell_386SX_30807_UBIOS_B400_VLSI_VL82C311_Cirrus_Logic_GD5420.bin", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision J01 (Jostens Learning Corporation OEM)",
+                .internal_name = "dells333sl_j01",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/dells333sl/DELL386.BIN", "" }
+            },
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision A02",
+                .internal_name = "dells333sl",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/dells333sl/Dell_386SX_30807_UBIOS_B400_VLSI_VL82C311_Cirrus_Logic_GD5420.bin", "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -611,15 +655,15 @@ const device_t dells333sl_device = {
 int
 machine_at_dells333sl_init(const machine_t *model)
 {
-    int ret = 0;
-    const char* fn;
+    int         ret = 0;
+    const char *fn;
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000e0000, 262144, 0);
     memcpy(rom, &(rom[0x00020000]), 131072);
     mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
