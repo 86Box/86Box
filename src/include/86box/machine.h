@@ -1085,6 +1085,9 @@ extern int             machine_at_m560_init(const machine_t *);
 
 /* m_at_sockets7.c */
 /* ALi ALADDiN V */
+#ifdef EMU_DEVICE_H
+extern const device_t  p5a_device;
+#endif
 extern int             machine_at_p5a_init(const machine_t *);
 extern int             machine_at_m579_init(const machine_t *);
 extern int             machine_at_gwlucas_init(const machine_t *);
@@ -1155,6 +1158,9 @@ extern const device_t  bx6_device;
 #endif
 extern int             machine_at_bx6_init(const machine_t *);
 extern int             machine_at_ax6bc_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  p2bls_device;
+#endif
 extern int             machine_at_p2bls_init(const machine_t *);
 extern int             machine_at_p3bf_init(const machine_t *);
 #ifdef EMU_DEVICE_H
