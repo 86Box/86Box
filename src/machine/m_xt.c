@@ -995,7 +995,7 @@ static const device_config_t pc500_config[] = {
                 .files         = { "roms/machines/pc500/rom330.bin", "" }
             },
             {
-                .name          = "3.10",
+                .name          = "3.1",
                 .internal_name = "pc500_310",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1035,8 +1035,8 @@ machine_xt_pc500_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret          = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
     device_context_restore();
 
     if (bios_only || !ret)
