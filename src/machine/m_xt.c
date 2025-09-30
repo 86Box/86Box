@@ -1049,13 +1049,79 @@ machine_xt_pc500_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pc500plus_config[] = {
+    // clang-format off
+    {
+        .name       = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc500plus_406",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "4.06",
+                .internal_name = "pc500plus_406",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom406.bin", "" }
+            },
+            {
+                .name          = "4.04",
+                .internal_name = "pc500plus_404",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom404.bin", "" }
+            },
+            {
+                .name          = "4.03",
+                .internal_name = "pc500plus_403",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom403.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc500plus_device = {
+    .name          = "Multitech PC-500 plus",
+    .internal_name = "pc500plus_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pc500plus_config
+};
+
 int
 machine_xt_pc500plus_init(const machine_t *model)
 {
-    int ret;
+    int         ret;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/pc500/rom404.bin",
-                           0x000fc000, 16384, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fc000, 16384, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;

@@ -1352,6 +1352,9 @@ extern int             machine_xt_micoms_xl7turbo_init(const machine_t *);
 extern const device_t  pc500_device;
 #endif
 extern int             machine_xt_pc500_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  pc500plus_device;
+#endif
 extern int             machine_xt_pc500plus_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  pc700_device;
