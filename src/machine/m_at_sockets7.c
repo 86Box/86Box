@@ -186,8 +186,6 @@ static const device_config_t g5x_config[] = {
         .bios = {
             { .name = "Award Modular BIOS v4.51PG - Revision 1.5", .internal_name = "5ax_15", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5ax/5AX.15", "" } },
-            { .name = "Award Modular BIOS v4.51PG - Revision F3", .internal_name = "5ax_f3", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5ax/5AX.F3", "" } },
             { .name = "Award Modular BIOS v4.51PG - Revision F4", .internal_name = "5ax", .bios_type = BIOS_NORMAL, 
               .files_no = 1, .local = 0, .size = 131072, .files = { "roms/machines/5ax/5AX.F4", "" } },
             { .name = "Phoenix - AwardBIOS v6.00PG - Release 4.1 (by eSupport)", .internal_name = "5ax_esupport", .bios_type = BIOS_NORMAL, 
