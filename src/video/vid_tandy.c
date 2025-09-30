@@ -191,11 +191,6 @@ vid_update_display_offset(t1kvid_t *vid, uint8_t reg)
     int hsync_scale = (vid->mode & 1) ? 8 : 16;
     int vsync_scale = vid->crtc[9] + 1;
 
-    if (reg == 1 || reg == 6) {
-        baseline_calib_start(vid);
-        return;
-    }
-
     if (!vid->baseline_ready) {
         vid->hsync_offset = 0;
         vid->vsync_offset = 0;
@@ -206,6 +201,10 @@ vid_update_display_offset(t1kvid_t *vid, uint8_t reg)
                 vid->hsync_offset = ((int)vid->baseline_hsyncpos - (int)vid->crtc[2]) * hsync_scale;
                 break;
             case 7:
+                if (vid->crtc[7] < vid->crtc[6])
+                    vid->crtc[7] = vid->crtc[6];
+                else if (vid->crtc[7] > vid->crtc[4])
+                    vid->crtc[7] = vid->crtc[4];
                 vid->vsync_offset = ((int)vid->baseline_vsyncpos - (int)vid->crtc[7]) * vsync_scale;
                 break;
         }
@@ -238,10 +237,10 @@ tandy_vid_out(uint16_t addr, uint8_t val, void *priv)
                     vid->fullchange = changeframecount;
                     recalc_timings(dev);
                 }
-                if ((vid->crtcreg >= 0x01 && vid->crtcreg <= 0x02) || 
-                    (vid->crtcreg >= 0x06 && vid->crtcreg <= 0x07)) {
+                if (vid->crtcreg == 0x01 || vid->crtcreg == 0x06)
+                    baseline_calib_start(vid);
+                if (vid->crtcreg == 0x02 || vid->crtcreg == 0x07)
                     vid_update_display_offset(vid, vid->crtcreg);
-                }
             }
             break;
 
@@ -771,7 +770,7 @@ vid_poll(void *priv)
                 else
                     vid->cursoron = vid->blink & 16;
             }
-            if (vid->vc == vid->crtc[7]) {
+            if (vid->vc == vid->baseline_vsyncpos) {
                 vid->dispon    = 0;
                 vid->displine  = 0;
                 vid->vsynctime = 16;
