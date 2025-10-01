@@ -23,6 +23,32 @@ extern "C" {
 
 #ifndef DISABLE_FDD_AUDIO
 
+/* Audio sample configuration structure */
+typedef struct {
+    char filename[512];
+    float volume;
+} audio_sample_config_t;
+
+/* Drive type specific audio configuration */
+typedef struct {
+    int id;
+    char name[128];
+    char internal_name[64];
+    audio_sample_config_t spindlemotor_start;
+    audio_sample_config_t spindlemotor_loop;
+    audio_sample_config_t spindlemotor_stop;
+    audio_sample_config_t single_track_step;
+    audio_sample_config_t multi_track_seek;
+    int total_tracks;
+    int samples_per_track;
+    double initial_seek_time;
+    double initial_seek_time_pcjr;
+    double track_seek_time;
+    double track_seek_time_pcjr;
+} fdd_audio_profile_config_t;
+
+#define FDD_AUDIO_PROFILE_MAX 64
+
 /* Motor sound states */
 typedef enum {
     MOTOR_STATE_STOPPED = 0,
@@ -52,11 +78,28 @@ typedef struct {
 #define FADE_DURATION_MS 75
 #define FADE_SAMPLES     (48000 * FADE_DURATION_MS / 1000)
 
+/* Functions for configuration management */
+extern void fdd_audio_load_profiles(void);
+extern int fdd_audio_get_profile_count(void);
+extern const fdd_audio_profile_config_t* fdd_audio_get_profile(int id);
+extern const char* fdd_audio_get_profile_name(int id);
+extern const char* fdd_audio_get_profile_internal_name(int id);
+extern int fdd_audio_get_profile_by_internal_name(const char* internal_name);
+extern double fdd_audio_get_seek_time(int drive, int is_initial, int track_count);
+
 #else
 
 typedef enum {
     MOTOR_STATE_STOPPED = 0
 } motor_state_t;
+
+typedef struct {
+    int id;
+    char name[128];
+    char internal_name[64];
+} fdd_audio_profile_config_t;
+
+#define FDD_AUDIO_PROFILE_MAX 1
 
 #endif /* DISABLE_FDD_AUDIO */
 
@@ -75,9 +118,6 @@ extern void fdd_audio_play_multi_track_seek(int drive, int from_track, int to_tr
 
 /* Audio callback function */
 extern void fdd_audio_callback(int16_t *buffer, int length);
-
-/* State name helper function */
-extern const char *fdd_audio_motor_state_name(motor_state_t state);
 
 #ifdef __cplusplus
 }
