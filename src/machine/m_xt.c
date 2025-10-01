@@ -1287,7 +1287,7 @@ const device_t pc500plus_device = {
 int
 machine_xt_pc500plus_init(const machine_t *model)
 {
-    int         ret;
+    int         ret = 0;
     const char *fn;
 
     /* No ROMs available. */
