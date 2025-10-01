@@ -26,11 +26,11 @@
 #define SEEK_RECALIBRATE     -999
 
 /* Per-drive audio profiles */
-#define FDD_AUDIO_PROFILE_NONE       0
+/* #define FDD_AUDIO_PROFILE_NONE  0
 #define FDD_AUDIO_PROFILE_MITSUMI    1
 #define FDD_AUDIO_PROFILE_PANASONIC  2
 #define FDD_AUDIO_PROFILE_TEAC       3
-#define FDD_AUDIO_PROFILE_MAX        4
+#define FDD_AUDIO_PROFILE_MAX        4*/
 
 #ifdef __cplusplus
 extern "C" {
