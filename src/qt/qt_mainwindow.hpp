@@ -178,7 +178,6 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 
-    void adjustToForce43(int suggestedW = -1, int suggestedH = -1);
 	void updateShortcuts();
     void     processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
