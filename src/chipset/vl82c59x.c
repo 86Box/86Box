@@ -8,25 +8,23 @@
  *
  *          Implementation of the VLSI SuperCore and Wildcat chipsets.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          win2kgamer
  *
  *          Copyright 2020-2025 Miran Grca.
  *          Copyright 2025 win2kgamer
  */
-
 #ifdef ENABLE_VL82C59X_LOG
 #include <stdarg.h>
 #endif
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#ifdef ENABLE_VL82C59X_LOG
 #define HAVE_STDARG_H
+#endif
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/device.h>
@@ -138,21 +136,21 @@ vl82c59x_smram(vl82c59x_t *dev)
 
     /* A/B region SMRAM seems to not be controlled by 591 reg 0x7C/SMRAM enable */
     /* Dell Dimension BIOS breaks if A0000 region is controlled by SMRAM enable */
-    if (dev->pci_conf[0x64] & 0x55) {
+    if (dev->pci_conf[0x64] & 0x55)
         smram_enable(dev->smram[0], 0x000a0000, 0x000a0000, 0x10000, dev->pci_conf[0x64] & 0xAA, dev->pci_conf[0x64] & 0x55);
-    }
-    if (dev->pci_conf[0x65] & 0x55) {
+
+    if (dev->pci_conf[0x65] & 0x55)
         smram_enable(dev->smram[1], 0x000b0000, 0x000b0000, 0x10000, dev->pci_conf[0x65] & 0xAA, dev->pci_conf[0x65] & 0x55);
-    }
 
     /* Handle E region SMRAM */
     if (dev->pci_conf[0x7C] & 0x80) {
-        if (dev->pci_conf[0x68] & 0x05) {
-            smram_enable(dev->smram[2], 0x000e0000, 0x000e0000, 0x8000, dev->pci_conf[0x68] & 0x0A, dev->pci_conf[0x68] & 0x05);
-        }
-        if (dev->pci_conf[0x68] & 0x50) {
-            smram_enable(dev->smram[3], 0x000e8000, 0x000e8000, 0x8000, dev->pci_conf[0x68] & 0xA0, dev->pci_conf[0x68] & 0x50);
-        }
+        if (dev->pci_conf[0x68] & 0x05)
+            smram_enable(dev->smram[2], 0x000e0000, 0x000e0000, 0x8000,
+                         dev->pci_conf[0x68] & 0x0a, dev->pci_conf[0x68] & 0x05);
+
+        if (dev->pci_conf[0x68] & 0x50)
+            smram_enable(dev->smram[3], 0x000e8000, 0x000e8000, 0x8000,
+                         dev->pci_conf[0x68] & 0xa0, dev->pci_conf[0x68] & 0x50);
     }
 
     flushmmucache();
@@ -216,82 +214,62 @@ vl82c59x_write(int func, int addr, uint8_t val, void *priv)
 
     vl82c59x_log(dev->log, "[%04X:%08X] VL82c591: [W] (%02X, %02X) = %02X\n", CS, cpu_state.pc, func, addr, val);
 
-    if (func == 0x00)
-        switch (addr) {
-            case 0x04:
-            case 0x05: /* PCI Command Register */
+    if (func == 0x00)  switch (addr) {
+        case 0x04: case 0x05:    /* PCI Command Register */
+            dev->pci_conf[addr] = val;
+            break;
+        case 0x54:               /* Cache Control Register 1 */
+            dev->pci_conf[addr] = val;
+            cpu_cache_ext_enabled = (val & 0xc0);
+            cpu_update_waitstates();
+            break;
+        case 0x55:               /* Cache Control Register 2 */
+            dev->pci_conf[addr] = val;
+            cpu_cache_int_enabled = (val & 0x40);
+            cpu_update_waitstates();
+            break;
+        case 0x58:              /* RAMCFG0 */
+        case 0x59:              /* RAMCFG1 */
+            dev->pci_conf[addr] = val;
+            break;
+        case 0x5a:              /* Wildcat EDO RAM control */
+            if (dev->type == 0x01)
                 dev->pci_conf[addr] = val;
-                break;
-            case 0x54: /* Cache Control Register 1 */
-                dev->pci_conf[addr] = val;
-                cpu_cache_ext_enabled = (val & 0xc0);
-                cpu_update_waitstates();
-                break;
-            case 0x55: /* Cache Control Register 2 */
-                dev->pci_conf[addr] = val;
-                cpu_cache_int_enabled = (val & 0x40);
-                cpu_update_waitstates();
-                break;
-            case 0x58: /* RAMCFG0 */
-            case 0x59: /* RAMCFG1 */
-                dev->pci_conf[addr] = val;
-                break;
-            case 0x5A: /* Wildcat EDO RAM control */
-                if (dev->type == 0x01) {
-                    dev->pci_conf[addr] = val;
-                }
-                break;
-            case 0x5C: /* RAMCTL0 */
-            case 0x5D: /* RAMCTL1 */
-            case 0x5E: /* RAMCTL2 */
-            case 0x5F:
-            case 0x60:
-            case 0x62:
-                /* Apricot XEN-PC Ruby/Jade BIOS requires bit 2 to be set or */
-                /* CMOS setup hangs on subsequent runs after NVRAM is initialized */
-                dev->pci_conf[addr] = val;
-                break;
-            case 0x64: /* A-B SMRAM regs */
-            case 0x65:
-                dev->pci_conf[addr] = val;
-                vl82c59x_smram(dev);
-                break;
-            case 0x66: /* Shadow RAM */
-            case 0x67:
-            case 0x68:
-            case 0x69:
-                dev->pci_conf[addr] = val;
-                vl82c59x_recalc(dev);
-                vl82c59x_smram(dev);
-                break;
-            case 0x6C: /* L2 Cacheability registers */
-            case 0x6D:
-            case 0x6E:
-            case 0x6F:
-            case 0x70:
-            case 0x71:
-            case 0x74: /* Suspected PMRA registers */
-            case 0x75:
-            case 0x76:
-            case 0x78:
-            case 0x79:
-            case 0x7A:
-                dev->pci_conf[addr] = val;
-                break;
-            case 0x7C: /* MISCSSET, bit 7 is SMRAM enable (for the E region) */
-                /* io.c logging shows BIOSes setting Bit 7 here */
-                dev->pci_conf[addr] = val;
-                vl82c59x_smram(dev);
-                break;
-            case 0x7D: /* Unknown but seems Wildcat-specific, Zeos and PB600 BIOSes hang if bit 3 is writable */
-                if (dev->type == 0x01) {
-                    dev->pci_conf[addr] = val & 0xf7;
-                }
-                break;
-            default:
-                if (addr > 0x3F)
-                    vl82c59x_log(dev->log, "VL82c591: Unknown reg [W] (%02X, %02X) = %02X\n", func, addr, val);
-                break;
+            break;
+        case 0x5c ... 0x5e:     /* RAMCTL0-RAMCTL2 */
+        case 0x5f ... 0x60:
+        case 0x62:
+            /* Apricot XEN-PC Ruby/Jade BIOS requires bit 2 to be set or */
+            /* CMOS setup hangs on subsequent runs after NVRAM is initialized */
+            dev->pci_conf[addr] = val;
+            break;
+        case 0x64 ... 0x65:     /* A-B SMRAM regs */
+            dev->pci_conf[addr] = val;
+            vl82c59x_smram(dev);
+            break;
+        case 0x66 ... 0x69:     /* Shadow RAM */
+            dev->pci_conf[addr] = val;
+            vl82c59x_recalc(dev);
+            vl82c59x_smram(dev);
+            break;
+        case 0x6c ... 0x71:     /* L2 Cacheability registers */
+        case 0x74 ... 0x76:     /* Suspected PMRA registers */
+        case 0x78 ... 0x7a:
+            dev->pci_conf[addr] = val;
+            break;
+        case 0x7c:              /* MISCSSET, bit 7 is SMRAM enable (for the E region) */
+            /* io.c logging shows BIOSes setting Bit 7 here */
+            dev->pci_conf[addr] = val;
+            vl82c59x_smram(dev);
+            break;
+        case 0x7d:              /* Unknown but seems Wildcat-specific, Zeos and PB600 BIOSes hang if bit 3 is writable */
+            if (dev->type == 0x01)
+                dev->pci_conf[addr] = val & 0xf7;
+            break;
+        default:
+            if (addr > 0x3f)
+                vl82c59x_log(dev->log, "VL82c591: Unknown reg [W] (%02X, %02X) = %02X\n", func, addr, val);
+            break;
     }
 
 }
@@ -302,12 +280,10 @@ vl82c59x_read(int func, int addr, void *priv)
     const vl82c59x_t *dev = (vl82c59x_t *) priv;
     uint8_t             ret = 0xff;
 
-    if (func == 0x00) {
-        switch (addr) {
-            default:
-                ret = dev->pci_conf[addr];
-                break;
-        }
+    if (func == 0x00)  switch (addr) {
+        default:
+            ret = dev->pci_conf[addr];
+            break;
     }
 
     vl82c59x_log(dev->log, "[%04X:%08X] VL82c591: [R] (%02X, %02X) = %02X\n", CS, cpu_state.pc, func, addr, ret);
@@ -324,110 +300,83 @@ vl82c59x_sb_write(int func, int addr, uint8_t val, void *priv)
 
     vl82c59x_log(dev->log, "[%04X:%08X] VL82c593: [W] (%02X, %02X) = %02X\n", CS, cpu_state.pc, func, addr, val);
 
-    if (func == 0x00)
-        switch (addr) {
-            case 0x04:
-            case 0x05: /* PCI Command Register */
+    if (func == 0x00) switch (addr) {
+        case 0x04 ... 0x05:     /* PCI Command Register */
                 dev->pci_conf_sb[addr] = val;
                 break;
-            case 0x50: /* MISCSETC */
-            case 0x51: /* MISCSETB */
-            case 0x52: /* MISCSETA */
-            case 0x53:
-            case 0x54:
-            case 0x55:
-            case 0x56:
-            case 0x57:
-            case 0x58:
-            case 0x59:
-            case 0x5A:
-                /* Has at least one GPIO bit. Compaq Presario 700/900 586 BIOS */
-                /* uses bit 2 as an output to set the onboard ES688's base I/O */
-                /* address. Bit 2 cleared = 220, bit 2 set = 240 */
-            case 0x5C: /* Interrupt Assertion Level Register */
-            case 0x5D:
+        case 0x50 ... 0x52:     /* MISCSETC-MISCSETA */
+        case 0x53 ... 0x5a:
+            /* Has at least one GPIO bit. Compaq Presario 700/900 586 BIOS */
+            /* uses bit 2 as an output to set the onboard ES688's base I/O */
+            /* address. Bit 2 cleared = 220, bit 2 set = 240 */
+        case 0x5c ... 0x5d:     /* Interrupt Assertion Level Register */
+            dev->pci_conf_sb[addr] = val;
+            break;
+        case 0x60:              /* SMI Enable Register */
+            dev->pci_conf_sb[addr] = val;
+            break;
+        case 0x61:              /* SMI Status Register */
+            dev->pci_conf_sb[addr] = 0x00;
+            break;
+        case 0x62:              /* SMI I/O port high byte */
+        case 0x63:              /* SMI I/O port low byte */
+            dev->pci_conf_sb[addr] = val;
+            vl82c59x_set_pm_io(dev);
+            break;
+        case 0x64:              /* System Event Enable Register 1 */
+        case 0x66:              /* System Event Enable Register 2 */
+        case 0x68:              /* System Event Enable Register 3 */
+            dev->pci_conf_sb[addr] = val;
+            break;
+        case 0x65:              /* System Event Status Register 1 */
+        case 0x67:              /* System Event Status Register 2 */
+        case 0x69:              /* System Event Status Register 3 */
+            dev->pci_conf_sb[addr] = 0x00;
+            break;
+        case 0x6a:              /* PCI Activity Control Register */
+            /* Top 4 bits are Read/Clear */
+            dev->pci_conf_sb[addr] = val & 0x0f;
+            break;
+        case 0x6b:              /* Programmable I/O Range Register High Byte */
+            dev->pci_conf_sb[addr] = val;
+            break;
+        case 0x6c:              /* Programmable I/O Range Register Low Byte */
+        case 0x6d:              /* System Event Control Register/SMI Global Enable */
                 dev->pci_conf_sb[addr] = val;
                 break;
-            case 0x60: /* SMI Enable Register */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x61: /* SMI Status Register */
-                dev->pci_conf_sb[addr] = 0x00;
-                break;
-            case 0x62: /* SMI I/O port high byte */
-            case 0x63: /* SMI I/O port low byte */
-                dev->pci_conf_sb[addr] = val;
-                vl82c59x_set_pm_io(dev);
-                break;
-            case 0x64: /* System Event Enable Register 1 */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x65: /* System Event Status Register 1 */
-                dev->pci_conf_sb[addr] = 0x00;
-                break;
-            case 0x66: /* System Event Enable Register 2 */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x67: /* System Event Status Register 2 */
-                dev->pci_conf_sb[addr] = 0x00;
-                break;
-            case 0x68: /* System Event Enable Register 3 */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x69: /* System Event Status Register 3 */
-                dev->pci_conf_sb[addr] = 0x00;
-                break;
-            case 0x6A: /* PCI Activity Control Register */
-                dev->pci_conf_sb[addr] = val & 0x0f; /* Top 4 bits are Read/Clear */
-                break;
-            case 0x6B: /* Programmable I/O Range Register High Byte */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x6C: /* Programmable I/O Range Register Low Byte */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x6D: /* System Event Control Register/SMI Global Enable */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x6E:
-            case 0x6F:
-            case 0x70:
-            case 0x71:
-            case 0x72: /* GPIO */
-                /* Compaq Presario and Prolinea use bits 6-4 for setting ECP DMA */
-                /* 011 (0x03) = DMA 3 (Default) */
-                /* 100 (0x04) = DMA 0 */
-                /* 111 (0x07) = DMA disabled */
-            case 0x73: /* GPIO */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x74: /* PCI Interrupt Connection Register (PCIINT0/1) */
-                dev->pci_conf_sb[addr] = val;
-                irq = irq_array[val & 0x07];
-                pci_set_irq_routing(PCI_INTA, (irq != 0) ? irq : PCI_IRQ_DISABLED);
-                irq = irq_array[(val & 0x70) >> 4];
-                pci_set_irq_routing(PCI_INTB, (irq != 0) ? irq : PCI_IRQ_DISABLED);
-                break;
-            case 0x75: /* PCI Interrupt Connection Register (PCIINT2/3) */
-                dev->pci_conf_sb[addr] = val;
-                irq = irq_array[val & 0x07];
-                pci_set_irq_routing(PCI_INTC, (irq != 0) ? irq : PCI_IRQ_DISABLED);
-                irq = irq_array[(val & 0x70) >> 4];
-                pci_set_irq_routing(PCI_INTD, (irq != 0) ? irq : PCI_IRQ_DISABLED);
-                break;
-            case 0x76: /* PCI Interrupt Connection Register (ISA/PCIINT) */
-                dev->pci_conf_sb[addr] = val;
-                break;
-            case 0x77:
-            case 0x78:
-                dev->pci_conf_sb[addr] = val;
-                break;
-            default:
-                if (addr > 0x3F)
-                    vl82c59x_log(dev->log, "VL82c593: Unknown reg [W] (%02X, %02X) = %02X\n", func, addr, val);
-                break;
+        case 0x6e ... 0x72:     /* GPIO */
+            /* Compaq Presario and Prolinea use bits 6-4 for setting ECP DMA */
+            /* 011 (0x03) = DMA 3 (Default) */
+            /* 100 (0x04) = DMA 0 */
+            /* 111 (0x07) = DMA disabled */
+        case 0x73:              /* GPIO */
+            dev->pci_conf_sb[addr] = val;
+            break;
+        case 0x74:              /* PCI Interrupt Connection Register (PCIINT0/1) */
+            dev->pci_conf_sb[addr] = val;
+            irq = irq_array[val & 0x07];
+            pci_set_irq_routing(PCI_INTA, (irq != 0) ? irq : PCI_IRQ_DISABLED);
+            irq = irq_array[(val & 0x70) >> 4];
+            pci_set_irq_routing(PCI_INTB, (irq != 0) ? irq : PCI_IRQ_DISABLED);
+            break;
+        case 0x75:              /* PCI Interrupt Connection Register (PCIINT2/3) */
+            dev->pci_conf_sb[addr] = val;
+            irq = irq_array[val & 0x07];
+            pci_set_irq_routing(PCI_INTC, (irq != 0) ? irq : PCI_IRQ_DISABLED);
+            irq = irq_array[(val & 0x70) >> 4];
+            pci_set_irq_routing(PCI_INTD, (irq != 0) ? irq : PCI_IRQ_DISABLED);
+            break;
+        case 0x76:              /* PCI Interrupt Connection Register (ISA/PCIINT) */
+            dev->pci_conf_sb[addr] = val;
+            break;
+        case 0x77 ... 0x78:
+            dev->pci_conf_sb[addr] = val;
+            break;
+        default:
+            if (addr > 0x3f)
+                vl82c59x_log(dev->log, "VL82c593: Unknown reg [W] (%02X, %02X) = %02X\n", func, addr, val);
+            break;
     }
-
 }
 
 static uint8_t
@@ -436,30 +385,29 @@ vl82c59x_sb_read(int func, int addr, void *priv)
     const vl82c59x_t *dev = (vl82c59x_t *) priv;
     uint8_t             ret = 0xff;
 
-    if (func == 0x00)
-        switch (addr) {
-            case 0x69: /* Lower two bits are a CPU speed readout per Compaq's Prolinea E series TRG */
-                /* Per the Prolinea TRG bits 5/3/1 of 593 reg 0x73 must be set to 1 to read the jumpers */
-                if (dev->is_compaq && (dev->pci_conf_sb[0x73] & 0x2A)) {
-                    /* Set bit 2 to 1 as this is required for the Prolinea E to be properly identified
-                       in Compaq Computer Setup. */
-                    ret = (dev->pci_conf_sb[addr] | 0x04);
-                    if (cpu_busspeed <= 50000000)
-                        ret = (ret & 0xfd); /* 50MHz: Bit 1 = 0 */
-                    else
-                        ret = (ret | 0x02); /* 60MHz: Bit 1 = 1 */
+    if (func == 0x00)  switch (addr) {
+        case 0x69:
+            /* Lower two bits are a CPU speed readout per Compaq's Prolinea E series TRG */
+            /* Per the Prolinea TRG bits 5/3/1 of 593 reg 0x73 must be set to 1 to read the jumpers */
+            if (dev->is_compaq && (dev->pci_conf_sb[0x73] & 0x2A)) {
+                /* Set bit 2 to 1 as this is required for the Prolinea E to be properly identified
+                   in Compaq Computer Setup. */
+                ret = (dev->pci_conf_sb[addr] | 0x04);
+                if (cpu_busspeed <= 50000000)
+                    ret = (ret & 0xfd); /* 50MHz: Bit 1 = 0 */
+                else
+                    ret = (ret | 0x02); /* 60MHz: Bit 1 = 1 */
 
-                    if (cpu_dmulti <= 1.5)
-                        ret = (ret | 0x01); /* 1.5x mult: Bit 0 = 1 */
-                    else
-                        ret = (ret & 0xfe); /* 2.0x mult: Bit 0 = 0 */
-                } else {
-                    ret = dev->pci_conf_sb[addr];
-                }
-                break;
-            default:
+                if (cpu_dmulti <= 1.5)
+                    ret = (ret | 0x01); /* 1.5x mult: Bit 0 = 1 */
+                else
+                    ret = (ret & 0xfe); /* 2.0x mult: Bit 0 = 0 */
+            } else
                 ret = dev->pci_conf_sb[addr];
-                break;
+            break;
+        default:
+            ret = dev->pci_conf_sb[addr];
+            break;
     }
 
     vl82c59x_log(dev->log, "[%04X:%08X] VL82c593: [R] (%02X, %02X) = %02X\n", CS, cpu_state.pc, func, addr, ret);
