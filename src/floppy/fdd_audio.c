@@ -191,30 +191,9 @@ fdd_audio_log_active_profiles(void)
 void
 fdd_audio_load_profiles(void)
 {
-    char config_path[2048];
     ini_t profiles_ini;
 
-    /* Validate exe_path to prevent directory traversal attacks */
-    if (exe_path == NULL || strlen(exe_path) == 0) {
-        fdd_log("FDD Audio: Invalid exe_path\n");
-        return;
-    }
-
-    /* Check for directory traversal sequences */
-    if (strstr(exe_path, "..") != NULL) {
-        fdd_log("FDD Audio: Directory traversal detected in exe_path\n");
-        return;
-    }
-    
-    path_append_filename(config_path, exe_path, "roms/floppy/fdd_audio_profiles.cfg");
-
-    /* Additional validation of the final path */
-    if (strstr(config_path, "..") != NULL) {
-        fdd_log("FDD Audio: Directory traversal detected in config path: %s\n", config_path);
-        return;
-    }
-
-    profiles_ini = ini_read(config_path);
+    profiles_ini = ini_read_ex("roms/floppy/fdd_audio_profiles.cfg", 1);
     if (profiles_ini == NULL) {
         fdd_log("FDD Audio: Could not load profiles from %s\n", config_path);
         return;
