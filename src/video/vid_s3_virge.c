@@ -1113,10 +1113,8 @@ s3_virge_updatemapping(virge_t *virge)
         if (virge->linear_base == 0xa0000) {
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             mem_mapping_disable(&virge->linear_mapping);
-        } else {
-            virge->linear_base &= ~(virge->linear_size - 1);
+        } else
             mem_mapping_set_addr(&virge->linear_mapping, virge->linear_base, virge->linear_size);
-        }
         svga->fb_only = 1;
     } else {
         mem_mapping_disable(&virge->linear_mapping);
