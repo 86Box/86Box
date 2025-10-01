@@ -39,8 +39,7 @@ typedef struct {
     audio_sample_config_t spindlemotor_stop;
     audio_sample_config_t single_track_step;
     audio_sample_config_t multi_track_seek;
-    int seek_duration_per_track;
-    int total_tracks;
+    int samples_per_track;
     double initial_seek_time;
     double initial_seek_time_pcjr;
     double track_seek_time;

@@ -137,7 +137,7 @@ fdd_audio_log_profile_params(int drive, const fdd_audio_profile_config_t* profil
              profile->multi_track_seek.filename, profile->multi_track_seek.volume);
     
     fdd_log("  Timing Parameters:\n");
-    fdd_log("    Seek Duration Per Track: %d samples\n", profile->seek_duration_per_track);
+    fdd_log("    Samples Per Track: %d samples\n", profile->samples_per_track);
     fdd_log("    Total Tracks: %d\n", profile->total_tracks);
     fdd_log("    Initial Seek Time: %.1f µs\n", profile->initial_seek_time);
     fdd_log("    Initial Seek Time (PCjr): %.1f µs\n", profile->initial_seek_time_pcjr);
@@ -250,7 +250,7 @@ fdd_audio_load_profiles(void)
             profile->multi_track_seek.volume                                                   = ini_section_get_double(section, "multi_track_seek_volume", 1.0);
 
             /* Load timing configurations */
-            profile->seek_duration_per_track = ini_section_get_int(section, "seek_duration_per_track", 297);
+            profile->samples_per_track       = ini_section_get_int(section, "samples_per_track", 297);
             profile->total_tracks            = ini_section_get_int(section, "total_tracks", 80);
             profile->initial_seek_time       = ini_section_get_double(section, "initial_seek_time", 15000.0);
             profile->initial_seek_time_pcjr  = ini_section_get_double(section, "initial_seek_time_pcjr", 40000.0);
@@ -602,9 +602,9 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
         return;
 
     /* Use configured timing */
-    duration_samples = track_diff * audio_profiles[profile_id].seek_duration_per_track;
+    duration_samples = track_diff * audio_profiles[profile_id].samples_per_track;
     fdd_log("FDD Audio Drive %d: Seek duration %d samples (%d tracks * %d samples/track)\n", 
-                drive, duration_samples, track_diff, audio_profiles[profile_id].seek_duration_per_track);
+                drive, duration_samples, track_diff, audio_profiles[profile_id].samples_per_track);
     /* Clamp to maximum available sample length */
     if (duration_samples > samples->multi_track_seek.samples)
         duration_samples = samples->multi_track_seek.samples;
