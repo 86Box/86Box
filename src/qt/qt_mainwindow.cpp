@@ -2079,6 +2079,15 @@ void
 MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
+    if (vid_resize) {
+        const auto widget = ui->stackedWidget->currentWidget();
+        ui->stackedWidget->onResize(widget->width(), widget->height());
+
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (renderers[i])
+                renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
+        }
+    }
 }
 
 void
