@@ -60,6 +60,7 @@ machine_at_s370slm_init(const machine_t *model)
     pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440lx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
@@ -95,6 +96,7 @@ machine_at_awo671r_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0D, PCI_CARD_VIDEO,       2, 3, 4, 1);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_inst_params(&w83977_device, 1, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -129,6 +131,7 @@ machine_at_ambx133_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -166,6 +169,7 @@ machine_at_cubx_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -201,6 +205,7 @@ machine_at_63a1_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Integrated Sound? */
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440zx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -233,6 +238,7 @@ machine_at_atc7020bxii_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440bx_device);
     device_add(&slc90e66_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -264,6 +270,7 @@ machine_at_m773_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&i440bx_device);
     device_add(&slc90e66_device);
     device_add(&it8671f_device);
@@ -303,6 +310,7 @@ machine_at_apas3_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&via_apro_device);
     device_add(&via_vt82c586b_device);
     device_add_params(&fdc37c669_device, (void *) 0);
@@ -335,6 +343,7 @@ machine_at_p6bap_init(const machine_t *model)
     pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x0d, PCI_CARD_NORMAL, 4, 3, 2, 1);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
+
     device_add(&via_apro133a_device);  /* Rebranded as ET82C693A */
     device_add(&via_vt82c596b_device); /* Rebranded as ET82C696B */
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
@@ -370,6 +379,7 @@ machine_at_6via90ap_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&via_apro133a_device);
     device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
     device_add(ics9xxx_get(ICS9250_18));
@@ -410,6 +420,7 @@ machine_at_cuv4xls_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&via_apro133a_device);
     device_add(&via_vt82c686b_device);
     device_add(ics9xxx_get(ICS9250_18));
@@ -444,6 +455,7 @@ machine_at_7sbb_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&sis_5600_device);
     device_add(&it8661f_device);
     device_add(&sst_flash_29ee020_device); /* assumed */

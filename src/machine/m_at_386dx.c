@@ -60,18 +60,33 @@ machine_compaq_p1_handler(void)
 static const device_config_t deskpro386_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "deskpro386",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "September 1986", .internal_name = "deskpro386_09_1986", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/deskpro386/1986-09-04-HI.json.bin", "" } },
-            { .name = "May 1988", .internal_name = "deskpro386", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/deskpro386/1988-05-10.json.bin", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "September 1986",
+                .internal_name = "deskpro386_09_1986",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/deskpro386/1986-09-04-HI.json.bin", "" }
+            },
+            {
+                .name          = "May 1988",
+                .internal_name = "deskpro386",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/deskpro386/1988-05-10.json.bin", "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -96,15 +111,15 @@ const device_t deskpro386_device = {
 int
 machine_at_deskpro386_init(const machine_t *model)
 {
-    int ret = 0;
-    const char* fn;
+    int         ret = 0;
+    const char *fn;
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linearr(fn, 0x000f8000, 65536, 0);
 
     if (fdc_current[0] == FDC_INTERNAL)
@@ -127,7 +142,7 @@ machine_at_portableiii386_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linearr("roms/machines/portableiii/P.2 Combined.bin",
-                                0x000f0000, 131072, 0);
+                            0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
         return ret;

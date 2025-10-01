@@ -50,16 +50,14 @@
 #include <86box/machine.h>
 #include <86box/plat_unused.h>
 
-
-#define STAT_PARITY    0x80
-#define STAT_RTIMEOUT  0x40
-#define STAT_TTIMEOUT  0x20
-#define STAT_LOCK      0x10
-#define STAT_CD        0x08
-#define STAT_SYSFLAG   0x04
-#define STAT_IFULL     0x02
-#define STAT_OFULL     0x01
-
+#define STAT_PARITY   0x80
+#define STAT_RTIMEOUT 0x40
+#define STAT_TTIMEOUT 0x20
+#define STAT_LOCK     0x10
+#define STAT_CD       0x08
+#define STAT_SYSFLAG  0x04
+#define STAT_IFULL    0x02
+#define STAT_OFULL    0x01
 
 static uint8_t key_queue[16];
 static int     key_queue_start = 0;
@@ -68,7 +66,7 @@ static int     key_queue_end   = 0;
 /*PCjr keyboard has no escape scancodes, and no scancodes beyond 54
   Map right alt to 54h (FN) */
 const scancode scancode_pcjr[512] = {
-  // clang-format off
+    // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
     { .mk = {      0x01, 0 }, .brk = {             0x81, 0 } }, /* 001 */
     { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 002 */
@@ -581,9 +579,8 @@ const scancode scancode_pcjr[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fe */
     { .mk = {            0 }, .brk = {                   0 } }  /* 1ff */
-  // clang-format on
+    // clang-format on
 };
-
 
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
@@ -770,7 +767,7 @@ pit_irq0_timer_pcjr(int new_out, int old_out, UNUSED(void *priv))
 }
 
 static const device_config_t pcjr_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name           = "display_type",
         .description    = "Display type",
@@ -785,7 +782,8 @@ static const device_config_t pcjr_config[] = {
             { .description = "RGB (no brown)", .value = PCJR_RGB_NO_BROWN },
             { .description = "RGB (IBM 5153)", .value = PCJR_RGB_IBM_5153 },
             { .description = ""                                           }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
         .name           = "double_type",
@@ -809,10 +807,14 @@ static const device_config_t pcjr_config[] = {
         .description    = "Apply overscan deltas",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 1
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t pcjr_device = {
