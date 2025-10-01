@@ -171,8 +171,6 @@ extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 extern MainWindow *main_window;
 
-bool MainWindow::s_adjustingForce43 = false;
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -1023,73 +1021,69 @@ void MainWindow::updateShortcuts()
 }
 		
 void 
-MainWindow::adjustForForce43(const QSize &newWinSize)
+MainWindow::adjustToForce43(int suggestedW, int suggestedH)
 {
-    // Only act in resizable mode with Force 4:3 enabled and not fullscreen
-    if (!(vid_resize == 1 && force_43 > 0) || video_fullscreen || s_adjustingForce43)
+    // Only in resizable window mode with Force 4:3, and not fullscreen
+    if (!(vid_resize == 1 && force_43 > 0) || video_fullscreen)
         return;
 
-    s_adjustingForce43 = true;
+    static bool inAdjust = false;          // prevent recursion
+    if (inAdjust) return;
+    inAdjust = true;
 
-    // Height consumed by menu/status/toolbars
-    int chromeH = menuBar()->height()
-                + (hide_status_bar ? 0 : statusBar()->height())
-                + (hide_tool_bar   ? 0 : ui->toolBar->height());
-
-    // Compute client area size in device‑independent pixels
-    double dpr = (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.0);
-    int winW = newWinSize.width();
-    int winH = newWinSize.height();
-    int clientW = static_cast<int>(winW / dpr);
-    int clientH = static_cast<int>((winH - chromeH) / dpr);
-
-    if (clientW <= 0 || clientH <= 0) {
-        s_adjustingForce43 = false;
-        return;
-    }
-
-    // Decide which dimension the user changed most – adjust the other
-    int curW = static_cast<int>(width() / dpr);
-    int curH = static_cast<int>((height() - chromeH) / dpr);
-    bool widthChanged = std::abs(clientW - curW) >= std::abs(clientH - curH);
-
-    int targetW, targetH;
-    if (widthChanged) {
-        // user dragged width – compute matching height for 4:3
-        targetW = clientW;
-        targetH = (clientW * 3) / 4;
-    } else {
-        // user dragged height – compute matching width for 4:3
-        targetH = clientH;
-        targetW = (clientH * 4) / 3;
-    }
-
-    // Convert back to window size including chrome and apply
-    int newW = static_cast<int>(targetW * dpr);
-    int newH = static_cast<int>(targetH * dpr) + chromeH;
-    if (newW != winW || newH != winH)
-        resize(newW, newH);
-
-    // Update emulator framebuffer size and notify platform
-    monitors[0].mon_scrnsz_x = targetW;
-    monitors[0].mon_scrnsz_y = targetH;
-    plat_resize_request(targetW, targetH, 0);
-
-    // Allow renderer widget to grow and recompute scaling
+    // Make sure the render widget is allowed to stretch in resizable mode.
+    // (Normally this is done once via resizeContents, but that path is skipped in vid_resize==1.)
     ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-    ui->stackedWidget->onResize(width(), height());
 
-    s_adjustingForce43 = false;
+    const int frameExtra =
+        menuBar()->height() +
+        (hide_status_bar ? 0 : statusBar()->height()) +
+        (hide_tool_bar   ? 0 : ui->toolBar->height());
+
+    // Window size we’re trying to honor (may come from the QResizeEvent)
+    int winW = (suggestedW >= 0) ? suggestedW : width();
+    int winH = (suggestedH >= 0) ? suggestedH : height();
+
+    // Work in logical pixels consistent with the rest of the file
+    const double dpr = (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.0);
+    int clientW = static_cast<int>(winW / dpr);
+    int clientH = static_cast<int>((winH - frameExtra) / dpr);
+    if (clientH < 1) clientH = 1;  // safety
+
+    // Fit a 4:3 box INSIDE the dragged rectangle
+    const int wForH = (clientH * 4) / 3;
+    const int hForW = (clientW * 3) / 4;
+    if (wForH <= clientW) clientW = wForH; else clientH = hForW;
+
+    // Convert back to window size (device pixels + chrome)
+    const int newWinW = static_cast<int>(clientW * dpr);
+    const int newWinH = static_cast<int>(clientH * dpr) + frameExtra;
+
+    if (newWinW != winW || newWinH != winH)
+        this->resize(newWinW, newWinH);
+
+    // Keep the emulator’s notion of the requested screen size in sync
+    monitors[0].mon_scrnsz_x = clientW;
+    monitors[0].mon_scrnsz_y = clientH;
+
+    // Notify both paths used elsewhere
+    ui->stackedWidget->onResize(width(), height());     // re-compute scale in the renderer
+    plat_resize_request(clientW, clientH, /*monitor_index=*/0);
+
+    inAdjust = false;
 }
-
+		
 void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
     //qDebug() << pos().x() + event->size().width();
     //qDebug() << pos().y() + event->size().height();
 	
-    // Enforce 4:3 aspect ratio in resizable mode when the option is set
-    adjustForForce43(event->size());
+    // Enforce 4:3 while dragging in resizable mode
+    if (vid_resize == 1 && force_43 > 0 && !video_fullscreen) {
+        adjustToForce43(event->size().width(), event->size().height());
+        return; // we’ve already applied the corrected size & notified core
+    }
 	
     if (vid_resize == 1 || video_fullscreen)
         return;
@@ -2146,13 +2140,14 @@ MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
 
-    // When turning on Force 4:3 in resizable mode, immediately snap to 4:3
     if (vid_resize == 1 && !video_fullscreen) {
+        // Ensure the render widget can stretch in resizable mode
         ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         if (force_43 > 0) {
-            adjustForForce43(size());
+            // Snap to 4:3 now
+            adjustToForce43(); // uses current window size
         } else {
-            // Turning off: refresh renderer scaling
+            // Turning OFF: reflow the renderer to current window size
             ui->stackedWidget->onResize(width(), height());
         }
     }
