@@ -54,6 +54,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
+#include <86box/fdd_audio.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
@@ -1379,10 +1380,15 @@ load_floppy_and_cdrom_drives(void)
     int           c;
     int           d;
     int           count = cdrom_get_type_count();
+    
+#ifndef DISABLE_FDD_AUDIO
+    fdd_audio_load_profiles();
+#endif
 
     memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < FDD_NUM; c++) {
         sprintf(temp, "fdd_%02i_type", c + 1);
+
         p = ini_section_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
         if (!strcmp(p, "525_2hd_ps2"))
             d = fdd_get_from_internal_name("525_2hd");
@@ -1437,14 +1443,14 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_check_bpb", c + 1);
             ini_section_delete_var(cat, temp);
         }
-        sprintf(temp, "fdd_%02i_audio", c + 1);
-        int def_prof = FDD_AUDIO_PROFILE_NONE;
-        int prof     = ini_section_get_int(cat, temp, def_prof);
-        if (prof < 0 || prof >= FDD_AUDIO_PROFILE_MAX)
-            prof = def_prof;
+        sprintf(temp, "fdd_%02i_audio", c + 1);        
+#ifndef DISABLE_FDD_AUDIO
+        p    = ini_section_get_string(cat, temp, "none");
+        int prof = fdd_audio_get_profile_by_internal_name(p);
         fdd_set_audio_profile(c, prof);
-        if (prof == def_prof)
-            ini_section_delete_var(cat, temp);
+#else
+        fdd_set_audio_profile(c, 0);
+#endif        
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             fdd_image_history[c][i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
@@ -3433,12 +3439,17 @@ save_floppy_and_cdrom_drives(void)
         }
 
         sprintf(temp, "fdd_%02i_audio", c + 1);
-        int def_prof = FDD_AUDIO_PROFILE_NONE;
-        int prof = fdd_get_audio_profile(c);
-        if (prof == def_prof)
+#ifndef DISABLE_FDD_AUDIO
+        int         prof          = fdd_get_audio_profile(c);
+        const char *internal_name = fdd_audio_get_profile_internal_name(prof);
+        if (internal_name && strcmp(internal_name, "none") != 0) {
+            ini_section_set_string(cat, temp, internal_name);
+        } else {
             ini_section_delete_var(cat, temp);
-        else
-            ini_section_set_int(cat, temp, prof);
+        }
+#else
+        ini_section_delete_var(cat, temp);
+#endif
     }
 
     for (c = 0; c < CDROM_NUM; c++) {
