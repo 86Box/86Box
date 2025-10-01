@@ -193,8 +193,27 @@ fdd_audio_load_profiles(void)
 {
     char config_path[2048];
     ini_t profiles_ini;
+
+    /* Validate exe_path to prevent directory traversal attacks */
+    if (exe_path == NULL || strlen(exe_path) == 0) {
+        fdd_log("FDD Audio: Invalid exe_path\n");
+        return;
+    }
+
+    /* Check for directory traversal sequences */
+    if (strstr(exe_path, "..") != NULL) {
+        fdd_log("FDD Audio: Directory traversal detected in exe_path\n");
+        return;
+    }
     
     path_append_filename(config_path, exe_path, "roms/floppy/fdd_audio_profiles.cfg");
+
+    /* Additional validation of the final path */
+    if (strstr(config_path, "..") != NULL) {
+        fdd_log("FDD Audio: Directory traversal detected in config path: %s\n", config_path);
+        return;
+    }
+
     profiles_ini = ini_read(config_path);
     if (profiles_ini == NULL) {
         fdd_log("FDD Audio: Could not load profiles from %s\n", config_path);
@@ -620,7 +639,7 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
 static int16_t *
 load_wav(const char *filename, int *sample_count)
 {
-        if ((filename == NULL) || (strlen(filename) == 0))
+    if ((filename == NULL) || (strlen(filename) == 0))
         return NULL;
 
     if (strstr(filename, "..") != NULL)
