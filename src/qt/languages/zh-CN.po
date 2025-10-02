@@ -2993,3 +2993,6 @@ msgstr "亮色"
 
 msgid "Dark"
 msgstr "暗色"
+
+msgid "Search:"
+msgstr "搜索:"

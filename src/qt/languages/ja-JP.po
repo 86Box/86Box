@@ -2993,3 +2993,6 @@ msgstr "光"
 
 msgid "Dark"
 msgstr "暗闇"
+
+msgid "Search:"
+msgstr "検索:"
