@@ -30,8 +30,10 @@ typedef void *ini_t;
 typedef void *ini_section_t;
 
 extern ini_t ini_new(void);
+extern ini_t ini_read_ex(const char *fn, int is_rom);
 extern ini_t ini_read(const char *fn);
 extern void  ini_strip_quotes(ini_t ini);
+extern void  ini_write_ex(ini_t ini, const char *fn, int is_rom);
 extern void  ini_write(ini_t ini, const char *fn);
 extern void  ini_dump(ini_t ini);
 extern void  ini_close(ini_t ini);
