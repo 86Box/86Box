@@ -2993,3 +2993,6 @@ msgstr "Licht"
 
 msgid "Dark"
 msgstr "Donker"
+
+msgid "Search:"
+msgstr "Zoekopdracht:"

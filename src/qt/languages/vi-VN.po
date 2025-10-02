@@ -2993,3 +2993,6 @@ msgstr "Ánh sáng"
 
 msgid "Dark"
 msgstr "Tối"
+
+msgid "Search:"
+msgstr "Tìm kiếm:"

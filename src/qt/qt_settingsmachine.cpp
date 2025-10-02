@@ -22,6 +22,10 @@
 #include <QFrame>
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
+#include <QStandardItem>
+#include <QStandardItemModel>
+#include <QCompleter>
+#include <QTimer>
 
 #include <algorithm>
 
@@ -56,6 +60,16 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             ui->radioButtonDisabled->setChecked(true);
             break;
     }
+
+    auto machineListCompleter = new QCompleter(ui->lineEditSearch);
+    auto machineListModel = new QStandardItemModel(machineListCompleter);
+    machineListCompleter->setModel(machineListModel);
+    ui->lineEditSearch->setCompleter(machineListCompleter);
+    connect(ui->lineEditSearch, &QLineEdit::editingFinished, this, [this] () { ui->lineEditSearch->setText("");} );
+    machineListCompleter->setCompletionMode(QCompleter::PopupCompletion);
+    machineListCompleter->setFilterMode(Qt::MatchContains);
+    machineListCompleter->setCompletionRole(Qt::DisplayRole);
+    machineListCompleter->setCaseSensitivity(Qt::CaseInsensitive);
 
     auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
     ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
@@ -108,8 +122,13 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             cur_j = 0;
         }
 
-        if (machine_available(j))
+        if (machine_available(j)) {
+            QStandardItem* item = new QStandardItem(machines[j].name);
+            item->setData(machine_types[machine_get_type(j)].id);
+            machineListModel->appendRow(item);
+
             cur_j++;
+        }
 
         j++;
     } while (miname != nullptr);
@@ -119,6 +138,26 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
     ui->radioButtonLargerFrames->setChecked(force_10ms);
     ui->radioButtonSmallerFrames->setChecked(!force_10ms);
+
+    connect(machineListCompleter, QOverload<const QModelIndex &>::of(&QCompleter::activated), this, [this] (const QModelIndex& idx) {
+        ui->lineEditSearch->setText("");
+        int machineIdType = idx.model()->data(idx, Qt::UserRole + 1).toInt();
+        auto name = idx.model()->data(idx, Qt::DisplayRole).toString();
+        for (int i = 0; i < ui->comboBoxMachineType->model()->rowCount(); i++) {
+            if (ui->comboBoxMachineType->model()->data(ui->comboBoxMachineType->model()->index(i, 0), Qt::UserRole).toInt() == machineIdType) {
+                ui->comboBoxMachineType->setCurrentIndex(i);
+
+                for (int j = 0; j < ui->comboBoxMachine->model()->rowCount(); j++) {
+                    if (ui->comboBoxMachine->model()->data(ui->comboBoxMachine->model()->index(j, 0), Qt::DisplayRole).toString() == name) {
+                        ui->comboBoxMachine->setCurrentIndex(j);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        QTimer::singleShot(0, ui->lineEditSearch, &QLineEdit::clear);
+    });
 
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
