@@ -66,7 +66,9 @@ typedef struct {
     audio_sample_t spindlemotor_loop;
     audio_sample_t spindlemotor_stop;
     audio_sample_t single_track_step;
+    audio_sample_t single_track_step_down;
     audio_sample_t multi_track_seek;
+    audio_sample_t multi_track_seek_down;
 } drive_audio_samples_t;
 
 /* Dynamic sample storage for each profile */
@@ -133,8 +135,12 @@ fdd_audio_log_profile_params(int drive, const fdd_audio_profile_config_t* profil
              profile->spindlemotor_stop.filename, profile->spindlemotor_stop.volume);
     fdd_log("    Single Step: %s (volume: %.2f)\n", 
              profile->single_track_step.filename, profile->single_track_step.volume);
+    fdd_log("    Single Step Down: %s (volume: %.2f)\n", 
+             profile->single_track_step_down.filename, profile->single_track_step_down.volume);
     fdd_log("    Multi Seek: %s (volume: %.2f)\n", 
              profile->multi_track_seek.filename, profile->multi_track_seek.volume);
+    fdd_log("    Multi Seek Down: %s (volume: %.2f)\n", 
+             profile->multi_track_seek_down.filename, profile->multi_track_seek_down.volume);
     
     fdd_log("  Timing Parameters:\n");
     fdd_log("    Samples Per Track: %d samples\n", profile->samples_per_track);
@@ -143,6 +149,8 @@ fdd_audio_log_profile_params(int drive, const fdd_audio_profile_config_t* profil
     fdd_log("    Initial Seek Time (PCjr): %.1f µs\n", profile->initial_seek_time_pcjr);
     fdd_log("    Track Seek Time: %.1f µs\n", profile->track_seek_time);
     fdd_log("    Track Seek Time (PCjr): %.1f µs\n", profile->track_seek_time_pcjr);
+    fdd_log("    Initial Seek Down Time: %.1f µs\n", profile->initial_seek_down_time);
+    fdd_log("    Track Seek Down Time: %.1f µs\n", profile->track_seek_down_time);
 }
 
 /* Log audio profile parameters for a specific drive */
@@ -263,19 +271,30 @@ fdd_audio_load_profiles(void)
             profile->single_track_step.filename[sizeof(profile->single_track_step.filename) - 1] = '\0';
             profile->single_track_step.volume                                                    = ini_section_get_double(section, "single_track_step_volume", 1.0);
 
+            filename = ini_section_get_string(section, "single_track_step_down_file", "");
+            strncpy(profile->single_track_step_down.filename, filename, sizeof(profile->single_track_step_down.filename) - 1);
+            profile->single_track_step_down.filename[sizeof(profile->single_track_step_down.filename) - 1] = '\0';
+            profile->single_track_step_down.volume                                                         = ini_section_get_double(section, "single_track_step_volume", 1.0);
+
             filename = ini_section_get_string(section, "multi_track_seek_file", "");
             strncpy(profile->multi_track_seek.filename, filename, sizeof(profile->multi_track_seek.filename) - 1);
             profile->multi_track_seek.filename[sizeof(profile->multi_track_seek.filename) - 1] = '\0';
             profile->multi_track_seek.volume                                                   = ini_section_get_double(section, "multi_track_seek_volume", 1.0);
 
-            /* Load timing configurations */
-            profile->samples_per_track       = ini_section_get_int(section, "samples_per_track", 297);
-            profile->total_tracks            = ini_section_get_int(section, "total_tracks", 80);
-            profile->initial_seek_time       = ini_section_get_double(section, "initial_seek_time", 15000.0);
-            profile->initial_seek_time_pcjr  = ini_section_get_double(section, "initial_seek_time_pcjr", 40000.0);
-            profile->track_seek_time         = ini_section_get_double(section, "track_seek_time", 6000.0);
-            profile->track_seek_time_pcjr    = ini_section_get_double(section, "track_seek_time_pcjr", 10000.0);
+            filename = ini_section_get_string(section, "multi_track_seek_down_file", "");
+            strncpy(profile->multi_track_seek_down.filename, filename, sizeof(profile->multi_track_seek_down.filename) - 1);
+            profile->multi_track_seek_down.filename[sizeof(profile->multi_track_seek_down.filename) - 1] = '\0';
+            profile->multi_track_seek_down.volume                                                        = ini_section_get_double(section, "multi_track_seek_volume", 1.0);
 
+            /* Load timing configurations */
+            profile->samples_per_track            = ini_section_get_int(section, "samples_per_track", 297);
+            profile->total_tracks                 = ini_section_get_int(section, "total_tracks", 80);
+            profile->initial_seek_time            = ini_section_get_double(section, "initial_seek_time", 15000.0);
+            profile->initial_seek_time_pcjr       = ini_section_get_double(section, "initial_seek_time_pcjr", 40000.0);
+            profile->track_seek_time              = ini_section_get_double(section, "track_seek_time", 6000.0);
+            profile->track_seek_time_pcjr         = ini_section_get_double(section, "track_seek_time_pcjr", 10000.0);
+            profile->initial_seek_down_time       = ini_section_get_double(section, "initial_seek_down_time", 15000.0);
+            profile->track_seek_down_time         = ini_section_get_double(section, "track_seek_down_time", 6000.0);            
             audio_profile_count++;
         }
     }
@@ -360,6 +379,22 @@ static void load_profile_samples(int profile_id) {
         }
     }
     
+    if (samples->single_track_step_down.buffer == NULL && config->single_track_step_down.filename[0]) {
+        strcpy(samples->single_track_step_down.filename, config->single_track_step_down.filename);
+        samples->single_track_step_down.volume = config->single_track_step_down.volume;
+        samples->single_track_step_down.buffer = load_wav(config->single_track_step_down.filename, 
+                                                         &samples->single_track_step_down.samples);
+        if (samples->single_track_step_down.buffer) {
+            fdd_log("  Loaded single_track_step_down: %s (%d samples, volume %.2f)\n", 
+                     config->single_track_step_down.filename, 
+                     samples->single_track_step_down.samples,
+                     config->single_track_step_down.volume);
+        } else {
+            fdd_log("  Failed to load single_track_step_down: %s\n", 
+                     config->single_track_step_down.filename);
+        }
+    }
+    
     if (samples->multi_track_seek.buffer == NULL && config->multi_track_seek.filename[0]) {
         strcpy(samples->multi_track_seek.filename, config->multi_track_seek.filename);
         samples->multi_track_seek.volume = config->multi_track_seek.volume;
@@ -373,6 +408,22 @@ static void load_profile_samples(int profile_id) {
         } else {
             fdd_log("  Failed to load multi_track_seek: %s\n", 
                      config->multi_track_seek.filename);
+        }
+    }
+    
+    if (samples->multi_track_seek_down.buffer == NULL && config->multi_track_seek_down.filename[0]) {
+        strcpy(samples->multi_track_seek_down.filename, config->multi_track_seek_down.filename);
+        samples->multi_track_seek_down.volume = config->multi_track_seek_down.volume;
+        samples->multi_track_seek_down.buffer = load_wav(config->multi_track_seek_down.filename, 
+                                                        &samples->multi_track_seek_down.samples);
+        if (samples->multi_track_seek_down.buffer) {
+            fdd_log("  Loaded multi_track_seek_down: %s (%d samples, volume %.2f)\n", 
+                     config->multi_track_seek_down.filename, 
+                     samples->multi_track_seek_down.samples,
+                     config->multi_track_seek_down.volume);
+        } else {
+            fdd_log("  Failed to load multi_track_seek_down: %s\n", 
+                     config->multi_track_seek_down.filename);
         }
     }
 }
@@ -427,7 +478,7 @@ fdd_audio_get_profile_by_internal_name(const char *internal_name)
     return 0;
 }
 
-double fdd_audio_get_seek_time(int drive, int is_initial, int track_count) {
+double fdd_audio_get_seek_time(int drive, int is_initial, int track_count, int is_seek_down) {
     int profile_id = fdd_get_audio_profile(drive);
     if (profile_id <= 0 || profile_id >= audio_profile_count) {
         /* Return default values */
@@ -440,11 +491,15 @@ double fdd_audio_get_seek_time(int drive, int is_initial, int track_count) {
     extern fdc_t *fdd_fdc;
     int is_pcjr = (fdd_fdc && (fdd_fdc->flags & FDC_FLAG_PCJR));
     
-    if (is_initial) {
-        return is_pcjr ? profile->initial_seek_time_pcjr : profile->initial_seek_time;
-    } else {
-        return is_pcjr ? profile->track_seek_time_pcjr : profile->track_seek_time;
+    if (is_pcjr) {
+        return is_initial ? profile->initial_seek_time_pcjr : profile->track_seek_time_pcjr;
+    } 
+
+    if (is_seek_down) {
+        return is_initial ? profile->initial_seek_down_time : profile->track_seek_down_time;
     }
+
+    return is_initial ? profile->initial_seek_time : profile->track_seek_time;
 }
 
 void
@@ -518,10 +573,20 @@ fdd_audio_close(void)
             samples->single_track_step.buffer  = NULL;
             samples->single_track_step.samples = 0;
         }
+        if (samples->single_track_step_down.buffer) {
+            free(samples->single_track_step_down.buffer);
+            samples->single_track_step_down.buffer  = NULL;
+            samples->single_track_step_down.samples = 0;
+        }
         if (samples->multi_track_seek.buffer) {
             free(samples->multi_track_seek.buffer);
             samples->multi_track_seek.buffer  = NULL;
             samples->multi_track_seek.samples = 0;
+        }
+        if (samples->multi_track_seek_down.buffer) {
+            free(samples->multi_track_seek_down.buffer);
+            samples->multi_track_seek_down.buffer  = NULL;
+            samples->multi_track_seek_down.samples = 0;
         }
     }
 
@@ -580,10 +645,28 @@ fdd_audio_play_single_track_step(int drive, int from_track, int to_track)
     if (abs(from_track - to_track) != 1)
         return; /* Only single track movements */
 
-    fdd_log("FDD Audio Drive %d: Single track step %d -> %d\n", drive, from_track, to_track);
+    drive_audio_samples_t *samples = get_drive_samples(drive);
+    if (!samples)
+        return;
 
-    single_step_state[drive].position = 0;
-    single_step_state[drive].active   = 1;
+    int is_seek_down = (to_track < from_track);
+    
+    fdd_log("FDD Audio Drive %d: Single track step %d -> %d (%s)\n", 
+             drive, from_track, to_track, is_seek_down ? "DOWN" : "UP");
+
+    /* Choose the appropriate sample based on direction */
+    audio_sample_t *sample_to_use;
+    if (is_seek_down && samples->single_track_step_down.buffer) {
+        sample_to_use = &samples->single_track_step_down;
+    } else {
+        sample_to_use = &samples->single_track_step;
+    }
+
+    /* Only play if we have the appropriate sample */
+    if (sample_to_use && sample_to_use->buffer) {
+        single_step_state[drive].position = 0;
+        single_step_state[drive].active   = 1;
+    }
 }
 
 void
@@ -600,8 +683,22 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
         return; /* Use single step for 1 track movements */
 
     drive_audio_samples_t *samples = get_drive_samples(drive);
-    if (!samples || !samples->multi_track_seek.buffer || samples->multi_track_seek.samples == 0)
-        return; /* No multi-track seek sample loaded */
+    if (!samples)
+        return;
+
+    int is_seek_down = (to_track < from_track);
+    
+    /* Choose the appropriate sample based on direction */
+    audio_sample_t *sample_to_use;
+    if (is_seek_down && samples->multi_track_seek_down.buffer) {
+        sample_to_use = &samples->multi_track_seek_down;
+    } else {
+        sample_to_use = &samples->multi_track_seek;
+    }
+
+    /* Only proceed if we have the appropriate sample */
+    if (!sample_to_use || !sample_to_use->buffer || sample_to_use->samples == 0)
+        return;
 
     /* Check if a seek is already active */
     if (multi_seek_state[drive].active && 
@@ -610,8 +707,8 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
         return;
     }
 
-    fdd_log("FDD Audio Drive %d: Multi-track seek %d -> %d (%d tracks)\n", 
-             drive, from_track, to_track, track_diff);
+    fdd_log("FDD Audio Drive %d: Multi-track seek %d -> %d (%d tracks, %s)\n", 
+             drive, from_track, to_track, track_diff, is_seek_down ? "DOWN" : "UP");
 
     /* Get timing from configuration */
     int profile_id = fdd_get_audio_profile(drive);
@@ -625,8 +722,8 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
     fdd_log("FDD Audio Drive %d: Seek duration %d samples (%d tracks * %d samples/track)\n", 
                 drive, duration_samples, track_diff, audio_profiles[profile_id].samples_per_track);
     /* Clamp to maximum available sample length */
-    if (duration_samples > samples->multi_track_seek.samples)
-        duration_samples = samples->multi_track_seek.samples;
+    if (duration_samples > sample_to_use->samples)
+        duration_samples = sample_to_use->samples;
 
     /* Start new seek (or restart interrupted seek) */
     multi_seek_state[drive].position         = 0;
@@ -727,6 +824,7 @@ fdd_audio_callback(int16_t *buffer, int length)
 {
     /* Clear buffer */
     memset(buffer, 0, length * sizeof(int16_t));
+    
     /* Check if any motor is running or transitioning, or any audio is active */
     int any_audio_active = 0;
     for (int drive = 0; drive < FDD_NUM; drive++) {
@@ -746,273 +844,319 @@ fdd_audio_callback(int16_t *buffer, int length)
     int      samples_in_buffer = length / 2;
 
     /* Process audio for all drives */
-    if (sound_is_float)  for (int drive = 0; drive < FDD_NUM; drive++) {
-        drive_audio_samples_t *samples = get_drive_samples(drive);
-        if (!samples)
-            continue;
-        
-        for (int i = 0; i < samples_in_buffer; i++) {
-            float left_sample  = 0.0f;
-            float right_sample = 0.0f;
+    if (sound_is_float) {
+        for (int drive = 0; drive < FDD_NUM; drive++) {
+            drive_audio_samples_t *samples = get_drive_samples(drive);
+            if (!samples)
+                continue;
+            
+            for (int i = 0; i < samples_in_buffer; i++) {
+                float left_sample  = 0.0f;
+                float right_sample = 0.0f;
 
-            /* Process motor audio */
-            if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED) {
-                switch (spindlemotor_state[drive]) {
-                    case MOTOR_STATE_STARTING:
-                        if (samples->spindlemotor_start.buffer && spindlemotor_pos[drive] < samples->spindlemotor_start.samples) {
-                            /* Play start sound with volume control */
-                            left_sample  = (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_start.volume;
-                            right_sample = (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_start.volume;
-                            spindlemotor_pos[drive]++;
-                        } else {
-                            /* Start sound finished, transition to loop */
-                            spindlemotor_state[drive] = MOTOR_STATE_RUNNING;
-                            spindlemotor_pos[drive]   = 0;
-                        }
-                        break;
-
-                    case MOTOR_STATE_RUNNING:
-                        if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                            /* Play loop sound with volume control */
-                            left_sample  = (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_loop.volume;
-                            right_sample = (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_loop.volume;
-                            spindlemotor_pos[drive]++;
-
-                            /* Loop back to beginning */
-                            if (spindlemotor_pos[drive] >= samples->spindlemotor_loop.samples) {
-                                spindlemotor_pos[drive] = 0;
-                            }
-                        }
-                        break;
-
-                    case MOTOR_STATE_STOPPING:
-                        if (spindlemotor_fade_samples_remaining[drive] > 0) {
-                            /* Mix fading loop sound with rising stop sound */
-                            float loop_volume = spindlemotor_fade_volume[drive];
-                            float stop_volume = 1.0f - loop_volume;
-
-                            float loop_left = 0.0f, loop_right = 0.0f;
-                            float stop_left = 0.0f, stop_right = 0.0f;
-
-                            /* Get loop sample (continue from current position) with volume control */
-                            if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                                int loop_pos = spindlemotor_pos[drive] % samples->spindlemotor_loop.samples;
-                                loop_left    = (float) samples->spindlemotor_loop.buffer[loop_pos * 2] / 131072.0f * samples->spindlemotor_loop.volume;
-                                loop_right   = (float) samples->spindlemotor_loop.buffer[loop_pos * 2 + 1] / 131072.0f * samples->spindlemotor_loop.volume;
-                            }
-
-                            /* Get stop sample with volume control */
-                            if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
-                                stop_left  = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_stop.volume;
-                                stop_right = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_stop.volume;
-                            }
-
-                            /* Mix the sounds */
-                            left_sample  = loop_left * loop_volume + stop_left * stop_volume;
-                            right_sample = loop_right * loop_volume + stop_right * stop_volume;
-
-                            spindlemotor_pos[drive]++;
-                            spindlemotor_fade_samples_remaining[drive]--;
-
-                            /* Update fade volume */
-                            spindlemotor_fade_volume[drive] = (float) spindlemotor_fade_samples_remaining[drive] / FADE_SAMPLES;
-                        } else {
-                            /* Fade completed, play remaining stop sound with volume control */
-                            if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
-                                left_sample  = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_stop.volume;
-                                right_sample = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_stop.volume;
+                /* Process motor audio */
+                if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED) {
+                    switch (spindlemotor_state[drive]) {
+                        case MOTOR_STATE_STARTING:
+                            if (samples->spindlemotor_start.buffer && spindlemotor_pos[drive] < samples->spindlemotor_start.samples) {
+                                /* Play start sound with volume control */
+                                left_sample  = (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_start.volume;
+                                right_sample = (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_start.volume;
                                 spindlemotor_pos[drive]++;
                             } else {
-                                /* Stop sound finished */
-                                spindlemotor_state[drive] = MOTOR_STATE_STOPPED;
-                                /* Note: Timer disabling is handled by fdd.c, not here */
+                                /* Start sound finished, transition to loop */
+                                spindlemotor_state[drive] = MOTOR_STATE_RUNNING;
+                                spindlemotor_pos[drive]   = 0;
                             }
-                        }
-                        break;
+                            break;
 
-                    default:
-                        break;
+                        case MOTOR_STATE_RUNNING:
+                            if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
+                                /* Play loop sound with volume control */
+                                left_sample  = (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_loop.volume;
+                                right_sample = (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_loop.volume;
+                                spindlemotor_pos[drive]++;
+
+                                /* Loop back to beginning */
+                                if (spindlemotor_pos[drive] >= samples->spindlemotor_loop.samples) {
+                                    spindlemotor_pos[drive] = 0;
+                                }
+                            }
+                            break;
+
+                        case MOTOR_STATE_STOPPING:
+                            if (spindlemotor_fade_samples_remaining[drive] > 0) {
+                                /* Mix fading loop sound with rising stop sound */
+                                float loop_volume = spindlemotor_fade_volume[drive];
+                                float stop_volume = 1.0f - loop_volume;
+
+                                float loop_left = 0.0f, loop_right = 0.0f;
+                                float stop_left = 0.0f, stop_right = 0.0f;
+
+                                /* Get loop sample (continue from current position) with volume control */
+                                if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
+                                    int loop_pos = spindlemotor_pos[drive] % samples->spindlemotor_loop.samples;
+                                    loop_left    = (float) samples->spindlemotor_loop.buffer[loop_pos * 2] / 131072.0f * samples->spindlemotor_loop.volume;
+                                    loop_right   = (float) samples->spindlemotor_loop.buffer[loop_pos * 2 + 1] / 131072.0f * samples->spindlemotor_loop.volume;
+                                }
+
+                                /* Get stop sample with volume control */
+                                if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
+                                    stop_left  = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_stop.volume;
+                                    stop_right = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_stop.volume;
+                                }
+
+                                /* Mix the sounds */
+                                left_sample  = loop_left * loop_volume + stop_left * stop_volume;
+                                right_sample = loop_right * loop_volume + stop_right * stop_volume;
+
+                                spindlemotor_pos[drive]++;
+                                spindlemotor_fade_samples_remaining[drive]--;
+
+                                /* Update fade volume */
+                                spindlemotor_fade_volume[drive] = (float) spindlemotor_fade_samples_remaining[drive] / FADE_SAMPLES;
+                            } else {
+                                /* Fade completed, play remaining stop sound with volume control */
+                                if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
+                                    left_sample  = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 131072.0f * samples->spindlemotor_stop.volume;
+                                    right_sample = (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 131072.0f * samples->spindlemotor_stop.volume;
+                                    spindlemotor_pos[drive]++;
+                                } else {
+                                    /* Stop sound finished */
+                                    spindlemotor_state[drive] = MOTOR_STATE_STOPPED;
+                                    /* Note: Timer disabling is handled by fdd.c, not here */
+                                }
+                            }
+                            break;
+
+                        default:
+                            break;
+                    }
                 }
-            }
 
-            /* Process single step audio */
-            if (single_step_state[drive].active) {
-                if (samples->single_track_step.buffer && single_step_state[drive].position < samples->single_track_step.samples) {
-                    /* Mix step sound with motor sound with volume control */
-                    float step_left  = (float) samples->single_track_step.buffer[single_step_state[drive].position * 2] / 131072.0f * samples->single_track_step.volume;
-                    float step_right = (float) samples->single_track_step.buffer[single_step_state[drive].position * 2 + 1] / 131072.0f * samples->single_track_step.volume;
+                /* Process single step audio with direction-aware sample selection */
+                if (single_step_state[drive].active) {
+                    /* Determine which sample to use based on the last seek direction */
+                    audio_sample_t *step_sample = NULL;
+                    
+                    /* Check if we have direction-specific samples or fall back to regular step */
+                    if (multi_seek_state[drive].from_track > multi_seek_state[drive].to_track && 
+                        samples->single_track_step_down.buffer) {
+                        step_sample = &samples->single_track_step_down;
+                    } else {
+                        step_sample = &samples->single_track_step;
+                    }
 
-                    left_sample += step_left;
-                    right_sample += step_right;
+                    if (step_sample && step_sample->buffer && single_step_state[drive].position < step_sample->samples) {
+                        /* Mix step sound with motor sound with volume control */
+                        float step_left  = (float) step_sample->buffer[single_step_state[drive].position * 2] / 131072.0f * step_sample->volume;
+                        float step_right = (float) step_sample->buffer[single_step_state[drive].position * 2 + 1] / 131072.0f * step_sample->volume;
 
-                    single_step_state[drive].position++;
-                } else {
-                    /* Step sound finished */
-                    single_step_state[drive].active   = 0;
-                    single_step_state[drive].position = 0;
+                        left_sample += step_left;
+                        right_sample += step_right;
+
+                        single_step_state[drive].position++;
+                    } else {
+                        /* Step sound finished */
+                        single_step_state[drive].active   = 0;
+                        single_step_state[drive].position = 0;
+                    }
                 }
-            }
 
-            /* Process multi-track seek audio */
-            if (multi_seek_state[drive].active) {
-                if (samples->multi_track_seek.buffer && 
-                    multi_seek_state[drive].position < multi_seek_state[drive].duration_samples &&
-                    multi_seek_state[drive].position < samples->multi_track_seek.samples) {
-                    /* Mix seek sound with motor sound with volume control */
-                    float seek_left  = (float) samples->multi_track_seek.buffer[multi_seek_state[drive].position * 2] / 131072.0f * samples->multi_track_seek.volume;
-                    float seek_right = (float) samples->multi_track_seek.buffer[multi_seek_state[drive].position * 2 + 1] / 131072.0f * samples->multi_track_seek.volume;
+                /* Process multi-track seek audio with direction-aware sample selection */
+                if (multi_seek_state[drive].active) {
+                    /* Determine which sample to use based on seek direction */
+                    audio_sample_t *seek_sample = NULL;
+                    int is_seek_down = (multi_seek_state[drive].to_track < multi_seek_state[drive].from_track);
+                    
+                    if (is_seek_down && samples->multi_track_seek_down.buffer) {
+                        seek_sample = &samples->multi_track_seek_down;
+                    } else {
+                        seek_sample = &samples->multi_track_seek;
+                    }
 
-                    left_sample += seek_left;
-                    right_sample += seek_right;
+                    if (seek_sample && seek_sample->buffer && 
+                        multi_seek_state[drive].position < multi_seek_state[drive].duration_samples &&
+                        multi_seek_state[drive].position < seek_sample->samples) {
+                        /* Mix seek sound with motor sound with volume control */
+                        float seek_left  = (float) seek_sample->buffer[multi_seek_state[drive].position * 2] / 131072.0f * seek_sample->volume;
+                        float seek_right = (float) seek_sample->buffer[multi_seek_state[drive].position * 2 + 1] / 131072.0f * seek_sample->volume;
 
-                    multi_seek_state[drive].position++;
-                } else {
-                    /* Seek sound finished */
-                    multi_seek_state[drive].active           = 0;
-                    multi_seek_state[drive].position         = 0;
-                    multi_seek_state[drive].duration_samples = 0;
-                    multi_seek_state[drive].from_track       = -1;
-                    multi_seek_state[drive].to_track         = -1;
+                        left_sample += seek_left;
+                        right_sample += seek_right;
+
+                        multi_seek_state[drive].position++;
+                    } else {
+                        /* Seek sound finished */
+                        multi_seek_state[drive].active           = 0;
+                        multi_seek_state[drive].position         = 0;
+                        multi_seek_state[drive].duration_samples = 0;
+                        multi_seek_state[drive].from_track       = -1;
+                        multi_seek_state[drive].to_track         = -1;
+                    }
                 }
-            }
 
-            /* Mix this drive's audio into the buffer */
-            float_buffer[i * 2] += left_sample;
-            float_buffer[i * 2 + 1] += right_sample;
+                /* Mix this drive's audio into the buffer */
+                float_buffer[i * 2] += left_sample;
+                float_buffer[i * 2 + 1] += right_sample;
+            }
         }
-    } else  for (int drive = 0; drive < FDD_NUM; drive++) {
-        drive_audio_samples_t *samples = get_drive_samples(drive);
-        if (!samples)
-            continue;
-        
-        for (int i = 0; i < samples_in_buffer; i++) {
-            int16_t left_sample  = 0.0f;
-            int16_t right_sample = 0.0f;
+    } else {
+        for (int drive = 0; drive < FDD_NUM; drive++) {
+            drive_audio_samples_t *samples = get_drive_samples(drive);
+            if (!samples)
+                continue;
+            
+            for (int i = 0; i < samples_in_buffer; i++) {
+                int16_t left_sample  = 0;
+                int16_t right_sample = 0;
 
-            /* Process motor audio */
-            if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED) {
-                switch (spindlemotor_state[drive]) {
-                    case MOTOR_STATE_STARTING:
-                        if (samples->spindlemotor_start.buffer && spindlemotor_pos[drive] < samples->spindlemotor_start.samples) {
-                            /* Play start sound with volume control */
-                            left_sample  = (int16_t) (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_start.volume;
-                            right_sample = (int16_t) (float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_start.volume;
-                            spindlemotor_pos[drive]++;
-                        } else {
-                            /* Start sound finished, transition to loop */
-                            spindlemotor_state[drive] = MOTOR_STATE_RUNNING;
-                            spindlemotor_pos[drive]   = 0;
-                        }
-                        break;
-
-                    case MOTOR_STATE_RUNNING:
-                        if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                            /* Play loop sound with volume control */
-                            left_sample  = (int16_t) (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_loop.volume;
-                            right_sample = (int16_t) (float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume;
-                            spindlemotor_pos[drive]++;
-
-                            /* Loop back to beginning */
-                            if (spindlemotor_pos[drive] >= samples->spindlemotor_loop.samples) {
-                                spindlemotor_pos[drive] = 0;
-                            }
-                        }
-                        break;
-
-                    case MOTOR_STATE_STOPPING:
-                        if (spindlemotor_fade_samples_remaining[drive] > 0) {
-                            /* Mix fading loop sound with rising stop sound */
-                            float loop_volume = spindlemotor_fade_volume[drive];
-                            float stop_volume = 1.0f - loop_volume;
-
-                            int16_t loop_left = 0x0000, loop_right = 0x0000;
-                            int16_t stop_left = 0x0000, stop_right = 0x0000;
-
-                            /* Get loop sample (continue from current position) with volume control */
-                            if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
-                                int loop_pos = spindlemotor_pos[drive] % samples->spindlemotor_loop.samples;
-                                loop_left    = (int16_t) (float) samples->spindlemotor_loop.buffer[loop_pos * 2] / 4.0f * samples->spindlemotor_loop.volume;
-                                loop_right   = (int16_t) (float) samples->spindlemotor_loop.buffer[loop_pos * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume;
-                            }
-
-                            /* Get stop sample with volume control */
-                            if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
-                                stop_left  = (int16_t) (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_stop.volume;
-                                stop_right = (int16_t) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume;
-                            }
-
-                            /* Mix the sounds */
-                            left_sample  = loop_left * loop_volume + stop_left * stop_volume;
-                            right_sample = loop_right * loop_volume + stop_right * stop_volume;
-
-                            spindlemotor_pos[drive]++;
-                            spindlemotor_fade_samples_remaining[drive]--;
-
-                            /* Update fade volume */
-                            spindlemotor_fade_volume[drive] = (int16_t) (float) spindlemotor_fade_samples_remaining[drive] / FADE_SAMPLES;
-                        } else {
-                            /* Fade completed, play remaining stop sound with volume control */
-                            if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
-                                left_sample  = (int16_t) (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_stop.volume;
-                                right_sample = (int16_t) (float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume;
+                /* Process motor audio */
+                if (spindlemotor_state[drive] != MOTOR_STATE_STOPPED) {
+                    switch (spindlemotor_state[drive]) {
+                        case MOTOR_STATE_STARTING:
+                            if (samples->spindlemotor_start.buffer && spindlemotor_pos[drive] < samples->spindlemotor_start.samples) {
+                                /* Play start sound with volume control */
+                                left_sample  = (int16_t) ((float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_start.volume);
+                                right_sample = (int16_t) ((float) samples->spindlemotor_start.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_start.volume);
                                 spindlemotor_pos[drive]++;
                             } else {
-                                /* Stop sound finished */
-                                spindlemotor_state[drive] = MOTOR_STATE_STOPPED;
-                                /* Note: Timer disabling is handled by fdd.c, not here */
+                                /* Start sound finished, transition to loop */
+                                spindlemotor_state[drive] = MOTOR_STATE_RUNNING;
+                                spindlemotor_pos[drive]   = 0;
                             }
-                        }
-                        break;
+                            break;
 
-                    default:
-                        break;
+                        case MOTOR_STATE_RUNNING:
+                            if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
+                                /* Play loop sound with volume control */
+                                left_sample  = (int16_t) ((float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_loop.volume);
+                                right_sample = (int16_t) ((float) samples->spindlemotor_loop.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume);
+                                spindlemotor_pos[drive]++;
+
+                                /* Loop back to beginning */
+                                if (spindlemotor_pos[drive] >= samples->spindlemotor_loop.samples) {
+                                    spindlemotor_pos[drive] = 0;
+                                }
+                            }
+                            break;
+
+                        case MOTOR_STATE_STOPPING:
+                            if (spindlemotor_fade_samples_remaining[drive] > 0) {
+                                /* Mix fading loop sound with rising stop sound */
+                                float loop_volume = spindlemotor_fade_volume[drive];
+                                float stop_volume = 1.0f - loop_volume;
+
+                                int16_t loop_left = 0, loop_right = 0;
+                                int16_t stop_left = 0, stop_right = 0;
+
+                                /* Get loop sample (continue from current position) with volume control */
+                                if (samples->spindlemotor_loop.buffer && samples->spindlemotor_loop.samples > 0) {
+                                    int loop_pos = spindlemotor_pos[drive] % samples->spindlemotor_loop.samples;
+                                    loop_left    = (int16_t) ((float) samples->spindlemotor_loop.buffer[loop_pos * 2] / 4.0f * samples->spindlemotor_loop.volume);
+                                    loop_right   = (int16_t) ((float) samples->spindlemotor_loop.buffer[loop_pos * 2 + 1] / 4.0f * samples->spindlemotor_loop.volume);
+                                }
+
+                                /* Get stop sample with volume control */
+                                if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
+                                    stop_left  = (int16_t) ((float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_stop.volume);
+                                    stop_right = (int16_t) ((float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume);
+                                }
+
+                                /* Mix the sounds */
+                                left_sample  = (int16_t) (loop_left * loop_volume + stop_left * stop_volume);
+                                right_sample = (int16_t) (loop_right * loop_volume + stop_right * stop_volume);
+
+                                spindlemotor_pos[drive]++;
+                                spindlemotor_fade_samples_remaining[drive]--;
+
+                                /* Update fade volume */
+                                spindlemotor_fade_volume[drive] = (float) spindlemotor_fade_samples_remaining[drive] / FADE_SAMPLES;
+                            } else {
+                                /* Fade completed, play remaining stop sound with volume control */
+                                if (samples->spindlemotor_stop.buffer && spindlemotor_pos[drive] < samples->spindlemotor_stop.samples) {
+                                    left_sample  = (int16_t) ((float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2] / 4.0f * samples->spindlemotor_stop.volume);
+                                    right_sample = (int16_t) ((float) samples->spindlemotor_stop.buffer[spindlemotor_pos[drive] * 2 + 1] / 4.0f * samples->spindlemotor_stop.volume);
+                                    spindlemotor_pos[drive]++;
+                                } else {
+                                    /* Stop sound finished */
+                                    spindlemotor_state[drive] = MOTOR_STATE_STOPPED;
+                                    /* Note: Timer disabling is handled by fdd.c, not here */
+                                }
+                            }
+                            break;
+
+                        default:
+                            break;
+                    }
                 }
-            }
 
-            /* Process single step audio */
-            if (single_step_state[drive].active) {
-                if (samples->single_track_step.buffer && single_step_state[drive].position < samples->single_track_step.samples) {
-                    /* Mix step sound with motor sound with volume control */
-                    int16_t step_left  = (int16_t) (float) samples->single_track_step.buffer[single_step_state[drive].position * 2] / 4.0f * samples->single_track_step.volume;
-                    int16_t step_right = (int16_t) (float) samples->single_track_step.buffer[single_step_state[drive].position * 2 + 1] / 4.0f * samples->single_track_step.volume;
+                /* Process single step audio with direction-aware sample selection */
+                if (single_step_state[drive].active) {
+                    /* Determine which sample to use based on the last seek direction */
+                    audio_sample_t *step_sample = NULL;
+                    
+                    /* Check if we have direction-specific samples or fall back to regular step */
+                    if (multi_seek_state[drive].from_track > multi_seek_state[drive].to_track && 
+                        samples->single_track_step_down.buffer) {
+                        step_sample = &samples->single_track_step_down;
+                    } else {
+                        step_sample = &samples->single_track_step;
+                    }
 
-                    left_sample += step_left;
-                    right_sample += step_right;
+                    if (step_sample && step_sample->buffer && single_step_state[drive].position < step_sample->samples) {
+                        /* Mix step sound with motor sound with volume control */
+                        int16_t step_left  = (int16_t) ((float) step_sample->buffer[single_step_state[drive].position * 2] / 4.0f * step_sample->volume);
+                        int16_t step_right = (int16_t) ((float) step_sample->buffer[single_step_state[drive].position * 2 + 1] / 4.0f * step_sample->volume);
 
-                    single_step_state[drive].position++;
-                } else {
-                    /* Step sound finished */
-                    single_step_state[drive].active   = 0;
-                    single_step_state[drive].position = 0;
+                        left_sample += step_left;
+                        right_sample += step_right;
+
+                        single_step_state[drive].position++;
+                    } else {
+                        /* Step sound finished */
+                        single_step_state[drive].active   = 0;
+                        single_step_state[drive].position = 0;
+                    }
                 }
-            }
 
-            /* Process multi-track seek audio */
-            if (multi_seek_state[drive].active) {
-                if (samples->multi_track_seek.buffer && 
-                    multi_seek_state[drive].position < multi_seek_state[drive].duration_samples &&
-                    multi_seek_state[drive].position < samples->multi_track_seek.samples) {
-                    /* Mix seek sound with motor sound with volume control */
-                    int16_t seek_left  = (int16_t) (float) samples->multi_track_seek.buffer[multi_seek_state[drive].position * 2] / 4.0f * samples->multi_track_seek.volume;
-                    int16_t seek_right = (int16_t) (float) samples->multi_track_seek.buffer[multi_seek_state[drive].position * 2 + 1] / 4.0f * samples->multi_track_seek.volume;
+                /* Process multi-track seek audio with direction-aware sample selection */
+                if (multi_seek_state[drive].active) {
+                    /* Determine which sample to use based on seek direction */
+                    audio_sample_t *seek_sample = NULL;
+                    int is_seek_down = (multi_seek_state[drive].to_track < multi_seek_state[drive].from_track);
+                    
+                    if (is_seek_down && samples->multi_track_seek_down.buffer) {
+                        seek_sample = &samples->multi_track_seek_down;
+                    } else {
+                        seek_sample = &samples->multi_track_seek;
+                    }
 
-                    left_sample += seek_left;
-                    right_sample += seek_right;
+                    if (seek_sample && seek_sample->buffer && 
+                        multi_seek_state[drive].position < multi_seek_state[drive].duration_samples &&
+                        multi_seek_state[drive].position < seek_sample->samples) {
+                        /* Mix seek sound with motor sound with volume control */
+                        int16_t seek_left  = (int16_t) ((float) seek_sample->buffer[multi_seek_state[drive].position * 2] / 4.0f * seek_sample->volume);
+                        int16_t seek_right = (int16_t) ((float) seek_sample->buffer[multi_seek_state[drive].position * 2 + 1] / 4.0f * seek_sample->volume);
 
-                    multi_seek_state[drive].position++;
-                } else {
-                    /* Seek sound finished */
-                    multi_seek_state[drive].active           = 0;
-                    multi_seek_state[drive].position         = 0;
-                    multi_seek_state[drive].duration_samples = 0;
-                    multi_seek_state[drive].from_track       = -1;
-                    multi_seek_state[drive].to_track         = -1;
+                        left_sample += seek_left;
+                        right_sample += seek_right;
+
+                        multi_seek_state[drive].position++;
+                    } else {
+                        /* Seek sound finished */
+                        multi_seek_state[drive].active           = 0;
+                        multi_seek_state[drive].position         = 0;
+                        multi_seek_state[drive].duration_samples = 0;
+                        multi_seek_state[drive].from_track       = -1;
+                        multi_seek_state[drive].to_track         = -1;
+                    }
                 }
-            }
 
-            /* Mix this drive's audio into the buffer */
-            int16_buffer[i * 2] += left_sample;
-            int16_buffer[i * 2 + 1] += right_sample;
+                /* Mix this drive's audio into the buffer */
+                int16_buffer[i * 2] += left_sample;
+                int16_buffer[i * 2 + 1] += right_sample;
+            }
         }
     }
 }
@@ -1028,7 +1172,7 @@ const fdd_audio_profile_config_t* fdd_audio_get_profile(int id) {
 const char* fdd_audio_get_profile_name(int id) { return (id == 0) ? "None" : NULL; }
 const char* fdd_audio_get_profile_internal_name(int id) { return (id == 0) ? "none" : NULL; }
 int fdd_audio_get_profile_by_internal_name(const char* internal_name) { return 0; }
-double fdd_audio_get_seek_time(int drive, int is_initial, int track_count) { 
+double fdd_audio_get_seek_time(int drive, int is_initial, int track_count, int is_seek_down) { 
     return is_initial ? 15000.0 : 6000.0; 
 }
 void fdd_audio_init(void) {}
