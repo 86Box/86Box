@@ -46,6 +46,7 @@
 #include <86box/video.h>
 
 extern const device_t vendex_xt_rtc_onboard_device;
+extern const device_t rtc58167_device;
 
 /* 8088 */
 static void
@@ -1182,6 +1183,37 @@ static const device_config_t pc500_config[] = {
             { .files_no = 0 }
         }
     },
+    {
+        .name           = "rtc_irq",
+        .description    = "RTC IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "Enabled",  .value =  2 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rtc_port",
+        .description    = "RTC Port Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "2C0H",     .value = 0x2c0 },
+            { .description = "300H",     .value = 0x300 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -1204,6 +1236,8 @@ int
 machine_xt_pc500_init(const machine_t *model)
 {
     int         ret = 0;
+    int         rtc_irq = -1;
+    int         rtc_port = 0;
     const char *fn;
 
     /* No ROMs available. */
@@ -1211,8 +1245,10 @@ machine_xt_pc500_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    rtc_irq  = machine_get_config_int("rtc_irq");
+    rtc_port = machine_get_config_int("rtc_port");
+    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret      = bios_load_linear(fn, 0x000fe000, 8192, 0);
     device_context_restore();
 
     if (bios_only || !ret)
@@ -1221,6 +1257,9 @@ machine_xt_pc500_init(const machine_t *model)
     device_add(&kbc_pc_device);
 
     machine_xt_common_init(model, 0);
+
+    if (rtc_port != 0)
+        device_add(&rtc58167_device);
 
     return ret;
 }
@@ -1231,7 +1270,7 @@ static const device_config_t pc500plus_config[] = {
         .name       = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "pc500plus_406",
+        .default_string = "pc500plus_404",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1266,6 +1305,36 @@ static const device_config_t pc500plus_config[] = {
             { .files_no = 0 }
         },
     },
+    {
+        .name           = "rtc_irq",
+        .description    = "RTC IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "Enabled",  .value =  2 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rtc_port",
+        .description    = "Onboard RTC",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "Enabled",  .value = 0x2c0 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -1288,6 +1357,8 @@ int
 machine_xt_pc500plus_init(const machine_t *model)
 {
     int         ret = 0;
+    int         rtc_irq = -1;
+    int         rtc_port = 0;
     const char *fn;
 
     /* No ROMs available. */
@@ -1295,8 +1366,10 @@ machine_xt_pc500plus_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret = bios_load_linear(fn, 0x000fc000, 16384, 0);
+    rtc_irq  = machine_get_config_int("rtc_irq");
+    rtc_port = machine_get_config_int("rtc_port");
+    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret      = bios_load_linear(fn, 0x000fc000, 16384, 0);
     device_context_restore();
 
     if (bios_only || !ret)
@@ -1305,6 +1378,9 @@ machine_xt_pc500plus_init(const machine_t *model)
     device_add(&kbc_pc_device);
 
     machine_xt_common_init(model, 0);
+
+    if (rtc_port != 0)
+        device_add(&rtc58167_device);
 
     return ret;
 }
