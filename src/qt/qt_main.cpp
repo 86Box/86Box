@@ -442,7 +442,7 @@ main_thread_fn()
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
-    plat_set_thread_name(nullptr, "main_thread_fn");
+    plat_set_thread_name(nullptr, "main_thread");
     framecountx = 0;
     // title_update = 1;
     uint64_t old_time = elapsed_timer.elapsed();
@@ -893,6 +893,8 @@ main(int argc, char *argv[])
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(0, &app, [] {
+        plat_set_thread_name(nullptr, "qt_thread");
+
 #ifdef Q_OS_WINDOWS
         extern bool NewDarkMode;
         NewDarkMode = util::isWindowsLightTheme();
