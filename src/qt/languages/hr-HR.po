@@ -2993,3 +2993,6 @@ msgstr "Svjetlo"
 
 msgid "Dark"
 msgstr "Tamno"
+
+msgid "Search:"
+msgstr "Pretraživanje:"

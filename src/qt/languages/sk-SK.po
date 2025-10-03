@@ -2993,3 +2993,6 @@ msgstr "Svetlo"
 
 msgid "Dark"
 msgstr "Tmavá"
+
+msgid "Search:"
+msgstr "Hľadať:"

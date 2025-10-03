@@ -85,7 +85,6 @@ static single_step_state_t single_step_state[FDD_NUM] = {};
 static multi_seek_state_t multi_seek_state[FDD_NUM] = {};
 
 extern uint64_t motoron[FDD_NUM];
-extern char     exe_path[2048];
 
 extern int fdd_get_audio_profile(int drive);
 
