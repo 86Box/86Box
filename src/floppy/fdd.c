@@ -409,10 +409,14 @@ fdd_seek(int drive, int track_diff)
             timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
         }
 
-        /* Get seek timings from audio profile configuration */
-        double   initial_seek_time = fdd_audio_get_seek_time(drive, 1, actual_track_diff);
-        double   track_seek_time   = fdd_audio_get_seek_time(drive, 0, actual_track_diff);
-        fdd_log("Seek timing for drive %d: initial %.2f ms, per track %.2f ms\n", drive, initial_seek_time, track_seek_time);
+        /* Determine seek direction - seeking down means moving toward track 0 */
+        int is_seek_down = (fdd[drive].track < old_track);
+
+        /* Get seek timings from audio profile configuration with direction awareness */
+        double   initial_seek_time = fdd_audio_get_seek_time(drive, 1, actual_track_diff, is_seek_down);
+        double   track_seek_time   = fdd_audio_get_seek_time(drive, 0, actual_track_diff, is_seek_down);
+        fdd_log("Seek timing for drive %d: initial %.2f µs, per track %.2f µs (%s)\n", 
+                drive, initial_seek_time, track_seek_time, is_seek_down ? "DOWN" : "UP");
         uint64_t seek_time_us      = (initial_seek_time + (abs(actual_track_diff) * track_seek_time)) * TIMER_USEC;
         timer_set_delay_u64(&fdd_seek_timer[drive], seek_time_us);
     }
