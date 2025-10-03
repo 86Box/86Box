@@ -2995,4 +2995,4 @@ msgid "Dark"
 msgstr "Sombre"
 
 msgid "Search:"
-msgstr "Recherche:"
+msgstr "Rechercher:"
