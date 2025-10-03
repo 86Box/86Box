@@ -2995,4 +2995,4 @@ msgid "Dark"
 msgstr "Tumma"
 
 msgid "Search:"
-msgstr "Haku:"
+msgstr "Hae:"

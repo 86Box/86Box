@@ -2995,4 +2995,4 @@ msgid "Dark"
 msgstr "어둠"
 
 msgid "Search:"
-msgstr "찾기:"
+msgstr "검색:"
