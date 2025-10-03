@@ -98,6 +98,7 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int qt_nvr_save(void);
+extern void exit_pause(void);
 
 bool cpu_thread_running = false;
 }
@@ -751,6 +752,14 @@ main(int argc, char *argv[])
 
 #ifdef DISCORD
     discord_load();
+#endif
+
+#ifdef Q_OS_WINDOWS
+    // On Win32 the accuracy of Sleep() depends on the timer resolution, which can be set by calling timeBeginPeriod
+    // https://learn.microsoft.com/en-us/windows/win32/api/timeapi/nf-timeapi-timebeginperiod
+    exit_pause();
+    timeBeginPeriod(1);
+    atexit([] () -> void { timeEndPeriod(1); });
 #endif
 
     main_window = new MainWindow();
