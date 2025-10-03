@@ -116,6 +116,8 @@ public slots:
 private:
     void createRenderer(Renderer renderer);
 
+    QBoxLayout* boxLayout = nullptr;
+
     Ui::RendererStack *ui;
 
     int x;
@@ -138,8 +140,6 @@ private:
 
     std::atomic_bool rendererTakesScreenshots;
     std::atomic_bool switchInProgress{false};
-
-    QBoxLayout* boxLayout = nullptr;
 
     char auto_mouse_type[16];
 };
