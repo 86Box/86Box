@@ -41,6 +41,7 @@ typedef struct t1kvid_t {
     bool     baseline_ready;
     int      hsync_offset;
     int      vsync_offset;
+    int      vsync_offset_pending;
 
     int      linepos;
     int      displine;

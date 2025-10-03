@@ -199,11 +199,7 @@ vid_update_display_offset(t1kvid_t *vid, uint8_t reg)
                 vid->hsync_offset = ((int)vid->baseline_hsyncpos - (int)vid->crtc[2]) * hsync_scale;
                 break;
             case 7:
-                if (vid->crtc[7] < vid->crtc[6])
-                    vid->crtc[7] = vid->crtc[6];
-                else if (vid->crtc[7] > vid->crtc[4])
-                    vid->crtc[7] = vid->crtc[4];
-                vid->vsync_offset = ((int)vid->baseline_vsyncpos - (int)vid->crtc[7]) * vsync_scale;
+                vid->vsync_offset_pending = ((int)vid->baseline_vsyncpos - (int)vid->crtc[7]) * vsync_scale;
                 break;
         }
     }
@@ -643,8 +639,8 @@ vid_poll(void *priv)
     int       scanline_old;
     int       old_ma;
     int       hos_offs              = 8 + vid->hsync_offset;
-    int       displine_offs         = vid->displine - vid->vsync_offset;
-    int       displine_offs_double  = (vid->displine << 1) - (vid->vsync_offset << 1);
+    int       displine_offs         = (vid->displine + vid->vsync_offset < 0) ? 0 : vid->displine + vid->vsync_offset;
+    int       displine_offs_double  = displine_offs << 1;
 
     if (!vid->linepos) {
         timer_advance_u64(&vid->timer, vid->dispofftime);
@@ -661,51 +657,39 @@ vid_poll(void *priv)
             vid->lastline = vid->displine;
             switch (vid->double_type) {
                 default:
-                    if (displine_offs_double >= 0) {
-                        vid_render(dev, displine_offs_double, hos_offs);
-                        vid_render_blank(dev, displine_offs_double + 1);
-                    }
+                    vid_render(dev, displine_offs_double, hos_offs);
+                    vid_render_blank(dev, displine_offs_double + 1);
                     break;
                 case DOUBLE_NONE:
-                    if (displine_offs >= 0)
-                        vid_render(dev, displine_offs, hos_offs);
+                    vid_render(dev, displine_offs, hos_offs);
                     break;
                 case DOUBLE_SIMPLE:
-                    if (displine_offs_double >= 0) {
-                        old_ma = vid->memaddr;
-                        vid_render(dev, displine_offs_double, hos_offs);
-                        vid->memaddr = old_ma;
-                        vid_render(dev, displine_offs_double + 1, hos_offs);
-                    }
+                    old_ma = vid->memaddr;
+                    vid_render(dev, displine_offs_double, hos_offs);
+                    vid->memaddr = old_ma;
+                    vid_render(dev, displine_offs_double + 1, hos_offs);
                     break;
             }
         } else  switch (vid->double_type) {
             default:
-                if (displine_offs_double >= 0)
-                    vid_render_blank(dev, displine_offs_double);
+                vid_render_blank(dev, displine_offs_double);
                 break;
             case DOUBLE_NONE:
-                if (displine_offs >= 0)
-                    vid_render_blank(dev, displine_offs);
+                vid_render_blank(dev, displine_offs);
                 break;
             case DOUBLE_SIMPLE:
-                if (displine_offs_double >= 0) {
-                    vid_render_blank(dev, displine_offs_double);
-                    vid_render_blank(dev, displine_offs_double + 1);
-                }
+                vid_render_blank(dev, displine_offs_double);
+                vid_render_blank(dev, displine_offs_double + 1);
                 break;
         }
 
         switch (vid->double_type) {
             default:
-                if (displine_offs_double >= 0) {
-                    vid_render_process(dev, displine_offs_double);
-                    vid_render_process(dev, displine_offs_double + 1);
-                }
+                vid_render_process(dev, displine_offs_double);
+                vid_render_process(dev, displine_offs_double + 1);
                 break;
             case DOUBLE_NONE:
-                if (displine_offs >= 0)
-                    vid_render_process(dev, displine_offs);
+                vid_render_process(dev, displine_offs);
                 break;
         }
 
@@ -768,7 +752,8 @@ vid_poll(void *priv)
                 else
                     vid->cursoron = vid->blink & 16;
             }
-            if (vid->vc == vid->baseline_vsyncpos) {
+            if (vid->vc == vid->crtc[7]) {
+                vid->vsync_offset = vid->vsync_offset_pending;
                 vid->dispon    = 0;
                 vid->displine  = 0;
                 vid->vsynctime = 16;
@@ -875,6 +860,7 @@ tandy_vid_init(tandy_t *dev)
     vid->baseline_ready = false;
     vid->hsync_offset = 0;
     vid->vsync_offset = 0;
+    vid->vsync_offset_pending = 0;
     vid->memctrl = -1;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
