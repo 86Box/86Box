@@ -2993,3 +2993,6 @@ msgstr "Светлая"
 
 msgid "Dark"
 msgstr "Тёмная"
+
+msgid "Search:"
+msgstr "Поиск:"

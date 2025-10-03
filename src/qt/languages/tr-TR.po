@@ -2993,3 +2993,6 @@ msgstr "Işık"
 
 msgid "Dark"
 msgstr "Karanlık"
+
+msgid "Search:"
+msgstr "Aramak:"
