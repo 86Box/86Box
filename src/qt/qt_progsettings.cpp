@@ -38,7 +38,7 @@ extern "C" {
 #include <86box/rom.h>
 }
 
-extern MainWindow            *main_window;
+extern MainWindow *main_window;
 
 ProgSettings::CustomTranslator *ProgSettings::translator   = nullptr;
 QTranslator                    *ProgSettings::qtTranslator = nullptr;

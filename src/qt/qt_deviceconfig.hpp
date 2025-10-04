@@ -28,7 +28,7 @@ public:
 
 private:
     Ui::DeviceConfig *ui;
-    void   ProcessConfig(void *dc, const void *c, bool is_dep);
+    void              ProcessConfig(void *dc, const void *c, bool is_dep);
 };
 
 #endif // QT_DEVICECONFIG_HPP
