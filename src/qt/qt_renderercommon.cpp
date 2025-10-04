@@ -117,13 +117,13 @@ void
 RendererCommon::onResize(int width, int height)
 {
     /* This is needed so that the if below does not take like, 5 lines. */
-    bool is_fs = (video_fullscreen == 0);
-    bool parent_max = (parentWidget->isMaximized() == false);
+    bool is_fs            = (video_fullscreen == 0);
+    bool parent_max       = (parentWidget->isMaximized() == false);
     bool main_is_ancestor = main_window->isAncestorOf(parentWidget);
-    bool main_max = main_window->isMaximized();
-    bool main_is_max = (main_is_ancestor && main_max == false);
+    bool main_max         = main_window->isMaximized();
+    bool main_is_max      = (main_is_ancestor && main_max == false);
 
-    width = round(pixelRatio * width);
+    width  = round(pixelRatio * width);
     height = round(pixelRatio * height);
 
     if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1) && !(force_43 && vid_resize))
@@ -142,7 +142,7 @@ RendererCommon::onResize(int width, int height)
         double gh  = source.height();
         double hsr = hw / hh;
         double r43 = 4.0 / 3.0;
-        
+
         if (force_43 && is_fs && vid_resize) {
             if (!video_fullscreen_scale_maximized || (video_fullscreen_scale_maximized && parent_max && main_is_max))
                 temp_fullscreen_scale = FULLSCR_SCALE_43;
@@ -155,7 +155,7 @@ RendererCommon::onResize(int width, int height)
 
                 if (temp_fullscreen_scale == FULLSCR_SCALE_INT43) {
                     gh = gw / r43;
-//                  gw = gw;
+                    // gw = gw;
 
                     gsr = r43;
                 }
@@ -203,8 +203,8 @@ RendererCommon::onResize(int width, int height)
     monitors[r_monitor_index].mon_res_x = (double) destination.width();
     monitors[r_monitor_index].mon_res_y = (double) destination.height();
 
-    destinationF.setRect((double)destination.x() / (double)width, (double)destination.y() / (double)height,
-                        (double)destination.width() / (double)width, (double)destination.height() / (double)height);
+    destinationF.setRect((double) destination.x() / (double) width, (double) destination.y() / (double) height,
+                         (double) destination.width() / (double) width, (double) destination.height() / (double) height);
 }
 
 bool

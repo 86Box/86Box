@@ -820,7 +820,7 @@ public:
         m_devFuncs->vkDeviceWaitIdle(m_window->device());
     }
 };
-#    endif /* 0*/
+#    endif     /* 0*/
 
 VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     : QVulkanWindow(NULL)

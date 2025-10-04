@@ -35,12 +35,11 @@ private slots:
     void on_comboBoxSpeed_activated(int index);
     void on_comboBoxCDROMType_activated(int index);
 
-
 private:
     Ui::SettingsFloppyCDROM *ui;
-    void setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type);
-    void setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
-    void enableCurrentlySelectedChannel();
+    void                     setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type);
+    void                     setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
+    void                     enableCurrentlySelectedChannel();
 
     QIcon floppy_disabled_icon;
     QIcon floppy_525_icon;

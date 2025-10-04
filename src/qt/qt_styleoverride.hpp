@@ -18,7 +18,7 @@ public:
         const QWidget      *widget     = nullptr,
         QStyleHintReturn   *returnData = nullptr) const override;
 
-    void polish(QWidget *widget) override;
+    void    polish(QWidget *widget) override;
     QPixmap generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *option) const override;
 };
 
