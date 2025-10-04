@@ -8,8 +8,6 @@
  *
  *          Implement threads and mutexes for the Win32 platform.
  *
- *
- *
  * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

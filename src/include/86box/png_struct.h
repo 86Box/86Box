@@ -6,8 +6,6 @@
  *
  *          Definitions for the centralized PNG image handler.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018 Fred N. van Kempen.
@@ -42,7 +40,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #ifndef EMU_PNG_STRUCT_H
 #define EMU_PNG_STRUCT_H
 

@@ -8,15 +8,12 @@
  *
  *          Definitions for the generic SCSI device command handler.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
-
 #ifndef SCSI_DEVICE_H
 #define SCSI_DEVICE_H
 

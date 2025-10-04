@@ -8,8 +8,6 @@
  *
  *          Definitions for the Toshiba T3100e system.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          John Elliott, <jce@seasip.info>
@@ -36,7 +34,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-
 #ifndef MACHINE_T3100E_H
 #define MACHINE_T3100E_H
 

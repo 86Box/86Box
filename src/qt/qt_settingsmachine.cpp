@@ -8,8 +8,6 @@
  *
  *          Machine selection and configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje
@@ -413,4 +411,3 @@ void SettingsMachine::on_radioButtonLargerFrames_clicked()
 {
     ui->radioButtonSmallerFrames->setChecked(false);
 }
-

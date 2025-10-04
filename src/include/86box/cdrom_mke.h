@@ -14,7 +14,6 @@
  *          Copyright 2022-2025 Miran Grca.
  *          Copyright 2025      Cacodemon345.
  */
-
 #ifndef CDROM_MKE_H
 #define CDROM_MKE_H
 

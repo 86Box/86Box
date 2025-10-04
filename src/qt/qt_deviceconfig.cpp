@@ -8,8 +8,6 @@
  *
  *          Device configuration UI code.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *

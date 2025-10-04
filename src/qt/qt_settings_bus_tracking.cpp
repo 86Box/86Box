@@ -8,8 +8,6 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Miran Grca <mgrca8@gmail.com>
  *          Cacodemon345
  *

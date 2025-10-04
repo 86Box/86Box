@@ -9,8 +9,6 @@
  *          Implementation of the NCR 5380 chip made by NCR
  *          and used in various controllers.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,7 +17,6 @@
  *          Copyright 2017-2018 Fred N. van Kempen.
  *          Copyright 2017-2024 TheCollector1995.
  */
-
 #ifndef SCSI_NCR5380_H
 #define SCSI_NCR5380_H
 

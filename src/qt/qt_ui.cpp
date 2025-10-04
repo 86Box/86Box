@@ -8,8 +8,6 @@
  *
  *          Common UI functions.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *

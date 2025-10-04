@@ -17,7 +17,6 @@
  *          Copyright 2020-2025 Miran Grca.
  *          Copyright 2020-2025 Fred N. van Kempen
  */
-
 #ifndef EMU_MO_H
 #define EMU_MO_H
 

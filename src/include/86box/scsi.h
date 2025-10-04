@@ -8,8 +8,6 @@
  *
  *          SCSI controller handler header.
  *
- *
- *
  * Authors: TheCollector1995, <mariogplayer@gmail.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

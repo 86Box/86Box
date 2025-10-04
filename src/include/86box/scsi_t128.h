@@ -17,29 +17,29 @@
  *          Copyright 2017-2018 Fred N. van Kempen.
  *          Copyright 2017-2024 TheCollector1995.
  */
-
 #ifndef SCSI_T128_H
 #define SCSI_T128_H
 
 typedef struct t128_t {
-    ncr_t   ncr;
-    rom_t   bios_rom;
+    ncr_t         ncr;
+    rom_t         bios_rom;
     mem_mapping_t mapping;
 
-    uint8_t ctrl;
-    uint8_t status;
-    uint8_t buffer[512];
-    uint8_t ext_ram[0x80];
+    uint8_t  ctrl;
+    uint8_t  status;
+    uint8_t  buffer[512];
+    uint8_t  ext_ram[0x80];
     uint32_t block_count;
 
     int block_loaded;
-    int pos, host_pos;
+    int pos;
+    int host_pos;
 
     uint32_t rom_addr;
 
-    int bios_enabled;
+    int     bios_enabled;
     uint8_t pos_regs[8];
-    int type;
+    int     type;
 
     pc_timer_t timer;
 } t128_t;

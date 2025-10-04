@@ -9,8 +9,6 @@
  *          Implementation of the FDI floppy stream image format
  *          interface to the FDI2RAW module.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

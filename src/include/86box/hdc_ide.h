@@ -9,8 +9,6 @@
  *          Implementation of the IDE emulation for hard disks and ATAPI
  *          CD-ROM devices.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Copyright 2008-2019 Sarah Walker.

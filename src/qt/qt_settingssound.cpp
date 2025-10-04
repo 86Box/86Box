@@ -8,8 +8,6 @@
  *
  *          Sound/MIDI devices configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Jasmine Iwanek <jriwanek@gmail.com>
  *
