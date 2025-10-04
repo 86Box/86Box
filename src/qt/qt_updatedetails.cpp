@@ -8,13 +8,10 @@
  *
  *          Update details module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #include "qt_updatedetails.hpp"
 #include "ui_qt_updatedetails.h"
 

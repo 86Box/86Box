@@ -9,13 +9,10 @@
  *          A better random number generation, used for floppy weak bits
  *          and network MAC address generation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2017 Miran Grca.
  */
-
 #ifndef EMU_RANDOM_H
 #define EMU_RANDOM_H
 

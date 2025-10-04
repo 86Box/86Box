@@ -8,13 +8,10 @@
  *
  *          Header for the update check module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #ifndef QT_UPDATECHECK_HPP
 #define QT_UPDATECHECK_HPP
 

@@ -1,19 +1,18 @@
 /*
- * 86Box        A hypervisor and IBM PC system emulator that specializes in
- *              running old operating systems and software designed for IBM
- *              PC systems and compatibles from 1981 through fairly recent
- *              system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *              This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *              Definitions for platform specific serial to host passthrough
+ *          Definitions for platform specific serial to host passthrough
  *
+ * Authors: Andreas J. Reichel <webmaster@6th-dimension.com>,
+ *          Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
- * Authors:     Andreas J. Reichel <webmaster@6th-dimension.com>,
- *              Jasmine Iwanek <jasmine@iwanek.co.uk>
- *
- *              Copyright 2021      Andreas J. Reichel
- *              Copyright 2021-2025 Jasmine Iwanek
+ *          Copyright 2021      Andreas J. Reichel
+ *          Copyright 2021-2025 Jasmine Iwanek
  */
 
 #define _XOPEN_SOURCE 500

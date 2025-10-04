@@ -8,8 +8,6 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
@@ -75,9 +73,9 @@ extern "C" {
 }
 
 struct mouseinputdata {
-    atomic_bool         mouse_tablet_in_proximity;
+    atomic_bool mouse_tablet_in_proximity;
 
-    char                *mouse_type;
+    char       *mouse_type;
 };
 static mouseinputdata mousedata;
 

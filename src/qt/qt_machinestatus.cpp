@@ -8,8 +8,6 @@
  *
  *          Joystick configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *

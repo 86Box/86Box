@@ -8,13 +8,10 @@
  *
  *          IBM PS/55 Display Adapter II emulation.
  *
- *
- *
  * Authors: Akamaki.
  *
  *          Copyright 2024 Akamaki.
  */
-
 #ifndef VIDEO_DA2_DEVICE_H
 #define VIDEO_DA2_DEVICE_H
 

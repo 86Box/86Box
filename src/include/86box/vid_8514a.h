@@ -9,8 +9,6 @@
  *          Emulation of the 8514/A card from IBM for the MCA bus and
  *          generic ISA bus clones without vendor extensions.
  *
- *
- *
  * Authors: TheCollector1995
  *
  *          Copyright 2022 TheCollector1995.

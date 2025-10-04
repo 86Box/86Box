@@ -8,8 +8,6 @@
  *
  *          Win32 CD-ROM support via IOCTL.
  *
- *
- *
  * Authors: TheCollector1995, <mariogplayer@gmail.com>,
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -39,14 +37,14 @@
 #include <86box/scsi_device.h>
 
 typedef struct ioctl_t {
-    cdrom_t                *dev;
-    void                   *log;
-    int                     is_dvd;
-    int                     has_audio;
-    int                     blocks_num;
-    uint8_t                 cur_rti[65536];
-    HANDLE                  handle;
-    WCHAR                   path[256];
+    cdrom_t *dev;
+    void    *log;
+    int      is_dvd;
+    int      has_audio;
+    int      blocks_num;
+    uint8_t  cur_rti[65536];
+    HANDLE   handle;
+    WCHAR    path[256];
 } ioctl_t;
 
 typedef struct _CDROM_FULL_TOC {

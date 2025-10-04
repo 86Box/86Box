@@ -8,8 +8,6 @@
  *
  *          Common platform functions.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
@@ -18,7 +16,6 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  */
-
 #ifdef __HAIKU__
 #include <OS.h>
 #endif

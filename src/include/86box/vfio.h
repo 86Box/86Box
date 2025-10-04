@@ -17,4 +17,4 @@
 
 extern void vfio_init(void);
 
-#endif
+#endif /*EMU_VFIO_H*/

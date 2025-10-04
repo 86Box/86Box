@@ -9,15 +9,12 @@
  *          Emulation of the EGA and Chips & Technologies SuperEGA
  *          graphics cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  */
-
 #ifndef VIDEO_EGA_H
 #define VIDEO_EGA_H
 
