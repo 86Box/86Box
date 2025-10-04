@@ -20,10 +20,10 @@ void setWin11RoundedCorners(WId hwnd, bool enable);
 #endif
 QString currentUuid();
 QString generateUuid(const QString &path);
-void storeCurrentUuid();
-bool compareUuid();
-void generateNewMacAdresses();
-bool hasConfiguredNICs();
+void    storeCurrentUuid();
+bool    compareUuid();
+void    generateNewMacAdresses();
+bool    hasConfiguredNICs();
 };
 
 #endif

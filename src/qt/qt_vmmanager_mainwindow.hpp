@@ -25,8 +25,7 @@ namespace Ui {
 class VMManagerMainWindow;
 }
 
-class VMManagerMainWindow final : public QMainWindow
-{
+class VMManagerMainWindow final : public QMainWindow {
     Q_OBJECT
 public:
     explicit VMManagerMainWindow(QWidget *parent = nullptr);
@@ -41,10 +40,12 @@ signals:
 
 private:
     Ui::VMManagerMainWindow *ui;
+
     VMManagerMain *vmm;
-    void saveSettings() const;
-    QLabel *statusLeft;
-    QLabel *statusRight;
+    void           saveSettings() const;
+    QLabel        *statusLeft;
+    QLabel        *statusRight;
+
 public slots:
     void setStatusLeft(const QString &text) const;
     void setStatusRight(const QString &text) const;

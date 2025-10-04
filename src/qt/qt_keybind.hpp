@@ -22,12 +22,12 @@ public:
     explicit KeyBinder(QWidget *parent = nullptr);
     ~KeyBinder() override;
 
-    static QKeySequence BindKey(QWidget* widget, QString CurValue);
+    static QKeySequence BindKey(QWidget *widget, QString CurValue);
 
 private:
     Ui::KeyBinder *ui;
-	bool eventFilter(QObject *obj, QEvent *event) override;
-	void showEvent( QShowEvent* event ) override;
+    bool           eventFilter(QObject *obj, QEvent *event) override;
+    void           showEvent(QShowEvent *event) override;
 };
 
 #endif // QT_KeyBinder_HPP
