@@ -24,7 +24,9 @@
 #include "qt_vmmanager_system.hpp"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class DetailSection; }
+namespace Ui {
+class DetailSection;
+}
 QT_END_NAMESPACE
 
 class CollapseButton final : public QToolButton {
@@ -42,8 +44,8 @@ public:
     void showContent();
 
 private:
-    QWidget *content_;
-    QString text_;
+    QWidget                *content_;
+    QString                 text_;
     QParallelAnimationGroup animator_;
 };
 
@@ -61,13 +63,13 @@ public:
     void setSections();
     void clear();
 
-    QLabel *tableLabel;
+    QLabel         *tableLabel;
     CollapseButton *collapseButton;
-//    QGridLayout *buttonGridLayout;
+    //    QGridLayout *buttonGridLayout;
     QGridLayout *frameGridLayout;
     QVBoxLayout *mainLayout;
     QHBoxLayout *buttonLayout;
-    QFrame *frame;
+    QFrame      *frame;
 
     static const QString sectionSeparator;
 
@@ -96,8 +98,7 @@ private:
     };
 
     QVector<DetailSection> sections;
-    Ui::DetailSection *ui;
-
+    Ui::DetailSection     *ui;
 };
 
 #endif // QT_VMMANAGER_DETAILSECTION_H

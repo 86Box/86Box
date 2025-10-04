@@ -61,7 +61,7 @@ SettingsInput::SettingsInput(QWidget *parent)
     keyTable->setColumnWidth(0, 200);
     keyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     QStringList headers;
-    //headers << "Action" << "Bound key";
+    // headers << "Action" << "Bound key";
     keyTable->setHorizontalHeaderLabels(horizontalHeader);
     keyTable->verticalHeader()->setVisible(false);
     keyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -71,7 +71,7 @@ SettingsInput::SettingsInput(QWidget *parent)
 
     // Make a working copy of acc_keys so we can check for dupes later without getting
     // confused
-    for(int x = 0; x < NUM_ACCELS; x++) {
+    for (int x = 0; x < NUM_ACCELS; x++) {
         strcpy(acc_keys_t[x].name, acc_keys[x].name);
         strcpy(acc_keys_t[x].desc, acc_keys[x].desc);
         strcpy(acc_keys_t[x].seq, acc_keys[x].seq);
@@ -96,7 +96,7 @@ SettingsInput::save()
     joystick_type[0] = ui->comboBoxJoystick0->currentData().toInt();
 
     // Copy accelerators from working set to global set
-    for(int x = 0; x < NUM_ACCELS; x++) {
+    for (int x = 0; x < NUM_ACCELS; x++) {
         strcpy(acc_keys[x].name, acc_keys_t[x].name);
         strcpy(acc_keys[x].desc, acc_keys_t[x].desc);
         strcpy(acc_keys[x].seq, acc_keys_t[x].seq);
@@ -111,7 +111,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     this->machineId = machineId;
 
     auto *keyboardModel = ui->comboBoxKeyboard->model();
-    auto  removeRows = keyboardModel->rowCount();
+    auto  removeRows    = keyboardModel->rowCount();
 
     int selectedRow = 0;
 
@@ -119,11 +119,10 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     int has_int_kbd = !!machine_has_flags(machineId, MACHINE_KEYBOARD);
 
     for (int i = 0; i < keyboard_get_ndev(); ++i) {
-        const auto *dev           = keyboard_get_device(i);
-        int         ikbd          = (i == KEYBOARD_TYPE_INTERNAL);
+        const auto *dev  = keyboard_get_device(i);
+        int         ikbd = (i == KEYBOARD_TYPE_INTERNAL);
 
-        int         pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") &&
-                                    machines[machineId].init == machine_xt_pc5086_init);
+        int pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") && machines[machineId].init == machine_xt_pc5086_init);
 
         if ((ikbd != has_int_kbd) || !device_is_valid(dev, machineId) || pc5086_filter)
             continue;
@@ -209,7 +208,7 @@ void
 SettingsInput::on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
 {
     // Enable/disable bind/clear buttons if user clicked valid row
-    QTableWidgetItem *cell = ui->tableKeys->item(currentRow,1);
+    QTableWidgetItem *cell = ui->tableKeys->item(currentRow, 1);
     if (!cell) {
         ui->pushButtonBind->setEnabled(false);
         ui->pushButtonClearBind->setEnabled(false);
@@ -223,7 +222,7 @@ void
 SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
 {
     // Edit bind
-    QTableWidgetItem *cell = ui->tableKeys->item(row,1);
+    QTableWidgetItem *cell = ui->tableKeys->item(row, 1);
     if (!cell)
         return;
 
@@ -236,8 +235,8 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
         // Otherwise, check for conflicts.
         // Check against the *working* copy - NOT the one in use by the app,
         // so we don't test against shortcuts the user already changed.
-        for(int x = 0; x < NUM_ACCELS; x++) {
-            if(QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
+        for (int x = 0; x < NUM_ACCELS; x++) {
+            if (QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
                 // That key is already in use
                 QMessageBox::warning(this, tr("Bind conflict"), tr("This key combo is already in use."), QMessageBox::StandardButton::Ok);
                 return;
@@ -247,7 +246,7 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
         // Go ahead and apply the bind.
 
         // Find the correct accelerator key entry
-        int accKeyID = FindAccelerator(ui->tableKeys->item(row,2)->text().toUtf8().constData());
+        int accKeyID = FindAccelerator(ui->tableKeys->item(row, 2)->text().toUtf8().constData());
         if (accKeyID < 0)
             return; // this should never happen
 
@@ -280,7 +279,7 @@ SettingsInput::on_pushButtonClearBind_clicked()
 
     cell->setText("");
     // Find the correct accelerator key entry
-    int accKeyID = FindAccelerator(ui->tableKeys->item(cell->row(),2)->text().toUtf8().constData());
+    int accKeyID = FindAccelerator(ui->tableKeys->item(cell->row(), 2)->text().toUtf8().constData());
     if (accKeyID < 0)
         return; // this should never happen
 

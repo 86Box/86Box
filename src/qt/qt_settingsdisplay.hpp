@@ -48,7 +48,7 @@ private slots:
 
 private:
     Ui::SettingsDisplay *ui;
-    int                  machineId    = 0;
+    int                  machineId                = 0;
     int                  videoCard[VIDEOCARD_MAX] = { 0, 0 };
 };
 

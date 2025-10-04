@@ -57,20 +57,20 @@ public:
 
     ~WindowsRawInputFilter();
 
-    static void   mouse_handle(RAWMOUSE* raw);
+    static void mouse_handle(RAWMOUSE *raw);
 
 private:
     MainWindow *window;
-    int          buttons    = 0;
-    int          dx         = 0;
-    int          dy         = 0;
-    int          dwheel     = 0;
-    int          menus_open = 0;
+    int         buttons    = 0;
+    int         dx         = 0;
+    int         dy         = 0;
+    int         dwheel     = 0;
+    int         menus_open = 0;
 
     WindowsRawInputFilter(MainWindow *window);
 
-    void          handle_input(HRAWINPUT input);
-    void          keyboard_handle(PRAWINPUT raw);
+    void handle_input(HRAWINPUT input);
+    void keyboard_handle(PRAWINPUT raw);
 };
 
 #endif

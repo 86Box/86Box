@@ -1,4 +1,5 @@
-static std::array<uint32_t, 127> cocoa_keycodes = { /* key names in parentheses are not declared by Apple headers */
+static std::array<uint32_t, 127> cocoa_keycodes = {
+    /* key names in parentheses are not declared by Apple headers */
     0x1e,  /* ANSI_A */
     0x1f,  /* ANSI_S */
     0x20,  /* ANSI_D */
@@ -66,9 +67,9 @@ static std::array<uint32_t, 127> cocoa_keycodes = { /* key names in parentheses 
     0x5e,  /* F17 => F14 */
     0x53,  /* ANSI_KeypadDecimal */
     0,
-    0x37,  /* ANSI_KeypadMultiply */
+    0x37, /* ANSI_KeypadMultiply */
     0,
-    0x4e,  /* ANSI_KeypadPlus */
+    0x4e, /* ANSI_KeypadPlus */
     0,
     0x45,  /* ANSI_KeypadClear => Num Lock (location equivalent) */
     0x130, /* VolumeUp */

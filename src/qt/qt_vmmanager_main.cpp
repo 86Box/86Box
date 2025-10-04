@@ -33,41 +33,33 @@
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_addmachine.hpp"
 
-extern VMManagerMainWindow* vmm_main_window;
+extern VMManagerMainWindow *vmm_main_window;
 
 // https://stackoverflow.com/a/36460740
-bool copyPath(QString sourceDir, QString destinationDir, bool overWriteDirectory)
+bool
+copyPath(QString sourceDir, QString destinationDir, bool overWriteDirectory)
 {
     QDir originDirectory(sourceDir);
 
-    if (! originDirectory.exists())
-    {
+    if (!originDirectory.exists())
         return false;
-    }
 
     QDir destinationDirectory(destinationDir);
 
-    if(destinationDirectory.exists() && !overWriteDirectory)
-    {
+    if (destinationDirectory.exists() && !overWriteDirectory)
         return false;
-    }
-    else if(destinationDirectory.exists() && overWriteDirectory)
-    {
+    else if (destinationDirectory.exists() && overWriteDirectory)
         destinationDirectory.removeRecursively();
-    }
 
     originDirectory.mkpath(destinationDir);
 
-    foreach (QString directoryName, originDirectory.entryList(QDir::Dirs | \
-                                                              QDir::NoDotAndDotDot))
-    {
+    foreach (QString directoryName, originDirectory.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
         QString destinationPath = destinationDir + "/" + directoryName;
         originDirectory.mkpath(destinationPath);
         copyPath(sourceDir + "/" + directoryName, destinationPath, overWriteDirectory);
     }
 
-    foreach (QString fileName, originDirectory.entryList(QDir::Files))
-    {
+    foreach (QString fileName, originDirectory.entryList(QDir::Files)) {
         QFile::copy(sourceDir + "/" + fileName, destinationDir + "/" + fileName);
     }
 
@@ -75,21 +67,22 @@ bool copyPath(QString sourceDir, QString destinationDir, bool overWriteDirectory
     QDir finalDestination(destinationDir);
     finalDestination.refresh();
 
-    if(finalDestination.exists())
-    {
+    if (finalDestination.exists())
         return true;
-    }
 
     return false;
 }
 
-VMManagerMain::VMManagerMain(QWidget *parent) :
-    QWidget(parent), ui(new Ui::VMManagerMain), selected_sysconfig(new VMManagerSystem) {
+VMManagerMain::VMManagerMain(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::VMManagerMain)
+    , selected_sysconfig(new VMManagerSystem)
+{
     ui->setupUi(this);
 
     // Set up the main listView
     ui->listView->setItemDelegate(new VMManagerListViewDelegate);
-    vm_model = new VMManagerModel;
+    vm_model    = new VMManagerModel;
     proxy_model = new StringListProxyModel(this);
     proxy_model->setSourceModel(vm_model);
     ui->listView->setModel(proxy_model);
@@ -157,16 +150,15 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             contextMenu.addAction(&nameChangeAction);
             // Use a lambda to call a function so indexAt can be passed
             connect(&nameChangeAction, &QAction::triggered, ui->listView, [this, indexAt] {
-                   updateDisplayName(indexAt);
+                updateDisplayName(indexAt);
             });
             nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
-
 
             QAction setSystemIcon(tr("Set &icon..."));
             contextMenu.addAction(&setSystemIcon);
             connect(&setSystemIcon, &QAction::triggered, [this] {
                 IconSelectionDialog dialog(":/systemicons/");
-                if(dialog.exec() == QDialog::Accepted) {
+                if (dialog.exec() == QDialog::Accepted) {
                     const QString iconName = dialog.getSelectedIconName();
                     // A Blank iconName will cause setIcon to reset to the default
                     selected_sysconfig->setIcon(iconName);
@@ -180,28 +172,28 @@ VMManagerMain::VMManagerMain(QWidget *parent) :
             contextMenu.addAction(&cloneMachine);
             connect(&cloneMachine, &QAction::triggered, [this] {
                 QDialog dialog = QDialog(this);
-                auto layout = new QVBoxLayout(&dialog);
+                auto    layout = new QVBoxLayout(&dialog);
                 layout->setSizeConstraint(QLayout::SetFixedSize);
                 layout->addWidget(new QLabel(tr("Virtual machine \"%1\" (%2) will be cloned into:").arg(selected_sysconfig->displayName, selected_sysconfig->config_dir)));
-                QLineEdit* edit = new QLineEdit(&dialog);
+                QLineEdit *edit = new QLineEdit(&dialog);
                 layout->addWidget(edit);
-                QLabel* errLabel = new QLabel(&dialog);
+                QLabel *errLabel = new QLabel(&dialog);
                 layout->addWidget(errLabel);
                 errLabel->setVisible(false);
-                QDialogButtonBox* buttonBox = new QDialogButtonBox(&dialog);
+                QDialogButtonBox *buttonBox = new QDialogButtonBox(&dialog);
                 buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
                 buttonBox->button(QDialogButtonBox::Ok)->setDisabled(true);
                 connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
                 connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
                 layout->addWidget(buttonBox);
-                connect(edit, &QLineEdit::textChanged, this, [errLabel, buttonBox] (const QString& text) {
+                connect(edit, &QLineEdit::textChanged, this, [errLabel, buttonBox](const QString &text) {
                     bool isSpaceOnly = true;
 #ifdef Q_OS_WINDOWS
                     const char illegalChars[] = "<>:\"|?*\\/";
 #else
                     const char illegalChars[] = "\\/";
 #endif
-                    for (const auto& curChar : text) {
+                    for (const auto &curChar : text) {
                         for (size_t i = 0; i < sizeof(illegalChars) - 1; i++) {
                             if (illegalChars[i] == curChar) {
                                 goto illegal_chars;
@@ -236,9 +228,9 @@ illegal_chars:
                 });
 
                 if (dialog.exec() > 0) {
-                    std::atomic_bool finished{false};
+                    std::atomic_bool finished { false };
                     std::atomic_bool errCode;
-                    auto vmDir = QDir(vmm_path).canonicalPath();
+                    auto             vmDir = QDir(vmm_path).canonicalPath();
                     vmDir.append("/");
                     vmDir.append(edit->text());
                     vmDir.append("/");
@@ -248,7 +240,7 @@ illegal_chars:
                         return;
                     }
 
-                    QProgressDialog* progDialog = new QProgressDialog(this);
+                    QProgressDialog *progDialog = new QProgressDialog(this);
                     progDialog->setMaximum(0);
                     progDialog->setMinimum(0);
                     progDialog->setWindowFlags(progDialog->windowFlags() & ~Qt::WindowCloseButtonHint);
@@ -266,7 +258,7 @@ illegal_chars:
                     QString dstPath = vmDir;
 
                     std::thread copyThread([&finished, srcPath, dstPath, &errCode] {
-                        errCode = copyPath(srcPath, dstPath, true);
+                        errCode  = copyPath(srcPath, dstPath, true);
                         finished = true;
                     });
                     while (!finished) {
@@ -346,7 +338,7 @@ illegal_chars:
                     QDir dir(configDir);
                     if (!dir.exists())
                         dir.mkpath(".");
-                    
+
                     QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
                 }
             });
@@ -358,7 +350,7 @@ illegal_chars:
                     QDir dir(printerDir);
                     if (!dir.exists())
                         dir.mkpath(".");
-                    
+
                     QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
                 }
             });
@@ -370,7 +362,7 @@ illegal_chars:
                     QDir dir(screenshotsDir);
                     if (!dir.exists())
                         dir.mkpath(".");
-                    
+
                     QDesktopServices::openUrl(QUrl(QString("file:///") + dir.canonicalPath()));
                 }
             });
@@ -395,7 +387,7 @@ illegal_chars:
         }
     });
 
-    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, [] () {
+    connect(vm_model, &VMManagerModel::globalConfigurationChanged, this, []() {
         vmm_main_window->updateSettings();
     });
 
@@ -416,7 +408,7 @@ illegal_chars:
 
     // Load and apply settings
     loadSettings();
-    ui->splitter->setSizes({ui->detailsArea->width(), (ui->listView->minimumWidth() * 2)});
+    ui->splitter->setSizes({ ui->detailsArea->width(), (ui->listView->minimumWidth() * 2) });
 
     // Set up search bar
     connect(ui->searchBar, &QLineEdit::textChanged, this, &VMManagerMain::searchSystems);
@@ -439,14 +431,14 @@ illegal_chars:
 #if EMU_BUILD_NUM != 0
     // Start update check after a slight delay
     QTimer::singleShot(1000, this, [this] {
-            if(updateCheck) {
-                backgroundUpdateCheckStart();
-            }
+        if (updateCheck)
+            backgroundUpdateCheckStart();
     });
 #endif
 }
 
-VMManagerMain::~VMManagerMain() {
+VMManagerMain::~VMManagerMain()
+{
     delete ui;
     delete vm_model;
 }
@@ -459,11 +451,10 @@ VMManagerMain::updateGlobalSettings()
 
 void
 VMManagerMain::currentSelectionChanged(const QModelIndex &current,
-                             const QModelIndex &previous)
+                                       const QModelIndex &previous)
 {
-    if(!current.isValid()) {
+    if (!current.isValid())
         return;
-    }
 
     /* hack to prevent strange segfaults when adding a machine after
        removing all machines previously */
@@ -472,7 +463,7 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
         selected_sysconfig->config_signal_connected = false;
     }
     const auto mapped_index = proxy_model->mapToSource(current);
-    selected_sysconfig = vm_model->getConfigObjectForIndex(mapped_index);
+    selected_sysconfig      = vm_model->getConfigObjectForIndex(mapped_index);
     vm_details->updateData(selected_sysconfig);
     if (selected_sysconfig->config_signal_connected == false) {
         connect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
@@ -481,60 +472,59 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
 
     // Emit that the selection changed, include with the process state
     emit selectionChanged(current, selected_sysconfig->process->state());
-
 }
 
 void
-VMManagerMain::settingsButtonPressed() {
-    if(!currentSelectionIsValid()) {
+VMManagerMain::settingsButtonPressed()
+{
+    if (!currentSelectionIsValid())
         return;
-    }
+
     selected_sysconfig->launchSettings();
 }
 
 void
 VMManagerMain::startButtonPressed() const
 {
-    if(!currentSelectionIsValid()) {
+    if (!currentSelectionIsValid())
         return;
-    }
+
     selected_sysconfig->startButtonPressed();
 }
 
 void
 VMManagerMain::restartButtonPressed() const
 {
-    if(!currentSelectionIsValid()) {
+    if (!currentSelectionIsValid())
         return;
-    }
-    selected_sysconfig->restartButtonPressed();
 
+    selected_sysconfig->restartButtonPressed();
 }
 
 void
 VMManagerMain::pauseButtonPressed() const
 {
-    if(!currentSelectionIsValid()) {
+    if (!currentSelectionIsValid())
         return;
-    }
+
     selected_sysconfig->pauseButtonPressed();
 }
 
 void
 VMManagerMain::shutdownRequestButtonPressed() const
 {
-    if (!currentSelectionIsValid()) {
+    if (!currentSelectionIsValid())
         return;
-    }
+
     selected_sysconfig->shutdownRequestButtonPressed();
 }
 
 void
 VMManagerMain::shutdownForceButtonPressed() const
 {
-    if (!currentSelectionIsValid()) {
+    if (!currentSelectionIsValid())
         return;
-    }
+
     selected_sysconfig->shutdownForceButtonPressed();
 }
 
@@ -543,10 +533,10 @@ void
 VMManagerMain::refresh()
 {
     const auto current_index = ui->listView->currentIndex();
-    emit selectionChanged(current_index, selected_sysconfig->process->state());
+    emit       selectionChanged(current_index, selected_sysconfig->process->state());
 
     // if(!selected_sysconfig->config_file.path().isEmpty()) {
-    if(!selected_sysconfig->isValid()) {
+    if (!selected_sysconfig->isValid()) {
         // what was happening here?
     }
 }
@@ -621,7 +611,7 @@ VMManagerMain::searchSystems(const QString &text) const
 {
     // Escape the search text string unless regular expression searching is enabled.
     // When escaped, the search string functions as a plain text match.
-    const auto searchText = regexSearch ? text : QRegularExpression::escape(text);
+    const auto               searchText = regexSearch ? text : QRegularExpression::escape(text);
     const QRegularExpression regex(searchText, QRegularExpression::CaseInsensitiveOption);
     if (!regex.isValid()) {
         qDebug() << "Skipping, invalid regex";
@@ -640,11 +630,11 @@ VMManagerMain::newMachineWizard()
 {
     const auto wizard = new VMManagerAddMachine(this);
     if (wizard->exec() == QDialog::Accepted) {
-        const auto newName        = wizard->field("systemName").toString();
+        const auto newName = wizard->field("systemName").toString();
 #ifdef CUSTOM_SYSTEM_LOCATION
-        const auto systemDir      = wizard->field("systemLocation").toString();
+        const auto systemDir = wizard->field("systemLocation").toString();
 #else
-        const auto systemDir      = QDir(vmm_path).path();
+        const auto systemDir = QDir(vmm_path).path();
 #endif
         const auto existingConfiguration = wizard->field("existingConfiguration").toString();
         const auto displayName           = wizard->field("displayName").toString();
@@ -693,8 +683,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
                     qInfo().nospace().noquote() << "Abnormal program termination while creating new system: exit code " << exitCode << ", exit status " << exitStatus;
                     qInfo() << "Not adding system due to errors";
-                    QString errMsg = tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(
-                                        (!displayName.isEmpty() ? displayName : name), QString::number(exitCode));
+                    QString errMsg = tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg((!displayName.isEmpty() ? displayName : name), QString::number(exitCode));
                     QMessageBox::critical(this, tr("Error adding system"),
                                           QString("%1\n\n%2").arg(errMsg, tr("The system will not be added.")));
                     fail = true;
@@ -730,7 +719,6 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                 delete new_system;
             });
 }
-
 
 void
 VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
@@ -804,8 +792,8 @@ VMManagerMain::modelDataChange()
     auto        modelStats = vm_model->getProcessStats();
     QStringList stats;
     for (auto it = modelStats.constBegin(); it != modelStats.constEnd(); ++it) {
-        const auto &key = it.key();
-        QString text = "";
+        const auto &key  = it.key();
+        QString     text = "";
         switch (key) {
             case VMManagerSystem::ProcessStatus::Running:
                 text = tr("%n running", "", modelStats[key]);
@@ -820,7 +808,7 @@ VMManagerMain::modelDataChange()
             default:
                 break;
         }
-        if(!text.isEmpty())
+        if (!text.isEmpty())
             stats.append(text);
     }
     auto states = stats.join(", ");
@@ -831,16 +819,14 @@ void
 VMManagerMain::onPreferencesUpdated()
 {
     // Only reload values that we care about
-    const auto config        = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+    const auto config         = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     const auto oldRegexSearch = regexSearch;
-    regexSearch = config->getStringValue("regex_search").toInt();
-    if (oldRegexSearch != regexSearch) {
+    regexSearch               = config->getStringValue("regex_search").toInt();
+    if (oldRegexSearch != regexSearch)
         ui->searchBar->clear();
-    }
 
-    if (vm_model) {
+    if (vm_model)
         vm_model->sendGlobalConfigurationChanged();
-    }
 }
 
 void
@@ -877,9 +863,9 @@ void
 VMManagerMain::backgroundUpdateCheckStart() const
 {
     auto updateChannel = UpdateCheck::UpdateChannel::CI;
-#ifdef RELEASE_BUILD
+#    ifdef RELEASE_BUILD
     updateChannel = UpdateCheck::UpdateChannel::Stable;
-#endif
+#    endif
     const auto updateCheck = new UpdateCheck(updateChannel);
     connect(updateCheck, &UpdateCheck::updateCheckComplete, this, &VMManagerMain::backgroundUpdateCheckComplete);
     connect(updateCheck, &UpdateCheck::updateCheckError, this, &VMManagerMain::backgroundUpdateCheckError);
@@ -891,9 +877,9 @@ VMManagerMain::backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &re
 {
     qDebug() << "Check complete: update available?" << result.updateAvailable;
     if (result.updateAvailable) {
-        auto type = result.channel == UpdateCheck::UpdateChannel::CI ? tr("build") : tr("version");
+        auto       type          = result.channel == UpdateCheck::UpdateChannel::CI ? tr("build") : tr("version");
         const auto updateMessage = tr("An update to 86Box is available: %1 %2").arg(type, result.latestVersion);
-        emit updateStatusLeft(updateMessage);
+        emit       updateStatusLeft(updateMessage);
     }
 }
 
@@ -910,7 +896,7 @@ VMManagerMain::showTextFileContents(const QString &title, const QString &path)
 {
     // Make sure we can open the file
     const auto fi = QFileInfo(path);
-    if(!fi.exists()) {
+    if (!fi.exists()) {
         qWarning("Requested file does not exist: %s", path.toUtf8().constData());
         return;
     }
@@ -927,7 +913,7 @@ VMManagerMain::showTextFileContents(const QString &title, const QString &path)
     textDisplayDialog->setMinimumSize(QSize(540, 360));
     textDisplayDialog->setWindowTitle(QString("%1 - %2").arg(title, fi.fileName()));
 
-    const auto textEdit = new QPlainTextEdit();
+    const auto textEdit      = new QPlainTextEdit();
     const auto monospaceFont = new QFont();
 #ifdef Q_OS_WINDOWS
     monospaceFont->setFamily("Consolas");

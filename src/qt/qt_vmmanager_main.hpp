@@ -32,7 +32,9 @@ extern "C" {
 #endif
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class VMManagerMain; }
+namespace Ui {
+class VMManagerMain;
+}
 QT_END_NAMESPACE
 
 class VMManagerMain final : public QWidget {
@@ -90,24 +92,24 @@ public slots:
 private:
     Ui::VMManagerMain *ui;
 
-    VMManagerModel        *vm_model;
-    VMManagerDetails      *vm_details;
-    VMManagerSystem       *selected_sysconfig;
+    VMManagerModel   *vm_model;
+    VMManagerDetails *vm_details;
+    VMManagerSystem  *selected_sysconfig;
     // VMManagerConfig       *config;
     QSortFilterProxyModel *proxy_model;
 #if EMU_BUILD_NUM != 0
-    bool                   updateCheck = false;
+    bool updateCheck = false;
 #endif
-    bool                   regexSearch = false;
+    bool regexSearch = false;
 
     // void updateSelection(const QItemSelection &selected,
     //                      const QItemSelection &deselected);
-    void currentSelectionChanged(const QModelIndex &current,
-                       const QModelIndex &previous);
-    void refresh();
-    void updateDisplayName(const QModelIndex &index);
-    void loadSettings();
-    [[nodiscard]] bool currentSelectionIsValid() const;
+    void                  currentSelectionChanged(const QModelIndex &current,
+                                                  const QModelIndex &previous);
+    void                  refresh();
+    void                  updateDisplayName(const QModelIndex &index);
+    void                  loadSettings();
+    [[nodiscard]] bool    currentSelectionIsValid() const;
     [[nodiscard]] QString machineCountString(QString states = "") const;
 #if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckStart() const;
@@ -129,7 +131,10 @@ class IconSelectionDialog final : public QDialog {
     Q_OBJECT
 
 public:
-    explicit IconSelectionDialog(QString assetPath, QWidget *parent = nullptr) : QDialog(parent), listWidget(new QListWidget) {
+    explicit IconSelectionDialog(QString assetPath, QWidget *parent = nullptr)
+        : QDialog(parent)
+        , listWidget(new QListWidget)
+    {
         // Set the list widget to icon mode
         listWidget->setViewMode(QListWidget::IconMode);
         setFixedSize(QSize(540, 360));
@@ -143,7 +148,7 @@ public:
         setWindowTitle(tr("Select an icon"));
 
         // Loop on all files and add them as items (icons) in QListWidget
-        for(const QString& iconName : iconsDir.entryList()) {
+        for (const QString &iconName : iconsDir.entryList()) {
             const auto item = new QListWidgetItem(QIcon(assetPath + iconName), iconName);
             // Set the UserRole to the resource bundle path
             item->setData(Qt::UserRole, assetPath + iconName);
@@ -153,7 +158,7 @@ public:
         // Dialog buttons
         const auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
         // Use the reset button for resetting the icon to the default
-        const QPushButton* resetButton = buttonBox->button(QDialogButtonBox::Reset);
+        const QPushButton *resetButton = buttonBox->button(QDialogButtonBox::Reset);
 
         // Connect the buttons signals
         connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
@@ -171,8 +176,9 @@ public:
         layout->addWidget(buttonBox);
     }
 
-    public slots:
-    [[nodiscard]] QString getSelectedIconName() const {
+public slots:
+    [[nodiscard]] QString getSelectedIconName() const
+    {
         if (listWidget->currentIndex().isValid()) {
             return listWidget->currentItem()->data(Qt::UserRole).toString();
         }
@@ -181,7 +187,7 @@ public:
     }
 
 private:
-    QListWidget* listWidget;
+    QListWidget *listWidget;
 };
 
-#endif //QT_VMMANAGER_MAIN_H
+#endif // QT_VMMANAGER_MAIN_H

@@ -19,7 +19,7 @@
 #include <utility>
 #include "qt_mediahistorymanager.hpp"
 #ifdef Q_OS_WINDOWS
-#include <windows.h>
+#    include <windows.h>
 #endif
 
 extern "C" {
@@ -371,7 +371,7 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
             path_normalize(temp);
         }
 
-        QString qstr = QString::fromUtf8(temp);
+        QString   qstr = QString::fromUtf8(temp);
         QFileInfo new_fi(qstr);
 
         bool file_exists = new_fi.exists();

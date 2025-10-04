@@ -30,7 +30,8 @@ extern "C" {
 // One for the main Wizard class and one for each page of the wizard
 
 VMManagerAddMachine::
-VMManagerAddMachine(QWidget *parent) : QWizard(parent)
+    VMManagerAddMachine(QWidget *parent)
+    : QWizard(parent)
 {
     setPage(Page_Intro, new IntroPage);
     setPage(Page_WithExistingConfig, new WithExistingConfigPage);
@@ -64,7 +65,7 @@ VMManagerAddMachine(QWidget *parent) : QWizard(parent)
 }
 
 IntroPage::
-IntroPage(QWidget *parent)
+    IntroPage(QWidget *parent)
 {
     setTitle(tr("Introduction"));
 
@@ -74,7 +75,7 @@ IntroPage(QWidget *parent)
     // topLabel = new QLabel(tr("This will help you add a new system to 86Box.\n\n Choose \"New configuration\" if you'd like to create a new machine.\n\nChoose \"Use existing configuration\" if you'd like to paste in an existing configuration from elsewhere."));
     topLabel->setWordWrap(true);
 
-    newConfigRadioButton      = new QRadioButton(tr("New configuration"));
+    newConfigRadioButton = new QRadioButton(tr("New configuration"));
     // auto newDescription = new QLabel(tr("Choose this option to start with a fresh configuration."));
     existingConfigRadioButton = new QRadioButton(tr("Use existing configuration"));
     // auto existingDescription = new QLabel(tr("Use this option if you'd like to paste in the configuration file from an existing system."));
@@ -101,12 +102,12 @@ IntroPage::nextId() const
 }
 
 WithExistingConfigPage::
-WithExistingConfigPage(QWidget *parent)
+    WithExistingConfigPage(QWidget *parent)
 {
     setTitle(tr("Use existing configuration"));
     setSubTitle(tr("Paste the contents of the existing configuration file into the box below."));
 
-    existingConfiguration = new QPlainTextEdit();
+    existingConfiguration    = new QPlainTextEdit();
     const auto monospaceFont = new QFont();
 #ifdef Q_OS_WINDOWS
     monospaceFont->setFamily("Consolas");
@@ -124,8 +125,8 @@ WithExistingConfigPage(QWidget *parent)
     const auto layout = new QVBoxLayout();
     layout->addWidget(existingConfiguration);
     const auto loadFileButton = new QPushButton();
-    const auto loadFileLabel = new QLabel(tr("Load configuration from file"));
-    const auto hLayout = new QHBoxLayout();
+    const auto loadFileLabel  = new QLabel(tr("Load configuration from file"));
+    const auto hLayout        = new QHBoxLayout();
     loadFileButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_FileIcon));
     loadFileButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     connect(loadFileButton, &QPushButton::clicked, this, &WithExistingConfigPage::chooseExistingConfigFile);
@@ -138,10 +139,10 @@ WithExistingConfigPage(QWidget *parent)
 void
 WithExistingConfigPage::chooseExistingConfigFile()
 {
-    const auto startDirectory = QString(vmm_path);
+    const auto startDirectory     = QString(vmm_path);
     const auto selectedConfigFile = QFileDialog::getOpenFileName(this, tr("Choose configuration file"),
-                                                startDirectory,
-                                                tr("86Box configuration files (86box.cfg)"));
+                                                                 startDirectory,
+                                                                 tr("86Box configuration files (86box.cfg)"));
     // Empty value means the dialog was canceled
     if (!selectedConfigFile.isEmpty()) {
         QFile configFile(selectedConfigFile);
@@ -183,18 +184,18 @@ WithExistingConfigPage::isComplete() const
 }
 
 NameAndLocationPage::
-NameAndLocationPage(QWidget *parent)
+    NameAndLocationPage(QWidget *parent)
 {
 #ifdef CUSTOM_SYSTEM_LOCATION
     setTitle(tr("System name and location"));
 
-#if defined(_WIN32)
+#    if defined(_WIN32)
     dirValidate = QRegularExpression(R"(^[^\\/:*?"<>|]+$)");
-#elif defined(__APPLE__)
+#    elif defined(__APPLE__)
     dirValidate = QRegularExpression(R"(^[^/:]+$)");
-#else
+#    else
     dirValidate = QRegularExpression(R"(^[^/]+$)");
-#endif
+#    endif
 
     setSubTitle(tr("Enter the name of the system and choose the location"));
 #else
@@ -206,7 +207,7 @@ NameAndLocationPage(QWidget *parent)
     chooseDirectoryButton->setIcon(QApplication::style()->standardIcon(QStyle::SP_DirIcon));
 
     const auto systemNameLabel = new QLabel(tr("System name:"));
-    systemName           = new QLineEdit();
+    systemName                 = new QLineEdit();
     // Special event filter to override enter key
     systemName->installEventFilter(this);
     registerField("systemName*", systemName);
@@ -214,7 +215,7 @@ NameAndLocationPage(QWidget *parent)
 
 #ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System location:"));
-    systemLocation           = new QLineEdit();
+    systemLocation                 = new QLineEdit();
     systemLocation->setText(QDir::toNativeSeparators(vmm_path));
     registerField("systemLocation*", systemLocation);
     systemLocationValidation = new QLabel();
@@ -222,7 +223,7 @@ NameAndLocationPage(QWidget *parent)
 #endif
 
     const auto displayNameLabel = new QLabel(tr("Display name (optional):"));
-    displayName           = new QLineEdit();
+    displayName                 = new QLineEdit();
     // Special event filter to override enter key
     displayName->installEventFilter(this);
     registerField("displayName*", displayName);
@@ -278,7 +279,7 @@ NameAndLocationPage::chooseDirectoryLocation()
 bool
 NameAndLocationPage::isComplete() const
 {
-    bool nameValid     = false;
+    bool nameValid = false;
 #ifdef CUSTOM_SYSTEM_LOCATION
     bool locationValid = false;
 #endif
@@ -319,10 +320,10 @@ NameAndLocationPage::eventFilter(QObject *watched, QEvent *event)
     // Override the enter key to hit the next wizard button
     // if the validator (isComplete) is satisfied
     if (event->type() == QEvent::KeyPress) {
-        const auto keyEvent = dynamic_cast<QKeyEvent*>(event);
+        const auto keyEvent = dynamic_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return) {
             // Only advance if the validator is satisfied (isComplete)
-            if(const auto wizard = qobject_cast<QWizard*>(this->wizard())) {
+            if (const auto wizard = qobject_cast<QWizard *>(this->wizard())) {
                 if (wizard->currentPage()->isComplete()) {
                     wizard->next();
                 }
@@ -335,7 +336,7 @@ NameAndLocationPage::eventFilter(QObject *watched, QEvent *event)
 }
 
 ConclusionPage::
-ConclusionPage(QWidget *parent)
+    ConclusionPage(QWidget *parent)
 {
     setTitle(tr("Complete"));
 
@@ -344,20 +345,20 @@ ConclusionPage(QWidget *parent)
     topLabel = new QLabel(tr("The wizard will now launch the configuration for the new system."));
     topLabel->setWordWrap(true);
 
-    const auto systemNameLabel     = new QLabel(tr("System name:"));
+    const auto systemNameLabel = new QLabel(tr("System name:"));
     systemNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    systemName                     = new QLabel();
+    systemName = new QLabel();
     systemName->setWordWrap(true);
 #ifdef CUSTOM_SYSTEM_LOCATION
     const auto systemLocationLabel = new QLabel(tr("System location:"));
     systemLocationLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    systemLocation      = new QLabel();
+    systemLocation = new QLabel();
     systemLocation->setWordWrap(true);
 #endif
 
-    displayNameLabel                = new QLabel(tr("Display name:"));
+    displayNameLabel = new QLabel(tr("Display name:"));
     displayNameLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    displayName                     = new QLabel();
+    displayName = new QLabel();
     displayName->setWordWrap(true);
 
     const auto layout = new QGridLayout();
@@ -380,10 +381,10 @@ void
 ConclusionPage::initializePage()
 {
 #ifdef CUSTOM_SYSTEM_LOCATION
-    const auto finalPath = QDir::cleanPath(field("systemLocation").toString() + "/" + field("systemName").toString());
+    const auto finalPath  = QDir::cleanPath(field("systemLocation").toString() + "/" + field("systemName").toString());
     const auto nativePath = QDir::toNativeSeparators(finalPath);
 #endif
-    const auto systemNameDisplay = field("systemName").toString();
+    const auto systemNameDisplay  = field("systemName").toString();
     const auto displayNameDisplay = field("displayName").toString();
 
     systemName->setText(systemNameDisplay);
