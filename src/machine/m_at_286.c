@@ -339,13 +339,69 @@ machine_at_grid1520_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pc900_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc900_v207a",
+        .default_int    = 0,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name           = "BIOS V2.07A",
+                .internal_name  = "pc900_v207a",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 32768,
+                .files          = { "roms/machines/pc900/mpf_pc900_v207a.bin", "" }
+            },
+            {
+                .name           = "BIOS V2.07A.XC",
+                .internal_name  = "pc900_v207a_xc",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 32768,
+                .files          = { "roms/machines/pc900/cbm_pc40_v207a_xc.bin", "" }
+            }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc900_device = {
+    .name           = "Multitech PC-900",
+    .internal_name  = "pc900",
+    .flags          = 0,
+    .local          = 0,
+    .init           = NULL,
+    .close          = NULL,
+    .reset          = NULL,
+    .available      = NULL,
+    .speed_changed  = NULL,
+    .force_redraw   = NULL,
+    .config         = pc900_config
+};
+
 int
 machine_at_pc900_init(const machine_t *model)
 {
-    int ret = 0;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/pc900/mpf_pc900_v207a.bin",
-                           0x000f8000, 32768, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000f8000, 32768, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;

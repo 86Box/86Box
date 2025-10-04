@@ -1097,7 +1097,7 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
     {
-        .name              = "[8088] Multitech PC-500",
+        .name              = "[8088] Multitech PC-500 / Franklin PC 8000",
         .internal_name     = "pc500",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1174,7 +1174,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pc500plus_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -1183,7 +1183,7 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
     {
-        .name              = "[8088] Multitech PC-700",
+        .name              = "[8088] Multitech PC-700 / Siemens SICOMP PC 16 05",
         .internal_name     = "pc700",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1217,7 +1217,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pc700_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -3346,7 +3346,7 @@ const machine_t machines[] = {
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[ISA] Multitech PC-900",
+        .name              = "[ISA] Multitech PC-900 / Commodore PC 40 / NBI 4200",
         .internal_name     = "pc900",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -3380,7 +3380,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pc900_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
