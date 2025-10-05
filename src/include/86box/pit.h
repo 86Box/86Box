@@ -9,13 +9,10 @@
  *          Header of the implementation of the Intel 8253/8254
  *          Programmable Interval Timer.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2019-2020 Miran Grca.
  */
-
 #ifndef EMU_PIT_H
 #define EMU_PIT_H
 

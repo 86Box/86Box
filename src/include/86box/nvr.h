@@ -6,8 +6,6 @@
  *
  *          Definitions for the generic NVRAM/CMOS driver.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>,
  *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -44,7 +42,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #ifndef EMU_NVR_H
 #define EMU_NVR_H
 

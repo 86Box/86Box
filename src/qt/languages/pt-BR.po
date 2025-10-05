@@ -1318,7 +1318,7 @@ msgid "No screenshot"
 msgstr "Nenhuma captura de tela"
 
 msgid "Search"
-msgstr "Procurar"
+msgstr "Pesquisar"
 
 msgid "Searching for VMs..."
 msgstr "Procurando por MVs..."
@@ -2993,3 +2993,6 @@ msgstr "Claro"
 
 msgid "Dark"
 msgstr "Escuro"
+
+msgid "Search:"
+msgstr "Pesquisar:"

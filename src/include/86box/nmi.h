@@ -1,7 +1,6 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
-
 #ifndef EMU_NMI_H
 #define EMU_NMI_H
 

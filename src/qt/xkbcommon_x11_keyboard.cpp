@@ -10,8 +10,6 @@
  *
  *          Heavily inspired by libxkbcommon interactive-x11.c
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2023 RichardG.

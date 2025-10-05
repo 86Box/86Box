@@ -18,7 +18,6 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2025      Jasmine Iwanek.
  */
-
 #ifndef EMU_MACHINE_H
 #define EMU_MACHINE_H
 

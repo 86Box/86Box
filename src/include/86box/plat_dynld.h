@@ -8,13 +8,10 @@
  *
  *          Define the Dynamic Module Loader interface.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017 Fred N. van Kempen
  */
-
 #ifndef PLAT_DYNLD_H
 #define PLAT_DYNLD_H
 

@@ -8,13 +8,10 @@
  *
  *          Update check module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #include <QDebug>
 #include <QJsonArray>
 #include <QJsonDocument>

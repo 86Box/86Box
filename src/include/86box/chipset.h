@@ -8,8 +8,6 @@
  *
  *          Handling of the emulated chipsets.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2019-2020 Miran Grca.

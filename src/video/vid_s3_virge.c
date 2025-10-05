@@ -1113,14 +1113,8 @@ s3_virge_updatemapping(virge_t *virge)
         if (virge->linear_base == 0xa0000) {
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             mem_mapping_disable(&virge->linear_mapping);
-        } else {
-            if ((virge->chip == S3_VIRGEVX) || (virge->chip == S3_TRIO3D2X))
-                virge->linear_base &= 0xfe000000;
-            else
-                virge->linear_base &= 0xfc000000;
-
+        } else
             mem_mapping_set_addr(&virge->linear_mapping, virge->linear_base, virge->linear_size);
-        }
         svga->fb_only = 1;
     } else {
         mem_mapping_disable(&virge->linear_mapping);
@@ -5190,7 +5184,10 @@ s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             return;
 
         case 0x13:
-            svga->crtc[0x59] = (virge->chip == S3_VIRGEVX || virge->chip == S3_TRIO3D2X) ? (val & 0xfe) : (val & 0xfc);
+            if (virge->chip == S3_VIRGEVX || virge->chip == S3_TRIO3D2X)
+                svga->crtc[0x59] = (svga->crtc[0x59] & 0x01) | (val & 0xfe);
+            else
+                svga->crtc[0x59] = (svga->crtc[0x59] & 0x03) | (val & 0xfc);
             s3_virge_updatemapping(virge);
             return;
 

@@ -8,8 +8,6 @@
  *
  *          Common platform functions.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
@@ -18,7 +16,6 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  */
-
 #ifdef __HAIKU__
 #include <OS.h>
 #endif
@@ -453,6 +450,65 @@ plat_munmap(void *ptr, size_t size)
 }
 
 extern bool cpu_thread_running;
+
+#ifdef Q_OS_WINDOWS
+/* SetThreadDescription was added in 14393 and SetProcessInformation in 8. Revisit if we ever start requiring 10. */
+static void *kernel32_handle = NULL;
+static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription) = NULL;
+static HRESULT(WINAPI *pSetProcessInformation)(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, LPVOID ProcessInformation, DWORD ProcessInformationSize) = NULL;
+static dllimp_t kernel32_imports[] = {
+  // clang-format off
+    { "SetThreadDescription",  &pSetThreadDescription  },
+    { "SetProcessInformation", &pSetProcessInformation },
+    { NULL,                    NULL                    }
+  // clang-format on
+};
+
+static void
+enter_pause(void)
+{
+    PROCESS_POWER_THROTTLING_STATE state{};
+    state.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    state.StateMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+
+    if (!kernel32_handle) {
+        kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
+        if (!kernel32_handle) {
+            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription = NULL;
+            pSetProcessInformation = NULL;
+        }
+    }
+
+    if (pSetProcessInformation) {
+        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID)&state, sizeof(state));
+    }
+}
+
+void
+exit_pause(void)
+{
+    PROCESS_POWER_THROTTLING_STATE state{};
+    state.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    state.StateMask = 0;
+
+    if (!kernel32_handle) {
+        kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
+        if (!kernel32_handle) {
+            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription = NULL;
+            pSetProcessInformation = NULL;
+        }
+    }
+
+    if (pSetProcessInformation) {
+        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID)&state, sizeof(state));
+    }
+}
+#endif
+
 void
 plat_pause(int p)
 {
@@ -476,6 +532,14 @@ plat_pause(int p)
 
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
+
+#ifdef Q_OS_WINDOWS
+    if (p) {
+        enter_pause();
+    } else {
+        exit_pause();
+    }
+#endif
 
     do_pause(p);
     if (p) {
@@ -842,21 +906,12 @@ void
 plat_set_thread_name(void *thread, const char *name)
 {
 #ifdef Q_OS_WINDOWS
-    /* SetThreadDescription was added in 14393. Revisit if we ever start requiring 10. */
-    static void *kernel32_handle = NULL;
-    static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription) = NULL;
-    static dllimp_t kernel32_imports[] = {
-      // clang-format off
-        { "SetThreadDescription", &pSetThreadDescription },
-        { NULL,                   NULL                   }
-      // clang-format on
-    };
-
     if (!kernel32_handle) {
         kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
         if (!kernel32_handle) {
             kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
             pSetThreadDescription = NULL;
+            pSetProcessInformation = NULL;
         }
     }
 

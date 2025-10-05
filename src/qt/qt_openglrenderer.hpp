@@ -8,15 +8,12 @@
  *
  *          Header file for OpenGL renderer
  *
- *
- *
  * Authors: Teemu Korhonen
  *          Cacodemon345
  *
  *          Copyright 2022 Teemu Korhonen
  *          Copyright 2025 Cacodemon345
  */
-
 #ifndef QT_OpenGLRenderer_HPP
 #define QT_OpenGLRenderer_HPP
 

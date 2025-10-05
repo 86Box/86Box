@@ -9,8 +9,6 @@
  *          Definitions for the NS8250/16450/16550/16650/16750/16850/16950
  *          UART emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,7 +17,6 @@
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
-
 #ifndef EMU_SERIAL_H
 #define EMU_SERIAL_H
 
