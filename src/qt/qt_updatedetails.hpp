@@ -8,13 +8,10 @@
  *
  *          Header for the update details module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #ifndef QT_UPDATEDETAILS_HPP
 #define QT_UPDATEDETAILS_HPP
 

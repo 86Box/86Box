@@ -8,8 +8,6 @@
  *
  *          Windows raw input native filter for Qt
  *
- *
- *
  * Authors: Teemu Korhonen
  *          Miran Grca, <mgrca8@gmail.com>
  *          Sam Latinga
@@ -19,7 +17,7 @@
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 1997-2025 Sam Latinga
  *          Copyright 2024-2025 Cacodemon345.
- * 
+ *
  * See this header for SDL3 code license:
  * https://github.com/libsdl-org/SDL/blob/8e5fe0ea61dc87b29ca9a6119324221df0113bcf/src/video/windows/SDL_windowsrawinput.c#L1
  *

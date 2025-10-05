@@ -8,8 +8,6 @@
  *
  *          Definitions for the video controller module.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -18,7 +16,6 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
-
 #ifndef EMU_VIDEO_H
 #define EMU_VIDEO_H
 

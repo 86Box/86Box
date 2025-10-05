@@ -8,8 +8,6 @@
  *
  *          Definitions for AD1848 / CS4248 / CS4231 (Windows Sound System) codec emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          RichardG, <richardg867@gmail.com>
@@ -18,7 +16,6 @@
  *          Copyright 2018-2020 TheCollector1995.
  *          Copyright 2021-2025 RichardG.
  */
-
 #ifndef SOUND_AD1848_H
 #define SOUND_AD1848_H
 

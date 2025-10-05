@@ -8,15 +8,12 @@
  *
  *          Handling of the emulated flash devices.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2020      Miran Grca.
  *          Copyright 2022-2023 Jasmine Iwanek.
  */
-
 #ifndef EMU_FLASH_H
 #define EMU_FLASH_H
 

@@ -8,8 +8,6 @@
  *
  *          Header file for windows raw input native filter for QT
  *
- *
- *
  * Authors: Teemu Korhonen
  *
  *          Copyright 2021 Teemu Korhonen
@@ -28,7 +26,6 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 #ifndef QT_WINDOWSRAWINPUTFILTER_HPP
 #define QT_WINDOWSRAWINPUTFILTER_HPP
 

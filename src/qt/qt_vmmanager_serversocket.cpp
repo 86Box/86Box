@@ -1,20 +1,17 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		86Box VM manager server socket module
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          86Box VM manager server socket module
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
  */
-
 #include "qt_vmmanager_serversocket.hpp"
 #include <QApplication>
 #include <QCryptographicHash>
@@ -210,9 +207,9 @@ VMManagerServerSocket::setupVars()
 QString
 VMManagerServerSocket::getSocketPath() const
 {
-    if (server) {
+    if (server)
         return server->fullServerName();
-    }
+
     return {};
 }
 
@@ -220,6 +217,6 @@ QString
 VMManagerServerSocket::serverTypeToString(VMManagerServerSocket::ServerType server_type_lookup)
 {
     QMetaEnum qme = QMetaEnum::fromType<VMManagerServerSocket::ServerType>();
-    return qme.valueToKey(static_cast<int>(server_type_lookup));
 
+    return qme.valueToKey(static_cast<int>(server_type_lookup));
 }

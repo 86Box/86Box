@@ -8,13 +8,10 @@
  *
  *          Header file for Windows VM-managers native messages filter
  *
- *
- *
  * Authors: Teemu Korhonen
  *
  *          Copyright 2022 Teemu Korhonen
  */
-
 #ifndef QT_WINDOWSMANAGERFILTER_HPP
 #define QT_WINDOWSMANAGERFILTER_HPP
 

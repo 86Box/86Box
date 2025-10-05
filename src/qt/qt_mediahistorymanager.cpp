@@ -8,13 +8,10 @@
  *
  *          Media history management module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2022 The 86Box development team
  */
-
 #include <QApplication>
 #include <QFileInfo>
 #include <QMetaEnum>

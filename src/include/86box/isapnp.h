@@ -8,13 +8,10 @@
  *
  *          Definitions for ISA Plug and Play.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2021 RichardG.
  */
-
 #ifndef EMU_ISAPNP_H
 #define EMU_ISAPNP_H
 #include <stdint.h>

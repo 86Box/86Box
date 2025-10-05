@@ -8,8 +8,6 @@
  *
  *          Definitions for the memory interface.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
@@ -18,7 +16,6 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
  */
-
 #ifndef EMU_MEM_H
 #define EMU_MEM_H
 

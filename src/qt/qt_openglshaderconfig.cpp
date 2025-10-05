@@ -82,4 +82,3 @@ void OpenGLShaderConfig::on_OpenGLShaderConfig_accepted()
     endblit();
     main_window->reloadAllRenderers();
 }
-
