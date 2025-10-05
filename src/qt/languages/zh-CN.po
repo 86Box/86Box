@@ -403,7 +403,7 @@ msgid "Dynamic Recompiler"
 msgstr "动态重编译器"
 
 msgid "CPU frame size"
-msgstr "CPU 执行帧长度"
+msgstr "CPU 执行帧大小"
 
 msgid "Larger frames (less smooth)"
 msgstr "大执行帧 (操作欠平滑)"
