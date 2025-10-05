@@ -8,8 +8,6 @@
  *
  *          Keybind dialog
  *
- *
- *
  * Authors: Cathode Ray Dude
  *          Cacodemon345
  *

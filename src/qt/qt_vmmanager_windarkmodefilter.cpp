@@ -8,15 +8,12 @@
  *
  *          Generic Windows native event filter for dark mode handling
  *
- *
- *
  * Authors: Teemu Korhonen
  *          Cacodemon345
  *
  *          Copyright 2021 Teemu Korhonen
  *          Copyright 2024-2025 Cacodemon345.
  */
-
 #include "qt_vmmanager_windarkmodefilter.hpp"
 
 #include <QDebug>

@@ -45,7 +45,6 @@
 #include <86box/m_tandy.h>
 #include <86box/plat_unused.h>
 
-
 enum {
     TYPE_TANDY = 0,
     TYPE_TANDY1000SX,
@@ -60,9 +59,8 @@ enum {
     EEPROM_WRITE
 };
 
-
 static const scancode scancode_tandy[512] = {
-  // clang-format off
+    // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
     { .mk = {      0x01, 0 }, .brk = {             0x81, 0 } }, /* 001 */
     { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 002 */
@@ -575,7 +573,7 @@ static const scancode scancode_tandy[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fe */
     { .mk = {            0 }, .brk = {                   0 } }  /* 1ff */
-  // clang-format on
+    // clang-format on
 };
 
 static int eep_data_out;
@@ -597,8 +595,6 @@ tandy_log(const char *fmt, ...)
 #else
 #    define tandy_log(fmt, ...)
 #endif
-
-
 
 static void
 eep_write(UNUSED(uint16_t addr), uint8_t val, void *priv)

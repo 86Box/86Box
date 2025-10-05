@@ -17,7 +17,6 @@
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2024-2025 Jasmine Iwanek.
  */
-
 #ifndef SOUND_SND_SB_H
 #define SOUND_SND_SB_H
 

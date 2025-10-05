@@ -403,7 +403,7 @@ msgid "Dynamic Recompiler"
 msgstr "动态重编译器"
 
 msgid "CPU frame size"
-msgstr "CPU 执行帧长度"
+msgstr "CPU 执行帧大小"
 
 msgid "Larger frames (less smooth)"
 msgstr "大执行帧 (操作欠平滑)"
@@ -778,10 +778,10 @@ msgid "Ports"
 msgstr "端口"
 
 msgid "Serial ports:"
-msgstr "串行端口:"
+msgstr "串口:"
 
 msgid "Parallel ports:"
-msgstr "并行端口:"
+msgstr "并口:"
 
 msgid "Storage controllers"
 msgstr "存储控制器"
@@ -1138,7 +1138,7 @@ msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM 
 msgstr "%1 计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
-msgstr "新增系统向导"
+msgstr "添加新系统向导"
 
 msgid "Introduction"
 msgstr "介绍"
@@ -1159,7 +1159,7 @@ msgid "Use existing configuration"
 msgstr "使用现有配置"
 
 msgid "Type some notes here"
-msgstr "在此处键入一些备注"
+msgstr "在此处键入备注"
 
 msgid "Paste the contents of the existing configuration file into the box below."
 msgstr "将现有配置文件内容粘贴到下面的框中。"
@@ -1789,16 +1789,16 @@ msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 密钥卡"
 
 msgid "Serial port passthrough 1"
-msgstr "串行端口直通 1"
+msgstr "串口直通 1"
 
 msgid "Serial port passthrough 2"
-msgstr "串行端口直通 2"
+msgstr "串口直通 2"
 
 msgid "Serial port passthrough 3"
-msgstr "串行端口直通 3"
+msgstr "串口直通 3"
 
 msgid "Serial port passthrough 4"
-msgstr "串行端口直通 4"
+msgstr "串口直通 4"
 
 msgid "Renderer &options..."
 msgstr "渲染器选项...(&O)"
@@ -1849,7 +1849,7 @@ msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort 鼠标"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (串行)"
+msgstr "3M MicroTouch (串口)"
 
 msgid "Default Baud rate"
 msgstr "默认波特率"
@@ -1936,7 +1936,7 @@ msgid "Serial port IRQ"
 msgstr "串口的 IRQ"
 
 msgid "Parallel port IRQ"
-msgstr "并行端口的 IRQ"
+msgstr "并口的 IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS 修订版"
@@ -2074,7 +2074,7 @@ msgid "Buttons"
 msgstr "按钮"
 
 msgid "Serial Port"
-msgstr "串行端口"
+msgstr "串口"
 
 msgid "RTS toggle"
 msgstr "RTS 切换"
@@ -2620,13 +2620,13 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest 保护加密狗"
 
 msgid "Serial Passthrough Device"
-msgstr "串行端口直通设备"
+msgstr "串口直通设备"
 
 msgid "Passthrough Mode"
 msgstr "直通模式"
 
 msgid "Host Serial Device"
-msgstr "主机串行设备"
+msgstr "主机串口设备"
 
 msgid "Name of pipe"
 msgstr "管道名称"
@@ -2647,7 +2647,7 @@ msgid "Named Pipe (Client)"
 msgstr "命名管道 (客户端) "
 
 msgid "Host Serial Passthrough"
-msgstr "主机串行端口直通"
+msgstr "主机串口直通"
 
 msgid "E&ject %1"
 msgstr "弹出 %1(&J)"
@@ -2993,3 +2993,6 @@ msgstr "亮色"
 
 msgid "Dark"
 msgstr "暗色"
+
+msgid "Search:"
+msgstr "搜索:"

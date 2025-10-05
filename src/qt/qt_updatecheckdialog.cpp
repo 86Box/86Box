@@ -8,13 +8,10 @@
  *
  *          Update check dialog module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #include <QDir>
 #include <QTimer>
 

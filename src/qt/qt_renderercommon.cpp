@@ -8,13 +8,10 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
@@ -129,9 +126,10 @@ RendererCommon::onResize(int width, int height)
     width = round(pixelRatio * width);
     height = round(pixelRatio * height);
 
-    if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1))
+    if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1) && !(force_43 && vid_resize))
         destination.setRect(0, 0, width, height);
     else {
+        auto   temp_fullscreen_scale = video_fullscreen_scale;
         double dx;
         double dy;
         double dw;
@@ -144,13 +142,18 @@ RendererCommon::onResize(int width, int height)
         double gh  = source.height();
         double hsr = hw / hh;
         double r43 = 4.0 / 3.0;
+        
+        if (force_43 && is_fs && vid_resize) {
+            if (!video_fullscreen_scale_maximized || (video_fullscreen_scale_maximized && parent_max && main_is_max))
+                temp_fullscreen_scale = FULLSCR_SCALE_43;
+        }
 
-        switch (video_fullscreen_scale) {
+        switch (temp_fullscreen_scale) {
             case FULLSCR_SCALE_INT:
             case FULLSCR_SCALE_INT43:
                 gsr = gw / gh;
 
-                if (video_fullscreen_scale == FULLSCR_SCALE_INT43) {
+                if (temp_fullscreen_scale == FULLSCR_SCALE_INT43) {
                     gh = gw / r43;
 //                  gw = gw;
 
@@ -174,7 +177,7 @@ RendererCommon::onResize(int width, int height)
                 break;
             case FULLSCR_SCALE_43:
             case FULLSCR_SCALE_KEEPRATIO:
-                if (video_fullscreen_scale == FULLSCR_SCALE_43)
+                if (temp_fullscreen_scale == FULLSCR_SCALE_43)
                     gsr = r43;
                 else
                     gsr = gw / gh;

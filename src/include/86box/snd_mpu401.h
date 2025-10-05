@@ -8,8 +8,6 @@
  *
  *          Roland MPU-401 emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          DOSBox Team,
  *          Miran Grca, <mgrca8@gmail.com>
@@ -20,7 +18,6 @@
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2016-2020 TheCollector1995.
  */
-
 #ifndef SOUND_MPU401_H
 #define SOUND_MPU401_H
 

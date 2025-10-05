@@ -8,13 +8,10 @@
  *
  *          Implementation of a port 80h POST diagnostic card.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.
  */
-
 #ifndef POSTCARD_H
 #define POSTCARD_H
 

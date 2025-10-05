@@ -403,13 +403,13 @@ msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
 
 msgid "CPU frame size"
-msgstr "CPU 框架大小"
+msgstr "CPU 執行幀大小"
 
 msgid "Larger frames (less smooth)"
-msgstr "較大的框架 (較不平滑)"
+msgstr "大執行幀 (操作欠平滑)"
 
 msgid "Smaller frames (smoother)"
-msgstr "更小的框架 (更平滑)"
+msgstr "小執行幀 (操作更平滑)"
 
 msgid "Video:"
 msgstr "顯示卡:"
@@ -643,7 +643,7 @@ msgid "MO drives:"
 msgstr "磁光碟機:"
 
 msgid "MO:"
-msgstr "磁光:"
+msgstr "磁光碟:"
 
 msgid "Removable disks:"
 msgstr "可移除:"
@@ -778,10 +778,10 @@ msgid "Ports"
 msgstr "連接埠"
 
 msgid "Serial ports:"
-msgstr "序列連接埠:"
+msgstr "序列埠:"
 
 msgid "Parallel ports:"
-msgstr "平行埠:"
+msgstr "並列埠:"
 
 msgid "Storage controllers"
 msgstr "存儲控制器"
@@ -793,7 +793,7 @@ msgid "Disks:"
 msgstr "磁碟:"
 
 msgid "Floppy:"
-msgstr "軟盤:"
+msgstr "軟碟:"
 
 msgid "Controllers:"
 msgstr "控制器:"
@@ -901,10 +901,10 @@ msgid "4-button flight yoke"
 msgstr "4 按鈕飛行搖桿"
 
 msgid "2-button flight yoke with throttle"
-msgstr "2 按鈕飛行搖桿，含節流閥"
+msgstr "2 按鈕帶油門飛行搖桿"
 
 msgid "4-button flight yoke with throttle"
-msgstr "4 按鈕飛行搖桿，含節流閥"
+msgstr "4 按鈕帶油門飛行搖桿"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
 msgstr "Win95 方向盤 (3 軸, 4 鍵搖桿)"
@@ -1120,10 +1120,10 @@ msgid "Choose directory"
 msgstr "選擇目錄"
 
 msgid "Choose configuration file"
-msgstr "選擇組態檔案"
+msgstr "選擇設定檔"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr "86Box 配置檔案 (86box.cfg)"
+msgstr "86Box 設定檔 (86box.cfg)"
 
 msgid "Configuration read failed"
 msgstr "設定讀取失敗"
@@ -1147,22 +1147,22 @@ msgid "This will help you add a new system to 86Box."
 msgstr "這將有助於您在 86Box 中加入新系統。"
 
 msgid "New configuration"
-msgstr "新配置"
+msgstr "新增設定"
 
 msgid "Complete"
 msgstr "完成"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr "精靈現在會啟動新系統的組態。"
+msgstr "精靈現在會啟動新系統的設定。"
 
 msgid "Use existing configuration"
-msgstr "使用現有組態"
+msgstr "使用現有設定"
 
 msgid "Type some notes here"
-msgstr "在此輸入一些備註"
+msgstr "在此輸入備註"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr "將現有組態檔案的內容貼到下面的方塊中。"
+msgstr "將現有設定檔的內容貼到下面的方塊中。"
 
 msgid "Load configuration from file"
 msgstr "從檔案載入設定"
@@ -1225,7 +1225,7 @@ msgid "&Open folder..."
 msgstr "開啟資料夾(&O)..."
 
 msgid "Open p&rinter tray..."
-msgstr "打開印表機托盤(&R)..."
+msgstr "開啟印表機托盤(&R)..."
 
 msgid "Set &icon..."
 msgstr "設定圖示(&I)..."
@@ -1786,7 +1786,7 @@ msgid "86Box Unit Tester"
 msgstr "86Box 單元測試器"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr "Novell NetWare 2.x 密鑰卡"
+msgstr "Novell NetWare 2.x 金鑰卡"
 
 msgid "Serial port passthrough 1"
 msgstr "序列埠的直通 1"
@@ -1819,7 +1819,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 鍵盤"
 
 msgid "Keys"
-msgstr "鑰匙"
+msgstr "按鍵"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Logitech/Microsoft 匯流排滑鼠"
@@ -1849,7 +1849,7 @@ msgid "PS/2 QuickPort Mouse"
 msgstr "PS/2 QuickPort 滑鼠"
 
 msgid "3M MicroTouch (Serial)"
-msgstr "3M MicroTouch (序列)"
+msgstr "3M MicroTouch (序列埠)"
 
 msgid "Default Baud rate"
 msgstr "預設波特率"
@@ -1936,7 +1936,7 @@ msgid "Serial port IRQ"
 msgstr "序列埠的 IRQ"
 
 msgid "Parallel port IRQ"
-msgstr "平行埠的 IRQ"
+msgstr "並列埠的 IRQ"
 
 msgid "BIOS Revision"
 msgstr "BIOS 版本"
@@ -2074,7 +2074,7 @@ msgid "Buttons"
 msgstr "按鈕"
 
 msgid "Serial Port"
-msgstr "串列埠"
+msgstr "序列埠"
 
 msgid "RTS toggle"
 msgstr "RTS 切換"
@@ -2620,13 +2620,13 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "用於 Savage Quest 的保護加密狗"
 
 msgid "Serial Passthrough Device"
-msgstr "序列埠的直通裝置"
+msgstr "序列埠直通裝置"
 
 msgid "Passthrough Mode"
 msgstr "直通模式"
 
 msgid "Host Serial Device"
-msgstr "主機串列裝置"
+msgstr "主機序列裝置"
 
 msgid "Name of pipe"
 msgstr "管道名稱"
@@ -2647,7 +2647,7 @@ msgid "Named Pipe (Client)"
 msgstr "已命名管道 (用戶端)"
 
 msgid "Host Serial Passthrough"
-msgstr "主機序列埠的直通"
+msgstr "主機序列埠直通"
 
 msgid "E&ject %1"
 msgstr "退出 %1(&J)"
@@ -2755,7 +2755,7 @@ msgid "Shader Manager"
 msgstr "著色器管理員"
 
 msgid "Shader Configuration"
-msgstr "著色器組態"
+msgstr "著色器設定"
 
 msgid "Add"
 msgstr "新增"
@@ -2923,7 +2923,7 @@ msgid "Update check"
 msgstr "更新檢查"
 
 msgid "Checking for updates..."
-msgstr "檢查更新..."
+msgstr "正在檢查更新..."
 
 msgid "86Box Update"
 msgstr "86Box 更新"
@@ -2941,7 +2941,7 @@ msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exi
 msgstr "虛擬機 \"%1\" 的進程以退出代碼 %2 意外終止。"
 
 msgid "The system will not be added."
-msgstr "系統將不會新增。"
+msgstr "系統將不會被新增。"
 
 msgid "&Update mouse every CPU frame"
 msgstr "每 CPU 幀更新滑鼠(&U)"
@@ -2953,7 +2953,7 @@ msgid "Saturation"
 msgstr "飽和度"
 
 msgid "Contrast"
-msgstr "對比"
+msgstr "對比度"
 
 msgid "Brightness"
 msgstr "亮度"
@@ -2971,7 +2971,7 @@ msgid "Monitor EDID"
 msgstr "監視器的 EDID"
 
 msgid "Export..."
-msgstr "出口..."
+msgstr "匯出..."
 
 msgid "Export EDID"
 msgstr "匯出 EDID"
@@ -2989,7 +2989,10 @@ msgid "Color scheme"
 msgstr "配色方案"
 
 msgid "Light"
-msgstr "光"
+msgstr "亮色"
 
 msgid "Dark"
-msgstr "黑暗"
+msgstr "暗色"
+
+msgid "Search:"
+msgstr "搜尋:"

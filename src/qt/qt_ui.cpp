@@ -8,8 +8,6 @@
  *
  *          Common UI functions.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -65,11 +63,7 @@ void
 plat_delay_ms(uint32_t count)
 {
 #ifdef Q_OS_WINDOWS
-    // On Win32 the accuracy of Sleep() depends on the timer resolution, which can be set by calling timeBeginPeriod
-    // https://learn.microsoft.com/en-us/windows/win32/api/timeapi/nf-timeapi-timebeginperiod
-    timeBeginPeriod(1);
     Sleep(count);
-    timeEndPeriod(1);
 #else
     QThread::msleep(count);
 #endif

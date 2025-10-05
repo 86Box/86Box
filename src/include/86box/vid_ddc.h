@@ -8,15 +8,12 @@
  *
  *          DDC monitor emulation definitions.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2020 RichardG.
  */
-
 #ifndef EMU_VID_DDC_H
 #define EMU_VID_DDC_H
 

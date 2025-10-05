@@ -9,15 +9,12 @@
  *          Emulation of the Olivetti OGC 8-bit ISA (GO708) and
  *          M21/M24/M28 16-bit bus (GO317/318/380/709) video cards.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2020 EngiNerd.
  */
-
 #ifndef VIDEO_OGC_H
 #define VIDEO_OGC_H
 

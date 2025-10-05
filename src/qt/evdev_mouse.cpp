@@ -8,8 +8,6 @@
  *
  *          Linux/FreeBSD libevdev mouse input module.
  *
- *
- *
  * Authors: Cacodemon345
  *
  *          Copyright 2021-2022 Cacodemon345

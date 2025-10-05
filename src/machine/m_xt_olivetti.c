@@ -132,8 +132,8 @@ typedef struct m24_kbd_t {
     uint8_t scan[7];
 
     /* Mouse stuff. */
-    int        mouse_input_mode;
-    int        b;
+    int mouse_input_mode;
+    int b;
 
     pc_timer_t send_delay_timer;
 } m24_kbd_t;
@@ -553,20 +553,20 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                     switch (m24_kbd->command) {
                         case 0x11:
                             m24_kbd->mouse_input_mode = 0;
-                            m24_kbd->scan[0]    = m24_kbd->params[0];
-                            m24_kbd->scan[1]    = m24_kbd->params[1];
-                            m24_kbd->scan[2]    = m24_kbd->params[2];
-                            m24_kbd->scan[3]    = m24_kbd->params[3];
-                            m24_kbd->scan[4]    = m24_kbd->params[4];
-                            m24_kbd->scan[5]    = m24_kbd->params[5];
-                            m24_kbd->scan[6]    = m24_kbd->params[6];
+                            m24_kbd->scan[0]          = m24_kbd->params[0];
+                            m24_kbd->scan[1]          = m24_kbd->params[1];
+                            m24_kbd->scan[2]          = m24_kbd->params[2];
+                            m24_kbd->scan[3]          = m24_kbd->params[3];
+                            m24_kbd->scan[4]          = m24_kbd->params[4];
+                            m24_kbd->scan[5]          = m24_kbd->params[5];
+                            m24_kbd->scan[6]          = m24_kbd->params[6];
                             break;
 
                         case 0x12:
                             m24_kbd->mouse_input_mode = 1;
-                            m24_kbd->scan[0]    = m24_kbd->params[0];
-                            m24_kbd->scan[1]    = m24_kbd->params[1];
-                            m24_kbd->scan[2]    = m24_kbd->params[2];
+                            m24_kbd->scan[0]          = m24_kbd->params[0];
+                            m24_kbd->scan[1]          = m24_kbd->params[1];
+                            m24_kbd->scan[2]          = m24_kbd->params[2];
                             break;
 
                         default:
@@ -722,7 +722,7 @@ m24_kbd_reset(void *priv)
     m24_kbd->wantirq = 0;
     keyboard_scan    = 1;
     m24_kbd->param = m24_kbd->param_total = 0;
-    m24_kbd->mouse_input_mode                   = 0;
+    m24_kbd->mouse_input_mode             = 0;
     m24_kbd->scan[0]                      = 0x1c;
     m24_kbd->scan[1]                      = 0x53;
     m24_kbd->scan[2]                      = 0x01;
@@ -736,11 +736,11 @@ static int
 ms_poll(void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *) priv;
-    int delta_x;
-    int delta_y;
-    int o_x;
-    int o_y;
-    int b = mouse_get_buttons_ex();
+    int        delta_x;
+    int        delta_y;
+    int        o_x;
+    int        o_y;
+    int        b = mouse_get_buttons_ex();
 
     if (((key_queue_end - key_queue_start) & 0xf) > 14)
         return 0xff;
@@ -847,7 +847,7 @@ ms_poll(void *priv)
    - Right Windows (E0 5C) -> F18 (67).
  */
 const scancode scancode_olivetti_m24_deluxe[512] = {
-  // clang-format off
+    // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
     { .mk = {      0x01, 0 }, .brk = {             0x81, 0 } }, /* 001 */
     { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 002 */
@@ -1360,7 +1360,7 @@ const scancode scancode_olivetti_m24_deluxe[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fe */
     { .mk = {            0 }, .brk = {                   0 } }  /* 1ff */
-  // clang-format on
+    // clang-format on
 };
 
 /* Remapping as follows:
@@ -1370,7 +1370,7 @@ const scancode scancode_olivetti_m24_deluxe[512] = {
    - Menu          (E0 5D) -> 5C.
  */
 const scancode scancode_olivetti_m240[512] = {
-  // clang-format off
+    // clang-format off
     { .mk = {            0 }, .brk = {                   0 } }, /* 000 */
     { .mk = {      0x01, 0 }, .brk = {             0x81, 0 } }, /* 001 */
     { .mk = {      0x02, 0 }, .brk = {             0x82, 0 } }, /* 002 */
@@ -1883,7 +1883,7 @@ const scancode scancode_olivetti_m240[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fd */
     { .mk = {            0 }, .brk = {                   0 } }, /* 1fe */
     { .mk = {            0 }, .brk = {                   0 } }  /* 1ff */
-  // clang-format on
+    // clang-format on
 };
 
 static void
@@ -2084,33 +2084,38 @@ const device_t m24_kbd_device = {
 };
 
 const device_config_t m19_vid_config[] = {
-  // clang-format off
+    // clang-format off
     {
         /* Olivetti / ATT compatible displays */
-        .name = "rgb_type",
-        .description = "RGB type",
-        .type = CONFIG_SELECTION,
-        .default_string = "",
-        .default_int = CGA_RGB,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
+        .name           = "rgb_type",
+        .description    = "RGB type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = CGA_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
             { .description = "Color",            .value = 0 },
             { .description = "Green Monochrome", .value = 1 },
             { .description = "Amber Monochrome", .value = 2 },
             { .description = "Gray Monochrome",  .value = 3 },
             { .description = ""                             }
-        }
+        },
+        .bios           = { { 0 } }
     },
     {
-        .name = "snow_enabled",
-        .description = "Snow emulation",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1,
+        .name           = "snow_enabled",
+        .description    = "Snow emulation",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t m19_vid_device = {
@@ -2243,7 +2248,7 @@ m24_read(uint16_t port, UNUSED(void *priv))
 static uint8_t
 m240_read(uint16_t port, UNUSED(void *priv))
 {
-    uint8_t ret = 0x00;
+    uint8_t ret       = 0x00;
     int     fdd_count = 0;
 
     switch (port) {

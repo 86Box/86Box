@@ -16,7 +16,6 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
  */
-
 #ifndef SOUND_OPL_NUKED_H
 #define SOUND_OPL_NUKED_H
 

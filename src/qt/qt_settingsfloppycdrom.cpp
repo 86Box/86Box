@@ -8,8 +8,6 @@
  *
  *          Floppy/CD-ROM devices configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -32,6 +30,7 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
+#include <86box/fdd_audio.h>
 }
 
 #include "qt_models_common.hpp"
@@ -136,7 +135,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     model->setHeaderData(2, Qt::Horizontal, tr("Check BPB"));
     model->setHeaderData(3, Qt::Horizontal, tr("Audio"));
 
-    model->insertRows(0, FDD_NUM);
+model->insertRows(0, FDD_NUM);
     /* Floppy drives category */
     for (int i = 0; i < FDD_NUM; i++) {
         auto idx  = model->index(i, 0);
@@ -145,22 +144,21 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         model->setData(idx.siblingAtColumn(1), fdd_get_turbo(i) > 0 ? tr("On") : tr("Off"));
         model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(i) > 0 ? tr("On") : tr("Off"));
 
-        int prof = fdd_get_audio_profile(i);
+        int     prof = fdd_get_audio_profile(i);
         QString profName;
-        switch (prof) {
-            case FDD_AUDIO_PROFILE_PANASONIC:
-                profName = tr("Panasonic");
-                break;
-            case FDD_AUDIO_PROFILE_TEAC:
-                profName = tr("Teac");
-                break;
-            case FDD_AUDIO_PROFILE_MITSUMI:
-                profName = tr("Mitsumi");
-                break;
-            default:
-                profName = tr("None");
-                break;
+
+#ifndef DISABLE_FDD_AUDIO
+        // Get the profile name from the configuration system
+        const char *name = fdd_audio_get_profile_internal_name(prof);
+        if (name) {
+            profName = QString(name);
+        } else {
+            profName = tr("None");
         }
+#else
+        profName = tr("None");
+#endif
+
         auto audioIdx = model->index(i, 3);
         model->setData(audioIdx, profName);
         model->setData(audioIdx, prof, Qt::UserRole);
@@ -174,10 +172,13 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     
 #ifndef DISABLE_FDD_AUDIO
     ui->comboBoxFloppyAudio->setVisible(true);
-    ui->comboBoxFloppyAudio->addItem(tr("None"), FDD_AUDIO_PROFILE_NONE);
-    ui->comboBoxFloppyAudio->addItem(tr("Generic Mitsumi 3.5\" 1.44MB"), FDD_AUDIO_PROFILE_MITSUMI);
-    ui->comboBoxFloppyAudio->addItem(tr("Panasonic JU-475-5 5.25\" 1.2MB"), FDD_AUDIO_PROFILE_PANASONIC);
-    ui->comboBoxFloppyAudio->addItem(tr("Teac FD-55GFR 5.25\" 1.2MB"), FDD_AUDIO_PROFILE_TEAC);
+    int profile_count = fdd_audio_get_profile_count();
+    for (int i = 0; i < profile_count; i++) {
+        const char *name = fdd_audio_get_profile_name(i);
+        if (name) {
+            ui->comboBoxFloppyAudio->addItem(name, i);
+        }
+    }
     ui->comboBoxFloppyAudio->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 #else
     ui->comboBoxFloppyAudio->setVisible(false);
@@ -390,26 +391,22 @@ SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 void
 SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 {
-    auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    int prof = ui->comboBoxFloppyAudio->currentData().toInt();
+    auto    idx  = ui->tableViewFloppy->selectionModel()->currentIndex();
+    int     prof = ui->comboBoxFloppyAudio->currentData().toInt();
     QString profName;
-    switch (prof) {
-        case FDD_AUDIO_PROFILE_NONE:
-            profName = tr("None");
-            break;
-        case FDD_AUDIO_PROFILE_PANASONIC:
-            profName = tr("Panasonic");
-            break;
-        case FDD_AUDIO_PROFILE_TEAC:
-            profName = tr("Teac");
-            break;
-        case FDD_AUDIO_PROFILE_MITSUMI:
-            profName = tr("Mitsumi");
-            break;
-        default:
-            profName = tr("None");
-            break;
+
+#ifndef DISABLE_FDD_AUDIO
+    // Get the profile name from the configuration system
+    const char *name = fdd_audio_get_profile_internal_name(prof);
+    if (name) {
+        profName = name;
+    } else {
+        profName = tr("None");
     }
+#else
+    profName = tr("None");
+#endif
+
     auto audioIdx = idx.siblingAtColumn(3);
     ui->tableViewFloppy->model()->setData(audioIdx, profName);
     ui->tableViewFloppy->model()->setData(audioIdx, prof, Qt::UserRole);

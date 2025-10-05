@@ -8,8 +8,6 @@
  *
  *          OpenGL renderer for Qt, mostly ported over from PCem.
  *
- *
- *
  * Authors: Teemu Korhonen
  *          Cacodemon345
  *          bit
@@ -20,7 +18,6 @@
  *          Copyright 2017 Bit
  *          Copyright 2017-2020 Sarah Walker
  */
-
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 

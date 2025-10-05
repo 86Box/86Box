@@ -8,15 +8,12 @@
  *          Controller used by the WD family, NE1000/NE2000 family, and
  *          3Com 3C503 NIC's.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Bochs project,
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2008-2018 Bochs project.
  */
-
 #ifndef NET_DP8390_H
 #define NET_DP8390_H
 

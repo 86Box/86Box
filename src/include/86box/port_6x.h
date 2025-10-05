@@ -9,13 +9,10 @@
  *          Header for the implementation of Port 6x used by various
  *          machines.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Miran Grca.
  */
-
 #ifndef EMU_PORT_6X_H
 #define EMU_PORT_6X_H
 

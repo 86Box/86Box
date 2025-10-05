@@ -18,7 +18,6 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2025      Jasmine Iwanek.
  */
-
 #ifndef EMU_MACHINE_H
 #define EMU_MACHINE_H
 
@@ -301,6 +300,8 @@ enum {
     MACHINE_CHIPSET_VLSI_VL82C480,
     MACHINE_CHIPSET_VLSI_VL82C481,
     MACHINE_CHIPSET_VLSI_VL82C486,
+    MACHINE_CHIPSET_VLSI_SUPERCORE,
+    MACHINE_CHIPSET_VLSI_WILDCAT,
     MACHINE_CHIPSET_WD76C10,
     MACHINE_CHIPSET_ZYMOS_POACH,
     MACHINE_CHIPSET_MAX
@@ -890,6 +891,9 @@ extern int             machine_at_ecs50x_init(const machine_t *);
 /* OPTi 597 */
 extern int             machine_at_pci56001_init(const machine_t *);
 
+/* VLSI SuperCore */
+extern int             machine_at_celebris5xx_init(const machine_t *);
+
 /* m_at_socket5.c */
 /* i430NX */
 extern int             machine_at_p54np4_init(const machine_t *);
@@ -929,6 +933,15 @@ extern int             machine_at_torino_init(const machine_t *);
 
 /* UMC 889x */
 extern int             machine_at_hot539_init(const machine_t *);
+
+/* VLSI SuperCore */
+extern int             machine_at_bravoms586_init(const machine_t *);
+extern int             machine_at_g586vpmc_init(const machine_t *);
+extern int             machine_at_m54si_init(const machine_t *);
+extern int             machine_at_pb600_init(const machine_t *);
+
+/* VLSI Wildcat */
+extern int             machine_at_globalyst620_init(const machine_t *);
 
 /* m_at_socket7_3v.c */
 /* i430FX */
@@ -975,6 +988,9 @@ extern const device_t  ap5s_device;
 extern int             machine_at_ap5s_init(const machine_t *);
 extern int             machine_at_pc140_6260_init(const machine_t *);
 extern int             machine_at_ms5124_init(const machine_t *);
+
+/* VLSI Wildcat */
+extern int             machine_at_zeoswildcat_init(const machine_t *);
 
 /* m_at_socket7.c */
 /* i430HX */
@@ -1075,7 +1091,10 @@ extern int             machine_at_p5a_init(const machine_t *);
 extern int             machine_at_m579_init(const machine_t *);
 extern int             machine_at_gwlucas_init(const machine_t *);
 extern int             machine_at_5aa_init(const machine_t *);
-extern int             machine_at_5ax_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  g5x_device;
+#endif
+extern int             machine_at_g5x_init(const machine_t *);
 
 /* VIA MVP3 */
 extern int             machine_at_ax59pro_init(const machine_t *);
@@ -1140,7 +1159,10 @@ extern int             machine_at_bx6_init(const machine_t *);
 extern int             machine_at_ax6bc_init(const machine_t *);
 extern int             machine_at_p2bls_init(const machine_t *);
 extern int             machine_at_p3bf_init(const machine_t *);
-extern int             machine_at_686bx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ga686_device;
+#endif
+extern int             machine_at_ga686_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ms6119_device;
 #endif
