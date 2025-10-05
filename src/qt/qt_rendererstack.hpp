@@ -4,7 +4,8 @@
 #include <QDialog>
 #include <QEvent>
 #include <QKeyEvent>
-#include <QStackedWidget>
+#include <QLayout>
+#include <QBoxLayout>
 #include <QWidget>
 #include <QCursor>
 #include <QScreen>
@@ -29,7 +30,7 @@ extern "C"
 }
 
 class RendererCommon;
-class RendererStack : public QStackedWidget {
+class RendererStack : public QWidget {
     Q_OBJECT
 
 public:
@@ -98,6 +99,8 @@ public:
     void setFocusRenderer();
     void onResize(int width, int height);
 
+    QWidget* currentWidget() { return current.get(); }
+
     void (*mouse_capture_func)(QWindow *window) = nullptr;
     void (*mouse_uncapture_func)()              = nullptr;
 
@@ -112,6 +115,8 @@ public slots:
 
 private:
     void createRenderer(Renderer renderer);
+
+    QBoxLayout* boxLayout = nullptr;
 
     Ui::RendererStack *ui;
 

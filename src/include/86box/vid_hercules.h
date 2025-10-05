@@ -8,8 +8,6 @@
  *
  *          Emulation of the Hercules graphics cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
@@ -20,7 +18,6 @@
  *          Copyright 2021 Jasmine Iwanek.
  *          Copyright 2025 starfrost
  */
-
 #ifndef VIDEO_HERCULES_H
 #define VIDEO_HERCULES_H
 

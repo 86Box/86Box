@@ -8,13 +8,10 @@
  *
  *          Definitions for the ROM image handler.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.
  */
-
 #ifndef EMU_ROM_H
 #define EMU_ROM_H
 

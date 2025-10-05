@@ -2995,4 +2995,4 @@ msgid "Dark"
 msgstr "Tối"
 
 msgid "Search:"
-msgstr "Tìm kiếm:"
+msgstr "Tìm:"

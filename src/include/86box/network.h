@@ -6,8 +6,6 @@
  *
  *          Definitions for the network module.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
@@ -42,7 +40,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #ifndef EMU_NETWORK_H
 #define EMU_NETWORK_H
 #include <stdint.h>

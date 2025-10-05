@@ -9,13 +9,10 @@
  *          Implementation of the CD-ROM drive with SCSI(-like)
  *          commands, for both ATAPI and SCSI usage.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2018-2019 Miran Grca.
  */
-
 #ifndef EMU_SCSI_CDROM_H
 #define EMU_SCSI_CDROM_H
 

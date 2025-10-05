@@ -8,13 +8,10 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 

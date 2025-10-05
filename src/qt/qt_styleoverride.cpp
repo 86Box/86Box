@@ -8,8 +8,6 @@
  *
  *          Style override class.
  *
- *
- *
  * Authors: Teemu Korhonen
  *
  *          Copyright 2022 Teemu Korhonen

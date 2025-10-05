@@ -8,15 +8,12 @@
  *
  *          X11 Xinput2 mouse input module.
  *
- *
- *
  * Authors: Cacodemon345
  *          RichardG <richardg867@gmail.com>
  *
  *          Copyright 2022 Cacodemon345.
  *          Copyright 2023 RichardG.
  */
-
 #include <QDebug>
 #include <QThread>
 #include <QProcess>
