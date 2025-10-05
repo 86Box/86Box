@@ -403,13 +403,13 @@ msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
 
 msgid "CPU frame size"
-msgstr "CPU 框架大小"
+msgstr "CPU 執行幀大小"
 
 msgid "Larger frames (less smooth)"
-msgstr "較大的框架 (較不平滑)"
+msgstr "大執行幀 (操作欠平滑)"
 
 msgid "Smaller frames (smoother)"
-msgstr "更小的框架 (更平滑)"
+msgstr "小執行幀 (操作更平滑)"
 
 msgid "Video:"
 msgstr "顯示卡:"
@@ -901,10 +901,10 @@ msgid "4-button flight yoke"
 msgstr "4 按鈕飛行搖桿"
 
 msgid "2-button flight yoke with throttle"
-msgstr "2 按鈕飛行搖桿，含節流閥"
+msgstr "2 按鈕帶油門飛行搖桿"
 
 msgid "4-button flight yoke with throttle"
-msgstr "4 按鈕飛行搖桿，含節流閥"
+msgstr "4 按鈕帶油門飛行搖桿"
 
 msgid "Win95 Steering Wheel (3-axis, 4-button)"
 msgstr "Win95 方向盤 (3 軸, 4 鍵搖桿)"
@@ -1225,7 +1225,7 @@ msgid "&Open folder..."
 msgstr "開啟資料夾(&O)..."
 
 msgid "Open p&rinter tray..."
-msgstr "打開印表機托盤(&R)..."
+msgstr "開啟印表機托盤(&R)..."
 
 msgid "Set &icon..."
 msgstr "設定圖示(&I)..."
@@ -1786,7 +1786,7 @@ msgid "86Box Unit Tester"
 msgstr "86Box 單元測試器"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr "Novell NetWare 2.x 密鑰卡"
+msgstr "Novell NetWare 2.x 金鑰卡"
 
 msgid "Serial port passthrough 1"
 msgstr "序列埠的直通 1"
@@ -1819,7 +1819,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 鍵盤"
 
 msgid "Keys"
-msgstr "鑰匙"
+msgstr "按鍵"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Logitech/Microsoft 匯流排滑鼠"
