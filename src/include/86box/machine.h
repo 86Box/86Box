@@ -496,6 +496,9 @@ extern int             machine_at_portableii_init(const machine_t *);
 extern int             machine_at_portableiii_init(const machine_t *);
 extern int             machine_at_grid1520_init(const machine_t *);
 extern int             machine_at_pc900_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  pc900_device;
+#endif
 extern int             machine_at_mr286_init(const machine_t *);
 extern int             machine_at_pc8_init(const machine_t *);
 extern int             machine_at_m290_init(const machine_t *);
@@ -1361,7 +1364,13 @@ extern int             machine_xt_micoms_xl7turbo_init(const machine_t *);
 extern const device_t  pc500_device;
 #endif
 extern int             machine_xt_pc500_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  pc500plus_device;
+#endif
 extern int             machine_xt_pc500plus_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  pc700_device;
+#endif
 extern int             machine_xt_pc700_init(const machine_t *);
 extern int             machine_xt_pc4i_init(const machine_t *);
 extern int             machine_xt_openxt_init(const machine_t *);

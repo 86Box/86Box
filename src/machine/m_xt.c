@@ -46,6 +46,7 @@
 #include <86box/video.h>
 
 extern const device_t vendex_xt_rtc_onboard_device;
+extern const device_t rtc58167_device;
 
 /* 8088 */
 static void
@@ -1171,7 +1172,7 @@ static const device_config_t pc500_config[] = {
                 .files         = { "roms/machines/pc500/rom330.bin", "" }
             },
             {
-                .name          = "3.10",
+                .name          = "3.1",
                 .internal_name = "pc500_310",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1181,6 +1182,37 @@ static const device_config_t pc500_config[] = {
             },
             { .files_no = 0 }
         }
+    },
+    {
+        .name           = "rtc_irq",
+        .description    = "RTC IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "Enabled",  .value =  2 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rtc_port",
+        .description    = "RTC Port Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "2C0H",     .value = 0x2c0 },
+            { .description = "300H",     .value = 0x300 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -1204,6 +1236,209 @@ int
 machine_xt_pc500_init(const machine_t *model)
 {
     int         ret = 0;
+    int         rtc_irq = -1;
+    int         rtc_port = 0;
+    const char *fn;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    rtc_irq  = machine_get_config_int("rtc_irq");
+    rtc_port = machine_get_config_int("rtc_port");
+    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret      = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc_device);
+
+    machine_xt_common_init(model, 0);
+
+    if (rtc_port != 0)
+        device_add(&rtc58167_device);
+
+    return ret;
+}
+
+static const device_config_t pc500plus_config[] = {
+    // clang-format off
+    {
+        .name       = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc500plus_404",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "4.06",
+                .internal_name = "pc500plus_406",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom406.bin", "" }
+            },
+            {
+                .name          = "4.04",
+                .internal_name = "pc500plus_404",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom404.bin", "" }
+            },
+            {
+                .name          = "4.03",
+                .internal_name = "pc500plus_403",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom403.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "rtc_irq",
+        .description    = "RTC IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "Enabled",  .value =  2 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rtc_port",
+        .description    = "Onboard RTC",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "Enabled",  .value = 0x2c0 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc500plus_device = {
+    .name          = "Multitech PC-500 plus",
+    .internal_name = "pc500plus_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pc500plus_config
+};
+
+int
+machine_xt_pc500plus_init(const machine_t *model)
+{
+    int         ret = 0;
+    int         rtc_irq = -1;
+    int         rtc_port = 0;
+    const char *fn;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    rtc_irq  = machine_get_config_int("rtc_irq");
+    rtc_port = machine_get_config_int("rtc_port");
+    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret      = bios_load_linear(fn, 0x000fc000, 16384, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc_device);
+
+    machine_xt_common_init(model, 0);
+
+    if (rtc_port != 0)
+        device_add(&rtc58167_device);
+
+    return ret;
+}
+
+static const device_config_t pc700_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc700_330",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name           = "3.30",
+                .internal_name  = "pc700_330",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 8192,
+                .files          = { "roms/machines/pc700/multitech pc-700 3.30.bin", "" }
+            },
+            {
+                .name           = "3.1",
+                .internal_name  = "pc700_31",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 8192,
+                .files          = { "roms/machines/pc700/multitech pc-700 3.1.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc700_device = {
+    .name           = "Multitech PC-700",
+    .internal_name  = "pc700_device",
+    .flags          = 0,
+    .local          = 0,
+    .init           = NULL,
+    .close          = NULL,
+    .reset          = NULL,
+    .available      = NULL,
+    .speed_changed  = NULL,
+    .force_redraw   = NULL,
+    .config         = pc700_config
+};
+
+int
+machine_xt_pc700_init(const machine_t *model)
+{
+    int         ret = 0;
     const char *fn;
 
     /* No ROMs available. */
@@ -1214,42 +1449,6 @@ machine_xt_pc500_init(const machine_t *model)
     fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
     device_context_restore();
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&kbc_pc_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_pc500plus_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc500/rom404.bin",
-                           0x000fc000, 16384, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&kbc_pc_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_pc700_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/pc700/multitech pc-700 3.1.bin",
-                           0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
         return ret;
