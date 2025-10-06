@@ -31,9 +31,11 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -136,10 +138,11 @@ sw_close(void *priv)
 static uint8_t
 sw_read(void *priv)
 {
+    uint8_t  gp   = 0;
     sw_data *sw   = (sw_data *) priv;
     uint8_t  temp = 0;
 
-    if (!JOYSTICK_PRESENT(0, 0))
+    if (!JOYSTICK_PRESENT(gp, 0))
         return 0xff;
 
     if (timer_is_enabled(&sw->poll_timer)) {
@@ -162,10 +165,11 @@ sw_read(void *priv)
 static void
 sw_write(void *priv)
 {
+    uint8_t  gp              = 0;
     sw_data *sw              = (sw_data *) priv;
     int64_t  time_since_last = timer_get_remaining_us(&sw->trigger_timer);
 
-    if (!JOYSTICK_PRESENT(0, 0))
+    if (!JOYSTICK_PRESENT(gp, 0))
         return;
 
     if (!sw->poll_left) {
@@ -191,20 +195,20 @@ sw_write(void *priv)
             for (uint8_t js = 0; js < 4; js++) {
                 uint16_t data = 0x3fff;
 
-                if (!JOYSTICK_PRESENT(0, js))
+                if (!JOYSTICK_PRESENT(gp, js))
                     break;
 
-                if (joystick_state[0][js].axis[1] < -16383)
+                if (joystick_state[gp][js].axis[1] < -16383)
                     data &= ~1;
-                if (joystick_state[0][js].axis[1] > 16383)
+                if (joystick_state[gp][js].axis[1] > 16383)
                     data &= ~2;
-                if (joystick_state[0][js].axis[0] > 16383)
+                if (joystick_state[gp][js].axis[0] > 16383)
                     data &= ~4;
-                if (joystick_state[0][js].axis[0] < -16383)
+                if (joystick_state[gp][js].axis[0] < -16383)
                     data &= ~8;
 
                 for (uint8_t button_nr = 0; button_nr < 10; button_nr++) {
-                    if (joystick_state[0][js].button[button_nr])
+                    if (joystick_state[gp][js].button[button_nr])
                         data &= ~(1 << (button_nr + 4));
                 }
 
@@ -228,7 +232,9 @@ sw_write(void *priv)
 static int
 sw_read_axis(UNUSED(void *priv), UNUSED(int axis))
 {
-    if (!JOYSTICK_PRESENT(0, 0))
+    uint8_t gp = 0;
+
+    if (!JOYSTICK_PRESENT(gp, 0))
         return AXIS_NOT_PRESENT;
 
     return 0; /*No analogue support on Sidewinder game pad*/
