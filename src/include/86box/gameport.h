@@ -182,7 +182,7 @@ extern const joystick_t joystick_3axis_2button;
 extern const joystick_t joystick_2button_yoke_throttle;
 extern const joystick_t joystick_3axis_4button;
 extern const joystick_t joystick_4button_yoke_throttle;
-extern const joystick_t joystick_win95_steering_wheel;
+extern const joystick_t joystick_steering_wheel_4_button;
 extern const joystick_t joystick_4axis_4button;
 extern const joystick_t joystick_2axis_6button;
 extern const joystick_t joystick_2axis_8button;

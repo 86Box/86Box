@@ -193,7 +193,6 @@ static int
 joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
 {
     uint8_t gp = 0;
-    uint8_t js = 0;
 
     if (!JOYSTICK_PRESENT(gp, 0))
         return AXIS_NOT_PRESENT;
@@ -470,9 +469,9 @@ const joystick_t joystick_4button_yoke_throttle = {
     .pov_names     = { NULL }
 };
 
-const joystick_t joystick_win95_steering_wheel = {
-    .name          = "Win95 Steering Wheel (3-axis, 4-button)",
-    .internal_name = "win95_steering_wheel",
+const joystick_t joystick_steering_wheel_4_button = {
+    .name          = "Steering Wheel (3-axis, 4-button)",
+    .internal_name = "steering_wheel_4_button",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
     .read          = joystick_standard_read_4button,
