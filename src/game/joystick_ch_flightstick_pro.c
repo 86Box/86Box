@@ -10,9 +10,11 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2021-2025 Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,14 +72,19 @@ ch_flightstick_pro_read(UNUSED(void *priv))
             ret &= ~0x40;
         if (joystick_state[gp][0].button[3])
             ret &= ~0x80;
+        // POV Hat
         if (joystick_state[gp][0].pov[0] != -1) {
-            if (joystick_state[gp][0].pov[0] > 315 || joystick_state[gp][0].pov[0] < 45)
+            // POV Up
+            if ((joystick_state[gp][0].pov[0] > 315) || (joystick_state[gp][0].pov[0] < 45))
                 ret &= ~0xf0;
-            else if (joystick_state[gp][0].pov[0] >= 45 && joystick_state[gp][0].pov[0] < 135)
+            // POV Right
+            else if ((joystick_state[gp][0].pov[0]) >= 45 && (joystick_state[gp][0].pov[0] < 135))
                 ret &= ~0xb0;
-            else if (joystick_state[gp][0].pov[0] >= 135 && joystick_state[gp][0].pov[0] < 225)
+            // POV Down
+            else if ((joystick_state[gp][0].pov[0]) >= 135 && (joystick_state[gp][0].pov[0] < 225))
                 ret &= ~0x70;
-            else if (joystick_state[gp][0].pov[0] >= 225 && joystick_state[gp][0].pov[0] < 315)
+            // POV Left
+            else if ((joystick_state[gp][0].pov[0]) >= 225 && (joystick_state[gp][0].pov[0] < 315))
                 ret &= ~0x30;
         }
     }
@@ -94,7 +101,7 @@ ch_flightstick_pro_write(UNUSED(void *priv))
 static int
 ch_flightstick_pro_read_axis(UNUSED(void *priv), int axis)
 {
-    uint8_t gp  = 0;
+    uint8_t gp = 0;
 
     if (!JOYSTICK_PRESENT(gp, 0))
         return AXIS_NOT_PRESENT;
@@ -116,7 +123,7 @@ ch_flightstick_pro_read_axis(UNUSED(void *priv), int axis)
 static int
 ch_flightstick_pro_ch_pedals_read_axis(UNUSED(void *priv), int axis)
 {
-    uint8_t gp  = 0;
+    uint8_t gp = 0;
 
     if (!JOYSTICK_PRESENT(gp, 0))
         return AXIS_NOT_PRESENT;

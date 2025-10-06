@@ -100,7 +100,7 @@ static const struct {
     { &joystick_3axis_2button                },
     { &joystick_2button_yoke_throttle        },
     { &joystick_3axis_4button                },
-    { &joystick_win95_steering_wheel         },
+    { &joystick_steering_wheel_4_button      },
     { &joystick_4button_yoke_throttle        },
     { &joystick_4axis_4button                },
     { &joystick_ch_flightstick_pro           },
