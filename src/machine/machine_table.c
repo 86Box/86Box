@@ -14511,7 +14511,7 @@ const machine_t machines[] = {
        Command 0xA0 copyright string: (C)1994 AMI .
        Yes, this is an Intel AMI BIOS with a fancy splash screen. */
     {
-        .name              = "[i430HX] Sony Vaio PCV-90",
+        .name              = "[i430HX] Sony Vaio PCV-70/90/100/120",
         .internal_name     = "pcv90",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
