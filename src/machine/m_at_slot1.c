@@ -893,7 +893,7 @@ machine_at_ms6147_init(const machine_t *model)
 
     if (sound_card_current[0] == SOUND_INTERNAL) {
         device_add(machine_get_snd_device(machine));
-        device_add(&es1371_onboard_device);
+        device_add(&ct1297_device);
     }
 
     return ret;
