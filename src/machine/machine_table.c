@@ -1097,7 +1097,7 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
     {
-        .name              = "[8088] Multitech PC-500",
+        .name              = "[8088] Multitech PC-500 / Franklin PC 8000",
         .internal_name     = "pc500",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1174,7 +1174,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pc500plus_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -1183,7 +1183,7 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
     {
-        .name              = "[8088] Multitech PC-700",
+        .name              = "[8088] Multitech PC-700 / Siemens SICOMP PC 16 05",
         .internal_name     = "pc700",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1217,7 +1217,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pc700_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -3346,7 +3346,7 @@ const machine_t machines[] = {
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[ISA] Multitech PC-900",
+        .name              = "[ISA] Multitech PC-900 / Commodore PC 40 / NBI 4200",
         .internal_name     = "pc900",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -3380,7 +3380,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pc900_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -14511,7 +14511,7 @@ const machine_t machines[] = {
        Command 0xA0 copyright string: (C)1994 AMI .
        Yes, this is an Intel AMI BIOS with a fancy splash screen. */
     {
-        .name              = "[i430HX] Sony Vaio PCV-90",
+        .name              = "[i430HX] Sony Vaio PCV-70/90/100/120",
         .internal_name     = "pcv90",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -15508,6 +15508,51 @@ const machine_t machines[] = {
         .snd_device               = &cs4236b_device,
         .net_device               = &pcnet_am79c973_onboard_device
     },
+    /* This has the Phoenix MultiKey KBC firmware on the NSC Super I/O chip. */
+    {
+        .name = "[i430TX] Intel AN430TX (Anchorage)",
+        .internal_name = "an430tx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_an430tx_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = NULL,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000044f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = &an430tx_device,
+        .kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = &ymf715_onboard_device,
+        .net_device = NULL
+    },
     /* This has the Winbond W83977 Super I/O Chip with AMIKey-2 KBC firmware, which is type 'H'. */
     {
         .name              = "[i430TX] Intel YM430TX (Yamamoto)",
@@ -15647,51 +15692,6 @@ const machine_t machines[] = {
         .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* This has the Phoenix MultiKey KBC firmware on the NSC Super I/O chip. */
-    {
-        .name              = "[i430TX] Packard Bell PB790",
-        .internal_name     = "an430tx",
-        .type              = MACHINE_TYPE_SOCKET7,
-        .chipset           = MACHINE_CHIPSET_INTEL_430TX,
-        .init              = machine_at_an430tx_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
-                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
-            .min_bus     = 60000000,
-            .max_bus     = 66666667,
-            .min_voltage = 2800,
-            .max_voltage = 3520,
-            .min_multi   = 1.5,
-            .max_multi   = 3.5
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
-        .ram       = {
-            .min  = 8192,
-            .max  = 262144,
-            .step = 8192
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        .kbc_p1                   = 0x000044f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL
     },
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior.
@@ -18041,6 +18041,50 @@ const machine_t machines[] = {
         .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC firmware. */
+    {
+        .name              = "[i440BX] MSI MS-6147",
+        .internal_name     = "ms6147",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_ms6147_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 116666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Has internal video: ATI 3D Rage Pro PCI */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 524288,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ms6147_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &es1371_onboard_device,
         .net_device               = NULL
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC

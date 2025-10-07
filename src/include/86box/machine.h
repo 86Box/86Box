@@ -496,6 +496,9 @@ extern int             machine_at_portableii_init(const machine_t *);
 extern int             machine_at_portableiii_init(const machine_t *);
 extern int             machine_at_grid1520_init(const machine_t *);
 extern int             machine_at_pc900_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  pc900_device;
+#endif
 extern int             machine_at_mr286_init(const machine_t *);
 extern int             machine_at_pc8_init(const machine_t *);
 extern int             machine_at_m290_init(const machine_t *);
@@ -1043,10 +1046,13 @@ extern int             machine_at_tx97_init(const machine_t *);
 extern void            machine_at_optiplex_21152_init(void);
 extern int             machine_at_optiplexgn_init(const machine_t *);
 extern int             machine_at_tomahawk_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  an430tx_device;
+#endif
+extern int             machine_at_an430tx_init(const machine_t *);
 extern int             machine_at_ym430tx_init(const machine_t *);
 extern int             machine_at_thunderbolt_init(const machine_t *);
 extern int             machine_at_ma23c_init(const machine_t *);
-extern int             machine_at_an430tx_init(const machine_t *);
 extern int             machine_at_mb540n_init(const machine_t *);
 extern int             machine_at_56a5_init(const machine_t *);
 extern int             machine_at_p5mms98_init(const machine_t *);
@@ -1164,6 +1170,10 @@ extern int             machine_at_ga686_init(const machine_t *);
 extern const device_t  ms6119_device;
 #endif
 extern int             machine_at_ms6119_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ms6147_device;
+#endif
+extern int             machine_at_ms6147_init(const machine_t *);
 extern int             machine_at_p6sba_init(const machine_t *);
 extern int             machine_at_s1846_init(const machine_t *);
 
@@ -1354,7 +1364,13 @@ extern int             machine_xt_micoms_xl7turbo_init(const machine_t *);
 extern const device_t  pc500_device;
 #endif
 extern int             machine_xt_pc500_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  pc500plus_device;
+#endif
 extern int             machine_xt_pc500plus_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  pc700_device;
+#endif
 extern int             machine_xt_pc700_init(const machine_t *);
 extern int             machine_xt_pc4i_init(const machine_t *);
 extern int             machine_xt_openxt_init(const machine_t *);

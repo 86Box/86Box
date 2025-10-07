@@ -174,6 +174,7 @@ static const struct cdrom_drive_types_s {
     { "PHILIPS",  "CD-ROM PCA403CD",  "U31P", "philips_403",    BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 } },
     { "SONY",     "CD-ROM CDU76",     "1.0i", "sony_76",        BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  2, -1, -1, -1 } },
     { "SONY",     "CD-ROM CDU311",    "3.0h", "sony_311",       BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  1, -1 } },
+    { "SONY",     "CD-ROM CDU611",    "2.2c", "sony_611",       BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  3,  2,  2, -1 } },
     { "SONY",     "CD-ROM CDU5225",   "NYS4", "sony_5225",      BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
     { "TEAC",     "CD-516E",          "1.0G", "teac_516e",      BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  3,  2,  2, -1 } },
     { "TEAC",     "CD-524EA",         "3.0D", "teac_524ea",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  3,  2,  2, -1 } },

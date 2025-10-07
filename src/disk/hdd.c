@@ -621,6 +621,9 @@ hdd_preset_apply(int hdd_id)
     if (preset->model)
         hd->model = preset->model;
 
+    if (preset->version_ex)
+        hd->version_ex = preset->version_ex;
+
     if (!hd->speed_preset)
         return;
 
