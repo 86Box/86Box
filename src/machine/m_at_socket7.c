@@ -421,7 +421,7 @@ static const device_config_t m7shi_config[] = {
         .bios           = {
             {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision 05/20/97",
-                .internal_name = "m7shi",
+                .internal_name = "m7shi_97",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -430,7 +430,7 @@ static const device_config_t m7shi_config[] = {
             },
             {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision 01/21/98",
-                .internal_name = "m7shi_4",
+                .internal_name = "m7shi",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1425,19 +1425,19 @@ static const device_config_t an430tx_config[] = {
         .name = "bios",
         .description = "BIOS Version",
         .type = CONFIG_BIOS,
-        .default_string = "an430tx",
+        .default_string = "pb79x",
         .default_int = 0,
         .file_filter = "",
         .spinner = { 0 },
         .bios = {
-            { .name = "Packard Bell PB79x", .internal_name = "an430tx", .bios_type = BIOS_NORMAL,
-              .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/an430tx/ANP0911A.BIO", "roms/machines/an430tx/ANP0911A.BI1",
-                                                                    "roms/machines/an430tx/ANP0911A.BI2", "roms/machines/an430tx/ANP0911A.BI3",
-                                                                    "roms/machines/an430tx/ANP0911A.RCV", "" } },
-            { .name = "Sony Vaio PCV-130/150", .internal_name = "vaio150", .bios_type = BIOS_NORMAL,
+            { .name = "PhoenixBIOS 4.0 Release 6.0 - Revision P02-0011 (Sony Vaio PCV-130/150)", .internal_name = "vaio150", .bios_type = BIOS_NORMAL,
               .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/an430tx/P02-0011.BIO", "roms/machines/an430tx/P02-0011.BI1",
                                                                     "roms/machines/an430tx/P02-0011.BI2", "roms/machines/an430tx/P02-0011.BI3",
                                                                     "roms/machines/an430tx/P02-0011.RCV", "" } },
+            { .name = "PhoenixBIOS 4.0 Release 6.0 - Revision P09-0006 (Packard Bell PB79x)", .internal_name = "pb79x", .bios_type = BIOS_NORMAL,
+              .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/an430tx/ANP0911A.BIO", "roms/machines/an430tx/ANP0911A.BI1",
+                                                                    "roms/machines/an430tx/ANP0911A.BI2", "roms/machines/an430tx/ANP0911A.BI3",
+                                                                    "roms/machines/an430tx/ANP0911A.RCV", "" } },
             { .files_no = 0 }
         },
     },
@@ -1789,7 +1789,7 @@ static const device_config_t r534f_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "r534f_1998",
+        .default_string = "r534f",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1797,7 +1797,7 @@ static const device_config_t r534f_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 06/12/1998",
-                .internal_name = "r534f_1998",
+                .internal_name = "r534f",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1806,7 +1806,7 @@ static const device_config_t r534f_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 03/13/2000 (by Unicore Software)",
-                .internal_name = "r534f",
+                .internal_name = "r534f_unicore",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
