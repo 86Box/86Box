@@ -1212,16 +1212,17 @@ fifo_thread(void *param)
             uint64_t      start_time = plat_timer_read();
             uint64_t      end_time;
             fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
+            uint32_t      val  = fifo->val;
 
             switch (fifo->addr_type & FIFO_TYPE) {
                 case FIFO_WRITE_BYTE:
-                    mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, fifo->val);
+                    mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, val);
                     break;
                 case FIFO_WRITE_WORD:
-                    mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, fifo->val);
+                    mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, val);
                     break;
                 case FIFO_WRITE_DWORD:
-                    mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, fifo->val);
+                    mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, val);
                     break;
 
                 default:
@@ -1282,16 +1283,14 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     if (limit) {
         if (FIFO_ENTRIES >= 16) {
             thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_ENTRIES >= 16) {
+            if (FIFO_ENTRIES >= 16)
                 thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-            }
         }
     } else {
         if (FIFO_FULL) {
             thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_FULL) {
+            if (FIFO_FULL)
                 thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-            }
         }
     }
 
@@ -1300,6 +1299,8 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 
     mach64->fifo_write_idx++;
 
+    if (FIFO_ENTRIES > 0xe000)
+        wake_fifo_thread(mach64);
     if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
         wake_fifo_thread(mach64);
 }
@@ -2409,7 +2410,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0x4a:
                 ret = mach64->scaler_format;
                 break;
-            
+
             case 0x4b:
                 ret = mach64->scaler_yuv_aper;
                 break;
@@ -3113,7 +3114,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
             case 0x4a:
                 mach64->scaler_format = val & 0xf;
                 break;
-            
+
             case 0x4b:
                 mach64->scaler_yuv_aper = val;
                 break;
