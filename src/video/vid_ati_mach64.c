@@ -543,6 +543,7 @@ mach64_recalctimings(svga_t *svga)
         svga->split                    = 0xffffff;
         svga->vblankstart              = svga->dispend;
         svga->rowcount                 = mach64->crtc_gen_cntl & 1;
+        svga->lut_map                  = (mach64->type >= MACH64_VT2);
         svga->rowoffset <<= 1;
 
         if (mach64->type == MACH64_GX)
@@ -592,6 +593,7 @@ mach64_recalctimings(svga_t *svga)
         svga->vram_display_mask = mach64->vram_mask;
     } else {
         svga->vram_display_mask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
+        svga->lut_map           = 0;
     }
 }
 
@@ -4027,6 +4029,29 @@ mach64_readl(uint32_t addr, void *priv)
     return ret;
 }
 
+uint32_t
+mach64_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+{
+    uint32_t ret = 0x00000000;
+
+    if (svga->lut_map) {
+        if (bpp == 15) {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x3e0) >> 2]);
+            uint8_t r = getcolb(svga->pallook[(color & 0x7c00) >> 7]);
+            ret = (video_15to32[color] & 0xFF000000) | makecol(r, g, b);
+        } else {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 3]);
+            uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 8]);
+            ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
+        }
+    } else
+        ret = (bpp == 15) ? video_15to32[color] : video_16to32[color];
+
+    return ret;
+}
+
 void
 mach64_int_hwcursor_draw(svga_t *svga, int displine)
 {
@@ -4877,6 +4902,10 @@ mach64_common_init(const device_t *info)
     mach64->pci_regs[0x33]            = 0x00;
 
     svga->clock_gen = device_add(&ics2595_device);
+
+    if (mach64->type >= MACH64_VT2) {
+        svga->conv_16to32 = mach64_conv_16to32;
+    }
 
     mach64->dst_cntl = 3;
 
