@@ -332,6 +332,7 @@ extern void da2_device_add(void);
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
 extern const device_t mach64gx_pci_device;
+extern const device_t mach64ct_device;
 extern const device_t mach64vt2_device;
 
 /* ATi 18800 */
