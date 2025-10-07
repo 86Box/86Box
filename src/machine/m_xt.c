@@ -1235,8 +1235,7 @@ const device_t pc500_device = {
 int
 machine_xt_pc500_init(const machine_t *model)
 {
-    int         ret = 0;
-    int         rtc_irq = -1;
+    int         ret      = 0;
     int         rtc_port = 0;
     const char *fn;
 
@@ -1245,7 +1244,6 @@ machine_xt_pc500_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    rtc_irq  = machine_get_config_int("rtc_irq");
     rtc_port = machine_get_config_int("rtc_port");
     fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
     ret      = bios_load_linear(fn, 0x000fe000, 8192, 0);
@@ -1356,8 +1354,7 @@ const device_t pc500plus_device = {
 int
 machine_xt_pc500plus_init(const machine_t *model)
 {
-    int         ret = 0;
-    int         rtc_irq = -1;
+    int         ret      = 0;
     int         rtc_port = 0;
     const char *fn;
 
@@ -1366,7 +1363,6 @@ machine_xt_pc500plus_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    rtc_irq  = machine_get_config_int("rtc_irq");
     rtc_port = machine_get_config_int("rtc_port");
     fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
     ret      = bios_load_linear(fn, 0x000fc000, 16384, 0);
