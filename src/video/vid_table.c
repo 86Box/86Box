@@ -184,8 +184,9 @@ video_cards[] = {
     /* PCI */
     { .device = &mach32_pci_device,                             .flags = VIDEO_FLAG_TYPE_8514 },
     { .device = &mach64gx_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE },
-    { .device = &mach64vt2_device,                              .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &mach64ct_device,                               .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &mach64vt_device,                               .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &mach64vt2_device,                              .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &bochs_svga_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &chips_69000_device,                            .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &gd5430_pci_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
