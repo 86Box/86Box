@@ -15142,7 +15142,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430VX] Packard Bell Multimedia C110 (PB680/PB682/PB685)",
+        .name              = "[i430VX] Packard Bell PB680/PB682/PB685",
         .internal_name     = "pb680",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -15188,7 +15188,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
-        .name              = "[i430VX] Packard Bell Multimedia M415 (PB810)",
+        .name              = "[i430VX] Packard Bell PB810/820 (GVC/BCM FM530)",
         .internal_name     = "pb810",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
