@@ -5114,7 +5114,7 @@ const machine_t machines[] = {
     },
     /* Most likely has Phonenix KBC firmware. */
     {
-        .name              = "[ACC 2036] Packard Bell Legend 300SX",
+        .name              = "[ACC 2036] Packard Bell PB300/PB320",
         .internal_name     = "pbl300sx",
         .type              = MACHINE_TYPE_386SX,
         .chipset           = MACHINE_CHIPSET_ACC_2036,
@@ -7922,7 +7922,7 @@ const machine_t machines[] = {
     /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
        command C7 (OR input byte with received data byte). */
     {
-        .name              = "[ACC 2168] Packard Bell PB410A",
+        .name              = "[ACC 2168] Packard Bell PB410/PB410A/PB420/PB420T",
         .internal_name     = "pb410a",
         .type              = MACHINE_TYPE_486_S2,
         .chipset           = MACHINE_CHIPSET_ACC_2168,
@@ -10017,7 +10017,7 @@ const machine_t machines[] = {
     },
     /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
     {
-        .name              = "[OPTi 895] Packard Bell PB450",
+        .name              = "[OPTi 895] Packard Bell PB450 (Firehawk)",
         .internal_name     = "pb450",
         .type              = MACHINE_TYPE_486_S3_PCI,
         .chipset           = MACHINE_CHIPSET_OPTI_895_802G,
@@ -11580,7 +11580,7 @@ const machine_t machines[] = {
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430LX] Packard Bell PB520R",
+        .name              = "[i430LX] Packard Bell Robin LC (PB520R)",
         .internal_name     = "pb520r",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -13063,7 +13063,7 @@ const machine_t machines[] = {
     },
     /* This has Phoenix KBC firmware. */
     {
-        .name              = "[VLSI SuperCore] Packard Bell PB600",
+        .name              = "[VLSI SuperCore] Packard Bell Agoura/Wildcat (PB600)",
         .internal_name     = "pb600",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_VLSI_SUPERCORE,
@@ -13427,7 +13427,7 @@ const machine_t machines[] = {
     /* This most likely uses AMI MegaKey KBC firmware as well due to having the same
        Super I/O chip (that has the KBC firmware on it) as eg. the Advanced/EV. */
     {
-        .name              = "[i430FX] Packard Bell PB640",
+        .name              = "[i430FX] Packard Bell Thousand Oaks (PB640)",
         .internal_name     = "pb640",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -15142,7 +15142,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430VX] Packard Bell Multimedia C110 (PB680/PB682/PB685)",
+        .name              = "[i430VX] Packard Bell Orlando/2D/2D/MMX (PB680/PB682/PB683/PB685)",
         .internal_name     = "pb680",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -15188,7 +15188,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
-        .name              = "[i430VX] Packard Bell Multimedia M415 (PB810)",
+        .name              = "[i430VX] Packard Bell PB810/820 (GVC/BCM FM530)",
         .internal_name     = "pb810",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -18272,7 +18272,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name              = "[i440ZX] Packard Bell Bora Pro (MSI MS-6168)",
+        .name              = "[i440ZX] Packard Bell Bora/Bora Pro (MSI MS-6168)",
         .internal_name     = "borapro",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_INTEL_440ZX,
