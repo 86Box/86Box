@@ -20,6 +20,7 @@
 #include "ui_qt_mainwindow.h"
 #include "qt_machinestatus.hpp"
 
+#include <QTimer>
 #include <QMap>
 #include <QDir>
 #include <QFile>
@@ -36,6 +37,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/video.h>
 }
 
 extern MainWindow            *main_window;
@@ -107,6 +109,7 @@ ProgSettings::ProgSettings(QWidget *parent)
 void
 ProgSettings::accept()
 {
+    auto size               = main_window->centralWidget()->size();
     lang_id                 = ui->comboBoxLanguage->currentData().toInt();
     open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
     confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
@@ -137,6 +140,13 @@ ProgSettings::accept()
     connect(main_window, &MainWindow::statusBarMessage, main_window->status.get(), &MachineStatus::message, Qt::QueuedConnection);
     mouse_sensitivity = mouseSensitivity;
     config_save_global();
+    QTimer::singleShot(200, [size] () {
+        main_window->centralWidget()->setFixedSize(size);
+        QApplication::processEvents();
+        if (vid_resize == 1) {
+            main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
+    });
     QDialog::accept();
 }
 
