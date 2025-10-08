@@ -8778,13 +8778,13 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
+            .block       = CPU_BLOCK(CPU_Cx5x86),
             .min_bus     = 0,
             .max_bus     = 0,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
-            .max_multi   = 0
+            .max_multi   = 2
         },
         .bus_flags = MACHINE_VLB,
         .flags     = MACHINE_APM,
