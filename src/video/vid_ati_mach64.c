@@ -4914,6 +4914,7 @@ mach64_common_init(const device_t *info)
     mach64->wake_fifo_thread = thread_create_event();
     mach64->fifo_not_full_event = thread_create_event();
     mach64->fifo_thread = thread_create(fifo_thread, mach64);
+    mach64->on_board = !!(info->local & (1 << 19));
 
     mach64->i2c = i2c_gpio_init("ddc_ati_mach64");
     mach64->ddc = ddc_init(i2c_gpio_get_bus(mach64->i2c));
@@ -5179,6 +5180,20 @@ const device_t mach64ct_device = {
     .close         = mach64_close,
     .reset         = NULL,
     .available     = mach64ct_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = NULL
+};
+
+const device_t mach64ct_device_onboard = {
+    .name          = "ATI Mach64CT (On-Board)",
+    .internal_name = "mach64ct",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_CT | (1 << 19),
+    .init          = mach64ct_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    .available     = NULL,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = NULL
