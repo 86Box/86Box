@@ -5225,7 +5225,7 @@ const device_t mach64ct_device = {
 
 const device_t mach64ct_device_onboard = {
     .name          = "ATI Mach64CT (On-Board)",
-    .internal_name = "mach64ct",
+    .internal_name = "mach64ct_onboard",
     .flags         = DEVICE_PCI,
     .local         = MACH64_CT | (1 << 19),
     .init          = mach64ct_init,
