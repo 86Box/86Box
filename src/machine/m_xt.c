@@ -1310,7 +1310,7 @@ machine_xt_pc500_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&kbc_pc_device);
+    device_add(&kbc_xtclone_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1429,7 +1429,7 @@ machine_xt_pc500plus_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&kbc_pc_device);
+    device_add(&kbc_xtclone_device);
 
     machine_xt_common_init(model, 0);
 
