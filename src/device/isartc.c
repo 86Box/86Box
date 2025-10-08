@@ -113,7 +113,8 @@ typedef struct rtcdev_t {
     void    (*f_wr)(uint16_t, uint8_t, void *);
     uint8_t (*f_rd)(uint16_t, void *);
     int8_t    year; /* register for YEAR value */
-    char      pad[3];
+    int8_t    century; /* register for CENTURY value */
+    char      pad[2];
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
@@ -319,9 +320,14 @@ mm67_time_get(nvr_t *nvr, struct tm *tm)
             tm->tm_year = regs[dev->year];
         if (dev->flags & FLAG_YEAR80)
             tm->tm_year += 80;
-#ifdef MM67_CENTURY
-        tm->tm_year += (regs[MM67_CENTURY] * 100) - 1900;
-#endif
+
+        if ((dev->century != -1) && !(dev->flags & FLAG_YEAR80)) {
+            if (dev->flags & FLAG_YEARBCD)
+                tm->tm_year += (RTC_DCB(regs[dev->century]) * 100) - 1900;
+            else
+                tm->tm_year += (regs[dev->century] * 100) - 1900;
+        }
+
 #if ISARTC_DEBUG > 1
         isartc_log("ISARTC: get_time: year=%i [%02x]\n", tm->tm_year, regs[dev->year]);
 #endif
@@ -351,9 +357,14 @@ mm67_time_set(nvr_t *nvr, struct tm *tm)
             regs[dev->year] = RTC_BCD(year % 100);
         else
             regs[dev->year] = year % 100;
-#ifdef MM67_CENTURY
-        regs[MM67_CENTURY] = (year + 1900) / 100;
-#endif
+
+        if ((dev->year != -1) && !(dev->flags & FLAG_YEAR80)) {
+            if (dev->flags & FLAG_YEARBCD)
+                regs[dev->century] = RTC_BCD((year + 1900) / 100);
+            else
+                regs[dev->century] = (year + 1900) / 100;
+        }
+
 #if ISARTC_DEBUG > 1
         isartc_log("ISARTC: set_time: [%02x] year=%i (%i)\n", regs[dev->year], year, tm->tm_year);
 #endif
@@ -474,9 +485,13 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
                         dev->nvr.regs[dev->year] = RTC_BCD(val);
                     else
                         dev->nvr.regs[dev->year] = val;
-#ifdef MM67_CENTURY
-                    dev->nvr.regs[MM67_CENTURY] = 19;
-#endif
+
+                    if ((dev->century != -1) && !(dev->flags & FLAG_YEAR80)) {
+                        if (dev->flags & FLAG_YEARBCD)
+                            dev->nvr.regs[dev->century] = RTC_BCD(19);
+                        else
+                            dev->nvr.regs[dev->century] = (1900 + val) / 100;
+                    }
                 }
             }
             break;
@@ -597,6 +612,7 @@ isartc_init(const device_t *info)
     dev->board    = info->local;
     dev->irq      = -1;
     dev->year     = -1;
+    dev->century  = -1;
     dev->nvr.data = dev;
     dev->nvr.size = 16;
 
@@ -664,15 +680,18 @@ isartc_init(const device_t *info)
 
         case ISARTC_RTC58167: /* Multitech PC-500/PC-500+ onboard RTC */
             dev->flags |= FLAG_YEARBCD;
-            dev->base_addr   = device_get_config_hex16("base");
+            //dev->base_addr   = machine_get_config_int("rtc_port");
+            dev->base_addr   = 0x2c0;
             dev->base_addrsz = 8;
-            dev->irq         = device_get_config_int("irq");
+            //dev->irq         = machine_get_config_int("rtc_irq");
+            dev->irq         = -1;
             dev->f_rd        = rtc58167_read;
             dev->f_wr        = rtc58167_write;
             dev->nvr.reset   = mm67_reset;
             dev->nvr.start   = mm67_start;
             dev->nvr.tick    = mm67_tick;
-            dev->year        = MM67_AL_HUNTEN; /* year, NON STANDARD */
+            dev->year        = MM67_AL_HUNTEN;  /* year,    NON STANDARD */
+            dev->century     = MM67_AL_SEC;     /* century, NON STANDARD */
             break;
 
         default:
@@ -1010,42 +1029,6 @@ const device_t vendex_xt_rtc_onboard_device = {
     .config        = NULL
 };
 
-static const device_config_t rtc58167_config[] = {
-  // clang-format off
-    {
-        .name           = "irq",
-        .description    = "IRQ2",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = -1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "Disabled", .value = -1 },
-            { .description = "Enabled",  .value =  2 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "base",
-        .description    = "Address",
-        .type           = CONFIG_HEX16,
-        .default_string = NULL,
-        .default_int    = 0x2C0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "2C0H", .value = 0x2c0 },
-            { .description = "300H", .value = 0x300 },
-            { .description = ""                     }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END}
-  // clang-format on
-};
-
 const device_t rtc58167_device = {
     .name          = "RTC 58167 IC (Multitech)",
     .internal_name = "rtc58167_xt_rtc",
@@ -1057,7 +1040,7 @@ const device_t rtc58167_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = rtc58167_config
+    .config        = NULL
 };
 
 static const struct {
@@ -1070,7 +1053,6 @@ static const struct {
     { &p5pak_device    },
     { &a6pak_device    },
     { &mplus2_device   },
-    //{ &rtc58167_device }, /* Multitech onboard ISA RTC */
     { &mm58167_device  },
     { NULL             }
     // clang-format on

@@ -960,6 +960,7 @@ extern const device_t  thor_device;
 extern int             machine_at_thor_init(const machine_t *);
 extern uint32_t        machine_at_endeavor_gpio_handler(uint8_t write, uint32_t val);
 extern int             machine_at_endeavor_init(const machine_t *);
+extern int             machine_at_monaco_init(const machine_t *);
 extern int             machine_at_ms5119_init(const machine_t *);
 extern int             machine_at_pb640_init(const machine_t *);
 extern int             machine_at_mb500n_init(const machine_t *);
@@ -1347,6 +1348,9 @@ extern int             machine_xt_ataripc3_init(const machine_t *);
 extern int             machine_xt_bw230_init(const machine_t *);
 extern int             machine_xt_mpc1600_init(const machine_t *);
 extern int             machine_xt_compaq_portable_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t dtk_device;
+#endif
 extern int             machine_xt_dtk_init(const machine_t *);
 extern int             machine_xt_pcspirit_init(const machine_t *);
 extern int             machine_genxt_init(const machine_t *);
