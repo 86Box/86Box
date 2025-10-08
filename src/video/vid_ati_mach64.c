@@ -49,6 +49,7 @@
 #define BIOS_ISA_ROM_PATH "roms/video/mach64/M64-1994.VBI"
 #define BIOS_VLB_ROM_PATH "roms/video/mach64/mach64_vlb_vram.bin"
 #define BIOS_ROMCT_PATH   "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
+#define BIOS_ROMVT_PATH   "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
 #define BIOS_ROMVT2_PATH  "roms/video/mach64/atimach64vt2pci.bin"
 
 #define FIFO_SIZE         65536
@@ -77,6 +78,7 @@ typedef struct fifo_entry_t {
 enum {
     MACH64_GX = 0,
     MACH64_CT,
+    MACH64_VT,
     MACH64_VT2
 };
 
@@ -543,7 +545,7 @@ mach64_recalctimings(svga_t *svga)
         svga->split                    = 0xffffff;
         svga->vblankstart              = svga->dispend;
         svga->rowcount                 = mach64->crtc_gen_cntl & 1;
-        svga->lut_map                  = (mach64->type >= MACH64_VT2);
+        svga->lut_map                  = (mach64->type >= MACH64_VT);
         svga->rowoffset <<= 1;
 
         if (mach64->type == MACH64_GX)
@@ -2605,7 +2607,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0xdd:
             case 0xde:
             case 0xdf:
-                if (mach64->type != MACH64_VT2)
+                if (mach64->type != MACH64_VT2 && mach64->type != MACH64_VT)
                     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
                 else
                     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 24) << 4);
@@ -4869,7 +4871,7 @@ mach64_common_init(const device_t *info)
     svga = &mach64->svga;
 
     mach64->type = info->local & 0xff;
-    mach64->vram_size = (mach64->type == MACH64_CT) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
+    mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
 
     if (mach64->type > MACH64_GX)
@@ -4904,7 +4906,7 @@ mach64_common_init(const device_t *info)
 
     svga->clock_gen = device_add(&ics2595_device);
 
-    if (mach64->type >= MACH64_VT2) {
+    if (mach64->type >= MACH64_VT) {
         svga->conv_16to32 = mach64_conv_16to32;
     }
 
@@ -4995,6 +4997,37 @@ mach64ct_init(const device_t *info)
     return mach64;
 }
 static void *
+mach64vt_init(const device_t *info)
+{
+    mach64_t *mach64 = mach64_common_init(info);
+    svga_t   *svga   = &mach64->svga;
+
+    svga->dac_hwcursor_draw = NULL;
+
+    svga->hwcursor.cur_ysize = 64;
+    svga->hwcursor.cur_xsize = 64;
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+
+    mach64->pci                  = 1;
+    mach64->vlb                  = 0;
+    mach64->pci_id               = 0x5654;
+    mach64->config_chip_id       = 0x08005654;
+    mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
+    mach64->config_stat0         = 4;
+    mach64->use_block_decoded_io = 4;
+
+    ati_eeprom_load(&mach64->eeprom, "mach64vt1.nvr", 1);
+
+    rom_init(&mach64->bios_rom, BIOS_ROMVT_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+    mem_mapping_disable(&mach64->bios_rom.mapping);
+
+    svga->vblank_start = mach64_vblank_start;
+
+    return mach64;
+}
+static void *
 mach64vt2_init(const device_t *info)
 {
     mach64_t *mach64 = mach64_common_init(info);
@@ -5045,6 +5078,11 @@ int
 mach64ct_available(void)
 {
     return rom_present(BIOS_ROMCT_PATH);
+}
+int
+mach64vt_available(void)
+{
+    return rom_present(BIOS_ROMVT_PATH);
 }
 int
 mach64vt2_available(void)
@@ -5179,6 +5217,20 @@ const device_t mach64ct_device = {
     .close         = mach64_close,
     .reset         = NULL,
     .available     = mach64ct_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = NULL
+};
+
+const device_t mach64vt_device = {
+    .name          = "ATI Mach64VT",
+    .internal_name = "mach64vt",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_VT,
+    .init          = mach64vt_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    .available     = mach64vt_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = NULL
