@@ -315,6 +315,24 @@ machine_at_win471_init(const machine_t *model)
 }
 
 int
+machine_at_win471t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/win471t/486-SiS_AB6680759.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_sis_85c471_common_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
 machine_at_vi15g_init(const machine_t *model)
 {
     int ret;
