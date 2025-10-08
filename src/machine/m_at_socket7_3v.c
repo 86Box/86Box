@@ -471,8 +471,8 @@ machine_at_monaco_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/monaco/1007cl0_.bio",
-                                    "roms/machines/monaco/1007cl0_.bi1",
+    ret = bios_load_linear_combined("roms/machines/monaco/1007CL0_.BIO",
+                                    "roms/machines/monaco/1007CL0_.BI1",
                                     0x20000, 128);
 
     if (bios_only || !ret)
