@@ -1348,6 +1348,9 @@ extern int             machine_xt_ataripc3_init(const machine_t *);
 extern int             machine_xt_bw230_init(const machine_t *);
 extern int             machine_xt_mpc1600_init(const machine_t *);
 extern int             machine_xt_compaq_portable_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t dtk_device;
+#endif
 extern int             machine_xt_dtk_init(const machine_t *);
 extern int             machine_xt_pcspirit_init(const machine_t *);
 extern int             machine_genxt_init(const machine_t *);
