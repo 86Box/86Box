@@ -219,7 +219,10 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
         progSource.remove(versionRegex);
     } else {
-        int ver = this->glslVersion.toLatin1().data()[0] * 100 + this->glslVersion.toLatin1().data()[1] * 10;
+        version_loc = ((char *) this->glslVersion.toLatin1().data()) + 9;
+        char glsl_ver[4] = { 0 };
+        memcpy(glsl_ver, version_loc, 3);
+        int ver = atoi((char *) glsl_ver);
         if (ver == 300)
             ver = 130;
         else if (ver == 310)
