@@ -445,10 +445,11 @@ RendererStack::createRenderer(Renderer renderer)
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    current->setStyleSheet("background-color: black");
     current->setAttribute(Qt::WA_AlwaysStackOnTop);
+    current->setAttribute(Qt::WA_OpaquePaintEvent):
+    current->setAttribute(Qt::WA_DontCreateNativeAncestors);
 
-    this->setStyleSheet("background-color: black");
+    this->setAttribute(Qt::WA_TranslucentBackground);
     boxLayout->addWidget(current.get());
 
     rendererWindow->r_monitor_index = m_monitor_index;
