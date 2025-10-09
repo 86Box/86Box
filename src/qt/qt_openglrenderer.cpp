@@ -219,7 +219,14 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
         progSource.remove(versionRegex);
     } else {
-        snprintf(version, 49, "%s\n", this->glslVersion.toLatin1().data());
+        int ver = this->glslVersion.toLatin1().data()[0] * 100 + this->glslVersion.toLatin1().data()[1] * 10;
+        if (ver == 300)
+            ver = 130;
+        else if (ver == 310)
+            ver = 140;
+        else if (ver == 320)
+            ver = 150;
+        snprintf(version, 49, "#version %d\n", ver);
     }
     
     /* Remove parameter lines. */
