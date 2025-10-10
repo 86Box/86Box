@@ -427,6 +427,91 @@ machine_at_optiplexgxl_init(const machine_t *model)
 
     return ret;
 }
+/* Taken from Monaco */
+static void
+machine_at_morrison64_gpio_init(void)
+{
+    uint32_t gpio = 0xffffe0cf;
+    uint16_t addr;
+
+    /* Register 0x0079: */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
+    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
+    /* Bit 0: 0 = 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+    if (cpu_busspeed <= 50000000)
+        gpio |= 0xffff0000;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff0800;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff1000;
+
+    if (cpu_dmulti <= 1.5)
+        gpio |= 0xffff0100;
+    else
+        gpio |= 0xffff0000;
+
+    machine_set_gpio_default(gpio);
+}
+
+uint32_t
+machine_at_morrison64_gpio_handler(uint8_t write, uint32_t val)
+{
+    uint32_t ret = machine_get_gpio_default();
+
+    if (write) {
+        ret &= ((val & 0xffffffcf) | 0xffff0000);
+        ret |= (val & 0x00000030);
+
+        machine_set_gpio(ret);
+    } else
+        ret = machine_get_gpio();
+
+    return ret;
+}
+
+int
+machine_at_pc330_65x6_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2("roms/machines/pc330_65x6/4B09CC0M.BIO",
+                                     "roms/machines/pc330_65x6/4B09CC0M.BI1",
+                                     "roms/machines/pc330_65x6/4B09CC0M.BI2",
+                                     "roms/machines/pc330_65x6/4B09CC0M.BI3",
+                                     0x3a000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+    
+    machine_at_common_init_ex(model, 2);
+    machine_at_morrison64_gpio_init();
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 3, 2, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 	  2, 1, 3, 4);
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
+    device_add(&intel_flash_bxt_ami_device);
+	
+	if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
 
 static void
 machine_at_zappa_gpio_init(void)
