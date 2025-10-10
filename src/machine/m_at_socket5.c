@@ -429,10 +429,31 @@ machine_at_optiplexgxl_init(const machine_t *model)
 }
 /* Taken from Monaco */
 static void
-machine_at_morrison64_gpio_init(void)
+machine_at_monaco_gpio_init(void)
 {
     uint32_t gpio = 0xffffe0cf;
     uint16_t addr;
+
+    /* Return to this after CS4232 PnP is working. */
+    /* Register 0x0078 (Undocumented): */
+    /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
+    /*device_context(machine_get_snd_device(machine));
+    addr = device_get_config_hex16("base");
+    switch (addr) {
+        case 0x0220:
+            gpio |= 0xffff00cf;
+            break;
+        case 0x0240:
+            gpio |= 0xffff00ef;
+            break;
+        case 0x0260:
+            gpio |= 0xffff00df;
+            break;
+        case 0x0280:
+            gpio |= 0xffff00ff;
+            break;
+    }
+    device_context_restore();*/
 
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
@@ -454,16 +475,21 @@ machine_at_morrison64_gpio_init(void)
     else if (cpu_busspeed > 60000000)
         gpio |= 0xffff1000;
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        gpio |= 0xffff0400;
+
     if (cpu_dmulti <= 1.5)
-        gpio |= 0xffff0100;
-    else
-        gpio |= 0xffff0000;
+        gpio |= 0xffff01af;
+    else if (cpu_dmulti <= 2.0)
+        gpio |= 0xffffe2af;
+	if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
+		gpio |= 0xffffe5cf;
 
     machine_set_gpio_default(gpio);
 }
 
 uint32_t
-machine_at_morrison64_gpio_handler(uint8_t write, uint32_t val)
+machine_at_monaco_gpio_handler(uint8_t write, uint32_t val)
 {
     uint32_t ret = machine_get_gpio_default();
 
@@ -487,13 +513,14 @@ machine_at_pc330_65x6_init(const machine_t *model)
                                      "roms/machines/pc330_65x6/4B09CC0M.BI1",
                                      "roms/machines/pc330_65x6/4B09CC0M.BI2",
                                      "roms/machines/pc330_65x6/4B09CC0M.BI3",
+                                     "roms/machines/pc330_65x6/4B09CC0M.BAK",
                                      0x3a000, 128);
 
     if (bios_only || !ret)
         return ret;
     
     machine_at_common_init_ex(model, 2);
-    machine_at_morrison64_gpio_init();
+    machine_at_monaco_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
