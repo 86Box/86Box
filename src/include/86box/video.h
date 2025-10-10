@@ -27,8 +27,8 @@ using atomic_int  = std::atomic_int;
 #    include <stdatomic.h>
 #endif
 
-#define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16))
-#define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
+#define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16) | 0xff000000)
+#define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16) | 0xff000000)
 #define getcolr(color) (((color) >> 16) & 0xFF)
 #define getcolg(color) (((color) >> 8) & 0xFF)
 #define getcolb(color) ((color) & 0xFF)

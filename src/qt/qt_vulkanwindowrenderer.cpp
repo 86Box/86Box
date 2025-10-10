@@ -823,7 +823,7 @@ public:
 #    endif /* 0*/
 
 VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
-    : QVulkanWindow(parent->windowHandle())
+    : QVulkanWindow(NULL)
 {
     parentWidget = parent;
     instance.setApiVersion(QVersionNumber(1, 0));
