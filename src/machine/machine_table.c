@@ -3105,7 +3105,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_XTA | MACHINE_VIDEO_FIXED,
         .ram       = {
             .min  = 512,
-            .max  = 16384,
+            .max  = 4096,
             .step = 512
         },
         .nvrmask                  = 127,
@@ -4959,7 +4959,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
-            .max  = 10240,
+            .max  = 12288,
             .step = 1024
         },
         .nvrmask                  = 63,
