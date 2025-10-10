@@ -1155,6 +1155,36 @@ machine_at_i430vx_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_55a5_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/55a5/54as-s3.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&w83877_device, (void *) (W83877F | W83877_3F0));
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
 /* i430TX */
 int
 machine_at_nupro592_init(const machine_t *model)
@@ -1422,22 +1452,36 @@ machine_at_ma23c_init(const machine_t *model)
 static const device_config_t an430tx_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "pb79x",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "PhoenixBIOS 4.0 Release 6.0 - Revision P02-0011 (Sony Vaio PCV-130/150)", .internal_name = "vaio150", .bios_type = BIOS_NORMAL,
-              .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/an430tx/P02-0011.BIO", "roms/machines/an430tx/P02-0011.BI1",
-                                                                    "roms/machines/an430tx/P02-0011.BI2", "roms/machines/an430tx/P02-0011.BI3",
-                                                                    "roms/machines/an430tx/P02-0011.RCV", "" } },
-            { .name = "PhoenixBIOS 4.0 Release 6.0 - Revision P09-0006 (Packard Bell PB79x)", .internal_name = "pb79x", .bios_type = BIOS_NORMAL,
-              .files_no = 5, .local = 0, .size = 262144, .files = { "roms/machines/an430tx/ANP0911A.BIO", "roms/machines/an430tx/ANP0911A.BI1",
-                                                                    "roms/machines/an430tx/ANP0911A.BI2", "roms/machines/an430tx/ANP0911A.BI3",
-                                                                    "roms/machines/an430tx/ANP0911A.RCV", "" } },
+        .default_int    = 0,
+        .file_filter    = "",
+        .spinner        = { 0 },
+        .bios           = {
+            { 
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P02-0011 (Sony Vaio PCV-130/150)",
+                .internal_name = "vaio150",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/an430tx/P02-0011.BIO", "roms/machines/an430tx/P02-0011.BI1",
+                                   "roms/machines/an430tx/P02-0011.BI2", "roms/machines/an430tx/P02-0011.BI3",
+                                   "roms/machines/an430tx/P02-0011.RCV", "" }
+            },
+            { 
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P09-0006 (Packard Bell PB79x)",
+                .internal_name = "pb79x",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/an430tx/ANP0911A.BIO", "roms/machines/an430tx/ANP0911A.BI1",
+                                   "roms/machines/an430tx/ANP0911A.BI2", "roms/machines/an430tx/ANP0911A.BI3",
+                                   "roms/machines/an430tx/ANP0911A.RCV", "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -1491,7 +1535,7 @@ machine_at_an430tx_init(const machine_t *model)
 #ifdef FOLLOW_THE_SPECIFICATION
     device_add_params(&pc87307_device, (void *) (PCX730X_PHOENIX_42I | PCX7307_PC97307));
 #else
-    /* The technical specification says Phoenix, a real machnine HWINFO dump says AMI '5'. */
+    /* The technical specification says Phoenix, a real machine HWINFO dump says AMI '5'. */
     device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC97307));
 #endif
     device_add(&intel_flash_bxt_ami_device);
