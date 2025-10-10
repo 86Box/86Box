@@ -822,7 +822,7 @@ OpenGLRenderer::read_shader_config()
 }
 
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
-    : QWindow(parent->windowHandle())
+    : QWindow((QWindow*)nullptr)
     , renderTimer(new QTimer(this))
 {
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); } );
