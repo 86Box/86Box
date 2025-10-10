@@ -427,9 +427,9 @@ machine_at_optiplexgxl_init(const machine_t *model)
 
     return ret;
 }
-/* Taken from Monaco */
+/* Some stuff taken from Monaco */
 static void
-machine_at_monaco_gpio_init(void)
+machine_at_morrison64_gpio_init(void)
 {
     uint32_t gpio = 0xffffe0cf;
     uint16_t addr;
@@ -489,7 +489,7 @@ machine_at_monaco_gpio_init(void)
 }
 
 uint32_t
-machine_at_monaco_gpio_handler(uint8_t write, uint32_t val)
+machine_at_morrison64_gpio_handler(uint8_t write, uint32_t val)
 {
     uint32_t ret = machine_get_gpio_default();
 
@@ -520,7 +520,7 @@ machine_at_pc330_65x6_init(const machine_t *model)
         return ret;
     
     machine_at_common_init_ex(model, 2);
-    machine_at_monaco_gpio_init();
+    machine_at_morrison64_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
