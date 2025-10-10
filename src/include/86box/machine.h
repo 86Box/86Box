@@ -917,9 +917,8 @@ extern int             machine_at_acerv30_init(const machine_t *);
 extern int             machine_at_apollo_init(const machine_t *);
 extern int             machine_at_optiplexgxl_init(const machine_t *);
 extern int             machine_at_pt2000_init(const machine_t *);
-#ifdef EMU_DEVICE_H
+extern int             machine_at_pc330_65x6_init(const machine_t *);
 extern const device_t  zappa_device;
-#endif
 extern int             machine_at_zappa_init(const machine_t *);
 extern int             machine_at_powermatev_init(const machine_t *);
 extern int             machine_at_hawk_init(const machine_t *);

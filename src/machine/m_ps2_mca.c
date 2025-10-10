@@ -507,7 +507,7 @@ model_50_write(uint16_t port, uint8_t val)
             ps2.option[0] = val;
             break;
         case 0x103:
-            ps2.option[1] = val;
+            ps2.option[1] = (ps2.option[1] & 0xfe) | (val & 0x01);
             break;
         case 0x104:
             ps2.option[2] = val;
@@ -1163,6 +1163,29 @@ ps2_mca_board_model_50_init(void)
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
 
+    /*
+     I/O 103h - Bit 3: Memory Presence Detect 2
+                Bit 2: Memory Presence Detect 1
+                Bit 1: Password Override Jumper
+                Bit 0: Enable System Board RAM
+    */
+
+    switch (mem_size / 1024) {
+        case 0: /*256Kx2*/
+            ps2.option[1] = 0xf8;
+            break;
+        case 1: /*512Kx2*/
+            ps2.option[1] = 0xf4;
+            break;
+        case 2: /*1Mx2*/
+        default:
+            ps2.option[1] = 0xf0;
+            break;
+    }
+
+    /* Enable password function */
+    ps2.option[1] |= 0x02;
+
     if (mem_size > 2048) {
         /* Only 2 MB supported on planar, create a memory expansion card for the rest */
         ps2_mca_mem_fffc_init(2);
@@ -1183,9 +1206,36 @@ ps2_mca_board_model_60_init(void)
     ps2.planar_read  = model_50_read;
     ps2.planar_write = model_50_write;
 
-    if (mem_size > 2048) {
-        /* Only 2 MB supported on planar, create a memory expansion card for the rest */
-        ps2_mca_mem_fffc_init(2);
+    /*
+     I/O 103h - Bit 3: Memory Presence Detect 2 (Reversed)
+                Bit 2: Memory Presence Detect 1 (Reversed)
+                Bit 1: Password Override Jumper
+                Bit 0: Enable System Board RAM
+    */
+
+    switch (mem_size / 1024) {
+        case 0: /*256Kx2*/
+            ps2.option[1] = 0xf0;
+            break;       
+        case 1: /*256Kx4*/
+            ps2.option[1] = 0xf4;
+            break;
+        case 2: /*512Kx4*/
+        case 3: /*Not supported*/
+            ps2.option[1] = 0xf8;
+            break;
+        case 4: /*1Mx4*/
+        default:
+            ps2.option[1] = 0xfc;
+            break;
+    }
+    
+    /* Enable password function */
+    ps2.option[1] |= 0x02;
+
+    if (mem_size > 4096) {
+        /* Only 4 MB supported on planar, create a memory expansion card for the rest */
+        ps2_mca_mem_fffc_init(4);
     }
 
     device_add(&ps2_nvr_55ls_device);

@@ -377,7 +377,7 @@ RendererStack::createRenderer(Renderer renderer)
 #ifdef __HAIKU__
                 current.reset(sw);
 #else
-                current.reset(this->createWindowContainer(sw, this));
+                current.reset(this->createWindowContainer(sw));
 #endif
             }
             break;
@@ -399,7 +399,7 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
-                current.reset(this->createWindowContainer(hw, this));
+                current.reset(this->createWindowContainer(hw));
                 break;
             }
 #if QT_CONFIG(vulkan)
@@ -434,7 +434,7 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
-                current.reset(this->createWindowContainer(hw, this));
+                current.reset(this->createWindowContainer(hw));
                 break;
             }
 #endif
@@ -446,7 +446,9 @@ RendererStack::createRenderer(Renderer renderer)
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     current->setAttribute(Qt::WA_AlwaysStackOnTop);
+    current->setStyleSheet("background-color: black");
 
+    this->setStyleSheet("background-color: black");
     boxLayout->addWidget(current.get());
 
     rendererWindow->r_monitor_index = m_monitor_index;
