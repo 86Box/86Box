@@ -12432,7 +12432,7 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
     {
-        .name = "[i430FX] IBM PC330/350 type 65x6 (Intel Advanced/MN OEM)",
+        .name = "[i430FX] IBM PC 330/350 type 65x6 (Intel Advanced/MN OEM)",
         .internal_name = "pc330_65x6",
         .type = MACHINE_TYPE_SOCKET5,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
@@ -12443,7 +12443,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3380,
