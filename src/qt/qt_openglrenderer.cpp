@@ -218,6 +218,12 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
     if (version_loc) {
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
         progSource.remove(versionRegex);
+
+        version_loc = ((char *) this->glslVersion.toLatin1().data()) + 9;
+        char glsl_ver[4] = { 0 };
+        memcpy(glsl_ver, version_loc, 3);
+        int ver = atoi((char *) glsl_ver);
+        pclog("Fucce þiċ: %d\n", ver);
     } else {
         version_loc = ((char *) this->glslVersion.toLatin1().data()) + 9;
         char glsl_ver[4] = { 0 };
@@ -483,8 +489,8 @@ OpenGLRenderer::create_fbo(struct shader_fbo *fbo)
 void
 OpenGLRenderer::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
 {
-    fbo->texture.internal_format = GL_RGBA8;
-    fbo->texture.format          = GL_RGBA;
+    fbo->texture.internal_format = GL_RGB8;
+    fbo->texture.format          = GL_RGB;
     fbo->texture.min_filter = fbo->texture.mag_filter = shader->filter_linear ? GL_LINEAR : GL_NEAREST;
     fbo->texture.width                                = 2048;
     fbo->texture.height                               = 2048;
@@ -499,10 +505,10 @@ OpenGLRenderer::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
         fbo->texture.wrap_mode = GL_CLAMP_TO_BORDER;
     fbo->srgb = 0;
     if (shader->srgb_framebuffer) {
-        fbo->texture.internal_format = GL_SRGB8_ALPHA8;
+        fbo->texture.internal_format = GL_SRGB8;
         fbo->srgb                    = 1;
     } else if (shader->float_framebuffer) {
-        fbo->texture.internal_format = GL_RGBA32F;
+        fbo->texture.internal_format = GL_RGB32F;
         fbo->texture.type            = GL_FLOAT;
     }
 
@@ -596,7 +602,7 @@ load_texture(const char *f, struct shader_texture *tex)
     width  = img.size().width();
     height = img.size().height();
 
-    img.convertTo(QImage::Format_RGBA8888);
+    img.convertTo(QImage::Format_RGB888);
 
     const GLubyte *rgb = img.constBits();
 
@@ -617,8 +623,8 @@ load_texture(const char *f, struct shader_texture *tex)
 
     tex->width           = width;
     tex->height          = height;
-    tex->internal_format = GL_RGBA8;
-    tex->format          = GL_RGBA;
+    tex->internal_format = GL_RGB8;
+    tex->format          = GL_RGB;
     tex->type            = GL_UNSIGNED_BYTE;
     tex->data            = data;
     return 1;
@@ -1158,7 +1164,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     if (source.width() != w || source.height() != h) {
         glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
-        glw.glTexImage2D(GL_TEXTURE_2D, 0, (GLenum) QOpenGLTexture::RGBA8_UNorm, w, h, 0, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
+        glw.glTexImage2D(GL_TEXTURE_2D, 0, (GLenum) QOpenGLTexture::RGB8_UNorm, w, h, 0, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
         glw.glBindTexture(GL_TEXTURE_2D, 0);
     }
 
