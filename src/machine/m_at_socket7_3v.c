@@ -576,17 +576,73 @@ machine_at_atlantis_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t monaco_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "monaco",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.07.BU0",
+                .internal_name = "monaco",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/monaco/1007BU0_.BIO", "roms/machines/monaco/1007BU0_.BI1", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.12.BU0Q (AST Bravo MS-T)",
+                .internal_name = "bravomst",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/monaco/1012BU0Q.BIO", "roms/machines/monaco/1012BU0Q.BI1", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t monaco_device = {
+    .name          = "Intel Advanced/MA (Monaco)",
+    .internal_name = "monaco_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = monaco_config
+};
+
 int
 machine_at_monaco_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
+    const char *fn2;
 
-    ret = bios_load_linear_combined("roms/machines/monaco/1007BU0_.BIO",
-                                    "roms/machines/monaco/1007BU0_.BI1",
-                                    0x20000, 128);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
+    ret = bios_load_linear_combined(fn, fn2, 0x20000, 128);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
     machine_at_monaco_gpio_init();

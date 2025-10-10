@@ -964,6 +964,9 @@ extern int             machine_at_monaco_init(const machine_t *);
 extern uint32_t        machine_at_endeavor_gpio_handler(uint8_t write, uint32_t val);
 extern int             machine_at_endeavor_init(const machine_t *);
 extern int             machine_at_atlantis_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  monaco_device;
+#endif
 extern int             machine_at_monaco_init(const machine_t *);
 extern int             machine_at_ms5119_init(const machine_t *);
 extern int             machine_at_pb640_init(const machine_t *);
