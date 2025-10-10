@@ -509,12 +509,8 @@ machine_at_pc330_65x6_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/pc330_65x6/4B09CC0M.BIO",
-                                     "roms/machines/pc330_65x6/4B09CC0M.BI1",
-                                     "roms/machines/pc330_65x6/4B09CC0M.BI2",
-                                     "roms/machines/pc330_65x6/4B09CC0M.BI3",
-                                     "roms/machines/pc330_65x6/4B09CC0M.BAK",
-                                     0x3a000, 128);
+    ret = bios_load_linear("roms/machines/pc330_65x6/intel.bin",
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
         return ret;
