@@ -29,6 +29,7 @@ extern const device_t sst_flash_29ee020_device;
 
 extern const device_t winbond_flash_w29c512_device;
 extern const device_t winbond_flash_w29c010_device;
+extern const device_t winbond_flash_w29c011a_device;
 extern const device_t winbond_flash_w29c020_device;
 extern const device_t winbond_flash_w29c040_device;
 
