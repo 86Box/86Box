@@ -906,8 +906,8 @@ OpenGLRenderer::initialize()
         scene_texture.data            = NULL;
         scene_texture.width           = 2048;
         scene_texture.height          = 2048;
-        scene_texture.internal_format = GL_RGBA8;
-        scene_texture.format          = GL_BGRA;
+        scene_texture.internal_format = GL_RGB8;
+        scene_texture.format          = GL_BGR;
         scene_texture.type            = GL_UNSIGNED_INT_8_8_8_8_REV;
         scene_texture.wrap_mode       = GL_CLAMP_TO_BORDER;
         scene_texture.min_filter = scene_texture.mag_filter = video_filter_method ? GL_LINEAR : GL_NEAREST;
