@@ -16568,7 +16568,7 @@ const machine_t machines[] = {
             .max_bus     = 100000000,
             .min_voltage = 1300,
             .max_voltage = 3520,
-            .min_multi   = 2.0,
+            .min_multi   = 1.5,
             .max_multi   = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
