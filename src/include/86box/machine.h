@@ -917,6 +917,10 @@ extern int             machine_at_acerv30_init(const machine_t *);
 extern int             machine_at_apollo_init(const machine_t *);
 extern int             machine_at_optiplexgxl_init(const machine_t *);
 extern int             machine_at_pt2000_init(const machine_t *);
+extern int             machine_at_pc330_65x6_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  zappa_device;
+#endif
 extern int             machine_at_zappa_init(const machine_t *);
 extern int             machine_at_powermatev_init(const machine_t *);
 extern int             machine_at_hawk_init(const machine_t *);
@@ -964,6 +968,9 @@ extern int             machine_at_monaco_init(const machine_t *);
 extern uint32_t        machine_at_endeavor_gpio_handler(uint8_t write, uint32_t val);
 extern int             machine_at_endeavor_init(const machine_t *);
 extern int             machine_at_atlantis_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  monaco_device;
+#endif
 extern int             machine_at_monaco_init(const machine_t *);
 extern int             machine_at_ms5119_init(const machine_t *);
 extern int             machine_at_pb640_init(const machine_t *);
@@ -1110,6 +1117,7 @@ extern int             machine_at_delhi3_init(const machine_t *);
 extern int             machine_at_mvp3_init(const machine_t *);
 extern int             machine_at_ficva503a_init(const machine_t *);
 extern int             machine_at_5emapro_init(const machine_t *);
+extern int             machine_at_k6bv3p_a_init(const machine_t *);
 
 /* SiS 5591 */
 extern int             machine_at_5sg100_init(const machine_t *);

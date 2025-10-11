@@ -430,6 +430,37 @@ machine_at_5emapro_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_k6bv3p_a_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/k6bv3p_a/KB3A0805.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 5);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 5);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 5);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 5, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 5, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      5, 1, 2, 3);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 5);
+
+    device_add(&via_mvp3_device);
+    device_add(&via_vt82c586b_device);
+    device_add_params(&fdc37c669_device, (void *) 0); /* jmi2k: what's that param? */
+    device_add(&winbond_flash_w29c011a_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
 /* SiS 5591 */
 int
 machine_at_5sg100_init(const machine_t *model)
