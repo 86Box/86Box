@@ -17,7 +17,7 @@
  *          Copyright 2021-2022 Teemu Korhonen
  */
 #ifdef __HAIKU__
-#include <OS.h>
+#    include <OS.h>
 #endif
 
 #include <cstdio>
@@ -125,7 +125,7 @@ extern "C" {
 #include <86box/config.h>
 #include <86box/ui.h>
 #ifdef DISCORD
-#   include <86box/discord.h>
+#    include <86box/discord.h>
 #endif
 
 #include "../cpu/cpu.h"
@@ -186,9 +186,9 @@ plat_get_exe_name(char *s, int size)
     if (acp_utf8)
         GetModuleFileNameA(NULL, s, size);
     else {
-        temp = (wchar_t*)calloc(size, sizeof(wchar_t));
+        temp = (wchar_t *) calloc(size, sizeof(wchar_t));
         GetModuleFileNameW(NULL, temp, size);
-        c16stombs(s, (uint16_t*)temp, size);
+        c16stombs(s, (uint16_t *) temp, size);
         free(temp);
     }
 #else
@@ -254,7 +254,7 @@ plat_file_check(const char *path)
 {
 #ifdef _WIN32
     auto data = QString::fromUtf8(path).toStdWString();
-    auto res = GetFileAttributesW(data.c_str());
+    auto res  = GetFileAttributesW(data.c_str());
     return (res != INVALID_FILE_ATTRIBUTES) && !(res & FILE_ATTRIBUTE_DIRECTORY);
 #else
     struct stat stats;
@@ -269,12 +269,12 @@ plat_getcwd(char *bufp, int max)
 {
 #ifdef __APPLE__
     /* Working directory for .app bundles is undefined. */
-#ifdef USE_EXE_PATH
+#    ifdef USE_EXE_PATH
     strncpy(bufp, exe_path, max);
-#else
+#    else
     CharPointer(bufp, max) = QDir::homePath().toUtf8();
     path_append_filename(bufp, bufp, "Library/86Box");
-#endif
+#    endif
 #else
     CharPointer(bufp, max) = QDir::currentPath().toUtf8();
 #endif
@@ -320,7 +320,7 @@ path_get_filename(char *s)
 
     return s;
 #else
-    auto idx               = QByteArray::fromRawData(s, strlen(s)).lastIndexOf(QDir::separator().toLatin1());
+    auto idx = QByteArray::fromRawData(s, strlen(s)).lastIndexOf(QDir::separator().toLatin1());
     if (idx >= 0) {
         return s + idx + 1;
     }
@@ -390,7 +390,7 @@ path_append_filename(char *dest, const char *s1, const char *s2)
     if (len > 0 && dest[len - 1] != '/' && dest[len - 1] != '\\') {
         if (len + 1 < dest_size) {
             dest[len++] = '/';
-            dest[len] = '\0';
+            dest[len]   = '\0';
         }
     }
 
@@ -453,58 +453,58 @@ extern bool cpu_thread_running;
 
 #ifdef Q_OS_WINDOWS
 /* SetThreadDescription was added in 14393 and SetProcessInformation in 8. Revisit if we ever start requiring 10. */
-static void *kernel32_handle = NULL;
-static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription) = NULL;
+static void *kernel32_handle                                                                                                                                                = NULL;
+static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription)                                                                                   = NULL;
 static HRESULT(WINAPI *pSetProcessInformation)(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, LPVOID ProcessInformation, DWORD ProcessInformationSize) = NULL;
-static dllimp_t kernel32_imports[] = {
-  // clang-format off
+static dllimp_t kernel32_imports[]                                                                                                                                          = {
+    // clang-format off
     { "SetThreadDescription",  &pSetThreadDescription  },
     { "SetProcessInformation", &pSetProcessInformation },
     { NULL,                    NULL                    }
-  // clang-format on
+    // clang-format on
 };
 
 static void
 enter_pause(void)
 {
-    PROCESS_POWER_THROTTLING_STATE state{};
-    state.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    PROCESS_POWER_THROTTLING_STATE state {};
+    state.Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
     state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
-    state.StateMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    state.StateMask   = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
 
     if (!kernel32_handle) {
         kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
         if (!kernel32_handle) {
-            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
-            pSetThreadDescription = NULL;
+            kernel32_handle        = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription  = NULL;
             pSetProcessInformation = NULL;
         }
     }
 
     if (pSetProcessInformation) {
-        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID)&state, sizeof(state));
+        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &state, sizeof(state));
     }
 }
 
 void
 exit_pause(void)
 {
-    PROCESS_POWER_THROTTLING_STATE state{};
-    state.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    PROCESS_POWER_THROTTLING_STATE state {};
+    state.Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
     state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
-    state.StateMask = 0;
+    state.StateMask   = 0;
 
     if (!kernel32_handle) {
         kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
         if (!kernel32_handle) {
-            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
-            pSetThreadDescription = NULL;
+            kernel32_handle        = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription  = NULL;
             pSetProcessInformation = NULL;
         }
     }
 
     if (pSetProcessInformation) {
-        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID)&state, sizeof(state));
+        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &state, sizeof(state));
     }
 }
 #endif
@@ -695,13 +695,13 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #endif
 
 #ifdef _WIN32
-#    define LIB_NAME_GS          "gsdll64.dll"
-#    define LIB_NAME_GPCL        "gpcl6dll64.dll"
-#    define LIB_NAME_PCAP        "Npcap"
+#    define LIB_NAME_GS   "gsdll64.dll"
+#    define LIB_NAME_GPCL "gpcl6dll64.dll"
+#    define LIB_NAME_PCAP "Npcap"
 #else
-#    define LIB_NAME_GS          "libgs"
-#    define LIB_NAME_GPCL        "libgpcl6"
-#    define LIB_NAME_PCAP        "libpcap"
+#    define LIB_NAME_GS   "libgs"
+#    define LIB_NAME_GPCL "libgpcl6"
+#    define LIB_NAME_PCAP "libpcap"
 #endif
 
 QMap<int, std::wstring> ProgSettings::translatedstrings;
@@ -837,15 +837,16 @@ plat_init_rom_paths(void)
 }
 
 void
-plat_get_cpu_string(char *outbuf, uint8_t len) {
+plat_get_cpu_string(char *outbuf, uint8_t len)
+{
     auto cpu_string = QString("Unknown");
     /* Write the default string now in case we have to exit early from an error */
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
 
 #if defined(Q_OS_MACOS)
-    auto *process = new QProcess(nullptr);
+    auto       *process = new QProcess(nullptr);
     QStringList arguments;
-    QString program = "/usr/sbin/sysctl";
+    QString     program = "/usr/sbin/sysctl";
     arguments << "machdep.cpu.brand_string";
     process->start(program, arguments);
     if (!process->waitForStarted()) {
@@ -854,9 +855,9 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
     if (!process->waitForFinished()) {
         return;
     }
-    QByteArray result = process->readAll();
-    auto command_result = QString(result).split(": ").last().trimmed();
-    if(!command_result.isEmpty()) {
+    QByteArray result         = process->readAll();
+    auto       command_result = QString(result).split(": ").last().trimmed();
+    if (!command_result.isEmpty()) {
         cpu_string = command_result;
     }
 #elif defined(Q_OS_WINDOWS)
@@ -868,38 +869,36 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
     bufSize = 32768;
     if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
         if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
-            cpu_string = reinterpret_cast<const char*>(buf);
+            cpu_string = reinterpret_cast<const char *>(buf);
         }
         RegCloseKey(hKey);
     }
 #elif defined(Q_OS_LINUX)
-    auto cpuinfo = QString("/proc/cpuinfo");
+    auto cpuinfo    = QString("/proc/cpuinfo");
     auto cpuinfo_fi = QFileInfo(cpuinfo);
-    if(!cpuinfo_fi.isReadable()) {
+    if (!cpuinfo_fi.isReadable()) {
         return;
     }
     QFile file(cpuinfo);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream textStream(&file);
-        while(true) {
+        while (true) {
             QString line = textStream.readLine();
             if (line.isNull()) {
                 break;
             }
-            if(QRegularExpression("model name.*:").match(line).hasMatch()) {
+            if (QRegularExpression("model name.*:").match(line).hasMatch()) {
                 auto list = line.split(": ");
-                if(!list.last().isEmpty()) {
+                if (!list.last().isEmpty()) {
                     cpu_string = list.last();
                     break;
                 }
             }
-
         }
     }
 #endif
 
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
-
 }
 
 void
@@ -909,14 +908,14 @@ plat_set_thread_name(void *thread, const char *name)
     if (!kernel32_handle) {
         kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
         if (!kernel32_handle) {
-            kernel32_handle = kernel32_imports; /* store dummy pointer to avoid trying again */
-            pSetThreadDescription = NULL;
+            kernel32_handle        = kernel32_imports; /* store dummy pointer to avoid trying again */
+            pSetThreadDescription  = NULL;
             pSetProcessInformation = NULL;
         }
     }
 
     if (pSetThreadDescription) {
-        size_t len = strlen(name) + 1;
+        size_t  len = strlen(name) + 1;
         wchar_t wname[2048];
         mbstowcs(wname, name, (len >= 1024) ? 1024 : len);
         pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
@@ -935,7 +934,7 @@ plat_set_thread_name(void *thread, const char *name)
 #    if defined(Q_OS_DARWIN)
     pthread_setname_np(truncated);
 #    elif defined(Q_OS_NETBSD)
-    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, (void*)"%s");
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, (void *) "%s");
 #    elif defined(__HAIKU__)
     rename_thread(find_thread(NULL), truncated);
 #    elif defined(Q_OS_OPENBSD)

@@ -38,6 +38,7 @@ private slots:
 
 private:
     Ui::SettingsOtherRemovable *ui;
+
     void setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
     void setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
     void enableCurrentlySelectedChannel_MO();
