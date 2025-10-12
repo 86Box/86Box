@@ -1139,6 +1139,7 @@ extern int             machine_at_acerv60n_init(const machine_t *);
 extern int             machine_at_p65up5_cp6nd_init(const machine_t *);
 extern int             machine_at_8600ttc_init(const machine_t *);
 extern int             machine_at_686nx_init(const machine_t *);
+extern uint32_t        machine_ap440fx_vs440fx_gpio_handler(uint8_t write, uint32_t val);
 extern int             machine_at_ap440fx_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  vs440fx_device;
