@@ -47,7 +47,7 @@ SettingsBusTracking::next_free_mke_channel()
     uint8_t  ret = CHANNEL_NONE;
 
     for (uint8_t i = 0; i < 4; i++) {
-        mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (!(mke_tracking & mask)) {
             ret = (uint8_t) i;
@@ -65,7 +65,7 @@ SettingsBusTracking::next_free_mfm_channel()
     uint8_t  ret = CHANNEL_NONE;
 
     for (uint8_t i = 0; i < 2; i++) {
-        mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (!(mfm_tracking & mask)) {
             ret = (uint8_t) i;
@@ -83,7 +83,7 @@ SettingsBusTracking::next_free_esdi_channel()
     uint8_t  ret = CHANNEL_NONE;
 
     for (uint8_t i = 0; i < 2; i++) {
-        mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (!(esdi_tracking & mask)) {
             ret = (uint8_t) i;
@@ -101,7 +101,7 @@ SettingsBusTracking::next_free_xta_channel()
     uint8_t  ret = CHANNEL_NONE;
 
     for (uint8_t i = 0; i < 2; i++) {
-        mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (!(xta_tracking & mask)) {
             ret = (uint8_t) i;
@@ -236,7 +236,9 @@ SettingsBusTracking::scsi_bus_full()
     return (count == 64);
 }
 
-QList<int> SettingsBusTracking::busChannelsInUse(const int bus) {
+QList<int>
+SettingsBusTracking::busChannelsInUse(const int bus)
+{
 
     QList<int> channelsInUse;
     int        element;
@@ -277,7 +279,7 @@ QList<int> SettingsBusTracking::busChannelsInUse(const int bus) {
         case HDD_BUS_IDE:
             for (uint8_t i = 0; i < 32; i++) {
                 element = ((i << 3) >> 6);
-                mask = ((uint64_t) 0xffULL) << ((uint64_t) ((i << 3) & 0x3f));
+                mask    = ((uint64_t) 0xffULL) << ((uint64_t) ((i << 3) & 0x3f));
                 if (ide_tracking[element] & mask)
                     channelsInUse.append(i);
             }
@@ -285,7 +287,7 @@ QList<int> SettingsBusTracking::busChannelsInUse(const int bus) {
         case HDD_BUS_ATAPI:
             for (uint8_t i = 0; i < 32; i++) {
                 element = ((i << 3) >> 6);
-                mask = ((uint64_t) 0xffULL) << ((uint64_t) ((i << 3) & 0x3f));
+                mask    = ((uint64_t) 0xffULL) << ((uint64_t) ((i << 3) & 0x3f));
                 if (ide_tracking[element] & mask)
                     channelsInUse.append(i);
             }

@@ -27,17 +27,17 @@ public:
     };
     Q_ENUM(ConfigType);
 
-    explicit VMManagerConfig(ConfigType type, const QString& section = {});
+    explicit VMManagerConfig(ConfigType type, const QString &section = {});
     ~VMManagerConfig() override;
-    [[nodiscard]] QString getStringValue(const QString& key) const;
-    void setStringValue(const QString& key, const QString& value) const;
-    void remove(const QString &key) const;
+    [[nodiscard]] QString getStringValue(const QString &key) const;
+    void                  setStringValue(const QString &key, const QString &value) const;
+    void                  remove(const QString &key) const;
 
     void sync() const;
 
     QSettings *settings;
     ConfigType config_type;
-    QString system_name;
+    QString    system_name;
 };
 
 #endif // QT_VMMANAGER_CONFIG_H

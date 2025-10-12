@@ -78,7 +78,7 @@ public:
 
     QString getMessage();
     void    clearActivity();
-    void    setSoundMenu(QMenu* menu);
+    void    setSoundMenu(QMenu *menu);
 public slots:
     void refresh(QStatusBar *sbar);
     void message(const QString &msg);

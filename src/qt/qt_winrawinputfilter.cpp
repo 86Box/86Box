@@ -51,7 +51,7 @@
 #include <windows.h>
 #include <dwmapi.h>
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#    define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
 #include <86box/keyboard.h>
@@ -63,7 +63,7 @@
 #include <dbt.h>
 #include <strsafe.h>
 
-extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
+extern void win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 
 #include <array>
 #include <memory>
@@ -74,15 +74,15 @@ extern void    win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 
 bool NewDarkMode = FALSE;
 
-extern MainWindow* main_window;
+extern MainWindow *main_window;
 
 struct
 {
-    HANDLE done_event = 0, ready_event = 0;
-    std::atomic_bool done{false};
+    HANDLE           done_event = 0, ready_event = 0;
+    std::atomic_bool done { false };
 
-    size_t rawinput_offset = 0, rawinput_size = 0;
-    uint8_t* rawinput = nullptr;
+    size_t   rawinput_offset = 0, rawinput_size = 0;
+    uint8_t *rawinput = nullptr;
 
     HANDLE thread = 0;
 } win_rawinput_data;
@@ -91,11 +91,11 @@ static void
 win_poll_mouse(void)
 {
     // Yes, this is a thing in C++.
-    auto* data = &win_rawinput_data;
-    uint32_t size, i, count, total = 0;
+    auto     *data = &win_rawinput_data;
+    uint32_t  size, i, count, total = 0;
     RAWINPUT *input;
-    //static int64_t ms_time = plat_get_ticks();
-    
+    // static int64_t ms_time = plat_get_ticks();
+
     if (data->rawinput_offset == 0) {
         BOOL isWow64;
 
@@ -106,18 +106,18 @@ win_poll_mouse(void)
         }
     }
 
-    input = (RAWINPUT *)data->rawinput;
+    input = (RAWINPUT *) data->rawinput;
     for (;;) {
-        size = data->rawinput_size - (UINT)((BYTE *)input - data->rawinput);
+        size  = data->rawinput_size - (UINT) ((BYTE *) input - data->rawinput);
         count = GetRawInputBuffer(input, &size, sizeof(RAWINPUTHEADER));
-        if (count == 0 || count == (UINT)-1) {
-            if (!data->rawinput || (count == (UINT)-1 && GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
-                const UINT RAWINPUT_BUFFER_SIZE_INCREMENT = 96;   // 2 64-bit raw mouse packets
-                BYTE *rawinput = (BYTE *)realloc(data->rawinput, data->rawinput_size + RAWINPUT_BUFFER_SIZE_INCREMENT);
+        if (count == 0 || count == (UINT) -1) {
+            if (!data->rawinput || (count == (UINT) -1 && GetLastError() == ERROR_INSUFFICIENT_BUFFER)) {
+                const UINT RAWINPUT_BUFFER_SIZE_INCREMENT = 96; // 2 64-bit raw mouse packets
+                BYTE      *rawinput                       = (BYTE *) realloc(data->rawinput, data->rawinput_size + RAWINPUT_BUFFER_SIZE_INCREMENT);
                 if (!rawinput) {
                     break;
                 }
-                input = (RAWINPUT *)(rawinput + ((BYTE *)input - data->rawinput));
+                input          = (RAWINPUT *) (rawinput + ((BYTE *) input - data->rawinput));
                 data->rawinput = rawinput;
                 data->rawinput_size += RAWINPUT_BUFFER_SIZE_INCREMENT;
             } else {
@@ -134,21 +134,21 @@ win_poll_mouse(void)
     }
 
     if (total > 0) {
-        for (i = 0, input = (RAWINPUT *)data->rawinput; i < total; ++i, input = NEXTRAWINPUTBLOCK(input)) {
+        for (i = 0, input = (RAWINPUT *) data->rawinput; i < total; ++i, input = NEXTRAWINPUTBLOCK(input)) {
             if (input->header.dwType == RIM_TYPEMOUSE) {
-                RAWMOUSE *rawmouse = (RAWMOUSE *)((BYTE *)input + data->rawinput_offset);
+                RAWMOUSE *rawmouse = (RAWMOUSE *) ((BYTE *) input + data->rawinput_offset);
                 if (mouse_capture)
                     WindowsRawInputFilter::mouse_handle(rawmouse);
             }
         }
     }
 
-    //qDebug() << "Mouse delay: " << (plat_get_ticks() - ms_time);
-    //ms_time = plat_get_ticks();
+    // qDebug() << "Mouse delay: " << (plat_get_ticks() - ms_time);
+    // ms_time = plat_get_ticks();
 }
 
 static DWORD
-win_rawinput_thread(void* param)
+win_rawinput_thread(void *param)
 {
     RAWINPUTDEVICE rid = {
         .usUsagePage = 0x01,
@@ -179,14 +179,14 @@ win_rawinput_thread(void* param)
         }
 
         // Clear the queue status so MsgWaitForMultipleObjects() will wait again
-        (void)GetQueueStatus(QS_RAWINPUT);
+        (void) GetQueueStatus(QS_RAWINPUT);
 
         win_poll_mouse();
     }
 
     rid.dwFlags |= RIDEV_REMOVE;
     rid.hwndTarget = NULL;
-    
+
     RegisterRawInputDevices(&rid, 1, sizeof(rid));
     DestroyWindow(window);
     return 0;
@@ -197,19 +197,17 @@ std::unique_ptr<WindowsRawInputFilter>
 WindowsRawInputFilter::Register(MainWindow *window)
 {
     RAWINPUTDEVICE rid[1] = {
-        {
-            .usUsagePage = 0x01,
-            .usUsage     = 0x06,
-            .dwFlags     = RIDEV_NOHOTKEYS,
-            .hwndTarget  = nullptr
-        }
+        { .usUsagePage = 0x01,
+         .usUsage     = 0x06,
+         .dwFlags     = RIDEV_NOHOTKEYS,
+         .hwndTarget  = nullptr }
     };
 
     if (!hook_enabled) {
         RegisterRawInputDevices(rid, 1, sizeof(rid[0]));
     }
 
-    win_rawinput_data.done_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+    win_rawinput_data.done_event  = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     win_rawinput_data.ready_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
     if (!win_rawinput_data.done_event || !win_rawinput_data.ready_event) {
@@ -250,13 +248,12 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
         SetEvent(win_rawinput_data.done_event);
     if (win_rawinput_data.thread)
         WaitForSingleObject(win_rawinput_data.thread, INFINITE);
-    RAWINPUTDEVICE rid =
-        {
-            .usUsagePage = 0x01,
-            .usUsage     = 0x06,
-            .dwFlags     = RIDEV_REMOVE,
-            .hwndTarget  = NULL
-        };
+    RAWINPUTDEVICE rid = {
+        .usUsagePage = 0x01,
+        .usUsage     = 0x06,
+        .dwFlags     = RIDEV_REMOVE,
+        .hwndTarget  = NULL
+    };
 
     if (!hook_enabled)
         RegisterRawInputDevices(&rid, 1, sizeof(rid));
@@ -267,25 +264,25 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
 static void
 notify_drives(ULONG unitmask, int empty)
 {
-    if (unitmask & cdrom_assigned_letters)  for (int i = 0; i < CDROM_NUM; i++) {
-        cdrom_t *dev = &(cdrom[i]);
+    if (unitmask & cdrom_assigned_letters)
+        for (int i = 0; i < CDROM_NUM; i++) {
+            cdrom_t *dev = &(cdrom[i]);
 
-        if ((dev->host_letter != 0xff) &&
-            (unitmask & (1 << dev->host_letter))) {
-            if (empty)
-                cdrom_set_empty(dev);
-            else
-                cdrom_update_status(dev);
+            if ((dev->host_letter != 0xff) && (unitmask & (1 << dev->host_letter))) {
+                if (empty)
+                    cdrom_set_empty(dev);
+                else
+                    cdrom_update_status(dev);
+            }
         }
-    }
 }
 
 static void
 device_change(WPARAM wParam, LPARAM lParam)
 {
-    PDEV_BROADCAST_HDR lpdb      = (PDEV_BROADCAST_HDR) lParam;
+    PDEV_BROADCAST_HDR lpdb = (PDEV_BROADCAST_HDR) lParam;
 
-    switch(wParam) {
+    switch (wParam) {
         case DBT_DEVICEARRIVAL:
         case DBT_DEVICEREMOVECOMPLETE:
             /* Check whether a CD or DVD was inserted into a drive. */
@@ -300,9 +297,9 @@ device_change(WPARAM wParam, LPARAM lParam)
 
         default:
             /*
-               Process other WM_DEVICECHANGE notifications for other 
+               Process other WM_DEVICECHANGE notifications for other
                devices or reasons.
-             */ 
+             */
             break;
     }
 }
@@ -363,25 +360,24 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
     if (eventType == "windows_generic_MSG") {
         MSG *msg = static_cast<MSG *>(message);
 
-        if (msg != nullptr)  switch(msg->message) {
-            case WM_INPUT:
-                if (window->isActiveWindow() && (menus_open == 0))
-                    handle_input((HRAWINPUT) msg->lParam);
-                else {
-                    for (auto &w : window->renderers) {
-                        if (w && w->isActiveWindow()) {
-                            handle_input((HRAWINPUT) msg->lParam);
-                            break;
+        if (msg != nullptr)
+            switch (msg->message) {
+                case WM_INPUT:
+                    if (window->isActiveWindow() && (menus_open == 0))
+                        handle_input((HRAWINPUT) msg->lParam);
+                    else {
+                        for (auto &w : window->renderers) {
+                            if (w && w->isActiveWindow()) {
+                                handle_input((HRAWINPUT) msg->lParam);
+                                break;
+                            }
                         }
                     }
-                }
-                return true;
-            case WM_SETTINGCHANGE:
-                if ((((void *) msg->lParam) != nullptr) &&
-                    (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) &&
-                    color_scheme == 0) {
+                    return true;
+                case WM_SETTINGCHANGE:
+                    if ((((void *) msg->lParam) != nullptr) && (wcscmp(L"ImmersiveColorSet", (wchar_t *) msg->lParam) == 0) && color_scheme == 0) {
 
-                    bool OldDarkMode = NewDarkMode;
+                        bool OldDarkMode = NewDarkMode;
 #if 0
                     if (do_auto_pause && !dopause) {
                         auto_paused = 1;
@@ -389,48 +385,48 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                     }
 #endif
 
-                    if (!util::isWindowsLightTheme()) {
-                        QFile f(":qdarkstyle/dark/darkstyle.qss");
+                        if (!util::isWindowsLightTheme()) {
+                            QFile f(":qdarkstyle/dark/darkstyle.qss");
 
-                        if (!f.exists())
-                            printf("Unable to set stylesheet, file not found\n");
-                        else {
-                            f.open(QFile::ReadOnly | QFile::Text);
-                            QTextStream ts(&f);
-                            qApp->setStyleSheet(ts.readAll());
+                            if (!f.exists())
+                                printf("Unable to set stylesheet, file not found\n");
+                            else {
+                                f.open(QFile::ReadOnly | QFile::Text);
+                                QTextStream ts(&f);
+                                qApp->setStyleSheet(ts.readAll());
+                            }
+                            QPalette palette(qApp->palette());
+                            palette.setColor(QPalette::Link, Qt::white);
+                            palette.setColor(QPalette::LinkVisited, Qt::lightGray);
+                            qApp->setPalette(palette);
+                            NewDarkMode = TRUE;
+                        } else {
+                            qApp->setStyleSheet("");
+                            QPalette palette(qApp->palette());
+                            palette.setColor(QPalette::Link, Qt::blue);
+                            palette.setColor(QPalette::LinkVisited, Qt::magenta);
+                            qApp->setPalette(palette);
+                            NewDarkMode = FALSE;
                         }
-                        QPalette palette(qApp->palette());
-                        palette.setColor(QPalette::Link, Qt::white);
-                        palette.setColor(QPalette::LinkVisited, Qt::lightGray);
-                        qApp->setPalette(palette);
-                        NewDarkMode = TRUE;
-                    } else {
-                        qApp->setStyleSheet("");
-                        QPalette palette(qApp->palette());
-                        palette.setColor(QPalette::Link, Qt::blue);
-                        palette.setColor(QPalette::LinkVisited, Qt::magenta);
-                        qApp->setPalette(palette);
-                        NewDarkMode = FALSE;
-                    }
 
-                    if (NewDarkMode != OldDarkMode)  QTimer::singleShot(1000, [this] () {
-                        BOOL DarkMode = NewDarkMode;
-                        DwmSetWindowAttribute((HWND) window->winId(),
-                                              DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                              (LPCVOID) &DarkMode,
-                                              sizeof(DarkMode));
+                        if (NewDarkMode != OldDarkMode)
+                            QTimer::singleShot(1000, [this]() {
+                                BOOL DarkMode = NewDarkMode;
+                                DwmSetWindowAttribute((HWND) window->winId(),
+                                                      DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                                      (LPCVOID) &DarkMode,
+                                                      sizeof(DarkMode));
 
-                        window->resizeContents(monitors[0].mon_scrnsz_x,
-                                               monitors[0].mon_scrnsz_y);
+                                window->resizeContents(monitors[0].mon_scrnsz_x,
+                                                       monitors[0].mon_scrnsz_y);
 
-                        for (int i = 1; i < MONITORS_NUM; i++) {
-                            auto           mon = &(monitors[i]);
+                                for (int i = 1; i < MONITORS_NUM; i++) {
+                                    auto mon = &(monitors[i]);
 
-                            if ((window->renderers[i] != nullptr) &&
-                                !window->renderers[i]->isHidden())
-                                window->resizeContentsMonitor(mon->mon_scrnsz_x,
-                                mon->mon_scrnsz_y, i);
-                        }
+                                    if ((window->renderers[i] != nullptr) && !window->renderers[i]->isHidden())
+                                        window->resizeContentsMonitor(mon->mon_scrnsz_x,
+                                                                      mon->mon_scrnsz_y, i);
+                                }
 
 #if 0
                         if (auto_paused) {
@@ -438,19 +434,19 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                             auto_paused = 0;
                         }
 #endif
-                    });
-                }
-                break;
-            case WM_SYSKEYDOWN:
-                /* Stop processing of Alt-F4 */
-                if (msg->wParam == 0x73)
-                    return true;
-                break;
-            case WM_DEVICECHANGE:
-                if (msg->hwnd == (HWND) window->winId())
-                    device_change(msg->wParam, msg->lParam);
-                break;
-        }
+                            });
+                    }
+                    break;
+                case WM_SYSKEYDOWN:
+                    /* Stop processing of Alt-F4 */
+                    if (msg->wParam == 0x73)
+                        return true;
+                    break;
+                case WM_DEVICECHANGE:
+                    if (msg->hwnd == (HWND) window->winId())
+                        device_change(msg->wParam, msg->lParam);
+                    break;
+            }
     }
 
     return false;
@@ -491,7 +487,7 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 }
 
 void
-WindowsRawInputFilter::mouse_handle(RAWMOUSE* raw)
+WindowsRawInputFilter::mouse_handle(RAWMOUSE *raw)
 {
     RAWMOUSE   state = *raw;
     static int x, delta_x;
@@ -548,8 +544,8 @@ WindowsRawInputFilter::mouse_handle(RAWMOUSE* raw)
          */
         delta_x = (state.lLastX - x) / 25;
         delta_y = (state.lLastY - y) / 25;
-        x = state.lLastX;
-        y = state.lLastY;
+        x       = state.lLastX;
+        y       = state.lLastY;
     } else {
         /* relative mouse, i.e. regular mouse */
         delta_x = state.lLastX;

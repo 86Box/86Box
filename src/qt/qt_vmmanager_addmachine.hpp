@@ -48,7 +48,7 @@ public:
     [[nodiscard]] int nextId() const override;
 
 private:
-    QLabel *topLabel;
+    QLabel       *topLabel;
     QRadioButton *newConfigRadioButton;
     QRadioButton *existingConfigRadioButton;
 };
@@ -61,17 +61,18 @@ public:
     explicit WithExistingConfigPage(QWidget *parent = nullptr);
     // These extra functions are required to register QPlainTextEdit fields
     [[nodiscard]] QString configuration() const;
-    void setConfiguration(const QString &configuration);
+    void                  setConfiguration(const QString &configuration);
 signals:
     void configurationChanged(const QString &configuration);
+
 private:
     QPlainTextEdit *existingConfiguration;
 private slots:
-        void chooseExistingConfigFile();
-protected:
-    [[nodiscard]] int nextId() const override;
-    [[nodiscard]] bool isComplete() const override;
+    void chooseExistingConfigFile();
 
+protected:
+    [[nodiscard]] int  nextId() const override;
+    [[nodiscard]] bool isComplete() const override;
 };
 
 class NameAndLocationPage final : public QWizardPage {
@@ -80,6 +81,7 @@ class NameAndLocationPage final : public QWizardPage {
 public:
     explicit NameAndLocationPage(QWidget *parent = nullptr);
     [[nodiscard]] int nextId() const override;
+
 private:
     QLineEdit *systemName;
 #ifdef CUSTOM_SYSTEM_LOCATION
@@ -88,21 +90,21 @@ private:
     QLineEdit *displayName;
     QLabel    *systemNameValidation;
 #ifdef CUSTOM_SYSTEM_LOCATION
-    QLabel    *systemLocationValidation;
+    QLabel            *systemLocationValidation;
     QRegularExpression dirValidate;
 private slots:
     void chooseDirectoryLocation();
 #endif
 protected:
     [[nodiscard]] bool isComplete() const override;
-    bool eventFilter(QObject *watched, QEvent *event) override;
-
+    bool               eventFilter(QObject *watched, QEvent *event) override;
 };
 
 class ConclusionPage final : public QWizardPage {
     Q_OBJECT
 public:
     explicit ConclusionPage(QWidget *parent = nullptr);
+
 private:
     QLabel *topLabel;
     QLabel *systemName;
@@ -111,6 +113,7 @@ private:
 #endif
     QLabel *displayNameLabel;
     QLabel *displayName;
+
 protected:
     void initializePage() override;
 };
