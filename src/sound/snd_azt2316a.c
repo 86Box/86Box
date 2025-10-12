@@ -151,6 +151,26 @@
 #include <86box/snd_azt2316a.h>
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
+#include <86box/log.h>
+
+#define ENABLE_AZTECH_LOG 1
+
+#ifdef ENABLE_AZTECH_LOG
+int aztech_do_log = ENABLE_AZTECH_LOG;
+
+static void
+aztech_log(void *priv, const char *fmt, ...)
+{
+    if (aztech_log) {
+        va_list ap;
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define aztech_log(fmt, ...)
+#endif
 
 /*530, 11, 3 - 530=23*/
 /*530, 11, 1 - 530=22*/
@@ -195,6 +215,8 @@ typedef struct azt2316a_t {
     mpu_t   *mpu;
 
     sb_t *sb;
+
+    void * log; /* New logging system */
 } azt2316a_t;
 
 static uint8_t
@@ -211,14 +233,17 @@ azt2316a_wss_read(uint16_t addr, void *priv)
     else
         temp = 4 | (azt2316a->wss_config & 0xC0);
 
+    aztech_log(azt2316a->log, "Aztech WSS: [R] (%04X) = %02X\n", addr, temp);
     return temp;
 }
 
 static void
-azt2316a_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
+azt2316a_wss_write(uint16_t addr, uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a  = (azt2316a_t *) priv;
     int         interrupt = 0;
+
+    aztech_log(azt2316a->log, "Aztech WSS: [W] (%04X) = %02X\n", addr, val);
 
     if (azt2316a->wss_interrupt_after_config) {
         if ((azt2316a->wss_config & 0x40) && !(val & 0x40)) { // TODO: is this the right edge?
@@ -421,6 +446,7 @@ azt1605_create_config_word(void *priv)
     }
 
     azt2316a->config_word = temp;
+    aztech_log(azt2316a->log, "Aztech 1605 Config Word Create: %08X\n", temp);
 }
 
 static void
@@ -676,6 +702,7 @@ azt2316a_create_config_word(void *priv)
     }
 
     azt2316a->config_word = temp;
+    aztech_log(azt2316a->log, "Aztech 2316 Config Word Create: %08X\n", temp);
 }
 
 static uint8_t
@@ -718,6 +745,8 @@ azt1605_config_read(uint16_t addr, void *priv)
                 break;
         }
     }
+
+    aztech_log(azt2316a->log, "Aztech 1605 Config Word Read: (%04X) = %02X\n", addr, temp);
 
     return temp;
 }
@@ -763,6 +792,8 @@ azt2316a_config_read(uint16_t addr, void *priv)
         }
     }
 
+    aztech_log(azt2316a->log, "Aztech 2316 Config Word Read: (%04X) = %02X\n", addr, temp);
+
     return temp;
 }
 
@@ -771,6 +802,8 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t     temp;
+
+    aztech_log(azt2316a->log, "Aztech 1605 Config Word Write: (%04X) = %02X\n", addr, val);
 
     if (addr == (azt2316a->cur_addr + 0x404)) {
         if (val & 0x80)
@@ -875,6 +908,8 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t     temp;
+
+    aztech_log(azt2316a->log, "Aztech 2316 Config Word Write: (%04X) = %02X\n", addr, val);
 
     if (addr == (azt2316a->cur_addr + 0x404)) {
         if (val & 0x80)
@@ -1016,6 +1051,8 @@ azt_init(const device_t *info)
     azt2316a_t *azt2316a = calloc(1, sizeof(azt2316a_t));
 
     azt2316a->type = info->local;
+
+    azt2316a->log = log_open("AztechWSS");
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         fn = "azt1605.nvr";
@@ -1343,6 +1380,12 @@ azt_close(void *priv)
     sb_close(azt2316a->sb);
 
     free(azt2316a->mpu);
+
+    if (azt2316a->log != NULL) {
+        log_close(azt2316a->log);
+        azt2316a->log = NULL;
+    }
+
     free(azt2316a);
 }
 
