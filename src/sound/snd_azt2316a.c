@@ -679,6 +679,50 @@ azt2316a_create_config_word(void *priv)
 }
 
 static uint8_t
+azt1605_config_read(uint16_t addr, void *priv)
+{
+    const azt2316a_t *azt2316a = (azt2316a_t *) priv;
+    uint8_t           temp     = 0;
+
+    /* Some WSS config here + config change enable bit
+       (setting bit 7 and writing back) */
+
+    if (addr == (azt2316a->cur_addr + 0x404)) {
+        /* TODO: what is the real meaning of the read value?
+           I got a mention of bit 0x10 for WSS from disassembling the source
+           code of the driver, and when playing with the I/O ports on real
+           hardware after doing some configuration, but didn't dig into it.
+           Bit 0x08 seems to be a busy flag and generates a timeout
+           (continuous re-reading when initializing windows 98) */
+        temp = azt2316a->cur_mode ? 0x07 : 0x0F;
+        if (azt2316a->config_word_unlocked) {
+            temp |= 0x80;
+        }
+    } else {
+        // Rest of config. These are documented in the Linux driver.
+        switch (addr & 0x3) {
+            case 0:
+                temp = azt2316a->config_word & 0xFF;
+                break;
+            case 1:
+                temp = (azt2316a->config_word >> 8);
+                break;
+            case 2:
+                temp = (azt2316a->config_word >> 16);
+                break;
+            case 3:
+                temp = (azt2316a->config_word >> 24);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    return temp;
+}
+
+static uint8_t
 azt2316a_config_read(uint16_t addr, void *priv)
 {
     const azt2316a_t *azt2316a = (azt2316a_t *) priv;
@@ -831,11 +875,6 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t     temp;
-
-    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-        azt1605_config_write(addr, val, azt2316a);
-        return;
-    }
 
     if (addr == (azt2316a->cur_addr + 0x404)) {
         if (val & 0x80)
@@ -1216,7 +1255,10 @@ azt_init(const device_t *info)
     ad1848_setirq(&azt2316a->ad1848, azt2316a->cur_wss_irq);
     ad1848_setdma(&azt2316a->ad1848, azt2316a->cur_wss_dma);
 
-    io_sethandler(azt2316a->cur_addr + 0x0400, 0x0040, azt2316a_config_read, NULL, NULL, azt2316a_config_write, NULL, NULL, azt2316a);
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11)
+        io_sethandler(azt2316a->cur_addr + 0x0400, 0x0040, azt2316a_config_read, NULL, NULL, azt2316a_config_write, NULL, NULL, azt2316a);
+    else /* Aztech 1605 only needs 62x/64x */
+        io_sethandler(azt2316a->cur_addr + 0x0400, 0x0010, azt1605_config_read, NULL, NULL, azt1605_config_write, NULL, NULL, azt2316a);
     io_sethandler(azt2316a->cur_wss_addr, 0x0004, azt2316a_wss_read, NULL, NULL, azt2316a_wss_write, NULL, NULL, azt2316a);
     io_sethandler(azt2316a->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &azt2316a->ad1848);
 
