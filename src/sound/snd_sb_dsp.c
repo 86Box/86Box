@@ -1920,13 +1920,6 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
                 if (val == 0x01)
                     sb_add_data(dsp, 0);
                 dsp->sb_data_stat++;
-                if (IS_AZTECH(dsp)) {
-                    /* variable length commands */
-                    if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x08)
-                        sb_commands[dsp->sb_command] = 3;
-                    else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x07)
-                        sb_commands[dsp->sb_command] = 2;
-                }
                 if (IS_ESS(dsp) && dsp->sb_command >= 0x64 && dsp->sb_command <= 0x6F) {
                     sb_commands[dsp->sb_command] = 2;
                 } else if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
@@ -1945,6 +1938,13 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 dsp->sb_data[dsp->sb_data_stat++] = val;
+                if (IS_AZTECH(dsp)) {
+                    /* variable length commands */
+                    if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x08)
+                        sb_commands[dsp->sb_command] = 3;
+                    else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x07)
+                        sb_commands[dsp->sb_command] = 2;
+                }
             }
             if (dsp->sb_data_stat == sb_commands[dsp->sb_command] || sb_commands[dsp->sb_command] == -1) {
                 sb_exec_command(dsp);
