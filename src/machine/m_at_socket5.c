@@ -488,22 +488,6 @@ machine_at_morrison64_gpio_init(void)
     machine_set_gpio_default(gpio);
 }
 
-uint32_t
-machine_at_morrison64_gpio_handler(uint8_t write, uint32_t val)
-{
-    uint32_t ret = machine_get_gpio_default();
-
-    if (write) {
-        ret &= ((val & 0xffffffcf) | 0xffff0000);
-        ret |= (val & 0x00000030);
-
-        machine_set_gpio(ret);
-    } else
-        ret = machine_get_gpio();
-
-    return ret;
-}
-
 int
 machine_at_pc330_65x6_init(const machine_t *model)
 {
@@ -685,16 +669,71 @@ machine_at_zappa_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t powermatev_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "powermatev",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS Version 4.05.M - Revision 00.04.08",
+                .internal_name = "powermatev_122195",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/powermatev/B50NM00M.ROM", "" }
+            },
+            {
+                .name          = "PhoenixBIOS Version 4.05.V - Revision 00.04.15",
+                .internal_name = "powermatev",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/powermatev/B50NM00V.ROM", "" }
+            },      
+            { .files_no = 0 }            
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t powermatev_device = {
+    .name          = "NEC PowerMate Vxxx",
+    .internal_name = "powermatev_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = powermatev_config
+};
+
 int
 machine_at_powermatev_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/powermatev/BIOS.ROM",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 

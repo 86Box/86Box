@@ -12520,7 +12520,10 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* The BIOS sends KBC command B3 which indicates an AMI (or VIA VT82C42N) KBC. */
+    /*
+       The BIOS sends KBC command B3 which indicates an AMI (or VIA VT82C42N) KBC.
+       The board turns out to be a BCM FM540 which has an AMI 'H' KBC.
+     */
     {
         .name              = "[i430FX] NEC PowerMate Vxxx",
         .internal_name     = "powermatev",
@@ -12552,11 +12555,11 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = MACHINE_DMA_USE_MBDMA,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &powermatev_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
