@@ -28,6 +28,7 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "cpu.h"
 
 /* NON-PCM SAMPLE FORMATS */
 #define ADPCM_4  1
