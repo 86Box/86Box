@@ -218,12 +218,6 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
     if (version_loc) {
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
         progSource.remove(versionRegex);
-
-        version_loc = ((char *) this->glslVersion.toLatin1().data()) + 9;
-        char glsl_ver[4] = { 0 };
-        memcpy(glsl_ver, version_loc, 3);
-        int ver = atoi((char *) glsl_ver);
-        pclog("Fucce þiċ: %d\n", ver);
     } else {
         version_loc = ((char *) this->glslVersion.toLatin1().data()) + 9;
         char glsl_ver[4] = { 0 };
@@ -1738,3 +1732,4 @@ OpenGLRenderer::render()
     frameCounter++;
     context->swapBuffers(this);
 }
+
