@@ -217,6 +217,14 @@ typedef struct azt2316a_t {
     void * log; /* New logging system */
 } azt2316a_t;
 
+static void
+azt1605_filter_opl(void *priv, double *out_l, double *out_r)
+{
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
+
+    ad1848_filter_channel((void *) &azt2316a->ad1848, AD1848_AUX2, out_l, out_r);
+}
+
 static uint8_t
 azt2316a_wss_read(uint16_t addr, void *priv)
 {
@@ -1350,8 +1358,18 @@ azt_init(const device_t *info)
 
     azt2316a_create_config_word(azt2316a);
     sound_add_handler(azt2316a_get_buffer, azt2316a);
-    if (azt2316a->sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
+        if (azt2316a->sb->opl_enabled)
+            music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+    }
+    else {
+        if (azt2316a->sb->opl_enabled) {
+            azt2316a->sb->opl_mixer = azt2316a;
+            azt2316a->sb->opl_mix = azt1605_filter_opl;
+            music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+        }
+    }
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
 
     if (azt2316a->cur_mpu401_enabled) {
