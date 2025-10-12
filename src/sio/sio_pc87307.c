@@ -34,6 +34,7 @@
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
 #include <86box/sio.h>
+#include <86box/random.h>
 #include <86box/plat_fallthrough.h>
 #include "cpu.h"
 
@@ -108,6 +109,15 @@ pc87307_gpio_write(uint16_t port, uint8_t val, void *priv)
                 CS, cpu_state.pc, port, bank, val);
 
     dev->gpio[bank][port & 0x0007] = val;
+
+    if (bank == 0) {
+        if ((port & 0x7) >= 4) {
+            /* Bit 31 to indicate write to second GPIO set. Only lower 16 bits are returned on reads so it does not matter much. */
+            machine_handle_gpio(1, (1 << 31) | (dev->gpio[0][5] & dev->gpio[0][4]));
+        } else {
+            machine_handle_gpio(1, (dev->gpio[0][0] & dev->gpio[0][1]));
+        }
+    }
 }
 
 uint8_t
@@ -118,18 +128,18 @@ pc87307_gpio_read(uint16_t port, void *priv)
     uint8_t          bank = !!(dev->regs[0x22] & 0x80);
     uint8_t          ret  = dev->gpio[bank][port & 0x0007];
 
-    switch (port & 0x0003) {
+    switch (port & 0x0007) {
         case 0x0000:
             if (bank == 0) {
                 uint8_t mask = dev->gpio[0][1];
-                pins = 0x7f;
+                pins = machine_handle_gpio(0, 0xFFFF) & 0xFF;
                 ret  = (ret & mask) | (pins & ~mask);
             }
             break;
         case 0x0004:
             if (bank == 0) {
                 uint8_t mask = dev->gpio[0][5];
-                pins = 0xfb;
+                pins = (machine_handle_gpio(0, 0xFFFF) >> 8) & 0xFF;
                 ret  = (ret & mask) | (pins & ~mask);
             } else
                 ret = 0xff;
@@ -152,13 +162,13 @@ static void
 pc87307_gpio_remove(pc87307_t *dev)
 {
     if (dev->gpio_base != 0xffff) {
-        io_removehandler(dev->gpio_base, 0x0002,
+        io_removehandler(dev->gpio_base, 0x0008,
                          pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
         dev->gpio_base = 0xffff;
     }
 
     if (dev->gpio_base2 != 0xffff) {
-        io_removehandler(dev->gpio_base2, 0x0002,
+        io_removehandler(dev->gpio_base2, 0x0008,
                          pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
         dev->gpio_base2 = 0xffff;
     }
@@ -171,7 +181,7 @@ pc87307_gpio_init(pc87307_t *dev, int bank, uint16_t addr)
 
     *bank_base = addr;
 
-    io_sethandler(*bank_base, 0x0002,
+    io_sethandler(*bank_base, 0x0008,
                   pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
 }
 
