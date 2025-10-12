@@ -153,8 +153,6 @@
 #include <86box/plat_unused.h>
 #include <86box/log.h>
 
-#define ENABLE_AZTECH_LOG 1
-
 #ifdef ENABLE_AZTECH_LOG
 int aztech_do_log = ENABLE_AZTECH_LOG;
 
@@ -726,22 +724,39 @@ azt1605_config_read(uint16_t addr, void *priv)
             temp |= 0x80;
         }
     } else {
-        // Rest of config. These are documented in the Linux driver.
-        switch (addr & 0x3) {
-            case 0:
+        /* Rest of config. Bytes 0x00-0x03 are documented in the Linux driver. */
+        /* 0x07 causes EMUTSR to resync mixers when nonzero values are written but the mechanism is unknown */
+        /* 0x08-0x0F mixer registers are not documented */
+        switch (addr & 0x0f) {
+            case 0x00:
                 temp = azt2316a->config_word & 0xFF;
                 break;
-            case 1:
+            case 0x01:
                 temp = (azt2316a->config_word >> 8);
                 break;
-            case 2:
+            case 0x02:
                 temp = (azt2316a->config_word >> 16);
                 break;
-            case 3:
+            case 0x03:
                 temp = (azt2316a->config_word >> 24);
                 break;
-
+            case 0x08: /* SBPro Voice mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x04];
+                break;
+            case 0x09: /* SBPro Mic mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x0A];
+                break;
+            case 0x0C: /* SBPro Master mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x22];
+                break;
+            case 0x0D: /* SBPro FM mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x26];
+                break;
+            case 0x0E: /* SBPro CD mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x28];
+                break;
             default:
+                temp = 0x00;
                 break;
         }
     }
