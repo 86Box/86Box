@@ -309,7 +309,7 @@ machine_ap440fx_vs440fx_gpio_handler(uint8_t write, uint32_t val)
     if (!write)
         return 0xff7f;
 
-    (void)val; /* Writes are ignored. */
+    return val; /* Writes are ignored. */
 }
 
 int
