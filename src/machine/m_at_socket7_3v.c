@@ -431,7 +431,6 @@ static void
 machine_at_monaco_gpio_init(void)
 {
     uint32_t gpio = 0xffffe0cf;
-    uint16_t addr;
 
     /* Return to this after CS4232 PnP is working. */
     /* Register 0x0078 (Undocumented): */

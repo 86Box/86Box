@@ -432,7 +432,6 @@ static void
 machine_at_morrison64_gpio_init(void)
 {
     uint32_t gpio = 0xffffe0cf;
-    uint16_t addr;
 
     /* Return to this after CS4232 PnP is working. */
     /* Register 0x0078 (Undocumented): */
@@ -482,8 +481,8 @@ machine_at_morrison64_gpio_init(void)
         gpio |= 0xffff01af;
     else if (cpu_dmulti <= 2.0)
         gpio |= 0xffffe2af;
-	if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
-		gpio |= 0xffffe5cf;
+    else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
+        gpio |= 0xffffe5cf;
 
     machine_set_gpio_default(gpio);
 }
