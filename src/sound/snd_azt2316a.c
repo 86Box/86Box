@@ -1114,22 +1114,22 @@ azt_init(const device_t *info)
             read_eeprom[14] = 0x01;
             read_eeprom[15] = 0x00;
         } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-            read_eeprom[0]  = 0x80;
-            read_eeprom[1]  = 0x80;
-            read_eeprom[2]  = 0x9F;
-            read_eeprom[3]  = 0x13;
-            read_eeprom[4]  = 0x16;
-            read_eeprom[5]  = 0x13;
-            read_eeprom[6]  = 0x00;
-            read_eeprom[7]  = 0x00;
-            read_eeprom[8]  = 0x16;
-            read_eeprom[9]  = 0x0B;
-            read_eeprom[10] = 0x06;
+            read_eeprom[0]  = 0x80; /* WSS ADC L mixer value */
+            read_eeprom[1]  = 0x80; /* WSS ADC R mixer value */
+            read_eeprom[2]  = 0x08; /* WSS AUX1 L mixer value */
+            read_eeprom[3]  = 0x08; /* WSS AUX1 R mixer value */
+            read_eeprom[4]  = 0x08; /* WSS AUX2 L mixer value */
+            read_eeprom[5]  = 0x08; /* WSS AUX2 R mixer value */
+            read_eeprom[6]  = 0x08; /* WSS DAC L mixer value */
+            read_eeprom[7]  = 0x08; /* WSS DAC R mixer value */
+            read_eeprom[8]  = 0x08; /* WSS LINE L mixer value (CS4231) */
+            read_eeprom[9]  = 0x08; /* WSS LINE R mixer value (CS4231) */
+            read_eeprom[10] = 0x80; /* WSS MIC mixer value (CS4231) */
             read_eeprom[11] = 0x01;
             read_eeprom[12] = 0x1C;
             read_eeprom[13] = 0x14;
             read_eeprom[14] = 0x04;
-            read_eeprom[15] = 0x1C;
+            read_eeprom[15] = 0xFF; /* SBPro Master volume (EMUTSR) */
         }
     }
 
@@ -1359,6 +1359,21 @@ azt_init(const device_t *info)
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &azt2316a->sb->dsp);
+
+    /* Restore WSS mixer settings from EEPROM on AZT1605 cards */
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
+        azt2316a->ad1848.regs[0]  = read_eeprom[0];  /* WSS ADC L */
+        azt2316a->ad1848.regs[1]  = read_eeprom[1];  /* WSS ADC R */
+        azt2316a->ad1848.regs[2]  = read_eeprom[2];  /* WSS AUX1/CD L */
+        azt2316a->ad1848.regs[3]  = read_eeprom[3];  /* WSS AUX1/CD R */
+        azt2316a->ad1848.regs[4]  = read_eeprom[4];  /* WSS AUX2/FM L */
+        azt2316a->ad1848.regs[5]  = read_eeprom[5];  /* WSS AUX2/FM R */
+        azt2316a->ad1848.regs[6]  = read_eeprom[6];  /* WSS DAC L */
+        azt2316a->ad1848.regs[7]  = read_eeprom[7];  /* WSS DAC R */
+        azt2316a->ad1848.regs[18] = read_eeprom[8];  /* CS4231 LINE/SB Voice L */
+        azt2316a->ad1848.regs[19] = read_eeprom[9];  /* CS4231 LINE/SB Voice R */
+        azt2316a->ad1848.regs[26] = read_eeprom[10]; /* CS4231 Mic */
+    }
 
     return azt2316a;
 }
