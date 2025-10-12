@@ -488,22 +488,6 @@ machine_at_morrison64_gpio_init(void)
     machine_set_gpio_default(gpio);
 }
 
-uint32_t
-machine_at_morrison64_gpio_handler(uint8_t write, uint32_t val)
-{
-    uint32_t ret = machine_get_gpio_default();
-
-    if (write) {
-        ret &= ((val & 0xffffffcf) | 0xffff0000);
-        ret |= (val & 0x00000030);
-
-        machine_set_gpio(ret);
-    } else
-        ret = machine_get_gpio();
-
-    return ret;
-}
-
 int
 machine_at_pc330_65x6_init(const machine_t *model)
 {
