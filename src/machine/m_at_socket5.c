@@ -682,7 +682,7 @@ static const device_config_t powermatev_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "PhoenixBIOS Version 4.04.M - Revision 00.04.08",
+                .name          = "PhoenixBIOS Version 4.05.M - Revision 00.04.08",
                 .internal_name = "powermatev_122195",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -691,7 +691,7 @@ static const device_config_t powermatev_config[] = {
                 .files         = { "roms/machines/powermatev/B50NM00M.ROM", "" }
             },
             {
-                .name          = "PhoenixBIOS Version 4.04.V - Revision 00.04.15",
+                .name          = "PhoenixBIOS Version 4.05.V - Revision 00.04.15",
                 .internal_name = "powermatev",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
