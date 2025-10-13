@@ -11448,7 +11448,7 @@ const machine_t machines[] = {
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
-        .name              = "[i430LX] IBM PS/ValuePoint P60",
+        .name              = "[i430LX] IBM PS/ValuePoint P60 (Robin ACE)",
         .internal_name     = "valuepointp60",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -12525,7 +12525,7 @@ const machine_t machines[] = {
        The board turns out to be a BCM FM540 which has an AMI 'H' KBC.
      */
     {
-        .name              = "[i430FX] NEC PowerMate Vxxx",
+        .name              = "[i430FX] NEC PowerMate Vxxx (BCM FM540)",
         .internal_name     = "powermatev",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13598,7 +13598,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &ms5119_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -13731,7 +13731,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &fmb_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -15648,7 +15648,7 @@ const machine_t machines[] = {
     },
     /* [TEST] Has AMI Megakey '5' KBC firmware on the SM(S)C FDC37C67x Super I/O chip. */
     {
-        .name              = "[i430TX] Gateway E-1000",
+        .name              = "[i430TX] Gateway E-1000 (Tomahawk)",
         .internal_name     = "tomahawk",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
