@@ -16959,8 +16959,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has the VIA VT82C596A southbridge with on-chip KBC identical to the VIA VT82C42N.
-       Sadly likely abuses cache on Cyrix 6x86MX and MII CPUs (Cyrix MII being what most socket 7 eMachines PCs used), so they are blocked and it's thus named after the only known eMachines with an AMD K6-2 CPU here */
+    /* Has the VIA VT82C596A southbridge with on-chip KBC identical to the VIA VT82C42N. */
     {
         .name              = "[VIA MVP3] TriGem Delhi-III",
         .internal_name     = "delhi3",
@@ -16973,7 +16972,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK(CPU_Cx6x86MX),
+            .block       = CPU_BLOCK(CPU_Cx6x86MX), /* Sadly it likely abuses cache if using Cyrix 6x86MX and MII CPUs (the latter being what most Socket 7 eMachines PCs used), so they are blocked. */
             .min_bus     = 66666667,
             .max_bus     = 124242424,
             .min_voltage = 2000,
