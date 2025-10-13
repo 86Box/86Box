@@ -574,7 +574,7 @@ static const device_config_t pt2000_config[] = {
                 .files         = { "roms/machines/ficpt2000/PT2000_v1.01.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.50PG - Revision 3.072C806",
+                .name          = "Award Modular BIOS v4.51PG - Revision 3.072C806",
                 .internal_name = "pt2000",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
