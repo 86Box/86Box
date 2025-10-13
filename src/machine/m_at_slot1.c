@@ -584,7 +584,7 @@ static const device_config_t ax6bc_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision R1.10",
+                .name          = "Award Modular BIOS v4.51PGM - Revision R1.10",
                 .internal_name = "ax6bc_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -593,7 +593,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc110.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PG - Revision R2.59",
+                .name          = "Award Modular BIOS v4.60PGM - Revision R2.59",
                 .internal_name = "ax6bc",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
