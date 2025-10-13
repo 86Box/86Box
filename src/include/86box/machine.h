@@ -1116,6 +1116,9 @@ extern int             machine_at_g5x_init(const machine_t *);
 
 /* VIA MVP3 */
 extern int             machine_at_ax59pro_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  delhi3_device;
+#endif
 extern int             machine_at_delhi3_init(const machine_t *);
 extern int             machine_at_mvp3_init(const machine_t *);
 extern int             machine_at_ficva503a_init(const machine_t *);
