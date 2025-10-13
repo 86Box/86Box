@@ -111,12 +111,7 @@ pc87307_gpio_write(uint16_t port, uint8_t val, void *priv)
     dev->gpio[bank][port & 0x0007] = val;
 
     if (bank == 0) {
-        if ((port & 0x7) >= 4) {
-            /* Bit 31 to indicate write to second GPIO set. Only lower 16 bits are returned on reads so it does not matter much. */
-            machine_handle_gpio(1, (1 << 31) | (dev->gpio[0][5] & dev->gpio[0][4]));
-        } else {
-            machine_handle_gpio(1, (dev->gpio[0][0] & dev->gpio[0][1]));
-        }
+        machine_handle_gpio(1, ((dev->gpio[0][5] & dev->gpio[0][4]) << 8) | (dev->gpio[0][0] & dev->gpio[0][1]));
     }
 }
 
