@@ -635,6 +635,9 @@ extern int             machine_at_tandy4000_init(const machine_t *);
 extern int             machine_at_ecs386v_init(const machine_t *);
 
 /* OPTi 391 */
+#ifdef EMU_DEVICE_H
+extern const device_t  dataexpert386wb_device;
+#endif
 extern int             machine_at_dataexpert386wb_init(const machine_t *);
 
 /* OPTi 495SLC */
