@@ -18408,8 +18408,8 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37M60x Super I/O chip with on-chip KBC with most likely
        AMIKey-2 KBC firmware. */
     {
-        .name              = "[i440ZX] HP Sherwood-B (MiTAC/Trigon 6110Zu)",
-        .internal_name     = "vei8",
+        .name              = "[i440ZX] MiTAC/Trigon 6110Zu",
+        .internal_name     = "6110zu",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_INTEL_440ZX,
         .init              = machine_at_vei8_init,
@@ -18442,7 +18442,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &vei8_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,

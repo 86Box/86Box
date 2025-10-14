@@ -1219,6 +1219,9 @@ extern const device_t  s1846_device;
 extern int             machine_at_s1846_init(const machine_t *);
 
 /* i440ZX */
+#ifdef EMU_DEVICE_H
+extern const device_t  vei8_device;
+#endif
 extern int             machine_at_vei8_init(const machine_t *);
 extern int             machine_at_ms6168_init(const machine_t *);
 extern int             machine_at_borapro_init(const machine_t *);
