@@ -1041,6 +1041,7 @@ static const device_config_t mke_config[] = {
             { .description = "320H", .value = 0x320 },
             { .description = "330H", .value = 0x330 },
             { .description = "340H", .value = 0x340 },
+            { .description = "630H", .value = 0x630 },
             { NULL                                  }
         },
         .bios           = { { 0 } }
