@@ -1040,10 +1040,20 @@ azt2316a_enable_wss(uint8_t enable, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
-    if (enable)
+    sound_set_cd_audio_filter(NULL, NULL);
+
+    if (enable) {
         azt2316a->cur_mode = 1;
-    else
+        sound_set_cd_audio_filter(ad1848_filter_cd_audio, &azt2316a->ad1848);
+        azt2316a->sb->opl_mixer = azt2316a;
+        azt2316a->sb->opl_mix   = azt1605_filter_opl;
+    }
+    else {
         azt2316a->cur_mode = 0;
+        sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
+        azt2316a->sb->opl_mixer = NULL;
+        azt2316a->sb->opl_mix   = NULL;
+    }
 }
 
 static void
