@@ -70,7 +70,7 @@ static const device_config_t prosignias31x_config[] = {
                 .files         = { "roms/machines/prosignias31x_bx/p6bxt-ap-092600.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Unofficial Revision",
+                .name          = "Phoenix - AwardBIOS v6.00PG - Unofficial Version 6.0 (by rushieda)",
                 .internal_name = "p6bxt_600pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
