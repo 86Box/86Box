@@ -1249,7 +1249,10 @@ extern int             machine_at_fw6400gx_init(const machine_t *);
 
 /* m_at_slot1_socket370.c */
 /* i440BX */
-extern int             machine_at_prosignias31x_bx_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  prosignias31x_device;
+#endif
+extern int             machine_at_prosignias31x_init(const machine_t *);
 extern int             machine_at_s1857_init(const machine_t *);
 
 /* VIA Apollo Pro 133 */

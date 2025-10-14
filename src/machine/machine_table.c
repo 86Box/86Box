@@ -18910,21 +18910,20 @@ const machine_t machines[] = {
 
     /* Slot 1/Socket 370 machines */
     /* 440BX */
-    /* OEM version of ECS P6BXT-A+ REV 1.3x/2.2x. Has a Winbond W83977EF Super
-       I/O chip with on-chip KBC with AMIKey-2 KBC firmware.*/
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC firmware.*/
     {
-        .name              = "[i440BX] Compaq ProSignia S316/318 (Intel)",
-        .internal_name     = "prosignias31x_bx",
+        .name              = "[i440BX] ECS P6BXT-A+",
+        .internal_name     = "p6bxt",
         .type              = MACHINE_TYPE_SLOT1_370,
-        .chipset           = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
-        .init              = machine_at_prosignias31x_bx_init,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_prosignias31x_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SLOT1 | CPU_PKG_SOCKET370,
-            .block       = CPU_BLOCK(CPU_PENTIUMPRO, CPU_CYRIX3S), /* Instability issues with PPro, and garbled text in POST with Cyrix */
+            .block       = CPU_BLOCK(CPU_PENTIUMPRO), /* Instability issues with PPro, and garbled text in POST with Cyrix (latter supported on unofficial v6.00PG BIOS) */
             .min_bus     = 66666667,
             .max_bus     = 100000000,
             .min_voltage = 1300,
@@ -18947,7 +18946,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &prosignias31x_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
