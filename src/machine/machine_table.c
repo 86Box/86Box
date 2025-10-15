@@ -17433,7 +17433,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7880U */
         .ram       = {
-            .min  = 8192,
+            .min  = 40960, /* does not POST with lower than 40MB; Award and AMI retail BIOSes not affected(?) */
             .max  = 524288,
             .step = 8192
         },
