@@ -6627,7 +6627,7 @@ const machine_t machines[] = {
     },
     /* Has AMIKey 'F' KBC firmware. */
     {
-        .name              = "[OPTi 391] DataExpert 386WB",
+        .name              = "[OPTi 391] DataExpert 386C",
         .internal_name     = "dataexpert386wb",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_OPTI_391,
