@@ -6627,7 +6627,7 @@ const machine_t machines[] = {
     },
     /* Has AMIKey 'F' KBC firmware. */
     {
-        .name              = "[OPTi 391] DataExpert 386WB",
+        .name              = "[OPTi 391] DataExpert 386C",
         .internal_name     = "dataexpert386wb",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_OPTI_391,
@@ -6661,7 +6661,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &dataexpert386wb_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -11350,7 +11350,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &p5mp3_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -17433,7 +17433,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7880U */
         .ram       = {
-            .min  = 40960,
+            .min  = 8192,
             .max  = 524288,
             .step = 8192
         },
@@ -18408,7 +18408,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37M60x Super I/O chip with on-chip KBC with most likely
        AMIKey-2 KBC firmware. */
     {
-        .name              = "[i440ZX] HP Sherwood-B (MiTAC/Trigon 6110Zu)",
+        .name              = "[i440ZX] MiTAC/Trigon 6110Zu",
         .internal_name     = "vei8",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_INTEL_440ZX,
@@ -18442,7 +18442,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &vei8_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -18910,13 +18910,12 @@ const machine_t machines[] = {
 
     /* Slot 1/Socket 370 machines */
     /* 440BX */
-    /* OEM version of ECS P6BXT-A+ REV 1.3x/2.2x. Has a Winbond W83977EF Super
-       I/O chip with on-chip KBC with AMIKey-2 KBC firmware.*/
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC firmware.*/
     {
-        .name              = "[i440BX] Compaq ProSignia S316/318 (Intel)",
+        .name              = "[i440BX] ECS P6BXT-A+",
         .internal_name     = "prosignias31x_bx",
         .type              = MACHINE_TYPE_SLOT1_370,
-        .chipset           = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
         .init              = machine_at_prosignias31x_bx_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -18924,9 +18923,9 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SLOT1 | CPU_PKG_SOCKET370,
-            .block       = CPU_BLOCK(CPU_PENTIUMPRO, CPU_CYRIX3S), /* Instability issues with PPro, and garbled text in POST with Cyrix */
+            .block       = CPU_BLOCK(CPU_PENTIUMPRO), /* Instability issues with PPro, and garbled text in POST with Cyrix (latter supported on unofficial v6.00PG BIOS) */
             .min_bus     = 66666667,
-            .max_bus     = 100000000,
+            .max_bus     = 124242424,
             .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi   = 1.5,
@@ -18947,7 +18946,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &prosignias31x_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
