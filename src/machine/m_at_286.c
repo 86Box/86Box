@@ -367,7 +367,26 @@ static const device_config_t pc900_config[] = {
                 .local          = 0,
                 .size           = 32768,
                 .files          = { "roms/machines/pc900/cbm_pc40_v207a_xc.bin", "" }
-            }
+            },
+            {
+                .name           = "BIOS V2.07B",
+                .internal_name  = "pc900_v207b",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 32768,
+                .files          = { "roms/machines/pc900/mpf_pc900_v207b.bin", "" }
+            },
+            {
+                .name           = "BIOS V3.01B",
+                .internal_name  = "pc900_v301b",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 32768,
+                .files          = { "roms/machines/pc900/cbm_pc40_v301b.bin", "" }
+            },
+            { .files_no = 0 }
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
