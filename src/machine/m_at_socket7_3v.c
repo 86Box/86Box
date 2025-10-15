@@ -690,7 +690,7 @@ static const device_config_t ms5119_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Release 2.3 (by Rainbow)",
-                .internal_name = "ms5119_v451pg",
+                .internal_name = "ms5119_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -871,7 +871,7 @@ static const device_config_t fmb_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - 2001 Release (by Rainbow)",
-                .internal_name = "fmb_v451pg",
+                .internal_name = "fmb_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,

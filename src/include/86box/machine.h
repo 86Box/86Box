@@ -635,6 +635,9 @@ extern int             machine_at_tandy4000_init(const machine_t *);
 extern int             machine_at_ecs386v_init(const machine_t *);
 
 /* OPTi 391 */
+#ifdef EMU_DEVICE_H
+extern const device_t  dataexpert386wb_device;
+#endif
 extern int             machine_at_dataexpert386wb_init(const machine_t *);
 
 /* OPTi 495SLC */
@@ -866,6 +869,9 @@ extern const device_t  v12p_device;
 #endif
 extern int             machine_at_v12p_init(const machine_t *);
 extern int             machine_at_excaliburpci_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  p5mp3_device;
+#endif
 extern int             machine_at_p5mp3_init(const machine_t *);
 extern int             machine_at_opti560l_init(const machine_t *);
 extern void            machine_at_award_common_init(const machine_t *);
@@ -1213,6 +1219,9 @@ extern const device_t  s1846_device;
 extern int             machine_at_s1846_init(const machine_t *);
 
 /* i440ZX */
+#ifdef EMU_DEVICE_H
+extern const device_t  vei8_device;
+#endif
 extern int             machine_at_vei8_init(const machine_t *);
 extern int             machine_at_ms6168_init(const machine_t *);
 extern int             machine_at_borapro_init(const machine_t *);
@@ -1240,6 +1249,9 @@ extern int             machine_at_fw6400gx_init(const machine_t *);
 
 /* m_at_slot1_socket370.c */
 /* i440BX */
+#ifdef EMU_DEVICE_H
+extern const device_t  prosignias31x_device;
+#endif
 extern int             machine_at_prosignias31x_bx_init(const machine_t *);
 extern int             machine_at_s1857_init(const machine_t *);
 
