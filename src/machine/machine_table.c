@@ -18409,7 +18409,7 @@ const machine_t machines[] = {
        AMIKey-2 KBC firmware. */
     {
         .name              = "[i440ZX] MiTAC/Trigon 6110Zu",
-        .internal_name     = "6110zu",
+        .internal_name     = "vei8",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_INTEL_440ZX,
         .init              = machine_at_vei8_init,
@@ -18913,10 +18913,10 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC firmware.*/
     {
         .name              = "[i440BX] ECS P6BXT-A+",
-        .internal_name     = "p6bxt",
+        .internal_name     = "prosignias31x_bx",
         .type              = MACHINE_TYPE_SLOT1_370,
         .chipset           = MACHINE_CHIPSET_INTEL_440BX,
-        .init              = machine_at_prosignias31x_init,
+        .init              = machine_at_prosignias31x_bx_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,

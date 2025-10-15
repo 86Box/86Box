@@ -45,7 +45,7 @@ static const device_config_t prosignias31x_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "p6bxt",
+        .default_string = "prosignias31x_bx",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -62,7 +62,7 @@ static const device_config_t prosignias31x_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 5.5 (Compaq ProSignia/Deskpro 440BX)",
-                .internal_name = "prosignias31x",
+                .internal_name = "prosignias31x_bx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -100,7 +100,7 @@ const device_t prosignias31x_device = {
 };
 
 int
-machine_at_prosignias31x_init(const machine_t *model)
+machine_at_prosignias31x_bx_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn;
