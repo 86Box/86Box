@@ -99,7 +99,6 @@ static struct ps2_t {
 
     uint8_t mem_pos_regs[8];
     uint8_t mem_2mb_pos_regs[8];
-    uint8_t mem_2mb_pos_cache[1024];
 
     int pending_cache_miss;
 
@@ -1062,111 +1061,6 @@ ps2_mem_expansion_feedb(UNUSED(void *priv))
     return (ps2.mem_pos_regs[2] & 1);
 }
 
-static uint8_t
-ps2_mem_2mb_cache_read(void)
-{
-    uint8_t cache_addr_lo = ps2.mem_2mb_pos_regs[6];
-    uint8_t cache_addr_hi = ps2.mem_2mb_pos_regs[7];
-    uint16_t cache_addr = (cache_addr_hi << 8) | cache_addr_lo;
-
-    ps2_mca_log("ps2_mem_2mb_cache_read: addr=%04x %02x %04x:%04x\n", cache_addr, ps2.mem_2mb_pos_cache[cache_addr & 0x3ff], CS, cpu_state.pc);
-    return ps2.mem_2mb_pos_cache[cache_addr & 0x3ff];
-}
-
-static void
-ps2_mem_2mb_cache_write(uint8_t val)
-{
-    uint8_t cache_addr_lo = ps2.mem_2mb_pos_regs[6];
-    uint8_t cache_addr_hi = ps2.mem_2mb_pos_regs[7];
-    uint16_t cache_addr = (cache_addr_hi << 8) | cache_addr_lo;
-
-    ps2_mca_log("ps2_mem_2mb_cache_write: addr=%04x %02x %04x:%04x\n", cache_addr, val, CS, cpu_state.pc);
-    ps2.mem_2mb_pos_cache[cache_addr & 0x3ff] = val;
-}
-
-static uint8_t
-ps2_mem_2mb_expansion_read(int port, UNUSED(void *priv))
-{
-    if (port == 0x103) 
-        ps2.mem_2mb_pos_regs[3] = ps2_mem_2mb_cache_read();
-    return ps2.mem_2mb_pos_regs[port & 7];
-}
-
-static void
-ps2_mem_2mb_expansion_write(int port, uint8_t val, UNUSED(void *priv))
-{
-    if (port < 0x102)
-        return;
-
-    if (port == 0x103) 
-        ps2_mem_2mb_cache_write(val);
-    else if (port == 0x102)
-        ps2.mem_2mb_pos_regs[2] = (ps2.mem_2mb_pos_regs[2] & 0xfe) | (val & 0x01);
-    else if (port == 0x105)
-        ps2.mem_2mb_pos_regs[5] = (ps2.mem_2mb_pos_regs[2] & 0x01) | (val & 0xfe);
-    else
-        ps2.mem_2mb_pos_regs[port & 7] = val;
-
-    if (ps2.mem_2mb_pos_regs[2] & 1)
-        mem_mapping_enable(&ps2.expansion_mapping);
-    else
-        mem_mapping_disable(&ps2.expansion_mapping);
-}
-
-static uint8_t
-ps2_mem_2mb_expansion_feedb(UNUSED(void *priv))
-{
-    return (ps2.mem_2mb_pos_regs[2] & 1);
-}
-
-static void
-ps2_mca_mem_fefe_init(int start_mb)
-{
-    uint32_t planar_size;
-    uint32_t expansion_start;
-
-    planar_size     = (start_mb - 1) << 20;
-    expansion_start = start_mb << 20;
-
-    mem_mapping_set_addr(&ram_high_mapping, 0x100000, planar_size);
-
-    ps2.mem_2mb_pos_regs[0] = 0xfe;
-    ps2.mem_2mb_pos_regs[1] = 0xfe;
-
-    switch ((mem_size / 1024) - start_mb) {
-        case 0:/*256Kx2 = 11 11 11 10*/
-            ps2.mem_2mb_pos_regs[2] = 0xfe;
-            ps2.mem_2mb_pos_regs[5] = 0xfe;
-            break;
-        case 1:/*256Kx4 = 11 11 10 10*/
-            ps2.mem_2mb_pos_regs[2] = 0xfa;
-            ps2.mem_2mb_pos_regs[5] = 0xfe;
-            break;
-        case 2:/*256Kx8 = 10 10 10 10*/
-            ps2.mem_2mb_pos_regs[2] = 0xaa;
-            ps2.mem_2mb_pos_regs[5] = 0xfe;
-            break;
-
-        default:
-            break;
-    }
-
-    mca_add(ps2_mem_2mb_expansion_read, ps2_mem_2mb_expansion_write, ps2_mem_2mb_expansion_feedb, NULL, NULL);
-    mem_mapping_add(&ps2.expansion_mapping,
-                    expansion_start,
-                    (mem_size - (start_mb << 10)) << 10,
-                    mem_read_ram,
-                    mem_read_ramw,
-                    mem_read_raml,
-                    mem_write_ram,
-                    mem_write_ramw,
-                    mem_write_raml,
-                    &ram[expansion_start],
-                    MEM_MAPPING_INTERNAL,
-                    NULL);
-    mem_mapping_disable(&ps2.expansion_mapping);
-}
-
 static void
 ps2_mca_mem_fffc_init(int start_mb)
 {
@@ -1294,11 +1188,7 @@ ps2_mca_board_model_50_init(void)
 
     if (mem_size > 2048) {
         /* Only 2 MB supported on planar, create a memory expansion card for the rest */
-        if (mem_size > 4096) {
-            ps2_mca_mem_fffc_init(2);
-        } else {
-            ps2_mca_mem_fefe_init(2);
-        }
+        ps2_mca_mem_fffc_init(2);
     }
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -1345,11 +1235,7 @@ ps2_mca_board_model_60_init(void)
 
     if (mem_size > 4096) {
         /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-        if (mem_size > 6144) {
-            ps2_mca_mem_fffc_init(4);
-        } else {
-            ps2_mca_mem_fefe_init(4);
-        }
+        ps2_mca_mem_fffc_init(4);
     }
 
     device_add(&ps2_nvr_55ls_device);
