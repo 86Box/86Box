@@ -231,8 +231,6 @@ tandy_vid_out(uint16_t addr, uint8_t val, void *priv)
                     vid->fullchange = changeframecount;
                     recalc_timings(dev);
                 }
-                if (vid->crtcreg == 0x01 || vid->crtcreg == 0x06)
-                    baseline_calib_start(vid);
                 if (vid->crtcreg == 0x02 || vid->crtcreg == 0x07)
                     vid_update_display_offset(vid, vid->crtcreg);
             }
@@ -241,6 +239,8 @@ tandy_vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x03d8:
             old = vid->mode;
             vid->mode = val;
+            if (old != val)
+                baseline_calib_start(vid);
             if ((old ^ val) & 0x01)
                 recalc_timings(dev);
             if (!dev->is_sl2)
