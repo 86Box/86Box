@@ -474,6 +474,7 @@ extern uint8_t sc1502x_rs2_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t 
 extern void    sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t sdac_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 extern float   sdac_getclock(int clock, void *priv);
+extern void    sdac_set_ref_clock(void *priv, float ref_clock);
 
 extern void    stg_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t stg_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
@@ -507,6 +508,7 @@ extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ics2494an_305_device;
+extern const device_t ics2494an_324_device;
 extern const device_t ati18810_28800_device;
 extern const device_t ati18811_0_28800_device;
 extern const device_t ati18811_1_28800_device;
@@ -523,7 +525,8 @@ extern const device_t sc11484_nors2_ramdac_device;
 extern const device_t sc1502x_ramdac_device;
 extern const device_t sc1502x_rs2_ramdac_device;
 extern const device_t sdac_ramdac_device;
-extern const device_t stg_ramdac_device;
+extern const device_t stg1702_ramdac_device;
+extern const device_t stg1703_ramdac_device;
 extern const device_t tkd8001_ramdac_device;
 extern const device_t tseng_ics5301_ramdac_device;
 extern const device_t tseng_ics5341_ramdac_device;

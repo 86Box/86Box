@@ -1824,6 +1824,9 @@ gd54xx_recalctimings(svga_t *svga)
     uint8_t         clocksel;
     uint8_t         rdmask;
     uint8_t         linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
+    uint8_t         m = 0;
+    int             d = 0;
+    int             n = 0;
 
     svga->hblankstart = svga->crtc[2];
 
@@ -1865,6 +1868,34 @@ gd54xx_recalctimings(svga_t *svga)
         svga->interlace = 0;
     }
 
+    clocksel = (svga->miscout >> 2) & 3;
+
+    if (!gd54xx->vclk_n[clocksel] || !gd54xx->vclk_d[clocksel])
+        svga->clock = (cpuclock * (float) (1ULL << 32)) /
+                      ((svga->miscout & 0xc) ? 28322000.0 : 25175000.0);
+    else {
+        n    = gd54xx->vclk_n[clocksel] & 0x7f;
+        d    = (gd54xx->vclk_d[clocksel] & 0x3e) >> 1;
+        m    = gd54xx->vclk_d[clocksel] & 0x01 ? 2 : 1;
+        float   freq = (14318184.0F * ((float) n / ((float) d * m)));
+        if (gd54xx_is_5422(svga)) {
+            switch (svga->seqregs[0x07] & (gd54xx_is_5434(svga) ? 0xe : 6)) {
+                case 2:
+                    freq /= 2.0F;
+                    break;
+                case 4:
+                    if (!gd54xx_is_5434(svga))
+                        freq /= 3.0F;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / freq;
+    }
+
+    svga->bpp = 8;
     svga->map8 = svga->pallook;
     if (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) {
         if (linedbl)
@@ -1874,14 +1905,13 @@ gd54xx_recalctimings(svga_t *svga)
             if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga)) {
                 svga->hdisp <<= 1;
                 svga->dots_per_clock <<= 1;
+                svga->clock *= 2.0;
             }
         }
     } else if (svga->gdcreg[5] & 0x40)
         svga->render = svga_render_8bpp_lowres;
 
     svga->memaddr_latch |= ((svga->crtc[0x1b] & 0x01) << 16) | ((svga->crtc[0x1b] & 0xc) << 15);
-
-    svga->bpp = 8;
 
     if (gd54xx->ramdac.ctrl & 0x80) {
         if (gd54xx->ramdac.ctrl & 0x40) {
@@ -2021,33 +2051,6 @@ gd54xx_recalctimings(svga_t *svga)
                     svga->render = svga_render_15bpp_highres;
             }
         }
-    }
-
-    clocksel = (svga->miscout >> 2) & 3;
-
-    if (!gd54xx->vclk_n[clocksel] || !gd54xx->vclk_d[clocksel])
-        svga->clock = (cpuclock * (float) (1ULL << 32)) /
-                      ((svga->miscout & 0xc) ? 28322000.0 : 25175000.0);
-    else {
-        int     n    = gd54xx->vclk_n[clocksel] & 0x7f;
-        int     d    = (gd54xx->vclk_d[clocksel] & 0x3e) >> 1;
-        uint8_t m    = gd54xx->vclk_d[clocksel] & 0x01 ? 2 : 1;
-        float   freq = (14318184.0F * ((float) n / ((float) d * m)));
-        if (gd54xx_is_5422(svga)) {
-            switch (svga->seqregs[0x07] & (gd54xx_is_5434(svga) ? 0xe : 6)) {
-                case 2:
-                    freq /= 2.0F;
-                    break;
-                case 4:
-                    if (!gd54xx_is_5434(svga))
-                        freq /= 3.0F;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        svga->clock = (cpuclock * (double) (1ULL << 32)) / freq;
     }
 
     svga->vram_display_mask = (svga->crtc[0x1b] & 2) ? gd54xx->vram_mask : 0x3ffff;
