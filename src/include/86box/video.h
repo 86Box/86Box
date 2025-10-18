@@ -436,20 +436,20 @@ extern const device_t et4000_kasan_isa_device;
 extern const device_t et4000_mca_device;
 
 /* Tseng ET4000-W32x */
-extern const device_t et4000w32_device;
+extern const device_t et4000w32_machspeed_vga_gui_2400s_isa_device;
+extern const device_t et4000w32_machspeed_vga_gui_2400s_vlb_device;
 extern const device_t et4000w32_onboard_device;
-extern const device_t et4000w32i_isa_device;
-extern const device_t et4000w32i_vlb_device;
+extern const device_t et4000w32i_axis_microdevice_isa_device;
+extern const device_t et4000w32i_hercules_dynamite_pro_vlb_device;
 extern const device_t et4000w32p_videomagic_revb_vlb_device;
-extern const device_t et4000w32p_videomagic_revb_pci_device;
-extern const device_t et4000w32p_revc_vlb_device;
-extern const device_t et4000w32p_revc_pci_device;
-extern const device_t et4000w32p_vlb_device;
-extern const device_t et4000w32p_pci_device;
-extern const device_t et4000w32p_noncardex_vlb_device;
-extern const device_t et4000w32p_noncardex_pci_device;
-extern const device_t et4000w32p_cardex_vlb_device;
-extern const device_t et4000w32p_cardex_pci_device;
+extern const device_t et4000w32p_cardex_revc_vlb_device;
+extern const device_t et4000w32p_cardex_revc_pci_device;
+extern const device_t et4000w32p_cardex_revd_vlb_device;
+extern const device_t et4000w32p_cardex_revd_pci_device;
+extern const device_t et4000w32p_diamond_revd_vlb_device;
+extern const device_t et4000w32p_diamond_revd_pci_device;
+extern const device_t et4000w32p_generic_revd_vlb_device;
+extern const device_t et4000w32p_generic_revd_pci_device;
 
 /* MDSI Genius VHR */
 extern const device_t genius_device;

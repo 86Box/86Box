@@ -547,6 +547,7 @@ mach64_recalctimings(svga_t *svga)
         svga->rowcount                 = mach64->crtc_gen_cntl & 1;
         svga->lut_map                  = (mach64->type >= MACH64_VT);
         svga->rowoffset <<= 1;
+        svga->attrregs[0x13]          &= ~0x0f;
 
         if (mach64->type == MACH64_GX)
             ati68860_ramdac_set_render(svga->ramdac, svga);

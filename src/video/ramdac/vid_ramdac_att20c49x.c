@@ -42,12 +42,6 @@ att49x_ramdac_control(uint8_t val, void *priv, svga_t *svga)
     att49x_ramdac_t *ramdac = (att49x_ramdac_t *) priv;
     ramdac->ctrl            = val;
     switch ((ramdac->ctrl >> 5) & 7) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-            svga->bpp = 8;
-            break;
         case 4:
         case 5:
             svga->bpp = 15;
@@ -60,10 +54,12 @@ att49x_ramdac_control(uint8_t val, void *priv, svga_t *svga)
             break;
 
         default:
+            svga->bpp = 8;
             break;
     }
     if (ramdac->type == ATT_490 || ramdac->type == ATT_491)
         svga_set_ramdac_type(svga, (val & 2) ? RAMDAC_8BIT : RAMDAC_6BIT);
+
     svga_recalctimings(svga);
 }
 
