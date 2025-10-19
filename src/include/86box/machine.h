@@ -946,6 +946,9 @@ extern int             machine_at_pat54pv_init(const machine_t *);
 extern int             machine_at_p54sp4_init(const machine_t *);
 extern int             machine_at_sq588_init(const machine_t *);
 extern int             machine_at_p54sps_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ms5109_device;
+#endif
 extern int             machine_at_ms5109_init(const machine_t *);
 
 /* SiS 5501 */
