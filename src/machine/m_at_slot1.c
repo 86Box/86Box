@@ -167,8 +167,18 @@ static const device_config_t lx6_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "Award Modular BIOS v4.51PG - Revision DY",
+                .internal_name = "lx6_dy",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/lx6/LX6C_DY.BIN", "" }
+            },
+            {
                 .name          = "Award Modular BIOS v4.51PG - Revision LY",
-                .internal_name = "lx6", .bios_type = BIOS_NORMAL, 
+                .internal_name = "lx6",
+                .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
