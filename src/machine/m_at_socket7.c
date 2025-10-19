@@ -1595,7 +1595,7 @@ static const device_config_t mb540n_config[] = {
                 .files         = { "roms/machines/mb540n/Tx0720ug.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 06/10/2003 (with eSupport)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 06/10/2003 (by eSupport)",
                 .internal_name = "mb540n_esupport",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
