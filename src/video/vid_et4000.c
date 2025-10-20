@@ -639,6 +639,7 @@ static void
 et4000_recalctimings(svga_t *svga)
 {
     const et4000_t *dev = (et4000_t *) svga->priv;
+    int clk_sel = ((svga->miscout >> 2) & 0x03) | ((svga->crtc[0x34] << 1) & 0x04)| ((svga->crtc[0x31] >> 3) & 0x08);
 
     svga->memaddr_latch |= (svga->crtc[0x33] & 3) << 16;
 
@@ -665,26 +666,15 @@ et4000_recalctimings(svga_t *svga)
         svga->dots_per_clock <<= 1;
     }
 
-    switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x34] << 1) & 4)) {
-        case 0:
-        case 1:
-            break;
-        case 3:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
-            break;
-        case 5:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
-            break;
-        default:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
-            break;
-    }
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
+    if (clk_sel < 2)
+        svga->clock *= 2.0;
 
     switch (svga->bpp) {
         case 15:
         case 16:
-            svga->hdisp /= 2;
-            svga->dots_per_clock /= 2;
+            svga->hdisp >>= 1;
+            svga->dots_per_clock >>= 1;
             break;
 
         case 24:
@@ -900,6 +890,9 @@ et4000_init(const device_t *info)
 
     if (dev->type >= ET4000_TYPE_ISA)
         dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
+
+    dev->svga.clock_gen = device_add(&ics2494an_324_device);
+    dev->svga.getclock  = ics2494_getclock;
 
     if (dev->type == ET4000_TYPE_TC6058AF)
         dev->svga.adv_flags |= FLAG_PRECISETIME;

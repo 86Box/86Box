@@ -3758,6 +3758,7 @@ s3_recalctimings(svga_t *svga)
     if ((((svga->miscout >> 2) & 3) == 3) && (s3->chip < S3_TRIO32))
         clk_sel = svga->crtc[0x42] & 0x0f;
 
+    s3_log("MiscOut=%02x, cr42=%02x.\n", (svga->miscout >> 2) & 3, svga->crtc[0x42] & 0x0f);
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
 
     switch (s3->ramdac_type) {
@@ -3968,6 +3969,10 @@ s3_recalctimings(svga_t *svga)
                                     svga->hdisp <<= 1;
                                     svga->dots_per_clock <<= 1;
                                     svga->clock *= 2.0;
+                                } else if ((clk_sel == 3) && (s3->width >= 1024)) {
+                                    svga->hdisp <<= 1;
+                                    svga->dots_per_clock <<= 1;
+                                    svga->clock *= 2.0;
                                 }
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
@@ -4157,6 +4162,10 @@ s3_recalctimings(svga_t *svga)
                             case TVP3026: /*TVP3026 RAMDAC and clock chip*/
                                 s3_log("TVP3026 968 15bpp: MiscOut=%x, clksel=%x.\n", (svga->miscout >> 2) & 3, clk_sel);
                                 if (clk_sel == 2) {
+                                    svga->hdisp <<= 1;
+                                    svga->dots_per_clock <<= 1;
+                                    svga->clock *= 2.0;
+                                } else if ((clk_sel == 3) && (s3->width >= 1024)) {
                                     svga->hdisp <<= 1;
                                     svga->dots_per_clock <<= 1;
                                     svga->clock *= 2.0;
@@ -4357,6 +4366,10 @@ s3_recalctimings(svga_t *svga)
                                     svga->hdisp <<= 1;
                                     svga->dots_per_clock <<= 1;
                                     svga->clock *= 2.0;
+                                } else if ((clk_sel == 3) && (s3->width >= 1024)) {
+                                    svga->hdisp <<= 1;
+                                    svga->dots_per_clock <<= 1;
+                                    svga->clock *= 2.0;
                                 }
                                 s3_log("TVP3026 968 16bpp: MiscOut=%x, clksel=%x.\n", (svga->miscout >> 2) & 3, clk_sel);
                                 if (svga->hdisp == 832)
@@ -4443,9 +4456,20 @@ s3_recalctimings(svga_t *svga)
 
                     case S3_VISION968:
                         switch (s3->ramdac_type) {
+                            case IBM_RGB: /*IBM RGB528 RAMDAC and clock chip*/
+                                svga->hdisp = (svga->hdisp << 2) / 3;
+                                svga->dots_per_clock = (svga->dots_per_clock << 2) / 3;
+                                svga->clock = (svga->clock * 4.0) / 3.0;
+                                svga->clock /= 2.0;
+                                if (!s3->elsa_eeprom) {
+                                    if (svga->hdisp == 832)
+                                        svga->hdisp -= 32;
+                                }
+                                break;
+
                             case TVP3026: /*TVP3026 RAMDAC and clock chip*/
                                 svga->hdisp = (svga->hdisp << 1) / 3;
-                                if (clk_sel == 2) {
+                                if (clk_sel >= 2) {
                                     svga->hdisp <<= 1;
                                     svga->dots_per_clock <<= 1;
                                     svga->clock = (svga->clock * 4.0) / 3.0;
@@ -4591,6 +4615,10 @@ s3_recalctimings(svga_t *svga)
                             case TVP3026: /*TVP3026 RAMDAC and clock chip*/
                                 s3_log("TVP3026 968 32bpp: MiscOut=%x, clksel=%x.\n", (svga->miscout >> 2) & 3, clk_sel);
                                 if (clk_sel == 2) {
+                                    svga->hdisp <<= 1;
+                                    svga->dots_per_clock <<= 1;
+                                    svga->clock *= 2.0;
+                                } else if ((clk_sel == 3) && (s3->width >= 1024)) {
                                     svga->hdisp <<= 1;
                                     svga->dots_per_clock <<= 1;
                                     svga->clock *= 2.0;
@@ -8197,7 +8225,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
     if ((s3->bpp == 1) || s3->color_16bit) {
         srcbase >>= 1;
         dstbase >>= 1;
-    } else if (s3->bpp == 3) {
+    } else if (s3->bpp >= 2) {
         srcbase >>= 2;
         dstbase >>= 2;
     }
@@ -8222,7 +8250,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
             }
             if ((s3->bpp == 1) || s3->color_16bit)
                 count >>= 1;
-            else if (s3->bpp == 3)
+            else if (s3->bpp >= 2)
                 count >>= 2;
         }
     }
@@ -8930,6 +8958,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
 
                 if (s3->bpp == 2) {
+                    s3_log("24bpp x68 rectfill: cmd=%04x CX=%d, CY=%d.\n", s3->accel.cmd, s3->accel.cx, s3->accel.cy);
                     s3->accel.cx *= 3;
                     s3->accel.cy *= 3;
                 } else if ((s3->bpp == 0) && (svga->bpp == 24))
@@ -9091,16 +9120,11 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                     if (wrt_mask == 0x0000ffff)
                         wrt_mask = 0xffffffff;
-                    if ((rd_mask == 0x0000ffff) || (rd_mask == 0x000000ff))
+                    if ((rd_mask == 0x00ffffff) || (rd_mask == 0x0000ffff) || (rd_mask == 0x000000ff))
                         rd_mask = 0xffffffff;
                 }
 
                 while (count-- && (s3->accel.sy >= 0)) {
-                    if (s3->accel.b2e8_pix && s3_cpu_src(s3) && !s3->accel.temp_cnt) {
-                        mix_dat >>= 16;
-                        s3->accel.temp_cnt = 16;
-                    }
-
                     if ((((s3->accel.cx >= (clip_l * multiplier)) && (s3->accel.cx <= (clip_r * multiplier)) && (s3->accel.cy >= (clip_t * multiplier)) && (s3->accel.cy <= (clip_b * multiplier))) && !(s3->accel.multifunc[0xe] & 0x20)) ||
                         (((s3->accel.cx < (clip_l * multiplier)) && (s3->accel.cx > (clip_r * multiplier)) && (s3->accel.cy < (clip_t * multiplier)) && (s3->accel.cy > (clip_b * multiplier))) && (s3->accel.multifunc[0xe] & 0x20)) ) {
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
@@ -9138,7 +9162,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 
                         if (update) {
                             if (s3->bpp == 2)
-                                dest_dat = (*(uint32_t *) &vram_b[(s3->accel.dest + s3->accel.cx - (s3->accel.minus * 3)) & s3->vram_mask]) & 0xffffff;
+                                dest_dat = (*(uint32_t *) &vram_b[(s3->accel.dest + s3->accel.cx) & s3->vram_mask]) & 0xffffff;
                             else {
                                 READ(s3->accel.dest + s3->accel.cx, dest_dat);
                             }
@@ -11515,8 +11539,8 @@ s3_init(const device_t *info)
 
         case S3_VISION968:
             switch (info->local) {
-                case S3_ELSAWIN2KPROX:
                 case S3_DIAMOND_STEALTH64_968:
+                case S3_ELSAWIN2KPROX:
                 case S3_PHOENIX_VISION968:
                 case S3_NUMBER9_9FX_771:
                     svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
@@ -11887,10 +11911,10 @@ s3_init(const device_t *info)
                     if (info->local == S3_ELSAWIN2KPROX) {
                         s3->elsa_eeprom = 1;
                         ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 28322000.0f);
-                    } else if (info->local != S3_DIAMOND_STEALTH64_968)
-                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 16000000.0f);
-                    else
+                    } else if (info->local == S3_DIAMOND_STEALTH64_968)
                         ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 14318184.0f);
+                    else
+                        ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 16000000.0f);
                     break;
                 default:
                     svga->ramdac    = device_add(&tvp3026_ramdac_device);
