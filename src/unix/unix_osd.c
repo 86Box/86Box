@@ -372,9 +372,18 @@ int osd_handle(SDL_Event event)
     {
         if (event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
         {
-            // Close the OSD
-            // debug: fprintf(stderr, "OSD HANDLE: escape\n");
-            return 0;
+            if (state == STATE_MENU)
+            {
+                // Close the OSD
+                // debug: fprintf(stderr, "OSD HANDLE: escape\n");
+                return 0;
+            }
+            else
+            {
+                // Back to Main and keep it open
+                state = STATE_MENU;
+                return 1;
+            }
         }
 
         if (state == STATE_MENU)
