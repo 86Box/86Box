@@ -267,9 +267,30 @@ joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
             return joystick_state[gp][0].axis[0];
         case 1:
             return joystick_state[gp][0].axis[1];
-        case 2:
+        case 2: // Rudder Axis
             return joystick_state[gp][0].axis[2];
-        case 3:
+        case 3: // Throttle Axis
+        default:
+            return 0;
+    }
+}
+
+static int
+joystick_standard_read_axis_3axis_throttle(UNUSED(void *priv), int axis)
+{
+    uint8_t gp = 0;
+
+    if (!JOYSTICK_PRESENT(gp, 0))
+        return AXIS_NOT_PRESENT;
+
+    switch (axis) {
+        case 0:
+            return joystick_state[gp][0].axis[0];
+        case 1:
+            return joystick_state[gp][0].axis[1];
+        case 3: // Throttle Axis
+            return joystick_state[gp][0].axis[2];
+        case 2: // Rudder Axis
         default:
             return 0;
     }
@@ -288,10 +309,10 @@ joystick_standard_read_axis_4axis(UNUSED(void *priv), int axis)
             return joystick_state[gp][0].axis[0];
         case 1:
             return joystick_state[gp][0].axis[1];
-        case 2:
-            return joystick_state[gp][0].axis[2];
-        case 3:
+        case 2: // Rudder Axis
             return joystick_state[gp][0].axis[3];
+        case 3: // Throttle Axis
+            return joystick_state[gp][0].axis[2];
         default:
             return 0;
     }
@@ -487,7 +508,7 @@ const joystick_t joystick_3axis_2button = {
     .close         = joystick_standard_close,
     .read          = joystick_standard_read,
     .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 2,
@@ -505,7 +526,7 @@ const joystick_t joystick_3axis_3button = {
     .close         = joystick_standard_close,
     .read          = joystick_standard_read_3button,
     .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 3,
@@ -523,7 +544,7 @@ const joystick_t joystick_3axis_4button = {
     .close         = joystick_standard_close,
     .read          = joystick_standard_read_4button,
     .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 4,
@@ -740,7 +761,7 @@ const joystick_t joystick_2button_yoke_throttle = {
     .close         = joystick_standard_close,
     .read          = joystick_standard_read,
     .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 2,
@@ -758,7 +779,7 @@ const joystick_t joystick_3button_yoke_throttle = {
     .close         = joystick_standard_close,
     .read          = joystick_standard_read_3button,
     .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 3,
@@ -776,7 +797,7 @@ const joystick_t joystick_4button_yoke_throttle = {
     .close         = joystick_standard_close,
     .read          = joystick_standard_read_4button,
     .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 4,
