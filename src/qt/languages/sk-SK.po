@@ -603,9 +603,6 @@ msgstr "Kanál:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Zadať..."
-
 msgid "Sectors:"
 msgstr "Sektory:"
 

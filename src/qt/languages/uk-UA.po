@@ -603,9 +603,6 @@ msgstr "Канал:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Вказати..."
-
 msgid "Sectors:"
 msgstr "Сектора:"
 
@@ -1789,7 +1786,7 @@ msgid "Remove"
 msgstr "Видалити"
 
 msgid "Browse..."
-msgstr "Переглянути..."
+msgstr "Огляд..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Не вдалося створити контекст OpenGL."

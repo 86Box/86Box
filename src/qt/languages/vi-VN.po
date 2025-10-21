@@ -603,9 +603,6 @@ msgstr "Kênh:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "Chỉ &rõ..."
-
 msgid "Sectors:"
 msgstr "Sector:"
 

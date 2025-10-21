@@ -603,9 +603,6 @@ msgstr "Kanal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Odredi..."
-
 msgid "Sectors:"
 msgstr "Sektori:"
 
@@ -1789,7 +1786,7 @@ msgid "Remove"
 msgstr "Ukloni"
 
 msgid "Browse..."
-msgstr "Pregledajte..."
+msgstr "Pretraži..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nije moguće stvoriti kontekst OpenGL."

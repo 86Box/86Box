@@ -603,9 +603,6 @@ msgstr "チャンネル:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "参照(&S)..."
-
 msgid "Sectors:"
 msgstr "セクター:"
 
@@ -1789,7 +1786,7 @@ msgid "Remove"
 msgstr "削除"
 
 msgid "Browse..."
-msgstr "ブラウズ..."
+msgstr "参照..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGLコンテキストを作成できませんでした。"
