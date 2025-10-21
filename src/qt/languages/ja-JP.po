@@ -3063,9 +3063,6 @@ msgstr "OpenGLの入力ストレッチモード"
 msgid "Color scheme"
 msgstr "配色"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "光"
 

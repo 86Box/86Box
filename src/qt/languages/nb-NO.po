@@ -3063,9 +3063,6 @@ msgstr "Inngangsstrekkmodus for OpenGL"
 msgid "Color scheme"
 msgstr "Fargevalg"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "Lys"
 

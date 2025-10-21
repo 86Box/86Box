@@ -3063,9 +3063,6 @@ msgstr "Eingabestreckungsmodus von OpenGL"
 msgid "Color scheme"
 msgstr "Farbschema"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "Licht"
 

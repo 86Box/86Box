@@ -3063,9 +3063,6 @@ msgstr "Način raztezanja vhoda OpenGL"
 msgid "Color scheme"
 msgstr "Barvna shema"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "Svetloba"
 
