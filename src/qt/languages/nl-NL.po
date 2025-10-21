@@ -852,8 +852,17 @@ msgstr "Geen PCap-apparaten gevonden"
 msgid "Invalid PCap device"
 msgstr "Ongeldig PCap-apparaat"
 
+msgid "Generic Paddle Controller(s)"
+msgstr ""
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Joystick(s) met 2 assen en 1 knoppen"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Joystick(s) met 2 assen en 2 knoppen"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Joystick met 2 assen en 3 knoppen"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Joystick met 2 assen en 4 knoppen"
@@ -867,17 +876,98 @@ msgstr "Joystick met 2 assen en 8 knoppen"
 msgid "3-axis, 2-button joystick"
 msgstr "Joystick met 3 assen en 2 knoppen"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Joystick met 3 assen en 3 knoppen"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Joystick met 3 assen en 4 knoppen"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Joystick met 4 assen en 2 knoppen"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Joystick met 4 assen en 3 knoppen"
+
 msgid "4-axis, 4-button joystick"
 msgstr "Joystick met 4 assen en 4 knoppen"
+
+msgid "2-button gamepad(s)"
+msgstr "2-knops gamepad(s)"
+
+msgid "3-button gamepad"
+msgstr "3-knops gamepad"
+
+msgid "4-button gamepad"
+msgstr "4-knops gamepad"
+
+msgid "6-button gamepad"
+msgstr "6-knops gamepad"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "2-knops stuurknuppel"
+
+msgid "3-button flight yoke"
+msgstr "3-knops stuurknuppel"
+
+msgid "4-button flight yoke"
+msgstr "4-knops stuurknuppel"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-kops stuurknuppel met gashendel "
+
+msgid "3-button flight yoke with throttle"
+msgstr "3-kops stuurknuppel met gashendel"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-kops stuurknuppel met gashendel"
+
+msgid "Steering Wheel (3-axis, 2-button)"
+msgstr "Stuurwiel (3 assen, 2 knoppen)"
+
+msgid "Steering Wheel (3-axis, 3-button)"
+msgstr "Stuurwiel (3 assen, 3 knoppen)"
+
+msgid "Steering Wheel (3-axis, 4-button)"
+msgstr "Stuurwiel (3 assen, 4 knoppen)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedalen"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedalen Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedalen"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedalen Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedalen"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedalen Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedalen"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedalen Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +978,11 @@ msgstr "Thrustmaster Flight Control systeem"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Roer Control Systeem"
 
-msgid "2-button gamepad(s)"
-msgstr "2-knops gamepad(s)"
+msgid "Thrustmaster Formula T1/T2 with Adaptor"
+msgstr "Thrustmaster Formula T1/T2 with Adaptor"
 
-msgid "2-button flight yoke"
-msgstr "2-knops stuurknuppel"
-
-msgid "4-button gamepad"
-msgstr "4-knops gamepad"
-
-msgid "4-button flight yoke"
-msgstr "4-knops stuurknuppel"
-
-msgid "2-button flight yoke with throttle"
-msgstr "2-kops stuurknuppel met gashendel "
-
-msgid "4-button flight yoke with throttle"
-msgstr "2-kops stuurknuppel met gashendel"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 Stuurwiel (3 assen, 4 knoppen)"
+msgid "Thrustmaster Formula T1/T2 without Adaptor"
+msgstr "Thrustmaster Formula T1/T2 without Adaptor"
 
 msgid "None"
 msgstr "Geen"
@@ -2987,6 +3062,9 @@ msgstr "Input stretch-modus van OpenGL"
 
 msgid "Color scheme"
 msgstr "Kleurenschema"
+
+msgid "System"
+msgstr ""
 
 msgid "Light"
 msgstr "Licht"
