@@ -8831,7 +8831,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM | MACHINE_ACPI,
+        .flags     = MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
