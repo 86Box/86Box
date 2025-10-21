@@ -183,7 +183,7 @@ extern const joystick_t joystick_2axis_4button;
 extern const joystick_t joystick_2axis_6button;
 extern const joystick_t joystick_2axis_8button;
 
-// 2 axis Generic Joysticks
+// 3 axis Generic Joysticks
 extern const joystick_t joystick_3axis_2button;
 extern const joystick_t joystick_3axis_3button;
 extern const joystick_t joystick_3axis_4button;
