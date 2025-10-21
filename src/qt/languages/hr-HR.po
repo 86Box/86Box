@@ -3063,9 +3063,6 @@ msgstr "Način rastezanja ulaza u OpenGL-u"
 msgid "Color scheme"
 msgstr "Shema boja"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "Svjetlo"
 

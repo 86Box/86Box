@@ -3063,9 +3063,6 @@ msgstr "Modo de estiramiento de entrada de OpenGL"
 msgid "Color scheme"
 msgstr "Esquema de colores"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "Luz"
 

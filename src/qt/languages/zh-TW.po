@@ -3063,9 +3063,6 @@ msgstr "OpenGL 的輸入拉伸模式"
 msgid "Color scheme"
 msgstr "配色方案"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "亮色"
 

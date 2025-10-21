@@ -64,7 +64,7 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
 
     // Check the beginning of the file for the EDID header.
     uint64_t header;
-    fread(&header, sizeof(header), 1, fp);
+    (void) !fread(&header, sizeof(header), 1, fp);
 
     if (header == EDID_HEADER) {
         // Binary format. Read as is

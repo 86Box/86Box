@@ -3063,9 +3063,6 @@ msgstr "OpenGL'nin giriş germe modu"
 msgid "Color scheme"
 msgstr "Renk şeması"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "Işık"
 

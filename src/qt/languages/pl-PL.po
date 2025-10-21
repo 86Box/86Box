@@ -3063,9 +3063,6 @@ msgstr "Tryb rozciągania wejściowego OpenGL"
 msgid "Color scheme"
 msgstr "Schemat kolorów"
 
-msgid "System"
-msgstr ""
-
 msgid "Light"
 msgstr "Światło"
 
