@@ -327,8 +327,10 @@ video_prepare(void)
 
     for (int i = 0; i < MONITORS_NUM; i++) {
         /* Reset the CGA palette. */
+#if 0
         if (monitors[i].mon_cga_palette)
             *monitors[i].mon_cga_palette = 0;
+#endif
         cgapal_rebuild_monitor(i);
 
         /* Do an inform on the default values, so that that there's some sane values initialized
