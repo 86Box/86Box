@@ -44,34 +44,7 @@
 #include <86box/timer.h>
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
-
-static void *
-ch_flightstick_pro_init(void)
-{
-    return NULL;
-}
-
-static void
-ch_flightstick_pro_close(UNUSED(void *priv))
-{
-    //
-}
-
-static uint8_t
-ch_flightstick_read(UNUSED(void *priv))
-{
-    uint8_t ret    = 0xf0;
-    uint8_t gp = 0;
-
-    if (JOYSTICK_PRESENT(gp, 0)) {
-        if (joystick_state[gp][0].button[0])
-            ret &= ~0x10;
-        if (joystick_state[gp][0].button[1])
-            ret &= ~0x20;
-    }
-
-    return ret;
-}
+#include <86box/joystick.h>
 
 static uint8_t
 ch_flightstick_pro_read(UNUSED(void *priv))
@@ -169,71 +142,15 @@ ch_virtual_pilot_pro_read(UNUSED(void *priv))
     return ret;
 }
 
-static void
-ch_flightstick_pro_write(UNUSED(void *priv))
-{
-    //
-}
-
-static int
-ch_flightstick_pro_read_axis(UNUSED(void *priv), int axis)
-{
-    uint8_t gp = 0;
-
-    if (!JOYSTICK_PRESENT(gp, 0))
-        return AXIS_NOT_PRESENT;
-
-    switch (axis) {
-        case 0:
-            return joystick_state[gp][0].axis[0];
-        case 1:
-            return joystick_state[gp][0].axis[1];
-        case 2:
-            return 0;
-        case 3:
-            return joystick_state[gp][0].axis[2];
-        default:
-            return 0;
-    }
-}
-
-static int
-ch_flightstick_pro_ch_pedals_read_axis(UNUSED(void *priv), int axis)
-{
-    uint8_t gp = 0;
-
-    if (!JOYSTICK_PRESENT(gp, 0))
-        return AXIS_NOT_PRESENT;
-
-    switch (axis) {
-        case 0:
-            return joystick_state[gp][0].axis[0];
-        case 1:
-            return joystick_state[gp][0].axis[1];
-        case 2:
-            return joystick_state[gp][0].axis[3];
-        case 3:
-            return joystick_state[gp][0].axis[2];
-        default:
-            return 0;
-    }
-}
-
-static void
-ch_flightstick_pro_a0_over(UNUSED(void *priv))
-{
-    //
-}
-
 const joystick_t joystick_ch_flightstick = {
     .name          = "CH Flightstick",
     .internal_name = "ch_flightstick",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
-    .read          = ch_flightstick_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_2button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 2,
     .pov_count     = 0,
@@ -246,12 +163,12 @@ const joystick_t joystick_ch_flightstick = {
 const joystick_t joystick_ch_flightstick_ch_pedals = {
     .name          = "CH Flightstick + CH Pedals",
     .internal_name = "ch_flightstick_ch_pedals",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
-    .read          = ch_flightstick_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_2button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 2,
     .pov_count     = 0,
@@ -264,12 +181,12 @@ const joystick_t joystick_ch_flightstick_ch_pedals = {
 const joystick_t joystick_ch_flightstick_ch_pedals_pro = {
     .name          = "CH Flightstick + CH Pedals Pro",
     .internal_name = "ch_flightstick_ch_pedals_pro",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
-    .read          = ch_flightstick_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_2button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 2,
     .pov_count     = 0,
@@ -282,12 +199,12 @@ const joystick_t joystick_ch_flightstick_ch_pedals_pro = {
 const joystick_t joystick_ch_flightstick_pro = {
     .name          = "CH Flightstick Pro",
     .internal_name = "ch_flightstick_pro",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
     .read          = ch_flightstick_pro_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 4,
     .pov_count     = 1,
@@ -300,12 +217,12 @@ const joystick_t joystick_ch_flightstick_pro = {
 const joystick_t joystick_ch_flightstick_pro_ch_pedals = {
     .name          = "CH Flightstick Pro + CH Pedals",
     .internal_name = "ch_flightstick_pro_ch_pedals",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
     .read          = ch_flightstick_pro_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 4,
     .pov_count     = 1,
@@ -318,12 +235,12 @@ const joystick_t joystick_ch_flightstick_pro_ch_pedals = {
 const joystick_t joystick_ch_flightstick_pro_ch_pedals_pro = {
     .name          = "CH Flightstick Pro + CH Pedals Pro",
     .internal_name = "ch_flightstick_pro_ch_pedals_pro",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
     .read          = ch_flightstick_pro_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 4,
     .pov_count     = 1,
@@ -336,12 +253,12 @@ const joystick_t joystick_ch_flightstick_pro_ch_pedals_pro = {
 const joystick_t joystick_ch_virtual_pilot = {
     .name          = "CH Virtual Pilot",
     .internal_name = "ch_virtual_pilot",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
-    .read          = ch_flightstick_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_2button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 2,
     .pov_count     = 0,
@@ -354,12 +271,12 @@ const joystick_t joystick_ch_virtual_pilot = {
 const joystick_t joystick_ch_virtual_pilot_ch_pedals = {
     .name          = "CH Virtual Pilot + CH Pedals",
     .internal_name = "ch_virtual_pilot_ch_pedals",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
-    .read          = ch_flightstick_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_2button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 2,
     .pov_count     = 0,
@@ -372,12 +289,12 @@ const joystick_t joystick_ch_virtual_pilot_ch_pedals = {
 const joystick_t joystick_ch_virtual_pilot_ch_pedals_pro = {
     .name          = "CH Virtual Pilot + CH Pedals Pro",
     .internal_name = "ch_virtual_pilot_ch_pedals_pro",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
-    .read          = ch_flightstick_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
+    .read          = joystick_standard_read_2button,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 2,
     .pov_count     = 0,
@@ -390,12 +307,12 @@ const joystick_t joystick_ch_virtual_pilot_ch_pedals_pro = {
 const joystick_t joystick_ch_virtual_pilot_pro = {
     .name          = "CH Virtual Pilot Pro",
     .internal_name = "ch_virtual_pilot_pro",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
     .read          = ch_virtual_pilot_pro_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_3axis_throttle,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
     .button_count  = 6,
     .pov_count     = 2,
@@ -408,12 +325,12 @@ const joystick_t joystick_ch_virtual_pilot_pro = {
 const joystick_t joystick_ch_virtual_pilot_pro_ch_pedals = {
     .name          = "CH Virtual Pilot Pro + CH Pedals",
     .internal_name = "ch_virtual_pilot_pro_ch_pedals",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
     .read          = ch_virtual_pilot_pro_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 6,
     .pov_count     = 2,
@@ -426,12 +343,12 @@ const joystick_t joystick_ch_virtual_pilot_pro_ch_pedals = {
 const joystick_t joystick_ch_virtual_pilot_pro_ch_pedals_pro = {
     .name          = "CH Virtual Pilot Pro + CH Pedals Pro",
     .internal_name = "ch_virtual_pilot_pro_ch_pedals_pro",
-    .init          = ch_flightstick_pro_init,
-    .close         = ch_flightstick_pro_close,
+    .init          = joystick_standard_init,
+    .close         = joystick_standard_close,
     .read          = ch_virtual_pilot_pro_read,
-    .write         = ch_flightstick_pro_write,
-    .read_axis     = ch_flightstick_pro_ch_pedals_read_axis,
-    .a0_over       = ch_flightstick_pro_a0_over,
+    .write         = joystick_standard_write,
+    .read_axis     = joystick_standard_read_axis_4axis,
+    .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
     .button_count  = 6,
     .pov_count     = 2,
