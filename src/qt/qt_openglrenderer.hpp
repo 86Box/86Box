@@ -102,7 +102,7 @@ private:
 
     void *unpackBuffer = nullptr;
 
-    int glsl_version[2] = { 0, 0 };
+    int gl_version[2] = { 0, 0 };
 
     void initialize();
     void initializeExtensions();
