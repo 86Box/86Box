@@ -168,7 +168,8 @@ static const device_config_t lx6_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision LY",
-                .internal_name = "lx6", .bios_type = BIOS_NORMAL, 
+                .internal_name = "lx6",
+                .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
