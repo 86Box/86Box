@@ -891,7 +891,7 @@ msgstr "Mando de 4 ejes, 4 botones"
 msgid "2-button gamepad(s)"
 msgstr "Mando(s) de juegos de 2 botones"
 
-msgid "4-button gamepad"
+msgid "3-button gamepad"
 msgstr "Mando de juegos de 3 botones"
 
 msgid "4-button gamepad"
