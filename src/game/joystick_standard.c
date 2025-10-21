@@ -544,7 +544,7 @@ const joystick_t joystick_4axis_2button = {
     .read_axis     = joystick_standard_read_axis_4axis,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 4,
-    .button_count  = 3,
+    .button_count  = 2,
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "X axis", "Y axis", "Z axis", "zX axis" },
@@ -765,7 +765,7 @@ const joystick_t joystick_3button_yoke_throttle = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3" },
+    .button_names  = { "Trigger", "Button 2", "Button 3" },
     .pov_names     = { NULL }
 };
 
@@ -783,7 +783,7 @@ const joystick_t joystick_4button_yoke_throttle = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { NULL }
 };
 
@@ -797,7 +797,7 @@ const joystick_t joystick_steering_wheel_2_button = {
     .read_axis     = joystick_standard_read_axis_3axis,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
-    .button_count  = 4,
+    .button_count  = 2,
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "Steering axis", "Accelerator axis", "Brake axis" },
@@ -815,7 +815,7 @@ const joystick_t joystick_steering_wheel_3_button = {
     .read_axis     = joystick_standard_read_axis_3axis,
     .a0_over       = joystick_standard_a0_over,
     .axis_count    = 3,
-    .button_count  = 4,
+    .button_count  = 3,
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "Steering axis", "Accelerator axis", "Brake axis" },
