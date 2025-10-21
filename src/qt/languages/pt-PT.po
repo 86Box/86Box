@@ -603,9 +603,6 @@ msgstr "Canal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Especificar..."
-
 msgid "Sectors:"
 msgstr "Sectores:"
 

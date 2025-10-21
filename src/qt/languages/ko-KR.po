@@ -603,9 +603,6 @@ msgstr "채널:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "열기(&S)..."
-
 msgid "Sectors:"
 msgstr "섹터:"
 

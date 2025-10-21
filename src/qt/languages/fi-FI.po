@@ -603,9 +603,6 @@ msgstr "Kanava:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Määritä..."
-
 msgid "Sectors:"
 msgstr "Sektorit:"
 

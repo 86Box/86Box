@@ -603,9 +603,6 @@ msgstr "Kanál:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Zadat..."
-
 msgid "Sectors:"
 msgstr "Sektory:"
 
@@ -1714,7 +1711,7 @@ msgid "Remove"
 msgstr "Odstranit"
 
 msgid "Browse..."
-msgstr "Browse..."
+msgstr "Procházet..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nepodařilo se vytvořit kontext OpenGL."

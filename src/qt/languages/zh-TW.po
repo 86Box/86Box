@@ -603,9 +603,6 @@ msgstr "通道:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "指定(&S)..."
-
 msgid "Sectors:"
 msgstr "磁區(S):"
 
