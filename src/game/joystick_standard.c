@@ -765,7 +765,7 @@ const joystick_t joystick_3button_yoke_throttle = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3" },
+    .button_names  = { "Trigger", "Button 2", "Button 3" },
     .pov_names     = { NULL }
 };
 
@@ -783,7 +783,7 @@ const joystick_t joystick_4button_yoke_throttle = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "Roll axis", "Pitch axis", "Throttle axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { NULL }
 };
 

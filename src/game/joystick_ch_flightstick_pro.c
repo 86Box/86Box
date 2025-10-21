@@ -239,7 +239,7 @@ const joystick_t joystick_ch_flightstick = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle" },
-    .button_names  = { "Button 1", "Button 2" },
+    .button_names  = { "Trigger", "Button 2" },
     .pov_names     = { NULL }
 };
 
@@ -257,7 +257,7 @@ const joystick_t joystick_ch_flightstick_ch_pedals = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle", "Rudder (Yaw)" },
-    .button_names  = { "Button 1", "Button 2" },
+    .button_names  = { "Trigger", "Button 2" },
     .pov_names     = { NULL }
 };
 
@@ -275,7 +275,7 @@ const joystick_t joystick_ch_flightstick_ch_pedals_pro = {
     .pov_count     = 0,
     .max_joysticks = 1,
     .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Right Pedal", "Left Pedal" },
-    .button_names  = { "Button 1", "Button 2" },
+    .button_names  = { "Trigger", "Button 2" },
     .pov_names     = { NULL }
 };
 
@@ -293,7 +293,7 @@ const joystick_t joystick_ch_flightstick_pro = {
     .pov_count     = 1,
     .max_joysticks = 1,
     .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
 };
 
@@ -311,7 +311,7 @@ const joystick_t joystick_ch_flightstick_pro_ch_pedals = {
     .pov_count     = 1,
     .max_joysticks = 1,
     .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle", "Rudder (Yaw)" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
 };
 
@@ -329,7 +329,7 @@ const joystick_t joystick_ch_flightstick_pro_ch_pedals_pro = {
     .pov_count     = 1,
     .max_joysticks = 1,
     .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Right Pedal", "Left Pedal" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
 };
 

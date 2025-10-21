@@ -167,7 +167,7 @@ const joystick_t joystick_tm_fcs = {
     .pov_count     = 1,
     .max_joysticks = 1,
     .axis_names    = { "X axis", "Y axis" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
 };
 
@@ -185,6 +185,6 @@ const joystick_t joystick_tm_fcs_rcs = {
     .pov_count     = 1,
     .max_joysticks = 1,
     .axis_names    = { "X axis", "Y axis", "Rudder" },
-    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
 };
