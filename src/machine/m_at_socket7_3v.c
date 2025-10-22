@@ -157,6 +157,150 @@ machine_at_exp8551_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_at_hpvectravexxx_gpio_init(void)
+{
+    uint32_t gpio = 0x40;
+
+     if (cpu_busspeed <= 40000000)
+      gpio |= 0x30;
+        else if ((cpu_busspeed > 40000000) && (cpu_busspeed <= 50000000))
+        gpio |= 0x00;
+        else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+         gpio |= 0x20;
+        else if (cpu_busspeed > 60000000)
+        gpio |= 0x10;
+
+        if (cpu_dmulti <= 1.5)
+        gpio |= 0x82;
+        else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
+        gpio |= 0x02;
+        else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
+        gpio |= 0x00;
+        else if (cpu_dmulti > 2.5)
+        gpio |= 0x80;
+
+    machine_set_gpio_default(gpio);
+}
+
+static const device_config_t hpvectravexxx_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "gu_07_05",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "GU.07.02 (01/25/96)",
+                .internal_name = "gu_07_02",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/hpvectravexxx/d3653.bin", "" }
+            },
+            {
+                .name          = "GU.07.05 (08/06/96)",
+                .internal_name = "gu_07_05",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/hpvectravexxx/GU0705US.FUL", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t hpvectravexxx_device = {
+    .name          = "HP Vectra VE 5/XXX Series 2",
+    .internal_name = "hpvectravexxx_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = hpvectravexxx_config
+};
+
+int
+machine_at_hpvectravexxx_init(const machine_t *model)
+{
+	int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init_ex(model, 2);
+	machine_at_hpvectravexxx_gpio_init();
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_PHOENIX_42);
+    device_add(&intel_flash_bxt_device);
+	
+	 if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+int
+machine_at_vectra500mt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vectra500mt/GJ0718.FUL",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
 int
 machine_at_vectra54_init(const machine_t *model)
 {
@@ -431,7 +575,6 @@ static void
 machine_at_monaco_gpio_init(void)
 {
     uint32_t gpio = 0xffffe0cf;
-    uint16_t addr;
 
     /* Return to this after CS4232 PnP is working. */
     /* Register 0x0078 (Undocumented): */
@@ -668,16 +811,71 @@ machine_at_monaco_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ms5119_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ms5119",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision A37EB",
+                .internal_name = "ms5119",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5119/A37EB.ROM", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Release 2.3 (by Rainbow)",
+                .internal_name = "ms5119_451pg",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5119/MS-5120.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ms5119_device = {
+    .name          = "MSI MS-5119",
+    .internal_name = "ms5119_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ms5119_config
+};
+
 int
 machine_at_ms5119_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/ms5119/A37EB.ROM",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 
@@ -794,16 +992,71 @@ machine_at_mb500n_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t fmb_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "fmb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.83",
+                .internal_name = "fmb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/fmb/P5IV183.ROM", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - 2001 Release (by Rainbow)",
+                .internal_name = "fmb_451pg",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/fmb/P5I437FM.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t fmb_device = {
+    .name          = "QDI FMB",
+    .internal_name = "fmb_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = fmb_config
+};
+
 int
 machine_at_fmb_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/fmb/P5IV183.ROM",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 

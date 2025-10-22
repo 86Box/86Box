@@ -42,6 +42,8 @@ extern MainWindow* main_window;
 #include <QImage>
 
 #include <cmath>
+#include <cstdarg>
+#define HAVE_STDARG_H
 
 #include "qt_openglrenderer.hpp"
 #include "qt_openglshadermanagerdialog.hpp"
@@ -152,7 +154,7 @@ ogl3_log(const char *fmt, ...)
 
     if (ogl3_do_log) {
         va_start(ap, fmt);
-        ogl3_log_ex(fmt, ap);
+        pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
@@ -218,17 +220,8 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
     if (version_loc) {
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
         progSource.remove(versionRegex);
-
-        version_loc = ((char *) this->glslVersion.toLatin1().data()) + 9;
-        char glsl_ver[4] = { 0 };
-        memcpy(glsl_ver, version_loc, 3);
-        int ver = atoi((char *) glsl_ver);
-        pclog("Fucce þiċ: %d\n", ver);
     } else {
-        version_loc = ((char *) this->glslVersion.toLatin1().data()) + 9;
-        char glsl_ver[4] = { 0 };
-        memcpy(glsl_ver, version_loc, 3);
-        int ver = atoi((char *) glsl_ver);
+        int ver = gl_version[0] * 100 + gl_version[1] * 10;
         if (ver == 300)
             ver = 130;
         else if (ver == 310)
@@ -881,11 +874,11 @@ OpenGLRenderer::initialize()
         glw.initializeOpenGLFunctions();
 
         ogl3_log("OpenGL information: [%s] %s (%s)\n", glw.glGetString(GL_VENDOR), glw.glGetString(GL_RENDERER), glw.glGetString(GL_VERSION));
-        glsl_version[0] = glsl_version[1] = -1;
-        glw.glGetIntegerv(GL_MAJOR_VERSION, &glsl_version[0]);
-        glw.glGetIntegerv(GL_MINOR_VERSION, &glsl_version[1]);
-        if (glsl_version[0] < 3) {
-            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(glsl_version[0]).arg(glsl_version[1]));
+        gl_version[0] = gl_version[1] = -1;
+        glw.glGetIntegerv(GL_MAJOR_VERSION, &gl_version[0]);
+        glw.glGetIntegerv(GL_MINOR_VERSION, &gl_version[1]);
+        if (gl_version[0] < 3) {
+            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(gl_version[0]).arg(gl_version[1]));
         }
         ogl3_log("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
         ogl3_log("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
@@ -1738,3 +1731,4 @@ OpenGLRenderer::render()
     frameCounter++;
     context->swapBuffers(this);
 }
+

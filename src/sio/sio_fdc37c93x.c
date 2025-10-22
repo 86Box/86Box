@@ -1812,7 +1812,7 @@ fdc37c93x_reset(void *priv)
     memset(dev->gpio_pulldn, 0xff, 8);
 
     /* Acer V62X requires bit 0 to be clear to not be stuck in "clear password" mode. */
-    if (machines[machine].init == machine_at_vectra54_init) {
+    if ((machines[machine].init == machine_at_vectra54_init) || (machines[machine].init == machine_at_vectra500mt_init)) {
         dev->gpio_pulldn[1] = 0x40;
 
         /*

@@ -685,7 +685,7 @@ fdc37m60x_init(const device_t *info)
 }
 
 const device_t fdc37m60x_device = {
-    .name          = "SMC FDC37C93x Super I/O",
+    .name          = "SMC FDC37M60x Super I/O",
     .internal_name = "fdc37m60x",
     .flags         = 0,
     .local         = 0,

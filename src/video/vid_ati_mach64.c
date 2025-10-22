@@ -547,6 +547,7 @@ mach64_recalctimings(svga_t *svga)
         svga->rowcount                 = mach64->crtc_gen_cntl & 1;
         svga->lut_map                  = (mach64->type >= MACH64_VT);
         svga->rowoffset <<= 1;
+        svga->attrregs[0x13]          &= ~0x0f;
 
         if (mach64->type == MACH64_GX)
             ati68860_ramdac_set_render(svga->ramdac, svga);
@@ -4897,7 +4898,7 @@ mach64_common_init(const device_t *info)
     mach64_io_set(mach64);
 
     if (info->flags & DEVICE_PCI)
-        pci_add_card(PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
+        pci_add_card((info->local & (1 << 19)) ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
 
     mach64->pci_regs[PCI_REG_COMMAND] = 3;
     mach64->pci_regs[0x30]            = 0x00;
@@ -4989,7 +4990,8 @@ mach64ct_init(const device_t *info)
 
     ati_eeprom_load(&mach64->eeprom, "mach64ct.nvr", 1);
 
-    rom_init(&mach64->bios_rom, BIOS_ROMCT_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (!(info->local & (1 << 19)))
+        rom_init(&mach64->bios_rom, BIOS_ROMCT_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     mem_mapping_disable(&mach64->bios_rom.mapping);
 

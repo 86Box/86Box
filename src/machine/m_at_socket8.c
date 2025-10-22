@@ -303,6 +303,15 @@ machine_at_686nx_init(const machine_t *model)
     return ret;
 }
 
+uint32_t
+machine_ap440fx_vs440fx_gpio_handler(uint8_t write, uint32_t val)
+{
+    if (!write)
+        return 0xff7f;
+
+    return val; /* Writes are ignored. */
+}
+
 int
 machine_at_ap440fx_init(const machine_t *model)
 {

@@ -43,7 +43,7 @@ msgid "&Hide status bar"
 msgstr "&Statusbalk verbergen"
 
 msgid "Hide &toolbar"
-msgstr "Verberg &toolbar"
+msgstr "&Toolbar verbergen"
 
 msgid "&Resizeable window"
 msgstr "&Venster met aanpasbare grootte"
@@ -109,7 +109,7 @@ msgid "Fi&lter method"
 msgstr "Filtermethode"
 
 msgid "&Nearest"
-msgstr "&Dichtsbijzijnde"
+msgstr "&Dichtstbijzijnde"
 
 msgid "&Linear"
 msgstr "&Lineair"
@@ -220,7 +220,7 @@ msgid "Begin trace"
 msgstr "Begin traceren"
 
 msgid "End trace"
-msgstr "Traceren beëindigen"
+msgstr "Beëindig traceren"
 
 msgid "&Help"
 msgstr "&Help"
@@ -232,19 +232,19 @@ msgid "&About 86Box..."
 msgstr "&Over 86Box..."
 
 msgid "&New image..."
-msgstr "&Nieuw image..."
+msgstr "&Nieuw imagebestand..."
 
 msgid "&Existing image..."
-msgstr "&Bestaande image..."
+msgstr "&Bestaande imagebestand..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Bestaande image (&Schrijfbeveiligd)..."
+msgstr "Bestaand imagebestand (&Schrijfbeveiligd)..."
 
 msgid "&Record"
 msgstr "&Opnemen"
 
 msgid "&Play"
-msgstr "&Play"
+msgstr "&Afspelen"
 
 msgid "&Rewind to the beginning"
 msgstr "&Terugspoelen naar het begin"
@@ -256,19 +256,19 @@ msgid "E&ject"
 msgstr "&Uitwerpen"
 
 msgid "&Image..."
-msgstr "&Image..."
+msgstr "&Imagebestand..."
 
 msgid "E&xport to 86F..."
 msgstr "E&xporteer naar 86F..."
 
 msgid "&Mute"
-msgstr "&Mute"
+msgstr "&Dempen"
 
 msgid "E&mpty"
-msgstr "E&mpty"
+msgstr "&Leeg"
 
 msgid "Reload previous image"
-msgstr "Herlaad vorige image"
+msgstr "Herlaad vorig imagebestand"
 
 msgid "&Folder..."
 msgstr "&Map..."
@@ -301,7 +301,7 @@ msgid "&Select shader..."
 msgstr "&Selecteer shader..."
 
 msgid "&Remove shader"
-msgstr "&Remove shader"
+msgstr "&Verwijder shader"
 
 msgid "Preferences"
 msgstr "Voorkeuren"
@@ -310,7 +310,7 @@ msgid "Sound Gain"
 msgstr "Geluidsversterking"
 
 msgid "New Image"
-msgstr "Nieuw image"
+msgstr "Nieuw imagebestand"
 
 msgid "Settings"
 msgstr "Instellingen"
@@ -343,7 +343,7 @@ msgid "RPM mode:"
 msgstr "RPM-modus:"
 
 msgid "Progress:"
-msgstr "Vooruitgang:"
+msgstr "Voortgang:"
 
 msgid "Width:"
 msgstr "Breedte:"
@@ -352,7 +352,7 @@ msgid "Height:"
 msgstr "Hoogte:"
 
 msgid "Lock to this size"
-msgstr "Leg vast op deze grootte"
+msgstr "Vergrendel deze grootte"
 
 msgid "Machine type:"
 msgstr "Machinetype:"
@@ -403,10 +403,10 @@ msgid "Dynamic Recompiler"
 msgstr "Dynamische Recompiler"
 
 msgid "CPU frame size"
-msgstr "CPU frame grootte"
+msgstr "CPU framegrootte"
 
 msgid "Larger frames (less smooth)"
-msgstr "Groter frames (minder vloeiend)"
+msgstr "Grotere frames (minder vloeiend)"
 
 msgid "Smaller frames (smoother)"
 msgstr "Kleinere frames (vloeiender)"
@@ -430,7 +430,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
 msgid "Keyboard:"
-msgstr "Toetsenbord"
+msgstr "Toetsenbord:"
 
 msgid "Keyboard"
 msgstr "Toetsenbord"
@@ -472,13 +472,13 @@ msgid "Sound card #4:"
 msgstr "Geluidskaart #4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Out-apparaat:"
+msgstr "MIDI Uitvoerapparaat:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI In-apparaat:"
+msgstr "MIDI Invoerapparaat:"
 
 msgid "MIDI Out:"
-msgstr "Midi Out:"
+msgstr "Midi Uit:"
 
 msgid "Standalone MPU-401"
 msgstr "Standalone MPU-401"
@@ -603,9 +603,6 @@ msgstr "Kanaal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Specificeer..."
-
 msgid "Sectors:"
 msgstr "Sectoren:"
 
@@ -649,7 +646,7 @@ msgid "Removable disks:"
 msgstr "Verwisselbare schijven:"
 
 msgid "Removable disk drives:"
-msgstr "Verwisselbare schijfstations"
+msgstr "Verwisselbare schijfstations:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -712,13 +709,13 @@ msgid "&Removable disk %1 (%2): %3"
 msgstr "&Verwijderbare schijf  %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "Verwijderbare schijf image"
+msgstr "Verwijderbaar schijfimagebestand"
 
 msgid "Image %1"
 msgstr "Image %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box kon geen bruikbare ROM images vinden.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
+msgstr "86Box kon geen bruikbare ROM imagebestanden vinden.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
 
 msgid "(empty)"
 msgstr "(leeg)"
@@ -814,7 +811,7 @@ msgid "Click to capture mouse"
 msgstr "Klik om muis vast te leggen"
 
 msgid "Press %1 to release mouse"
-msgstr "Druk op %1 om de muis los te laten"
+msgstr "Druk op %1 om de muis vrij te geven"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Druk op %1 of middelste knop om de muis los te laten"
@@ -852,8 +849,17 @@ msgstr "Geen PCap-apparaten gevonden"
 msgid "Invalid PCap device"
 msgstr "Ongeldig PCap-apparaat"
 
+msgid "Generic Paddle Controller(s)"
+msgstr ""
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Joystick(s) met 2 assen en 1 knoppen"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Joystick(s) met 2 assen en 2 knoppen"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Joystick met 2 assen en 3 knoppen"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Joystick met 2 assen en 4 knoppen"
@@ -867,17 +873,98 @@ msgstr "Joystick met 2 assen en 8 knoppen"
 msgid "3-axis, 2-button joystick"
 msgstr "Joystick met 3 assen en 2 knoppen"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Joystick met 3 assen en 3 knoppen"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Joystick met 3 assen en 4 knoppen"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Joystick met 4 assen en 2 knoppen"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Joystick met 4 assen en 3 knoppen"
+
 msgid "4-axis, 4-button joystick"
 msgstr "Joystick met 4 assen en 4 knoppen"
+
+msgid "2-button gamepad(s)"
+msgstr "2-knops gamepad(s)"
+
+msgid "3-button gamepad"
+msgstr "3-knops gamepad"
+
+msgid "4-button gamepad"
+msgstr "4-knops gamepad"
+
+msgid "6-button gamepad"
+msgstr "6-knops gamepad"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "2-knops stuurknuppel"
+
+msgid "3-button flight yoke"
+msgstr "3-knops stuurknuppel"
+
+msgid "4-button flight yoke"
+msgstr "4-knops stuurknuppel"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-kops stuurknuppel met gashendel "
+
+msgid "3-button flight yoke with throttle"
+msgstr "3-kops stuurknuppel met gashendel"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-kops stuurknuppel met gashendel"
+
+msgid "Steering Wheel (3-axis, 2-button)"
+msgstr "Stuurwiel (3 assen, 2 knoppen)"
+
+msgid "Steering Wheel (3-axis, 3-button)"
+msgstr "Stuurwiel (3 assen, 3 knoppen)"
+
+msgid "Steering Wheel (3-axis, 4-button)"
+msgstr "Stuurwiel (3 assen, 4 knoppen)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedalen"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedalen Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedalen"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedalen Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedalen"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedalen Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedalen"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedalen Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control systeem"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Roer Control Systeem"
 
-msgid "2-button gamepad(s)"
-msgstr "2-knops gamepad(s)"
+msgid "Thrustmaster Formula T1/T2 with Adaptor"
+msgstr "Thrustmaster Formula T1/T2 with Adaptor"
 
-msgid "2-button flight yoke"
-msgstr "2-knops stuurknuppel"
-
-msgid "4-button gamepad"
-msgstr "4-knops gamepad"
-
-msgid "4-button flight yoke"
-msgstr "4-knops stuurknuppel"
-
-msgid "2-button flight yoke with throttle"
-msgstr "2-kops stuurknuppel met gashendel "
-
-msgid "4-button flight yoke with throttle"
-msgstr "2-kops stuurknuppel met gashendel"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 Stuurwiel (3 assen, 4 knoppen)"
+msgid "Thrustmaster Formula T1/T2 without Adaptor"
+msgstr "Thrustmaster Formula T1/T2 without Adaptor"
 
 msgid "None"
 msgstr "Geen"
@@ -973,7 +1045,7 @@ msgid "Do you want to save the settings?"
 msgstr "Wil je de instellingen opslaan?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Dit zal de geëmuleerde machine een hard reset geven."
+msgstr "Dit zal de geëmuleerde machine een harde reset geven."
 
 msgid "Save"
 msgstr "Opslaan"
@@ -1054,10 +1126,10 @@ msgid "Cartridge images"
 msgstr "Cartridge-images"
 
 msgid "Resume execution"
-msgstr "Hervat executie"
+msgstr "Hervat uitvoering"
 
 msgid "Pause execution"
-msgstr "Pauze executie"
+msgstr "Pauzeer uitvoering"
 
 msgid "Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del"
@@ -1084,7 +1156,7 @@ msgid "&Start"
 msgstr "&Start"
 
 msgid "Not running"
-msgstr "Niet actied"
+msgstr "Niet actief"
 
 msgid "Running"
 msgstr "Actief"
@@ -1093,10 +1165,10 @@ msgid "Paused"
 msgstr "Gepauzeerd"
 
 msgid "Waiting"
-msgstr "aan het wachtend"
+msgstr "Aan het wachten"
 
 msgid "Powered Off"
-msgstr "Sluit af"
+msgstr "Uitgeschakeld"
 
 msgid "%n running"
 msgstr "%n actief"
@@ -1126,7 +1198,7 @@ msgid "86Box configuration files (86box.cfg)"
 msgstr "86Box configuratiebestanden (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr "Lezen configuratie mislukt"
+msgstr "Lezen van configuratie mislukt"
 
 msgid "Unable to open the selected configuration file for reading: %1"
 msgstr "Openen van geselecteerd configuratiebestand voor lezen niet mogelijk: %1"
@@ -1138,7 +1210,7 @@ msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM 
 msgstr "%1 machine(s) zijn nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
 
 msgid "Add new system wizard"
-msgstr "Assistent voor toevoegen van nieuw systeem"
+msgstr "Wizard toevoegen van nieuw systeem"
 
 msgid "Introduction"
 msgstr "Introductie"
@@ -1186,13 +1258,13 @@ msgid "Directory does not exist"
 msgstr "Map bestaat niet"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Een nieuwe map voor het systeem wordt aangemaakt in de boven geselecteerde map"
+msgstr "Een nieuwe map voor het systeem wordt aangemaakt in de hierboven geselecteerde map"
 
 msgid "System location:"
 msgstr "Systeemlocatie:"
 
 msgid "System name and location"
-msgstr "Systeemnaam en -locatie"
+msgstr "Systeemnaam en locatie"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Voer de naam in van het systeem en kies een locatie"
@@ -1252,7 +1324,7 @@ msgid "Failed to create directory for cloned VM"
 msgstr "Map aanmaken voor gekloonde VM mislukt"
 
 msgid "Failed to clone VM."
-msgstr "Kolen van VM mislukt."
+msgstr "Klonen van VM mislukt."
 
 msgid "Directory in use"
 msgstr "Map in gebruik"
@@ -1303,7 +1375,7 @@ msgid "&Kill"
 msgstr "&Gedwongen beëindigen"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Gedwongen beëindiging van een virtuele machine kan dataverlies veroorzaken. Doe dit alleen wanneer het 86Box process is vast gelopen.\n\nWeet je zeker dat je de virtuele machine \"%1\" wil beëindigen?"
+msgstr "Gedwongen beëindiging van een virtuele machine kan dataverlies veroorzaken. Doe dit alleen wanneer het 86Box-proces is vast gelopen.\n\nWeet je zeker dat je de virtuele machine \"%1\" wil beëindigen?"
 
 msgid "&Delete"
 msgstr "&Verwijderen"
@@ -1345,10 +1417,10 @@ msgid "Audio:"
 msgstr "Audio:"
 
 msgid "ACPI shutdown"
-msgstr "ACPI uitschakeling"
+msgstr "ACPI-uitschakeling"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&I uitschakeling"
+msgstr "ACP&I-uitschakeling"
 
 msgid "Hard disk (%1)"
 msgstr "Harde schijf (%1)"
@@ -1375,7 +1447,7 @@ msgid "Disk images cannot be larger than 127 GB."
 msgstr "Schijfimages kunnen niet groter zijn dan 127 GB."
 
 msgid "Hard disk images"
-msgstr "Harde schijf-image"
+msgstr "Harde schijf-images"
 
 msgid "Unable to read file"
 msgstr "Kan bestand niet lezen"
@@ -1384,7 +1456,7 @@ msgid "Unable to write file"
 msgstr "Kan bestand niet schrijven"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "HDI- of HDX-image met een andere sectorgrootte dan 512 worden niet ondersteund."
+msgstr "HDI- of HDX-images met een andere sectorgrootte dan 512 worden niet ondersteund."
 
 msgid "Disk image file already exists"
 msgstr "Schijfimagebestand bestaat al"
@@ -1432,7 +1504,7 @@ msgid "Fixed-size VHD"
 msgstr "VHD met vaste grootte"
 
 msgid "Dynamic-size VHD"
-msgstr "VHD met dynamisch grootte"
+msgstr "VHD met dynamische grootte"
 
 msgid "Differencing VHD"
 msgstr "Verschil-VHD"
@@ -1453,7 +1525,7 @@ msgid "Fixed-size VHD (.vhd)"
 msgstr "VHD met vaste grootte (.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "VHD met dynamisch grootte (.vhd)"
+msgstr "VHD met dynamische grootte (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
 msgstr "Verschil-VHD (.vhd)"
@@ -1639,7 +1711,7 @@ msgid "List of MCA devices:"
 msgstr "Lijst van MCA-apparaten:"
 
 msgid "&Tablet tool"
-msgstr "Tablet-hulpmiddel"
+msgstr "&Tablet-hulpmiddel"
 
 msgid "About &Qt"
 msgstr "Over &Qt"
@@ -1648,10 +1720,10 @@ msgid "&MCA devices..."
 msgstr "MCA-apparaten..."
 
 msgid "Show non-&primary monitors"
-msgstr "Toon niet-primaire monitors"
+msgstr "Toon niet-primaire beeldschermen"
 
 msgid "Open screenshots &folder..."
-msgstr "Map met schermafbeeldingen openen..."
+msgstr "&Map met schermafbeeldingen openen..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Schakel de volledig scherm-uitrekmodus in bij maximaliseren"
@@ -1663,7 +1735,7 @@ msgid "&Pen"
 msgstr "&Pen"
 
 msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Host cd/dvd-station (%1:)"
+msgstr "&Host CD/DVD-station (%1:)"
 
 msgid "&Connected"
 msgstr "&Verbonden"
@@ -1672,7 +1744,7 @@ msgid "Clear image &history"
 msgstr "Imagegeschiedenis verwijderen(&H)"
 
 msgid "Create..."
-msgstr "Creëer..."
+msgstr "Aanmaken..."
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Host CD/DVD-station (%1)"
@@ -1717,10 +1789,10 @@ msgid "Browse..."
 msgstr "Bladeren..."
 
 msgid "Couldn't create OpenGL context."
-msgstr "Kan OpenGL context niet aanmaken."
+msgstr "Kan OpenGL-context niet aanmaken."
 
 msgid "Couldn't switch to OpenGL context."
-msgstr "Kan niet overschakelen naar OpenGL context."
+msgstr "Kan niet overschakelen naar OpenGL-context."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL versie 3.0 of hoger is vereist. De huidige versie is %1.%2"
@@ -1783,7 +1855,7 @@ msgid "VDE Socket:"
 msgstr "VDE-socket:"
 
 msgid "86Box Unit Tester"
-msgstr "86Box apparaattester"
+msgstr "86Box Apparaattester"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Key Card"
@@ -1855,7 +1927,7 @@ msgid "Default Baud rate"
 msgstr "Standaard baudrate"
 
 msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "COM] Standaard Hayes-compatibele modem "
+msgstr "[COM] Standaard Hayes-compatibele modem "
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulatie"
@@ -1939,7 +2011,7 @@ msgid "Parallel port IRQ"
 msgstr "Parallelle poort IRQ"
 
 msgid "BIOS Revision"
-msgstr "BIOS Revisie"
+msgstr "BIOS-Revisie"
 
 msgid "BIOS Version"
 msgstr "BIOS-versie"
@@ -2557,16 +2629,16 @@ msgid "Apply overscan deltas"
 msgstr "Overscan-delta’s toepassen"
 
 msgid "Mono Interlaced"
-msgstr "Mono geïnterlaced "
+msgstr "Mono Interlaced "
 
 msgid "Mono Non-Interlaced"
-msgstr "Mono niet geïnterlaced"
+msgstr "Mono Niet-Interlaced"
 
 msgid "Color Interlaced"
-msgstr "Kleur interlaced"
+msgstr "Kleur Interlaced"
 
 msgid "Color Non-Interlaced"
-msgstr "Kleur niet geïnterlaced"
+msgstr "Kleur Niet-Interlaced"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo Graphics"
@@ -2653,7 +2725,7 @@ msgid "E&ject %1"
 msgstr "&Uitwerpen %1"
 
 msgid "&Unmute"
-msgstr "&Geluid aanzetten"
+msgstr "&Dempen opheffen"
 
 msgid "Softfloat FPU"
 msgstr "Softfloat FPU"
@@ -2779,7 +2851,7 @@ msgid "Keybind"
 msgstr "Toetskoppeling"
 
 msgid "Clear binding"
-msgstr "Wis koppelinh"
+msgstr "Wis koppeling"
 
 msgid "Bind"
 msgstr "Koppel"
@@ -2794,7 +2866,7 @@ msgid "Bind conflict"
 msgstr "Koppelconflict"
 
 msgid "This key combo is already in use."
-msgstr "Deze toetsencombinatie is al in gebruik"
+msgstr "Deze toetsencombinatie is al in gebruik."
 
 msgid "Send Control+Alt+Del"
 msgstr "Stuur Control+Alt+Del"
@@ -2812,7 +2884,7 @@ msgid "Release mouse pointer"
 msgstr "Geef muis vrij"
 
 msgid "Toggle pause"
-msgstr "Pause omschakelen"
+msgstr "Pauzeren omschakelen"
 
 msgid "Toggle mute"
 msgstr "Geluiddemping omschakelen"
@@ -2833,13 +2905,13 @@ msgid "Remote Switch"
 msgstr "Externe Switch"
 
 msgid "Switch:"
-msgstr "Switch"
+msgstr "Switch:"
 
 msgid "Hub Mode"
 msgstr "Hub-modus"
 
 msgid "Hostname:"
-msgstr "Hostname"
+msgstr "Hostnaam"
 
 msgid "ISA RAM:"
 msgstr "ISA RAM:"
@@ -2863,10 +2935,10 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "Fout bij Wissen van NVRAM-inhoud van de virtuele machine \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "%1 VM Manager"
+msgstr "%1 VM Beheerder"
 
 msgid "%n disk(s)"
-msgstr "%n schijf(en)"
+msgstr "%n schijf/schijven"
 
 msgid "Unknown Status"
 msgstr "Onbekende Status"
@@ -2875,7 +2947,7 @@ msgid "No Machines Found!"
 msgstr "Geen Machines Gevonden!"
 
 msgid "Check for updates on startup"
-msgstr "Controleer op updates bij start"
+msgstr "Controleer op updates bij starten"
 
 msgid "Unable to determine release information"
 msgstr "Kan release-informatie niet bepalen"

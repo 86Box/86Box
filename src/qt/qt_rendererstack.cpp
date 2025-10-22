@@ -35,7 +35,9 @@
 
 #include <QScreen>
 #include <QMessageBox>
+#ifdef TOUCH_PR
 #include <QTouchEvent>
+#endif
 #include <QStringBuilder>
 
 #include <QPainter>
@@ -91,7 +93,9 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     , ui(new Ui::RendererStack)
 {
     boxLayout->setContentsMargins(0, 0, 0, 0);
+#ifdef TOUCH_PR
     setAttribute(Qt::WA_AcceptTouchEvents, true);
+#endif
 #ifdef Q_OS_WINDOWS
     setAttribute(Qt::WA_NativeWindow, true);
     (void)winId();
@@ -520,12 +524,22 @@ RendererStack::event(QEvent* event)
 
         if (m_monitor_index >= 1) {
             if (mouse_input_mode >= 1) {
+#ifdef TOUCH_PR
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
                 mouse_x_abs       = (mouse_event->position().x()) / (double)width();
                 mouse_y_abs       = (mouse_event->position().y()) / (double)height();
 #else
                 mouse_x_abs       = (mouse_event->localPos().x()) / (double)width();
                 mouse_y_abs       = (mouse_event->localPos().y()) / (double)height();
+#endif
+#else
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                mouse_x_abs       = (mouse_event->position().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->position().y()) / (long double)height();
+#else
+                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+#endif
 #endif
                 if (!mouse_tablet_in_proximity)
                     mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
@@ -544,6 +558,7 @@ RendererStack::event(QEvent* event)
             return QWidget::event(event);
         }
 
+#ifdef TOUCH_PR
 #ifdef Q_OS_WINDOWS
         if (mouse_input_mode == 0) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -575,6 +590,39 @@ RendererStack::event(QEvent* event)
         mouse_x_abs               = (mouse_event->localPos().x()) / (double)width();
         mouse_y_abs               = (mouse_event->localPos().y()) / (double)height();
 #endif
+#else
+#ifdef Q_OS_WINDOWS
+        if (mouse_input_mode == 0) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            mouse_x_abs           = (mouse_event->position().x()) / (long double)width();
+            mouse_y_abs           = (mouse_event->position().y()) / (long double)height();
+#else
+            mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
+            mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
+#endif
+            mouse_x_abs          -= rendererWindow->destinationF.left();
+            mouse_y_abs          -= rendererWindow->destinationF.top();
+
+            if (mouse_x_abs < 0) mouse_x_abs = 0;
+            if (mouse_y_abs < 0) mouse_y_abs = 0;
+
+            mouse_x_abs /= rendererWindow->destinationF.width();
+            mouse_y_abs /= rendererWindow->destinationF.height();
+
+            if (mouse_x_abs > 1) mouse_x_abs = 1;
+            if (mouse_y_abs > 1) mouse_y_abs = 1;
+            return QWidget::event(event);
+        }
+#endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        mouse_x_abs               = (mouse_event->position().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->position().y()) / (long double)height();
+#else
+        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+#endif
+#endif
         mouse_x_abs              -= rendererWindow->destinationF.left();
         mouse_y_abs              -= rendererWindow->destinationF.top();
 
@@ -587,6 +635,7 @@ RendererStack::event(QEvent* event)
         if (mouse_x_abs > 1) mouse_x_abs = 1;
         if (mouse_y_abs > 1) mouse_y_abs = 1;
         mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+#ifdef TOUCH_PR
     } else switch (event->type()) {
         case QEvent::TouchBegin:
         case QEvent::TouchUpdate:
@@ -685,6 +734,7 @@ RendererStack::event(QEvent* event)
 
         default:
             return QWidget::event(event);
+#endif
     }
 
     return QWidget::event(event);
