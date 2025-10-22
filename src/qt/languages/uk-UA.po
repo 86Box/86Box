@@ -1854,6 +1854,9 @@ msgstr "Адаптер:"
 msgid "VDE Socket:"
 msgstr "VDE сокет:"
 
+msgid "TAP Bridge Device:"
+msgstr ""
+
 msgid "86Box Unit Tester"
 msgstr "Тестер блоків 86Box"
 

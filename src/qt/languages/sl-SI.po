@@ -1854,6 +1854,9 @@ msgstr "Mrežna kartica:"
 msgid "VDE Socket:"
 msgstr "Vtičnica VDE:"
 
+msgid "TAP Bridge Device:"
+msgstr ""
+
 msgid "86Box Unit Tester"
 msgstr "Tester enote 86Box"
 
