@@ -907,9 +907,13 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     keyboard_scan   = 1;
     key_queue_start = key_queue_end = 0;
     io_sethandler(0x0060, 4,
-                  kbd_read, NULL, NULL, kbd_write, NULL, NULL, pcjr);
+                  kbd_read, NULL, NULL,
+                  kbd_write, NULL, NULL,
+                  pcjr);
     io_sethandler(0x00a0, 8,
-                  kbd_read, NULL, NULL, kbd_write, NULL, NULL, pcjr);
+                  kbd_read, NULL, NULL,
+                  kbd_write, NULL, NULL,
+                  pcjr);
     timer_add(&pcjr->send_delay_timer, kbd_poll, pcjr, 1);
     keyboard_set_table(scancode_pcjr);
     keyboard_send = kbd_adddata_ex;
