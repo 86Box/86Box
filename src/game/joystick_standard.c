@@ -45,13 +45,13 @@
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
 
-static void *
+void *
 joystick_standard_init(void)
 {
     return NULL;
 }
 
-static void
+void
 joystick_standard_close(UNUSED(void *priv))
 {
     //
@@ -101,6 +101,22 @@ joystick_standard_read(UNUSED(void *priv))
     return ret;
 }
 
+uint8_t
+joystick_standard_read_2button(UNUSED(void *priv))
+{
+    uint8_t gp  = 0;
+    uint8_t ret = 0xf0;
+
+    if (JOYSTICK_PRESENT(gp, 0)) {
+        if (joystick_state[gp][0].button[0])
+            ret &= ~0x10;
+        if (joystick_state[gp][0].button[1])
+            ret &= ~0x20;
+    }
+
+    return ret;
+}
+
 static uint8_t
 joystick_standard_read_3button(UNUSED(void *priv))
 {
@@ -119,7 +135,7 @@ joystick_standard_read_3button(UNUSED(void *priv))
     return ret;
 }
 
-static uint8_t
+uint8_t
 joystick_standard_read_4button(UNUSED(void *priv))
 {
     uint8_t gp  = 0;
@@ -139,7 +155,7 @@ joystick_standard_read_4button(UNUSED(void *priv))
     return ret;
 }
 
-static void
+void
 joystick_standard_write(UNUSED(void *priv))
 {
     //
@@ -275,7 +291,7 @@ joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
     }
 }
 
-static int
+int
 joystick_standard_read_axis_3axis_throttle(UNUSED(void *priv), int axis)
 {
     uint8_t gp = 0;
@@ -296,7 +312,7 @@ joystick_standard_read_axis_3axis_throttle(UNUSED(void *priv), int axis)
     }
 }
 
-static int
+int
 joystick_standard_read_axis_4axis(UNUSED(void *priv), int axis)
 {
     uint8_t gp = 0;
@@ -369,7 +385,7 @@ joystick_standard_read_axis_8button(UNUSED(void *priv), int axis)
     }
 }
 
-static void
+void
 joystick_standard_a0_over(UNUSED(void *priv))
 {
     //
@@ -506,7 +522,7 @@ const joystick_t joystick_3axis_2button = {
     .internal_name = "3axis_2button",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
+    .read          = joystick_standard_read_2button,
     .write         = joystick_standard_write,
     .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
@@ -560,7 +576,7 @@ const joystick_t joystick_4axis_2button = {
     .internal_name = "4axis_2button",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
+    .read          = joystick_standard_read_2button,
     .write         = joystick_standard_write,
     .read_axis     = joystick_standard_read_axis_4axis,
     .a0_over       = joystick_standard_a0_over,
@@ -759,7 +775,7 @@ const joystick_t joystick_2button_yoke_throttle = {
     .internal_name = "2button_yoke_throttle",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
+    .read          = joystick_standard_read_2button,
     .write         = joystick_standard_write,
     .read_axis     = joystick_standard_read_axis_3axis_throttle,
     .a0_over       = joystick_standard_a0_over,
@@ -813,7 +829,7 @@ const joystick_t joystick_steering_wheel_2_button = {
     .internal_name = "steering_wheel_2_button",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
-    .read          = joystick_standard_read,
+    .read          = joystick_standard_read_2button,
     .write         = joystick_standard_write,
     .read_axis     = joystick_standard_read_axis_3axis,
     .a0_over       = joystick_standard_a0_over,
