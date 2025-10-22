@@ -603,9 +603,6 @@ msgstr ""
 msgid "ID:"
 msgstr ""
 
-msgid "&Specify..."
-msgstr ""
-
 msgid "Sectors:"
 msgstr ""
 
@@ -3061,9 +3058,6 @@ msgid "OpenGL input stretch mode"
 msgstr ""
 
 msgid "Color scheme"
-msgstr ""
-
-msgid "System"
 msgstr ""
 
 msgid "Light"

@@ -603,9 +603,6 @@ msgstr "Kanal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Določi..."
-
 msgid "Sectors:"
 msgstr "Sektorji:"
 
@@ -3062,9 +3059,6 @@ msgstr "Način raztezanja vhoda OpenGL"
 
 msgid "Color scheme"
 msgstr "Barvna shema"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "Svetloba"

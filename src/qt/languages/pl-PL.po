@@ -603,9 +603,6 @@ msgstr "Kanał:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Określ..."
-
 msgid "Sectors:"
 msgstr "Sektory:"
 
@@ -3062,9 +3059,6 @@ msgstr "Tryb rozciągania wejściowego OpenGL"
 
 msgid "Color scheme"
 msgstr "Schemat kolorów"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "Światło"

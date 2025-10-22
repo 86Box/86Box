@@ -603,9 +603,6 @@ msgstr "채널:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "열기(&S)..."
-
 msgid "Sectors:"
 msgstr "섹터:"
 
@@ -3062,9 +3059,6 @@ msgstr "OpenGL 입력 스트레치 모드"
 
 msgid "Color scheme"
 msgstr "색상 구성"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "빛"

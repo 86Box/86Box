@@ -603,9 +603,6 @@ msgstr "Канал:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Указать..."
-
 msgid "Sectors:"
 msgstr "Секторы:"
 
@@ -3062,9 +3059,6 @@ msgstr "Режим растяжения ввода OpenGL"
 
 msgid "Color scheme"
 msgstr "Цветовая схема"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "Светлая"

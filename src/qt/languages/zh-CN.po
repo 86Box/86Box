@@ -603,9 +603,6 @@ msgstr "通道:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "指定(&S)..."
-
 msgid "Sectors:"
 msgstr "扇区(S):"
 
@@ -3062,9 +3059,6 @@ msgstr "OpenGL的输入拉伸模式"
 
 msgid "Color scheme"
 msgstr "配色方案"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "亮色"

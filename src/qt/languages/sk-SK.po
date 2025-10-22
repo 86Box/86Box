@@ -603,9 +603,6 @@ msgstr "Kanál:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Zadať..."
-
 msgid "Sectors:"
 msgstr "Sektory:"
 
@@ -3062,9 +3059,6 @@ msgstr "Režim rozťahovania vstupu OpenGL"
 
 msgid "Color scheme"
 msgstr "Farebná schéma"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "Svetlo"

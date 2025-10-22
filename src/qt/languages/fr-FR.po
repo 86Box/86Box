@@ -603,9 +603,6 @@ msgstr "Canal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Spécifier..."
-
 msgid "Sectors:"
 msgstr "Secteurs:"
 
@@ -3062,9 +3059,6 @@ msgstr "Mode d'étirement des données d'entrée d'OpenGL"
 
 msgid "Color scheme"
 msgstr "Palette de couleurs"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "Lumière"

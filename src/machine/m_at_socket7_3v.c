@@ -280,8 +280,8 @@ machine_at_vectra500mt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-	machine_at_common_init_ex(model, 2);
-	
+    machine_at_common_init_ex(model, 2);
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);

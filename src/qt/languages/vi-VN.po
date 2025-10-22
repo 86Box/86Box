@@ -603,9 +603,6 @@ msgstr "Kênh:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "Chỉ &rõ..."
-
 msgid "Sectors:"
 msgstr "Sector:"
 
@@ -3062,9 +3059,6 @@ msgstr "Chế độ kéo giãn đầu vào của OpenGL"
 
 msgid "Color scheme"
 msgstr "Bảng màu"
-
-msgid "System"
-msgstr ""
 
 msgid "Light"
 msgstr "Ánh sáng"
