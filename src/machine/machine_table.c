@@ -300,7 +300,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PCJR,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_CARTRIDGE,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_CARTRIDGE | MACHINE_FDC,
         .ram       = {
             .min  = 64,
             .max  = 640,
@@ -316,7 +316,7 @@ const machine_t machines[] = {
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
-        .fdc_device               = NULL,
+        .fdc_device               = &fdc_pcjr_device,
         .sio_device               = NULL,
         .vid_device               = &pcjr_device,
         .snd_device               = NULL,
