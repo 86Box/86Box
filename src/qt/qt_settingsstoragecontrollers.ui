@@ -40,6 +40,12 @@
        <property name="maxVisibleItems">
         <number>30</number>
        </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
       </widget>
      </item>
      <item row="0" column="2">
@@ -60,6 +66,12 @@
       <widget class="QComboBox" name="comboBoxCDInterface">
        <property name="maxVisibleItems">
         <number>30</number>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
       </widget>
      </item>
