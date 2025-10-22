@@ -344,7 +344,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 12:
                     if (ad1848->type >= AD1848_TYPE_CS4248) {
-                        ad1848->regs[12] = 0x80 | (val & 0x70) | (ad1848->regs[12] & 0x0f);
+                        ad1848->regs[12] = 0x80 | (val & 0x60) | (ad1848->regs[12] & 0x0f);
                         if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235)) {
                             if (val & 0x40)
                                 ad1848->fmt_mask |= 0x80;
