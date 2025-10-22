@@ -1009,6 +1009,7 @@ cs423x_init(const device_t *info)
     /* Initialize SBPro codec. The WSS codec is initialized later by cs423x_reset */
     dev->sb = device_add_inst(&sb_pro_compat_device, 1);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb); /* CD audio filter for the default context */
+    music_add_handler(sb_get_music_buffer_sbpro, dev->sb); /* Init the SBPro OPL3 since sb_pro_compat_init does not */
 
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
