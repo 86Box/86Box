@@ -568,7 +568,11 @@ cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
     cs423x_t *dev        = (cs423x_t *) priv;
     uint8_t   ctx        = (dev->regs[7] & 0x80);
-    uint8_t   enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85);
+    uint8_t   enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85); /* CS4236B+ */
+
+    /* CS4232/4236 (non-B) doesn't have an IFM bit, always enable the OPL on these chips */
+    if (dev->type <= CRYSTAL_CS4236)
+        enable_opl = 1;
 
     /* Check if a context switch (WSS=1 <-> SBPro=0) occurred through the address being written. */
     if ((dev->regs[7] & 0x80) ? ((addr & 0xfff0) == dev->sb_base) : ((addr & 0xfffc) == dev->wss_base)) {
