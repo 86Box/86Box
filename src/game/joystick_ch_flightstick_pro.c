@@ -173,7 +173,7 @@ const joystick_t joystick_ch_flightstick_ch_pedals = {
     .button_count  = 2,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Rudder (Yaw)", "Throttle" },
+    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle", "Rudder (Yaw)" },
     .button_names  = { "Trigger", "Button 2" },
     .pov_names     = { NULL }
 };
@@ -227,7 +227,7 @@ const joystick_t joystick_ch_flightstick_pro_ch_pedals = {
     .button_count  = 4,
     .pov_count     = 1,
     .max_joysticks = 1,
-    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Rudder (Yaw)", "Throttle" },
+    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle", "Rudder (Yaw)" },
     .button_names  = { "Trigger", "Button 2", "Button 3", "Button 4" },
     .pov_names     = { "POV" }
 };
@@ -281,7 +281,7 @@ const joystick_t joystick_ch_virtual_pilot_ch_pedals = {
     .button_count  = 2,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Rudder (Yaw)", "Throttle" },
+    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle", "Rudder (Yaw)" },
     .button_names  = { "Button 1", "Button 2" },
     .pov_names     = { NULL }
 };
@@ -335,7 +335,7 @@ const joystick_t joystick_ch_virtual_pilot_pro_ch_pedals = {
     .button_count  = 6,
     .pov_count     = 2,
     .max_joysticks = 1,
-    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Rudder (Yaw)", "Throttle" },
+    .axis_names    = { "X axis (Roll)", "Y axis (Pitch)", "Throttle", "Rudder (Yaw)" },
     .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6" },
     .pov_names     = { "Right POV", "Left POV" }
 };
