@@ -568,7 +568,11 @@ cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
     cs423x_t *dev        = (cs423x_t *) priv;
     uint8_t   ctx        = (dev->regs[7] & 0x80);
-    uint8_t   enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85);
+    uint8_t   enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85); /* CS4236B+ */
+
+    /* CS4232/4236 (non-B) doesn't have an IFM bit, always enable the OPL on these chips */
+    if (dev->type <= CRYSTAL_CS4236)
+        enable_opl = 1;
 
     /* Check if a context switch (WSS=1 <-> SBPro=0) occurred through the address being written. */
     if ((dev->regs[7] & 0x80) ? ((addr & 0xfff0) == dev->sb_base) : ((addr & 0xfffc) == dev->wss_base)) {
@@ -1005,6 +1009,7 @@ cs423x_init(const device_t *info)
     /* Initialize SBPro codec. The WSS codec is initialized later by cs423x_reset */
     dev->sb = device_add_inst(&sb_pro_compat_device, 1);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb); /* CD audio filter for the default context */
+    music_add_handler(sb_get_music_buffer_sbpro, dev->sb); /* Init the SBPro OPL3 since sb_pro_compat_init does not */
 
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
