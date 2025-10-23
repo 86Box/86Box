@@ -10728,7 +10728,7 @@ const machine_t machines[] = {
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
-        .name              = "[UMC 8881] PCChips M919",
+        .name              = "[UMC 8881] PC Chips M919",
         .internal_name     = "m919",
         .type              = MACHINE_TYPE_486_S3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
@@ -14416,7 +14416,7 @@ const machine_t machines[] = {
     },
     /* Has the ALi M1543 southbridge with on-chip KBC. */
     {
-        .name              = "[ALi ALADDiN IV+] PCChips M560",
+        .name              = "[ALi ALADDiN IV+] PC Chips M560",
         .internal_name     = "m560",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS,
@@ -16730,7 +16730,7 @@ const machine_t machines[] = {
     /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
        with on-chip KBC. */
     {
-        .name              = "[ALi ALADDiN V] PCChips M579",
+        .name              = "[ALi ALADDiN V] PC Chips M579",
         .internal_name     = "m579",
         .type              = MACHINE_TYPE_SOCKETS7,
         .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_V,
@@ -17633,7 +17633,7 @@ const machine_t machines[] = {
     /* ALi ALADDiN-PRO II */
     /* Has the ALi M1543C southbridge with on-chip KBC. */
     {
-        .name              = "[ALi ALADDiN-PRO II] PCChips M729",
+        .name              = "[ALi ALADDiN-PRO II] PC Chips M729",
         .internal_name     = "m729",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_PRO_II,
@@ -18674,7 +18674,7 @@ const machine_t machines[] = {
     },
     /* Has the SiS (5)600 chipset with on-chip KBC. */
     {
-        .name              = "[SiS 5600] PCChips M747",
+        .name              = "[SiS 5600] PC Chips M747",
         .internal_name     = "m747",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_SIS_5600,
@@ -19554,7 +19554,7 @@ const machine_t machines[] = {
     /* Has an ITE IT8671F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name              = "[SMSC VictoryBX-66] PCChips M773",
+        .name              = "[SMSC VictoryBX-66] PC Chips M773",
         .internal_name     = "m773",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_SMSC_VICTORYBX_66,
