@@ -13739,7 +13739,7 @@ const machine_t machines[] = {
     },
     /* Has a VIA VT82C42N KBC. */
     {
-        .name              = "[i430FX] PCPartner MB500N",
+        .name              = "[i430FX] PC Partner MB500N",
         .internal_name     = "mb500n",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -15501,7 +15501,7 @@ const machine_t machines[] = {
     /* This has the AMIKey 'H' firmware, possibly AMIKey-2. Photos show it with a BestKey, so it
        likely clones the behavior of AMIKey 'H'. */
     {
-        .name              = "[i430VX] PCPartner MB520N",
+        .name              = "[i430VX] PC Partner MB520N",
         .internal_name     = "mb520n",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -15965,7 +15965,7 @@ const machine_t machines[] = {
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior.
        A picture shows a VIA VT82C42N KBC though, so it could be a case of that KBC with AMI firmware. */
     {
-        .name              = "[i430TX] PCPartner MB540N",
+        .name              = "[i430TX] PC Partner MB540N",
         .internal_name     = "mb540n",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -16506,7 +16506,7 @@ const machine_t machines[] = {
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name              = "[VIA VP3] PCPartner VIA809DS",
+        .name              = "[VIA VP3] PC Partner VIA809DS",
         .internal_name     = "via809ds",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_VIA_APOLLO_VP3,
@@ -17586,7 +17586,7 @@ const machine_t machines[] = {
     },
     /* Has a VIA VT82C42N KBC. */
     {
-        .name              = "[i440FX] PCPartner MB600N",
+        .name              = "[i440FX] PC Partner MB600N",
         .internal_name     = "mb600n",
         .type              = MACHINE_TYPE_SOCKET8,
         .chipset           = MACHINE_CHIPSET_INTEL_440FX,
@@ -19601,7 +19601,7 @@ const machine_t machines[] = {
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name              = "[VIA Apollo Pro] PCPartner APAS3",
+        .name              = "[VIA Apollo Pro] PC Partner APAS3",
         .internal_name     = "apas3",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_VIA_APOLLO_PRO,
