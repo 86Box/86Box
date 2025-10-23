@@ -27,6 +27,7 @@ OpenGLShaderConfig::OpenGLShaderConfig(QWidget *parent, glslp_t* shader)
 
     for (int i = 0; i < currentShader->num_parameters; i++) {
         auto spinBox = new QDoubleSpinBox;
+        spinBox->setDecimals(3);
         spinBox->setObjectName(currentShader->parameters[i].id);
         spinBox->setRange(currentShader->parameters[i].min, currentShader->parameters[i].max);
         spinBox->setValue(currentShader->parameters[i].value);
