@@ -849,7 +849,7 @@ msgstr "Herhangi bir PCap cihazı bulunamadı"
 msgid "Invalid PCap device"
 msgstr "Geçersiz PCap cihazı"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "3 düğmeli, gaz kollu uçuş dümeni"
 msgid "4-button flight yoke with throttle"
 msgstr "4 düğmeli, gaz kollu uçuş dümeni"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "direksiyonu (3 eksenli, 2 düğmeli)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "direksiyonu (3 eksenli, 3 düğmeli)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "direksiyonu (3 eksenli, 4 düğmeli)"
 
 msgid "CH Flightstick"
@@ -1853,6 +1853,9 @@ msgstr "Adaptör:"
 
 msgid "VDE Socket:"
 msgstr "VDE Soketi:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box Test Cihazı"

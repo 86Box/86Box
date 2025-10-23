@@ -849,7 +849,7 @@ msgstr "未找到 PCap 设备"
 msgid "Invalid PCap device"
 msgstr "无效 PCap 设备"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "3 按钮带油门飞行摇杆"
 msgid "4-button flight yoke with throttle"
 msgstr "4 按钮带油门飞行摇杆"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "方向盘 (3 轴, 2 键)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "方向盘 (3 轴, 3 键)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "方向盘 (3 轴, 4 键)"
 
 msgid "CH Flightstick"
@@ -1853,6 +1853,9 @@ msgstr "适配器:"
 
 msgid "VDE Socket:"
 msgstr "VDE 套接字:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box 装置测试仪"
