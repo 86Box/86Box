@@ -849,7 +849,7 @@ msgstr "Najdena ni bila nobena naprava PCap"
 msgid "Invalid PCap device"
 msgstr "Neveljavna naprava PCap"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "Letalski krmilni drog s 3 gumbi z ročico za plin"
 msgid "4-button flight yoke with throttle"
 msgstr "Letalski krmilni drog s 4 gumbi z ročico za plin"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Volan s 3 osmi, 2 gumbi"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Volan s 3 osmi, 3 gumbi"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volan s 3 osmi, 4 gumbi"
 
 msgid "CH Flightstick"

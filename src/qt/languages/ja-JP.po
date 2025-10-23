@@ -849,7 +849,7 @@ msgstr "PCapデバイスがありません"
 msgid "Invalid PCap device"
 msgstr "不正なPCapデバイス"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "3ボタン式フライトヨーク(スロットル付き)"
 msgid "4-button flight yoke with throttle"
 msgstr "4ボタン式フライトヨーク(スロットル付き)"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "ステアリングホイール(3軸、2ボタン)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "ステアリングホイール(3軸、3ボタン)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "ステアリングホイール(3軸、4ボタン)"
 
 msgid "CH Flightstick"

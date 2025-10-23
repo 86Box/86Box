@@ -849,7 +849,7 @@ msgstr "Nessun dispositivo PCap trovato"
 msgid "Invalid PCap device"
 msgstr "Dispositivo PCap non valido"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "Barra di comando a 4 pulsanti con acceleratore"
 msgid "4-button flight yoke with throttle"
 msgstr "Barra di comando a 4 pulsanti con acceleratore"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Volante (3 assi, 2 pulsanti)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Volante (3 assi, 3 pulsanti)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volante (3 assi, 4 pulsanti)"
 
 msgid "CH Flightstick"

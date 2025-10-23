@@ -849,7 +849,7 @@ msgstr ""
 msgid "Invalid PCap device"
 msgstr ""
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr ""
 msgid "4-button flight yoke with throttle"
 msgstr ""
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr ""
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr ""
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr ""
 
 msgid "CH Flightstick"

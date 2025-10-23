@@ -849,7 +849,7 @@ msgstr "Устройства PCap не найдены"
 msgid "Invalid PCap device"
 msgstr "Неверное устройство PCap"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "3-кнопочный flight yoke с дросселем"
 msgid "4-button flight yoke with throttle"
 msgstr "4-кнопочный flight yoke с дросселем"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Руль (3-осевой, 2-кнопочный)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Руль (3-осевой, 3-кнопочный)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Руль (3-осевой, 4-кнопочный)"
 
 msgid "CH Flightstick"

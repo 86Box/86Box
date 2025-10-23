@@ -849,7 +849,7 @@ msgstr "Nema PCap uređaja"
 msgid "Invalid PCap device"
 msgstr "Nevažeći PCap uređaj"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "Jaram za letenje s 3 tipke i gasom"
 msgid "4-button flight yoke with throttle"
 msgstr "Jaram za letenje s 4 tipke i gasom"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Volan (3 osi, 2 tipke)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Volan (3 osi, 3 tipke)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volan (3 osi, 4 tipke)"
 
 msgid "CH Flightstick"

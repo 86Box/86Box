@@ -849,7 +849,7 @@ msgstr "PCap-laitteita ei löytynyt"
 msgid "Invalid PCap device"
 msgstr "Virheellinen PCap-laite"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "3-painikkeinen lento-ohjain kaasuvivulla"
 msgid "4-button flight yoke with throttle"
 msgstr "4-painikkeinen lento-ohjain kaasuvivulla"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "ratti (3-akselinen, 2-painikkeinen)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "ratti (3-akselinen, 3-painikkeinen)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "ratti (3-akselinen, 4-painikkeinen)"
 
 msgid "CH Flightstick"

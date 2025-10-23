@@ -849,7 +849,7 @@ msgstr "Ingen PCap-enheter funnet"
 msgid "Invalid PCap device"
 msgstr "Ugyldig PCap-enhet"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "3-knapps flystyre med gass"
 msgid "4-button flight yoke with throttle"
 msgstr "4-knapps flystyre med gass"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Ratt (3-akset, 3-knapps)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Ratt (3-akset, 3-knapps)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Ratt (3-akset, 4-knapps)"
 
 msgid "CH Flightstick"

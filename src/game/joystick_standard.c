@@ -392,7 +392,7 @@ joystick_standard_a0_over(UNUSED(void *priv))
 }
 
 const joystick_t joystick_generic_paddle = {
-    .name          = "Generic Paddle Controller(s)",
+    .name          = "Generic paddle controller(s)",
     .internal_name = "generic_paddle",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
@@ -825,7 +825,7 @@ const joystick_t joystick_4button_yoke_throttle = {
 };
 
 const joystick_t joystick_steering_wheel_2_button = {
-    .name          = "Steering Wheel (3-axis, 2-button)",
+    .name          = "Steering wheel (3-axis, 2-button)",
     .internal_name = "steering_wheel_2_button",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
@@ -843,7 +843,7 @@ const joystick_t joystick_steering_wheel_2_button = {
 };
 
 const joystick_t joystick_steering_wheel_3_button = {
-    .name          = "Steering Wheel (3-axis, 3-button)",
+    .name          = "Steering wheel (3-axis, 3-button)",
     .internal_name = "steering_wheel_3_button",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
@@ -861,7 +861,7 @@ const joystick_t joystick_steering_wheel_3_button = {
 };
 
 const joystick_t joystick_steering_wheel_4_button = {
-    .name          = "Steering Wheel (3-axis, 4-button)",
+    .name          = "Steering wheel (3-axis, 4-button)",
     .internal_name = "steering_wheel_4_button",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,

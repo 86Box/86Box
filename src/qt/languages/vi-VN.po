@@ -849,7 +849,7 @@ msgstr "Không tìm thấy thiết bị PCap"
 msgid "Invalid PCap device"
 msgstr "Thiết bị PCap không hợp quy"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "Vô lăng máy bay ba nút có cần ga"
 msgid "4-button flight yoke with throttle"
 msgstr "Vô lăng máy bay bốn nút có cần ga"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Vô lăng (ba trục, hai nút)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Vô lăng (ba trục, ba nút)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Vô lăng (ba trục, bốn nút)"
 
 msgid "CH Flightstick"

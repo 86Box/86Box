@@ -849,7 +849,7 @@ msgstr "Aucun dispositif PCap trouvé"
 msgid "Invalid PCap device"
 msgstr "Dispositif PCap invalide"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "Manette de vol à 3 boutons avec manette des gaz"
 msgid "4-button flight yoke with throttle"
 msgstr "Manette de vol à 4 boutons avec manette des gaz"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Volant (3 axes, 2 boutons)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Volant (3 axes, 3 boutons)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volant (3 axes, 4 boutons)"
 
 msgid "CH Flightstick"
