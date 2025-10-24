@@ -766,7 +766,7 @@ static const device_config_t ms6119_config[] = {
         .bios           = {
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 1.72 (Packard Bell Tacoma with logo)",
-                .internal_name = "tacoma_logo",
+                .internal_name = "tacoma_172",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
