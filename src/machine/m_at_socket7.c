@@ -1480,7 +1480,7 @@ static const device_config_t an430tx_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "pb79x",
+        .default_string = "an430tx",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1488,7 +1488,7 @@ static const device_config_t an430tx_config[] = {
         .bios           = {
             {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P02-0011 (Sony Vaio PCV-130/150)",
-                .internal_name = "vaio150",
+                .internal_name = "pcv150",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
                 .local         = 0,
@@ -1499,7 +1499,7 @@ static const device_config_t an430tx_config[] = {
             },
             {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P09-0006 (Packard Bell PB79x)",
-                .internal_name = "pb79x",
+                .internal_name = "an430tx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
                 .local         = 0,
