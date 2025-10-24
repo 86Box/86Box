@@ -449,6 +449,8 @@ extern void    ibm_rgb528_hwcursor_draw(svga_t *svga, int displine);
 extern float   ibm_rgb528_getclock(int clock, void *priv);
 extern void    ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock);
 
+extern float icd2047_getclock(int clock, void *priv);
+
 extern void  icd2061_write(void *priv, int val);
 extern float icd2061_getclock(int clock, void *priv);
 extern void  icd2061_set_ref_clock(void *priv, float ref_clock);
@@ -457,7 +459,12 @@ extern void  icd2061_set_ref_clock(void *priv, float ref_clock);
 #    define ics9161_write    icd2061_write
 #    define ics9161_getclock icd2061_getclock
 
+extern float ics1494_getclock(int clock, void *priv);
+
 extern float ics2494_getclock(int clock, void *priv);
+
+extern float ics90c64a_vclk_getclock(int clock, void *priv);
+extern float ics90c64a_mclk_getclock(int clock, void *priv);
 
 extern void   ics2595_write(void *priv, int strobe, int dat);
 extern double ics2595_getclock(void *priv);
@@ -507,6 +514,8 @@ extern const device_t att20c505_ramdac_device;
 extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
+extern const device_t ics1494m_540_device;
+extern const device_t ics1494m_540_radius_ht209_device;
 extern const device_t ics2494an_305_device;
 extern const device_t ics2494an_324_device;
 extern const device_t ati18810_28800_device;
@@ -516,7 +525,9 @@ extern const device_t ati18810_mach32_device;
 extern const device_t ati18811_0_mach32_device;
 extern const device_t ati18811_1_mach32_device;
 extern const device_t ics2595_device;
+extern const device_t icd2047_20_device;
 extern const device_t icd2061_device;
+extern const device_t ics90c64a_903_device;
 extern const device_t ics9161_device;
 extern const device_t sc11483_ramdac_device;
 extern const device_t sc11487_ramdac_device;
