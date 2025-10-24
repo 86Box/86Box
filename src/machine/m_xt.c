@@ -1214,7 +1214,7 @@ static const device_config_t pc500_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "pc500",
+        .default_string = "pc500_330",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1222,7 +1222,7 @@ static const device_config_t pc500_config[] = {
         .bios           = {
             {
                 .name          = "3.30",
-                .internal_name = "pc500",
+                .internal_name = "pc500_330",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
