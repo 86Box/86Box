@@ -849,7 +849,7 @@ msgstr "Keine PCap-Geräte gefunden"
 msgid "Invalid PCap device"
 msgstr "Ungültiges PCap-Gerät"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "3-Tasten-Steuerhorn mit Schubregler"
 msgid "4-button flight yoke with throttle"
 msgstr "4-Tasten-Steuerhorn mit Schubregler"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Lenkrad (3-Achsen, 2-Tasten)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Lenkrad (3-Achsen, 3-Tasten)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Lenkrad (3-Achsen, 4-Tasten)"
 
 msgid "CH Flightstick"
@@ -1853,6 +1853,9 @@ msgstr "Adapter:"
 
 msgid "VDE Socket:"
 msgstr "VDE Anschluss:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box-Gerätetester"

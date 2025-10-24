@@ -849,7 +849,7 @@ msgstr "Neboli nájdené žiadne PCap zariadenia"
 msgid "Invalid PCap device"
 msgstr "Neplatné PCap zariadenie"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "Letecký knipl s 3 tlačidlami a pákou"
 msgid "4-button flight yoke with throttle"
 msgstr "Letecký knipl s 4 tlačidlami a pákou"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Volant (3 osy, 2 tlačítka)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Volant (3 osy, 3 tlačítka)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volant (3 osy, 4 tlačítka)"
 
 msgid "CH Flightstick"
@@ -1853,6 +1853,9 @@ msgstr "Adaptér:"
 
 msgid "VDE Socket:"
 msgstr "Zásuvka VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"

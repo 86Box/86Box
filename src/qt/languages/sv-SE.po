@@ -849,7 +849,7 @@ msgstr "Inga PCap-enheter hittade"
 msgid "Invalid PCap device"
 msgstr "Ogiltig PCap-enhet"
 
-msgid "Generic Paddle Controller(s)"
+msgid "Generic paddle controller(s)"
 msgstr ""
 
 msgid "2-axis, 1-button joystick(s)"
@@ -921,13 +921,13 @@ msgstr "Styrspak med tre knappar och gas"
 msgid "4-button flight yoke with throttle"
 msgstr "Styrspak med fyra knappar och gas"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "ratt (tre axlar, två knappar)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "ratt (tre axlar, tre knappar)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "ratt (tre axlar, fyra knappar)"
 
 msgid "CH Flightstick"
@@ -1853,6 +1853,9 @@ msgstr "Adapter:"
 
 msgid "VDE Socket:"
 msgstr "VDE-sockel:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box enhetsprövare"

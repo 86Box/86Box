@@ -849,14 +849,14 @@ msgstr "Nie znaleziono urządzeń PCap"
 msgid "Invalid PCap device"
 msgstr "Nieprawidłowe urządzenie PCap"
 
-msgid "Generic Paddle Controller(s)"
-msgstr ""
+msgid "Generic paddle controller(s)"
+msgstr "Generyczny kontroler paddle"
 
 msgid "2-axis, 1-button joystick(s)"
-msgstr "Joysticki 2-osiowe, 1-przyciskowe"
+msgstr "Joystick(i) 2-osiowe, 1-przyciskowe"
 
 msgid "2-axis, 2-button joystick(s)"
-msgstr "Joysticki 2-osiowe, 2-przyciskowe"
+msgstr "Joystick(i) 2-osiowe, 2-przyciskowe"
 
 msgid "2-axis, 3-button joystick"
 msgstr "Joystick 2-osiowy, 3-przyciskowy"
@@ -892,13 +892,13 @@ msgid "2-button gamepad(s)"
 msgstr "Pad(y) z dwoma przyciskami"
 
 msgid "3-button gamepad"
-msgstr "Pad z trzy przyciskami"
+msgstr "Pad z trzema przyciskami"
 
 msgid "4-button gamepad"
 msgstr "Pad z czterema przyciskami"
 
 msgid "6-button gamepad"
-msgstr "Pad z sześć przyciskami"
+msgstr "Pad z sześcioma przyciskami"
 
 msgid "Gravis PC GamePad"
 msgstr "Gravis PC GamePad"
@@ -921,13 +921,13 @@ msgstr "Wolant z trzema przyciskami i przepustnicą"
 msgid "4-button flight yoke with throttle"
 msgstr "Wolant z czterema przyciskami i przepustnicą"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Kierownica (3 osie, 2 przyciski)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Kierownica (3 osie, 3 przyciski)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Kierownica (3 osie, 4 przyciski)"
 
 msgid "CH Flightstick"
@@ -976,10 +976,10 @@ msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgstr "Thrustmaster Formula T1/T2 z Adaptorem"
 
 msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgstr "Thrustmaster Formula T1/T2 bez Adaptora"
 
 msgid "None"
 msgstr "Żaden"
@@ -1853,6 +1853,9 @@ msgstr "Adapter:"
 
 msgid "VDE Socket:"
 msgstr "Gniazdo VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Tester urządzeń 86Box"
@@ -3049,19 +3052,19 @@ msgid "Export EDID"
 msgstr "Eksportuj EDID"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "Plik EDID \"%ls\" jest zbyt duży."
+msgstr "Plik EDID „%ls” jest zbyt duży."
 
 msgid "OpenGL input scale"
-msgstr "Skala wejściowa OpenGL"
+msgstr "Skala wejścia OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "Tryb rozciągania wejściowego OpenGL"
+msgstr "Tryb rozciągania wejścia OpenGL"
 
 msgid "Color scheme"
 msgstr "Schemat kolorów"
 
 msgid "Light"
-msgstr "Światło"
+msgstr "Jasny"
 
 msgid "Dark"
 msgstr "Ciemny"

@@ -46,7 +46,7 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="3">
+   <item row="0" column="2">
     <widget class="QPushButton" name="pushButtonConfigureSoundCard1">
      <property name="text">
       <string>Configure</string>
@@ -73,7 +73,7 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="3">
+   <item row="1" column="2">
     <widget class="QPushButton" name="pushButtonConfigureSoundCard2">
      <property name="text">
       <string>Configure</string>
@@ -100,7 +100,7 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="3">
+   <item row="2" column="2">
     <widget class="QPushButton" name="pushButtonConfigureSoundCard3">
      <property name="text">
       <string>Configure</string>
@@ -127,7 +127,7 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="3">
+   <item row="3" column="2">
     <widget class="QPushButton" name="pushButtonConfigureSoundCard4">
      <property name="text">
       <string>Configure</string>
@@ -154,7 +154,7 @@
      </property>
     </widget>
    </item>
-   <item row="4" column="3">
+   <item row="4" column="2">
     <widget class="QPushButton" name="pushButtonConfigureMidiOut">
      <property name="text">
       <string>Configure</string>
@@ -181,35 +181,35 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="3">
+   <item row="5" column="2">
     <widget class="QPushButton" name="pushButtonConfigureMidiIn">
      <property name="text">
       <string>Configure</string>
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
+   <item row="6" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBoxMPU401">
      <property name="text">
       <string>Standalone MPU-401</string>
      </property>
     </widget>
    </item>
-   <item row="6" column="3">
+   <item row="6" column="2">
     <widget class="QPushButton" name="pushButtonConfigureMPU401">
      <property name="text">
       <string>Configure</string>
      </property>
     </widget>
    </item>
-   <item row="10" column="0">
+   <item row="10" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBoxFloat32">
      <property name="text">
       <string>Use FLOAT32 sound</string>
      </property>
     </widget>
    </item>
-   <item row="11" column="0">
+   <item row="11" column="0" colspan="2">
     <widget class="QGroupBox" name="groupBox">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -238,7 +238,7 @@
      </layout>
     </widget>
    </item>
-   <item row="12" column="0">
+   <item row="12" column="0" colspan="3">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
