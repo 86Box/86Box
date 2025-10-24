@@ -173,7 +173,7 @@ static const device_config_t lx6_config[] = {
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/lx6/LX6C_LY.BIN", "" }
+                .files         = { "roms/machines/lx6/LX6C_LY.bin", "" }
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision PZ (Beta)",
