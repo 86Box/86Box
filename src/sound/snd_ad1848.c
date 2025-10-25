@@ -521,7 +521,7 @@ readonly_x:
                     }
                     if (ad1848->type == AD1848_TYPE_CS4231) /* I23 is reserved and read-only on CS4231 non-A */
                         goto readonly_i;
-                    if ((ad1848->type >= AD1848_TYPE_CS4232) || (ad1848->type <= AD1848_TYPE_CS4236)) /* I23 bits 7-1 are read-only on CS4231A/4232/4236 non-B, Win2k relies on this for detection */
+                    if ((ad1848->type >= AD1848_TYPE_CS4232) && (ad1848->type <= AD1848_TYPE_CS4236)) /* I23 bits 7-1 are read-only on CS4231A/4232/4236 non-B, Win2k relies on this for detection */
                         val = (val & 0x01);
                     break;
 
