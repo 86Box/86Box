@@ -346,7 +346,7 @@ static const device_config_t dataexpert386wb_config[] = {
         .bios = {
             {
                 .name          = "AMIBIOS 050591",
-                .internal_name = "dataexpert386wb_ami",
+                .internal_name = "dataexpert386wb_050591",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
