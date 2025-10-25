@@ -4536,16 +4536,21 @@ s3_recalctimings(svga_t *svga)
                                 break;
                             case SC1502X: /*SC15025 RAMDAC*/
                                 if (svga->getclock == icd2061_getclock) { /*ICD2061 clock chip*/
+                                    s3_log("32bpp 928 ISA VL SC1502X double=%02x, highres=%02x, dotperclock=%d, clksel=%d, pitch=%d, hdisp=%d, clock=%02x.\n",
+                                            svga->crtc[0x31] & 0x02, s3->accel.advfunc_cntl & 0x04, svga->dots_per_clock, clk_sel, s3->width, svga->hdisp, svga->crtc[0x67] >> 4);
                                     if (svga->crtc[0x31] & 0x02) {
-                                        svga->hdisp >>= 1;
-                                        svga->dots_per_clock >>= 1;
-                                        if (svga->hdisp == 640)
-                                            s3->width = 1024;
+                                        if (svga->dots_per_clock == 16) {
+                                            svga->hdisp >>= 1;
+                                            svga->dots_per_clock >>= 1;
+                                            svga->clock *= 2.0;
+                                            if (svga->hdisp == 640)
+                                                s3->width = 1024;
+                                        }
                                     } else {
                                         svga->hdisp >>= 2;
                                         svga->dots_per_clock >>= 2;
                                         if (svga->hdisp == 800)
-                                            s3->width = 1024;
+                                            svga->clock *= 2.0;
                                     }
                                 }
                                 break;
