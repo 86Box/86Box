@@ -20319,7 +20319,7 @@ machine_get_nvr_name_ex(int m)
 
     if (dev != NULL) {
         device_context(dev);
-        const char *bios = device_get_config_string("bios");
+        const char *bios = device_get_config_bios("bios");
         if ((bios != NULL) && (strcmp(bios, "") != 0))
             ret = bios;
         device_context_restore();
