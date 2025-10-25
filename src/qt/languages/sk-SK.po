@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "Neplatné PCap zariadenie"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "Generický ovládač pádla"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2-osový, 1-tlačidlový joystick"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 s adaptérom"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 bez adaptéru"
 
 msgid "None"
 msgstr "Žiadne"

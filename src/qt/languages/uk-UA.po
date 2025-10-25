@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "Невірний пристрій PCap"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "Загальний контролер(и) весла"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2-осьовий, 1-кнопковий джойстик"
@@ -975,11 +975,11 @@ msgstr "Система управління польотом Thrustmaster"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Система управління кермом"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 з адаптером"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 без адаптера"
 
 msgid "None"
 msgstr "Ні"
