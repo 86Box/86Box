@@ -345,14 +345,14 @@ static const device_config_t pc900_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "pc900_v207a",
+        .default_string = "pc900",
         .default_int    = 0,
         .file_filter    = "",
         .spinner        = { 0 },
         .bios           = {
             {
                 .name           = "BIOS V2.07A",
-                .internal_name  = "pc900_v207a",
+                .internal_name  = "pc900",
                 .bios_type      = BIOS_NORMAL,
                 .files_no       = 1,
                 .local          = 0,
