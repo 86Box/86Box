@@ -339,6 +339,7 @@ load_machine(void)
         { .old = "infinia7200", .new = "tc430hx", .new_bios = "infinia7200" },
         { .old = "dellvenus", .new = "vs440fx", .new_bios = "dellvenus" },
         { .old = "gw2kvenus", .new = "vs440fx", .new_bios = "gw2kvenus" },
+        { .old = "lgibmx7g", .new = "ms6119", .new_bios = "lgibmx7g" },
         { 0 }
     };
 
