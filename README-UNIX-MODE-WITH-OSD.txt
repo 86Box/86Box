@@ -11,7 +11,7 @@ quit 86box
 seeing the current performance %
 
 key bindings:
-Control-F12 opens the osd
+Right Control + F11 opens the osd
 
 while is open:
 arrows up, down moves the cursor

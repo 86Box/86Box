@@ -75,6 +75,10 @@ SDL_threadID    eventthread;
 static int      exit_event         = 0;
 static int      fullscreen_pending = 0;
 
+// Two keys to be pressed together to open the OSD, variables to make them configurable in future
+static uint16_t osd_open_first_key = SDL_SCANCODE_RCTRL;
+static uint16_t osd_open_second_key = SDL_SCANCODE_F11;
+
 static const uint16_t sdl_to_xt[0x200] = {
     [SDL_SCANCODE_ESCAPE]       = 0x01,
     [SDL_SCANCODE_1]            = 0x02,
@@ -1305,7 +1309,7 @@ main(int argc, char **argv)
     while (!is_quit)
     {
         static int mouse_inside = 0;
-        static int r_alt_pressed = 0;
+        static int osd_first_key_pressed = 0;
         static int flag_osd_open = 0;
 
         while (SDL_PollEvent(&event))
@@ -1470,27 +1474,27 @@ main(int argc, char **argv)
                         {
                             uint16_t xtkey = 0;
 
-                            if (event.key.keysym.scancode == SDL_SCANCODE_RALT)
+                            if (event.key.keysym.scancode == osd_open_first_key)
                             {
                                 if (event.type == SDL_KEYDOWN)
-                                    r_alt_pressed = 1;
+                                    osd_first_key_pressed = 1;
                                 else
-                                    r_alt_pressed = 0;
+                                    osd_first_key_pressed = 0;
                             }
-                            else if (r_alt_pressed && event.type == SDL_KEYDOWN && event.key.keysym.scancode == SDL_SCANCODE_G)
+                            else if (osd_first_key_pressed && event.type == SDL_KEYDOWN && event.key.keysym.scancode == osd_open_second_key)
                             {
                                 // open OSD!
                                 flag_osd_open = osd_open(event);
 
                                 // we can assume alt-gr has been released, tell this also to the virtual machine
-                                r_alt_pressed = 0;
-                                keyboard_input(0, sdl_to_xt[SDL_SCANCODE_RALT]);
+                                osd_first_key_pressed = 0;
+                                keyboard_input(0, sdl_to_xt[osd_open_first_key]);
                                 break;
                             }
                             else
                             {
-                                // invalidate r_alt_pressed is something happens between its keydown and keydown for G
-                                r_alt_pressed = 0;
+                                // invalidate osd_first_key_pressed is something happens between its keydown and keydown for G
+                                osd_first_key_pressed = 0;
                             }
 
                             switch (event.key.keysym.scancode) {
