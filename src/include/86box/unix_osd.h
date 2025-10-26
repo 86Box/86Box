@@ -4,8 +4,8 @@
 #include <SDL.h>
 
 // state management
-extern void osd_init();
-extern void osd_deinit();
+extern void osd_init(void);
+extern void osd_deinit(void);
 extern int osd_open(SDL_Event event);
 extern int osd_close(SDL_Event event);
 
@@ -13,7 +13,7 @@ extern int osd_close(SDL_Event event);
 extern int osd_handle(SDL_Event event);
 
 // draw the osd interface, if it's open
-extern void osd_present();
+extern void osd_present(void);
 
 // future ui
 extern void osd_ui_sb_update_icon_state(int tag, int state);

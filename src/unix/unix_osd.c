@@ -78,11 +78,8 @@ static const char *menu_items[] = {
 };
 #define MENU_ITEMS (sizeof(menu_items) / sizeof(menu_items[0]))
 
-static char selected_file[256] = ""; // memoria della selezione
-
 // chars per cols and rows
 static int font_cols = 16;
-static int font_rows = 16;
 
 static int selected = 0;
 static int file_selected = 0;
@@ -96,7 +93,7 @@ static int file_count = 0;
 
 static int max_visible = 0;
 
-int reset_iso_files()
+void reset_iso_files(void)
 {
     file_selected = 0;
     scroll_offset = 0;
@@ -181,11 +178,8 @@ void draw_menu(SDL_Renderer *renderer, int selected)
 
     draw_text(renderer, "MAIN MENU", x0 + 20, y0 + 5, (SDL_Color){255,255,255,255});
 
-    if (sdl_win_title != NULL)
-    {
-        int length = wcstombs(sdl_win_title_mb, sdl_win_title, 256);
-        draw_text(renderer, sdl_win_title_mb, x0 + 120, y0 + 5, (SDL_Color){255,255,255,255});
-    }
+    wcstombs(sdl_win_title_mb, sdl_win_title, 256);
+    draw_text(renderer, sdl_win_title_mb, x0 + 120, y0 + 5, (SDL_Color){255,255,255,255});
 
     for (int i = 0; i < MENU_ITEMS; i++)
     {
@@ -211,7 +205,6 @@ void draw_menu(SDL_Renderer *renderer, int selected)
 #endif
 }
 
-// ------------------- Disegna selezione file -------------------
 void draw_file_selector(SDL_Renderer *renderer,
                         char *title,
                         char files[][1024], int file_count,
@@ -254,7 +247,7 @@ void draw_file_selector(SDL_Renderer *renderer,
 #endif
 }
 
-void osd_init()
+void osd_init(void)
 {
     // debug: fprintf(stderr, "OSD INIT\n");
 
@@ -284,7 +277,7 @@ void osd_init()
     }
 }
 
-void osd_deinit()
+void osd_deinit(void)
 {
     // nothing to do
     // debug: fprintf(stderr, "OSD DEINIT\n");
@@ -329,7 +322,7 @@ static void osd_cmd_run(char *c)
     free(l);
 }
 
-void osd_present()
+void osd_present(void)
 {
     // shortcut
     if (!osd_is_open)

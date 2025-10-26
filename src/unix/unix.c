@@ -1516,7 +1516,7 @@ main(int argc, char **argv)
                         }
                     default:
                     {
-                        printf("Unhandled SDL event: %d\n", event.type);
+                        // printf("Unhandled SDL event: %d\n", event.type);
                         break;
                     }
                 }
