@@ -40,6 +40,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
+#define PNP_ROM_CS4232       "roms/sound/crystal/CS4232.BIN"
 #define PNP_ROM_CS4236B      "roms/sound/crystal/PNPISA01.BIN"
 
 #define CRYSTAL_NOEEPROM 0x100
@@ -880,7 +881,10 @@ cs423x_reset(void *priv)
             dev->pnp_size = (dev->eeprom_data[2] << 8) | dev->eeprom_data[3];
             if (dev->pnp_size > 384)
                 dev->pnp_size = 384;
-            memcpy(&dev->ram_data[0x4000], &dev->eeprom_data[4], sizeof(dev->eeprom_data) - 4);
+            if (dev->type == CRYSTAL_CS4232)
+                memcpy(&dev->ram_data[0x2090], &dev->eeprom_data[4], sizeof(dev->eeprom_data) - 4);
+            else
+                memcpy(&dev->ram_data[0x4000], &dev->eeprom_data[4], sizeof(dev->eeprom_data) - 4);
         } else {
             cs423x_log("CS423x: EEPROM data invalid, ignoring\n");
         }
@@ -944,16 +948,30 @@ cs423x_init(const device_t *info)
                 cs423x_load_defaults(dev, &dev->eeprom_data[4]);
 
                 /* Load PnP resource data ROM. */
-                FILE *fp = rom_fopen(PNP_ROM_CS4236B, "rb");
-                if (fp) {
-                    uint16_t eeprom_pnp_offset = (dev->pnp_offset & 0x1ff) + 4;
-                    /* This is wrong. The header field only indicates PnP resource data length, and real chips use
-                       it to locate the firmware patch area, but we don't need any of that, so we can get away
-                       with pretending the whole ROM is PnP data, at least until we can get full EEPROM dumps. */
-                    dev->pnp_size = fread(&dev->eeprom_data[eeprom_pnp_offset], 1, sizeof(dev->eeprom_data) - eeprom_pnp_offset, fp);
-                    fclose(fp);
+                if (dev->type == CRYSTAL_CS4232) {
+                    FILE *fp = rom_fopen(PNP_ROM_CS4232, "rb");
+                    if (fp) {
+                        uint16_t eeprom_pnp_offset = (dev->pnp_offset & 0x0f) + 4;
+                        /* This is wrong. The header field only indicates PnP resource data length, and real chips use
+                           it to locate the firmware patch area, but we don't need any of that, so we can get away
+                           with pretending the whole ROM is PnP data, at least until we can get full EEPROM dumps. */
+                        dev->pnp_size = fread(&dev->eeprom_data[eeprom_pnp_offset], 1, sizeof(dev->eeprom_data) - eeprom_pnp_offset, fp);
+                        fclose(fp);
+                    } else {
+                        dev->pnp_size = 0;
+                    }
                 } else {
-                    dev->pnp_size = 0;
+                    FILE *fp = rom_fopen(PNP_ROM_CS4236B, "rb");
+                    if (fp) {
+                        uint16_t eeprom_pnp_offset = (dev->pnp_offset & 0x1ff) + 4;
+                        /* This is wrong. The header field only indicates PnP resource data length, and real chips use
+                           it to locate the firmware patch area, but we don't need any of that, so we can get away
+                           with pretending the whole ROM is PnP data, at least until we can get full EEPROM dumps. */
+                        dev->pnp_size = fread(&dev->eeprom_data[eeprom_pnp_offset], 1, sizeof(dev->eeprom_data) - eeprom_pnp_offset, fp);
+                        fclose(fp);
+                    } else {
+                        dev->pnp_size = 0;
+                    }
                 }
 
                 /* Populate EEPROM header if the PnP ROM was loaded. */
@@ -966,6 +984,10 @@ cs423x_init(const device_t *info)
 
                 /* Patch PnP ROM and set EEPROM file name. */
                 switch (dev->type) {
+                    case CRYSTAL_CS4232:
+                        dev->nvr_path = "cs4232.nvr";
+                        break;
+
                     case CRYSTAL_CS4236:
                         if (dev->pnp_size) {
                             dev->eeprom_data[26] = 0x36;
@@ -1077,6 +1099,12 @@ cs423x_close(void *priv)
 }
 
 static int
+cs4232_available(void)
+{
+    return rom_present(PNP_ROM_CS4232);
+}
+
+static int
 cs423x_available(void)
 {
     return rom_present(PNP_ROM_CS4236B);
@@ -1089,6 +1117,20 @@ cs423x_speed_changed(void *priv)
 
     ad1848_speed_changed(&dev->ad1848);
 }
+
+const device_t cs4232_device = {
+    .name          = "Crystal CS4232",
+    .internal_name = "cs4232",
+    .flags         = DEVICE_ISA16,
+    .local         = CRYSTAL_CS4232,
+    .init          = cs423x_init,
+    .close         = cs423x_close,
+    .reset         = cs423x_reset,
+    .available     = cs4232_available,
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
 
 const device_t cs4232_onboard_device = {
     .name          = "Crystal CS4232 (On-Board)",
