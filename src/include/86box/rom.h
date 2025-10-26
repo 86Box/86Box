@@ -8,13 +8,10 @@
  *
  *          Definitions for the ROM image handler.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.
  */
-
 #ifndef EMU_ROM_H
 #define EMU_ROM_H
 
@@ -59,7 +56,7 @@ extern void rom_writel(uint32_t addr, uint32_t val, void *priv);
 extern void  rom_get_full_path(char *dest, const char *fn);
 
 extern FILE *rom_fopen(const char *fn, char *mode);
-extern int   rom_getfile(char *fn, char *s, int size);
+extern int   rom_getfile(const char *fn, char *s, int size);
 extern int   rom_present(const char *fn);
 
 extern int rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz,

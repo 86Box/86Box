@@ -8,8 +8,6 @@
  *
  *          Definitions for xkbcommon-x11 keyboard input module.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2023 RichardG.

@@ -151,6 +151,24 @@
 #include <86box/snd_azt2316a.h>
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
+#include <86box/log.h>
+
+#ifdef ENABLE_AZTECH_LOG
+int aztech_do_log = ENABLE_AZTECH_LOG;
+
+static void
+aztech_log(void *priv, const char *fmt, ...)
+{
+    if (aztech_log) {
+        va_list ap;
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define aztech_log(fmt, ...)
+#endif
 
 /*530, 11, 3 - 530=23*/
 /*530, 11, 1 - 530=22*/
@@ -195,7 +213,17 @@ typedef struct azt2316a_t {
     mpu_t   *mpu;
 
     sb_t *sb;
+
+    void * log; /* New logging system */
 } azt2316a_t;
+
+static void
+azt1605_filter_opl(void *priv, double *out_l, double *out_r)
+{
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
+
+    ad1848_filter_channel((void *) &azt2316a->ad1848, AD1848_AUX2, out_l, out_r);
+}
 
 static uint8_t
 azt2316a_wss_read(uint16_t addr, void *priv)
@@ -211,14 +239,17 @@ azt2316a_wss_read(uint16_t addr, void *priv)
     else
         temp = 4 | (azt2316a->wss_config & 0xC0);
 
+    aztech_log(azt2316a->log, "Aztech WSS: [R] (%04X) = %02X\n", addr, temp);
     return temp;
 }
 
 static void
-azt2316a_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
+azt2316a_wss_write(uint16_t addr, uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a  = (azt2316a_t *) priv;
     int         interrupt = 0;
+
+    aztech_log(azt2316a->log, "Aztech WSS: [W] (%04X) = %02X\n", addr, val);
 
     if (azt2316a->wss_interrupt_after_config) {
         if ((azt2316a->wss_config & 0x40) && !(val & 0x40)) { // TODO: is this the right edge?
@@ -421,6 +452,7 @@ azt1605_create_config_word(void *priv)
     }
 
     azt2316a->config_word = temp;
+    aztech_log(azt2316a->log, "Aztech 1605 Config Word Create: %08X\n", temp);
 }
 
 static void
@@ -676,6 +708,70 @@ azt2316a_create_config_word(void *priv)
     }
 
     azt2316a->config_word = temp;
+    aztech_log(azt2316a->log, "Aztech 2316 Config Word Create: %08X\n", temp);
+}
+
+static uint8_t
+azt1605_config_read(uint16_t addr, void *priv)
+{
+    const azt2316a_t *azt2316a = (azt2316a_t *) priv;
+    uint8_t           temp     = 0;
+
+    /* Some WSS config here + config change enable bit
+       (setting bit 7 and writing back) */
+
+    if (addr == (azt2316a->cur_addr + 0x404)) {
+        /* TODO: what is the real meaning of the read value?
+           I got a mention of bit 0x10 for WSS from disassembling the source
+           code of the driver, and when playing with the I/O ports on real
+           hardware after doing some configuration, but didn't dig into it.
+           Bit 0x08 seems to be a busy flag and generates a timeout
+           (continuous re-reading when initializing windows 98) */
+        temp = azt2316a->cur_mode ? 0x07 : 0x0F;
+        if (azt2316a->config_word_unlocked) {
+            temp |= 0x80;
+        }
+    } else {
+        /* Rest of config. Bytes 0x00-0x03 are documented in the Linux driver. */
+        /* 0x07 causes EMUTSR to resync mixers when nonzero values are written but the mechanism is unknown */
+        /* 0x08-0x0F mixer registers are not documented */
+        switch (addr & 0x0f) {
+            case 0x00:
+                temp = azt2316a->config_word & 0xFF;
+                break;
+            case 0x01:
+                temp = (azt2316a->config_word >> 8);
+                break;
+            case 0x02:
+                temp = (azt2316a->config_word >> 16);
+                break;
+            case 0x03:
+                temp = (azt2316a->config_word >> 24);
+                break;
+            case 0x08: /* SBPro Voice mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x04];
+                break;
+            case 0x09: /* SBPro Mic mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x0A];
+                break;
+            case 0x0C: /* SBPro Master mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x22];
+                break;
+            case 0x0D: /* SBPro FM mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x26];
+                break;
+            case 0x0E: /* SBPro CD mixer readout */
+                temp = azt2316a->sb->mixer_sbpro.regs[0x28];
+                break;
+            default:
+                temp = 0x00;
+                break;
+        }
+    }
+
+    aztech_log(azt2316a->log, "Aztech 1605 Config Word Read: (%04X) = %02X\n", addr, temp);
+
+    return temp;
 }
 
 static uint8_t
@@ -719,6 +815,8 @@ azt2316a_config_read(uint16_t addr, void *priv)
         }
     }
 
+    aztech_log(azt2316a->log, "Aztech 2316 Config Word Read: (%04X) = %02X\n", addr, temp);
+
     return temp;
 }
 
@@ -727,6 +825,8 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t     temp;
+
+    aztech_log(azt2316a->log, "Aztech 1605 Config Word Write: (%04X) = %02X\n", addr, val);
 
     if (addr == (azt2316a->cur_addr + 0x404)) {
         if (val & 0x80)
@@ -832,10 +932,7 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *priv)
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t     temp;
 
-    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-        azt1605_config_write(addr, val, azt2316a);
-        return;
-    }
+    aztech_log(azt2316a->log, "Aztech 2316 Config Word Write: (%04X) = %02X\n", addr, val);
 
     if (addr == (azt2316a->cur_addr + 0x404)) {
         if (val & 0x80)
@@ -943,10 +1040,20 @@ azt2316a_enable_wss(uint8_t enable, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
-    if (enable)
+    sound_set_cd_audio_filter(NULL, NULL);
+
+    if (enable) {
         azt2316a->cur_mode = 1;
-    else
+        sound_set_cd_audio_filter(ad1848_filter_cd_audio, &azt2316a->ad1848);
+        azt2316a->sb->opl_mixer = azt2316a;
+        azt2316a->sb->opl_mix   = azt1605_filter_opl;
+    }
+    else {
         azt2316a->cur_mode = 0;
+        sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
+        azt2316a->sb->opl_mixer = NULL;
+        azt2316a->sb->opl_mix   = NULL;
+    }
 }
 
 static void
@@ -977,6 +1084,8 @@ azt_init(const device_t *info)
     azt2316a_t *azt2316a = calloc(1, sizeof(azt2316a_t));
 
     azt2316a->type = info->local;
+
+    azt2316a->log = log_open("AztechWSS");
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         fn = "azt1605.nvr";
@@ -1023,22 +1132,22 @@ azt_init(const device_t *info)
             read_eeprom[14] = 0x01;
             read_eeprom[15] = 0x00;
         } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-            read_eeprom[0]  = 0x80;
-            read_eeprom[1]  = 0x80;
-            read_eeprom[2]  = 0x9F;
-            read_eeprom[3]  = 0x13;
-            read_eeprom[4]  = 0x16;
-            read_eeprom[5]  = 0x13;
-            read_eeprom[6]  = 0x00;
-            read_eeprom[7]  = 0x00;
-            read_eeprom[8]  = 0x16;
-            read_eeprom[9]  = 0x0B;
-            read_eeprom[10] = 0x06;
+            read_eeprom[0]  = 0x80; /* WSS ADC L mixer value */
+            read_eeprom[1]  = 0x80; /* WSS ADC R mixer value */
+            read_eeprom[2]  = 0x08; /* WSS AUX1 L mixer value */
+            read_eeprom[3]  = 0x08; /* WSS AUX1 R mixer value */
+            read_eeprom[4]  = 0x08; /* WSS AUX2 L mixer value */
+            read_eeprom[5]  = 0x08; /* WSS AUX2 R mixer value */
+            read_eeprom[6]  = 0x08; /* WSS DAC L mixer value */
+            read_eeprom[7]  = 0x08; /* WSS DAC R mixer value */
+            read_eeprom[8]  = 0x08; /* WSS LINE L mixer value (CS4231) */
+            read_eeprom[9]  = 0x08; /* WSS LINE R mixer value (CS4231) */
+            read_eeprom[10] = 0x80; /* WSS MIC mixer value (CS4231) */
             read_eeprom[11] = 0x01;
             read_eeprom[12] = 0x1C;
             read_eeprom[13] = 0x14;
             read_eeprom[14] = 0x04;
-            read_eeprom[15] = 0x1C;
+            read_eeprom[15] = 0xFF; /* SBPro Master volume (EMUTSR) */
         }
     }
 
@@ -1211,12 +1320,18 @@ azt_init(const device_t *info)
 
     /* wss part */
     ad1848_init(&azt2316a->ad1848, device_get_config_int("codec"));
-    ad1848_set_cd_audio_channel(&azt2316a->ad1848, (device_get_config_int("codec") == AD1848_TYPE_CS4248) ? AD1848_AUX1 : AD1848_LINE_IN);
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11)
+        ad1848_set_cd_audio_channel(&azt2316a->ad1848, (device_get_config_int("codec") == AD1848_TYPE_CS4248) ? AD1848_AUX1 : AD1848_LINE_IN);
+    else
+        ad1848_set_cd_audio_channel(&azt2316a->ad1848, AD1848_AUX1);
 
     ad1848_setirq(&azt2316a->ad1848, azt2316a->cur_wss_irq);
     ad1848_setdma(&azt2316a->ad1848, azt2316a->cur_wss_dma);
 
-    io_sethandler(azt2316a->cur_addr + 0x0400, 0x0040, azt2316a_config_read, NULL, NULL, azt2316a_config_write, NULL, NULL, azt2316a);
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11)
+        io_sethandler(azt2316a->cur_addr + 0x0400, 0x0040, azt2316a_config_read, NULL, NULL, azt2316a_config_write, NULL, NULL, azt2316a);
+    else /* Aztech 1605 only needs 62x/64x */
+        io_sethandler(azt2316a->cur_addr + 0x0400, 0x0010, azt1605_config_read, NULL, NULL, azt1605_config_write, NULL, NULL, azt2316a);
     io_sethandler(azt2316a->cur_wss_addr, 0x0004, azt2316a_wss_read, NULL, NULL, azt2316a_wss_write, NULL, NULL, azt2316a);
     io_sethandler(azt2316a->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &azt2316a->ad1848);
 
@@ -1253,8 +1368,18 @@ azt_init(const device_t *info)
 
     azt2316a_create_config_word(azt2316a);
     sound_add_handler(azt2316a_get_buffer, azt2316a);
-    if (azt2316a->sb->opl_enabled)
-        music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
+        if (azt2316a->sb->opl_enabled)
+            music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+    }
+    else {
+        if (azt2316a->sb->opl_enabled) {
+            azt2316a->sb->opl_mixer = azt2316a;
+            azt2316a->sb->opl_mix = azt1605_filter_opl;
+            music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
+        }
+    }
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
 
     if (azt2316a->cur_mpu401_enabled) {
@@ -1265,6 +1390,21 @@ azt_init(const device_t *info)
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &azt2316a->sb->dsp);
+
+    /* Restore WSS mixer settings from EEPROM on AZT1605 cards */
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
+        azt2316a->ad1848.regs[0]  = read_eeprom[0];  /* WSS ADC L */
+        azt2316a->ad1848.regs[1]  = read_eeprom[1];  /* WSS ADC R */
+        azt2316a->ad1848.regs[2]  = read_eeprom[2];  /* WSS AUX1/CD L */
+        azt2316a->ad1848.regs[3]  = read_eeprom[3];  /* WSS AUX1/CD R */
+        azt2316a->ad1848.regs[4]  = read_eeprom[4];  /* WSS AUX2/FM L */
+        azt2316a->ad1848.regs[5]  = read_eeprom[5];  /* WSS AUX2/FM R */
+        azt2316a->ad1848.regs[6]  = read_eeprom[6];  /* WSS DAC L */
+        azt2316a->ad1848.regs[7]  = read_eeprom[7];  /* WSS DAC R */
+        azt2316a->ad1848.regs[18] = read_eeprom[8];  /* CS4231 LINE/SB Voice L */
+        azt2316a->ad1848.regs[19] = read_eeprom[9];  /* CS4231 LINE/SB Voice R */
+        azt2316a->ad1848.regs[26] = read_eeprom[10]; /* CS4231 Mic */
+    }
 
     return azt2316a;
 }
@@ -1301,6 +1441,12 @@ azt_close(void *priv)
     sb_close(azt2316a->sb);
 
     free(azt2316a->mpu);
+
+    if (azt2316a->log != NULL) {
+        log_close(azt2316a->log);
+        azt2316a->log = NULL;
+    }
+
     free(azt2316a);
 }
 

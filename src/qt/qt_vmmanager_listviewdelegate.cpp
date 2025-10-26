@@ -1,31 +1,25 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
+* 86Box    A hypervisor and IBM PC system emulator that specializes in
+*          running old operating systems and software designed for IBM
+*          PC systems and compatibles from 1981 through fairly recent
+*          system designs based on the PCI bus.
 *
-*		This file is part of the 86Box distribution.
+*          This file is part of the 86Box distribution.
 *
-*		86Box VM manager list view delegate module
+*          86Box VM manager list view delegate module
 *
+* Authors: cold-brewed
 *
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
+*          Copyright 2024 cold-brewed
 */
-
-
 #include <QApplication>
 
 #include "qt_util.hpp"
 #include "qt_vmmanager_listviewdelegate.hpp"
 #include "qt_vmmanager_model.hpp"
 
-
 // Thanks to scopchanov https://github.com/scopchanov/SO-MessageLog
 // from https://stackoverflow.com/questions/53105343/is-it-possible-to-add-a-custom-widget-into-a-qlistview
-
 
 VMManagerListViewDelegate::VMManagerListViewDelegate(QObject *parent)
     : QStyledItemDelegate(parent),
@@ -228,7 +222,7 @@ VMManagerListViewDelegateStyle::VMManagerListViewDelegateStyle() :
     spacingHorizontal(8),
     spacingVertical(4)
 {
-
+    //
 }
 
 QRect VMManagerListViewDelegateStyle::statusBox(const QStyleOptionViewItem &option,

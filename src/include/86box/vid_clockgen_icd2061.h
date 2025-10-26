@@ -14,8 +14,6 @@
  *          Used by ET4000w32/p (Diamond Stealth 32) and the S3
  *          Vision964 family.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
@@ -35,4 +33,4 @@ typedef struct icd2061_t {
     uint32_t ctrl;
 } icd2061_t;
 
-#endif // VIDEO_CLOCKGEN_ICD2061_H
+#endif /*VIDEO_CLOCKGEN_ICD2061_H*/

@@ -8,8 +8,6 @@
  *
  *          Implementation of the VIA Apollo series of chips.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *          Tiseno100,

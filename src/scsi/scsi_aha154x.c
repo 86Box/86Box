@@ -10,8 +10,6 @@
  *          made by Adaptec, Inc. These controllers were designed for
  *          the ISA bus.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Original Buslogic version by SA1988 and Miran Grca.
  *

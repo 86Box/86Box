@@ -9,7 +9,6 @@
  *          Implementation of the Novell NetWare 2.x Key Card, which
  *          was used for anti-piracy protection.
  *
- *
  * Authors: Cacodemon345
  *
  *          Copyright 2024 Cacodemon345.
@@ -34,4 +33,4 @@ extern const device_t novell_keycard_device;
 }
 #endif
 
-#endif /*BUGGER_H*/
+#endif /* NOVELL_KEYCARD_H */

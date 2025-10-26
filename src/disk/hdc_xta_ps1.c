@@ -41,8 +41,6 @@
  *          Type table with the main code, so the user can only select
  *          items from that list...
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Based on my earlier HD20 driver for the EuroPC.

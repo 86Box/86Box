@@ -910,6 +910,7 @@ tulip_reset(void *priv)
         s->subsys_id                = eeprom_data[1];
         s->subsys_ven_id            = eeprom_data[0];
     }
+    s->nic->byte_period         = NET_PERIOD_10M;
 }
 
 static void
@@ -966,6 +967,13 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
             } else {
                 tulip_update_ts(s, CSR5_TS_STOPPED);
                 s->csr[5] |= CSR5_TPS;
+            }
+
+            if (s->device_info->local < 3) {
+                if ((s->csr[6] & 0x00440000) && ((s->csr[6] & 0x00440000) != 0x00440000))
+                    s->nic->byte_period = NET_PERIOD_100M;
+                else
+                    s->nic->byte_period = NET_PERIOD_10M;
             }
             break;
 

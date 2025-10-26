@@ -8,8 +8,6 @@
  *
  *          Implementation of the IMS 8848/8849 chipset.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Tiseno100,
  *

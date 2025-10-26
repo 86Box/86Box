@@ -11,8 +11,6 @@
  * TODO:    Add the Genius bus- and serial mouse.
  *          Remove the '3-button' flag from mouse types.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

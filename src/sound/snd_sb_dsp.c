@@ -28,6 +28,7 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "cpu.h"
 
 /* NON-PCM SAMPLE FORMATS */
 #define ADPCM_4  1
@@ -515,7 +516,7 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->sb_command = 0;
 
     dsp->sb_8_length  = 0xffff;
-    dsp->sb_8_autolen = 0xffff;
+    dsp->sb_8_autolen = 0x7fff;
 
     dsp->sb_irq8     = 0;
     dsp->sb_irq16    = 0;
@@ -1300,6 +1301,12 @@ sb_exec_command(sb_dsp_t *dsp)
                     sb_dsp_log("EEPROM read = %02x\n", dsp->azt_eeprom[dsp->sb_data[1]]);
                     sb_add_data(dsp, dsp->azt_eeprom[dsp->sb_data[1]]);
                     break;
+                } else if ((dsp->sb_data[0] == 0x01) && (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)) {
+                    /* Unknown command executed by EMUTSR after DSP reset */
+                    sb_dsp_log("AZT1605: Command 0x08 Subcommand 0x01\n");
+                    /* HACK: Aztech HWSET seems to rely on RP being incremented for detection to work after EMUTSR is run */
+                    dsp->sb_read_rp++;
+                    break;
                 } else
                     sb_dsp_log("AZT2316A: UNKNOWN 0x08 COMMAND: %02X\n", dsp->sb_data[0]); /* 0x08 (when shutting down, driver tries to read 1 byte of response), 0x55, 0x0D, 0x08D seen */
                 break;
@@ -1919,13 +1926,6 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
                 if (val == 0x01)
                     sb_add_data(dsp, 0);
                 dsp->sb_data_stat++;
-                if (IS_AZTECH(dsp)) {
-                    /* variable length commands */
-                    if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x08)
-                        sb_commands[dsp->sb_command] = 3;
-                    else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x07)
-                        sb_commands[dsp->sb_command] = 2;
-                }
                 if (IS_ESS(dsp) && dsp->sb_command >= 0x64 && dsp->sb_command <= 0x6F) {
                     sb_commands[dsp->sb_command] = 2;
                 } else if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
@@ -1944,6 +1944,13 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 dsp->sb_data[dsp->sb_data_stat++] = val;
+                if (IS_AZTECH(dsp)) {
+                    /* variable length commands */
+                    if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x08)
+                        sb_commands[dsp->sb_command] = 3;
+                    else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x07)
+                        sb_commands[dsp->sb_command] = 2;
+                }
             }
             if (dsp->sb_data_stat == sb_commands[dsp->sb_command] || sb_commands[dsp->sb_command] == -1) {
                 sb_exec_command(dsp);

@@ -57,8 +57,6 @@
  *            Microsoft Windows NT 3.1
  *            Microsoft Windows 98 SE
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

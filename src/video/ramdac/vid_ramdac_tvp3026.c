@@ -10,8 +10,6 @@
  *          family.
  *
  *
- * TODO:    Clock and other parts.
- *
  * Authors: TheCollector1995,
  *
  *          Copyright 2021 TheCollector1995.
@@ -50,6 +48,7 @@ typedef struct tvp3026_ramdac_t {
     uint8_t  mode;
     uint8_t  pll_addr;
     uint8_t  clock_sel;
+    uint8_t  color_key_ctrl;
     struct {
         uint8_t m;
         uint8_t n;
@@ -172,25 +171,24 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svg
                 svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
                 svga->dac_hwcursor.ena                                      = !!(val & 0x03);
                 ramdac->mode                                                = val & 0x03;
+                //pclog("0x09: DACEna=%02x, MainEna=%02x.\n", svga->dac_hwcursor.ena, svga->hwcursor.ena);
             }
             break;
         case 0x0a: /* Indexed Data (RS value = 1010) */
             switch (ramdac->ind_idx) {
                 case 0x06: /* Indirect Cursor Control */
                     ramdac->ccr = val;
+                    svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
+                    svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
+                    svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
                     if (!(ramdac->ccr & 0x80)) {
-                        svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
-                        svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
-                        svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
                         svga->dac_hwcursor.ena                                      = !!(val & 0x03);
                         ramdac->mode                                                = val & 0x03;
                     } else {
-                        svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
-                        svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
-                        svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
                         svga->dac_hwcursor.ena                                      = !!(ramdac->dcc & 0x03);
                         ramdac->mode                                                = ramdac->dcc & 0x03;
                     }
+                    //pclog("0x0a, indirect 0x06: DACEna=%02x, MainEna=%02x.\n", svga->dac_hwcursor.ena, svga->hwcursor.ena);
                     break;
                 case 0x0f: /* Latch Control */
                     ramdac->latch_cntl = val;
@@ -279,6 +277,9 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svg
                             break;
                     }
                     ramdac->pll_addr = ((ramdac->pll_addr + 0x10) & 0x30) | (ramdac->pll_addr & 0xcf);
+                    break;
+                case 0x38: /* Color-Key Control */
+                    ramdac->color_key_ctrl = val;
                     break;
                 case 0x39: /* MCLK/Loop Clock Control */
                     ramdac->mclk = val;
@@ -471,6 +472,9 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
                             break;
                     }
                     break;
+                case 0x38: /* Color-Key Control */
+                    temp = ramdac->color_key_ctrl;
+                    break;
                 case 0x39: /* MCLK/Loop Clock Control */
                     temp = ramdac->mclk;
                     break;
@@ -517,11 +521,39 @@ tvp3026_recalctimings(void *priv, svga_t *svga)
     svga->interlace = !!(ramdac->ccr & 0x40);
     /* TODO: Figure out gamma correction for 15/16 bpp color. */
     svga->lut_map = !!((svga->bpp >= 15 && (svga->bpp != 24)) && (ramdac->true_color & 0xf0) != 0x00);
+    svga->clock_multiplier = 0;
+
+    //pclog("RAMDAC CLOCKSEL=%02x, MCR=%02x, LoopMCLK=%02x, Latch=%02x.\n", ramdac->clock_sel, ramdac->mcr, ramdac->mclk, ramdac->latch_cntl);
 
     if (!(ramdac->clock_sel & 0x70)) {
         if (ramdac->mcr != 0x98) {
-            svga->hdisp <<= 1;
-            svga->dots_per_clock <<= 1;
+            switch ((ramdac->clock_sel >> 4) & 7) {
+                case 0:
+                    svga->clock_multiplier = 1;
+                    break;
+                case 1:
+                    svga->clock_multiplier = 2;
+                    break;
+                case 2:
+                    svga->clock_multiplier = 4;
+                    break;
+                case 3:
+                    svga->clock_multiplier = 8;
+                    break;
+                case 4:
+                    svga->clock_multiplier = 16;
+                    break;
+                case 5:
+                    svga->clock_multiplier = 32;
+                    break;
+                case 6:
+                    svga->clock_multiplier = 64;
+                    break;
+                case 7:
+                default:
+                    svga->clock_multiplier = 0;
+                    break;
+            }
         }
     }
 }

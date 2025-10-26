@@ -8,15 +8,12 @@
  *
  *          OPTi MediaCHIPS 82C929A (also known as OPTi MAD16 Pro) audio controller emulation.
  *
- *
- *
  * Authors: Cacodemon345
  *          Eluan Costa Miranda <eluancm@gmail.com>
  *
  *          Copyright 2022 Cacodemon345.
  *          Copyright 2020 Eluan Costa Miranda.
  */
-
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>

@@ -70,3 +70,37 @@ machine_at_pci56001_init(const machine_t *model)
 
     return ret;
 }
+
+/* VLSI SuperCore */
+int
+machine_at_celebris5xx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/celebris5xx/CELEBRIS.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_IDE,         4, 1, 2, 3); /* Onboard */
+    pci_register_slot(0x09, PCI_CARD_VIDEO,       4, 1, 2, 3); /* Onboard */
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      1, 3, 2, 1); /* Slot 01 */
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      2, 1, 3, 2); /* Slot 02 */
+
+    device_add(&vl82c59x_device);
+    device_add(&intel_flash_bxt_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&ide_cmd640_pci_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}

@@ -8,8 +8,6 @@
  *
  *          Main window module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
@@ -170,8 +168,6 @@ extern void     qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 extern MainWindow *main_window;
-
-bool MainWindow::s_adjustingForce43 = false;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -1022,75 +1018,12 @@ void MainWindow::updateShortcuts()
 	ui->actionMute_Unmute->setShortcut(seq);
 }
 		
-void 
-MainWindow::adjustForForce43(const QSize &newWinSize)
-{
-    // Only act in resizable mode with Force 4:3 enabled and not fullscreen
-    if (!(vid_resize == 1 && force_43 > 0) || video_fullscreen || s_adjustingForce43)
-        return;
-
-    s_adjustingForce43 = true;
-
-    // Height consumed by menu/status/toolbars
-    int chromeH = menuBar()->height()
-                + (hide_status_bar ? 0 : statusBar()->height())
-                + (hide_tool_bar   ? 0 : ui->toolBar->height());
-
-    // Compute client area size in device‑independent pixels
-    double dpr = (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.0);
-    int winW = newWinSize.width();
-    int winH = newWinSize.height();
-    int clientW = static_cast<int>(winW / dpr);
-    int clientH = static_cast<int>((winH - chromeH) / dpr);
-
-    if (clientW <= 0 || clientH <= 0) {
-        s_adjustingForce43 = false;
-        return;
-    }
-
-    // Decide which dimension the user changed most – adjust the other
-    int curW = static_cast<int>(width() / dpr);
-    int curH = static_cast<int>((height() - chromeH) / dpr);
-    bool widthChanged = std::abs(clientW - curW) >= std::abs(clientH - curH);
-
-    int targetW, targetH;
-    if (widthChanged) {
-        // user dragged width – compute matching height for 4:3
-        targetW = clientW;
-        targetH = (clientW * 3) / 4;
-    } else {
-        // user dragged height – compute matching width for 4:3
-        targetH = clientH;
-        targetW = (clientH * 4) / 3;
-    }
-
-    // Convert back to window size including chrome and apply
-    int newW = static_cast<int>(targetW * dpr);
-    int newH = static_cast<int>(targetH * dpr) + chromeH;
-    if (newW != winW || newH != winH)
-        resize(newW, newH);
-
-    // Update emulator framebuffer size and notify platform
-    monitors[0].mon_scrnsz_x = targetW;
-    monitors[0].mon_scrnsz_y = targetH;
-    plat_resize_request(targetW, targetH, 0);
-
-    // Allow renderer widget to grow and recompute scaling
-    ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-    ui->stackedWidget->onResize(width(), height());
-
-    s_adjustingForce43 = false;
-}
-
 void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
+#ifdef MOVE_WINDOW
     //qDebug() << pos().x() + event->size().width();
     //qDebug() << pos().y() + event->size().height();
-	
-    // Enforce 4:3 aspect ratio in resizable mode when the option is set
-    adjustForForce43(event->size());
-	
     if (vid_resize == 1 || video_fullscreen)
         return;
 
@@ -1108,6 +1041,7 @@ MainWindow::resizeEvent(QResizeEvent *event)
         if (newY < 1) newY = 1;
     }
     move(newX, newY);
+#endif
 }
 
 void
@@ -2145,15 +2079,13 @@ void
 MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
+    if (vid_resize) {
+        const auto widget = ui->stackedWidget->currentWidget();
+        ui->stackedWidget->onResize(widget->width(), widget->height());
 
-    // When turning on Force 4:3 in resizable mode, immediately snap to 4:3
-    if (vid_resize == 1 && !video_fullscreen) {
-        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        if (force_43 > 0) {
-            adjustForForce43(size());
-        } else {
-            // Turning off: refresh renderer scaling
-            ui->stackedWidget->onResize(width(), height());
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (renderers[i])
+                renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
         }
     }
 }
@@ -2344,8 +2276,11 @@ MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
     if (enable_discord) {
         discord_init();
         discord_update_activity(dopause);
-    } else
+        discordupdate.start(1000);
+    } else {
         discord_close();
+        discordupdate.stop();
+    }
 #endif
 }
 
@@ -2373,7 +2308,14 @@ MainWindow::changeEvent(QEvent *event)
 {
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
+        auto size = this->centralWidget()->size();
         QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+        QApplication::processEvents();
+        main_window->centralWidget()->setFixedSize(size);
+        QApplication::processEvents();
+        if (vid_resize == 1) {
+            main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
     }
 #endif
     QWidget::changeEvent(event);

@@ -8,14 +8,12 @@
  *
  *              Definitions for platform specific serial to host passthrough.
  *
- *
  * Authors:     Andreas J. Reichel <webmaster@6th-dimension.com>,
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel.
  *              Copyright 2021-2022 Jasmine Iwanek.
  */
-
 #ifndef PLAT_CDROM_IOCTL_H
 #define PLAT_CDROM_IOCTL_H
 
@@ -31,4 +29,4 @@ extern void *   ioctl_open(cdrom_t *dev, const char *drv);
 }
 #endif
 
-#endif
+#endif /* PLAT_CDROM_IOCTL_H */

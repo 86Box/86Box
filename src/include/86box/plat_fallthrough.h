@@ -8,13 +8,10 @@
  *
  *          Define the various platform support functions.
  *
- *
- *
  * Authors: Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *
  *          Copyright 2023 Jasmine Iwanek
  */
-
 #ifndef EMU_PLAT_FALLTHROUGH_H
 #define EMU_PLAT_FALLTHROUGH_H
 

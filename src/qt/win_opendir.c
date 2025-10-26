@@ -10,8 +10,6 @@
  *
  *          Based on old original code @(#)dir_win32.c 1.2.0 2007/04/19
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 1998-2007 MicroWalt Corporation

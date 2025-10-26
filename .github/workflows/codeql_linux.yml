@@ -33,7 +33,7 @@ jobs:
 
   analyze-linux:
 
-    name: "Analyze (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
 
     runs-on: ubuntu-22.04
 
@@ -68,10 +68,13 @@ jobs:
         ui:
           - name: SDL GUI
             qt: off
+            qt6: off
+            slug: -SDL
             static: on
-          - name: Qt GUI
+          - name: Qt 5 GUI
             qt: on
-            slug: -Qt
+            qt6: off
+            slug: -Qt5
             packages: >-
               qtbase5-dev
               qtbase5-private-dev
@@ -79,6 +82,20 @@ jobs:
               qttranslations5-l10n
               libevdev-dev
               libxkbcommon-x11-dev
+        environment:
+          - arch: x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+            slug: "-x86_64"
+            runner: ubuntu-22.04
+#          - arch: arm64
+#            toolchain: ./cmake/flags-gcc-aarch64.cmake
+#            slug: -arm64
+#            runner: ubuntu-22.04-arm
+#        exclude:
+#          - dynarec:
+#              new: off
+#            environment:
+#              arch: arm64
 
     steps:
       - name: Install dependencies
@@ -104,7 +121,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install Build Wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v5
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -114,11 +131,11 @@ jobs:
 
       - name: Configure CMake
         run: >-
-          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          cmake -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
 
       - name: Build
         run: |
@@ -132,7 +149,7 @@ jobs:
       - name: SonarQube Scan
         if: matrix.build.preset == 'dev_debug' && matrix.dynarec.new == 'on' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
 #        if: 0
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -140,4 +157,4 @@ jobs:
         with:
            # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
            args: >
-             --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
+             --define sonar.cfamily.compile-commands=build/compile_commands.json

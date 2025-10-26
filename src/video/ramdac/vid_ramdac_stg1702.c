@@ -8,8 +8,6 @@
  *
  *          STG1702 true colour RAMDAC emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -33,6 +31,7 @@ typedef struct stg_ramdac_t {
     int     magic_count, index;
     uint8_t regs[256];
     uint8_t command;
+    int     type;
 } stg_ramdac_t;
 
 static int stg_state_read[2][8] = {
@@ -48,6 +47,8 @@ stg_ramdac_set_bpp(svga_t *svga, stg_ramdac_t *ramdac)
         switch (ramdac->regs[3]) {
             default:
             case 0:
+                svga->bpp = 8;
+                break;
             case 5:
             case 7:
                 svga->bpp = 8;
@@ -178,7 +179,7 @@ stg_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
                             temp = 0x44;
                             break;
                         case 1:
-                            temp = 0x03;
+                            temp = ramdac->type;
                             break;
                         case 7:
                             temp = 0x88;
@@ -218,22 +219,24 @@ stg_getclock(int clock, void *priv)
     float           t;
     int             m;
     int             n;
-    int             n2;
-    const uint16_t *c;
+    int             d;
+    int             d2;
+    uint16_t        c;
 
     if (clock == 0)
         return 25175000.0;
     if (clock == 1)
         return 28322000.0;
 
-    clock ^= 1; /*Clocks 2 and 3 seem to be reversed*/
-    c  = (uint16_t *) &ramdac->regs[0x20 + (clock << 1)];
-    m  = (*c & 0xff) + 2;        /* B+2 */
-    n  = ((*c >> 8) & 0x1f) + 2; /* N1+2 */
-    n2 = ((*c >> 13) & 0x07);    /* D */
-    n2 = (1 << n2);
-    t  = (14318184.0f * (float) m) / (float) (n * n2);
+    c  = ramdac->regs[0x20 + (clock << 1)];
+    c |= (ramdac->regs[0x21 + (clock << 1)] << 8);
+    m  = (c & 0xff) + 2;        /* B+2 */
+    n  = ((c >> 8) & 0x1f) + 2; /* N1+2 */
+    d = ((c >> 13) & 0x07);    /* D */
+    d2 = (1 << d);
+    t  = (14318184.0f * (float) m) / (float) (n * d2);
 
+    //pclog("RAMDAC vclk val=0x%02x, vclk v=%d low, D=%d, t=%f.\n", ramdac->regs[0x20 + (clock << 1)], clock, d2, t);
     return t;
 }
 
@@ -242,6 +245,8 @@ stg_ramdac_init(UNUSED(const device_t *info))
 {
     stg_ramdac_t *ramdac = (stg_ramdac_t *) malloc(sizeof(stg_ramdac_t));
     memset(ramdac, 0, sizeof(stg_ramdac_t));
+
+    ramdac->type = info->local & 0xff;
 
     return ramdac;
 }
@@ -255,11 +260,25 @@ stg_ramdac_close(void *priv)
         free(ramdac);
 }
 
-const device_t stg_ramdac_device = {
-    .name          = "SGS-Thompson STG170x RAMDAC",
+const device_t stg1702_ramdac_device = {
+    .name          = "SGS-Thompson STG1702 RAMDAC",
     .internal_name = "stg_ramdac",
     .flags         = 0,
-    .local         = 0,
+    .local         = 2,
+    .init          = stg_ramdac_init,
+    .close         = stg_ramdac_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t stg1703_ramdac_device = {
+    .name          = "SGS-Thompson STG1703 RAMDAC",
+    .internal_name = "stg_ramdac",
+    .flags         = 0,
+    .local         = 3,
     .init          = stg_ramdac_init,
     .close         = stg_ramdac_close,
     .reset         = NULL,

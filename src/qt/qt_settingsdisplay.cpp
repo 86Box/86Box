@@ -8,8 +8,6 @@
  *
  *          Display settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje
@@ -48,7 +46,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     for (uint8_t i = 0; i < GFXCARD_MAX; i ++)
         videoCard[i] = gfxcard[i];
 
-    ui->lineEdit->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+    ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
     onCurrentMachineChanged(machine);
 }
@@ -79,7 +77,7 @@ SettingsDisplay::save()
     da2_standalone_enabled     = ui->checkBoxDa2->isChecked() ? 1 : 0;
     monitor_edid               = ui->radioButtonCustom->isChecked() ? 1 : 0;
 
-    strncpy(monitor_edid_path, ui->lineEdit->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
+    strncpy(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
 }
 
 void
@@ -137,8 +135,8 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 
     ui->radioButtonDefault->setChecked(monitor_edid == 0);
     ui->radioButtonCustom->setChecked(monitor_edid == 1);
-    ui->lineEdit->setFileName(monitor_edid_path);
-    ui->lineEdit->setEnabled(monitor_edid == 1);
+    ui->lineEditCustomEDID->setFileName(monitor_edid_path);
+    ui->lineEditCustomEDID->setEnabled(monitor_edid == 1);
 }
 
 void
@@ -328,7 +326,7 @@ void SettingsDisplay::on_radioButtonDefault_clicked()
 {
     ui->radioButtonDefault->setChecked(true);
     ui->radioButtonCustom->setChecked(false);
-    ui->lineEdit->setEnabled(false);
+    ui->lineEditCustomEDID->setEnabled(false);
 }
 
 
@@ -336,7 +334,7 @@ void SettingsDisplay::on_radioButtonCustom_clicked()
 {
     ui->radioButtonDefault->setChecked(false);
     ui->radioButtonCustom->setChecked(true);
-    ui->lineEdit->setEnabled(true);
+    ui->lineEditCustomEDID->setEnabled(true);
 }
 
 void SettingsDisplay::on_pushButtonExportDefault_clicked()

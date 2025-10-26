@@ -1213,7 +1213,7 @@ nvr_at_init(const device_t *info)
     }
 
     /* This is a hack but it is required for the machine to boot properly, no idea why. */
-    if (nvr->is_new && !strcmp(machine_get_internal_name(), "spitfire"))
+    if (nvr->is_new && (machines[machine].init == machine_at_spitfire_init))
         nvr->regs[0x33] = nvr->regs[0x34] = 0xff;
 
     return nvr;

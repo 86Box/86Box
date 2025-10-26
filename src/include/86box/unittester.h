@@ -11,13 +11,10 @@
  *          If modifying the protocol, you MUST modify the specification
  *          and increment the version number.
  *
- *
- *
  * Authors: GreaseMonkey, <thematrixeatsyou+86b@gmail.com>
  *
  *          Copyright 2024 GreaseMonkey.
  */
-
 #ifndef UNITTESTER_H
 #define UNITTESTER_H
 

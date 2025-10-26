@@ -8,7 +8,6 @@
  *
  *          Main entry point module
  *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
@@ -98,6 +97,7 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int qt_nvr_save(void);
+extern void exit_pause(void);
 
 bool cpu_thread_running = false;
 }
@@ -442,7 +442,7 @@ main_thread_fn()
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
-    plat_set_thread_name(nullptr, "main_thread_fn");
+    plat_set_thread_name(nullptr, "main_thread");
     framecountx = 0;
     // title_update = 1;
     uint64_t old_time = elapsed_timer.elapsed();
@@ -459,32 +459,34 @@ main_thread_fn()
             drawits += static_cast<int>(new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {
-            /* Yes, so do one frame now. */
-            drawits -= force_10ms ? 10 : 1;
-            if (drawits > 50)
-                drawits = 0;
+            /* Yes, so run frames now. */
+            do {
+#ifdef USE_INSTRUMENT
+                uint64_t start_time = elapsed_timer.nsecsElapsed();
+#endif
+                /* Run a block of code. */
+                pc_run();
 
 #ifdef USE_INSTRUMENT
-            uint64_t start_time = elapsed_timer.nsecsElapsed();
+                if (instru_enabled) {
+                    uint64_t elapsed_us       = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
+                    uint64_t total_elapsed_ms = (uint64_t) ((double) tsc / cpu_s->rspeed * 1000);
+                    printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
+                    if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
+                        break;
+                }
 #endif
-            /* Run a block of code. */
-            pc_run();
-
-#ifdef USE_INSTRUMENT
-            if (instru_enabled) {
-                uint64_t elapsed_us       = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
-                uint64_t total_elapsed_ms = (uint64_t) ((double) tsc / cpu_s->rspeed * 1000);
-                printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
-                if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
-                    break;
-            }
-#endif
-            /* Every 2 emulated seconds we save the machine status. */
-            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
-                qt_nvr_save();
-                nvr_dosave = 0;
-                frames     = 0;
-            }
+                /* Every 2 emulated seconds we save the machine status. */
+                if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
+                    qt_nvr_save();
+                    nvr_dosave = 0;
+                    frames     = 0;
+                }
+                
+                drawits -= force_10ms ? 10 : 1;
+                if (drawits > 50)
+                    drawits = 0;
+            } while (drawits > 0);
         } else {
             /* Just so we dont overload the host OS. */
 
@@ -515,6 +517,8 @@ main_thread_fn()
 
 static std::thread *main_thread;
 
+QTimer discordupdate;
+
 #ifdef Q_OS_WINDOWS
 WindowsDarkModeFilter* vmm_dark_mode_filter = nullptr;
 #endif
@@ -538,6 +542,18 @@ main(int argc, char *argv[])
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
+    QApplication::setAttribute(Qt::AA_UseDesktopOpenGL);
+
+    QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
+    fmt.setSwapInterval(0);
+    fmt.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+    fmt.setRenderableType(QSurfaceFormat::OpenGL);
+#ifdef Q_OS_MACOS
+    fmt.setVersion(4, 1);
+#else
+    fmt.setVersion(3, 2);
+#endif
+    QSurfaceFormat::setDefaultFormat(fmt);
 
     QApplication app(argc, argv);
     QLocale::setDefault(QLocale::C);
@@ -548,7 +564,6 @@ main(int argc, char *argv[])
     if (QFile(QApplication::applicationDirPath() + "/opengl32.dll").exists()) {
         qputenv("QT_OPENGL_DLL", QFileInfo(QApplication::applicationDirPath() + "/opengl32.dll").absoluteFilePath().toUtf8());
     }
-    QApplication::setAttribute(Qt::AA_NativeWindows);
 
     if (!util::isWindowsLightTheme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
@@ -570,9 +585,6 @@ main(int argc, char *argv[])
 
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
-    QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
-    fmt.setSwapInterval(0);
-    QSurfaceFormat::setDefaultFormat(fmt);
 
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
@@ -743,6 +755,14 @@ main(int argc, char *argv[])
     discord_load();
 #endif
 
+#ifdef Q_OS_WINDOWS
+    // On Win32 the accuracy of Sleep() depends on the timer resolution, which can be set by calling timeBeginPeriod
+    // https://learn.microsoft.com/en-us/windows/win32/api/timeapi/nf-timeapi-timebeginperiod
+    exit_pause();
+    timeBeginPeriod(1);
+    atexit([] () -> void { timeEndPeriod(1); });
+#endif
+
     main_window = new MainWindow();
     if (startMaximized) {
         main_window->showMaximized();
@@ -865,7 +885,6 @@ main(int argc, char *argv[])
     onesec.start(1000);
 
 #ifdef DISCORD
-    QTimer discordupdate;
     if (discord_loaded) {
         QTimer::singleShot(1000, &app, [] {
             if (enable_discord) {
@@ -877,12 +896,15 @@ main(int argc, char *argv[])
         QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
             discord_run_callbacks();
         });
-        discordupdate.start(1000);
+        if (enable_discord)
+            discordupdate.start(1000);
     }
 #endif
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(0, &app, [] {
+        plat_set_thread_name(nullptr, "qt_thread");
+
 #ifdef Q_OS_WINDOWS
         extern bool NewDarkMode;
         NewDarkMode = util::isWindowsLightTheme();

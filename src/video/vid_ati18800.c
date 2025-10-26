@@ -8,8 +8,6 @@
  *
  *          ATI 18800 emulation (VGA Edge-16)
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *

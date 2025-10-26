@@ -8,8 +8,6 @@
  *
  *          Floppy/CD-ROM devices configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -32,45 +30,44 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
+#include <86box/fdd_audio.h>
 }
-
-#include <QStandardItemModel>
 
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_progsettings.hpp"
 
-static void
-setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type)
+void
+SettingsFloppyCDROM::setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type)
 {
     QIcon icon;
     if (type == 0)
-        icon = QIcon(":/settings/qt/icons/floppy_disabled.ico");
+        icon = floppy_disabled_icon;
     else if (type >= 1 && type <= 6)
-        icon = QIcon(":/settings/qt/icons/floppy_525.ico");
+        icon = floppy_525_icon;
     else
-        icon = QIcon(":/settings/qt/icons/floppy_35.ico");
+        icon = floppy_35_icon;
 
     model->setData(idx, QObject::tr(fdd_getname(type)));
     model->setData(idx, type, Qt::UserRole);
     model->setData(idx, icon, Qt::DecorationRole);
 }
 
-static void
-setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
+void
+SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
 {
     QIcon icon;
 
     switch (bus) {
         case CDROM_BUS_DISABLED:
-            icon = QIcon(":/settings/qt/icons/cdrom_disabled.ico");
+            icon = cdrom_disabled_icon;
             break;
         case CDROM_BUS_ATAPI:
         case CDROM_BUS_SCSI:
         case CDROM_BUS_MITSUMI:
         case CDROM_BUS_MKE:
-            icon = QIcon(":/settings/qt/icons/cdrom.ico");
+            icon = cdrom_icon;
             break;
     }
 
@@ -116,6 +113,10 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 {
     ui->setupUi(this);
 
+    floppy_disabled_icon = QIcon(":/settings/qt/icons/floppy_disabled.ico");
+    floppy_525_icon = QIcon(":/settings/qt/icons/floppy_525.ico");
+    floppy_35_icon = QIcon(":/settings/qt/icons/floppy_35.ico");
+
     auto *model = ui->comboBoxFloppyType->model();
     int   i     = 0;
     while (true) {
@@ -127,13 +128,14 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         ++i;
     }
 
-    model = new QStandardItemModel(0, 3, this);
+    model = new QStandardItemModel(0, 4, this);
     ui->tableViewFloppy->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Type"));
     model->setHeaderData(1, Qt::Horizontal, tr("Turbo"));
     model->setHeaderData(2, Qt::Horizontal, tr("Check BPB"));
+    model->setHeaderData(3, Qt::Horizontal, tr("Audio"));
 
-    model->insertRows(0, FDD_NUM);
+model->insertRows(0, FDD_NUM);
     /* Floppy drives category */
     for (int i = 0; i < FDD_NUM; i++) {
         auto idx  = model->index(i, 0);
@@ -141,6 +143,25 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         setFloppyType(model, idx, type);
         model->setData(idx.siblingAtColumn(1), fdd_get_turbo(i) > 0 ? tr("On") : tr("Off"));
         model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(i) > 0 ? tr("On") : tr("Off"));
+
+        int     prof = fdd_get_audio_profile(i);
+        QString profName;
+
+#ifndef DISABLE_FDD_AUDIO
+        // Get the profile name from the configuration system
+        const char *name = fdd_audio_get_profile_internal_name(prof);
+        if (name) {
+            profName = QString(name);
+        } else {
+            profName = tr("None");
+        }
+#else
+        profName = tr("None");
+#endif
+
+        auto audioIdx = model->index(i, 3);
+        model->setData(audioIdx, profName);
+        model->setData(audioIdx, prof, Qt::UserRole);
     }
 
     ui->tableViewFloppy->resizeColumnsToContents();
@@ -148,7 +169,28 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
     connect(ui->tableViewFloppy->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onFloppyRowChanged);
+    
+#ifndef DISABLE_FDD_AUDIO
+    ui->comboBoxFloppyAudio->setVisible(true);
+    int profile_count = fdd_audio_get_profile_count();
+    for (int i = 0; i < profile_count; i++) {
+        const char *name = fdd_audio_get_profile_name(i);
+        if (name) {
+            ui->comboBoxFloppyAudio->addItem(name, i);
+        }
+    }
+    ui->comboBoxFloppyAudio->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+#else
+    ui->comboBoxFloppyAudio->setVisible(false);
+#endif
+
+    // Set initial selection and trigger the row changed event to update controls
     ui->tableViewFloppy->setCurrentIndex(model->index(0, 0));
+    // Manually trigger the row changed event to ensure audio selection is updated
+    onFloppyRowChanged(model->index(0, 0));
+
+    cdrom_disabled_icon = QIcon(":/settings/qt/icons/cdrom_disabled.ico");
+    cdrom_icon = QIcon(":/settings/qt/icons/cdrom.ico");
 
     Harddrives::populateCDROMBuses(ui->comboBoxBus->model());
     model = ui->comboBoxSpeed->model();
@@ -228,6 +270,9 @@ SettingsFloppyCDROM::save()
         fdd_set_type(i, model->index(i, 0).data(Qt::UserRole).toInt());
         fdd_set_turbo(i, model->index(i, 1).data() == tr("On") ? 1 : 0);
         fdd_set_check_bpb(i, model->index(i, 2).data() == tr("On") ? 1 : 0);
+#ifndef DISABLE_FDD_AUDIO
+        fdd_set_audio_profile(i, model->index(i, 3).data(Qt::UserRole).toInt());
+#endif
     }
 
     /* Removable devices category */
@@ -245,6 +290,12 @@ SettingsFloppyCDROM::save()
         cdrom[i].speed = model->index(i, 1).data(Qt::UserRole).toUInt();
         cdrom_set_type(i, model->index(i, 2).data(Qt::UserRole).toInt());
     }
+
+#ifdef DISABLE_FDD_AUDIO
+    fdd_sounds_enabled = 0;
+#else
+    fdd_sounds_enabled = 1;
+#endif
 }
 
 void
@@ -254,6 +305,10 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     ui->comboBoxFloppyType->setCurrentIndex(type);
     ui->checkBoxTurboTimings->setChecked(current.siblingAtColumn(1).data() == tr("On"));
     ui->checkBoxCheckBPB->setChecked(current.siblingAtColumn(2).data() == tr("On"));
+
+    int prof = current.siblingAtColumn(3).data(Qt::UserRole).toInt();
+    int comboIndex = ui->comboBoxFloppyAudio->findData(prof);
+    ui->comboBoxFloppyAudio->setCurrentIndex(comboIndex);
 }
 
 void
@@ -313,7 +368,7 @@ void
 SettingsFloppyCDROM::on_checkBoxTurboTimings_stateChanged(int arg1)
 {
     auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ?
+    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ? 
                                           tr("On") : tr("Off"));
 }
 
@@ -321,15 +376,40 @@ void
 SettingsFloppyCDROM::on_checkBoxCheckBPB_stateChanged(int arg1)
 {
     auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ?
+    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ? 
                                           tr("On") : tr("Off"));
 }
+
 
 void
 SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 {
     setFloppyType(ui->tableViewFloppy->model(),
                   ui->tableViewFloppy->selectionModel()->currentIndex(), index);
+}
+
+void
+SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
+{
+    auto    idx  = ui->tableViewFloppy->selectionModel()->currentIndex();
+    int     prof = ui->comboBoxFloppyAudio->currentData().toInt();
+    QString profName;
+
+#ifndef DISABLE_FDD_AUDIO
+    // Get the profile name from the configuration system
+    const char *name = fdd_audio_get_profile_internal_name(prof);
+    if (name) {
+        profName = name;
+    } else {
+        profName = tr("None");
+    }
+#else
+    profName = tr("None");
+#endif
+
+    auto audioIdx = idx.siblingAtColumn(3);
+    ui->tableViewFloppy->model()->setData(audioIdx, profName);
+    ui->tableViewFloppy->model()->setData(audioIdx, prof, Qt::UserRole);
 }
 
 void SettingsFloppyCDROM::reloadBusChannels() {

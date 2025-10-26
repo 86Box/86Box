@@ -11,10 +11,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Toni Riikonen, <riikonen.toni@gmail.com>
  *
  *          Copyright 2008-2025 Sarah Walker.
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2018-2025 Fred N. van Kempen.
+ *          Copyright 2025 Toni Riikonen.
  */
 #ifndef EMU_FDD_H
 #define EMU_FDD_H
@@ -52,6 +54,10 @@ extern int  fdd_get_check_bpb(int drive);
 
 extern void fdd_set_type(int drive, int type);
 extern int  fdd_get_type(int drive);
+
+/* New audio profile accessors */
+extern void fdd_set_audio_profile(int drive, int profile);
+extern int  fdd_get_audio_profile(int drive);
 
 extern int fdd_get_flags(int drive);
 extern int fdd_get_densel(int drive);

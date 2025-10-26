@@ -8,8 +8,6 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
@@ -37,7 +35,9 @@
 
 #include <QScreen>
 #include <QMessageBox>
+#ifdef TOUCH_PR
 #include <QTouchEvent>
+#endif
 #include <QStringBuilder>
 
 #include <QPainter>
@@ -75,9 +75,9 @@ extern "C" {
 }
 
 struct mouseinputdata {
-    atomic_bool         mouse_tablet_in_proximity;
+    atomic_bool mouse_tablet_in_proximity;
 
-    char                *mouse_type;
+    char       *mouse_type;
 };
 static mouseinputdata mousedata;
 
@@ -88,10 +88,18 @@ HWND   rw_hwnd;
 #endif
 
 RendererStack::RendererStack(QWidget *parent, int monitor_index)
-    : QStackedWidget(parent)
+    : QWidget(parent)
+    , boxLayout(new QBoxLayout(QBoxLayout::TopToBottom, this))
     , ui(new Ui::RendererStack)
 {
+    boxLayout->setContentsMargins(0, 0, 0, 0);
+#ifdef TOUCH_PR
     setAttribute(Qt::WA_AcceptTouchEvents, true);
+#endif
+#ifdef Q_OS_WINDOWS
+    setAttribute(Qt::WA_NativeWindow, true);
+    (void)winId();
+#endif
     rendererTakesScreenshots = false;
 #ifdef Q_OS_WINDOWS
     int raw = 1;
@@ -187,6 +195,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
     rw_hwnd        = (HWND) this->winId();                
 #endif
 
+    event->accept();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPosition().toPoint() : event->position().toPoint()) &&
 #else
@@ -346,7 +355,7 @@ RendererStack::switchRenderer(Renderer renderer)
     switchInProgress = true;
     if (current) {
         rendererWindow->finalize();
-        removeWidget(current.get());
+        boxLayout->removeWidget(current.get());
         disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
 
         /* Create new renderer only after previous is destroyed! */
@@ -372,7 +381,7 @@ RendererStack::createRenderer(Renderer renderer)
 #ifdef __HAIKU__
                 current.reset(sw);
 #else
-                current.reset(this->createWindowContainer(sw, this));
+                current.reset(this->createWindowContainer(sw));
 #endif
             }
             break;
@@ -394,7 +403,7 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
-                current.reset(this->createWindowContainer(hw, this));
+                current.reset(this->createWindowContainer(hw));
                 break;
             }
 #if QT_CONFIG(vulkan)
@@ -429,7 +438,7 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
-                current.reset(this->createWindowContainer(hw, this));
+                current.reset(this->createWindowContainer(hw));
                 break;
             }
 #endif
@@ -440,10 +449,11 @@ RendererStack::createRenderer(Renderer renderer)
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    current->setAttribute(Qt::WA_AlwaysStackOnTop);
     current->setStyleSheet("background-color: black");
-    addWidget(current.get());
 
     this->setStyleSheet("background-color: black");
+    boxLayout->addWidget(current.get());
 
     rendererWindow->r_monitor_index = m_monitor_index;
 
@@ -514,12 +524,22 @@ RendererStack::event(QEvent* event)
 
         if (m_monitor_index >= 1) {
             if (mouse_input_mode >= 1) {
+#ifdef TOUCH_PR
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
                 mouse_x_abs       = (mouse_event->position().x()) / (double)width();
                 mouse_y_abs       = (mouse_event->position().y()) / (double)height();
 #else
                 mouse_x_abs       = (mouse_event->localPos().x()) / (double)width();
                 mouse_y_abs       = (mouse_event->localPos().y()) / (double)height();
+#endif
+#else
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                mouse_x_abs       = (mouse_event->position().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->position().y()) / (long double)height();
+#else
+                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+#endif
 #endif
                 if (!mouse_tablet_in_proximity)
                     mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
@@ -535,9 +555,10 @@ RendererStack::event(QEvent* event)
                 if (mouse_x_abs > 1) mouse_x_abs = 1;
                 if (mouse_y_abs > 1) mouse_y_abs = 1;
             }
-            return QStackedWidget::event(event);
+            return QWidget::event(event);
         }
 
+#ifdef TOUCH_PR
 #ifdef Q_OS_WINDOWS
         if (mouse_input_mode == 0) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -558,7 +579,7 @@ RendererStack::event(QEvent* event)
 
             if (mouse_x_abs > 1) mouse_x_abs = 1;
             if (mouse_y_abs > 1) mouse_y_abs = 1;
-            return QStackedWidget::event(event);
+            return QWidget::event(event);
         }
 #endif
 
@@ -568,6 +589,39 @@ RendererStack::event(QEvent* event)
 #else
         mouse_x_abs               = (mouse_event->localPos().x()) / (double)width();
         mouse_y_abs               = (mouse_event->localPos().y()) / (double)height();
+#endif
+#else
+#ifdef Q_OS_WINDOWS
+        if (mouse_input_mode == 0) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            mouse_x_abs           = (mouse_event->position().x()) / (long double)width();
+            mouse_y_abs           = (mouse_event->position().y()) / (long double)height();
+#else
+            mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
+            mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
+#endif
+            mouse_x_abs          -= rendererWindow->destinationF.left();
+            mouse_y_abs          -= rendererWindow->destinationF.top();
+
+            if (mouse_x_abs < 0) mouse_x_abs = 0;
+            if (mouse_y_abs < 0) mouse_y_abs = 0;
+
+            mouse_x_abs /= rendererWindow->destinationF.width();
+            mouse_y_abs /= rendererWindow->destinationF.height();
+
+            if (mouse_x_abs > 1) mouse_x_abs = 1;
+            if (mouse_y_abs > 1) mouse_y_abs = 1;
+            return QWidget::event(event);
+        }
+#endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        mouse_x_abs               = (mouse_event->position().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->position().y()) / (long double)height();
+#else
+        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+#endif
 #endif
         mouse_x_abs              -= rendererWindow->destinationF.left();
         mouse_y_abs              -= rendererWindow->destinationF.top();
@@ -581,6 +635,7 @@ RendererStack::event(QEvent* event)
         if (mouse_x_abs > 1) mouse_x_abs = 1;
         if (mouse_y_abs > 1) mouse_y_abs = 1;
         mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+#ifdef TOUCH_PR
     } else switch (event->type()) {
         case QEvent::TouchBegin:
         case QEvent::TouchUpdate:
@@ -678,10 +733,11 @@ RendererStack::event(QEvent* event)
         }
 
         default:
-            return QStackedWidget::event(event);
+            return QWidget::event(event);
+#endif
     }
 
-    return QStackedWidget::event(event);
+    return QWidget::event(event);
 }
 
 void

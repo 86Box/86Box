@@ -1,21 +1,17 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		86Box VM manager system module
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
-*/
-
-
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          86Box VM manager system module
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
+ */
 #include <QString>
 #include <QDirIterator>
 #include <QDebug>
@@ -37,7 +33,6 @@
 #ifdef Q_OS_WINDOWS
 #include <windows.h>
 #endif
-
 
 extern "C" {
 #include <86box/86box.h>
@@ -654,6 +649,9 @@ VMManagerSystem::setupVars() {
                 voodoo_name = tr("3Dfx Voodoo 2");
                 break;
         }
+
+        if (voodoo_config["sli"].toInt() == 1)
+            voodoo_name.append(" (SLI)");
     }
     display_table[VMManager::Display::Name::Voodoo] = voodoo_name;
 

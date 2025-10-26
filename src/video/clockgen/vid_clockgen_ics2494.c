@@ -10,8 +10,6 @@
  *
  *          Used by the AMI S3 924.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.
@@ -292,7 +290,7 @@ ics2494_init(const device_t *info)
             ics2494->freq[15] = 65000000.0;
             break;
         case 305:
-            /* ICS2494A(N)-205 for S3 86C924 */
+            /* ICS2494A(N)-305 for S3 86C924 */
             ics2494->freq[0x0] = 25175000.0;
             ics2494->freq[0x1] = 28322000.0;
             ics2494->freq[0x2] = 40000000.0;
@@ -309,6 +307,25 @@ ics2494_init(const device_t *info)
             ics2494->freq[0xd] = 65000000.0;
             ics2494->freq[0xe] = 75000000.0;
             ics2494->freq[0xf] = 94500000.0;
+            break;
+        case 324:
+            /* ICS2494A(N)-324 for Tseng ET4000/W32 series */
+            ics2494->freq[0x0] = 50000000.0;
+            ics2494->freq[0x1] = 56644000.0;
+            ics2494->freq[0x2] = 65000000.0;
+            ics2494->freq[0x3] = 72000000.0;
+            ics2494->freq[0x4] = 80000000.0;
+            ics2494->freq[0x5] = 89800000.0;
+            ics2494->freq[0x6] = 63000000.0;
+            ics2494->freq[0x7] = 75000000.0;
+            ics2494->freq[0x8] = 83078000.0;
+            ics2494->freq[0x9] = 93463000.0;
+            ics2494->freq[0xa] = 100000000.0;
+            ics2494->freq[0xb] = 104000000.0;
+            ics2494->freq[0xc] = 108000000.0;
+            ics2494->freq[0xd] = 120000000.0;
+            ics2494->freq[0xe] = 130000000.0;
+            ics2494->freq[0xf] = 134700000.0;
             break;
 
         default:
@@ -332,6 +349,20 @@ const device_t ics2494an_305_device = {
     .internal_name = "ics2494an_305",
     .flags         = 0,
     .local         = 305,
+    .init          = ics2494_init,
+    .close         = ics2494_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ics2494an_324_device = {
+    .name          = "ICS2494AN-324 Clock Generator",
+    .internal_name = "ics2494an_324",
+    .flags         = 0,
+    .local         = 324,
     .init          = ics2494_init,
     .close         = ics2494_close,
     .reset         = NULL,

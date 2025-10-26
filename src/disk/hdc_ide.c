@@ -9,8 +9,6 @@
  *          Implementation of the IDE emulation for hard disks and ATAPI
  *          CD-ROM devices.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -554,7 +552,10 @@ ide_hd_identify(const ide_t *ide)
     /* Serial Number */
     ide_padstr((char *) (ide->buffer + 10), "", 20);
     /* Firmware */
-    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
+    if (hdd[ide->hdd_num].version_ex)
+        ide_padstr((char *) (ide->buffer + 23), hdd[ide->hdd_num].version_ex, 8);
+    else
+        ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
     /* Model */
     if (hdd[ide->hdd_num].model)
         ide_padstr((char *) (ide->buffer + 27), hdd[ide->hdd_num].model, 40);
@@ -812,7 +813,7 @@ ide_set_signature(ide_t *ide)
     ide->tf->sector   = 1;
     ide->tf->head     = 0;
     ide->tf->secount  = 1;
-    ide->tf->cylinder = (ide->type == IDE_ATAPI_SHADOW) ? 0x0000 : ide_signatures[ide->type & ~IDE_SHADOW];
+    ide->tf->cylinder = ide_signatures[ide->type & ~IDE_SHADOW];
 
     if (ide->type == IDE_HDD)
         ide->drive = 0;
@@ -1581,7 +1582,7 @@ ide_reset_registers(ide_t *ide)
     ide->tf->atastat  = DRDY_STAT | DSC_STAT;
     ide->tf->error    = 1;
     ide->tf->secount  = 1;
-    ide->tf->cylinder = (ide->type == IDE_ATAPI_SHADOW) ? 0x0000 : ide_signatures[ide->type & ~IDE_SHADOW];
+    ide->tf->cylinder = ide_signatures[ide->type & ~IDE_SHADOW];
     ide->tf->sector   = 1;
     ide->tf->head     = 0;
 
@@ -2100,6 +2101,8 @@ ide_readb(uint16_t addr, void *priv)
         case 0x4: /* Cylinder low */
             if (ide->type == IDE_NONE)
                 ret = 0x7f;
+            else if (ide->type == IDE_ATAPI_SHADOW)
+                ret = 0x00;
             else
                 ret = ide->tf->cylinder & 0xff;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
@@ -2111,6 +2114,8 @@ ide_readb(uint16_t addr, void *priv)
         case 0x5: /* Cylinder high */
             if (ide->type == IDE_NONE)
                 ret = 0x7f;
+            else if (ide->type == IDE_ATAPI_SHADOW)
+                ret = 0x00;
             else
                 ret = ide->tf->cylinder >> 8;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)

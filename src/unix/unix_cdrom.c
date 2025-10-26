@@ -8,15 +8,12 @@
  *
  *          Handle the platform-side of CDROM/RDisk/MO drives.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2017-2018 Fred N. van Kempen.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

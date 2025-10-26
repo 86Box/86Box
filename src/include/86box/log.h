@@ -16,7 +16,6 @@
  *          Copyright 2021-25 Fred N. van Kempen.
  *          Copyright 2025 Connor Hyde.
  */
-
 #ifndef EMU_LOG_H
 #define EMU_LOG_H
 

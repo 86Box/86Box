@@ -8,8 +8,6 @@
  *
  *          MDSI Genius VHR emulation.
  *
- *
- *
  * Authors: John Elliott, <jce@seasip.info>
  *          Miran Grca, <mgrca8@gmail.com>
  *

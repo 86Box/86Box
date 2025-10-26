@@ -8,8 +8,6 @@
  *
  *          Definitions for the PCjr cartridge emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Miran Grca.

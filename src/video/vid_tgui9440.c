@@ -47,8 +47,6 @@
  *          access size or host data has any affect, but the Windows 3.1
  *          driver always reads bytes and write words of 0xffff.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -694,6 +692,7 @@ tgui_recalctimings(svga_t *svga)
     const tgui_t *tgui       = (tgui_t *) svga->priv;
     uint8_t       ger22lower = (tgui->accel.ger22 & 0xff);
     uint8_t       ger22upper = (tgui->accel.ger22 >> 8);
+    int           std_vga_clock = 1;
 
     if (tgui->type >= TGUI_9440) {
         if ((svga->crtc[0x38] & 0x19) == 0x09)
@@ -769,10 +768,11 @@ tgui_recalctimings(svga_t *svga)
             svga->clock = (cpuclock * (double) (1ULL << 32)) / (((tgui->clock_n + 8) * 14318180.0) / ((tgui->clock_m + 2) * (1 << tgui->clock_k)));
 
         if (svga->gdcreg[0xf] & 0x08)
-            svga->clock *= 2;
+            svga->clock *= 2.0;
         else if (svga->gdcreg[0xf] & 0x40)
-            svga->clock *= 3;
+            svga->clock *= 3.0;
     } else {
+        //pclog("TGUI9400CXi: Clock double=%d.\n", (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8)));
         switch (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8)) {
             case 0x02:
                 svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
@@ -818,6 +818,7 @@ tgui_recalctimings(svga_t *svga)
                 break;
 
             default:
+                std_vga_clock = 0;
                 break;
         }
 
@@ -825,6 +826,9 @@ tgui_recalctimings(svga_t *svga)
             svga->htotal <<= 1;
             svga->hdisp <<= 1;
             svga->hdisp_time <<= 1;
+            svga->dots_per_clock <<= 1;
+            if (std_vga_clock)
+                svga->clock /= 2.0;
         }
     }
 
@@ -845,6 +849,7 @@ tgui_recalctimings(svga_t *svga)
                             svga->htotal <<= 1;
                             svga->hdisp <<= 1;
                             svga->hdisp_time <<= 1;
+                            svga->dots_per_clock <<= 1;
                             break;
                         default:
                             break;
@@ -868,6 +873,7 @@ tgui_recalctimings(svga_t *svga)
                         svga->htotal <<= 1;
                         svga->hdisp <<= 1;
                         svga->hdisp_time <<= 1;
+                        svga->dots_per_clock <<= 1;
                     }
                     switch (svga->hdisp) {
                         case 640:
@@ -882,18 +888,24 @@ tgui_recalctimings(svga_t *svga)
                 break;
             case 15:
                 svga->render = svga_render_15bpp_highres;
-                if (tgui->type < TGUI_9440)
+                if (tgui->type < TGUI_9440) {
                     svga->hdisp >>= 1;
+                    svga->dots_per_clock >>= 1;
+                }
                 break;
             case 16:
                 svga->render = svga_render_16bpp_highres;
-                if (tgui->type < TGUI_9440)
+                if (tgui->type < TGUI_9440) {
                     svga->hdisp >>= 1;
+                    svga->dots_per_clock >>= 1;
+                }
                 break;
             case 24:
                 svga->render = svga_render_24bpp_highres;
-                if (tgui->type < TGUI_9440)
-                    svga->hdisp = (svga->hdisp << 1) / 3;
+                if (tgui->type < TGUI_9440) {
+                    svga->hdisp /= 3;
+                    svga->dots_per_clock /= 3;
+                }
                 break;
             case 32:
                 if (svga->rowoffset == 0x100)

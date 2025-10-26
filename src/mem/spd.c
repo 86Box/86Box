@@ -8,8 +8,6 @@
  *
  *          Emulation of SPD (Serial Presence Detect) devices.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

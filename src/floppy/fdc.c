@@ -9,13 +9,13 @@
  *          Implementation of the NEC uPD-765 and compatible floppy disk
  *          controller.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Toni Riikonen, <riikonen.toni@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2025 Toni Riikonen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -470,9 +470,9 @@ uint8_t
 fdc_get_shadow(fdc_t *fdc)
 {
     uint8_t ret = (fdc->rate & 0x03) |
-                  ((fdc->pretrk & 0x07) << 2) |
-                  (fdc->power_down ? 0x40 : 0x00) |
-                  ((fdc_read(0x03f2, fdc) & 0x04) ? 0x80 : 0x00);
+        ((fdc->pretrk & 0x07) << 2) |
+        (fdc->power_down ? 0x40 : 0x00) |
+        ((fdc_read(0x03f2, fdc) & 0x04) ? 0x80 : 0x00);
 
     return ret;
 }
@@ -532,36 +532,36 @@ fdc_update_rate(fdc_t *fdc, int drive)
         fdc->enh_mode && !(fdc->flags & FDC_FLAG_SMC661))
         fdc->bit_rate = 500;
     else if ((fdc->rwc[drive] == 3) && fdc->enh_mode &&
-             !(fdc->flags & FDC_FLAG_SMC661))
+        !(fdc->flags & FDC_FLAG_SMC661))
         fdc->bit_rate = 250;
     else  switch (fdc->rate) {
-        default:
-            break;
-        case 0: /*High density*/
-            fdc->bit_rate = 500;
-            break;
-        case 1: /*Double density (360 rpm)*/
-            switch (fdc->drvrate[drive]) {
-                default:
-                    break;
-                case 0:
-                    fdc->bit_rate = 300;
-                    break;
-                case 1:
-                    fdc->bit_rate = 500;
-                    break;
-                case 2:
-                    fdc->bit_rate = 2000;
-                    break;
-            }
-            break;
-        case 2: /*Double density*/
-            fdc->bit_rate = 250;
-            break;
-        case 3: /*Extended density*/
-            fdc->bit_rate = 1000;
-            break;
-    }
+            default:
+                break;
+            case 0: /*High density*/
+                fdc->bit_rate = 500;
+                break;
+            case 1: /*Double density (360 rpm)*/
+                switch (fdc->drvrate[drive]) {
+                    default:
+                        break;
+                    case 0:
+                        fdc->bit_rate = 300;
+                        break;
+                    case 1:
+                        fdc->bit_rate = 500;
+                        break;
+                    case 2:
+                        fdc->bit_rate = 2000;
+                        break;
+                }
+                break;
+            case 2: /*Double density*/
+                fdc->bit_rate = 250;
+                break;
+            case 3: /*Extended density*/
+                fdc->bit_rate = 1000;
+                break;
+        }
 
     fdc->bitcell_period = (1000000 / fdc->bit_rate) * 2; /*Bitcell period in ns*/
 }
@@ -664,11 +664,38 @@ real_drive(fdc_t *fdc, int drive)
         return drive;
 }
 
+/* FDD notifies FDC when seek operation is complete */
+void
+fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
+{
+    if (!fdc) {
+        fdc_log("ERROR: fdc_seek_complete_interrupt called with NULL fdc!\n");
+        return;
+    }
+
+    if (FDC_FLAG_PCJR & fdc->flags) {
+        fdc->fintr     = 1;
+        fdc->interrupt = -4;
+        fdc_callback(fdc);
+        return;
+    }
+
+    fdc_log("FDD %c: Seek complete interrupt\n", 0x41 + drive);
+
+    fdc->fintr = 1;
+    fdc->interrupt = -3;
+    fdc->st0   = 0x20 | (drive & 3);
+    if (fdd_get_head(drive))
+        fdc->st0 |= 0x04;
+
+    fdc_callback(fdc);
+}
+
 void
 fdc_seek(fdc_t *fdc, int drive, int params)
 {
     fdd_seek(real_drive(fdc, drive), params);
-    fdc->stat |= (1 << fdc->drive);
+    fdc->stat = (fdc->stat & 0x0F) | 0x10 | (1 << fdc->drive);
 }
 
 static void
@@ -692,8 +719,10 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     fdc->dtl             = fdc->params[7];
     fdc->rw_track        = fdc->params[1];
 
+    int implied_seek = 0;
     if (fdc->config & 0x40) {
         if (fdc->rw_track != fdc->pcn[fdc->params[0] & 3]) {
+            implied_seek = 1;
             fdc_seek(fdc, fdc->drive, ((int) fdc->rw_track) - ((int) fdc->pcn[fdc->params[0] & 3]));
             fdc->pcn[fdc->params[0] & 3] = fdc->rw_track;
         }
@@ -703,6 +732,12 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
         ui_sb_update_icon_write(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
     else
         ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
+
+    if (implied_seek && !fdd_get_turbo(real_drive(fdc, fdc->drive))) {
+        fdc->stat = (fdc->stat & 0x0F) | 0x10 | (1 << real_drive(fdc, fdc->drive)); /* CB=1, per-drive busy */
+        return;
+    }
+
     fdc->stat = out ? 0x10 : 0x50;
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) {
         fdc->stat |= 0x20;
@@ -764,7 +799,7 @@ fdc_soft_reset(fdc_t *fdc)
         }
 
         fdc_ctrl_reset(fdc);
-   }
+    }
 }
 
 static void
@@ -779,565 +814,566 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 
     cycles -= ISA_CYCLES(8);
 
-    if (!fdc->power_down || ((addr & 7) == 2) || ((addr & 7) == 4))  switch (addr & 7) {
-        case 0:
-            return;
-        case 1:
-            return;
-        case 2: /*DOR*/
-            if (fdc->flags & FDC_FLAG_PCJR) {
-                if ((fdc->dor & 0x40) && !(val & 0x40)) {
-                    timer_set_delay_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
-                    fdc->watchdog_count = 1000;
-                    picintc(1 << fdc->irq);
-                }
-                if ((val & 0x80) && !(fdc->dor & 0x80)) {
-                    timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                    fdc->interrupt = -1;
-                    ui_sb_update_icon(SB_FLOPPY | 0, 0);
-                    ui_sb_update_icon_write(SB_FLOPPY | 0, 0);
-                    fdc_ctrl_reset(fdc);
-                }
-                if (!fdd_get_flags(0))
-                    val &= 0xfe;
-                fdd_set_motor_enable(0, val & 0x01);
-                fdc->st0 &= ~0x07;
-                fdc->st0 |= (fdd_get_head(0) ? 4 : 0);
-            } else {
-                /*
-                   Writing this bit to logic "1" will enable the DRQ,
-                   nDACK, TC and FINTR outputs. This bit being a
-                   logic "0" will disable the nDACK and TC inputs, and
-                   hold the DRQ and FINTR outputs in a high
-                   impedance state.
-                 */
-                if (!(val & 8) && (fdc->dor & 8) && !(fdc->flags & FDC_FLAG_PS2_MCA)) {
-                    fdc->tc    = 1;
-                    fdc->fintr = 0;
-                    picintc(1 << fdc->irq);
-                }
-                if (!(val & 4)) {
-                    fdd_stop(real_drive(fdc, val & 3));
-                    fdc->stat = 0x00;
-                    fdc->pnum = fdc->ptot = 0;
-                }
-                if ((val & 4) && !(fdc->dor & 4))
-                    fdc_soft_reset(fdc);
-                /* We can now simplify this since each motor now spins separately. */
-                for (int i = 0; i < FDD_NUM; i++) {
-                    drive_num = real_drive(fdc, i);
-                    if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
-                        val &= ~(0x10 << drive_num);
-                    else
-                        fdd_set_motor_enable(i, (val & (0x10 << drive_num)));
-                }
-                drive_num     = real_drive(fdc, val & 0x03);
-                current_drive = drive_num;
-                fdc->st0      = (fdc->st0 & 0xf8) | (val & 0x03) | (fdd_get_head(drive_num) ? 4 : 0);
-            }
-            fdc->dor = val;
-            return;
-        case 3: /* TDR */
-            if (fdc->enh_mode) {
-                if (fdc->flags & FDC_FLAG_SMC661) {
-                    fdc_set_swap(fdc, !!(val & 0x20));
-                    fdc_update_densel_force(fdc, (val & 0x18) >> 3);
+    if (!fdc->power_down || ((addr & 7) == 2) || ((addr & 7) == 4))
+        switch (addr & 7) {
+            case 0:
+                return;
+            case 1:
+                return;
+            case 2: /*DOR*/
+                if (fdc->flags & FDC_FLAG_PCJR) {
+                    if ((fdc->dor & 0x40) && !(val & 0x40)) {
+                        timer_set_delay_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
+                        fdc->watchdog_count = 1000;
+                        picintc(1 << fdc->irq);
+                    }
+                    if ((val & 0x80) && !(fdc->dor & 0x80)) {
+                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                        fdc->interrupt = -1;
+                        ui_sb_update_icon(SB_FLOPPY | 0, 0);
+                        ui_sb_update_icon_write(SB_FLOPPY | 0, 0);
+                        fdc_ctrl_reset(fdc);
+                    }
+                    if (!fdd_get_flags(0))
+                        val &= 0xfe;
+                    fdd_set_motor_enable(0, val & 0x01);
+                    fdc->st0 &= ~0x07;
+                    fdc->st0 |= (fdd_get_head(0) ? 4 : 0);
                 } else {
-                    drive = real_drive(fdc, fdc->dor & 3);
-                    fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
+                    /*
+                       Writing this bit to logic "1" will enable the DRQ,
+                       nDACK, TC and FINTR outputs. This bit being a
+                       logic "0" will disable the nDACK and TC inputs, and
+                       hold the DRQ and FINTR outputs in a high
+                       impedance state.
+                     */
+                    if (!(val & 8) && (fdc->dor & 8) && !(fdc->flags & FDC_FLAG_PS2_MCA)) {
+                        fdc->tc    = 1;
+                        fdc->fintr = 0;
+                        picintc(1 << fdc->irq);
+                    }
+                    if (!(val & 4)) {
+                        fdd_stop(real_drive(fdc, val & 3));
+                        fdc->stat = 0x00;
+                        fdc->pnum = fdc->ptot = 0;
+                    }
+                    if ((val & 4) && !(fdc->dor & 4))
+                        fdc_soft_reset(fdc);
+                    /* We can now simplify this since each motor now spins separately. */
+                    for (int i = 0; i < FDD_NUM; i++) {
+                        drive_num = real_drive(fdc, i);
+                        if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
+                            val &= ~(0x10 << drive_num);
+                        else
+                            fdd_set_motor_enable(i, (val & (0x10 << drive_num)));
+                    }
+                    drive_num     = real_drive(fdc, val & 0x03);
+                    current_drive = drive_num;
+                    fdc->st0      = (fdc->st0 & 0xf8) | (val & 0x03) | (fdd_get_head(drive_num) ? 4 : 0);
                 }
-            }
-            /* Bit 2: FIFO test mode (PS/55 5550-S,T only. Undocumented) 
-               The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
-               If it fails, then floppy drives will be treated as DD drives. */
-            if (fdc->flags & FDC_FLAG_PS2_MCA) {
-                if (val & 0x04) {
-                    fdc->tfifo      = 8;
-                    fdc->fifointest = 1;
-                } else {
-                    fdc->tfifo      = 1;
-                    fdc->fifointest = 0;
+                fdc->dor = val;
+                return;
+            case 3: /* TDR */
+                if (fdc->enh_mode) {
+                    if (fdc->flags & FDC_FLAG_SMC661) {
+                        fdc_set_swap(fdc, !!(val & 0x20));
+                        fdc_update_densel_force(fdc, (val & 0x18) >> 3);
+                    } else {
+                        drive = real_drive(fdc, fdc->dor & 3);
+                        fdc_update_rwc(fdc, drive, (val & 0x30) >> 4);
+                    }
                 }
-                fifo_reset(fdc->fifo_p);
-                fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
-                fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
-            }
-            return;
-        case 4: /* DSR */
-            if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
-                if (!(val & 0x80)) {
-                    timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
-                    fdc->interrupt = -6;
+                /* Bit 2: FIFO test mode (PS/55 5550-S,T only. Undocumented)
+                   The Power-on Self Test of PS/55 writes and verifies 8 bytes of FIFO buffer through I/O 3F5h.
+                   If it fails, then floppy drives will be treated as DD drives. */
+                if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                    if (val & 0x04) {
+                        fdc->tfifo      = 8;
+                        fdc->fifointest = 1;
+                    } else {
+                        fdc->tfifo      = 1;
+                        fdc->fifointest = 0;
+                    }
+                    fifo_reset(fdc->fifo_p);
+                    fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
+                    fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
                 }
-                if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80)))
-                    fdc_soft_reset(fdc);
-            }
-            fdc->dsr = val;
-            return;
-        case 5: /*Command register*/
-            if (fdc->fifointest) {
-                /* Write FIFO buffer in the test mode (PS/55) */
-                fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
-                fifo_write(val, fdc->fifo_p);
-                if (fifo_get_full(fdc->fifo_p))
-                    fdc->stat &= ~0x80;
-                break;
-            }
-            if ((fdc->stat & 0xf0) == 0xb0) {
-                if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
-                    fdc->dat = val;
-                    fdc->stat &= ~0x80;
-                } else {
+                return;
+            case 4: /* DSR */
+                if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
+                    if (!(val & 0x80)) {
+                        timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                        fdc->interrupt = -6;
+                    }
+                    if (fdc->power_down || ((val & 0x80) && !(fdc->dsr & 0x80)))
+                        fdc_soft_reset(fdc);
+                }
+                fdc->dsr = val;
+                return;
+            case 5: /*Command register*/
+                if (fdc->fifointest) {
+                    /* Write FIFO buffer in the test mode (PS/55) */
+                    fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
                     fifo_write(val, fdc->fifo_p);
                     if (fifo_get_full(fdc->fifo_p))
                         fdc->stat &= ~0x80;
+                    break;
                 }
-                break;
-            }
-            if (fdc->pnum == fdc->ptot) {
-                if ((fdc->stat & 0xf0) != 0x80) {
-                    /* If bit 4 of the MSR is set, or the MSR is 0x00,
-                       the fdc_t is NOT in the command phase, therefore
-                       do NOT accept commands. */
-                    return;
+                if ((fdc->stat & 0xf0) == 0xb0) {
+                    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
+                        fdc->dat = val;
+                        fdc->stat &= ~0x80;
+                    } else {
+                        fifo_write(val, fdc->fifo_p);
+                        if (fifo_get_full(fdc->fifo_p))
+                            fdc->stat &= ~0x80;
+                    }
+                    break;
                 }
+                if (fdc->pnum == fdc->ptot) {
+                    if ((fdc->stat & 0xf0) != 0x80) {
+                        /* If bit 4 of the MSR is set, or the MSR is 0x00,
+                           the fdc_t is NOT in the command phase, therefore
+                           do NOT accept commands. */
+                        return;
+                    }
 
-                fdc->stat &= 0xf;
+                    fdc->stat &= 0xf;
 
-                fdc->tc         = 0;
-                fdc->data_ready = 0;
+                    fdc->tc         = 0;
+                    fdc->data_ready = 0;
 
-                fdc->command = val;
-                fdc->stat |= 0x10;
-                fdc_log("Starting FDC command %02X\n", fdc->command);
-                fdc->error = 0;
+                    fdc->command = val;
+                    fdc->stat |= 0x10;
+                    fdc_log("Starting FDC command %02X\n", fdc->command);
+                    fdc->error = 0;
 
-                if (((fdc->command & 0x1f) == 0x02) || ((fdc->command & 0x1f) == 0x05) ||
-                    ((fdc->command & 0x1f) == 0x06) || ((fdc->command & 0x1f) == 0x0a) ||
-                    ((fdc->command & 0x1f) == 0x0c) || ((fdc->command & 0x1f) == 0x0d) ||
-                    ((fdc->command & 0x1f) == 0x11) || ((fdc->command & 0x1f) == 0x16) ||
-                    ((fdc->command & 0x1f) == 0x19) || ((fdc->command & 0x1f) == 0x1d))
-                    fdc->processed_cmd = fdc->command & 0x1f;
-                else
-                    fdc->processed_cmd = fdc->command;
+                    if (((fdc->command & 0x1f) == 0x02) || ((fdc->command & 0x1f) == 0x05) ||
+                        ((fdc->command & 0x1f) == 0x06) || ((fdc->command & 0x1f) == 0x0a) ||
+                        ((fdc->command & 0x1f) == 0x0c) || ((fdc->command & 0x1f) == 0x0d) ||
+                        ((fdc->command & 0x1f) == 0x11) || ((fdc->command & 0x1f) == 0x16) ||
+                        ((fdc->command & 0x1f) == 0x19) || ((fdc->command & 0x1f) == 0x1d))
+                        fdc->processed_cmd = fdc->command & 0x1f;
+                    else
+                        fdc->processed_cmd = fdc->command;
 
-                switch (fdc->processed_cmd) {
-                    case 0x01: /*Mode*/
-                        if (fdc->flags & FDC_FLAG_NSC) {
-                            fdc->pnum = 0;
-                            fdc->ptot = 4;
+                    switch (fdc->processed_cmd) {
+                        case 0x01: /*Mode*/
+                            if (fdc->flags & FDC_FLAG_NSC) {
+                                fdc->pnum = 0;
+                                fdc->ptot = 4;
+                                fdc->stat |= 0x90;
+                                fdc->format_state = 0;
+                            } else
+                                fdc_bad_command(fdc);
+                            break;
+                        case 0x02: /*Read track*/
+                            fdc->satisfying_sectors = 0;
+                            fdc->sc                 = 0;
+                            fdc->wrong_am           = 0;
+                            fdc->pnum               = 0;
+                            fdc->ptot               = 8;
                             fdc->stat |= 0x90;
-                            fdc->format_state = 0;
-                        } else
-                            fdc_bad_command(fdc);
-                        break;
-                    case 0x02: /*Read track*/
-                        fdc->satisfying_sectors = 0;
-                        fdc->sc                 = 0;
-                        fdc->wrong_am           = 0;
-                        fdc->pnum               = 0;
-                        fdc->ptot               = 8;
-                        fdc->stat |= 0x90;
-                        fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
-                        break;
-                    case 0x03: /*Specify*/
-                        fdc->pnum = 0;
-                        fdc->ptot = 2;
-                        fdc->stat |= 0x90;
-                        break;
-                    case 0x04: /*Sense drive status*/
-                        fdc->pnum = 0;
-                        fdc->ptot = 1;
-                        fdc->stat |= 0x90;
-                        break;
-                    case 0x05: /*Write data*/
-                    case 0x09: /*Write deleted data*/
-                        fdc->satisfying_sectors = 0;
-                        fdc->sc                 = 0;
-                        fdc->wrong_am           = 0;
-                        fdc->deleted            = ((fdc->command & 0x1F) == 9) ? 1 : 0;
-                        fdc->pnum               = 0;
-                        fdc->ptot               = 8;
-                        fdc->stat |= 0x90;
-                        fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
-                        break;
-                    case 0x06: /*Read data*/
-                    case 0x0c: /*Read deleted data*/
-                    case 0x11: /*Scan equal*/
-                    case 0x19: /*Scan low or equal*/
-                    case 0x16: /*Verify*/
-                    case 0x1d: /*Scan high or equal*/
-                        fdc->satisfying_sectors = 0;
-                        fdc->sc                 = 0;
-                        fdc->wrong_am           = 0;
-                        fdc->deleted            = ((fdc->command & 0x1F) == 0xC) ? 1 : 0;
-                        if ((fdc->command & 0x1F) == 0x16)
-                            fdc->deleted = 2;
-                        fdc->deleted |= (fdc->command & 0x20);
-                        fdc->pnum = 0;
-                        fdc->ptot = 8;
-                        fdc->stat |= 0x90;
-                        fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
-                        break;
-                    case 0x17: /*Powerdown mode*/
-                        if (!(fdc->flags & FDC_FLAG_ALI)) {
-                            fdc_bad_command(fdc);
+                            fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
                             break;
-                        }
-                        fallthrough;
-                    case 0x07: /*Recalibrate*/
-                        fdc->pnum = 0;
-                        fdc->ptot = 1;
-                        fdc->stat |= 0x90;
-                        break;
-                    case 0x08: /*Sense interrupt status*/
-                        fdc_log("fdc->fintr = %i, fdc->reset_stat = %i\n", fdc->fintr, fdc->reset_stat);
-                        fdc->lastdrive = fdc->drive;
-                        fdc_sis(fdc);
-                        break;
-                    case 0x0a: /*Read sector ID*/
-                        fdc->pnum = 0;
-                        fdc->ptot = 1;
-                        fdc->stat |= 0x90;
-                        fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
-                        break;
-                    case 0x0d: /*Format track*/
-                        fdc->pnum = 0;
-                        fdc->ptot = 5;
-                        fdc->stat |= 0x90;
-                        fdc->mfm          = (fdc->command & 0x40) ? 1 : 0;
-                        fdc->format_state = 0;
-                        break;
-                    case 0x0e: /*Dump registers*/
-                        if (fdc->flags & FDC_FLAG_NEC) {
-                            fdc_bad_command(fdc);
+                        case 0x03: /*Specify*/
+                            fdc->pnum = 0;
+                            fdc->ptot = 2;
+                            fdc->stat |= 0x90;
                             break;
-                        }
-                        fdc->lastdrive = fdc->drive;
-                        fdc->interrupt = 0x0e;
-                        fdc_callback(fdc);
-                        break;
-                    case 0x0f: /*Seek*/
-                        fdc->pnum = 0;
-                        fdc->ptot = 2;
-                        fdc->stat |= 0x90;
-                        break;
-                    case 0x18: /*NSC*/
-                        if (!(fdc->flags & FDC_FLAG_NSC)) {
-                            fdc_bad_command(fdc);
-                            break;
-                        }
-                        fallthrough;
-                    case 0x10: /*Get version*/
-                    case 0x14: /*Unlock*/
-                    case 0x94: /*Lock*/
-                        if (fdc->flags & FDC_FLAG_NEC) {
-                            fdc_bad_command(fdc);
-                            break;
-                        }
-                        fdc->lastdrive = fdc->drive;
-                        fdc->interrupt = fdc->command;
-                        fdc_callback(fdc);
-                        break;
-                    case 0x12: /*Set perpendicular mode*/
-                        if ((fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_PCJR)) {
+                        case 0x04: /*Sense drive status*/
                             fdc->pnum = 0;
                             fdc->ptot = 1;
                             fdc->stat |= 0x90;
-                        } else
-                            fdc_bad_command(fdc);
-                        break;
-                    case 0x13: /*Configure*/
-                        if (fdc->flags & FDC_FLAG_NEC) {
-                            fdc_bad_command(fdc);
                             break;
-                        }
-                        fdc->pnum = 0;
-                        fdc->ptot = 3;
-                        fdc->stat |= 0x90;
-                        break;
-                    default:
-                        fdc_bad_command(fdc);
-                        break;
-                }
-            } else {
-                fdc->stat                = 0x10 | (fdc->stat & 0xf);
-                fdc->params[fdc->pnum++] = val;
-                if (fdc->pnum == 1) {
-                    if (command_has_drivesel[fdc->command & 0x1F]) {
-                        if (fdc->flags & FDC_FLAG_PCJR)
-                            fdc->drive = 0;
-                        else
-                            fdc->drive = fdc->dor & 3;
-                        fdc->rw_drive = fdc->params[0] & 3;
-                        if (((fdc->command & 0x1F) == 7) || ((fdc->command & 0x1F) == 15))
-                            fdc->stat |= (1 << real_drive(fdc, fdc->drive));
-                    }
-                }
-                if (fdc->pnum == fdc->ptot) {
-                    fdc_log("Got all params %02X\n", fdc->command);
-                    fifo_reset(fdc->fifo_p);
-                    fdc->interrupt  = fdc->processed_cmd;
-                    fdc->reset_stat = 0;
-                    /* Disable timer if enabled. */
-                    timer_disable(&fdc->timer);
-                    /* Start timer if needed at this point. */
-                    switch (fdc->interrupt & 0x1f) {
-                        case 0x02: /* Read a track */
-                        case 0x03: /* Specify */
-                        case 0x0a: /* Read sector ID */
-                        case 0x05: /* Write data */
-                        case 0x06: /* Read data */
-                        case 0x09: /* Write deleted data */
-                        case 0x0c: /* Read deleted data */
-                        case 0x11: /* Scan equal */
-                        case 0x12: /* Perpendicular mode */
-                        case 0x16: /* Verify */
-                        case 0x19: /* Scan low or equal */
-                        case 0x1d: /* Scan high or equal */
-                            /* Do nothing. */
+                        case 0x05: /*Write data*/
+                        case 0x09: /*Write deleted data*/
+                            fdc->satisfying_sectors = 0;
+                            fdc->sc                 = 0;
+                            fdc->wrong_am           = 0;
+                            fdc->deleted            = ((fdc->command & 0x1F) == 9) ? 1 : 0;
+                            fdc->pnum               = 0;
+                            fdc->ptot               = 8;
+                            fdc->stat |= 0x90;
+                            fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
                             break;
-                        case 0x07: /* Recalibrate */
-                        case 0x0f: /* Seek */
-                            if (fdc->flags & FDC_FLAG_PCJR)
-                                timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
-                            else
-                                timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
+                        case 0x06: /*Read data*/
+                        case 0x0c: /*Read deleted data*/
+                        case 0x11: /*Scan equal*/
+                        case 0x19: /*Scan low or equal*/
+                        case 0x16: /*Verify*/
+                        case 0x1d: /*Scan high or equal*/
+                            fdc->satisfying_sectors = 0;
+                            fdc->sc                 = 0;
+                            fdc->wrong_am           = 0;
+                            fdc->deleted            = ((fdc->command & 0x1F) == 0xC) ? 1 : 0;
+                            if ((fdc->command & 0x1F) == 0x16)
+                                fdc->deleted = 2;
+                            fdc->deleted |= (fdc->command & 0x20);
+                            fdc->pnum = 0;
+                            fdc->ptot = 8;
+                            fdc->stat |= 0x90;
+                            fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
                             break;
-                        default:
-                            timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
-                            break;
-                    }
-                    /* Process the firt phase of the command. */
-                    switch (fdc->processed_cmd) {
-                        case 0x02: /* Read a track */
-                            fdc_io_command_phase1(fdc, 0);
-                            fdc->read_track_sector.id.c = fdc->params[1];
-                            fdc->read_track_sector.id.h = fdc->params[2];
-                            fdc->read_track_sector.id.r = 1;
-                            fdc->read_track_sector.id.n = fdc->params[4];
-                            if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
-                                fdc_noidam(fdc);
-                                return;
+                        case 0x17: /*Powerdown mode*/
+                            if (!(fdc->flags & FDC_FLAG_ALI)) {
+                                fdc_bad_command(fdc);
+                                break;
                             }
-                            fdd_readsector(real_drive(fdc, fdc->drive), SECTOR_FIRST, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
-                            break;
-                        case 0x03: /* Specify */
-                            fdc->stat       = 0x80;
-                            fdc->specify[0] = fdc->params[0];
-                            fdc->specify[1] = fdc->params[1];
-                            fdc->dma        = (fdc->specify[1] & 1) ^ 1;
-                            if (!fdc->dma)
-                                dma_set_drq(fdc->dma_ch, 0);
-                            break;
-                        case 0x04: /*Sense drive status*/
-                            fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
-                            break;
-                        case 0x05: /* Write data */
-                        case 0x09: /* Write deleted data */
-                            fdc_io_command_phase1(fdc, 1);
-                            if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
-                                fdc_noidam(fdc);
-                                return;
-                            }
-                            fdd_writesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
-                            break;
-                        case 0x11: /* Scan equal */
-                        case 0x19: /* Scan low or equal */
-                        case 0x1d: /* Scan high or equal */
-                            fdc_io_command_phase1(fdc, 1);
-                            if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
-                                fdc_noidam(fdc);
-                                return;
-                            }
-                            fdd_comparesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
-                            break;
-                        case 0x16: /* Verify */
-                            if (fdc->params[0] & 0x80)
-                                fdc->sc = fdc->params[7];
                             fallthrough;
-                        case 0x06: /* Read data */
-                        case 0x0c: /* Read deleted data */
-                            fdc_io_command_phase1(fdc, 0);
-                            fdc_log("Reading sector (drive %i) (%i) (%i %i %i %i) (%i %i %i)\n", fdc->drive, fdc->params[0], fdc->params[1], fdc->params[2], fdc->params[3], fdc->params[4], fdc->params[5], fdc->params[6], fdc->params[7]);
-                            if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
-                                fdc_noidam(fdc);
-                                return;
-                            }
-                            if (((dma_mode(2) & 0x0C) == 0x00) && !(fdc->flags & FDC_FLAG_PCJR) && fdc->dma) {
-                                /* DMA is in verify mode, treat this like a VERIFY command. */
-                                fdc_log("Verify-mode read!\n");
-                                fdc->tc = 1;
-                                fdc->deleted |= 2;
-                            }
-                            fdd_readsector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
+                        case 0x07: /*Recalibrate*/
+                            fdc->pnum = 0;
+                            fdc->ptot = 1;
+                            fdc->stat |= 0x90;
                             break;
-
-                        case 0x07: /* Recalibrate */
-                            fdc->rw_drive = fdc->params[0] & 3;
-                            fdc->stat     = (1 << real_drive(fdc, fdc->drive));
-                            if (!(fdc->flags & FDC_FLAG_PCJR))
-                                fdc->stat |= 0x80;
-                            fdc->st0 = fdc->params[0] & 3;
-                            fdc->st0 |= fdd_get_head(real_drive(fdc, fdc->drive)) ? 0x04 : 0x00;
-                            fdc->st0 |= 0x80;
-                            drive_num = real_drive(fdc, fdc->drive);
-                            /* Three conditions under which the command should fail. */
-                            if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num)) {
-                                fdc_log("Failed recalibrate\n");
-                                if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num])
-                                    fdc->st0 = 0x70 | (fdc->params[0] & 3);
-                                else
-                                    fdc->st0 = 0x20 | (fdc->params[0] & 3);
-                                fdc->pcn[fdc->params[0] & 3] = 0;
-                                if (fdc->flags & FDC_FLAG_PCJR) {
-                                    fdc->fintr     = 1;
-                                    fdc->interrupt = -4;
-                                } else {
-                                    timer_disable(&fdc->timer);
-                                    fdc->interrupt = -3;
-                                    fdc_callback(fdc);
-                                }
+                        case 0x08: /*Sense interrupt status*/
+                            fdc_log("fdc->fintr = %i, fdc->reset_stat = %i\n", fdc->fintr, fdc->reset_stat);
+                            fdc->lastdrive = fdc->drive;
+                            fdc_sis(fdc);
+                            break;
+                        case 0x0a: /*Read sector ID*/
+                            fdc->pnum = 0;
+                            fdc->ptot = 1;
+                            fdc->stat |= 0x90;
+                            fdc->mfm = (fdc->command & 0x40) ? 1 : 0;
+                            break;
+                        case 0x0d: /*Format track*/
+                            fdc->pnum = 0;
+                            fdc->ptot = 5;
+                            fdc->stat |= 0x90;
+                            fdc->mfm          = (fdc->command & 0x40) ? 1 : 0;
+                            fdc->format_state = 0;
+                            break;
+                        case 0x0e: /*Dump registers*/
+                            if (fdc->flags & FDC_FLAG_NEC) {
+                                fdc_bad_command(fdc);
                                 break;
                             }
-                            if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
-                                fdc_seek(fdc, fdc->drive, -fdc->max_track);
-                            fdc_log("Recalibrating...\n");
-                            fdc->seek_dir = fdc->step = 1;
+                            fdc->lastdrive = fdc->drive;
+                            fdc->interrupt = 0x0e;
+                            fdc_callback(fdc);
                             break;
-                        case 0x0a: /* Read sector ID */
-                            fdc_rate(fdc, fdc->drive);
-                            fdc->head = (fdc->params[0] & 4) ? 1 : 0;
-                            fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
-                            if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
-                                fdd_readaddress(real_drive(fdc, fdc->drive), fdc->head, fdc->rate);
-                                if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
-                                    fdc->stat = 0x70;
-                                else
-                                    fdc->stat = 0x50;
+                        case 0x0f: /*Seek*/
+                            fdc->pnum = 0;
+                            fdc->ptot = 2;
+                            fdc->stat |= 0x90;
+                            break;
+                        case 0x18: /*NSC*/
+                            if (!(fdc->flags & FDC_FLAG_NSC)) {
+                                fdc_bad_command(fdc);
+                                break;
+                            }
+                            fallthrough;
+                        case 0x10: /*Get version*/
+                        case 0x14: /*Unlock*/
+                        case 0x94: /*Lock*/
+                            if (fdc->flags & FDC_FLAG_NEC) {
+                                fdc_bad_command(fdc);
+                                break;
+                            }
+                            fdc->lastdrive = fdc->drive;
+                            fdc->interrupt = fdc->command;
+                            fdc_callback(fdc);
+                            break;
+                        case 0x12: /*Set perpendicular mode*/
+                            if ((fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_PCJR)) {
+                                fdc->pnum = 0;
+                                fdc->ptot = 1;
+                                fdc->stat |= 0x90;
                             } else
-                                fdc_noidam(fdc);
+                                fdc_bad_command(fdc);
                             break;
-                        case 0x0d: /* Format */
-                            fdc_rate(fdc, fdc->drive);
-                            fdc->head = (fdc->params[0] & 4) ? 1 : 0;
-                            fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
-                            fdc->gap            = fdc->params[3];
-                            fdc->format_sectors = fdc->params[2];
-                            fdc->format_n       = fdc->params[1];
-                            fdc->format_state   = 1;
-                            fdc->stat           = 0x10;
-                            break;
-                        case 0x0f: /* Seek */
-                            fdc->rw_drive = fdc->params[0] & 3;
-                            fdc->stat     = (1 << fdc->drive);
-                            if (!(fdc->flags & FDC_FLAG_PCJR))
-                                fdc->stat |= 0x80;
-                            fdc->head = 0; /* TODO: See if this is correct. */
-                            fdc->st0  = fdc->params[0] & 0x03;
-                            fdc->st0 |= (fdc->params[0] & 4);
-                            fdc->st0 |= 0x80;
-                            fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
-                            drive_num = real_drive(fdc, fdc->drive);
-                            /* Three conditions under which the command should fail. */
-                            if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num]) {
-                                /* Yes, failed SEEK's still report success, unlike failed RECALIBRATE's. */
-                                fdc->st0 = 0x20 | (fdc->params[0] & 3);
-                                if (fdc->command & 0x80) {
-                                    if (fdc->command & 0x40)
-                                        fdc->pcn[fdc->params[0] & 3] += fdc->params[1];
-                                    else
-                                        fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
-                                } else
-                                    fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
-                                if (fdc->flags & FDC_FLAG_PCJR) {
-                                    fdc->fintr     = 1;
-                                    fdc->interrupt = -4;
-                                } else {
-                                    timer_disable(&fdc->timer);
-                                    fdc->interrupt = -3;
-                                    fdc_callback(fdc);
-                                }
+                        case 0x13: /*Configure*/
+                            if (fdc->flags & FDC_FLAG_NEC) {
+                                fdc_bad_command(fdc);
                                 break;
                             }
-                            if (fdc->command & 0x80) {
-                                if (fdc->params[1]) {
-                                    if (fdc->command & 0x40) {
-                                        /* Relative seek inwards. */
-                                        fdc->seek_dir = 0;
-                                        fdc_seek(fdc, fdc->drive, fdc->params[1]);
-                                        fdc->pcn[fdc->params[0] & 3] += fdc->params[1];
-                                    } else {
-                                        /* Relative seek outwards. */
-                                        fdc->seek_dir = 1;
-                                        fdc_seek(fdc, fdc->drive, -fdc->params[1]);
-                                        fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
-                                    }
-                                    fdc->step = 1;
-                                } else {
-                                    fdc->st0 = 0x20 | (fdc->params[0] & 3);
-                                    if (fdc->flags & FDC_FLAG_PCJR) {
-                                        fdc->fintr     = 1;
-                                        fdc->interrupt = -4;
-                                    } else {
-                                        timer_disable(&fdc->timer);
-                                        fdc->interrupt = -3;
-                                        fdc_callback(fdc);
-                                    }
-                                    break;
-                                }
-                            } else {
-                                fdc_log("Seeking to track %i (PCN = %i)...\n", fdc->params[1], fdc->pcn[fdc->params[0] & 3]);
-                                if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
-                                    fdc_log("Failed seek\n");
-                                    fdc->st0 = 0x20 | (fdc->params[0] & 3);
-                                    if (fdc->flags & FDC_FLAG_PCJR) {
-                                        fdc->fintr     = 1;
-                                        fdc->interrupt = -4;
-                                    } else {
-                                        timer_disable(&fdc->timer);
-                                        fdc->interrupt = -3;
-                                        fdc_callback(fdc);
-                                    }
-                                    break;
-                                }
-                                if (fdc->params[1] > fdc->pcn[fdc->params[0] & 3])
-                                    fdc->seek_dir = 0;
-                                else
-                                    fdc->seek_dir = 1;
-                                fdc_seek(fdc, fdc->drive, fdc->params[1] - fdc->pcn[fdc->params[0] & 3]);
-                                fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
-                                fdc->step                    = 1;
-                            }
+                            fdc->pnum = 0;
+                            fdc->ptot = 3;
+                            fdc->stat |= 0x90;
                             break;
-                        case 0x12: /* Perpendicular mode */
-                            fdc->stat = 0x80;
-                            if (fdc->params[0] & 0x80)
-                                fdc->perp = fdc->params[0] & 0x3f;
-                            else {
-                                fdc->perp &= 0xfc;
-                                fdc->perp |= (fdc->params[0] & 0x03);
-                            }
-                            return;
-
                         default:
+                            fdc_bad_command(fdc);
                             break;
                     }
-                } else
-                    fdc->stat = 0x90 | (fdc->stat & 0xf);
-            }
-            return;
-        case 7:
-            if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_UMC))
-                return;
-            fdc->rate = val & 0x03;
-            if (fdc->flags & FDC_FLAG_PS2)
-                fdc->noprec = !!(val & 0x04);
-            return;
+                } else {
+                    fdc->stat                = 0x10 | (fdc->stat & 0xf);
+                    fdc->params[fdc->pnum++] = val;
+                    if (fdc->pnum == 1) {
+                        if (command_has_drivesel[fdc->command & 0x1F]) {
+                            if (fdc->flags & FDC_FLAG_PCJR)
+                                fdc->drive = 0;
+                            else
+                                fdc->drive = fdc->dor & 3;
+                            fdc->rw_drive = fdc->params[0] & 3;
+                            if (((fdc->command & 0x1F) == 7) || ((fdc->command & 0x1F) == 15))
+                                fdc->stat |= (1 << real_drive(fdc, fdc->drive));
+                        }
+                    }
+                    if (fdc->pnum == fdc->ptot) {
+                        fdc_log("Got all params %02X\n", fdc->command);
+                        fifo_reset(fdc->fifo_p);
+                        fdc->interrupt  = fdc->processed_cmd;
+                        fdc->reset_stat = 0;
+                        /* Disable timer if enabled. */
+                        timer_disable(&fdc->timer);
+                        /* Start timer if needed at this point. */
+                        switch (fdc->interrupt & 0x1f) {
+                            case 0x02: /* Read a track */
+                            case 0x03: /* Specify */
+                            case 0x0a: /* Read sector ID */
+                            case 0x05: /* Write data */
+                            case 0x06: /* Read data */
+                            case 0x09: /* Write deleted data */
+                            case 0x0c: /* Read deleted data */
+                            case 0x11: /* Scan equal */
+                            case 0x12: /* Perpendicular mode */
+                            case 0x16: /* Verify */
+                            case 0x19: /* Scan low or equal */
+                            case 0x1d: /* Scan high or equal */
+                                /* Do nothing. */
+                                break;
+                            case 0x07: /* Recalibrate */
+                            case 0x0f: /* Seek */
+                                if (fdc->flags & FDC_FLAG_PCJR)
+                                    timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+                                else
+                                    timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
+                                break;
+                            default:
+                                timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
+                                break;
+                        }
+                        /* Process the firt phase of the command. */
+                        switch (fdc->processed_cmd) {
+                            case 0x02: /* Read a track */
+                                fdc_io_command_phase1(fdc, 0);
+                                fdc->read_track_sector.id.c = fdc->params[1];
+                                fdc->read_track_sector.id.h = fdc->params[2];
+                                fdc->read_track_sector.id.r = 1;
+                                fdc->read_track_sector.id.n = fdc->params[4];
+                                if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+                                    fdc_noidam(fdc);
+                                    return;
+                                }
+                                fdd_readsector(real_drive(fdc, fdc->drive), SECTOR_FIRST, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
+                                break;
+                            case 0x03: /* Specify */
+                                fdc->stat       = 0x80;
+                                fdc->specify[0] = fdc->params[0];
+                                fdc->specify[1] = fdc->params[1];
+                                fdc->dma        = (fdc->specify[1] & 1) ^ 1;
+                                if (!fdc->dma)
+                                    dma_set_drq(fdc->dma_ch, 0);
+                                break;
+                            case 0x04: /*Sense drive status*/
+                                fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
+                                break;
+                            case 0x05: /* Write data */
+                            case 0x09: /* Write deleted data */
+                                fdc_io_command_phase1(fdc, 1);
+                                if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+                                    fdc_noidam(fdc);
+                                    return;
+                                }
+                                fdd_writesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
+                                break;
+                            case 0x11: /* Scan equal */
+                            case 0x19: /* Scan low or equal */
+                            case 0x1d: /* Scan high or equal */
+                                fdc_io_command_phase1(fdc, 1);
+                                if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+                                    fdc_noidam(fdc);
+                                    return;
+                                }
+                                fdd_comparesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
+                                break;
+                            case 0x16: /* Verify */
+                                if (fdc->params[0] & 0x80)
+                                    fdc->sc = fdc->params[7];
+                                fallthrough;
+                            case 0x06: /* Read data */
+                            case 0x0c: /* Read deleted data */
+                                fdc_io_command_phase1(fdc, 0);
+                                fdc_log("Reading sector (drive %i) (%i) (%i %i %i %i) (%i %i %i)\n", fdc->drive, fdc->params[0], fdc->params[1], fdc->params[2], fdc->params[3], fdc->params[4], fdc->params[5], fdc->params[6], fdc->params[7]);
+                                if ((fdc->head & 0x01) && !fdd_is_double_sided(real_drive(fdc, fdc->drive))) {
+                                    fdc_noidam(fdc);
+                                    return;
+                                }
+                                if (((dma_mode(2) & 0x0C) == 0x00) && !(fdc->flags & FDC_FLAG_PCJR) && fdc->dma) {
+                                    /* DMA is in verify mode, treat this like a VERIFY command. */
+                                    fdc_log("Verify-mode read!\n");
+                                    fdc->tc = 1;
+                                    fdc->deleted |= 2;
+                                }
+                                fdd_readsector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
+                                break;
 
-        default:
-            break;
-    }
+                            case 0x07: /* Recalibrate */
+                                fdc->rw_drive = fdc->params[0] & 3;
+                                fdc->stat     = (1 << real_drive(fdc, fdc->drive));
+                                if (!(fdc->flags & FDC_FLAG_PCJR))
+                                    fdc->stat |= 0x80;
+                                fdc->st0 = fdc->params[0] & 3;
+                                fdc->st0 |= fdd_get_head(real_drive(fdc, fdc->drive)) ? 0x04 : 0x00;
+                                fdc->st0 |= 0x80;
+                                drive_num = real_drive(fdc, fdc->drive);
+                                /* Three conditions under which the command should fail. */
+                                if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num)) {
+                                    fdc_log("Failed recalibrate\n");
+                                    if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num])
+                                        fdc->st0 = 0x70 | (fdc->params[0] & 3);
+                                    else
+                                        fdc->st0 = 0x20 | (fdc->params[0] & 3);
+                                    fdc->pcn[fdc->params[0] & 3] = 0;
+                                    if (fdc->flags & FDC_FLAG_PCJR) {
+                                        fdc->fintr     = 1;
+                                        fdc->interrupt = -4;
+                                    } else {
+                                        timer_disable(&fdc->timer);
+                                        fdc->interrupt = -3;
+                                        fdc_callback(fdc);
+                                    }
+                                    break;
+                                }
+                                if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
+                                    fdc_seek(fdc, fdc->drive, -fdc->max_track);
+                                fdc_log("Recalibrating...\n");
+                                fdc->seek_dir = fdc->step = 1;
+                                break;
+                            case 0x0a: /* Read sector ID */
+                                fdc_rate(fdc, fdc->drive);
+                                fdc->head = (fdc->params[0] & 4) ? 1 : 0;
+                                fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
+                                if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
+                                    fdd_readaddress(real_drive(fdc, fdc->drive), fdc->head, fdc->rate);
+                                    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
+                                        fdc->stat = 0x70;
+                                    else
+                                        fdc->stat = 0x50;
+                                } else
+                                    fdc_noidam(fdc);
+                                break;
+                            case 0x0d: /* Format */
+                                fdc_rate(fdc, fdc->drive);
+                                fdc->head = (fdc->params[0] & 4) ? 1 : 0;
+                                fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
+                                fdc->gap            = fdc->params[3];
+                                fdc->format_sectors = fdc->params[2];
+                                fdc->format_n       = fdc->params[1];
+                                fdc->format_state   = 1;
+                                fdc->stat           = 0x10;
+                                break;
+                            case 0x0f: /* Seek */
+                                fdc->rw_drive = fdc->params[0] & 3;
+                                fdc->stat     = (1 << fdc->drive);
+                                if (!(fdc->flags & FDC_FLAG_PCJR))
+                                    fdc->stat |= 0x80;
+                                fdc->head = 0; /* TODO: See if this is correct. */
+                                fdc->st0  = fdc->params[0] & 0x03;
+                                fdc->st0 |= (fdc->params[0] & 4);
+                                fdc->st0 |= 0x80;
+                                fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
+                                drive_num = real_drive(fdc, fdc->drive);
+                                /* Three conditions under which the command should fail. */
+                                if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num]) {
+                                    /* Yes, failed SEEK's still report success, unlike failed RECALIBRATE's. */
+                                    fdc->st0 = 0x20 | (fdc->params[0] & 3);
+                                    if (fdc->command & 0x80) {
+                                        if (fdc->command & 0x40)
+                                            fdc->pcn[fdc->params[0] & 3] += fdc->params[1];
+                                        else
+                                            fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
+                                    } else
+                                        fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
+                                    if (fdc->flags & FDC_FLAG_PCJR) {
+                                        fdc->fintr     = 1;
+                                        fdc->interrupt = -4;
+                                    } else {
+                                        timer_disable(&fdc->timer);
+                                        fdc->interrupt = -3;
+                                        fdc_callback(fdc);
+                                    }
+                                    break;
+                                }
+                                if (fdc->command & 0x80) {
+                                    if (fdc->params[1]) {
+                                        if (fdc->command & 0x40) {
+                                            /* Relative seek inwards. */
+                                            fdc->seek_dir = 0;
+                                            fdc_seek(fdc, fdc->drive, fdc->params[1]);
+                                            fdc->pcn[fdc->params[0] & 3] += fdc->params[1];
+                                        } else {
+                                            /* Relative seek outwards. */
+                                            fdc->seek_dir = 1;
+                                            fdc_seek(fdc, fdc->drive, -fdc->params[1]);
+                                            fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
+                                        }
+                                        fdc->step = 1;
+                                    } else {
+                                        fdc->st0 = 0x20 | (fdc->params[0] & 3);
+                                        if (fdc->flags & FDC_FLAG_PCJR) {
+                                            fdc->fintr     = 1;
+                                            fdc->interrupt = -4;
+                                        } else {
+                                            timer_disable(&fdc->timer);
+                                            fdc->interrupt = -3;
+                                            fdc_callback(fdc);
+                                        }
+                                        break;
+                                    }
+                                } else {
+                                    fdc_log("Seeking to track %i (PCN = %i)...\n", fdc->params[1], fdc->pcn[fdc->params[0] & 3]);
+                                    if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
+                                        fdc_log("Failed seek\n");
+                                        fdc->st0 = 0x20 | (fdc->params[0] & 3);
+                                        if (fdc->flags & FDC_FLAG_PCJR) {
+                                            fdc->fintr     = 1;
+                                            fdc->interrupt = -4;
+                                        } else {
+                                            timer_disable(&fdc->timer);
+                                            fdc->interrupt = -3;
+                                            fdc_callback(fdc);
+                                        }
+                                        break;
+                                    }
+                                    if (fdc->params[1] > fdc->pcn[fdc->params[0] & 3])
+                                        fdc->seek_dir = 0;
+                                    else
+                                        fdc->seek_dir = 1;
+                                    fdc_seek(fdc, fdc->drive, fdc->params[1] - fdc->pcn[fdc->params[0] & 3]);
+                                    fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
+                                    fdc->step                    = 1;
+                                }
+                                break;
+                            case 0x12: /* Perpendicular mode */
+                                fdc->stat = 0x80;
+                                if (fdc->params[0] & 0x80)
+                                    fdc->perp = fdc->params[0] & 0x3f;
+                                else {
+                                    fdc->perp &= 0xfc;
+                                    fdc->perp |= (fdc->params[0] & 0x03);
+                                }
+                                return;
+
+                            default:
+                                break;
+                        }
+                    } else
+                        fdc->stat = 0x90 | (fdc->stat & 0xf);
+                }
+                return;
+            case 7:
+                if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_UMC))
+                    return;
+                fdc->rate = val & 0x03;
+                if (fdc->flags & FDC_FLAG_PS2)
+                    fdc->noprec = !!(val & 0x04);
+                return;
+
+            default:
+                break;
+        }
 }
 
 uint8_t
@@ -1349,213 +1385,214 @@ fdc_read(uint16_t addr, void *priv)
 
     cycles -= ISA_CYCLES(8);
 
-    if (!fdc->power_down || ((addr & 7) == 2))  switch (addr & 7) {
-        case 0: /* STA */
-            if (fdc->flags & FDC_FLAG_PS2) {
-                drive = real_drive(fdc, fdc->dor & 3);
-                ret   = 0x00;
-                /* TODO:
-                        Bit 2: INDEX (best return always 0 as it goes by very fast)
-                */
-                if (fdc->seek_dir)                 /* nDIRECTION */
-                    ret |= 0x01;
-                if (writeprot[drive])              /* WRITEPROT */
-                    ret |= 0x02;
-                if (!fdd_get_head(drive))          /* nHDSEL */
-                    ret |= 0x08;
-                if (fdd_track0(drive))             /* TRK0 */
-                    ret |= 0x10;
-                if (fdc->step)                     /* STEP */
-                    ret |= 0x20;
-                if (dma_get_drq(fdc->dma_ch))      /* DRQ */
-                    ret |= 0x40;
-                if (fdc->fintr || fdc->reset_stat) /* INTR */
-                    ret |= 0x80;
-            } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
-                drive = real_drive(fdc, fdc->dor & 3);
-                ret   = 0x04;
-                /* TODO:
-                        Bit 2: nINDEX (best return always 1 as it goes by very fast)
-                */
-                if (!fdc->seek_dir)                /* DIRECTION */
-                    ret |= 0x01;
-                if (!writeprot[drive])             /* nWRITEPROT */
-                    ret |= 0x02;
-                if (fdd_get_head(drive))           /* HDSEL */
-                    ret |= 0x08;
-                if (!fdd_track0(drive))            /* nTRK0 */
-                    ret |= 0x10;
-                if (fdc->step)                     /* STEP */
-                    ret |= 0x20;
-                if (!fdd_get_type(1))              /* -Drive 2 Installed */
-                    ret |= 0x40;
-                if (fdc->fintr || fdc->reset_stat) /* INTR */
-                    ret |= 0x80;
-            } else
-                ret = 0xff;
-            break;
-        case 1: /* STB */
-            if (fdc->flags & FDC_FLAG_PS2) {
-                drive = real_drive(fdc, fdc->dor & 3);
-                ret   = 0x00;
-                if (!fdd_get_type(1))              /* -Drive 2 Installed */
-                    ret |= 0x80;
-                switch (drive) {                   /* -Drive Select 1,0 */
-                    case 0:
-                        ret |= 0x43;
-                        break;
-                    case 1:
-                        ret |= 0x23;
-                        break;
-                    case 2:
-                        ret |= 0x62;
-                        break;
-                    case 3:
-                        ret |= 0x61;
-                        break;
-
-                    default:
-                        break;
-                }
-            } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
-                drive = real_drive(fdc, fdc->dor & 3);
-                ret   = 0xc0;
-                ret  |= (fdc->dor & 0x01) << 5;    /* Drive Select 0 */
-                ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
-            } else {
-                if (is486 || !fdc->enable_3f1)
+    if (!fdc->power_down || ((addr & 7) == 2))
+        switch (addr & 7) {
+            case 0: /* STA */
+                if (fdc->flags & FDC_FLAG_PS2) {
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    ret   = 0x00;
+                    /* TODO:
+                            Bit 2: INDEX (best return always 0 as it goes by very fast)
+                    */
+                    if (fdc->seek_dir)                 /* nDIRECTION */
+                        ret |= 0x01;
+                    if (writeprot[drive])              /* WRITEPROT */
+                        ret |= 0x02;
+                    if (!fdd_get_head(drive))          /* nHDSEL */
+                        ret |= 0x08;
+                    if (fdd_track0(drive))             /* TRK0 */
+                        ret |= 0x10;
+                    if (fdc->step)                     /* STEP */
+                        ret |= 0x20;
+                    if (dma_get_drq(fdc->dma_ch))      /* DRQ */
+                        ret |= 0x40;
+                    if (fdc->fintr || fdc->reset_stat) /* INTR */
+                        ret |= 0x80;
+                } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    ret   = 0x04;
+                    /* TODO:
+                            Bit 2: nINDEX (best return always 1 as it goes by very fast)
+                    */
+                    if (!fdc->seek_dir)                /* DIRECTION */
+                        ret |= 0x01;
+                    if (!writeprot[drive])             /* nWRITEPROT */
+                        ret |= 0x02;
+                    if (fdd_get_head(drive))           /* HDSEL */
+                        ret |= 0x08;
+                    if (!fdd_track0(drive))            /* nTRK0 */
+                        ret |= 0x10;
+                    if (fdc->step)                     /* STEP */
+                        ret |= 0x20;
+                    if (!fdd_get_type(1))              /* -Drive 2 Installed */
+                        ret |= 0x40;
+                    if (fdc->fintr || fdc->reset_stat) /* INTR */
+                        ret |= 0x80;
+                } else
                     ret = 0xff;
-                else {
-                    if (fdc->flags & FDC_FLAG_UMC) {
-                        drive = real_drive(fdc, fdc->dor & 1);
-                        ret   = !fdd_is_dd(drive) ? ((fdc->dor & 1) ? 2 : 1) : 0;
-                    } else {
-                        /* TODO: What is this and what is it used for?
-                                 It's almost identical to the PS/2 MCA mode. */
-                        drive = real_drive(fdc, fdc->dor & 3);
-                        ret   = 0x70;
-                        ret  &= ~(drive ? 0x40 : 0x20);
-                        ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
+                break;
+            case 1: /* STB */
+                if (fdc->flags & FDC_FLAG_PS2) {
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    ret   = 0x00;
+                    if (!fdd_get_type(1))              /* -Drive 2 Installed */
+                        ret |= 0x80;
+                    switch (drive) {                   /* -Drive Select 1,0 */
+                        case 0:
+                            ret |= 0x43;
+                            break;
+                        case 1:
+                            ret |= 0x23;
+                            break;
+                        case 2:
+                            ret |= 0x62;
+                            break;
+                        case 3:
+                            ret |= 0x61;
+                            break;
+
+                        default:
+                            break;
+                    }
+                } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                    drive = real_drive(fdc, fdc->dor & 3);
+                    ret   = 0xc0;
+                    ret  |= (fdc->dor & 0x01) << 5;    /* Drive Select 0 */
+                    ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
+                } else {
+                    if (is486 || !fdc->enable_3f1)
+                        ret = 0xff;
+                    else {
+                        if (fdc->flags & FDC_FLAG_UMC) {
+                            drive = real_drive(fdc, fdc->dor & 1);
+                            ret   = !fdd_is_dd(drive) ? ((fdc->dor & 1) ? 2 : 1) : 0;
+                        } else {
+                            /* TODO: What is this and what is it used for?
+                                     It's almost identical to the PS/2 MCA mode. */
+                            drive = real_drive(fdc, fdc->dor & 3);
+                            ret   = 0x70;
+                            ret  &= ~(drive ? 0x40 : 0x20);
+                            ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
+                        }
                     }
                 }
-            }
-            break;
-        case 2:
-            ret = fdc->dor;
-            break;
-        case 3:
-            drive = real_drive(fdc, fdc->dor & 3);
-            /* TODO: FDC_FLAG_PS2_TDR? */
-            if ((fdc->flags & FDC_FLAG_PS2) || (fdc->flags & FDC_FLAG_PS2_MCA)) {
-                /* PS/1 Model 2121 seems return drive type in port
-                 * 0x3f3, despite the 82077AA fdc_t not implementing
-                 * this. This is presumably implemented outside the
-                 * fdc_t on one of the motherboard's support chips.
-                 *
-                 * Confirmed: 00=1.44M 3.5
-                 *        10=2.88M 3.5
-                 *        20=1.2M 5.25
-                 *        30=1.2M 5.25
-                 *
-                 * as reported by Configur.exe.
-                 */
-                if (fdd_is_525(drive))
-                    ret = 0x20;
-                else if (fdd_is_ed(drive))
-                    ret = 0x10;
-                else
-                    ret = 0x00;
-                /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
-            } else if (!fdc->enh_mode)
-                ret = 0x20;
-            else if (fdc->flags & FDC_FLAG_SMC661)
-                ret = (fdc->densel_force << 3) | ((!!fdc->swap) << 5) | (fdc->media_id << 6);
-            else
-                ret = (fdc->rwc[drive] << 4) | (fdc->media_id << 6);
-            break;
-        case 4: /*Status*/
-            ret = fdc->stat;
-            break;
-        case 5: /*Data*/
-            if (fdc->fifointest) {
-                /* Read FIFO buffer in the test mode (PS/55) */
-                ret = fifo_read(fdc->fifo_p);
                 break;
-            }
-            if ((fdc->stat & 0xf0) == 0xf0) {
-                fdc->stat &= ~0x80;
-                if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
-                    fdc->data_ready = 0;
-                    ret             = fdc->dat;
-                } else
-                    ret = fifo_read(fdc->fifo_p);
+            case 2:
+                ret = fdc->dor;
                 break;
-            }
-            if (fdc->paramstogo) {
-                fdc->stat &= ~0x80;
-                fdc_log("%i parameters to go\n", fdc->paramstogo);
-                fdc->paramstogo--;
-                ret = fdc->res[10 - fdc->paramstogo];
-                if (!fdc->paramstogo)
-                    fdc->stat = 0x80;
-                else
-                    fdc->stat |= 0xC0;
-            } else if (fdc->dma) {
-                ret       = fdc->dat;
-                break;
-            } else {
-                fdc->stat &= ~0x80;
-                if (lastbyte)
-                    fdc->stat = 0x80;
-                lastbyte        = 0;
-                ret             = fdc->dat;
-                fdc->data_ready = 0;
-            }
-            fdc->stat &= 0xf0;
-            break;
-        case 7: /*Disk change*/
-            drive = real_drive(fdc, fdc->dor & 3);
-
-            if (fdc->flags & FDC_FLAG_PS2) {
-                if (fdc->dor & (0x10 << drive)) {
-                    ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x00 : 0x80;
-                    ret |= (fdc->dor & 0x08);
-                    ret |= (fdc->noprec << 2);
-                    ret |= (fdc->rate & 0x03);
-                } else
-                    ret = 0x00;
-            } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
-                if (fdc->dor & (0x10 << drive)) {
-                    ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
-                    ret |= ((fdc->rate & 0x03) << 1);
-                    ret |= fdc_get_densel(fdc, drive);
-                    ret |= 0x78;
-                } else
-                    ret = 0xf9;
-            } else {
-                if (fdc->dor & (0x10 << drive)) {
-                    if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
-                        ret = 0x00;
+            case 3:
+                drive = real_drive(fdc, fdc->dor & 3);
+                /* TODO: FDC_FLAG_PS2_TDR? */
+                if ((fdc->flags & FDC_FLAG_PS2) || (fdc->flags & FDC_FLAG_PS2_MCA)) {
+                    /* PS/1 Model 2121 seems return drive type in port
+                     * 0x3f3, despite the 82077AA fdc_t not implementing
+                     * this. This is presumably implemented outside the
+                     * fdc_t on one of the motherboard's support chips.
+                     *
+                     * Confirmed: 00=1.44M 3.5
+                     *        10=2.88M 3.5
+                     *        20=1.2M 5.25
+                     *        30=1.2M 5.25
+                     *
+                     * as reported by Configur.exe.
+                     */
+                    if (fdd_is_525(drive))
+                        ret = 0x20;
+                    else if (fdd_is_ed(drive))
+                        ret = 0x10;
                     else
+                        ret = 0x00;
+                    /* PS/55 POST throws an error and halt if ret = 1 or 2, somehow. */
+                } else if (!fdc->enh_mode)
+                    ret = 0x20;
+                else if (fdc->flags & FDC_FLAG_SMC661)
+                    ret = (fdc->densel_force << 3) | ((!!fdc->swap) << 5) | (fdc->media_id << 6);
+                else
+                    ret = (fdc->rwc[drive] << 4) | (fdc->media_id << 6);
+                break;
+            case 4: /*Status*/
+                ret = fdc->stat;
+                break;
+            case 5: /*Data*/
+                if (fdc->fifointest) {
+                    /* Read FIFO buffer in the test mode (PS/55) */
+                    ret = fifo_read(fdc->fifo_p);
+                    break;
+                }
+                if ((fdc->stat & 0xf0) == 0xf0) {
+                    fdc->stat &= ~0x80;
+                    if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
+                        fdc->data_ready = 0;
+                        ret             = fdc->dat;
+                    } else
+                        ret = fifo_read(fdc->fifo_p);
+                    break;
+                }
+                if (fdc->paramstogo) {
+                    fdc->stat &= ~0x80;
+                    fdc_log("%i parameters to go\n", fdc->paramstogo);
+                    fdc->paramstogo--;
+                    ret = fdc->res[10 - fdc->paramstogo];
+                    if (!fdc->paramstogo)
+                        fdc->stat = 0x80;
+                    else
+                        fdc->stat |= 0xC0;
+                } else if (fdc->dma) {
+                    ret       = fdc->dat;
+                    break;
+                } else {
+                    fdc->stat &= ~0x80;
+                    if (lastbyte)
+                        fdc->stat = 0x80;
+                    lastbyte        = 0;
+                    ret             = fdc->dat;
+                    fdc->data_ready = 0;
+                }
+                fdc->stat &= 0xf0;
+                break;
+            case 7: /*Disk change*/
+                drive = real_drive(fdc, fdc->dor & 3);
+
+                if (fdc->flags & FDC_FLAG_PS2) {
+                    if (fdc->dor & (0x10 << drive)) {
+                        ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x00 : 0x80;
+                        ret |= (fdc->dor & 0x08);
+                        ret |= (fdc->noprec << 2);
+                        ret |= (fdc->rate & 0x03);
+                    } else
+                        ret = 0x00;
+                } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
+                    if (fdc->dor & (0x10 << drive)) {
                         ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
-                } else
-                    ret = 0x00;
-                if (fdc->flags & FDC_FLAG_DISKCHG_ACTLOW) /*PC2086/3086 seem to reverse this bit*/
-                    ret ^= 0x80;
+                        ret |= ((fdc->rate & 0x03) << 1);
+                        ret |= fdc_get_densel(fdc, drive);
+                        ret |= 0x78;
+                    } else
+                        ret = 0xf9;
+                } else {
+                    if (fdc->dor & (0x10 << drive)) {
+                        if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
+                            ret = 0x00;
+                        else
+                            ret = (fdd_changed[drive] || drive_empty[drive]) ? 0x80 : 0x00;
+                    } else
+                        ret = 0x00;
+                    if (fdc->flags & FDC_FLAG_DISKCHG_ACTLOW) /*PC2086/3086 seem to reverse this bit*/
+                        ret ^= 0x80;
 
-                /* 0 = ????, 1 = Ext. FDD off, 2 = Ext. FDD = FDD A, 3 = Ext. FDD = FDD B */
-                if (fdc->flags & FDC_FLAG_TOSHIBA) {
-                    ret |= (3 << 5);
-                    ret |= 0x01;
-                } else
-                    ret |= 0x7F;
-            }
+                    /* 0 = ????, 1 = Ext. FDD off, 2 = Ext. FDD = FDD A, 3 = Ext. FDD = FDD B */
+                    if (fdc->flags & FDC_FLAG_TOSHIBA) {
+                        ret |= (3 << 5);
+                        ret |= 0x01;
+                    } else
+                        ret |= 0x7F;
+                }
 
-            fdc->step = 0;
-            break;
-        default:
-            ret = 0xff;
-    }
+                fdc->step = 0;
+                break;
+            default:
+                ret = 0xff;
+        }
     fdc_log("[%04X:%08X] Read FDC %04X %02X [%i:%02X]\n", CS, cpu_state.pc, addr, ret, drive, fdc->dor & (0x10 << drive));
     return ret;
 }
@@ -1859,7 +1896,7 @@ fdc_callback(void *priv)
             } else
                 fdc->interrupt = -3;
             timer_set_delay_u64(&fdc->timer, 2048 * TIMER_USEC);
-            fdc->stat = 0x80 | (1 << fdc->rw_drive);
+            fdc->stat = 0x10 | (1 << fdc->rw_drive);
             return;
         case 0x0d: /*Format track*/
             if (fdc->format_state == 1) {
@@ -1902,15 +1939,18 @@ fdc_callback(void *priv)
             return;
         case 0x0f: /*Seek*/
             fdc->st0  = 0x20 | (fdc->params[0] & 3);
-            fdc->stat = 0x80 | (1 << fdc->rw_drive);
-            if (fdc->flags & FDC_FLAG_PCJR) {
-                fdc->fintr     = 1;
-                fdc->interrupt = -4;
-                timer_set_delay_u64(&fdc->timer, 1024 * TIMER_USEC);
-            } else {
-                fdc->interrupt = -3;
-                fdc_callback(fdc);
+            fdc->stat = 0x10 | (1 << fdc->rw_drive);
+            if (fdd_get_turbo(real_drive(fdc, fdc->rw_drive))) {
+                if (fdc->flags & FDC_FLAG_PCJR) {
+                    fdc->fintr     = 1;
+                    fdc->interrupt = -4;
+                    timer_set_delay_u64(&fdc->timer, 1024 * TIMER_USEC);
+                } else {
+                    fdc->interrupt = -3;
+                    fdc_callback(fdc);
+                }
             }
+            // Interrupts and callbacks in the fdd callback function
             return;
         case 0x10: /*Version*/
         case 0x18: /*NSC*/
@@ -2402,10 +2442,10 @@ fdc_reset(void *priv)
        need to use a dual-RPM 5.25" drive - but hey, that finally gets those
        drives some usage as well.
      */
-    fdc_update_drvrate(fdc, 0, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 1, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 2, !strcmp(machine_get_internal_name(),  "if386sx"));
-    fdc_update_drvrate(fdc, 3, !strcmp(machine_get_internal_name(),  "if386sx"));
+    fdc_update_drvrate(fdc, 0, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 1, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 2, (machines[machine].init == machine_at_if386sx_init));
+    fdc_update_drvrate(fdc, 3, (machines[machine].init == machine_at_if386sx_init));
     fdc_update_drv2en(fdc, 1);
     fdc_update_rates(fdc);
 

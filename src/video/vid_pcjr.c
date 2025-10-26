@@ -8,7 +8,6 @@
  *
  *          IBM PCjr video subsystem emulation
  *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Connor Hyde / starfrost <mario64crashed@gmail.com> 
@@ -18,7 +17,6 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2025 starfrost
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

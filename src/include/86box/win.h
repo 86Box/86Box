@@ -8,8 +8,6 @@
  *
  *          Platform support defintions for Win32.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,7 +17,6 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
  */
-
 #ifndef PLAT_WIN_H
 #define PLAT_WIN_H
 

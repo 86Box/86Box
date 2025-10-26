@@ -23,7 +23,6 @@
  *
  *          See https://gitlab.freedesktop.org/xorg/lib/libxcvt/-/blob/master/COPYING for libxcvt license details
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>

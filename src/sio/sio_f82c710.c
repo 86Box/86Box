@@ -349,7 +349,7 @@ f82c710_init(const device_t *info)
 {
     upc_t *dev = (upc_t *) calloc(1, sizeof(upc_t));
 
-    if (strstr(machine_get_internal_name(), "5086") != NULL)
+    if (machines[machine].init == machine_xt_pc5086_init)
         dev->fdc        = device_add(&fdc_at_actlow_device);
     else
         dev->fdc        = device_add(&fdc_at_device);

@@ -8,8 +8,6 @@
  *
  *          Definitions for AD1848 / CS4248 / CS4231 (Windows Sound System) codec emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          RichardG, <richardg867@gmail.com>
@@ -18,7 +16,6 @@
  *          Copyright 2018-2020 TheCollector1995.
  *          Copyright 2021-2025 RichardG.
  */
-
 #ifndef SOUND_AD1848_H
 #define SOUND_AD1848_H
 
@@ -66,10 +63,10 @@ typedef struct ad1848_t {
     uint8_t enable : 1;
     uint8_t irq    : 4;
     uint8_t dma    : 3;
-    uint8_t adpcm_ref;
-    int8_t  adpcm_step;
+    int     adpcm_predictor[2];
+    int16_t adpcm_step_index[2];
     int     freq;
-    int     adpcm_data;
+    uint8_t adpcm_data;
     int     adpcm_pos;
 
     uint8_t  dma_ff;

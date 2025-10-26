@@ -143,7 +143,7 @@ static __inline uint8_t
 fdc37c93x_do_read_gp(fdc37c93x_t *dev, int reg, int bit)
 {
     /* Update bit 2 on the Acer V35N according to the selected graphics card type. */
-    if ((reg == 2) && (strstr(machine_get_internal_name(), "acer") != NULL))
+    if ((reg == 2) && !strncmp(machine_get_internal_name(), "acer", 4))
         dev->gpio_pulldn[reg] = (dev->gpio_pulldn[reg] & 0xfb) | (video_is_mda() ? 0x00 : 0x04);
 
     return dev->gpio_regs[reg] & dev->gpio_pulldn[reg] & (1 << bit);
@@ -1812,7 +1812,7 @@ fdc37c93x_reset(void *priv)
     memset(dev->gpio_pulldn, 0xff, 8);
 
     /* Acer V62X requires bit 0 to be clear to not be stuck in "clear password" mode. */
-    if (!strcmp(machine_get_internal_name(), "vectra54")) {
+    if ((machines[machine].init == machine_at_vectra54_init) || (machines[machine].init == machine_at_vectra500mt_init)) {
         dev->gpio_pulldn[1] = 0x40;
 
         /*
@@ -1850,12 +1850,12 @@ fdc37c93x_reset(void *priv)
             dev->gpio_pulldn[1] |= 0x00;
         else if (cpu_dmulti > 2.5)
             dev->gpio_pulldn[1] |= 0x80;
-    } else if (!strcmp(machine_get_internal_name(), "acerv62x"))
+    } else if (machines[machine].init == machine_at_acerv62x_init)
         dev->gpio_pulldn[1] = 0xfe;
     else
         dev->gpio_pulldn[1] = (dev->chip_id == 0x30) ? 0xff : 0xfd;
 
-    if (strstr(machine_get_internal_name(), "acer") != NULL)
+    if (!strncmp(machine_get_internal_name(), "acer", 4))
         /* Bit 2 on the Acer V35N is the text/graphics toggle, bits 1 and 3 = ????. */
         dev->gpio_pulldn[2] = 0x10;
 

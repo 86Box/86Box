@@ -1,17 +1,16 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Interface to sndio
+ *          Interface to sndio
  *
+ * Authors: Nishi
  *
- * Authors:  Nishi
- *
- *           Copyright 2025 Nishi.
+ *          Copyright 2025 Nishi.
  */
 #include <stdint.h>
 #include <unistd.h>
@@ -19,7 +18,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
 #include <sndio.h>
 
 #include <86box/86box.h>
@@ -31,10 +29,11 @@
 #define I_WT 2
 #define I_CD 3
 #define I_MIDI 4
+#define I_FDD 5
 
-static struct sio_hdl* audio[5] = { NULL, NULL, NULL, NULL, NULL };
-static struct sio_par info[5];
-static int    freqs[5]          = { SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0 };
+static struct sio_hdl* audio[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
+static struct sio_par  info[6];
+static int             freqs[6] = { SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, 0 };
 
 void
 closeal(void)
@@ -148,7 +147,13 @@ givealbuffer_midi(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, I_MIDI, (int) size);
 }
-    
+
+void
+givealbuffer_fdd(const void *buf, const uint32_t size)
+{
+    givealbuffer_common(buf, I_FDD, (int) size);
+}
+	
 void
 al_set_midi(const int freq, UNUSED(const int buf_size))
 {
