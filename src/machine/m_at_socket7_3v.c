@@ -668,7 +668,7 @@ machine_at_endeavor_init(const machine_t *model)
 }
 
 /* The Monaco and Atlantis share the same GPIO config */
-#define machine_at_monaco_gpio_init machine_at_atlantis_gpio_init
+#define machine_at_atlantis_gpio_init machine_at_monaco_gpio_init
 
 int
 machine_at_atlantis_init(const machine_t *model)
