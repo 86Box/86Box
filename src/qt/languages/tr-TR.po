@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "Geçersiz PCap cihazı"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "Genel kürek kontrol cihazları"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2 eksenli, 1 düğmeli oyun kolları"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Adaptörlü Thrustmaster Formula T1/T2"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Adaptörsüz Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "Hiçbiri"

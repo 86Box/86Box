@@ -235,6 +235,26 @@ joystick_standard_read_axis_2axis(UNUSED(void *priv), int axis)
     }
 }
 
+static int
+joystick_standard_read_axis_2axis_t1t2wa(UNUSED(void *priv), int axis)
+{
+    uint8_t gp = 0;
+
+    if (!JOYSTICK_PRESENT(gp, 0))
+        return AXIS_NOT_PRESENT;
+
+    switch (axis) {
+        case 0:
+            return joystick_state[gp][0].axis[0];
+        case 2:
+            return joystick_state[gp][0].axis[1];
+        case 1:
+        case 3:
+        default:
+            return 0;
+    }
+}
+
 #if 0
 // For later use
 static int
@@ -879,7 +899,7 @@ const joystick_t joystick_steering_wheel_4_button = {
 };
 
 const joystick_t joystick_tm_formula_t1t2 = {
-    .name          = "Thrustmaster Formula T1/T2 with Adaptor",
+    .name          = "Thrustmaster Formula T1/T2 with adapter",
     .internal_name = "thrustmaster_formula_t1t2",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
@@ -898,19 +918,19 @@ const joystick_t joystick_tm_formula_t1t2 = {
 
 // TODO Validate this
 const joystick_t joystick_tm_formula_t1t2wa = {
-    .name          = "Thrustmaster Formula T1/T2 without Adaptor",
+    .name          = "Thrustmaster Formula T1/T2 without adapter",
     .internal_name = "thrustmaster_formula_t1t2wa",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
     .read          = joystick_standard_read_4button,
     .write         = joystick_standard_write,
-    .read_axis     = joystick_standard_read_axis_3axis,
+    .read_axis     = joystick_standard_read_axis_2axis_t1t2wa,
     .a0_over       = joystick_standard_a0_over,
-    .axis_count    = 3,
+    .axis_count    = 2,
     .button_count  = 4,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = { "Steering axis", "Accelerator axis", "Brake axis" },
+    .axis_names    = { "Steering axis", "Accelerator/Brake axis" },
     .button_names  = { "Shifter Up", "Shifter Down", "Top Console Switch", "Bottom Console Switch" },
     .pov_names     = { NULL }
 };

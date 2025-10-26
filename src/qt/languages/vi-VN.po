@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "Thiết bị PCap không hợp quy"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "Bộ điều khiển dạng mái chèo thông dụng"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "Cần điều khiển hai trục, một nút"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Hệ thống bánh lái"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 kèm bộ chuyển đổi"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 không kèm bộ chuyển đổi"
 
 msgid "None"
 msgstr "Không có"

@@ -13378,10 +13378,10 @@ const machine_t machines[] = {
     },
     {
         .name              = "[i430FX] HP Vectra VE 5/xxx Series 2",
-        .internal_name     = "hpvectravexxx",
+        .internal_name     = "vectra52",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
-        .init              = machine_at_hpvectravexxx_init,
+        .init              = machine_at_vectra52_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -13411,7 +13411,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = &hpvectravexxx_device,
+        .device                   = &vectra52_device,
 		.kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
@@ -20319,7 +20319,7 @@ machine_get_nvr_name_ex(int m)
 
     if (dev != NULL) {
         device_context(dev);
-        const char *bios = device_get_config_string("bios");
+        const char *bios = device_get_config_bios("bios");
         if ((bios != NULL) && (strcmp(bios, "") != 0))
             ret = bios;
         device_context_restore();

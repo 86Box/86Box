@@ -902,7 +902,7 @@ static const device_config_t dtk_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "dtk_242",
+        .default_string = "dtk",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -919,7 +919,7 @@ static const device_config_t dtk_config[] = {
             },
             {
                 .name          = "2.42",
-                .internal_name = "dtk_242",
+                .internal_name = "dtk",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,

@@ -1914,7 +1914,7 @@ static const device_config_t r534f_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "r534f",
+        .default_string = "r534f_1998",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1922,7 +1922,7 @@ static const device_config_t r534f_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 06/12/1998",
-                .internal_name = "r534f",
+                .internal_name = "r534f_1998",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1931,7 +1931,7 @@ static const device_config_t r534f_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 03/13/2000 (by Unicore Software)",
-                .internal_name = "r534f_unicore",
+                .internal_name = "r534f",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,

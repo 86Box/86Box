@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "无效 PCap 设备"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "通用桨式控制器"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2 轴, 1 键操纵杆"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "带适配器 Thrustmaster Formula T1/T2"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "不带适配器 Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "无"

@@ -832,8 +832,8 @@ static const device_config_t pcjr_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "ir_reciever",
-        .description    = "Enable IR Reciever",
+        .name           = "ir_receiver",
+        .description    = "Enable IR Receiver",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -883,7 +883,7 @@ machine_pcjr_init(UNUSED(const machine_t *model))
 #endif
     pcjr->option_fdc   = 0;
 #if 0
-    pcjr->option_ir    = device_get_config_int("ir_reciever");
+    pcjr->option_ir    = device_get_config_int("ir_receiver");
 #else
     pcjr->option_ir    = 0;
 #endif

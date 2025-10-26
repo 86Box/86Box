@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "Nevažeći PCap uređaj"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "Generički kontroleri s lopaticama"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "Palica za igru s 2 osi, 1 tipke"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 s adapterom"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 bez adaptera"
 
 msgid "None"
 msgstr "Bez"

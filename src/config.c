@@ -339,6 +339,7 @@ load_machine(void)
         { .old = "infinia7200", .new = "tc430hx", .new_bios = "infinia7200" },
         { .old = "dellvenus", .new = "vs440fx", .new_bios = "dellvenus" },
         { .old = "gw2kvenus", .new = "vs440fx", .new_bios = "gw2kvenus" },
+        { .old = "lgibmx7g", .new = "ms6119", .new_bios = "lgibmx7g" },
         { 0 }
     };
 
@@ -1501,7 +1502,7 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "cdrom_%02i_type", c + 1);
         p = ini_section_get_string(cat, temp, cdrom[c].bus_type == CDROM_BUS_MKE ? "cr563" : "86cd");
         /* TODO: Configuration migration, remove when no longer needed. */
-        int cdrom_type = cdrom_get_from_internal_name(p);
+        int cdrom_type = cdrom_get_from_internal_name(!strcmp(p, "goldstar") ? "goldstar_r560b" : p);
         if (cdrom_type == -1) {
             cdrom_type = cdrom_get_from_name(p);
             if (cdrom_type == -1)
