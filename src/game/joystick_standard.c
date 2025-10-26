@@ -899,7 +899,7 @@ const joystick_t joystick_steering_wheel_4_button = {
 };
 
 const joystick_t joystick_tm_formula_t1t2 = {
-    .name          = "Thrustmaster Formula T1/T2 with Adaptor",
+    .name          = "Thrustmaster Formula T1/T2 with adapter",
     .internal_name = "thrustmaster_formula_t1t2",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,
@@ -918,7 +918,7 @@ const joystick_t joystick_tm_formula_t1t2 = {
 
 // TODO Validate this
 const joystick_t joystick_tm_formula_t1t2wa = {
-    .name          = "Thrustmaster Formula T1/T2 without Adaptor",
+    .name          = "Thrustmaster Formula T1/T2 without adapter",
     .internal_name = "thrustmaster_formula_t1t2wa",
     .init          = joystick_standard_init,
     .close         = joystick_standard_close,

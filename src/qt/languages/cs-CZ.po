@@ -850,10 +850,10 @@ msgid "Invalid PCap device"
 msgstr "Neplatné PCap zařízení"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "Obecný otočný ovladač"
 
 msgid "2-axis, 1-button joystick(s)"
-msgstr "Joystick s 2 osami a 1 tlačítky"
+msgstr "Joystick s 2 osami a 1 tlačítkem"
 
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Joystick s 2 osami a 2 tlačítky"
@@ -880,19 +880,19 @@ msgid "3-axis, 4-button joystick"
 msgstr "Joystick s 3 osami a 4 tlačítky"
 
 msgid "4-axis, 2-button joystick"
-msgstr "Joystick s 4 osami a 2 tlačítky"
+msgstr "Joystick se 4 osami a 2 tlačítky"
 
 msgid "4-axis, 3-button joystick"
-msgstr "Joystick s 4 osami a 3 tlačítky"
+msgstr "Joystick se 4 osami a 3 tlačítky"
 
 msgid "4-axis, 4-button joystick"
-msgstr "Joystick s 4 osami a 4 tlačítky"
+msgstr "Joystick se 4 osami a 4 tlačítky"
 
 msgid "2-button gamepad(s)"
-msgstr "Ovladač se 2 tlačítky"
+msgstr "Ovladač s 2 tlačítky"
 
 msgid "3-button gamepad"
-msgstr "Ovladač se 3 tlačítky"
+msgstr "Ovladač s 3 tlačítky"
 
 msgid "4-button gamepad"
 msgstr "Ovladač se 4 tlačítky"
@@ -904,10 +904,10 @@ msgid "Gravis PC GamePad"
 msgstr "Gravis PC GamePad"
 
 msgid "2-button flight yoke"
-msgstr "Letecký knipl se 2 tlačítky"
+msgstr "Letecký knipl s 2 tlačítky"
 
 msgid "3-button flight yoke"
-msgstr "Letecký knipl se32 tlačítky"
+msgstr "Letecký knipl s 3 tlačítky"
 
 msgid "4-button flight yoke"
 msgstr "Letecký knipl se 4 tlačítky"
@@ -919,7 +919,7 @@ msgid "3-button flight yoke with throttle"
 msgstr "Letecký knipl s 3 tlačítky a pákou"
 
 msgid "4-button flight yoke with throttle"
-msgstr "Letecký knipl s 4 tlačítky a pákou"
+msgstr "Letecký knipl se 4 tlačítky a pákou"
 
 msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Volant (3 osy, 2 tlačítka)"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 s adaptérem"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 bez adaptéru"
 
 msgid "None"
 msgstr "Žadné"
@@ -1852,10 +1852,10 @@ msgid "Adapter:"
 msgstr "Adaptér:"
 
 msgid "VDE Socket:"
-msgstr "Zásuvka VDE:"
+msgstr "VDE socket:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Zařízení TAP mostu:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"

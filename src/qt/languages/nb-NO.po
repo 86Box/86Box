@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "Ugyldig PCap-enhet"
 
 msgid "Generic paddle controller(s)"
-msgstr ""
+msgstr "Generisk padle-kontroller(e)"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2-akset, 1-knapps styrespak(er)"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Ror-kontrollsystem"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 med adapter"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 uten adapter"
 
 msgid "None"
 msgstr "Ingen"
