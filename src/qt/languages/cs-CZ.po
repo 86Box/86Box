@@ -975,21 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-<<<<<<< HEAD
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 s adaptérem"
-=======
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 s adaptérem"
->>>>>>> 0a80ae2debdb61f381194ed5f17b5579d5510cc4
 
-<<<<<<< HEAD
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 bez adaptéru"
-=======
 msgid "Thrustmaster Formula T1/T2 without adapter"
 msgstr "Thrustmaster Formula T1/T2 bez adaptéru"
->>>>>>> 0a80ae2debdb61f381194ed5f17b5579d5510cc4
 
 msgid "None"
 msgstr "Žadné"
