@@ -9,9 +9,8 @@ These are the steps to install a machine fully dedicated to 86Box and tuned to m
 	apt install git build-essential cmake extra-cmake-modules pkg-config ninja-build libfreetype-dev libsdl2-dev libpng-dev libopenal-dev librtmidi-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libevdev-dev libxkbcommon-dev libxkbcommon-x11-dev libslirp-dev
 	
 4) setup git and clone
-	git@github.com:Valefungo/86Box.git
+	git@github.com:86Box/86Box.git
 	git@github.com:86Box/roms.git
-   git checkout unix_ods
 
 5) build (128 => super speed, too much for a 2GB machine)
 	cd 86Box
