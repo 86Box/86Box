@@ -435,6 +435,9 @@ machine_at_thor_gpio_init(void)
     else if (cpu_busspeed > 60000000)
         gpio |= 0xffff1000;
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        gpio |= 0xffff0400;
+
     machine_set_gpio_default(gpio);
 }
 
@@ -475,6 +478,9 @@ machine_at_thor_init(const machine_t *model)
 
     if (has_video && (gfxcard[0] == VID_INTERNAL))
         device_add(machine_get_vid_device(machine));
+
+    if (has_video && (sound_card_current[0] == SOUND_INTERNAL))
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&i430fx_device);
     device_add(&piix_device);
@@ -576,27 +582,6 @@ machine_at_monaco_gpio_init(void)
 {
     uint32_t gpio = 0xffffe0cf;
 
-    /* Return to this after CS4232 PnP is working. */
-    /* Register 0x0078 (Undocumented): */
-    /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
-    /*device_context(machine_get_snd_device(machine));
-    addr = device_get_config_hex16("base");
-    switch (addr) {
-        case 0x0220:
-            gpio |= 0xffff00cf;
-            break;
-        case 0x0240:
-            gpio |= 0xffff00ef;
-            break;
-        case 0x0260:
-            gpio |= 0xffff00df;
-            break;
-        case 0x0280:
-            gpio |= 0xffff00ff;
-            break;
-    }
-    device_context_restore();*/
-
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
     /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
@@ -682,6 +667,9 @@ machine_at_endeavor_init(const machine_t *model)
     return ret;
 }
 
+/* The Monaco and Atlantis share the same GPIO config */
+#define machine_at_atlantis_gpio_init machine_at_monaco_gpio_init
+
 int
 machine_at_atlantis_init(const machine_t *model)
 {
@@ -695,6 +683,7 @@ machine_at_atlantis_init(const machine_t *model)
         return ret;
 
     machine_at_common_init_ex(model, 2);
+    machine_at_atlantis_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
