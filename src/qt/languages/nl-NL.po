@@ -235,7 +235,7 @@ msgid "&New image..."
 msgstr "&Nieuw imagebestand..."
 
 msgid "&Existing image..."
-msgstr "&Bestaande imagebestand..."
+msgstr "&Bestaand imagebestand..."
 
 msgid "Existing image (&Write-protected)..."
 msgstr "Bestaand imagebestand (&Schrijfbeveiligd)..."
