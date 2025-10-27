@@ -1095,16 +1095,19 @@ unix_executeLine(char *line)
                         err = true;
                         fprintf(stderr, "Path name too long.\n");
                     }
-                    strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
-                    if (fn[strlen(fn) - 1] == '\''
-                        || fn[strlen(fn) - 1] == '"') {
-                        break;
+                    else
+                    {
+                        strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
+                        if (fn[strlen(fn) - 1] == '\''
+                            || fn[strlen(fn) - 1] == '"') {
+                            break;
+                        }
+                        strcat(fn, " ");
                     }
-                    strcat(fn, " ");
                 }
             } else {
                 if (strlen(xargv[2]) < PATH_MAX) {
-                    strcpy(fn, xargv[2]);
+                    strncpy(fn, xargv[2], PATH_MAX-1);
                 } else {
                     fprintf(stderr, "Path name too long.\n");
                 }
@@ -1245,8 +1248,6 @@ monitor_thread(UNUSED(void *param))
     }
 #endif
 }
-
-#define FINGER_MOTION_MULTIPLIER 100
 
 extern int gfxcard[GFXCARD_MAX];
 int
