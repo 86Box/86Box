@@ -603,9 +603,6 @@ msgstr "Kênh:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "Chỉ &rõ..."
-
 msgid "Sectors:"
 msgstr "Sector:"
 
@@ -852,8 +849,17 @@ msgstr "Không tìm thấy thiết bị PCap"
 msgid "Invalid PCap device"
 msgstr "Thiết bị PCap không hợp quy"
 
+msgid "Generic paddle controller(s)"
+msgstr "Bộ điều khiển dạng mái chèo thông dụng"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Cần điều khiển hai trục, một nút"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Cần điều khiển hai trục, hai nút"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Cần điều khiển hai trục, ba nút"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Cần điều khiển hai trục, bốn nút"
@@ -867,17 +873,98 @@ msgstr "Cần điều khiển hai trục, tám nút"
 msgid "3-axis, 2-button joystick"
 msgstr "Cần điều khiển ba trục, hai nút"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Cần điều khiển ba trục, ba nút"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Cần điều khiển ba trục, bốn nút"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Cần điều khiển bốn trục, hai nút"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Cần điều khiển bốn trục, ba nút"
+
 msgid "4-axis, 4-button joystick"
 msgstr "Cần điều khiển bốn trục, bốn nút"
+
+msgid "2-button gamepad(s)"
+msgstr "Tay cầm game hai nút"
+
+msgid "3-button gamepad"
+msgstr "Tay cầm game ba nút"
+
+msgid "4-button gamepad"
+msgstr "Tay cầm game bốn nút"
+
+msgid "6-button gamepad"
+msgstr "Tay cầm game sáu nút"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "Vô lăng máy bay hai nút"
+
+msgid "3-button flight yoke"
+msgstr "Vô lăng máy bay ba nút"
+
+msgid "4-button flight yoke"
+msgstr "Vô lăng máy bay bốn nút"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Vô lăng máy bay hai nút có cần ga"
+
+msgid "3-button flight yoke with throttle"
+msgstr "Vô lăng máy bay ba nút có cần ga"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Vô lăng máy bay bốn nút có cần ga"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Vô lăng (ba trục, hai nút)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Vô lăng (ba trục, ba nút)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Vô lăng (ba trục, bốn nút)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + bàn giậm CH"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + bàn giậm CH Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + bàn giậm CH"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + bàn giậm CH Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + bàn giậm CH"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + bàn giậm CH Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + bàn giậm CH"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + bàn giậm CH Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Hệ thống bánh lái"
 
-msgid "2-button gamepad(s)"
-msgstr "Tay cầm game hai nút"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 kèm bộ chuyển đổi"
 
-msgid "2-button flight yoke"
-msgstr "Vô lăng máy bay hai nút"
-
-msgid "4-button gamepad"
-msgstr "Tay cầm game bốn nút"
-
-msgid "4-button flight yoke"
-msgstr "Vô lăng máy bay bốn nút"
-
-msgid "2-button flight yoke with throttle"
-msgstr "Vô lăng máy bay hai nút có cần ga"
-
-msgid "4-button flight yoke with throttle"
-msgstr "Vô lăng máy bay bốn nút có cần ga"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Vô lăng Win95 (ba trục, bốn nút)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 không kèm bộ chuyển đổi"
 
 msgid "None"
 msgstr "Không có"
@@ -1781,6 +1853,9 @@ msgstr "Bộ chuyển đổi:"
 
 msgid "VDE Socket:"
 msgstr "Ổ cắm VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Trình kiểm tra đơn vị 86box"

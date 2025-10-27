@@ -603,9 +603,6 @@ msgstr "Kanał:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Określ..."
-
 msgid "Sectors:"
 msgstr "Sektory:"
 
@@ -852,8 +849,17 @@ msgstr "Nie znaleziono urządzeń PCap"
 msgid "Invalid PCap device"
 msgstr "Nieprawidłowe urządzenie PCap"
 
+msgid "Generic paddle controller(s)"
+msgstr "Generyczny kontroler paddle"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Joystick(i) 2-osiowe, 1-przyciskowe"
+
 msgid "2-axis, 2-button joystick(s)"
-msgstr "Joysticki 2-osiowe, 2-przyciskowe"
+msgstr "Joystick(i) 2-osiowe, 2-przyciskowe"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Joystick 2-osiowy, 3-przyciskowy"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Joystick 2-osiowy, 4-przyciskowy"
@@ -867,17 +873,98 @@ msgstr "Joystick 2-osiowy, 8-przyciskowy"
 msgid "3-axis, 2-button joystick"
 msgstr "Joystick 3-osiowy, 2-przyciskowy"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Joystick 3-osiowy, 2-przyciskowy"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Joystick 3-osiowy, 4-przyciskowy"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Joystick 4-osiowy, 2-przyciskowy"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Joystick 4-osiowy, 3-przyciskowy"
+
 msgid "4-axis, 4-button joystick"
 msgstr "Joystick 4-osiowy, 4-przyciskowy"
+
+msgid "2-button gamepad(s)"
+msgstr "Pad(y) z dwoma przyciskami"
+
+msgid "3-button gamepad"
+msgstr "Pad z trzema przyciskami"
+
+msgid "4-button gamepad"
+msgstr "Pad z czterema przyciskami"
+
+msgid "6-button gamepad"
+msgstr "Pad z sześcioma przyciskami"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "Wolant z dwoma przyciskami"
+
+msgid "3-button flight yoke"
+msgstr "Wolant z trzema guzikami"
+
+msgid "4-button flight yoke"
+msgstr "Wolant z czterema przyciskami"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Wolant z dwoma przyciskami i przepustnicą"
+
+msgid "3-button flight yoke with throttle"
+msgstr "Wolant z trzema przyciskami i przepustnicą"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Wolant z czterema przyciskami i przepustnicą"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Kierownica (3 osie, 2 przyciski)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Kierownica (3 osie, 3 przyciski)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Kierownica (3 osie, 4 przyciski)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "Pad(y) z dwoma przyciskami"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 z adapterem"
 
-msgid "2-button flight yoke"
-msgstr "Wolant z dwoma przyciskami"
-
-msgid "4-button gamepad"
-msgstr "Pad z czterema przyciskami"
-
-msgid "4-button flight yoke"
-msgstr "Wolant z czterema przyciskami"
-
-msgid "2-button flight yoke with throttle"
-msgstr "Wolant z dwoma przyciskami i przepustnicą"
-
-msgid "4-button flight yoke with throttle"
-msgstr "Wolant z czterema przyciskami i przepustnicą"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Kierownica Win95 (3 osie, 4 przyciski)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 bez adaptera"
 
 msgid "None"
 msgstr "Żaden"
@@ -1781,6 +1853,9 @@ msgstr "Adapter:"
 
 msgid "VDE Socket:"
 msgstr "Gniazdo VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Tester urządzeń 86Box"
@@ -2977,19 +3052,19 @@ msgid "Export EDID"
 msgstr "Eksportuj EDID"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "Plik EDID \"%ls\" jest zbyt duży."
+msgstr "Plik EDID „%ls” jest zbyt duży."
 
 msgid "OpenGL input scale"
-msgstr "Skala wejściowa OpenGL"
+msgstr "Skala wejścia OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "Tryb rozciągania wejściowego OpenGL"
+msgstr "Tryb rozciągania wejścia OpenGL"
 
 msgid "Color scheme"
 msgstr "Schemat kolorów"
 
 msgid "Light"
-msgstr "Światło"
+msgstr "Jasny"
 
 msgid "Dark"
 msgstr "Ciemny"

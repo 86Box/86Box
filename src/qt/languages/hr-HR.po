@@ -603,9 +603,6 @@ msgstr "Kanal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Odredi..."
-
 msgid "Sectors:"
 msgstr "Sektori:"
 
@@ -852,8 +849,17 @@ msgstr "Nema PCap uređaja"
 msgid "Invalid PCap device"
 msgstr "Nevažeći PCap uređaj"
 
+msgid "Generic paddle controller(s)"
+msgstr "Generički kontroleri s lopaticama"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Palica za igru s 2 osi, 1 tipke"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Palica za igru s 2 osi, 2 tipke"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Palica za igru s 2 osi, 3 tipke"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Palica za igru s 2 osi, 4 tipke"
@@ -867,17 +873,98 @@ msgstr "Palica za igru s 2 osi, 8 tipke"
 msgid "3-axis, 2-button joystick"
 msgstr "Palica za igru s 3 osi, 2 tipke"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Palica za igru s 3 osi, 3 tipke"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Palica za igru s 3 osi, 4 tipke"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Palica za igru s 4 osi, 2 tipke"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Palica za igru s 4 osi, 3 tipke"
+
 msgid "4-axis, 4-button joystick"
 msgstr "Palica za igru s 4 osi, 4 tipke"
+
+msgid "2-button gamepad(s)"
+msgstr "Gamepad(ovi) s 2 tipke"
+
+msgid "3-button gamepad"
+msgstr "Gamepad s 3 tipke"
+
+msgid "4-button gamepad"
+msgstr "Gamepad s 4 tipke"
+
+msgid "6-button gamepad"
+msgstr "Gamepad s 6 tipke"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "Jaram za letenje s 2 tipke"
+
+msgid "3-button flight yoke"
+msgstr "Jaram za letenje s 3 tipke"
+
+msgid "4-button flight yoke"
+msgstr "Jaram za letenje s 4 tipke"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Jaram za letenje s 2 tipke i gasom"
+
+msgid "3-button flight yoke with throttle"
+msgstr "Jaram za letenje s 3 tipke i gasom"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Jaram za letenje s 4 tipke i gasom"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Volan (3 osi, 2 tipke)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Volan (3 osi, 3 tipke)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Volan (3 osi, 4 tipke)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "Gamepad(ovi) s 2 tipke"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 s adapterom"
 
-msgid "2-button flight yoke"
-msgstr "Jaram za letenje s 2 tipke"
-
-msgid "4-button gamepad"
-msgstr "Gamepad s 4 tipke"
-
-msgid "4-button flight yoke"
-msgstr "Jaram za letenje s 4 tipke"
-
-msgid "2-button flight yoke with throttle"
-msgstr "Jaram za letenje s 2 tipke i gasom"
-
-msgid "4-button flight yoke with throttle"
-msgstr "Jaram za letenje s 4 tipke i gasom"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Volan Win95 (3 osi, 4 tipke)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 bez adaptera"
 
 msgid "None"
 msgstr "Bez"
@@ -1714,7 +1786,7 @@ msgid "Remove"
 msgstr "Ukloni"
 
 msgid "Browse..."
-msgstr "Pregledajte..."
+msgstr "Pretraži..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nije moguće stvoriti kontekst OpenGL."
@@ -1781,6 +1853,9 @@ msgstr "Adapter:"
 
 msgid "VDE Socket:"
 msgstr "VDE utičnica:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Jedinični ispitivač 86Box-a"

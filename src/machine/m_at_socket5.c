@@ -566,7 +566,7 @@ static const device_config_t pt2000_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.50GP - Revision T1.01",
-                .internal_name = "pt2000_450gp",
+                .internal_name = "pt2000",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -575,7 +575,7 @@ static const device_config_t pt2000_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 3.072C806",
-                .internal_name = "pt2000",
+                .internal_name = "pt2000_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,

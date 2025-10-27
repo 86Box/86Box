@@ -603,9 +603,6 @@ msgstr ""
 msgid "ID:"
 msgstr ""
 
-msgid "&Specify..."
-msgstr ""
-
 msgid "Sectors:"
 msgstr ""
 
@@ -852,7 +849,16 @@ msgstr ""
 msgid "Invalid PCap device"
 msgstr ""
 
+msgid "Generic paddle controller(s)"
+msgstr ""
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr ""
+
 msgid "2-axis, 2-button joystick(s)"
+msgstr ""
+
+msgid "2-axis, 3-button joystick"
 msgstr ""
 
 msgid "2-axis, 4-button joystick"
@@ -867,16 +873,97 @@ msgstr ""
 msgid "3-axis, 2-button joystick"
 msgstr ""
 
+msgid "3-axis, 3-button joystick"
+msgstr ""
+
 msgid "3-axis, 4-button joystick"
 msgstr ""
 
+msgid "4-axis, 2-button joystick"
+msgstr ""
+
+msgid "4-axis, 3-button joystick"
+msgstr ""
+
 msgid "4-axis, 4-button joystick"
+msgstr ""
+
+msgid "2-button gamepad(s)"
+msgstr ""
+
+msgid "3-button gamepad"
+msgstr ""
+
+msgid "4-button gamepad"
+msgstr ""
+
+msgid "6-button gamepad"
+msgstr ""
+
+msgid "Gravis PC GamePad"
+msgstr ""
+
+msgid "2-button flight yoke"
+msgstr ""
+
+msgid "3-button flight yoke"
+msgstr ""
+
+msgid "4-button flight yoke"
+msgstr ""
+
+msgid "2-button flight yoke with throttle"
+msgstr ""
+
+msgid "3-button flight yoke with throttle"
+msgstr ""
+
+msgid "4-button flight yoke with throttle"
+msgstr ""
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr ""
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr ""
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr ""
+
+msgid "CH Flightstick"
+msgstr ""
+
+msgid "CH Flightstick + CH Pedals"
+msgstr ""
+
+msgid "CH Flightstick + CH Pedals Pro"
 msgstr ""
 
 msgid "CH Flightstick Pro"
 msgstr ""
 
 msgid "CH Flightstick Pro + CH Pedals"
+msgstr ""
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr ""
+
+msgid "CH Virtual Pilot"
+msgstr ""
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr ""
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr ""
+
+msgid "CH Virtual Pilot Pro"
+msgstr ""
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr ""
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
 msgstr ""
 
 msgid "Microsoft SideWinder Pad"
@@ -888,25 +975,10 @@ msgstr ""
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr ""
 
-msgid "2-button gamepad(s)"
+msgid "Thrustmaster Formula T1/T2 with Adaptor"
 msgstr ""
 
-msgid "2-button flight yoke"
-msgstr ""
-
-msgid "4-button gamepad"
-msgstr ""
-
-msgid "4-button flight yoke"
-msgstr ""
-
-msgid "2-button flight yoke with throttle"
-msgstr ""
-
-msgid "4-button flight yoke with throttle"
-msgstr ""
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
+msgid "Thrustmaster Formula T1/T2 without Adaptor"
 msgstr ""
 
 msgid "None"
@@ -1780,6 +1852,9 @@ msgid "Adapter:"
 msgstr ""
 
 msgid "VDE Socket:"
+msgstr ""
+
+msgid "TAP Bridge Device:"
 msgstr ""
 
 msgid "86Box Unit Tester"
@@ -2986,9 +3061,6 @@ msgid "OpenGL input stretch mode"
 msgstr ""
 
 msgid "Color scheme"
-msgstr ""
-
-msgid "System"
 msgstr ""
 
 msgid "Light"

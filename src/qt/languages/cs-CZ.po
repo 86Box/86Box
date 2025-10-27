@@ -603,9 +603,6 @@ msgstr "Kanál:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Zadat..."
-
 msgid "Sectors:"
 msgstr "Sektory:"
 
@@ -852,8 +849,17 @@ msgstr "Nebyla nalezena žádná PCap zařízení"
 msgid "Invalid PCap device"
 msgstr "Neplatné PCap zařízení"
 
+msgid "Generic paddle controller(s)"
+msgstr "Obecný otočný ovladač"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Joystick s 2 osami a 1 tlačítkem"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Joystick s 2 osami a 2 tlačítky"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Joystick s 2 osami a 3 tlačítky"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Joystick s 2 osami a 4 tlačítky"
@@ -867,17 +873,98 @@ msgstr "Joystick s 2 osami a 8 tlačítky"
 msgid "3-axis, 2-button joystick"
 msgstr "Joystick s 3 osami a 2 tlačítky"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Joystick s 3 osami a 3 tlačítky"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Joystick s 3 osami a 4 tlačítky"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Joystick se 4 osami a 2 tlačítky"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Joystick se 4 osami a 3 tlačítky"
+
 msgid "4-axis, 4-button joystick"
-msgstr "Joystick s 4 osami a 4 tlačítky"
+msgstr "Joystick se 4 osami a 4 tlačítky"
+
+msgid "2-button gamepad(s)"
+msgstr "Ovladač s 2 tlačítky"
+
+msgid "3-button gamepad"
+msgstr "Ovladač s 3 tlačítky"
+
+msgid "4-button gamepad"
+msgstr "Ovladač se 4 tlačítky"
+
+msgid "6-button gamepad"
+msgstr "Ovladač se 6 tlačítky"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "Letecký knipl s 2 tlačítky"
+
+msgid "3-button flight yoke"
+msgstr "Letecký knipl s 3 tlačítky"
+
+msgid "4-button flight yoke"
+msgstr "Letecký knipl se 4 tlačítky"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Letecký knipl s 2 tlačítky a pákou"
+
+msgid "3-button flight yoke with throttle"
+msgstr "Letecký knipl s 3 tlačítky a pákou"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Letecký knipl se 4 tlačítky a pákou"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Volant (3 osy, 2 tlačítka)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Volant (3 osy, 3 tlačítka)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Volant (3 osy, 4 tlačítka)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "Ovladač se 2 tlačítky"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 s adaptérem"
 
-msgid "2-button flight yoke"
-msgstr "Letecký knipl se 2 tlačítky"
-
-msgid "4-button gamepad"
-msgstr "Ovladač se 4 tlačítky"
-
-msgid "4-button flight yoke"
-msgstr "Letecký knipl se 4 tlačítky"
-
-msgid "2-button flight yoke with throttle"
-msgstr "Letecký knipl s 2 tlačítky a pákou"
-
-msgid "4-button flight yoke with throttle"
-msgstr "Letecký knipl s 4 tlačítky a pákou"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Volant pro Windows 95 (3 osy, 4 tlačítka)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 bez adaptéru"
 
 msgid "None"
 msgstr "Žadné"
@@ -1714,7 +1786,7 @@ msgid "Remove"
 msgstr "Odstranit"
 
 msgid "Browse..."
-msgstr "Browse..."
+msgstr "Procházet..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nepodařilo se vytvořit kontext OpenGL."
@@ -1780,7 +1852,10 @@ msgid "Adapter:"
 msgstr "Adaptér:"
 
 msgid "VDE Socket:"
-msgstr "Zásuvka VDE:"
+msgstr "VDE socket:"
+
+msgid "TAP Bridge Device:"
+msgstr "Zařízení TAP mostu:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"

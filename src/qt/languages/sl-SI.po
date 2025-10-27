@@ -603,9 +603,6 @@ msgstr "Kanal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Določi..."
-
 msgid "Sectors:"
 msgstr "Sektorji:"
 
@@ -852,8 +849,17 @@ msgstr "Najdena ni bila nobena naprava PCap"
 msgid "Invalid PCap device"
 msgstr "Neveljavna naprava PCap"
 
+msgid "Generic paddle controller(s)"
+msgstr "Generični krmilnik z lopatico"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Igralna palica z 2 osema, 1 gumboma"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Igralna palica z 2 osema, 2 gumboma"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Igralna palica z 2 osema, 3 gumbi"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Igralna palica z 2 osema, 4 gumbi"
@@ -865,19 +871,100 @@ msgid "2-axis, 8-button joystick"
 msgstr "Igralna palica z 2 osema, 8 gumbi"
 
 msgid "3-axis, 2-button joystick"
-msgstr "Igralna palica s 3 osmi, 2 gumboma"
+msgstr "Igralna palica s 3 osmi, 2 gumbi"
+
+msgid "3-axis, 3-button joystick"
+msgstr "Igralna palica s 3 osmi, 3 gumbi"
 
 msgid "3-axis, 4-button joystick"
 msgstr "Igralna palica s 3 osmi, 4 gumbi"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Igralna palica s 4 osmi, 2 gumbi"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Igralna palica s 4 osmi, 3 gumbi"
+
 msgid "4-axis, 4-button joystick"
 msgstr "Igralna palica s 4 osmi, 4 gumbi"
+
+msgid "2-button gamepad(s)"
+msgstr "Igralna ploščica z 2 gumboma"
+
+msgid "3-button gamepad"
+msgstr "Igralna ploščica s 3 gumbi"
+
+msgid "4-button gamepad"
+msgstr "Igralna ploščica s 4 gumbi"
+
+msgid "6-button gamepad"
+msgstr "Igralna ploščica s 6 gumbi"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "Letalski krmilni drog z 2 gumbi"
+
+msgid "3-button flight yoke"
+msgstr "Letalski krmilni drog z 3 gumbi"
+
+msgid "4-button flight yoke"
+msgstr "Letalski krmilni drog s 4 gumbi"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Letalski krmilni drog z 2 gumbi gumboma ročico za plin"
+
+msgid "3-button flight yoke with throttle"
+msgstr "Letalski krmilni drog s 3 gumbi z ročico za plin"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Letalski krmilni drog s 4 gumbi z ročico za plin"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Volan s 3 osmi, 2 gumbi"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Volan s 3 osmi, 3 gumbi"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Volan s 3 osmi, 4 gumbi"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "Igralna ploščica z 2 gumboma"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 s pretvornikom"
 
-msgid "2-button flight yoke"
-msgstr "Letalski krmilni drog z 2 gumbi"
-
-msgid "4-button gamepad"
-msgstr "Igralna ploščica s 4 gumbi"
-
-msgid "4-button flight yoke"
-msgstr "Letalski krmilni drog s 4 gumbi"
-
-msgid "2-button flight yoke with throttle"
-msgstr "Letalski krmilni drog z 2 gumbi gumboma ročico za plin"
-
-msgid "4-button flight yoke with throttle"
-msgstr "Letalski krmilni drog s 4 gumbi z ročico za plin"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Volan Win95 s 3 osmi, 4 gumbi"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 brez pretvornika"
 
 msgid "None"
 msgstr "Brez"
@@ -1781,6 +1853,9 @@ msgstr "Mrežna kartica:"
 
 msgid "VDE Socket:"
 msgstr "Vtičnica VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Tester enote 86Box"

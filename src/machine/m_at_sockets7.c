@@ -200,7 +200,7 @@ static const device_config_t g5x_config[] = {
             },
             {
                 .name          = "Phoenix - AwardBIOS v6.00PG - Release 4.1 (by eSupport)",
-                .internal_name = "5ax_esupport",
+                .internal_name = "5ax_600pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -312,7 +312,7 @@ static const device_config_t delhi3_config[] = {
         .bios           = {
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 1.01",
-                .internal_name = "delhi3",
+                .internal_name = "delhi3_nonoem",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -321,7 +321,7 @@ static const device_config_t delhi3_config[] = {
             },
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 1.20 (eMachines eTower 3__k)",
-                .internal_name = "etower",
+                .internal_name = "delhi3",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,

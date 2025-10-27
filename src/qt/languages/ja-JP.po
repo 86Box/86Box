@@ -603,9 +603,6 @@ msgstr "チャンネル:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "参照(&S)..."
-
 msgid "Sectors:"
 msgstr "セクター:"
 
@@ -852,8 +849,17 @@ msgstr "PCapデバイスがありません"
 msgid "Invalid PCap device"
 msgstr "不正なPCapデバイス"
 
+msgid "Generic paddle controller(s)"
+msgstr "汎用パドルコントローラー"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "ジョイスティック(2軸、1ボタン)"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "ジョイスティック(2軸、2ボタン)"
+
+msgid "2-axis, 3-button joystick"
+msgstr "ジョイスティック(2軸、3ボタン)"
 
 msgid "2-axis, 4-button joystick"
 msgstr "ジョイスティック(2軸、4ボタン)"
@@ -867,17 +873,98 @@ msgstr "ジョイスティック(2軸、8ボタン)"
 msgid "3-axis, 2-button joystick"
 msgstr "ジョイスティック(3軸、2ボタン)"
 
+msgid "3-axis, 3-button joystick"
+msgstr "ジョイスティック(3軸、3ボタン)"
+
 msgid "3-axis, 4-button joystick"
 msgstr "ジョイスティック(3軸、4ボタン)"
 
+msgid "4-axis, 2-button joystick"
+msgstr "ジョイスティック(4軸、2ボタン)"
+
+msgid "4-axis, 3-button joystick"
+msgstr "ジョイスティック(4軸、3ボタン)"
+
 msgid "4-axis, 4-button joystick"
 msgstr "ジョイスティック(4軸、4ボタン)"
+
+msgid "2-button gamepad(s)"
+msgstr "2ボタン式ゲームパッド"
+
+msgid "3-button gamepad"
+msgstr "3ボタン式ゲームパッド"
+
+msgid "4-button gamepad"
+msgstr "4ボタン式ゲームパッド"
+
+msgid "6-button gamepad"
+msgstr "6ボタン式ゲームパッド"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "2ボタン式操縦桿"
+
+msgid "3-button flight yoke"
+msgstr "3ボタン式操縦桿"
+
+msgid "4-button flight yoke"
+msgstr "4ボタン式操縦桿"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2ボタン式フライトヨーク(スロットル付き)"
+
+msgid "3-button flight yoke with throttle"
+msgstr "3ボタン式フライトヨーク(スロットル付き)"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4ボタン式フライトヨーク(スロットル付き)"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "ステアリングホイール(3軸、2ボタン)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "ステアリングホイール(3軸、3ボタン)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "ステアリングホイール(3軸、4ボタン)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinderパッド"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "2ボタン式ゲームパッド"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "アダプター付き Thrustmaster Formula T1/T2"
 
-msgid "2-button flight yoke"
-msgstr "2ボタン式操縦桿"
-
-msgid "4-button gamepad"
-msgstr "4ボタン式ゲームパッド"
-
-msgid "4-button flight yoke"
-msgstr "4ボタン式操縦桿"
-
-msgid "2-button flight yoke with throttle"
-msgstr "2ボタン式フライトヨーク(スロットル付き)"
-
-msgid "4-button flight yoke with throttle"
-msgstr "4ボタン式フライトヨーク(スロットル付き)"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 ステアリングホイール(3軸、4ボタン)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "アダプターなし Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "なし"
@@ -1714,7 +1786,7 @@ msgid "Remove"
 msgstr "削除"
 
 msgid "Browse..."
-msgstr "ブラウズ..."
+msgstr "参照..."
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGLコンテキストを作成できませんでした。"
@@ -1781,6 +1853,9 @@ msgstr "アダプター:"
 
 msgid "VDE Socket:"
 msgstr "VDEソケット:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Boxユニットテスター"

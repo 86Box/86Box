@@ -603,9 +603,6 @@ msgstr "Канал:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Указать..."
-
 msgid "Sectors:"
 msgstr "Секторы:"
 
@@ -852,8 +849,17 @@ msgstr "Устройства PCap не найдены"
 msgid "Invalid PCap device"
 msgstr "Неверное устройство PCap"
 
+msgid "Generic paddle controller(s)"
+msgstr "Стандартный контроллер-колесо"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "2-осевой, 1-кнопочный джойстик"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-осевой, 2-кнопочный джойстик"
+
+msgid "2-axis, 3-button joystick"
+msgstr "2-осевой, 3-кнопочный джойстик"
 
 msgid "2-axis, 4-button joystick"
 msgstr "2-осевой, 4-кнопочный джойстик"
@@ -867,17 +873,98 @@ msgstr "2-осевой, 8-кнопочный джойстик"
 msgid "3-axis, 2-button joystick"
 msgstr "3-осевой, 2-кнопочный джойстик"
 
+msgid "3-axis, 3-button joystick"
+msgstr "3-осевой, 3-кнопочный джойстик"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3-осевой, 4-кнопочный джойстик"
 
+msgid "4-axis, 2-button joystick"
+msgstr "4-осевой, 2-кнопочный джойстик"
+
+msgid "4-axis, 3-button joystick"
+msgstr "4-осевой, 3-кнопочный джойстик"
+
 msgid "4-axis, 4-button joystick"
 msgstr "4-осевой, 4-кнопочный джойстик"
+
+msgid "2-button gamepad(s)"
+msgstr "2-кнопочный геймпад"
+
+msgid "3-button gamepad"
+msgstr "3-кнопочный геймпад"
+
+msgid "4-button gamepad"
+msgstr "4-кнопочный геймпад"
+
+msgid "6-button gamepad"
+msgstr "6-кнопочный геймпад"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "2-кнопочный штурвал"
+
+msgid "3-button flight yoke"
+msgstr "3-кнопочный штурвал"
+
+msgid "4-button flight yoke"
+msgstr "4-кнопочный штурвал"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-кнопочный штурвал с дросселем"
+
+msgid "3-button flight yoke with throttle"
+msgstr "3-кнопочный штурвал с дросселем"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-кнопочный штурвал с дросселем"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Руль (3-осевой, 2-кнопочный)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Руль (3-осевой, 3-кнопочный)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Руль (3-осевой, 4-кнопочный)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Педали"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Педали Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Педали"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Педали Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Педали"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Педали Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Педали"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Педали Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Система управления полётом Thrustmaster"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Система управления рулем"
 
-msgid "2-button gamepad(s)"
-msgstr "2-кнопочный геймпад"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 с адаптером"
 
-msgid "2-button flight yoke"
-msgstr "2-кнопочный flight yoke"
-
-msgid "4-button gamepad"
-msgstr "4-кнопочный геймпад"
-
-msgid "4-button flight yoke"
-msgstr "4-кнопочный flight yoke"
-
-msgid "2-button flight yoke with throttle"
-msgstr "2-кнопочный flight yoke с дросселем"
-
-msgid "4-button flight yoke with throttle"
-msgstr "4-кнопочный flight yoke с дросселем"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Руль Win95 (3-осевой, 4-кнопочный)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 без адаптера"
 
 msgid "None"
 msgstr "Нет"
@@ -1781,6 +1853,9 @@ msgstr "Адаптер:"
 
 msgid "VDE Socket:"
 msgstr "VDE сокет:"
+
+msgid "TAP Bridge Device:"
+msgstr "Устройство моста TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Модульный Тестер 86Box"

@@ -1063,32 +1063,49 @@ s3_virge_updatemapping(virge_t *virge)
         return;
     }
 
-    switch (svga->gdcreg[6] & 0xc) { /*Banked framebuffer*/
-        case 0x0:                    /*128k at A0000*/
-            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
-            svga->banked_mask = 0xffff;
-            break;
-        case 0x4: /*64k at A0000*/
-            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
-            svga->banked_mask = 0xffff;
-            if (xga_active && (svga->xga != NULL)) {
-                xga->on = 0;
-                mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
-            }
-            break;
-        case 0x8: /*32k at B0000*/
-            mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
-            svga->banked_mask = 0x7fff;
-            break;
-        case 0xC: /*32k at B8000*/
-            mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
-            svga->banked_mask = 0x7fff;
-            break;
-    }
+    /*Banked framebuffer*/
+    if (svga->crtc[0x31] & 0x08) /*Enhanced mode mappings*/
+    {
+        /* Enhanced mode forces 64kb at 0xa0000*/
+        mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+        svga->banked_mask = 0xffff;
+        if (xga_active && (svga->xga != NULL)) {
+            xga->on = 0;
+            mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+        }
+    } else
+        switch (svga->gdcreg[6] & 0xc) { /*VGA mapping*/
+            case 0x0: /*128k at A0000*/
+                mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
+                svga->banked_mask = 0xffff;
+                break;
+            case 0x4: /*64k at A0000*/
+                mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+                svga->banked_mask = 0xffff;
+                if (xga_active && (svga->xga != NULL)) {
+                    xga->on = 0;
+                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
+                }
+                break;
+            case 0x8: /*32k at B0000*/
+                mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
+                svga->banked_mask = 0x7fff;
+                break;
+            case 0xC: /*32k at B8000*/
+                mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
+                svga->banked_mask = 0x7fff;
+                break;
+
+            default:
+                break;
+        }
 
     virge->linear_base = (svga->crtc[0x5a] << 16) | (svga->crtc[0x59] << 24);
 
     if ((svga->crtc[0x58] & 0x10) || (virge->advfunc_cntl & 0x10)) { /*Linear framebuffer*/
+        /*Linear framebuffer*/
+        mem_mapping_disable(&svga->mapping);
+
         switch (svga->crtc[0x58] & 7) {
             case 0: /*64k*/
                 virge->linear_size = 0x10000;
@@ -1110,11 +1127,19 @@ s3_virge_updatemapping(virge_t *virge)
                 break;
         }
         virge->linear_base &= ~(virge->linear_size - 1);
-        if (virge->linear_base == 0xa0000) {
-            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+        //pclog("CR58 & 7=%x, base=%08x.\n", svga->crtc[0x58] & 7, virge->linear_base);
+        if ((virge->linear_base == 0xa0000) || (virge->linear_size == 0x10000)) {
             mem_mapping_disable(&virge->linear_mapping);
-        } else
-            mem_mapping_set_addr(&virge->linear_mapping, virge->linear_base, virge->linear_size);
+            if (!(svga->crtc[0x53] & 0x10)) {
+                mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
+                svga->banked_mask = 0xffff;
+            }
+        } else {
+            if (virge->linear_base)
+                mem_mapping_set_addr(&virge->linear_mapping, virge->linear_base, virge->linear_size);
+            else
+                mem_mapping_disable(&virge->linear_mapping);
+        }
         svga->fb_only = 1;
     } else {
         mem_mapping_disable(&virge->linear_mapping);
@@ -1122,6 +1147,7 @@ s3_virge_updatemapping(virge_t *virge)
     }
 
     if ((svga->crtc[0x53] & 0x10) || (virge->advfunc_cntl & 0x20)) { /*Old MMIO*/
+        mem_mapping_disable(&svga->mapping);
         if (svga->crtc[0x53] & 0x20)
             mem_mapping_set_addr(&virge->mmio_mapping, 0xb8000, 0x8000);
         else
@@ -1129,9 +1155,12 @@ s3_virge_updatemapping(virge_t *virge)
     } else
         mem_mapping_disable(&virge->mmio_mapping);
 
-    if (svga->crtc[0x53] & 0x08) /*New MMIO*/
-        mem_mapping_set_addr(&virge->new_mmio_mapping, virge->linear_base + 0x1000000, 0x10000);
-    else
+    if (svga->crtc[0x53] & 0x08) { /*New MMIO*/
+        if (virge->linear_base)
+            mem_mapping_set_addr(&virge->new_mmio_mapping, virge->linear_base + 0x1000000, 0x10000);
+        else
+            mem_mapping_disable(&virge->new_mmio_mapping);
+    } else
         mem_mapping_disable(&virge->new_mmio_mapping);
 }
 
@@ -3124,7 +3153,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                     case 0:
                     case CMD_SET_MS:
                         READ(src_addr, source);
-                        if ((virge->s3d.cmd_set & CMD_SET_TP) && source == src_fg_clr)
+                        if ((virge->s3d.cmd_set & CMD_SET_TP) && (source == src_fg_clr))
                             update = 0;
                         break;
                     case CMD_SET_IDS:
@@ -3150,7 +3179,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                                 count                      = 0;
                             }
                         }
-                        if ((virge->s3d.cmd_set & CMD_SET_TP) && source == src_fg_clr)
+                        if ((virge->s3d.cmd_set & CMD_SET_TP) && (source == src_fg_clr))
                             update = 0;
                         break;
                     case CMD_SET_IDS | CMD_SET_MS:
@@ -4829,7 +4858,7 @@ s3_virge_colorkey(virge_t* virge, uint32_t x, uint32_t y)
         return true;
     else if (!(virge->streams.chroma_ctrl & (1 << 28)))
         return true;
-    
+
     comp_r = (virge->streams.chroma_ctrl >> 16) & 0xFF;
     comp_g = (virge->streams.chroma_ctrl >> 8) & 0xFF;
     comp_b = (virge->streams.chroma_ctrl) & 0xFF;
@@ -4853,7 +4882,7 @@ s3_virge_colorkey(virge_t* virge, uint32_t x, uint32_t y)
         */
         uint8_t index = virge->streams.chroma_ctrl & 0xFF;
         alpha_key = (virge->chip < S3_VIRGEGX2) ? (virge->streams.chroma_ctrl & (1 << 29)) : ((virge->streams.chroma_ctrl >> 29) & 3) == 1;
-        
+
         if (alpha_key) {
             comp_r = comp_g = comp_b = index;
             comp_r_h = comp_g_h = comp_b_h = index;
@@ -5188,6 +5217,7 @@ s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 svga->crtc[0x59] = (svga->crtc[0x59] & 0x01) | (val & 0xfe);
             else
                 svga->crtc[0x59] = (svga->crtc[0x59] & 0x03) | (val & 0xfc);
+
             s3_virge_updatemapping(virge);
             return;
 

@@ -603,9 +603,6 @@ msgstr "Kanal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Belirle..."
-
 msgid "Sectors:"
 msgstr "Sektörler:"
 
@@ -852,8 +849,17 @@ msgstr "Herhangi bir PCap cihazı bulunamadı"
 msgid "Invalid PCap device"
 msgstr "Geçersiz PCap cihazı"
 
+msgid "Generic paddle controller(s)"
+msgstr "Genel kürek kontrol cihazları"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "2 eksenli, 1 düğmeli oyun kolları"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2 eksenli, 2 düğmeli oyun kolları"
+
+msgid "2-axis, 3-button joystick"
+msgstr "2 eksenli, 3 düğmeli oyun kolu"
 
 msgid "2-axis, 4-button joystick"
 msgstr "2 eksenli, 4 düğmeli oyun kolu"
@@ -867,17 +873,98 @@ msgstr "2 eksenli, 8 düğmeli oyun kolu"
 msgid "3-axis, 2-button joystick"
 msgstr "3 eksenli, 2 düğmeli oyun kollu"
 
+msgid "3-axis, 3-button joystick"
+msgstr "3 eksenli, 3 düğmeli oyun kolu"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3 eksenli, 4 düğmeli oyun kolu"
 
+msgid "4-axis, 2-button joystick"
+msgstr "4 eksenli, 2 düğmeli oyun kolu"
+
+msgid "4-axis, 3-button joystick"
+msgstr "4 eksenli, 3 düğmeli oyun kolu"
+
 msgid "4-axis, 4-button joystick"
 msgstr "4 eksenli, 4 düğmeli oyun kolu"
+
+msgid "2-button gamepad(s)"
+msgstr "2 düğmeli oyun tablası"
+
+msgid "3-button gamepad"
+msgstr "3 düğmeli oyun tablası"
+
+msgid "4-button gamepad"
+msgstr "4 düğmeli oyun tablası"
+
+msgid "6-button gamepad"
+msgstr "6 düğmeli oyun tablası"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "2 düğmeli uçuş dümeni"
+
+msgid "3-button flight yoke"
+msgstr "3 düğmeli uçuş dümeni"
+
+msgid "4-button flight yoke"
+msgstr "4 düğmeli uçuş dümeni"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2 düğmeli, gaz kollu uçuş dümeni"
+
+msgid "3-button flight yoke with throttle"
+msgstr "3 düğmeli, gaz kollu uçuş dümeni"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4 düğmeli, gaz kollu uçuş dümeni"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "direksiyonu (3 eksenli, 2 düğmeli)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "direksiyonu (3 eksenli, 3 düğmeli)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "direksiyonu (3 eksenli, 4 düğmeli)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "2 düğmeli oyun tablası"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Adaptörlü Thrustmaster Formula T1/T2"
 
-msgid "2-button flight yoke"
-msgstr "2 düğmeli uçuş dümeni"
-
-msgid "4-button gamepad"
-msgstr "4 düğmeli oyun tablası"
-
-msgid "4-button flight yoke"
-msgstr "4 düğmeli uçuş dümeni"
-
-msgid "2-button flight yoke with throttle"
-msgstr "2 düğmeli, gaz kollu uçuş dümeni"
-
-msgid "4-button flight yoke with throttle"
-msgstr "4 düğmeli, gaz kollu uçuş dümeni"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 direksiyonu (3 eksenli, 4 düğmeli)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Adaptörsüz Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "Hiçbiri"
@@ -1781,6 +1853,9 @@ msgstr "Adaptör:"
 
 msgid "VDE Socket:"
 msgstr "VDE Soketi:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box Test Cihazı"

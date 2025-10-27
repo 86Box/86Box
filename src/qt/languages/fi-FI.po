@@ -603,9 +603,6 @@ msgstr "Kanava:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Määritä..."
-
 msgid "Sectors:"
 msgstr "Sektorit:"
 
@@ -852,8 +849,17 @@ msgstr "PCap-laitteita ei löytynyt"
 msgid "Invalid PCap device"
 msgstr "Virheellinen PCap-laite"
 
+msgid "Generic paddle controller(s)"
+msgstr "Yleinen melainohjain"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "2-akseliset 1-painikkeiset peliohjaimet"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-akseliset 2-painikkeiset peliohjaimet"
+
+msgid "2-axis, 3-button joystick"
+msgstr "2-akselinen 3-painikkeinen peliohjain"
 
 msgid "2-axis, 4-button joystick"
 msgstr "2-akselinen 4-painikkeinen peliohjain"
@@ -867,17 +873,98 @@ msgstr "2-akselinen 8-painikkeinen peliohjain"
 msgid "3-axis, 2-button joystick"
 msgstr "3-akselinen 2-painikkeinen peliohjain"
 
+msgid "3-axis, 3-button joystick"
+msgstr "3-akselinen 3-painikkeinen peliohjain"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3-akselinen 4-painikkeinen peliohjain"
 
+msgid "4-axis, 2-button joystick"
+msgstr "4-akselinen 2-painikkeinen peliohjain"
+
+msgid "4-axis, 3-button joystick"
+msgstr "4-akselinen 3-painikkeinen peliohjain"
+
 msgid "4-axis, 4-button joystick"
 msgstr "4-akselinen 4-painikkeinen peliohjain"
+
+msgid "2-button gamepad(s)"
+msgstr "2-painikkeiset peliohjaimet"
+
+msgid "3-button gamepad"
+msgstr "3-painikkeinen peliohjain"
+
+msgid "4-button gamepad"
+msgstr "4-painikkeinen peliohjain"
+
+msgid "6-button gamepad"
+msgstr "6-painikkeinen peliohjain"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "2-painikkeinen lento-ohjain"
+
+msgid "3-button flight yoke"
+msgstr "3-painikkeinen lento-ohjain"
+
+msgid "4-button flight yoke"
+msgstr "4-painikkeinen lento-ohjain"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-painikkeinen lento-ohjain kaasuvivulla"
+
+msgid "3-button flight yoke with throttle"
+msgstr "3-painikkeinen lento-ohjain kaasuvivulla"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-painikkeinen lento-ohjain kaasuvivulla"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "ratti (3-akselinen, 2-painikkeinen)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "ratti (3-akselinen, 3-painikkeinen)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "ratti (3-akselinen, 4-painikkeinen)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
+msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -886,28 +973,13 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
+msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "2-painikkeiset peliohjaimet"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 adapterilla"
 
-msgid "2-button flight yoke"
-msgstr "2-painikkeinen lento-ohjain"
-
-msgid "4-button gamepad"
-msgstr "4-painikkeinen peliohjain"
-
-msgid "4-button flight yoke"
-msgstr "4-painikkeinen lento-ohjain"
-
-msgid "2-button flight yoke with throttle"
-msgstr "2-painikkeinen lento-ohjain kaasuvivulla"
-
-msgid "4-button flight yoke with throttle"
-msgstr "4-painikkeinen lento-ohjain kaasuvivulla"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95-ratti (3-akselinen, 4-painikkeinen)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 ilman adapteria"
 
 msgid "None"
 msgstr "Ei mikään"
@@ -1781,6 +1853,9 @@ msgstr "Sovitin:"
 
 msgid "VDE Socket:"
 msgstr "VDE-socket:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"

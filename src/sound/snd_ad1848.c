@@ -344,7 +344,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 12:
                     if (ad1848->type >= AD1848_TYPE_CS4248) {
-                        ad1848->regs[12] = 0x80 | (val & 0x70) | (ad1848->regs[12] & 0x0f);
+                        ad1848->regs[12] = 0x80 | (val & 0x60) | (ad1848->regs[12] & 0x0f);
                         if ((ad1848->type >= AD1848_TYPE_CS4231) && (ad1848->type < AD1848_TYPE_CS4235)) {
                             if (val & 0x40)
                                 ad1848->fmt_mask |= 0x80;
@@ -413,6 +413,19 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                         /* HACK: the Windows 9x driver's "Synth" control writes to this
                            register with no remapping, even if internal FM is enabled. */
+                        if (ad1848->index == 18) {
+                            if (val & 0x80)
+                                ad1848->fm_vol_l = 0;
+                            else
+                                ad1848->fm_vol_l = (int) ad1848_vols_5bits_aux_gain[val & 0x1f];
+                        } else {
+                            if (val & 0x80)
+                                ad1848->fm_vol_r = 0;
+                            else
+                                ad1848->fm_vol_r = (int) ad1848_vols_5bits_aux_gain[val & 0x1f];
+                        }
+                    }
+                    if ((ad1848->type >= AD1848_TYPE_CS4232) && (ad1848->type <= AD1848_TYPE_CS4236)) {
                         if (ad1848->index == 18) {
                             if (val & 0x80)
                                 ad1848->fm_vol_l = 0;
@@ -508,6 +521,8 @@ readonly_x:
                     }
                     if (ad1848->type == AD1848_TYPE_CS4231) /* I23 is reserved and read-only on CS4231 non-A */
                         goto readonly_i;
+                    if ((ad1848->type >= AD1848_TYPE_CS4232) && (ad1848->type <= AD1848_TYPE_CS4236)) /* I23 bits 7-1 are read-only on CS4231A/4232/4236 non-B, Win2k relies on this for detection */
+                        val = (val & 0x01);
                     break;
 
                 case 24:

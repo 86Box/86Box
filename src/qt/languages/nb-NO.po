@@ -603,9 +603,6 @@ msgstr "Kanal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "&Angi..."
-
 msgid "Sectors:"
 msgstr "Sektorer:"
 
@@ -852,8 +849,17 @@ msgstr "Ingen PCap-enheter funnet"
 msgid "Invalid PCap device"
 msgstr "Ugyldig PCap-enhet"
 
+msgid "Generic paddle controller(s)"
+msgstr "Generisk padle-kontroller(e)"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "2-akset, 1-knapps styrespak(er)"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-akset, 2-knapps styrespak(er)"
+
+msgid "2-axis, 3-button joystick"
+msgstr "2-akset, 3-knapps styrespak"
 
 msgid "2-axis, 4-button joystick"
 msgstr "2-akset, 4-knapps styrespak"
@@ -867,17 +873,98 @@ msgstr "2-akset, 8-knapps styrespak"
 msgid "3-axis, 2-button joystick"
 msgstr "3-akset, 2-knapps styrespak"
 
+msgid "3-axis, 3-button joystick"
+msgstr "3-akset, 4-knapps styrespak"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3-akset, 4-knapps styrespak"
 
+msgid "4-axis, 2-button joystick"
+msgstr "4-akset, 2-knapps styrespak"
+
+msgid "4-axis, 3-button joystick"
+msgstr "4-akset, 3-knapps styrespak"
+
 msgid "4-axis, 4-button joystick"
 msgstr "4-akset, 4-knapps styrespak"
+
+msgid "2-button gamepad(s)"
+msgstr "2-knapps gamepad(er)"
+
+msgid "3-button gamepad"
+msgstr "3-knapps gamepad"
+
+msgid "4-button gamepad"
+msgstr "4-knapps gamepad"
+
+msgid "6-button gamepad"
+msgstr "6-knapps gamepad"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "2-knapps flystyre"
+
+msgid "3-button flight yoke"
+msgstr "3-knapps flystyre"
+
+msgid "4-button flight yoke"
+msgstr "4-knapps flystyre"
+
+msgid "2-button flight yoke with throttle"
+msgstr "2-knapps flystyre med gass"
+
+msgid "3-button flight yoke with throttle"
+msgstr "3-knapps flystyre med gass"
+
+msgid "4-button flight yoke with throttle"
+msgstr "4-knapps flystyre med gass"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Ratt (3-akset, 3-knapps)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Ratt (3-akset, 3-knapps)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Ratt (3-akset, 4-knapps)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedaler"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedaler Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedaler"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedaler Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedaler"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedaler Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedaler"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedaler Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Ror-kontrollsystem"
 
-msgid "2-button gamepad(s)"
-msgstr "2-knapps gamepad(er)"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 med adapter"
 
-msgid "2-button flight yoke"
-msgstr "2-knapps flystyre"
-
-msgid "4-button gamepad"
-msgstr "4-knapps gamepad"
-
-msgid "4-button flight yoke"
-msgstr "4-knapps flystyre"
-
-msgid "2-button flight yoke with throttle"
-msgstr "2-knapps flystyre med gass"
-
-msgid "4-button flight yoke with throttle"
-msgstr "4-knapps flystyre med gass"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 Ratt (3-akset, 4-knapps)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 uten adapter"
 
 msgid "None"
 msgstr "Ingen"
@@ -1781,6 +1853,9 @@ msgstr "Adapter:"
 
 msgid "VDE Socket:"
 msgstr "VDE-kontakt:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box-enhetstester"

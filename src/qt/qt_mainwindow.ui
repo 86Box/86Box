@@ -260,7 +260,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="contextMenuPolicy">
-    <enum>Qt::ContextMenuPolicy::PreventContextMenu</enum>
+    <enum>Qt::PreventContextMenu</enum>
    </property>
    <property name="windowTitle">
     <string notr="true">toolBar</string>
@@ -272,7 +272,7 @@
     <bool>false</bool>
    </property>
    <property name="allowedAreas">
-    <set>Qt::ToolBarArea::TopToolBarArea</set>
+    <set>Qt::TopToolBarArea</set>
    </property>
    <property name="iconSize">
     <size>
@@ -281,7 +281,7 @@
     </size>
    </property>
    <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonStyle::ToolButtonIconOnly</enum>
+    <enum>Qt::ToolButtonIconOnly</enum>
    </property>
    <property name="floatable">
     <bool>false</bool>
@@ -396,7 +396,7 @@
     <string>E&amp;xit</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::QuitRole</enum>
+    <enum>QAction::QuitRole</enum>
    </property>
   </action>
   <action name="actionSettings">
@@ -408,7 +408,7 @@
     <string>&amp;Settings...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
+    <enum>QAction::NoRole</enum>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -710,7 +710,7 @@
     <bool>false</bool>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::AboutQtRole</enum>
+    <enum>QAction::AboutQtRole</enum>
    </property>
   </action>
   <action name="actionAbout_86Box">
@@ -718,7 +718,7 @@
     <string>&amp;About 86Box...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::AboutRole</enum>
+    <enum>QAction::AboutRole</enum>
    </property>
   </action>
   <action name="actionDocumentation">
@@ -771,7 +771,7 @@
     <string>&amp;Preferences...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::PreferencesRole</enum>
+    <enum>QAction::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionEnable_Discord_integration">
@@ -844,7 +844,7 @@
     <string>Renderer &amp;options...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
+    <enum>QAction::NoRole</enum>
    </property>
   </action>
   <action name="actionVulkan">

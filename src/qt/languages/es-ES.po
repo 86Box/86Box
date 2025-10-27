@@ -603,9 +603,6 @@ msgstr "Canal:"
 msgid "ID:"
 msgstr "ID:"
 
-msgid "&Specify..."
-msgstr "E&specificar..."
-
 msgid "Sectors:"
 msgstr "Sectores:"
 
@@ -852,8 +849,17 @@ msgstr "No se encontraron dispositivos PCap"
 msgid "Invalid PCap device"
 msgstr "Dispositivo PCap inválido"
 
+msgid "Generic paddle controller(s)"
+msgstr "Controlador(es) de paleta genérico(s)"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Mando(s) de 2 ejes, 1 botones"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Mando(s) de 2 ejes, 2 botones"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Mando de 2 ejes, 3 botones"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Mando de 2 ejes, 4 botones"
@@ -867,17 +873,98 @@ msgstr "Mando de 2 ejes, 8 botones"
 msgid "3-axis, 2-button joystick"
 msgstr "Mando de 3 ejes, 2 botones"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Mando de 3 ejes, 3 botones"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Mando de 3 ejes, 4 botones"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Mando de 4 ejes, 2 botones"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Mando de 4 ejes, 3 botones"
+
 msgid "4-axis, 4-button joystick"
 msgstr "Mando de 4 ejes, 4 botones"
+
+msgid "2-button gamepad(s)"
+msgstr "Mando(s) de juegos de 2 botones"
+
+msgid "3-button gamepad"
+msgstr "Mando de juegos de 3 botones"
+
+msgid "4-button gamepad"
+msgstr "Mando de juegos de 4 botones"
+
+msgid "6-button gamepad"
+msgstr "Mando de juegos de 6 botones"
+
+msgid "Gravis PC GamePad"
+msgstr "Gravis PC GamePad"
+
+msgid "2-button flight yoke"
+msgstr "Yugo de vuelo de 2 botones"
+
+msgid "3-button flight yoke"
+msgstr "Yugo de vuelo de 3 botones"
+
+msgid "4-button flight yoke"
+msgstr "Yugo de vuelo de 4 botones"
+
+msgid "2-button flight yoke with throttle"
+msgstr "Yugo de vuelo de 2 botones con acelerador"
+
+msgid "3-button flight yoke with throttle"
+msgstr "Yugo de vuelo de 3 botones con acelerador"
+
+msgid "4-button flight yoke with throttle"
+msgstr "Yugo de vuelo de 4 botones con acelerador"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Volante (de 3 ejes, 2 botones)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Volante (de 3 ejes, 3 botones)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Volante (de 3 ejes, 4 botones)"
+
+msgid "CH Flightstick"
+msgstr "CH Flightstick"
+
+msgid "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + CH Pedals"
+
+msgid "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + CH Pedals Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
 msgstr "CH Flightstick Pro + CH Pedals"
+
+msgid "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + CH Pedals Pro"
+
+msgid "CH Virtual Pilot"
+msgstr "CH Virtual Pilot"
+
+msgid "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + CH Pedals"
+
+msgid "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + CH Pedals Pro"
+
+msgid "CH Virtual Pilot Pro"
+msgstr "CH Virtual Pilot Pro"
+
+msgid "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + CH Pedals"
+
+msgid "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
@@ -888,26 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "2-button gamepad(s)"
-msgstr "Mando(s) de juegos de 2 botones"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 con adaptador"
 
-msgid "2-button flight yoke"
-msgstr "Yugo de vuelo de 2 botones"
-
-msgid "4-button gamepad"
-msgstr "Mando de juegos de 4 botones"
-
-msgid "4-button flight yoke"
-msgstr "Yugo de vuelo de 4 botones"
-
-msgid "2-button flight yoke with throttle"
-msgstr "Yugo de vuelo de 2 botones con acelerador"
-
-msgid "4-button flight yoke with throttle"
-msgstr "Yugo de vuelo de 4 botones con acelerador"
-
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Volante Win95 (de 3 ejes, 4 botones)"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 sin adaptador"
 
 msgid "None"
 msgstr "Ninguno"
@@ -1781,6 +1853,9 @@ msgstr "Adaptador:"
 
 msgid "VDE Socket:"
 msgstr "Toma VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Comprobador de unidad 86Box"

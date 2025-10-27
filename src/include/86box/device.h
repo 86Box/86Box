@@ -213,7 +213,7 @@ extern uint8_t     device_get_bios_type(const device_t *dev, const char *interna
 extern uint8_t     device_get_bios_num_files(const device_t *dev, const char *internal_name);
 extern uint32_t    device_get_bios_local(const device_t *dev, const char *internal_name);
 extern uint32_t    device_get_bios_file_size(const device_t *dev, const char *internal_name);
-extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, int file_no);
+extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, unsigned int file_no);
 
 extern int device_is_valid(const device_t *, int mch);
 
