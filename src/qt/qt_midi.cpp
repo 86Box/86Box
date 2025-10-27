@@ -69,5 +69,4 @@ plat_midi_in_get_dev_name(int num, char *s)
     s[0] = ' ';
     s[1] = 0;
 }
-
 }

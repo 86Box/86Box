@@ -32,13 +32,13 @@
 **
 ****************************************************************************/
 #ifndef VULKANRENDERER_HPP
-#define VULKANRENDERER_HPP
+#    define VULKANRENDERER_HPP
 
-#include <QVulkanWindow>
-#include <QImage>
+#    include <QVulkanWindow>
+#    include <QImage>
 
-#if QT_CONFIG(vulkan)
-#    include "qt_vulkanwindowrenderer.hpp"
+#    if QT_CONFIG(vulkan)
+#        include "qt_vulkanwindowrenderer.hpp"
 
 class VulkanRenderer2 : public QVulkanWindowRenderer {
 public:
@@ -92,6 +92,6 @@ private:
 
     QMatrix4x4 m_proj;
 };
-#endif // QT_CONFIG(vulkan)
+#    endif // QT_CONFIG(vulkan)
 
 #endif // VULKANRENDERER_HPP
