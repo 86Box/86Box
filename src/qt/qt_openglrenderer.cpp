@@ -1715,12 +1715,12 @@ OpenGLRenderer::render()
         plat_tempfile(fn, NULL, (char*)".png");
         strcat(path, fn);
 
-        unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 3);
+        unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
         
         glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
-        QImage image(rgb, width, height, QImage::Format_RGB888);
+        QImage image((uchar*)rgb, width, height, width * 3, QImage::Format_RGB888);
         image.mirrored(false, true).save(path, "png");
         monitors[r_monitor_index].mon_screenshots--;
         free(rgb);
