@@ -23,6 +23,9 @@ extern "C" {
 
 #ifndef DISABLE_FDD_AUDIO
 
+/* Maximum number of seek samples (for 80-track drives: 1-79 tracks) */
+#define MAX_SEEK_SAMPLES 79
+
 /* Audio sample configuration structure */
 typedef struct {
     char filename[512];
@@ -37,18 +40,9 @@ typedef struct {
     audio_sample_config_t spindlemotor_start;
     audio_sample_config_t spindlemotor_loop;
     audio_sample_config_t spindlemotor_stop;
-    audio_sample_config_t single_track_step;    
-    audio_sample_config_t multi_track_seek;
-    audio_sample_config_t single_track_step_down;
-    audio_sample_config_t multi_track_seek_down;
-    int total_tracks;
-    int samples_per_track;
-    double initial_seek_time;
-    double initial_seek_time_pcjr;
-    double track_seek_time;
-    double track_seek_time_pcjr;
-    double initial_seek_down_time;
-    double track_seek_down_time;
+    audio_sample_config_t seek_up[MAX_SEEK_SAMPLES];
+    audio_sample_config_t seek_down[MAX_SEEK_SAMPLES];
+    int total_tracks; /* 40 or 80 */
 } fdd_audio_profile_config_t;
 
 #define FDD_AUDIO_PROFILE_MAX 64
@@ -89,7 +83,7 @@ extern const fdd_audio_profile_config_t* fdd_audio_get_profile(int id);
 extern const char* fdd_audio_get_profile_name(int id);
 extern const char* fdd_audio_get_profile_internal_name(int id);
 extern int fdd_audio_get_profile_by_internal_name(const char* internal_name);
-extern double fdd_audio_get_seek_time(int drive, int is_initial, int track_count, int _is_seek_down);
+extern double fdd_audio_get_seek_time(int drive, int is_initial, int track_count, int is_seek_down);
 
 #else
 

@@ -390,10 +390,7 @@ fdd_seek(int drive, int track_diff)
     else {
         /* Trigger appropriate audio for track movements */
         int actual_track_diff = abs(old_track - fdd[drive].track);
-        if (actual_track_diff == 1) {
-            /* Single track movement */
-            fdd_audio_play_single_track_step(drive, old_track, fdd[drive].track);
-        } else if (actual_track_diff > 1) {
+        if (actual_track_diff > 0) {
             /* Multi-track seek */
             fdd_audio_play_multi_track_seek(drive, old_track, fdd[drive].track);
         }
@@ -413,12 +410,11 @@ fdd_seek(int drive, int track_diff)
         int is_seek_down = (fdd[drive].track < old_track);
 
         /* Get seek timings from audio profile configuration with direction awareness */
-        double   initial_seek_time = fdd_audio_get_seek_time(drive, 1, actual_track_diff, is_seek_down);
-        double   track_seek_time   = fdd_audio_get_seek_time(drive, 0, actual_track_diff, is_seek_down);
-        fdd_log("Seek timing for drive %d: initial %.2f µs, per track %.2f µs (%s)\n", 
-                drive, initial_seek_time, track_seek_time, is_seek_down ? "DOWN" : "UP");
-        uint64_t seek_time_us      = (initial_seek_time + (abs(actual_track_diff) * track_seek_time)) * TIMER_USEC;
-        timer_set_delay_u64(&fdd_seek_timer[drive], seek_time_us);
+        double   seek_time_us = fdd_audio_get_seek_time(drive, 1, actual_track_diff, is_seek_down);
+        fdd_log("Seek timing for drive %d: %.2f µs (%s)\n", 
+                drive, seek_time_us, is_seek_down ? "DOWN" : "UP");
+        uint64_t seek_delay_us = seek_time_us * TIMER_USEC;
+        timer_set_delay_u64(&fdd_seek_timer[drive], seek_delay_us);
     }
 }
 
