@@ -2347,6 +2347,9 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
                                                    _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
                         read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
                 }
+
+                if (i_e == 0x00000000ULL)
+                    break;
             }
         }
         map = map->next;
