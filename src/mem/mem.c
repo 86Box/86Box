@@ -2316,7 +2316,38 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
             if (start < map->base)
                 start = map->base;
 
-            for (i_c = i_s; i_c <= i_e; i_c += i_a) {
+            if (i_e == 0x00000000ULL) {
+                for (c = start; c < end; c += MEM_GRANULARITY_SIZE) {
+                    /* CPU */
+                    n = !!in_smm;
+                    wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
+
+                    if (map->exec && mem_mapping_access_allowed(map->flags,
+                                     _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
+                        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping[c >> MEM_GRANULARITY_BITS] = map;
+
+                    /* Bus */
+                    n |= STATE_BUS;
+                    wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
+
+                    if (!wp && (map->write_b || map->write_w || map->write_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+                        write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                    if ((map->read_b || map->read_w || map->read_l) &&
+                        mem_mapping_access_allowed(map->flags,
+                                                   _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+                        read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+                }
+            } else  for (i_c = i_s; i_c <= i_e; i_c += i_a) {
                 for (c = (start + i_c); c < (end + i_c); c += MEM_GRANULARITY_SIZE) {
                     /* CPU */
                     n = (!!in_smm) || (is_cxsmm && (ccr1 & CCR1_SMAC));
