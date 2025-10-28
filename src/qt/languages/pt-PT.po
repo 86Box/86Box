@@ -849,8 +849,8 @@ msgstr "Não foi encontrado um dispositivo PCap"
 msgid "Invalid PCap device"
 msgstr "Dispositivo PCap inválido"
 
-msgid "Generic Paddle Controller(s)"
-msgstr ""
+msgid "Generic paddle controller(s)"
+msgstr "COntrolador(es) genérico(s) tipo pá"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "Joystick(s) de 2 eixos, 1 botões"
@@ -921,13 +921,13 @@ msgstr "Manípulo de voo de 3 botões com acelerador"
 msgid "4-button flight yoke with throttle"
 msgstr "Manípulo de voo de 4 botões com acelerador"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Volante (de 3 eixos, 2 botões)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Volante (de 3 eixos, 3 botões)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volante (de 3 eixos, 4 botões)"
 
 msgid "CH Flightstick"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 com adaptador"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 sem adaptador"
 
 msgid "None"
 msgstr "Nenhum"
@@ -1853,6 +1853,9 @@ msgstr "Adaptador:"
 
 msgid "VDE Socket:"
 msgstr "Tomada VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidades 86Box"

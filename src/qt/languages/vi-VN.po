@@ -849,8 +849,8 @@ msgstr "Không tìm thấy thiết bị PCap"
 msgid "Invalid PCap device"
 msgstr "Thiết bị PCap không hợp quy"
 
-msgid "Generic Paddle Controller(s)"
-msgstr ""
+msgid "Generic paddle controller(s)"
+msgstr "Bộ điều khiển dạng mái chèo thông dụng"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "Cần điều khiển hai trục, một nút"
@@ -921,13 +921,13 @@ msgstr "Vô lăng máy bay ba nút có cần ga"
 msgid "4-button flight yoke with throttle"
 msgstr "Vô lăng máy bay bốn nút có cần ga"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Vô lăng (ba trục, hai nút)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Vô lăng (ba trục, ba nút)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Vô lăng (ba trục, bốn nút)"
 
 msgid "CH Flightstick"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Hệ thống bánh lái"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 kèm bộ chuyển đổi"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 không kèm bộ chuyển đổi"
 
 msgid "None"
 msgstr "Không có"
@@ -1853,6 +1853,9 @@ msgstr "Bộ chuyển đổi:"
 
 msgid "VDE Socket:"
 msgstr "Ổ cắm VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "Trình kiểm tra đơn vị 86box"

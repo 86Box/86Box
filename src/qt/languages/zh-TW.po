@@ -849,8 +849,8 @@ msgstr "未找到 PCap 裝置"
 msgid "Invalid PCap device"
 msgstr "無效 PCap 裝置"
 
-msgid "Generic Paddle Controller(s)"
-msgstr ""
+msgid "Generic paddle controller(s)"
+msgstr "通用槳式控制器"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2 軸, 1 鍵搖桿"
@@ -921,13 +921,13 @@ msgstr "3 按鈕帶油門飛行搖桿"
 msgid "4-button flight yoke with throttle"
 msgstr "4 按鈕帶油門飛行搖桿"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "方向盤 (3 軸, 2 鍵搖桿)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "方向盤 (3 軸, 3 鍵搖桿)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "方向盤 (3 軸, 4 鍵搖桿)"
 
 msgid "CH Flightstick"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "附轉接器 Thrustmaster Formula T1/T2"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "不附轉接器 Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "無"
@@ -1853,6 +1853,9 @@ msgstr "配接器:"
 
 msgid "VDE Socket:"
 msgstr "VDE 插座:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box 單元測試器"

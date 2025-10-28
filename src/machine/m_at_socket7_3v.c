@@ -158,38 +158,38 @@ machine_at_exp8551_init(const machine_t *model)
 }
 
 static void
-machine_at_hpvectravexxx_gpio_init(void)
+machine_at_vectra52_gpio_init(void)
 {
     uint32_t gpio = 0x40;
 
-     if (cpu_busspeed <= 40000000)
-      gpio |= 0x30;
-        else if ((cpu_busspeed > 40000000) && (cpu_busspeed <= 50000000))
+    if (cpu_busspeed <= 40000000)
+        gpio |= 0x30;
+    else if ((cpu_busspeed > 40000000) && (cpu_busspeed <= 50000000))
         gpio |= 0x00;
-        else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-         gpio |= 0x20;
-        else if (cpu_busspeed > 60000000)
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0x20;
+    else if (cpu_busspeed > 60000000)
         gpio |= 0x10;
 
-        if (cpu_dmulti <= 1.5)
+    if (cpu_dmulti <= 1.5)
         gpio |= 0x82;
-        else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
+    else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
         gpio |= 0x02;
-        else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
+    else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
         gpio |= 0x00;
-        else if (cpu_dmulti > 2.5)
+    else if (cpu_dmulti > 2.5)
         gpio |= 0x80;
 
     machine_set_gpio_default(gpio);
 }
 
-static const device_config_t hpvectravexxx_config[] = {
+static const device_config_t vectra52_config[] = {
     // clang-format off
     {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "gu_07_05",
+        .default_string = "vectra52_0705",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -197,21 +197,21 @@ static const device_config_t hpvectravexxx_config[] = {
         .bios           = {
             {
                 .name          = "GU.07.02 (01/25/96)",
-                .internal_name = "gu_07_02",
+                .internal_name = "vectra52_0702",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/hpvectravexxx/d3653.bin", "" }
+                .files         = { "roms/machines/vectra52/d3653.bin", "" }
             },
             {
                 .name          = "GU.07.05 (08/06/96)",
-                .internal_name = "gu_07_05",
+                .internal_name = "vectra52_0705",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/hpvectravexxx/GU0705US.FUL", "" }
+                .files         = { "roms/machines/vectra52/GU0705US.FUL", "" }
             },
             { .files_no = 0 }
         }
@@ -220,9 +220,9 @@ static const device_config_t hpvectravexxx_config[] = {
     // clang-format on
 };
 
-const device_t hpvectravexxx_device = {
-    .name          = "HP Vectra VE 5/XXX Series 2",
-    .internal_name = "hpvectravexxx_device",
+const device_t vectra52_device = {
+    .name          = "HP Vectra VE 5/xxx Series 2",
+    .internal_name = "vectra52",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -231,11 +231,11 @@ const device_t hpvectravexxx_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = hpvectravexxx_config
+    .config        = vectra52_config
 };
 
 int
-machine_at_hpvectravexxx_init(const machine_t *model)
+machine_at_vectra52_init(const machine_t *model)
 {
 	int         ret = 0;
     const char *fn;
@@ -250,7 +250,7 @@ machine_at_hpvectravexxx_init(const machine_t *model)
     device_context_restore();
 
     machine_at_common_init_ex(model, 2);
-	machine_at_hpvectravexxx_gpio_init();
+	machine_at_vectra52_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -435,6 +435,9 @@ machine_at_thor_gpio_init(void)
     else if (cpu_busspeed > 60000000)
         gpio |= 0xffff1000;
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        gpio |= 0xffff0400;
+
     machine_set_gpio_default(gpio);
 }
 
@@ -475,6 +478,9 @@ machine_at_thor_init(const machine_t *model)
 
     if (has_video && (gfxcard[0] == VID_INTERNAL))
         device_add(machine_get_vid_device(machine));
+
+    if (has_video && (sound_card_current[0] == SOUND_INTERNAL))
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&i430fx_device);
     device_add(&piix_device);
@@ -576,27 +582,6 @@ machine_at_monaco_gpio_init(void)
 {
     uint32_t gpio = 0xffffe0cf;
 
-    /* Return to this after CS4232 PnP is working. */
-    /* Register 0x0078 (Undocumented): */
-    /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
-    /*device_context(machine_get_snd_device(machine));
-    addr = device_get_config_hex16("base");
-    switch (addr) {
-        case 0x0220:
-            gpio |= 0xffff00cf;
-            break;
-        case 0x0240:
-            gpio |= 0xffff00ef;
-            break;
-        case 0x0260:
-            gpio |= 0xffff00df;
-            break;
-        case 0x0280:
-            gpio |= 0xffff00ff;
-            break;
-    }
-    device_context_restore();*/
-
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
     /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
@@ -682,6 +667,9 @@ machine_at_endeavor_init(const machine_t *model)
     return ret;
 }
 
+/* The Monaco and Atlantis share the same GPIO config */
+#define machine_at_atlantis_gpio_init machine_at_monaco_gpio_init
+
 int
 machine_at_atlantis_init(const machine_t *model)
 {
@@ -695,6 +683,7 @@ machine_at_atlantis_init(const machine_t *model)
         return ret;
 
     machine_at_common_init_ex(model, 2);
+    machine_at_atlantis_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

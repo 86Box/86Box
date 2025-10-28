@@ -849,8 +849,8 @@ msgstr "PCap 장치가 없습니다"
 msgid "Invalid PCap device"
 msgstr "PCap 장치가 올바르지 않습니다"
 
-msgid "Generic Paddle Controller(s)"
-msgstr ""
+msgid "Generic paddle controller(s)"
+msgstr "일반 패들 컨트롤러"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2축, 1버튼 조이스틱"
@@ -921,13 +921,13 @@ msgstr "3버튼 비행 조종간과 스로틀"
 msgid "4-button flight yoke with throttle"
 msgstr "4버튼 비행 조종간과 스로틀"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "조타륜 (3축, 2버튼)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "조타륜 (3축, 3버튼)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "조타륜 (3축, 4버튼)"
 
 msgid "CH Flightstick"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "어댑터 포함 Thrustmaster Formula T1/T2"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "어댑터 미포함 Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "없음"
@@ -1853,6 +1853,9 @@ msgstr "어댑터:"
 
 msgid "VDE Socket:"
 msgstr "VDE 소켓:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box 유닛 테스터"

@@ -181,7 +181,7 @@ static const device_config_t p5mp3_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51G - Revision 0402 (Beta)",
-                .internal_name = "p5mp3_beta",
+                .internal_name = "p5mp3_0402",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,

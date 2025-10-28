@@ -849,8 +849,8 @@ msgstr "Ingen PCap-enheter funnet"
 msgid "Invalid PCap device"
 msgstr "Ugyldig PCap-enhet"
 
-msgid "Generic Paddle Controller(s)"
-msgstr ""
+msgid "Generic paddle controller(s)"
+msgstr "Generisk padle-kontroller(e)"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2-akset, 1-knapps styrespak(er)"
@@ -921,13 +921,13 @@ msgstr "3-knapps flystyre med gass"
 msgid "4-button flight yoke with throttle"
 msgstr "4-knapps flystyre med gass"
 
-msgid "Steering Wheel (3-axis, 2-button)"
+msgid "Steering wheel (3-axis, 2-button)"
 msgstr "Ratt (3-akset, 3-knapps)"
 
-msgid "Steering Wheel (3-axis, 3-button)"
+msgid "Steering wheel (3-axis, 3-button)"
 msgstr "Ratt (3-akset, 3-knapps)"
 
-msgid "Steering Wheel (3-axis, 4-button)"
+msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Ratt (3-akset, 4-knapps)"
 
 msgid "CH Flightstick"
@@ -975,11 +975,11 @@ msgstr "Thrustmaster Flight Control System"
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Ror-kontrollsystem"
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
-msgstr "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 med adapter"
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
-msgstr "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 uten adapter"
 
 msgid "None"
 msgstr "Ingen"
@@ -1853,6 +1853,9 @@ msgstr "Adapter:"
 
 msgid "VDE Socket:"
 msgstr "VDE-kontakt:"
+
+msgid "TAP Bridge Device:"
+msgstr ""
 
 msgid "86Box Unit Tester"
 msgstr "86Box-enhetstester"

@@ -173,11 +173,11 @@ static const device_config_t lx6_config[] = {
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/lx6/LX6C_LY.BIN", "" }
+                .files         = { "roms/machines/lx6/LX6C_LY.bin", "" }
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision PZ (Beta)",
-                .internal_name = "lx6_beta",
+                .internal_name = "lx6_pz",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
                 .local         = 0,
@@ -766,7 +766,7 @@ static const device_config_t ms6119_config[] = {
         .bios           = {
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 1.72 (Packard Bell Tacoma with logo)",
-                .internal_name = "tacoma_logo",
+                .internal_name = "tacoma_172",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
