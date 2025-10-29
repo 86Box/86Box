@@ -15410,7 +15410,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430VX] Packard Bell Orlando/2D/2D/MMX (PB680/PB682/PB683/PB685)",
+        .name              = "[i430VX] Packard Bell Orlando/2D/3D/MMX (PB680/PB682/PB683/PB685)",
         .internal_name     = "pb680",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
