@@ -40,7 +40,7 @@
 #define BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S   "roms/video/et4000w32/ET4000W32VLB_bios_MX27C512.BIN"
 #define BIOS_ROM_PATH_W32I_REVB_AXIS_MICRODEVICE    "roms/video/et4000w32/ET4KW32I.VBI"
 #define BIOS_ROM_PATH_W32I_REVB_HERCULES_DYNAMITE_VLB_PRO "roms/video/et4000w32/Hercules Dynamite VL Pro v8.00 c 1993 Hercules.bin"
-#define BIOS_ROM_PATH_W32P_REVB_VIDEOMAGIC          "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.bin"
+#define BIOS_ROM_PATH_W32P_REVB_VIDEOMAGIC          "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.BIN"
 #define BIOS_ROM_PATH_W32P_REVC_CARDEX              "roms/video/et4000w32/et4000w32pcardex.BIN"
 #define BIOS_ROM_PATH_W32P_REVD                     "roms/video/et4000w32/ET4K_W32.BIN"
 #define BIOS_ROM_PATH_W32P_REVD_CARDEX              "roms/video/et4000w32/cardex.vbi"
