@@ -1259,7 +1259,7 @@ static const device_config_t pc500_config[] = {
     {
         .name           = "rtc_port",
         .description    = "RTC Port Address",
-        .type           = CONFIG_HEX16,
+        .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
@@ -1379,7 +1379,7 @@ static const device_config_t pc500plus_config[] = {
     {
         .name           = "rtc_port",
         .description    = "Onboard RTC",
-        .type           = CONFIG_HEX16,
+        .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
