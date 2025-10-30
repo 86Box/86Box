@@ -680,11 +680,9 @@ isartc_init(const device_t *info)
 
         case ISARTC_RTC58167: /* Multitech PC-500/PC-500+ onboard RTC */
             dev->flags |= FLAG_YEARBCD;
-            //dev->base_addr   = machine_get_config_int("rtc_port");
-            dev->base_addr   = 0x2c0;
+            dev->base_addr   = machine_get_config_int("rtc_port");
             dev->base_addrsz = 8;
-            //dev->irq         = machine_get_config_int("rtc_irq");
-            dev->irq         = -1;
+            dev->irq         = machine_get_config_int("rtc_irq");
             dev->f_rd        = rtc58167_read;
             dev->f_wr        = rtc58167_write;
             dev->nvr.reset   = mm67_reset;
