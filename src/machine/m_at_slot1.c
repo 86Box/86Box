@@ -977,7 +977,7 @@ static const device_config_t p6sba_config[] = {
                 .files         = { "roms/machines/p6sba/SBAB21.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 05/07/1999 (Leadtek WinFast 8000BX)",
+                .name          = "Award Modular BIOS v4.60PGA - Revision 05/07/1999 (Leadtek WinFast 8000BX)",
                 .internal_name = "8000bx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
