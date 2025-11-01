@@ -1025,6 +1025,9 @@ extern const device_t  ap5s_device;
 #endif
 extern int             machine_at_ap5s_init(const machine_t *);
 extern int             machine_at_pc140_6260_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ms5124_device;
+#endif
 extern int             machine_at_ms5124_init(const machine_t *);
 
 /* VLSI Wildcat */
