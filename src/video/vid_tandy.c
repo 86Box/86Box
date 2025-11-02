@@ -478,7 +478,7 @@ vid_render(tandy_t *dev, int line, int hos_offs)
             } else if (out_x > -8) {
                 for (c = -out_x; c < 8; c++) {
                     buffer32->line[line][out_x + c] =
-                        vid->array[((dat >> 12 - (c >> 1) * 4) & vid->array[1] & 0x0f) + 16] + 16;
+                        vid->array[((dat >> (12 - (c >> 1) * 4)) & vid->array[1] & 0x0f) + 16] + 16;
                 }
             }
         }
@@ -508,7 +508,7 @@ vid_render(tandy_t *dev, int line, int hos_offs)
             } else if (out_x > -16) {
                 for (c = -out_x; c < 16; c++) {
                     buffer32->line[line][out_x + c] =
-                        vid->array[((dat >> 12 - (c >> 2) * 4) & vid->array[1] & 0x0f) + 16] + 16;
+                        vid->array[((dat >> (12 - (c >> 2) * 4)) & vid->array[1] & 0x0f) + 16] + 16;
                 }
             }
         }
