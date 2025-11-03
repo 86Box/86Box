@@ -335,7 +335,7 @@ SettingsInput::on_pushButtonConfigureMouse_clicked()
 }
 
 static int
-get_axis(JoystickConfiguration &jc, int axis, uint8_t gameport_nr, int joystick_nr)
+get_axis(JoystickConfiguration &jc, uint8_t gameport_nr, int joystick_nr, int axis)
 {
     int axis_sel = jc.selectedAxis(axis);
     int nr_axes  = plat_joystick_state[joystick_state[gameport_nr][joystick_nr].plat_joystick_nr - 1].nr_axes;
@@ -351,7 +351,7 @@ get_axis(JoystickConfiguration &jc, int axis, uint8_t gameport_nr, int joystick_
 }
 
 static int
-get_pov(JoystickConfiguration &jc, int pov, uint8_t gameport_nr, int joystick_nr)
+get_pov(JoystickConfiguration &jc, uint8_t gameport_nr, int joystick_nr, int pov)
 {
     int pov_sel = jc.selectedPov(pov);
     int nr_povs = plat_joystick_state[joystick_state[gameport_nr][joystick_nr].plat_joystick_nr - 1].nr_povs * 2;
@@ -379,17 +379,15 @@ updateJoystickConfig(int type, uint8_t gameport_nr, int joystick_nr, QWidget *pa
 
     joystick_state[gameport_nr][joystick_nr].plat_joystick_nr = jc.selectedDevice();
     if (joystick_state[gameport_nr][joystick_nr].plat_joystick_nr) {
-        for (int axis_nr = 0; axis_nr < joystick_get_axis_count(type); axis_nr++) {
-            joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr] = get_axis(jc, axis_nr, gameport_nr, joystick_nr);
-        }
+        for (int axis_nr = 0; axis_nr < joystick_get_axis_count(type); axis_nr++)
+            joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr] = get_axis(jc, gameport_nr, joystick_nr, axis_nr);
 
-        for (int button_nr = 0; button_nr < joystick_get_button_count(type); button_nr++) {
+        for (int button_nr = 0; button_nr < joystick_get_button_count(type); button_nr++)
             joystick_state[gameport_nr][joystick_nr].button_mapping[button_nr] = jc.selectedButton(button_nr);
-        }
 
-        for (int pov_nr = 0; pov_nr < joystick_get_pov_count(type) * 2; pov_nr += 2) {
-            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0] = get_pov(jc, pov_nr, gameport_nr, joystick_nr);
-            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1] = get_pov(jc, pov_nr + 1, gameport_nr, joystick_nr);
+        for (int pov_nr = 0; pov_nr < joystick_get_pov_count(type); pov_nr++) {
+            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0] = get_pov(jc, gameport_nr, joystick_nr, pov_nr * 2); // X Axis
+            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1] = get_pov(jc, gameport_nr, joystick_nr, pov_nr * 2 + 1); // Y Axis
         }
     }
 }

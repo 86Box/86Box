@@ -366,15 +366,14 @@ bt48x_recalctimings(void *priv, svga_t *svga)
     svga->clock_multiplier = 0;
     svga->multiplexing_rate = 0;
     svga->true_color_bypass = 0;
-    if (ramdac->cmd_r3 & 0x08) { /* x2 clock multiplier */
-        //pclog("2x multiplier.\n");
+    if (ramdac->cmd_r3 & 0x08) /* x2 clock multiplier */
         svga->clock_multiplier = 1;
-    }
+
     svga->multiplexing_rate = (ramdac->cmd_r1 & 0x60) >> 5;
     if (svga->bpp >= 15)
         svga->true_color_bypass = !!(ramdac->cmd_r1 & 0x10);
 
-    //pclog("CR0=%02x, CR1=%02x, CR2=%02x.\n", ramdac->cmd_r0, ramdac->cmd_r1, ramdac->cmd_r2);
+    pclog("CR0=%02x, CR1=%02x, CR2=%02x.\n", ramdac->cmd_r0, ramdac->cmd_r1, ramdac->cmd_r2);
 }
 
 void

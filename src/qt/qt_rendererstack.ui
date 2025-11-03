@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>RendererStack</class>
- <widget class="QStackedWidget" name="RendererStack">
+ <widget class="QWidget" name="RendererStack">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>StackedWidget</string>
+   <string>RendererWidget</string>
   </property>
  </widget>
  <resources/>

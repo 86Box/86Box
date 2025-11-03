@@ -8,13 +8,10 @@
  *
  *          Header files for the Tandy keyboard and video subsystems.
  *
- *
- *
  * Authors: Connor Hyde, <mario64crashed@gmail.com>
  *
  *          Copyright 2025 starfrost
  */
-
 typedef struct t1kvid_t {
     mem_mapping_t mapping;
     mem_mapping_t vram_mapping;
@@ -36,6 +33,13 @@ typedef struct t1kvid_t {
     uint8_t  planar_ctrl;
     uint8_t  lp_strobe;
 
+    uint8_t  baseline_hsyncpos;
+    uint8_t  baseline_vsyncpos;
+    bool     baseline_ready;
+    int      hsync_offset;
+    int      vsync_offset;
+    int      vsync_offset_pending;
+
     int      linepos;
     int      displine;
     int      scanline;
@@ -54,6 +58,7 @@ typedef struct t1kvid_t {
     uint64_t   dispontime;
     uint64_t   dispofftime;
     pc_timer_t timer;
+    pc_timer_t calib_timer;
     int        firstline;
     int        lastline;
 

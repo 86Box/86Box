@@ -5,7 +5,7 @@ typedef struct colorplus_t {
     cga_t   cga;
     uint8_t control;
 
-    lpt_t * lpt;
+    lpt_t *lpt;
 } colorplus_t;
 
 void    colorplus_init(colorplus_t *colorplus);

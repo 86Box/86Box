@@ -8,13 +8,10 @@
  *
  *          Header for the downloader module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #ifndef QT_DOWNLOADER_HPP
 #define QT_DOWNLOADER_HPP
 

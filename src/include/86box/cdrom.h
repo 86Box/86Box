@@ -138,8 +138,9 @@ static const struct cdrom_drive_types_s {
     { "AZT",      "CDA46802I",        "1.15", "azt_cda",        BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  3,  0,  0,  0 } },
     { "BTC",      "CD-ROM BCD36XH",   "U1.0", "btc_36xh",       BUS_TYPE_IDE,  0, 36, 36, 0, 0, {  4,  2,  2, -1 } },
     { "GOLDSTAR", "CRD-8160B",        "3.14", "goldstar",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  2, -1 } },
+    { "GOLDSTAR", "CRD-8400B",        "1.03", "goldstar_8400b", BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 } },
     /* TODO: Find an IDENTIFY and/or INQUIRY dump. */
-    { "GOLDSTAR", "GCD-R560B",        "1.00", "goldstar",       BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  4,  2,  2, -1 } },
+    { "GOLDSTAR", "GCD-R560B",        "1.00", "goldstar_r560b", BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  4,  2,  2, -1 } },
     { "HITACHI",  "CDR-8130",         "0020", "hitachi_r8130",  BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  2, -1 } },
     { "HITACHI",  "GD-7500",          "A1  ", "hitachi_7500",   BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  2 } }, /* DVD. */
     { "HL-DT-ST", "CD-ROM GCR-8526B", "1.01", "hldtst_8526b",   BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  2 } },
@@ -174,6 +175,7 @@ static const struct cdrom_drive_types_s {
     { "PHILIPS",  "CD-ROM PCA403CD",  "U31P", "philips_403",    BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 } },
     { "SONY",     "CD-ROM CDU76",     "1.0i", "sony_76",        BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  2, -1, -1, -1 } },
     { "SONY",     "CD-ROM CDU311",    "3.0h", "sony_311",       BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  1, -1 } },
+    { "SONY",     "CD-ROM CDU611",    "2.2c", "sony_611",       BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  3,  2,  2, -1 } },
     { "SONY",     "CD-ROM CDU5225",   "NYS4", "sony_5225",      BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
     { "TEAC",     "CD-516E",          "1.0G", "teac_516e",      BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  3,  2,  2, -1 } },
     { "TEAC",     "CD-524EA",         "3.0D", "teac_524ea",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  3,  2,  2, -1 } },
@@ -183,6 +185,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-6202B",  "1512", "toshiba_6202b",  BUS_TYPE_IDE,  0, 32, 96, 0, 0, {  4,  2,  2, -1 } },
     { "TOSHIBA",  "CD-ROM XM-6402B",  "1008", "toshiba_6402b",  BUS_TYPE_IDE,  0, 32, 96, 0, 0, {  4,  2,  2,  2 } },
     { "TOSHIBA",  "CD-ROM XM-6702B",  "1007", "toshiba_6720b",  BUS_TYPE_IDE,  0, 48, 96, 0, 0, {  4,  2,  2,  2 } },
+    { "TOSHIBA",  "DVD-ROM SD-M1202", "1020", "toshiba_m1202",  BUS_TYPE_IDE,  0, 32, 96, 0, 1, {  4,  2,  2,  2 } },
     { "TOSHIBA",  "DVD-ROM SD-M1802", "1051", "toshiba_m1802",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  2 } },
     { "CHINON",   "CD-ROM CDS-431",   "H42 ", "chinon_431",     BUS_TYPE_SCSI, 1,  1, 36, 1, 0, { -1, -1, -1, -1 } },
     { "CHINON",   "CD-ROM CDX-435",   "M62 ", "chinon_435",     BUS_TYPE_SCSI, 1,  2, 36, 1, 0, { -1, -1, -1, -1 } },
@@ -227,6 +230,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "toshiba_5701a",  BUS_TYPE_SCSI, 2, 12, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray.  */
     { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0, 1, { -1, -1, -1, -1 } }, /* Tray.  */
     { "MATSHITA", "CR-562",           "0.75", "cr562",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
+    { "MATSHITA", "CR-562",           "0.76", "cr562_076",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-562",           "0.80", "cr562_080",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-563",           "0.75", "cr563",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
     { "MATSHITA", "CR-563",           "0.80", "cr563_080",      BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },

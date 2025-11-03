@@ -76,9 +76,9 @@ machine_init_ex(int m)
         machine_init_gpio();
         machine_init_gpio_acpi();
 
-        machine_snd              = NULL;
+        machine_snd = NULL;
 
-        is_vpc                   = 0;
+        is_vpc = 0;
 
         standalone_gameport_type = NULL;
         gameport_instance_id     = 0;
@@ -183,7 +183,7 @@ void
 machine_common_init(UNUSED(const machine_t *model))
 {
     uint8_t cpu_requires_fast_pit = is486 || (!is286 && is8086 && (cpu_s->rspeed >= 8000000));
-    cpu_requires_fast_pit = cpu_requires_fast_pit && !cpu_16bitbus;
+    cpu_requires_fast_pit         = cpu_requires_fast_pit && !cpu_16bitbus;
 
     /* System devices first. */
     pic_init();

@@ -8,8 +8,6 @@
  *
  *          Floppy/CD-ROM devices configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *

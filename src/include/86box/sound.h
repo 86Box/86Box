@@ -8,8 +8,6 @@
  *
  *          Sound emulation core.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
@@ -18,7 +16,6 @@
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2024-2025 Jasmine Iwanek.
  */
-
 #ifndef EMU_SOUND_H
 #define EMU_SOUND_H
 
@@ -180,6 +177,8 @@ extern const device_t sb_awe64_ide_device;
 extern const device_t sb_awe64_gold_device;
 
 /* Crystal CS423x */
+extern const device_t cs4232_device;
+extern const device_t cs4232_onboard_device;
 extern const device_t cs4235_device;
 extern const device_t cs4235_onboard_device;
 extern const device_t cs4236_onboard_device;

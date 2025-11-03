@@ -12,7 +12,6 @@
  *
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
-
 #ifndef EMU_SIO_H
 #define EMU_SIO_H
 

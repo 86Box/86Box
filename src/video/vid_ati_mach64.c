@@ -48,6 +48,8 @@
 #define BIOS_ROM_PATH     "roms/video/mach64/bios.bin"
 #define BIOS_ISA_ROM_PATH "roms/video/mach64/M64-1994.VBI"
 #define BIOS_VLB_ROM_PATH "roms/video/mach64/mach64_vlb_vram.bin"
+#define BIOS_ROMCT_PATH   "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
+#define BIOS_ROMVT_PATH   "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
 #define BIOS_ROMVT2_PATH  "roms/video/mach64/atimach64vt2pci.bin"
 
 #define FIFO_SIZE         65536
@@ -75,6 +77,8 @@ typedef struct fifo_entry_t {
 
 enum {
     MACH64_GX = 0,
+    MACH64_CT,
+    MACH64_VT,
     MACH64_VT2
 };
 
@@ -541,7 +545,9 @@ mach64_recalctimings(svga_t *svga)
         svga->split                    = 0xffffff;
         svga->vblankstart              = svga->dispend;
         svga->rowcount                 = mach64->crtc_gen_cntl & 1;
+        svga->lut_map                  = (mach64->type >= MACH64_VT);
         svga->rowoffset <<= 1;
+        svga->attrregs[0x13]          &= ~0x0f;
 
         if (mach64->type == MACH64_GX)
             ati68860_ramdac_set_render(svga->ramdac, svga);
@@ -590,6 +596,7 @@ mach64_recalctimings(svga_t *svga)
         svga->vram_display_mask = mach64->vram_mask;
     } else {
         svga->vram_display_mask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
+        svga->lut_map           = 0;
     }
 }
 
@@ -1210,16 +1217,17 @@ fifo_thread(void *param)
             uint64_t      start_time = plat_timer_read();
             uint64_t      end_time;
             fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
+            uint32_t      val  = fifo->val;
 
             switch (fifo->addr_type & FIFO_TYPE) {
                 case FIFO_WRITE_BYTE:
-                    mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, fifo->val);
+                    mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, val);
                     break;
                 case FIFO_WRITE_WORD:
-                    mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, fifo->val);
+                    mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, val);
                     break;
                 case FIFO_WRITE_DWORD:
-                    mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, fifo->val);
+                    mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, val);
                     break;
 
                 default:
@@ -1280,16 +1288,14 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     if (limit) {
         if (FIFO_ENTRIES >= 16) {
             thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_ENTRIES >= 16) {
+            if (FIFO_ENTRIES >= 16)
                 thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-            }
         }
     } else {
         if (FIFO_FULL) {
             thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_FULL) {
+            if (FIFO_FULL)
                 thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-            }
         }
     }
 
@@ -1298,6 +1304,8 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 
     mach64->fifo_write_idx++;
 
+    if (FIFO_ENTRIES > 0xe000)
+        wake_fifo_thread(mach64);
     if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
         wake_fifo_thread(mach64);
 }
@@ -2407,7 +2415,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0x4a:
                 ret = mach64->scaler_format;
                 break;
-            
+
             case 0x4b:
                 ret = mach64->scaler_yuv_aper;
                 break;
@@ -2580,7 +2588,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
             case 0xc7:
                 READ8(addr, mach64->dac_cntl);
-                if (mach64->type >= MACH64_VT2) {
+                if (mach64->type >= MACH64_CT) {
                     ret &= 0xf9;
                     if (i2c_gpio_get_scl(mach64->i2c))
                         ret |= 0x04;
@@ -2600,7 +2608,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0xdd:
             case 0xde:
             case 0xdf:
-                if (mach64->type == MACH64_GX)
+                if (mach64->type != MACH64_VT2 && mach64->type != MACH64_VT)
                     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
                 else
                     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 24) << 4);
@@ -3111,7 +3119,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
             case 0x4a:
                 mach64->scaler_format = val & 0xf;
                 break;
-            
+
             case 0x4b:
                 mach64->scaler_yuv_aper = val;
                 break;
@@ -4025,6 +4033,29 @@ mach64_readl(uint32_t addr, void *priv)
     return ret;
 }
 
+uint32_t
+mach64_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+{
+    uint32_t ret = 0x00000000;
+
+    if (svga->lut_map) {
+        if (bpp == 15) {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x3e0) >> 2]);
+            uint8_t r = getcolb(svga->pallook[(color & 0x7c00) >> 7]);
+            ret = (video_15to32[color] & 0xFF000000) | makecol(r, g, b);
+        } else {
+            uint8_t b = getcolr(svga->pallook[(color & 0x1f) << 3]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 3]);
+            uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 8]);
+            ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
+        }
+    } else
+        ret = (bpp == 15) ? video_15to32[color] : video_16to32[color];
+
+    return ret;
+}
+
 void
 mach64_int_hwcursor_draw(svga_t *svga, int displine)
 {
@@ -4703,19 +4734,19 @@ mach64_pci_read(UNUSED(int func), int addr, void *priv)
             return mach64->linear_base >> 24;
 
         case 0x14:
-            if (mach64->type >= MACH64_VT2)
+            if (mach64->type >= MACH64_CT)
                 return 0x01; /*Block decoded IO address*/
             return 0x00;
         case 0x15:
-            if (mach64->type >= MACH64_VT2)
+            if (mach64->type >= MACH64_CT)
                 return mach64->block_decoded_io >> 8;
             return 0x00;
         case 0x16:
-            if (mach64->type >= MACH64_VT2)
+            if (mach64->type >= MACH64_CT)
                 return mach64->block_decoded_io >> 16;
             return 0x00;
         case 0x17:
-            if (mach64->type >= MACH64_VT2)
+            if (mach64->type >= MACH64_CT)
                 return mach64->block_decoded_io >> 24;
             return 0x00;
 
@@ -4759,7 +4790,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x12:
-            if (mach64->type >= MACH64_VT2)
+            if (mach64->type >= MACH64_CT)
                 val = 0;
             mach64->linear_base = (mach64->linear_base & 0xff000000) | ((val & 0x80) << 16);
             mach64_updatemapping(mach64);
@@ -4770,7 +4801,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
 
         case 0x15:
-            if (mach64->type >= MACH64_VT2) {
+            if (mach64->type >= MACH64_CT) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff0000) | ((val & 0xff) << 8);
@@ -4779,7 +4810,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             }
             break;
         case 0x16:
-            if (mach64->type >= MACH64_VT2) {
+            if (mach64->type >= MACH64_CT) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0xff00fc00) | (val << 16);
@@ -4788,7 +4819,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             }
             break;
         case 0x17:
-            if (mach64->type >= MACH64_VT2) {
+            if (mach64->type >= MACH64_CT) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                     mach64_io_remove(mach64);
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0x00fffc00) | (val << 24);
@@ -4820,7 +4851,7 @@ mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_remove(mach64);
             mach64->io_base = val & 0x03;
-            if (mach64->type >= MACH64_VT2)
+            if (mach64->type >= MACH64_CT)
                 mach64->use_block_decoded_io = val & 0x04;
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_set(mach64);
@@ -4841,7 +4872,7 @@ mach64_common_init(const device_t *info)
     svga = &mach64->svga;
 
     mach64->type = info->local & 0xff;
-    mach64->vram_size = (info->local & (1 << 20)) ? 4 : device_get_config_int("memory");
+    mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
 
     if (mach64->type > MACH64_GX)
@@ -4867,7 +4898,7 @@ mach64_common_init(const device_t *info)
     mach64_io_set(mach64);
 
     if (info->flags & DEVICE_PCI)
-        pci_add_card(PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
+        pci_add_card((info->local & (1 << 19)) ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
 
     mach64->pci_regs[PCI_REG_COMMAND] = 3;
     mach64->pci_regs[0x30]            = 0x00;
@@ -4876,12 +4907,17 @@ mach64_common_init(const device_t *info)
 
     svga->clock_gen = device_add(&ics2595_device);
 
+    if (mach64->type >= MACH64_VT) {
+        svga->conv_16to32 = mach64_conv_16to32;
+    }
+
     mach64->dst_cntl = 3;
 
     mach64->thread_run = 1;
     mach64->wake_fifo_thread = thread_create_event();
     mach64->fifo_not_full_event = thread_create_event();
     mach64->fifo_thread = thread_create(fifo_thread, mach64);
+    mach64->on_board = !!(info->local & (1 << 19));
 
     mach64->i2c = i2c_gpio_init("ddc_ati_mach64");
     mach64->ddc = ddc_init(i2c_gpio_get_bus(mach64->i2c));
@@ -4932,6 +4968,69 @@ mach64gx_init(const device_t *info)
     return mach64;
 }
 static void *
+mach64ct_init(const device_t *info)
+{
+    mach64_t *mach64 = mach64_common_init(info);
+    svga_t   *svga   = &mach64->svga;
+
+    svga->dac_hwcursor_draw = NULL;
+
+    svga->hwcursor.cur_ysize = 64;
+    svga->hwcursor.cur_xsize = 64;
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+
+    mach64->pci                  = 1;
+    mach64->vlb                  = 0;
+    mach64->pci_id               = 'T' | ('C' << 8);
+    mach64->config_chip_id       = mach64->pci_id;
+    mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
+    mach64->config_stat0         = 4;
+    mach64->use_block_decoded_io = 4;
+
+    ati_eeprom_load(&mach64->eeprom, "mach64ct.nvr", 1);
+
+    if (!(info->local & (1 << 19)))
+        rom_init(&mach64->bios_rom, BIOS_ROMCT_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+    mem_mapping_disable(&mach64->bios_rom.mapping);
+
+    svga->vblank_start = mach64_vblank_start;
+
+    return mach64;
+}
+static void *
+mach64vt_init(const device_t *info)
+{
+    mach64_t *mach64 = mach64_common_init(info);
+    svga_t   *svga   = &mach64->svga;
+
+    svga->dac_hwcursor_draw = NULL;
+
+    svga->hwcursor.cur_ysize = 64;
+    svga->hwcursor.cur_xsize = 64;
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
+
+    mach64->pci                  = 1;
+    mach64->vlb                  = 0;
+    mach64->pci_id               = 0x5654;
+    mach64->config_chip_id       = 0x08005654;
+    mach64->dac_cntl             = 1 << 16; /*Internal 24-bit DAC*/
+    mach64->config_stat0         = 4;
+    mach64->use_block_decoded_io = 4;
+
+    ati_eeprom_load(&mach64->eeprom, "mach64vt1.nvr", 1);
+
+    rom_init(&mach64->bios_rom, BIOS_ROMVT_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+    mem_mapping_disable(&mach64->bios_rom.mapping);
+
+    svga->vblank_start = mach64_vblank_start;
+
+    return mach64;
+}
+static void *
 mach64vt2_init(const device_t *info)
 {
     mach64_t *mach64 = mach64_common_init(info);
@@ -4977,6 +5076,16 @@ int
 mach64gx_vlb_available(void)
 {
     return rom_present(BIOS_VLB_ROM_PATH);
+}
+int
+mach64ct_available(void)
+{
+    return rom_present(BIOS_ROMCT_PATH);
+}
+int
+mach64vt_available(void)
+{
+    return rom_present(BIOS_ROMVT_PATH);
 }
 int
 mach64vt2_available(void)
@@ -5100,6 +5209,48 @@ const device_t mach64gx_pci_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_config
+};
+
+const device_t mach64ct_device = {
+    .name          = "ATI WinCharger (ATI Mach64CT)",
+    .internal_name = "mach64ct",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_CT,
+    .init          = mach64ct_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    .available     = mach64ct_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = NULL
+};
+
+const device_t mach64ct_device_onboard = {
+    .name          = "ATI Mach64CT (On-Board)",
+    .internal_name = "mach64ct_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_CT | (1 << 19),
+    .init          = mach64ct_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = NULL
+};
+
+const device_t mach64vt_device = {
+    .name          = "ATI Mach64VT",
+    .internal_name = "mach64vt",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_VT,
+    .init          = mach64vt_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    .available     = mach64vt_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = NULL
 };
 
 const device_t mach64vt2_device = {

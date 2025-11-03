@@ -8,8 +8,6 @@
  *
  *          Definitions for the hard disk image handler.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -101,6 +99,7 @@ typedef struct hdd_preset_t {
     uint32_t    max_multiple;
     double      full_stroke_ms;
     double      track_seek_ms;
+    const char *version_ex;
 } hdd_preset_t;
 
 typedef struct hdd_cache_seg_t {
@@ -187,6 +186,8 @@ typedef struct hard_disk_t {
     uint8_t            pad1[3];
 
     const char        *model;
+
+    const char        *version_ex;
 
     hdd_zone_t         zones[HDD_MAX_ZONES];
 

@@ -8,13 +8,10 @@
  *
  *          AGP Graphics Address Remapping Table remapping emulation.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2021 RichardG.
  */
-
 #ifndef EMU_AGPGART_H
 #define EMU_AGPGART_H
 

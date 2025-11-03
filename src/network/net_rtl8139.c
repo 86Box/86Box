@@ -3257,14 +3257,9 @@ nic_init(const device_t *info)
     eep_data[1] = 0x10EC;
     eep_data[2] = 0x8139;
 
-    /* XXX: Get proper MAC addresses from real EEPROM dumps. OID taken from net_ne2000.c */
-#ifdef USE_REALTEK_OID
+    /* XXX: Get proper MAC addresses from real EEPROM dumps. OID is generic Realtek */
     eep_data[7] = 0xe000;
     eep_data[8] = 0x124c;
-#else
-    eep_data[7] = 0x1400;
-    eep_data[8] = 0x122a;
-#endif
     eep_data[9] = 0x1413;
 
     mac_bytes = (uint8_t *) &(eep_data[7]);

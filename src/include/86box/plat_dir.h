@@ -8,13 +8,10 @@
  *
  *          Definitions for the platform OpenDir module.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017 Fred N. van Kempen.
  */
-
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
 
