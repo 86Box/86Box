@@ -431,6 +431,15 @@ fdd_track0(int drive)
 }
 
 int
+fdd_get_type_max_track(int type)
+{
+    if (type < 0 || type >= (sizeof(drive_types) / sizeof(drive_types[0])))
+        return 0;
+
+    return drive_types[type].max_track;
+}
+
+int
 fdd_current_track(int drive)
 {
     return fdd[drive].track;
