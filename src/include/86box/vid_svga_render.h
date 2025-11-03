@@ -8,15 +8,12 @@
  *
  *          SVGA renderers.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
  */
-
 #ifndef VIDEO_SVGA_RENDER_H
 #define VIDEO_SVGA_RENDER_H
 

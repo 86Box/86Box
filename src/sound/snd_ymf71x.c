@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Yamaha YMF-71x (OPL3-SA2/3) audio controller emulation.
+ *          Yamaha YMF71x (OPL3-SA2/3) audio controller emulation.
  *
  * Authors: Cacodemon345
  *          Eluan Costa Miranda <eluancm@gmail.com>
@@ -74,7 +74,7 @@ static const uint8_t ymf71x_init_key[32] = { 0xB1, 0xD8, 0x6C, 0x36, 0x9B, 0x4D,
                                              0x33, 0x19, 0x8C, 0x46, 0xA3, 0x51, 0xA8, 0x54 };
 
 /* Reversed attenuation values borrowed from snd_sb.c */
-/* YMF-71x master volume attenuation is -30dB when all bits are 1, 0dB when all bits are 0 */
+/* YMF71x master volume attenuation is -30dB when all bits are 1, 0dB when all bits are 0 */
 static const double ymf71x_att_2dbstep_4bits[] = {
       32767.0, 26027.0, 20674.0, 16422.0, 13044.0, 10362.0, 8230.0, 6537.0,
        5192.0,  4125.0,  3276.0,  2602.0,  2067.0,  1641.0, 1304.0,  164.0
@@ -836,7 +836,7 @@ static const device_config_t ymf71x_config[] = {
 };
 
 const device_t ymf715_onboard_device = {
-    .name          = "Yamaha YMF-715 Onboard (OPL3-SA3)",
+    .name          = "Yamaha YMF715 (OPL3-SA3) (On-Board)",
     .internal_name = "ymf715_onboard",
     .flags         = DEVICE_ISA16,
     .local         = 0x102,
@@ -850,7 +850,7 @@ const device_t ymf715_onboard_device = {
 };
 
 const device_t ymf718_device = {
-    .name          = "Yamaha YMF-718 (OPL3-SA2)",
+    .name          = "Yamaha YMF718 (OPL3-SA2)",
     .internal_name = "ymf718",
     .flags         = DEVICE_ISA16,
     .local         = 0x01,
@@ -864,7 +864,7 @@ const device_t ymf718_device = {
 };
 
 const device_t ymf719_device = {
-    .name          = "Yamaha YMF-719 (OPL3-SA3)",
+    .name          = "Yamaha YMF719 (OPL3-SA3)",
     .internal_name = "ymf719",
     .flags         = DEVICE_ISA16,
     .local         = 0x02,

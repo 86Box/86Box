@@ -8,8 +8,6 @@
  *
  *          Definitions for the Teledisk floppy image format.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

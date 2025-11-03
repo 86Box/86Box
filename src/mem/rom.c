@@ -643,27 +643,27 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
 int
 bios_load_linear_combined(const char *fn1, const char *fn2, int sz, UNUSED(int off))
 {
-    return bios_load_linear(fn1, 0x000f0000, 131072, 128) && \
+    return bios_load_linear(fn1, 0x000f0000, 131072, 128) &&
         bios_load_aux_linear(fn2, 0x000e0000, sz - 65536, 128);
 }
 
 int
 bios_load_linear_combined2(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
-    return bios_load_linear(fn3, 0x000f0000, 262144, off) && \
-        bios_load_aux_linear(fn1, 0x000d0000, 65536, off) && \
-        bios_load_aux_linear(fn2, 0x000c0000, 65536, off) && \
-        bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off) && \
+    return bios_load_linear(fn3, 0x000f0000, 262144, off) &&
+        bios_load_aux_linear(fn1, 0x000d0000, 65536, off) &&
+        bios_load_aux_linear(fn2, 0x000c0000, 65536, off) &&
+        bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off) &&
         (!fn5 || bios_load_aux_linear(fn5, 0x000ec000, 16384, 0));
 }
 
 int
 bios_load_linear_combined2_ex(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
-    return bios_load_linear(fn3, 0x000e0000, 262144, off) && \
-        bios_load_aux_linear(fn1, 0x000c0000, 65536, off) && \
-        bios_load_aux_linear(fn2, 0x000d0000, 65536, off) && \
-        bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off) && \
+    return bios_load_linear(fn3, 0x000e0000, 262144, off) &&
+        bios_load_aux_linear(fn1, 0x000c0000, 65536, off) &&
+        bios_load_aux_linear(fn2, 0x000d0000, 65536, off) &&
+        bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off) &&
         (!fn5 || bios_load_aux_linear(fn5, 0x000fc000, 16384, 0));
 }
 

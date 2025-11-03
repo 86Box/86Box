@@ -45,7 +45,7 @@ att498_ramdac_control(uint8_t val, void *priv, svga_t *svga)
             svga->bpp = 8;
             break;
         case 1:
-            if (ramdac->ctrl & 4)
+            if (ramdac->ctrl & 0x04)
                 svga->bpp = 15;
             else
                 svga->bpp = 8;
@@ -63,7 +63,7 @@ att498_ramdac_control(uint8_t val, void *priv, svga_t *svga)
             break;
     }
 
-    svga_set_ramdac_type(svga, (ramdac->ctrl & 2) ? RAMDAC_8BIT : RAMDAC_6BIT);
+    svga_set_ramdac_type(svga, (ramdac->ctrl & 0x02) ? RAMDAC_8BIT : RAMDAC_6BIT);
     svga_recalctimings(svga);
 }
 
@@ -132,7 +132,7 @@ att498_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
                     ramdac->state++;
                     break;
                 case 6:
-                    temp          = ramdac->ctrl;
+                    temp = 0x98;
                     ramdac->state = 0;
                     break;
                 default:

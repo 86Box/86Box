@@ -8,15 +8,12 @@
  *
  *          Palette definitions for the PGC core.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          John Elliott, <jce@seasip.info>
  *
  *          Copyright 2019 Fred N. van Kempen.
  *          Copyright 2019 John Elliott.
  */
-
 #ifndef VID_PGC_PALETTE_H
 #define VID_PGC_PALETTE_H
 

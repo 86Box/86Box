@@ -8,8 +8,6 @@
  *
  *          Hard disk dialog code.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *

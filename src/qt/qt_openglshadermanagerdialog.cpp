@@ -263,4 +263,3 @@ void OpenGLShaderManagerDialog::on_targetFrameRate_valueChanged(int arg1)
     if (ui->horizontalSliderFramerate->value() != ui->targetFrameRate->value())
         ui->horizontalSliderFramerate->setValue(ui->targetFrameRate->value());
 }
-

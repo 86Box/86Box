@@ -1330,7 +1330,7 @@ w83977_init(const device_t *info)
 }
 
 const device_t w83977_device = {
-    .name          = "SMC FDC37C93x Super I/O",
+    .name          = "Winbond W83977F/TF/EF Super I/O",
     .internal_name = "w83977",
     .flags         = 0,
     .local         = 0,

@@ -8,13 +8,10 @@
  *
  *          3DFX Voodoo emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2008-2020 Sarah Walker.
  */
-
 #ifndef VIDEO_VOODOO_BLITTER_H
 #define VIDEO_VOODOO_BLITTER_H
 

@@ -8,8 +8,6 @@
  *
  *          Define the various platform support functions.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -17,7 +15,6 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
  */
-
 #ifndef EMU_PLAT_UNUSED_H
 #define EMU_PLAT_UNUSED_H
 

@@ -40,6 +40,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
+#define PNP_ROM_CS4232       "roms/sound/crystal/CS4232.BIN"
 #define PNP_ROM_CS4236B      "roms/sound/crystal/PNPISA01.BIN"
 
 #define CRYSTAL_NOEEPROM 0x100
@@ -88,6 +89,20 @@ static const uint8_t slam_init_key[32] = { 0x96, 0x35, 0x9A, 0xCD, 0xE6, 0xF3, 0
                                            0x5E, 0xAF, 0x57, 0x2B, 0x15, 0x8A, 0xC5, 0xE2,
                                            0xF1, 0xF8, 0x7C, 0x3E, 0x9F, 0x4F, 0x27, 0x13,
                                            0x09, 0x84, 0x42, 0xA1, 0xD0, 0x68, 0x34, 0x1A };
+
+static const uint8_t cs4232_default[] = {
+    // clang-format off
+    /* Chip configuration */
+    0x00, /* external decode length */
+    0x48, /* reserved */
+    0x75, 0xb9, 0xfc, /* IRQ routing */
+    0x10, 0x03, /* DMA routing */
+
+    /* Default PnP data */
+    0x0e, 0x63, 0x42, 0x32, 0x00, 0x00, 0x00, 0x01, 0x00 /* hinted by documentation to be just the header */
+    // clang-format on
+};
+
 static const uint8_t cs4236_default[] = {
     // clang-format off
     /* Chip configuration */
@@ -388,9 +403,17 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 
         case 6: /* RAM Access End */
             /* TriGem Delhi-III BIOS writes undocumented value 0x40 instead of 0x00. */
-            if ((val == 0x00) || (val == 0x40)) {
+            /* Intel Atlantis, Holly, Monaco, Morrison and Thor BIOSes use several undocumented values */
+            /* 0x25, 0x60, 0x69, 0x86, 0xE2, 0xFE and 0xFF were observed on these BIOSes */
+            /* CS4232 likely accepts any written value to end RAM writes */
+            if ((val == 0x00) || (val == 0x40) || (dev->type == CRYSTAL_CS4232)) {
                 cs423x_log("CS423x: RAM end\n");
                 dev->ram_dl = CRYSTAL_RAM_CMD;
+                /* CS4232 resource data at 0x2090/2091 is written backwards */
+                if (dev->type == CRYSTAL_CS4232) {
+                    dev->ram_data[0x2090] = 0x00;
+                    dev->ram_data[0x2091] = 0x48;
+                }
 
                 /* Update PnP state and resource data. */
                 dev->pnp_size = (dev->type >= CRYSTAL_CS4236) ? 384 : 256; /* we don't know the length */
@@ -568,7 +591,11 @@ cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
     cs423x_t *dev        = (cs423x_t *) priv;
     uint8_t   ctx        = (dev->regs[7] & 0x80);
-    uint8_t   enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85);
+    uint8_t   enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85); /* CS4236B+ */
+
+    /* CS4232/4236 (non-B) doesn't have an IFM bit, always enable the OPL on these chips */
+    if (dev->type <= CRYSTAL_CS4236)
+        enable_opl = 1;
 
     /* Check if a context switch (WSS=1 <-> SBPro=0) occurred through the address being written. */
     if ((dev->regs[7] & 0x80) ? ((addr & 0xfff0) == dev->sb_base) : ((addr & 0xfffc) == dev->wss_base)) {
@@ -804,6 +831,10 @@ static void
 cs423x_load_defaults(cs423x_t *dev, uint8_t *dest)
 {
     switch (dev->type) {
+        case CRYSTAL_CS4232:
+            memcpy(dest, cs4232_default, sizeof(cs4232_default));
+            dev->pnp_size = 9; /* header-only PnP ROM size */
+            break;
         case CRYSTAL_CS4236:
         case CRYSTAL_CS4236B:
         case CRYSTAL_CS4237B:
@@ -837,7 +868,11 @@ cs423x_reset(void *priv)
     memset(dev->ram_data, 0, sizeof(dev->ram_data));
 
     /* Load default configuration data to RAM. */
-    cs423x_load_defaults(dev, &dev->ram_data[0x4000]);
+    /* CS4232 uses 0x2090 as the initial RAM location instead of 0x4000 */
+    if (dev->type == CRYSTAL_CS4232)
+        cs423x_load_defaults(dev, &dev->ram_data[0x2090]);
+    else
+        cs423x_load_defaults(dev, &dev->ram_data[0x4000]);
 
     if (dev->eeprom) {
         /* Load EEPROM data to RAM if the magic bytes are present. */
@@ -846,7 +881,10 @@ cs423x_reset(void *priv)
             dev->pnp_size = (dev->eeprom_data[2] << 8) | dev->eeprom_data[3];
             if (dev->pnp_size > 384)
                 dev->pnp_size = 384;
-            memcpy(&dev->ram_data[0x4000], &dev->eeprom_data[4], sizeof(dev->eeprom_data) - 4);
+            if (dev->type == CRYSTAL_CS4232)
+                memcpy(&dev->ram_data[0x2090], &dev->eeprom_data[4], sizeof(dev->eeprom_data) - 4);
+            else
+                memcpy(&dev->ram_data[0x4000], &dev->eeprom_data[4], sizeof(dev->eeprom_data) - 4);
         } else {
             cs423x_log("CS423x: EEPROM data invalid, ignoring\n");
         }
@@ -886,6 +924,7 @@ cs423x_init(const device_t *info)
     dev->type = info->local & 0xff;
     cs423x_log("CS423x: init(%02X)\n", dev->type);
     switch (dev->type) {
+        case CRYSTAL_CS4232:
         case CRYSTAL_CS4236:
         case CRYSTAL_CS4236B:
         case CRYSTAL_CS4237B:
@@ -893,29 +932,46 @@ cs423x_init(const device_t *info)
         case CRYSTAL_CS4235:
         case CRYSTAL_CS4239:
             /* Different WSS codec families. */
-            dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : ((dev->type >= CRYSTAL_CS4236B) ? AD1848_TYPE_CS4236B : AD1848_TYPE_CS4236);
+            dev->ad1848_type = (dev->type >= CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : ((dev->type >= CRYSTAL_CS4236B) ? AD1848_TYPE_CS4236B : (dev->type >= CRYSTAL_CS4236) ? AD1848_TYPE_CS4236 : AD1848_TYPE_CS4232);
 
             /* Different Chip Version and ID values (N/A on CS4236), which shouldn't be reset by ad1848_init. */
             dev->ad1848.xregs[25] = dev->type;
 
-            /* Same EEPROM structure. */
-            dev->pnp_offset = 0x4013;
+            /* Same EEPROM structure on CS4236+. CS4232 is different. */
+            if (dev->type == CRYSTAL_CS4232)
+                dev->pnp_offset = 0x2097;
+            else
+                dev->pnp_offset = 0x4013;
 
             if (!(info->local & CRYSTAL_NOEEPROM)) {
                 /* Start a new EEPROM with the default configuration data. */
                 cs423x_load_defaults(dev, &dev->eeprom_data[4]);
 
                 /* Load PnP resource data ROM. */
-                FILE *fp = rom_fopen(PNP_ROM_CS4236B, "rb");
-                if (fp) {
-                    uint16_t eeprom_pnp_offset = (dev->pnp_offset & 0x1ff) + 4;
-                    /* This is wrong. The header field only indicates PnP resource data length, and real chips use
-                       it to locate the firmware patch area, but we don't need any of that, so we can get away
-                       with pretending the whole ROM is PnP data, at least until we can get full EEPROM dumps. */
-                    dev->pnp_size = fread(&dev->eeprom_data[eeprom_pnp_offset], 1, sizeof(dev->eeprom_data) - eeprom_pnp_offset, fp);
-                    fclose(fp);
+                if (dev->type == CRYSTAL_CS4232) {
+                    FILE *fp = rom_fopen(PNP_ROM_CS4232, "rb");
+                    if (fp) {
+                        uint16_t eeprom_pnp_offset = (dev->pnp_offset & 0x0f) + 4;
+                        /* This is wrong. The header field only indicates PnP resource data length, and real chips use
+                           it to locate the firmware patch area, but we don't need any of that, so we can get away
+                           with pretending the whole ROM is PnP data, at least until we can get full EEPROM dumps. */
+                        dev->pnp_size = fread(&dev->eeprom_data[eeprom_pnp_offset], 1, sizeof(dev->eeprom_data) - eeprom_pnp_offset, fp);
+                        fclose(fp);
+                    } else {
+                        dev->pnp_size = 0;
+                    }
                 } else {
-                    dev->pnp_size = 0;
+                    FILE *fp = rom_fopen(PNP_ROM_CS4236B, "rb");
+                    if (fp) {
+                        uint16_t eeprom_pnp_offset = (dev->pnp_offset & 0x1ff) + 4;
+                        /* This is wrong. The header field only indicates PnP resource data length, and real chips use
+                           it to locate the firmware patch area, but we don't need any of that, so we can get away
+                           with pretending the whole ROM is PnP data, at least until we can get full EEPROM dumps. */
+                        dev->pnp_size = fread(&dev->eeprom_data[eeprom_pnp_offset], 1, sizeof(dev->eeprom_data) - eeprom_pnp_offset, fp);
+                        fclose(fp);
+                    } else {
+                        dev->pnp_size = 0;
+                    }
                 }
 
                 /* Populate EEPROM header if the PnP ROM was loaded. */
@@ -928,6 +984,10 @@ cs423x_init(const device_t *info)
 
                 /* Patch PnP ROM and set EEPROM file name. */
                 switch (dev->type) {
+                    case CRYSTAL_CS4232:
+                        dev->nvr_path = "cs4232.nvr";
+                        break;
+
                     case CRYSTAL_CS4236:
                         if (dev->pnp_size) {
                             dev->eeprom_data[26] = 0x36;
@@ -1005,6 +1065,7 @@ cs423x_init(const device_t *info)
     /* Initialize SBPro codec. The WSS codec is initialized later by cs423x_reset */
     dev->sb = device_add_inst(&sb_pro_compat_device, 1);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb); /* CD audio filter for the default context */
+    music_add_handler(sb_get_music_buffer_sbpro, dev->sb); /* Init the SBPro OPL3 since sb_pro_compat_init does not */
 
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
@@ -1038,6 +1099,12 @@ cs423x_close(void *priv)
 }
 
 static int
+cs4232_available(void)
+{
+    return rom_present(PNP_ROM_CS4232);
+}
+
+static int
 cs423x_available(void)
 {
     return rom_present(PNP_ROM_CS4236B);
@@ -1050,6 +1117,34 @@ cs423x_speed_changed(void *priv)
 
     ad1848_speed_changed(&dev->ad1848);
 }
+
+const device_t cs4232_device = {
+    .name          = "Crystal CS4232",
+    .internal_name = "cs4232",
+    .flags         = DEVICE_ISA16,
+    .local         = CRYSTAL_CS4232,
+    .init          = cs423x_init,
+    .close         = cs423x_close,
+    .reset         = cs423x_reset,
+    .available     = cs4232_available,
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t cs4232_onboard_device = {
+    .name          = "Crystal CS4232 (On-Board)",
+    .internal_name = "cs4232_onboard",
+    .flags         = DEVICE_ISA16,
+    .local         = CRYSTAL_CS4232 | CRYSTAL_NOEEPROM,
+    .init          = cs423x_init,
+    .close         = cs423x_close,
+    .reset         = cs423x_reset,
+    .available     = cs423x_available,
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
 
 const device_t cs4235_device = {
     .name          = "Crystal CS4235",

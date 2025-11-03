@@ -1,23 +1,21 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		86Box VM manager protocol module
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          86Box VM manager protocol module
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
  */
-
 #include "qt_vmmanager_protocol.hpp"
 #include <QJsonDocument>
 #include <QMetaEnum>
+
 VMManagerProtocol::VMManagerProtocol(VMManagerProtocol::Sender sender)
 {
     message_class = sender;
@@ -65,6 +63,7 @@ VMManagerProtocol::constructDefaultObject(VMManagerProtocol::Sender type)
     json_message["version"] = QStringLiteral(EMU_VERSION);
     return json_message;
 }
+
 bool
 VMManagerProtocol::hasRequiredFields(const QJsonObject& json_document)
 {
@@ -76,6 +75,7 @@ VMManagerProtocol::hasRequiredFields(const QJsonObject& json_document)
     }
     return true;
 }
+
 VMManagerProtocol::ClientMessage
 VMManagerProtocol::getClientMessageType(const QJsonObject &json_document)
 {
@@ -100,6 +100,7 @@ VMManagerProtocol::getClientMessageType(const QJsonObject &json_document)
     }
     return VMManagerProtocol::ClientMessage::UnknownMessage;
 }
+
 VMManagerProtocol::ManagerMessage
 VMManagerProtocol::getManagerMessageType(const QJsonObject &json_document)
 {
@@ -126,6 +127,7 @@ VMManagerProtocol::getManagerMessageType(const QJsonObject &json_document)
     }
     return VMManagerProtocol::ManagerMessage::UnknownMessage;
 }
+
 QJsonObject
 VMManagerProtocol::getParams(const QJsonObject &json_document)
 {

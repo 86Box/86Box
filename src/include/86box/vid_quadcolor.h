@@ -8,13 +8,12 @@
  *
  *          Quadram Quadcolor I / I+II emulation
  *
- * Authors:  Benedikt Freisen, <https://pcem-emulator.co.uk/>
- *           Jasmine Iwanek, <jriwanek@gmail.com>
+ * Authors: Benedikt Freisen, <https://pcem-emulator.co.uk/>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2024      Benedikt Freisen.
-            Copyright 2025      Jasmine Iwanek.
+ *          Copyright 2025      Jasmine Iwanek.
  */
-
 #ifndef _VID_QUADCOLOR_H_
 #define _VID_QUADCOLOR_H_
 

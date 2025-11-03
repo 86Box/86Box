@@ -8,8 +8,6 @@
  *
  *          Utility functions.
  *
- *
- *
  * Authors: Teemu Korhonen
  *
  *          Copyright 2022 Teemu Korhonen

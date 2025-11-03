@@ -8,8 +8,6 @@
  *
  *          Specify dimensions UI module.
  *
- *
- *
  * Authors: Cacodemon345
  *
  *          Copyright 2021-2022 Cacodemon345

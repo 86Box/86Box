@@ -8,13 +8,10 @@
  *
  *          Header for the update check dialog module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #ifndef QT_UPDATECHECKDIALOG_HPP
 #define QT_UPDATECHECKDIALOG_HPP
 

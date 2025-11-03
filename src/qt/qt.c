@@ -6,8 +6,6 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje

@@ -8,8 +8,6 @@
  *
  *          Various definitions for portable byte-swapping.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          neozeed,
  *
@@ -34,7 +32,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-
 #ifndef BSWAP_H
 #define BSWAP_H
 

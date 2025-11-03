@@ -8,8 +8,6 @@
  *
  *          Definitions for the video controller module.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -18,7 +16,6 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
-
 #ifndef EMU_VIDEO_H
 #define EMU_VIDEO_H
 
@@ -30,8 +27,8 @@ using atomic_int  = std::atomic_int;
 #    include <stdatomic.h>
 #endif
 
-#define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16))
-#define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
+#define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16) | 0xff000000)
+#define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16) | 0xff000000)
 #define getcolr(color) (((color) >> 16) & 0xFF)
 #define getcolg(color) (((color) >> 8) & 0xFF)
 #define getcolb(color) ((color) & 0xFF)
@@ -335,6 +332,9 @@ extern void da2_device_add(void);
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
 extern const device_t mach64gx_pci_device;
+extern const device_t mach64ct_device;
+extern const device_t mach64ct_device_onboard;
+extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
 
 /* ATi 18800 */
@@ -436,20 +436,20 @@ extern const device_t et4000_kasan_isa_device;
 extern const device_t et4000_mca_device;
 
 /* Tseng ET4000-W32x */
-extern const device_t et4000w32_device;
+extern const device_t et4000w32_machspeed_vga_gui_2400s_isa_device;
+extern const device_t et4000w32_machspeed_vga_gui_2400s_vlb_device;
 extern const device_t et4000w32_onboard_device;
-extern const device_t et4000w32i_isa_device;
-extern const device_t et4000w32i_vlb_device;
+extern const device_t et4000w32i_axis_microdevice_isa_device;
+extern const device_t et4000w32i_hercules_dynamite_pro_vlb_device;
 extern const device_t et4000w32p_videomagic_revb_vlb_device;
-extern const device_t et4000w32p_videomagic_revb_pci_device;
-extern const device_t et4000w32p_revc_vlb_device;
-extern const device_t et4000w32p_revc_pci_device;
-extern const device_t et4000w32p_vlb_device;
-extern const device_t et4000w32p_pci_device;
-extern const device_t et4000w32p_noncardex_vlb_device;
-extern const device_t et4000w32p_noncardex_pci_device;
-extern const device_t et4000w32p_cardex_vlb_device;
-extern const device_t et4000w32p_cardex_pci_device;
+extern const device_t et4000w32p_cardex_revc_vlb_device;
+extern const device_t et4000w32p_cardex_revc_pci_device;
+extern const device_t et4000w32p_cardex_revd_vlb_device;
+extern const device_t et4000w32p_cardex_revd_pci_device;
+extern const device_t et4000w32p_diamond_revd_vlb_device;
+extern const device_t et4000w32p_diamond_revd_pci_device;
+extern const device_t et4000w32p_generic_revd_vlb_device;
+extern const device_t et4000w32p_generic_revd_pci_device;
 
 /* MDSI Genius VHR */
 extern const device_t genius_device;

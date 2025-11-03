@@ -552,7 +552,10 @@ ide_hd_identify(const ide_t *ide)
     /* Serial Number */
     ide_padstr((char *) (ide->buffer + 10), "", 20);
     /* Firmware */
-    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
+    if (hdd[ide->hdd_num].version_ex)
+        ide_padstr((char *) (ide->buffer + 23), hdd[ide->hdd_num].version_ex, 8);
+    else
+        ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
     /* Model */
     if (hdd[ide->hdd_num].model)
         ide_padstr((char *) (ide->buffer + 27), hdd[ide->hdd_num].model, 40);
