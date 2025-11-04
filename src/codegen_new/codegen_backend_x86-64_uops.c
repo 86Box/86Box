@@ -220,9 +220,9 @@ static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
 #    if _WIN64
-    host_x86_MOV64_REG_IMM(block, REG_RCX, uop->imm_data);
+    host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data);
 #    else
-    host_x86_MOV64_REG_IMM(block, REG_RDI, uop->imm_data);
+    host_x86_MOV32_REG_IMM(block, REG_EDI, uop->imm_data);
 #    endif
     host_x86_CALL(block, uop->p);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
@@ -906,9 +906,9 @@ static int
 codegen_LOAD_FUNC_ARG0_IMM(codeblock_t *block, uop_t *uop)
 {
 #    if _WIN64
-    host_x86_MOV64_REG_IMM(block, REG_RCX, uop->imm_data);
+    host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data);
 #    else
-    host_x86_MOV64_REG_IMM(block, REG_RDI, uop->imm_data);
+    host_x86_MOV32_REG_IMM(block, REG_EDI, uop->imm_data);
 #    endif
     return 0;
 }
@@ -916,9 +916,9 @@ static int
 codegen_LOAD_FUNC_ARG1_IMM(codeblock_t *block, uop_t *uop)
 {
 #    if _WIN64
-    host_x86_MOV64_REG_IMM(block, REG_RDX, uop->imm_data);
+    host_x86_MOV32_REG_IMM(block, REG_EDX, uop->imm_data);
 #    else
-    host_x86_MOV64_REG_IMM(block, REG_RSI, uop->imm_data);
+    host_x86_MOV32_REG_IMM(block, REG_ESI, uop->imm_data);
 #    endif
     return 0;
 }
