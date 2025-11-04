@@ -660,6 +660,9 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
     uop->p         = p;
 }
 
+extern int codegen_mmx_enter(void);
+extern int codegen_fp_enter(void);
+
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
 
 #define uop_LOAD_FUNC_ARG_IMM(ir, arg, imm)                      uop_gen_imm(UOP_LOAD_FUNC_ARG_0_IMM + arg, ir, imm)
@@ -726,15 +729,19 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
 
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
-        if (!codegen_fpu_entered)                           \
-            uop_gen_imm(UOP_FP_ENTER, ir, cpu_state.oldpc); \
+        if (!codegen_fpu_entered) {                         \
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+        }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
     } while (0)
 #define uop_MMX_ENTER(ir)                                    \
     do {                                                     \
-        if (!codegen_mmx_entered)                            \
-            uop_gen_imm(UOP_MMX_ENTER, ir, cpu_state.oldpc); \
+        if (!codegen_mmx_entered) {                         \
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_mmx_enter); \
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+        }                                                   \
         codegen_mmx_entered = 1;                             \
         codegen_fpu_entered = 0;                             \
     } while (0)
