@@ -242,6 +242,20 @@ static uint64_t tsc_old     = 0;
 int32_t acycs = 0;
 #    endif
 
+int
+codegen_mmx_enter(void)
+{
+    MMX_ENTER();
+    return 0;
+}
+
+int
+codegen_fp_enter(void)
+{
+    FP_ENTER();
+    return 0;
+}
+
 void
 update_tsc(void)
 {
