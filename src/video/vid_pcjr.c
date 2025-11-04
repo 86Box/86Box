@@ -269,7 +269,7 @@ vid_get_h_overscan_delta(pcjr_t *pcjr)
             break;
     }
 
-    ret = pcjr->crtc[0x02] - def;
+    ret = def - pcjr->crtc[0x02];
 
     if (ret < -8)
         ret = -8;
