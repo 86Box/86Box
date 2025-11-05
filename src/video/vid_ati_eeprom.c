@@ -56,7 +56,6 @@ ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn, int mca)
     size = 128;
     if (!fp) {
         if (mca) {
-            (void) fseek(fp, 2L, SEEK_SET);
             memset(eeprom->data + 2, 0xff, size - 2);
             fp = nvr_fopen(eeprom->fn, "wb");
             fwrite(eeprom->data, 1, size, fp);
