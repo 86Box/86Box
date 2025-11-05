@@ -126,7 +126,6 @@ lpt_handler(pc87306_t *dev)
     uint8_t  lpt_irq       = LPT2_IRQ;
     uint8_t  cnfgb_readout = 0x08;
 
-    pclog("Removing LPT port...\n");
     lpt_port_remove(dev->lpt);
 
     temp  = dev->regs[0x01] & 3;
@@ -172,10 +171,8 @@ lpt_handler(pc87306_t *dev)
     lpt_set_epp(dev->lpt, !!(dev->regs[0x04] & 0x01));
     lpt_set_ecp(dev->lpt, !!(dev->regs[0x04] & 0x04));
 
-    if (lpt_port) {
-        pclog("Setting up LPT port at %04X...\n", lpt_port);
+    if (lpt_port)
         lpt_port_setup(dev->lpt, lpt_port);
-    }
 
     lpt_port_irq(dev->lpt, lpt_irq);
 
