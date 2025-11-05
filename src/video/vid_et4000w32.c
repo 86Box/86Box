@@ -2825,8 +2825,9 @@ et4000w32p_init(const device_t *info)
             et4000->rev = ET4000W32;
             et4000->ramdac_type = ET4K_SDAC;
 
-            rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S, 0xc0000, 0x8000, 0x7fff, 0,
-                     MEM_MAPPING_EXTERNAL);
+            if (!(info->local & 0x100))
+                rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S, 0xc0000, 0x8000, 0x7fff, 0,
+                         MEM_MAPPING_EXTERNAL);
 
             et4000->svga.ramdac    = device_add(&tseng_ics5301_ramdac_device);
             et4000->svga.clock_gen = et4000->svga.ramdac;
