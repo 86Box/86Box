@@ -2966,6 +2966,7 @@ et4000w32p_init(const device_t *info)
     et4000->pci_regs[0x33] = 0xf0;
 
     et4000->svga.packed_chain4 = 1;
+    et4000->svga.adv_flags    |= FLAG_PANNING_ATI;
 
     return et4000;
 }
