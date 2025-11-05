@@ -739,6 +739,7 @@ extern int codegen_fp_enter(void);
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
+            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);           \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
             uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
         }                                                   \
@@ -748,6 +749,7 @@ extern int codegen_fp_enter(void);
 #define uop_MMX_ENTER(ir)                                    \
     do {                                                     \
         if (!codegen_mmx_entered) {                         \
+            uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);            \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_mmx_enter); \
             uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
         }                                                   \
