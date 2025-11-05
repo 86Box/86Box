@@ -284,12 +284,9 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
 
             valxor     = val ^ dev->regs[dev->cur_reg];
             dev->tries = 0;
-            if ((dev->cur_reg <= 0x1c) && (dev->cur_reg != 0x08)) {
-                if ((dev->cur_reg == 0x00) && (val == 0x08))
-                    val = 0x4f;
-
+            if ((dev->cur_reg <= 0x1c) && (dev->cur_reg != 0x08))
                 dev->regs[dev->cur_reg] = val;
-            } else
+            else
                 return;
         } else {
             dev->tries++;
@@ -407,8 +404,8 @@ pc87306_read(uint16_t port, void *priv)
             dev->tries = 0;
         }
     } else {
-        if (dev->cur_reg == 8)
-            ret = 0x70;
+        if (dev->cur_reg == 0x08)
+            ret = 0x71;
         else if (dev->cur_reg < 28)
             ret = dev->regs[dev->cur_reg];
         dev->tries = 0;
@@ -427,7 +424,6 @@ pc87306_reset_common(void *priv)
 
     dev->regs[0x00] = 0x0b;
     dev->regs[0x01] = 0x01;
-    dev->regs[0x02] = 0x08;
     dev->regs[0x03] = 0x01;
     dev->regs[0x05] = 0x0d;
     dev->regs[0x08] = 0x71;
