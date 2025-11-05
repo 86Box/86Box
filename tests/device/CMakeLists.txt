@@ -24,6 +24,20 @@ if(BUILD_TESTING)
 endif()
 
 if(BUILD_TESTING)
+    add_executable(serial_backend_tests
+        serial_backend_test.cpp
+        ../../src/device/serial_backend.c
+    )
+    target_include_directories(serial_backend_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    target_link_libraries(serial_backend_tests PRIVATE GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(serial_backend_tests)
+endif()
+
+if(BUILD_TESTING)
     add_executable(mouse_microtouch_tests
         mouse_microtouch_test.cpp
         ../../src/device/mouse_microtouch_touchscreen.c
@@ -65,3 +79,5 @@ if(BUILD_TESTING)
     include(GoogleTest)
     gtest_discover_tests(ibm_pc700_power_tests)
 endif()
+
+add_subdirectory(modem)

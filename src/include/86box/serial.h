@@ -116,6 +116,8 @@ typedef struct serial_device_s {
     void    (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
     void    (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t lcr);
     void    (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
+    void    (*control_callback)(void *priv, uint32_t flags);
+    void    (*format_callback)(void *priv, int baud, int data_bits, int parity, int stop_bits);
     void     *priv;
 } serial_device_t;
 
@@ -270,6 +272,14 @@ extern ser_port_t *serial_attach_ex_2(int port,
                                   void (*rcr_callback)(struct serial_s *serial, void *priv),
                                   void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
                                   void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
+                                  void *priv);
+
+extern ser_port_t *serial_attach_ex_3(int port,
+                                  void (*rcr_callback)(struct serial_s *serial, void *priv),
+                                  void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
+                                  void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
+                                  void (*control_callback)(void *priv, uint32_t flags),
+                                  void (*format_callback)(void *priv, int baud, int data_bits, int parity, int stop_bits),
                                   void *priv);
 
 #define serial_attach(port, rcr_callback, dev_write, priv) \

@@ -42,7 +42,9 @@
  */
 #ifndef EMU_NETWORK_H
 #define EMU_NETWORK_H
+#include <stdbool.h>
 #include <stdint.h>
+#include <86box/thread.h>
 
 /* Network provider types. */
 #define NET_TYPE_NONE     0 /* use the null network driver */
@@ -155,6 +157,12 @@ struct _netcard_t {
     uint32_t        led_timer;
     uint32_t        led_state;
     uint32_t        link_state;
+    /* Effective SLIRP addresses, populated for SLIRP-backed cards. */
+    uint32_t        slirp_host_ip;
+    uint32_t        slirp_dhcp_ip;
+    uint32_t        slirp_dns_ip;
+    bool            internal_modem;
+    bool            slirp_force_auto_range;
 };
 
 typedef struct {
@@ -187,6 +195,7 @@ extern netdev_t         network_devs[NET_HOST_INTF_MAX];
 /* Function prototypes. */
 extern void       network_init(void);
 extern netcard_t *network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state);
+extern netcard_t *network_attach_modem(void *card_drv, uint8_t *mac, NETRXCB rx);
 extern void       netcard_close(netcard_t *card);
 extern void       network_close(void);
 extern void       network_reset(void);

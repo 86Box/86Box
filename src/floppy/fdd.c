@@ -388,7 +388,7 @@ fdd_seek_complete_callback(void *priv)
     }
 
     if (!had_pending || fdd_tape_present(drv))
-        fdc_seek_complete_interrupt(drv->fdc, drv->id & 3);
+        fdc_seek_complete_interrupt((fdc_t *) drv->fdc, drv->id & 3);
 }
 
 /*
@@ -523,7 +523,7 @@ fdd_track0(void *priv)
 int
 fdd_get_type_max_track(int type)
 {
-    if (type < 0 || type >= (sizeof(drive_types) / sizeof(drive_types[0])))
+    if (type < 0 || type >= (int) (sizeof(drive_types) / sizeof(drive_types[0])))
         return 0;
 
     return drive_types[type].max_track;

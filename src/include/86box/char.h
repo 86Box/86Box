@@ -151,6 +151,7 @@ extern void         char_update_status(char_port_t *port);
 extern void        *char_log_open(char_port_t *port, char *dev_name);
 
 extern const device_t char_serial_passthrough_com_device;
+extern const device_t char_modem_device;
 extern const device_t char_pipe_com_device;
 extern const device_t char_pipe_lpt_device;
 extern const device_t char_file_com_device;

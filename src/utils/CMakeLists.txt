@@ -12,11 +12,10 @@
 #          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
-#          Copyright 2024      Jasmine Iwanek.
+#          Copyright 2024-2026 Jasmine Iwanek.
 #
 
 add_library(utils OBJECT
-
     # Core
     cJSON.c
     crc.c
@@ -26,12 +25,9 @@ add_library(utils OBJECT
     ini.c
     log.c
     random.c
-
 )
 
 add_library(mdsx_dll OBJECT
-
     # MDSX DLL Core
     mdsx_dll.c
-
 )
