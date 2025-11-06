@@ -29,6 +29,7 @@
 #    define FLAG_512K_MASK    512
 #    define FLAG_NO_SHIFT3    1024 /* Needed for Bochs VBE. */
 #    define FLAG_PRECISETIME  2048 /* Needed for Copper demo if on dynarec. */
+#    define FLAG_PANNING_ATI  4096
 struct monitor_t;
 
 typedef struct hwcursor_t {
@@ -136,6 +137,7 @@ typedef struct svga_t {
     int ps_bit_bug;
     int ati_4color;
     int vblankend;
+    int panning_blank;
     int render_line_offset;
     int start_retrace_latch;
     int vga_mode;
