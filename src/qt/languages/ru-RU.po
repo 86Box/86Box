@@ -2265,7 +2265,7 @@ msgstr "Адрес порта RTC"
 msgid "Onboard RTC"
 msgstr "Встроенный RTC"
 
-msgid "Uninstalled"
+msgid "Not installed"
 msgstr "Не установлен"
 
 msgid "Enable OPL"
