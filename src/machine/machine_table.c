@@ -19476,7 +19476,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0 /* assumed */
         },
         .bus_flags = MACHINE_PS2_PCIONLY /* assumed */ | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_NIC, /* Machine has internal video: Chromatic MM99C288A (not emulated), sound: Analog Devices AD1819B (not emulated), NIC: Realtek RTL8139C+ */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Chromatic MM99C288A, sound: Analog Devices AD1819B, NIC: Realtek RTL8139C */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -19496,7 +19496,7 @@ const machine_t machines[] = {
         .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = &rtl8139c_plus_device
+        .net_device               = NULL
     },
 
     /* 440ZX */
