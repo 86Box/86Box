@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
@@ -333,10 +334,12 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
     int ret;
 
     ret = bios_load_linear("roms/machines/valuepoint433/$IMAGEP.FLH",
-                           0x000e0000, 131072, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
         return ret;
+
+    memcpy(&rom[0x00020000], rom, 131072);
 
     machine_at_common_ide_init(model);
     device_add(&sis_85c461_device);
@@ -349,6 +352,13 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    if (gfxcard[0] != VID_INTERNAL) {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
 
     return ret;
 }

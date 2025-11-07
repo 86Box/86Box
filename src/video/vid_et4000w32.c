@@ -40,7 +40,7 @@
 #define BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S   "roms/video/et4000w32/ET4000W32VLB_bios_MX27C512.BIN"
 #define BIOS_ROM_PATH_W32I_REVB_AXIS_MICRODEVICE    "roms/video/et4000w32/ET4KW32I.VBI"
 #define BIOS_ROM_PATH_W32I_REVB_HERCULES_DYNAMITE_VLB_PRO "roms/video/et4000w32/Hercules Dynamite VL Pro v8.00 c 1993 Hercules.bin"
-#define BIOS_ROM_PATH_W32P_REVB_VIDEOMAGIC          "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.bin"
+#define BIOS_ROM_PATH_W32P_REVB_VIDEOMAGIC          "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.BIN"
 #define BIOS_ROM_PATH_W32P_REVC_CARDEX              "roms/video/et4000w32/et4000w32pcardex.BIN"
 #define BIOS_ROM_PATH_W32P_REVD                     "roms/video/et4000w32/ET4K_W32.BIN"
 #define BIOS_ROM_PATH_W32P_REVD_CARDEX              "roms/video/et4000w32/cardex.vbi"
@@ -2825,8 +2825,9 @@ et4000w32p_init(const device_t *info)
             et4000->rev = ET4000W32;
             et4000->ramdac_type = ET4K_SDAC;
 
-            rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S, 0xc0000, 0x8000, 0x7fff, 0,
-                     MEM_MAPPING_EXTERNAL);
+            if (!(info->local & 0x100))
+                rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S, 0xc0000, 0x8000, 0x7fff, 0,
+                         MEM_MAPPING_EXTERNAL);
 
             et4000->svga.ramdac    = device_add(&tseng_ics5301_ramdac_device);
             et4000->svga.clock_gen = et4000->svga.ramdac;
@@ -2966,6 +2967,7 @@ et4000w32p_init(const device_t *info)
     et4000->pci_regs[0x33] = 0xf0;
 
     et4000->svga.packed_chain4 = 1;
+    et4000->svga.adv_flags    |= FLAG_PANNING_ATI;
 
     return et4000;
 }

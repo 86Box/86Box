@@ -1105,6 +1105,9 @@ extern int             machine_at_via809ds_init(const machine_t *);
 
 /* SiS 5571 */
 extern int             machine_at_cb52xsi_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ms5146_device;
+#endif
 extern int             machine_at_ms5146_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  r534f_device;
@@ -1220,6 +1223,9 @@ extern int             machine_at_ms6119_init(const machine_t *);
 extern const device_t  ms6147_device;
 #endif
 extern int             machine_at_ms6147_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  p6sba_device;
+#endif
 extern int             machine_at_p6sba_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  s1846_device;
@@ -1440,6 +1446,10 @@ extern int             machine_xt_pravetz16s_cpu12p_init(const machine_t *);
 extern int             machine_xt_pb8810_init(const machine_t *);
 extern int             machine_xt_sansx16_init(const machine_t *);
 extern int             machine_xt_pcxt_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  to16_device;
+#endif
+extern int             machine_xt_to16_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  vendex_device;
 #endif
