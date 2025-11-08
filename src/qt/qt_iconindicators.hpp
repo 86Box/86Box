@@ -1,5 +1,5 @@
 #ifndef QT_ICONINDICATORS_HPP
-#    define QT_ICONINDICATORS_HPP
+#define QT_ICONINDICATORS_HPP
 
 #include <QPixmap>
 #include <QIcon>

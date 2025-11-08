@@ -22,21 +22,23 @@
 
 #define TOOLBUTTON_STYLESHEET_LIGHT "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(midlight)} QToolButton:pressed {background: palette(mid)}"
 #ifdef Q_OS_WINDOWS
-#    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {padding: 5px}"
+#    define TOOLBUTTON_STYLESHEET_DARK       "QToolButton {padding: 5px}"
 #    define SCREENSHOTBORDER_STYLESHEET_DARK "QLabel { border: 1px solid gray }"
 #else
 #    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(dark)} QToolButton:pressed {background: palette(mid)}"
 #endif
-#define SCROLLAREA_STYLESHEET_LIGHT "QWidget {background-color: palette(light)} QScrollBar{ background-color: none }"
+#define SCROLLAREA_STYLESHEET_LIGHT  "QWidget {background-color: palette(light)} QScrollBar{ background-color: none }"
 #define SYSTEMLABEL_STYLESHEET_LIGHT "background-color: palette(midlight);"
 
 using namespace VMManager;
 
-VMManagerDetails::VMManagerDetails(QWidget *parent) :
-    QWidget(parent), ui(new Ui::VMManagerDetails) {
+VMManagerDetails::VMManagerDetails(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::VMManagerDetails)
+{
     ui->setupUi(this);
 
-    const auto leftColumnLayout = qobject_cast<QVBoxLayout*>(ui->leftColumn->layout());
+    const auto leftColumnLayout = qobject_cast<QVBoxLayout *>(ui->leftColumn->layout());
 
     // Each section here gets its own VMManagerDetailSection, named in the constructor.
     // When a system is selected in the list view it is updated through this object
@@ -116,7 +118,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     ui->ssNavTBHolder->setStyleSheet(toolButtonStyleSheet);
 
     pauseIcon = QIcon(":/menuicons/qt/icons/pause.ico");
-    runIcon = QIcon(":/menuicons/qt/icons/run.ico");
+    runIcon   = QIcon(":/menuicons/qt/icons/run.ico");
 
     // Experimenting
     startPauseButton = new QToolButton();
@@ -164,12 +166,14 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     sysconfig = new VMManagerSystem();
 }
 
-VMManagerDetails::~VMManagerDetails() {
+VMManagerDetails::~VMManagerDetails()
+{
     delete ui;
 }
 
 void
-VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
+VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
+{
 
     // Set the scrollarea background but also set the scroll bar to none. Otherwise it will also
     // set the scrollbar background to the same.
@@ -202,9 +206,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     connect(cadButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::cadButtonPressed);
     cadButton->setEnabled(true);
 
-    bool running = sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running ||
-        sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::RunningWaiting;
-    if(running) {
+    bool running = sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running || sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::RunningWaiting;
+    if (running) {
         startPauseButton->setIcon(pauseIcon);
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::pauseButtonPressed);
     } else {
@@ -218,9 +221,7 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     updateScreenshots(passed_sysconfig);
 
     ui->systemLabel->setText(passed_sysconfig->displayName);
-    ui->statusLabel->setText(sysconfig->process->processId() == 0 ?
-        tr("Not running") :
-        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
+    ui->statusLabel->setText(sysconfig->process->processId() == 0 ? tr("Not running") : QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
     ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
     ui->notesTextEdit->setEnabled(true);
 
@@ -237,7 +238,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
 }
 
 void
-VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
+VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig)
+{
     // Each detail section here has its own VMManagerDetailSection.
     // When a system is selected in the list view it is updated here, through this object:
     // * First you clear it with VMManagerDetailSection::clear()
@@ -252,7 +254,7 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     // Video
     videoSection->clear();
     videoSection->addSection("Video", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Video));
-    if(!passed_sysconfig->getDisplayValue(VMManager::Display::Name::Voodoo).isEmpty()) {
+    if (!passed_sysconfig->getDisplayValue(VMManager::Display::Name::Voodoo).isEmpty()) {
         videoSection->addSection("Voodoo", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Voodoo));
     }
 
@@ -303,7 +305,8 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
 }
 
 void
-VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
+VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig)
+{
     // Disable screenshot navigation buttons by default
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
@@ -315,7 +318,7 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
     if (!screenshots.empty()) {
         ui->screenshot->setFrameStyle(QFrame::NoFrame);
         ui->screenshot->setEnabled(true);
-        if(screenshots.size() > 1) {
+        if (screenshots.size() > 1) {
             ui->screenshotNext->setEnabled(true);
             ui->screenshotPrevious->setEnabled(true);
             ui->screenshotNextTB->setEnabled(true);
@@ -324,7 +327,7 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
 #ifdef Q_OS_WINDOWS
         ui->screenshot->setStyleSheet("");
 #endif
-        if(QFileInfo::exists(screenshots.last().filePath())) {
+        if (QFileInfo::exists(screenshots.last().filePath())) {
             screenshotIndex = screenshots.size() - 1;
             const QPixmap pic(screenshots.at(screenshotIndex).filePath());
             ui->screenshot->setPixmap(pic.scaled(240, 160, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -351,18 +354,17 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
 }
 
 void
-VMManagerDetails::updateProcessStatus() {
-    const bool running = sysconfig->process->state() == QProcess::ProcessState::Running;
-    QString status_text = running ?
-        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())) :
-        tr("Not running");
+VMManagerDetails::updateProcessStatus()
+{
+    const bool running     = sysconfig->process->state() == QProcess::ProcessState::Running;
+    QString    status_text = running ? QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())) : tr("Not running");
     status_text.append(sysconfig->window_obscured ? QString(" (%1)").arg(tr("Waiting")) : "");
     ui->statusLabel->setText(status_text);
     resetButton->setEnabled(running);
     stopButton->setEnabled(running);
     cadButton->setEnabled(running);
-    if(running) {
-        if(sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
+    if (running) {
+        if (sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
             startPauseButton->setIcon(pauseIcon);
             startPauseButton->setToolTip(tr("Pause"));
         } else {
@@ -404,7 +406,7 @@ VMManagerDetails::updateWindowStatus()
 void
 VMManagerDetails::updateStyle()
 {
-    QString toolButtonStyleSheet;
+    QString    toolButtonStyleSheet;
     const bool lightMode = util::isWindowsLightTheme();
     if (lightMode) {
         toolButtonStyleSheet = TOOLBUTTON_STYLESHEET_LIGHT;
@@ -472,10 +474,9 @@ VMManagerDetails::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched->isWidgetType() && event->type() == QEvent::FocusOut) {
         // Make sure it's the textedit
-        if (const auto *textEdit = qobject_cast<QPlainTextEdit*>(watched); textEdit) {
+        if (const auto *textEdit = qobject_cast<QPlainTextEdit *>(watched); textEdit) {
             saveNotes();
         }
     }
     return QWidget::eventFilter(watched, event);
 }
-

@@ -42,29 +42,29 @@ public:
         Icon
     };
 
-    [[nodiscard]] int rowCount(const QModelIndex &parent) const override;
+    [[nodiscard]] int      rowCount(const QModelIndex &parent) const override;
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
     [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation,
-                        int role) const override;
-    void addConfigToModel(VMManagerSystem *system_config);
-    void removeConfigFromModel(VMManagerSystem *system_config);
+                                      int role) const override;
+    void                   addConfigToModel(VMManagerSystem *system_config);
+    void                   removeConfigFromModel(VMManagerSystem *system_config);
 
-    [[nodiscard]] VMManagerSystem * getConfigObjectForIndex(const QModelIndex &index) const;
-    QModelIndex getIndexForConfigFile(const QFileInfo& config_file);
-    void reload(QWidget* parent = nullptr);
-    void updateDisplayName(const QModelIndex &index, const QString &newDisplayName);
+    [[nodiscard]] VMManagerSystem            *getConfigObjectForIndex(const QModelIndex &index) const;
+    QModelIndex                               getIndexForConfigFile(const QFileInfo &config_file);
+    void                                      reload(QWidget *parent = nullptr);
+    void                                      updateDisplayName(const QModelIndex &index, const QString &newDisplayName);
     QMap<VMManagerSystem::ProcessStatus, int> getProcessStats();
-    int getActiveMachineCount();
-    void refreshConfigs();
-    void sendGlobalConfigurationChanged();
+    int                                       getActiveMachineCount();
+    void                                      refreshConfigs();
+    void                                      sendGlobalConfigurationChanged();
+
 signals:
     void systemDataChanged();
     void globalConfigurationChanged();
 
 private:
     QVector<VMManagerSystem *> machines;
-    void modelDataChanged();
-
+    void                       modelDataChanged();
 };
 
 // Note: Custom QSortFilterProxyModel is included here instead of its own file as
@@ -72,10 +72,14 @@ private:
 
 class StringListProxyModel final : public QSortFilterProxyModel {
 public:
-    explicit StringListProxyModel(QObject *parent = nullptr) : QSortFilterProxyModel(parent) {}
+    explicit StringListProxyModel(QObject *parent = nullptr)
+        : QSortFilterProxyModel(parent)
+    {
+    }
 
 protected:
-    [[nodiscard]] bool filterAcceptsRow(const int sourceRow, const QModelIndex &sourceParent) const override {
+    [[nodiscard]] bool filterAcceptsRow(const int sourceRow, const QModelIndex &sourceParent) const override
+    {
         const QModelIndex index = sourceModel()->index(sourceRow, filterKeyColumn(), sourceParent);
 
         QStringList stringList = sourceModel()->data(index, VMManagerModel::Roles::SearchList).toStringList();
@@ -89,4 +93,4 @@ protected:
     }
 };
 
-#endif //QT_VMMANAGER_MODEL_H
+#endif // QT_VMMANAGER_MODEL_H

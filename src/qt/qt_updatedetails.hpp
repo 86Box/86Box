@@ -28,13 +28,13 @@ class UpdateDetails final : public QDialog {
 public:
     explicit UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent = nullptr);
     ~UpdateDetails() override;
+
 private:
     Ui::UpdateDetails *ui;
-    static QString jenkinsUpdateToMarkdown(const QList<UpdateCheck::JenkinsReleaseInfo> &releaseInfoList);
-    static QString githubUpdateToMarkdown(const QList<UpdateCheck::GithubReleaseInfo> &releaseInfoList);
+    static QString     jenkinsUpdateToMarkdown(const QList<UpdateCheck::JenkinsReleaseInfo> &releaseInfoList);
+    static QString     githubUpdateToMarkdown(const QList<UpdateCheck::GithubReleaseInfo> &releaseInfoList);
 private slots:
     static void visitDownloadPage(const UpdateCheck::UpdateChannel &channel);
 };
-
 
 #endif // QT_UPDATEDETAILS_HPP
