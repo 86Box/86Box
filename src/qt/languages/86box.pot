@@ -2256,9 +2256,6 @@ msgstr ""
 msgid "RTC IRQ"
 msgstr ""
 
-msgid "RTC IRQ 2"
-msgstr ""
-
 msgid "RTC Port Address"
 msgstr ""
 

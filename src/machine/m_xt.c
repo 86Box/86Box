@@ -1249,7 +1249,7 @@ static const device_config_t pc500_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
-            { .description = "Enabled",  .value =  2 },
+            { .description = "IRQ 2",    .value =  2 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
@@ -1369,7 +1369,7 @@ static const device_config_t pc500plus_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
-            { .description = "Enabled",  .value =  2 },
+            { .description = "IRQ 2",    .value =  2 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
@@ -1735,15 +1735,15 @@ static const device_config_t to16_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Not installed", .value =     0 },
-            { .description = "RTC0",        .value = 0x300 },
-            { .description = "RTC1",        .value = 0x2c0 },
-            { .description = ""                         }
+            { .description = "RTC0",          .value = 0x300 },
+            { .description = "RTC1",          .value = 0x2c0 },
+            { .description = ""                              }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "rtc_irq",
-        .description    = "RTC IRQ 2",
+        .description    = "RTC IRQ",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = -1,
@@ -1751,7 +1751,7 @@ static const device_config_t to16_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
-            { .description = "Enabled",  .value =  2 },
+            { .description = "IRQ 2",    .value =  2 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
