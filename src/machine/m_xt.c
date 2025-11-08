@@ -37,6 +37,7 @@
 #include <86box/serial.h>
 #include <86box/sio.h>
 #include <86box/ibm_5161.h>
+#include <86box/isartc.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
 #include <86box/machine.h>
@@ -44,9 +45,6 @@
 #include <86box/chipset.h>
 #include <86box/port_6x.h>
 #include <86box/video.h>
-
-extern const device_t vendex_xt_rtc_onboard_device;
-extern const device_t rtc58167_device;
 
 /* 8088 */
 static void
