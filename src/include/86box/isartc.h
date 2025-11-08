@@ -55,6 +55,10 @@ extern int             isartc_get_from_internal_name(const char *str);
 extern const device_t *isartc_get_device(int t);
 extern int             isartc_has_config(int board);
 
+/* On-board RTC devices */
+extern const device_t vendex_xt_rtc_onboard_device;
+extern const device_t rtc58167_device;
+
 #ifdef __cplusplus
 }
 #endif

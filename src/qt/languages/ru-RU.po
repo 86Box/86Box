@@ -2256,9 +2256,6 @@ msgstr "DMA WSS"
 msgid "RTC IRQ"
 msgstr "IRQ RTC"
 
-msgid "RTC IRQ 2"
-msgstr "IRQ 2 RTC"
-
 msgid "RTC Port Address"
 msgstr "Адрес порта RTC"
 

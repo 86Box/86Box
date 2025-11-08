@@ -975,10 +975,10 @@ msgstr ""
 msgid "Thrustmaster FCS + Rudder Control System"
 msgstr ""
 
-msgid "Thrustmaster Formula T1/T2 with Adaptor"
+msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr ""
 
-msgid "Thrustmaster Formula T1/T2 without Adaptor"
+msgid "Thrustmaster Formula T1/T2 without adapter"
 msgstr ""
 
 msgid "None"
@@ -2254,9 +2254,6 @@ msgid "WSS DMA"
 msgstr ""
 
 msgid "RTC IRQ"
-msgstr ""
-
-msgid "RTC IRQ 2"
 msgstr ""
 
 msgid "RTC Port Address"
