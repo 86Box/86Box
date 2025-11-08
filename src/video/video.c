@@ -612,7 +612,7 @@ cgapal_rebuild_monitor(int monitor_index)
         palette_lookup[0x15] = 0xffc400c4;
         palette_lookup[0x16] = 0xffc47e00;
         palette_lookup[0x17] = 0xffc4c4c4;
-        palette_lookup[0x18] = 0x0ffe4e4e;
+        palette_lookup[0x18] = 0xff4e4e4e;
         palette_lookup[0x19] = 0xff4e4edc;
         palette_lookup[0x1a] = 0xff4edc4e;
         palette_lookup[0x1b] = 0xff4ef3f3;
