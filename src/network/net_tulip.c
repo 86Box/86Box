@@ -463,15 +463,9 @@ tulip_filter_address(TULIPState *s, const uint8_t *addr)
         }
     }
 
-/*
-   Do not block broadcast packets - needed for connections to the guest
-   to succeed when using SLiRP.
- */
-#ifdef BLOCK_BROADCAST
     if (!memcmp(addr, broadcast, ETH_ALEN)) {
         return true;
     }
-#endif
 
     if (s->csr[6] & (CSR6_PR | CSR6_RA)) {
         /* Promiscuous mode enabled */
