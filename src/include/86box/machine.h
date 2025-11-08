@@ -1302,6 +1302,10 @@ extern int             machine_at_p6bap_init(const machine_t *);
 /* VIA Apollo Pro 133A */
 extern int             machine_at_6via90ap_init(const machine_t *);
 extern int             machine_at_cuv4xls_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ms6318_device;
+#endif
+extern int             machine_at_ms6318_init(const machine_t *);
 
 /* SiS 600 */
 extern int             machine_at_7sbb_init(const machine_t *);
