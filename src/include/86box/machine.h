@@ -1446,6 +1446,10 @@ extern int             machine_xt_pb8810_init(const machine_t *);
 extern int             machine_xt_sansx16_init(const machine_t *);
 extern int             machine_xt_pcxt_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern const device_t  to16_device;
+#endif
+extern int             machine_xt_to16_init(const machine_t *);
+#ifdef EMU_DEVICE_H
 extern const device_t  vendex_device;
 #endif
 extern int             machine_xt_vendex_init(const machine_t *);
