@@ -1736,7 +1736,7 @@ static const device_config_t to16_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Uninstalled", .value =     0 },
+            { .description = "Not installed", .value =     0 },
             { .description = "RTC0",        .value = 0x300 },
             { .description = "RTC1",        .value = 0x2c0 },
             { .description = ""                         }
@@ -1745,7 +1745,7 @@ static const device_config_t to16_config[] = {
     },
     {
         .name           = "rtc_irq",
-        .description    = "RTC IRQ2",
+        .description    = "RTC IRQ 2",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = -1,
