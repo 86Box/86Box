@@ -1292,6 +1292,9 @@ extern int             machine_at_cubx_init(const machine_t *);
 /* i440ZX */
 extern int             machine_at_63a1_init(const machine_t *);
 
+/* SiS 600 */
+extern int             machine_at_7sbb_init(const machine_t *);
+
 /* SMSC VictoryBX-66 */
 extern int             machine_at_atc7020bxii_init(const machine_t *);
 extern int             machine_at_m773_init(const machine_t *);
@@ -1309,9 +1312,6 @@ extern int             machine_at_cuv4xls_init(const machine_t *);
 extern const device_t  ms6318_device;
 #endif
 extern int             machine_at_ms6318_init(const machine_t *);
-
-/* SiS 600 */
-extern int             machine_at_7sbb_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int             machine_at_vpc2007_init(const machine_t *);
