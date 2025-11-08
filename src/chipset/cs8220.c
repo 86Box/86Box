@@ -242,9 +242,13 @@ cs8220_init(UNUSED(const device_t *info))
             dev->ram_banks[0].virt = 0x00000000;
             dev->ram_banks[0].phys = 0x00000000;
             dev->ram_banks[0].size = 0x00080000;
-            dev->ram_banks[1].virt = 0x00100000;
+            dev->ram_banks[1].virt = 0x00080000;
             dev->ram_banks[1].phys = 0x00080000;
-            dev->ram_banks[1].size = 0x00080000;
+            dev->ram_banks[1].size = 0x00020000;
+            /* Pretend there's a 384k expansion. */
+            dev->ram_banks[2].virt = 0x00100000;
+            dev->ram_banks[2].phys = 0x00080000;
+            dev->ram_banks[2].size = 0x00060000;
             break;
     }
 
