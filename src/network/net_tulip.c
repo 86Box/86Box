@@ -452,9 +452,7 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
 static bool
 tulip_filter_address(TULIPState *s, const uint8_t *addr)
 {
-#ifdef BLOCK_BROADCAST
     static const char broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-#endif
     bool              ret         = false;
 
     for (uint8_t i = 0; i < 16 && ret == false; i++) {
@@ -463,15 +461,9 @@ tulip_filter_address(TULIPState *s, const uint8_t *addr)
         }
     }
 
-/*
-   Do not block broadcast packets - needed for connections to the guest
-   to succeed when using SLiRP.
- */
-#ifdef BLOCK_BROADCAST
     if (!memcmp(addr, broadcast, ETH_ALEN)) {
         return true;
     }
-#endif
 
     if (s->csr[6] & (CSR6_PR | CSR6_RA)) {
         /* Promiscuous mode enabled */

@@ -2253,6 +2253,18 @@ msgstr "WSS IRQ"
 msgid "WSS DMA"
 msgstr "WSS DMA"
 
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
 msgid "Enable OPL"
 msgstr "OPLを有効にする"
 

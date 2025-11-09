@@ -37,6 +37,7 @@
 #include <86box/serial.h>
 #include <86box/sio.h>
 #include <86box/ibm_5161.h>
+#include <86box/isartc.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
 #include <86box/machine.h>
@@ -44,9 +45,6 @@
 #include <86box/chipset.h>
 #include <86box/port_6x.h>
 #include <86box/video.h>
-
-extern const device_t vendex_xt_rtc_onboard_device;
-extern const device_t rtc58167_device;
 
 /* 8088 */
 static void
@@ -1251,7 +1249,7 @@ static const device_config_t pc500_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
-            { .description = "Enabled",  .value =  2 },
+            { .description = "IRQ 2",    .value =  2 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
@@ -1371,7 +1369,7 @@ static const device_config_t pc500plus_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
-            { .description = "Enabled",  .value =  2 },
+            { .description = "IRQ 2",    .value =  2 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
@@ -1737,15 +1735,15 @@ static const device_config_t to16_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Not installed", .value =     0 },
-            { .description = "RTC0",        .value = 0x300 },
-            { .description = "RTC1",        .value = 0x2c0 },
-            { .description = ""                         }
+            { .description = "RTC0",          .value = 0x300 },
+            { .description = "RTC1",          .value = 0x2c0 },
+            { .description = ""                              }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "rtc_irq",
-        .description    = "RTC IRQ 2",
+        .description    = "RTC IRQ",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = -1,
@@ -1753,7 +1751,7 @@ static const device_config_t to16_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = -1 },
-            { .description = "Enabled",  .value =  2 },
+            { .description = "IRQ 2",    .value =  2 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
