@@ -252,23 +252,31 @@ cs8220_init(UNUSED(const device_t *info))
             break;
     }
 
-    if (dev->ram_banks[0].size > 0x00000000)
+    mem_set_mem_state(0x00000000, (mem_size << 10) + 0x00060000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+    if (dev->ram_banks[0].size > 0x00000000) {
         mem_mapping_add(&dev->ram_banks[0].mapping, dev->ram_banks[0].virt, dev->ram_banks[0].size,
                         cs8220_mem_read, cs8220_mem_readw, NULL,
                         cs8220_mem_write, cs8220_mem_writew, NULL,
                         ram + dev->ram_banks[0].phys, MEM_MAPPING_INTERNAL, &(dev->ram_banks[0]));
+        mem_set_mem_state(dev->ram_banks[0].virt, dev->ram_banks[0].size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    }
 
-    if (dev->ram_banks[1].size > 0x00000000)
+    if (dev->ram_banks[1].size > 0x00000000) {
         mem_mapping_add(&dev->ram_banks[1].mapping, dev->ram_banks[1].virt, dev->ram_banks[1].size,
                         cs8220_mem_read, cs8220_mem_readw, NULL,
                         cs8220_mem_write, cs8220_mem_writew, NULL,
                         ram + dev->ram_banks[1].phys, MEM_MAPPING_INTERNAL, &(dev->ram_banks[1]));
+        mem_set_mem_state(dev->ram_banks[1].virt, dev->ram_banks[2].size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    }
 
-    if (dev->ram_banks[2].size > 0x00000000)
+    if (dev->ram_banks[2].size > 0x00000000) {
         mem_mapping_add(&dev->ram_banks[2].mapping, dev->ram_banks[2].virt, dev->ram_banks[2].size,
                         cs8220_mem_read, cs8220_mem_readw, NULL,
                         cs8220_mem_write, cs8220_mem_writew, NULL,
                         ram + dev->ram_banks[2].phys, MEM_MAPPING_INTERNAL, &(dev->ram_banks[2]));
+        mem_set_mem_state(dev->ram_banks[2].virt, dev->ram_banks[2].size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    }
 
     io_sethandler(0x00a4, 0x0002,
                   cs8220_in, NULL, NULL, cs8220_out, NULL, NULL, dev);
