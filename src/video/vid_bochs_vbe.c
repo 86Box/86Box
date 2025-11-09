@@ -561,7 +561,6 @@ bochs_vbe_outw(uint16_t addr, uint16_t val, void *priv)
                     if (val > max_bank)
                         val = max_bank;
                     dev->vbe_regs[dev->vbe_index] = val;
-                    dev->svga.read_bank           = (val << 16);
                     break;
                 case VBE_DISPI_INDEX_ENABLE:
                     {
