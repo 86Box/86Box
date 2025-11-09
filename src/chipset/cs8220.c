@@ -267,7 +267,7 @@ cs8220_init(UNUSED(const device_t *info))
                         cs8220_mem_read, cs8220_mem_readw, NULL,
                         cs8220_mem_write, cs8220_mem_writew, NULL,
                         ram + dev->ram_banks[1].phys, MEM_MAPPING_INTERNAL, &(dev->ram_banks[1]));
-        mem_set_mem_state(dev->ram_banks[1].virt, dev->ram_banks[2].size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        mem_set_mem_state(dev->ram_banks[1].virt, dev->ram_banks[1].size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     }
 
     if (dev->ram_banks[2].size > 0x00000000) {
