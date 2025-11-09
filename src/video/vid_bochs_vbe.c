@@ -545,17 +545,13 @@ bochs_vbe_outw(uint16_t addr, uint16_t val, void *priv)
                     break;
                 case VBE_DISPI_INDEX_BANK:
                     if (dev->vbe_regs[VBE_DISPI_INDEX_BPP] <= 4)
-                        max_bank = ((dev->vram_size >> 16) - 1) >> 2;             /* Each bank really covers 256K */
-                    if (val & VBE_DISPI_BANK_RD)
-                        dev->svga.read_bank = ((dev->vram_size >> 16) - 1) >> 2;  /* Each bank really covers 256K */
-                    if (val & VBE_DISPI_BANK_WR)
-                        dev->svga.write_bank = ((dev->vram_size >> 16) - 1) >> 2; /* Each bank really covers 256K */
+                        max_bank = (val & 0x1ff) * (dev->bank_gran << 10) >> 2;             /* Each bank really covers 256K */
                     else
-                        max_bank = ((dev->vram_size >> 16) - 1);
+                        max_bank = (val & 0x1ff) * (dev->bank_gran << 10);
                     if (val & VBE_DISPI_BANK_RD)
-                        dev->svga.read_bank = ((dev->vram_size >> 16) - 1);
+                        dev->svga.read_bank = (val & 0x1ff) * (dev->bank_gran << 10);
                     if (val & VBE_DISPI_BANK_WR)
-                        dev->svga.write_bank = ((dev->vram_size >> 16) - 1);
+                        dev->svga.write_bank = (val & 0x1ff) * (dev->bank_gran << 10);
                     /* Old software may pass garbage in the high byte of bank. If the
                      * maximum bank fits into a single byte, toss the high byte the user
                      * supplied.
@@ -583,7 +579,7 @@ bochs_vbe_outw(uint16_t addr, uint16_t val, void *priv)
                             if (!cVirtWidth)
                                 cVirtWidth = dev->vbe_regs[VBE_DISPI_INDEX_XRES];
                             if (!cVirtWidth || !dev->vbe_regs[VBE_DISPI_INDEX_YRES] || cb > dev->vram_size) {
-                                printf("VIRT WIDTH=%d YRES=%d cb=%d vram_size=%d\n",
+                                printf("VIRT WIDTH=%d YRES=%d cb=%ld vram_size=%d\n",
                                        dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH],
                                        dev->vbe_regs[VBE_DISPI_INDEX_YRES], cb, dev->vram_size);
                                 return; /* Note: silent failure like before */
