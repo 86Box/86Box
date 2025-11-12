@@ -189,7 +189,6 @@ static uint16_t azt2316a_wss_addr[4] = {0x530, 0x604, 0xe80, 0xf40};
 
 typedef struct azt2316a_t {
     int type;
-    int wss_interrupt_after_config;
 
     uint8_t wss_config;
 
@@ -248,13 +247,13 @@ azt2316a_wss_write(uint16_t addr, uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a  = (azt2316a_t *) priv;
     int         interrupt = 0;
+    uint8_t     oldconfig = azt2316a->wss_config;
 
     aztech_log(azt2316a->log, "Aztech WSS: [W] (%04X) = %02X\n", addr, val);
 
-    if (azt2316a->wss_interrupt_after_config) {
-        if ((azt2316a->wss_config & 0x40) && !(val & 0x40)) { // TODO: is this the right edge?
-            interrupt = 1;
-        }
+    if ((oldconfig & 0x40) != (val & 0x40)) {
+        aztech_log(azt2316a->log, "Aztech WSS: Config IRQ bit changed\n");
+        interrupt = 1;
     }
 
     azt2316a->wss_config  = val;
@@ -263,8 +262,15 @@ azt2316a_wss_write(uint16_t addr, uint8_t val, void *priv)
     ad1848_setdma(&azt2316a->ad1848, azt2316a_wss_dma[val & 3]);
     ad1848_setirq(&azt2316a->ad1848, azt2316a_wss_irq[(val >> 3) & 7]);
 
-    if (interrupt)
-        picint(1 << azt2316a->cur_wss_irq);
+    if (interrupt) {
+        if (azt2316a->wss_config & 0x40) {
+            aztech_log(azt2316a->log, "Aztech WSS: Firing config change IRQ\n");
+            picint(1 << azt2316a->cur_wss_irq);
+        } else {
+            aztech_log(azt2316a->log, "Aztech WSS: Clearing config change IRQ\n");
+            picintc(1 << azt2316a->cur_wss_irq);
+        }
+    }
 }
 
 /* generate a config word based on current settings */
@@ -1316,8 +1322,6 @@ azt_init(const device_t *info)
     if (addr_setting)
         azt2316a->cur_addr = addr_setting;
 
-    azt2316a->wss_interrupt_after_config = device_get_config_int("wss_interrupt_after_config");
-
     /* wss part */
     ad1848_init(&azt2316a->ad1848, device_get_config_int("codec"));
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11)
@@ -1477,17 +1481,6 @@ static const device_config_t azt1605_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "wss_interrupt_after_config",
-        .description    = "Raise CODEC interrupt on CODEC setup (needed by some drivers)",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "addr",
         .description    = "SB Address",
         .type           = CONFIG_HEX16,
@@ -1603,17 +1596,6 @@ static const device_config_t azt2316a_config[] = {
             { .description = "CS4231", .value = AD1848_TYPE_CS4231 },
             { .description = ""                                    }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_interrupt_after_config",
-        .description    = "Raise CODEC interrupt on CODEC setup (needed by some drivers)",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
