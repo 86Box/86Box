@@ -594,7 +594,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc110.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.20 (RM Accelerator 350P2XB/450P3XB)",
+                .name          = "RM Accelerator 350P2XB/450P3XB (BIOS R2.20)",
                 .internal_name = "ax6bc_rm",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -603,7 +603,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc220.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.59",
+                .name          = "Award Modular BIOS v4.60PGM - Revision R2.59",
                 .internal_name = "ax6bc",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
