@@ -67,6 +67,8 @@ extern int qt_nvr_save(void);
 extern bool cpu_thread_running;
 };
 
+int fullscreen_ui_visible = 0;
+
 #include <QGuiApplication>
 #include <QWindow>
 #include <QTimer>
@@ -1297,7 +1299,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
         case 0x10b:           /* Microsoft scroll up normal */
         case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
             /* This key uses a break code as make. Send it manually, only on press. */
-            if (down && (mouse_capture || !kbd_req_capture || video_fullscreen)) {
+            if (down && (mouse_capture || !kbd_req_capture || (video_fullscreen && !fullscreen_ui_visible))) {
                 if (keycode & 0x100)
                     keyboard_send(0xe0);
                 keyboard_send(keycode & 0xff);
@@ -1464,7 +1466,7 @@ MainWindow::on_actionFullscreen_triggered()
         if (!hide_tool_bar)
             ui->toolBar->show();
         video_fullscreen = 0;
-        fullscreen_ui_visible = false;
+        fullscreen_ui_visible = 0;
         if (vid_resize != 1) {
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }

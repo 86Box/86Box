@@ -198,9 +198,6 @@ private:
     /* Reload the renderers after closing renderer options dialog. */
     bool reload_renderers = false;
 
-    /* Fullscreen UI visibility state */
-    bool fullscreen_ui_visible = false;
-
     /* Mouse capture state before showing fullscreen UI */
     bool mouse_was_captured = false;
 
