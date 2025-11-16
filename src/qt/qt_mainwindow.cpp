@@ -1464,6 +1464,7 @@ MainWindow::on_actionFullscreen_triggered()
         if (!hide_tool_bar)
             ui->toolBar->show();
         video_fullscreen = 0;
+        fullscreen_ui_visible = false;
         if (vid_resize != 1) {
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
@@ -1557,6 +1558,10 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("mute")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute")) {
                 ui->actionMute_Unmute->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_ui_fullscreen")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_ui_fullscreen")) {
+                toggleFullscreenUI();
             }
 
             return true;
@@ -2204,6 +2209,18 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
 
     /* Prevent icons staying when disabled during activity. */
     status->clearActivity();
+}
+
+void
+MainWindow::toggleFullscreenUI()
+{
+    if (video_fullscreen == 0)
+        return;
+
+    fullscreen_ui_visible ^= 1;
+    ui->menubar->setVisible(fullscreen_ui_visible);
+    ui->statusbar->setVisible(fullscreen_ui_visible && !hide_status_bar);
+    ui->toolBar->setVisible(fullscreen_ui_visible && !hide_tool_bar);
 }
 
 void

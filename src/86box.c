@@ -286,6 +286,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="mute",
         .desc="Toggle mute",
         .seq="Ctrl+Alt+M"
+    },
+    {
+        .name="toggle_ui_fullscreen",
+        .desc="Toggle UI in fullscreen",
+        .seq="Ctrl+Alt+PgDown"
     }
 };
 
