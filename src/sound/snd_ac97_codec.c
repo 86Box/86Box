@@ -113,6 +113,16 @@ static const struct {
         .misc_flags  = AC97_AUDIO | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = AC97_DAC_18B | AC97_ADC_18B,
         .pcsr_mask   = 0x3f
+    },
+    {
+        .device      = &si3036_device,
+        .misc_flags  = AC97_MODEM | AC97_GAIN_3B,
+        .min_rate    = 7200,
+        .max_rate    = 13714,
+        .modem_flags = AC97_LIN1 | AC97_LIN2,
+        .gpi_mask    = 0xe83a,
+        .gpo_mask    = 0xfc3f,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0142, 0x0000}, {0, 0x5c, 0xf010, 0xfefd}, {0, 0x5e, 0x004c, 0x0000}, {0, 0x62, 0x0000, 0x01f8}, {0, 0x64, 0x0080, 0x0000}, {0}}
     }
   // clang-format on
 };
@@ -939,6 +949,20 @@ const device_t wm9701a_device = {
     .internal_name = "wm9701a",
     .flags         = DEVICE_AC97,
     .local         = AC97_CODEC_WM9701A,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t si3036_device = {
+    .name          = "Silicon Laboratories Si3036 Modem",
+    .internal_name = "si3036",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_SI3036,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,

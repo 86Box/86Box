@@ -187,6 +187,7 @@ static const SOUND_CARD sound_cards[] = {
     /* AC97 */
     { &ad1881_device                },
     { &cs4297a_device               },
+    { &si3036_device                },
     { NULL                          }
     // clang-format on
 };

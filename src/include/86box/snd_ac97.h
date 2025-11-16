@@ -113,6 +113,7 @@
 #define AC97_CODEC_TR28023  AC97_VENDOR_ID('T', 'R', 'A', 0x03)
 #define AC97_CODEC_W83971D  AC97_VENDOR_ID('W', 'E', 'C', 0x01)
 #define AC97_CODEC_WM9701A  AC97_VENDOR_ID('W', 'M', 'L', 0x00)
+#define AC97_CODEC_SI3036   AC97_VENDOR_ID('S', 'I', 'L', 0x22)
 
 typedef struct ac97_vendor_reg_t {
     uint8_t  page; /* for paged registers [60:6F], 0 otherwise */
@@ -165,6 +166,7 @@ extern const device_t stac9721_device;
 extern const device_t tr28023_device;
 extern const device_t w83971d_device;
 extern const device_t wm9701a_device;
+extern const device_t si3036_device;
 
 extern const device_t ac97_via_device;
 #endif
