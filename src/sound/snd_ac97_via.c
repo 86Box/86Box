@@ -418,10 +418,10 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                 dev->sgd_regs[addr] = val;
 
                 /* Send GPO to codec. */
-                /*for (uint8_t i = 0; i < (sizeof(dev->codec) / sizeof(dev->codec[0])); i++) {
+                for (uint8_t i = 0; i < (sizeof(dev->codec) / sizeof(dev->codec[0])); i++) {
                     if (dev->codec[i])
                         ac97_codec_setgpo(dev->codec[i], AS_U16(dev->sgd_regs[0x88]));
-                }*/
+                }
                 return;
 
             case 0x8a ... 0x8b:
@@ -851,10 +851,8 @@ ac97_via_init(UNUSED(const device_t *info))
 
     /* Set up codecs. */
     ac97_codec       = &dev->codec[0];
-    ac97_modem_codec = &dev->codec[1];
     ac97_codec_count = sizeof(dev->codec) / sizeof(dev->codec[0]);
-    ac97_modem_codec_count = 1;
-    ac97_codec_id = ac97_modem_codec_id = 0;
+    ac97_codec_id    = 0;
 
     /* Set up SGD channels. */
     for (uint8_t i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++) {
