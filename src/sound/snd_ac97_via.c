@@ -66,6 +66,7 @@ typedef struct _ac97_via_ {
     uint8_t  sgd_regs[256];
     uint8_t  pcm_enabled : 1;
     uint8_t  fm_enabled : 1;
+    uint8_t  modem_enabled : 1;
     uint8_t  vsr_enabled : 1;
     uint8_t  codec_shadow[256];
     uint8_t  pci_slot;
@@ -73,6 +74,8 @@ typedef struct _ac97_via_ {
     int      irq_pin;
 
     ac97_codec_t  *codec[2];
+    ac97_codec_t  *audio_codec;
+    ac97_codec_t  *modem_codec;
     ac97_via_sgd_t sgd[6];
 
     int master_vol_l;
@@ -187,11 +190,13 @@ static void
 ac97_via_update_codec(ac97_via_t *dev)
 {
     /* Update volumes according to codec registers. */
-    ac97_codec_t *codec = dev->codec[0]; /* assume primary codec */
-    ac97_codec_getattn(codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
-    ac97_codec_getattn(codec, 0x18, &dev->sgd[0].vol_l, &dev->sgd[0].vol_r);
-    ac97_codec_getattn(codec, 0x18, &dev->sgd[2].vol_l, &dev->sgd[2].vol_r); /* VIAFMTSR sets Master, CD and PCM volumes to 0 dB */
-    ac97_codec_getattn(codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
+    if (dev->audio_codec) {
+        ac97_codec_getattn(dev->audio_codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
+        ac97_codec_getattn(dev->audio_codec, 0x18, &dev->sgd[0].vol_l, &dev->sgd[0].vol_r);
+        ac97_codec_getattn(dev->audio_codec, 0x18, &dev->sgd[2].vol_l, &dev->sgd[2].vol_r); /* VIAFMTSR sets Master, CD and PCM volumes to 0 dB */
+        ac97_codec_getattn(dev->audio_codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
+        ac97_codec_getattn(dev->audio_codec, 0x0c, &dev->sgd[4].vol_l, &dev->sgd[4].vol_r);
+    }
 
     /* Update sample rate according to codec registers and the variable sample rate flag. */
     ac97_via_speed_changed(dev);
@@ -384,6 +389,25 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 
                 /* Keep value in register if this codec is not present. */
                 if (codec) {
+                    /* Set audio and modem codecs according to type. */
+                    if (codec->regs[0x3c >> 1]) {
+                        if (!dev->modem_codec) {
+                            dev->modem_codec = codec;
+                            if (val & 0x80)
+                                ac97_via_update_codec(dev);
+                        }
+                        /* Start modem pollers. */
+                        if (!dev->modem_enabled) {
+                            dev->modem_enabled = 1;
+                            timer_advance_u64(&dev->sgd[4].poll_timer, dev->sgd[4].timer_latch);
+                            timer_advance_u64(&dev->sgd[5].poll_timer, dev->sgd[5].timer_latch);
+                        }
+                    } else if (!dev->audio_codec) {
+                        dev->audio_codec = codec;
+                        if (val & 0x80)
+                            ac97_via_update_codec(dev);
+                    }
+
                     /* Read from or write to codec. */
                     if (val & 0x80) {
                         if (val & 1) /* return 0x0000 on unaligned reads (real 686B behavior) */
@@ -791,6 +815,49 @@ ac97_via_poll_fm(void *priv)
 }
 
 static void
+ac97_via_poll_modem(void *priv)
+{
+    ac97_via_sgd_t *sgd = (ac97_via_sgd_t *) priv;
+    ac97_via_t     *dev = sgd->dev;
+
+    /* Schedule next run if modem playback/capture is enabled. */
+    if (dev->modem_enabled)
+        timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
+
+    /* Update modem audio buffer. */
+    ac97_via_update_stereo(dev, sgd);
+
+    /* Feed next sample from the FIFO.
+       The data format is not documented, but it probes as 16-bit mono at the codec sample rate. */
+    if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
+        sgd->out_l = sgd->out_r = AS_I16(sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+        sgd->fifo_pos += 2;
+        return;
+    }
+
+    /* Feed silence if the FIFO is empty. */
+    sgd->out_l = sgd->out_r = 0;
+}
+
+static void
+ac97_via_poll_modem_capture(void *priv)
+{
+    ac97_via_sgd_t *sgd = (ac97_via_sgd_t *) priv;
+    ac97_via_t     *dev = sgd->dev;
+
+    /* Schedule next run if modem playback/capture is enabled. */
+    if (dev->modem_enabled)
+        timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
+
+    /* Feed next sample into the FIFO.
+       The data format is not documented, but it probes as 16-bit mono at the codec sample rate. */
+    if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
+        AS_I16(sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]) = 0;
+        sgd->fifo_pos += 2;
+    }
+}
+
+static void
 ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
@@ -826,16 +893,16 @@ ac97_via_speed_changed(void *priv)
     double      freq;
 
     /* Get variable sample rate if enabled. */
-    if (dev->vsr_enabled && dev->codec[0])
-        freq = ac97_codec_getrate(dev->codec[0], 0x2c);
+    if (dev->vsr_enabled && dev->audio_codec)
+        freq = ac97_codec_getrate(dev->audio_codec, 0x2c);
     else
         freq = (double) SOUND_FREQ;
 
     dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
     dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0)); /* FM operates at a fixed 24 KHz */
 
-    if (dev->codec[1])
-        freq = ac97_codec_getrate(dev->codec[1], 0x40);
+    if (dev->modem_codec)
+        freq = ac97_codec_getrate(dev->modem_codec, 0x40);
     else
         freq = (double) SOUND_FREQ;
 
@@ -860,7 +927,7 @@ ac97_via_init(UNUSED(const device_t *info))
         dev->sgd[i].dev = dev;
 
         /* Disable the FIFO on SGDs we don't care about. */
-        if ((i != 0) && (i != 2))
+        if ((i != 0) && (i != 2) && (i != 4) && (i != 5))
             dev->sgd[i].always_run = 1;
 
         timer_add(&dev->sgd[i].dma_timer, ac97_via_sgd_process, &dev->sgd[i], 0);
@@ -869,6 +936,8 @@ ac97_via_init(UNUSED(const device_t *info))
     /* Set up playback pollers. */
     timer_add(&dev->sgd[0].poll_timer, ac97_via_poll_stereo, &dev->sgd[0], 0);
     timer_add(&dev->sgd[2].poll_timer, ac97_via_poll_fm, &dev->sgd[2], 0);
+    timer_add(&dev->sgd[4].poll_timer, ac97_via_poll_modem, &dev->sgd[4], 0);
+    timer_add(&dev->sgd[5].poll_timer, ac97_via_poll_modem_capture, &dev->sgd[5], 0);
     ac97_via_speed_changed(dev);
 
     /* Set up playback handler. */
