@@ -535,8 +535,6 @@ ac97_via_codec_read(uint16_t addr, void *priv)
 
     ret = dev->codec_shadow[addr];
 
-    ac97_via_log("AC97 VIA %d: codec_read(%02X) = %02X\n", modem, addr, ret);
-
     ac97_via_log("[%04X:%08X] [%i] AC97 VIA %d: codec_read(%02X) = %02X\n", CS, cpu_state.pc, msw & 1, modem, addr, ret);
 
     return ret;
@@ -552,8 +550,6 @@ ac97_via_codec_write(uint16_t addr, uint8_t val, void *priv)
     addr &= 0xff;
 
     ac97_via_log("[%04X:%08X] [%i] AC97 VIA %d: codec_write(%02X, %02X)\n", CS, cpu_state.pc, msw & 1, modem, addr, val);
-
-    ac97_via_log("AC97 VIA %d: codec_write(%02X, %02X)\n", modem, addr, val);
 
     /* Unknown behavior, maybe it does write to the shadow registers? */
     dev->codec_shadow[addr] = val;
