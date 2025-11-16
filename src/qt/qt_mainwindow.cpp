@@ -2218,6 +2218,20 @@ MainWindow::toggleFullscreenUI()
         return;
 
     fullscreen_ui_visible ^= 1;
+
+    if (fullscreen_ui_visible) {
+        // UI is being shown - save mouse capture state and release if captured
+        mouse_was_captured = (mouse_capture != 0);
+        if (mouse_was_captured) {
+            plat_mouse_capture(0);
+        }
+    } else {
+        // UI is being hidden - restore previous mouse capture state
+        if (mouse_was_captured) {
+            plat_mouse_capture(1);
+        }
+    }
+
     ui->menubar->setVisible(fullscreen_ui_visible);
     ui->statusbar->setVisible(fullscreen_ui_visible && !hide_status_bar);
     ui->toolBar->setVisible(fullscreen_ui_visible && !hide_tool_bar);
