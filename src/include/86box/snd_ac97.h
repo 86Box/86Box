@@ -125,8 +125,8 @@ extern uint32_t        ac97_codec_getrate(void *priv, uint8_t reg);
 extern const device_t *ac97_codec_get(uint32_t id);
 
 extern void    ac97_via_set_slot(void *priv, int slot, int irq_pin);
-extern uint8_t ac97_via_read_status(void *priv, uint8_t modem);
-extern void    ac97_via_write_control(void *priv, uint8_t modem, uint8_t val);
+extern uint8_t ac97_via_read_status(void *priv);
+extern void    ac97_via_write_control(void *priv, uint8_t val);
 extern void    ac97_via_remap_audio_sgd(void *priv, uint16_t new_io_base, uint8_t enable);
 extern void    ac97_via_remap_modem_sgd(void *priv, uint16_t new_io_base, uint8_t enable);
 extern void    ac97_via_remap_audio_codec(void *priv, uint16_t new_io_base, uint8_t enable);
