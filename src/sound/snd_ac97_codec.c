@@ -676,7 +676,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
         *r = 0;
     } else { /* per-channel mute */
         /* Determine attenuation value. */
-        uint8_t l_val = val >> 8;
+        uint8_t l_val = ((reg == 0x06) || (reg == 0x0c) || (reg == 0x0e)) ? val : (val >> 8); /* mono controls only have the right bits */
         uint8_t r_val = val;
         if (reg <= 0x06) { /* 6-bit level */
             *l = codec_attn[0x3f - (l_val & 0x3f)];
