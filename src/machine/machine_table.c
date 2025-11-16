@@ -14757,7 +14757,7 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 131072,
-            .step = 8192
+            .step = 4096
         },
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
