@@ -67,8 +67,6 @@ extern int qt_nvr_save(void);
 extern bool cpu_thread_running;
 };
 
-int fullscreen_ui_visible = 0;
-
 #include <QGuiApplication>
 #include <QWindow>
 #include <QTimer>
