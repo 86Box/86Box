@@ -888,7 +888,7 @@ static const device_config_t ms6147_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 1.2 (Fujitsu ErgoPro e368)",
-                .internal_name = "ergopro_e368",
+                .internal_name = "ergoproe368",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -922,7 +922,7 @@ static const device_config_t ms6147_config[] = {
 
 const device_t ms6147_device = {
     .name          = "MSI MS-6147",
-    .internal_name = "ms6147_device",
+    .internal_name = "ms6147",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
