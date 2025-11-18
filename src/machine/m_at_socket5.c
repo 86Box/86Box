@@ -464,17 +464,91 @@ machine_at_morrison32_gpio_init(void)
     machine_set_gpio_default(gpio);
 }
 
+static const device_config_t morrison32_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "morrison32",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.06.BT0Q (AST Advantage! 8100P)",
+                .internal_name = "morrison32_ast",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/morrison32/1006BT0Q.BIO", "roms/machines/morrison32/1006BT0Q.BI1", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.09.BT0",
+                .internal_name = "morrison32",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/morrison32/1009BT0_.BIO", "roms/machines/morrison32/1009BT0_.BI1", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.09.BT0U (Zenith Data Systems Z-Station GT)",
+                .internal_name = "morrison32_zds",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/morrison32/1009BT0U.BIO", "roms/machines/morrison32/1009BT0U.BI1", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.11.BT0L (HP Pavilion 50x0/70xx)",
+                .internal_name = "morrison32_hp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/morrison32/1011BT0L.BIO", "roms/machines/morrison32/1011BT0L.BI1", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t morrison32_device = {
+    .name          = "Intel Advanced/MN (Morrison32)",
+    .internal_name = "morrison32_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = morrison32_config
+};
+
 int
 machine_at_morrison32_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
+    const char *fn2;
 
-    ret = bios_load_linear_combined("roms/machines/morrison32/1011BT0L.BIO",
-                                    "roms/machines/morrison32/1011BT0L.BI1",
-                                    0x20000, 128);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
+    ret = bios_load_linear_combined(fn, fn2, 0x20000, 128);
+    device_context_restore();
 
     machine_at_common_init_ex(model, 2);
     machine_at_morrison32_gpio_init();
