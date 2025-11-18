@@ -594,7 +594,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc110.bin", "" }
             },
             {
-                .name          = "RM Accelerator 350P2XB/450P3XB (BIOS R2.20)",
+                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.20 (RM Accelerator 350P2XB/450P3XB)",
                 .internal_name = "ax6bc_rm",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -603,7 +603,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc220.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGM - Revision R2.59",
+                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.59",
                 .internal_name = "ax6bc",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -887,6 +887,15 @@ static const device_config_t ms6147_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "Award Modular BIOS v4.51PG - Revision 1.2 (Fujitsu ErgoPro e368)",
+                .internal_name = "ergoproe368",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6147/W647F412.BIN", "" }
+            },
+            {
                 .name          = "Award Modular BIOS v4.51PG - Revision 1.8",
                 .internal_name = "ms6147",
                 .bios_type     = BIOS_NORMAL,
@@ -913,7 +922,7 @@ static const device_config_t ms6147_config[] = {
 
 const device_t ms6147_device = {
     .name          = "MSI MS-6147",
-    .internal_name = "ms6147_device",
+    .internal_name = "ms6147",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
