@@ -691,8 +691,17 @@ static const device_config_t ga686_config[] = {
                 .files         = { "roms/machines/686bx/31nologo.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision F2a",
+                .name          = "Award Modular BIOS v4.51PG - Revision F1",
                 .internal_name = "686bx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/686bx/6BX.F1", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision F2a",
+                .internal_name = "686bx_f2a",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
