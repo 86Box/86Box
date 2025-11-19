@@ -192,6 +192,10 @@ if(OPL4ML)
     target_compile_definitions(snd PRIVATE USE_OPL4ML)
     target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 endif()
+
+if(SOFTMODEM)
+    target_compile_definitions(snd PRIVATE USE_SOFTMODEM)
+endif()
  
 find_package(PkgConfig)
 pkg_check_modules(SERIALPORT libserialport)
