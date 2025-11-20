@@ -961,7 +961,14 @@ load_image_file(char *dest, char *p, uint8_t *ui_wp)
     } else if ((ui_wp != NULL) && *ui_wp)
        prefix = "wp://";
 
-    if (path_abs(p)) {
+    if (memcmp(p, "<exe_path>/", strlen("<exe_path>/")) == 0) {
+        if ((strlen(prefix) + strlen(exe_path) + strlen(path_get_slash(exe_path)) + strlen(p + strlen("<exe_path>/"))) >
+            (MAX_IMAGE_PATH_LEN - 11))
+            ret = 1;
+        else
+            snprintf(dest, MAX_IMAGE_PATH_LEN, "%s%s%s%s", prefix, exe_path, path_get_slash(exe_path),
+                     p + strlen("<exe_path>/"));
+    } else if (path_abs(p)) {
         if ((strlen(prefix) + strlen(p)) > (MAX_IMAGE_PATH_LEN - 11))
             ret = 1;
         else
@@ -3063,6 +3070,8 @@ save_image_file(char *cat, char *var, char *src)
 
     if (!strnicmp(src, usr_path, strlen(usr_path)))
         sprintf(temp, "%s%s", prefix, &src[strlen(usr_path)]);
+    else if (!strnicmp(src, exe_path, strlen(exe_path)))
+        sprintf(temp, "<exe_path>/%s%s", prefix, &src[strlen(exe_path)]);
     else
         sprintf(temp, "%s%s", prefix, src);
 
