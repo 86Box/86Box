@@ -2892,6 +2892,9 @@ msgstr "傳送 Control+Alt+Escape"
 msgid "Toggle fullscreen"
 msgstr "切換全螢幕"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "螢幕截圖"
 
@@ -2968,7 +2971,7 @@ msgid "Unable to determine release information"
 msgstr "無法確定釋放資訊"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr "檢查更新時出錯:\n'\n%1\n\n請稍後再試。"
+msgstr "檢查更新時出錯:\n\n%1\n\n請稍後再試。"
 
 msgid "Update check complete"
 msgstr "更新檢查完成"

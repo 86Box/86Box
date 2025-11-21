@@ -2892,6 +2892,9 @@ msgstr "Pošlji Control+Alt+Escape"
 msgid "Toggle fullscreen"
 msgstr "Preklopi celozaslonski način"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Zajem zaslona"
 

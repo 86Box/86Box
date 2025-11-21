@@ -2892,6 +2892,9 @@ msgstr "Skicka Ctrl+Alt+Esc"
 msgid "Toggle fullscreen"
 msgstr "Helskärm"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Skärmbild"
 

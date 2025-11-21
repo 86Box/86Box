@@ -2892,6 +2892,9 @@ msgstr "Lähetä Control+Alt+Escape"
 msgid "Toggle fullscreen"
 msgstr "Koko näyttö"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Kuvakaappaus"
 

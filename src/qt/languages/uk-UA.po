@@ -2892,6 +2892,9 @@ msgstr "Надіслати Control+Alt+Escape"
 msgid "Toggle fullscreen"
 msgstr "Переключити повноекранний режим"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Скріншот"
 

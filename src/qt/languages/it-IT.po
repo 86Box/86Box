@@ -2892,6 +2892,9 @@ msgstr "Invia Ctrl+Alt+Esc"
 msgid "Toggle fullscreen"
 msgstr "Attiva/disattiva schermo intero"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Istantanea dello schermo"
 

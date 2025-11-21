@@ -2892,6 +2892,9 @@ msgstr "Envoyer Ctrl+Alt+Échap"
 msgid "Toggle fullscreen"
 msgstr "Activer/désactiver le mode plein écran"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Capture d'écran"
 

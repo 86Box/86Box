@@ -2892,6 +2892,9 @@ msgstr "发送 Ctrl+Alt+Esc"
 msgid "Toggle fullscreen"
 msgstr "切换全屏"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "截图"
 
