@@ -1197,15 +1197,8 @@ load_storage_controllers(void)
             p[0] = 0x00;
 
         if (p[0] != 0x00) {
-            if (path_abs(p)) {
-                if (strlen(p) > 511)
-                    fatal("Configuration: Length of cartridge_%02i_fn is more than 511\n",
-                          c + 1);
-                else
-                    strncpy(cart_fns[c], p, 511);
-            } else
-                path_append_filename(cart_fns[c], usr_path, p);
-            path_normalize(cart_fns[c]);
+            if (load_image_file(cart_fns[c], p, NULL))
+                fatal("Configuration: Length of cartridge_%02i_fn is more than 511\n", c + 1);
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
@@ -1213,16 +1206,9 @@ load_storage_controllers(void)
             sprintf(temp, "cartridge_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
-                if (path_abs(p)) {
-                    if (strlen(p) > (MAX_IMAGE_PATH_LEN - 1))
-                        fatal("Configuration: Length of cartridge_%02i_image_history_%02i "
-                              "is more than %i\n", c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
-                    else
-                        snprintf(cart_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s", p);
-                } else
-                    snprintf(cart_image_history[c][i], MAX_IMAGE_PATH_LEN, "%s%s%s", usr_path,
-                             path_get_slash(usr_path), p);
-                path_normalize(cart_image_history[c][i]);
+                if (load_image_file(cart_image_history[c][i], p, NULL))
+                    fatal("Configuration: Length of cartridge_%02i_image_history_%02i "
+                          "is more than %i\n", c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
             }
         }
     }
@@ -3247,25 +3233,15 @@ save_storage_controllers(void)
 
         if (strlen(cart_fns[c]) == 0)
             ini_section_delete_var(cat, temp);
-        else {
-            path_normalize(cart_fns[c]);
-            if (!strnicmp(cart_fns[c], usr_path, strlen(usr_path)))
-                ini_section_set_string(cat, temp, &cart_fns[c][strlen(usr_path)]);
-            else
-                ini_section_set_string(cat, temp, cart_fns[c]);
-        }
+        else
+            save_image_file(cat, temp, cart_fns[c]);
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "cartridge_%02i_image_history_%02i", c + 1, i + 1);
             if ((cart_image_history[c][i] == 0) || strlen(cart_image_history[c][i]) == 0)
                 ini_section_delete_var(cat, temp);
-            else {
-                path_normalize(cart_image_history[c][i]);
-                if (!strnicmp(cart_image_history[c][i], usr_path, strlen(usr_path)))
-                    ini_section_set_string(cat, temp, &cart_image_history[c][i][strlen(usr_path)]);
-                else
-                    ini_section_set_string(cat, temp, cart_image_history[c][i]);
-            }
+            else
+                save_image_file(cat, temp, cart_image_history[c][i]);
         }
     }
 
