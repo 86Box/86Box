@@ -2893,7 +2893,7 @@ msgid "Toggle fullscreen"
 msgstr "Переключить полноэкранный режим"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Переключить UI в полноэкранном режиме"
 
 msgid "Screenshot"
 msgstr "Скриншот"
