@@ -2232,12 +2232,6 @@ msgstr "Сила фильтра SID"
 msgid "Surround module"
 msgstr "Модуль объёмного звучания"
 
-msgid "CODEC"
-msgstr "Кодек"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Поднимать прерывание кодека при настройке кодека (необходимо некоторым драйверам)"
-
 msgid "SB Address"
 msgstr "Адрес SB"
 

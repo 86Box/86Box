@@ -2232,12 +2232,6 @@ msgstr "SID-filtterin vahvuus"
 msgid "Surround module"
 msgstr "Surround-moduuli"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "CODEC-keskeytys CODEC-asennuksen yhteydessä (jotkut ohjaimet tarvitsevat sitä)"
-
 msgid "SB Address"
 msgstr "SB-osoite"
 

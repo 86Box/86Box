@@ -2232,12 +2232,6 @@ msgstr "Jakost filtra SID-a"
 msgid "Surround module"
 msgstr "Prostorski modul"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Dvigni prekinitev za CODEC ob nastavitvi CODEC-a (to potrebujejo nekateri gonilniki)"
-
 msgid "SB Address"
 msgstr "Naslov SB"
 

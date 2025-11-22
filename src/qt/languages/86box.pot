@@ -2232,12 +2232,6 @@ msgstr ""
 msgid "Surround module"
 msgstr ""
 
-msgid "CODEC"
-msgstr ""
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr ""
-
 msgid "SB Address"
 msgstr ""
 

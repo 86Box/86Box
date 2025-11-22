@@ -2232,12 +2232,6 @@ msgstr "Cường độ bộ lọc SID"
 msgid "Surround module"
 msgstr "Mô đun vòm"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Tăng ngắt CODEC trên thiết lập CODEC (cần bởi một số trình điều khiển)"
-
 msgid "SB Address"
 msgstr "Địa chỉ SB"
 

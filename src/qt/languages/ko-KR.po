@@ -2232,12 +2232,6 @@ msgstr "SID 필터 강도"
 msgid "Surround module"
 msgstr "서라운드 모듈"
 
-msgid "CODEC"
-msgstr "코덱"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "코덱 설정 시 코덱 인터럽트 올리기(일부 드라이버에 필요)"
-
 msgid "SB Address"
 msgstr "SB 주소"
 

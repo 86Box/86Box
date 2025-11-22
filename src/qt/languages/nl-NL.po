@@ -2232,12 +2232,6 @@ msgstr "SID-filtersterkte"
 msgid "Surround module"
 msgstr "Surroundmodule"
 
-msgid "CODEC"
-msgstr "Codec"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Verhoog CODEC interrupt bij CODEC setup (nodig voor sommige stuurprogramma's)"
-
 msgid "SB Address"
 msgstr "SB-adres"
 

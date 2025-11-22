@@ -2232,12 +2232,6 @@ msgstr "Síla filtru SID"
 msgid "Surround module"
 msgstr "Modul Surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Vyvolát přerušení CODEC při nastavení CODEC (potřebují některé ovladače)"
-
 msgid "SB Address"
 msgstr "Adresa SB"
 

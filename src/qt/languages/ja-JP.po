@@ -2232,12 +2232,6 @@ msgstr "SIDフィルターの強度"
 msgid "Surround module"
 msgstr "サラウンド・モジュール"
 
-msgid "CODEC"
-msgstr "コーデック"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "CODECセットアップ時にCODEC割り込みを発生させる(一部のドライバで必要)"
-
 msgid "SB Address"
 msgstr "SBアドレス"
 

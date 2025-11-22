@@ -2232,12 +2232,6 @@ msgstr "SID 過濾強度"
 msgid "Surround module"
 msgstr "環繞聲模組"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "在 CODEC 設定時啟動 CODEC 中斷 (某些驅動程式需要)"
-
 msgid "SB Address"
 msgstr "SB 位址"
 

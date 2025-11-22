@@ -2232,12 +2232,6 @@ msgstr "SID 滤镜强度"
 msgid "Surround module"
 msgstr "环绕声模块"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "在 CODEC 设置时引发 CODEC 中断（某些驱动程序需要）。"
-
 msgid "SB Address"
 msgstr "Sound Blaster 地址"
 

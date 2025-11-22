@@ -2232,12 +2232,6 @@ msgstr "SID filetstyrka"
 msgid "Surround module"
 msgstr "Sorround-modul"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Öka avbrottsnummer för CODEC vid CODEC-installation (krävs av vissa drivrutiner)"
-
 msgid "SB Address"
 msgstr "Adress för SB"
 

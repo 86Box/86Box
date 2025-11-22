@@ -2232,12 +2232,6 @@ msgstr "Fuerza del filtro de SID"
 msgid "Surround module"
 msgstr "Módulo Surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Activar la interrupción CODEC en la configuración CODEC (necesario para algunos controladores)"
-
 msgid "SB Address"
 msgstr "Dirección del SB"
 
