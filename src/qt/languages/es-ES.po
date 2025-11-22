@@ -2892,6 +2892,9 @@ msgstr "Enviar Control+Alt+Escape"
 msgid "Toggle fullscreen"
 msgstr "Alternar pantalla completa"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Captura de pantalla"
 

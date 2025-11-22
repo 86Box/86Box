@@ -2892,6 +2892,9 @@ msgstr ""
 msgid "Toggle fullscreen"
 msgstr ""
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr ""
 

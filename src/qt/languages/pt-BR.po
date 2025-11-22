@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "Dispositivo PCap inválido"
 
 msgid "Generic paddle controller(s)"
-msgstr "Controlador(es) genérico(s) de pá"
+msgstr "Controlador(es) genérico(s) de raquete"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "Joystick(s) de 2 eixos, 1 botões"
@@ -901,7 +901,7 @@ msgid "6-button gamepad"
 msgstr "Gamepad de 6 botões"
 
 msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
+msgstr "GamePad Gravis PC"
 
 msgid "2-button flight yoke"
 msgstr "Manche de voo de 2 botões"
@@ -934,10 +934,10 @@ msgid "CH Flightstick"
 msgstr "CH Flightstick"
 
 msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
+msgstr "CH Flightstick + Pedais CH"
 
 msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
+msgstr "CH Flightstick + Pedais CH Pro"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -1855,7 +1855,7 @@ msgid "VDE Socket:"
 msgstr "Soquete VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Dispositivo Ponte TAP"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidade 86Box"
@@ -2254,16 +2254,16 @@ msgid "WSS DMA"
 msgstr "DMA WSS"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Endereço Porta RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "RTC Integrado"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Não instalado"
 
 msgid "Enable OPL"
 msgstr "Ativar OPL"
@@ -2891,6 +2891,9 @@ msgstr "Enviar Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Alternar tela cheia"
+
+msgid "Toggle UI in fullscreen"
+msgstr "Alternar interface em tela cheia"
 
 msgid "Screenshot"
 msgstr "Captura de tela"

@@ -2892,6 +2892,9 @@ msgstr "Stlačte Ctrl+Alt+Esc"
 msgid "Toggle fullscreen"
 msgstr "Prepnúť režim celej obrazovky"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Zhotoviť snímku obrazovky"
 

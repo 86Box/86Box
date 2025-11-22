@@ -2892,6 +2892,9 @@ msgstr "Ctrl+Alt+Escを送信"
 msgid "Toggle fullscreen"
 msgstr "フルスクリーン表示を切り替える"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "スクリーンショット"
 

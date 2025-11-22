@@ -2892,6 +2892,9 @@ msgstr "Gửi Control+Alt+Escape"
 msgid "Toggle fullscreen"
 msgstr "Bật/tắt toàn màn hình"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Chụp màn hình"
 

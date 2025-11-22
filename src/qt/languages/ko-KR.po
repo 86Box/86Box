@@ -2892,6 +2892,9 @@ msgstr "Ctrl+Alt+Esc 보내기"
 msgid "Toggle fullscreen"
 msgstr "전체 화면 모드 전환"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "스크린샷"
 
