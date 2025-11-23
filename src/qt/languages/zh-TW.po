@@ -1404,8 +1404,8 @@ msgstr "系統"
 msgid "Storage"
 msgstr "儲存"
 
-msgid "Disk %1: "
-msgstr "磁碟 %1: "
+msgid "Disk %1:"
+msgstr "磁碟 %1:"
 
 msgid "No disks"
 msgstr "無磁碟"

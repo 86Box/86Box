@@ -713,7 +713,7 @@ VMManagerSystem::setupVars()
             diskSizeFinal = QString::number(diskSizeRaw);
         }
         // Only prefix each disk when there are multiple disks
-        QString diskNumberDisplay = disks.count() > 1 ? tr("Disk %1: ").arg(disk_number) : "";
+        QString diskNumberDisplay = disks.count() > 1 ? tr("Disk %1:").arg(disk_number).append(" ") : "";
         new_disk_display.append(QString("%1%2 %3 (%4)").arg(diskNumberDisplay, diskSizeFinal, unit, bus_type.toUpper()));
     }
     if (new_disk_display.isEmpty()) {

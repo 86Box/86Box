@@ -1404,8 +1404,8 @@ msgstr "Systém"
 msgid "Storage"
 msgstr "Úložiště"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Žádné disky"

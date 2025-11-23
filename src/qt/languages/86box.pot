@@ -1404,7 +1404,7 @@ msgstr ""
 msgid "Storage"
 msgstr ""
 
-msgid "Disk %1: "
+msgid "Disk %1:"
 msgstr ""
 
 msgid "No disks"

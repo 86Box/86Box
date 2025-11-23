@@ -1404,8 +1404,8 @@ msgstr "Systeem"
 msgid "Storage"
 msgstr "Opslag"
 
-msgid "Disk %1: "
-msgstr "Schijf %1: "
+msgid "Disk %1:"
+msgstr "Schijf %1:"
 
 msgid "No disks"
 msgstr "Geen schijven"

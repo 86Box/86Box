@@ -1404,8 +1404,8 @@ msgstr "Järjestelmä"
 msgid "Storage"
 msgstr "Tallennus"
 
-msgid "Disk %1: "
-msgstr "Levy %1: "
+msgid "Disk %1:"
+msgstr "Levy %1:"
 
 msgid "No disks"
 msgstr "Ei levyjä"

@@ -1404,8 +1404,8 @@ msgstr "Sistem"
 msgid "Storage"
 msgstr "Diskovi"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Nema diskova"

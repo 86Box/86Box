@@ -1404,8 +1404,8 @@ msgstr "Hệ thống"
 msgid "Storage"
 msgstr "Lưu trữ"
 
-msgid "Disk %1: "
-msgstr "Đĩa %1: "
+msgid "Disk %1:"
+msgstr "Đĩa %1:"
 
 msgid "No disks"
 msgstr "Không có đĩa"

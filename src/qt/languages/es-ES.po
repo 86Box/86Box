@@ -1404,8 +1404,8 @@ msgstr "Sistema"
 msgid "Storage"
 msgstr "Almacenamiento"
 
-msgid "Disk %1: "
-msgstr "Disco"
+msgid "Disk %1:"
+msgstr "Disco %1:"
 
 msgid "No disks"
 msgstr "Sin disco"

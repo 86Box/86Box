@@ -1404,8 +1404,8 @@ msgstr "시스템"
 msgid "Storage"
 msgstr "장치"
 
-msgid "Disk %1: "
-msgstr "디스크 %1: "
+msgid "Disk %1:"
+msgstr "디스크 %1:"
 
 msgid "No disks"
 msgstr "디스크 없음"

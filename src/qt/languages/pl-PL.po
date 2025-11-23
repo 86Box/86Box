@@ -1404,8 +1404,8 @@ msgstr "System"
 msgid "Storage"
 msgstr "Pamięć"
 
-msgid "Disk %1: "
-msgstr "Dysk %1: "
+msgid "Disk %1:"
+msgstr "Dysk %1:"
 
 msgid "No disks"
 msgstr "Brak dysków"
