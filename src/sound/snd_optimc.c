@@ -10,9 +10,11 @@
  *
  * Authors: Cacodemon345
  *          Eluan Costa Miranda <eluancm@gmail.com>
+ *          win2kgamer
  *
  *          Copyright 2022 Cacodemon345.
  *          Copyright 2020 Eluan Costa Miranda.
+ *          Copyright 2025 win2kgamer
  */
 #include <math.h>
 #include <stdarg.h>
@@ -36,6 +38,24 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/plat_unused.h>
+#include <86box/log.h>
+
+#ifdef ENABLE_OPTIMC_LOG
+int optimc_do_log = ENABLE_OPTIMC_LOG;
+
+static void
+optimc_log(void *priv, const char *fmt, ...)
+{
+    if (optimc_do_log) {
+        va_list ap;
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define optimc_log(fmt, ...)
+#endif
 
 static int optimc_wss_dma[4] = { 0, 0, 1, 3 };
 static int optimc_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 };
@@ -72,6 +92,8 @@ typedef struct optimc_t {
 
     sb_t   *sb;
     uint8_t regs[6];
+
+    void *    log;  /* New logging system */
 } optimc_t, opti_82c929a_t;
 
 static void
@@ -94,6 +116,7 @@ optimc_wss_read(UNUSED(uint16_t addr), void *priv)
     if (!(optimc->regs[4] & 0x10) && optimc->cur_mode == 0)
         return 0xFF;
 
+    optimc_log(optimc->log, "OPTi WSS Read: val = %02X\n", ((optimc->wss_config & 0x40) | 4));
     return 4 | (optimc->wss_config & 0x40);
 }
 
@@ -102,6 +125,7 @@ optimc_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
+    optimc_log(optimc->log, "OPTi WSS Write: val = %02X\n", val);
     if (!(optimc->regs[4] & 0x10) && optimc->cur_mode == 0)
         return;
     optimc->wss_config = val;
@@ -285,6 +309,7 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *priv)
                 break;
         }
     }
+    optimc_log(optimc->log, "OPTi929 Write: idx = %02X, val = %02X\n", idx, val);
     if (optimc->reg_enabled)
         optimc->reg_enabled = 0;
     if ((addr == 0xF8F) && ((val == optimc->type) || (val == 0x00))) {
@@ -342,6 +367,7 @@ optimc_reg_read(uint16_t addr, void *priv)
         }
         optimc->reg_enabled = 0;
     }
+    optimc_log(optimc->log, "OPTi929 Read: addr = %02X, val = %02X\n", addr, temp);
     return temp;
 }
 
@@ -368,6 +394,8 @@ optimc_init(const device_t *info)
     optimc->regs[3] = 0x00;
     optimc->regs[4] = 0x3F;
     optimc->regs[5] = 0x83;
+
+    optimc->log = log_open("OPTIMC");
 
     optimc->gameport = gameport_add(&gameport_pnp_device);
     gameport_remap(optimc->gameport, (optimc->regs[0] & 0x1) ? 0x00 : 0x200);
@@ -430,6 +458,11 @@ static void
 optimc_close(void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
+
+    if (optimc->log != NULL) {
+        log_close(optimc->log);
+        optimc->log = NULL;
+    }
 
     sb_close(optimc->sb);
     free(optimc->mpu);
