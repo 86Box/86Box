@@ -774,11 +774,20 @@ extern int             machine_at_tg486g_init(const machine_t *);
 
 /* m_at_socket3_pci.c */
 /* ALi M1429G */
+#ifdef EMU_DEVICE_H
+extern const device_t  ms4134_device;
+#endif
 extern int             machine_at_ms4134_init(const machine_t *);
 extern int             machine_at_tg486gp_init(const machine_t *);
 
 /* ALi M1489 */
+#ifdef EMU_DEVICE_H
+extern const device_t  sbc490_device;
+#endif
 extern int             machine_at_sbc490_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  abpb4_device;
+#endif
 extern int             machine_at_abpb4_init(const machine_t *);
 extern int             machine_at_arb1476_init(const machine_t *);
 extern int             machine_at_win486pci_init(const machine_t *);
@@ -844,6 +853,9 @@ extern const device_t  hot433a_device;
 extern int             machine_at_hot433a_init(const machine_t *);
 
 /* VIA VT82C496G */
+#ifdef EMU_DEVICE_H
+extern const device_t  g486vpa_device;
+#endif
 extern int             machine_at_g486vpa_init(const machine_t *);
 extern int             machine_at_486vipio2_init(const machine_t *);
 
