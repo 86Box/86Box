@@ -2253,6 +2253,18 @@ msgstr "IRQ WSS"
 msgid "WSS DMA"
 msgstr "DMA kanál WSS"
 
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
 msgid "Enable OPL"
 msgstr "Povolit OPL"
 
@@ -2879,6 +2891,9 @@ msgstr "Stisknout Ctrl+Alt+Esc"
 
 msgid "Toggle fullscreen"
 msgstr "Přepnout režim celé obrazovky"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "Pořídit snímek obrazovky"

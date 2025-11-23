@@ -5027,6 +5027,7 @@ mach64vt_init(const device_t *info)
     mem_mapping_disable(&mach64->bios_rom.mapping);
 
     svga->vblank_start = mach64_vblank_start;
+    svga->adv_flags   |= FLAG_PANNING_ATI;
 
     return mach64;
 }
@@ -5058,6 +5059,7 @@ mach64vt2_init(const device_t *info)
     mem_mapping_disable(&mach64->bios_rom.mapping);
 
     svga->vblank_start = mach64_vblank_start;
+    svga->adv_flags   |= FLAG_PANNING_ATI;
 
     return mach64;
 }

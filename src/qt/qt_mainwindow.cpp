@@ -40,7 +40,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/ui.h>
 #ifdef DISCORD
-#   include <86box/discord.h>
+#    include <86box/discord.h>
 #endif
 #include <86box/device.h>
 #include <86box/video.h>
@@ -124,8 +124,8 @@ void qt_set_sequence_auto_mnemonic(bool b);
 #endif
 
 #if defined Q_OS_UNIX && !defined Q_OS_HAIKU && !defined Q_OS_MACOS
-#include <qpa/qplatformwindow.h>
-#include "x11_util.h"
+#    include <qpa/qplatformwindow.h>
+#    include "x11_util.h"
 #endif
 
 #ifdef Q_OS_MACOS
@@ -143,7 +143,7 @@ namespace IOKit {
 #    include "be_keyboard.hpp"
 
 extern MainWindow *main_window;
-QShortcut *windowedShortcut;
+QShortcut         *windowedShortcut;
 
 filter_result
 keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
@@ -191,8 +191,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 
-    auto hertz_label = new QLabel;
-    QTimer* frameRateTimer = new QTimer(this);
+    auto    hertz_label    = new QLabel;
+    QTimer *frameRateTimer = new QTimer(this);
     frameRateTimer->setInterval(1000);
     frameRateTimer->setSingleShot(false);
     connect(frameRateTimer, &QTimer::timeout, [hertz_label] {
@@ -205,14 +205,14 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar()->addPermanentWidget(hertz_label);
     frameRateTimer->start(1000);
 
-    num_icon = QIcon(":/settings/qt/icons/num_lock_on.ico");
-    num_icon_off = QIcon(":/settings/qt/icons/num_lock_off.ico");
-    scroll_icon = QIcon(":/settings/qt/icons/scroll_lock_on.ico");
+    num_icon        = QIcon(":/settings/qt/icons/num_lock_on.ico");
+    num_icon_off    = QIcon(":/settings/qt/icons/num_lock_off.ico");
+    scroll_icon     = QIcon(":/settings/qt/icons/scroll_lock_on.ico");
     scroll_icon_off = QIcon(":/settings/qt/icons/scroll_lock_off.ico");
-    caps_icon = QIcon(":/settings/qt/icons/caps_lock_on.ico");
-    caps_icon_off = QIcon(":/settings/qt/icons/caps_lock_off.ico");
-    kana_icon = QIcon(":/settings/qt/icons/kana_lock_on.ico");
-    kana_icon_off = QIcon(":/settings/qt/icons/kana_lock_off.ico");
+    caps_icon       = QIcon(":/settings/qt/icons/caps_lock_on.ico");
+    caps_icon_off   = QIcon(":/settings/qt/icons/caps_lock_off.ico");
+    kana_icon       = QIcon(":/settings/qt/icons/kana_lock_on.ico");
+    kana_icon_off   = QIcon(":/settings/qt/icons/kana_lock_off.ico");
 
     num_label = new QLabel;
     num_label->setPixmap(num_icon_off.pixmap(QSize(16, 16)));
@@ -234,10 +234,10 @@ MainWindow::MainWindow(QWidget *parent)
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
     statusBar()->addPermanentWidget(kana_label);
 
-    QTimer* ledKeyboardTimer = new QTimer(this);
+    QTimer *ledKeyboardTimer = new QTimer(this);
     ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
     ledKeyboardTimer->setInterval(1);
-    connect(ledKeyboardTimer, &QTimer::timeout, this, [this] () {
+    connect(ledKeyboardTimer, &QTimer::timeout, this, [this]() {
         uint8_t caps, num, scroll, kana;
         keyboard_get_states(&caps, &num, &scroll, &kana);
 
@@ -246,12 +246,10 @@ MainWindow::MainWindow(QWidget *parent)
         if (caps_label->isVisible())
             caps_label->setPixmap(caps ? this->caps_icon.pixmap(QSize(16, 16)) : this->caps_icon_off.pixmap(QSize(16, 16)));
         if (scroll_label->isVisible())
-            scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) :
-                                                                      this->scroll_icon_off.pixmap(QSize(16, 16)));
+            scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) : this->scroll_icon_off.pixmap(QSize(16, 16)));
 
         if (kana_label->isVisible())
-            kana_label->setPixmap(kana ? this->kana_icon.pixmap(QSize(16, 16)) :
-                                                                this->kana_icon_off.pixmap(QSize(16, 16)));
+            kana_label->setPixmap(kana ? this->kana_icon.pixmap(QSize(16, 16)) : this->kana_icon_off.pixmap(QSize(16, 16)));
     });
     ledKeyboardTimer->start();
 
@@ -285,10 +283,8 @@ MainWindow::MainWindow(QWidget *parent)
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                         (keyboard_type == KEYBOARD_TYPE_AX);
-        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
-                         !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
+        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
         while (QApplication::overrideCursor())
             QApplication::restoreOverrideCursor();
@@ -300,7 +296,10 @@ MainWindow::MainWindow(QWidget *parent)
 
         bool enable_comp_option = false;
         for (int i = 0; i < MONITORS_NUM; i++) {
-            if (monitors[i].mon_composite) { enable_comp_option = true; break; }
+            if (monitors[i].mon_composite) {
+                enable_comp_option = true;
+                break;
+            }
         }
 
         ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
@@ -398,8 +397,7 @@ MainWindow::MainWindow(QWidget *parent)
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = static_cast<int>(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
 
-            const int modifiedHeight =
-                static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
+            const int modifiedHeight = static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
@@ -576,17 +574,27 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->action_6x_2);
     actGroup->addAction(ui->action_7x_2);
     actGroup->addAction(ui->action_8x_2);
-    connect(actGroup, &QActionGroup::triggered, this, [this](QAction* action) {
-        if (action == ui->action_0_5x_2) video_gl_input_scale = 0.5;
-        if (action == ui->action_1x_2) video_gl_input_scale = 1;
-        if (action == ui->action1_5x_2) video_gl_input_scale = 1.5;
-        if (action == ui->action_2x_2) video_gl_input_scale = 2;
-        if (action == ui->action_3x_2) video_gl_input_scale = 3;
-        if (action == ui->action_4x_2) video_gl_input_scale = 4;
-        if (action == ui->action_5x_2) video_gl_input_scale = 5;
-        if (action == ui->action_6x_2) video_gl_input_scale = 6;
-        if (action == ui->action_7x_2) video_gl_input_scale = 7;
-        if (action == ui->action_8x_2) video_gl_input_scale = 8;
+    connect(actGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        if (action == ui->action_0_5x_2)
+            video_gl_input_scale = 0.5;
+        if (action == ui->action_1x_2)
+            video_gl_input_scale = 1;
+        if (action == ui->action1_5x_2)
+            video_gl_input_scale = 1.5;
+        if (action == ui->action_2x_2)
+            video_gl_input_scale = 2;
+        if (action == ui->action_3x_2)
+            video_gl_input_scale = 3;
+        if (action == ui->action_4x_2)
+            video_gl_input_scale = 4;
+        if (action == ui->action_5x_2)
+            video_gl_input_scale = 5;
+        if (action == ui->action_6x_2)
+            video_gl_input_scale = 6;
+        if (action == ui->action_7x_2)
+            video_gl_input_scale = 7;
+        if (action == ui->action_8x_2)
+            video_gl_input_scale = 8;
     });
 
     switch (scale) {
@@ -697,12 +705,17 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->action_Square_pixels_keep_ratio_gl);
     actGroup->addAction(ui->action_Integer_scale_gl);
     actGroup->addAction(ui->action4_3_Integer_scale_gl);
-    connect(actGroup, &QActionGroup::triggered, this, [this](QAction* action) {
-        if (action == ui->action_Full_screen_stretch_gl) video_gl_input_scale_mode = FULLSCR_SCALE_FULL;
-        if (action == ui->action_4_3_gl) video_gl_input_scale_mode = FULLSCR_SCALE_43;
-        if (action == ui->action_Square_pixels_keep_ratio_gl) video_gl_input_scale_mode = FULLSCR_SCALE_KEEPRATIO;
-        if (action == ui->action_Integer_scale_gl) video_gl_input_scale_mode = FULLSCR_SCALE_INT;
-        if (action == ui->action4_3_Integer_scale_gl) video_gl_input_scale_mode = FULLSCR_SCALE_INT43;
+    connect(actGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        if (action == ui->action_Full_screen_stretch_gl)
+            video_gl_input_scale_mode = FULLSCR_SCALE_FULL;
+        if (action == ui->action_4_3_gl)
+            video_gl_input_scale_mode = FULLSCR_SCALE_43;
+        if (action == ui->action_Square_pixels_keep_ratio_gl)
+            video_gl_input_scale_mode = FULLSCR_SCALE_KEEPRATIO;
+        if (action == ui->action_Integer_scale_gl)
+            video_gl_input_scale_mode = FULLSCR_SCALE_INT;
+        if (action == ui->action4_3_Integer_scale_gl)
+            video_gl_input_scale_mode = FULLSCR_SCALE_INT43;
     });
     switch (video_grayscale) {
         default:
@@ -770,7 +783,7 @@ MainWindow::MainWindow(QWidget *parent)
         video_setblit(qt_blit);
 
     if (start_in_fullscreen) {
-        connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this] () {
+        connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this]() {
             if (start_in_fullscreen) {
                 QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
                 start_in_fullscreen = 0;
@@ -820,9 +833,9 @@ MainWindow::MainWindow(QWidget *parent)
     setContextMenuPolicy(Qt::PreventContextMenu);
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    connect(new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F10), this), &QShortcut::activated, this, [](){});
+    connect(new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F10), this), &QShortcut::activated, this, []() {});
 #else
-    connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [](){});
+    connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, []() {});
 #endif
 
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
@@ -880,18 +893,19 @@ MainWindow::MainWindow(QWidget *parent)
     else
 #    endif
 #    ifdef WAYLAND
-    if (QApplication::platformName().contains("wayland"))
+        if (QApplication::platformName().contains("wayland"))
         xkbcommon_wl_init();
     else
 #    endif
-    {}
+    {
+    }
 #endif
 
 #if defined Q_OS_UNIX && !defined Q_OS_MACOS && !defined Q_OS_HAIKU
     if (QApplication::platformName().contains("xcb")) {
         QTimer::singleShot(0, this, [this] {
             auto whandle = windowHandle();
-            if (! whandle) {
+            if (!whandle) {
                 qWarning() << "No window handle";
             } else {
                 QPlatformWindow *window = whandle->handle();
@@ -901,7 +915,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
 #endif
 
-	updateShortcuts();
+    updateShortcuts();
 }
 
 void
@@ -914,7 +928,7 @@ MainWindow::closeEvent(QCloseEvent *event)
 
     if (confirm_exit && confirm_exit_cmdl && cpu_thread_run) {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
-        auto chkbox = new QCheckBox(tr("Don't show this message again"));
+        auto        chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_exit);
 
@@ -967,57 +981,57 @@ MainWindow::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
-
-void MainWindow::updateShortcuts()
+void
+MainWindow::updateShortcuts()
 {
-	/* 
-	 Update menu shortcuts from accelerator table
-	 
-	 Note that these only work in windowed mode. If you add any new shortcuts,
-	 you have to go duplicate them in MainWindow::eventFilter()
-	 */
-	
-	// First we need to wipe all existing accelerators, otherwise Qt will
-	// run into conflicts with old ones.
-	ui->actionTake_screenshot->setShortcut(QKeySequence());
-	ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
-	ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
-	ui->actionHard_Reset->setShortcut(QKeySequence());
-	ui->actionPause->setShortcut(QKeySequence());
-	ui->actionMute_Unmute->setShortcut(QKeySequence());
-	
-	int accID;
-	QKeySequence seq;
-	
-	accID = FindAccelerator("screenshot");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionTake_screenshot->setShortcut(seq);
-	
-	accID = FindAccelerator("send_ctrl_alt_del");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionCtrl_Alt_Del->setShortcut(seq);
-	
-	accID = FindAccelerator("send_ctrl_alt_esc");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionCtrl_Alt_Esc->setShortcut(seq);
-	
-	accID = FindAccelerator("hard_reset");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionHard_Reset->setShortcut(seq);
-	
-	accID = FindAccelerator("fullscreen");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionFullscreen->setShortcut(seq);
-	
-	accID = FindAccelerator("pause");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionPause->setShortcut(seq);
-	
-	accID = FindAccelerator("mute");
-	seq = QKeySequence::fromString(acc_keys[accID].seq);
-	ui->actionMute_Unmute->setShortcut(seq);
+    /*
+     Update menu shortcuts from accelerator table
+
+     Note that these only work in windowed mode. If you add any new shortcuts,
+     you have to go duplicate them in MainWindow::eventFilter()
+     */
+
+    // First we need to wipe all existing accelerators, otherwise Qt will
+    // run into conflicts with old ones.
+    ui->actionTake_screenshot->setShortcut(QKeySequence());
+    ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
+    ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
+    ui->actionHard_Reset->setShortcut(QKeySequence());
+    ui->actionPause->setShortcut(QKeySequence());
+    ui->actionMute_Unmute->setShortcut(QKeySequence());
+
+    int          accID;
+    QKeySequence seq;
+
+    accID = FindAccelerator("screenshot");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionTake_screenshot->setShortcut(seq);
+
+    accID = FindAccelerator("send_ctrl_alt_del");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionCtrl_Alt_Del->setShortcut(seq);
+
+    accID = FindAccelerator("send_ctrl_alt_esc");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionCtrl_Alt_Esc->setShortcut(seq);
+
+    accID = FindAccelerator("hard_reset");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionHard_Reset->setShortcut(seq);
+
+    accID = FindAccelerator("fullscreen");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionFullscreen->setShortcut(seq);
+
+    accID = FindAccelerator("pause");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionPause->setShortcut(seq);
+
+    accID = FindAccelerator("mute");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionMute_Unmute->setShortcut(seq);
 }
-		
+
 void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
@@ -1031,24 +1045,26 @@ MainWindow::resizeEvent(QResizeEvent *event)
     int newY = pos().y();
 
     if (((frameGeometry().x() + event->size().width() + 1) > util::screenOfWidget(this)->availableGeometry().right())) {
-        //move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
+        // move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
         newX = util::screenOfWidget(this)->availableGeometry().right() - frameGeometry().width() - 1;
-        if (newX < 1) newX = 1;
+        if (newX < 1)
+            newX = 1;
     }
 
     if (((frameGeometry().y() + event->size().height() + 1) > util::screenOfWidget(this)->availableGeometry().bottom())) {
         newY = util::screenOfWidget(this)->availableGeometry().bottom() - frameGeometry().height() - 1;
-        if (newY < 1) newY = 1;
+        if (newY < 1)
+            newY = 1;
     }
     move(newX, newY);
-#endif
+#endif /*MOVE_WINDOW*/
 }
 
 void
 MainWindow::initRendererMonitorSlot(int monitor_index)
 {
     auto &secondaryRenderer = this->renderers[monitor_index];
-    secondaryRenderer = std::make_unique<RendererStack>(nullptr, monitor_index);
+    secondaryRenderer       = std::make_unique<RendererStack>(nullptr, monitor_index);
     if (secondaryRenderer) {
         connect(secondaryRenderer.get(), &RendererStack::rendererChanged, this, [this, monitor_index] {
             this->renderers[monitor_index]->show();
@@ -1083,7 +1099,7 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             if (monitor_settings[monitor_index].mon_window_maximized) {
                 if (renderers[monitor_index])
                     renderers[monitor_index]->onResize(renderers[monitor_index]->width(),
-                    renderers[monitor_index]->height());
+                                                       renderers[monitor_index]->height());
 
                 device_force_redraw();
             }
@@ -1258,7 +1274,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
 #    ifdef EVDEV_KEYBOARD_HPP
         keycode = evdev_translate(keycode - 8);
 #    else
-        keycode = 0;
+    keycode = 0;
 #    endif
 #endif
 
@@ -1277,11 +1293,11 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             }
             break;
 
-        case 0x80 ... 0xff: /* regular break codes */
-        case 0x10b: /* Microsoft scroll up normal */
+        case 0x80 ... 0xff:   /* regular break codes */
+        case 0x10b:           /* Microsoft scroll up normal */
         case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
             /* This key uses a break code as make. Send it manually, only on press. */
-            if (down && (mouse_capture || !kbd_req_capture || video_fullscreen)) {
+            if (down && (mouse_capture || !kbd_req_capture || (video_fullscreen && !fullscreen_ui_visible))) {
                 if (keycode & 0x100)
                     keyboard_send(0xe0);
                 keyboard_send(keycode & 0xff);
@@ -1293,7 +1309,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
                 keycode = 0x38; /* map to Left Alt */
             break;
 
-        case 0x137: /* Print Screen */
+        case 0x137:                                                  /* Print Screen */
             if (keyboard_recv_ui(0x38) || keyboard_recv_ui(0x138)) { /* Alt+ */
                 keycode = 0x54;
             } else if (down) {
@@ -1304,7 +1320,7 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             }
             break;
 
-        case 0x145: /* Pause */
+        case 0x145:                                                  /* Pause */
             if (keyboard_recv_ui(0x1d) || keyboard_recv_ui(0x11d)) { /* Ctrl+ */
                 keycode = 0x146;
             } else {
@@ -1322,15 +1338,15 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
 // that's followed up with "(really?)". It's the only way to distinguish
 // left and right modifiers with Qt 6 on macOS, so let's just roll with it.
 static std::unordered_map<uint32_t, uint16_t> mac_modifiers_to_xt = {
-    {NX_DEVICELCTLKEYMASK,                 0x1D },
-    { NX_DEVICELSHIFTKEYMASK,              0x2A },
-    { NX_DEVICERSHIFTKEYMASK,              0x36 },
-    { NX_DEVICELCMDKEYMASK,                0x15B},
-    { NX_DEVICERCMDKEYMASK,                0x15C},
-    { NX_DEVICELALTKEYMASK,                0x38 },
-    { NX_DEVICERALTKEYMASK,                0x138},
-    { NX_DEVICE_ALPHASHIFT_STATELESS_MASK, 0x3A },
-    { NX_DEVICERCTLKEYMASK,                0x11D},
+    { NX_DEVICELCTLKEYMASK,                0x1D  },
+    { NX_DEVICELSHIFTKEYMASK,              0x2A  },
+    { NX_DEVICERSHIFTKEYMASK,              0x36  },
+    { NX_DEVICELCMDKEYMASK,                0x15B },
+    { NX_DEVICERCMDKEYMASK,                0x15C },
+    { NX_DEVICELALTKEYMASK,                0x38  },
+    { NX_DEVICERALTKEYMASK,                0x138 },
+    { NX_DEVICE_ALPHASHIFT_STATELESS_MASK, 0x3A  },
+    { NX_DEVICERCTLKEYMASK,                0x11D },
 };
 static bool mac_iso_swap = false;
 
@@ -1391,45 +1407,44 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
                - Romanian third level ANSI_Grave is unknown
                - Russian clusters <>, plusminus and paragraph into a four-level ANSI_Grave, with the aforementioned `~ on ISO_Section */
             auto key = event->key();
-            if ((nvk == 0x32) && ( /* system reports ANSI_Grave for ISO_Section keys: */
-                    (key == Qt::Key_Less) || (key == Qt::Key_Greater) || /* Croatian, French, German, Icelandic, Italian, Norwegian, Portuguese, Spanish, Spanish Latin America, Turkish Q */
-                    (key == Qt::Key_Ugrave) || /* French Canadian */
-                    (key == Qt::Key_Icircumflex) || /* Romanian */
-                    (key == Qt::Key_Iacute) || /* Hungarian */
-                    (key == Qt::Key_BracketLeft) || (key == Qt::Key_BracketRight) || /* Russian upper two levels */
-                    (key == Qt::Key_W) /* Turkish F */
-                ))
+            if ((nvk == 0x32) && (                                                                 /* system reports ANSI_Grave for ISO_Section keys: */
+                                  (key == Qt::Key_Less) || (key == Qt::Key_Greater) ||             /* Croatian, French, German, Icelandic, Italian, Norwegian, Portuguese, Spanish, Spanish Latin America, Turkish Q */
+                                  (key == Qt::Key_Ugrave) ||                                       /* French Canadian */
+                                  (key == Qt::Key_Icircumflex) ||                                  /* Romanian */
+                                  (key == Qt::Key_Iacute) ||                                       /* Hungarian */
+                                  (key == Qt::Key_BracketLeft) || (key == Qt::Key_BracketRight) || /* Russian upper two levels */
+                                  (key == Qt::Key_W)                                               /* Turkish F */
+                                  ))
                 mac_iso_swap = true;
-            else if ((nvk == 0x0a) && ( /* system reports ISO_Section for ANSI_Grave keys: */
-                    (key == Qt::Key_paragraph) || (key == Qt::Key_plusminus) || /* Arabic, British, Bulgarian, Danish shifted, Dutch, Greek, Hebrew, Hungarian shifted, International English, Norwegian shifted, Portuguese, Russian lower two levels, Swiss unshifted, Swedish unshifted, Turkish F */
-                    (key == Qt::Key_At) || (key == Qt::Key_NumberSign) || /* Belgian, French */
-                    (key == Qt::Key_Apostrophe) || /* Brazilian unshifted */
-                    (key == Qt::Key_QuoteDbl) || /* Brazilian shifted, Turkish Q unshifted */
-                    (key == Qt::Key_QuoteLeft) || /* Croatian (right quote unknown) */
-                    (key == Qt::Key_Dollar) || /* Danish unshifted */
-                    (key == Qt::Key_AsciiCircum) || (key == 0x1ffffff) || /* German unshifted (0x1ffffff according to one tester), Polish unshifted */
-                    (key == Qt::Key_degree) || /* German shifted, Icelandic unshifted, Spanish Latin America shifted, Swiss shifted, Swedish shifted */
-                    (key == Qt::Key_0) || /* Hungarian unshifted */
-                    (key == Qt::Key_diaeresis) || /* Icelandic shifted */
-                    (key == Qt::Key_acute) || /* Norwegian unshifted */
-                    (key == Qt::Key_Asterisk) || /* Polish shifted */
-                    (key == Qt::Key_masculine) || (key == Qt::Key_ordfeminine) || /* Spanish (masculine unconfirmed) */
-                    (key == Qt::Key_Eacute) || /* Turkish Q shifted */
-                    (key == Qt::Key_Slash) /* French Canadian unshifted, Ukrainian shifted */
-                ))
+            else if ((nvk == 0x0a) && (                                                              /* system reports ISO_Section for ANSI_Grave keys: */
+                                       (key == Qt::Key_paragraph) || (key == Qt::Key_plusminus) ||   /* Arabic, British, Bulgarian, Danish shifted, Dutch, Greek, Hebrew, Hungarian shifted, International English, Norwegian shifted, Portuguese, Russian lower two levels, Swiss unshifted, Swedish unshifted, Turkish F */
+                                       (key == Qt::Key_At) || (key == Qt::Key_NumberSign) ||         /* Belgian, French */
+                                       (key == Qt::Key_Apostrophe) ||                                /* Brazilian unshifted */
+                                       (key == Qt::Key_QuoteDbl) ||                                  /* Brazilian shifted, Turkish Q unshifted */
+                                       (key == Qt::Key_QuoteLeft) ||                                 /* Croatian (right quote unknown) */
+                                       (key == Qt::Key_Dollar) ||                                    /* Danish unshifted */
+                                       (key == Qt::Key_AsciiCircum) || (key == 0x1ffffff) ||         /* German unshifted (0x1ffffff according to one tester), Polish unshifted */
+                                       (key == Qt::Key_degree) ||                                    /* German shifted, Icelandic unshifted, Spanish Latin America shifted, Swiss shifted, Swedish shifted */
+                                       (key == Qt::Key_0) ||                                         /* Hungarian unshifted */
+                                       (key == Qt::Key_diaeresis) ||                                 /* Icelandic shifted */
+                                       (key == Qt::Key_acute) ||                                     /* Norwegian unshifted */
+                                       (key == Qt::Key_Asterisk) ||                                  /* Polish shifted */
+                                       (key == Qt::Key_masculine) || (key == Qt::Key_ordfeminine) || /* Spanish (masculine unconfirmed) */
+                                       (key == Qt::Key_Eacute) ||                                    /* Turkish Q shifted */
+                                       (key == Qt::Key_Slash)                                        /* French Canadian unshifted, Ukrainian shifted */
+                                       ))
                 mac_iso_swap = true;
-#if 0
+#    if 0
             if (down) {
                 QMessageBox questionbox(QMessageBox::Icon::Information, QString("Mac key swap test"), QString("nativeVirtualKey 0x%1\nnativeScanCode 0x%2\nkey 0x%3\nmac_iso_swap %4").arg(nvk, 0, 16).arg(event->nativeScanCode(), 0, 16).arg(key, 0, 16).arg(mac_iso_swap ? "yes" : "no"), QMessageBox::Ok, this);
                 questionbox.exec();
             }
-#endif
+#    endif
             if (mac_iso_swap)
                 nvk = (nvk == 0x0a) ? 0x32 : 0x0a;
         }
         // Special case for command + forward delete to send insert.
-        if ((event->nativeModifiers() & NSEventModifierFlagCommand) &&
-            ((event->nativeVirtualKey() == nvk_Delete) || event->key() == Qt::Key_Delete)) {
+        if ((event->nativeModifiers() & NSEventModifierFlagCommand) && ((event->nativeVirtualKey() == nvk_Delete) || event->key() == Qt::Key_Delete)) {
             nvk = nvk_Insert; // Qt::Key_Help according to event->key()
         }
 
@@ -1449,6 +1464,7 @@ MainWindow::on_actionFullscreen_triggered()
         if (!hide_tool_bar)
             ui->toolBar->show();
         video_fullscreen = 0;
+        fullscreen_ui_visible = 0;
         if (vid_resize != 1) {
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
@@ -1461,7 +1477,7 @@ MainWindow::on_actionFullscreen_triggered()
         ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
     }
-    fs_on_signal = false;
+    fs_on_signal  = false;
     fs_off_signal = false;
     ui->stackedWidget->onResize(width(), height());
 }
@@ -1482,85 +1498,75 @@ MainWindow::getTitle(wchar_t *title)
     }
 }
 
-
 // Helper to find an accelerator key and return it's sequence
 // TODO: Is there a more central place to put this?
 QKeySequence
 MainWindow::FindAcceleratorSeq(const char *name)
 {
-	int accID = FindAccelerator(name);
-	if(accID == -1)
-		return false;
-	
-	return(QKeySequence::fromString(acc_keys[accID].seq));
+    int accID = FindAccelerator(name);
+    if (accID == -1)
+        return false;
+
+    return (QKeySequence::fromString(acc_keys[accID].seq));
 }
 
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
-	// Detect shortcuts when menubar is hidden
-	// TODO: Could this be simplified by proxying the event and manually
-	// shoving it into the menubar?
-	if (event->type() == QEvent::KeyPress)
-	{
-		this->keyPressEvent((QKeyEvent *) event);
+    // Detect shortcuts when menubar is hidden
+    // TODO: Could this be simplified by proxying the event and manually
+    // shoving it into the menubar?
+    if (event->type() == QEvent::KeyPress) {
+        this->keyPressEvent((QKeyEvent *) event);
 
-		// We check for mouse release even if we aren't fullscreen,
-		// because it's not a menu accelerator.
-		if (event->type() == QEvent::KeyPress)
-		{
-			QKeyEvent *ke = (QKeyEvent *) event;
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse") ||
-                (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse"))
-			{
-				plat_mouse_capture(0);
-			}
-		}
+        // We check for mouse release even if we aren't fullscreen,
+        // because it's not a menu accelerator.
+        if (event->type() == QEvent::KeyPress) {
+            QKeyEvent *ke = (QKeyEvent *) event;
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse") || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse")) {
+                plat_mouse_capture(0);
+            }
+        }
 
-		if (event->type() == QEvent::KeyPress && video_fullscreen != 0)
-		{
-			QKeyEvent *ke = (QKeyEvent *) event;
-			
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("screenshot")
-                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot"))
-			{
-				ui->actionTake_screenshot->trigger();
-			}
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
-                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen"))
-			{
-				ui->actionFullscreen->trigger();
-			}
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
-                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset"))
-			{
-				ui->actionHard_Reset->trigger();
-			}
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_del")
-                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del"))
-			{
-				ui->actionCtrl_Alt_Del->trigger();
-			}
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_esc")
-                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc"))
-			{
-				ui->actionCtrl_Alt_Esc->trigger();
-			}
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("pause")
-                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause"))
-			{
-				ui->actionPause->trigger();
-			}
-			if ((QKeySequence)(ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("mute")
-                || (QKeySequence)(ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute"))
-			{
-				ui->actionMute_Unmute->trigger();
-			}
+        if (event->type() == QEvent::KeyPress && video_fullscreen != 0) {
+            QKeyEvent *ke = (QKeyEvent *) event;
 
-			return true;
-		}
-	}
-	
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("screenshot")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot")) {
+                ui->actionTake_screenshot->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen")) {
+                ui->actionFullscreen->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset")) {
+                ui->actionHard_Reset->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_del")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del")) {
+                ui->actionCtrl_Alt_Del->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_esc")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc")) {
+                ui->actionCtrl_Alt_Esc->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("pause")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause")) {
+                ui->actionPause->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("mute")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("mute")) {
+                ui->actionMute_Unmute->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_ui_fullscreen")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_ui_fullscreen")) {
+                toggleFullscreenUI();
+            }
+
+            return true;
+        }
+    }
 
     if (!dopause && (!kbd_req_capture || mouse_capture)) {
         if (event->type() == QEvent::Shortcut) {
@@ -1571,8 +1577,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             }
         }
         if (event->type() == QEvent::KeyPress) {
-			event->accept();
-			
+            event->accept();
+
             return true;
         }
         if (event->type() == QEvent::KeyRelease) {
@@ -1586,7 +1592,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         static auto curdopause = dopause;
         if (event->type() == QEvent::WindowBlocked) {
             window_blocked = true;
-            curdopause = dopause;
+            curdopause     = dopause;
             plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
             emit setMouseCapture(false);
             releaseKeyboard();
@@ -1595,7 +1601,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             plat_pause(curdopause);
         }
     }
-	
+
     return QMainWindow::eventFilter(receiver, event);
 }
 
@@ -1615,15 +1621,16 @@ MainWindow::refreshMediaMenu()
     caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
-    int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) &&
-                     (keyboard_type == KEYBOARD_TYPE_AX);
-    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) &&
-                     !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
+    int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
+    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
     kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
     bool enable_comp_option = false;
     for (int i = 0; i < MONITORS_NUM; i++) {
-        if (monitors[i].mon_composite) { enable_comp_option = true; break; }
+        if (monitors[i].mon_composite) {
+            enable_comp_option = true;
+            break;
+        }
     }
 
     ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
@@ -1635,12 +1642,11 @@ MainWindow::showMessage(int flags, const QString &header, const QString &message
     if (QThread::currentThread() == this->thread()) {
         if (!cpu_thread_running) {
             showMessageForNonQtThread(flags, header, message, richText, nullptr);
-        }
-        else
+        } else
             showMessage_(flags, header, message, richText);
     } else {
         std::atomic_bool done = false;
-        emit showMessageForNonQtThread(flags, header, message, richText, &done);
+        emit             showMessageForNonQtThread(flags, header, message, richText, &done);
         while (!done) {
             QThread::msleep(1);
         }
@@ -1681,7 +1687,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
         processKeyboardInput(true, event->nativeScanCode());
 #endif
     }
-	
+
     event->accept();
 }
 
@@ -1724,13 +1730,13 @@ MainWindow::getRenderWidgetSize()
 void
 MainWindow::focusInEvent(QFocusEvent *event)
 {
-    //this->grabKeyboard();
+    // this->grabKeyboard();
 }
 
 void
 MainWindow::focusOutEvent(QFocusEvent *event)
 {
-    //this->releaseKeyboard();
+    // this->releaseKeyboard();
 }
 
 void
@@ -2206,10 +2212,36 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
 }
 
 void
+MainWindow::toggleFullscreenUI()
+{
+    if (video_fullscreen == 0)
+        return;
+
+    fullscreen_ui_visible ^= 1;
+
+    if (fullscreen_ui_visible) {
+        // UI is being shown - save mouse capture state and release if captured
+        mouse_was_captured = (mouse_capture != 0);
+        if (mouse_was_captured) {
+            plat_mouse_capture(0);
+        }
+    } else {
+        // UI is being hidden - restore previous mouse capture state
+        if (mouse_was_captured) {
+            plat_mouse_capture(1);
+        }
+    }
+
+    ui->menubar->setVisible(fullscreen_ui_visible);
+    ui->statusbar->setVisible(fullscreen_ui_visible && !hide_status_bar);
+    ui->toolBar->setVisible(fullscreen_ui_visible && !hide_tool_bar);
+}
+
+void
 MainWindow::on_actionTake_screenshot_triggered()
 {
     startblit();
-    for (auto & monitor : monitors)
+    for (auto &monitor : monitors)
         ++monitor.mon_screenshots;
     endblit();
     device_force_redraw();
@@ -2240,16 +2272,13 @@ MainWindow::setSendKeyboardInput(bool enabled)
 void
 MainWindow::updateUiPauseState()
 {
-    const auto pause_icon         = dopause ? QIcon(":/menuicons/qt/icons/run.ico") :
-                                    QIcon(":/menuicons/qt/icons/pause.ico");
-    const auto tooltip_text = dopause ? QString(tr("Resume execution")) :
-                                    QString(tr("Pause execution"));
-    const auto menu_text = dopause ? QString(tr("Re&sume")) :
-                                    QString(tr("&Pause"));
+    const auto pause_icon   = dopause ? QIcon(":/menuicons/qt/icons/run.ico") : QIcon(":/menuicons/qt/icons/pause.ico");
+    const auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
+    const auto menu_text    = dopause ? QString(tr("Re&sume")) : QString(tr("&Pause"));
     ui->actionPause->setIcon(pause_icon);
     ui->actionPause->setToolTip(tooltip_text);
     ui->actionPause->setText(menu_text);
-    emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState)dopause));
+    emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState) dopause));
 }
 
 void
@@ -2345,10 +2374,11 @@ MainWindow::on_actionRenderer_options_triggered()
                         }
                     }
                 }
-            } else for (int i = 1; i < MONITORS_NUM; i++) {
-                if (renderers[i] && renderers[i]->hasOptions())
-                    renderers[i]->reloadOptions();
-            }
+            } else
+                for (int i = 1; i < MONITORS_NUM; i++) {
+                    if (renderers[i] && renderers[i]->hasOptions())
+                        renderers[i]->reloadOptions();
+                }
         } else if (reload_renderers && ui->stackedWidget->reloadRendererOption()) {
             reload_renderers = false;
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
@@ -2437,24 +2467,28 @@ MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool
     config_save();
 }
 
-void MainWindow::on_actionCursor_Puck_triggered()
+void
+MainWindow::on_actionCursor_Puck_triggered()
 {
     tablet_tool_type = 0;
     config_save();
 }
 
-void MainWindow::on_actionPen_triggered()
+void
+MainWindow::on_actionPen_triggered()
 {
     tablet_tool_type = 1;
     config_save();
 }
 
-void MainWindow::on_actionACPI_Shutdown_triggered()
+void
+MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
 }
 
-void MainWindow::on_actionCGA_composite_settings_triggered()
+void
+MainWindow::on_actionCGA_composite_settings_triggered()
 {
     isNonPause = true;
     CGASettingsDialog dialog;
@@ -2463,4 +2497,3 @@ void MainWindow::on_actionCGA_composite_settings_triggered()
     isNonPause = false;
     config_save();
 }
-

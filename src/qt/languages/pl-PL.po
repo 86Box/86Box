@@ -2253,6 +2253,18 @@ msgstr "WSS IRQ"
 msgid "WSS DMA"
 msgstr "WSS DMA"
 
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
 msgid "Enable OPL"
 msgstr "Włącz OPL"
 
@@ -2879,6 +2891,9 @@ msgstr "Wyślij Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Przełącz pełny ekran"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "Zrzut ekranu"

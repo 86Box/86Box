@@ -40,12 +40,12 @@ public:
     /* Should the renderer take screenshots itself? */
     virtual bool rendererTakeScreenshot() { return false; }
 
-    int      r_monitor_index = 0;
-    QRectF   destinationF = QRectF(0, 0, 1, 1); /* normalized to 0.0-1.0 range. */
+    int    r_monitor_index = 0;
+    QRectF destinationF    = QRectF(0, 0, 1, 1); /* normalized to 0.0-1.0 range. */
 
 protected:
-    bool     eventDelegate(QEvent *event, bool &result);
-    void      drawStatusBarIcons(QPainter* painter);
+    bool eventDelegate(QEvent *event, bool &result);
+    void drawStatusBarIcons(QPainter *painter);
 
     QRect    source { 0, 0, 0, 0 };
     QRect    destination;

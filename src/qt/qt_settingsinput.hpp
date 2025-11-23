@@ -47,7 +47,7 @@ private slots:
 private:
     Ui::SettingsInput *ui;
     int                machineId = 0;
-    void refreshInputList();
+    void               refreshInputList();
 };
 
 #endif // QT_SETTINGSINPUT_HPP

@@ -22,11 +22,11 @@
 
 VMManagerServerSocket::VMManagerServerSocket(const QFileInfo &config_path, const ServerType type)
 {
-    server_type = type;
-    config_file = config_path;
+    server_type     = type;
+    config_file     = config_path;
     serverIsRunning = false;
-    socket = nullptr;
-    server = new QLocalServer;
+    socket          = nullptr;
+    server          = new QLocalServer;
     setupVars();
 }
 
@@ -36,7 +36,8 @@ VMManagerServerSocket::~VMManagerServerSocket()
 }
 
 bool
-VMManagerServerSocket::startServer() {
+VMManagerServerSocket::startServer()
+{
 
     // Remove socket file (if it exists) in order to start a new one
     qInfo("Socket path is %s", qPrintable(socket_path.filePath()));
@@ -60,10 +61,11 @@ VMManagerServerSocket::startServer() {
 }
 
 void
-VMManagerServerSocket::serverConnectionReceived() {
+VMManagerServerSocket::serverConnectionReceived()
+{
     qDebug("Connection received on %s", qPrintable(socket_path.fileName()));
     socket = server->nextPendingConnection();
-    if(!socket) {
+    if (!socket) {
         qInfo("Invalid socket when trying to receive the connection");
         return;
     }
@@ -72,14 +74,15 @@ VMManagerServerSocket::serverConnectionReceived() {
 }
 
 void
-VMManagerServerSocket::serverReceivedMessage() {
+VMManagerServerSocket::serverReceivedMessage()
+{
 
     // Handle legacy socket connections first. These connections only receive
     // information on window status
-    if(server_type == VMManagerServerSocket::ServerType::Legacy) {
-        QByteArray tempString = socket->read(1);
-        int window_obscured = tempString.toInt();
-        emit windowStatusChanged(window_obscured);
+    if (server_type == VMManagerServerSocket::ServerType::Legacy) {
+        QByteArray tempString      = socket->read(1);
+        int        window_obscured = tempString.toInt();
+        emit       windowStatusChanged(window_obscured);
         return;
     }
 
@@ -93,7 +96,7 @@ VMManagerServerSocket::serverReceivedMessage() {
         // Try to read the data
         stream >> jsonData;
         if (stream.commitTransaction()) {
-            QJsonParseError parse_error{};
+            QJsonParseError parse_error {};
             // Validate the received data to make sure it's valid json
             const QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parse_error);
             if (parse_error.error == QJsonParseError::NoError) {
@@ -115,8 +118,9 @@ VMManagerServerSocket::serverReceivedMessage() {
 }
 
 void
-VMManagerServerSocket::serverSendMessage(VMManagerProtocol::ManagerMessage protocol_message, const QStringList& arguments) const {
-    if(!socket) {
+VMManagerServerSocket::serverSendMessage(VMManagerProtocol::ManagerMessage protocol_message, const QStringList &arguments) const
+{
+    if (!socket) {
         qInfo("Cannot send message: Invalid socket");
         return;
     }
@@ -124,7 +128,7 @@ VMManagerServerSocket::serverSendMessage(VMManagerProtocol::ManagerMessage proto
     // Regular connection
     QDataStream stream(socket);
     stream.setVersion(QDataStream::Qt_5_7);
-    auto packet = new VMManagerProtocol(VMManagerProtocol::Sender::Manager);
+    auto packet      = new VMManagerProtocol(VMManagerProtocol::Sender::Manager);
     auto jsonMessage = packet->protocolManagerMessage(protocol_message);
     stream << QJsonDocument(jsonMessage).toJson(QJsonDocument::Compact);
 }
@@ -145,7 +149,7 @@ VMManagerServerSocket::jsonReceived(const QJsonObject &json)
         qDebug() << json;
         return;
     }
-//    qDebug().noquote() << Q_FUNC_INFO << json;
+    //    qDebug().noquote() << Q_FUNC_INFO << json;
     QJsonObject params_object;
 
     auto message_type = VMManagerProtocol::getClientMessageType(json);
@@ -155,7 +159,7 @@ VMManagerServerSocket::jsonReceived(const QJsonObject &json)
             params_object = VMManagerProtocol::getParams(json);
             if (!params_object.isEmpty()) {
                 // valid object
-                if(params_object.value("params").type() == QJsonValue::Double) {
+                if (params_object.value("params").type() == QJsonValue::Double) {
                     emit winIdReceived(params_object.value("params").toVariant().toULongLong());
                 }
             }
@@ -176,7 +180,7 @@ VMManagerServerSocket::jsonReceived(const QJsonObject &json)
             params_object = VMManagerProtocol::getParams(json);
             if (!params_object.isEmpty()) {
                 // valid object
-                if(params_object.value("status").type() == QJsonValue::Double) {
+                if (params_object.value("status").type() == QJsonValue::Double) {
                     // has status key, value is an int (qt assigns it as Double)
                     emit runningStatusChanged(static_cast<VMManagerProtocol::RunningState>(params_object.value("status").toInt()));
                 }

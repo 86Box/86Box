@@ -115,6 +115,10 @@
 #define RAM_UMAMEM             (384 << 10)  /* upper memory block */
 #define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
+#define EV159_BASE_MEM         (128 << 10)  /* size of EV-159 base memory in cs8220 mode*/
+#define EV159_EXT_1536         (1536 << 10) /* start of EV-159 high memory in cs8220 mode*/
+#define EV159_EXT_1024         (1024 << 10) /* start of EV-159 high memory in backfill mode*/
+
 #define EMS_MAXSIZE            (2048 << 10) /* max EMS memory size */
 #define EMS_EV159_MAXSIZE      (3072 << 10) /* max EMS memory size for EV-159 cards */
 #define EMS_LOTECH_MAXSIZE     (4096 << 10) /* max EMS memory size for lotech cards */
@@ -635,6 +639,14 @@ isamem_init(const device_t *info)
          * so check this first.
          */
         t = (addr < RAM_TOPMEM) ? RAM_TOPMEM - addr : 0;
+
+        /* Check for Everex EV-159 cards in CS8220 backfill mode. */
+        if ((addr == RAM_TOPMEM) && (dev->board == ISAMEM_EV159_CARD)) {
+            /* Reserve 128K RAM for base memory. */
+            t = EV159_BASE_MEM;
+            addr -= t;
+        }
+
         if (t > 0) {
             /*
              * We need T bytes to extend that area.
@@ -667,6 +679,15 @@ isamem_init(const device_t *info)
             ptr += t;
             tot -= t;
             addr += t;
+        }
+
+        /* Assign high memory address for EV-159 in backfill modes. */
+        if ((addr == RAM_TOPMEM) && (dev->board == ISAMEM_EV159_CARD)) {
+            if (dev->start_addr == RAM_TOPMEM) {
+                addr = EV159_EXT_1536;
+            } else {
+                addr = EV159_EXT_1024;
+            }
         }
 
         /* Skip to high memory if needed. */

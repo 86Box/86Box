@@ -2253,6 +2253,18 @@ msgstr "IRQ WSS"
 msgid "WSS DMA"
 msgstr "DMA WSS"
 
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
 msgid "Enable OPL"
 msgstr "Omogoči OPL"
 
@@ -2879,6 +2891,9 @@ msgstr "Pošlji Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Preklopi celozaslonski način"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "Zajem zaslona"

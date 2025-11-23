@@ -2253,6 +2253,18 @@ msgstr "WSS IRQ"
 msgid "WSS DMA"
 msgstr "WSS DMA"
 
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
+
 msgid "Enable OPL"
 msgstr "OPL'yi etkinleştir"
 
@@ -2879,6 +2891,9 @@ msgstr "Control+Alt+Escape gönder"
 
 msgid "Toggle fullscreen"
 msgstr "Tam ekran modunu ayarla"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "Ekran görüntüsü"

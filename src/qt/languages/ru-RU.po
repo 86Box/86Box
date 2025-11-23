@@ -973,7 +973,7 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Система управления полётом Thrustmaster"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Система управления рулем"
+msgstr "Thrustmaster FCS + Система управления рулём"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 с адаптером"
@@ -2221,7 +2221,7 @@ msgid "Enable Game port"
 msgstr "Включить игровой порт"
 
 msgid "Enable Adlib ports"
-msgstr "Включить порты Adlib"
+msgstr "Включить порты AdLib"
 
 msgid "SID Model"
 msgstr "Модель SID"
@@ -2252,6 +2252,18 @@ msgstr "IRQ WSS"
 
 msgid "WSS DMA"
 msgstr "DMA WSS"
+
+msgid "RTC IRQ"
+msgstr "IRQ RTC"
+
+msgid "RTC Port Address"
+msgstr "Адрес порта RTC"
+
+msgid "Onboard RTC"
+msgstr "Встроенный RTC"
+
+msgid "Not installed"
+msgstr "Не установлен"
 
 msgid "Enable OPL"
 msgstr "Включить OPL"
@@ -2879,6 +2891,9 @@ msgstr "Отправить Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Переключить полноэкранный режим"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "Скриншот"

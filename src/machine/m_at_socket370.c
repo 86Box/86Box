@@ -215,6 +215,35 @@ machine_at_63a1_init(const machine_t *model)
     return ret;
 }
 
+/* SiS 600 */
+int
+machine_at_7sbb_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/7sbb/sbb12aa2.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&sis_5600_device);
+    device_add(&it8661f_device);
+    device_add(&sst_flash_29ee020_device); /* assumed */
+
+    return ret;
+}
+
 /* SMSC VictoryBX-66 */
 int
 machine_at_atc7020bxii_init(const machine_t *model)
@@ -434,13 +463,168 @@ machine_at_cuv4xls_init(const machine_t *model)
     return ret;
 }
 
-/* SiS 600 */
+static const device_config_t ms6318_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ms6318",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.1",
+                .internal_name = "ms6318_110",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/w6318vms.110", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.2",
+                .internal_name = "ms6318",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/w6318vms.120", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 7.1B5E (Elonex OEM)",
+                .internal_name = "ms6318_715",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/w6318ve1.715", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.0B9 (Fujitsu-Siemens OEM)",
+                .internal_name = "ms6318_109",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/ms-6318-ver5.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.8 (HP OEM)",
+                .internal_name = "ms6318_180",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/med2000v2.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.9 (HP OEM)",
+                .internal_name = "ms6318_190",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/med2000.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 2.02 (HP OEM)",
+                .internal_name = "ms6318_202",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/ms6318hp.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.3 (Medion OEM)",
+                .internal_name = "ms6318_130",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/ms6318.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision 7.51 (Medion OEM)",
+                .internal_name = "ms6318_751",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6318/bios.rom", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ms6318_device = {
+    .name          = "MSI MS-6318",
+    .internal_name = "ms6318_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ms6318_config
+};
+
 int
-machine_at_7sbb_init(const machine_t *model)
+machine_at_ms6318_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,       3, 4, 1, 2);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    device_add(&sst_flash_39sf020_device); /* assumed */
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        device_add(machine_get_snd_device(machine));
+        device_add(&stac9708_device);
+    }
+
+    return ret;
+}
+
+int
+machine_at_cairo5_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/7sbb/sbb12aa2.bin",
+    ret = bios_load_linear("roms/machines/cairo5/08BV.BIN",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -448,17 +632,20 @@ machine_at_7sbb_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 2);
 
-    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 0);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 0, 1);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 0, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      0, 1, 2, 3);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
-    device_add(&sis_5600_device);
-    device_add(&it8661f_device);
-    device_add(&sst_flash_29ee020_device); /* assumed */
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device);
+    device_add(&winbond_flash_w29c020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
 
     return ret;
 }

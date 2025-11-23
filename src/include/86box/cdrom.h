@@ -142,9 +142,10 @@ static const struct cdrom_drive_types_s {
     /* TODO: Find an IDENTIFY and/or INQUIRY dump. */
     { "GOLDSTAR", "GCD-R560B",        "1.00", "goldstar_r560b", BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  4,  2,  2, -1 } },
     { "HITACHI",  "CDR-8130",         "0020", "hitachi_r8130",  BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  2, -1 } },
-    { "HITACHI",  "GD-7500",          "A1  ", "hitachi_7500",   BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  2 } }, /* DVD. */
+    { "HITACHI",  "CDR-8435",         "0010", "hitachi_r8435",  BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2, -1 } },
+    { "HITACHI",  "GD-7500",          "A1  ", "hitachi_7500",   BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  2 } }, /* DVD. */
     { "HL-DT-ST", "CD-ROM GCR-8526B", "1.01", "hldtst_8526b",   BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  2 } },
-    { "HL-DT-ST", "DVDRAM GSA-4160",  "A302", "hldtst_4160",    BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  2 } },
+    { "HL-DT-ST", "DVDRAM GSA-4160",  "A302", "hldtst_4160",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  2 } },
     { "KENWOOD",  "CD-ROM UCR-421",   "208E", "kenwood_421",    BUS_TYPE_IDE,  0, 72, 36, 0, 0, {  4,  2,  2,  4 } },
     /*
        This is a laptop/notebook drive, as is also evident from the name:
@@ -182,6 +183,7 @@ static const struct cdrom_drive_types_s {
     { "TEAC",     "CD-532E",          "2.0A", "teac_532e",      BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  3,  2,  2, -1 } },
     { "TOSHIBA",  "CD-ROM XM-5302TA", "0305", "toshiba_5302ta", BUS_TYPE_IDE,  0,  4, 96, 0, 0, {  0, -1, -1, -1 } },
     { "TOSHIBA",  "CD-ROM XM-5702B",  "TA70", "toshiba_5702b",  BUS_TYPE_IDE,  0, 12, 96, 0, 0, {  3,  2,  1, -1 } },
+    { "TOSHIBA",  "CD-ROM XM-6102B",  "WA70", "toshiba_6102b",  BUS_TYPE_IDE,  0, 24, 96, 0, 0, {  4,  2,  2, -1 } },
     { "TOSHIBA",  "CD-ROM XM-6202B",  "1512", "toshiba_6202b",  BUS_TYPE_IDE,  0, 32, 96, 0, 0, {  4,  2,  2, -1 } },
     { "TOSHIBA",  "CD-ROM XM-6402B",  "1008", "toshiba_6402b",  BUS_TYPE_IDE,  0, 32, 96, 0, 0, {  4,  2,  2,  2 } },
     { "TOSHIBA",  "CD-ROM XM-6702B",  "1007", "toshiba_6720b",  BUS_TYPE_IDE,  0, 48, 96, 0, 0, {  4,  2,  2,  2 } },
