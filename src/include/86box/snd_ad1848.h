@@ -22,11 +22,12 @@
 enum {
     AD1848_TYPE_DEFAULT = 0,
     AD1848_TYPE_CS4248  = 1,
-    AD1848_TYPE_CS4231  = 2,
-    AD1848_TYPE_CS4232  = 3,
-    AD1848_TYPE_CS4236  = 4,
-    AD1848_TYPE_CS4236B = 5,
-    AD1848_TYPE_CS4235  = 6
+    AD1848_TYPE_OPTI930 = 2,
+    AD1848_TYPE_CS4231  = 3,
+    AD1848_TYPE_CS4232  = 4,
+    AD1848_TYPE_CS4236  = 5,
+    AD1848_TYPE_CS4236B = 6,
+    AD1848_TYPE_CS4235  = 7
 };
 
 enum {
@@ -44,6 +45,7 @@ typedef struct ad1848_t {
     uint8_t regs[32];
     uint8_t xregs[32];
     uint8_t status; /* 16 original registers + 16 CS4231A extensions + 32 CS4236 extensions */
+    uint8_t opti930_mode2;
 
     int     count;
     uint8_t trd;
