@@ -2820,9 +2820,6 @@ msgstr "Napaka GLSL"
 msgid "Could not load shader: %1"
 msgstr "Ni bilo mogoče naložiti senčilnika: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Potrebna je OpenGL različica 3.0 ali novejša. Trenutna različica GLSL je %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Ni bilo mogoče naložiti teksture: %1"
 

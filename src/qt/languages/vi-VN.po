@@ -2820,9 +2820,6 @@ msgstr "Lỗi GLSL"
 msgid "Could not load shader: %1"
 msgstr "Không thể nạp shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Yêu cầu OpenGL bản 3.0 trở lên. Hiện tại bản GLSL là %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Không thể nạp texture: %1"
 

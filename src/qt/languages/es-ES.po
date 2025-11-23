@@ -2820,9 +2820,6 @@ msgstr "Error de GLSL"
 msgid "Could not load shader: %1"
 msgstr "No fué posible cargar el shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Se requiere la versión 3.0 o superior de OpenGL. La versión actual de GLSL es %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Error al cargar la textura: %1"
 

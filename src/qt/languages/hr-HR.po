@@ -2820,9 +2820,6 @@ msgstr "Greška GLSL"
 msgid "Could not load shader: %1"
 msgstr "Nije moguće učitati shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Potrebna je OpenGL verzija 3.0 ili novija. Trenutna GLSL verzija je %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Nije moguće učitati teksturu: %1"
 

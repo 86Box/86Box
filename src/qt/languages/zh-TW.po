@@ -2820,9 +2820,6 @@ msgstr "GLSL 錯誤"
 msgid "Could not load shader: %1"
 msgstr "無法載入著色器: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "需要 OpenGL 版本 3.0 或更高。目前的 GLSL 版本為 %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "無法載入材質: %1"
 

@@ -882,7 +882,7 @@ OpenGLRenderer::initialize()
         glw.glGetIntegerv(GL_MAJOR_VERSION, &gl_version[0]);
         glw.glGetIntegerv(GL_MINOR_VERSION, &gl_version[1]);
         if (gl_version[0] < 3) {
-            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(gl_version[0]).arg(gl_version[1]));
+            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current version is %1.%2").arg(gl_version[0]).arg(gl_version[1]));
         }
         ogl3_log("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
         ogl3_log("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
