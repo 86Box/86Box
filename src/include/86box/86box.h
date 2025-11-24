@@ -104,12 +104,14 @@
     /* Use volatile for performance, as the original code did */
     #define ATOMIC_INT volatile int
     #define ATOMIC_UINT volatile uint32_t
+    #define ATOMIC_DOUBLE volatile double
     #define ATOMIC_LOAD(var) (var)
     #define ATOMIC_STORE(var, val) ((var) = (val))
     #define ATOMIC_INC(var) (++(var))
     #define ATOMIC_DEC(var) (--(var))
     #define ATOMIC_ADD(var, val) ((var) += (val))
     #define ATOMIC_SUB(var, val) ((var) -= (val))
+    #define ATOMIC_DOUBLE_ADD(var, val) ((var) += (val))
 #else
     /* On ARM and other architectures, use proper atomics */
     #ifdef __cplusplus
@@ -122,12 +124,14 @@
     
     #define ATOMIC_INT atomic_int
     #define ATOMIC_UINT atomic_uint
+    #define ATOMIC_DOUBLE _Atomic double
     #define ATOMIC_LOAD(var) atomic_load(&(var))
     #define ATOMIC_STORE(var, val) atomic_store(&(var), (val))
     #define ATOMIC_INC(var) atomic_fetch_add(&(var), 1)
     #define ATOMIC_DEC(var) atomic_fetch_sub(&(var), 1)
     #define ATOMIC_ADD(var, val) atomic_fetch_add(&(var), val)
     #define ATOMIC_SUB(var, val) atomic_fetch_sub(&(var), val)
+    #define ATOMIC_DOUBLE_ADD(var, val) atomic_double_add(&(var), val)
 #endif
 
 #ifdef __cplusplus
