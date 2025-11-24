@@ -410,7 +410,7 @@ fdd_seek(int drive, int track_diff)
         int is_seek_down = (fdd[drive].track < old_track);
 
         /* Get seek timings from audio profile configuration with direction awareness */
-        double   seek_time_us = fdd_audio_get_seek_time(drive, 1, actual_track_diff, is_seek_down);
+        double   seek_time_us = fdd_audio_get_seek_time(drive, actual_track_diff, is_seek_down);
         fdd_log("Seek timing for drive %d: %.2f µs (%s)\n", 
                 drive, seek_time_us, is_seek_down ? "DOWN" : "UP");
         uint64_t seek_delay_us = seek_time_us * TIMER_USEC;
