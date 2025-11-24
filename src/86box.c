@@ -120,7 +120,6 @@
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
 int          dopause = 1;  /* system is paused */
-atomic_flag  doresize; /* screen resize requested */
 volatile int is_quit;  /* system exit requested */
 uint64_t     timer_freq;
 char         emu_version[200]; /* version ID string */
@@ -337,8 +336,8 @@ __thread int is_cpu_thread = 0;
 
 static wchar_t mouse_msg[3][200];
 
-static volatile atomic_int do_pause_ack = 0;
-static volatile atomic_int pause_ack = 0;
+static volatile ATOMIC_INT do_pause_ack = 0;
+static volatile ATOMIC_INT pause_ack = 0;
 
 #define LOG_SIZE_BUFFER 8192            /* Log size buffer */
 
@@ -1841,9 +1840,9 @@ _ui_window_title(void *s)
 void
 ack_pause(void)
 {
-    if (atomic_load(&do_pause_ack)) {
-        atomic_store(&do_pause_ack, 0);
-        atomic_store(&pause_ack, 1);
+    if (ATOMIC_LOAD(do_pause_ack)) {
+        ATOMIC_STORE(do_pause_ack, 0);
+        ATOMIC_STORE(pause_ack, 1);
     }
 }
 
@@ -2078,10 +2077,10 @@ do_pause(int p)
         do_pause_ack = p;
     dopause = !!p;
     if ((p == 1) && !old_p) {
-        while (!atomic_load(&pause_ack))
+        while (!ATOMIC_LOAD(pause_ack))
             ;
     }
-    atomic_store(&pause_ack, 0);
+    ATOMIC_STORE(pause_ack, 0);
 }
 
 // Helper to find an accelerator key and return it's index in acc_keys
