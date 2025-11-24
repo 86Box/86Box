@@ -29,11 +29,32 @@
 
 #define TEX_CACHE_MAX   64
 
-#ifdef __cplusplus
-#    include <atomic>
-using atomic_int = std::atomic<int>;
+/* Platform-specific atomic handling */
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+    /* On x86/x64, aligned int/uint32_t accesses are naturally atomic */
+    /* Use volatile for performance, as the original code did */
+    #define ATOMIC_INT volatile int
+    #define ATOMIC_UINT volatile uint32_t
+    #define ATOMIC_LOAD(var) (var)
+    #define ATOMIC_STORE(var, val) ((var) = (val))
+    #define ATOMIC_INC(var) (++(var))
+    #define ATOMIC_DEC(var) (--(var))
 #else
-#    include <stdatomic.h>
+    /* On ARM and other architectures, use proper atomics */
+    #ifdef __cplusplus
+    #    include <atomic>
+        using atomic_int = std::atomic<int>;
+        using atomic_uint = std::atomic<unsigned int>;
+    #else
+    #    include <stdatomic.h>
+    #endif
+    
+    #define ATOMIC_INT atomic_int
+    #define ATOMIC_UINT atomic_uint
+    #define ATOMIC_LOAD(var) atomic_load(&(var))
+    #define ATOMIC_STORE(var, val) atomic_store(&(var), (val))
+    #define ATOMIC_INC(var) atomic_fetch_add(&(var), 1)
+    #define ATOMIC_DEC(var) atomic_fetch_sub(&(var), 1)
 #endif
 
 enum {
@@ -230,8 +251,8 @@ typedef struct voodoo_params_t {
 typedef struct texture_t {
     uint32_t   base;
     uint32_t   tLOD;
-    atomic_int refcount;
-    atomic_int refcount_r[4];
+    ATOMIC_INT refcount;
+    ATOMIC_INT refcount_r[4];
     int        is16;
     uint32_t   palette_checksum;
     uint32_t   addr_start[4];
@@ -400,16 +421,16 @@ typedef struct voodoo_t {
     int type;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    atomic_int   fifo_read_idx;
-    atomic_int   fifo_write_idx;
-    atomic_int   cmd_read;
-    atomic_int   cmd_written;
-    atomic_int   cmd_written_fifo;
-    atomic_int   cmd_written_fifo_2;
+    ATOMIC_INT   fifo_read_idx;
+    ATOMIC_INT   fifo_write_idx;
+    ATOMIC_INT   cmd_read;
+    ATOMIC_INT   cmd_written;
+    ATOMIC_INT   cmd_written_fifo;
+    ATOMIC_INT   cmd_written_fifo_2;
 
     voodoo_params_t params_buffer[PARAM_SIZE];
-    atomic_int      params_read_idx[4];
-    atomic_int      params_write_idx;
+    ATOMIC_INT      params_read_idx[4];
+    ATOMIC_INT      params_write_idx;
 
     uint32_t   cmdfifo_base;
     uint32_t   cmdfifo_end;
@@ -418,9 +439,9 @@ typedef struct voodoo_t {
     int        cmdfifo_ret_addr;
     int        cmdfifo_in_sub;
     int        cmdfifo_in_agp;
-    atomic_int cmdfifo_depth_rd;
-    atomic_int cmdfifo_depth_wr;
-    atomic_int cmdfifo_enabled;
+    ATOMIC_INT cmdfifo_depth_rd;
+    ATOMIC_INT cmdfifo_depth_wr;
+    ATOMIC_INT cmdfifo_enabled;
     uint32_t   cmdfifo_amin;
     uint32_t   cmdfifo_amax;
     int        cmdfifo_holecount;
@@ -432,14 +453,14 @@ typedef struct voodoo_t {
     int        cmdfifo_ret_addr_2;
     int        cmdfifo_in_sub_2;
     int        cmdfifo_in_agp_2;
-    atomic_int cmdfifo_depth_rd_2;
-    atomic_int cmdfifo_depth_wr_2;
-    atomic_int cmdfifo_enabled_2;
+    ATOMIC_INT cmdfifo_depth_rd_2;
+    ATOMIC_INT cmdfifo_depth_wr_2;
+    ATOMIC_INT cmdfifo_enabled_2;
     uint32_t   cmdfifo_amin_2;
     uint32_t   cmdfifo_amax_2;
     int        cmdfifo_holecount_2;
 
-    atomic_uint cmd_status, cmd_status_2;
+    ATOMIC_UINT cmd_status, cmd_status_2;
 
     uint32_t     sSetupMode;
     vert_t       verts[4];
