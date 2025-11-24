@@ -29,34 +29,6 @@
 
 #define TEX_CACHE_MAX   64
 
-/* Platform-specific atomic handling */
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
-    /* On x86/x64, aligned int/uint32_t accesses are naturally atomic */
-    /* Use volatile for performance, as the original code did */
-    #define ATOMIC_INT volatile int
-    #define ATOMIC_UINT volatile uint32_t
-    #define ATOMIC_LOAD(var) (var)
-    #define ATOMIC_STORE(var, val) ((var) = (val))
-    #define ATOMIC_INC(var) (++(var))
-    #define ATOMIC_DEC(var) (--(var))
-#else
-    /* On ARM and other architectures, use proper atomics */
-    #ifdef __cplusplus
-    #    include <atomic>
-        using atomic_int = std::atomic<int>;
-        using atomic_uint = std::atomic<unsigned int>;
-    #else
-    #    include <stdatomic.h>
-    #endif
-    
-    #define ATOMIC_INT atomic_int
-    #define ATOMIC_UINT atomic_uint
-    #define ATOMIC_LOAD(var) atomic_load(&(var))
-    #define ATOMIC_STORE(var, val) atomic_store(&(var), (val))
-    #define ATOMIC_INC(var) atomic_fetch_add(&(var), 1)
-    #define ATOMIC_DEC(var) atomic_fetch_sub(&(var), 1)
-#endif
-
 enum {
     VOODOO_1 = 0,
     VOODOO_SB50,
