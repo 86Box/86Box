@@ -1818,7 +1818,7 @@ msgstr ""
 msgid "I Copied It"
 msgstr ""
 
-msgid "86Box Monitor #"
+msgid "86Box Monitor #%1"
 msgstr ""
 
 msgid "No MCA devices."

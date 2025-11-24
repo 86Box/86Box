@@ -1818,8 +1818,8 @@ msgstr "Tôi đã di chuyển nó"
 msgid "I Copied It"
 msgstr "Tôi đã sao chép nó"
 
-msgid "86Box Monitor #"
-msgstr "Màn hình 86box #"
+msgid "86Box Monitor #%1"
+msgstr "Màn hình 86Box #%1"
 
 msgid "No MCA devices."
 msgstr "Không có thiết bị MCA."

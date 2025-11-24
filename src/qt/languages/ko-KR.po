@@ -1818,8 +1818,8 @@ msgstr "옮겼어요"
 msgid "I Copied It"
 msgstr "복사했습니다"
 
-msgid "86Box Monitor #"
-msgstr "86Box 모니터 "
+msgid "86Box Monitor #%1"
+msgstr "86Box 모니터 %1"
 
 msgid "No MCA devices."
 msgstr "MCA 장치가 없습니다."

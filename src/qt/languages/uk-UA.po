@@ -1818,8 +1818,8 @@ msgstr "Переміщена"
 msgid "I Copied It"
 msgstr "Скопійована"
 
-msgid "86Box Monitor #"
-msgstr "Монітор 86Box "
+msgid "86Box Monitor #%1"
+msgstr "Монітор 86Box %1"
 
 msgid "No MCA devices."
 msgstr "Ніяких пристроїв MCA."

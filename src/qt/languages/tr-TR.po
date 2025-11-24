@@ -1818,8 +1818,8 @@ msgstr "Taşındı"
 msgid "I Copied It"
 msgstr "Kopyalandı"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitör #"
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitör #%1"
 
 msgid "No MCA devices."
 msgstr "MCA cihazı yok."

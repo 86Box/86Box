@@ -1818,8 +1818,8 @@ msgstr "Premaknil sem jo"
 msgid "I Copied It"
 msgstr "Kopiral sem jo"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Ni naprav MCA."

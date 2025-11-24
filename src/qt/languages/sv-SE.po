@@ -1818,8 +1818,8 @@ msgstr "Jag flyttade den"
 msgid "I Copied It"
 msgstr "Jag kopierade den"
 
-msgid "86Box Monitor #"
-msgstr "86Box skärm #"
+msgid "86Box Monitor #%1"
+msgstr "86Box skärm #%1"
 
 msgid "No MCA devices."
 msgstr "Inga MCA-enheter."

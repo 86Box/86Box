@@ -1818,8 +1818,8 @@ msgstr "Movi-a"
 msgid "I Copied It"
 msgstr "Copiei-a"
 
-msgid "86Box Monitor #"
-msgstr "Monitor 86Box "
+msgid "86Box Monitor #%1"
+msgstr "Monitor 86Box %1"
 
 msgid "No MCA devices."
 msgstr "Não há dispositivos MCA."

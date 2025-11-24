@@ -1818,8 +1818,8 @@ msgstr "動かした"
 msgid "I Copied It"
 msgstr "コピーした"
 
-msgid "86Box Monitor #"
-msgstr "86Box モニター"
+msgid "86Box Monitor #%1"
+msgstr "86Box モニター%1"
 
 msgid "No MCA devices."
 msgstr "MCAデバイスはない。"

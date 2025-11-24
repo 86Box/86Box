@@ -1818,8 +1818,8 @@ msgstr "Premjestio sam ga"
 msgid "I Copied It"
 msgstr "Kopirao sam ga"
 
-msgid "86Box Monitor #"
-msgstr "Monitor 86Box-a "
+msgid "86Box Monitor #%1"
+msgstr "Monitor 86Box-a %1"
 
 msgid "No MCA devices."
 msgstr "Nema uređaja MCA."

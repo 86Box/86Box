@@ -1818,8 +1818,8 @@ msgstr "我已移动这台机器"
 msgid "I Copied It"
 msgstr "我已复制这台机器"
 
-msgid "86Box Monitor #"
-msgstr "86Box 显示器 #"
+msgid "86Box Monitor #%1"
+msgstr "86Box 显示器 #%1"
 
 msgid "No MCA devices."
 msgstr "无 MCA 设备。"
