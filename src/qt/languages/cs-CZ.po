@@ -2845,7 +2845,7 @@ msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
 msgid "Key Bindings:"
-msgstr "Nastavení kláves"
+msgstr "Nastavení kláves:"
 
 msgid "Action"
 msgstr "Akce"
@@ -2863,7 +2863,7 @@ msgid "Bind Key"
 msgstr "Nastavit klávesu"
 
 msgid "Enter key combo:"
-msgstr "Zadejte kombinaci kláves"
+msgstr "Zadejte kombinaci kláves:"
 
 msgid "Bind conflict"
 msgstr "Konflikt nastavení"
@@ -2917,7 +2917,7 @@ msgid "Hub Mode"
 msgstr "Režim hubu"
 
 msgid "Hostname:"
-msgstr "Hostitelské jméno"
+msgstr "Hostitelské jméno:"
 
 msgid "ISA RAM:"
 msgstr "ISA paměť RAM:"

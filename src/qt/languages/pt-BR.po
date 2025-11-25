@@ -1852,7 +1852,7 @@ msgid "VDE Socket:"
 msgstr "Soquete VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr "Dispositivo Ponte TAP"
+msgstr "Dispositivo Ponte TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidade 86Box"

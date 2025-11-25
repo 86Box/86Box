@@ -2911,7 +2911,7 @@ msgid "Remote Switch"
 msgstr "Comutador remoto"
 
 msgid "Switch:"
-msgstr "Comutador"
+msgstr "Comutador:"
 
 msgid "Hub Mode"
 msgstr "Modo de concentrador"

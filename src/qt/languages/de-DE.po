@@ -1183,7 +1183,7 @@ msgid "VMs: %1"
 msgstr ""
 
 msgid "System Directory:"
-msgstr "Systemverzeichnis"
+msgstr "Systemverzeichnis:"
 
 msgid "Choose directory"
 msgstr "Verzeichnis auswählen"

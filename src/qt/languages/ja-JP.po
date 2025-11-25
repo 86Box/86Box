@@ -478,7 +478,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI入力デバイス:"
 
 msgid "MIDI Out:"
-msgstr "MIDI出力"
+msgstr "MIDI出力:"
 
 msgid "Standalone MPU-401"
 msgstr "独立型MPU-401"

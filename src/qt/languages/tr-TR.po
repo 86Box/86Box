@@ -1186,7 +1186,7 @@ msgid "System Directory:"
 msgstr "Sistem Dizini:"
 
 msgid "Choose directory"
-msgstr "Dizin seç:"
+msgstr "Dizin seç"
 
 msgid "Choose configuration file"
 msgstr "Yapılandırma dosyası seç"
@@ -1261,7 +1261,7 @@ msgid "System location:"
 msgstr "Sistem yeri:"
 
 msgid "System name and location"
-msgstr "Sistem adı ve yeri:"
+msgstr "Sistem adı ve yeri"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Sistemin adını girin ve yerini seçin"
@@ -1273,7 +1273,7 @@ msgid "Please enter a system name"
 msgstr "Lütfen bir sistem adı girin"
 
 msgid "Display name (optional):"
-msgstr "Görüntü adı (isteğe bağlı)"
+msgstr "Görüntü adı (isteğe bağlı):"
 
 msgid "Display name:"
 msgstr "Görüntü adı:"
@@ -2845,7 +2845,7 @@ msgid "Could not load file %1"
 msgstr "%1 dosyası yüklenemedi"
 
 msgid "Key Bindings:"
-msgstr "Tuş Bağlamaları"
+msgstr "Tuş Bağlamaları:"
 
 msgid "Action"
 msgstr "Eylem"
@@ -2917,7 +2917,7 @@ msgid "Hub Mode"
 msgstr "Hub Modu"
 
 msgid "Hostname:"
-msgstr "Ana bilgisayar adı"
+msgstr "Ana bilgisayar adı:"
 
 msgid "ISA RAM:"
 msgstr "ISA RAM:"

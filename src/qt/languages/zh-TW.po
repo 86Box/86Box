@@ -550,7 +550,7 @@ msgid "FD Controller:"
 msgstr "軟碟控制器:"
 
 msgid "CD-ROM Controller:"
-msgstr "CD-ROM 控制器"
+msgstr "CD-ROM 控制器:"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"

@@ -2845,7 +2845,7 @@ msgid "Could not load file %1"
 msgstr "Ni bilo mogoče naložiti datoteke %1"
 
 msgid "Key Bindings:"
-msgstr "Kombinacije tipk"
+msgstr "Kombinacije tipk:"
 
 msgid "Action"
 msgstr "Dejanje"

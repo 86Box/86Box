@@ -550,7 +550,7 @@ msgid "FD Controller:"
 msgstr "软盘控制器:"
 
 msgid "CD-ROM Controller:"
-msgstr "CD-ROM 控制器"
+msgstr "CD-ROM 控制器:"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
@@ -1183,7 +1183,7 @@ msgid "VMs: %1"
 msgstr "虚拟机: %1"
 
 msgid "System Directory:"
-msgstr "系统目录"
+msgstr "系统目录:"
 
 msgid "Choose directory"
 msgstr "选择目录"
@@ -1273,7 +1273,7 @@ msgid "Please enter a system name"
 msgstr "请输入系统名称"
 
 msgid "Display name (optional):"
-msgstr "显示名称 (可选)"
+msgstr "显示名称 (可选):"
 
 msgid "Display name:"
 msgstr "显示名称:"
@@ -2845,7 +2845,7 @@ msgid "Could not load file %1"
 msgstr "无法加载文件 %1"
 
 msgid "Key Bindings:"
-msgstr "按键绑定"
+msgstr "按键绑定:"
 
 msgid "Action"
 msgstr "动作"
@@ -2863,7 +2863,7 @@ msgid "Bind Key"
 msgstr "绑定按键"
 
 msgid "Enter key combo:"
-msgstr "输入按键组合"
+msgstr "输入按键组合:"
 
 msgid "Bind conflict"
 msgstr "绑定冲突"
@@ -3007,7 +3007,7 @@ msgid "86Box Update"
 msgstr "86Box 更新"
 
 msgid "Release notes:"
-msgstr "发行版说明"
+msgstr "发行版说明:"
 
 msgid "%1 Hz"
 msgstr "%1 Hz"

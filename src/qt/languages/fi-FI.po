@@ -1261,7 +1261,7 @@ msgid "System location:"
 msgstr "Koneen sijainti:"
 
 msgid "System name and location"
-msgstr "Koneen nimi ja sijainti:"
+msgstr "Koneen nimi ja sijainti"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Anna koneen nimi ja valitse sijainti"

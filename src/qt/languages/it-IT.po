@@ -520,7 +520,7 @@ msgid "LPT4 Device:"
 msgstr "Dispositivo LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr "DMA LPT ECP interna"
+msgstr "DMA LPT ECP interna:"
 
 msgid "Serial port 1"
 msgstr "Porta seriale 1"

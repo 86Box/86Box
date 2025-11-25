@@ -328,7 +328,7 @@ msgid "&Default"
 msgstr "&Standard"
 
 msgid "Language:"
-msgstr "Språk"
+msgstr "Språk:"
 
 msgid "Gain"
 msgstr "Forsterkning"

@@ -2863,7 +2863,7 @@ msgid "Bind Key"
 msgstr "Gắn phím"
 
 msgid "Enter key combo:"
-msgstr "Nhập tổ hợp phím"
+msgstr "Nhập tổ hợp phím:"
 
 msgid "Bind conflict"
 msgstr "Gắn phím trùng lặp"
