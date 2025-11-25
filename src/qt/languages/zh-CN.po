@@ -2722,7 +2722,7 @@ msgid "Named Pipe (Server)"
 msgstr "命名管道（服务器）"
 
 msgid "Named Pipe (Client)"
-msgstr "命名管道 (客户端) "
+msgstr "命名管道 (客户端)"
 
 msgid "Host Serial Passthrough"
 msgstr "主机串口直通"

@@ -703,10 +703,10 @@ msgid "Speed"
 msgstr "Snelheid"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "Verwijderbare schijf  %1 (%2): %3"
+msgstr "Verwijderbare schijf %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "&Verwijderbare schijf  %1 (%2): %3"
+msgstr "&Verwijderbare schijf %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Verwijderbaar schijfimagebestand"
@@ -913,7 +913,7 @@ msgid "4-button flight yoke"
 msgstr "4-knops stuurknuppel"
 
 msgid "2-button flight yoke with throttle"
-msgstr "2-kops stuurknuppel met gashendel "
+msgstr "2-kops stuurknuppel met gashendel"
 
 msgid "3-button flight yoke with throttle"
 msgstr "3-kops stuurknuppel met gashendel"
@@ -1690,7 +1690,7 @@ msgid "Generate"
 msgstr "Genereren"
 
 msgid "Joystick configuration"
-msgstr "Joystick configuratie "
+msgstr "Joystick configuratie"
 
 msgid "Device"
 msgstr "Apparaat"
@@ -1927,7 +1927,7 @@ msgid "Default Baud rate"
 msgstr "Standaard baudrate"
 
 msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standaard Hayes-compatibele modem "
+msgstr "[COM] Standaard Hayes-compatibele modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulatie"
@@ -2635,7 +2635,7 @@ msgid "Apply overscan deltas"
 msgstr "Overscan-delta’s toepassen"
 
 msgid "Mono Interlaced"
-msgstr "Mono Interlaced "
+msgstr "Mono Interlaced"
 
 msgid "Mono Non-Interlaced"
 msgstr "Mono Niet-Interlaced"

@@ -2929,7 +2929,7 @@ msgid "&Wipe NVRAM"
 msgstr "&Стерти NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Це видалить всі файли NVRAM (і пов'язані) віртуальної машини, розташованої в підпапці «nvr». Вам доведеться знову налаштувати BIOS (і, можливо, інші пристрої всередині віртуальної машини), якщо це необхідно. Ви впевнені, що хочете стерти весь вміст NVRAM віртуальної машини \"%1\"?"
+msgstr "Це видалить всі файли NVRAM (і пов'язані) віртуальної машини, розташованої в підпапці «nvr». Вам доведеться знову налаштувати BIOS (і, можливо, інші пристрої всередині віртуальної машини), якщо це необхідно.\n\nВи впевнені, що хочете стерти весь вміст NVRAM віртуальної машини \"%1\"?"
 
 msgid "Success"
 msgstr "Успішно"
