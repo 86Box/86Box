@@ -1363,7 +1363,7 @@ msgid "An error has occurred while checking for updates: %1"
 msgstr "アップデートの確認中にエラーが発生しました: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr "<b>86Boxのアップデートが利用可能になりました!</b>"
+msgstr "<b>86Boxのアップデートが利用可能になりました！</b>"
 
 msgid "Warning"
 msgstr "警告"
@@ -1378,7 +1378,7 @@ msgid "&Delete"
 msgstr "削除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "本当に仮想マシン\"%1\"とそのすべてのファイルを削除しますか? この操作は元に戻せません!"
+msgstr "本当に仮想マシン\"%1\"とそのすべてのファイルを削除しますか？ この操作は元に戻せません！"
 
 msgid "Show &config file"
 msgstr "設定ファイルを表示する(&C)"
@@ -2929,7 +2929,7 @@ msgid "&Wipe NVRAM"
 msgstr "NVRAMを消去する(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "これによって、仮想マシン内の\"nvr\"サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン\"%1\"のすべてのNVRAM内容を削除してもよろしいですか?"
+msgstr "これによって、仮想マシン内の\"nvr\"サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン\"%1\"のすべてのNVRAM内容を削除してもよろしいですか？"
 
 msgid "Success"
 msgstr "成功"
@@ -2950,7 +2950,7 @@ msgid "Unknown Status"
 msgstr "不明な状態"
 
 msgid "No Machines Found!"
-msgstr "マシンが検出されません!"
+msgstr "マシンが検出されません！"
 
 msgid "Check for updates on startup"
 msgstr "起動時にアップデートを確認する"

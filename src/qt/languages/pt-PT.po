@@ -1096,7 +1096,7 @@ msgid "GLSL shaders"
 msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Está a carregar uma configuração sem suporte!"
+msgstr "Está a carregar uma configuração sem suporte"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "A filtragem do tipo de CPU baseada na máquina escolhida está desativada para esta máquina emulada.\n\nIsto torna possível escolher um CPU que, de outra forma, não seria compatível com a máquina escolhida. No entanto, pode não ser compatível com a BIOS da máquina ou outros programas.\n\nA activação desta definição não tem suporte oficial e qualquer relatório de erros pode ser fechado como inválido."
@@ -1204,7 +1204,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usa expressões regulares na caixa de procura"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão actualmente activas. Quer mesmo sair do gerenciador de MVs"
+msgstr "%1 máquina(s) estão actualmente activas. Quer mesmo sair do gerenciador de MVs?"
 
 msgid "Add new system wizard"
 msgstr "Assistende de adicionamento do novo sistema"
@@ -1423,7 +1423,7 @@ msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Unidades CD-ROM com barramento MFM/RLL ou ESDI nunca existiram!"
+msgstr "Unidades CD-ROM com barramento MFM/RLL ou ESDI nunca existiram"
 
 msgid "Custom..."
 msgstr "Personalizado..."
@@ -1543,7 +1543,7 @@ msgid "This could mean that the parent image was modified after the differencing
 msgstr "Isto pode significar que a imagem pai foi modificada depois da criação da imagem diferenciadora.\n\nTambém pode acontecer se os ficheiros da imagem foram movidos ou copiados ou por causa de um erro no programa que criou este disco.\n\nQuer corrigir os carimbos de data/hora?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Os carimbos de data/hora dos discos pai e filho não correspondem!"
+msgstr "Os carimbos de data/hora dos discos pai e filho não correspondem"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Não foi possível corrigir o carimbo de data/hora do VHD."
