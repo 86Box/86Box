@@ -114,6 +114,7 @@
     #define ATOMIC_DOUBLE_ADD(var, val) ((var) += (val))
 #else
     /* On ARM and other architectures, use proper atomics */
+#ifdef failing_code
     #ifdef __cplusplus
     #    include <atomic>
         using atomic_int = std::atomic<int>;
@@ -121,6 +122,11 @@
     #else
     #    include <stdatomic.h>
     #endif
+#else
+    #ifndef __cplusplus
+    #    include <stdatomic.h>
+    #endif
+#endif
     
     #define ATOMIC_INT atomic_int
     #define ATOMIC_UINT atomic_uint
