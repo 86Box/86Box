@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "指定視窗大小...(&D)"
+msgstr "指定視窗大小(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "強制 4:3 顯示比例(&4)"
@@ -1720,7 +1720,7 @@ msgid "Show non-&primary monitors"
 msgstr "顯示非主要監視器(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "開啟螢幕擷圖資料夾...(&F)"
+msgstr "開啟螢幕擷圖資料夾(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時套用全螢幕延展模式(&Y)"
@@ -1873,7 +1873,7 @@ msgid "Serial port passthrough 4"
 msgstr "序列埠的直通 4"
 
 msgid "Renderer &options..."
-msgstr "渲染器選項...(&O)"
+msgstr "渲染器選項(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 鍵盤"
@@ -3040,7 +3040,7 @@ msgid "Sharpness"
 msgstr "銳利度"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 複合視訊的設定...(&C)"
+msgstr "CGA 複合視訊的設定(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA 複合視訊的設定"

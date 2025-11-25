@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "指定窗口大小...(&D)"
+msgstr "指定窗口大小(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "强制 4:3 显示比例(&4)"
@@ -196,7 +196,7 @@ msgid "&Settings..."
 msgstr "设置(&S)..."
 
 msgid "Settings..."
-msgstr "设置"
+msgstr "设置..."
 
 msgid "&Update status bar icons"
 msgstr "更新状态栏图标(&U)"
@@ -1720,7 +1720,7 @@ msgid "Show non-&primary monitors"
 msgstr "显示非主要显示器(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "打开屏幕截图文件夹...(&F)"
+msgstr "打开屏幕截图文件夹(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化时应用全屏拉伸模式(&Y)"
@@ -1873,7 +1873,7 @@ msgid "Serial port passthrough 4"
 msgstr "串口直通 4"
 
 msgid "Renderer &options..."
-msgstr "渲染器选项...(&O)"
+msgstr "渲染器选项(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 键盘"
@@ -3040,7 +3040,7 @@ msgid "Sharpness"
 msgstr "锐度"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 复合模式设置...(&C)"
+msgstr "CGA 复合模式设置(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA 复合模式设置"

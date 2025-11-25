@@ -214,7 +214,7 @@ msgid "Enable &Discord integration"
 msgstr "Povolit integraci s &Discordem"
 
 msgid "Sound &gain..."
-msgstr "&Zesílení zvuku"
+msgstr "&Zesílení zvuku..."
 
 msgid "Begin trace"
 msgstr "Začít trace"
@@ -226,10 +226,10 @@ msgid "&Help"
 msgstr "Ná&pověda"
 
 msgid "&Documentation..."
-msgstr "&Dokumentace"
+msgstr "&Dokumentace..."
 
 msgid "&About 86Box..."
-msgstr "&O programu 86Box"
+msgstr "&O programu 86Box..."
 
 msgid "&New image..."
 msgstr "&Nový obraz..."
@@ -1255,7 +1255,7 @@ msgid "Directory does not exist"
 msgstr "Adresář neexistuje"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Pro tento systém bude vytvořen nový adresář ve výše zvoleném adresáři."
+msgstr "Pro tento systém bude vytvořen nový adresář ve výše zvoleném adresáři"
 
 msgid "System location:"
 msgstr "Umístění systému:"
@@ -1309,7 +1309,7 @@ msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuální počítač \"%1\" (%2) bude naklonován do:"
 
 msgid "Directory %1 already exists"
-msgstr "Adresář %1 již existuje."
+msgstr "Adresář %1 již existuje"
 
 msgid "You cannot use the following characters in the name: %1"
 msgstr "V názvu nelze použít následující znaky: %1"
@@ -1720,7 +1720,7 @@ msgid "Show non-&primary monitors"
 msgstr "Zobrazit neprimární monitory"
 
 msgid "Open screenshots &folder..."
-msgstr "Otevřít složku se snímky obrazovky"
+msgstr "Otevřít složku se snímky obrazovky..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Použít režim roztá&hnutí při celé obrazovce pro maximalizované okno"

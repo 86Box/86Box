@@ -214,7 +214,7 @@ msgid "Enable &Discord integration"
 msgstr "Povolenie integrácie s &Discordem"
 
 msgid "Sound &gain..."
-msgstr "&Zosilnenie zvuku"
+msgstr "&Zosilnenie zvuku..."
 
 msgid "Begin trace"
 msgstr "Začať trace"
@@ -226,10 +226,10 @@ msgid "&Help"
 msgstr "&Pomoc"
 
 msgid "&Documentation..."
-msgstr "&Dokumentácia"
+msgstr "&Dokumentácia..."
 
 msgid "&About 86Box..."
-msgstr "&O programu 86Box"
+msgstr "&O programu 86Box..."
 
 msgid "&New image..."
 msgstr "&Nový obraz..."
@@ -1255,7 +1255,7 @@ msgid "Directory does not exist"
 msgstr "Adresár neexistuje"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Pre tento systém bude vytvorený nový adresár vo vyššie zvolenom adresári."
+msgstr "Pre tento systém bude vytvorený nový adresár vo vyššie zvolenom adresári"
 
 msgid "System location:"
 msgstr "Umiestnenie systému:"
@@ -1309,7 +1309,7 @@ msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuálny počítač \"%1\" (%2) bude klonovaný do:"
 
 msgid "Directory %1 already exists"
-msgstr "Adresár %1 už existuje."
+msgstr "Adresár %1 už existuje"
 
 msgid "You cannot use the following characters in the name: %1"
 msgstr "V názve nemožno použiť nasledujúce znaky: %1"
@@ -2935,7 +2935,7 @@ msgid "Success"
 msgstr "Úspech"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Obsah NVRAM virtuálneho počítača \"%1\" bol úspešne vymazaný."
+msgstr "Obsah NVRAM virtuálneho počítača \"%1\" bol úspešne vymazaný"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "Pri pokuse o vymazanie obsahu NVRAM virtuálneho počítača \"%1\" došlo k chybe"

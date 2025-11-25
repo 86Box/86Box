@@ -1297,7 +1297,7 @@ msgid "Open p&rinter tray..."
 msgstr "Odpri pladenj &tiskalnika..."
 
 msgid "Set &icon..."
-msgstr "Izberi &ikono"
+msgstr "Izberi &ikono..."
 
 msgid "Select an icon"
 msgstr "Izberi ikono"

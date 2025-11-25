@@ -1543,7 +1543,7 @@ msgid "This could mean that the parent image was modified after the differencing
 msgstr "To bi moglo značiti da je matična slika promijenjena nakon što je stvorena različita slika.\n\nTo se također može dogoditi ako su slike premještene ili kopirane, ili greška u programu koji je stvorio ovaj disk.\n\nŽelite li popraviti vremenske oznake?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Vremenske ozanke matične i poređenog diska ne odgovaraju."
+msgstr "Vremenske ozanke matične i poređenog diska ne odgovaraju"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Ne mogu popraviti vremensku oznaku slike VHD."

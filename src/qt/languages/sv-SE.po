@@ -2935,10 +2935,10 @@ msgid "Success"
 msgstr "Lyckades"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Lyckades tömma allt NVRAM-innehåll för den virtuella maskinen \"%1\"."
+msgstr "Lyckades tömma allt NVRAM-innehåll för den virtuella maskinen \"%1\""
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "Ett fel uppstod vid försök att tömma NVRAM-innehållet för den virtuella maskinen \"%1\"."
+msgstr "Ett fel uppstod vid försök att tömma NVRAM-innehållet för den virtuella maskinen \"%1\""
 
 msgid "%1 VM Manager"
 msgstr "%1 VM-hanterare"

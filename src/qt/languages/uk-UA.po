@@ -2296,7 +2296,7 @@ msgid "GUS type"
 msgstr "Тип GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Увімкнути команду 0x04 \"Вихід з 86Box\"."
+msgstr "Увімкнути команду 0x04 \"Вихід з 86Box\""
 
 msgid "Display type"
 msgstr "Тип відображення"

@@ -196,7 +196,7 @@ msgid "&Settings..."
 msgstr "&Cài đặt..."
 
 msgid "Settings..."
-msgstr "Cài đặt"
+msgstr "Cài đặt..."
 
 msgid "&Update status bar icons"
 msgstr "Cậ&p nhật biểu tượng thanh trạng thái"
@@ -271,7 +271,7 @@ msgid "Reload previous image"
 msgstr "Load đĩa trước đó"
 
 msgid "&Folder..."
-msgstr "Thư mụ&c"
+msgstr "Thư mụ&c..."
 
 msgid "Target &framerate"
 msgstr "Số khung hình mục tiêu"
@@ -1030,7 +1030,7 @@ msgid "&File"
 msgstr "&Tập tin"
 
 msgid "&New machine..."
-msgstr "Máy &mới"
+msgstr "Máy &mới..."
 
 msgid "&Check for updates..."
 msgstr "Kiểm tra &cập nhật..."
@@ -1096,7 +1096,7 @@ msgid "GLSL shaders"
 msgstr "Shader GLSL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Bạn đang load tinh chỉnh không được hỗ trợ."
+msgstr "Bạn đang load tinh chỉnh không được hỗ trợ"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "Phần chọn loại CPU dựa trên mẫu máy đã chọn bị vô hiệu hóa.\n\nỞ đây bạn có thể chọn loại CPU có thể không tương thích với mẫu máy hiện tại. Tuy nhiên bạn có thể gặp vấn đề tương khắc với BIOS hay phần mềm khác.\n\nViệc bật tùy chọn này lên không được khuyến cáo chính thức và các bản bug report (báo lỗi) với nội dung tương tự sẽ bị coi là phạm quy và đóng."
@@ -1285,25 +1285,25 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Điền tên hiển thị mới (để trống để đặt lại)"
 
 msgid "Change &display name..."
-msgstr "Thay đổi tên hiển thị"
+msgstr "Thay đổi tên hiển thị..."
 
 msgid "Context Menu"
 msgstr "Menu ngữ cảnh"
 
 msgid "&Open folder..."
-msgstr "Mở thư mục"
+msgstr "Mở thư mục..."
 
 msgid "Open p&rinter tray..."
-msgstr "Mở khay máy in"
+msgstr "Mở khay máy in..."
 
 msgid "Set &icon..."
-msgstr "Đặt biểu trưng"
+msgstr "Đặt biểu trưng..."
 
 msgid "Select an icon"
 msgstr "Chọn một biểu trưng"
 
 msgid "C&lone..."
-msgstr "Tạo bản sao"
+msgstr "Tạo bản sao..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Máy ảo \"%1\" (%2) sẽ được sao chép vào:"
@@ -2980,13 +2980,13 @@ msgid "build"
 msgstr "bản dựng"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "Bạn đang chạy phiên bản <b>%1</b>"
+msgstr "Bạn đang chạy phiên bản <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
 msgstr "<b>Phiên bản %1</b> hiện đã ra mắt."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Bạn đang chạy bản dựng <b>%1</b>"
+msgstr "Bạn đang chạy bản dựng <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>Bản dựng %1</b> hiện đã ra mắt."

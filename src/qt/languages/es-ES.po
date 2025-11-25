@@ -1303,7 +1303,7 @@ msgid "Select an icon"
 msgstr "Escoger un icono"
 
 msgid "C&lone..."
-msgstr "C&lonar"
+msgstr "C&lonar..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "La máquina virtual \"%1\" (%2) será clonada para:"

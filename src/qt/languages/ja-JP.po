@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "ディメンションを指定...(&D)"
+msgstr "ディメンションを指定(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "4:3の縦横比を強制表示(&4)"
@@ -1030,7 +1030,7 @@ msgid "&File"
 msgstr "ファイル(&F)"
 
 msgid "&New machine..."
-msgstr "新しいマシン(&N)"
+msgstr "新しいマシン(&N)..."
 
 msgid "&Check for updates..."
 msgstr "アップデートを確認中(&C)..."
@@ -1720,7 +1720,7 @@ msgid "Show non-&primary monitors"
 msgstr "プライマリーモニター以外のモニターを表示する(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "スクリーンショットフォルダを開く(&F)"
+msgstr "スクリーンショットフォルダを開く(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時にフルスクリーンストレッチモードを適用(&Y)"
@@ -1792,7 +1792,7 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "OpenGLコンテキストに切り替えられなかった。"
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です。"
+msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です"
 
 msgid "Error initializing OpenGL"
 msgstr "OpenGLの初期化エラー"
@@ -1873,7 +1873,7 @@ msgid "Serial port passthrough 4"
 msgstr "シリアル・ポート・パススルー 4"
 
 msgid "Renderer &options..."
-msgstr "レンダラー設定...(&O)"
+msgstr "レンダラー設定(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT キーボード"
@@ -3040,7 +3040,7 @@ msgid "Sharpness"
 msgstr "シャープネス"
 
 msgid "&CGA composite settings..."
-msgstr "CGA複合モードの設定...(&C)"
+msgstr "CGA複合モードの設定(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA複合モードの設定"

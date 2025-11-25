@@ -1030,7 +1030,7 @@ msgid "&File"
 msgstr "F&icheiro"
 
 msgid "&New machine..."
-msgstr "&Nova máquina"
+msgstr "&Nova máquina..."
 
 msgid "&Check for updates..."
 msgstr "&Verificar para atualizações..."
@@ -2785,7 +2785,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "Não foi possível encontrar os fontes matriciais de pontos"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P 2 genérica"
+msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P 2 genérica."
 
 msgid "Inhibit multimedia keys"
 msgstr "Deshabilitar teclas de multimídia"

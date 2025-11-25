@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "창 크기 지정하기...(&D)"
+msgstr "창 크기 지정하기(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "화면 비율을 4:3으로 맞추기(&4)"
@@ -1438,10 +1438,10 @@ msgid "Add Existing Hard Disk"
 msgstr "기존 이미지 사용"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 디스크 이미지는 4GB 이상으로 지정할 수 없습니다"
+msgstr "HDI 디스크 이미지는 4GB 이상으로 지정할 수 없습니다."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "디스크 이미지는 127GB 이상으로 지정할 수 없습니다"
+msgstr "디스크 이미지는 127GB 이상으로 지정할 수 없습니다."
 
 msgid "Hard disk images"
 msgstr "하드 디스크 이미지"
@@ -1453,7 +1453,7 @@ msgid "Unable to write file"
 msgstr "파일을 저장할 수 없습니다"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다"
+msgstr "512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다."
 
 msgid "Disk image file already exists"
 msgstr "디스크 이미지 파일이 이미 존재합니다"
@@ -1546,7 +1546,7 @@ msgid "Parent and child disk timestamps do not match"
 msgstr "부모 디스크와 자식 디스크의 타임스탬프가 일치하지 않습니다"
 
 msgid "Could not fix VHD timestamp."
-msgstr "VHD 타임스탬프를 고칠 수 없습니다"
+msgstr "VHD 타임스탬프를 고칠 수 없습니다."
 
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
@@ -1720,7 +1720,7 @@ msgid "Show non-&primary monitors"
 msgstr "기본 모니터가 아닌 모니터 표시(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "스크린샷 폴더 열기...(&F)"
+msgstr "스크린샷 폴더 열기(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "최대화 시 전체 화면 비율 적용(&Y)"
@@ -1792,7 +1792,7 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "OpenGL 컨텍스트로 전환할 수 없습니다."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다."
+msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다"
 
 msgid "Error initializing OpenGL"
 msgstr "OpenGL 초기화 중 오류 발생"
@@ -1873,7 +1873,7 @@ msgid "Serial port passthrough 4"
 msgstr "직렬 포트 패스스루 4"
 
 msgid "Renderer &options..."
-msgstr "렌더러 옵션...(&O)"
+msgstr "렌더러 옵션(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 키보드"
@@ -3040,7 +3040,7 @@ msgid "Sharpness"
 msgstr "선명도"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 복합 모드의 설정...(&C)"
+msgstr "CGA 복합 모드의 설정(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA 복합 모드의 설정"

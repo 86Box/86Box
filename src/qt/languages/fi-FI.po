@@ -1285,7 +1285,7 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Anna uusi näyttönimi tai poista se"
 
 msgid "Change &display name..."
-msgstr "Vaihda &näyttönimi"
+msgstr "Vaihda &näyttönimi..."
 
 msgid "Context Menu"
 msgstr "Kontekstivalikko"
@@ -1453,7 +1453,7 @@ msgid "Unable to write file"
 msgstr "Tiedostoa ei voitu kirjoittaa"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512"
+msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512."
 
 msgid "Disk image file already exists"
 msgstr "Levykuva on jo olemassa"
@@ -1465,7 +1465,7 @@ msgid "Disk image created"
 msgstr "Levykuva luotu"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Varmista, että tiedosto on olemassa ja lukukelpoinen"
+msgstr "Varmista, että tiedosto on olemassa ja lukukelpoinen."
 
 msgid "Make sure the file is being saved to a writable directory."
 msgstr "Varmista, että tiedoston tallennuskansioon pystyy kirjoittamaan."
@@ -2986,7 +2986,7 @@ msgid "<b>Version %1</b> is now available."
 msgstr "<b>Versio %1</b> on nyt saatavilla."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Käytät käännöstä <b>%1</b>"
+msgstr "Käytät käännöstä <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>Käännös %1</b> on nyt saatavilla."

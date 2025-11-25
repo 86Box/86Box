@@ -586,10 +586,10 @@ msgid "Firmware Version"
 msgstr "Bellenim Sürümü"
 
 msgid "&New..."
-msgstr "&Yeni görüntü oluştur"
+msgstr "&Yeni görüntü oluştur..."
 
 msgid "&Existing..."
-msgstr "&Görüntü dosyası seç"
+msgstr "&Görüntü dosyası seç..."
 
 msgid "&Remove"
 msgstr "&Kaldır"
@@ -1285,7 +1285,7 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Yeni görünü adını girin (sıfırlamak için boş bırakın)"
 
 msgid "Change &display name..."
-msgstr "Görüntü adını &değiştirin"
+msgstr "Görüntü adını &değiştirin..."
 
 msgid "Context Menu"
 msgstr "Bağlam Menüsü"
@@ -1321,7 +1321,7 @@ msgid "Failed to create directory for cloned VM"
 msgstr "Klonlanmış VM için dizin oluşturulamadı"
 
 msgid "Failed to clone VM."
-msgstr "VM klonlanamadı"
+msgstr "VM klonlanamadı."
 
 msgid "Directory in use"
 msgstr "Dizin kullanımda"
