@@ -222,6 +222,9 @@ extern const device_t entertainer_device;
 /* Mindscape Music Board */
 extern const device_t mmb_device;
 
+/* OPTi 82c930 */
+extern const device_t opti_82c930_device;
+
 /* Pro Audio Spectrum Plus, 16, and 16D */
 extern const device_t pasplus_device;
 extern const device_t pas16_device;
