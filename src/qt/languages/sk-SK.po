@@ -559,7 +559,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Štvrtý radič IDE"
 
 msgid "Hard disk"
-msgstr "Radič CD-ROM:"
+msgstr "Pevný disk"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -2842,7 +2842,7 @@ msgid "Move down"
 msgstr "Posunúť nižšie"
 
 msgid "Could not load file %1"
-msgstr "Nebolo možné možné načítať súbor %1"
+msgstr "Nebolo možné načítať súbor %1"
 
 msgid "Key Bindings:"
 msgstr "Nastavenie klávesov"

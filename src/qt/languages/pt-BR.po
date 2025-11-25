@@ -781,7 +781,7 @@ msgid "Parallel ports:"
 msgstr "Portas Paralelas:"
 
 msgid "Storage controllers"
-msgstr "Controladores de armaz."
+msgstr "Controladores de armazenamento"
 
 msgid "Hard disks"
 msgstr "Discos rígidos"

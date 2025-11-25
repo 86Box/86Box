@@ -2050,7 +2050,7 @@ msgid "BIOS size (ROM #3)"
 msgstr "Storlek på BIOS (ROM #3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Storlek på BIOS (BIOS #4)"
+msgstr "Storlek på BIOS (ROM #4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Kartlägg C0000-C7FFF som UMB"

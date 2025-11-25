@@ -874,7 +874,7 @@ msgid "3-axis, 2-button joystick"
 msgstr "3-akset, 2-knapps styrespak"
 
 msgid "3-axis, 3-button joystick"
-msgstr "3-akset, 4-knapps styrespak"
+msgstr "3-akset, 3-knapps styrespak"
 
 msgid "3-axis, 4-button joystick"
 msgstr "3-akset, 4-knapps styrespak"

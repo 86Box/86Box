@@ -2821,10 +2821,10 @@ msgid "Could not load texture: %1"
 msgstr "%1 dokusu yüklenemedi"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr "%1 gölgelendiricisi derlenemedi"
+msgstr "Gölgelendirici derlenemedi:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr "%1 programı bağlanamadı"
+msgstr "Program bağlanamadı:\n\n%1"
 
 msgid "Shader Manager"
 msgstr "Gölgelendirici Yöneticisi"

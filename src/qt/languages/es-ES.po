@@ -2395,13 +2395,13 @@ msgid "EMS 2 Address"
 msgstr "Dirección de EMS 2"
 
 msgid "EMS Memory Size"
-msgstr "Dirección de EMS"
+msgstr "Tamaño de memoria de EMS"
 
 msgid "EMS 1 Memory Size"
-msgstr "Dirección de EMS 1"
+msgstr "Tamaño de memoria de EMS 1"
 
 msgid "EMS 2 Memory Size"
-msgstr "Dirección de EMS 2"
+msgstr "Tamaño de memoria de EMS 2"
 
 msgid "Enable EMS"
 msgstr "Habilitar EMS"

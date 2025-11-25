@@ -2473,10 +2473,10 @@ msgid "Five + 2 Wheels"
 msgstr "Пять + 2 колеса"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 последовательная / SMT3(R)V"
+msgstr "A3 - SMT2 последовательный / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) последовательная"
+msgstr "Q1 - SMT3(R) последовательный"
 
 msgid "8 KB"
 msgstr "8 КБ"

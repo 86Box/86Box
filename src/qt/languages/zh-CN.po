@@ -1312,7 +1312,7 @@ msgid "Directory %1 already exists"
 msgstr "目录 %1 已存在"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr " %1: 名称中不能使用以下字符: %1"
+msgstr "名称中不能使用以下字符: %1"
 
 msgid "Clone"
 msgstr "克隆"
