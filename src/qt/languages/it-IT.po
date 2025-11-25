@@ -1050,11 +1050,8 @@ msgstr "Questo riavvierà la macchina emulata."
 msgid "Save"
 msgstr "Salva"
 
-msgid "About 86Box"
-msgstr "Informazioni su 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Informazioni su %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Un emulatore di vecchi computer\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne e altri.\n\nCon i precedenti contributi fondamentali di Sarah Walker, leilei, JohnElliott, greatpsycho e altri.\n\nRilasciato sotto la Licenza Pubblica Generale GNU versione 2 o successiva. Per ulteriori informazioni, consultare il file LICENSE."

@@ -1050,11 +1050,8 @@ msgstr "Dit zal de geëmuleerde machine een harde reset geven."
 msgid "Save"
 msgstr "Opslaan"
 
-msgid "About 86Box"
-msgstr "Over 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Over %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Een emulator van oude computers\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nMet eerdere bijdragen van Sarah Walker, leilei, JohnElliott, greatpsycho en anderen.\n\nUitgebracht onder de GNU General Public License versie 2 of later. Zie LICENSE voor meer informatie."

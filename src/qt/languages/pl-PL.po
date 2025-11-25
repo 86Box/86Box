@@ -1050,11 +1050,8 @@ msgstr "To spowoduje twardy reset wirtualnej maszyny."
 msgid "Save"
 msgstr "Zapisz"
 
-msgid "About 86Box"
-msgstr "O 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "O %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Emulator starych komputerów\n\nAutorzy: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i inni.\n\nZ wcześniejszym wkładem od Sarah Walker, leilei, JohnElliott, greatpsycho i innych.\n\nPrzetłumaczony przez: Lili1228\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."

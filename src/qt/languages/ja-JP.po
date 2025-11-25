@@ -1050,11 +1050,8 @@ msgstr "使用中のマシンがハードリセットされます。"
 msgid "Save"
 msgstr "保存"
 
-msgid "About 86Box"
-msgstr "86Boxのバージョン情報"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "%1のバージョン情報"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "古いパソコンのエミュレーター\n\n著者: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nSarah Walker, leilei, JohnElliott, greatpsycho, その他の方々による以前からの多大な貢献。\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"

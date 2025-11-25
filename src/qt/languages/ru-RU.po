@@ -1050,11 +1050,8 @@ msgstr "Это приведёт к холодной перезагрузке э�
 msgid "Save"
 msgstr "Сохранить"
 
-msgid "About 86Box"
-msgstr "О 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "О %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Эмулятор старых компьютеров\n\nАвторы: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nС предыдущими основными материалами от Sarah Walker, leilei, JohnElliott, greatpsycho и других.\n\nВыпускается под лицензией GNU General Public License версии 2 или более поздней. Дополнительную информацию см. в файле LICENSE."

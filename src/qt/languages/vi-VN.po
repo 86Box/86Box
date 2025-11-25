@@ -1050,11 +1050,8 @@ msgstr "Lệnh này sẽ buộc khởi động lại máy ảo."
 msgid "Save"
 msgstr "Lưu"
 
-msgid "About 86Box"
-msgstr "Về 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Về %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Trình giả lập các dòng máy tính cổ.\n\nTác giả: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, cùng những người khác.\n\nCùng với những đóng góp cốt cán từ Sarah Walker, leilei, JohnElliott, greatpsycho, và một số người khác.\n\nPhát hành dưới giấy phép GNU General Public License version 2 trở đi. Đọc LICENSE để biết thêm thông tin."

@@ -1050,11 +1050,8 @@ msgstr "此操作將硬重設模擬器。"
 msgid "Save"
 msgstr "儲存"
 
-msgid "About 86Box"
-msgstr "關於 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "關於 %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n之前的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發佈。詳情見 LICENSE 檔案。"

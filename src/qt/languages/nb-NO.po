@@ -1050,11 +1050,8 @@ msgstr "Dette vil hard-resette den emulerte maskinen."
 msgid "Save"
 msgstr "Lagre"
 
-msgid "About 86Box"
-msgstr "Om 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Om %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "En emulator for gamle datamaskiner\n\nForfattere: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne og andre.\n\nMed tidligere kjernebidrag fra Sarah Walker, leilei, JohnElliott, greatpsycho og andre.\n\nUtgitt under GNU General Public License versjon 2 eller senere. Se LICENSE for mer informasjon."

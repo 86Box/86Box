@@ -1050,11 +1050,8 @@ msgstr "Tämä käynnistää emuloidun tietokoneen uudelleen."
 msgid "Save"
 msgstr "Tallenna"
 
-msgid "About 86Box"
-msgstr "Tietoja 86Box:sta"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Tietoja %1:sta"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ja muut.\n\nSisältää Sarah Walkerin, leilein, JohnElliottin, greatpsychon ja muiden aiemmat keskeiset työpanokset.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
