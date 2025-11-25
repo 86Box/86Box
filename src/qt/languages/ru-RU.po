@@ -76,13 +76,13 @@ msgid "&Window scale factor"
 msgstr "&Масштаб окна"
 
 msgid "&0.5x"
-msgstr "&0.5x"
+msgstr "&0,5x"
 
 msgid "&1x"
 msgstr "&1x"
 
 msgid "1.&5x"
-msgstr "1.&5x"
+msgstr "1,&5x"
 
 msgid "&2x"
 msgstr "&2x"
@@ -460,16 +460,16 @@ msgid "Joystick 4..."
 msgstr "Джойстик 4..."
 
 msgid "Sound card #1:"
-msgstr "Звуковая карта 1:"
+msgstr "Звуковая карта № 1:"
 
 msgid "Sound card #2:"
-msgstr "Звуковая карта 2:"
+msgstr "Звуковая карта № 2:"
 
 msgid "Sound card #3:"
-msgstr "Звуковая карта 3:"
+msgstr "Звуковая карта № 3:"
 
 msgid "Sound card #4:"
-msgstr "Звуковая карта 4:"
+msgstr "Звуковая карта № 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Устройство вывода MIDI:"
@@ -715,7 +715,7 @@ msgid "Image %1"
 msgstr "Образ %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог \"roms\"."
+msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог «roms»."
 
 msgid "(empty)"
 msgstr "(пусто)"
@@ -742,16 +742,16 @@ msgid "Surface images"
 msgstr "Surface образы"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Системная плата \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
+msgstr "Системная плата «%hs» недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Видеокарта \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
+msgstr "Видеокарта «%hs» недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Видеокарта 2 \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Вторая видеокарта отключена."
+msgstr "Видеокарта 2 «%hs» недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Вторая видеокарта отключена."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Устройство \"%hs\" недоступно из-за отсутствия файла его ПЗУ. Устройство проигнорировано."
+msgstr "Устройство «%hs» недоступно из-за отсутствия файла его ПЗУ. Устройство проигнорировано."
 
 msgid "Machine"
 msgstr "Компьютер"
@@ -1306,7 +1306,7 @@ msgid "C&lone..."
 msgstr "К&лонировать..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr "Виртуальная машина \"%1\" (%2) будет клонирована в:"
+msgstr "Виртуальная машина «%1» (%2) будет клонирована в:"
 
 msgid "Directory %1 already exists"
 msgstr "Папка %1 уже существует"
@@ -1372,13 +1372,13 @@ msgid "&Kill"
 msgstr "&Завершить процесс"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Принудительное завершение процесса виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите принудительно завершить процесс виртуальной машины \"%1\"?"
+msgstr "Принудительное завершение процесса виртуальной машины может привести к потере данных. Делайте это только в том случае, если процесс 86Box завис.\n\nВы действительно хотите принудительно завершить процесс виртуальной машины «%1»?"
 
 msgid "&Delete"
 msgstr "&Удалить"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Вы действительно хотите удалить виртуальную машину \"%1\" и все её файлы? Это действие не может быть отменено!"
+msgstr "Вы действительно хотите удалить виртуальную машину «%1» и все её файлы? Это действие не может быть отменено!"
 
 msgid "Show &config file"
 msgstr "Показать файл &конфигурации"
@@ -1588,13 +1588,13 @@ msgid "720 KB"
 msgstr "720 КБ"
 
 msgid "1.2 MB"
-msgstr "1.2 МБ"
+msgstr "1,2 МБ"
 
 msgid "1.25 MB"
-msgstr "1.25 МБ"
+msgstr "1,25 МБ"
 
 msgid "1.44 MB"
-msgstr "1.44 МБ"
+msgstr "1,44 МБ"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (кластер 1024)"
@@ -1603,40 +1603,40 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (кластер 2048)"
 
 msgid "2.88 MB"
-msgstr "2.88 МБ"
+msgstr "2,88 МБ"
 
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3.5\" 128 МБ (ISO 10090)"
+msgstr "3,5\" 128 МБ (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
-msgstr "3.5\" 230 МБ (ISO 13963)"
+msgstr "3,5\" 230 МБ (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3.5\" 540 МБ (ISO 15498)"
+msgstr "3,5\" 540 МБ (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
-msgstr "3.5\" 640 МБ (ISO 15498)"
+msgstr "3,5\" 640 МБ (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5\" 1.3 ГБ (GigaMO)"
+msgstr "3,5\" 1,3 ГБ (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5\" 2.3 ГБ (GigaMO 2)"
+msgstr "3,5\" 2,3 ГБ (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5.25\" 600 МБ"
+msgstr "5,25\" 600 МБ"
 
 msgid "5.25\" 650 MB"
-msgstr "5.25\" 650 МБ"
+msgstr "5,25\" 650 МБ"
 
 msgid "5.25\" 1 GB"
-msgstr "5.25\" 1 ГБ"
+msgstr "5,25\" 1 ГБ"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5.25\" 1.3 ГБ"
+msgstr "5,25\" 1,3 ГБ"
 
 msgid "Perfect RPM"
 msgstr "Точный RPM"
@@ -1645,7 +1645,7 @@ msgid "1% below perfect RPM"
 msgstr "На 1% медленнее точного RPM"
 
 msgid "1.5% below perfect RPM"
-msgstr "На 1.5% медленнее точного RPM"
+msgstr "На 1,5% медленнее точного RPM"
 
 msgid "2% below perfect RPM"
 msgstr "На 2% медленнее точного RPM"
@@ -1807,7 +1807,7 @@ msgid "This machine might have been moved or copied."
 msgstr "Возможно, эта машина была перемещена или скопирована."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Чтобы обеспечить правильную работу сети, 86Box должен знать, была ли эта машина перемещена или скопирована.\n\nЕсли вы не уверены, выберите \"Скопирована\"."
+msgstr "Чтобы обеспечить правильную работу сети, 86Box должен знать, была ли эта машина перемещена или скопирована.\n\nЕсли вы не уверены, выберите «Скопирована»."
 
 msgid "I Moved It"
 msgstr "Перемещена"
@@ -1828,16 +1828,16 @@ msgid "GiB"
 msgstr "ГиБ"
 
 msgid "Network Card #1"
-msgstr "Сетевая карта 1"
+msgstr "Сетевая карта № 1"
 
 msgid "Network Card #2"
-msgstr "Сетевая карта 2"
+msgstr "Сетевая карта № 2"
 
 msgid "Network Card #3"
-msgstr "Сетевая карта 3"
+msgstr "Сетевая карта № 3"
 
 msgid "Network Card #4"
-msgstr "Сетевая карта 4"
+msgstr "Сетевая карта № 4"
 
 msgid "Mode:"
 msgstr "Режим:"
@@ -1954,46 +1954,46 @@ msgid "BIOS file"
 msgstr "Файл BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr "Файл BIOS (ПЗУ #1)"
+msgstr "Файл BIOS (ПЗУ № 1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr "Файл BIOS (ПЗУ #2)"
+msgstr "Файл BIOS (ПЗУ № 2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr "Файл BIOS (ПЗУ #3)"
+msgstr "Файл BIOS (ПЗУ № 3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr "Файл BIOS (ПЗУ #4)"
+msgstr "Файл BIOS (ПЗУ № 4)"
 
 msgid "BIOS address"
 msgstr "Адрес BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Адрес BIOS (ПЗУ #1)"
+msgstr "Адрес BIOS (ПЗУ № 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Адрес BIOS (ПЗУ #2)"
+msgstr "Адрес BIOS (ПЗУ № 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Адрес BIOS (ПЗУ #3)"
+msgstr "Адрес BIOS (ПЗУ № 3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr "Адрес BIOS (ПЗУ #4)"
+msgstr "Адрес BIOS (ПЗУ № 4)"
 
 msgid "Enable BIOS extension ROM Writes"
 msgstr "Разрешить запись в ПЗУ расширения BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #1)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ № 1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #2)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ № 2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #3)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ № 3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ #4)"
+msgstr "Разрешить запись в ПЗУ расширения BIOS (ПЗУ № 4)"
 
 msgid "Linear framebuffer base"
 msgstr "Линейный фреймбуфер"
@@ -2041,16 +2041,16 @@ msgid "BIOS size"
 msgstr "Размер BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr "Размер BIOS (ПЗУ #1)"
+msgstr "Размер BIOS (ПЗУ № 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr "Размер BIOS (ПЗУ #2)"
+msgstr "Размер BIOS (ПЗУ № 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr "Размер BIOS (ПЗУ #3)"
+msgstr "Размер BIOS (ПЗУ № 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Размер BIOS (ПЗУ #4)"
+msgstr "Размер BIOS (ПЗУ № 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Отображение C0000-C7FFF в качестве UMB"
@@ -2296,7 +2296,7 @@ msgid "GUS type"
 msgstr "Тип GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Включить команду 0x04 \"Выход из 86Box\""
+msgstr "Включить команду 0x04 «Выход из 86Box»"
 
 msgid "Display type"
 msgstr "Тип дисплея"
@@ -2785,7 +2785,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "Невозможно найти матричные шрифты"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "Шрифты TrueType в каталоге \"roms/printer/fonts\" необходимы для эмуляции стандартного матричного принтера ESC/P 2."
+msgstr "Шрифты TrueType в каталоге «roms/printer/fonts» необходимы для эмуляции стандартного матричного принтера ESC/P 2."
 
 msgid "Inhibit multimedia keys"
 msgstr "Перехватывать мультимедийные клавиши"
@@ -2929,16 +2929,16 @@ msgid "&Wipe NVRAM"
 msgstr "&Стереть NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Это удалит все файлы NVRAM (и связанные) виртуальной машины, расположенной в подпапке \"nvr\". Вам придётся снова реконфигурировать настройки BIOS (и, возможно, другие устройства внутри виртуальной машины), если применимо.\n\nВы уверены, что хотите стереть всё содержимое NVRAM виртуальной машины \"%1\"?"
+msgstr "Это удалит все файлы NVRAM (и связанные) виртуальной машины, расположенной в подпапке «nvr». Вам придётся снова реконфигурировать настройки BIOS (и, возможно, другие устройства внутри виртуальной машины), если применимо.\n\nВы уверены, что хотите стереть всё содержимое NVRAM виртуальной машины «%1»?"
 
 msgid "Success"
 msgstr "Успешно"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Успешно стёрто содержимое NVRAM виртуальной машины \"%1\""
+msgstr "Успешно стёрто содержимое NVRAM виртуальной машины «%1»"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "Произошла ошибка при попытке стереть содержимое NVRAM виртуальной машины \"%1\""
+msgstr "Произошла ошибка при попытке стереть содержимое NVRAM виртуальной машины «%1»"
 
 msgid "%1 VM Manager"
 msgstr "Менеджер виртуальных машин %1"
@@ -3016,7 +3016,7 @@ msgid "Virtual machine crash"
 msgstr "Сбой виртуальной машины"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "Процесс виртуальной машины \"%1\" неожиданно завершился с кодом завершения %2."
+msgstr "Процесс виртуальной машины «%1» неожиданно завершился с кодом завершения %2."
 
 msgid "The system will not be added."
 msgstr "Система не будет добавлена."
@@ -3055,7 +3055,7 @@ msgid "Export EDID"
 msgstr "Экспорт EDID"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "Файл EDID \"%ls\" слишком велик."
+msgstr "Файл EDID «%ls» слишком велик."
 
 msgid "OpenGL input scale"
 msgstr "Масштаб ввода OpenGL"
