@@ -1306,7 +1306,7 @@ msgid "C&lone..."
 msgstr "クローン(&L)..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr "仮想マシン\"%1\" (%2)は、以下の場所にクローンされます:"
+msgstr "仮想マシン「%1」 (%2)は、以下の場所にクローンされます:"
 
 msgid "Directory %1 already exists"
 msgstr "ディレクトリ %1 は既に存在します"
@@ -1372,13 +1372,13 @@ msgid "&Kill"
 msgstr "強制的に終了する(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "仮想マシンを強制終了すると、データが失われる可能性があります。86Boxプロセスが応答しなくなった場合のみ、この操作を行ってください。\n\n本当に仮想マシン\"%1\"を終了しますか？"
+msgstr "仮想マシンを強制終了すると、データが失われる可能性があります。86Boxプロセスが応答しなくなった場合のみ、この操作を行ってください。\n\n本当に仮想マシン「%1」を終了しますか？"
 
 msgid "&Delete"
 msgstr "削除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "本当に仮想マシン\"%1\"とそのすべてのファイルを削除しますか？ この操作は元に戻せません！"
+msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？ この操作は元に戻せません！"
 
 msgid "Show &config file"
 msgstr "設定ファイルを表示する(&C)"
@@ -2296,7 +2296,7 @@ msgid "GUS type"
 msgstr "GUSタイプ"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "コマンド 0x04 \"86Boxを終了する\"を有効にする"
+msgstr "コマンド 0x04 「86Boxを終了する」を有効にする"
 
 msgid "Display type"
 msgstr "表示タイプ"
@@ -2929,16 +2929,16 @@ msgid "&Wipe NVRAM"
 msgstr "NVRAMを消去する(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "これによって、仮想マシン内の\"nvr\"サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン\"%1\"のすべてのNVRAM内容を削除してもよろしいですか？"
+msgstr "これによって、仮想マシン内の「nvr」サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン「%1」のすべてのNVRAM内容を削除してもよろしいですか？"
 
 msgid "Success"
 msgstr "成功"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "仮想マシン\"%1\"のNVRAMの内容を正常に消去しました"
+msgstr "仮想マシン「%1」のNVRAMの内容を正常に消去しました"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "仮想マシン\"%1\"のNVRAMの内容を消去しようとした際にエラーが発生しました"
+msgstr "仮想マシン「%1」のNVRAMの内容を消去しようとした際にエラーが発生しました"
 
 msgid "%1 VM Manager"
 msgstr "%1 VMマネージャー"
@@ -3016,7 +3016,7 @@ msgid "Virtual machine crash"
 msgstr "仮想マシンの予期せぬ終了"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "仮想マシン\"%1\"のプロセスが、終了コード %2 で予期せず終了しました。"
+msgstr "仮想マシン「%1」のプロセスが、終了コード %2 で予期せず終了しました。"
 
 msgid "The system will not be added."
 msgstr "システムは追加されません。"
@@ -3055,7 +3055,7 @@ msgid "Export EDID"
 msgstr "EDIDのエクスポート"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "EDIDファイル \"%ls\" が大きすぎます。"
+msgstr "EDIDファイル「%ls」が大きすぎます。"
 
 msgid "OpenGL input scale"
 msgstr "OpenGLの入力スケール"
