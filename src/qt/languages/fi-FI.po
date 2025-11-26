@@ -273,36 +273,6 @@ msgstr "Lataa edellinen levykuva uudelleen"
 msgid "&Folder..."
 msgstr "&Kansio..."
 
-msgid "Target &framerate"
-msgstr "&Kuvataajuustavoite"
-
-msgid "&Sync with video"
-msgstr "&Synkronisoi videoon"
-
-msgid "&25 fps"
-msgstr "&25 ruutua/s"
-
-msgid "&30 fps"
-msgstr "&30 ruutua/s"
-
-msgid "&50 fps"
-msgstr "&50 ruutua/s"
-
-msgid "&60 fps"
-msgstr "&60 ruutua/s"
-
-msgid "&75 fps"
-msgstr "&75 ruutua/s"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "Valitse varjostin&ohjelma..."
-
-msgid "&Remove shader"
-msgstr "&Poista varjostinohjelma"
-
 msgid "Preferences"
 msgstr "Sovellusasetukset"
 
@@ -686,9 +656,6 @@ msgstr "ISABugger-laite"
 
 msgid "POST card"
 msgstr "POST-kortti"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Virhe"
@@ -2525,9 +2492,6 @@ msgstr "24 Mt"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
-
-msgid "Classic"
-msgstr "Klassinen"
 
 msgid "256 KB"
 msgstr "256 Kt"

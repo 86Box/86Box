@@ -273,36 +273,6 @@ msgstr "Ladda om föregående avbildning"
 msgid "&Folder..."
 msgstr "&Mapp..."
 
-msgid "Target &framerate"
-msgstr "Mål för &bildhastighet"
-
-msgid "&Sync with video"
-msgstr "&Synkronisera med bild"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Välj shader..."
-
-msgid "&Remove shader"
-msgstr "&Ta bort shader"
-
 msgid "Preferences"
 msgstr "Preferenser"
 
@@ -686,9 +656,6 @@ msgstr "ISABugger-enhet"
 
 msgid "POST card"
 msgstr "POST-kort"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Fel"
@@ -2525,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
-
-msgid "Classic"
-msgstr "Klassisk"
 
 msgid "256 KB"
 msgstr "256 KB"

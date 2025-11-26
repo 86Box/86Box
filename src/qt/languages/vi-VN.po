@@ -273,36 +273,6 @@ msgstr "Load đĩa trước đó"
 msgid "&Folder..."
 msgstr "Thư mụ&c..."
 
-msgid "Target &framerate"
-msgstr "Số khung hình mục tiêu"
-
-msgid "&Sync with video"
-msgstr "Đồng bộ &với video"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Chọn shader..."
-
-msgid "&Remove shader"
-msgstr "&Bỏ shader"
-
 msgid "Preferences"
 msgstr "Tùy biến"
 
@@ -686,9 +656,6 @@ msgstr "Thiết bị ISABugger"
 
 msgid "POST card"
 msgstr "Thẻ POST"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Lỗi"
@@ -2525,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "Sigmatel Stac9721T (âm thanh nổi)"
-
-msgid "Classic"
-msgstr "Cổ điển"
 
 msgid "256 KB"
 msgstr "256 KB"

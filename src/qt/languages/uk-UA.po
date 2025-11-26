@@ -273,36 +273,6 @@ msgstr "Знову завантажити попередній образ"
 msgid "&Folder..."
 msgstr "&Тека..."
 
-msgid "Target &framerate"
-msgstr "Цільова &частота кадрів"
-
-msgid "&Sync with video"
-msgstr "&Синхронізація з відео"
-
-msgid "&25 fps"
-msgstr "&25 кадрів в секунду"
-
-msgid "&30 fps"
-msgstr "&30 кадрів в секунду"
-
-msgid "&50 fps"
-msgstr "&50 кадрів в секунду"
-
-msgid "&60 fps"
-msgstr "&60 кадрів в секунду"
-
-msgid "&75 fps"
-msgstr "&75 кадрів в секунду"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Вибрати шейдер..."
-
-msgid "&Remove shader"
-msgstr "&Видалити шейдер"
-
 msgid "Preferences"
 msgstr "Параметри"
 
@@ -686,9 +656,6 @@ msgstr "Пристрій ISABugger"
 
 msgid "POST card"
 msgstr "Карта POST"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Помилка"
@@ -2525,9 +2492,6 @@ msgstr "24 МБ"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (стерео)"
-
-msgid "Classic"
-msgstr "Класичний"
 
 msgid "256 KB"
 msgstr "256 КБ"

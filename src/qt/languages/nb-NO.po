@@ -273,36 +273,6 @@ msgstr "Last inn forrige diskfil"
 msgid "&Folder..."
 msgstr "&Mappe..."
 
-msgid "Target &framerate"
-msgstr "Mål-&bildefrekvens"
-
-msgid "&Sync with video"
-msgstr "&Synkroniser med video"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Velg shader..."
-
-msgid "&Remove shader"
-msgstr "&Fjern shader"
-
 msgid "Preferences"
 msgstr "Valg"
 
@@ -686,9 +656,6 @@ msgstr "ISABugger-enhet"
 
 msgid "POST card"
 msgstr "POST-kort"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Feil"
@@ -2525,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
-
-msgid "Classic"
-msgstr "Klassisk"
 
 msgid "256 KB"
 msgstr "256 KB"

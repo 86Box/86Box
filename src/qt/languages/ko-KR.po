@@ -273,36 +273,6 @@ msgstr "이전 이미지 다시 불러오기"
 msgid "&Folder..."
 msgstr "폴더(&F)..."
 
-msgid "Target &framerate"
-msgstr "목표 프레임 레이트(&F)"
-
-msgid "&Sync with video"
-msgstr "비디오와 동기(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "수직 동기화(&V)"
-
-msgid "&Select shader..."
-msgstr "쉐이더 불러오기(&S)..."
-
-msgid "&Remove shader"
-msgstr "쉐이더 끄기(&R)"
-
 msgid "Preferences"
 msgstr "환경설정"
 
@@ -686,9 +656,6 @@ msgstr "ISABugger 장치"
 
 msgid "POST card"
 msgstr "POST 카드"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "오류"
@@ -2525,9 +2492,6 @@ msgstr "24MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "시그마텔 STAC9721T(스테레오)"
-
-msgid "Classic"
-msgstr "클래식"
 
 msgid "256 KB"
 msgstr "256 KB"

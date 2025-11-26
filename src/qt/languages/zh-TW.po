@@ -273,36 +273,6 @@ msgstr "載入上一個影像"
 msgid "&Folder..."
 msgstr "資料夾(&F)..."
 
-msgid "Target &framerate"
-msgstr "目標影格速率(&F)"
-
-msgid "&Sync with video"
-msgstr "與視訊同步(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "垂直同步(&V)"
-
-msgid "&Select shader..."
-msgstr "選取著色器(&S)..."
-
-msgid "&Remove shader"
-msgstr "移除著色器(&R)"
-
 msgid "Preferences"
 msgstr "偏好設定"
 
@@ -686,9 +656,6 @@ msgstr "ISABugger 裝置"
 
 msgid "POST card"
 msgstr "自我檢測 (POST) 卡"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "錯誤"
@@ -2525,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (立體聲)"
-
-msgid "Classic"
-msgstr "經典"
 
 msgid "256 KB"
 msgstr "256 KB"

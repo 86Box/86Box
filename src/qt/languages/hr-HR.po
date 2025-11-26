@@ -273,36 +273,6 @@ msgstr "Ponovo učitaj prethodnu sliku"
 msgid "&Folder..."
 msgstr "&Mapa..."
 
-msgid "Target &framerate"
-msgstr "&Ciljni broj okvira u sekundi"
-
-msgid "&Sync with video"
-msgstr "&Sinkroniziraj s videom"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Odaberi shader..."
-
-msgid "&Remove shader"
-msgstr "&Ukloni shader"
-
 msgid "Preferences"
 msgstr "Postavke"
 
@@ -686,9 +656,6 @@ msgstr "Uređaj ISABugger"
 
 msgid "POST card"
 msgstr "Kartica POST"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Greška"
@@ -2525,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
-
-msgid "Classic"
-msgstr "Klasičan"
 
 msgid "256 KB"
 msgstr "256 KB"

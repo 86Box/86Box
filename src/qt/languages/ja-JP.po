@@ -273,36 +273,6 @@ msgstr "前のイメージを再読み込み"
 msgid "&Folder..."
 msgstr "フォルダ(&F)..."
 
-msgid "Target &framerate"
-msgstr "目標フレームレート(&F)"
-
-msgid "&Sync with video"
-msgstr "ビデオと同期(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "垂直同期(VSync)(&V)"
-
-msgid "&Select shader..."
-msgstr "シェーダーを選択(&S)..."
-
-msgid "&Remove shader"
-msgstr "シェーダーを削除(&R)"
-
 msgid "Preferences"
 msgstr "環境設定"
 
@@ -686,9 +656,6 @@ msgstr "ISABuggerデバイス"
 
 msgid "POST card"
 msgstr "POSTカード"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "エラー"
@@ -2525,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "シグマテル STAC9721T（ステレオ）"
-
-msgid "Classic"
-msgstr "クラシック"
 
 msgid "256 KB"
 msgstr "256 KB"

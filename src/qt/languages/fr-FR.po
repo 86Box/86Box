@@ -273,36 +273,6 @@ msgstr "Recharger image précedente"
 msgid "&Folder..."
 msgstr "&Dossier..."
 
-msgid "Target &framerate"
-msgstr "&Taux de rafraîchissement cible"
-
-msgid "&Sync with video"
-msgstr "&Synchronisation avec la vidéo"
-
-msgid "&25 fps"
-msgstr "&25 images par seconde"
-
-msgid "&30 fps"
-msgstr "&30 images par seconde"
-
-msgid "&50 fps"
-msgstr "&50 images par seconde"
-
-msgid "&60 fps"
-msgstr "&60 images par seconde"
-
-msgid "&75 fps"
-msgstr "&75 images par seconde"
-
-msgid "&VSync"
-msgstr "Synchronisation &Verticale"
-
-msgid "&Select shader..."
-msgstr "Sé&lectionnez le shader..."
-
-msgid "&Remove shader"
-msgstr "S&upprimer le shader"
-
 msgid "Preferences"
 msgstr "Préférences"
 
@@ -686,9 +656,6 @@ msgstr "Dispositif ISABugger"
 
 msgid "POST card"
 msgstr "Carte POST"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Erreur"
@@ -2525,9 +2492,6 @@ msgstr "24 Mo"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stéréo)"
-
-msgid "Classic"
-msgstr "Classique"
 
 msgid "256 KB"
 msgstr "256 Ko"

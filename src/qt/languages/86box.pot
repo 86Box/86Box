@@ -273,36 +273,6 @@ msgstr ""
 msgid "&Folder..."
 msgstr ""
 
-msgid "Target &framerate"
-msgstr ""
-
-msgid "&Sync with video"
-msgstr ""
-
-msgid "&25 fps"
-msgstr ""
-
-msgid "&30 fps"
-msgstr ""
-
-msgid "&50 fps"
-msgstr ""
-
-msgid "&60 fps"
-msgstr ""
-
-msgid "&75 fps"
-msgstr ""
-
-msgid "&VSync"
-msgstr ""
-
-msgid "&Select shader..."
-msgstr ""
-
-msgid "&Remove shader"
-msgstr ""
-
 msgid "Preferences"
 msgstr ""
 
@@ -685,9 +655,6 @@ msgid "ISABugger device"
 msgstr ""
 
 msgid "POST card"
-msgstr ""
-
-msgid "86Box"
 msgstr ""
 
 msgid "Error"
@@ -2524,9 +2491,6 @@ msgid "24 MB"
 msgstr ""
 
 msgid "SigmaTel STAC9721T (stereo)"
-msgstr ""
-
-msgid "Classic"
 msgstr ""
 
 msgid "256 KB"
