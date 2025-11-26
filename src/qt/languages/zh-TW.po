@@ -121,10 +121,10 @@ msgid "&Fullscreen"
 msgstr "全螢幕(&F)"
 
 msgid "Fullscreen &stretch mode"
-msgstr "全螢幕拉伸模式(&S)"
+msgstr "全螢幕延展模式(&S)"
 
 msgid "&Full screen stretch"
-msgstr "全螢幕拉伸(&F)"
+msgstr "全螢幕延展(&F)"
 
 msgid "&4:3"
 msgstr "4:3(&4)"
@@ -142,7 +142,7 @@ msgid "EGA/(S)&VGA settings"
 msgstr "EGA/(S)VGA 設定(&V)"
 
 msgid "&Inverted VGA monitor"
-msgstr "VGA 顯示器反色顯示(&I)"
+msgstr "VGA 監視器反色顯示(&I)"
 
 msgid "VGA screen &type"
 msgstr "VGA 螢幕類型(&T)"
@@ -160,13 +160,13 @@ msgid "Generic RGBI color monitor"
 msgstr "通用 RGBI 彩色監視器"
 
 msgid "&Amber monitor"
-msgstr "琥珀色單色顯示器(&A)"
+msgstr "琥珀色單色監視器(&A)"
 
 msgid "&Green monitor"
-msgstr "綠色單色顯示器(&G)"
+msgstr "綠色單色監視器(&G)"
 
 msgid "&White monitor"
-msgstr "白色單色顯示器(&W)"
+msgstr "白色單色監視器(&W)"
 
 msgid "Grayscale &conversion type"
 msgstr "灰階轉換類型(&C)"
@@ -232,13 +232,13 @@ msgid "&About 86Box..."
 msgstr "關於 86Box(&A)..."
 
 msgid "&New image..."
-msgstr "新增映像(&N)..."
+msgstr "新增影像(&N)..."
 
 msgid "&Existing image..."
-msgstr "開啟已存在的映像(&E)..."
+msgstr "開啟已存在的影像(&E)..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "以防寫保護開啟已存在的映像(&W)..."
+msgstr "以防寫保護開啟已存在的影像(&W)..."
 
 msgid "&Record"
 msgstr "錄製(&R)"
@@ -256,7 +256,7 @@ msgid "E&ject"
 msgstr "退出(&J)"
 
 msgid "&Image..."
-msgstr "映像(&I)..."
+msgstr "影像(&I)..."
 
 msgid "E&xport to 86F..."
 msgstr "匯出為 86F 格式(&x)..."
@@ -268,7 +268,7 @@ msgid "E&mpty"
 msgstr "空置光碟機(&M)"
 
 msgid "Reload previous image"
-msgstr "載入上一個映像"
+msgstr "載入上一個影像"
 
 msgid "&Folder..."
 msgstr "資料夾(&F)..."
@@ -310,7 +310,7 @@ msgid "Sound Gain"
 msgstr "音量增益"
 
 msgid "New Image"
-msgstr "新增映像"
+msgstr "新增影像"
 
 msgid "Settings"
 msgstr "設定"
@@ -376,7 +376,7 @@ msgid "Frequency:"
 msgstr "頻率:"
 
 msgid "FPU:"
-msgstr "浮點處理器 (FPU):"
+msgstr "浮點運算器 (FPU):"
 
 msgid "Wait states:"
 msgstr "等待狀態 (WS):"
@@ -589,7 +589,7 @@ msgid "&New..."
 msgstr "新增(&N)..."
 
 msgid "&Existing..."
-msgstr "已有映像(&E)..."
+msgstr "已有影像(&E)..."
 
 msgid "&Remove"
 msgstr "移除(&R)"
@@ -619,7 +619,7 @@ msgid "Type:"
 msgstr "類型:"
 
 msgid "Image Format:"
-msgstr "映像格式:"
+msgstr "影像格式:"
 
 msgid "Block Size:"
 msgstr "區塊大小:"
@@ -643,10 +643,10 @@ msgid "MO:"
 msgstr "磁光碟:"
 
 msgid "Removable disks:"
-msgstr "可移除:"
+msgstr "可移除磁碟:"
 
 msgid "Removable disk drives:"
-msgstr "可移除磁碟:"
+msgstr "可移除磁碟機:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -685,7 +685,7 @@ msgid "ISABugger device"
 msgstr "ISABugger 裝置"
 
 msgid "POST card"
-msgstr "自檢 (POST) 卡"
+msgstr "自我檢測 (POST) 卡"
 
 msgid "86Box"
 msgstr "86Box"
@@ -715,7 +715,7 @@ msgid "Image %1"
 msgstr "影像 %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box 找不到任何可用的 ROM 映像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
+msgstr "86Box 找不到任何可用的 ROM 影像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -733,13 +733,13 @@ msgid "Off"
 msgstr "關"
 
 msgid "All images"
-msgstr "所有映像"
+msgstr "所有影像"
 
 msgid "Basic sector images"
-msgstr "基本磁區映像"
+msgstr "基本磁區影像"
 
 msgid "Surface images"
-msgstr "表面映像"
+msgstr "表面影像"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "由於 roms/machines 資料夾中缺少合適的 ROM，機型 \"%hs\" 不可用。將切換到其他可用機型。"
@@ -994,10 +994,10 @@ msgid "&Floppy %1 (%2): %3"
 msgstr "軟碟 %1 (%2): %3(&F)"
 
 msgid "Advanced sector images"
-msgstr "進階磁區映像"
+msgstr "進階磁區影像"
 
 msgid "Flux images"
-msgstr "Flux 映像"
+msgstr "Flux 影像"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "確定要硬重設模擬器嗎？"
@@ -1018,7 +1018,7 @@ msgid "&MO %1 (%2): %3"
 msgstr "磁光碟 %1 (%2): %3(&M)"
 
 msgid "MO images"
-msgstr "磁光碟映像"
+msgstr "磁光碟影像"
 
 msgid "Welcome to 86Box!"
 msgstr "歡迎使用 86Box！"
@@ -1057,7 +1057,7 @@ msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n之前的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
+msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n之前的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發佈。詳情見 LICENSE 檔案。"
 
 msgid "Hardware not available"
 msgstr "硬體不可用"
@@ -1087,13 +1087,13 @@ msgid "Don't reset"
 msgstr "不重設"
 
 msgid "CD-ROM images"
-msgstr "光碟映像"
+msgstr "光碟影像"
 
 msgid "%1 Device Configuration"
 msgstr "%1 裝置設定"
 
 msgid "Monitor in sleep mode"
-msgstr "顯示器處在睡眠狀態"
+msgstr "監視器處在睡眠狀態"
 
 msgid "GLSL shaders"
 msgstr "GLSL 著色器"
@@ -1114,7 +1114,7 @@ msgid "C&assette: %1"
 msgstr "磁帶: %1(&A)"
 
 msgid "Cassette images"
-msgstr "磁帶映像"
+msgstr "磁帶影像"
 
 msgid "Cartridge %1: %2"
 msgstr "卡帶 %1: %2"
@@ -1123,7 +1123,7 @@ msgid "Car&tridge %1: %2"
 msgstr "卡帶 %1: %2(&A)"
 
 msgid "Cartridge images"
-msgstr "卡帶映像"
+msgstr "卡帶影像"
 
 msgid "Resume execution"
 msgstr "恢復執行"
@@ -1441,13 +1441,13 @@ msgid "Add Existing Hard Disk"
 msgstr "增加已存在的硬碟"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 磁碟映像不能超過 4 GB。"
+msgstr "HDI 磁碟影像不能超過 4 GB。"
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "磁碟映像不能超過 127 GB。"
+msgstr "磁碟影像不能超過 127 GB。"
 
 msgid "Hard disk images"
-msgstr "硬碟映像"
+msgstr "硬碟影像"
 
 msgid "Unable to read file"
 msgstr "無法讀取檔案"
@@ -1456,16 +1456,16 @@ msgid "Unable to write file"
 msgstr "無法寫入檔案"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "不支援非 512 位元組磁區大小的 HDI 或 HDX 映像。"
+msgstr "不支援非 512 位元組磁區大小的 HDI 或 HDX 影像。"
 
 msgid "Disk image file already exists"
-msgstr "磁碟映像檔案已存在"
+msgstr "磁碟影像檔案已存在"
 
 msgid "Please specify a valid file name."
 msgstr "請指定有效的檔案名。"
 
 msgid "Disk image created"
-msgstr "已創建磁碟映像"
+msgstr "已創建磁碟影像"
 
 msgid "Make sure the file exists and is readable."
 msgstr "請確定此檔案已存在並可讀取。"
@@ -1474,16 +1474,16 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "請確定此檔案儲存在可寫目錄中。"
 
 msgid "Disk image too large"
-msgstr "磁碟映像太大"
+msgstr "磁碟影像太大"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "請記得為新創建的映像分區並格式化。"
+msgstr "請記得為新創建的影像分區並格式化。"
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "選定的檔案將被覆蓋。確定繼續使用此檔案嗎？"
 
 msgid "Unsupported disk image"
-msgstr "不支援的磁碟映像"
+msgstr "不支援的磁碟影像"
 
 msgid "Overwrite"
 msgstr "覆蓋"
@@ -1492,13 +1492,13 @@ msgid "Don't overwrite"
 msgstr "不覆蓋"
 
 msgid "Raw image"
-msgstr "原始映像"
+msgstr "原始影像"
 
 msgid "HDI image"
-msgstr "HDI 映像"
+msgstr "HDI 影像"
 
 msgid "HDX image"
-msgstr "HDX 映像"
+msgstr "HDX 影像"
 
 msgid "Fixed-size VHD"
 msgstr "固定大小 VHD"
@@ -1513,13 +1513,13 @@ msgid "(N/A)"
 msgstr "(不適用)"
 
 msgid "Raw image (.img)"
-msgstr "原始映像 (.img)"
+msgstr "原始影像 (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI 映像 (.hdi)"
+msgstr "HDI 影像 (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX 映像 (.hdx)"
+msgstr "HDX 影像 (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "固定大小 VHD (.vhd)"
@@ -1543,7 +1543,7 @@ msgid "Select the parent VHD"
 msgstr "選取父 VHD 檔案"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "父映像可能在創建差異映像後被修改。\n\n如果映像檔案被移動或複製，或創建此磁碟的程式中存在錯誤，也可能發生這種情況。\n\n是否需要修復時間戳？"
+msgstr "父影像可能在創建差異影像後被修改。\n\n如果影像檔案被移動或複製，或創建此磁碟的程式中存在錯誤，也可能發生這種情況。\n\n是否需要修復時間戳？"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "父碟與子碟的時間戳不匹配"
@@ -1666,7 +1666,7 @@ msgid "Mouse sensitivity:"
 msgstr "滑鼠靈敏度:"
 
 msgid "Select media images from program working directory"
-msgstr "從程式工作目錄中選擇媒體映像"
+msgstr "從程式工作目錄中選擇媒體影像"
 
 msgid "PIT mode:"
 msgstr "PIT 模式:"
@@ -1720,16 +1720,16 @@ msgid "&MCA devices..."
 msgstr "&MCA 裝置..."
 
 msgid "Show non-&primary monitors"
-msgstr "顯示非主要顯示器(&P)"
+msgstr "顯示非主要監視器(&P)"
 
 msgid "Open screenshots &folder..."
 msgstr "開啟螢幕擷圖資料夾...(&F)"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "最大化時套用全螢幕拉伸模式(&Y)"
+msgstr "最大化時套用全螢幕延展模式(&Y)"
 
 msgid "&Cursor/Puck"
-msgstr "游標/球棒(&C)"
+msgstr "數位板標定器(&C)"
 
 msgid "&Pen"
 msgstr "筆(&P)"
@@ -1738,10 +1738,10 @@ msgid "&Host CD/DVD Drive (%1:)"
 msgstr "主機 CD/DVD 光碟機 (%1:) (&H)"
 
 msgid "&Connected"
-msgstr "已連線"
+msgstr "已連線(&C)"
 
 msgid "Clear image &history"
-msgstr "清除映像歷史記錄(&H)"
+msgstr "清除影像歷史記錄(&H)"
 
 msgid "Create..."
 msgstr "建立..."
@@ -1804,7 +1804,7 @@ msgid "\nFalling back to software rendering."
 msgstr "\n回退到軟體渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>當選擇媒體映像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 設定檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
+msgstr "<html><head/><body><p>當選擇媒體影像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 設定檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "這台機器可能已被移動或複製。"
@@ -1819,7 +1819,7 @@ msgid "I Copied It"
 msgstr "我已複製這台機器"
 
 msgid "86Box Monitor #"
-msgstr "86Box 顯示器 #"
+msgstr "86Box 監視器 #"
 
 msgid "No MCA devices."
 msgstr "沒有 MCA 裝置。"
@@ -1933,16 +1933,16 @@ msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 標準 Hayes 相容的數據機"
 
 msgid "Roland MT-32 Emulation"
-msgstr "羅蘭 MT-32 模擬"
+msgstr "Roland MT-32 模擬"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr "羅蘭 MT-32（新）模擬"
+msgstr "Roland MT-32（新）模擬"
 
 msgid "Roland CM-32L Emulation"
-msgstr "羅蘭 CM-32L 模擬"
+msgstr "Roland CM-32L 模擬"
 
 msgid "Roland CM-32LN Emulation"
-msgstr "羅蘭 CM-32LN 模擬"
+msgstr "Roland CM-32LN 模擬"
 
 msgid "OPL4-ML Daughterboard"
 msgstr "OPL4-ML 子板"
@@ -2014,7 +2014,7 @@ msgid "Parallel port IRQ"
 msgstr "並列埠的 IRQ"
 
 msgid "BIOS Revision"
-msgstr "BIOS 版本"
+msgstr "BIOS 修訂版號"
 
 msgid "BIOS Version"
 msgstr "BIOS 版本"
@@ -2140,7 +2140,7 @@ msgid "Reversed stereo"
 msgstr "反向立體聲"
 
 msgid "Nice ramp"
-msgstr "漂亮的斜坡"
+msgstr "平滑漸變曲線"
 
 msgid "Hz"
 msgstr "赫茲"
@@ -2155,7 +2155,7 @@ msgid "RTS toggle"
 msgstr "RTS 切換"
 
 msgid "Revision"
-msgstr "修訂"
+msgstr "修訂版號"
 
 msgid "Controller"
 msgstr "控制器"
@@ -2323,7 +2323,7 @@ msgid "Snow emulation"
 msgstr "雪花模擬"
 
 msgid "Monitor type"
-msgstr "顯示器類型"
+msgstr "監視器類型"
 
 msgid "Character set"
 msgstr "字元集"
@@ -2464,7 +2464,7 @@ msgid "Non-timed (original)"
 msgstr "非定時 (原始)"
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr "45 Hz (JMP2 未填充)"
+msgstr "45 Hz (JMP2 未安插)"
 
 msgid "Two"
 msgstr "二鍵"
@@ -2572,7 +2572,7 @@ msgid "Color (IBM 5153)"
 msgstr "彩色（IBM 5153）"
 
 msgid "Simple doubling"
-msgstr "簡單加倍"
+msgstr "簡單倍增"
 
 msgid "sRGB interpolation"
 msgstr "sRGB 插值"
@@ -2632,7 +2632,7 @@ msgid "U.S. English"
 msgstr "美國英語"
 
 msgid "Scandinavian"
-msgstr "斯堪的納維亞語"
+msgstr "斯堪地那維亞語"
 
 msgid "Other languages"
 msgstr "其他語言"
@@ -2866,7 +2866,7 @@ msgid "Keybind"
 msgstr "鍵盤綁定"
 
 msgid "Clear binding"
-msgstr "透明裝訂"
+msgstr "解除綁定"
 
 msgid "Bind"
 msgstr "綁定"
@@ -2941,7 +2941,7 @@ msgid "&Wipe NVRAM"
 msgstr "清除(&W) NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "這將刪除位於 (\"nvr\" 子目錄中的) 虛擬機器的所有 NVRAM (和相關) 檔案。如果適用的話，您必須重新設定 BIOS (可能還有虛擬機器內的其他裝置) 設定。\n\n您確定要清除虛擬機 \"%1\" 的所有 NVRAM 內容嗎？"
+msgstr "這將刪除位於 (\"nvr\" 子目錄中的) 虛擬機器的所有 NVRAM (和相關) 檔案。如果套用的話，您必須重新設定 BIOS (可能還有虛擬機器內的其他裝置) 設定。\n\n您確定要清除虛擬機 \"%1\" 的所有 NVRAM 內容嗎？"
 
 msgid "Success"
 msgstr "成功"
@@ -2968,7 +2968,7 @@ msgid "Check for updates on startup"
 msgstr "啟動時檢查更新"
 
 msgid "Unable to determine release information"
-msgstr "無法確定釋放資訊"
+msgstr "無法確定版本發佈資訊"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
 msgstr "檢查更新時出錯:\n\n%1\n\n請稍後再試。"
@@ -2977,7 +2977,7 @@ msgid "Update check complete"
 msgstr "更新檢查完成"
 
 msgid "stable"
-msgstr "穩定"
+msgstr "穩定版"
 
 msgid "beta"
 msgstr "測試版"
@@ -3019,7 +3019,7 @@ msgid "86Box Update"
 msgstr "86Box 更新"
 
 msgid "Release notes:"
-msgstr "發佈說明:"
+msgstr "版本發佈說明:"
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
@@ -3073,7 +3073,7 @@ msgid "OpenGL input scale"
 msgstr "OpenGL 的輸入比例"
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL 的輸入拉伸模式"
+msgstr "OpenGL 的輸入延展模式"
 
 msgid "Color scheme"
 msgstr "配色方案"
