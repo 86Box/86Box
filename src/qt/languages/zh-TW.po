@@ -154,7 +154,7 @@ msgid "RGB (no brown)"
 msgstr "RGB (無棕色)"
 
 msgid "&RGB Grayscale"
-msgstr "RGB 灰度(&R)"
+msgstr "RGB 灰階(&R)"
 
 msgid "Generic RGBI color monitor"
 msgstr "通用 RGBI 彩色監視器"
@@ -169,7 +169,7 @@ msgid "&White monitor"
 msgstr "白色單色顯示器(&W)"
 
 msgid "Grayscale &conversion type"
-msgstr "灰度轉換類型(&C)"
+msgstr "灰階轉換類型(&C)"
 
 msgid "BT&601 (NTSC/PAL)"
 msgstr "BT601 (NTSC/PAL)(&6)"
@@ -187,7 +187,7 @@ msgid "Change contrast for &monochrome display"
 msgstr "變更單色顯示對比度(&M)"
 
 msgid "&Media"
-msgstr "介質(&M)"
+msgstr "媒體(&M)"
 
 msgid "&Tools"
 msgstr "工具(&T)"
@@ -238,7 +238,7 @@ msgid "&Existing image..."
 msgstr "開啟已存在的映像(&E)..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "開啟已存在的映像並寫保護(&W)..."
+msgstr "以防寫保護開啟已存在的映像(&W)..."
 
 msgid "&Record"
 msgstr "錄製(&R)"
@@ -421,10 +421,10 @@ msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 圖形"
 
 msgid "IBM 8514/A Graphics"
-msgstr "IBM 8514/A Graphics"
+msgstr "IBM 8514/A 圖形"
 
 msgid "XGA Graphics"
-msgstr "XGA Graphics"
+msgstr "XGA 圖形"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 顯示介面卡圖形"
@@ -487,7 +487,7 @@ msgid "Use FLOAT32 sound"
 msgstr "使用單精度浮點 (FLOAT32) 音訊"
 
 msgid "FM synth driver"
-msgstr "FM synth driver"
+msgstr "FM 合成驅動器"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (更準確)"
@@ -748,10 +748,10 @@ msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video
 msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 \"%hs\" 不可用。將切換到其他可用顯示卡。"
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 2 \"%hs\" 不可用。禁用第二块显卡。"
+msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 2 \"%hs\" 不可用。禁用第二張顯示卡。"
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "由於缺少合適的 ROM，裝置 \"%hs\" 不可用。忽略设备。"
+msgstr "由於缺少合適的 ROM，裝置 \"%hs\" 不可用。忽略裝置。"
 
 msgid "Machine"
 msgstr "機型"
@@ -850,7 +850,7 @@ msgid "Invalid PCap device"
 msgstr "無效 PCap 裝置"
 
 msgid "Generic paddle controller(s)"
-msgstr "通用槳式控制器"
+msgstr "通用旋鈕控制器"
 
 msgid "2-axis, 1-button joystick(s)"
 msgstr "2 軸, 1 鍵搖桿"
@@ -1069,10 +1069,10 @@ msgid "Invalid configuration"
 msgstr "無效設定"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
+msgstr "自動將 PostScript 檔案轉換為 PDF 需要 %1。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 是將 PCL 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PCL 印表機列印的文件將被儲存為 Printer Command Language (.pcl) 檔案。"
+msgstr "自動將 PCL 檔案轉換為 PDF 需要 %1。\n\n使用通用 PCL 印表機列印的文件將被儲存為 Printer Command Language (.pcl) 檔案。"
 
 msgid "Don't show this message again"
 msgstr "不要再顯示此消息"
@@ -1102,7 +1102,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "正在載入一個不受支援的設定"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
+msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而結案。"
 
 msgid "Continue"
 msgstr "繼續"
@@ -1159,25 +1159,25 @@ msgid "Not running"
 msgstr "未執行"
 
 msgid "Running"
-msgstr "運行"
+msgstr "執行中"
 
 msgid "Paused"
 msgstr "已暫停"
 
 msgid "Waiting"
-msgstr "等待"
+msgstr "等待中"
 
 msgid "Powered Off"
 msgstr "電源關閉"
 
 msgid "%n running"
-msgstr "%n 運行"
+msgstr "%n 執行中"
 
 msgid "%n paused"
 msgstr "%n 已暫停"
 
 msgid "%n waiting"
-msgstr "%n 等待"
+msgstr "%n 等待中"
 
 msgid "%1 total"
 msgstr "%1 總計"
@@ -1204,7 +1204,7 @@ msgid "Unable to open the selected configuration file for reading: %1"
 msgstr "無法開啟選取的設定檔進行讀取: %1"
 
 msgid "Use regular expressions in search box"
-msgstr "在搜尋方塊中使用正則表達式"
+msgstr "在搜尋方塊中使用正規表示式"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr "%1 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
@@ -1285,7 +1285,7 @@ msgid "Set display name"
 msgstr "設定顯示名稱"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr "輸入新的顯示名稱 (空白表示重設)"
+msgstr "輸入新的顯示名稱 (留空以重設)"
 
 msgid "Change &display name..."
 msgstr "變更顯示名稱(&D)..."
@@ -1306,7 +1306,7 @@ msgid "Select an icon"
 msgstr "選擇圖示"
 
 msgid "C&lone..."
-msgstr "克隆(&L)..."
+msgstr "複製(&L)..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "虛擬機器 \"%1\" (%2) 將被複製到:"
@@ -1318,7 +1318,7 @@ msgid "You cannot use the following characters in the name: %1"
 msgstr "您不能在名稱中使用下列字元：%1"
 
 msgid "Clone"
-msgstr "克隆"
+msgstr "複製"
 
 msgid "Failed to create directory for cloned VM"
 msgstr "為複製的虛擬機器建立目錄失敗"
@@ -1345,7 +1345,7 @@ msgid "Unable to open the configuration file at %1 for writing"
 msgstr "無法開啟 %1 的設定檔進行寫入"
 
 msgid "Error adding system"
-msgstr "錯誤新增系統"
+msgstr "新增系統錯誤"
 
 msgid "Remove directory failed"
 msgstr "移除目錄失敗"
@@ -1387,7 +1387,7 @@ msgid "Show &config file"
 msgstr "顯示設定檔(&C)"
 
 msgid "No screenshot"
-msgstr "沒有截圖"
+msgstr "沒有擷圖"
 
 msgid "Search"
 msgstr "搜尋"
@@ -1426,7 +1426,7 @@ msgid "Hard disk (%1)"
 msgstr "硬碟 (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "不存在 MFM/RLL 或 ESDI CD-ROM 光碟機"
+msgstr "MFM/RLL 或 ESDI CD-ROM 光碟機從未存在"
 
 msgid "Custom..."
 msgstr "自訂..."
@@ -1600,10 +1600,10 @@ msgid "1.44 MB"
 msgstr "1.44 MB"
 
 msgid "DMF (cluster 1024)"
-msgstr "DMF (1024 簇)"
+msgstr "DMF (1024 位元組叢集)"
 
 msgid "DMF (cluster 2048)"
-msgstr "DMF (2048 簇)"
+msgstr "DMF (2048 位元組叢集)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
@@ -1666,7 +1666,7 @@ msgid "Mouse sensitivity:"
 msgstr "滑鼠靈敏度:"
 
 msgid "Select media images from program working directory"
-msgstr "從程式工作目錄中選擇介質映像"
+msgstr "從程式工作目錄中選擇媒體映像"
 
 msgid "PIT mode:"
 msgstr "PIT 模式:"
@@ -1684,10 +1684,10 @@ msgid "&Auto-pause on focus loss"
 msgstr "失去焦點時自動暫停(&A)"
 
 msgid "WinBox is no longer supported"
-msgstr "WinBox is no longer supported"
+msgstr "不再支援 WinBox"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "WinBox 於 2022 年因缺乏維護者而停止發展。由於我們傾注全力於將 86Box 做的更好，我們決定不再支援將 WinBox 做為管理員。\n\n在 WinBox 未提供更新前，搭配新版本的 86Box 使用將導致不正確的行為。任何由 WinBox 引起的錯誤回報將以無效結案。\n\n請造訪 86box.net 網站以取得其他可用的管理員列表。"
 
 msgid "Generate"
 msgstr "產生"
@@ -1723,7 +1723,7 @@ msgid "Show non-&primary monitors"
 msgstr "顯示非主要顯示器(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "開啟螢幕截圖資料夾...(&F)"
+msgstr "開啟螢幕擷圖資料夾...(&F)"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時套用全螢幕拉伸模式(&Y)"
@@ -1756,7 +1756,7 @@ msgid "Null Driver"
 msgstr "空驅動程式"
 
 msgid "NIC:"
-msgstr "NIC:"
+msgstr "網路卡："
 
 msgid "NIC %1 (%2) %3"
 msgstr "網路卡 %1 (%2) %3"
@@ -1771,10 +1771,10 @@ msgid "Use target framerate:"
 msgstr "使用目標影格速率："
 
 msgid " fps"
-msgstr "fps"
+msgstr " fps"
 
 msgid "VSync"
-msgstr "VSync"
+msgstr "垂直同步"
 
 msgid "Synchronize with video"
 msgstr "與視訊同步"
@@ -1789,10 +1789,10 @@ msgid "Browse..."
 msgstr "瀏覽..."
 
 msgid "Couldn't create OpenGL context."
-msgstr "無法建立 OpenGL 上下文。"
+msgstr "無法建立 OpenGL 內容。"
 
 msgid "Couldn't switch to OpenGL context."
-msgstr "無法切換至 OpenGL 上下文。"
+msgstr "無法切換至 OpenGL 內容。"
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "需要 OpenGL 版本 3.0 或更高。目前版本為 %1.%2"
@@ -1819,7 +1819,7 @@ msgid "I Copied It"
 msgstr "我已複製這台機器"
 
 msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgstr "86Box 顯示器 #"
 
 msgid "No MCA devices."
 msgstr "沒有 MCA 裝置。"
@@ -1855,7 +1855,7 @@ msgid "VDE Socket:"
 msgstr "VDE 插座:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP 橋接裝置:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 單元測試器"
@@ -1927,7 +1927,7 @@ msgid "3M MicroTouch (Serial)"
 msgstr "3M MicroTouch (序列埠)"
 
 msgid "Default Baud rate"
-msgstr "預設波特率"
+msgstr "預設鮑率"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr "[COM] 標準 Hayes 相容的數據機"
@@ -1999,7 +1999,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 4)"
 
 msgid "Linear framebuffer base"
-msgstr "線性圖框緩衝記憶體的底座"
+msgstr "線性圖框緩衝記憶體的起始位址"
 
 msgid "Address"
 msgstr "位址"
@@ -2023,7 +2023,7 @@ msgid "BIOS Language"
 msgstr "BIOS 語言"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr "IBM 5161 擴充裝置"
+msgstr "IBM 5161 擴充單元"
 
 msgid "IBM Cassette Basic"
 msgstr "IBM 磁帶式 BASIC"
@@ -2125,13 +2125,13 @@ msgid "Reverb Width"
 msgstr "混響寬度"
 
 msgid "Reverb Level"
-msgstr "混響電平"
+msgstr "混響位準"
 
 msgid "Interpolation Method"
 msgstr "插值方法"
 
 msgid "Dynamic Sample Loading"
-msgstr "樣品的動態載入"
+msgstr "動態取樣載入"
 
 msgid "Reverb Output Gain"
 msgstr "迴響輸出增益"
@@ -2254,16 +2254,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "實時時鐘 IRQ"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "實時時鐘埠位址"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "內建實時時鐘"
 
 msgid "Not installed"
-msgstr ""
+msgstr "未安裝"
 
 msgid "Enable OPL"
 msgstr "啟用 OPL"
@@ -2641,16 +2641,16 @@ msgid "Bochs latest"
 msgstr "Bochs 最新"
 
 msgid "Apply overscan deltas"
-msgstr "套用過掃描三角區"
+msgstr "套用過掃描差值"
 
 msgid "Mono Interlaced"
-msgstr "單色隔行扫描"
+msgstr "單色隔行掃描"
 
 msgid "Mono Non-Interlaced"
 msgstr "單色非隔行掃描"
 
 msgid "Color Interlaced"
-msgstr "彩色隔行扫描"
+msgstr "彩色隔行掃描"
 
 msgid "Color Non-Interlaced"
 msgstr "彩色非隔行掃描"
@@ -2704,7 +2704,7 @@ msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "用於 Savage Quest 的保護加密狗"
+msgstr "用於 Savage Quest 的防拷保護鎖"
 
 msgid "Serial Passthrough Device"
 msgstr "序列埠直通裝置"
@@ -2743,7 +2743,7 @@ msgid "&Unmute"
 msgstr "解除靜音(&U)"
 
 msgid "Softfloat FPU"
-msgstr "Softfloat FPU"
+msgstr "Softfloat 浮點運算器模擬"
 
 msgid "High performance impact"
 msgstr "對效能影響大"
@@ -2773,7 +2773,7 @@ msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[通用] 2000 (7200 轉速)"
 
 msgid "IBM 8514/A clone (ISA)"
-msgstr "IBM 8514/A 克隆 (ISA)"
+msgstr "IBM 8514/A 相容品 (ISA)"
 
 msgid "Vendor"
 msgstr "製造商"
@@ -2893,10 +2893,10 @@ msgid "Toggle fullscreen"
 msgstr "切換全螢幕"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "切換使用者介面至全螢幕"
 
 msgid "Screenshot"
-msgstr "螢幕截圖"
+msgstr "螢幕擷圖"
 
 msgid "Release mouse pointer"
 msgstr "放開滑鼠游標"
@@ -2920,7 +2920,7 @@ msgid "Local Switch"
 msgstr "本地交換器"
 
 msgid "Remote Switch"
-msgstr "遙控交換器"
+msgstr "遠端交換器"
 
 msgid "Switch:"
 msgstr "交換器:"
@@ -3052,10 +3052,10 @@ msgid "Sharpness"
 msgstr "銳利度"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 複合模式的設定...(&C)"
+msgstr "CGA 複合視訊的設定...(&C)"
 
 msgid "CGA composite settings"
-msgstr "CGA 複合模式的設定"
+msgstr "CGA 複合視訊的設定"
 
 msgid "Monitor EDID"
 msgstr "監視器的 EDID"
