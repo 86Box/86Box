@@ -766,7 +766,7 @@ msgid "Floppy & CD-ROM drives"
 msgstr "Disquete & CD-ROM"
 
 msgid "Other removable devices"
-msgstr "Dispos. removíveis"
+msgstr "Outros dispositivos removíveis"
 
 msgid "Other peripherals"
 msgstr "Outros periféricos"
