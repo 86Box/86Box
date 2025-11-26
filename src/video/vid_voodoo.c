@@ -431,7 +431,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
 #endif
         *(uint32_t *) &voodoo->fb_mem[(voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask] = val;
         voodoo->cmdfifo_depth_wr++;
-        if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
+        if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) > 200)
             voodoo_wake_fifo_thread(voodoo);
     } else
         switch (addr & 0x3fc) {
