@@ -88,6 +88,7 @@ extern const char* fdd_audio_get_profile_name(int id);
 extern const char* fdd_audio_get_profile_internal_name(int id);
 extern int fdd_audio_get_profile_by_internal_name(const char *internal_name);
 extern double fdd_audio_get_seek_time(int drive, int track_count, int is_seek_down);
+extern void load_profile_samples(int profile_id);
 
 #else
 

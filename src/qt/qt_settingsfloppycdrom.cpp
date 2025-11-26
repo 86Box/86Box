@@ -313,6 +313,20 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     int row = current.row();
     ui->comboBoxFloppyAudio->clear();
 
+    if (type == 0) {
+        ui->comboBoxFloppyAudio->addItem(tr("None"), 0);
+        ui->comboBoxFloppyAudio->setCurrentIndex(0);
+        ui->comboBoxFloppyAudio->setEnabled(false);
+
+        // Update the model to reflect "None" profile
+        auto audioIdx = current.siblingAtColumn(3);
+        ui->tableViewFloppy->model()->setData(audioIdx, tr("None"));
+        ui->tableViewFloppy->model()->setData(audioIdx, 0, Qt::UserRole);
+        return;
+    }
+
+    ui->comboBoxFloppyAudio->setEnabled(true);
+
     // Get drive type's track count to determine 40-track vs 80-track
     int  drive_max_tracks = fdd_get_type_max_track(type);
     bool is_40_track      = (drive_max_tracks <= 43);
@@ -327,7 +341,9 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
             const fdd_audio_profile_config_t *profile = fdd_audio_get_profile(i);
             if (profile) {
                 // Only show profiles that match the drive type's track count
-                if ((is_40_track && profile->total_tracks == 40) || (!is_40_track && profile->total_tracks == 80) || profile->total_tracks == 0) { // Profile ID 0 is "None"
+                if (profile->total_tracks == 0 || 
+                    (is_40_track && profile->total_tracks == 40) || 
+                    (!is_40_track && profile->total_tracks == 80)) {
                     ui->comboBoxFloppyAudio->addItem(name, i);
                     if (i == prof) {
                         currentProfileIndex = comboIndex;
@@ -448,6 +464,9 @@ SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
         profName = name;
     } else {
         profName = tr("None");
+    }
+    if (prof > 0) {
+        load_profile_samples(prof);
     }
 #else
     profName = tr("None");

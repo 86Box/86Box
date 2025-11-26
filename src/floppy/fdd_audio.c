@@ -302,7 +302,7 @@ fdd_audio_load_profiles(void)
     fdd_log("FDD Audio: Loaded %d audio profiles from %s\n", audio_profile_count, config_path);
 }
 
-static void
+void
 load_profile_samples(int profile_id)
 {
     if (profile_id <= 0 || profile_id >= audio_profile_count)
