@@ -4702,8 +4702,8 @@ s3_recalctimings(svga_t *svga)
                 svga->read_bank = 0;
             }
             /*In non-enhanced/IBM VGA modes, reset the misc index registers.*/
-            s3->accel.multifunc[0xd] = 0xd000;
-            s3->accel.multifunc[0xe] = 0xe000;
+            s3->accel.multifunc[0xd] = 0x000;
+            s3->accel.multifunc[0xe] = 0x000;
         }
     }
 
@@ -5306,6 +5306,7 @@ s3_accel_in(uint16_t port, void *priv)
         case 0x9949:
         case 0x9ae9:
             temp = 0;
+            s3_log("FIFO=%x, cmd=%d, sy=%d.\n", s3_enable_fifo(s3), s3->accel.cmd >> 13, s3->accel.sy);
             if (s3_enable_fifo(s3)) {
                 if (!s3->blitter_busy)
                     wake_fifo_thread(s3);
@@ -5332,17 +5333,26 @@ s3_accel_in(uint16_t port, void *priv)
                 else {
                     switch (s3->accel.cmd >> 13) { /*Some drivers may not set FIFO on but may still turn on FIFO empty bits!*/
                         case 0:
-                            if (!s3->accel.ssv_len)
+                            if (s3->accel.cmd & 0x100) {
+                                if (!s3->accel.ssv_len)
+                                    temp |= 0x04;
+                            } else
                                 temp |= 0x04;
                             break;
                         case 1:
-                            if (!s3->accel.sy)
+                            if (s3->accel.cmd & 0x100) {
+                                if (!s3->accel.sy)
+                                    temp |= 0x04;
+                            } else
                                 temp |= 0x04;
                             break;
                         case 2:
                         case 6:
                         case 7:
-                            if (s3->accel.sy < 0)
+                            if (s3->accel.cmd & 0x100) {
+                                if (s3->accel.sy < 0)
+                                    temp |= 0x04;
+                            } else
                                 temp |= 0x04;
                             break;
 

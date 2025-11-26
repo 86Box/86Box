@@ -25,7 +25,7 @@
 #include <86box/device.h>
 
 typedef struct ics90c64a_t {
-    float freq[32];
+    float freq[17];
 } ics90c64a_t;
 
 #ifdef ENABLE_ICS90C64A_LOG
@@ -51,21 +51,10 @@ ics90c64a_vclk_getclock(int clock, void *priv)
 {
     const ics90c64a_t *ics90c64a = (ics90c64a_t *) priv;
 
-    if (clock > 15)
-        clock = 15;
+    if (clock > 16)
+        clock = 16;
 
     return ics90c64a->freq[clock];
-}
-
-float
-ics90c64a_mclk_getclock(int clock, void *priv)
-{
-    const ics90c64a_t *ics90c64a = (ics90c64a_t *) priv;
-
-    if (clock > 7)
-        clock = 7;
-
-    return ics90c64a->freq[clock + 0x10];
 }
 
 static void *
@@ -76,32 +65,24 @@ ics90c64a_init(const device_t *info)
 
     switch (info->local) {
         case 903:
-            /* ICS90C64A-903 for PVGA chip series */
-            ics90c64a->freq[0x0] = 30000000.0;
-            ics90c64a->freq[0x1] = 77250000.0;
-            ics90c64a->freq[0x2] = 0.0;
-            ics90c64a->freq[0x3] = 80000000.0;
-            ics90c64a->freq[0x4] = 31500000.0;
-            ics90c64a->freq[0x5] = 36000000.0;
-            ics90c64a->freq[0x6] = 75000000.0;
-            ics90c64a->freq[0x7] = 50000000.0;
-            ics90c64a->freq[0x8] = 40000000.0;
-            ics90c64a->freq[0x9] = 50000000.0;
-            ics90c64a->freq[0xa] = 32000000.0;
-            ics90c64a->freq[0xb] = 44900000.0;
-            ics90c64a->freq[0xc] = 25175000.0;
-            ics90c64a->freq[0xd] = 28322000.0;
-            ics90c64a->freq[0xe] = 65000000.0;
-            ics90c64a->freq[0xf] = 36000000.0;
-
-            ics90c64a->freq[0x10] = 33000000.0;
-            ics90c64a->freq[0x11] = 49218000.0;
-            ics90c64a->freq[0x12] = 60000000.0;
-            ics90c64a->freq[0x13] = 30500000.0;
-            ics90c64a->freq[0x14] = 41612000.0;
-            ics90c64a->freq[0x15] = 37500000.0;
-            ics90c64a->freq[0x16] = 36000000.0;
-            ics90c64a->freq[0x17] = 44296000.0;
+            /* ICS90C64A-903 for PVGA chip series, also per debian svgatext mode textconfig */
+            ics90c64a->freq[0] = 25175000.0;
+            ics90c64a->freq[1] = 28322000.0;
+            ics90c64a->freq[2] = 65000000.0;
+            ics90c64a->freq[3] = 36000000.0;
+            ics90c64a->freq[4] = 40000000.0;
+            ics90c64a->freq[5] = 50000000.0;
+            ics90c64a->freq[6] = 32000000.0;
+            ics90c64a->freq[7] = 45000000.0;
+            ics90c64a->freq[8] = 31500000.0;
+            ics90c64a->freq[9] = 35500000.0;
+            ics90c64a->freq[0x0a] = 74500000.0;
+            ics90c64a->freq[0x0b] = 72000000.0;
+            ics90c64a->freq[0x0c] = 30000000.0;
+            ics90c64a->freq[0x0d] = 77000000.0;
+            ics90c64a->freq[0x0e] = 86000000.0;
+            ics90c64a->freq[0x0f] = 80000000.0;
+            ics90c64a->freq[0x10] = 60000000.0;
             break;
 
         default:
