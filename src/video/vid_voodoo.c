@@ -427,18 +427,27 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
         voodoo_queue_command(voodoo, addr | FIFO_WRITEL_FB, val);
     } else if ((addr & 0x200000) && (voodoo->fbiInit7 & FBIINIT7_CMDFIFO_ENABLE)) {
 #if 0
-        voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, voodoo->cmdfifo_base + (addr & 0x3fffc), val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
+        voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask, val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
 #endif
         *(uint32_t *) &voodoo->fb_mem[(voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask] = val;
         voodoo->cmdfifo_depth_wr++;
-        if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
-            voodoo_wake_fifo_thread(voodoo);
+
+        /* Voodoo1: use higher CMDFIFO threshold to reduce wake frequency */
+        if (voodoo->type == VOODOO_1) {
+            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) > 300)
+                voodoo_wake_fifo_thread(voodoo);
+        }
+        /* Other cards (Voodoo2, Banshee, Voodoo3, ...) keep the original behavior */
+        else {
+            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
+                voodoo_wake_fifo_thread(voodoo);
+        }
     } else
         switch (addr & 0x3fc) {
             case SST_intrCtrl:
                 fatal("intrCtrl write %08x\n", val);
                 break;
-
+            
             case SST_userIntrCMD:
                 fatal("userIntrCMD write %08x\n", val);
                 break;
