@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "指定視窗大小...(&D)"
+msgstr "指定視窗大小(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "強制 4:3 顯示比例(&4)"
@@ -272,36 +272,6 @@ msgstr "載入上一個影像"
 
 msgid "&Folder..."
 msgstr "資料夾(&F)..."
-
-msgid "Target &framerate"
-msgstr "目標影格速率(&F)"
-
-msgid "&Sync with video"
-msgstr "與視訊同步(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "垂直同步(&V)"
-
-msgid "&Select shader..."
-msgstr "選取著色器(&S)..."
-
-msgid "&Remove shader"
-msgstr "移除著色器(&R)"
 
 msgid "Preferences"
 msgstr "偏好設定"
@@ -550,7 +520,7 @@ msgid "FD Controller:"
 msgstr "軟碟控制器:"
 
 msgid "CD-ROM Controller:"
-msgstr "CD-ROM 控制器"
+msgstr "CD-ROM 控制器:"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
@@ -686,9 +656,6 @@ msgstr "ISABugger 裝置"
 
 msgid "POST card"
 msgstr "自我檢測 (POST) 卡"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "錯誤"
@@ -1050,11 +1017,8 @@ msgstr "此操作將硬重設模擬器。"
 msgid "Save"
 msgstr "儲存"
 
-msgid "About 86Box"
-msgstr "關於 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "關於 %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n之前的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發佈。詳情見 LICENSE 檔案。"
@@ -1404,8 +1368,8 @@ msgstr "系統"
 msgid "Storage"
 msgstr "儲存"
 
-msgid "Disk %1: "
-msgstr "磁碟 %1: "
+msgid "Disk %1:"
+msgstr "磁碟 %1:"
 
 msgid "No disks"
 msgstr "無磁碟"
@@ -1723,7 +1687,7 @@ msgid "Show non-&primary monitors"
 msgstr "顯示非主要監視器(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "開啟螢幕擷圖資料夾...(&F)"
+msgstr "開啟螢幕擷圖資料夾(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時套用全螢幕延展模式(&Y)"
@@ -1818,8 +1782,8 @@ msgstr "我已移動這台機器"
 msgid "I Copied It"
 msgstr "我已複製這台機器"
 
-msgid "86Box Monitor #"
-msgstr "86Box 監視器 #"
+msgid "86Box Monitor #%1"
+msgstr "86Box 監視器 #%1"
 
 msgid "No MCA devices."
 msgstr "沒有 MCA 裝置。"
@@ -1876,7 +1840,7 @@ msgid "Serial port passthrough 4"
 msgstr "序列埠的直通 4"
 
 msgid "Renderer &options..."
-msgstr "渲染器選項...(&O)"
+msgstr "渲染器選項(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 鍵盤"
@@ -2232,12 +2196,6 @@ msgstr "SID 過濾強度"
 msgid "Surround module"
 msgstr "環繞聲模組"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "在 CODEC 設定時啟動 CODEC 中斷 (某些驅動程式需要)"
-
 msgid "SB Address"
 msgstr "SB 位址"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (立體聲)"
 
-msgid "Classic"
-msgstr "經典"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2826,9 +2781,6 @@ msgstr "GLSL 錯誤"
 msgid "Could not load shader: %1"
 msgstr "無法載入著色器: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "需要 OpenGL 版本 3.0 或更高。目前的 GLSL 版本為 %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "無法載入材質: %1"
 
@@ -3052,7 +3004,7 @@ msgid "Sharpness"
 msgstr "銳利度"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 複合視訊的設定...(&C)"
+msgstr "CGA 複合視訊的設定(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA 複合視訊的設定"

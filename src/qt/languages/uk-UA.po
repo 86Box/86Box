@@ -61,7 +61,7 @@ msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgstr "Open&GL (3.0 Core)"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -76,13 +76,13 @@ msgid "&Window scale factor"
 msgstr "&Масштаб вікна"
 
 msgid "&0.5x"
-msgstr "&0.5x"
+msgstr "&0,5x"
 
 msgid "&1x"
 msgstr "&1x"
 
 msgid "1.&5x"
-msgstr "1.&5x"
+msgstr "1,&5x"
 
 msgid "&2x"
 msgstr "&2x"
@@ -272,36 +272,6 @@ msgstr "Знову завантажити попередній образ"
 
 msgid "&Folder..."
 msgstr "&Тека..."
-
-msgid "Target &framerate"
-msgstr "Цільова &частота кадрів"
-
-msgid "&Sync with video"
-msgstr "&Синхронізація з відео"
-
-msgid "&25 fps"
-msgstr "&25 кадрів в секунду"
-
-msgid "&30 fps"
-msgstr "&30 кадрів в секунду"
-
-msgid "&50 fps"
-msgstr "&50 кадрів в секунду"
-
-msgid "&60 fps"
-msgstr "&60 кадрів в секунду"
-
-msgid "&75 fps"
-msgstr "&75 кадрів в секунду"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Вибрати шейдер..."
-
-msgid "&Remove shader"
-msgstr "&Видалити шейдер"
 
 msgid "Preferences"
 msgstr "Параметри"
@@ -687,9 +657,6 @@ msgstr "Пристрій ISABugger"
 msgid "POST card"
 msgstr "Карта POST"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Помилка"
 
@@ -715,7 +682,7 @@ msgid "Image %1"
 msgstr "Образ %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"https://github.com/86Box/roms/releases/latest\">завантажте</a> набір ПЗУ і витягніть його в каталог \"roms\"."
+msgstr "86Box не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"https://github.com/86Box/roms/releases/latest\">завантажте</a> набір ПЗУ і витягніть його в каталог «roms»."
 
 msgid "(empty)"
 msgstr "(порожньо)"
@@ -742,16 +709,16 @@ msgid "Surface images"
 msgstr "Образ поверхні"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Системна плата \"%hs\" недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
+msgstr "Системна плата «%hs» недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Відеокарта \"%hs\" недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
+msgstr "Відеокарта «%hs» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Відеокарта 2 \"%hs\" недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Відключення другої відеокарти."
+msgstr "Відеокарта 2 «%hs» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Відключення другої відеокарти."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Пристрій \"%hs\" недоступний через відсутність файлу його ПЗУ. Ігнорування пристрою."
+msgstr "Пристрій «%hs» недоступний через відсутність файлу його ПЗУ. Ігнорування пристрою."
 
 msgid "Machine"
 msgstr "Комп'ютер"
@@ -1050,11 +1017,8 @@ msgstr "Це призведе до холодної перезагрузки е�
 msgid "Save"
 msgstr "Зберегти"
 
-msgid "About 86Box"
-msgstr "Про 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Про %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nЗ попередніми основними внесками Sarah Walker, leilei, JohnElliott, greatpsycho та інших.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
@@ -1309,7 +1273,7 @@ msgid "C&lone..."
 msgstr "К&лонувати..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr "Віртуальна машина \"%1\" (%2) буде клонована в:"
+msgstr "Віртуальна машина «%1» (%2) буде клонована в:"
 
 msgid "Directory %1 already exists"
 msgstr "Папка %1 вже існує"
@@ -1375,13 +1339,13 @@ msgid "&Kill"
 msgstr "&Завершити процес"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Примусове завершення процесу віртуальної машини може призвести до втрати даних. Робіть це тільки в тому випадку, якщо процес 86Box завис.\n\nВи дійсно хочете примусово завершити процес віртуальної машини \"%1\"?"
+msgstr "Примусове завершення процесу віртуальної машини може призвести до втрати даних. Робіть це тільки в тому випадку, якщо процес 86Box завис.\n\nВи дійсно хочете примусово завершити процес віртуальної машини «%1»?"
 
 msgid "&Delete"
 msgstr "&Видалити"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Ви дійсно хочете видалити віртуальну машину \"%1\" і всі її файли? Цю дію не можна скасувати!"
+msgstr "Ви дійсно хочете видалити віртуальну машину «%1» і всі її файли? Цю дію не можна скасувати!"
 
 msgid "Show &config file"
 msgstr "Показати файл &конфігурації"
@@ -1404,8 +1368,8 @@ msgstr "Система"
 msgid "Storage"
 msgstr "Диски"
 
-msgid "Disk %1: "
-msgstr "Диск %1: "
+msgid "Disk %1:"
+msgstr "Диск %1:"
 
 msgid "No disks"
 msgstr "Немає дисків"
@@ -1591,13 +1555,13 @@ msgid "720 KB"
 msgstr "720 КБ"
 
 msgid "1.2 MB"
-msgstr "1.2 МБ"
+msgstr "1,2 МБ"
 
 msgid "1.25 MB"
-msgstr "1.25 МБ"
+msgstr "1,25 МБ"
 
 msgid "1.44 MB"
-msgstr "1.44 МБ"
+msgstr "1,44 МБ"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (кластер 1024)"
@@ -1606,40 +1570,40 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (кластер 2048)"
 
 msgid "2.88 MB"
-msgstr "2.88 МБ"
+msgstr "2,88 МБ"
 
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3.5\" 128 МБ (ISO 10090)"
+msgstr "3,5\" 128 МБ (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
-msgstr "3.5\" 230 МБ (ISO 13963)"
+msgstr "3,5\" 230 МБ (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3.5\" 540 МБ (ISO 15498)"
+msgstr "3,5\" 540 МБ (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
-msgstr "3.5\" 640 МБ (ISO 15498)"
+msgstr "3,5\" 640 МБ (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5\" 1.3 ГБ (GigaMO)"
+msgstr "3,5\" 1,3 ГБ (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5\" 2.3 ГБ (GigaMO 2)"
+msgstr "3,5\" 2,3 ГБ (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5.25\" 600 МБ"
+msgstr "5,25\" 600 МБ"
 
 msgid "5.25\" 650 MB"
-msgstr "5.25\" 650 МБ"
+msgstr "5,25\" 650 МБ"
 
 msgid "5.25\" 1 GB"
-msgstr "5.25\" 1 ГБ"
+msgstr "5,25\" 1 ГБ"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5.25\" 1.3 ГБ"
+msgstr "5,25\" 1,3 ГБ"
 
 msgid "Perfect RPM"
 msgstr "Точний RPM"
@@ -1648,7 +1612,7 @@ msgid "1% below perfect RPM"
 msgstr "На 1% повільніше точного RPM"
 
 msgid "1.5% below perfect RPM"
-msgstr "На 1.5% повільніше точного RPM"
+msgstr "На 1,5% повільніше точного RPM"
 
 msgid "2% below perfect RPM"
 msgstr "На 2% повільніше точного RPM"
@@ -1810,7 +1774,7 @@ msgid "This machine might have been moved or copied."
 msgstr "Цю машину могли перемістити або скопіювати."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Щоб забезпечити належну мережеву функціональність, 86Box повинен знати, чи машина була переміщена або скопійована.\n\nЯкщо ви не впевнені, виберіте \"Скопійована\"."
+msgstr "Щоб забезпечити належну мережеву функціональність, 86Box повинен знати, чи машина була переміщена або скопійована.\n\nЯкщо ви не впевнені, виберіте «Скопійована»."
 
 msgid "I Moved It"
 msgstr "Переміщена"
@@ -1818,8 +1782,8 @@ msgstr "Переміщена"
 msgid "I Copied It"
 msgstr "Скопійована"
 
-msgid "86Box Monitor #"
-msgstr "Монітор 86Box "
+msgid "86Box Monitor #%1"
+msgstr "Монітор 86Box %1"
 
 msgid "No MCA devices."
 msgstr "Ніяких пристроїв MCA."
@@ -2232,12 +2196,6 @@ msgstr "Сила фільтра SID"
 msgid "Surround module"
 msgstr "Модуль об'ємного звучання"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Піднімати переривання CODEC під час встановлення CODEC (потрібно для деяких драйверів)"
-
 msgid "SB Address"
 msgstr "Адреса SB"
 
@@ -2305,7 +2263,7 @@ msgid "GUS type"
 msgstr "Тип GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Увімкнути команду 0x04 \"Вихід з 86Box\"."
+msgstr "Увімкнути команду 0x04 «Вихід з 86Box»"
 
 msgid "Display type"
 msgstr "Тип відображення"
@@ -2534,9 +2492,6 @@ msgstr "24 МБ"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (стерео)"
-
-msgid "Classic"
-msgstr "Класичний"
 
 msgid "256 KB"
 msgstr "256 КБ"
@@ -2794,7 +2749,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "Неможливо знайти матричні шрифти"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "Шрифти TrueType у каталозі \"roms/printer/fonts\" потрібні для емуляції загального матричного принтера Generic ESC/P 2."
+msgstr "Шрифти TrueType у каталозі «roms/printer/fonts» потрібні для емуляції загального матричного принтера Generic ESC/P 2."
 
 msgid "Inhibit multimedia keys"
 msgstr "Перехоплювати мультимедійні клавіші"
@@ -2825,9 +2780,6 @@ msgstr "Помилка GLSL"
 
 msgid "Could not load shader: %1"
 msgstr "Не вдалося завантажити шейдер: %1"
-
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Потрібна OpenGL версії 3.0 або вище. Поточна версія GLSL %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Не вдалося завантажити текстуру: %1"
@@ -2941,16 +2893,16 @@ msgid "&Wipe NVRAM"
 msgstr "&Стерти NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Це видалить всі файли NVRAM (і пов'язані) віртуальної машини, розташованої в підпапці «nvr». Вам доведеться знову налаштувати BIOS (і, можливо, інші пристрої всередині віртуальної машини), якщо це необхідно. Ви впевнені, що хочете стерти весь вміст NVRAM віртуальної машини \"%1\"?"
+msgstr "Це видалить всі файли NVRAM (і пов'язані) віртуальної машини, розташованої в підпапці «nvr». Вам доведеться знову налаштувати BIOS (і, можливо, інші пристрої всередині віртуальної машини), якщо це необхідно.\n\nВи впевнені, що хочете стерти весь вміст NVRAM віртуальної машини «%1»?"
 
 msgid "Success"
 msgstr "Успішно"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Успішно стерто вміст NVRAM віртуальної машини \"%1\""
+msgstr "Успішно стерто вміст NVRAM віртуальної машини «%1»"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "Сталася помилка при спробі стерти вміст NVRAM віртуальної машини \"%1\""
+msgstr "Сталася помилка при спробі стерти вміст NVRAM віртуальної машини «%1»"
 
 msgid "%1 VM Manager"
 msgstr "Менеджер віртуальних машин %1"
@@ -3028,7 +2980,7 @@ msgid "Virtual machine crash"
 msgstr "Збій віртуальної машини"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "Процес віртуальної машини \"%1\" несподівано завершився з кодом завершення %2."
+msgstr "Процес віртуальної машини «%1» несподівано завершився з кодом завершення %2."
 
 msgid "The system will not be added."
 msgstr "Система не буде додана."
@@ -3067,7 +3019,7 @@ msgid "Export EDID"
 msgstr "Експорт EDID"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "Файл EDID \"%ls\" занадто великий."
+msgstr "Файл EDID «%ls» занадто великий."
 
 msgid "OpenGL input scale"
 msgstr "Шкала введення OpenGL"

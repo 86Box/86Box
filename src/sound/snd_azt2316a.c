@@ -1467,7 +1467,7 @@ static const device_config_t azt1605_config[] = {
   // clang-format off
     {
         .name           = "codec",
-        .description    = "CODEC",
+        .description    = "Codec",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = AD1848_TYPE_CS4248,
@@ -1585,7 +1585,7 @@ static const device_config_t azt2316a_config[] = {
   // clang-format off
     {
         .name           = "codec",
-        .description    = "CODEC",
+        .description    = "Codec",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = AD1848_TYPE_CS4248,

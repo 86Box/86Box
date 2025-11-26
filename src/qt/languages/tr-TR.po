@@ -273,36 +273,6 @@ msgstr "Önceki görüntüyü yeniden seç"
 msgid "&Folder..."
 msgstr "&Klasör seç..."
 
-msgid "Target &framerate"
-msgstr "Hedef &kare hızı oranı"
-
-msgid "&Sync with video"
-msgstr "Video ile &senkronize et"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "Gölgelendirici &seç..."
-
-msgid "&Remove shader"
-msgstr "&Gölgelendiriciyi kaldır"
-
 msgid "Preferences"
 msgstr "Tercihler"
 
@@ -586,10 +556,10 @@ msgid "Firmware Version"
 msgstr "Bellenim Sürümü"
 
 msgid "&New..."
-msgstr "&Yeni görüntü oluştur"
+msgstr "&Yeni görüntü oluştur..."
 
 msgid "&Existing..."
-msgstr "&Görüntü dosyası seç"
+msgstr "&Görüntü dosyası seç..."
 
 msgid "&Remove"
 msgstr "&Kaldır"
@@ -686,9 +656,6 @@ msgstr "ISABugger cihazı"
 
 msgid "POST card"
 msgstr "POST kartı"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Hata"
@@ -1050,11 +1017,8 @@ msgstr "Bu işlem makineyi yeniden başlamaya zorlayacak."
 msgid "Save"
 msgstr "Kaydet"
 
-msgid "About 86Box"
-msgstr "86Box hakkında"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "%1 hakkında"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Bir eski bilgisayar emülatörü\n\nYapımcılar: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ve diğerleri.\n\nSarah Walker, leilei, JohnElliott, greatpsycho, ve diğerlerinin önceki katkılarıyla birlikte.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE kısmını gözden geçirin."
@@ -1189,7 +1153,7 @@ msgid "System Directory:"
 msgstr "Sistem Dizini:"
 
 msgid "Choose directory"
-msgstr "Dizin seç:"
+msgstr "Dizin seç"
 
 msgid "Choose configuration file"
 msgstr "Yapılandırma dosyası seç"
@@ -1264,7 +1228,7 @@ msgid "System location:"
 msgstr "Sistem yeri:"
 
 msgid "System name and location"
-msgstr "Sistem adı ve yeri:"
+msgstr "Sistem adı ve yeri"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Sistemin adını girin ve yerini seçin"
@@ -1276,7 +1240,7 @@ msgid "Please enter a system name"
 msgstr "Lütfen bir sistem adı girin"
 
 msgid "Display name (optional):"
-msgstr "Görüntü adı (isteğe bağlı)"
+msgstr "Görüntü adı (isteğe bağlı):"
 
 msgid "Display name:"
 msgstr "Görüntü adı:"
@@ -1288,7 +1252,7 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Yeni görünü adını girin (sıfırlamak için boş bırakın)"
 
 msgid "Change &display name..."
-msgstr "Görüntü adını &değiştirin"
+msgstr "Görüntü adını &değiştirin..."
 
 msgid "Context Menu"
 msgstr "Bağlam Menüsü"
@@ -1324,7 +1288,7 @@ msgid "Failed to create directory for cloned VM"
 msgstr "Klonlanmış VM için dizin oluşturulamadı"
 
 msgid "Failed to clone VM."
-msgstr "VM klonlanamadı"
+msgstr "VM klonlanamadı."
 
 msgid "Directory in use"
 msgstr "Dizin kullanımda"
@@ -1404,8 +1368,8 @@ msgstr "Sistem"
 msgid "Storage"
 msgstr "Depolama"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Disk yok"
@@ -1818,8 +1782,8 @@ msgstr "Taşındı"
 msgid "I Copied It"
 msgstr "Kopyalandı"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitör #"
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitör #%1"
 
 msgid "No MCA devices."
 msgstr "MCA cihazı yok."
@@ -2232,12 +2196,6 @@ msgstr "SID Filtre Gücü"
 msgid "Surround module"
 msgstr "Surround modülü"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "CODEC kurulumunda CODEC kesmesini yükselt (bazı sürücüler tarafından gereklidir)"
-
 msgid "SB Address"
 msgstr "SB adresi"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klasik"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2826,17 +2781,14 @@ msgstr "GLSL Hatası"
 msgid "Could not load shader: %1"
 msgstr "%1 gölgelendiricisi yüklenemedi"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL sürüm 3.0 veya daha yükseği gereklidir. Şu anki GLSL sürümü %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "%1 dokusu yüklenemedi"
 
 msgid "Could not compile shader:\n\n%1"
-msgstr "%1 gölgelendiricisi derlenemedi"
+msgstr "Gölgelendirici derlenemedi:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr "%1 programı bağlanamadı"
+msgstr "Program bağlanamadı:\n\n%1"
 
 msgid "Shader Manager"
 msgstr "Gölgelendirici Yöneticisi"
@@ -2857,7 +2809,7 @@ msgid "Could not load file %1"
 msgstr "%1 dosyası yüklenemedi"
 
 msgid "Key Bindings:"
-msgstr "Tuş Bağlamaları"
+msgstr "Tuş Bağlamaları:"
 
 msgid "Action"
 msgstr "Eylem"
@@ -2929,7 +2881,7 @@ msgid "Hub Mode"
 msgstr "Hub Modu"
 
 msgid "Hostname:"
-msgstr "Ana bilgisayar adı"
+msgstr "Ana bilgisayar adı:"
 
 msgid "ISA RAM:"
 msgstr "ISA RAM:"

@@ -273,36 +273,6 @@ msgstr "Lataa edellinen levykuva uudelleen"
 msgid "&Folder..."
 msgstr "&Kansio..."
 
-msgid "Target &framerate"
-msgstr "&Kuvataajuustavoite"
-
-msgid "&Sync with video"
-msgstr "&Synkronisoi videoon"
-
-msgid "&25 fps"
-msgstr "&25 ruutua/s"
-
-msgid "&30 fps"
-msgstr "&30 ruutua/s"
-
-msgid "&50 fps"
-msgstr "&50 ruutua/s"
-
-msgid "&60 fps"
-msgstr "&60 ruutua/s"
-
-msgid "&75 fps"
-msgstr "&75 ruutua/s"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "Valitse varjostin&ohjelma..."
-
-msgid "&Remove shader"
-msgstr "&Poista varjostinohjelma"
-
 msgid "Preferences"
 msgstr "Sovellusasetukset"
 
@@ -687,9 +657,6 @@ msgstr "ISABugger-laite"
 msgid "POST card"
 msgstr "POST-kortti"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Virhe"
 
@@ -1050,11 +1017,8 @@ msgstr "Tämä käynnistää emuloidun tietokoneen uudelleen."
 msgid "Save"
 msgstr "Tallenna"
 
-msgid "About 86Box"
-msgstr "Tietoja 86Box:sta"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Tietoja %1:sta"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ja muut.\n\nSisältää Sarah Walkerin, leilein, JohnElliottin, greatpsychon ja muiden aiemmat keskeiset työpanokset.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
@@ -1264,7 +1228,7 @@ msgid "System location:"
 msgstr "Koneen sijainti:"
 
 msgid "System name and location"
-msgstr "Koneen nimi ja sijainti:"
+msgstr "Koneen nimi ja sijainti"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Anna koneen nimi ja valitse sijainti"
@@ -1288,7 +1252,7 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Anna uusi näyttönimi tai poista se"
 
 msgid "Change &display name..."
-msgstr "Vaihda &näyttönimi"
+msgstr "Vaihda &näyttönimi..."
 
 msgid "Context Menu"
 msgstr "Kontekstivalikko"
@@ -1404,8 +1368,8 @@ msgstr "Järjestelmä"
 msgid "Storage"
 msgstr "Tallennus"
 
-msgid "Disk %1: "
-msgstr "Levy %1: "
+msgid "Disk %1:"
+msgstr "Levy %1:"
 
 msgid "No disks"
 msgstr "Ei levyjä"
@@ -1456,7 +1420,7 @@ msgid "Unable to write file"
 msgstr "Tiedostoa ei voitu kirjoittaa"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512"
+msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512."
 
 msgid "Disk image file already exists"
 msgstr "Levykuva on jo olemassa"
@@ -1468,7 +1432,7 @@ msgid "Disk image created"
 msgstr "Levykuva luotu"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Varmista, että tiedosto on olemassa ja lukukelpoinen"
+msgstr "Varmista, että tiedosto on olemassa ja lukukelpoinen."
 
 msgid "Make sure the file is being saved to a writable directory."
 msgstr "Varmista, että tiedoston tallennuskansioon pystyy kirjoittamaan."
@@ -1818,8 +1782,8 @@ msgstr "Siirsin sen"
 msgid "I Copied It"
 msgstr "Kopioin sen"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Ei MCA-laitteita."
@@ -2232,12 +2196,6 @@ msgstr "SID-filtterin vahvuus"
 msgid "Surround module"
 msgstr "Surround-moduuli"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "CODEC-keskeytys CODEC-asennuksen yhteydessä (jotkut ohjaimet tarvitsevat sitä)"
-
 msgid "SB Address"
 msgstr "SB-osoite"
 
@@ -2535,9 +2493,6 @@ msgstr "24 Mt"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klassinen"
-
 msgid "256 KB"
 msgstr "256 Kt"
 
@@ -2826,9 +2781,6 @@ msgstr "GLSL-virhe"
 msgid "Could not load shader: %1"
 msgstr "Varjostinta %1 ei voitu ladata"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Vähintään OpenGL-versio 3.0 vaaditaan. Tämänhetkinen GLSL-versio on %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Tekstuuria ei voitu ladata: %1"
 
@@ -2998,7 +2950,7 @@ msgid "<b>Version %1</b> is now available."
 msgstr "<b>Versio %1</b> on nyt saatavilla."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Käytät käännöstä <b>%1</b>"
+msgstr "Käytät käännöstä <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>Käännös %1</b> on nyt saatavilla."

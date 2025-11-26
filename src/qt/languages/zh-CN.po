@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "指定窗口大小...(&D)"
+msgstr "指定窗口大小(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "强制 4:3 显示比例(&4)"
@@ -196,7 +196,7 @@ msgid "&Settings..."
 msgstr "设置(&S)..."
 
 msgid "Settings..."
-msgstr "设置"
+msgstr "设置..."
 
 msgid "&Update status bar icons"
 msgstr "更新状态栏图标(&U)"
@@ -272,36 +272,6 @@ msgstr "载入上一个映像"
 
 msgid "&Folder..."
 msgstr "文件夹(&F)..."
-
-msgid "Target &framerate"
-msgstr "目标帧率(&F)"
-
-msgid "&Sync with video"
-msgstr "与视频同步(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "垂直同步(&V)"
-
-msgid "&Select shader..."
-msgstr "选择着色器(&S)..."
-
-msgid "&Remove shader"
-msgstr "移除着色器(&R)"
 
 msgid "Preferences"
 msgstr "首选项"
@@ -550,7 +520,7 @@ msgid "FD Controller:"
 msgstr "软盘控制器:"
 
 msgid "CD-ROM Controller:"
-msgstr "CD-ROM 控制器"
+msgstr "CD-ROM 控制器:"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
@@ -686,9 +656,6 @@ msgstr "ISABugger 设备"
 
 msgid "POST card"
 msgstr "自检 (POST) 卡"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "错误"
@@ -1050,11 +1017,8 @@ msgstr "此操作将硬重置模拟器。"
 msgid "Save"
 msgstr "保存"
 
-msgid "About 86Box"
-msgstr "关于 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "关于 %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n感谢 Sarah Walker、leilei、JohnElliott、greatpsycho 和其他人的核心贡献。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
@@ -1186,7 +1150,7 @@ msgid "VMs: %1"
 msgstr "虚拟机: %1"
 
 msgid "System Directory:"
-msgstr "系统目录"
+msgstr "系统目录:"
 
 msgid "Choose directory"
 msgstr "选择目录"
@@ -1276,7 +1240,7 @@ msgid "Please enter a system name"
 msgstr "请输入系统名称"
 
 msgid "Display name (optional):"
-msgstr "显示名称 (可选)"
+msgstr "显示名称 (可选):"
 
 msgid "Display name:"
 msgstr "显示名称:"
@@ -1315,7 +1279,7 @@ msgid "Directory %1 already exists"
 msgstr "目录 %1 已存在"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr " %1: 名称中不能使用以下字符: %1"
+msgstr "名称中不能使用以下字符: %1"
 
 msgid "Clone"
 msgstr "克隆"
@@ -1404,8 +1368,8 @@ msgstr "系统"
 msgid "Storage"
 msgstr "存储"
 
-msgid "Disk %1: "
-msgstr "磁盘 %1"
+msgid "Disk %1:"
+msgstr "磁盘 %1:"
 
 msgid "No disks"
 msgstr "无磁盘"
@@ -1723,7 +1687,7 @@ msgid "Show non-&primary monitors"
 msgstr "显示非主要显示器(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "打开屏幕截图文件夹...(&F)"
+msgstr "打开屏幕截图文件夹(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化时应用全屏拉伸模式(&Y)"
@@ -1818,8 +1782,8 @@ msgstr "我已移动这台机器"
 msgid "I Copied It"
 msgstr "我已复制这台机器"
 
-msgid "86Box Monitor #"
-msgstr "86Box 显示器 #"
+msgid "86Box Monitor #%1"
+msgstr "86Box 显示器 #%1"
 
 msgid "No MCA devices."
 msgstr "无 MCA 设备。"
@@ -1876,7 +1840,7 @@ msgid "Serial port passthrough 4"
 msgstr "串口直通 4"
 
 msgid "Renderer &options..."
-msgstr "渲染器选项...(&O)"
+msgstr "渲染器选项(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 键盘"
@@ -2232,12 +2196,6 @@ msgstr "SID 滤镜强度"
 msgid "Surround module"
 msgstr "环绕声模块"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "在 CODEC 设置时引发 CODEC 中断（某些驱动程序需要）。"
-
 msgid "SB Address"
 msgstr "Sound Blaster 地址"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (立体声)"
 
-msgid "Classic"
-msgstr "经典"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2731,7 +2686,7 @@ msgid "Named Pipe (Server)"
 msgstr "命名管道（服务器）"
 
 msgid "Named Pipe (Client)"
-msgstr "命名管道 (客户端) "
+msgstr "命名管道 (客户端)"
 
 msgid "Host Serial Passthrough"
 msgstr "主机串口直通"
@@ -2826,9 +2781,6 @@ msgstr "GLSL 错误"
 msgid "Could not load shader: %1"
 msgstr "无法加载着色器：%1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL 版本需要达到 3.0 或更高。当前 GLSL 版本为 %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "无法加载材质：%1"
 
@@ -2857,7 +2809,7 @@ msgid "Could not load file %1"
 msgstr "无法加载文件 %1"
 
 msgid "Key Bindings:"
-msgstr "按键绑定"
+msgstr "按键绑定:"
 
 msgid "Action"
 msgstr "动作"
@@ -2875,7 +2827,7 @@ msgid "Bind Key"
 msgstr "绑定按键"
 
 msgid "Enter key combo:"
-msgstr "输入按键组合"
+msgstr "输入按键组合:"
 
 msgid "Bind conflict"
 msgstr "绑定冲突"
@@ -3019,7 +2971,7 @@ msgid "86Box Update"
 msgstr "86Box 更新"
 
 msgid "Release notes:"
-msgstr "发行版说明"
+msgstr "发行版说明:"
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
@@ -3052,7 +3004,7 @@ msgid "Sharpness"
 msgstr "锐度"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 复合模式设置...(&C)"
+msgstr "CGA 复合模式设置(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA 复合模式设置"

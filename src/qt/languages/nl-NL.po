@@ -273,36 +273,6 @@ msgstr "Herlaad vorig imagebestand"
 msgid "&Folder..."
 msgstr "&Map..."
 
-msgid "Target &framerate"
-msgstr "Doel &framerate"
-
-msgid "&Sync with video"
-msgstr "&Synchroniseer met video"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Selecteer shader..."
-
-msgid "&Remove shader"
-msgstr "&Verwijder shader"
-
 msgid "Preferences"
 msgstr "Voorkeuren"
 
@@ -550,7 +520,7 @@ msgid "FD Controller:"
 msgstr "FD-Controller:"
 
 msgid "CD-ROM Controller:"
-msgstr "CD-ROM controller"
+msgstr "CD-ROM controller:"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiaire IDE-controller"
@@ -687,9 +657,6 @@ msgstr "ISABugger-apparaat"
 msgid "POST card"
 msgstr "POST-kaart"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Fout"
 
@@ -703,10 +670,10 @@ msgid "Speed"
 msgstr "Snelheid"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "Verwijderbare schijf  %1 (%2): %3"
+msgstr "Verwijderbare schijf %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "&Verwijderbare schijf  %1 (%2): %3"
+msgstr "&Verwijderbare schijf %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Verwijderbaar schijfimagebestand"
@@ -913,7 +880,7 @@ msgid "4-button flight yoke"
 msgstr "4-knops stuurknuppel"
 
 msgid "2-button flight yoke with throttle"
-msgstr "2-kops stuurknuppel met gashendel "
+msgstr "2-kops stuurknuppel met gashendel"
 
 msgid "3-button flight yoke with throttle"
 msgstr "3-kops stuurknuppel met gashendel"
@@ -1050,11 +1017,8 @@ msgstr "Dit zal de geëmuleerde machine een harde reset geven."
 msgid "Save"
 msgstr "Opslaan"
 
-msgid "About 86Box"
-msgstr "Over 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Over %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Een emulator van oude computers\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nMet eerdere bijdragen van Sarah Walker, leilei, JohnElliott, greatpsycho en anderen.\n\nUitgebracht onder de GNU General Public License versie 2 of later. Zie LICENSE voor meer informatie."
@@ -1404,8 +1368,8 @@ msgstr "Systeem"
 msgid "Storage"
 msgstr "Opslag"
 
-msgid "Disk %1: "
-msgstr "Schijf %1: "
+msgid "Disk %1:"
+msgstr "Schijf %1:"
 
 msgid "No disks"
 msgstr "Geen schijven"
@@ -1693,7 +1657,7 @@ msgid "Generate"
 msgstr "Genereren"
 
 msgid "Joystick configuration"
-msgstr "Joystick configuratie "
+msgstr "Joystick configuratie"
 
 msgid "Device"
 msgstr "Apparaat"
@@ -1818,8 +1782,8 @@ msgstr "Ik heb het verplaatst"
 msgid "I Copied It"
 msgstr "Ik heb het gekopieerd"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor #"
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor #%1"
 
 msgid "No MCA devices."
 msgstr "Geen MCA-apparaten."
@@ -1930,7 +1894,7 @@ msgid "Default Baud rate"
 msgstr "Standaard baudrate"
 
 msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standaard Hayes-compatibele modem "
+msgstr "[COM] Standaard Hayes-compatibele modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulatie"
@@ -2232,12 +2196,6 @@ msgstr "SID-filtersterkte"
 msgid "Surround module"
 msgstr "Surroundmodule"
 
-msgid "CODEC"
-msgstr "Codec"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Verhoog CODEC interrupt bij CODEC setup (nodig voor sommige stuurprogramma's)"
-
 msgid "SB Address"
 msgstr "SB-adres"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klassiek"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2644,7 +2599,7 @@ msgid "Apply overscan deltas"
 msgstr "Overscan-delta’s toepassen"
 
 msgid "Mono Interlaced"
-msgstr "Mono Interlaced "
+msgstr "Mono Interlaced"
 
 msgid "Mono Non-Interlaced"
 msgstr "Mono Niet-Interlaced"
@@ -2826,9 +2781,6 @@ msgstr "GLSL-fout"
 msgid "Could not load shader: %1"
 msgstr "Kon de shader niet laden: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL versie 3.0 of hoger is vereist. Huidige GLSL-versie is %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Kon de textuur niet laden: %1"
 
@@ -2857,7 +2809,7 @@ msgid "Could not load file %1"
 msgstr "Kon bestand %1 niet laden"
 
 msgid "Key Bindings:"
-msgstr "Toetskoppelingen"
+msgstr "Toetskoppelingen:"
 
 msgid "Action"
 msgstr "Actie"
@@ -2929,7 +2881,7 @@ msgid "Hub Mode"
 msgstr "Hub-modus"
 
 msgid "Hostname:"
-msgstr "Hostnaam"
+msgstr "Hostnaam:"
 
 msgid "ISA RAM:"
 msgstr "ISA RAM:"

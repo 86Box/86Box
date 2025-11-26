@@ -273,36 +273,6 @@ msgstr "Przeładuj poprzedni obraz"
 msgid "&Folder..."
 msgstr "&Folder..."
 
-msgid "Target &framerate"
-msgstr "Docelowa &liczba klatek na sekundę"
-
-msgid "&Sync with video"
-msgstr "&Zsynchronizuj z obrazem"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Wybierz shader..."
-
-msgid "&Remove shader"
-msgstr "&Usuń shader"
-
 msgid "Preferences"
 msgstr "Preferencje"
 
@@ -687,9 +657,6 @@ msgstr "Urządzenie ISABugger"
 msgid "POST card"
 msgstr "Karta POST"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Błąd"
 
@@ -1050,11 +1017,8 @@ msgstr "To spowoduje twardy reset wirtualnej maszyny."
 msgid "Save"
 msgstr "Zapisz"
 
-msgid "About 86Box"
-msgstr "O 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "O %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Emulator starych komputerów\n\nAutorzy: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i inni.\n\nZ wcześniejszym wkładem od Sarah Walker, leilei, JohnElliott, greatpsycho i innych.\n\nPrzetłumaczony przez: Lili1228\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."
@@ -1404,8 +1368,8 @@ msgstr "System"
 msgid "Storage"
 msgstr "Pamięć"
 
-msgid "Disk %1: "
-msgstr "Dysk %1: "
+msgid "Disk %1:"
+msgstr "Dysk %1:"
 
 msgid "No disks"
 msgstr "Brak dysków"
@@ -1818,8 +1782,8 @@ msgstr "Została przeniesiona"
 msgid "I Copied It"
 msgstr "Została skopiowana"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Brak urządzeń MCA."
@@ -2232,12 +2196,6 @@ msgstr "Siła filtra SID"
 msgid "Surround module"
 msgstr "Moduł Surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Podnieś przerwanie CODEC podczas konfiguracji CODEC-a (wymagane przez niektóre sterowniki)"
-
 msgid "SB Address"
 msgstr "Adres SB"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klasyczny"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2825,9 +2780,6 @@ msgstr "Błąd GLSL"
 
 msgid "Could not load shader: %1"
 msgstr "Nie udało się wczytać shadera: %1"
-
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Wymagana jest wersja OpenGL 3.0 lub wyższa. Aktualna wersja GLSL to %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Nie udało się wczytać tekstury: %1"
