@@ -60,7 +60,7 @@ voodoo_fifo_log(const char *fmt, ...)
 #    define voodoo_fifo_log(fmt, ...)
 #endif
 
-#define WAKE_DELAY (TIMER_USEC * 1000)
+#define WAKE_DELAY (TIMER_USEC * 2000)
 void
 voodoo_wake_fifo_thread(voodoo_t *voodoo)
 {
