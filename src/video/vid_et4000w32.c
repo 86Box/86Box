@@ -327,9 +327,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
                 }
             } else if (et4000->rev == ET4000W32I_REVB) {
                 if (((svga->bpp == 15) || (svga->bpp == 16))) {
-                    if (et4000->adjust_cursor_x == 1)
-                        svga->hwcursor.x += 0x100;
-                    else if (et4000->adjust_cursor_x == 2)
+                    if (et4000->adjust_cursor_x == 2)
                         svga->hwcursor.x += 8;
                 }
             }
@@ -454,6 +452,7 @@ et4000w32p_in(uint16_t addr, void *priv)
                 ret &= 0x7f;
             else
                 ret |= 0x80;
+
             return ret;
         }
 
@@ -540,28 +539,18 @@ et4000w32p_recalctimings(svga_t *svga)
     et4000->adjust_cursor_x = 0;
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
-    if (svga->getclock == ics2494_getclock) {
-        if (clk_sel < 2)
-            svga->clock *= 2.0;
-    }
+    if (svga->seqregs[7] & 0x01)
+        svga->clock *= 4.0;
+    else if (svga->seqregs[7] & 0x40)
+        svga->clock *= 2.0;
 
+    if ((svga->getclock != ics2494_getclock) &&
+        (svga->getclock != icd2061_getclock)) {
+        if (clk_sel <= 1)
+            svga->clock /= 2.0;
+    }
     if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
         et4000w32_log("Graphics Mode clk_sel=%d, cr35 bit7=%02x, seq7=%02x, clksel=%d, htotal=%03x.\n", clk_sel, svga->crtc[0x35] & 0x80, svga->seqregs[7] & 0x41, clk_sel, svga->htotal);
-        if (svga->getclock != ics2494_getclock) {
-            if (!(svga->crtc[0x35] & 0x80)) {
-                if (clk_sel >= 2) {
-                    if (svga->seqregs[7] & 0x01)
-                        svga->clock *= 4.0;
-                    else if (svga->seqregs[7] & 0x40)
-                        svga->clock *= 2.0;
-                } else {
-                    if (svga->getclock == sdac_getclock) {
-                        if ((svga->gdcreg[5] & 0x60) >= 0x40)
-                            svga->clock /= 2.0;
-                    }
-                }
-            }
-        }
         if ((svga->gdcreg[5] & 0x60) >= 0x40) {
             if (et4000->rev == ET4000W32) {
                 switch (svga->bpp) {
@@ -591,8 +580,8 @@ et4000w32p_recalctimings(svga_t *svga)
                                 if (svga->hdisp != 1024)
                                     et4000->adjust_cursor = 1;
                             } else {
-                                et4000->adjust_cursor = 1;
                                 if (et4000->rev <= ET4000W32I_REVB) {
+                                    et4000->adjust_cursor = 1;
                                     if (svga->hdisp == 800)
                                         et4000->adjust_cursor_x = 1;
                                     else if (svga->hdisp == 640)
@@ -623,6 +612,7 @@ et4000w32p_recalctimings(svga_t *svga)
     if (!svga->scrblank && svga->attr_palette_enable) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             if (svga->gdcreg[5] & 0x40) {
+                et4000w32_log("bpp=%d, lowres=%x.\n", svga->bpp, svga->lowres);
                 switch (svga->bpp) {
                     case 8:
                         svga->map8 = svga->pallook;
