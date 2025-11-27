@@ -273,36 +273,6 @@ msgstr "Recarregar imagem anterior"
 msgid "&Folder..."
 msgstr "&Pasta..."
 
-msgid "Target &framerate"
-msgstr "&Taxa de quadros pretendida"
-
-msgid "&Sync with video"
-msgstr "&Sincronizar com vídeo"
-
-msgid "&25 fps"
-msgstr "&25 qps"
-
-msgid "&30 fps"
-msgstr "&30 qps"
-
-msgid "&50 fps"
-msgstr "&50 qps"
-
-msgid "&60 fps"
-msgstr "&60 qps"
-
-msgid "&75 fps"
-msgstr "&75 qps"
-
-msgid "&VSync"
-msgstr "Sincronização &vertical"
-
-msgid "&Select shader..."
-msgstr "&Selecionar shader..."
-
-msgid "&Remove shader"
-msgstr "&Remover shader"
-
 msgid "Preferences"
 msgstr "Preferências"
 
@@ -687,9 +657,6 @@ msgstr "Dispositivo ISABugger"
 msgid "POST card"
 msgstr "Placa de diagnóstico"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Erro"
 
@@ -781,7 +748,7 @@ msgid "Parallel ports:"
 msgstr "Portas Paralelas:"
 
 msgid "Storage controllers"
-msgstr "Controladores de armaz."
+msgstr "Controladores de armazenamento"
 
 msgid "Hard disks"
 msgstr "Discos rígidos"
@@ -799,7 +766,7 @@ msgid "Floppy & CD-ROM drives"
 msgstr "Disquete & CD-ROM"
 
 msgid "Other removable devices"
-msgstr "Dispos. removíveis"
+msgstr "Outros dispositivos removíveis"
 
 msgid "Other peripherals"
 msgstr "Outros periféricos"
@@ -1050,11 +1017,8 @@ msgstr "Isto fará com que a máquina emulada seja reinicializada."
 msgid "Save"
 msgstr "Salvar"
 
-msgid "About 86Box"
-msgstr "Sobre o 86Box"
-
-msgid "86Box v"
-msgstr "86Box versão "
+msgid "About %1"
+msgstr "Sobre o %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva, Nelson K. Hennemann Filho\n\nLançado sob a Licença Pública Geral GNU, versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
@@ -1404,8 +1368,8 @@ msgstr "Sistema"
 msgid "Storage"
 msgstr "Armazenamento"
 
-msgid "Disk %1: "
-msgstr "Disco %1: "
+msgid "Disk %1:"
+msgstr "Disco %1:"
 
 msgid "No disks"
 msgstr "Sem discos"
@@ -1818,8 +1782,8 @@ msgstr "Movi"
 msgid "I Copied It"
 msgstr "Copiei"
 
-msgid "86Box Monitor #"
-msgstr "Monitor 86Box nº"
+msgid "86Box Monitor #%1"
+msgstr "Monitor 86Box nº%1"
 
 msgid "No MCA devices."
 msgstr "Nenhum dispositivo MCA."
@@ -1855,7 +1819,7 @@ msgid "VDE Socket:"
 msgstr "Soquete VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr "Dispositivo Ponte TAP"
+msgstr "Dispositivo Ponte TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidade 86Box"
@@ -2232,12 +2196,6 @@ msgstr "Força do Filtro SID"
 msgid "Surround module"
 msgstr "Módulo surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Aumentar a interrupção do CODEC na configuração do CODEC (necessário para alguns drivers)"
-
 msgid "SB Address"
 msgstr "Endereço da SB"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (estéreo)"
 
-msgid "Classic"
-msgstr "Clássico"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2825,9 +2780,6 @@ msgstr "Erro GLSL"
 
 msgid "Could not load shader: %1"
 msgstr "Não foi possível carregar o shader: %1"
-
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL versão 3.0 ou superior é exigido. Versão atual GLSL é %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Não foi possível carregar a textura: %1"

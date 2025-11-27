@@ -273,36 +273,6 @@ msgstr "Last inn forrige diskfil"
 msgid "&Folder..."
 msgstr "&Mappe..."
 
-msgid "Target &framerate"
-msgstr "Mål-&bildefrekvens"
-
-msgid "&Sync with video"
-msgstr "&Synkroniser med video"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Velg shader..."
-
-msgid "&Remove shader"
-msgstr "&Fjern shader"
-
 msgid "Preferences"
 msgstr "Valg"
 
@@ -328,7 +298,7 @@ msgid "&Default"
 msgstr "&Standard"
 
 msgid "Language:"
-msgstr "Språk"
+msgstr "Språk:"
 
 msgid "Gain"
 msgstr "Forsterkning"
@@ -687,9 +657,6 @@ msgstr "ISABugger-enhet"
 msgid "POST card"
 msgstr "POST-kort"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Feil"
 
@@ -874,7 +841,7 @@ msgid "3-axis, 2-button joystick"
 msgstr "3-akset, 2-knapps styrespak"
 
 msgid "3-axis, 3-button joystick"
-msgstr "3-akset, 4-knapps styrespak"
+msgstr "3-akset, 3-knapps styrespak"
 
 msgid "3-axis, 4-button joystick"
 msgstr "3-akset, 4-knapps styrespak"
@@ -1050,11 +1017,8 @@ msgstr "Dette vil hard-resette den emulerte maskinen."
 msgid "Save"
 msgstr "Lagre"
 
-msgid "About 86Box"
-msgstr "Om 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Om %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "En emulator for gamle datamaskiner\n\nForfattere: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne og andre.\n\nMed tidligere kjernebidrag fra Sarah Walker, leilei, JohnElliott, greatpsycho og andre.\n\nUtgitt under GNU General Public License versjon 2 eller senere. Se LICENSE for mer informasjon."
@@ -1404,7 +1368,7 @@ msgstr "System"
 msgid "Storage"
 msgstr "Lagring"
 
-msgid "Disk %1: "
+msgid "Disk %1:"
 msgstr "Disk %1:"
 
 msgid "No disks"
@@ -1818,8 +1782,8 @@ msgstr "Jeg flyttet den"
 msgid "I Copied It"
 msgstr "Jeg kopierte den"
 
-msgid "86Box Monitor #"
-msgstr "86Box-skjerm #"
+msgid "86Box Monitor #%1"
+msgstr "86Box-skjerm #%1"
 
 msgid "No MCA devices."
 msgstr "Ingen MCA-enheter."
@@ -2232,12 +2196,6 @@ msgstr "SID-filterstyrke"
 msgid "Surround module"
 msgstr "Surround-modul"
 
-msgid "CODEC"
-msgstr "Kodek"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Generer kodek-avbrudd ved kodek-oppsett (nødvendig for noen drivere)"
-
 msgid "SB Address"
 msgstr "SB-adresse"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klassisk"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2825,9 +2780,6 @@ msgstr "GLSL-feil"
 
 msgid "Could not load shader: %1"
 msgstr "Kunne ikke laste shader: %1"
-
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL versjon 3.0 eller høyere kreves. Nåværende GLSL-versjon er %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Kunne ikke laste tekstur: %1"

@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "창 크기 지정하기...(&D)"
+msgstr "창 크기 지정하기(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "화면 비율을 4:3으로 맞추기(&4)"
@@ -272,36 +272,6 @@ msgstr "이전 이미지 다시 불러오기"
 
 msgid "&Folder..."
 msgstr "폴더(&F)..."
-
-msgid "Target &framerate"
-msgstr "목표 프레임 레이트(&F)"
-
-msgid "&Sync with video"
-msgstr "비디오와 동기(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "수직 동기화(&V)"
-
-msgid "&Select shader..."
-msgstr "쉐이더 불러오기(&S)..."
-
-msgid "&Remove shader"
-msgstr "쉐이더 끄기(&R)"
 
 msgid "Preferences"
 msgstr "환경설정"
@@ -687,9 +657,6 @@ msgstr "ISABugger 장치"
 msgid "POST card"
 msgstr "POST 카드"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "오류"
 
@@ -1050,11 +1017,8 @@ msgstr "사용중인 머신이 재부팅됩니다."
 msgid "Save"
 msgstr "저장"
 
-msgid "About 86Box"
-msgstr "86Box에 대해"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "%1에 대해"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "고전 컴퓨터 에뮬레이터\n\n저자: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\n이전 핵심 기여자로는 Sarah Walker, leilei, JohnElliott, greatpsycho 등이 있습니다.\n\nGNU General Public 라이선스 (버전 2 이상)에 의해 배포되었습니다. 자세한 내용은 LICENSE 파일을 읽어 주세요."
@@ -1404,8 +1368,8 @@ msgstr "시스템"
 msgid "Storage"
 msgstr "장치"
 
-msgid "Disk %1: "
-msgstr "디스크 %1: "
+msgid "Disk %1:"
+msgstr "디스크 %1:"
 
 msgid "No disks"
 msgstr "디스크 없음"
@@ -1441,10 +1405,10 @@ msgid "Add Existing Hard Disk"
 msgstr "기존 이미지 사용"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 디스크 이미지는 4GB 이상으로 지정할 수 없습니다"
+msgstr "HDI 디스크 이미지는 4GB 이상으로 지정할 수 없습니다."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "디스크 이미지는 127GB 이상으로 지정할 수 없습니다"
+msgstr "디스크 이미지는 127GB 이상으로 지정할 수 없습니다."
 
 msgid "Hard disk images"
 msgstr "하드 디스크 이미지"
@@ -1456,7 +1420,7 @@ msgid "Unable to write file"
 msgstr "파일을 저장할 수 없습니다"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다"
+msgstr "512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다."
 
 msgid "Disk image file already exists"
 msgstr "디스크 이미지 파일이 이미 존재합니다"
@@ -1549,7 +1513,7 @@ msgid "Parent and child disk timestamps do not match"
 msgstr "부모 디스크와 자식 디스크의 타임스탬프가 일치하지 않습니다"
 
 msgid "Could not fix VHD timestamp."
-msgstr "VHD 타임스탬프를 고칠 수 없습니다"
+msgstr "VHD 타임스탬프를 고칠 수 없습니다."
 
 msgid "MFM/RLL"
 msgstr "MFM/RLL"
@@ -1723,7 +1687,7 @@ msgid "Show non-&primary monitors"
 msgstr "기본 모니터가 아닌 모니터 표시(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "스크린샷 폴더 열기...(&F)"
+msgstr "스크린샷 폴더 열기(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "최대화 시 전체 화면 비율 적용(&Y)"
@@ -1795,7 +1759,7 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "OpenGL 컨텍스트로 전환할 수 없습니다."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다."
+msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다"
 
 msgid "Error initializing OpenGL"
 msgstr "OpenGL 초기화 중 오류 발생"
@@ -1818,8 +1782,8 @@ msgstr "옮겼어요"
 msgid "I Copied It"
 msgstr "복사했습니다"
 
-msgid "86Box Monitor #"
-msgstr "86Box 모니터 "
+msgid "86Box Monitor #%1"
+msgstr "86Box 모니터 %1"
 
 msgid "No MCA devices."
 msgstr "MCA 장치가 없습니다."
@@ -1876,7 +1840,7 @@ msgid "Serial port passthrough 4"
 msgstr "직렬 포트 패스스루 4"
 
 msgid "Renderer &options..."
-msgstr "렌더러 옵션...(&O)"
+msgstr "렌더러 옵션(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 키보드"
@@ -2232,12 +2196,6 @@ msgstr "SID 필터 강도"
 msgid "Surround module"
 msgstr "서라운드 모듈"
 
-msgid "CODEC"
-msgstr "코덱"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "코덱 설정 시 코덱 인터럽트 올리기(일부 드라이버에 필요)"
-
 msgid "SB Address"
 msgstr "SB 주소"
 
@@ -2535,9 +2493,6 @@ msgstr "24MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "시그마텔 STAC9721T(스테레오)"
 
-msgid "Classic"
-msgstr "클래식"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2826,9 +2781,6 @@ msgstr "GLSL 오류"
 msgid "Could not load shader: %1"
 msgstr "셰이더를 로드할 수 없습니다: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 GLSL 버전은 %1.%2입니다"
-
 msgid "Could not load texture: %1"
 msgstr "텍스처를 로드할 수 없습니다: %1"
 
@@ -3052,7 +3004,7 @@ msgid "Sharpness"
 msgstr "선명도"
 
 msgid "&CGA composite settings..."
-msgstr "CGA 복합 모드의 설정...(&C)"
+msgstr "CGA 복합 모드의 설정(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA 복합 모드의 설정"

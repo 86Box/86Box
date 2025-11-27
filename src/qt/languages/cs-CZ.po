@@ -214,7 +214,7 @@ msgid "Enable &Discord integration"
 msgstr "Povolit integraci s &Discordem"
 
 msgid "Sound &gain..."
-msgstr "&Zesílení zvuku"
+msgstr "&Zesílení zvuku..."
 
 msgid "Begin trace"
 msgstr "Začít trace"
@@ -226,10 +226,10 @@ msgid "&Help"
 msgstr "Ná&pověda"
 
 msgid "&Documentation..."
-msgstr "&Dokumentace"
+msgstr "&Dokumentace..."
 
 msgid "&About 86Box..."
-msgstr "&O programu 86Box"
+msgstr "&O programu 86Box..."
 
 msgid "&New image..."
 msgstr "&Nový obraz..."
@@ -272,36 +272,6 @@ msgstr "Načíst znova předchozí obraz"
 
 msgid "&Folder..."
 msgstr "&Složka..."
-
-msgid "Target &framerate"
-msgstr "&Cílová snímková frekvence"
-
-msgid "&Sync with video"
-msgstr "&Synchronizovat s obrazem"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Zvolit shader..."
-
-msgid "&Remove shader"
-msgstr "&Odebrat shader"
 
 msgid "Preferences"
 msgstr "Předvolby"
@@ -687,9 +657,6 @@ msgstr "Zařízení ISABugger"
 msgid "POST card"
 msgstr "Karta pro kódy POST"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Chyba"
 
@@ -1050,11 +1017,8 @@ msgstr "Pokračováním se resetuje emulovaný počítač."
 msgid "Save"
 msgstr "Uložit"
 
-msgid "About 86Box"
-msgstr "O programu 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "O programu %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Emulátor starých počítačů\n\nAutoři: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nS předchozími příspěvky od Sarah Walker, leilei, JohnElliott, greatpsycho a dalších.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
@@ -1258,7 +1222,7 @@ msgid "Directory does not exist"
 msgstr "Adresář neexistuje"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Pro tento systém bude vytvořen nový adresář ve výše zvoleném adresáři."
+msgstr "Pro tento systém bude vytvořen nový adresář ve výše zvoleném adresáři"
 
 msgid "System location:"
 msgstr "Umístění systému:"
@@ -1312,7 +1276,7 @@ msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuální počítač \"%1\" (%2) bude naklonován do:"
 
 msgid "Directory %1 already exists"
-msgstr "Adresář %1 již existuje."
+msgstr "Adresář %1 již existuje"
 
 msgid "You cannot use the following characters in the name: %1"
 msgstr "V názvu nelze použít následující znaky: %1"
@@ -1404,8 +1368,8 @@ msgstr "Systém"
 msgid "Storage"
 msgstr "Úložiště"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Žádné disky"
@@ -1723,7 +1687,7 @@ msgid "Show non-&primary monitors"
 msgstr "Zobrazit neprimární monitory"
 
 msgid "Open screenshots &folder..."
-msgstr "Otevřít složku se snímky obrazovky"
+msgstr "Otevřít složku se snímky obrazovky..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Použít režim roztá&hnutí při celé obrazovce pro maximalizované okno"
@@ -1818,8 +1782,8 @@ msgstr "Přesunul jsem jej"
 msgid "I Copied It"
 msgstr "Zkopíroval jsem jej"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Žádné zařízení MCA."
@@ -2232,12 +2196,6 @@ msgstr "Síla filtru SID"
 msgid "Surround module"
 msgstr "Modul Surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Vyvolát přerušení CODEC při nastavení CODEC (potřebují některé ovladače)"
-
 msgid "SB Address"
 msgstr "Adresa SB"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klasické"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2826,9 +2781,6 @@ msgstr "Chyba GLSL"
 msgid "Could not load shader: %1"
 msgstr "Nebylo možné načíst shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Je vyžadováno OpenGL verze 3.0 nebo větší. Současná verze GLSL je %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Nebylo možné načíst texturu: %1"
 
@@ -2857,7 +2809,7 @@ msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
 msgid "Key Bindings:"
-msgstr "Nastavení kláves"
+msgstr "Nastavení kláves:"
 
 msgid "Action"
 msgstr "Akce"
@@ -2875,7 +2827,7 @@ msgid "Bind Key"
 msgstr "Nastavit klávesu"
 
 msgid "Enter key combo:"
-msgstr "Zadejte kombinaci kláves"
+msgstr "Zadejte kombinaci kláves:"
 
 msgid "Bind conflict"
 msgstr "Konflikt nastavení"
@@ -2929,7 +2881,7 @@ msgid "Hub Mode"
 msgstr "Režim hubu"
 
 msgid "Hostname:"
-msgstr "Hostitelské jméno"
+msgstr "Hostitelské jméno:"
 
 msgid "ISA RAM:"
 msgstr "ISA paměť RAM:"

@@ -273,36 +273,6 @@ msgstr "Recarregar imagem anterior"
 msgid "&Folder..."
 msgstr "&Pasta..."
 
-msgid "Target &framerate"
-msgstr "&Taxa de quadros de destino"
-
-msgid "&Sync with video"
-msgstr "&Sincronizar com vídeo"
-
-msgid "&25 fps"
-msgstr "&25 q/s"
-
-msgid "&30 fps"
-msgstr "&30 q/s"
-
-msgid "&50 fps"
-msgstr "&50 q/s"
-
-msgid "&60 fps"
-msgstr "&60 q/s"
-
-msgid "&75 fps"
-msgstr "&75 q/s"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Selecionar shader..."
-
-msgid "&Remove shader"
-msgstr "&Remover shader"
-
 msgid "Preferences"
 msgstr "Preferências"
 
@@ -687,9 +657,6 @@ msgstr "Dispositivo ISABugger"
 msgid "POST card"
 msgstr "Placa POST"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Erro"
 
@@ -1030,7 +997,7 @@ msgid "&File"
 msgstr "F&icheiro"
 
 msgid "&New machine..."
-msgstr "&Nova máquina"
+msgstr "&Nova máquina..."
 
 msgid "&Check for updates..."
 msgstr "&Verificar para atualizações..."
@@ -1050,11 +1017,8 @@ msgstr "Isto irá causar um reinício completo da máquina emulada."
 msgid "Save"
 msgstr "Guardar"
 
-msgid "About 86Box"
-msgstr "Acerca do 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Acerca do %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nCom contribuições anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho e outros.\n\nUsado sob a licença GNU General Public License versão 2 ou posterior. Veja o ficheiro LICENSE para mais informações."
@@ -1099,7 +1063,7 @@ msgid "GLSL shaders"
 msgstr "Shaders GLSL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Está a carregar uma configuração sem suporte!"
+msgstr "Está a carregar uma configuração sem suporte"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "A filtragem do tipo de CPU baseada na máquina escolhida está desativada para esta máquina emulada.\n\nIsto torna possível escolher um CPU que, de outra forma, não seria compatível com a máquina escolhida. No entanto, pode não ser compatível com a BIOS da máquina ou outros programas.\n\nA activação desta definição não tem suporte oficial e qualquer relatório de erros pode ser fechado como inválido."
@@ -1207,7 +1171,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usa expressões regulares na caixa de procura"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão actualmente activas. Quer mesmo sair do gerenciador de MVs"
+msgstr "%1 máquina(s) estão actualmente activas. Quer mesmo sair do gerenciador de MVs?"
 
 msgid "Add new system wizard"
 msgstr "Assistende de adicionamento do novo sistema"
@@ -1404,8 +1368,8 @@ msgstr "Sistema"
 msgid "Storage"
 msgstr "Armazenamento"
 
-msgid "Disk %1: "
-msgstr "Disco %1: "
+msgid "Disk %1:"
+msgstr "Disco %1:"
 
 msgid "No disks"
 msgstr "Sem discos"
@@ -1426,7 +1390,7 @@ msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Unidades CD-ROM com barramento MFM/RLL ou ESDI nunca existiram!"
+msgstr "Unidades CD-ROM com barramento MFM/RLL ou ESDI nunca existiram"
 
 msgid "Custom..."
 msgstr "Personalizado..."
@@ -1546,7 +1510,7 @@ msgid "This could mean that the parent image was modified after the differencing
 msgstr "Isto pode significar que a imagem pai foi modificada depois da criação da imagem diferenciadora.\n\nTambém pode acontecer se os ficheiros da imagem foram movidos ou copiados ou por causa de um erro no programa que criou este disco.\n\nQuer corrigir os carimbos de data/hora?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Os carimbos de data/hora dos discos pai e filho não correspondem!"
+msgstr "Os carimbos de data/hora dos discos pai e filho não correspondem"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Não foi possível corrigir o carimbo de data/hora do VHD."
@@ -1818,8 +1782,8 @@ msgstr "Movi-a"
 msgid "I Copied It"
 msgstr "Copiei-a"
 
-msgid "86Box Monitor #"
-msgstr "Monitor 86Box "
+msgid "86Box Monitor #%1"
+msgstr "Monitor 86Box %1"
 
 msgid "No MCA devices."
 msgstr "Não há dispositivos MCA."
@@ -2232,12 +2196,6 @@ msgstr "Força do filtro do SID"
 msgid "Surround module"
 msgstr "Módulo Surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Ativar a interrupção do CODEC na configuração do CODEC (necessário para alguns controladores)"
-
 msgid "SB Address"
 msgstr "Endereço SB"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (estéreo)"
 
-msgid "Classic"
-msgstr "Clássico"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2794,7 +2749,7 @@ msgid "Unable to find Dot-Matrix fonts"
 msgstr "Não foi possível encontrar os fontes matriciais de pontos"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P 2 genérica"
+msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P 2 genérica."
 
 msgid "Inhibit multimedia keys"
 msgstr "Deshabilitar teclas de multimídia"
@@ -2825,9 +2780,6 @@ msgstr "Erro de GLSL"
 
 msgid "Could not load shader: %1"
 msgstr "Não foi possível carregar o shader: %1"
-
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "É requerida a versão 3.0 ou mais nova do OpenGL. A versão actual de GLSL é %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Não foi possível carregar a textura: %1"
@@ -2923,7 +2875,7 @@ msgid "Remote Switch"
 msgstr "Comutador remoto"
 
 msgid "Switch:"
-msgstr "Comutador"
+msgstr "Comutador:"
 
 msgid "Hub Mode"
 msgstr "Modo de concentrador"

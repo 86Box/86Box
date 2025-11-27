@@ -214,7 +214,7 @@ msgid "Enable &Discord integration"
 msgstr "Povolenie integrácie s &Discordem"
 
 msgid "Sound &gain..."
-msgstr "&Zosilnenie zvuku"
+msgstr "&Zosilnenie zvuku..."
 
 msgid "Begin trace"
 msgstr "Začať trace"
@@ -226,10 +226,10 @@ msgid "&Help"
 msgstr "&Pomoc"
 
 msgid "&Documentation..."
-msgstr "&Dokumentácia"
+msgstr "&Dokumentácia..."
 
 msgid "&About 86Box..."
-msgstr "&O programu 86Box"
+msgstr "&O programu 86Box..."
 
 msgid "&New image..."
 msgstr "&Nový obraz..."
@@ -272,36 +272,6 @@ msgstr "Načítať znova predchádzajúci obraz"
 
 msgid "&Folder..."
 msgstr "&Zložka..."
-
-msgid "Target &framerate"
-msgstr "&Cieľová snímková frekvencia"
-
-msgid "&Sync with video"
-msgstr "&Synchronizovať s obrazom"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Zvoliť shader..."
-
-msgid "&Remove shader"
-msgstr "&Odobrať shader"
 
 msgid "Preferences"
 msgstr "Predvoľby"
@@ -478,7 +448,7 @@ msgid "MIDI In Device:"
 msgstr "Zariadenie pre MIDI vstup:"
 
 msgid "MIDI Out:"
-msgstr "MIDI výstup"
+msgstr "MIDI výstup:"
 
 msgid "Standalone MPU-401"
 msgstr "Samostatný MPU-401"
@@ -559,7 +529,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Štvrtý radič IDE"
 
 msgid "Hard disk"
-msgstr "Radič CD-ROM:"
+msgstr "Pevný disk"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -686,9 +656,6 @@ msgstr "Zariadenie ISABugger"
 
 msgid "POST card"
 msgstr "Karta pre kódy POST"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Chyba"
@@ -1050,11 +1017,8 @@ msgstr "Pokračovaním sa resetuje emulovaný počítač."
 msgid "Save"
 msgstr "Uložiť"
 
-msgid "About 86Box"
-msgstr "O programe 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "O programe %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Emulátor starých počítačov\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nS predchádzajúcimi hlavnými príspevkami od Sarah Walker, leilei, JohnElliott, greatpsycho a ďalších.\n\nZverejnené pod licenciou GNU General Public License verzie 2 alebo novšej. Pozri súbor LICENSE pre viac informácií."
@@ -1258,7 +1222,7 @@ msgid "Directory does not exist"
 msgstr "Adresár neexistuje"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Pre tento systém bude vytvorený nový adresár vo vyššie zvolenom adresári."
+msgstr "Pre tento systém bude vytvorený nový adresár vo vyššie zvolenom adresári"
 
 msgid "System location:"
 msgstr "Umiestnenie systému:"
@@ -1312,7 +1276,7 @@ msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuálny počítač \"%1\" (%2) bude klonovaný do:"
 
 msgid "Directory %1 already exists"
-msgstr "Adresár %1 už existuje."
+msgstr "Adresár %1 už existuje"
 
 msgid "You cannot use the following characters in the name: %1"
 msgstr "V názve nemožno použiť nasledujúce znaky: %1"
@@ -1404,8 +1368,8 @@ msgstr "Systém"
 msgid "Storage"
 msgstr "Úložisko"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Žiadne disky"
@@ -1818,8 +1782,8 @@ msgstr "Presunul som ho"
 msgid "I Copied It"
 msgstr "Skopíroval som ho"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Žiadne zariadenia MCA."
@@ -2232,12 +2196,6 @@ msgstr "Sila filtra SID"
 msgid "Surround module"
 msgstr "Surround modul"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Zvýšenie prerušenia CODEC pri nastavení CODEC (potrebné v niektorých ovládačoch)"
-
 msgid "SB Address"
 msgstr "Adresa SB"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klasické"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2826,9 +2781,6 @@ msgstr "Chyba GLSL"
 msgid "Could not load shader: %1"
 msgstr "Nebol možné načítať shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Je vyžadovaná verzia OpenGL 3.0 alebo vyššia. Aktuálna verzia GLSL je %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Nebolo možné načítať textúru: %1"
 
@@ -2854,10 +2806,10 @@ msgid "Move down"
 msgstr "Posunúť nižšie"
 
 msgid "Could not load file %1"
-msgstr "Nebolo možné možné načítať súbor %1"
+msgstr "Nebolo možné načítať súbor %1"
 
 msgid "Key Bindings:"
-msgstr "Nastavenie klávesov"
+msgstr "Nastavenie klávesov:"
 
 msgid "Action"
 msgstr "Akcia"
@@ -2875,7 +2827,7 @@ msgid "Bind Key"
 msgstr "Nastaviť klávesu"
 
 msgid "Enter key combo:"
-msgstr "Zadajte kombináciu klávesov"
+msgstr "Zadajte kombináciu klávesov:"
 
 msgid "Bind conflict"
 msgstr "Konflikt nastavení"
@@ -2929,7 +2881,7 @@ msgid "Hub Mode"
 msgstr "Režim hubu"
 
 msgid "Hostname:"
-msgstr "Hostiteľské meno"
+msgstr "Hostiteľské meno:"
 
 msgid "ISA RAM:"
 msgstr "ISA pamäť RAM:"
@@ -2947,7 +2899,7 @@ msgid "Success"
 msgstr "Úspech"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Obsah NVRAM virtuálneho počítača \"%1\" bol úspešne vymazaný."
+msgstr "Obsah NVRAM virtuálneho počítača \"%1\" bol úspešne vymazaný"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr "Pri pokuse o vymazanie obsahu NVRAM virtuálneho počítača \"%1\" došlo k chybe"

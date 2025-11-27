@@ -196,7 +196,7 @@ msgid "&Settings..."
 msgstr "&Cài đặt..."
 
 msgid "Settings..."
-msgstr "Cài đặt"
+msgstr "Cài đặt..."
 
 msgid "&Update status bar icons"
 msgstr "Cậ&p nhật biểu tượng thanh trạng thái"
@@ -271,37 +271,7 @@ msgid "Reload previous image"
 msgstr "Load đĩa trước đó"
 
 msgid "&Folder..."
-msgstr "Thư mụ&c"
-
-msgid "Target &framerate"
-msgstr "Số khung hình mục tiêu"
-
-msgid "&Sync with video"
-msgstr "Đồng bộ &với video"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Chọn shader..."
-
-msgid "&Remove shader"
-msgstr "&Bỏ shader"
+msgstr "Thư mụ&c..."
 
 msgid "Preferences"
 msgstr "Tùy biến"
@@ -687,9 +657,6 @@ msgstr "Thiết bị ISABugger"
 msgid "POST card"
 msgstr "Thẻ POST"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Lỗi"
 
@@ -1030,7 +997,7 @@ msgid "&File"
 msgstr "&Tập tin"
 
 msgid "&New machine..."
-msgstr "Máy &mới"
+msgstr "Máy &mới..."
 
 msgid "&Check for updates..."
 msgstr "Kiểm tra &cập nhật..."
@@ -1050,11 +1017,8 @@ msgstr "Lệnh này sẽ buộc khởi động lại máy ảo."
 msgid "Save"
 msgstr "Lưu"
 
-msgid "About 86Box"
-msgstr "Về 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Về %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Trình giả lập các dòng máy tính cổ.\n\nTác giả: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, cùng những người khác.\n\nCùng với những đóng góp cốt cán từ Sarah Walker, leilei, JohnElliott, greatpsycho, và một số người khác.\n\nPhát hành dưới giấy phép GNU General Public License version 2 trở đi. Đọc LICENSE để biết thêm thông tin."
@@ -1099,7 +1063,7 @@ msgid "GLSL shaders"
 msgstr "Shader GLSL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Bạn đang load tinh chỉnh không được hỗ trợ."
+msgstr "Bạn đang load tinh chỉnh không được hỗ trợ"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "Phần chọn loại CPU dựa trên mẫu máy đã chọn bị vô hiệu hóa.\n\nỞ đây bạn có thể chọn loại CPU có thể không tương thích với mẫu máy hiện tại. Tuy nhiên bạn có thể gặp vấn đề tương khắc với BIOS hay phần mềm khác.\n\nViệc bật tùy chọn này lên không được khuyến cáo chính thức và các bản bug report (báo lỗi) với nội dung tương tự sẽ bị coi là phạm quy và đóng."
@@ -1288,25 +1252,25 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Điền tên hiển thị mới (để trống để đặt lại)"
 
 msgid "Change &display name..."
-msgstr "Thay đổi tên hiển thị"
+msgstr "Thay đổi tên hiển thị..."
 
 msgid "Context Menu"
 msgstr "Menu ngữ cảnh"
 
 msgid "&Open folder..."
-msgstr "Mở thư mục"
+msgstr "Mở thư mục..."
 
 msgid "Open p&rinter tray..."
-msgstr "Mở khay máy in"
+msgstr "Mở khay máy in..."
 
 msgid "Set &icon..."
-msgstr "Đặt biểu trưng"
+msgstr "Đặt biểu trưng..."
 
 msgid "Select an icon"
 msgstr "Chọn một biểu trưng"
 
 msgid "C&lone..."
-msgstr "Tạo bản sao"
+msgstr "Tạo bản sao..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Máy ảo \"%1\" (%2) sẽ được sao chép vào:"
@@ -1404,8 +1368,8 @@ msgstr "Hệ thống"
 msgid "Storage"
 msgstr "Lưu trữ"
 
-msgid "Disk %1: "
-msgstr "Đĩa %1: "
+msgid "Disk %1:"
+msgstr "Đĩa %1:"
 
 msgid "No disks"
 msgstr "Không có đĩa"
@@ -1818,8 +1782,8 @@ msgstr "Tôi đã di chuyển nó"
 msgid "I Copied It"
 msgstr "Tôi đã sao chép nó"
 
-msgid "86Box Monitor #"
-msgstr "Màn hình 86box #"
+msgid "86Box Monitor #%1"
+msgstr "Màn hình 86Box #%1"
 
 msgid "No MCA devices."
 msgstr "Không có thiết bị MCA."
@@ -2232,12 +2196,6 @@ msgstr "Cường độ bộ lọc SID"
 msgid "Surround module"
 msgstr "Mô đun vòm"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Tăng ngắt CODEC trên thiết lập CODEC (cần bởi một số trình điều khiển)"
-
 msgid "SB Address"
 msgstr "Địa chỉ SB"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "Sigmatel Stac9721T (âm thanh nổi)"
 
-msgid "Classic"
-msgstr "Cổ điển"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2826,9 +2781,6 @@ msgstr "Lỗi GLSL"
 msgid "Could not load shader: %1"
 msgstr "Không thể nạp shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Yêu cầu OpenGL bản 3.0 trở lên. Hiện tại bản GLSL là %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Không thể nạp texture: %1"
 
@@ -2875,7 +2827,7 @@ msgid "Bind Key"
 msgstr "Gắn phím"
 
 msgid "Enter key combo:"
-msgstr "Nhập tổ hợp phím"
+msgstr "Nhập tổ hợp phím:"
 
 msgid "Bind conflict"
 msgstr "Gắn phím trùng lặp"
@@ -2992,13 +2944,13 @@ msgid "build"
 msgstr "bản dựng"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "Bạn đang chạy phiên bản <b>%1</b>"
+msgstr "Bạn đang chạy phiên bản <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
 msgstr "<b>Phiên bản %1</b> hiện đã ra mắt."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Bạn đang chạy bản dựng <b>%1</b>"
+msgstr "Bạn đang chạy bản dựng <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>Bản dựng %1</b> hiện đã ra mắt."

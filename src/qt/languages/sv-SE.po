@@ -273,36 +273,6 @@ msgstr "Ladda om föregående avbildning"
 msgid "&Folder..."
 msgstr "&Mapp..."
 
-msgid "Target &framerate"
-msgstr "Mål för &bildhastighet"
-
-msgid "&Sync with video"
-msgstr "&Synkronisera med bild"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Välj shader..."
-
-msgid "&Remove shader"
-msgstr "&Ta bort shader"
-
 msgid "Preferences"
 msgstr "Preferenser"
 
@@ -687,9 +657,6 @@ msgstr "ISABugger-enhet"
 msgid "POST card"
 msgstr "POST-kort"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Fel"
 
@@ -1050,11 +1017,8 @@ msgstr "Detta kommer att göra en hård omstart av den emulerade maskinen."
 msgid "Save"
 msgstr "Spara"
 
-msgid "About 86Box"
-msgstr "Om 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Om %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "En emulator av gamla datorer\n\nUpphovsmän: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, med flera.\n\nMed tidigare grundbidrag från Sarah Walker, leilei, JohnElliott, greatpsycho, med flera.\n\nSläppt under GNU General Public License upplaga 2 eller senare. Se LICENSE för mer information."
@@ -1404,7 +1368,7 @@ msgstr "System"
 msgid "Storage"
 msgstr "Lagring"
 
-msgid "Disk %1: "
+msgid "Disk %1:"
 msgstr "Disk %1:"
 
 msgid "No disks"
@@ -1818,8 +1782,8 @@ msgstr "Jag flyttade den"
 msgid "I Copied It"
 msgstr "Jag kopierade den"
 
-msgid "86Box Monitor #"
-msgstr "86Box skärm #"
+msgid "86Box Monitor #%1"
+msgstr "86Box skärm #%1"
 
 msgid "No MCA devices."
 msgstr "Inga MCA-enheter."
@@ -2053,7 +2017,7 @@ msgid "BIOS size (ROM #3)"
 msgstr "Storlek på BIOS (ROM #3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Storlek på BIOS (BIOS #4)"
+msgstr "Storlek på BIOS (ROM #4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Kartlägg C0000-C7FFF som UMB"
@@ -2231,12 +2195,6 @@ msgstr "SID filetstyrka"
 
 msgid "Surround module"
 msgstr "Sorround-modul"
-
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Öka avbrottsnummer för CODEC vid CODEC-installation (krävs av vissa drivrutiner)"
 
 msgid "SB Address"
 msgstr "Adress för SB"
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klassisk"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2826,9 +2781,6 @@ msgstr "GLSL-fel"
 msgid "Could not load shader: %1"
 msgstr "Kunde inte ladda shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL version 3.0 eller högre krävs. Nuvarande GLSL-version är %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Kunde inte ladda textur: %1"
 
@@ -2947,10 +2899,10 @@ msgid "Success"
 msgstr "Lyckades"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Lyckades tömma allt NVRAM-innehåll för den virtuella maskinen \"%1\"."
+msgstr "Lyckades tömma allt NVRAM-innehåll för den virtuella maskinen \"%1\""
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "Ett fel uppstod vid försök att tömma NVRAM-innehållet för den virtuella maskinen \"%1\"."
+msgstr "Ett fel uppstod vid försök att tömma NVRAM-innehållet för den virtuella maskinen \"%1\""
 
 msgid "%1 VM Manager"
 msgstr "%1 VM-hanterare"

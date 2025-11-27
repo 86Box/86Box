@@ -67,7 +67,7 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify &dimensions..."
-msgstr "ディメンションを指定...(&D)"
+msgstr "ディメンションを指定(&D)..."
 
 msgid "Force &4:3 display ratio"
 msgstr "4:3の縦横比を強制表示(&4)"
@@ -273,36 +273,6 @@ msgstr "前のイメージを再読み込み"
 msgid "&Folder..."
 msgstr "フォルダ(&F)..."
 
-msgid "Target &framerate"
-msgstr "目標フレームレート(&F)"
-
-msgid "&Sync with video"
-msgstr "ビデオと同期(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "垂直同期(VSync)(&V)"
-
-msgid "&Select shader..."
-msgstr "シェーダーを選択(&S)..."
-
-msgid "&Remove shader"
-msgstr "シェーダーを削除(&R)"
-
 msgid "Preferences"
 msgstr "環境設定"
 
@@ -478,7 +448,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI入力デバイス:"
 
 msgid "MIDI Out:"
-msgstr "MIDI出力"
+msgstr "MIDI出力:"
 
 msgid "Standalone MPU-401"
 msgstr "独立型MPU-401"
@@ -686,9 +656,6 @@ msgstr "ISABuggerデバイス"
 
 msgid "POST card"
 msgstr "POSTカード"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "エラー"
@@ -1030,7 +997,7 @@ msgid "&File"
 msgstr "ファイル(&F)"
 
 msgid "&New machine..."
-msgstr "新しいマシン(&N)"
+msgstr "新しいマシン(&N)..."
 
 msgid "&Check for updates..."
 msgstr "アップデートを確認中(&C)..."
@@ -1050,11 +1017,8 @@ msgstr "使用中のマシンがハードリセットされます。"
 msgid "Save"
 msgstr "保存"
 
-msgid "About 86Box"
-msgstr "86Boxのバージョン情報"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "%1のバージョン情報"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "古いパソコンのエミュレーター\n\n著者: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nSarah Walker, leilei, JohnElliott, greatpsycho, その他の方々による以前からの多大な貢献。\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
@@ -1309,7 +1273,7 @@ msgid "C&lone..."
 msgstr "クローン(&L)..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr "仮想マシン\"%1\" (%2)は、以下の場所にクローンされます:"
+msgstr "仮想マシン「%1」 (%2)は、以下の場所にクローンされます:"
 
 msgid "Directory %1 already exists"
 msgstr "ディレクトリ %1 は既に存在します"
@@ -1366,7 +1330,7 @@ msgid "An error has occurred while checking for updates: %1"
 msgstr "アップデートの確認中にエラーが発生しました: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr "<b>86Boxのアップデートが利用可能になりました!</b>"
+msgstr "<b>86Boxのアップデートが利用可能になりました！</b>"
 
 msgid "Warning"
 msgstr "警告"
@@ -1375,13 +1339,13 @@ msgid "&Kill"
 msgstr "強制的に終了する(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "仮想マシンを強制終了すると、データが失われる可能性があります。86Boxプロセスが応答しなくなった場合のみ、この操作を行ってください。\n\n本当に仮想マシン\"%1\"を終了しますか？"
+msgstr "仮想マシンを強制終了すると、データが失われる可能性があります。86Boxプロセスが応答しなくなった場合のみ、この操作を行ってください。\n\n本当に仮想マシン「%1」を終了しますか？"
 
 msgid "&Delete"
 msgstr "削除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "本当に仮想マシン\"%1\"とそのすべてのファイルを削除しますか? この操作は元に戻せません!"
+msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？ この操作は元に戻せません！"
 
 msgid "Show &config file"
 msgstr "設定ファイルを表示する(&C)"
@@ -1404,7 +1368,7 @@ msgstr "システム"
 msgid "Storage"
 msgstr "ストレージ"
 
-msgid "Disk %1: "
+msgid "Disk %1:"
 msgstr "ディスク %1:"
 
 msgid "No disks"
@@ -1723,7 +1687,7 @@ msgid "Show non-&primary monitors"
 msgstr "プライマリーモニター以外のモニターを表示する(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "スクリーンショットフォルダを開く(&F)"
+msgstr "スクリーンショットフォルダを開く(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時にフルスクリーンストレッチモードを適用(&Y)"
@@ -1795,7 +1759,7 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "OpenGLコンテキストに切り替えられなかった。"
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です。"
+msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です"
 
 msgid "Error initializing OpenGL"
 msgstr "OpenGLの初期化エラー"
@@ -1810,7 +1774,7 @@ msgid "This machine might have been moved or copied."
 msgstr "このマシンは移動されたかコピーされた可能性がある。"
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "ネットワーク機能を正しく動作させるために、86Boxはこのマシンが移動されたかコピーされたかを知る必要があります。「コピーした」を選択してください。"
+msgstr "ネットワーク機能を正しく動作させるために、86Boxはこのマシンが移動されたかコピーされたかを知る必要があります。\n\n「コピーした」を選択してください。"
 
 msgid "I Moved It"
 msgstr "動かした"
@@ -1818,8 +1782,8 @@ msgstr "動かした"
 msgid "I Copied It"
 msgstr "コピーした"
 
-msgid "86Box Monitor #"
-msgstr "86Box モニター"
+msgid "86Box Monitor #%1"
+msgstr "86Box モニター%1"
 
 msgid "No MCA devices."
 msgstr "MCAデバイスはない。"
@@ -1876,7 +1840,7 @@ msgid "Serial port passthrough 4"
 msgstr "シリアル・ポート・パススルー 4"
 
 msgid "Renderer &options..."
-msgstr "レンダラー設定...(&O)"
+msgstr "レンダラー設定(&O)..."
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT キーボード"
@@ -2232,12 +2196,6 @@ msgstr "SIDフィルターの強度"
 msgid "Surround module"
 msgstr "サラウンド・モジュール"
 
-msgid "CODEC"
-msgstr "コーデック"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "CODECセットアップ時にCODEC割り込みを発生させる(一部のドライバで必要)"
-
 msgid "SB Address"
 msgstr "SBアドレス"
 
@@ -2305,7 +2263,7 @@ msgid "GUS type"
 msgstr "GUSタイプ"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "コマンド 0x04 \"86Boxを終了する\"を有効にする"
+msgstr "コマンド 0x04 「86Boxを終了する」を有効にする"
 
 msgid "Display type"
 msgstr "表示タイプ"
@@ -2534,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "シグマテル STAC9721T（ステレオ）"
-
-msgid "Classic"
-msgstr "クラシック"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2826,9 +2781,6 @@ msgstr "GLSLエラー"
 msgid "Could not load shader: %1"
 msgstr "シェーダーを読み込めませんでした: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGLバージョン 3.0 以上が必要です。現在のGLSLバージョンは %1.%2 です。"
-
 msgid "Could not load texture: %1"
 msgstr "テクスチャを読み込めませんでした: %1"
 
@@ -2941,16 +2893,16 @@ msgid "&Wipe NVRAM"
 msgstr "NVRAMを消去する(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "これによって、仮想マシン内の\"nvr\"サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン\"%1\"のすべてのNVRAM内容を削除してもよろしいですか?"
+msgstr "これによって、仮想マシン内の「nvr」サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン「%1」のすべてのNVRAM内容を削除してもよろしいですか？"
 
 msgid "Success"
 msgstr "成功"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "仮想マシン\"%1\"のNVRAMの内容を正常に消去しました"
+msgstr "仮想マシン「%1」のNVRAMの内容を正常に消去しました"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "仮想マシン\"%1\"のNVRAMの内容を消去しようとした際にエラーが発生しました"
+msgstr "仮想マシン「%1」のNVRAMの内容を消去しようとした際にエラーが発生しました"
 
 msgid "%1 VM Manager"
 msgstr "%1 VMマネージャー"
@@ -2962,7 +2914,7 @@ msgid "Unknown Status"
 msgstr "不明な状態"
 
 msgid "No Machines Found!"
-msgstr "マシンが検出されません!"
+msgstr "マシンが検出されません！"
 
 msgid "Check for updates on startup"
 msgstr "起動時にアップデートを確認する"
@@ -3028,7 +2980,7 @@ msgid "Virtual machine crash"
 msgstr "仮想マシンの予期せぬ終了"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "仮想マシン\"%1\"のプロセスが、終了コード %2 で予期せず終了しました。"
+msgstr "仮想マシン「%1」のプロセスが、終了コード %2 で予期せず終了しました。"
 
 msgid "The system will not be added."
 msgstr "システムは追加されません。"
@@ -3052,7 +3004,7 @@ msgid "Sharpness"
 msgstr "シャープネス"
 
 msgid "&CGA composite settings..."
-msgstr "CGA複合モードの設定...(&C)"
+msgstr "CGA複合モードの設定(&C)..."
 
 msgid "CGA composite settings"
 msgstr "CGA複合モードの設定"
@@ -3067,7 +3019,7 @@ msgid "Export EDID"
 msgstr "EDIDのエクスポート"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "EDIDファイル \"%ls\" が大きすぎます。"
+msgstr "EDIDファイル「%ls」が大きすぎます。"
 
 msgid "OpenGL input scale"
 msgstr "OpenGLの入力スケール"

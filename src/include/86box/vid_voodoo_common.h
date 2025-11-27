@@ -29,13 +29,6 @@
 
 #define TEX_CACHE_MAX   64
 
-#ifdef __cplusplus
-#    include <atomic>
-using atomic_int = std::atomic<int>;
-#else
-#    include <stdatomic.h>
-#endif
-
 enum {
     VOODOO_1 = 0,
     VOODOO_SB50,
@@ -230,8 +223,8 @@ typedef struct voodoo_params_t {
 typedef struct texture_t {
     uint32_t   base;
     uint32_t   tLOD;
-    atomic_int refcount;
-    atomic_int refcount_r[4];
+    ATOMIC_INT refcount;
+    ATOMIC_INT refcount_r[4];
     int        is16;
     uint32_t   palette_checksum;
     uint32_t   addr_start[4];
@@ -400,16 +393,16 @@ typedef struct voodoo_t {
     int type;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    atomic_int   fifo_read_idx;
-    atomic_int   fifo_write_idx;
-    atomic_int   cmd_read;
-    atomic_int   cmd_written;
-    atomic_int   cmd_written_fifo;
-    atomic_int   cmd_written_fifo_2;
+    ATOMIC_INT   fifo_read_idx;
+    ATOMIC_INT   fifo_write_idx;
+    ATOMIC_INT   cmd_read;
+    ATOMIC_INT   cmd_written;
+    ATOMIC_INT   cmd_written_fifo;
+    ATOMIC_INT   cmd_written_fifo_2;
 
     voodoo_params_t params_buffer[PARAM_SIZE];
-    atomic_int      params_read_idx[4];
-    atomic_int      params_write_idx;
+    ATOMIC_INT      params_read_idx[4];
+    ATOMIC_INT      params_write_idx;
 
     uint32_t   cmdfifo_base;
     uint32_t   cmdfifo_end;
@@ -418,9 +411,9 @@ typedef struct voodoo_t {
     int        cmdfifo_ret_addr;
     int        cmdfifo_in_sub;
     int        cmdfifo_in_agp;
-    atomic_int cmdfifo_depth_rd;
-    atomic_int cmdfifo_depth_wr;
-    atomic_int cmdfifo_enabled;
+    ATOMIC_INT cmdfifo_depth_rd;
+    ATOMIC_INT cmdfifo_depth_wr;
+    ATOMIC_INT cmdfifo_enabled;
     uint32_t   cmdfifo_amin;
     uint32_t   cmdfifo_amax;
     int        cmdfifo_holecount;
@@ -432,14 +425,14 @@ typedef struct voodoo_t {
     int        cmdfifo_ret_addr_2;
     int        cmdfifo_in_sub_2;
     int        cmdfifo_in_agp_2;
-    atomic_int cmdfifo_depth_rd_2;
-    atomic_int cmdfifo_depth_wr_2;
-    atomic_int cmdfifo_enabled_2;
+    ATOMIC_INT cmdfifo_depth_rd_2;
+    ATOMIC_INT cmdfifo_depth_wr_2;
+    ATOMIC_INT cmdfifo_enabled_2;
     uint32_t   cmdfifo_amin_2;
     uint32_t   cmdfifo_amax_2;
     int        cmdfifo_holecount_2;
 
-    atomic_uint cmd_status, cmd_status_2;
+    ATOMIC_UINT cmd_status, cmd_status_2;
 
     uint32_t     sSetupMode;
     vert_t       verts[4];

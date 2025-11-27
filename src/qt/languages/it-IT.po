@@ -273,36 +273,6 @@ msgstr "Ricarica l'immagine precedente"
 msgid "&Folder..."
 msgstr "&Cartella..."
 
-msgid "Target &framerate"
-msgstr "Obiettivo &fotogrammi"
-
-msgid "&Sync with video"
-msgstr "&Sincronizza col video"
-
-msgid "&25 fps"
-msgstr "&25 FPS"
-
-msgid "&30 fps"
-msgstr "&30 FPS"
-
-msgid "&50 fps"
-msgstr "&50 FPS"
-
-msgid "&60 fps"
-msgstr "&60 FPS"
-
-msgid "&75 fps"
-msgstr "&75 FPS"
-
-msgid "&VSync"
-msgstr "Sincronizzazione &verticale"
-
-msgid "&Select shader..."
-msgstr "&Seleziona shader..."
-
-msgid "&Remove shader"
-msgstr "&Rimuovi shader"
-
 msgid "Preferences"
 msgstr "Preferenze"
 
@@ -520,7 +490,7 @@ msgid "LPT4 Device:"
 msgstr "Dispositivo LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr "DMA LPT ECP interna"
+msgstr "DMA LPT ECP interna:"
 
 msgid "Serial port 1"
 msgstr "Porta seriale 1"
@@ -686,9 +656,6 @@ msgstr "Dispositivo ISABugger"
 
 msgid "POST card"
 msgstr "Scheda di diagnostica"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Errore"
@@ -1050,11 +1017,8 @@ msgstr "Questo riavvierà la macchina emulata."
 msgid "Save"
 msgstr "Salva"
 
-msgid "About 86Box"
-msgstr "Informazioni su 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Informazioni su %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Un emulatore di vecchi computer\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne e altri.\n\nCon i precedenti contributi fondamentali di Sarah Walker, leilei, JohnElliott, greatpsycho e altri.\n\nRilasciato sotto la Licenza Pubblica Generale GNU versione 2 o successiva. Per ulteriori informazioni, consultare il file LICENSE."
@@ -1404,8 +1368,8 @@ msgstr "Sistema"
 msgid "Storage"
 msgstr "Archiviazione"
 
-msgid "Disk %1: "
-msgstr "Disco %1: "
+msgid "Disk %1:"
+msgstr "Disco %1:"
 
 msgid "No disks"
 msgstr "Nessun disco"
@@ -1818,8 +1782,8 @@ msgstr "L'ho spostata"
 msgid "I Copied It"
 msgstr "L'ho copiata"
 
-msgid "86Box Monitor #"
-msgstr "Monitor 86Box #"
+msgid "86Box Monitor #%1"
+msgstr "Monitor 86Box #%1"
 
 msgid "No MCA devices."
 msgstr "Nessun dispositivo MCA."
@@ -2232,12 +2196,6 @@ msgstr "Intensità filtro SID"
 msgid "Surround module"
 msgstr "Modulo surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Incrementa l'interrupt CODEC nella configurazione CODEC (necessario per alcuni driver)"
-
 msgid "SB Address"
 msgstr "Indirizzo SB"
 
@@ -2535,9 +2493,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Classico"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2825,9 +2780,6 @@ msgstr "Errore GLSL"
 
 msgid "Could not load shader: %1"
 msgstr "Impossibile caricare lo shader: %1"
-
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "È richiesta la versione 3.0 di OpenGL o successiva. La versione GLSL corrente è %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Impossibile caricare la texture: %1"

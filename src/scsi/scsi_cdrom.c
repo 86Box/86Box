@@ -2494,7 +2494,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             dev->drv->seek_diff               = dev->drv->seek_pos;
             cdrom_seek(dev->drv, 0, 0);
             dev->sector_pos                   = dev->drv->seek_pos;
-            dev->drv->cached_sector           = -1;
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             break;
 
@@ -3557,8 +3556,7 @@ atapi_out:
             else
                 cdrom_seek(dev->drv, pos, 0);
 
-            dev->sector_pos         = dev->drv->seek_pos;
-            dev->drv->cached_sector = -1;
+            dev->sector_pos     = dev->drv->seek_pos;
 
             scsi_cdrom_command_complete(dev);
             break;

@@ -273,36 +273,6 @@ msgstr "Recargar imagen previa"
 msgid "&Folder..."
 msgstr "&Carpeta..."
 
-msgid "Target &framerate"
-msgstr "Objetivo de &tasa de refresco"
-
-msgid "&Sync with video"
-msgstr "&Sincronizar con vídeo"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Seleccionar shader..."
-
-msgid "&Remove shader"
-msgstr "&Eliminar shader"
-
 msgid "Preferences"
 msgstr "Preferencias"
 
@@ -478,7 +448,7 @@ msgid "MIDI In Device:"
 msgstr "Dispositivo MIDI de entrada:"
 
 msgid "MIDI Out:"
-msgstr "Salida MIDI"
+msgstr "Salida MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "MPU-401 independiente"
@@ -686,9 +656,6 @@ msgstr "Dispositivo ISABugger"
 
 msgid "POST card"
 msgstr "Tarjeta POST"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Error"
@@ -1050,11 +1017,8 @@ msgstr "Se hará una reinicialización completa de la máquina emulada."
 msgid "Save"
 msgstr "Guardar"
 
-msgid "About 86Box"
-msgstr "Acerca de 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Acerca de %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Un emulador de ordenadores antigüos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, y otros.\n\nCon contribuciones anteriores de Sarah Walker, leilei, JohnElliott, greatpsycho y otros.\n\nLiberado bajo la GNU General Public License versión 2 o posterior. Ver LICENSE para más información."
@@ -1306,7 +1270,7 @@ msgid "Select an icon"
 msgstr "Escoger un icono"
 
 msgid "C&lone..."
-msgstr "C&lonar"
+msgstr "C&lonar..."
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "La máquina virtual \"%1\" (%2) será clonada para:"
@@ -1404,8 +1368,8 @@ msgstr "Sistema"
 msgid "Storage"
 msgstr "Almacenamiento"
 
-msgid "Disk %1: "
-msgstr "Disco"
+msgid "Disk %1:"
+msgstr "Disco %1:"
 
 msgid "No disks"
 msgstr "Sin disco"
@@ -1818,8 +1782,8 @@ msgstr "La he movido"
 msgid "I Copied It"
 msgstr "La he copiado"
 
-msgid "86Box Monitor #"
-msgstr "Monitor de 86Box "
+msgid "86Box Monitor #%1"
+msgstr "Monitor de 86Box %1"
 
 msgid "No MCA devices."
 msgstr "No hay dispositovos MCA."
@@ -2232,12 +2196,6 @@ msgstr "Fuerza del filtro de SID"
 msgid "Surround module"
 msgstr "Módulo Surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Activar la interrupción CODEC en la configuración CODEC (necesario para algunos controladores)"
-
 msgid "SB Address"
 msgstr "Dirección del SB"
 
@@ -2404,13 +2362,13 @@ msgid "EMS 2 Address"
 msgstr "Dirección de EMS 2"
 
 msgid "EMS Memory Size"
-msgstr "Dirección de EMS"
+msgstr "Tamaño de memoria de EMS"
 
 msgid "EMS 1 Memory Size"
-msgstr "Dirección de EMS 1"
+msgstr "Tamaño de memoria de EMS 1"
 
 msgid "EMS 2 Memory Size"
-msgstr "Dirección de EMS 2"
+msgstr "Tamaño de memoria de EMS 2"
 
 msgid "Enable EMS"
 msgstr "Habilitar EMS"
@@ -2534,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (estéreo)"
-
-msgid "Classic"
-msgstr "Clásico"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2825,9 +2780,6 @@ msgstr "Error de GLSL"
 
 msgid "Could not load shader: %1"
 msgstr "No fué posible cargar el shader: %1"
-
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Se requiere la versión 3.0 o superior de OpenGL. La versión actual de GLSL es %1.%2"
 
 msgid "Could not load texture: %1"
 msgstr "Error al cargar la textura: %1"

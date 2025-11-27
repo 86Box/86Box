@@ -871,6 +871,9 @@ machine_at_powermatev_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&i430fx_device);
     device_add(&piix_device);
