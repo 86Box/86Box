@@ -1469,8 +1469,10 @@ cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type)
             break;
     }
 
-    dev->seek_pos = real_pos;
     cdrom_stop(dev);
+
+    dev->seek_pos      = real_pos;
+    dev->cached_sector = -1;
 }
 
 int
