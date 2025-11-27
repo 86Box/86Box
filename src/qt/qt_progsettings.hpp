@@ -17,10 +17,10 @@ public:
 #ifdef Q_OS_WINDOWS
     static QString getFontName(int langId);
 #endif
-    static int      languageCodeToId(QString langCode);
-    static QString  languageIdToCode(int id);
-    static void     loadTranslators(QObject *parent = nullptr);
-    static void     reloadStrings();
+    static int     languageCodeToId(QString langCode);
+    static QString languageIdToCode(int id);
+    static void    loadTranslators(QObject *parent = nullptr);
+    static void    reloadStrings();
     class CustomTranslator : public QTranslator {
     public:
         CustomTranslator(QObject *parent = nullptr)
@@ -33,10 +33,10 @@ public:
             return QTranslator::translate("", sourceText, disambiguation, n);
         }
     };
-    static CustomTranslator                 *translator;
-    static QTranslator                      *qtTranslator;
-    static QVector<QPair<QString, QString>>  languages;
-    static QMap<int, std::wstring>           translatedstrings;
+    static CustomTranslator                *translator;
+    static QTranslator                     *qtTranslator;
+    static QVector<QPair<QString, QString>> languages;
+    static QMap<int, std::wstring>          translatedstrings;
 
 protected slots:
     void accept() override;
@@ -49,7 +49,7 @@ private slots:
 
 private:
     Ui::ProgSettings *ui;
-    static bool loadQtTranslations(const QString name);
+    static bool       loadQtTranslations(const QString name);
 
     friend class MainWindow;
     double mouseSensitivity;

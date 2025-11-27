@@ -273,36 +273,6 @@ msgstr "Voriges Abbild neu laden"
 msgid "&Folder..."
 msgstr "&Verzeichnis..."
 
-msgid "Target &framerate"
-msgstr "Ziel&framerate"
-
-msgid "&Sync with video"
-msgstr "&Mit Videoausgabe synchronisieren"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Shader auswählen..."
-
-msgid "&Remove shader"
-msgstr "&Shader entfernen"
-
 msgid "Preferences"
 msgstr "Einstellungen"
 
@@ -687,9 +657,6 @@ msgstr "ISABugger-Gerät"
 msgid "POST card"
 msgstr "POST-Code-Karte"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Fehler"
 
@@ -1030,7 +997,7 @@ msgid "&File"
 msgstr "&Datei"
 
 msgid "&New machine..."
-msgstr "&Neue Maschine"
+msgstr "&Neue Maschine..."
 
 msgid "&Check for updates..."
 msgstr "&Auf Aktualisierungen prüfen..."
@@ -1050,11 +1017,8 @@ msgstr "Dies wird zu einem Kaltstart des emulierten Systems führen."
 msgid "Save"
 msgstr "Speichern"
 
-msgid "About 86Box"
-msgstr "Über 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Über %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Ein Emulator für alte Computer\n\nAutoren: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne sowie andere.\n\nMit früheren Kernbeiträgen von Sarah Walker, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
@@ -1186,7 +1150,7 @@ msgid "VMs: %1"
 msgstr ""
 
 msgid "System Directory:"
-msgstr "Systemverzeichnis"
+msgstr "Systemverzeichnis:"
 
 msgid "Choose directory"
 msgstr "Verzeichnis auswählen"
@@ -1216,7 +1180,7 @@ msgid "Introduction"
 msgstr "Einleitung"
 
 msgid "This will help you add a new system to 86Box."
-msgstr "Hilft dir ein neues System zu 86Box hinzuzufügen"
+msgstr "Hilft dir ein neues System zu 86Box hinzuzufügen."
 
 msgid "New configuration"
 msgstr "Neue Konfiguration"
@@ -1288,19 +1252,19 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Gebe den neuen Anzeigenamen ein (leer lassen zum Zurücksetzen)"
 
 msgid "Change &display name..."
-msgstr "&Anzeigename ändern"
+msgstr "&Anzeigename ändern..."
 
 msgid "Context Menu"
 msgstr "Kontextmenü"
 
 msgid "&Open folder..."
-msgstr "&Ordner öffnen"
+msgstr "&Ordner öffnen..."
 
 msgid "Open p&rinter tray..."
 msgstr "D&ruckerausgabe öffnen..."
 
 msgid "Set &icon..."
-msgstr "&Symbol setzen"
+msgstr "&Symbol setzen..."
 
 msgid "Select an icon"
 msgstr "Wähle ein Symbol aus"
@@ -1404,7 +1368,7 @@ msgstr ""
 msgid "Storage"
 msgstr "Speicherplatz"
 
-msgid "Disk %1: "
+msgid "Disk %1:"
 msgstr ""
 
 msgid "No disks"
@@ -1818,8 +1782,8 @@ msgstr "Ich habe es verschoben"
 msgid "I Copied It"
 msgstr "Ich habe es kopiert"
 
-msgid "86Box Monitor #"
-msgstr "86Box-Monitor #"
+msgid "86Box Monitor #%1"
+msgstr "86Box-Monitor #%1"
 
 msgid "No MCA devices."
 msgstr "Keine MCA-Geräte."
@@ -2232,12 +2196,6 @@ msgstr "SID-Filterstärke"
 msgid "Surround module"
 msgstr "Surround-Modul"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "CODEC-Interrupt bei CODEC-Einrichtung auslösen (wird von einigen Treibern benötigt)"
-
 msgid "SB Address"
 msgstr "SB-Adresse"
 
@@ -2252,6 +2210,18 @@ msgstr "WSS-IRQ"
 
 msgid "WSS DMA"
 msgstr "WSS-DMA"
+
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
 
 msgid "Enable OPL"
 msgstr "OPL einschalten"
@@ -2522,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (Stereo)"
-
-msgid "Classic"
-msgstr "Klassisch"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2814,9 +2781,6 @@ msgstr "GLSL-Fehler"
 msgid "Could not load shader: %1"
 msgstr "Shader konnte nicht geladen werden: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL-Version 3.0 oder höher ist erforderlich. Die aktuelle GLSL-Version ist %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Textur konnte nicht geladen werden: %1"
 
@@ -2880,6 +2844,9 @@ msgstr "Strg+Alt+Esc senden"
 msgid "Toggle fullscreen"
 msgstr "Vollbild umschalten"
 
+msgid "Toggle UI in fullscreen"
+msgstr ""
+
 msgid "Screenshot"
 msgstr "Bildschirmaufnahme"
 
@@ -2926,7 +2893,7 @@ msgid "&Wipe NVRAM"
 msgstr "NVRAM leeren"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Dadurch werden alle NVRAM-Dateien (und zugehörige Dateien) der virtuellen Maschine im Unterverzeichnis \"nvr\" werden gelöscht. Gegebenenfalls müssen die BIOS-Einstellungen (und möglicherweise auch die Einstellungen anderer Geräte innerhalb der VM) erneut konfiguriert werden. Möchtest du wirklich den gesamten NVRAM-Inhalt der virtuellen Maschine \"%1\" löschen?"
+msgstr "Dadurch werden alle NVRAM-Dateien (und zugehörige Dateien) der virtuellen Maschine im Unterverzeichnis \"nvr\" werden gelöscht. Gegebenenfalls müssen die BIOS-Einstellungen (und möglicherweise auch die Einstellungen anderer Geräte innerhalb der VM) erneut konfiguriert werden.\n\nMöchtest du wirklich den gesamten NVRAM-Inhalt der virtuellen Maschine \"%1\" löschen?"
 
 msgid "Success"
 msgstr "Erfolgreich"
@@ -2953,7 +2920,7 @@ msgid "Check for updates on startup"
 msgstr "Beim Programmstart auf Aktualisierungen prüfen"
 
 msgid "Unable to determine release information"
-msgstr "Die Veröffentlichungsinformationen können nicht ermittelt werden."
+msgstr "Die Veröffentlichungsinformationen können nicht ermittelt werden"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
 msgstr "Bei der Prüfung auf Aktualisierungen trat ein Fehler auf:\n\n%1\n\nBitte versuche es später erneut."

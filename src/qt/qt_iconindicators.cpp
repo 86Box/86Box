@@ -35,7 +35,7 @@ getIconWithIndicator(const QIcon &icon, const QSize &size, QIcon::Mode iconMode,
     if (indicator == None)
         return iconPixmap;
 
-    auto painter = QPainter(&iconPixmap);
+    auto painter         = QPainter(&iconPixmap);
     auto indicatorPixmap = getIndicatorIcon((indicator == ReadWriteActive || indicator == WriteProtectedActive) ? Active : indicator).pixmap(size);
 
     if (indicator == WriteProtectedBrowse)

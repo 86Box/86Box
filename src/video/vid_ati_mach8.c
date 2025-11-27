@@ -3114,7 +3114,7 @@ mach_recalctimings(svga_t *svga)
             svga->ati_4color = 0;
     }
 
-    mach_log("ON=%d, override=%d, gelo=%04x, gehi=%04x, crtlo=%04x, crthi=%04x, vgahdisp=%d.\n", dev->on, svga->override, mach->accel.ge_offset_lo, mach->accel.ge_offset_hi, mach->accel.crt_offset_lo, mach->accel.crt_offset_hi, svga->hdisp);
+    mach_log("ON=%d, override=%d, gelo=%04x, gehi=%04x, crtlo=%04x, crthi=%04x, vgahdisp=%d, ibmon=%x, ation=%x, graph1=%x.\n", dev->on, svga->override, mach->accel.ge_offset_lo, mach->accel.ge_offset_hi, mach->accel.crt_offset_lo, mach->accel.crt_offset_hi, svga->hdisp, dev->accel.advfunc_cntl & 0x01, mach->accel.clock_sel & 0x01, svga->gdcreg[6] & 0x01);
 
     if (dev->on) {
         dev->memaddr_latch              = 0; /*(mach->accel.crt_offset_lo | (mach->accel.crt_offset_hi << 16)) << 2;*/
@@ -3322,29 +3322,28 @@ mach_recalctimings(svga_t *svga)
         if (!svga->scrblank && svga->attr_palette_enable) {
             mach_log("GDCREG5=%02x, ATTR10=%02x, ATI B0 bit 5=%02x, ON=%d.\n",
                      svga->gdcreg[5] & 0x60, svga->attrregs[0x10] & 0x40, mach->regs[0xb0] & 0x20, dev->on);
-            if (ATI_MACH32)
-                svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
-            else
-                svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
-
-            switch ((mach->regs[0xb8] >> 6) & 3) {
-                case 0:
-                default:
-                    break;
-                case 1:
-                    svga->clock *= 2.0;
-                    break;
-                case 2:
-                    svga->clock *= 3.0;
-                    break;
-                case 3:
-                    svga->clock *= 4.0;
-                    break;
-            }
 
             mach_log("VGA clock sel=%02x, divide reg=%02x, miscout bits2-3=%x, machregbe bit4=%02x, machregb9 bit1=%02x, charwidth=%d, htotal=%02x, hdisptime=%02x, seqregs1 bit 3=%02x.\n", clock_sel, (mach->regs[0xb8] >> 6) & 3, svga->miscout & 0x0c, mach->regs[0xbe] & 0x10, mach->regs[0xb9] & 0x02, svga->char_width, svga->htotal, svga->hdisp_time, svga->seqregs[1] & 8);
             if ((svga->gdcreg[6] & 0x01) || (svga->attrregs[0x10] & 0x01)) {
                 if ((svga->gdcreg[5] & 0x40) || (svga->attrregs[0x10] & 0x40) || (mach->regs[0xb0] & 0x20)) {
+                    if (ATI_MACH32)
+                        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
+                    else
+                        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
+
+                    switch ((mach->regs[0xb8] >> 6) & 3) {
+                        case 1:
+                            svga->clock *= 2.0;
+                            break;
+                        case 2:
+                            svga->clock *= 3.0;
+                            break;
+                        case 3:
+                            svga->clock *= 4.0;
+                            break;
+                        default:
+                            break;
+                    }
                     svga->map8 = svga->pallook;
                     mach_log("Lowres=%x, seqreg[1]bit3=%x.\n", svga->lowres, svga->seqregs[1] & 8);
                     if (svga->lowres)
@@ -3356,6 +3355,26 @@ mach_recalctimings(svga_t *svga)
                             svga->rowoffset <<= 1;
                         }
                     }
+                }
+            } else {
+                if (ATI_MACH32)
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
+                else
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
+
+                switch ((mach->regs[0xb8] >> 6) & 3) {
+                    case 0:
+                    default:
+                        break;
+                    case 1:
+                        svga->clock *= 2.0;
+                        break;
+                    case 2:
+                        svga->clock *= 3.0;
+                        break;
+                    case 3:
+                        svga->clock *= 4.0;
+                        break;
                 }
             }
         }
@@ -4046,6 +4065,10 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             }
             if (!(dev->accel.advfunc_cntl & 0x01))
                 dev->on = mach->accel.clock_sel & 0x01;
+            else {
+                if (!(mach->regs[0xb0] & 0x20) && !(mach->accel.clock_sel & 0x01))
+                    dev->on = 0;
+            }
 
             dev->vendor_mode = 1;
             dev->mode = ATI_MODE;

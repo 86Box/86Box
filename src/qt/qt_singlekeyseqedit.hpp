@@ -4,8 +4,7 @@
 #include <QKeySequenceEdit>
 #include <QWidget>
 
-class singleKeySequenceEdit : public QKeySequenceEdit
-{
+class singleKeySequenceEdit : public QKeySequenceEdit {
     Q_OBJECT
 public:
     singleKeySequenceEdit(QWidget *parent = nullptr);

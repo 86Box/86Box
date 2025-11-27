@@ -1376,13 +1376,12 @@ piix_reset_hard(piix_t *dev)
         if (dev->type < 5)
             fregs[0x20] = 0x01;
         fregs[0x3d] = 0x04;
-        if (dev->type > 4)
-            fregs[0x60] = (dev->type > 3) ? 0x10 : 0x00;
         if (dev->type < 5) {
+            fregs[0x60] = (dev->type > 3) ? 0x10 : 0x00;
             fregs[0x6a] = (dev->type == 3) ? 0x01 : 0x00;
             fregs[0xc1] = 0x20;
             fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
-        }
+        } else
         dev->max_func = 2; /* It starts with USB disabled, then enables it. */
     }
 

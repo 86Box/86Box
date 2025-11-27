@@ -1421,6 +1421,41 @@ svga_poll(void *priv)
     } else {
         timer_advance_u64(&svga->timer, svga->dispontime);
 
+        if (svga->adv_flags & FLAG_PANNING_ATI) {
+            if (svga->panning_blank) {
+                svga->scrollcache = 0;
+                svga->half_pixel  = 0;
+
+                svga->x_add       = svga->left_overscan;
+            } else {
+                svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
+                if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+                    if (svga->seqregs[1] & 1)
+                        svga->scrollcache &= 0x07;
+                    else {
+                        svga->scrollcache++;
+                        if (svga->scrollcache > 8)
+                            svga->scrollcache = 0;
+                    }
+                    svga->half_pixel  = 0;
+                } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) ||
+                           (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres)) {
+                    svga->half_pixel  = 0;
+                    svga->scrollcache &= 0x07;
+                } else {
+                    if (svga->scrollcache > 7)
+                        svga->scrollcache = 7;
+                    svga->half_pixel  = svga->scrollcache & 0x01;
+                    svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
+                }
+
+                if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
+                    svga->scrollcache <<= 1;
+
+                svga->x_add = svga->left_overscan - svga->scrollcache;
+            }
+        }
+
         if (svga->dispon)
             svga->cgastat &= ~1;
         svga->hdisp_on = 0;
@@ -1477,9 +1512,13 @@ svga_poll(void *priv)
 
                 svga->scanline = 0;
                 if (svga->attrregs[0x10] & 0x20) {
-                    svga->scrollcache   = 0;
-                    svga->half_pixel    = 0;
-                    svga->x_add         = svga->left_overscan;
+                    if (svga->adv_flags & FLAG_PANNING_ATI)
+                        svga->panning_blank = 1;
+                    else {
+                        svga->scrollcache   = 0;
+                        svga->half_pixel    = 0;
+                        svga->x_add         = svga->left_overscan;
+                    }
                 }
             }
         }
@@ -1570,31 +1609,38 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
-            if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-                if (svga->seqregs[1] & 1)
-                    svga->scrollcache &= 0x07;
-                else {
-                    svga->scrollcache++;
-                    if (svga->scrollcache > 8)
-                        svga->scrollcache = 0;
-                }
+            if ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank) {
+                svga->scrollcache = 0;
                 svga->half_pixel  = 0;
-            } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) ||
-                       (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres)) {
-                svga->half_pixel  = 0;
-                svga->scrollcache &= 0x07;
+
+                svga->x_add       = svga->left_overscan;
             } else {
-                if (svga->scrollcache > 7)
-                    svga->scrollcache = 7;
-                svga->half_pixel  = svga->scrollcache & 0x01;
-                svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
+                svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
+                if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+                    if (svga->seqregs[1] & 1)
+                        svga->scrollcache &= 0x07;
+                    else {
+                        svga->scrollcache++;
+                        if (svga->scrollcache > 8)
+                            svga->scrollcache = 0;
+                    }
+                    svga->half_pixel  = 0;
+                } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) ||
+                           (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres)) {
+                    svga->half_pixel  = 0;
+                    svga->scrollcache &= 0x07;
+                } else {
+                    if (svga->scrollcache > 7)
+                        svga->scrollcache = 7;
+                    svga->half_pixel  = svga->scrollcache & 0x01;
+                    svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
+                }
+
+                if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
+                    svga->scrollcache <<= 1;
+
+                svga->x_add = svga->left_overscan - svga->scrollcache;
             }
-
-            if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
-                svga->scrollcache <<= 1;
-
-            svga->x_add = svga->left_overscan - svga->scrollcache;
 
             svga->linecountff = 0;
 
@@ -1626,19 +1672,10 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
           void (*hwcursor_draw)(struct svga_t *svga, int displine),
           void (*overlay_draw)(struct svga_t *svga, int displine))
 {
-    int e;
-
     svga->priv          = priv;
     svga->monitor_index = monitor_index_global;
     svga->monitor       = &monitors[svga->monitor_index];
 
-    for (int c = 0; c < 256; c++) {
-        e = c;
-        for (int d = 0; d < 8; d++) {
-            svga_rotate[d][c] = e;
-            e                 = (e >> 1) | ((e & 1) ? 0x80 : 0);
-        }
-    }
     svga->readmode = 0;
 
     svga->attrregs[0x11] = 0;

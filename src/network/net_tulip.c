@@ -346,10 +346,10 @@ static void
 tulip_desc_read(TULIPState *s, uint32_t p,
                 struct tulip_descriptor *desc)
 {
-    desc->status    = mem_readl_phys(p);
-    desc->control   = mem_readl_phys(p + 4);
-    desc->buf_addr1 = mem_readl_phys(p + 8);
-    desc->buf_addr2 = mem_readl_phys(p + 12);
+    dma_bm_read(p     , (uint8_t *) &(desc->status)   , 4, 4);
+    dma_bm_read(p +  4, (uint8_t *) &(desc->control)  , 4, 4);
+    dma_bm_read(p +  8, (uint8_t *) &(desc->buf_addr1), 4, 4);
+    dma_bm_read(p + 12, (uint8_t *) &(desc->buf_addr2), 4, 4);
 
     if (s->csr[0] & CSR0_DBO) {
         bswap32s(&desc->status);
@@ -364,15 +364,20 @@ tulip_desc_write(TULIPState *s, uint32_t p,
                  struct tulip_descriptor *desc)
 {
     if (s->csr[0] & CSR0_DBO) {
-        mem_writel_phys(p, bswap32(desc->status));
-        mem_writel_phys(p + 4, bswap32(desc->control));
-        mem_writel_phys(p + 8, bswap32(desc->buf_addr1));
-        mem_writel_phys(p + 12, bswap32(desc->buf_addr2));
+        uint32_t status    = bswap32(desc->status);
+        uint32_t control   = bswap32(desc->control);
+        uint32_t buf_addr1 = bswap32(desc->buf_addr1);
+        uint32_t buf_addr2 = bswap32(desc->buf_addr2);
+
+        dma_bm_write(p     , (uint8_t *) &status   , 4, 4);
+        dma_bm_write(p +  4, (uint8_t *) &control  , 4, 4);
+        dma_bm_write(p +  8, (uint8_t *) &buf_addr1, 4, 4);
+        dma_bm_write(p + 12, (uint8_t *) &buf_addr2, 4, 4);
     } else {
-        mem_writel_phys(p, desc->status);
-        mem_writel_phys(p + 4, desc->control);
-        mem_writel_phys(p + 8, desc->buf_addr1);
-        mem_writel_phys(p + 12, desc->buf_addr2);
+        dma_bm_write(p     , (uint8_t *) &(desc->status)   , 4, 4);
+        dma_bm_write(p +  4, (uint8_t *) &(desc->control)  , 4, 4);
+        dma_bm_write(p +  8, (uint8_t *) &(desc->buf_addr1), 4, 4);
+        dma_bm_write(p + 12, (uint8_t *) &(desc->buf_addr2), 4, 4);
     }
 }
 
@@ -433,6 +438,10 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
             len = s->rx_frame_len;
         }
 
+        if (s->rx_frame_len + len > sizeof(s->rx_frame)) {
+            return;
+        }
+
         dma_bm_write(desc->buf_addr1, s->rx_frame + (s->rx_frame_size - s->rx_frame_len), len, 4);
         s->rx_frame_len -= len;
     }
@@ -444,6 +453,10 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
             len = s->rx_frame_len;
         }
 
+        if (s->rx_frame_len + len > sizeof(s->rx_frame)) {
+            return;
+        }
+
         dma_bm_write(desc->buf_addr2, s->rx_frame + (s->rx_frame_size - s->rx_frame_len), len, 4);
         s->rx_frame_len -= len;
     }
@@ -452,9 +465,7 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
 static bool
 tulip_filter_address(TULIPState *s, const uint8_t *addr)
 {
-#ifdef BLOCK_BROADCAST
     static const char broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-#endif
     bool              ret         = false;
 
     for (uint8_t i = 0; i < 16 && ret == false; i++) {
@@ -463,15 +474,9 @@ tulip_filter_address(TULIPState *s, const uint8_t *addr)
         }
     }
 
-/*
-   Do not block broadcast packets - needed for connections to the guest
-   to succeed when using SLiRP.
- */
-#ifdef BLOCK_BROADCAST
     if (!memcmp(addr, broadcast, ETH_ALEN)) {
         return true;
     }
-#endif
 
     if (s->csr[6] & (CSR6_PR | CSR6_RA)) {
         /* Promiscuous mode enabled */
@@ -576,7 +581,7 @@ static const uint16_t tulip_mdi_default[] = {
     0x0600,
     0x0001,
     0x0000,
-    0x0000,
+    0x3b40,
     0x0000,
     0x0000,
     0x0000,

@@ -1550,7 +1550,7 @@ cpu_set(void)
 
             if ((cpu_s->cpu_type == CPU_Cx6x86L) || (cpu_s->cpu_type == CPU_Cx6x86MX))
                 ccr4 = 0x80;
-            else if (CPU_Cx6x86)
+            else if (cpu_s->cpu_type == CPU_Cx6x86)
                 CPUID = 0; /* Disabled on powerup by default */
             break;
 

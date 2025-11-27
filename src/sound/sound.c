@@ -148,6 +148,7 @@ static const SOUND_CARD sound_cards[] = {
     { &gus_max_device               },
     { &gus_ace_device               },
     { &mirosound_pcm10_device       },
+    { &opti_82c930_device           },
     { &pas16_device                 },
     { &pas16d_device                },
     { &sb_16_device                 },
@@ -187,6 +188,9 @@ static const SOUND_CARD sound_cards[] = {
     /* AC97 */
     { &ad1881_device                },
     { &cs4297a_device               },
+#ifdef USE_SOFTMODEM
+    { &si3036_device                },
+#endif
     { NULL                          }
     // clang-format on
 };

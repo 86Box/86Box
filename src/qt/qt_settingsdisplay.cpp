@@ -43,7 +43,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 {
     ui->setupUi(this);
 
-    for (uint8_t i = 0; i < GFXCARD_MAX; i ++)
+    for (uint8_t i = 0; i < GFXCARD_MAX; i++)
         videoCard[i] = gfxcard[i];
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
@@ -67,7 +67,7 @@ SettingsDisplay::save()
     }
 #else
     gfxcard[0] = ui->comboBoxVideo->currentData().toInt();
-    for (uint8_t i = 1; i < GFXCARD_MAX; i ++)
+    for (uint8_t i = 1; i < GFXCARD_MAX; i++)
         gfxcard[i] = ui->comboBoxVideoSecondary->currentData().toInt();
 #endif
 
@@ -129,7 +129,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     }
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
     // TODO
-    for (uint8_t i = 1; i < GFXCARD_MAX; i ++)
+    for (uint8_t i = 1; i < GFXCARD_MAX; i++)
         if (gfxcard[i] == 0)
             ui->pushButtonConfigureVideoSecondary->setEnabled(false);
 
@@ -142,8 +142,8 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 void
 SettingsDisplay::on_pushButtonConfigureVideo_clicked()
 {
-    int videoCard = ui->comboBoxVideo->currentData().toInt();
-    auto *device = video_card_getdevice(videoCard);
+    int   videoCard = ui->comboBoxVideo->currentData().toInt();
+    auto *device    = video_card_getdevice(videoCard);
     if (videoCard == VID_INTERNAL)
         device = machine_get_vid_device(machineId);
     DeviceConfig::ConfigureDevice(device);
@@ -185,11 +185,10 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         return;
 
     static QRegularExpression voodooRegex("3dfx|voodoo|banshee|raven", QRegularExpression::CaseInsensitiveOption);
-    auto curVideoCard_2 = videoCard[1];
-    videoCard[0] = ui->comboBoxVideo->currentData().toInt();
+    auto                      curVideoCard_2 = videoCard[1];
+    videoCard[0]                             = ui->comboBoxVideo->currentData().toInt();
     if (videoCard[0] == VID_INTERNAL)
-        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) &&
-                                                 device_has_config(machine_get_vid_device(machineId)));
+        ui->pushButtonConfigureVideo->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) && device_has_config(machine_get_vid_device(machineId)));
     else
         ui->pushButtonConfigureVideo->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
@@ -203,7 +202,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
     bool machineSupports8514 = ((machineHasIsa16 || machineHasMca) && !videoCardHas8514);
     bool machineSupportsXga  = ((machineHasMca && device_available(&xga_device)) && !videoCardHasXga);
-    bool machineSupportsDa2 = machineHasMca && device_available(&ps55da2_device);
+    bool machineSupportsDa2  = machineHasMca && device_available(&ps55da2_device);
 
     ui->checkBox8514->setEnabled(machineSupports8514);
     ui->checkBox8514->setChecked(ibm8514_standalone_enabled && machineSupports8514);
@@ -322,30 +321,32 @@ SettingsDisplay::on_pushButtonConfigureVideoSecondary_clicked()
     DeviceConfig::ConfigureDevice(device);
 }
 
-void SettingsDisplay::on_radioButtonDefault_clicked()
+void
+SettingsDisplay::on_radioButtonDefault_clicked()
 {
     ui->radioButtonDefault->setChecked(true);
     ui->radioButtonCustom->setChecked(false);
     ui->lineEditCustomEDID->setEnabled(false);
 }
 
-
-void SettingsDisplay::on_radioButtonCustom_clicked()
+void
+SettingsDisplay::on_radioButtonCustom_clicked()
 {
     ui->radioButtonDefault->setChecked(false);
     ui->radioButtonCustom->setChecked(true);
     ui->lineEditCustomEDID->setEnabled(true);
 }
 
-void SettingsDisplay::on_pushButtonExportDefault_clicked()
+void
+SettingsDisplay::on_pushButtonExportDefault_clicked()
 {
     auto str = QFileDialog::getSaveFileName(this, tr("Export EDID"));
     if (!str.isEmpty()) {
         QFile file(str);
         if (file.open(QFile::WriteOnly)) {
             uint8_t *bytes = nullptr;
-            auto size = ddc_create_default_edid(&bytes);
-            file.write((char*)bytes, size);
+            auto     size  = ddc_create_default_edid(&bytes);
+            file.write((char *) bytes, size);
             file.close();
         }
     }

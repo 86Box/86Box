@@ -338,7 +338,8 @@ strip_binary=strip
 if is_windows
 then
 	# Switch into the correct MSYSTEM if required.
-	msys=MINGW$arch
+	msys=UCRT$arch
+	[ ! -d "/$msys" ] && msys=MINGW$arch
 	[ ! -d "/$msys" ] && msys=CLANG$arch
 	if [ -d "/$msys" ]
 	then

@@ -25,7 +25,7 @@ class VMManagerClientSocket final : public QObject {
     Q_OBJECT
 
 public:
-    explicit VMManagerClientSocket(QObject* object = nullptr);
+    explicit VMManagerClientSocket(QObject *object = nullptr);
     bool IPCConnect(const QString &server);
 
     void sendWinIdMessage(WId id);
@@ -45,13 +45,13 @@ public slots:
     void globalConfigurationChanged() const;
 
 private:
-    QString server_name;
+    QString       server_name;
     QLocalSocket *socket;
-    bool server_connected;
-    bool window_blocked = false;
-    void connected() const;
-    void disconnected() const;
-    static void connectionError(QLocalSocket::LocalSocketError socketError);
+    bool          server_connected;
+    bool          window_blocked = false;
+    void          connected() const;
+    void          disconnected() const;
+    static void   connectionError(QLocalSocket::LocalSocketError socketError);
 
     // Main convenience send function
     void sendMessage(VMManagerProtocol::ClientMessage protocol_message) const;
@@ -67,7 +67,6 @@ private:
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
-
 };
 
 #endif // QT_VMMANAGER_CLIENTSOCKET_HPP

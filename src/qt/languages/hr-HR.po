@@ -273,36 +273,6 @@ msgstr "Ponovo učitaj prethodnu sliku"
 msgid "&Folder..."
 msgstr "&Mapa..."
 
-msgid "Target &framerate"
-msgstr "&Ciljni broj okvira u sekundi"
-
-msgid "&Sync with video"
-msgstr "&Sinkroniziraj s videom"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Odaberi shader..."
-
-msgid "&Remove shader"
-msgstr "&Ukloni shader"
-
 msgid "Preferences"
 msgstr "Postavke"
 
@@ -687,9 +657,6 @@ msgstr "Uređaj ISABugger"
 msgid "POST card"
 msgstr "Kartica POST"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Greška"
 
@@ -1050,11 +1017,8 @@ msgstr "Ovo će napraviti hard resetiranje emuliranog sistema."
 msgid "Save"
 msgstr "Spremaj"
 
-msgid "About 86Box"
-msgstr "O programu 86Box"
-
-msgid "86Box v"
-msgstr "86Box verzija "
+msgid "About %1"
+msgstr "O programu %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Emulator starih računala\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i drugi.\n\nS prethodnim osnovnim doprinosima Sarah Walker, Leilei, JohnElliott, greatpsycho i drugih.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
@@ -1102,7 +1066,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Učitavate nepodržanu konfiguraciju"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za ovaj emulirani sistem.\n\nOvo omogućuje odabir procesora koji inače nisu kompatibilne s odabranog sistem. Međutim, možete naići na na nekompatibilnosti s BIOS-om sustava ili drugim softverom.\n\nOmogućavanje ove postavke nije službeno podržano i sva prijava o greškama mogu biti zatvorena kao \"invalid\"."
+msgstr "Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za ovaj emulirani sistem.\n\nOvo omogućuje odabir procesora koji inače nisu kompatibilne s odabranog sistem. Međutim, možete naići na nekompatibilnosti s BIOS-om sustava ili drugim softverom.\n\nOmogućavanje ove postavke nije službeno podržano i sva prijava o greškama mogu biti zatvorena kao \"invalid\"."
 
 msgid "Continue"
 msgstr "Nastavi"
@@ -1404,8 +1368,8 @@ msgstr "Sistem"
 msgid "Storage"
 msgstr "Diskovi"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Nema diskova"
@@ -1546,7 +1510,7 @@ msgid "This could mean that the parent image was modified after the differencing
 msgstr "To bi moglo značiti da je matična slika promijenjena nakon što je stvorena različita slika.\n\nTo se također može dogoditi ako su slike premještene ili kopirane, ili greška u programu koji je stvorio ovaj disk.\n\nŽelite li popraviti vremenske oznake?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Vremenske ozanke matične i poređenog diska ne odgovaraju."
+msgstr "Vremenske ozanke matične i poređenog diska ne odgovaraju"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Ne mogu popraviti vremensku oznaku slike VHD."
@@ -1818,8 +1782,8 @@ msgstr "Premjestio sam ga"
 msgid "I Copied It"
 msgstr "Kopirao sam ga"
 
-msgid "86Box Monitor #"
-msgstr "Monitor 86Box-a "
+msgid "86Box Monitor #%1"
+msgstr "Monitor 86Box-a %1"
 
 msgid "No MCA devices."
 msgstr "Nema uređaja MCA."
@@ -2232,12 +2196,6 @@ msgstr "Jačina filtra SID-a"
 msgid "Surround module"
 msgstr "Modul Surround"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Podigni prekid CODEC na postavljanju CODEC-a (potrebno nekim upravljačkim programima)"
-
 msgid "SB Address"
 msgstr "Adresa SB-a"
 
@@ -2252,6 +2210,18 @@ msgstr "IRQ WSS-a"
 
 msgid "WSS DMA"
 msgstr "DMA WSS-a"
+
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
 
 msgid "Enable OPL"
 msgstr "Omogući OPL"
@@ -2522,9 +2492,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
-
-msgid "Classic"
-msgstr "Klasičan"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2814,9 +2781,6 @@ msgstr "Greška GLSL"
 msgid "Could not load shader: %1"
 msgstr "Nije moguće učitati shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Potrebna je OpenGL verzija 3.0 ili novija. Trenutna GLSL verzija je %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Nije moguće učitati teksturu: %1"
 
@@ -2879,6 +2843,9 @@ msgstr "Pošalji Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Uključi/isključi cijelozaslonski način"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "Snimka zaslona"

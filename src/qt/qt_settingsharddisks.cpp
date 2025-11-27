@@ -74,12 +74,12 @@ static void
 addRow(QAbstractItemModel *model, hard_disk_t *hd)
 {
     const QString userPath = usr_path;
-    int row = model->rowCount();
+    int           row      = model->rowCount();
 
     model->insertRow(row);
 
-    auto busIndex = model->index(row, ColumnBus);
-    QString busName = Harddrives::BusChannelName(hd->bus_type, hd->channel);
+    auto    busIndex = model->index(row, ColumnBus);
+    QString busName  = Harddrives::BusChannelName(hd->bus_type, hd->channel);
     model->setData(busIndex, busName);
     model->setData(busIndex, hard_disk_icon, Qt::DecorationRole);
     model->setData(busIndex, hd->bus_type, DataBus);
@@ -87,8 +87,8 @@ addRow(QAbstractItemModel *model, hard_disk_t *hd)
     model->setData(busIndex, hd->channel, DataBusChannel);
     model->setData(busIndex, hd->channel, DataBusChannelPrevious);
     Harddrives::busTrackClass->device_track(1, DEV_HDD, hd->bus_type, hd->channel);
-    auto filenameIndex = model->index(row, ColumnFilename);
-    QString fileName = hd->fn;
+    auto    filenameIndex = model->index(row, ColumnFilename);
+    QString fileName      = hd->fn;
     if (fileName.startsWith(userPath, Qt::CaseInsensitive))
         model->setData(filenameIndex, fileName.mid(userPath.size()));
     else
@@ -169,7 +169,9 @@ SettingsHarddisks::save()
     }
 }
 
-void SettingsHarddisks::reloadBusChannels() {
+void
+SettingsHarddisks::reloadBusChannels()
+{
     const auto selected = ui->comboBoxChannel->currentIndex();
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
     ui->comboBoxChannel->setCurrentIndex(selected);
@@ -248,10 +250,10 @@ SettingsHarddisks::on_comboBoxChannel_currentIndexChanged(int index)
 void
 SettingsHarddisks::enableCurrentlySelectedChannel()
 {
-    const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxChannel->model());
-    const auto index = ui->comboBoxChannel->currentIndex();
-    auto *item = item_model->item(index);
-    if(item)
+    const auto *item_model = qobject_cast<QStandardItemModel *>(ui->comboBoxChannel->model());
+    const auto  index      = ui->comboBoxChannel->currentIndex();
+    auto       *item       = item_model->item(index);
+    if (item)
         item->setEnabled(true);
 }
 
@@ -359,8 +361,8 @@ SettingsHarddisks::on_pushButtonRemove_clicked()
     if (!idx.isValid())
         return;
 
-    auto       *model = ui->tableView->model();
-    const auto  col   = idx.siblingAtColumn(ColumnBus);
+    auto      *model = ui->tableView->model();
+    const auto col   = idx.siblingAtColumn(ColumnBus);
     Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannel).toInt());
     model->removeRow(idx.row());
     ui->pushButtonNew->setEnabled(true);

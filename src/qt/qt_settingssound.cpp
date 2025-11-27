@@ -71,8 +71,8 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 {
     this->machineId = machineId;
 
-    int                 c;
-    int                 selectedRow;
+    int c;
+    int selectedRow;
 
     // Sound Cards
     QComboBox          *cbox[SOUND_CARD_MAX]         = { 0 };
@@ -119,10 +119,10 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
     }
 
     // Midi Out
-    c               = 0;
-    auto *model     = ui->comboBoxMidiOut->model();
-    auto removeRows = model->rowCount();
-    selectedRow     = 0;
+    c                = 0;
+    auto *model      = ui->comboBoxMidiOut->model();
+    auto  removeRows = model->rowCount();
+    selectedRow      = 0;
 
     while (true) {
         const QString name = DeviceConfig::DeviceName(midi_out_device_getdevice(c), midi_out_device_get_internal_name(c), 0);
@@ -210,8 +210,7 @@ SettingsSound::on_comboBoxSoundCard1_currentIndexChanged(int index)
     int sndCard = ui->comboBoxSoundCard1->currentData().toInt();
 
     if (sndCard == SOUND_INTERNAL)
-        ui->pushButtonConfigureSoundCard1->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) &&
-                                            device_has_config(machine_get_snd_device(machineId)));
+        ui->pushButtonConfigureSoundCard1->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) && device_has_config(machine_get_snd_device(machineId)));
     else
         ui->pushButtonConfigureSoundCard1->setEnabled(sound_card_has_config(sndCard));
 }

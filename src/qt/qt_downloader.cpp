@@ -23,8 +23,7 @@ extern "C" {
 #include <86box/plat.h>
 }
 
-Downloader::
-Downloader(const DownloadLocation downloadLocation, QObject *parent)
+Downloader::Downloader(const DownloadLocation downloadLocation, QObject *parent)
     : QObject(parent)
     , file(nullptr)
     , reply(nullptr)
@@ -51,7 +50,9 @@ Downloader(const DownloadLocation downloadLocation, QObject *parent)
 
 Downloader::~Downloader() { delete file; }
 
-void Downloader::download(const QUrl &url, const QString &filepath, const QVariant &varData) {
+void
+Downloader::download(const QUrl &url, const QString &filepath, const QVariant &varData)
+{
 
     variantData = varData;
     // temporary until I get the plat stuff fixed
@@ -62,7 +63,7 @@ void Downloader::download(const QUrl &url, const QString &filepath, const QVaria
     const auto final_path = downloadDirectory.filePath(filepath);
 
     file = new QFile(final_path);
-    if(!file->open(QIODevice::WriteOnly)) {
+    if (!file->open(QIODevice::WriteOnly)) {
         qWarning() << "Unable to open file " << final_path;
         return;
     }
@@ -70,7 +71,7 @@ void Downloader::download(const QUrl &url, const QString &filepath, const QVaria
     const auto nam = new QNetworkAccessManager(this);
     // Create the network request and execute
     const auto request = QNetworkRequest(url);
-    reply = nam->get(request);
+    reply              = nam->get(request);
     // Connect to the finished signal
     connect(reply, &QNetworkReply::finished, this, &Downloader::onResult);
 }
@@ -93,4 +94,3 @@ Downloader::onResult()
     qDebug() << Q_FUNC_INFO << "Downloaded complete: file written to " << file->fileName();
     emit downloadCompleted(file->fileName(), variantData);
 }
-
