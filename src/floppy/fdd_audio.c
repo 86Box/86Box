@@ -198,7 +198,7 @@ fdd_audio_load_profiles(void)
 
     profiles_ini = ini_read_ex("roms/floppy/fdd_audio_profiles.cfg", 1);
     if (profiles_ini == NULL) {
-        fdd_log("FDD Audio: Could not load profiles from %s\n", config_path);
+        fdd_log("FDD Audio: Could not load profiles\n");
         return;
     }
 
@@ -278,7 +278,7 @@ fdd_audio_load_profiles(void)
 
     ini_close(profiles_ini);
 
-    fdd_log("FDD Audio: Loaded %d audio profiles from %s\n", audio_profile_count, config_path);
+    fdd_log("FDD Audio: Loaded %d audio profiles\n", audio_profile_count);
 }
 
 void
