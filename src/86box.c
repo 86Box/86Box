@@ -1025,6 +1025,15 @@ usage:
     rom_add_path(temp);
 
     plat_init_rom_paths();
+
+    // Add the VM-local asset path.
+    path_append_filename(temp, usr_path, "assets");
+    asset_add_path(temp);
+
+    // Add the standard ROM path in the same directory as the executable.
+    path_append_filename(temp, exe_path, "assets");
+    asset_add_path(temp);
+
     plat_init_asset_paths();
 
     /*

@@ -852,10 +852,10 @@ plat_init_asset_paths(void)
 
     for (auto &path : paths) {
 #ifdef __APPLE__
-        asset_add_path(QDir(path).filePath("net.86Box.86Box/asset").toUtf8().constData());
-        asset_add_path(QDir(path).filePath("86Box/asset").toUtf8().constData());
+        asset_add_path(QDir(path).filePath("net.86Box.86Box/assets").toUtf8().constData());
+        asset_add_path(QDir(path).filePath("86Box/assets").toUtf8().constData());
 #else
-        asset_add_path(QDir(path).filePath("86Box/asset").toUtf8().constData());
+        asset_add_path(QDir(path).filePath("86Box/assets").toUtf8().constData());
 #endif
     }
 }
