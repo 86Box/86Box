@@ -26,7 +26,7 @@
 #include <86box/fdd_audio.h>
 #include <86box/fdc.h>
 #include <86box/mem.h>
-#include <86box/rom.h>
+//#include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/plat.h>
 #include <86box/path.h>
@@ -196,7 +196,7 @@ fdd_audio_load_profiles(void)
 {
     ini_t profiles_ini;
 
-    profiles_ini = ini_read_ex("roms/floppy/fdd_audio_profiles.cfg", 1);
+    profiles_ini = ini_read_ex("assets/sounds/fdd/fdd_audio_profiles.cfg", 1);
     if (profiles_ini == NULL) {
         fdd_log("FDD Audio: Could not load profiles\n");
         return;
@@ -669,7 +669,7 @@ load_wav(const char *filename, int *sample_count)
     if (strstr(filename, "..") != NULL)
         return NULL;
 
-    FILE *f = rom_fopen(filename, "rb");
+    FILE *f = plat_fopen(filename, "rb");
     if (f == NULL) {
         fdd_log("FDD Audio: Failed to open WAV file: %s\n", filename);
         return NULL;

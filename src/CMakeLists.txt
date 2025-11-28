@@ -215,9 +215,11 @@ endif()
 if(WIN32 OR (APPLE AND CMAKE_MACOSX_BUNDLE))
     # Copy the binary to the root of the install prefix on Windows and macOS
     install(TARGETS 86Box DESTINATION ".")
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/assets DESTINATION ".")
 else()
     # On Linux we want to copy the binary to the `bin` folder.
     install(TARGETS 86Box)
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/assets)
 endif()
 
 
@@ -288,3 +290,10 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
     add_custom_command(TARGET 86Box POST_BUILD COMMAND paxctl ARGS +m $<TARGET_FILE:86Box> COMMENT "Disable PaX MPROTECT")
 endif()
+
+add_custom_command(TARGET 86Box POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets
+    $<TARGET_FILE_DIR:86Box>/assets
+    COMMENT "Copying assets directory to build output"
+)
