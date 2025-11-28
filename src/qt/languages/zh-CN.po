@@ -109,10 +109,10 @@ msgid "Fi&lter method"
 msgstr "过滤方式(&L)"
 
 msgid "&Nearest"
-msgstr "邻近(&N)"
+msgstr "近邻取样(&N)"
 
 msgid "&Linear"
-msgstr "线性(&L)"
+msgstr "线性过滤(&L)"
 
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 缩放(&D)"
@@ -364,7 +364,7 @@ msgid "Disabled"
 msgstr "禁用"
 
 msgid "Enabled (local time)"
-msgstr "启用 (本地时间)"
+msgstr "启用 (本地时区)"
 
 msgid "Enabled (UTC)"
 msgstr "启用 (UTC)"
@@ -454,10 +454,10 @@ msgid "Standalone MPU-401"
 msgstr "独立 MPU-401"
 
 msgid "Use FLOAT32 sound"
-msgstr "使用单精度浮点 (FLOAT32) 音频"
+msgstr "使用单精度浮点（FLOAT32）音频"
 
 msgid "FM synth driver"
-msgstr "FM synth driver"
+msgstr "FM合成器驱动"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (更准确)"
@@ -2212,16 +2212,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "实时时钟的IRQ"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "实时时钟的端口地址"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "板载实时时钟"
 
 msgid "Not installed"
-msgstr ""
+msgstr "未安装"
 
 msgid "Enable OPL"
 msgstr "启用 OPL"
@@ -2944,13 +2944,13 @@ msgid "build"
 msgstr "构建"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "您当前正在运行版本 <b>%1</b> 。"
+msgstr "您当前正在运行版本 <b>%1</b>。"
 
 msgid "<b>Version %1</b> is now available."
 msgstr "<b>版本 %1</b>现已可用。"
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "您当前正在运行构建 <b>%1</b> 。"
+msgstr "您当前正在运行构建 <b>%1</b>。"
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>构建 %1</b>现已可用。"
