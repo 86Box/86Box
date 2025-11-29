@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
+"Language: de-DE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: de_DE\n"
 "X-Source-Language: en_US\n"
 
@@ -448,7 +454,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI Eingabegerät:"
 
 msgid "MIDI Out:"
-msgstr ""
+msgstr "MIDI Ausgang:"
 
 msgid "Standalone MPU-401"
 msgstr "Eigenständiges-MPU-401-Gerät"
@@ -490,7 +496,7 @@ msgid "LPT4 Device:"
 msgstr "LPT4-Gerät:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
+msgstr "DMA des ECP des internen Parallelports:"
 
 msgid "Serial port 1"
 msgstr "Serielle Schnittstelle 1"
@@ -610,7 +616,7 @@ msgid "MO drives:"
 msgstr "MO-Laufwerke:"
 
 msgid "MO:"
-msgstr ""
+msgstr "MO:"
 
 msgid "Removable disks:"
 msgstr "Wechseldatenträger:"
@@ -754,7 +760,7 @@ msgid "Hard disks"
 msgstr "Festplatten"
 
 msgid "Disks:"
-msgstr ""
+msgstr "Festplatten:"
 
 msgid "Floppy:"
 msgstr "Diskette:"
@@ -1147,7 +1153,7 @@ msgid "%1 total"
 msgstr "%1 insgesamt"
 
 msgid "VMs: %1"
-msgstr ""
+msgstr "VMs: %1"
 
 msgid "System Directory:"
 msgstr "Systemverzeichnis:"
@@ -1318,10 +1324,10 @@ msgid "Some files in the machine's directory were unable to be deleted. Please d
 msgstr "Eine Dateien im Verzeichnis der Maschine konnten nicht gelöscht werden, bitte lösche diese manuell."
 
 msgid "Build"
-msgstr ""
+msgstr "Build"
 
 msgid "Version"
-msgstr ""
+msgstr "Version"
 
 msgid "An update to 86Box is available: %1 %2"
 msgstr "Eine Aktualisierung für 86Box is verfügbar: %1 %2"
@@ -1363,22 +1369,22 @@ msgid "Found %1"
 msgstr "Gefunden %1"
 
 msgid "System"
-msgstr ""
+msgstr "System"
 
 msgid "Storage"
 msgstr "Speicherplatz"
 
 msgid "Disk %1:"
-msgstr ""
+msgstr "Festplatte %1:"
 
 msgid "No disks"
 msgstr "Keine Disks"
 
 msgid "Audio"
-msgstr ""
+msgstr "Klang"
 
 msgid "Audio:"
-msgstr ""
+msgstr "Klang:"
 
 msgid "ACPI shutdown"
 msgstr "Über ACPI herunterfahren"
@@ -1819,7 +1825,7 @@ msgid "VDE Socket:"
 msgstr "VDE Anschluss:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP-Brückengerät:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box-Gerätetester"
@@ -2212,16 +2218,16 @@ msgid "WSS DMA"
 msgstr "WSS-DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ der RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Portadresse der RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Integrierte RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Nicht installiert"
 
 msgid "Enable OPL"
 msgstr "OPL einschalten"
@@ -2845,7 +2851,7 @@ msgid "Toggle fullscreen"
 msgstr "Vollbild umschalten"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "UI im Vollbildmodus umschalten"
 
 msgid "Screenshot"
 msgstr "Bildschirmaufnahme"
