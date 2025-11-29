@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
+"\n"
+"Language: ja-JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: ja_JP\n"
 "X-Source-Language: en_US\n"
 
@@ -1819,7 +1826,7 @@ msgid "VDE Socket:"
 msgstr "VDEソケット:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP ブリッジデバイス:"
 
 msgid "86Box Unit Tester"
 msgstr "86Boxユニットテスター"
@@ -2212,16 +2219,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "RTCのIRQ"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "RTCのポートアドレス"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "オンボード RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "インストールされていません"
 
 msgid "Enable OPL"
 msgstr "OPLを有効にする"
@@ -2845,7 +2852,7 @@ msgid "Toggle fullscreen"
 msgstr "フルスクリーン表示を切り替える"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "全画面表示時にUIを切り替える"
 
 msgid "Screenshot"
 msgstr "スクリーンショット"
