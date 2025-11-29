@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Portuguese (Portugal) <https://weblate.86box.net/projects/"
+"86box/86box/pt_PT/>\n"
+"Language: pt-PT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: pt_PT\n"
 "X-Source-Language: en_US\n"
 
@@ -178,7 +185,7 @@ msgid "BT&709 (HDTV)"
 msgstr "BT&709 (HDTV)"
 
 msgid "&Average"
-msgstr "&Media"
+msgstr "&Média"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "Overscan de CGA/PCjr/Tandy/E&GA/(S)VGA"
@@ -334,7 +341,7 @@ msgid "Configure"
 msgstr "Configurar"
 
 msgid "CPU:"
-msgstr ""
+msgstr "Processador:"
 
 msgid "CPU type:"
 msgstr "Tipo do CPU:"
@@ -685,7 +692,7 @@ msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://g
 msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a <a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
 
 msgid "(empty)"
-msgstr "(empty)"
+msgstr "(vazio)"
 
 msgid "All files"
 msgstr "Todos os ficheiros"
@@ -868,7 +875,7 @@ msgid "6-button gamepad"
 msgstr "Manípulo(s) de jogos de 6 botões"
 
 msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
+msgstr "GamePad Gravis PC"
 
 msgid "2-button flight yoke"
 msgstr "Manípulo de voo de 2 botões"
@@ -910,37 +917,37 @@ msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
 
 msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
+msgstr "CH Flightstick Pro + Pedais CH"
 
 msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
+msgstr "CH Flightstick Pro + Pedais CH Pro"
 
 msgid "CH Virtual Pilot"
 msgstr "CH Virtual Pilot"
 
 msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
+msgstr "CH Virtual Pilot + Pedais CH"
 
 msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
+msgstr "CH Virtual Pilot + Pedais CH Pro"
 
 msgid "CH Virtual Pilot Pro"
 msgstr "CH Virtual Pilot Pro"
 
 msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
+msgstr "CH Virtual Pilot Pro + Pedais CH"
 
 msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
+msgstr "CH Virtual Pilot Pro + Pedais CH Pro"
 
 msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
+msgstr "Sistema de controlo de voo Thrustmaster"
 
 msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
+msgstr "SCV Thrustmaster + Sistema de controlo do leme"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 com adaptador"
@@ -1693,7 +1700,7 @@ msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Apl&icar o modo de estiramento na tela cheia quando maximizado"
 
 msgid "&Cursor/Puck"
-msgstr "&Cursor/Puck"
+msgstr "&Cursor/Disco"
 
 msgid "&Pen"
 msgstr "C&aneta"
@@ -1738,7 +1745,7 @@ msgid " fps"
 msgstr " fps"
 
 msgid "VSync"
-msgstr "VSync"
+msgstr "Sincronização vertical"
 
 msgid "Synchronize with video"
 msgstr "Sincronizar com vídeo"
@@ -1819,7 +1826,7 @@ msgid "VDE Socket:"
 msgstr "Tomada VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Dispositivo Ponte TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Testador de unidades 86Box"
@@ -2212,16 +2219,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Endereço Porta RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "RTC Integrado"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Não instalado"
 
 msgid "Enable OPL"
 msgstr "Ativar OPL"
@@ -2311,7 +2318,7 @@ msgid "Video chroma-keying"
 msgstr "Utilizar a chave chroma do vídeo"
 
 msgid "Dithering"
-msgstr "Dithering"
+msgstr "Pontilhamento"
 
 msgid "Enable NMI for CGA emulation"
 msgstr "Ativar NMI para emulação CGA"
@@ -2845,7 +2852,7 @@ msgid "Toggle fullscreen"
 msgstr "Alternar o modo em ecrã cheio"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Alternar interface do utilizador em ecrã inteiro"
 
 msgid "Screenshot"
 msgstr "Captura de ecrã"
