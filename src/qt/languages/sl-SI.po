@@ -1,8 +1,16 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
+"\n"
+"Language: sl-SI\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || "
+"n%100==4 ? 2 : 3;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: sl_SI\n"
 "X-Source-Language: en_US\n"
 
@@ -1819,7 +1827,7 @@ msgid "VDE Socket:"
 msgstr "Vtičnica VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Mostovna naprava TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Tester enote 86Box"
@@ -2212,16 +2220,16 @@ msgid "WSS DMA"
 msgstr "DMA WSS"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ ure v realnem času"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Naslov ure v realnem času"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Integrirana ura v realnem času"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Ni nameščen"
 
 msgid "Enable OPL"
 msgstr "Omogoči OPL"
@@ -2845,7 +2853,7 @@ msgid "Toggle fullscreen"
 msgstr "Preklopi celozaslonski način"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Preklopi uporabniški vmesnik v načinu polnega zaslona"
 
 msgid "Screenshot"
 msgstr "Zajem zaslona"
