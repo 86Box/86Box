@@ -166,10 +166,10 @@ asset_get_full_path(char *dest, const char *fn)
 
     dest[0] = 0x00;
 
-    if (!strncmp(fn, "assets/", 5)) {
+    if (!strncmp(fn, "assets/", 7)) {
         /* Relative path */
         for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
-            path_append_filename(temp, asset_path->path, fn + 5);
+            path_append_filename(temp, asset_path->path, fn + 7);
 
             if (rom_check(temp)) {
                 strcpy(dest, temp);
@@ -218,10 +218,10 @@ asset_fopen(const char *fn, char *mode)
     if ((fn == NULL) || (mode == NULL))
         return NULL;
 
-    if (!strncmp(fn, "assets/", 5)) {
+    if (!strncmp(fn, "assets/", 7)) {
         /* Relative path */
         for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
-            path_append_filename(temp, asset_path->path, fn + 5);
+            path_append_filename(temp, asset_path->path, fn + 7);
 
             if ((fp = plat_fopen(temp, mode)) != NULL)
                 return fp;
@@ -267,10 +267,10 @@ asset_getfile(const char *fn, char *s, int size)
 {
     char        temp[1024];
 
-    if (!strncmp(fn, "assets/", 5)) {
+    if (!strncmp(fn, "assets/", 7)) {
         /* Relative path */
         for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
-            path_append_filename(temp, asset_path->path, fn + 5);
+            path_append_filename(temp, asset_path->path, fn + 7);
 
             if (plat_file_check(temp)) {
                 strncpy(s, temp, size);
@@ -322,10 +322,10 @@ asset_present(const char *fn)
     if (fn == NULL)
         return 0;
 
-    if (!strncmp(fn, "assets/", 5)) {
+    if (!strncmp(fn, "assets/", 7)) {
         /* Relative path */
         for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
-            path_append_filename(temp, asset_path->path, fn + 5);
+            path_append_filename(temp, asset_path->path, fn + 7);
 
             if (plat_file_check(temp))
                 return 1;

@@ -36,6 +36,7 @@ extern void fdd_do_seek(int drive, int track);
 extern void fdd_forced_seek(int drive, int track_diff);
 extern void fdd_seek(int drive, int track_diff);
 extern int  fdd_track0(int drive);
+extern int  fdd_get_type_max_track(int type);
 extern int  fdd_getrpm(int drive);
 extern void fdd_set_densel(int densel);
 extern int  fdd_can_read_medium(int drive);
