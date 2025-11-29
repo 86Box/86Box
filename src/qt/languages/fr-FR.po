@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
+"Language: fr-FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: fr_FR\n"
 "X-Source-Language: en_US\n"
 
@@ -1819,7 +1825,7 @@ msgid "VDE Socket:"
 msgstr "Prise VDE :"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Dispositif de pont TAP :"
 
 msgid "86Box Unit Tester"
 msgstr "Testeur d'unité de 86Box"
@@ -2212,16 +2218,16 @@ msgid "WSS DMA"
 msgstr "DMA WSS"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ du horloge en temps réel"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Addresse du port du horloge en temps réel"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Horloge en temps réel integré"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Non installé"
 
 msgid "Enable OPL"
 msgstr "Activer OPL"
@@ -2845,7 +2851,7 @@ msgid "Toggle fullscreen"
 msgstr "Activer/désactiver le mode plein écran"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Basculer l'interface utilisateur en mode plein écran"
 
 msgid "Screenshot"
 msgstr "Capture d'écran"
