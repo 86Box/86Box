@@ -168,10 +168,8 @@ voodoo_readw(uint32_t addr, void *priv)
         }
 
         voodoo->flush = 1;
-        while (!FIFO_EMPTY) {
+        if (!FIFO_EMPTY)
             voodoo_wake_fifo_thread_now(voodoo);
-            thread_wait_event(voodoo->fifo_not_full_event, 1);
-        }
         voodoo_wait_for_render_thread_idle(voodoo);
         voodoo->flush = 0;
 
