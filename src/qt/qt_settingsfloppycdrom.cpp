@@ -307,7 +307,6 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
 
 #ifndef DISABLE_FDD_AUDIO
     // Rebuild audio profile combo box based on drive type
-    int row = current.row();
     ui->comboBoxFloppyAudio->clear();
 
     if (type == 0) {
