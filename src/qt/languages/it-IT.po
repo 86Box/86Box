@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
+"Language: it-IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: it_IT\n"
 "X-Source-Language: en_US\n"
 
@@ -1819,7 +1825,7 @@ msgid "VDE Socket:"
 msgstr "Presa VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Dispositivo ponte TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Tester di unità 86Box"
@@ -2212,16 +2218,16 @@ msgid "WSS DMA"
 msgstr "DMA WSS"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ dell'ora in tempo reale"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Indirizzo porta dell'ora in tempo reale"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Ora in tempo reale integrata"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Non installato"
 
 msgid "Enable OPL"
 msgstr "Abilita OPL"
@@ -2845,7 +2851,7 @@ msgid "Toggle fullscreen"
 msgstr "Attiva/disattiva schermo intero"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Attivare/disattivare interfaccia utente in modalità a schermo intero"
 
 msgid "Screenshot"
 msgstr "Istantanea dello schermo"

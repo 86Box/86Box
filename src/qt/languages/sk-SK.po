@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Slovak <https://weblate.86box.net/projects/86box/86box/sk/>\n"
+"Language: sk-SK\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: sk_SK\n"
 "X-Source-Language: en_US\n"
 
@@ -1819,7 +1825,7 @@ msgid "VDE Socket:"
 msgstr "Zásuvka VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Mostové zariadenie TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
@@ -2212,16 +2218,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ hodin reálneho času"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Adresa hodin reálneho času"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Integrované hodiny reálneho času"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Nie je nainštalované"
 
 msgid "Enable OPL"
 msgstr "Povolenie OPL"
@@ -2845,7 +2851,7 @@ msgid "Toggle fullscreen"
 msgstr "Prepnúť režim celej obrazovky"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Prepnúť používateľské rozhranie v režime celej obrazovky"
 
 msgid "Screenshot"
 msgstr "Zhotoviť snímku obrazovky"

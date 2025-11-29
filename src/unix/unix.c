@@ -896,6 +896,82 @@ plat_init_rom_paths(void)
     rom_add_path(default_rom_path);
 #endif
 }
+
+void
+plat_init_asset_paths(void)
+{
+#ifndef __APPLE__
+    const char *xdg_data_home = getenv("XDG_DATA_HOME");
+    if (xdg_data_home) {
+        char xdg_asset_path[TMP_PATH_BUFSIZE] = {0};
+        size_t used = snprintf(xdg_asset_path, sizeof(xdg_asset_path), "%s/", xdg_data_home);
+        if (used < sizeof(xdg_asset_path))
+            used += snprintf(xdg_asset_path + used, sizeof(xdg_asset_path) - used, "86Box/");
+        if (used < sizeof(xdg_asset_path) && !plat_dir_check(xdg_asset_path))
+            plat_dir_create(xdg_asset_path);
+        if (used < sizeof(xdg_asset_path))
+            used += snprintf(xdg_asset_path + used, sizeof(xdg_asset_path) - used, "assets/");
+        if (used < sizeof(xdg_asset_path) && !plat_dir_check(xdg_asset_path))
+            plat_dir_create(xdg_asset_path);
+        if (used < sizeof(xdg_asset_path))
+            asset_add_path(xdg_asset_path);
+    } else {
+        const char *home = getenv("HOME");
+        if (!home) {
+            struct passwd *pw = getpwuid(getuid());
+            if (pw)
+                home = pw->pw_dir;
+        }
+
+        if (home) {
+            char home_asset_path[TMP_PATH_BUFSIZE] = {0};
+            size_t used = snprintf(home_asset_path, sizeof(home_asset_path),
+                                   "%s/.local/share/86Box/", home);
+            if (used < sizeof(home_asset_path) && !plat_dir_check(home_asset_path))
+                plat_dir_create(home_asset_path);
+            if (used < sizeof(home_asset_path))
+                used += snprintf(home_asset_path + used,
+                                 sizeof(home_asset_path) - used, "assets/");
+            if (used < sizeof(home_asset_path) && !plat_dir_check(home_asset_path))
+                plat_dir_create(home_asset_path);
+            if (used < sizeof(home_asset_path))
+                asset_add_path(home_asset_path);
+        }
+    }
+
+    const char *xdg_data_dirs = getenv("XDG_DATA_DIRS");
+    if (xdg_data_dirs) {
+        char *xdg_asset_paths = strdup(xdg_data_dirs);
+        if (xdg_asset_paths) {
+            // Trim trailing colons
+            size_t len = strlen(xdg_asset_paths);
+            while (len > 0 && xdg_asset_paths[len - 1] == ':')
+                xdg_asset_paths[--len] = '\0';
+
+            char *saveptr = NULL;
+            char *cur_xdg = strtok_r(xdg_asset_paths, ":", &saveptr);
+            while (cur_xdg) {
+                char real_xdg_asset_path[TMP_PATH_BUFSIZE] = {0};
+                size_t used = snprintf(real_xdg_asset_path,
+                                       sizeof(real_xdg_asset_path),
+                                       "%s/86Box/assets/", cur_xdg);
+                if (used < sizeof(real_xdg_asset_path))
+                    asset_add_path(real_xdg_asset_path);
+                cur_xdg = strtok_r(NULL, ":", &saveptr);
+            }
+
+            free(xdg_asset_paths);
+        }
+    } else {
+        asset_add_path("/usr/local/share/86Box/assets/");
+        asset_add_path("/usr/share/86Box/assets/");
+    }
+#else
+    char default_asset_path[TMP_PATH_BUFSIZE] = {0};
+    getDefaultROMPath(default_asset_path);
+    asset_add_path(default_asset_path);
+#endif
+}
 #undef TMP_PATH_BUFSIZE
 
 void

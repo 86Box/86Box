@@ -837,6 +837,30 @@ plat_init_rom_paths(void)
 }
 
 void
+plat_init_asset_paths(void)
+{
+    auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+
+#ifdef _WIN32
+    // HACK: The standard locations returned for GenericDataLocation include
+    // the EXE path and a `data` directory within it as the last two entries.
+
+    // Remove the entries as we don't need them.
+    paths.removeLast();
+    paths.removeLast();
+#endif
+
+    for (auto &path : paths) {
+#ifdef __APPLE__
+        asset_add_path(QDir(path).filePath("net.86Box.86Box/assets").toUtf8().constData());
+        asset_add_path(QDir(path).filePath("86Box/assets").toUtf8().constData());
+#else
+        asset_add_path(QDir(path).filePath("86Box/assets").toUtf8().constData());
+#endif
+    }
+}
+
+void
 plat_get_cpu_string(char *outbuf, uint8_t len)
 {
     auto cpu_string = QString("Unknown");

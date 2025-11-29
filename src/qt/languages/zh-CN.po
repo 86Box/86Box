@@ -109,10 +109,10 @@ msgid "Fi&lter method"
 msgstr "过滤方式(&L)"
 
 msgid "&Nearest"
-msgstr "邻近(&N)"
+msgstr "近邻取样(&N)"
 
 msgid "&Linear"
-msgstr "线性(&L)"
+msgstr "线性过滤(&L)"
 
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 缩放(&D)"
@@ -364,7 +364,7 @@ msgid "Disabled"
 msgstr "禁用"
 
 msgid "Enabled (local time)"
-msgstr "启用 (本地时间)"
+msgstr "启用 (本地时区)"
 
 msgid "Enabled (UTC)"
 msgstr "启用 (UTC)"
@@ -454,10 +454,10 @@ msgid "Standalone MPU-401"
 msgstr "独立 MPU-401"
 
 msgid "Use FLOAT32 sound"
-msgstr "使用单精度浮点 (FLOAT32) 音频"
+msgstr "使用单精度浮点（FLOAT32）音频"
 
 msgid "FM synth driver"
-msgstr "FM synth driver"
+msgstr "FM合成器驱动"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (更准确)"
@@ -1171,7 +1171,7 @@ msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgstr "%1 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"
@@ -1819,10 +1819,10 @@ msgid "VDE Socket:"
 msgstr "VDE 套接字:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP 桥接设备:"
 
 msgid "86Box Unit Tester"
-msgstr "86Box 装置测试仪"
+msgstr "86Box 单元测试工具"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 密钥卡"
@@ -2134,7 +2134,7 @@ msgid "MAC Address"
 msgstr "MAC 地址"
 
 msgid "MAC Address OUI"
-msgstr "MAC 地址的 OUI"
+msgstr "MAC 地址组织唯一标识符"
 
 msgid "Enable BIOS"
 msgstr "启用 BIOS"
@@ -2212,16 +2212,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "实时时钟的IRQ"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "实时时钟的端口地址"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "板载实时时钟"
 
 msgid "Not installed"
-msgstr ""
+msgstr "未安装"
 
 msgid "Enable OPL"
 msgstr "启用 OPL"
@@ -2350,7 +2350,7 @@ msgid "Transfer Speed"
 msgstr "传输速度"
 
 msgid "EMS mode"
-msgstr "EMS (扩展内存)模式"
+msgstr "EMS（扩展内存）模式"
 
 msgid "EMS Address"
 msgstr "EMS 地址"
@@ -2491,7 +2491,7 @@ msgid "24 MB"
 msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
-msgstr "SigmaTel STAC9721T (立体声)"
+msgstr "SigmaTel STAC9721T（立体声）"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2845,7 +2845,7 @@ msgid "Toggle fullscreen"
 msgstr "切换全屏"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "在全屏模式下激活菜单栏"
 
 msgid "Screenshot"
 msgstr "截图"
@@ -2944,13 +2944,13 @@ msgid "build"
 msgstr "构建"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "您当前正在运行版本 <b>%1</b> 。"
+msgstr "您当前正在运行版本 <b>%1</b>。"
 
 msgid "<b>Version %1</b> is now available."
 msgstr "<b>版本 %1</b>现已可用。"
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "您当前正在运行构建 <b>%1</b> 。"
+msgstr "您当前正在运行构建 <b>%1</b>。"
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>构建 %1</b>现已可用。"

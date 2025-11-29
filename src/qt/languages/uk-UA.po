@@ -1,8 +1,16 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
+"\n"
+"Language: uk-UA\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: uk_UA\n"
 "X-Source-Language: en_US\n"
 
@@ -1819,7 +1827,7 @@ msgid "VDE Socket:"
 msgstr "VDE сокет:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Пристрій моста TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Тестер блоків 86Box"
@@ -2215,13 +2223,13 @@ msgid "RTC IRQ"
 msgstr "IRQ RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Адреса порту RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Вбудований RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Не встановлен"
 
 msgid "Enable OPL"
 msgstr "Ввімкнути OPL"
@@ -2845,7 +2853,7 @@ msgid "Toggle fullscreen"
 msgstr "Переключити повноекранний режим"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Переключити UI в повноекранному режимі"
 
 msgid "Screenshot"
 msgstr "Скріншот"
