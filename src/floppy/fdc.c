@@ -1312,14 +1312,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                         fdc->step = 1;
                                     } else {
                                         fdc->st0 = 0x20 | (fdc->params[0] & 3);
-                                        if (fdc->flags & FDC_FLAG_PCJR) {
-                                            fdc->fintr     = 1;
-                                            fdc->interrupt = -4;
-                                        } else {
-                                            timer_disable(&fdc->timer);
-                                            fdc->interrupt = -3;
-                                            fdc_callback(fdc);
-                                        }
+                                        fdc->fintr     = 1;
+                                        fdc->interrupt = -4;
                                         break;
                                     }
                                 } else {
@@ -1327,14 +1321,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
                                         fdc_log("Failed seek\n");
                                         fdc->st0 = 0x20 | (fdc->params[0] & 3);
-                                        if (fdc->flags & FDC_FLAG_PCJR) {
-                                            fdc->fintr     = 1;
-                                            fdc->interrupt = -4;
-                                        } else {
-                                            timer_disable(&fdc->timer);
-                                            fdc->interrupt = -3;
-                                            fdc_callback(fdc);
-                                        }
+                                        /* Always use the PCjr code, so both 386BSD and 1B/V3 work. */
+                                        fdc->fintr     = 1;
+                                        fdc->interrupt = -4;
                                         break;
                                     }
                                     if (fdc->params[1] > fdc->pcn[fdc->params[0] & 3])
