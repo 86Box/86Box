@@ -1819,10 +1819,10 @@ msgid "VDE Socket:"
 msgstr "VDE 套接字:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP 桥接设备:"
 
 msgid "86Box Unit Tester"
-msgstr "86Box 装置测试仪"
+msgstr "86Box 单元测试工具"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 密钥卡"
@@ -2845,7 +2845,7 @@ msgid "Toggle fullscreen"
 msgstr "切换全屏"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "在全屏模式下激活菜单栏"
 
 msgid "Screenshot"
 msgstr "截图"
