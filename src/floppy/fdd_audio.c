@@ -195,8 +195,15 @@ void
 fdd_audio_load_profiles(void)
 {
     ini_t profiles_ini;
+    char  cfg_fn[1024] = { 0 };
 
-    profiles_ini = ini_read_ex("assets/sounds/fdd/fdd_audio_profiles.cfg", 1);
+    int   ret = asset_getfile("assets/sounds/fdd/fdd_audio_profiles.cfg", cfg_fn, 1024);
+    if (!ret) {
+        fdd_log("FDD Audio: Could not find profiles\n");
+        return;
+    }
+
+    profiles_ini = ini_read_ex(cfg_fn, 1);
     if (profiles_ini == NULL) {
         fdd_log("FDD Audio: Could not load profiles\n");
         return;
