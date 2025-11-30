@@ -614,6 +614,10 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
             break;
 
         case 0x07: /* Logical Device Number */
+            if (card == NULL) {
+                isapnp_log("ISAPnP: Card is null on Logical Device select\n");
+                break;
+            }
             if (card->multiple_lds) {
                 CHECK_CURRENT_CARD();
 
