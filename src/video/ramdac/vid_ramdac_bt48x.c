@@ -56,9 +56,9 @@ bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
 {
     if ((!(ramdac->cmd_r2 & 0x20)) || ((ramdac->type >= BT485A) && ((ramdac->cmd_r3 & 0x60) == 0x60)))
         svga->bpp = 8;
-    else if ((ramdac->type >= BT485A) && ((ramdac->cmd_r3 & 0x60) == 0x40))
+    else if ((ramdac->type >= BT485A) && ((ramdac->cmd_r3 & 0x60) == 0x20))
         svga->bpp = 24;
-    else
+    else {
         switch (ramdac->cmd_r1 & 0x60) {
             case 0x00:
                 svga->bpp = 32;
@@ -71,14 +71,18 @@ bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
                 break;
             case 0x40:
                 svga->bpp = 8;
+                svga->gdcreg[5] &= ~0x60;
+                svga->gdcreg[5] |= 0x40;
                 break;
             case 0x60:
                 svga->bpp = 4;
+                svga->gdcreg[5] &= ~0x60;
                 break;
 
             default:
                 break;
         }
+    }
     svga_recalctimings(svga);
 }
 

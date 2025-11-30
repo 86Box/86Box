@@ -103,6 +103,8 @@ uint8_t ht216_in(uint16_t addr, void *priv);
 #define BIOS_G2_GC205_PATH              "roms/video/video7/BIOS.BIN"
 #define BIOS_VIDEO7_VGA_1024I_219_PATH  "roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
 #define BIOS_VIDEO7_VGA_1024I_700_PATH  "roms/video/video7/Headland Video7 VGA 1024i v7.0 32x8 (IP) NMC27C256B@DIP28.BIN"
+#define BIOS_VIDEO7_VGA_1024I_704_HP_LO_PATH  "roms/video/video7/Headland Video 7 VGA 1024i even v7.04 27C256 LO.bin"
+#define BIOS_VIDEO7_VGA_1024I_704_HP_HI_PATH  "roms/video/video7/Headland Video 7 VGA 1024i odd v7.04 27C256 HI.bin"
 #define BIOS_RADIUS_SVGA_MULTIVIEW_PATH "roms/video/video7/U18.BIN"
 #define BIOS_HT216_32_PATH              "roms/video/video7/HT21632.BIN"
 
@@ -187,7 +189,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
             /*Bit 17 of the display memory address, only active on odd/even modes, has no effect on graphics modes.*/
             ht216->clk_sel = (ht216->clk_sel & ~0x03) | ((val & 0x0c) >> 2);
             ht216->misc   = val;
-            ht216_log("HT216 misc val = %02x, mode = 0, chain4 = %x\n", val, svga->chain4);
+            ht216_log("HT216 misc val=%02x, mode=0, chain4=%x\n", val, svga->chain4);
             ht216_recalc_bank_regs(ht216, 0);
             ht216_remap(ht216);
             svga_recalctimings(svga);
@@ -306,7 +308,9 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                             }
                             ht216->clk_sel = (val >> 2) & 0x07;
                         }
-                        svga->miscout = (svga->miscout & ~0x0c) | ((ht216->clk_sel & 0x03) << 2);
+                        if (ht216->id >= 0x7152)
+                            svga->miscout = (svga->miscout & ~0x0c) | ((ht216->clk_sel & 0x03) << 2);
+
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
                         break;
@@ -485,7 +489,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
             io_removehandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
             mem_mapping_disable(&svga->mapping);
             mem_mapping_disable(&ht216->linear_mapping);
-            if (val & 8) {
+            if (val & 0x08) {
                 io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
                 mem_mapping_enable(&svga->mapping);
                 ht216_remap(ht216);
@@ -565,6 +569,12 @@ ht216_in(uint16_t addr, void *priv)
                             ht216->bg_plane_sel = 0;
                             break;
 
+                        case 0xff:
+                            ret = ht216->ht_regs[0xff];
+                            if (is286 && (ht216->id != 0x7861))
+                                ret |= 0x80;
+                            break;
+
                         default:
                             break;
                     }
@@ -589,11 +599,15 @@ ht216_in(uint16_t addr, void *priv)
                 return ht216->reg_3cb;
             break;
 
+        case 0x3cc:
+            return ht216->misc;
+
         case 0x3D4:
             return svga->crtcreg;
         case 0x3D5:
             if (svga->crtcreg == 0x1f)
                 return svga->crtc[0xc] ^ 0xea;
+
             return svga->crtc[svga->crtcreg];
 
         default:
@@ -653,6 +667,8 @@ ht216_recalctimings(svga_t *svga)
     ibm8514_t *dev        = (ibm8514_t *) svga->dev8514;
     mach_t    *mach       = (mach_t *) svga->ext8514;
     int        high_res_256 = 0;
+    int        clock0_override = 0;
+    int        clock_sel;
 
     if (ht216->id == 0x7861) {
         if (ht216->ht_regs[0xe0] & 0x20) {
@@ -663,9 +679,55 @@ ht216_recalctimings(svga_t *svga)
         }
     }
 
-    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
-    ht216_log("ClkSel V7=%02x, regf8=%02x, rega4=%02x, miscout=%x, vidclock=%02x.\n", ht216->clk_sel, ht216->ht_regs[0xf8], ht216->ht_regs[0xa4], (svga->miscout >> 2) & 0x03, svga->vidclock);
+    if (ht216->id <= 0x7140) {
+        clock_sel = (ht216->ht_regs[0xa4] >> 2) & 0x07;
 
+        if (ht216->ht_regs[0xf8] & 0x01) {
+            if (!(ht216->ht_regs[0xf8] & 0x10) && (((ht216->misc >> 2) & 0x03) == 0x03))
+                clock0_override = 1;
+            else if (!(ht216->ht_regs[0xf8] & 0x08) && (((ht216->misc >> 2) & 0x03) == 0x02))
+                clock0_override = 2;
+        }
+        if (!clock0_override) {
+            if (ht216->ht_regs[0xf8] & 0x02) {
+                if (ht216->ht_regs[0xf8] & 0x04)
+                    clock_sel = (ht216->ht_regs[0xf8] >> 5) & 0x07;
+            }
+            switch (clock_sel) {
+                case 1:
+                    if (!(ht216->ht_regs[0xf8] & 0x01))
+                        svga->clock = (cpuclock * (double) (1ULL << 32)) / 48540000.0;
+                    break;
+                case 2:
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 38000000.0;
+                    break;
+                case 3:
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 32500000.0;
+                    break;
+                case 4:
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
+                    break;
+                case 5:
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
+                    break;
+                case 6:
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 38000000.0;
+                    break;
+                case 7:
+                    svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            if (clock0_override == 2)
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 38000000.0;
+        }
+        pclog("HT208 Select=%d, clock0override=%d, CRTC17=%02x, MISC=%02x, A4=%02x, FC=%02x, F8=%02x, FF=%02x, reset=%02x.\n", clock_sel, clock0_override, svga->crtc[0x17], ht216->misc & 0x0c, ht216->ht_regs[0xa4], ht216->ht_regs[0xfc], ht216->ht_regs[0xf8], ht216->ht_regs[0xff], svga->seqregs[0] & 0x03);
+    } else {
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
+        ht216_log("ClkSel V7=%02x, regf8=%02x, rega4=%02x, miscout=%x, vidclock=%02x.\n", ht216->clk_sel, ht216->ht_regs[0xf8], ht216->ht_regs[0xa4], (svga->miscout >> 2) & 0x03, svga->vidclock);
+    }
     svga->memaddr_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 12);
 
     if (ht216->ht_regs[0xf6] & 0x80)
@@ -713,7 +775,7 @@ ht216_recalctimings(svga_t *svga)
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         ht216->adjust_cursor = 1;
-                        svga->render         = svga_render_8bpp_highres;
+                        svga->render = svga_render_8bpp_highres;
                     } else {
                         ht216_log("8bpp low, packed = %02x, chain4 = %02x\n", svga->packed_chain4, svga->chain4);
                         svga->render = svga_render_8bpp_lowres;
@@ -723,6 +785,7 @@ ht216_recalctimings(svga_t *svga)
                         svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
                         if (!(svga->crtc[1] & 1))
                             svga->hdisp--;
+
                         svga->hdisp++;
                         svga->hdisp *= svga->dots_per_clock;
                         svga->rowoffset <<= 1;
@@ -737,6 +800,7 @@ ht216_recalctimings(svga_t *svga)
                 svga->dots_per_clock >>= 1;
                 if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
                     svga->crtc[0x17] |= 0x40;
+
                 svga->render = svga_render_15bpp_highres;
             }
         }
@@ -1520,6 +1584,7 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
     svga_t  *svga;
     const char *bios_ver = NULL;
     const char *fn = NULL;
+    const char *fn2 = NULL;
 
     memset(ht216, 0, sizeof(ht216_t));
     svga = &ht216->svga;
@@ -1543,12 +1608,18 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
 
     switch (has_rom) {
         case 1:
-            rom_init(&ht216->bios_rom, BIOS_G2_GC205_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+            fn = BIOS_G2_GC205_PATH;
+            rom_init(&ht216->bios_rom, fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
         case 2:
             bios_ver = (char *) device_get_config_bios("bios_ver");
             fn = (char *) device_get_bios_file(info, bios_ver, 0);
-            rom_init(&ht216->bios_rom, fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+            if (!strcmp(bios_ver, "v7_04_hp")) {
+                fn2 = (char *) device_get_bios_file(info, bios_ver, 1);
+                rom_init_interleaved(&ht216->bios_rom, fn, fn2,
+                                        0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+            } else
+                rom_init(&ht216->bios_rom, fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
         case 3:
             ht216->monitor_type = device_get_config_int("monitor_type");
@@ -1606,7 +1677,7 @@ ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
         svga->ramdac = device_add(&sc11484_nors2_ramdac_device);
         svga->clock_gen = device_add(&ics1494m_540_radius_ht209_device);
         svga->getclock  = ics1494_getclock;
-    } else {
+    } else if (ht216->id == 0x7861) {
         svga->clock_gen = device_add(&icd2047_20_device);
         svga->getclock  = icd2047_getclock;
     }
@@ -1764,6 +1835,15 @@ static const device_config_t v7_vga_1024i_config[] = {
                 .local         = 0,
                 .size          = 32768,
                 .files         = { BIOS_VIDEO7_VGA_1024I_700_PATH, "" }
+            },
+            {
+                .name          = "Version 7.04 (HP)",
+                .internal_name = "v7_04_hp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_VIDEO7_VGA_1024I_704_HP_LO_PATH, BIOS_VIDEO7_VGA_1024I_704_HP_HI_PATH,  "" }
             },
             { .files_no = 0 }
         }

@@ -12634,7 +12634,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -12653,7 +12653,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &opti_82c930_device,
         .net_device               = NULL
     },
     /* Has AMIKey Z(!) KBC firmware. */

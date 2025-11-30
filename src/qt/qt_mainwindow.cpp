@@ -313,20 +313,7 @@ MainWindow::MainWindow(QWidget *parent)
             return;
         }
         if (!hide_tool_bar)
-#ifdef _WIN32
             toolbar_label->setText(title);
-#else
-        {
-            /* get the percentage and mouse message, TODO: refactor ui_window_title() */
-            auto parts = title.split(" - ");
-            if (parts.size() >= 2) {
-                if (parts.size() < 5)
-                    toolbar_label->setText(parts[1]);
-                else
-                    toolbar_label->setText(QString("%1 - %2").arg(parts[1], parts.last()));
-            }
-        }
-#endif
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
@@ -1070,7 +1057,7 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             this->renderers[monitor_index]->show();
         });
         secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
-        secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(monitor_index + 1));
+        secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(monitor_index + 1));
         secondaryRenderer->setContextMenuPolicy(Qt::PreventContextMenu);
 
         for (int i = 0; i < this->actions().size(); i++) {

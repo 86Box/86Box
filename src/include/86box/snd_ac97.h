@@ -166,7 +166,9 @@ extern const device_t stac9721_device;
 extern const device_t tr28023_device;
 extern const device_t w83971d_device;
 extern const device_t wm9701a_device;
+#ifdef USE_SOFTMODEM
 extern const device_t si3036_device;
+#endif
 
 extern const device_t ac97_via_device;
 #endif

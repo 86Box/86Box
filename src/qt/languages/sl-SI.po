@@ -1,8 +1,16 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
+"\n"
+"Language: sl-SI\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || "
+"n%100==4 ? 2 : 3;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: sl_SI\n"
 "X-Source-Language: en_US\n"
 
@@ -272,36 +280,6 @@ msgstr "Naloži zadnjo sliko"
 
 msgid "&Folder..."
 msgstr "&Mapa..."
-
-msgid "Target &framerate"
-msgstr "&Ciljno št. kadrov na sekundo"
-
-msgid "&Sync with video"
-msgstr "&Sinhroniziraj z videom"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Izberi senčilnik..."
-
-msgid "&Remove shader"
-msgstr "&Odstrani senčilnik"
 
 msgid "Preferences"
 msgstr "Možnosti"
@@ -687,9 +665,6 @@ msgstr "Naprava ISABugger"
 msgid "POST card"
 msgstr "Kartica POST"
 
-msgid "86Box"
-msgstr "86Box"
-
 msgid "Error"
 msgstr "Napaka"
 
@@ -1050,11 +1025,8 @@ msgstr "To bo ponovno zagnalo emuliran sistem."
 msgid "Save"
 msgstr "Shrani"
 
-msgid "About 86Box"
-msgstr "O programu 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "O programu %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Emulator starih računalnikov\n\nAvtorji: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne in drugi.\n\nS prejšnjimi prispevki Sarah Walker, leilei, JohnElliott, greatpsycho in drugih.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
@@ -1300,7 +1272,7 @@ msgid "Open p&rinter tray..."
 msgstr "Odpri pladenj &tiskalnika..."
 
 msgid "Set &icon..."
-msgstr "Izberi &ikono"
+msgstr "Izberi &ikono..."
 
 msgid "Select an icon"
 msgstr "Izberi ikono"
@@ -1404,8 +1376,8 @@ msgstr "Sistem"
 msgid "Storage"
 msgstr "Shramba"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Ni diskov"
@@ -1818,8 +1790,8 @@ msgstr "Premaknil sem jo"
 msgid "I Copied It"
 msgstr "Kopiral sem jo"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Ni naprav MCA."
@@ -1855,7 +1827,7 @@ msgid "VDE Socket:"
 msgstr "Vtičnica VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Mostovna naprava TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Tester enote 86Box"
@@ -2232,12 +2204,6 @@ msgstr "Jakost filtra SID-a"
 msgid "Surround module"
 msgstr "Prostorski modul"
 
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Dvigni prekinitev za CODEC ob nastavitvi CODEC-a (to potrebujejo nekateri gonilniki)"
-
 msgid "SB Address"
 msgstr "Naslov SB"
 
@@ -2254,16 +2220,16 @@ msgid "WSS DMA"
 msgstr "DMA WSS"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ ure v realnem času"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Naslov ure v realnem času"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Integrirana ura v realnem času"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Ni nameščen"
 
 msgid "Enable OPL"
 msgstr "Omogoči OPL"
@@ -2534,9 +2500,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
-
-msgid "Classic"
-msgstr "Klasični"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2826,9 +2789,6 @@ msgstr "Napaka GLSL"
 msgid "Could not load shader: %1"
 msgstr "Ni bilo mogoče naložiti senčilnika: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Potrebna je OpenGL različica 3.0 ali novejša. Trenutna različica GLSL je %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Ni bilo mogoče naložiti teksture: %1"
 
@@ -2857,7 +2817,7 @@ msgid "Could not load file %1"
 msgstr "Ni bilo mogoče naložiti datoteke %1"
 
 msgid "Key Bindings:"
-msgstr "Kombinacije tipk"
+msgstr "Kombinacije tipk:"
 
 msgid "Action"
 msgstr "Dejanje"
@@ -2891,6 +2851,9 @@ msgstr "Pošlji Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Preklopi celozaslonski način"
+
+msgid "Toggle UI in fullscreen"
+msgstr "Preklopi uporabniški vmesnik v načinu polnega zaslona"
 
 msgid "Screenshot"
 msgstr "Zajem zaslona"

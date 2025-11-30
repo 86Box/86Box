@@ -1672,19 +1672,10 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
           void (*hwcursor_draw)(struct svga_t *svga, int displine),
           void (*overlay_draw)(struct svga_t *svga, int displine))
 {
-    int e;
-
     svga->priv          = priv;
     svga->monitor_index = monitor_index_global;
     svga->monitor       = &monitors[svga->monitor_index];
 
-    for (int c = 0; c < 256; c++) {
-        e = c;
-        for (int d = 0; d < 8; d++) {
-            svga_rotate[d][c] = e;
-            e                 = (e >> 1) | ((e & 1) ? 0x80 : 0);
-        }
-    }
     svga->readmode = 0;
 
     svga->attrregs[0x11] = 0;

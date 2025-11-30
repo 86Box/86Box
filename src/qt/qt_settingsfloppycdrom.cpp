@@ -303,9 +303,67 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     ui->checkBoxTurboTimings->setChecked(current.siblingAtColumn(1).data() == tr("On"));
     ui->checkBoxCheckBPB->setChecked(current.siblingAtColumn(2).data() == tr("On"));
 
-    int prof       = current.siblingAtColumn(3).data(Qt::UserRole).toInt();
+    int prof = current.siblingAtColumn(3).data(Qt::UserRole).toInt();
+
+#ifndef DISABLE_FDD_AUDIO
+    // Rebuild audio profile combo box based on drive type
+    ui->comboBoxFloppyAudio->clear();
+
+    if (type == 0) {
+        ui->comboBoxFloppyAudio->addItem(tr("None"), 0);
+        ui->comboBoxFloppyAudio->setCurrentIndex(0);
+        ui->comboBoxFloppyAudio->setEnabled(false);
+
+        // Update the model to reflect "None" profile
+        auto audioIdx = current.siblingAtColumn(3);
+        ui->tableViewFloppy->model()->setData(audioIdx, tr("None"));
+        ui->tableViewFloppy->model()->setData(audioIdx, 0, Qt::UserRole);
+        return;
+    }
+
+    ui->comboBoxFloppyAudio->setEnabled(true);
+
+    // Get drive type's track count to determine 40-track vs 80-track
+    int  drive_max_tracks = fdd_get_type_max_track(type);
+    bool is_40_track      = (drive_max_tracks <= 43);
+
+    int profile_count       = fdd_audio_get_profile_count();
+    int currentProfileIndex = -1;
+    int comboIndex          = 0;
+
+    for (int i = 0; i < profile_count; i++) {
+        const char *name = fdd_audio_get_profile_name(i);
+        if (name) {
+            const fdd_audio_profile_config_t *profile = fdd_audio_get_profile(i);
+            if (profile) {
+                // Only show profiles that match the drive type's track count
+                if (profile->total_tracks == 0 || 
+                    (is_40_track && profile->total_tracks == 40) || 
+                    (!is_40_track && profile->total_tracks == 80)) {
+                    ui->comboBoxFloppyAudio->addItem(name, i);
+                    if (i == prof) {
+                        currentProfileIndex = comboIndex;
+                    }
+                    comboIndex++;
+                }
+            }
+        }
+    }
+
+    // If current profile is not compatible, select "None" (profile 0)
+    if (currentProfileIndex == -1) {
+        currentProfileIndex = ui->comboBoxFloppyAudio->findData(0);
+        // Update the model to reflect "None" profile
+        auto audioIdx = current.siblingAtColumn(3);
+        ui->tableViewFloppy->model()->setData(audioIdx, tr("None"));
+        ui->tableViewFloppy->model()->setData(audioIdx, 0, Qt::UserRole);
+    }
+
+    ui->comboBoxFloppyAudio->setCurrentIndex(currentProfileIndex);
+#else
     int comboIndex = ui->comboBoxFloppyAudio->findData(prof);
     ui->comboBoxFloppyAudio->setCurrentIndex(comboIndex);
+#endif
 }
 
 void
@@ -375,8 +433,11 @@ SettingsFloppyCDROM::on_checkBoxCheckBPB_stateChanged(int arg1)
 void
 SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 {
-    setFloppyType(ui->tableViewFloppy->model(),
-                  ui->tableViewFloppy->selectionModel()->currentIndex(), index);
+    auto currentIndex = ui->tableViewFloppy->selectionModel()->currentIndex();
+    setFloppyType(ui->tableViewFloppy->model(), currentIndex, index);
+
+    // Trigger row changed to rebuild audio profile list
+    onFloppyRowChanged(currentIndex);
 }
 
 void
@@ -393,6 +454,9 @@ SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
         profName = name;
     } else {
         profName = tr("None");
+    }
+    if (prof > 0) {
+        load_profile_samples(prof);
     }
 #else
     profName = tr("None");

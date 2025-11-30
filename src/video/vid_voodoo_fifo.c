@@ -60,7 +60,10 @@ voodoo_fifo_log(const char *fmt, ...)
 #    define voodoo_fifo_log(fmt, ...)
 #endif
 
-#define WAKE_DELAY (TIMER_USEC * 100)
+#define WAKE_DELAY_DEFAULT (TIMER_USEC * 100)
+
+/* Per-card wake delay: Voodoo1 uses a larger delay to reduce FIFO wake frequency */
+#define WAKE_DELAY_OF(v) ((v)->type == VOODOO_1 ? (TIMER_USEC * 2000) : WAKE_DELAY_DEFAULT)
 void
 voodoo_wake_fifo_thread(voodoo_t *voodoo)
 {
@@ -69,7 +72,7 @@ voodoo_wake_fifo_thread(voodoo_t *voodoo)
           process one word and go back to sleep, requiring it to be woken on
           almost every write. Instead, wait a short while so that the CPU
           emulation writes more data so we have more batched-up work.*/
-        timer_set_delay_u64(&voodoo->wake_timer, WAKE_DELAY);
+        timer_set_delay_u64(&voodoo->wake_timer, WAKE_DELAY_OF(voodoo));
     }
 }
 

@@ -116,7 +116,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
         frameRateTimer->setSingleShot(false);
         frameRateTimer->setInterval(1000);
         connect(frameRateTimer, &QTimer::timeout, [this] {
-            this->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : "")));
+            this->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : "")));
         });
         frameRateTimer->start(1000);
     }

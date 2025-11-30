@@ -42,6 +42,9 @@ typedef struct rom_path_t {
 } rom_path_t;
 
 extern rom_path_t rom_paths;
+extern rom_path_t asset_paths;
+
+extern void asset_add_path(const char *path);
 
 extern void rom_add_path(const char *path);
 
@@ -53,7 +56,13 @@ extern void rom_write(uint32_t addr, uint8_t val, void *priv);
 extern void rom_writew(uint32_t addr, uint16_t val, void *priv);
 extern void rom_writel(uint32_t addr, uint32_t val, void *priv);
 
+extern void  asset_get_full_path(char *dest, const char *fn);
+
 extern void  rom_get_full_path(char *dest, const char *fn);
+
+extern FILE *asset_fopen(const char *fn, char *mode);
+extern int   asset_getfile(const char *fn, char *s, int size);
+extern int   asset_present(const char *fn);
 
 extern FILE *rom_fopen(const char *fn, char *mode);
 extern int   rom_getfile(const char *fn, char *s, int size);
