@@ -576,6 +576,10 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                     card->id_checksum = isapnp_init_key[0];
                     if (card->state == PNP_STATE_SLEEP) {
                         card->state = (val == 0) ? PNP_STATE_ISOLATION : PNP_STATE_CONFIG;
+                        if (card->state == PNP_STATE_ISOLATION) {
+                            isapnp_log("ISAPnP: Putting card in isolation\n");
+                            dev->isolated_card = card;
+                        }
 
                         if (!card->multiple_lds) {
                             ld = card->first_ld;
