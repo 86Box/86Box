@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          OPTi MediaCHIPS 82C929A/82C930 (also known as OPTi MAD16 Pro) audio controller emulation.
+ *          OPTi MediaCHIPS 82C929A/82C93x (also known as OPTi MAD16 Pro) audio controller emulation.
  *
  * Authors: Cacodemon345
  *          Eluan Costa Miranda <eluancm@gmail.com>
@@ -38,7 +38,10 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/plat_unused.h>
+#include <86box/isapnp.h>
 #include <86box/log.h>
+
+#define PNP_ROM_OPTI931 "roms/sound/opti931/adsrom.bin"
 
 #ifdef ENABLE_OPTIMC_LOG
 int optimc_do_log = ENABLE_OPTIMC_LOG;
@@ -70,6 +73,7 @@ enum optimc_types {
 enum optimc_local_flags {
     OPTIMC_CS4231 = 0x100,
     OPTIMC_OPL4   = 0x200,
+    OPTI_931      = 0x400,
 };
 
 typedef struct optimc_t {
@@ -85,6 +89,7 @@ typedef struct optimc_t {
     uint16_t cur_wss_addr;
     uint16_t cur_mpu401_addr;
     uint16_t cur_opti930_addr; /* OPTi 930 relocatable index/data registers */
+    uint16_t cur_opl_addr;
 
     int   cur_irq;
     int   cur_dma;
@@ -101,14 +106,38 @@ typedef struct optimc_t {
     mpu_t   *mpu;
 
     sb_t   *sb;
-    uint8_t regs[12];
+    uint8_t regs[26];
     uint8_t opti930_mcbase;
     uint8_t lastpw;
+    uint8_t max_reg;
+    uint8_t pnpidx;
     double master_l;
     double master_r;
 
+    void                   *pnp_card;
+    uint8_t                pnp_rom[401];
+    isapnp_device_config_t *opti931_pnp_config;
+
     void *    log;  /* New logging system */
 } optimc_t, opti_82c929a_t;
+
+static void
+opti931_isapnp_write(uint16_t addr, uint8_t val, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    optimc_log(optimc->log, "OPTi931 ISAPnP Write port = %04X, val = %02X\n", addr, val);
+
+    if (addr == 0x279)
+        optimc->pnpidx = val;
+
+    if (addr == 0xA79) {
+        if (optimc->pnpidx == 0x00) { /* ISAPnP Set RD_DATA Port */
+            optimc_log(optimc->log, "OPTi931 ISAPnP Read Data port set to %04X\n", val);
+            optimc->regs[14] = val;
+        }
+    }
+}
 
 static void
 opti930_update_mastervol(void *priv)
@@ -200,7 +229,7 @@ opti930_get_buffer(int32_t *buffer, int len, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
-    if (optimc->regs[3] & 0x4)
+    if (((optimc->max_reg == 11) && (optimc->regs[3] & 0x4)) || ((optimc->max_reg == 25) && !(optimc->regs[3] & 0x4)))
         return;
 
     /* wss part */
@@ -270,6 +299,12 @@ opti930_reg_write(uint16_t addr, uint8_t val, void *priv)
         optimc_log(optimc->log, "OPTi930 Index Write: val = %02X\n", val);
         optimc->index = (val - 1);
     }
+    if ((addr == optimc->cur_opti930_addr +1) && (idx > optimc->max_reg)) {
+        optimc_log(optimc->log, "OPTi930 Write above max reg!: idx = %02X\n", optimc->index);
+        optimc_log(optimc->log, "OPTi930 disable reg access on data write\n");
+        optimc->reg_enabled = 0;
+        return;
+    }
     if ((addr == optimc->cur_opti930_addr +1) && (optimc->reg_enabled || !optimc->passwd_enabled)) {
         switch (idx) {
             case 0: /* MC1 */
@@ -305,7 +340,10 @@ opti930_reg_write(uint16_t addr, uint8_t val, void *priv)
                     io_sethandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
                     io_sethandler(optimc->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
                     /* Update gameport */
-                    gameport_remap(optimc->gameport, (optimc->regs[0] & 0x1) ? 0x00 : 0x200);
+                    if (optimc->max_reg == 11)
+                        gameport_remap(optimc->gameport, (optimc->regs[0] & 0x1) ? 0x00 : 0x200);
+                    else
+                        gameport_remap(optimc->gameport, (optimc->regs[0] & 0x1) ? 0x200 : 0x00);
                 }
                 break;
             case 1: /* MC2 */
@@ -431,6 +469,37 @@ opti930_reg_write(uint16_t addr, uint8_t val, void *priv)
                 break;
             case 8: /* MC9 */
                 optimc->regs[8] = val;
+                if ((optimc->max_reg == 25) && (val & 0x02)) {
+                    optimc_log(optimc->log, "OPTi931 software reset\n");
+                    optimc->regs[0] = 0x07;
+                    optimc->regs[1] = 0x00;
+                    optimc->regs[2] = 0x2A;
+                    optimc->regs[3] = 0x14;
+                    optimc->regs[4] = 0x00;
+                    optimc->regs[5] = 0x81;
+                    optimc->regs[6] = 0x00;
+                    optimc->regs[7] = 0x00;
+                    optimc->regs[8] = 0x00;
+                    optimc->regs[9] = 0x00;
+                    optimc->regs[10] = 0x00;
+                    optimc->regs[11] = 0x00;
+                    optimc->regs[12] = 0x11;
+                    optimc->regs[13] = 0x00;
+                    optimc->regs[14] = 0x00;
+                    optimc->regs[15] = 0x00;
+                    optimc->regs[16] = 0x00;
+                    optimc->regs[17] = 0x88; /* Silicon rev 0.1, 931-AD adapter mode */
+                    optimc->regs[18] = 0x01;
+                    optimc->regs[19] = 0x00;
+                    optimc->regs[20] = 0x00;
+                    optimc->regs[21] = 0x00;
+                    optimc->regs[22] = 0x00;
+                    optimc->regs[23] = 0x00;
+                    optimc->regs[24] = 0x00;
+                    optimc->regs[25] = 0x00;
+                    isapnp_enable_card(optimc, 0);
+                    isapnp_enable_card(optimc, 1);
+                }
                 break;
             case 9: /* MC10 */
                 optimc->regs[9] = val;
@@ -439,6 +508,45 @@ opti930_reg_write(uint16_t addr, uint8_t val, void *priv)
                 break;
             case 11: /* MC12 */
                 optimc->regs[11] = val;
+                break;
+            case 12: /* MC13, read-only */
+                break;
+            case 13: /* MC14, read-only */
+                break;
+            case 14: /* MC15, read-only */
+                break;
+            case 15: /* MC16 */
+                optimc->regs[15] = val;
+                break;
+            case 16: /* MC17 */
+                optimc->regs[16] = val;
+                break;
+            case 17: /* MC18 */
+                optimc->regs[17] = optimc->regs[17] | (val & 0xc0);
+                break;
+            case 18: /* MC19 */
+                optimc->regs[18] = val;
+                break;
+            case 19: /* MC20 */
+                optimc->regs[19] = val;
+                break;
+            case 20: /* MC21 */
+                optimc->regs[20] = val;
+                break;
+            case 21: /* MC22 */
+                optimc->regs[21] = val;
+                break;
+            case 22: /* MC23 */
+                optimc->regs[22] = val;
+                break;
+            case 23: /* MC24 */
+                optimc->regs[23] = val;
+                break;
+            case 24: /* MC25 */
+                optimc->regs[24] = val;
+                break;
+            case 25: /* MC26 */
+                optimc->regs[25] = val;
                 break;
             default:
                 break;
@@ -634,6 +742,12 @@ opti930_reg_read(uint16_t addr, void *priv)
 
     if ((addr == optimc->cur_opti930_addr) && (optimc->reg_enabled || !optimc->passwd_enabled))
         temp = optimc->index;
+    if ((addr == optimc->cur_opti930_addr +1) && (idx > optimc->max_reg)) {
+        optimc_log(optimc->log, "OPTi930 Read above max reg!: idx = %02X\n", optimc->index);
+        optimc_log(optimc->log, "OPTi930 disable reg access on data read\n");
+        optimc->reg_enabled = 0;
+        return 0xFF;
+    }
     if ((addr == optimc->cur_opti930_addr +1) && (optimc->reg_enabled || !optimc->passwd_enabled)) {
         switch (idx) {
             case 0 ... 9:
@@ -644,6 +758,24 @@ opti930_reg_read(uint16_t addr, void *priv)
                 break;
             case 11:
                 temp = optimc->regs[11];
+                break;
+            case 12:
+                temp = optimc->regs[12];
+                break;
+            case 13:
+                temp = optimc->regs[13];
+                break;
+            case 14:
+                temp = optimc->regs[14];
+                break;
+            case 15 ... 16:
+                temp = optimc->regs[optimc->index];
+                break;
+            case 17:
+                temp = optimc->regs[17] ^ 0x80;
+                break;
+            case 18 ... 25:
+                temp = optimc->regs[optimc->index];
                 break;
         }
     }
@@ -713,6 +845,146 @@ opti930_passwd_write(uint16_t addr, uint8_t val, void *priv)
     optimc->lastpw = val;
 }
 
+static void
+opti931_passwd_write(uint16_t addr, uint8_t val, void *priv)
+{
+    optimc_t      *optimc           = (optimc_t *) priv;
+
+    optimc_log(optimc->log, "OPTi931 Password Write: val = %02X\n", val);
+
+    if (optimc->reg_enabled) {
+        optimc->opti930_mcbase = val;
+        optimc->passwd_enabled = (val & 0x80) ? 0 : 1;
+        optimc_log(optimc->log, "OPTi931 password enable: %02X\n", optimc->passwd_enabled);
+        optimc_log(optimc->log, "OPTi931 Disabling reg access\n");
+        optimc->reg_enabled = 0;
+    }
+    if ((val == optimc->type) && !(optimc->reg_enabled)) {
+        optimc_log(optimc->log, "OPTi931 Enabling reg access\n");
+        optimc->reg_enabled = 1;
+    }
+    if ((val != optimc->type) && (optimc->lastpw != OPTI_930)) {
+        optimc_log(optimc->log, "OPTi931 Disabling reg access\n");
+        optimc->reg_enabled = 0;
+    }
+    optimc->lastpw = val;
+}
+
+static void
+opti931_pnp_csn_changed(uint8_t csn, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    optimc_log(optimc->log, "PnP CSN changed to %02X\n", csn);
+
+    optimc->regs[13] = csn;
+    optimc->regs[12] = optimc->regs[12] | 0x80;
+}
+
+static void
+opti931_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    optimc_log(optimc->log, "PnP Config changed\n");
+
+    switch (ld) {
+        case 0: /* Aux Device */
+            break;
+        case 1: /* WSS/OPL3/SBPro/Control regs */
+            if (optimc->cur_wss_addr) {
+                io_removehandler(optimc->cur_wss_addr, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
+                optimc->cur_wss_addr = 0;
+                optimc->cur_wss_enabled = 0;
+            }
+
+            if (optimc->cur_opl_addr) {
+                io_removehandler(optimc->cur_opl_addr, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+                optimc->cur_opl_addr = 0;
+            }
+
+            if (optimc->cur_addr) {
+                sb_dsp_setaddr(&optimc->sb->dsp, 0);
+                io_removehandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
+                io_removehandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+                io_removehandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+                optimc->cur_addr = 0;
+            }
+
+            if (optimc->cur_opti930_addr) {
+                io_removehandler(optimc->cur_opti930_addr, 2, opti930_reg_read, NULL, NULL, opti930_reg_write, NULL, NULL, optimc); /* Relocatable MCBase */
+                optimc->cur_opti930_addr = 0;
+            }
+
+            ad1848_setirq(&optimc->ad1848, 0);
+            sb_dsp_setirq(&optimc->sb->dsp, 0);
+
+            ad1848_setdma(&optimc->ad1848, 0);
+            sb_dsp_setdma8(&optimc->sb->dsp, 0);
+
+            if (config->activate) {
+                if (config->io[0].base != ISAPNP_IO_DISABLED) {
+                    optimc->cur_wss_addr = config->io[0].base;
+                    optimc->cur_wss_enabled = 1;
+                    optimc_log(optimc->log, "Updating WSS I/O port, WSS addr = %04X\n", optimc->cur_wss_addr);
+                    io_sethandler(optimc->cur_wss_addr, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
+                }
+                if (config->io[1].base != ISAPNP_IO_DISABLED) {
+                    optimc->cur_opl_addr = config->io[1].base + 8; /* 12 ports are reserved for OPTiFM, only the top 4 are needed for OPL3 */
+                    optimc_log(optimc->log, "Updating OPL I/O port, OPL addr = %04X\n", optimc->cur_opl_addr);
+                    io_sethandler(optimc->cur_opl_addr, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+                }
+                if (config->io[2].base != ISAPNP_IO_DISABLED) {
+                    optimc->cur_addr = config->io[2].base;
+                    optimc_log(optimc->log, "Updating SB DSP I/O port, SB DSP addr = %04X\n", optimc->cur_addr);
+                    sb_dsp_setaddr(&optimc->sb->dsp, optimc->cur_addr);
+                    io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
+                    io_sethandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+                    io_sethandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+                }
+                if (config->io[3].base != ISAPNP_IO_DISABLED) {
+                    optimc->cur_opti930_addr = config->io[3].base + 1;
+                    optimc_log(optimc->log, "Updating OPTi930 control I/O port, OPTi930 control addr = %04X\n", optimc->cur_opti930_addr);
+                    io_sethandler(optimc->cur_opti930_addr, 2, opti930_reg_read, NULL, NULL, opti930_reg_write, NULL, NULL, optimc); /* Relocatable MCBase */
+                }
+                if (config->irq[0].irq != ISAPNP_IRQ_DISABLED) {
+                    optimc->cur_irq = config->irq[0].irq;
+                    optimc->cur_wss_irq = config->irq[0].irq;
+                    sb_dsp_setirq(&optimc->sb->dsp, optimc->cur_irq);
+                    ad1848_setirq(&optimc->ad1848, optimc->cur_wss_irq);
+                    optimc_log(optimc->log, "Updated WSS/SB IRQ to %04X\n", optimc->cur_irq);
+                }
+                if (config->dma[0].dma != ISAPNP_DMA_DISABLED) {
+                    optimc->cur_dma = config->dma[0].dma;
+                    optimc->cur_wss_dma = config->dma[0].dma;
+                    sb_dsp_setdma8(&optimc->sb->dsp, optimc->cur_dma);
+                    ad1848_setdma(&optimc->ad1848, optimc->cur_wss_dma);
+                    optimc_log(optimc->log, "Updated WSS Playback/SB DMA to %04X\n", optimc->cur_dma);
+                }
+            }
+            break;
+        case 2: /* Gameport */
+            gameport_remap(optimc->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+            break;
+        case 3: /* MPU401 */
+            if (config->activate) {
+                if (config->io[0].base != ISAPNP_IO_DISABLED) {
+                    optimc->cur_mpu401_addr = config->io[0].base;
+                    optimc_log(optimc->log, "Updating MPU401 I/O port, MPU401 addr = %04X\n", optimc->cur_mpu401_addr);
+                    mpu401_change_addr(optimc->mpu, optimc->cur_mpu401_addr);
+                }
+                if (config->irq[0].irq != ISAPNP_IRQ_DISABLED) {
+                    optimc->cur_mpu401_irq = config->irq[0].irq;
+                    mpu401_setirq(optimc->mpu, optimc->cur_mpu401_irq);
+                    optimc_log(optimc->log, "Updated MPU401 IRQ to %04X\n", optimc->cur_mpu401_irq);
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}
+
 static void *
 optimc_init(const device_t *info)
 {
@@ -731,6 +1003,7 @@ optimc_init(const device_t *info)
     optimc->cur_mpu401_irq     = 9;
     optimc->cur_mpu401_addr    = 0x330;
     optimc->cur_mpu401_enabled = 1;
+    optimc->cur_opl_addr       = 0x388;
 
     if (optimc->type == OPTI_929) {
         optimc->regs[0] = 0x00;
@@ -739,6 +1012,7 @@ optimc_init(const device_t *info)
         optimc->regs[3] = 0x00;
         optimc->regs[4] = 0x3F;
         optimc->regs[5] = 0x83;
+        optimc->max_reg = 5;
     }
     if (optimc->type == OPTI_930) {
         optimc->regs[0] = 0x00;
@@ -753,8 +1027,29 @@ optimc_init(const device_t *info)
         optimc->regs[9] = 0x00;
         optimc->regs[10] = 0x00;
         optimc->regs[11] = 0x00;
+        optimc->max_reg = 11;
         optimc->opti930_mcbase = 0x00; /* Password enable, MCBase E0Eh */
         optimc->cur_opti930_addr = 0xE0E;
+    }
+    if ((optimc->type == OPTI_930) && (info->local & OPTI_931)) {
+        optimc->regs[0]  = 0x07;
+        optimc->regs[3]  = 0x14;
+        optimc->regs[12] = 0x11;
+        optimc->regs[13] = 0x00;
+        optimc->regs[14] = 0x00;
+        optimc->regs[15] = 0x00;
+        optimc->regs[16] = 0x00;
+        optimc->regs[17] = 0x88; /* Silicon rev 0.1, 931-AD adapter mode */
+        optimc->regs[18] = 0x01;
+        optimc->regs[19] = 0x00;
+        optimc->regs[20] = 0x00;
+        optimc->regs[21] = 0x00;
+        optimc->regs[22] = 0x00;
+        optimc->regs[23] = 0x00;
+        optimc->regs[24] = 0x00;
+        optimc->regs[25] = 0x00;
+        optimc->max_reg = 25;
+        optimc->cur_wss_addr = 0x534;
     }
 
     optimc->log = log_open("OPTIMC");
@@ -776,13 +1071,20 @@ optimc_init(const device_t *info)
     if (optimc->type == OPTI_929) {
         io_sethandler(0xF8D, 6, optimc_reg_read, NULL, NULL, optimc_reg_write, NULL, NULL, optimc);
     }
-    if (optimc->type == OPTI_930) {
+    if ((optimc->type == OPTI_930) && (!(info->local & OPTI_931))) {
         io_sethandler(0xF8F, 1, NULL, NULL, NULL, opti930_passwd_write, NULL, NULL, optimc); /* Fixed password reg, write-only */
         io_sethandler(optimc->cur_opti930_addr, 2, opti930_reg_read, NULL, NULL, opti930_reg_write, NULL, NULL, optimc); /* Relocatable MCBase */
     }
+    if ((optimc->type == OPTI_930) && (info->local & OPTI_931)) {
+        io_sethandler(0xF8D, 1, NULL, NULL, NULL, opti931_passwd_write, NULL, NULL, optimc); /* Fixed password reg, write-only */
+        io_sethandler(optimc->cur_opti930_addr, 2, opti930_reg_read, NULL, NULL, opti930_reg_write, NULL, NULL, optimc); /* Relocatable MCBase */
+    }
 
-    io_sethandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
-    io_sethandler(optimc->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
+    if (!(info->local & OPTI_931)) {
+        io_sethandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
+        io_sethandler(optimc->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
+    } else
+        io_sethandler(optimc->cur_wss_addr, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
 
     optimc->sb              = calloc(1, sizeof(sb_t));
     optimc->sb->opl_enabled = 1;
@@ -833,6 +1135,28 @@ optimc_init(const device_t *info)
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &optimc->sb->dsp);
 
+    if (info->local & OPTI_931) {
+        const char *pnp_rom_file = NULL;
+        uint16_t    pnp_rom_len  = 401;
+        pnp_rom_file = PNP_ROM_OPTI931;
+
+        uint8_t *pnp_rom = NULL;
+        if (pnp_rom_file) {
+            FILE *fp = rom_fopen(pnp_rom_file, "rb");
+            if (fp) {
+                if (fread(optimc->pnp_rom, 1, pnp_rom_len, fp) == pnp_rom_len)
+                    pnp_rom = optimc->pnp_rom;
+                fclose(fp);
+            }
+        }
+        optimc->pnp_card = isapnp_add_card(pnp_rom, sizeof(optimc->pnp_rom), opti931_pnp_config_changed,
+                                           opti931_pnp_csn_changed, NULL, NULL, optimc);
+
+        /* Set up ISAPnP handlers to intercept Read Data port changes */
+        io_sethandler(0x279, 0x0001, NULL, NULL, NULL, opti931_isapnp_write, NULL, NULL, optimc);
+        io_sethandler(0xA79, 0x0001, NULL, NULL, NULL, opti931_isapnp_write, NULL, NULL, optimc);
+    }
+
     /* OPTi 930 DOS sound test utility starts DMA playback without setting a time constant likely making */
     /* an assumption about the power-on state of the OPTi 930's SBPro DSP, set the power-on default time */
     /* constant for 22KHz Mono so the sound test utility passes the SBPro test */
@@ -873,6 +1197,12 @@ optimc_close(void *priv)
     sb_close(optimc->sb);
     free(optimc->mpu);
     free(priv);
+}
+
+static int
+opti931_available(void)
+{
+    return rom_present(PNP_ROM_OPTI931);
 }
 
 static void
@@ -960,3 +1290,16 @@ const device_t opti_82c930_device = {
     .config        = optimc_config
 };
 
+const device_t opti_82c931_device = {
+    .name          = "OPTi 82c931",
+    .internal_name = "opti_82c931",
+    .flags         = DEVICE_ISA16,
+    .local         = OPTI_930 | OPTIMC_CS4231 | OPTI_931,
+    .init          = optimc_init,
+    .close         = optimc_close,
+    .reset         = NULL,
+    .available     = opti931_available,
+    .speed_changed = optimc_speed_changed,
+    .force_redraw  = NULL,
+    .config        = optimc_config
+};

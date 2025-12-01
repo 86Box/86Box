@@ -576,6 +576,10 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
                     card->id_checksum = isapnp_init_key[0];
                     if (card->state == PNP_STATE_SLEEP) {
                         card->state = (val == 0) ? PNP_STATE_ISOLATION : PNP_STATE_CONFIG;
+                        if (card->state == PNP_STATE_ISOLATION) {
+                            isapnp_log("ISAPnP: Putting card in isolation\n");
+                            dev->isolated_card = card;
+                        }
 
                         if (!card->multiple_lds) {
                             ld = card->first_ld;
@@ -610,6 +614,10 @@ isapnp_write_common(isapnp_t *dev, isapnp_card_t *card, isapnp_device_t *ld, uin
             break;
 
         case 0x07: /* Logical Device Number */
+            if (card == NULL) {
+                isapnp_log("ISAPnP: Card is null on Logical Device select\n");
+                break;
+            }
             if (card->multiple_lds) {
                 CHECK_CURRENT_CARD();
 
