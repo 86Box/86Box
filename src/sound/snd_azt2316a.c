@@ -1670,7 +1670,7 @@ static const device_config_t azt2316a_config[] = {
     },
     {
         .name           = "receive_input401",
-        .description    = "Receive MIDI input",
+        .description    = "Receive MIDI input (MPU-401)",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
