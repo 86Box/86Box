@@ -20553,7 +20553,7 @@ machine_has_flags_ex(int flags)
     int ret = machine_has_flags(machine, flags);
 
     if (flags & MACHINE_PS2_KBC) {
-        if (machine_is_ps2)
+        if (machine_is_ps2 && (strcmp(machine_get_internal_name(), "pc5286")))
             ret |= MACHINE_PS2_KBC;
         else
             ret &= ~MACHINE_PS2_KBC;
