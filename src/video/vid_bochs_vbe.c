@@ -488,7 +488,7 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
         default:
             break;
         case VBE_DISPI_INDEX_ID:
-            // if (val != VBE_DISPI_ID_HGSMI)
+            if (val != VBE_DISPI_ID_HGSMI)
                 dev->vbe_regs[dev->vbe_index] = val;
             break;
         case VBE_DISPI_INDEX_XRES:
