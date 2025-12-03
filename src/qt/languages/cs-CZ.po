@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-12-04 18:56+0000\n"
+"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
+"Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
+"Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: cs_CZ\n"
 "X-Source-Language: en_US\n"
 
@@ -1936,13 +1942,13 @@ msgid "BIOS address"
 msgstr "Adresa BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Adresa BIOS (ROM 4)"
+msgstr "Adresa BIOS (ROM 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Adresa BIOS (ROM 4)"
+msgstr "Adresa BIOS (ROM 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Adresa BIOS (ROM 4)"
+msgstr "Adresa BIOS (ROM 3)"
 
 msgid "BIOS address (ROM #4)"
 msgstr "Adresa BIOS (ROM 4)"
@@ -2212,16 +2218,16 @@ msgid "WSS DMA"
 msgstr "DMA kanál WSS"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ hodin reálného času"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Adresa portu hodin reálného času"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Integrované hodiny reálného času"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Nenainstalováno"
 
 msgid "Enable OPL"
 msgstr "Povolit OPL"
@@ -2539,7 +2545,7 @@ msgid "Has secondary 8x8 character set"
 msgstr "Má druhou sadu 8x8 znaků"
 
 msgid "Has Quadcolor II daughter board"
-msgstr "Má dceřinnou desků Quadcolor II"
+msgstr "Má dceřinnou desku Quadcolor II"
 
 msgid "Alternate monochrome contrast"
 msgstr "Alternativní monochromatický kontrast"
@@ -2845,7 +2851,7 @@ msgid "Toggle fullscreen"
 msgstr "Přepnout režim celé obrazovky"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Přepnout rozhraní při celé obrazovce"
 
 msgid "Screenshot"
 msgstr "Pořídit snímek obrazovky"
