@@ -2727,7 +2727,7 @@ s3_trio64v_colorkey(s3_t* s3, uint32_t x, uint32_t y)
     uint8_t shift = ((s3->streams.chroma_ctrl >> 24) & 7) ^ 7;
     bool is15bpp = false;
 
-    uint32_t base_addr = svga->memaddr_latch;
+    uint32_t base_addr = svga->memaddr_latch << 2;
     uint32_t stride = s3->streams.pri_stride;
 
     if (!s3->color_key_enabled)
