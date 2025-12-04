@@ -4842,7 +4842,7 @@ s3_virge_colorkey(virge_t* virge, uint32_t x, uint32_t y)
     uint8_t shift = ((virge->streams.chroma_ctrl >> 24) & 7) ^ 7;
     bool is15bpp = false;
 
-    uint32_t base_addr = svga->memaddr_latch;
+    uint32_t base_addr = svga->memaddr_latch << 2;
     uint32_t stride = (virge->chip < S3_VIRGEGX2) ? virge->streams.pri_stride : (svga->rowoffset << 3);
 
     bool color_key = false;
