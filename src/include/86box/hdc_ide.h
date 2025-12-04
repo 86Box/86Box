@@ -210,6 +210,7 @@ extern void ide_handlers(uint8_t board, int set);
 extern void ide_board_set_force_ata3(int board, int force_ata3);
 #ifdef EMU_ISAPNP_H
 extern void ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
+extern void ide_pnp_config_changed_opti931(uint8_t ld, isapnp_device_config_t *config, void *priv);
 extern void ide_pnp_config_changed_1addr(uint8_t ld, isapnp_device_config_t *config, void *priv);
 #endif
 

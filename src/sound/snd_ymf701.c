@@ -428,7 +428,7 @@ ymf701_init(const device_t *info)
     ymf701->sb->opl_mixer = ymf701;
     ymf701->sb->opl_mix   = ymf701_filter_opl;
 
-    fm_driver_get(FM_YMF262, &ymf701->sb->opl);
+    fm_driver_get(FM_YMF289B, &ymf701->sb->opl);
     io_sethandler(ymf701->cur_sb_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
     io_sethandler(ymf701->cur_sb_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);

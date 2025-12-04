@@ -740,6 +740,25 @@ load_sound(void)
         }
     }
 
+    /* Correct Aztech codec selection in old configs so the OPTi 930 AD1848 type isn't selected */
+    for (int i = 0; i < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); i++) {
+        sprintf(temp, "Aztech Sound Galaxy Pro 16 AB (Washington) #%i", i + 1);
+        ini_section_t c = ini_find_section(config, temp);
+        if (c != NULL) {
+            if (ini_section_get_int(c, "codec", 1) == 2)
+                ini_section_set_int(c, "codec", 3);
+        }
+    }
+    for (int i = 0; i < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); i++) {
+        sprintf(temp, "Aztech Sound Galaxy Nova 16 Extra (Clinton) #%i", i + 1);
+        ini_section_t c = ini_find_section(config, temp);
+        if (c != NULL) {
+            if (ini_section_get_int(c, "codec", 1) == 2)
+                ini_section_set_int(c, "codec", 3);
+        }
+    }
+
+
     memset(temp, '\0', sizeof(temp));
     p = ini_section_get_string(cat, "sound_type", "float");
     if (strlen(p) > 511)
