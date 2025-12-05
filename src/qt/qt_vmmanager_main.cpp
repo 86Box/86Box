@@ -834,6 +834,7 @@ VMManagerMain::onLanguageUpdated()
 {
     vm_model->refreshConfigs();
     modelDataChange();
+    ui->searchBar->setPlaceholderText(tr("Search"));
     /* Hack to work around details widgets not being re-translatable
        without going through layers of abstraction */
     ui->detailsArea->layout()->removeWidget(vm_details);
