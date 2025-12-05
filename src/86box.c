@@ -293,6 +293,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="mute",
         .desc="Toggle mute",
         .seq="Ctrl+Alt+M"
+    },
+    {
+        .name="force_interpretation",
+        .desc="Force interpretation",
+        .seq="Ctrl+Alt+I"
     }
 };
 
