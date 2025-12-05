@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-12-06 18:56+0000\n"
+"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
+"Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
+"Language: fi-FI\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: fi_FI\n"
 "X-Source-Language: en_US\n"
 
@@ -28,10 +34,10 @@ msgid "&Pause"
 msgstr "&Tauko"
 
 msgid "Pause"
-msgstr ""
+msgstr "Tauko"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "&Jatka"
 
 msgid "E&xit"
 msgstr "&Poistu"
@@ -157,7 +163,7 @@ msgid "&RGB Grayscale"
 msgstr "&RGB, harmaasävy"
 
 msgid "Generic RGBI color monitor"
-msgstr ""
+msgstr "Yleinen RGBI-värinäyttö"
 
 msgid "&Amber monitor"
 msgstr "&Meripihkanvärinen"
@@ -334,7 +340,7 @@ msgid "Configure"
 msgstr "Määritys"
 
 msgid "CPU:"
-msgstr ""
+msgstr "Suoritin:"
 
 msgid "CPU type:"
 msgstr "Suorittimen tyyppi:"
@@ -409,13 +415,13 @@ msgid "Mouse:"
 msgstr "Hiiri:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "Hiiri"
 
 msgid "Joystick:"
 msgstr "Peliohjain:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "Peliohjain"
 
 msgid "Joystick 1..."
 msgstr "Peliohjain 1..."
@@ -643,13 +649,13 @@ msgid "Card 4:"
 msgstr "Kortti 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr ""
+msgstr "Yleinen ISA ROM-kortti"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr ""
+msgstr "Yleinen Dual ISA ROM-kortti"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr ""
+msgstr "Yleinen Quad ISA ROM-kortti"
 
 msgid "ISABugger device"
 msgstr "ISABugger-laite"
@@ -1819,7 +1825,7 @@ msgid "VDE Socket:"
 msgstr "VDE-socket:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP-siltalaite:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
@@ -1870,7 +1876,7 @@ msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems-sarjahiiri"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Mouse Systems Bus-hiiri"
 
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft-sarjahiiri"
@@ -2116,7 +2122,7 @@ msgid "Serial Port"
 msgstr "Sarjaportti"
 
 msgid "RTS toggle"
-msgstr ""
+msgstr "RTS-kytkin"
 
 msgid "Revision"
 msgstr "Versio"
@@ -2215,13 +2221,13 @@ msgid "RTC IRQ"
 msgstr ""
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "RTC-portin osoite"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Sisäänrakennettu RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Ei asennettu"
 
 msgid "Enable OPL"
 msgstr "OPL"
@@ -2536,10 +2542,10 @@ msgid "Linear interpolation"
 msgstr "Lineaarinen interpolointi"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Vaihtoehtoinen 8x8-merkistö"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Quadcolor II-tytärkortti"
 
 msgid "Alternate monochrome contrast"
 msgstr "Vaihtoehtoinen yksivärikontrasti"
@@ -2596,7 +2602,7 @@ msgid "Bochs latest"
 msgstr "Uusin Bochs"
 
 msgid "Apply overscan deltas"
-msgstr ""
+msgstr "Käytä yliskannausdeltoja"
 
 msgid "Mono Interlaced"
 msgstr "Lomitettu yksivärinen"
@@ -2845,7 +2851,7 @@ msgid "Toggle fullscreen"
 msgstr "Koko näyttö"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Käyttöliittymä koko näyttö-tilassa"
 
 msgid "Screenshot"
 msgstr "Kuvakaappaus"
@@ -3043,10 +3049,10 @@ msgid "Force interpretation"
 msgstr "Pakota tulkinta"
 
 msgid "Allow recompilation"
-msgstr "Salli uudelleenkompilointi"
+msgstr "Salli uudelleenkääntäminen"
 
 msgid "&Force interpretation"
 msgstr "&Pakota tulkinta"
 
 msgid "&Allow recompilation"
-msgstr "&Salli uudelleenkompilointi"
+msgstr "&Salli uudelleenkääntäminen"
