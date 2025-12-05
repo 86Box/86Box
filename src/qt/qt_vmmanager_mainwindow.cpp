@@ -46,6 +46,9 @@ VMManagerMainWindow::
 
     vmm_main_window = this;
 
+    runIcon = QIcon(":/menuicons/qt/icons/run.ico");
+    pauseIcon = QIcon(":/menuicons/qt/icons/pause.ico");
+
     // Connect signals from the VMManagerMain widget
     connect(vmm, &VMManagerMain::selectionChanged, this, &VMManagerMainWindow::vmmSelectionChanged);
 
@@ -70,7 +73,7 @@ VMManagerMainWindow::
 
     // TODO: Unhide the toolbar once the actions are fixed to properly update on VM status change
     ui->actionStartPause->setEnabled(false);
-    ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+    ui->actionStartPause->setIcon(runIcon);
     ui->actionStartPause->setText(tr("Start"));
     ui->actionStartPause->setToolTip(tr("Start"));
     ui->actionHard_Reset->setEnabled(false);
@@ -165,18 +168,18 @@ VMManagerMainWindow::vmmSelectionChanged(const VMManagerSystem *sysconfig) const
 
     if (running) {
         if (sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
-            ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
+            ui->actionStartPause->setIcon(pauseIcon);
             ui->actionStartPause->setText(tr("Pause"));
             ui->actionStartPause->setToolTip(tr("Pause"));
         } else {
-            ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+            ui->actionStartPause->setIcon(runIcon);
             ui->actionStartPause->setText(tr("Continue"));
             ui->actionStartPause->setToolTip(tr("Continue"));
         }
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
         connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
     } else {
-        ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+        ui->actionStartPause->setIcon(runIcon);
         ui->actionStartPause->setText(tr("Start"));
         ui->actionStartPause->setToolTip(tr("Start"));
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);

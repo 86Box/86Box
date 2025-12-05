@@ -45,6 +45,8 @@ private:
     void           saveSettings() const;
     QLabel        *statusLeft;
     QLabel        *statusRight;
+    QIcon          runIcon;
+    QIcon          pauseIcon;
 
 public slots:
     void setStatusLeft(const QString &text) const;
