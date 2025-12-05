@@ -58,6 +58,7 @@ signals:
     void destroyRendererMonitor(int monitor_index);
     void initRendererMonitorForNonQtThread(int monitor_index);
     void destroyRendererMonitorForNonQtThread(int monitor_index);
+    void forceInterpretationCompleted();
     void hardResetCompleted();
 
     void setTitle(const QString &title);
@@ -79,6 +80,7 @@ public slots:
     void updateStatusEmptyIcons();
     void updateUiPauseState();
 private slots:
+    void on_actionForce_interpretation_triggered();
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
     void on_actionExit_triggered();

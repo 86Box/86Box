@@ -3044,3 +3044,15 @@ msgstr "Sombre"
 
 msgid "Search:"
 msgstr "Rechercher :"
+
+msgid "Force interpretation"
+msgstr "Forcer l'interprétation"
+
+msgid "Allow recompilation"
+msgstr "Permettre la recompilation"
+
+msgid "&Force interpretation"
+msgstr "&Forcer l'interprétation"
+
+msgid "&Allow recompilation"
+msgstr "&Permettre la recompilation"

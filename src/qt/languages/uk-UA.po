@@ -3046,3 +3046,15 @@ msgstr "Темний"
 
 msgid "Search:"
 msgstr "Пошук:"
+
+msgid "Force interpretation"
+msgstr "Примусове тлумачення"
+
+msgid "Allow recompilation"
+msgstr "Дозволити рекомпіляцію"
+
+msgid "&Force interpretation"
+msgstr "&Примусове тлумачення"
+
+msgid "&Allow recompilation"
+msgstr "&Дозволити рекомпіляцію"

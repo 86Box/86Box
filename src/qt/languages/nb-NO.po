@@ -3038,3 +3038,15 @@ msgstr "Mørk"
 
 msgid "Search:"
 msgstr "Søk:"
+
+msgid "Force interpretation"
+msgstr "Tving tolkning"
+
+msgid "Allow recompilation"
+msgstr "Tillat rekompilering"
+
+msgid "&Force interpretation"
+msgstr "&Tving tolkning"
+
+msgid "&Allow recompilation"
+msgstr "&Tillat rekompilering"

@@ -3038,3 +3038,15 @@ msgstr ""
 
 msgid "Search:"
 msgstr ""
+
+msgid "Force interpretation"
+msgstr ""
+
+msgid "Allow recompilation"
+msgstr ""
+
+msgid "&Force interpretation"
+msgstr ""
+
+msgid "&Allow recompilation"
+msgstr ""

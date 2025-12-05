@@ -3044,3 +3044,15 @@ msgstr "Scura"
 
 msgid "Search:"
 msgstr "Cerca:"
+
+msgid "Force interpretation"
+msgstr "Forza interpretazione"
+
+msgid "Allow recompilation"
+msgstr "Permetti ricompilazione"
+
+msgid "&Force interpretation"
+msgstr "&Forza interpretazione"
+
+msgid "&Allow recompilation"
+msgstr "&Permetti ricompilazione"

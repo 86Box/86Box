@@ -3046,3 +3046,15 @@ msgstr "Temno"
 
 msgid "Search:"
 msgstr "Išči:"
+
+msgid "Force interpretation"
+msgstr "Vsili interpretacijo"
+
+msgid "Allow recompilation"
+msgstr "Dovoli prevajanje"
+
+msgid "&Force interpretation"
+msgstr "&Vsili interpretacijo"
+
+msgid "&Allow recompilation"
+msgstr "&Dovoli prevajanje"

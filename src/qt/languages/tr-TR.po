@@ -3038,3 +3038,15 @@ msgstr "Karanlık"
 
 msgid "Search:"
 msgstr "Ara:"
+
+msgid "Force interpretation"
+msgstr "Yorumlanmasını zorla"
+
+msgid "Allow recompilation"
+msgstr "Derlenmesine izin ver"
+
+msgid "&Force interpretation"
+msgstr "&Yorumlanmasını zorla"
+
+msgid "&Allow recompilation"
+msgstr "&Derlenmesine izin ver"

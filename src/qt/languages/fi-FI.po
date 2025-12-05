@@ -3038,3 +3038,15 @@ msgstr "Tumma"
 
 msgid "Search:"
 msgstr "Hae:"
+
+msgid "Force interpretation"
+msgstr "Pakota tulkinta"
+
+msgid "Allow recompilation"
+msgstr "Salli uudelleenkompilointi"
+
+msgid "&Force interpretation"
+msgstr "&Pakota tulkinta"
+
+msgid "&Allow recompilation"
+msgstr "&Salli uudelleenkompilointi"

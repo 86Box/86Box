@@ -3045,3 +3045,15 @@ msgstr "暗闇"
 
 msgid "Search:"
 msgstr "検索:"
+
+msgid "Force interpretation"
+msgstr "解釈を強制する"
+
+msgid "Allow recompilation"
+msgstr "再コンパイルを許可する"
+
+msgid "&Force interpretation"
+msgstr "解釈を強制する(&F)"
+
+msgid "&Allow recompilation"
+msgstr "再コンパイルを許可する(&A)"

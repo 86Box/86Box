@@ -68,6 +68,8 @@
         <file>qt/icons/send_cad.ico</file>
         <file>qt/icons/send_cae.ico</file>
         <file>qt/icons/settings.ico</file>
+        <file>qt/icons/interpreter.ico</file>
+        <file>qt/icons/recompiler.ico</file>
     </qresource>
     <qresource prefix="/misc">
         <file>qt/icons/warning.ico</file>

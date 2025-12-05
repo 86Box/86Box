@@ -3038,3 +3038,15 @@ msgstr "Тёмная"
 
 msgid "Search:"
 msgstr "Поиск:"
+
+msgid "Force interpretation"
+msgstr "Принудительная интерпретация"
+
+msgid "Allow recompilation"
+msgstr "Разрешить рекомпиляцию"
+
+msgid "&Force interpretation"
+msgstr "&Принудительная интерпретация"
+
+msgid "&Allow recompilation"
+msgstr "&Разрешить рекомпиляцию"

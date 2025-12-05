@@ -3038,3 +3038,15 @@ msgstr "Escuro"
 
 msgid "Search:"
 msgstr "Pesquisar:"
+
+msgid "Force interpretation"
+msgstr "Forçar interpretação"
+
+msgid "Allow recompilation"
+msgstr "Permitir recompilação"
+
+msgid "&Force interpretation"
+msgstr "&Forçar interpretação"
+
+msgid "&Allow recompilation"
+msgstr "&Permitir recompilação"

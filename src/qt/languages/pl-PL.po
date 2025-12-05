@@ -3045,3 +3045,15 @@ msgstr "Ciemny"
 
 msgid "Search:"
 msgstr "Szukanie:"
+
+msgid "Force interpretation"
+msgstr "Wymuś interpretację"
+
+msgid "Allow recompilation"
+msgstr "Zezwól na rekompilację"
+
+msgid "&Force interpretation"
+msgstr "&Wymuś interpretację"
+
+msgid "&Allow recompilation"
+msgstr "&Zezwól na rekompilację"

@@ -3044,3 +3044,15 @@ msgstr "Tmavé"
 
 msgid "Search:"
 msgstr "Hledat:"
+
+msgid "Force interpretation"
+msgstr "Vynutit interpretaci"
+
+msgid "Allow recompilation"
+msgstr "Povolit rekompilaci"
+
+msgid "&Force interpretation"
+msgstr "&Vynutit interpretaci"
+
+msgid "&Allow recompilation"
+msgstr "&Povolit rekompilaci"

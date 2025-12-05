@@ -1731,3 +1731,9 @@ ui_hard_reset_completed(void)
 {
     /* No-op. */
 }
+
+void
+ui_update_force_interpreter(void)
+{
+    /* No-op. */
+}

@@ -3045,3 +3045,15 @@ msgstr "Escuro"
 
 msgid "Search:"
 msgstr "Procurar:"
+
+msgid "Force interpretation"
+msgstr "Forçar interpretação"
+
+msgid "Allow recompilation"
+msgstr "Permitir recompilação"
+
+msgid "&Force interpretation"
+msgstr "&Forçar interpretação"
+
+msgid "&Allow recompilation"
+msgstr "&Permitir recompilação"

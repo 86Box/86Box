@@ -3038,3 +3038,15 @@ msgstr "Tối"
 
 msgid "Search:"
 msgstr "Tìm:"
+
+msgid "Force interpretation"
+msgstr "Buộc giải thích"
+
+msgid "Allow recompilation"
+msgstr "Cho phép biên dịch lại"
+
+msgid "&Force interpretation"
+msgstr "&Buộc giải thích"
+
+msgid "&Allow recompilation"
+msgstr "&Cho phép biên dịch lại"

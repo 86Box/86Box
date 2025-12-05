@@ -3046,3 +3046,15 @@ msgstr "Tamno"
 
 msgid "Search:"
 msgstr "Pretrag:"
+
+msgid "Force interpretation"
+msgstr "Prisilna interpretacija"
+
+msgid "Allow recompilation"
+msgstr "Omogući rekompilaciju"
+
+msgid "&Force interpretation"
+msgstr "&Prisilna interpretacija"
+
+msgid "&Allow recompilation"
+msgstr "&Omogući rekompilaciju"

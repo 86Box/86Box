@@ -3038,3 +3038,15 @@ msgstr "어둠"
 
 msgid "Search:"
 msgstr "검색:"
+
+msgid "Force interpretation"
+msgstr "강제 해석"
+
+msgid "Allow recompilation"
+msgstr "재컴파일 허용"
+
+msgid "&Force interpretation"
+msgstr "강제 해석(&F)"
+
+msgid "&Allow recompilation"
+msgstr "재컴파일 허용(&A)"

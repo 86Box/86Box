@@ -70,6 +70,8 @@
     </widget>
     <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
+    <addaction name="actionForce_interpretation"/>
+    <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="separator"/>
@@ -292,6 +294,8 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionForce_interpretation"/>
+   <addaction name="separator"/>
    <addaction name="actionPause"/>
    <addaction name="actionHard_Reset"/>
    <addaction name="separator"/>
@@ -302,6 +306,14 @@
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
+  <action name="actionForce_interpretation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Force interpretation</string>
+   </property>
+  </action>
   <action name="actionUpdate_mouse_every_CPU_frame">
    <property name="checkable">
     <bool>true</bool>

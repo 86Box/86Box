@@ -3044,3 +3044,15 @@ msgstr "Dunkel"
 
 msgid "Search:"
 msgstr "Suche:"
+
+msgid "Force interpretation"
+msgstr "Erzwingen der Interpretation"
+
+msgid "Allow recompilation"
+msgstr "Recompilierung zulassen"
+
+msgid "&Force interpretation"
+msgstr "&Erzwingen der Interpretation"
+
+msgid "&Allow recompilation"
+msgstr "Recompilierung &zulassen"

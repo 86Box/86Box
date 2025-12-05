@@ -3038,3 +3038,15 @@ msgstr "Donker"
 
 msgid "Search:"
 msgstr "Zoeken:"
+
+msgid "Force interpretation"
+msgstr "Interpretatie afdwingen"
+
+msgid "Allow recompilation"
+msgstr "Recompilatie toestaan"
+
+msgid "&Force interpretation"
+msgstr "Interpretatie &afdwingen"
+
+msgid "&Allow recompilation"
+msgstr "Recompilatie &toestaan"

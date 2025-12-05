@@ -164,6 +164,8 @@ keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 static BMessageFilter *filter;
 #endif
 
+extern int      cpu_force_interpreter;
+
 extern void     qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
@@ -278,8 +280,24 @@ MainWindow::MainWindow(QWidget *parent)
         vmname.truncate(vmname.size() - 1);
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
+    connect(this, &MainWindow::forceInterpretationCompleted, this, [this]() {
+        const auto fi_icon      = cpu_force_interpreter ? QIcon(":/menuicons/qt/icons/recompiler.ico") :
+                                                          QIcon(":/menuicons/qt/icons/interpreter.ico");
+        const auto tooltip_text = cpu_force_interpreter ? QString(tr("Allow recompilation")) :
+                                                          QString(tr("Force interpretation"));
+        const auto menu_text    = cpu_force_interpreter ? QString(tr("&Allow recompilation")) :
+                                                          QString(tr("&Force interpretation"));
+
+        ui->actionForce_interpretation->setIcon(fi_icon);
+        ui->actionForce_interpretation->setToolTip(tooltip_text);
+        ui->actionForce_interpretation->setText(menu_text);
+        ui->actionForce_interpretation->setChecked(cpu_force_interpreter);
+        ui->actionForce_interpretation->setEnabled(cpu_use_dynarec);
+    });
+
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        ui_update_force_interpreter();
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
@@ -969,6 +987,12 @@ MainWindow::closeEvent(QCloseEvent *event)
 }
 
 void
+ui_update_force_interpreter()
+{
+    emit main_window->forceInterpretationCompleted();
+}
+
+void
 MainWindow::updateShortcuts()
 {
     /*
@@ -986,6 +1010,7 @@ MainWindow::updateShortcuts()
     ui->actionHard_Reset->setShortcut(QKeySequence());
     ui->actionPause->setShortcut(QKeySequence());
     ui->actionMute_Unmute->setShortcut(QKeySequence());
+    ui->actionForce_interpretation->setShortcut(QKeySequence());
 
     int          accID;
     QKeySequence seq;
@@ -1017,6 +1042,10 @@ MainWindow::updateShortcuts()
     accID = FindAccelerator("mute");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionMute_Unmute->setShortcut(seq);
+
+    accID = FindAccelerator("force_interpretation");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionForce_interpretation->setShortcut(seq);
 }
 
 void
@@ -1600,6 +1629,7 @@ MainWindow::refreshMediaMenu()
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
+    ui_update_force_interpreter();
 
     num_label->setToolTip(QShortcut::tr("Num Lock"));
     num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
@@ -1786,6 +1816,13 @@ void
 MainWindow::on_actionInverted_VGA_monitor_triggered()
 {
     video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
+}
+
+void
+MainWindow::on_actionForce_interpretation_triggered()
+{
+    cpu_force_interpreter ^= 1;
+    ui_update_force_interpreter();
 }
 
 static void
