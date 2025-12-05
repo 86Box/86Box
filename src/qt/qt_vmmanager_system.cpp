@@ -440,6 +440,7 @@ VMManagerSystem::launchMainProcess()
     process->start();
     updateTimestamp();
 
+    disconnect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
@@ -501,6 +502,7 @@ VMManagerSystem::launchSettings()
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
     process->start();
 
+    disconnect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
