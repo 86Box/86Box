@@ -76,7 +76,7 @@
 #define VBE_DISPI_ID_VBOX_VIDEO          0xBE00
 #define VBE_DISPI_ID_HGSMI               0xBE01
 #define VBE_DISPI_ID_ANYX                0xBE02
-#define VBE_DISPI_ID_CFG                 0xBE03 /* VBE_DISPI_INDEX_CFG is available. */
+#define VBE_DISPI_ID_CFG                 0xBE03
 
 #define VBE_DISPI_DISABLED               0x00
 #define VBE_DISPI_ENABLED                0x01
@@ -410,6 +410,15 @@ bochs_vbe_inw(const uint16_t addr, void *priv)
         default:
             ret = dev->vbe_regs[dev->vbe_index];
             break;
+        case VBE_DISPI_INDEX_XRES:
+            ret = vbe_get_caps ? VBE_DISPI_MAX_XRES : dev->vbe_regs[dev->vbe_index];
+            break;
+        case VBE_DISPI_INDEX_YRES:
+            ret = vbe_get_caps ? VBE_DISPI_MAX_YRES : dev->vbe_regs[dev->vbe_index];
+            break;
+        case VBE_DISPI_INDEX_BPP:
+            ret = vbe_get_caps ? 32 : dev->vbe_regs[dev->vbe_index];
+            break;
         case VBE_DISPI_INDEX_VIDEO_MEMORY_64K:
             ret = dev->vram_size >> 16;
             break;
@@ -479,8 +488,13 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
         default:
             break;
         case VBE_DISPI_INDEX_ID:
-            if (val != VBE_DISPI_ID_HGSMI)
+            if ((val == VBE_DISPI_ID0) || (val == VBE_DISPI_ID1) ||
+                (val == VBE_DISPI_ID2) || (val == VBE_DISPI_ID3) ||
+                (val == VBE_DISPI_ID4) || (val == VBE_DISPI_ID_VBOX_VIDEO) ||
+                (val == VBE_DISPI_ID_ANYX) | (val == VBE_DISPI_ID_CFG))
                 dev->vbe_regs[dev->vbe_index] = val;
+            else if (val == VBE_DISPI_ID5)
+                dev->vbe_regs[dev->vbe_index] = dev->id5_val;
             break;
         case VBE_DISPI_INDEX_XRES:
         case VBE_DISPI_INDEX_YRES:
