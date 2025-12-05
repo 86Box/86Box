@@ -449,6 +449,8 @@ VMManagerSystem::launchMainProcess()
                                           tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString("%1 (0x%2)").arg(QString::number(exitCode), QString::number(exitCode, 16))));
                     return;
                 }
+
+                configurationChangeReceived();
             });
 }
 
@@ -1241,8 +1243,9 @@ void
 VMManagerSystem::configurationChangeReceived()
 {
     reloadConfig();
-    emit configurationChanged(this->uuid);
+    emit configurationChanged(this);
 }
+
 void
 VMManagerSystem::reloadConfig()
 {

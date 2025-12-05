@@ -138,7 +138,6 @@ public:
     QProcess *process = new QProcess();
 
     bool window_obscured;
-    bool config_signal_connected = false;
 
     QString       getDisplayValue(VMManager::Display::Name key);
     QFileInfoList getScreenshots();
@@ -158,7 +157,7 @@ signals:
     void windowStatusChanged();
     void itemDataChanged();
     void clientProcessStatusChanged();
-    void configurationChanged(const QString &uuid);
+    void configurationChanged(VMManagerSystem *sysconfig);
     void globalConfigurationChanged();
 
 private:
