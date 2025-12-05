@@ -87,7 +87,6 @@ VMManagerMainWindow::
 #ifdef Q_OS_WINDOWS
     ui->toolBar->setBackgroundRole(QPalette::Light);
 #endif
-    ui->toolBar->setVisible(false);
 
     // Status bar widgets
     statusLeft->setAlignment(Qt::AlignLeft);
