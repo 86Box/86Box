@@ -410,15 +410,6 @@ bochs_vbe_inw(const uint16_t addr, void *priv)
         default:
             ret = dev->vbe_regs[dev->vbe_index];
             break;
-        case VBE_DISPI_INDEX_XRES:
-            ret = vbe_get_caps ? VBE_DISPI_MAX_XRES : dev->vbe_regs[dev->vbe_index];
-            break;
-        case VBE_DISPI_INDEX_YRES:
-            ret = vbe_get_caps ? VBE_DISPI_MAX_YRES : dev->vbe_regs[dev->vbe_index];
-            break;
-        case VBE_DISPI_INDEX_BPP:
-            ret = vbe_get_caps ? 32 : dev->vbe_regs[dev->vbe_index];
-            break;
         case VBE_DISPI_INDEX_VIDEO_MEMORY_64K:
             ret = dev->vram_size >> 16;
             break;
