@@ -56,7 +56,7 @@ public:
         Settings,
     };
 signals:
-    void selectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState);
+    void selectionChanged(VMManagerSystem *sysconfig);
     void updateStatusLeft(const QString &text);
     void updateStatusRight(const QString &text);
 

@@ -423,9 +423,11 @@ illegal_chars:
     completer->setModel(completerModel);
     ui->searchBar->setCompleter(completer);
 
-    // Set initial status bar after the event loop starts
     QTimer::singleShot(0, this, [this] {
+        // Set initial status bar after the event loop starts
         emit updateStatusRight(machineCountString());
+        // Tell the mainwindow to enable the toolbar buttons if needed
+        emit selectionChanged((this->proxy_model->rowCount(QModelIndex()) > 0) ? selected_sysconfig : nullptr);
     });
 
 #if EMU_BUILD_NUM != 0
@@ -461,7 +463,7 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
     vm_details->updateData(selected_sysconfig);
 
     // Emit that the selection changed, include with the process state
-    emit selectionChanged(current, selected_sysconfig->process->state());
+    emit selectionChanged(selected_sysconfig);
 }
 
 void
@@ -722,6 +724,8 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
             delete vm_details;
             vm_details = new VMManagerDetails();
             ui->detailsArea->layout()->addWidget(vm_details);
+            /* tell the mainwindow to disable the toolbar buttons */
+            emit selectionChanged(nullptr);
         }
     }
 }

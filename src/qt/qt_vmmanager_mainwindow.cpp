@@ -69,12 +69,14 @@ VMManagerMainWindow::
 #endif
 
     // TODO: Unhide the toolbar once the actions are fixed to properly update on VM status change
+    ui->actionStartPause->setEnabled(false);
     ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
     ui->actionStartPause->setText(tr("Start"));
     ui->actionStartPause->setToolTip(tr("Start"));
     ui->actionHard_Reset->setEnabled(false);
     ui->actionForce_Shutdown->setEnabled(false);
     ui->actionCtrl_Alt_Del->setEnabled(false);
+    ui->actionSettings->setEnabled(false);
 
     // Preferences
     connect(ui->actionPreferences, &QAction::triggered, this, &VMManagerMainWindow::preferencesTriggered);
@@ -147,29 +149,45 @@ VMManagerMainWindow::~VMManagerMainWindow()
     = default;
 
 void
-VMManagerMainWindow::vmmSelectionChanged(const QModelIndex &currentSelection, const QProcess::ProcessState processState) const
+VMManagerMainWindow::vmmSelectionChanged(const VMManagerSystem *sysconfig) const
 {
-    if (processState == QProcess::Running) {
-        ui->actionStartPause->setEnabled(true);
-        ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
-        ui->actionStartPause->setText(tr("Pause"));
-        ui->actionStartPause->setToolTip(tr("Pause"));
+    if (sysconfig == nullptr) {
+        // This doubles both as a safety check and a way to disable
+        // all machine-related buttons when no machines are present
+        ui->actionStartPause->setEnabled(false);
+        ui->actionSettings->setEnabled(false);
+        ui->actionHard_Reset->setEnabled(false);
+        ui->actionForce_Shutdown->setEnabled(false);
+        ui->actionCtrl_Alt_Del->setEnabled(false);
+        return;
+    }
+    const bool running = sysconfig->process->state() == QProcess::ProcessState::Running;
+
+    if (running) {
+        if (sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
+            ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
+            ui->actionStartPause->setText(tr("Pause"));
+            ui->actionStartPause->setToolTip(tr("Pause"));
+        } else {
+            ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+            ui->actionStartPause->setText(tr("Continue"));
+            ui->actionStartPause->setToolTip(tr("Continue"));
+        }
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
         connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
-        ui->actionHard_Reset->setEnabled(true);
-        ui->actionForce_Shutdown->setEnabled(true);
-        ui->actionCtrl_Alt_Del->setEnabled(true);
     } else {
-        ui->actionStartPause->setEnabled(true);
         ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
         ui->actionStartPause->setText(tr("Start"));
         ui->actionStartPause->setToolTip(tr("Start"));
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
         connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
-        ui->actionHard_Reset->setEnabled(false);
-        ui->actionForce_Shutdown->setEnabled(false);
-        ui->actionCtrl_Alt_Del->setEnabled(false);
     }
+
+    ui->actionStartPause->setEnabled(!sysconfig->window_obscured);
+    ui->actionSettings->setEnabled(!sysconfig->window_obscured);
+    ui->actionHard_Reset->setEnabled(sysconfig->window_obscured ? false : running);
+    ui->actionForce_Shutdown->setEnabled(sysconfig->window_obscured ? false : running);
+    ui->actionCtrl_Alt_Del->setEnabled(sysconfig->window_obscured ? false : running);
 }
 void
 VMManagerMainWindow::preferencesTriggered()

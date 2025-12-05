@@ -55,7 +55,7 @@ public slots:
 #endif
 
 private slots:
-    void vmmSelectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState) const;
+    void vmmSelectionChanged(const VMManagerSystem *sysconfig) const;
     void preferencesTriggered();
 #if EMU_BUILD_NUM != 0
     void checkForUpdatesTriggered();
