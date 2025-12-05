@@ -67,6 +67,7 @@ public slots:
     void pauseButtonPressed() const;
     void shutdownRequestButtonPressed() const;
     void shutdownForceButtonPressed() const;
+    void cadButtonPressed() const;
     void searchSystems(const QString &text) const;
     void newMachineWizard();
     void updateGlobalSettings();

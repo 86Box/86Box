@@ -518,6 +518,15 @@ VMManagerMain::shutdownForceButtonPressed() const
     selected_sysconfig->shutdownForceButtonPressed();
 }
 
+void
+VMManagerMain::cadButtonPressed() const
+{
+    if (!currentSelectionIsValid())
+        return;
+
+    selected_sysconfig->cadButtonPressed();
+}
+
 // This function doesn't appear to be needed any longer
 void
 VMManagerMain::refresh()
