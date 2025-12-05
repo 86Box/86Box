@@ -527,19 +527,6 @@ VMManagerMain::cadButtonPressed() const
     selected_sysconfig->cadButtonPressed();
 }
 
-// This function doesn't appear to be needed any longer
-void
-VMManagerMain::refresh()
-{
-    const auto current_index = ui->listView->currentIndex();
-    emit       selectionChanged(current_index, selected_sysconfig->process->state());
-
-    // if(!selected_sysconfig->config_file.path().isEmpty()) {
-    if (!selected_sysconfig->isValid()) {
-        // what was happening here?
-    }
-}
-
 void
 VMManagerMain::updateDisplayName(const QModelIndex &index)
 {

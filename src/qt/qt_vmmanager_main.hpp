@@ -106,7 +106,6 @@ private:
     //                      const QItemSelection &deselected);
     void                  currentSelectionChanged(const QModelIndex &current,
                                                   const QModelIndex &previous);
-    void                  refresh();
     void                  updateDisplayName(const QModelIndex &index);
     void                  loadSettings();
     [[nodiscard]] bool    currentSelectionIsValid() const;
