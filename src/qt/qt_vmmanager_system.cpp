@@ -305,15 +305,13 @@ void
 VMManagerSystem::generateSearchTerms()
 {
     searchTerms.clear();
-    for (const auto &config_key : config_hash.keys()) {
-        // searchTerms.append(config_hash[config_key].values());
-        // brute force temporarily don't add paths
-        for (const auto &value : config_hash[config_key].values()) {
-            if (!value.startsWith("/"))
-                searchTerms.append(value);
-        }
-    }
-    searchTerms.append(display_table.values());
+#if 0
+    for (const auto &value : display_table.values())
+        if (value.contains(";"))
+            searchTerms.append(value.split(';'));
+        else
+            searchTerms.append(value);
+#endif
     searchTerms.append(displayName);
     searchTerms.append(config_name);
     QRegularExpression whitespaceRegex("\\s+");
