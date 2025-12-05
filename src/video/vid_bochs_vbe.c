@@ -491,7 +491,7 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
             if ((val == VBE_DISPI_ID0) || (val == VBE_DISPI_ID1) ||
                 (val == VBE_DISPI_ID2) || (val == VBE_DISPI_ID3) ||
                 (val == VBE_DISPI_ID4) || (val == VBE_DISPI_ID_VBOX_VIDEO) ||
-                (val == VBE_DISPI_ID_ANYX) | (val == VBE_DISPI_ID_CFG))
+                (val == VBE_DISPI_ID_ANYX) || (val == VBE_DISPI_ID_CFG))
                 dev->vbe_regs[dev->vbe_index] = val;
             else if (val == VBE_DISPI_ID5)
                 dev->vbe_regs[dev->vbe_index] = dev->id5_val;
