@@ -404,7 +404,7 @@ illegal_chars:
         ui->listView->setCurrentIndex(first_index);
     }
 
-    connect(ui->listView, &QListView::doubleClicked, this, &VMManagerMain::startButtonPressed);
+    connect(ui->listView, &QListView::activated, this, &VMManagerMain::startButtonPressed);
 
     // Load and apply settings
     loadSettings();
