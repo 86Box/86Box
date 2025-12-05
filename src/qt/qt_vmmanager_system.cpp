@@ -446,7 +446,7 @@ VMManagerSystem::launchMainProcess()
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
                     qInfo().nospace().noquote() << "Abnormal program termination while launching main process: exit code " << exitCode << ", exit status " << exitStatus;
                     QMessageBox::critical(this, tr("Virtual machine crash"),
-                                          tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString::number(exitCode)));
+                                          tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString("%1 (0x%2)").arg(QString::number(exitCode), QString::number(exitCode, 16))));
                     return;
                 }
             });
