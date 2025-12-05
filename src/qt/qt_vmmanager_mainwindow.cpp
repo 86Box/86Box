@@ -24,9 +24,6 @@
 #include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 
-#include <QLineEdit>
-#include <QStringListModel>
-#include <QCompleter>
 #include <QCloseEvent>
 #include <QDesktopServices>
 
@@ -70,11 +67,7 @@ VMManagerMainWindow::
     connect(ui->actionCheck_for_updates, &QAction::triggered, this, &VMManagerMainWindow::checkForUpdatesTriggered);
 #endif
 
-    // TODO: Remove all of this (all the way to END REMOVE) once certain the search will no longer be in the toolbar.
-    // BEGIN REMOVE
-    // Everything is still setup here for it but it is all hidden. None of it will be
-    // needed if the search stays in VMManagerMain
-    ui->actionStartPause->setEnabled(true);
+    // TODO: Unhide the toolbar once the actions are fixed to properly update on VM status change
     ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
     ui->actionStartPause->setText(tr("Start"));
     ui->actionStartPause->setToolTip(tr("Start"));
@@ -82,36 +75,13 @@ VMManagerMainWindow::
     ui->actionForce_Shutdown->setEnabled(false);
     ui->actionCtrl_Alt_Del->setEnabled(false);
 
-    const auto searchBar = new QLineEdit();
-    searchBar->setMinimumWidth(150);
-    searchBar->setPlaceholderText(tr("Search"));
-    searchBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    searchBar->setClearButtonEnabled(true);
-    // Spacer to make the search go all the way to the right
-    const auto spacer = new QWidget();
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    ui->toolBar->addWidget(spacer);
-    ui->toolBar->addWidget(searchBar);
-    // Connect signal for search
-    connect(searchBar, &QLineEdit::textChanged, vmm, &VMManagerMain::searchSystems);
     // Preferences
     connect(ui->actionPreferences, &QAction::triggered, this, &VMManagerMainWindow::preferencesTriggered);
 
-    // Create a completer for the search bar
-    auto *completer = new QCompleter(this);
-    completer->setCaseSensitivity(Qt::CaseInsensitive);
-    completer->setFilterMode(Qt::MatchContains);
-    // Get the completer list
-    const auto allStrings = vmm->getSearchCompletionList();
-    // Set up the completer
-    auto *completerModel = new QStringListModel(allStrings, completer);
-    completer->setModel(completerModel);
-    searchBar->setCompleter(completer);
 #ifdef Q_OS_WINDOWS
     ui->toolBar->setBackgroundRole(QPalette::Light);
 #endif
     ui->toolBar->setVisible(false);
-    // END REMOVE
 
     // Status bar widgets
     statusLeft->setAlignment(Qt::AlignLeft);
