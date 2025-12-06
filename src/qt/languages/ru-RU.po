@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-12-06 18:56+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
+"Language: ru-RU\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: ru_RU\n"
 "X-Source-Language: en_US\n"
 
@@ -136,7 +143,7 @@ msgid "&Integer scale"
 msgstr "&Целочисленное масштабирование"
 
 msgid "4:&3 Integer scale"
-msgstr "4:&3 Целочисленное масштабирование"
+msgstr "4:&3 целочисленное масштабирование"
 
 msgid "EGA/(S)&VGA settings"
 msgstr "Настройки EGA/(S)&VGA"
@@ -211,7 +218,7 @@ msgid "&Preferences..."
 msgstr "&Параметры..."
 
 msgid "Enable &Discord integration"
-msgstr "Включить интеграцию &Discord"
+msgstr "Включить интеграцию с &Discord"
 
 msgid "Sound &gain..."
 msgstr "&Усиление звука..."
@@ -238,7 +245,7 @@ msgid "&Existing image..."
 msgstr "&Выбрать образ..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Выбрать образ (&Защита от записи)..."
+msgstr "Выбрать образ (с &защитой от записи)..."
 
 msgid "&Record"
 msgstr "&Запись"
@@ -517,7 +524,7 @@ msgid "Parallel port 4"
 msgstr "Параллельный порт LPT4"
 
 msgid "FD Controller:"
-msgstr "Контроллер FD:"
+msgstr "Контроллер дисководов:"
 
 msgid "CD-ROM Controller:"
 msgstr "Контроллер CD-ROM:"
@@ -547,7 +554,7 @@ msgid "Controller 4:"
 msgstr "Контроллер 4:"
 
 msgid "Cassette"
-msgstr "Кассета"
+msgstr "Кассетный магнитофон"
 
 msgid "Hard disks:"
 msgstr "Жёсткие диски:"
@@ -706,7 +713,7 @@ msgid "Basic sector images"
 msgstr "Простые посекторные образы"
 
 msgid "Surface images"
-msgstr "Surface образы"
+msgstr "Образы поверхности"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Системная плата «%hs» недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
@@ -1009,7 +1016,7 @@ msgid "No ROMs found"
 msgstr "ПЗУ не найдены"
 
 msgid "Do you want to save the settings?"
-msgstr "Хотите ли вы сохранить настройки?"
+msgstr "Вы хотите сохранить настройки?"
 
 msgid "This will hard reset the emulated machine."
 msgstr "Это приведёт к холодной перезагрузке эмулируемой машины."
@@ -1021,7 +1028,19 @@ msgid "About %1"
 msgstr "О %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Эмулятор старых компьютеров\n\nАвторы: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nС предыдущими основными материалами от Sarah Walker, leilei, JohnElliott, greatpsycho и других.\n\nВыпускается под лицензией GNU General Public License версии 2 или более поздней. Дополнительную информацию см. в файле LICENSE."
+msgstr ""
+"Эмулятор старых компьютеров\n"
+"\n"
+"Авторы: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, "
+"coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin "
+"(elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen "
+"(waltje), Tiseno100, reenigne, и другие.\n"
+"\n"
+"С предыдущими основными материалами от Sarah Walker, leilei, JohnElliott, "
+"greatpsycho и других.\n"
+"\n"
+"Выпускается под лицензией GNU General Public License версии 2 или более "
+"поздней. Дополнительную информацию см. в файле LICENSE."
 
 msgid "Hardware not available"
 msgstr "Оборудование недоступно"
@@ -1195,7 +1214,7 @@ msgid "Use existing configuration"
 msgstr "Использовать существующую конфигурацию"
 
 msgid "Type some notes here"
-msgstr "Введите здесь несколько заметок"
+msgstr "Введите заметки"
 
 msgid "Paste the contents of the existing configuration file into the box below."
 msgstr "Вставьте содержимое существующего файла конфигурации в поле ниже."
@@ -1222,13 +1241,13 @@ msgid "Directory does not exist"
 msgstr "Папка не существует"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Новая папка для системы будет создана в выбранной папке выше"
+msgstr "Новая папка для системы будет создана в указанной выше папке"
 
 msgid "System location:"
 msgstr "Расположение системы:"
 
 msgid "System name and location"
-msgstr "Название системы и расположение"
+msgstr "Название системы и её расположение"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Введите название системы и выберите расположение"
@@ -1630,7 +1649,7 @@ msgid "Mouse sensitivity:"
 msgstr "Чувствительность мыши:"
 
 msgid "Select media images from program working directory"
-msgstr "Выбор медиа-образов из рабочего каталога программы"
+msgstr "Выбор образов медиа из рабочего каталога программы"
 
 msgid "PIT mode:"
 msgstr "Режим PIT:"
@@ -1699,7 +1718,7 @@ msgid "&Pen"
 msgstr "&Ручка"
 
 msgid "&Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD Привод &хоста (%1:)"
+msgstr "CD/DVD привод &хоста (%1:)"
 
 msgid "&Connected"
 msgstr "&Кабель подключен"
@@ -1711,7 +1730,7 @@ msgid "Create..."
 msgstr "Создать..."
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "CD/DVD Привод хоста (%1)"
+msgstr "CD/DVD привод хоста (%1)"
 
 msgid "Unknown Bus"
 msgstr "Неизвестная шина"
