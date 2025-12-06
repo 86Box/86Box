@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-06 18:56+0000\n"
+"PO-Revision-Date: 2025-12-07 13:33+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -1250,7 +1250,7 @@ msgid "System name and location"
 msgstr "Название системы и её расположение"
 
 msgid "Enter the name of the system and choose the location"
-msgstr "Введите название системы и выберите расположение"
+msgstr "Введите название системы и выберите её расположение"
 
 msgid "Enter the name of the system"
 msgstr "Введите название системы"
@@ -1268,7 +1268,7 @@ msgid "Set display name"
 msgstr "Установить отображаемое имя"
 
 msgid "Enter the new display name (blank to reset)"
-msgstr "Введите новое отображаемое имя (пусто, чтобы сбросить)"
+msgstr "Введите новое отображаемое имя (оставьте поле пустым, чтобы сбросить)"
 
 msgid "Change &display name..."
 msgstr "Изменить &отображаемое имя..."
@@ -1415,7 +1415,7 @@ msgid "Custom..."
 msgstr "Задать вручную..."
 
 msgid "Custom (large)..."
-msgstr "Задать вручную (large)..."
+msgstr "Задать вручную (большой размер)..."
 
 msgid "Add New Hard Disk"
 msgstr "Создать новый жёсткий диск"
@@ -2297,7 +2297,7 @@ msgid "Line doubling type"
 msgstr "Тип удвоения линии"
 
 msgid "Snow emulation"
-msgstr "Эмуляция снега"
+msgstr "Эмуляция «снега»"
 
 msgid "Monitor type"
 msgstr "Тип монитора"
@@ -2630,7 +2630,7 @@ msgid "Color Non-Interlaced"
 msgstr "Цветной без чересстрочной развёртки"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Ускоритель 3Dfx Voodoo"
+msgstr "3Dfx Voodoo Graphics"
 
 msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
@@ -2654,7 +2654,7 @@ msgid "Enabled"
 msgstr "Включено"
 
 msgid "Standard"
-msgstr "Стандарт"
+msgstr "Стандартный"
 
 msgid "High-Speed"
 msgstr "Высокоскоростной"
