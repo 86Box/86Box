@@ -56,7 +56,7 @@ public:
         Settings,
     };
 signals:
-    void selectionChanged(VMManagerSystem *sysconfig);
+    void selectionOrStateChanged(VMManagerSystem *sysconfig);
     void updateStatusLeft(const QString &text);
     void updateStatusRight(const QString &text);
 
@@ -115,6 +115,7 @@ private:
 #endif
     void showTextFileContents(const QString &title, const QString &path);
 private slots:
+    void vmStateChange();
 #if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result);
     void backgroundUpdateCheckError(const QString &errorMsg);

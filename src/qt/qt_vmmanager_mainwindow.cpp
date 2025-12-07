@@ -50,7 +50,7 @@ VMManagerMainWindow::
     pauseIcon = QIcon(":/menuicons/qt/icons/pause.ico");
 
     // Connect signals from the VMManagerMain widget
-    connect(vmm, &VMManagerMain::selectionChanged, this, &VMManagerMainWindow::vmmSelectionChanged);
+    connect(vmm, &VMManagerMain::selectionOrStateChanged, this, &VMManagerMainWindow::vmmStateChanged);
 
     setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     setCentralWidget(vmm);
@@ -71,7 +71,7 @@ VMManagerMainWindow::
     connect(ui->actionCheck_for_updates, &QAction::triggered, this, &VMManagerMainWindow::checkForUpdatesTriggered);
 #endif
 
-    // TODO: Unhide the toolbar once the actions are fixed to properly update on VM status change
+    // Set up the toolbar
     ui->actionStartPause->setEnabled(false);
     ui->actionStartPause->setIcon(runIcon);
     ui->actionStartPause->setText(tr("Start"));
@@ -151,7 +151,7 @@ VMManagerMainWindow::~VMManagerMainWindow()
     = default;
 
 void
-VMManagerMainWindow::vmmSelectionChanged(const VMManagerSystem *sysconfig) const
+VMManagerMainWindow::vmmStateChanged(const VMManagerSystem *sysconfig) const
 {
     if (sysconfig == nullptr) {
         // This doubles both as a safety check and a way to disable
@@ -176,12 +176,14 @@ VMManagerMainWindow::vmmSelectionChanged(const VMManagerSystem *sysconfig) const
             ui->actionStartPause->setToolTip(tr("Continue"));
         }
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
         connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
     } else {
         ui->actionStartPause->setIcon(runIcon);
         ui->actionStartPause->setText(tr("Start"));
         ui->actionStartPause->setToolTip(tr("Start"));
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
         connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
     }
 

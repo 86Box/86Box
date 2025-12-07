@@ -427,7 +427,7 @@ illegal_chars:
         // Set initial status bar after the event loop starts
         emit updateStatusRight(machineCountString());
         // Tell the mainwindow to enable the toolbar buttons if needed
-        emit selectionChanged((this->proxy_model->rowCount(QModelIndex()) > 0) ? selected_sysconfig : nullptr);
+        emit selectionOrStateChanged((this->proxy_model->rowCount(QModelIndex()) > 0) ? selected_sysconfig : nullptr);
     });
 
 #if EMU_BUILD_NUM != 0
@@ -458,12 +458,21 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
     if (!current.isValid())
         return;
 
+    disconnect(selected_sysconfig->process, &QProcess::stateChanged, this, &VMManagerMain::vmStateChange);
+    disconnect(selected_sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerMain::vmStateChange);
+    disconnect(selected_sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerMain::vmStateChange);
+
     const auto mapped_index = proxy_model->mapToSource(current);
     selected_sysconfig      = vm_model->getConfigObjectForIndex(mapped_index);
     vm_details->updateData(selected_sysconfig);
 
     // Emit that the selection changed, include with the process state
-    emit selectionChanged(selected_sysconfig);
+    emit selectionOrStateChanged(selected_sysconfig);
+
+    connect(selected_sysconfig->process, &QProcess::stateChanged, this, &VMManagerMain::vmStateChange);
+    connect(selected_sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerMain::vmStateChange);
+    connect(selected_sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerMain::vmStateChange);
+
 }
 
 void
@@ -719,13 +728,14 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
         delete sysconfig;
 
         if (vm_model->rowCount(QModelIndex()) <= 0) {
+            selected_sysconfig = new VMManagerSystem();
             /* no machines left - get rid of the last machine's leftovers */
             ui->detailsArea->layout()->removeWidget(vm_details);
             delete vm_details;
             vm_details = new VMManagerDetails();
             ui->detailsArea->layout()->addWidget(vm_details);
             /* tell the mainwindow to disable the toolbar buttons */
-            emit selectionChanged(nullptr);
+            emit selectionOrStateChanged(nullptr);
         }
     }
 }
@@ -797,6 +807,15 @@ VMManagerMain::modelDataChange()
     }
     auto states = stats.join(", ");
     emit updateStatusRight(machineCountString(states));
+}
+
+void
+VMManagerMain::vmStateChange()
+{
+    if (!currentSelectionIsValid())
+        return;
+
+    emit selectionOrStateChanged(selected_sysconfig);
 }
 
 void
