@@ -10,11 +10,13 @@
  *
  *          Uses code from libxcvt to calculate CRTC timings.
  *
- * Authors: Cacodemon345
+ * Authors: Christopher Lentocha
+ *          Cacodemon345
  *          The Bochs Project
  *          Fabrice Bellard
  *          The libxcvt authors
  *
+ *          Copyright 2025 Christopher Lentocha
  *          Copyright 2024 Cacodemon345
  *          Copyright 2003 Fabrice Bellard
  *          Copyright 2002-2024 The Bochs Project
@@ -63,6 +65,7 @@
 #define VBE_DISPI_INDEX_Y_OFFSET         0x9
 #define VBE_DISPI_INDEX_VIDEO_MEMORY_64K 0xa
 #define VBE_DISPI_INDEX_DDC              0xb
+#define VBE_DISPI_INDEX_CFG              0xc
 
 #define VBE_DISPI_ID0                    0xB0C0
 #define VBE_DISPI_ID1                    0xB0C1
@@ -70,6 +73,10 @@
 #define VBE_DISPI_ID3                    0xB0C3
 #define VBE_DISPI_ID4                    0xB0C4
 #define VBE_DISPI_ID5                    0xB0C5
+#define VBE_DISPI_ID_VBOX_VIDEO          0xBE00
+#define VBE_DISPI_ID_HGSMI               0xBE01
+#define VBE_DISPI_ID_ANYX                0xBE02
+#define VBE_DISPI_ID_CFG                 0xBE03
 
 #define VBE_DISPI_DISABLED               0x00
 #define VBE_DISPI_ENABLED                0x01
@@ -82,6 +89,15 @@
 #define VBE_DISPI_BANK_WR                0x4000
 #define VBE_DISPI_BANK_RD                0x8000
 #define VBE_DISPI_BANK_RW                0xc000
+
+/* VBE_DISPI_INDEX_CFG values. */
+#define VBE_DISPI_CFG_ID_VERSION \
+    0x0000                                /* Version of the configuration interface. */
+#define VBE_DISPI_CFG_ID_VRAM_SIZE 0x0001 /* VRAM size. */
+#define VBE_DISPI_CFG_ID_3D        0x0002 /* 3D support. */
+#define VBE_DISPI_CFG_ID_VMSVGA \
+    0x0003                                /* VMSVGA FIFO and ports are available. */
+#define VBE_DISPI_CFG_ID_VMSVGA_DX 0x0004 /* VGPU10 is enabled. */
 
 typedef struct vbe_mode_info_t {
     uint32_t hdisplay;
@@ -409,6 +425,28 @@ bochs_vbe_inw(const uint16_t addr, void *priv)
                 } else
                     ret = 0x000f;
                 break;
+            case VBE_DISPI_INDEX_CFG:
+                switch (dev->vbe_regs[dev->vbe_index] & 0x0fff) {
+                    case VBE_DISPI_CFG_ID_VERSION:
+                        ret = 1;
+                        break;
+                    case VBE_DISPI_CFG_ID_VRAM_SIZE:
+                        ret = dev->vram_size;
+                        break;
+                    case VBE_DISPI_CFG_ID_3D:
+                        ret = 1;
+                        break;
+                    case VBE_DISPI_CFG_ID_VMSVGA:
+                        ret = 0;
+                        break;
+                    case VBE_DISPI_CFG_ID_VMSVGA_DX:
+                        ret = 0;
+                        break;
+                    default:
+                        ret = 0;
+                        break;
+                }
+                break;
         }
 
     return ret;
@@ -438,9 +476,10 @@ bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
     else if ((addr == 0x1cf) || (addr == 0x1d0))
         switch (dev->vbe_index) {
             default:
+                dev->vbe_regs[dev->vbe_index] = val;
                 break;
             case VBE_DISPI_INDEX_ID:
-                if ((val == VBE_DISPI_ID0) || (val == VBE_DISPI_ID1) || (val == VBE_DISPI_ID2) || (val == VBE_DISPI_ID3) || (val == VBE_DISPI_ID4))
+                if ((val == VBE_DISPI_ID0) || (val == VBE_DISPI_ID1) || (val == VBE_DISPI_ID2) || (val == VBE_DISPI_ID3) || (val == VBE_DISPI_ID4) || (val == VBE_DISPI_ID_VBOX_VIDEO) || (val == VBE_DISPI_ID_ANYX) || (val == VBE_DISPI_ID_CFG))
                     dev->vbe_regs[dev->vbe_index] = val;
                 else if (val == VBE_DISPI_ID5)
                     dev->vbe_regs[dev->vbe_index] = dev->id5_val;
@@ -923,9 +962,16 @@ static const device_config_t bochs_vbe_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description =  "4 MB", .value =  4 },
-            { .description =  "8 MB", .value =  8 },
-            { .description = "16 MB", .value = 16 },
+            { .description =  "1 MB", .value =    1 },
+            { .description =  "2 MB", .value =    2 },
+            { .description =  "4 MB", .value =    4 },
+            { .description =  "8 MB", .value =    8 },
+            { .description = "16 MB", .value =   16 },
+            { .description = "32 MB", .value =   32 },
+            { .description = "64 MB", .value =   64 },
+            { .description = "128 MB", .value = 128 },
+            { .description = "256 MB", .value = 256 },
+            { .description = "512 MB", .value = 512 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
