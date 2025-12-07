@@ -196,7 +196,7 @@
   <action name="actionNew_Machine">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/settings/qt/icons/86Box-yellow.ico</normaloff>:/settings/qt/icons/86Box-yellow.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/new_vm.ico</normaloff>:/menuicons/qt/icons/new_vm.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;New machine...</string>
