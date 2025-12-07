@@ -280,7 +280,7 @@ msgid "Sound Gain"
 msgstr "Ganho de som"
 
 msgid "New Image"
-msgstr "Nova imagem de disquete"
+msgstr "Nova imagem"
 
 msgid "Settings"
 msgstr "Configurações"
@@ -358,7 +358,7 @@ msgid "Memory:"
 msgstr "Memória:"
 
 msgid "Time synchronization"
-msgstr "Sincronização de hora"
+msgstr "Sincronização de horário"
 
 msgid "Disabled"
 msgstr "Desativar"
@@ -820,7 +820,7 @@ msgid "Generic paddle controller(s)"
 msgstr "Controlador(es) genérico(s) de raquete"
 
 msgid "2-axis, 1-button joystick(s)"
-msgstr "Joystick(s) de 2 eixos, 1 botões"
+msgstr "Joystick(s) de 2 eixos, 1 botão"
 
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Joystick(s) de 2 eixos, 2 botões"
@@ -961,7 +961,7 @@ msgid "&Floppy %1 (%2): %3"
 msgstr "&Disquete %1 (%2): %3"
 
 msgid "Advanced sector images"
-msgstr "Imagens de setor avançado"
+msgstr "Imagens de setor avançadas"
 
 msgid "Flux images"
 msgstr "Imagens de fluxo"
@@ -1123,7 +1123,7 @@ msgid "Not running"
 msgstr "Parado"
 
 msgid "Running"
-msgstr "Rodando"
+msgstr "Executando"
 
 msgid "Paused"
 msgstr "Pausada"
@@ -1171,7 +1171,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão ativas atualmente. Tem certeza que deseja encerrar o gerenciador de MV mesmo assim?"
+msgstr "%1 máquina(s) está(ão) ativa(s) no momento. Tem certeza de que deseja sair do gerenciador de MVs mesmo assim?"
 
 msgid "Add new system wizard"
 msgstr "Assistente para novo sistema"
@@ -1186,7 +1186,7 @@ msgid "New configuration"
 msgstr "Nova configuração"
 
 msgid "Complete"
-msgstr "Completado"
+msgstr "Concluído"
 
 msgid "The wizard will now launch the configuration for the new system."
 msgstr "O assistente vai iniciar a configuração para o novo sistema."
@@ -1294,7 +1294,7 @@ msgid "Directory in use"
 msgstr "Diretório em uso"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr "O diretório selecionado já está em uso. Por favor escolha um diretório diferente."
+msgstr "O diretório selecionado já está em uso. Por favor, escolha um diretório diferente."
 
 msgid "Create directory failed"
 msgstr "Falha ao criar diretório"
@@ -1309,7 +1309,7 @@ msgid "Unable to open the configuration file at %1 for writing"
 msgstr "Impossível abrir o arquivo de configuração %1 para escrita"
 
 msgid "Error adding system"
-msgstr "Erro adicionando sistema"
+msgstr "Erro ao adicionar sistema"
 
 msgid "Remove directory failed"
 msgstr "Falha ao remover diretório"
@@ -1360,7 +1360,7 @@ msgid "Searching for VMs..."
 msgstr "Procurando por MVs..."
 
 msgid "Found %1"
-msgstr "Encontrado %1"
+msgstr "Encontrada %1"
 
 msgid "System"
 msgstr "Sistema"
@@ -1765,7 +1765,7 @@ msgid "Error initializing OpenGL"
 msgstr "Erro ao inicializar o OpenGL"
 
 msgid "\nFalling back to software rendering."
-msgstr "\nVoltando à renderização de software."
+msgstr "\nRevertendo para renderização via software."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Ao selecionar imagens de mídia (CD-ROM, disquete, etc.), a caixa de diálogo de abertura será iniciada no mesmo diretório do arquivo de configuração do 86Box. Essa configuração provavelmente só fará diferença no macOS.</p></body></html>"
@@ -2908,7 +2908,7 @@ msgid "%1 VM Manager"
 msgstr "Gerenciador de MV do %1"
 
 msgid "%n disk(s)"
-msgstr "%1 disco(s)"
+msgstr "%n disco(s)"
 
 msgid "Unknown Status"
 msgstr "Estado desconhecido"
