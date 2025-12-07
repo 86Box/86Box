@@ -559,7 +559,7 @@ msgid "&New..."
 msgstr "新建(&N)..."
 
 msgid "&Existing..."
-msgstr "已有映像(&E)..."
+msgstr "现有(&E)..."
 
 msgid "&Remove"
 msgstr "移除(&R)"
@@ -943,10 +943,10 @@ msgid "Thrustmaster FCS + Rudder Control System"
 msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
-msgstr "带适配器 Thrustmaster Formula T1/T2"
+msgstr "带适配器的 Thrustmaster Formula T1/T2"
 
 msgid "Thrustmaster Formula T1/T2 without adapter"
-msgstr "不带适配器 Thrustmaster Formula T1/T2"
+msgstr "不带适配器的 Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "无"
@@ -3038,3 +3038,15 @@ msgstr "暗色"
 
 msgid "Search:"
 msgstr "搜索:"
+
+msgid "Force interpretation"
+msgstr "强制解释执行"
+
+msgid "Allow recompilation"
+msgstr "允许重编译"
+
+msgid "&Force interpretation"
+msgstr "强制解释执行(&F)"
+
+msgid "&Allow recompilation"
+msgstr "允许重编译(&A)"
