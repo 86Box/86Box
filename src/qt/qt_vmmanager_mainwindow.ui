@@ -111,9 +111,6 @@
    <property name="toolTip">
     <string>Start</string>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionHard_Reset">
    <property name="icon">
@@ -125,9 +122,6 @@
    </property>
    <property name="toolTip">
     <string>Hard reset</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionForce_Shutdown">
@@ -147,9 +141,6 @@
    <property name="visible">
     <bool>true</bool>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionCtrl_Alt_Del">
    <property name="enabled">
@@ -168,9 +159,6 @@
    <property name="visible">
     <bool>true</bool>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionSettings">
    <property name="icon">
@@ -185,9 +173,6 @@
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionNew_Machine">
