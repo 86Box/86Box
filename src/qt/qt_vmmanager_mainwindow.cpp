@@ -106,6 +106,11 @@ VMManagerMainWindow::
 
     {
         auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+        ui->actionHide_tool_bar->setChecked(!!config->getStringValue("hide_tool_bar").toInt());
+        if (ui->actionHide_tool_bar->isChecked())
+            ui->toolBar->setVisible(false);
+        else
+            config->setStringValue("hide_tool_bar", "0");
         if (!!config->getStringValue("window_remember").toInt()) {
             QString coords = config->getStringValue("window_coordinates");
             if (!coords.isEmpty()) {
@@ -217,6 +222,7 @@ VMManagerMainWindow::saveSettings() const
     const auto currentSelection = vmm->getCurrentSelection();
     const auto config           = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     config->setStringValue("last_selection", currentSelection);
+    config->setStringValue("hide_tool_bar", (ui->toolBar->isVisible() ? "0" : "1"));
     if (!!config->getStringValue("window_remember").toInt()) {
         config->setStringValue("window_coordinates", QString::asprintf("%i, %i, %i, %i", this->geometry().x(), this->geometry().y(), this->geometry().width(), this->geometry().height()));
         config->setStringValue("window_maximized", this->isMaximized() ? "1" : "");
@@ -285,6 +291,15 @@ void
 VMManagerMainWindow::setStatusRight(const QString &text) const
 {
     statusRight->setText(text);
+}
+
+void
+VMManagerMainWindow::on_actionHide_tool_bar_triggered()
+{
+    const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+    int isHidden = config->getStringValue("hide_tool_bar").toInt();
+    ui->toolBar->setVisible(!!isHidden);
+    config->setStringValue("hide_tool_bar", (isHidden ? "0" : "1"));
 }
 
 #if EMU_BUILD_NUM != 0

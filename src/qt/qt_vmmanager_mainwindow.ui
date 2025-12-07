@@ -41,6 +41,12 @@
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="actionHide_tool_bar"/>
+   </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>&amp;Help</string>
@@ -50,6 +56,7 @@
     <addaction name="actionAbout_Qt"/>
    </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuView"/>
    <addaction name="menuTools"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -196,6 +203,17 @@
    </property>
    <property name="toolTip">
     <string>New machine...</string>
+   </property>
+  </action>
+  <action name="actionHide_tool_bar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hide &amp;toolbar</string>
+   </property>
+   <property name="toolTip">
+    <string>Hide tool bar</string>
    </property>
   </action>
   <action name="actionPreferences">
