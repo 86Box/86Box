@@ -171,9 +171,6 @@
    <property name="iconVisibleInMenu">
     <bool>false</bool>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionSettings">
    <property name="icon">

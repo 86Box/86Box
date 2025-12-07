@@ -375,9 +375,6 @@
    <property name="iconVisibleInMenu">
     <bool>false</bool>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionCtrl_Alt_Esc">
    <property name="icon">
@@ -753,9 +750,6 @@
    <property name="shortcut">
     <string>Ctrl+F11</string>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionMute_Unmute">
    <property name="text">
@@ -833,9 +827,6 @@
    <property name="visible">
     <bool>false</bool>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionEnd_trace">
    <property name="text">
@@ -845,9 +836,6 @@
     <string>Ctrl+T</string>
    </property>
    <property name="visible">
-    <bool>false</bool>
-   </property>
-   <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
    </property>
   </action>
