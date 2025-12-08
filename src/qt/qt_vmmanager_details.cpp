@@ -199,6 +199,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
     disconnect(configureButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::launchSettings);
     disconnect(cadButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::cadButtonPressed);
 
+    disconnect(sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerDetails::onConfigUpdated);
+
     sysconfig = passed_sysconfig;
     connect(resetButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::restartButtonPressed);
     connect(stopButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::shutdownForceButtonPressed);
@@ -234,7 +236,16 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
     disconnect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
     connect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
 
+    connect(sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerDetails::onConfigUpdated);
+
     updateProcessStatus();
+}
+
+void
+VMManagerDetails::onConfigUpdated(VMManagerSystem *passed_sysconfig)
+{
+    updateConfig(passed_sysconfig);
+    updateScreenshots(passed_sysconfig);
 }
 
 void

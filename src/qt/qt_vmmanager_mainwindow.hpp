@@ -45,6 +45,8 @@ private:
     void           saveSettings() const;
     QLabel        *statusLeft;
     QLabel        *statusRight;
+    QIcon          runIcon;
+    QIcon          pauseIcon;
 
 public slots:
     void setStatusLeft(const QString &text) const;
@@ -55,7 +57,8 @@ public slots:
 #endif
 
 private slots:
-    void vmmSelectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState) const;
+    void vmmStateChanged(const VMManagerSystem *sysconfig) const;
+    void on_actionHide_tool_bar_triggered();
     void preferencesTriggered();
 #if EMU_BUILD_NUM != 0
     void checkForUpdatesTriggered();

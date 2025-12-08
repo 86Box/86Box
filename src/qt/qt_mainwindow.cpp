@@ -780,10 +780,6 @@ MainWindow::MainWindow(QWidget *parent)
         ui->actionUpdate_mouse_every_CPU_frame->setChecked(true);
     }
 
-#ifdef Q_OS_MACOS
-    ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
-    ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
-#endif
     if (!vnc_enabled)
         video_setblit(qt_blit);
 
@@ -811,10 +807,6 @@ MainWindow::MainWindow(QWidget *parent)
             mtr_stop();
             mtr_shutdown();
         };
-#    ifdef Q_OS_MACOS
-        ui->actionBegin_trace->setShortcutVisibleInContextMenu(true);
-        ui->actionEnd_trace->setShortcutVisibleInContextMenu(true);
-#    endif
         static bool trace = false;
         connect(ui->actionBegin_trace, &QAction::triggered, this, [this] {
             if (trace)

@@ -305,15 +305,13 @@ void
 VMManagerSystem::generateSearchTerms()
 {
     searchTerms.clear();
-    for (const auto &config_key : config_hash.keys()) {
-        // searchTerms.append(config_hash[config_key].values());
-        // brute force temporarily don't add paths
-        for (const auto &value : config_hash[config_key].values()) {
-            if (!value.startsWith("/"))
-                searchTerms.append(value);
-        }
-    }
-    searchTerms.append(display_table.values());
+#if 0
+    for (const auto &value : display_table.values())
+        if (value.contains(";"))
+            searchTerms.append(value.split(';'));
+        else
+            searchTerms.append(value);
+#endif
     searchTerms.append(displayName);
     searchTerms.append(config_name);
     QRegularExpression whitespaceRegex("\\s+");
@@ -440,14 +438,17 @@ VMManagerSystem::launchMainProcess()
     process->start();
     updateTimestamp();
 
+    disconnect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
                     qInfo().nospace().noquote() << "Abnormal program termination while launching main process: exit code " << exitCode << ", exit status " << exitStatus;
                     QMessageBox::critical(this, tr("Virtual machine crash"),
-                                          tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString::number(exitCode)));
+                                          tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString("%1 (0x%2)").arg(QString::number(exitCode), QString::number(exitCode, 16))));
                     return;
                 }
+
+                configurationChangeReceived();
             });
 }
 
@@ -501,6 +502,7 @@ VMManagerSystem::launchSettings()
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
     process->start();
 
+    disconnect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
@@ -1239,8 +1241,9 @@ void
 VMManagerSystem::configurationChangeReceived()
 {
     reloadConfig();
-    emit configurationChanged(this->uuid);
+    emit configurationChanged(this);
 }
+
 void
 VMManagerSystem::reloadConfig()
 {

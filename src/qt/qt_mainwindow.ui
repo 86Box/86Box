@@ -354,9 +354,6 @@
    <property name="text">
     <string>&amp;Hard reset</string>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionCtrl_Alt_Del">
    <property name="icon">
@@ -372,12 +369,6 @@
    <property name="shortcut">
     <string>Ctrl+F12</string>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionCtrl_Alt_Esc">
    <property name="icon">
@@ -387,9 +378,6 @@
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionPause">
    <property name="icon">
@@ -398,9 +386,6 @@
    </property>
    <property name="text">
     <string>&amp;Pause</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionExit">
@@ -421,9 +406,6 @@
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionFullscreen">
@@ -753,9 +735,6 @@
    <property name="shortcut">
     <string>Ctrl+F11</string>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionMute_Unmute">
    <property name="text">
@@ -833,9 +812,6 @@
    <property name="visible">
     <bool>false</bool>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionEnd_trace">
    <property name="text">
@@ -845,9 +821,6 @@
     <string>Ctrl+T</string>
    </property>
    <property name="visible">
-    <bool>false</bool>
-   </property>
-   <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
    </property>
   </action>

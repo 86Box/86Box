@@ -56,7 +56,7 @@ public:
         Settings,
     };
 signals:
-    void selectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState);
+    void selectionOrStateChanged(VMManagerSystem *sysconfig);
     void updateStatusLeft(const QString &text);
     void updateStatusRight(const QString &text);
 
@@ -67,6 +67,7 @@ public slots:
     void pauseButtonPressed() const;
     void shutdownRequestButtonPressed() const;
     void shutdownForceButtonPressed() const;
+    void cadButtonPressed() const;
     void searchSystems(const QString &text) const;
     void newMachineWizard();
     void updateGlobalSettings();
@@ -83,7 +84,6 @@ public slots:
 #ifdef Q_OS_WINDOWS
     void onDarkModeUpdated();
 #endif
-    void onConfigUpdated(const QString &uuid);
     int  getActiveMachineCount();
 
     QList<int> getPaneSizes() const;
@@ -106,7 +106,6 @@ private:
     //                      const QItemSelection &deselected);
     void                  currentSelectionChanged(const QModelIndex &current,
                                                   const QModelIndex &previous);
-    void                  refresh();
     void                  updateDisplayName(const QModelIndex &index);
     void                  loadSettings();
     [[nodiscard]] bool    currentSelectionIsValid() const;
@@ -116,6 +115,7 @@ private:
 #endif
     void showTextFileContents(const QString &title, const QString &path);
 private slots:
+    void vmStateChange();
 #if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result);
     void backgroundUpdateCheckError(const QString &errorMsg);

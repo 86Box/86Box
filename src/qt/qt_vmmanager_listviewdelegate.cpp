@@ -246,7 +246,7 @@ VMManagerListViewDelegateStyle::statusBox(const QStyleOptionViewItem &option,
 qreal
 VMManagerListViewDelegateStyle::statusFontPointSize(const QFont &f) const
 {
-    return 0.75 * f.pointSize();
+    return 0.9 * f.pointSize();
     //    return 1*f.pointSize();
 }
 

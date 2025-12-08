@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>86Box VM Manager</string>
+   <string notr="true">86Box VM Manager</string>
   </property>
   <widget class="QWidget" name="centralwidget"/>
   <widget class="QMenuBar" name="menubar">
@@ -22,6 +22,9 @@
      <width>900</width>
      <height>21</height>
     </rect>
+   </property>
+   <property name="contextMenuPolicy">
+    <enum>Qt::PreventContextMenu</enum>
    </property>
    <widget class="QMenu" name="menuTools">
     <property name="title">
@@ -38,6 +41,12 @@
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="actionHide_tool_bar"/>
+   </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>&amp;Help</string>
@@ -47,6 +56,7 @@
     <addaction name="actionAbout_Qt"/>
    </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuView"/>
    <addaction name="menuTools"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -56,22 +66,25 @@
     <bool>true</bool>
    </property>
    <property name="windowTitle">
-    <string>toolBar</string>
+    <string notr="true">toolBar</string>
    </property>
    <property name="movable">
     <bool>false</bool>
+   </property>
+   <property name="contextMenuPolicy">
+    <enum>Qt::PreventContextMenu</enum>
    </property>
    <property name="allowedAreas">
     <set>Qt::TopToolBarArea</set>
    </property>
    <property name="iconSize">
     <size>
-     <width>16</width>
-     <height>16</height>
+     <width>32</width>
+     <height>32</height>
     </size>
    </property>
    <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonIconOnly</enum>
+    <enum>Qt::ToolButtonTextUnderIcon</enum>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>
@@ -88,9 +101,6 @@
    <addaction name="actionSettings"/>
   </widget>
   <action name="actionStartPause">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
      <normaloff>:/menuicons/qt/icons/run.ico</normaloff>:/menuicons/qt/icons/run.ico</iconset>
@@ -100,9 +110,6 @@
    </property>
    <property name="toolTip">
     <string>Start</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionHard_Reset">
@@ -115,9 +122,6 @@
    </property>
    <property name="toolTip">
     <string>Hard reset</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionForce_Shutdown">
@@ -137,9 +141,6 @@
    <property name="visible">
     <bool>true</bool>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionCtrl_Alt_Del">
    <property name="enabled">
@@ -156,13 +157,7 @@
     <string>Ctrl+Alt+Del</string>
    </property>
    <property name="visible">
-    <bool>false</bool>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
   </action>
   <action name="actionSettings">
@@ -179,20 +174,28 @@
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionNew_Machine">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/settings/qt/icons/86Box-yellow.ico</normaloff>:/settings/qt/icons/86Box-yellow.ico</iconset>
+     <normaloff>:/menuicons/qt/icons/new_vm.ico</normaloff>:/menuicons/qt/icons/new_vm.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;New machine...</string>
    </property>
    <property name="toolTip">
     <string>New machine...</string>
+   </property>
+  </action>
+  <action name="actionHide_tool_bar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hide &amp;toolbar</string>
+   </property>
+   <property name="toolTip">
+    <string>Hide tool bar</string>
    </property>
   </action>
   <action name="actionPreferences">
@@ -204,21 +207,6 @@
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>
-   </property>
-  </action>
-  <action name="actionStart">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/qt/icons/run.ico</normaloff>:/menuicons/qt/icons/run.ico</iconset>
-   </property>
-   <property name="text">
-    <string>&amp;Start</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionCheck_for_updates">
