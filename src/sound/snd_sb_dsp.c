@@ -2775,6 +2775,7 @@ pollsb(void *priv)
                 dsp->ess_dma_counter += 4;
                 break;
             case 0x30: /* Stereo signed */
+            case 0x36:
                 data[0] = dsp->dma_readw(dsp->dma_priv);
                 data[1] = dsp->dma_readw(dsp->dma_priv);
                 if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
