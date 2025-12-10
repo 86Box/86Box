@@ -115,7 +115,7 @@ msgid "&Linear"
 msgstr "線性(&L)"
 
 msgid "Hi&DPI scaling"
-msgstr "HiDPI 縮放(&D)"
+msgstr "高 DPI 縮放(&D)"
 
 msgid "&Fullscreen"
 msgstr "全螢幕(&F)"
@@ -265,7 +265,7 @@ msgid "&Mute"
 msgstr "靜音(&M)"
 
 msgid "E&mpty"
-msgstr "空置光碟機(&M)"
+msgstr "卸載(&M)"
 
 msgid "Reload previous image"
 msgstr "載入上一個影像"
@@ -373,7 +373,7 @@ msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
 
 msgid "CPU frame size"
-msgstr "CPU 執行幀大小"
+msgstr "CPU 影格大小"
 
 msgid "Larger frames (less smooth)"
 msgstr "大執行幀 (操作欠平滑)"
@@ -613,10 +613,10 @@ msgid "MO:"
 msgstr "磁光碟:"
 
 msgid "Removable disks:"
-msgstr "可移除磁碟:"
+msgstr "抽取式磁碟:"
 
 msgid "Removable disk drives:"
-msgstr "可移除磁碟機:"
+msgstr "抽取式磁碟機:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
@@ -670,13 +670,13 @@ msgid "Speed"
 msgstr "速度"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "可移除磁碟 %1 (%2): %3"
+msgstr "抽取式磁碟 %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "可移除磁碟(&R) %1 (%2): %3"
+msgstr "抽取式磁碟(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "可移除磁碟影像"
+msgstr "抽取式磁碟影像"
 
 msgid "Image %1"
 msgstr "影像 %1"
@@ -748,7 +748,7 @@ msgid "Parallel ports:"
 msgstr "並列埠:"
 
 msgid "Storage controllers"
-msgstr "存儲控制器"
+msgstr "儲存控制器"
 
 msgid "Hard disks"
 msgstr "硬碟"
@@ -1021,7 +1021,7 @@ msgid "About %1"
 msgstr "關於 %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n之前的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發佈。詳情見 LICENSE 檔案。"
+msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n之前的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公眾授權條款第二版或更新版本發佈。詳情見 LICENSE 檔案。"
 
 msgid "Hardware not available"
 msgstr "硬體不可用"
@@ -1180,7 +1180,7 @@ msgid "Introduction"
 msgstr "簡介"
 
 msgid "This will help you add a new system to 86Box."
-msgstr "這將有助於您在 86Box 中加入新系統。"
+msgstr "這將協助您在 86Box 中加入新系統。"
 
 msgid "New configuration"
 msgstr "新增設定"
@@ -1687,7 +1687,7 @@ msgid "Show non-&primary monitors"
 msgstr "顯示非主要監視器(&P)"
 
 msgid "Open screenshots &folder..."
-msgstr "開啟螢幕擷圖資料夾(&F)..."
+msgstr "開啟螢幕擷取畫面資料夾(&F)..."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時套用全螢幕延展模式(&Y)"
@@ -1720,13 +1720,13 @@ msgid "Null Driver"
 msgstr "空驅動程式"
 
 msgid "NIC:"
-msgstr "網路卡："
+msgstr "網路介面控制器："
 
 msgid "NIC %1 (%2) %3"
-msgstr "網路卡 %1 (%2) %3"
+msgstr "網路介面控制器 %1 (%2) %3"
 
 msgid "&NIC %1 (%2) %3"
-msgstr "網路卡 %1 (%2) %3(&N)"
+msgstr "網路介面控制器 %1 (%2) %3(&N)"
 
 msgid "Render behavior"
 msgstr "渲染行為"
@@ -1759,7 +1759,7 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "無法切換至 OpenGL 內容。"
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "需要 OpenGL 版本 3.0 或更高。目前版本為 %1.%2"
+msgstr "需要 OpenGL 版本 3.0 或更高版本。目前版本為 %1.%2"
 
 msgid "Error initializing OpenGL"
 msgstr "初始化 OpenGL 出錯"
@@ -2845,10 +2845,10 @@ msgid "Toggle fullscreen"
 msgstr "切換全螢幕"
 
 msgid "Toggle UI in fullscreen"
-msgstr "切換使用者介面至全螢幕"
+msgstr "全螢幕模式下切換使用者介面顯示"
 
 msgid "Screenshot"
-msgstr "螢幕擷圖"
+msgstr "螢幕擷取畫面"
 
 msgid "Release mouse pointer"
 msgstr "放開滑鼠游標"
@@ -3038,3 +3038,15 @@ msgstr "暗色"
 
 msgid "Search:"
 msgstr "搜尋:"
+
+msgid "Force interpretation"
+msgstr "強制解譯執行"
+
+msgid "Allow recompilation"
+msgstr "允許重編譯"
+
+msgid "&Force interpretation"
+msgstr "強制解譯執行(&F)"
+
+msgid "&Allow recompilation"
+msgstr "允許重編譯(&A)"
