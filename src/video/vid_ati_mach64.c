@@ -563,6 +563,7 @@ mach64_recalctimings(svga_t *svga)
     const mach64_t *mach64 = (mach64_t *) svga->priv;
 
     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3) {
+        svga->char_width = 8;
         svga->vtotal     = (mach64->crtc_v_total_disp & 2047) + 1;
         svga->dispend    = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
         svga->htotal     = (mach64->crtc_h_total_disp & 255) + 1;
@@ -826,7 +827,7 @@ mach64_recalc_dp_set_engine(mach64_t *mach64)
     mach64->src_off_pitch = 0;
     if (mach64->dp_set_gui_engine & (1 << 15))
         mach64->src_off_pitch = mach64->dst_off_pitch;
-    
+
     switch ((mach64->dp_set_gui_engine >> 16) & 3)
     {
         case 0:
@@ -983,7 +984,7 @@ start_blit_op:
                     mach64_blit(0, -1, mach64);
             }
             break;
-        
+
         case 0x2ec:
         case 0x2ed:
         case 0x2ee:
@@ -2782,7 +2783,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0x23:
                 READ8(addr, mach64->dsp_config);
                 break;
-            
+
             case 0x24:
             case 0x25:
             case 0x26:
@@ -2875,7 +2876,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr, mach64->gp_io);
                 }
 //                pclog("GPIO READ 0x%X, 0x00\n", addr & 0x3ff);
-                
+
                 break;
             case 0x80:
             case 0x81:
@@ -3015,7 +3016,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr ^ 2, mach64->dst_height_width);
                 break;
-            
+
             case 0x110:
             case 0x111:
                 addr += 2;
@@ -3331,7 +3332,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
                 ret = FIFO_EMPTY ? 0 : 1;
                 break;
-            
+
             case 0x33a:
                 ret = FIFO_EMPTY ? 32 : 31;
                 break;
@@ -3721,7 +3722,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     svga->hwcursor.yoff = (mach64->cur_horz_vert_off >> 16) & 0x3f;
                 }
                 break;
-            
+
             case 0x78:
             case 0x79:
             case 0x7A:
