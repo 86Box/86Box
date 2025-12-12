@@ -562,7 +562,7 @@ kbd_init(const device_t *info)
 {
     kbd_t *dev = (kbd_t *) calloc(1, sizeof(kbd_t));
 
-    dev->type = info->local;
+    dev->type = device_get_config_int("keys");
 
     if (dev->type == KBD_83_KEY)
         keyboard_set_table(scancode_xt);
