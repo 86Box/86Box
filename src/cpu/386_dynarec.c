@@ -404,14 +404,15 @@ exec386_dynarec_dyn(void)
 #    endif
     int valid_block = 0;
 
+#    define INVALIDATION_LIMIT 100 /* amount of invalidations *per second* to kick a page to the interpreter */
+    page_t *page = &pages[phys_addr >> 12];
+    int can_recompile = (page->inv_count < INVALIDATION_LIMIT);
 #    ifdef USE_NEW_DYNAREC
-    if (!cpu_state.abrt)
+    if (!cpu_state.abrt && can_recompile)
 #    else
-    if (block && !cpu_state.abrt)
+    if (block && !cpu_state.abrt && can_recompile)
 #    endif
     {
-        page_t *page = &pages[phys_addr >> 12];
-
         /* Block must match current CS, PC, code segment size,
            and physical address. The physical address check will
            also catch any page faults at this stage */
@@ -445,16 +446,26 @@ exec386_dynarec_dyn(void)
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
 #    ifdef USE_NEW_DYNAREC
             codegen_check_flush(page, page->dirty_mask, phys_addr);
-            if (block->pc == BLOCK_PC_INVALID)
+            if (block->pc == BLOCK_PC_INVALID) {
                 valid_block = 0;
-            else if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
+                goto invalid_block;
+            } else if (block->flags & CODEBLOCK_IN_DIRTY_LIST) {
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+invalid_block:
 #    else
             codegen_check_flush(page, page->dirty_mask[(phys_addr >> 10) & 3], phys_addr);
             page->dirty_mask[(phys_addr >> 10) & 3] = 0;
-            if (!block->valid)
+            if (!block->valid) {
                 valid_block = 0;
 #    endif
+                if (page->inv_timestamp != seconds_elapsed) {
+                    page->inv_timestamp = seconds_elapsed;
+                    page->inv_count = 1;
+                } else if (++page->inv_count >= INVALIDATION_LIMIT) {
+                    pclog("Forcing interpreter on page %08X\n", phys_addr & 0xfffff000);
+                    can_recompile = 0;
+                }
+            }
         }
         if (valid_block && block->page_mask2) {
             /* We don't want the second page to cause a page
@@ -653,7 +664,8 @@ exec386_dynarec_dyn(void)
         cpu_block_end = 0;
         x86_was_reset = 0;
 
-        codegen_block_init(phys_addr);
+        if (can_recompile)
+            codegen_block_init(phys_addr);
 
         while (!cpu_block_end) {
 #    ifndef USE_NEW_DYNAREC
@@ -731,7 +743,7 @@ exec386_dynarec_dyn(void)
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && can_recompile)
             codegen_block_end();
 
         if (x86_was_reset)
