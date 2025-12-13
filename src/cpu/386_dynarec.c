@@ -392,10 +392,9 @@ static inline void __attribute__((optimize("O2")))
 #else
 static __inline void
 #endif
-exec386_dynarec_dyn(void)
+exec386_dynarec_dyn(uint32_t phys_addr, page_t *page)
 {
     uint32_t start_pc  = 0;
-    uint32_t phys_addr = get_phys(cs + cpu_state.pc);
     int      hash      = HASH(phys_addr);
 #    ifdef USE_NEW_DYNAREC
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
@@ -404,13 +403,10 @@ exec386_dynarec_dyn(void)
 #    endif
     int valid_block = 0;
 
-#    define INVALIDATION_LIMIT 100 /* amount of invalidations *per second* to kick a page to the interpreter */
-    page_t *page = &pages[phys_addr >> 12];
-    int can_recompile = (page->inv_count < INVALIDATION_LIMIT);
 #    ifdef USE_NEW_DYNAREC
-    if (!cpu_state.abrt && can_recompile)
+    if (!cpu_state.abrt)
 #    else
-    if (block && !cpu_state.abrt && can_recompile)
+    if (block && !cpu_state.abrt)
 #    endif
     {
         /* Block must match current CS, PC, code segment size,
@@ -461,9 +457,13 @@ invalid_block:
                 if (page->inv_timestamp != seconds_elapsed) {
                     page->inv_timestamp = seconds_elapsed;
                     page->inv_count = 1;
-                } else if (++page->inv_count >= INVALIDATION_LIMIT) {
-                    x386_dynarec_log("Forcing interpreter on page %08X\n", phys_addr & 0xfffff000);
-                    can_recompile = 0;
+                } else {
+                    page->inv_count++;
+#    define INVALIDATION_LIMIT 100 /* amount of invalidations *per second* to kick a page to the interpreter */
+#    ifdef ENABLE_386_DYNAREC_LOG
+                    if (page->inv_count >= INVALIDATION_LIMIT)
+                        x386_dynarec_log("Forcing interpreter on page %08X\n", phys_addr & 0xfffff000);
+#    endif
                 }
             }
         }
@@ -664,8 +664,7 @@ invalid_block:
         cpu_block_end = 0;
         x86_was_reset = 0;
 
-        if (can_recompile)
-            codegen_block_init(phys_addr);
+        codegen_block_init(phys_addr);
 
         while (!cpu_block_end) {
 #    ifndef USE_NEW_DYNAREC
@@ -743,7 +742,7 @@ invalid_block:
 
         cpu_end_block_after_ins = 0;
 
-        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && can_recompile)
+        if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset)
             codegen_block_end();
 
         if (x86_was_reset)
@@ -791,11 +790,14 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (cpu_force_interpreter || cpu_override_dynarec ||  (!CACHE_ON())) /*Interpret block*/
+
+            uint32_t phys_addr = get_phys(cs + cpu_state.pc);
+            page_t *page = &pages[phys_addr >> 12];
+            if (cpu_force_interpreter || cpu_override_dynarec || (page->inv_count >= INVALIDATION_LIMIT) || (!CACHE_ON())) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {
-                exec386_dynarec_dyn();
+                exec386_dynarec_dyn(phys_addr, page);
             }
 
             if (cpu_init) {
