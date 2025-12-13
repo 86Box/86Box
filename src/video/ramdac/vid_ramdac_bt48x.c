@@ -377,7 +377,9 @@ bt48x_recalctimings(void *priv, svga_t *svga)
     if (svga->bpp >= 15)
         svga->true_color_bypass = !!(ramdac->cmd_r1 & 0x10);
 
+#if 0
     pclog("CR0=%02x, CR1=%02x, CR2=%02x.\n", ramdac->cmd_r0, ramdac->cmd_r1, ramdac->cmd_r2);
+#endif
 }
 
 void
