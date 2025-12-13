@@ -462,7 +462,7 @@ invalid_block:
                     page->inv_timestamp = seconds_elapsed;
                     page->inv_count = 1;
                 } else if (++page->inv_count >= INVALIDATION_LIMIT) {
-                    pclog("Forcing interpreter on page %08X\n", phys_addr & 0xfffff000);
+                    x386_dynarec_log("Forcing interpreter on page %08X\n", phys_addr & 0xfffff000);
                     can_recompile = 0;
                 }
             }
