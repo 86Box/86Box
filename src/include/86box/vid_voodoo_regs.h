@@ -366,11 +366,14 @@ enum {
     FBZ_DEPTH_WMASK = (1 << 10),
     FBZ_DITHER_2x2  = (1 << 11),
 
+    FBZ_ALPHA_MASK = (1 << 13),
+
     FBZ_DRAW_FRONT = 0x0000,
     FBZ_DRAW_BACK  = 0x4000,
     FBZ_DRAW_MASK  = 0xc000,
 
     FBZ_DEPTH_BIAS = (1 << 16),
+    FBZ_ALPHA_ENABLE = (1 << 18), 
     FBZ_DITHER_SUB = (1 << 19),
 
     FBZ_DEPTH_SOURCE = (1 << 20),
@@ -655,6 +658,8 @@ enum {
 
 #define src_afunc               ((params->alphaMode >> 8) & 0xf)
 #define dest_afunc              ((params->alphaMode >> 12) & 0xf)
+#define src_aafunc              ((params->alphaMode >> 16) & 0xf)
+#define dest_aafunc             ((params->alphaMode >> 20) & 0xf)
 #define alpha_func              ((params->alphaMode >> 1) & 7)
 #define a_ref                   (params->alphaMode >> 24)
 #define depth_op                ((params->fbzMode >> 5) & 7)
