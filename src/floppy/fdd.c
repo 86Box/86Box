@@ -365,7 +365,7 @@ void
 fdd_seek(int drive, int track_diff)
 {
     fdd_log("fdd_seek(drive=%d, track_diff=%d)\n", drive, track_diff);
-    if (!track_diff)
+    if (track_diff == 0)
         return;
 
     if (fdd_seek_in_progress[drive]) {
@@ -411,6 +411,10 @@ fdd_seek(int drive, int track_diff)
 
         /* Get seek timings from audio profile configuration with direction awareness */
         double   seek_time_us = fdd_audio_get_seek_time(drive, actual_track_diff, is_seek_down);
+        if (seek_time_us < 1) {
+            seek_time_us = DEFAULT_SEEK_TIME_MS * 1000;
+        }
+
         fdd_log("Seek timing for drive %d: %.2f µs (%s)\n", 
                 drive, seek_time_us, is_seek_down ? "DOWN" : "UP");
         uint64_t seek_delay_us = seek_time_us * TIMER_USEC;
