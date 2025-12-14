@@ -656,6 +656,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     int block_pos       = 0;
     int z_skip_pos      = 0;
     int a_skip_pos      = 0;
+    int amask_skip_pos  = 0;
     int chroma_skip_pos = 0;
     int depth_jump_pos  = 0;
     int depth_jump_pos2 = 0;
@@ -1731,6 +1732,15 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addbyte(0x31); /*XOR EBX, EBX*/
                 addbyte(0xdb);
                 break;
+        }
+        if (params->fbzMode & FBZ_ALPHA_MASK) {
+            addbyte(0xf7); /*TEST EBX, 1*/
+            addbyte(0xc3);
+            addlong(1);
+            addbyte(0x0f); /* JZ amask_skip_pos */
+            addbyte(0x84);
+            amask_skip_pos = block_pos;
+            addlong(0);
         }
         /*ECX = a_local*/
         switch (cca_localselect) {
@@ -2986,6 +2996,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         *(uint32_t *) &code_block[a_skip_pos] = (block_pos - a_skip_pos) - 4;
     if (chroma_skip_pos)
         *(uint32_t *) &code_block[chroma_skip_pos] = (block_pos - chroma_skip_pos) - 4;
+    if (amask_skip_pos)
+        *(uint32_t *) &code_block[amask_skip_pos] = (block_pos - amask_skip_pos) - 4;
 
     addbyte(0x4c); /*MOV RSI, R15*/
     addbyte(0x89);
@@ -3224,6 +3236,12 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     int                b               = last_block[odd_even];
     voodoo_x86_data_t *voodoo_x86_data = voodoo->codegen_data;
     voodoo_x86_data_t *data;
+
+    if (params->fbzMode & FBZ_ALPHA_ENABLE) {
+        // Lands of Lore III relies on the alpha buffer functionality to create its transparent textures.
+        // Fallback to interpreter.
+        return NULL;
+    }
 
     for (uint8_t c = 0; c < 8; c++) {
         data = &voodoo_x86_data[odd_even + c * 4]; //&voodoo_x86_data[odd_even][b];
