@@ -24,6 +24,7 @@
 #define FDD_NUM              4
 #define FLOPPY_IMAGE_HISTORY 10
 #define SEEK_RECALIBRATE     -999
+#define DEFAULT_SEEK_TIME_MS 10.0
 
 #ifdef __cplusplus
 extern "C" {

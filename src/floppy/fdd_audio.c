@@ -291,7 +291,7 @@ fdd_audio_load_profiles(void)
 void
 load_profile_samples(int profile_id)
 {
-    if (profile_id <= 0 || profile_id >= audio_profile_count)
+    if (profile_id < 0 || profile_id >= audio_profile_count)
         return;
 
     fdd_audio_profile_config_t *config  = &audio_profiles[profile_id];
@@ -444,7 +444,7 @@ double
 fdd_audio_get_seek_time(int drive, int track_count, int is_seek_down)
 {
     int profile_id = fdd_get_audio_profile(drive);
-    if (profile_id <= 0 || profile_id >= audio_profile_count) {
+    if (profile_id < 0 || profile_id >= audio_profile_count) {
         return 0;
     }
 
