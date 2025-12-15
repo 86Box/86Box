@@ -263,20 +263,20 @@ typedef struct mach64_t {
 
 #ifdef DMA_BM
     struct {
-        atomic_int state;
+        ATOMIC_INT  state;
 
-        atomic_uint frame_buf_offset, system_buf_addr, command, status;
+        ATOMIC_UINT frame_buf_offset, system_buf_addr, command, status;
 
-        atomic_bool system_triggered;
+        ATOMIC_BOOL system_triggered;
 
         mutex_t *lock;
     } dma;
 #endif
 
     fifo_entry_t fifo[FIFO_SIZE];
-    atomic_int   fifo_read_idx;
-    atomic_int   fifo_write_idx;
-    atomic_int   blitter_busy;
+    ATOMIC_INT   fifo_read_idx;
+    ATOMIC_INT   fifo_write_idx;
+    ATOMIC_INT   blitter_busy;
 
     thread_t *fifo_thread;
     event_t  *wake_fifo_thread;
