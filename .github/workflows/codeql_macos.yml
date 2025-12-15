@@ -79,7 +79,7 @@ jobs:
           - arch: x86_64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
             slug: -x86_64
-            runner: macos-13
+            runner: macos-15-intel
 #          - arch: arm64
 #            toolchain: ./cmake/llvm-macos-aarch64.cmake
 #            slug: -arm64
