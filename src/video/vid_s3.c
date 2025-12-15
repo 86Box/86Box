@@ -354,7 +354,7 @@ typedef struct s3_t {
         int        input;
         int        len, start;
         int        odf, idf, yuv;
-        atomic_int busy;
+        ATOMIC_INT busy;
     } videoengine;
 
     struct
@@ -390,7 +390,7 @@ typedef struct s3_t {
     } streams;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    atomic_int   fifo_read_idx, fifo_write_idx;
+    ATOMIC_INT   fifo_read_idx, fifo_write_idx;
 
     uint8_t fifo_thread_run;
 
@@ -398,7 +398,7 @@ typedef struct s3_t {
     event_t  *wake_fifo_thread;
     event_t  *fifo_not_full_event;
 
-    atomic_int blitter_busy;
+    ATOMIC_INT blitter_busy;
     uint64_t blitter_time;
     uint64_t status_time;
 
@@ -410,7 +410,7 @@ typedef struct s3_t {
     int        translate;
     int        enable_8514;
     int        color_16bit;
-    atomic_int busy, force_busy;
+    ATOMIC_INT busy, force_busy;
 
     bool color_key_enabled;
 
