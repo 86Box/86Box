@@ -344,8 +344,8 @@ __thread int is_cpu_thread = 0;
 
 static wchar_t mouse_msg[3][200];
 
-static volatile ATOMIC_INT do_pause_ack = 0;
-static volatile ATOMIC_INT pause_ack = 0;
+static ATOMIC_INT do_pause_ack = 0;
+static ATOMIC_INT pause_ack = 0;
 
 #define LOG_SIZE_BUFFER 8192            /* Log size buffer */
 
