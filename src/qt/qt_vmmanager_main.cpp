@@ -23,6 +23,7 @@
 #include <QStringListModel>
 #include <QTimer>
 #include <QProgressDialog>
+#include <QShortcut>
 
 #include <thread>
 #include <atomic>
@@ -404,7 +405,12 @@ illegal_chars:
         ui->listView->setCurrentIndex(first_index);
     }
 
-    connect(ui->listView, &QListView::activated, this, &VMManagerMain::startButtonPressed);
+    // Connect double-click to start VM
+    connect(ui->listView, &QListView::doubleClicked, this, &VMManagerMain::startButtonPressed);
+
+    // Connect Enter key to start VM
+    auto enterShortcut = new QShortcut(QKeySequence(Qt::Key_Return), ui->listView);
+    connect(enterShortcut, &QShortcut::activated, this, &VMManagerMain::startButtonPressed);
 
     // Load and apply settings
     loadSettings();
