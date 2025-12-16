@@ -1751,6 +1751,13 @@ write_cmd_chips(void *priv, uint8_t val)
             dev->state     = STATE_KBC_PARAM;
             ret = 0;
             break;
+
+        case 0xb3: /* Unknown */
+            kbc_at_log("ATkbc: C&T - Unknown\n");
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
+            ret = 0;
+            break;
     }
 
     return ret;
