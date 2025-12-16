@@ -605,6 +605,14 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_reg_reset();
     codegen_accumulate_reset();
     codegen_generate_reset();
+
+#if defined __amd64__ || defined _M_X64
+    codegen_exit_rout = &block->data[5 + 13];
+    codegen_gpf_rout = &block->data[5];
+#else
+    codegen_exit_rout = block->data + 4;
+    codegen_gpf_rout = block->data + 4 + 20;
+#endif
 }
 
 void

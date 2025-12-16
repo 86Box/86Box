@@ -286,7 +286,8 @@ static void codegen_allocate_new_block(codeblock_t *block);
 static inline void
 codegen_addlong(codeblock_t *block, uint32_t val)
 {
-    if (block_pos >= (BLOCK_MAX - 4))
+    uint64_t rem_size = codegen_allocator_get_usable_size(block->head_mem_block);
+    if (block_pos >= (rem_size - 4))
         codegen_allocate_new_block(block);
     *(uint32_t *) &block_write_data[block_pos] = val;
     block_pos += 4;
@@ -295,25 +296,26 @@ codegen_addlong(codeblock_t *block, uint32_t val)
 static void
 codegen_allocate_new_block(codeblock_t *block)
 {
-    /*Current block is full. Allocate a new block*/
+    /*Current block is full. Extend the block*/
     struct mem_block_t *new_block = codegen_allocator_allocate(block->head_mem_block, get_block_nr(block));
     uint8_t            *new_ptr   = codeblock_allocator_get_ptr(new_block);
-    uint32_t            offset    = (uintptr_t) new_ptr - (uintptr_t) &block_write_data[block_pos];
+    //uint32_t            offset    = (uintptr_t) new_ptr - (uintptr_t) &block_write_data[block_pos];
 
-    if (!offset_is_26bit(offset))
-        fatal("codegen_allocate_new_block - offset out of range %x\n", offset);
-    /*Add a jump instruction to the new block*/
-    *(uint32_t *) &block_write_data[block_pos] = OPCODE_B | OFFSET26(offset);
-
-    /*Set write address to start of new block*/
-    block_pos        = 0;
-    block_write_data = new_ptr;
+    //if (!offset_is_26bit(offset))
+    //    fatal("codegen_allocate_new_block - offset out of range %x\n", offset);
+    ///*Add a jump instruction to the new block*/
+    //*(uint32_t *) &block_write_data[block_pos] = OPCODE_B | OFFSET26(offset);
+//
+    ///*Set write address to start of new block*/
+    //block_pos        = 0;
+    //block_write_data = new_ptr;
 }
 
 void
 codegen_alloc(codeblock_t *block, int size)
 {
-    if (block_pos >= (BLOCK_MAX - size))
+    uint64_t rem_size = codegen_allocator_get_usable_size(block->head_mem_block);
+    if (block_pos >= (rem_size - size))
         codegen_allocate_new_block(block);
 }
 
@@ -1065,6 +1067,18 @@ void
 host_arm64_MOV_REG_ROR(codeblock_t *block, int dst_reg, int src_m_reg, int shift)
 {
     codegen_addlong(block, OPCODE_ORR_ROR | Rd(dst_reg) | Rn(REG_WZR) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
+}
+
+void
+host_arm64_MOVX_IMM_alt(codeblock_t *block, int reg, uint64_t imm_data)
+{
+    codegen_addlong(block, OPCODE_MOVZ_X | MOV_WIDE_HW(0) | IMM16(imm_data & 0xffff) | Rd(reg));
+    
+    codegen_addlong(block, OPCODE_MOVK_X | MOV_WIDE_HW(1) | IMM16((imm_data >> 16) & 0xffff) | Rd(reg));
+    
+    codegen_addlong(block, OPCODE_MOVK_X | MOV_WIDE_HW(2) | IMM16((imm_data >> 32) & 0xffff) | Rd(reg));
+    
+    codegen_addlong(block, OPCODE_MOVK_X | MOV_WIDE_HW(3) | IMM16((imm_data >> 48) & 0xffff) | Rd(reg));
 }
 
 void

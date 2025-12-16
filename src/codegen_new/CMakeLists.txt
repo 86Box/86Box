@@ -19,7 +19,7 @@ if(DYNAREC)
     add_library(dynarec OBJECT
         codegen.c
         codegen_accumulate.c
-        codegen_allocator.c
+        codegen_allocator_new.c
         codegen_block.c
         codegen_ir.c
         codegen_ops.c

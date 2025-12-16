@@ -31,6 +31,9 @@ void codegen_allocator_free(struct mem_block_t *block);
 uint8_t *codeblock_allocator_get_ptr(struct mem_block_t *block);
 /*Cache clean memory block list*/
 void codegen_allocator_clean_blocks(struct mem_block_t *block);
+void codegen_allocator_clean_blocks_sized(struct mem_block_t *block, uint64_t size);
+
+uint64_t codegen_allocator_get_usable_size(struct mem_block_t *block);
 
 extern int codegen_allocator_usage;
 

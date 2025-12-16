@@ -5,6 +5,7 @@
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
+#    include <86box/plat_unused.h>
 
 #    include "codegen.h"
 #    include "codegen_allocator.h"
@@ -12,6 +13,7 @@
 #    include "codegen_backend_x86-64_defs.h"
 #    include "codegen_backend_x86-64_ops.h"
 #    include "codegen_backend_x86-64_ops_sse.h"
+#    include "codegen_backend_x86-64_ops_helpers.h"
 #    include "codegen_reg.h"
 #    include "x86.h"
 #    include "x86seg_common.h"
@@ -39,6 +41,9 @@ void *codegen_mem_store_long;
 void *codegen_mem_store_quad;
 void *codegen_mem_store_single;
 void *codegen_mem_store_double;
+
+void *codegen_gpf_rout_real = NULL;
+void *codegen_exit_rout_real = NULL;
 
 void *codegen_gpf_rout;
 void *codegen_exit_rout;
@@ -305,7 +310,8 @@ codegen_backend_init(void)
     block_write_data                        = codeblock[block_current].data;
     build_loadstore_routines(&codeblock[block_current]);
 
-    codegen_gpf_rout = &codeblock[block_current].data[block_pos];
+    codegen_gpf_rout_real = &codeblock[block_current].data[block_pos];
+    codegen_gpf_rout = codegen_gpf_rout_real;
 #    if _WIN64
     host_x86_XOR32_REG_REG(block, REG_ECX, REG_ECX);
     host_x86_XOR32_REG_REG(block, REG_EDX, REG_EDX);
@@ -314,7 +320,8 @@ codegen_backend_init(void)
     host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
 #    endif
     host_x86_CALL(block, (void *) x86gpf);
-    codegen_exit_rout = &codeblock[block_current].data[block_pos];
+    codegen_exit_rout_real = &codeblock[block_current].data[block_pos];
+    codegen_exit_rout = codegen_gpf_rout_real;
 #ifdef _WIN64
     host_x86_ADD64_REG_IMM(block, REG_RSP, 0x38);
 #else
@@ -350,6 +357,21 @@ void
 codegen_backend_prologue(codeblock_t *block)
 {
     block_pos = BLOCK_START; /*Entry code*/
+    host_x86_JMP(block, &block_write_data[block_pos] + 31);
+    codegen_gpf_rout = &block_write_data[block_pos];
+    {
+        codegen_alloc_bytes(block, 13);
+        codegen_addbyte2(block, 0x49, 0xb9); /*MOV R9, func*/
+        codegen_addquad(block, (uint64_t)codegen_gpf_rout_real);
+        codegen_addbyte3(block, 0x41, 0xff, 0xe1); /*JMP R9*/
+    }
+    codegen_exit_rout = &block_write_data[block_pos];
+    {
+        codegen_alloc_bytes(block, 13);
+        codegen_addbyte2(block, 0x49, 0xb9); /*MOV R9, func*/
+        codegen_addquad(block, (uint64_t)codegen_exit_rout_real);
+        codegen_addbyte3(block, 0x41, 0xff, 0xe1); /*JMP R9*/
+    }
     host_x86_PUSH(block, REG_RBX);
     host_x86_PUSH(block, REG_RBP);
 #ifdef _WIN64

@@ -81,18 +81,19 @@ codegen_addquad(UNUSED(codeblock_t *block), uint64_t val)
 static inline void
 codegen_alloc_bytes(codeblock_t *block, int size)
 {
-    if (block_pos > ((BLOCK_MAX - size) - JMP_LEN_BYTES)) {
-        /*Current block is full. Allocate a new block*/
+    uint64_t rem_size = codegen_allocator_get_usable_size(block->head_mem_block);
+    if (block_pos > ((rem_size - size) - JMP_LEN_BYTES)) {
+        /*Current block is full. Extend the block*/
         struct mem_block_t *new_block = codegen_allocator_allocate(block->head_mem_block, get_block_nr(block));
         uint8_t            *new_ptr   = codeblock_allocator_get_ptr(new_block);
 
         /*Add a jump instruction to the new block*/
-        codegen_addbyte(block, 0xe9); /*JMP*/
-        codegen_addlong(block, (uintptr_t) new_ptr - (uintptr_t) &block_write_data[block_pos + 4]);
+        //codegen_addbyte(block, 0xe9); /*JMP*/
+        //codegen_addlong(block, (uintptr_t) new_ptr - (uintptr_t) &block_write_data[block_pos + 4]);
 
-        /*Set write address to start of new block*/
-        block_pos        = 0;
-        block_write_data = new_ptr;
+        ///*Set write address to start of new block*/
+        //block_pos        = 0;
+        //block_write_data = new_ptr;
     }
 }
 

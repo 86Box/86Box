@@ -44,6 +44,9 @@ void *codegen_mem_store_double;
 void *codegen_fp_round;
 void *codegen_fp_round_quad;
 
+void *codegen_gpf_rout_real;
+void *codegen_exit_rout_real;
+
 void *codegen_gpf_rout;
 void *codegen_exit_rout;
 
@@ -309,12 +312,12 @@ codegen_backend_init(void)
     build_fp_round_routine(block, 1);
 
     codegen_alloc(block, 80);
-    codegen_gpf_rout = &block_write_data[block_pos];
+    codegen_gpf_rout_real = &block_write_data[block_pos];
     host_arm64_mov_imm(block, REG_ARG0, 0);
     host_arm64_mov_imm(block, REG_ARG1, 0);
     host_arm64_call(block, (void *) x86gpf);
 
-    codegen_exit_rout = &block_write_data[block_pos];
+    codegen_exit_rout_real = &block_write_data[block_pos];
     host_arm64_LDP_POSTIDX_X(block, REG_X19, REG_X20, REG_XSP, 64);
     host_arm64_LDP_POSTIDX_X(block, REG_X21, REG_X22, REG_XSP, 16);
     host_arm64_LDP_POSTIDX_X(block, REG_X23, REG_X24, REG_XSP, 16);
@@ -346,6 +349,18 @@ codegen_backend_prologue(codeblock_t *block)
     block_pos = BLOCK_START;
 
     /*Entry code*/
+    host_arm64_B(block, &block_write_data[block_pos + (4 + 4 + 4 + 4 + 4) * 2] + 4);
+
+    codegen_exit_rout = &block_write_data[block_pos];
+    host_arm64_MOVX_IMM_alt(block, REG_X16, (uint64_t)codegen_exit_rout_real);
+    host_arm64_BR(block, REG_X16);
+    
+    codegen_gpf_rout = &block_write_data[block_pos];
+    host_arm64_MOVX_IMM_alt(block, REG_X16, (uint64_t)codegen_gpf_rout_real);
+    host_arm64_BR(block, REG_X16);
+
+    host_arm64_NOP(block);
+    host_arm64_NOP(block);
 
     host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);
     host_arm64_STP_PREIDX_X(block, REG_X27, REG_X28, REG_XSP, -16);
@@ -374,7 +389,7 @@ codegen_backend_epilogue(codeblock_t *block)
     host_arm64_LDP_POSTIDX_X(block, REG_X29, REG_X30, REG_XSP, 16);
     host_arm64_RET(block, REG_X30);
 
-    codegen_allocator_clean_blocks(block->head_mem_block);
+    codegen_allocator_clean_blocks_sized(block->head_mem_block, block_pos);
 }
 
 #endif

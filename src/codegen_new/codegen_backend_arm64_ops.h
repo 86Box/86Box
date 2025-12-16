@@ -151,6 +151,7 @@ void host_arm64_MOV_REG_LSR(codeblock_t *block, int dst_reg, int src_m_reg, int 
 void host_arm64_MOV_REG_ROR(codeblock_t *block, int dst_reg, int src_m_reg, int shift);
 
 void host_arm64_MOVX_IMM(codeblock_t *block, int reg, uint64_t imm_data);
+void host_arm64_MOVX_IMM_alt(codeblock_t *block, int reg, uint64_t imm_data);
 void host_arm64_MOVX_REG(codeblock_t *block, int dst_reg, int src_m_reg, int shift);
 
 void host_arm64_MOVZ_IMM(codeblock_t *block, int reg, uint32_t imm_data);

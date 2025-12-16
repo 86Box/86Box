@@ -1,5 +1,5 @@
 #if defined __amd64__ || defined _M_X64
-
+#define RECOMPILER_DEBUG 1
 #    include <stdint.h>
 #    include <inttypes.h>
 #    include <86box/86box.h>

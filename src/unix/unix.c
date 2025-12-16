@@ -446,6 +446,42 @@ plat_mmap(size_t size, uint8_t executable)
     return (ret < 0) ? NULL : ret;
 }
 
+void *
+plat_mmap_fixed(size_t size, uint8_t executable, void *addr, uint64_t offset, uintptr_t* outhandle)
+{
+#if defined __APPLE__ && defined MAP_JIT
+    void *ret = mmap((uint8_t*)addr + offset, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_FIXED | MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
+#elif defined(PROT_MPROTECT)
+    void *ret = mmap((uint8_t*)addr + offset, size, PROT_MPROTECT(PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0)), MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
+#else
+    void *ret = mmap((uint8_t*)addr + offset, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
+#endif
+    (void)outhandle;
+    return (ret < 0) ? NULL : ret;
+}
+
+void *
+plat_mmap_replaceable(size_t size, uintptr_t* handle)
+{
+    void *ret;
+    (void)handle;
+
+    ret = mmap(0, size, PROT_NONE, MAP_ANON | MAP_PRIVATE, -1, 0);
+    return (ret < 0) ? NULL : ret;
+}
+
+void
+plat_mmap_slice(void* addr, size_t size_of_chunk, size_t num)
+{
+    // Non-Windows does not need placeholders to be sliced.
+}
+
+void
+plat_mmap_unfixed(size_t size, uintptr_t* out_fd, void* addr)
+{
+    mmap(addr, size, PROT_NONE, MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
+}
+
 void
 plat_munmap(void *ptr, size_t size)
 {

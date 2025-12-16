@@ -19,7 +19,9 @@
 #ifdef __HAIKU__
 #    include <OS.h>
 #endif
-
+#define _WIN32_WINNT _WIN32_WINNT_WIN10
+#undef NTDDI_VERSION
+#define NTDDI_VERSION 0x0A000007
 #include <cstdio>
 
 #include <mutex>
@@ -436,6 +438,60 @@ plat_mmap(size_t size, uint8_t executable)
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #    endif
     return (ret == MAP_FAILED) ? nullptr : ret;
+#endif
+}
+
+void *
+plat_mmap_fixed(size_t size, uint8_t executable, void* addr, uint64_t offset, uintptr_t* out_handle)
+{
+#if defined Q_OS_WINDOWS
+    return MapViewOfFile3((HANDLE)*out_handle, GetCurrentProcess(), (uint8_t*)addr + offset, offset, size, MEM_REPLACE_PLACEHOLDER, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, NULL, 0);
+#elif defined Q_OS_UNIX
+#    if defined Q_OS_DARWIN && defined MAP_JIT
+    void *ret = mmap((uint8_t*)addr + offset, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_FIXED | MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
+#    elif defined(PROT_MPROTECT)
+    void *ret = mmap((uint8_t*)addr + offset, size, PROT_MPROTECT(PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0)), MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
+    if (ret)
+        mprotect(ret, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0));
+#    else
+    void *ret = mmap((uint8_t*)addr + offset, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
+#    endif
+    return (ret == MAP_FAILED) ? nullptr : ret;
+#endif
+}
+
+void
+plat_mmap_slice(void* addr, size_t size_of_chunk, size_t num)
+{
+#if defined Q_OS_WINDOWS
+    // num - 1 because the last one is already sliced properly.
+    for (int i = 0; i < (num - 1); i++) {
+        VirtualFree((void*)(((uint8_t*)addr) + (size_of_chunk * i)), size_of_chunk, MEM_PRESERVE_PLACEHOLDER | MEM_RELEASE);
+    }
+#endif
+    // Non-Windows does not need placeholders to be sliced.
+}
+
+void *
+plat_mmap_replaceable(size_t size, uintptr_t* out_fd)
+{
+#if defined Q_OS_WINDOWS
+    if (!*out_fd)
+        *out_fd = (uintptr_t)CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_EXECUTE_READWRITE, size >> 32ull, size & 0xffffffff, NULL);
+    return VirtualAlloc2(GetCurrentProcess(), NULL, size, MEM_RESERVE_PLACEHOLDER | MEM_RESERVE, PAGE_NOACCESS, NULL, 0);
+#elif defined Q_OS_UNIX
+    void *ret = mmap(0, size, PROT_NONE, MAP_ANON | MAP_PRIVATE, -1, 0);
+    return (ret == MAP_FAILED) ? nullptr : ret;
+#endif
+}
+
+void
+plat_mmap_unfixed(size_t size, uintptr_t* out_fd, void* addr)
+{
+#if defined Q_OS_WINDOWS
+    UnmapViewOfFileEx(addr, MEM_PRESERVE_PLACEHOLDER);
+#else
+    mmap(addr, size, PROT_NONE, MAP_FIXED | MAP_ANON | MAP_PRIVATE, -1, 0);
 #endif
 }
 

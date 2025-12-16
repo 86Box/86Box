@@ -9,7 +9,7 @@
 
 #define HASH(l)     ((l) &0x1ffff)
 
-#define BLOCK_MAX   0x3c0
+#define BLOCK_MAX   0xff00
 
 void host_arm64_BLR(codeblock_t *block, int addr_reg);
 void host_arm64_CBNZ(codeblock_t *block, int reg, uintptr_t dest);
