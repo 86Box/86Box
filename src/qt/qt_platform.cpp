@@ -445,7 +445,12 @@ void *
 plat_mmap_fixed(size_t size, uint8_t executable, void* addr, uint64_t offset, uintptr_t* out_handle)
 {
 #if defined Q_OS_WINDOWS
-    return MapViewOfFile3((HANDLE)*out_handle, GetCurrentProcess(), (uint8_t*)addr + offset, offset, size, MEM_REPLACE_PLACEHOLDER, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, NULL, 0);
+    auto ret = MapViewOfFile3((HANDLE)*out_handle, GetCurrentProcess(), (uint8_t*)addr + offset, offset, size, MEM_REPLACE_PLACEHOLDER, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, NULL, 0);
+    if (ret) {
+        VirtualAlloc2(GetCurrentProcess(), ret, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, NULL, 0);
+        VirtualLock(ret, size);
+    }
+    return ret;
 #elif defined Q_OS_UNIX
 #    if defined Q_OS_DARWIN && defined MAP_JIT
     void *ret = mmap((uint8_t*)addr + offset, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_FIXED | MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);

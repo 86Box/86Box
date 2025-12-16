@@ -19,12 +19,6 @@
 #include "codegen.h"
 #include "codegen_allocator.h"
 
-typedef struct mem_block_t {
-    uint8_t* code_block;
-    uint64_t usable_size;
-    uintptr_t handle;
-} mem_block_t;
-
 static uint8_t* codeblock_memory_blocks[0x4000];
 static mem_block_t codeblock_memblock_struct[0x4000];
 
@@ -35,6 +29,10 @@ void codegen_allocator_init(void)
         codeblock_memblock_struct[i].code_block = codeblock_memory_blocks[i];
         codeblock_memblock_struct[i].usable_size = 0;
         plat_mmap_slice(codeblock_memory_blocks[i], 16384, 4);
+        codeblock_memblock_struct[i].code_block = plat_mmap_fixed(16384, 1, codeblock_memblock_struct[i].code_block, 0, &codeblock_memblock_struct[i].handle);
+        if (!codeblock_memblock_struct[i].code_block)
+            fatal("mmap failed!\n");
+        codeblock_memblock_struct[i].usable_size = 16384;
     }
 }
 
@@ -69,11 +67,6 @@ uint8_t *codeblock_allocator_get_ptr(struct mem_block_t *block)
 void codegen_allocator_free(struct mem_block_t *block)
 {
     // We can't free those, yet. I don't think macOS allows replacing pages either.
-}
-
-uint64_t codegen_allocator_get_usable_size(struct mem_block_t *block)
-{
-    return block->usable_size;
 }
 
 void codegen_allocator_clean_blocks(struct mem_block_t *block)

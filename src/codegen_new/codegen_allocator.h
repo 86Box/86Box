@@ -14,11 +14,11 @@
   instruction. ARMv8 is limited to +/- 128 MB, x86 to
   +/- 2GB. It was 32 MB on ARMv7 before we removed it*/
 
-#define MEM_BLOCK_NR 131072
-
-
-#define MEM_BLOCK_MASK (MEM_BLOCK_NR - 1)
-#define MEM_BLOCK_SIZE 0x3c0
+typedef struct mem_block_t {
+    uint8_t* code_block;
+    uint64_t usable_size;
+    uintptr_t handle;
+} mem_block_t;
 
 void codegen_allocator_init(void);
 /*Allocate a mem_block_t, and the associated backing memory.
@@ -33,7 +33,10 @@ uint8_t *codeblock_allocator_get_ptr(struct mem_block_t *block);
 void codegen_allocator_clean_blocks(struct mem_block_t *block);
 void codegen_allocator_clean_blocks_sized(struct mem_block_t *block, uint64_t size);
 
-uint64_t codegen_allocator_get_usable_size(struct mem_block_t *block);
+static inline uint64_t codegen_allocator_get_usable_size(struct mem_block_t *block)
+{
+  return block->usable_size;
+}
 
 extern int codegen_allocator_usage;
 
