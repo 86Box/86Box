@@ -1515,21 +1515,6 @@ msgstr ""
 msgid "Could not fix VHD timestamp."
 msgstr ""
 
-msgid "MFM/RLL"
-msgstr ""
-
-msgid "XTA"
-msgstr ""
-
-msgid "ESDI"
-msgstr ""
-
-msgid "IDE"
-msgstr ""
-
-msgid "ATAPI"
-msgstr ""
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr ""
 

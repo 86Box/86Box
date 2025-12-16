@@ -1523,21 +1523,6 @@ msgstr "Časovna žiga nadrejene in podrejene slike diska se ne ujemata"
 msgid "Could not fix VHD timestamp."
 msgstr "Ne morem popraviti časovnega žiga slike VHD."
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 

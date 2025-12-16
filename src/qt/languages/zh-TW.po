@@ -1515,21 +1515,6 @@ msgstr "父碟與子碟的時間戳不匹配"
 msgid "Could not fix VHD timestamp."
 msgstr "無法修復 VHD 時間戳。"
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "光碟 %1 (%2): %3"
 

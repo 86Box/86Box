@@ -1521,21 +1521,6 @@ msgstr "Die Zeitstempel der Eltern- und der Kindesplatte stimmen nicht überein"
 msgid "Could not fix VHD timestamp."
 msgstr "Der Zeitstempel der VHD konnte nicht korrigiert werden."
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 

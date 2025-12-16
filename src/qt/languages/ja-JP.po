@@ -1522,21 +1522,6 @@ msgstr "親ディスクと子ディスクのタイムス タンプが一致し�
 msgid "Could not fix VHD timestamp."
 msgstr "VHD のタイムスタンプを修正できません。"
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 

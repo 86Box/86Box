@@ -1515,21 +1515,6 @@ msgstr "부모 디스크와 자식 디스크의 타임스탬프가 일치하지 
 msgid "Could not fix VHD timestamp."
 msgstr "VHD 타임스탬프를 고칠 수 없습니다."
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 

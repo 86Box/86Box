@@ -1523,21 +1523,6 @@ msgstr "Тимчасові мітки батьківського та дочір
 msgid "Could not fix VHD timestamp."
 msgstr "Не вдалося виправити тимчасову позначку VHD."
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 

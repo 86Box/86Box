@@ -1515,21 +1515,6 @@ msgstr "父盘与子盘的时间戳不匹配"
 msgid "Could not fix VHD timestamp."
 msgstr "无法修复 VHD 时间戳。"
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "光盘 %1 (%2): %3"
 

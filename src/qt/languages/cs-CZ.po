@@ -1521,21 +1521,6 @@ msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí"
 msgid "Could not fix VHD timestamp."
 msgstr "Nebylo možné opravit časové razítko VHD disku."
 
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
-
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
 
