@@ -516,23 +516,23 @@ msgstr "並列埠 3"
 msgid "Parallel port 4"
 msgstr "並列埠 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "軟碟控制器:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
-msgid "Tertiary IDE Controller"
-msgstr "第三 IDE 控制器"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] 第三 IDE 控制器"
 
-msgid "Quaternary IDE Controller"
-msgstr "第四 IDE 控制器"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] 第四 IDE 控制器"
 
-msgid "Hard disk"
-msgstr "硬碟"
+msgid "Hard disk controllers"
+msgstr "硬碟控制器"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI 控制器"
 
 msgid "Controller 1:"
 msgstr "控制器 1:"
@@ -1976,6 +1976,9 @@ msgstr "序列埠的 IRQ"
 
 msgid "Parallel port IRQ"
 msgstr "並列埠的 IRQ"
+
+msgid "Hard disk"
+msgstr "硬碟"
 
 msgid "BIOS Revision"
 msgstr "BIOS 修訂版號"

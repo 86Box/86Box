@@ -522,23 +522,23 @@ msgstr "Rinnakkaisportti 3"
 msgid "Parallel port 4"
 msgstr "Rinnakkaisportti 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Levykeohjain:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Kolmas IDE-ohjain"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Kolmas IDE-ohjain"
 
-msgid "Quaternary IDE Controller"
-msgstr "Neljäs IDE-ohjain"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Neljäs IDE-ohjain"
 
-msgid "Hard disk"
-msgstr "Kiintolevy"
+msgid "Hard disk controllers"
+msgstr "Kiintolevyohjaimet"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-ohjaimet"
 
 msgid "Controller 1:"
 msgstr "Ohjain 1:"
@@ -1982,6 +1982,9 @@ msgstr "Sarjaportin IRQ"
 
 msgid "Parallel port IRQ"
 msgstr "Rinnakkaisportin IRQ"
+
+msgid "Hard disk"
+msgstr "Kiintolevy"
 
 msgid "BIOS Revision"
 msgstr "BIOS-versio"

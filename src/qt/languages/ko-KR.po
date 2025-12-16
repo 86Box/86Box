@@ -516,23 +516,23 @@ msgstr "병렬 포트 3"
 msgid "Parallel port 4"
 msgstr "병렬 포트 4"
 
-msgid "FD Controller:"
-msgstr "FD 컨트롤러:"
+msgid "FD controller:"
+msgstr "플로피 디스크 컨트롤러:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM 컨트롤러:"
 
-msgid "Tertiary IDE Controller"
-msgstr "제3의 IDE 컨트롤러"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] 제3의 IDE 컨트롤러"
 
-msgid "Quaternary IDE Controller"
-msgstr "제4의 IDE 컨트롤러"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] 제4의 IDE 컨트롤러"
 
-msgid "Hard disk"
-msgstr "하드 디스크"
+msgid "Hard disk controllers"
+msgstr "하드 디스크 컨트롤러"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI 컨트롤러"
 
 msgid "Controller 1:"
 msgstr "컨트롤러 1:"
@@ -1976,6 +1976,9 @@ msgstr "시리얼 포트 IRQ"
 
 msgid "Parallel port IRQ"
 msgstr "병렬 포트 IRQ"
+
+msgid "Hard disk"
+msgstr "하드 디스크"
 
 msgid "BIOS Revision"
 msgstr "BIOS 개정"

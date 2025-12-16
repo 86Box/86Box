@@ -522,23 +522,23 @@ msgstr "Povolit port LPT3"
 msgid "Parallel port 4"
 msgstr "Povolit port LPT4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Disketový řadič:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Řadič CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Třetí řadič IDE"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Třetí řadič IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Čtvrtý řadič IDE"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Čtvrtý řadič IDE"
 
-msgid "Hard disk"
-msgstr "Pevný disk"
+msgid "Hard disk controllers"
+msgstr "Řadiče pevných disků"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Řadiče SCSI"
 
 msgid "Controller 1:"
 msgstr "Řadič 1:"
@@ -1982,6 +1982,9 @@ msgstr "Přerušení sériového portu"
 
 msgid "Parallel port IRQ"
 msgstr "Přerušení paralelního portu"
+
+msgid "Hard disk"
+msgstr "Pevný disk"
 
 msgid "BIOS Revision"
 msgstr "Revize BIOS"

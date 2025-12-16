@@ -516,23 +516,23 @@ msgstr "3. Paralel bağlantı noktası"
 msgid "Parallel port 4"
 msgstr "4. Paralel bağlantı noktası"
 
-msgid "FD Controller:"
-msgstr "Disket Denetleyicisi:"
+msgid "Floppy disk controller:"
+msgstr "Disket denetleyicisi:"
 
-msgid "CD-ROM Controller:"
-msgstr "CD-ROM Denetleyicisi:"
+msgid "CD-ROM controller:"
+msgstr "CD-ROM denetleyicisi:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Üçüncül IDE Denetleyicisi"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Üçüncül IDE denetleyicisi"
 
-msgid "Quaternary IDE Controller"
-msgstr "Dördüncül IDE Denetleyicisi"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Dördüncül IDE denetleyicisi"
 
-msgid "Hard disk"
-msgstr "Sabit disk"
+msgid "Hard disk controllers"
+msgstr "Sabit disk denetleyicileri"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI denetleyicileri"
 
 msgid "Controller 1:"
 msgstr "1. Denetleyici:"
@@ -1976,6 +1976,9 @@ msgstr "Seri bağlantı noktası IRQ'su"
 
 msgid "Parallel port IRQ"
 msgstr "Paralel bağlantı noktası IRQ'su"
+
+msgid "Hard disk"
+msgstr "Sabit disk"
 
 msgid "BIOS Revision"
 msgstr "BIOS Revizyonu"

@@ -522,23 +522,23 @@ msgstr "Port parallèle 3"
 msgid "Parallel port 4"
 msgstr "Port parallèle 4"
 
-msgid "FD Controller:"
-msgstr "Contrôleur FD :"
+msgid "Floppy disk controller:"
+msgstr "Contrôleur de disquette :"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Contrôleur CD-ROM :"
 
-msgid "Tertiary IDE Controller"
-msgstr "Troisième contrôleur IDE"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Troisième contrôleur IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Quatrième contrôleur IDE"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Quatrième contrôleur IDE"
 
-msgid "Hard disk"
-msgstr "Disque dur"
+msgid "Hard disk controllers"
+msgstr "Contrôleurs de disque dur"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Contrôleurs SCSI"
 
 msgid "Controller 1:"
 msgstr "Contrôleur 1 :"
@@ -1982,6 +1982,9 @@ msgstr "IRQ du port série"
 
 msgid "Parallel port IRQ"
 msgstr "IRQ du port parallèle"
+
+msgid "Hard disk"
+msgstr "Disque dur"
 
 msgid "BIOS Revision"
 msgstr "Révision du BIOS"

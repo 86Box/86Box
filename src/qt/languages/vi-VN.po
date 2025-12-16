@@ -516,23 +516,23 @@ msgstr "Cổng parallel 3"
 msgid "Parallel port 4"
 msgstr "Cổng parallel 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Bộ điều khiển ổ mềm:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Bộ điều khiển CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Bộ điều khiển IDE thứ ba"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Bộ điều khiển IDE thứ ba"
 
-msgid "Quaternary IDE Controller"
-msgstr "Bộ điều khiển IDE thứ tư"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Bộ điều khiển IDE thứ tư"
 
-msgid "Hard disk"
-msgstr "Ổ cứng"
+msgid "Hard disk controllers"
+msgstr "Bộ điều khiển ổ cứng"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Bộ điều khiển SCSI"
 
 msgid "Controller 1:"
 msgstr "Bộ điều khiển 1:"
@@ -1976,6 +1976,9 @@ msgstr "IRQ cổng serial"
 
 msgid "Parallel port IRQ"
 msgstr "IRQ cổng parallel"
+
+msgid "Hard disk"
+msgstr "Ổ cứng"
 
 msgid "BIOS Revision"
 msgstr "Sửa đổi BIOS"

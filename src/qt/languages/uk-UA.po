@@ -524,23 +524,23 @@ msgstr "Паралельний порт LPT3"
 msgid "Parallel port 4"
 msgstr "Паралельний порт LPT4"
 
-msgid "FD Controller:"
-msgstr "Контролер FD:"
+msgid "Floppy disk controller:"
+msgstr "Контролер гнучких дисків:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Контролер CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Третинний IDE контролер"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Третинний контролер IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Четвертинний IDE контролер"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Четвертинний контролер IDE"
 
-msgid "Hard disk"
-msgstr "Жорсткий диск"
+msgid "Hard disk controllers"
+msgstr "Контролери жорстких дисків"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Контролери SCSI"
 
 msgid "Controller 1:"
 msgstr "Контролер 1:"
@@ -1984,6 +1984,9 @@ msgstr "IRQ послідовного порту"
 
 msgid "Parallel port IRQ"
 msgstr "IRQ паралельного порту"
+
+msgid "Hard disk"
+msgstr "Жорсткий диск"
 
 msgid "BIOS Revision"
 msgstr "Ревізія BIOS"

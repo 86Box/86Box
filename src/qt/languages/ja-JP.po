@@ -523,23 +523,23 @@ msgstr "パラレルポート3"
 msgid "Parallel port 4"
 msgstr "パラレルポート4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "FDDコントローラー:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
 
-msgid "Tertiary IDE Controller"
-msgstr "第三IDEコントローラー"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] 第三IDEコントローラー"
 
-msgid "Quaternary IDE Controller"
-msgstr "第四IDEコントローラー"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] 第四IDEコントローラー"
 
-msgid "Hard disk"
-msgstr "ハードディスク"
+msgid "Hard disk controllers"
+msgstr "ハードディスクコントローラー"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSIコントローラー"
 
 msgid "Controller 1:"
 msgstr "コントローラー1:"
@@ -1983,6 +1983,9 @@ msgstr "シリアルポートのIRQ"
 
 msgid "Parallel port IRQ"
 msgstr "パラレルポートのIRQ"
+
+msgid "Hard disk"
+msgstr "ハードディスク"
 
 msgid "BIOS Revision"
 msgstr "BIOSリビジョン"

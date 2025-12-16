@@ -516,23 +516,23 @@ msgstr "Parallellport 3"
 msgid "Parallel port 4"
 msgstr "Parallellport 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Styrenhet för diskett:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Styrenhet för CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Tertiär IDE-kontroller"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Tertiär IDE-kontroller"
 
-msgid "Quaternary IDE Controller"
-msgstr "Kvartär IDE-kontroller"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Kvartär IDE-kontroller"
 
-msgid "Hard disk"
-msgstr "Hårddisk"
+msgid "Hard disk controllers"
+msgstr "Hårddiskkontroller"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-styrenheter"
 
 msgid "Controller 1:"
 msgstr "Styrenhet 1:"
@@ -1976,6 +1976,9 @@ msgstr "IRQ för serieport"
 
 msgid "Parallel port IRQ"
 msgstr "IRQ för parallelport"
+
+msgid "Hard disk"
+msgstr "Hårddisk"
 
 msgid "BIOS Revision"
 msgstr "BIOS-revision"

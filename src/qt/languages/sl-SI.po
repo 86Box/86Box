@@ -524,23 +524,23 @@ msgstr "Vzporedna vrata 3"
 msgid "Parallel port 4"
 msgstr "Vzporedna vrata 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Disketni krmilnik:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Krmilnik CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Terciarni krmilnik IDE"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Terciarni krmilnik IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Kvartarni krmilnik IDE"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Kvartarni krmilnik IDE"
 
-msgid "Hard disk"
-msgstr "Trdi disk"
+msgid "Hard disk controllers"
+msgstr "Krmilniki trdih diskov"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Krmilniki SCSI"
 
 msgid "Controller 1:"
 msgstr "Krmilnik 1:"
@@ -1984,6 +1984,9 @@ msgstr "IRQ serijskih vrat"
 
 msgid "Parallel port IRQ"
 msgstr "IRQ paralelnih vrat"
+
+msgid "Hard disk"
+msgstr "Trdi disk"
 
 msgid "BIOS Revision"
 msgstr "Revizija BIOS-a"

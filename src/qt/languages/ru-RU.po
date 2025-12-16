@@ -523,23 +523,23 @@ msgstr "Параллельный порт LPT3"
 msgid "Parallel port 4"
 msgstr "Параллельный порт LPT4"
 
-msgid "FD Controller:"
-msgstr "Контроллер дисководов:"
+msgid "Floppy disk controller:"
+msgstr "Контроллер гибких дисков:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Контроллер CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Третичный IDE контроллер"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Третичный контроллер IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Четвертичный IDE контроллер"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Четвертичный контроллер IDE"
 
-msgid "Hard disk"
-msgstr "Жёсткий диск"
+msgid "Hard disk controllers"
+msgstr "Контроллеры жёстких дисков"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Контроллеры SCSI"
 
 msgid "Controller 1:"
 msgstr "Контроллер 1:"
@@ -1995,6 +1995,9 @@ msgstr "IRQ последовательного порта"
 
 msgid "Parallel port IRQ"
 msgstr "IRQ параллельного порта"
+
+msgid "Hard disk"
+msgstr "Жёсткий диск"
 
 msgid "BIOS Revision"
 msgstr "Версия BIOS"
