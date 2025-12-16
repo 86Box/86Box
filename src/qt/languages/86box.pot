@@ -867,9 +867,6 @@ msgstr ""
 msgid "6-button gamepad"
 msgstr ""
 
-msgid "Gravis PC GamePad"
-msgstr ""
-
 msgid "2-button flight yoke"
 msgstr ""
 
@@ -895,51 +892,6 @@ msgid "Steering wheel (3-axis, 3-button)"
 msgstr ""
 
 msgid "Steering wheel (3-axis, 4-button)"
-msgstr ""
-
-msgid "CH Flightstick"
-msgstr ""
-
-msgid "CH Flightstick + CH Pedals"
-msgstr ""
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr ""
-
-msgid "CH Flightstick Pro"
-msgstr ""
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr ""
-
-msgid "CH Virtual Pilot"
-msgstr ""
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr ""
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr ""
-
-msgid "CH Virtual Pilot Pro"
-msgstr ""
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr ""
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr ""
-
-msgid "Microsoft SideWinder Pad"
-msgstr ""
-
-msgid "Thrustmaster Flight Control System"
-msgstr ""
-
-msgid "Thrustmaster FCS + Rudder Control System"
 msgstr ""
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
