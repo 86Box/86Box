@@ -59,7 +59,6 @@ VMManagerPreferences::
     }
     ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
-    // TODO: Defaults
 #if EMU_BUILD_NUM != 0
     const auto configUpdateCheck = config->getStringValue("update_check").toInt();
     ui->updateCheckBox->setChecked(configUpdateCheck);
