@@ -111,6 +111,9 @@
    <property name="toolTip">
     <string>Start</string>
    </property>
+   <property name="iconText">
+    <string>Start</string>
+   </property>
   </action>
   <action name="actionHard_Reset">
    <property name="icon">
@@ -121,6 +124,9 @@
     <string>&amp;Hard reset</string>
    </property>
    <property name="toolTip">
+    <string>Hard reset</string>
+   </property>
+   <property name="iconText">
     <string>Hard reset</string>
    </property>
   </action>
@@ -136,6 +142,9 @@
     <string>&amp;Force shutdown</string>
    </property>
    <property name="toolTip">
+    <string>Force shutdown</string>
+   </property>
+   <property name="iconText">
     <string>Force shutdown</string>
    </property>
    <property name="visible">
@@ -156,6 +165,9 @@
    <property name="toolTip">
     <string>Ctrl+Alt+Del</string>
    </property>
+   <property name="iconText">
+    <string>Ctrl+Alt+Del</string>
+   </property>
    <property name="visible">
     <bool>true</bool>
    </property>
@@ -170,6 +182,9 @@
    </property>
    <property name="toolTip">
     <string>Settings...</string>
+   </property>
+   <property name="iconText">
+    <string>Settings</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -186,6 +201,9 @@
    <property name="toolTip">
     <string>New machine...</string>
    </property>
+   <property name="iconText">
+    <string>New machine</string>
+   </property>
   </action>
   <action name="actionHide_tool_bar">
    <property name="checkable">
@@ -194,16 +212,10 @@
    <property name="text">
     <string>Hide &amp;toolbar</string>
    </property>
-   <property name="toolTip">
-    <string>Hide tool bar</string>
-   </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
     <string>&amp;Preferences...</string>
-   </property>
-   <property name="toolTip">
-    <string>Preferences...</string>
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>

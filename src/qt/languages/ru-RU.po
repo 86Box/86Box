@@ -958,6 +958,12 @@ msgstr "&Файл"
 msgid "&New machine..."
 msgstr "&Новая машина..."
 
+msgid "New machine..."
+msgstr "Новая машина..."
+
+msgid "New machine"
+msgstr "Новая машина"
+
 msgid "&Check for updates..."
 msgstr "&Проверить обновления..."
 

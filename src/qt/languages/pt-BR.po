@@ -951,6 +951,12 @@ msgstr "&Arquivo"
 msgid "&New machine..."
 msgstr "&Nova máquina..."
 
+msgid "New machine..."
+msgstr "Nova máquina..."
+
+msgid "New machine"
+msgstr "Nova máquina"
+
 msgid "&Check for updates..."
 msgstr "&Verificar por atualizações..."
 

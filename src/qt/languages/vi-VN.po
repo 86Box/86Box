@@ -951,6 +951,12 @@ msgstr "&Tập tin"
 msgid "&New machine..."
 msgstr "Máy &mới..."
 
+msgid "New machine..."
+msgstr "Máy mới..."
+
+msgid "New machine"
+msgstr "Máy mới"
+
 msgid "&Check for updates..."
 msgstr "Kiểm tra &cập nhật..."
 

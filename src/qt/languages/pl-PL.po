@@ -958,6 +958,12 @@ msgstr "&Plik"
 msgid "&New machine..."
 msgstr "&Nowa maszyna..."
 
+msgid "New machine..."
+msgstr "Nowa maszyna..."
+
+msgid "New machine"
+msgstr "Nowa maszyna"
+
 msgid "&Check for updates..."
 msgstr "&Sprawdź aktualizacje..."
 

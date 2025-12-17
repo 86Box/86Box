@@ -289,7 +289,7 @@ msgid "New Image"
 msgstr "Uusi levykuva"
 
 msgid "Settings"
-msgstr "Kokoonpano"
+msgstr "Asetukset"
 
 msgid "Specify Main Window Dimensions"
 msgstr "Määritä pääikkunan koko"
@@ -956,6 +956,12 @@ msgstr "&Tiedosto"
 
 msgid "&New machine..."
 msgstr "&Uusi kone..."
+
+msgid "New machine..."
+msgstr "Uusi kone..."
+
+msgid "New machine"
+msgstr "Uusi kone"
 
 msgid "&Check for updates..."
 msgstr "T&arkista päivitykset..."

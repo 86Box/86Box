@@ -354,6 +354,9 @@
    <property name="text">
     <string>&amp;Hard reset</string>
    </property>
+   <property name="toolTip">
+    <string>Hard reset</string>
+   </property>
   </action>
   <action name="actionCtrl_Alt_Del">
    <property name="icon">
@@ -364,7 +367,7 @@
     <string>&amp;Ctrl+Alt+Del</string>
    </property>
    <property name="toolTip">
-    <string>Ctrl+Alt+Del</string>
+    <string>Press Ctrl+Alt+Del</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F12</string>
@@ -377,6 +380,9 @@
    </property>
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
+   </property>
+   <property name="toolTip">
+    <string>Press Ctrl+Alt+Esc</string>
    </property>
   </action>
   <action name="actionPause">
@@ -403,6 +409,9 @@
    </property>
    <property name="text">
     <string>&amp;Settings...</string>
+   </property>
+   <property name="toolTip">
+    <string>Settings...</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -779,9 +788,6 @@
    </property>
    <property name="text">
     <string>Hide &amp;toolbar</string>
-   </property>
-   <property name="toolTip">
-    <string>Hide tool bar</string>
    </property>
   </action>
   <action name="actionACPI_Shutdown">

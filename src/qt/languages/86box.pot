@@ -951,6 +951,12 @@ msgstr ""
 msgid "&New machine..."
 msgstr ""
 
+msgid "New machine..."
+msgstr ""
+
+msgid "New machine"
+msgstr ""
+
 msgid "&Check for updates..."
 msgstr ""
 

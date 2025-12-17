@@ -951,6 +951,12 @@ msgstr "檔案(&F)"
 msgid "&New machine..."
 msgstr "新機器(&N)..."
 
+msgid "New machine..."
+msgstr "新機器..."
+
+msgid "New machine"
+msgstr "新機器"
+
 msgid "&Check for updates..."
 msgstr "檢查更新(&C)..."
 

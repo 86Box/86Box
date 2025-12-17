@@ -202,7 +202,7 @@ msgid "&Settings..."
 msgstr "&Optionen..."
 
 msgid "Settings..."
-msgstr "Einstellungen..."
+msgstr "Optionen..."
 
 msgid "&Update status bar icons"
 msgstr "&Statusleistenicons aktualisieren"
@@ -956,6 +956,12 @@ msgstr "&Datei"
 
 msgid "&New machine..."
 msgstr "&Neue Maschine..."
+
+msgid "New machine..."
+msgstr "Neue Maschine..."
+
+msgid "New machine"
+msgstr "Neue Maschine"
 
 msgid "&Check for updates..."
 msgstr "&Auf Aktualisierungen prüfen..."

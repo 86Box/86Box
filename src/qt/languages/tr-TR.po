@@ -951,6 +951,12 @@ msgstr "&Dosya"
 msgid "&New machine..."
 msgstr "&Yeni makine..."
 
+msgid "New machine..."
+msgstr "Yeni makine..."
+
+msgid "New machine"
+msgstr "Yeni makine"
+
 msgid "&Check for updates..."
 msgstr "&Güncelleştirmeleri kontrol et..."
 

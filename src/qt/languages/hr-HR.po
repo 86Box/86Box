@@ -959,6 +959,12 @@ msgstr "&Datoteka"
 msgid "&New machine..."
 msgstr "&Novi sistem..."
 
+msgid "New machine..."
+msgstr "Novi sistem..."
+
+msgid "New machine"
+msgstr "Novi sistem"
+
 msgid "&Check for updates..."
 msgstr "&Provjeri ažuriranja..."
 

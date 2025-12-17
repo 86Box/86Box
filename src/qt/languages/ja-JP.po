@@ -958,6 +958,12 @@ msgstr "ファイル(&F)"
 msgid "&New machine..."
 msgstr "新しいマシン(&N)..."
 
+msgid "New machine..."
+msgstr "新しいマシン..."
+
+msgid "New machine"
+msgstr "新しいマシン"
+
 msgid "&Check for updates..."
 msgstr "アップデートを確認中(&C)..."
 
@@ -1058,7 +1064,7 @@ msgid "Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+DELを押す"
+msgstr "Ctrl+Alt+Delを押す"
 
 msgid "Press Ctrl+Alt+Esc"
 msgstr "Ctrl+Alt+Escを押す"

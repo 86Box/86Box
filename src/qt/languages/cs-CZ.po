@@ -957,6 +957,12 @@ msgstr "&Soubor"
 msgid "&New machine..."
 msgstr "&Nový počítač..."
 
+msgid "New machine..."
+msgstr "Nový počítač..."
+
+msgid "New machine"
+msgstr "Nový počítač"
+
 msgid "&Check for updates..."
 msgstr "&Zkontrolovat aktualizace..."
 

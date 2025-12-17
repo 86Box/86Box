@@ -951,6 +951,12 @@ msgstr "&Fil"
 msgid "&New machine..."
 msgstr "&Ny maskin..."
 
+msgid "New machine..."
+msgstr "Ny maskin..."
+
+msgid "New machine"
+msgstr "Ny maskin"
+
 msgid "&Check for updates..."
 msgstr "&Leta efter uppdateringar..."
 

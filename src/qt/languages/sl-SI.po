@@ -959,6 +959,12 @@ msgstr "&Datoteka"
 msgid "&New machine..."
 msgstr "&Nova naprava..."
 
+msgid "New machine..."
+msgstr "Nova naprava..."
+
+msgid "New machine"
+msgstr "Nova naprava"
+
 msgid "&Check for updates..."
 msgstr "&Preveri obstoj posodobitev..."
 

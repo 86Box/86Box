@@ -951,6 +951,12 @@ msgstr "&Bestand"
 msgid "&New machine..."
 msgstr "&Nieuwe machine..."
 
+msgid "New machine..."
+msgstr "Nieuwe machine..."
+
+msgid "New machine"
+msgstr "Nieuwe machine"
+
 msgid "&Check for updates..."
 msgstr "&Controleren op updates..."
 
