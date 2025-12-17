@@ -1667,7 +1667,7 @@ msgid "Unknown Bus"
 msgstr "不明なバス"
 
 msgid "Null Driver"
-msgstr "ヌル・ドライバー"
+msgstr "ヌルドライバー"
 
 msgid "NIC:"
 msgstr "NIC:"
@@ -1778,16 +1778,16 @@ msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.xキーカード"
 
 msgid "Serial port passthrough 1"
-msgstr "シリアル・ポート・パススルー 1"
+msgstr "シリアルポートパススルー 1"
 
 msgid "Serial port passthrough 2"
-msgstr "シリアル・ポート・パススルー 2"
+msgstr "シリアルポートパススルー 2"
 
 msgid "Serial port passthrough 3"
-msgstr "シリアル・ポート・パススルー 3"
+msgstr "シリアルポートパススルー 3"
 
 msgid "Serial port passthrough 4"
-msgstr "シリアル・ポート・パススルー 4"
+msgstr "シリアルポートパススルー 4"
 
 msgid "Renderer &options…"
 msgstr "レンダラー設定(&O)…"
@@ -2015,10 +2015,10 @@ msgid "Chorus Voices"
 msgstr "コーラスの声"
 
 msgid "Chorus Level"
-msgstr "コーラス・レベル"
+msgstr "コーラスレベル"
 
 msgid "Chorus Speed"
-msgstr "コーラス・スピード"
+msgstr "コーラススピード"
 
 msgid "Chorus Depth"
 msgstr "コーラスの深さ"
@@ -2030,16 +2030,16 @@ msgid "Reverb"
 msgstr "リバーブ"
 
 msgid "Reverb Room Size"
-msgstr "リバーブ・ルームの大きさ"
+msgstr "リバーブルームの大きさ"
 
 msgid "Reverb Damping"
-msgstr "リバーブ・ダンピング"
+msgstr "リバーブダンピング"
 
 msgid "Reverb Width"
 msgstr "リバーブ幅"
 
 msgid "Reverb Level"
-msgstr "リバーブ・レベル"
+msgstr "リバーブレベル"
 
 msgid "Interpolation Method"
 msgstr "補間法"
@@ -2054,7 +2054,7 @@ msgid "Reversed stereo"
 msgstr "逆ステレオ"
 
 msgid "Nice ramp"
-msgstr "ナイス・スロープ"
+msgstr "ナイススロープ"
 
 msgid "Hz"
 msgstr "ヘルツ"
@@ -2144,7 +2144,7 @@ msgid "SID Filter Strength"
 msgstr "SIDフィルターの強度"
 
 msgid "Surround module"
-msgstr "サラウンド・モジュール"
+msgstr "サラウンドモジュール"
 
 msgid "SB Address"
 msgstr "SBアドレス"
@@ -2219,7 +2219,7 @@ msgid "Display type"
 msgstr "表示タイプ"
 
 msgid "Composite type"
-msgstr "コンポジット・タイプ"
+msgstr "コンポジットタイプ"
 
 msgid "RGB type"
 msgstr "RGBタイプ"
@@ -2228,7 +2228,7 @@ msgid "Line doubling type"
 msgstr "ライン倍増タイプ"
 
 msgid "Snow emulation"
-msgstr "スノー・エミュレーション"
+msgstr "スノーエミュレーション"
 
 msgid "Monitor type"
 msgstr "モニタータイプ"
@@ -2255,7 +2255,7 @@ msgid "Font"
 msgstr "フォント"
 
 msgid "Bilinear filtering"
-msgstr "バイリニア・フィルタリング"
+msgstr "バイリニアフィルタリング"
 
 msgid "Video chroma-keying"
 msgstr "ビデオのクロマキー処理"
@@ -2549,16 +2549,16 @@ msgid "Apply overscan deltas"
 msgstr "オーバースキャンデルタを適用する"
 
 msgid "Mono Interlaced"
-msgstr "モノラル・インターレース"
+msgstr "モノラルインターレース"
 
 msgid "Mono Non-Interlaced"
-msgstr "モノラル・ノンインターレース"
+msgstr "モノラルノンインターレース"
 
 msgid "Color Interlaced"
-msgstr "カラー・インターレース"
+msgstr "カラーインターレース"
 
 msgid "Color Non-Interlaced"
-msgstr "カラー・ノンインターレース"
+msgstr "カラーノンインターレース"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3dfx Voodooグラフィック"
@@ -2594,7 +2594,7 @@ msgid "Stereo LPT DAC"
 msgstr "ステレオLPT DAC"
 
 msgid "Generic Text Printer"
-msgstr "汎用テキスト・プリンタ"
+msgstr "汎用テキストプリンタ"
 
 msgid "Generic ESC/P 2 Dot-Matrix Printer"
 msgstr "汎用ESC/P 2ドットマトリクスプリンタ"
@@ -2606,19 +2606,19 @@ msgid "Generic PCL5e Printer"
 msgstr "汎用PCL5eプリンタ"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "パラレルライン・インターネット・プロトコル"
+msgstr "パラレルラインインターネットプロトコル"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "サベージ・クエスト用プロテクション・ドングル"
+msgstr "サベージクエスト用プロテクションドングル"
 
 msgid "Serial Passthrough Device"
-msgstr "シリアル・ポート・パススルー・デバイス"
+msgstr "シリアルポートパススルーデバイス"
 
 msgid "Passthrough Mode"
 msgstr "パススルーモード"
 
 msgid "Host Serial Device"
-msgstr "ホスト・シリアル・デバイス"
+msgstr "ホストシリアルデバイス"
 
 msgid "Name of pipe"
 msgstr "パイプ名"
