@@ -1342,7 +1342,7 @@ msgid "ACPI shutdown"
 msgstr "ACPI 종료"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&I 종료"
+msgstr "ACPI 종료(&I)"
 
 msgid "Hard disk (%1)"
 msgstr "하드 디스크 (%1)"

@@ -1342,7 +1342,7 @@ msgid "ACPI shutdown"
 msgstr "ACPI 关机"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&I 关机"
+msgstr "ACPI 关机(&I)"
 
 msgid "Hard disk (%1)"
 msgstr "硬盘 (%1)"

@@ -85,6 +85,7 @@
     <addaction name="separator"/>
     <addaction name="actionCtrl_Alt_Esc"/>
     <addaction name="separator"/>
+    <addaction name="actionACPI_Shutdown"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuTools">
