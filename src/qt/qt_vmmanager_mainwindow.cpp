@@ -109,8 +109,6 @@ VMManagerMainWindow::
         ui->actionHide_tool_bar->setChecked(!!config->getStringValue("hide_tool_bar").toInt());
         if (ui->actionHide_tool_bar->isChecked())
             ui->toolBar->setVisible(false);
-        else
-            config->setStringValue("hide_tool_bar", "0");
         if (!!config->getStringValue("window_remember").toInt()) {
             QString coords = config->getStringValue("window_coordinates");
             if (!coords.isEmpty()) {
