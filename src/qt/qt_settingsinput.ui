@@ -114,28 +114,28 @@
      <item>
       <widget class="QPushButton" name="pushButtonJoystick01">
        <property name="text">
-        <string>Joystick 1...</string>
+        <string>Joystick 1…</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonJoystick02">
        <property name="text">
-        <string>Joystick 2...</string>
+        <string>Joystick 2…</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonJoystick03">
        <property name="text">
-        <string>Joystick 3...</string>
+        <string>Joystick 3…</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonJoystick04">
        <property name="text">
-        <string>Joystick 4...</string>
+        <string>Joystick 4…</string>
        </property>
       </widget>
      </item>

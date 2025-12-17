@@ -66,8 +66,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "Afmetingen opgeven..."
+msgid "Specify &dimensions…"
+msgstr "Afmetingen opgeven…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Forceer &4:3 beeldverhouding"
@@ -192,11 +192,11 @@ msgstr "&Media"
 msgid "&Tools"
 msgstr "&Tools"
 
-msgid "&Settings..."
-msgstr "&Instellingen..."
+msgid "&Settings…"
+msgstr "&Instellingen…"
 
-msgid "Settings..."
-msgstr "Instellingen..."
+msgid "Settings…"
+msgstr "Instellingen…"
 
 msgid "&Update status bar icons"
 msgstr "&Statusbalkpictogrammen bijwerken"
@@ -207,14 +207,14 @@ msgstr "Maak een schermafbeelding"
 msgid "S&ound"
 msgstr "&Geluid"
 
-msgid "&Preferences..."
-msgstr "&Voorkeuren..."
+msgid "&Preferences…"
+msgstr "&Voorkeuren…"
 
 msgid "Enable &Discord integration"
 msgstr "&Discord integratie inschakelen"
 
-msgid "Sound &gain..."
-msgstr "&Geluidsversterking..."
+msgid "Sound &gain…"
+msgstr "&Geluidsversterking…"
 
 msgid "Begin trace"
 msgstr "Begin traceren"
@@ -225,20 +225,20 @@ msgstr "Beëindig traceren"
 msgid "&Help"
 msgstr "&Help"
 
-msgid "&Documentation..."
-msgstr "&Documentatie..."
+msgid "&Documentation…"
+msgstr "&Documentatie…"
 
-msgid "&About 86Box..."
-msgstr "&Over 86Box..."
+msgid "&About 86Box…"
+msgstr "&Over 86Box…"
 
-msgid "&New image..."
-msgstr "&Nieuw imagebestand..."
+msgid "&New image…"
+msgstr "&Nieuw imagebestand…"
 
-msgid "&Existing image..."
-msgstr "&Bestaand imagebestand..."
+msgid "&Existing image…"
+msgstr "&Bestaand imagebestand…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Bestaand imagebestand (&Schrijfbeveiligd)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Bestaand imagebestand (&Schrijfbeveiligd)…"
 
 msgid "&Record"
 msgstr "&Opnemen"
@@ -255,11 +255,11 @@ msgstr "&Snel vooruit naar het einde"
 msgid "E&ject"
 msgstr "&Uitwerpen"
 
-msgid "&Image..."
-msgstr "&Imagebestand..."
+msgid "&Image…"
+msgstr "&Imagebestand…"
 
-msgid "E&xport to 86F..."
-msgstr "E&xporteer naar 86F..."
+msgid "E&xport to 86F…"
+msgstr "E&xporteer naar 86F…"
 
 msgid "&Mute"
 msgstr "&Dempen"
@@ -270,8 +270,8 @@ msgstr "&Leeg"
 msgid "Reload previous image"
 msgstr "Herlaad vorig imagebestand"
 
-msgid "&Folder..."
-msgstr "&Map..."
+msgid "&Folder…"
+msgstr "&Map…"
 
 msgid "Preferences"
 msgstr "Voorkeuren"
@@ -417,17 +417,17 @@ msgstr "Joystick:"
 msgid "Joystick"
 msgstr "Joystick"
 
-msgid "Joystick 1..."
-msgstr "Joystick 1..."
+msgid "Joystick 1…"
+msgstr "Joystick 1…"
 
-msgid "Joystick 2..."
-msgstr "Joystick 2..."
+msgid "Joystick 2…"
+msgstr "Joystick 2…"
 
-msgid "Joystick 3..."
-msgstr "Joystick 3..."
+msgid "Joystick 3…"
+msgstr "Joystick 3…"
 
-msgid "Joystick 4..."
-msgstr "Joystick 4..."
+msgid "Joystick 4…"
+msgstr "Joystick 4…"
 
 msgid "Sound card #1:"
 msgstr "Geluidskaart #1:"
@@ -516,23 +516,23 @@ msgstr "Parallelle poort 3"
 msgid "Parallel port 4"
 msgstr "Parallelle poort 4"
 
-msgid "FD Controller:"
-msgstr "FD-Controller:"
+msgid "Floppy disk controller:"
+msgstr "Floppy disk controller:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM controller:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Tertiaire IDE-controller"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Tertiaire IDE-controller"
 
-msgid "Quaternary IDE Controller"
-msgstr "Quaternaire IDE-controller"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Quaternaire IDE-controller"
 
-msgid "Hard disk"
-msgstr "Harde schijf"
+msgid "Hard disk controllers"
+msgstr "Harde schijfcontrollers"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-controllers"
 
 msgid "Controller 1:"
 msgstr "Controller 1:"
@@ -555,11 +555,11 @@ msgstr "Harde schijven:"
 msgid "Firmware Version"
 msgstr "Firmware Versie"
 
-msgid "&New..."
-msgstr "&Nieuw..."
+msgid "&New…"
+msgstr "&Nieuw…"
 
-msgid "&Existing..."
-msgstr "&Bestaande..."
+msgid "&Existing…"
+msgstr "&Bestaande…"
 
 msgid "&Remove"
 msgstr "&Verwijderen"
@@ -867,9 +867,6 @@ msgstr "4-knops gamepad"
 msgid "6-button gamepad"
 msgstr "6-knops gamepad"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2-knops stuurknuppel"
 
@@ -896,51 +893,6 @@ msgstr "Stuurwiel (3 assen, 3 knoppen)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Stuurwiel (3 assen, 4 knoppen)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedalen"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedalen Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedalen"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedalen Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedalen"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedalen Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedalen"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedalen Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control systeem"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Roer Control Systeem"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 met adapter"
@@ -996,11 +948,17 @@ msgstr "Intern apparaat"
 msgid "&File"
 msgstr "&Bestand"
 
-msgid "&New machine..."
-msgstr "&Nieuwe machine..."
+msgid "&New machine…"
+msgstr "&Nieuwe machine…"
 
-msgid "&Check for updates..."
-msgstr "&Controleren op updates..."
+msgid "New machine…"
+msgstr "Nieuwe machine…"
+
+msgid "New machine"
+msgstr "Nieuwe machine"
+
+msgid "&Check for updates…"
+msgstr "&Controleren op updates…"
 
 msgid "Exit"
 msgstr "&Afsluiten"
@@ -1251,26 +1209,26 @@ msgstr "Weergavenaam instellen"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Voer een nieuwe weergavenaam in (laat leeg om te herstellen)"
 
-msgid "Change &display name..."
-msgstr "Pas &weergavenaam aan..."
+msgid "Change &display name…"
+msgstr "Pas &weergavenaam aan…"
 
 msgid "Context Menu"
 msgstr "Contextmenu"
 
-msgid "&Open folder..."
-msgstr "&Open map..."
+msgid "&Open folder…"
+msgstr "&Open map…"
 
-msgid "Open p&rinter tray..."
-msgstr "Open &papierlade..."
+msgid "Open p&rinter tray…"
+msgstr "Open &papierlade…"
 
-msgid "Set &icon..."
-msgstr "Stel &icoon in..."
+msgid "Set &icon…"
+msgstr "Stel &icoon in…"
 
 msgid "Select an icon"
 msgstr "Selecteer een icoon"
 
-msgid "C&lone..."
-msgstr "K&lonen..."
+msgid "C&lone…"
+msgstr "K&lonen…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuele machine \"%1\" (%2) zal gekloond worden naar:"
@@ -1356,8 +1314,8 @@ msgstr "Geen schermafbeelding"
 msgid "Search"
 msgstr "Zoeken"
 
-msgid "Searching for VMs..."
-msgstr "Zoeken naar VMs..."
+msgid "Searching for VMs…"
+msgstr "Zoeken naar VMs…"
 
 msgid "Found %1"
 msgstr "Gevonden %1"
@@ -1392,11 +1350,11 @@ msgstr "Harde schijf (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL of ESDI CD-ROM-stations hebben nooit bestaan"
 
-msgid "Custom..."
-msgstr "Aangepast..."
+msgid "Custom…"
+msgstr "Aangepast…"
 
-msgid "Custom (large)..."
-msgstr "Aangepast (groot)..."
+msgid "Custom (large)…"
+msgstr "Aangepast (groot)…"
 
 msgid "Add New Hard Disk"
 msgstr "Nieuwe harde schijf toevoegen"
@@ -1514,21 +1472,6 @@ msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Kan VHD tijdstempel niet herstellen."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1680,14 +1623,14 @@ msgstr "&Tablet-hulpmiddel"
 msgid "About &Qt"
 msgstr "Over &Qt"
 
-msgid "&MCA devices..."
-msgstr "MCA-apparaten..."
+msgid "&MCA devices…"
+msgstr "MCA-apparaten…"
 
 msgid "Show non-&primary monitors"
 msgstr "Toon niet-primaire beeldschermen"
 
-msgid "Open screenshots &folder..."
-msgstr "&Map met schermafbeeldingen openen..."
+msgid "Open screenshots &folder…"
+msgstr "&Map met schermafbeeldingen openen…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Schakel de volledig scherm-uitrekmodus in bij maximaliseren"
@@ -1707,8 +1650,8 @@ msgstr "&Verbonden"
 msgid "Clear image &history"
 msgstr "Imagegeschiedenis verwijderen(&H)"
 
-msgid "Create..."
-msgstr "Aanmaken..."
+msgid "Create…"
+msgstr "Aanmaken…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Host CD/DVD-station (%1)"
@@ -1749,8 +1692,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Verwijderen"
 
-msgid "Browse..."
-msgstr "Bladeren..."
+msgid "Browse…"
+msgstr "Bladeren…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Kan OpenGL-context niet aanmaken."
@@ -1839,8 +1782,8 @@ msgstr "Seriële poort doorvoer 3"
 msgid "Serial port passthrough 4"
 msgstr "Seriële poort doorvoer 4"
 
-msgid "Renderer &options..."
-msgstr "Renderer-opties..."
+msgid "Renderer &options…"
+msgstr "Renderer-opties…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT Toetsenbord"
@@ -1977,6 +1920,9 @@ msgstr "Seriële poort IRQ"
 msgid "Parallel port IRQ"
 msgstr "Parallelle poort IRQ"
 
+msgid "Hard disk"
+msgstr "Harde schijf"
+
 msgid "BIOS Revision"
 msgstr "BIOS-Revisie"
 
@@ -2051,9 +1997,6 @@ msgstr "MIDI doorvoer"
 
 msgid "MIDI Clockout"
 msgstr "MIDI Clockout"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Output Gain"
@@ -2964,8 +2907,8 @@ msgstr "Bezoek downloadpagina"
 msgid "Update check"
 msgstr "Updatecontrole"
 
-msgid "Checking for updates..."
-msgstr "Controleren op updates..."
+msgid "Checking for updates…"
+msgstr "Controleren op updates…"
 
 msgid "86Box Update"
 msgstr "86Box Update"
@@ -3003,8 +2946,8 @@ msgstr "Helderheid"
 msgid "Sharpness"
 msgstr "Scherpte"
 
-msgid "&CGA composite settings..."
-msgstr "Instellingen van de &CGA-compositemodus..."
+msgid "&CGA composite settings…"
+msgstr "Instellingen van de &CGA-compositemodus…"
 
 msgid "CGA composite settings"
 msgstr "Instellingen van de CGA-compositemodus"
@@ -3012,8 +2955,8 @@ msgstr "Instellingen van de CGA-compositemodus"
 msgid "Monitor EDID"
 msgstr "EDID-monitor"
 
-msgid "Export..."
-msgstr "Exporteren..."
+msgid "Export…"
+msgstr "Exporteren…"
 
 msgid "Export EDID"
 msgstr "EDID exporteren"

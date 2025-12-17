@@ -432,7 +432,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
 
         /* Voodoo1: use higher CMDFIFO threshold to reduce wake frequency */
         if (voodoo->type == VOODOO_1) {
-            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) > 300)
+            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
                 voodoo_wake_fifo_thread(voodoo);
         }
         /* Other cards (Voodoo2, Banshee, Voodoo3, ...) keep the original behavior */

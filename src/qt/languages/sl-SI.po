@@ -74,8 +74,8 @@ msgstr "Open&GL (jedro 3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "&Določi velikost..."
+msgid "Specify &dimensions…"
+msgstr "&Določi velikost…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Vsili razmerje zaslona &4:3"
@@ -200,11 +200,11 @@ msgstr "&Mediji"
 msgid "&Tools"
 msgstr "&Orodja"
 
-msgid "&Settings..."
-msgstr "&Nastavitve..."
+msgid "&Settings…"
+msgstr "&Nastavitve…"
 
-msgid "Settings..."
-msgstr "Nastavitve..."
+msgid "Settings…"
+msgstr "Nastavitve…"
 
 msgid "&Update status bar icons"
 msgstr "&Posodabljaj ikone statusne vrstice"
@@ -215,14 +215,14 @@ msgstr "&Zajemi posnetek zaslona"
 msgid "S&ound"
 msgstr "Z&vok"
 
-msgid "&Preferences..."
-msgstr "&Možnosti..."
+msgid "&Preferences…"
+msgstr "&Možnosti…"
 
 msgid "Enable &Discord integration"
 msgstr "Omogoči integracijo s programom &Discord"
 
-msgid "Sound &gain..."
-msgstr "&Ojačanje zvoka..."
+msgid "Sound &gain…"
+msgstr "&Ojačanje zvoka…"
 
 msgid "Begin trace"
 msgstr "Z&ačni sledenje"
@@ -233,20 +233,20 @@ msgstr "&Končaj sledenje"
 msgid "&Help"
 msgstr "&Pomoč"
 
-msgid "&Documentation..."
-msgstr "&Dokumentacija..."
+msgid "&Documentation…"
+msgstr "&Dokumentacija…"
 
-msgid "&About 86Box..."
-msgstr "&O programu 86Box..."
+msgid "&About 86Box…"
+msgstr "&O programu 86Box…"
 
-msgid "&New image..."
-msgstr "&Nova slika..."
+msgid "&New image…"
+msgstr "&Nova slika…"
 
-msgid "&Existing image..."
-msgstr "&Obstoječa slika..."
+msgid "&Existing image…"
+msgstr "&Obstoječa slika…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Obstoječa slika (&samo za branje)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Obstoječa slika (&samo za branje)…"
 
 msgid "&Record"
 msgstr "Snemaj"
@@ -263,11 +263,11 @@ msgstr "Preskoči na konec"
 msgid "E&ject"
 msgstr "I&zvrzi"
 
-msgid "&Image..."
-msgstr "S&lika..."
+msgid "&Image…"
+msgstr "S&lika…"
 
-msgid "E&xport to 86F..."
-msgstr "&Izvozi v 86F..."
+msgid "E&xport to 86F…"
+msgstr "&Izvozi v 86F…"
 
 msgid "&Mute"
 msgstr "&Utišaj"
@@ -278,8 +278,8 @@ msgstr "&Prazen"
 msgid "Reload previous image"
 msgstr "Naloži zadnjo sliko"
 
-msgid "&Folder..."
-msgstr "&Mapa..."
+msgid "&Folder…"
+msgstr "&Mapa…"
 
 msgid "Preferences"
 msgstr "Možnosti"
@@ -425,17 +425,17 @@ msgstr "Igralna palica:"
 msgid "Joystick"
 msgstr "Igralna palica"
 
-msgid "Joystick 1..."
-msgstr "Igralna palica 1..."
+msgid "Joystick 1…"
+msgstr "Igralna palica 1…"
 
-msgid "Joystick 2..."
-msgstr "Igralna palica 2..."
+msgid "Joystick 2…"
+msgstr "Igralna palica 2…"
 
-msgid "Joystick 3..."
-msgstr "Igralna palica 3..."
+msgid "Joystick 3…"
+msgstr "Igralna palica 3…"
 
-msgid "Joystick 4..."
-msgstr "Igralna palica 4..."
+msgid "Joystick 4…"
+msgstr "Igralna palica 4…"
 
 msgid "Sound card #1:"
 msgstr "Zvočna kartica 1:"
@@ -524,23 +524,23 @@ msgstr "Vzporedna vrata 3"
 msgid "Parallel port 4"
 msgstr "Vzporedna vrata 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Disketni krmilnik:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Krmilnik CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Terciarni krmilnik IDE"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Terciarni krmilnik IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Kvartarni krmilnik IDE"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Kvartarni krmilnik IDE"
 
-msgid "Hard disk"
-msgstr "Trdi disk"
+msgid "Hard disk controllers"
+msgstr "Krmilniki trdih diskov"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Krmilniki SCSI"
 
 msgid "Controller 1:"
 msgstr "Krmilnik 1:"
@@ -563,11 +563,11 @@ msgstr "Trdi diski:"
 msgid "Firmware Version"
 msgstr "Različica programske opreme"
 
-msgid "&New..."
-msgstr "Nov..."
+msgid "&New…"
+msgstr "Nov…"
 
-msgid "&Existing..."
-msgstr "Obstoječ..."
+msgid "&Existing…"
+msgstr "Obstoječ…"
 
 msgid "&Remove"
 msgstr "Odstrani"
@@ -875,9 +875,6 @@ msgstr "Igralna ploščica s 4 gumbi"
 msgid "6-button gamepad"
 msgstr "Igralna ploščica s 6 gumbi"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "Letalski krmilni drog z 2 gumbi"
 
@@ -904,51 +901,6 @@ msgstr "Volan s 3 osmi, 3 gumbi"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volan s 3 osmi, 4 gumbi"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 s pretvornikom"
@@ -1004,11 +956,17 @@ msgstr "Vgrajena naprava"
 msgid "&File"
 msgstr "&Datoteka"
 
-msgid "&New machine..."
-msgstr "&Nova naprava..."
+msgid "&New machine…"
+msgstr "&Nova naprava…"
 
-msgid "&Check for updates..."
-msgstr "&Preveri obstoj posodobitev..."
+msgid "New machine…"
+msgstr "Nova naprava…"
+
+msgid "New machine"
+msgstr "Nova naprava"
+
+msgid "&Check for updates…"
+msgstr "&Preveri obstoj posodobitev…"
 
 msgid "Exit"
 msgstr "Izhod"
@@ -1259,26 +1217,26 @@ msgstr "Nastavi prikazano ime"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Vstavi novo prikazano ime (prazno za ponastavitev)"
 
-msgid "Change &display name..."
-msgstr "Spremeni &prikazano ime..."
+msgid "Change &display name…"
+msgstr "Spremeni &prikazano ime…"
 
 msgid "Context Menu"
 msgstr "Kontekstni meni"
 
-msgid "&Open folder..."
-msgstr "&Odpri mapo..."
+msgid "&Open folder…"
+msgstr "&Odpri mapo…"
 
-msgid "Open p&rinter tray..."
-msgstr "Odpri pladenj &tiskalnika..."
+msgid "Open p&rinter tray…"
+msgstr "Odpri pladenj &tiskalnika…"
 
-msgid "Set &icon..."
-msgstr "Izberi &ikono..."
+msgid "Set &icon…"
+msgstr "Izberi &ikono…"
 
 msgid "Select an icon"
 msgstr "Izberi ikono"
 
-msgid "C&lone..."
-msgstr "K&loniraj..."
+msgid "C&lone…"
+msgstr "K&loniraj…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Navidezna naprava \"%1\" (%2) bo klonirana v:"
@@ -1364,8 +1322,8 @@ msgstr "Ni zajemov zaslona"
 msgid "Search"
 msgstr "Išči"
 
-msgid "Searching for VMs..."
-msgstr "Iskanje navideznih naprav..."
+msgid "Searching for VMs…"
+msgstr "Iskanje navideznih naprav…"
 
 msgid "Found %1"
 msgstr "%1 najden"
@@ -1400,11 +1358,11 @@ msgstr "Trdi disk (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL ali ESDI pogoni CD-ROM niso nikoli obstajali"
 
-msgid "Custom..."
-msgstr "Po meri..."
+msgid "Custom…"
+msgstr "Po meri…"
 
-msgid "Custom (large)..."
-msgstr "Po meri (velik)..."
+msgid "Custom (large)…"
+msgstr "Po meri (velik)…"
 
 msgid "Add New Hard Disk"
 msgstr "Dodaj nov trdi disk"
@@ -1522,21 +1480,6 @@ msgstr "Časovna žiga nadrejene in podrejene slike diska se ne ujemata"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Ne morem popraviti časovnega žiga slike VHD."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1688,14 +1631,14 @@ msgstr "Orodje za tablico"
 msgid "About &Qt"
 msgstr "O programu &Qt"
 
-msgid "&MCA devices..."
-msgstr "Naprave MCA..."
+msgid "&MCA devices…"
+msgstr "Naprave MCA…"
 
 msgid "Show non-&primary monitors"
 msgstr "Prikaži neprimarne monitorje"
 
-msgid "Open screenshots &folder..."
-msgstr "Odprite mapo s posnetki zaslona..."
+msgid "Open screenshots &folder…"
+msgstr "Odprite mapo s posnetki zaslona…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Uporabi način celozaslonskega raztezanja v maksimiranem stanju"
@@ -1715,8 +1658,8 @@ msgstr "&Povezan"
 msgid "Clear image &history"
 msgstr "Počisti zgodovino slik"
 
-msgid "Create..."
-msgstr "Ustvari..."
+msgid "Create…"
+msgstr "Ustvari…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Gostiteljski pogon CD/DVD (%1)"
@@ -1757,8 +1700,8 @@ msgstr "Senčilniki"
 msgid "Remove"
 msgstr "Odstrani"
 
-msgid "Browse..."
-msgstr "Prerskaj..."
+msgid "Browse…"
+msgstr "Prerskaj…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Ni bilo mogoče ustvariti konteksta OpenGL."
@@ -1847,8 +1790,8 @@ msgstr "Prepust za serijska vrata 3"
 msgid "Serial port passthrough 4"
 msgstr "Prepust za serijska vrata 4"
 
-msgid "Renderer &options..."
-msgstr "Možnosti sistema za upodabljanje..."
+msgid "Renderer &options…"
+msgstr "Možnosti sistema za upodabljanje…"
 
 msgid "PC/XT Keyboard"
 msgstr "Tipkovnica PC/XT"
@@ -1985,6 +1928,9 @@ msgstr "IRQ serijskih vrat"
 msgid "Parallel port IRQ"
 msgstr "IRQ paralelnih vrat"
 
+msgid "Hard disk"
+msgstr "Trdi disk"
+
 msgid "BIOS Revision"
 msgstr "Revizija BIOS-a"
 
@@ -2059,9 +2005,6 @@ msgstr "Prepust vhoda MIDI"
 
 msgid "MIDI Clockout"
 msgstr "Izhod ure MIDI"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Ojačanje izhoda"
@@ -2972,8 +2915,8 @@ msgstr "Obišči stran s prenosi"
 msgid "Update check"
 msgstr "Preveri obstoj posodobitev"
 
-msgid "Checking for updates..."
-msgstr "Poteka preverjanje obstoja posodobitev..."
+msgid "Checking for updates…"
+msgstr "Poteka preverjanje obstoja posodobitev…"
 
 msgid "86Box Update"
 msgstr "Posodobitev programa 86Box"
@@ -3011,8 +2954,8 @@ msgstr "Svetlost"
 msgid "Sharpness"
 msgstr "Ostrina"
 
-msgid "&CGA composite settings..."
-msgstr "Nastavitve kompozitnega načina &CGA..."
+msgid "&CGA composite settings…"
+msgstr "Nastavitve kompozitnega načina &CGA…"
 
 msgid "CGA composite settings"
 msgstr "Nastavitve kompozitnega načina CGA"
@@ -3020,8 +2963,8 @@ msgstr "Nastavitve kompozitnega načina CGA"
 msgid "Monitor EDID"
 msgstr "EDID monitorja"
 
-msgid "Export..."
-msgstr "Izvoz..."
+msgid "Export…"
+msgstr "Izvoz…"
 
 msgid "Export EDID"
 msgstr "Izvoz EDID"

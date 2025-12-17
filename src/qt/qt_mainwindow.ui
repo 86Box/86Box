@@ -85,6 +85,7 @@
     <addaction name="separator"/>
     <addaction name="actionCtrl_Alt_Esc"/>
     <addaction name="separator"/>
+    <addaction name="actionACPI_Shutdown"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -354,6 +355,9 @@
    <property name="text">
     <string>&amp;Hard reset</string>
    </property>
+   <property name="toolTip">
+    <string>Hard reset</string>
+   </property>
   </action>
   <action name="actionCtrl_Alt_Del">
    <property name="icon">
@@ -364,7 +368,7 @@
     <string>&amp;Ctrl+Alt+Del</string>
    </property>
    <property name="toolTip">
-    <string>Ctrl+Alt+Del</string>
+    <string>Press Ctrl+Alt+Del</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F12</string>
@@ -377,6 +381,9 @@
    </property>
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
+   </property>
+   <property name="toolTip">
+    <string>Press Ctrl+Alt+Esc</string>
    </property>
   </action>
   <action name="actionPause">
@@ -402,7 +409,10 @@
      <normaloff>:/menuicons/qt/icons/settings.ico</normaloff>:/menuicons/qt/icons/settings.ico</iconset>
    </property>
    <property name="text">
-    <string>&amp;Settings...</string>
+    <string>&amp;Settings…</string>
+   </property>
+   <property name="toolTip">
+    <string>Settings…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -453,7 +463,7 @@
   </action>
   <action name="actionSpecify_dimensions">
    <property name="text">
-    <string>Specify &amp;dimensions...</string>
+    <string>Specify &amp;dimensions…</string>
    </property>
   </action>
   <action name="actionForce_4_3_display_ratio">
@@ -709,7 +719,7 @@
   </action>
   <action name="actionAbout_86Box">
    <property name="text">
-    <string>&amp;About 86Box...</string>
+    <string>&amp;About 86Box…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::AboutRole</enum>
@@ -717,7 +727,7 @@
   </action>
   <action name="actionDocumentation">
    <property name="text">
-    <string>&amp;Documentation...</string>
+    <string>&amp;Documentation…</string>
    </property>
   </action>
   <action name="actionUpdate_status_bar_icons">
@@ -743,7 +753,7 @@
   </action>
   <action name="actionSound_gain">
    <property name="text">
-    <string>Sound &amp;gain...</string>
+    <string>Sound &amp;gain…</string>
    </property>
   </action>
   <action name="actionOpenGL_3_0_Core">
@@ -759,7 +769,7 @@
   </action>
   <action name="actionPreferences">
    <property name="text">
-    <string>&amp;Preferences...</string>
+    <string>&amp;Preferences…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>
@@ -779,9 +789,6 @@
    </property>
    <property name="text">
     <string>Hide &amp;toolbar</string>
-   </property>
-   <property name="toolTip">
-    <string>Hide tool bar</string>
    </property>
   </action>
   <action name="actionACPI_Shutdown">
@@ -826,7 +833,7 @@
   </action>
   <action name="actionRenderer_options">
    <property name="text">
-    <string>Renderer &amp;options...</string>
+    <string>Renderer &amp;options…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -845,7 +852,7 @@
   </action>
   <action name="actionMCA_devices">
    <property name="text">
-    <string>&amp;MCA devices...</string>
+    <string>&amp;MCA devices…</string>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">
@@ -869,12 +876,12 @@
   </action>
   <action name="actionOpen_printer_tray">
    <property name="text">
-    <string>Open p&amp;rinter tray...</string>
+    <string>Open p&amp;rinter tray…</string>
    </property>
   </action>
   <action name="actionOpen_screenshots_folder">
    <property name="text">
-    <string>Open screenshots &amp;folder...</string>
+    <string>Open screenshots &amp;folder…</string>
    </property>
   </action>
   <action name="actionApply_fullscreen_stretch_mode_when_maximized">
@@ -903,7 +910,7 @@
   </action>
   <action name="actionCGA_composite_settings">
    <property name="text">
-    <string>&amp;CGA composite settings...</string>
+    <string>&amp;CGA composite settings…</string>
    </property>
   </action>
   <action name="action_Full_screen_stretch_gl">

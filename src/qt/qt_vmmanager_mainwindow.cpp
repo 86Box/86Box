@@ -109,8 +109,6 @@ VMManagerMainWindow::
         ui->actionHide_tool_bar->setChecked(!!config->getStringValue("hide_tool_bar").toInt());
         if (ui->actionHide_tool_bar->isChecked())
             ui->toolBar->setVisible(false);
-        else
-            config->setStringValue("hide_tool_bar", "0");
         if (!!config->getStringValue("window_remember").toInt()) {
             QString coords = config->getStringValue("window_coordinates");
             if (!coords.isEmpty()) {
@@ -173,20 +171,23 @@ VMManagerMainWindow::vmmStateChanged(const VMManagerSystem *sysconfig) const
     if (running) {
         if (sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
             ui->actionStartPause->setIcon(pauseIcon);
-            ui->actionStartPause->setText(tr("Pause"));
+            ui->actionStartPause->setText(tr("&Pause"));
             ui->actionStartPause->setToolTip(tr("Pause"));
+            ui->actionStartPause->setIconText(tr("Pause"));
         } else {
             ui->actionStartPause->setIcon(runIcon);
-            ui->actionStartPause->setText(tr("Continue"));
+            ui->actionStartPause->setText(tr("&Continue"));
             ui->actionStartPause->setToolTip(tr("Continue"));
+            ui->actionStartPause->setIconText(tr("Continue"));
         }
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
         connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
     } else {
         ui->actionStartPause->setIcon(runIcon);
-        ui->actionStartPause->setText(tr("Start"));
+        ui->actionStartPause->setText(tr("&Start"));
         ui->actionStartPause->setToolTip(tr("Start"));
+        ui->actionStartPause->setIconText(tr("Start"));
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
         disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
         connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);

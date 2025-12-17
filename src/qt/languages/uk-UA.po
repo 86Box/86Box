@@ -74,8 +74,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "&Вказати розміри..."
+msgid "Specify &dimensions…"
+msgstr "&Вказати розміри…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Встановити відношення сторін &4:3"
@@ -200,11 +200,11 @@ msgstr "&Носії"
 msgid "&Tools"
 msgstr "&Інструменти"
 
-msgid "&Settings..."
-msgstr "&Налаштування машини..."
+msgid "&Settings…"
+msgstr "&Налаштування машини…"
 
-msgid "Settings..."
-msgstr "Налаштування машини..."
+msgid "Settings…"
+msgstr "Налаштування машини…"
 
 msgid "&Update status bar icons"
 msgstr "&Обновлення значків рядка стану"
@@ -215,14 +215,14 @@ msgstr "Зробити &знімок"
 msgid "S&ound"
 msgstr "&Звук"
 
-msgid "&Preferences..."
-msgstr "&Параметри..."
+msgid "&Preferences…"
+msgstr "&Параметри…"
 
 msgid "Enable &Discord integration"
 msgstr "Увімкнути інтеграцію &Discord"
 
-msgid "Sound &gain..."
-msgstr "&Посилення звуку..."
+msgid "Sound &gain…"
+msgstr "&Посилення звуку…"
 
 msgid "Begin trace"
 msgstr "Почати трасування"
@@ -233,20 +233,20 @@ msgstr "Завершити трасування"
 msgid "&Help"
 msgstr "&Допомога"
 
-msgid "&Documentation..."
-msgstr "&Документація..."
+msgid "&Documentation…"
+msgstr "&Документація…"
 
-msgid "&About 86Box..."
-msgstr "&Про програму 86Box..."
+msgid "&About 86Box…"
+msgstr "&Про програму 86Box…"
 
-msgid "&New image..."
-msgstr "&Новий образ..."
+msgid "&New image…"
+msgstr "&Новий образ…"
 
-msgid "&Existing image..."
-msgstr "&Вибрати образ..."
+msgid "&Existing image…"
+msgstr "&Вибрати образ…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Вибрати образ (&Захист від запису)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Вибрати образ (&Захист від запису)…"
 
 msgid "&Record"
 msgstr "&Запис"
@@ -263,11 +263,11 @@ msgstr "&Перемотування у кінець"
 msgid "E&ject"
 msgstr "&Вилучити"
 
-msgid "&Image..."
-msgstr "&Образ..."
+msgid "&Image…"
+msgstr "&Образ…"
 
-msgid "E&xport to 86F..."
-msgstr "&Експорт в 86F..."
+msgid "E&xport to 86F…"
+msgstr "&Експорт в 86F…"
 
 msgid "&Mute"
 msgstr "&Відключити звук"
@@ -278,8 +278,8 @@ msgstr "&Пустий"
 msgid "Reload previous image"
 msgstr "Знову завантажити попередній образ"
 
-msgid "&Folder..."
-msgstr "&Тека..."
+msgid "&Folder…"
+msgstr "&Тека…"
 
 msgid "Preferences"
 msgstr "Параметри"
@@ -425,17 +425,17 @@ msgstr "Джойстик:"
 msgid "Joystick"
 msgstr "Джойстик"
 
-msgid "Joystick 1..."
-msgstr "Джойстик 1..."
+msgid "Joystick 1…"
+msgstr "Джойстик 1…"
 
-msgid "Joystick 2..."
-msgstr "Джойстик 2..."
+msgid "Joystick 2…"
+msgstr "Джойстик 2…"
 
-msgid "Joystick 3..."
-msgstr "Джойстик 3..."
+msgid "Joystick 3…"
+msgstr "Джойстик 3…"
 
-msgid "Joystick 4..."
-msgstr "Джойстик 4..."
+msgid "Joystick 4…"
+msgstr "Джойстик 4…"
 
 msgid "Sound card #1:"
 msgstr "Звукова карта 1:"
@@ -524,23 +524,23 @@ msgstr "Паралельний порт LPT3"
 msgid "Parallel port 4"
 msgstr "Паралельний порт LPT4"
 
-msgid "FD Controller:"
-msgstr "Контролер FD:"
+msgid "Floppy disk controller:"
+msgstr "Контролер гнучких дисків:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Контролер CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Третинний IDE контролер"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Третинний контролер IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Четвертинний IDE контролер"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Четвертинний контролер IDE"
 
-msgid "Hard disk"
-msgstr "Жорсткий диск"
+msgid "Hard disk controllers"
+msgstr "Контролери жорстких дисків"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Контролери SCSI"
 
 msgid "Controller 1:"
 msgstr "Контролер 1:"
@@ -563,11 +563,11 @@ msgstr "Жорсткі диски:"
 msgid "Firmware Version"
 msgstr "Версія прошивки"
 
-msgid "&New..."
-msgstr "&Створити..."
+msgid "&New…"
+msgstr "&Створити…"
 
-msgid "&Existing..."
-msgstr "&Вибрати..."
+msgid "&Existing…"
+msgstr "&Вибрати…"
 
 msgid "&Remove"
 msgstr "&Прибрати"
@@ -875,9 +875,6 @@ msgstr "4-кнопковий геймпад"
 msgid "6-button gamepad"
 msgstr "6-кнопковий геймпад"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2-кнопковий flight yoke"
 
@@ -904,51 +901,6 @@ msgstr "Кермо (3-осьове, 3-кнопкове)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Кермо (3-осьове, 4-кнопкове)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Педалі"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Педалі Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Педалі"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Педалі Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Педалі"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Педалі Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Педалі"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Педалі Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Система управління польотом Thrustmaster"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Система управління кермом"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 з адаптером"
@@ -1004,11 +956,17 @@ msgstr "Вбудований пристрій"
 msgid "&File"
 msgstr "&Файл"
 
-msgid "&New machine..."
-msgstr "&Нова машина..."
+msgid "&New machine…"
+msgstr "&Нова машина…"
 
-msgid "&Check for updates..."
-msgstr "&Перевірити оновлення..."
+msgid "New machine…"
+msgstr "Нова машина…"
+
+msgid "New machine"
+msgstr "Нова машина"
+
+msgid "&Check for updates…"
+msgstr "&Перевірити оновлення…"
 
 msgid "Exit"
 msgstr "Вихід"
@@ -1259,26 +1217,26 @@ msgstr "Встановити відображуване ім'я"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Введіть нове відображуване ім'я (порожнє, щоб скинути)"
 
-msgid "Change &display name..."
-msgstr "Змінити &відображуване ім'я..."
+msgid "Change &display name…"
+msgstr "Змінити &відображуване ім'я…"
 
 msgid "Context Menu"
 msgstr "Контекстне меню"
 
-msgid "&Open folder..."
-msgstr "&Відкрити папку..."
+msgid "&Open folder…"
+msgstr "&Відкрити папку…"
 
-msgid "Open p&rinter tray..."
-msgstr "Відкрити папку &принтера..."
+msgid "Open p&rinter tray…"
+msgstr "Відкрити папку &принтера…"
 
-msgid "Set &icon..."
-msgstr "Встановити &значок..."
+msgid "Set &icon…"
+msgstr "Встановити &значок…"
 
 msgid "Select an icon"
 msgstr "Виберіть значок"
 
-msgid "C&lone..."
-msgstr "К&лонувати..."
+msgid "C&lone…"
+msgstr "К&лонувати…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Віртуальна машина «%1» (%2) буде клонована в:"
@@ -1364,8 +1322,8 @@ msgstr "Немає скріншоту"
 msgid "Search"
 msgstr "Пошук"
 
-msgid "Searching for VMs..."
-msgstr "Пошук віртуальних машин..."
+msgid "Searching for VMs…"
+msgstr "Пошук віртуальних машин…"
 
 msgid "Found %1"
 msgstr "Знайдено %1"
@@ -1400,11 +1358,11 @@ msgstr "Жорсткий диск (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL або ESDI дисководів CD-ROM ніколи не існувало"
 
-msgid "Custom..."
-msgstr "Задати вручну..."
+msgid "Custom…"
+msgstr "Задати вручну…"
 
-msgid "Custom (large)..."
-msgstr "Задати вручну (large)..."
+msgid "Custom (large)…"
+msgstr "Задати вручну (large)…"
 
 msgid "Add New Hard Disk"
 msgstr "Створити новий жорсткий диск"
@@ -1522,21 +1480,6 @@ msgstr "Тимчасові мітки батьківського та дочір
 
 msgid "Could not fix VHD timestamp."
 msgstr "Не вдалося виправити тимчасову позначку VHD."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1688,14 +1631,14 @@ msgstr "Інструмент для планшета"
 msgid "About &Qt"
 msgstr "Про &Qt"
 
-msgid "&MCA devices..."
-msgstr "Пристрої &MCA..."
+msgid "&MCA devices…"
+msgstr "Пристрої &MCA…"
 
 msgid "Show non-&primary monitors"
 msgstr "Показати неосновні монітори"
 
-msgid "Open screenshots &folder..."
-msgstr "Відкрийте папку скріншотів..."
+msgid "Open screenshots &folder…"
+msgstr "Відкрийте папку скріншотів…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Застосовувати розстягування у повноекранному режимі у максимізованому стані"
@@ -1715,8 +1658,8 @@ msgstr "&Підключено"
 msgid "Clear image &history"
 msgstr "Очистити історію образів"
 
-msgid "Create..."
-msgstr "Створити..."
+msgid "Create…"
+msgstr "Створити…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "CD/DVD привід хоста (%1)"
@@ -1757,8 +1700,8 @@ msgstr "Шейдери"
 msgid "Remove"
 msgstr "Видалити"
 
-msgid "Browse..."
-msgstr "Огляд..."
+msgid "Browse…"
+msgstr "Огляд…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Не вдалося створити контекст OpenGL."
@@ -1847,8 +1790,8 @@ msgstr "Пропуск послідовного порту 3"
 msgid "Serial port passthrough 4"
 msgstr "Пропуск послідовного порту 4"
 
-msgid "Renderer &options..."
-msgstr "Параметри рендерингу..."
+msgid "Renderer &options…"
+msgstr "Параметри рендерингу…"
 
 msgid "PC/XT Keyboard"
 msgstr "Клавіатура PC/XT"
@@ -1985,6 +1928,9 @@ msgstr "IRQ послідовного порту"
 msgid "Parallel port IRQ"
 msgstr "IRQ паралельного порту"
 
+msgid "Hard disk"
+msgstr "Жорсткий диск"
+
 msgid "BIOS Revision"
 msgstr "Ревізія BIOS"
 
@@ -2059,9 +2005,6 @@ msgstr "Прохід MIDI-вхіду"
 
 msgid "MIDI Clockout"
 msgstr "Вихід MIDI-годинника"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Вихідний коефіцієнт підсилення"
@@ -2972,8 +2915,8 @@ msgstr "Відкрити сторінку завантаження"
 msgid "Update check"
 msgstr "Перевірка оновлень"
 
-msgid "Checking for updates..."
-msgstr "Перевірка оновлень..."
+msgid "Checking for updates…"
+msgstr "Перевірка оновлень…"
 
 msgid "86Box Update"
 msgstr "Оновлення 86Box"
@@ -3011,8 +2954,8 @@ msgstr "Яскравість"
 msgid "Sharpness"
 msgstr "Гострота"
 
-msgid "&CGA composite settings..."
-msgstr "Налаштування композитного відео &CGA..."
+msgid "&CGA composite settings…"
+msgstr "Налаштування композитного відео &CGA…"
 
 msgid "CGA composite settings"
 msgstr "Налаштування композитного відео CGA"
@@ -3020,8 +2963,8 @@ msgstr "Налаштування композитного відео CGA"
 msgid "Monitor EDID"
 msgstr "EDID монітора"
 
-msgid "Export..."
-msgstr "Експорт..."
+msgid "Export…"
+msgstr "Експорт…"
 
 msgid "Export EDID"
 msgstr "Експорт EDID"
