@@ -2004,9 +2004,6 @@ msgstr "MIDI-läpivienti"
 msgid "MIDI Clockout"
 msgstr "MIDI-kellon ulostulo"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Lähtötaso"
 

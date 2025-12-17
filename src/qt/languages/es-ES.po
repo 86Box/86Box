@@ -2004,9 +2004,6 @@ msgstr "Atravesar la entrada MIDI"
 msgid "MIDI Clockout"
 msgstr "Salida de reloj MIDI"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Ganancia de salida"
 

@@ -1998,9 +1998,6 @@ msgstr "MIDI doorvoer"
 msgid "MIDI Clockout"
 msgstr "MIDI Clockout"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Output Gain"
 

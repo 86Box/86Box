@@ -2017,9 +2017,6 @@ msgstr "Пропускание MIDI-входа"
 msgid "MIDI Clockout"
 msgstr "MIDI Clockout"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Усиление выхода"
 

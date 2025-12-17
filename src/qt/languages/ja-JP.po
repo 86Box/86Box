@@ -2005,9 +2005,6 @@ msgstr "MIDI入力のパススルー"
 msgid "MIDI Clockout"
 msgstr "MIDIクロックの出力"
 
-msgid "SoundFont"
-msgstr "サウンドフォント"
-
 msgid "Output Gain"
 msgstr "出力ゲイン"
 

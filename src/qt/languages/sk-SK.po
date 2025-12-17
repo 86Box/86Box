@@ -2004,9 +2004,6 @@ msgstr "Priechodnosť vstupu MIDI"
 msgid "MIDI Clockout"
 msgstr "Výstup hodín MIDI"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Zosilnenie výstupu"
 

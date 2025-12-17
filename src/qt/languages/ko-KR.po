@@ -1998,9 +1998,6 @@ msgstr "미디 입력 패스스루"
 msgid "MIDI Clockout"
 msgstr "미디 클럭 출력"
 
-msgid "SoundFont"
-msgstr "사운드 글꼴"
-
 msgid "Output Gain"
 msgstr "출력 게인"
 

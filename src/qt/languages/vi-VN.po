@@ -1998,9 +1998,6 @@ msgstr "Thông qua đầu vào MIDI"
 msgid "MIDI Clockout"
 msgstr "MIDI Clockout"
 
-msgid "SoundFont"
-msgstr "Font âm thanh"
-
 msgid "Output Gain"
 msgstr "Tăng đầu ra"
 

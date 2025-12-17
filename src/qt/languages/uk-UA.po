@@ -2006,9 +2006,6 @@ msgstr "Прохід MIDI-вхіду"
 msgid "MIDI Clockout"
 msgstr "Вихід MIDI-годинника"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Вихідний коефіцієнт підсилення"
 

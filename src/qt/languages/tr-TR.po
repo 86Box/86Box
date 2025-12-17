@@ -1998,9 +1998,6 @@ msgstr "MIDI Geçişi"
 msgid "MIDI Clockout"
 msgstr "MIDI Saat Çıkışı"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Çıkış Sesi Artışı"
 

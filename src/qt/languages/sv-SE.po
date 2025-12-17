@@ -1998,9 +1998,6 @@ msgstr "MIDI genom"
 msgid "MIDI Clockout"
 msgstr "MIDI utklockning"
 
-msgid "SoundFont"
-msgstr "Ljudsnitt"
-
 msgid "Output Gain"
 msgstr "Förstärkning av utmatning"
 

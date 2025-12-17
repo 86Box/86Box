@@ -1998,9 +1998,6 @@ msgstr "MIDI 输入直通"
 msgid "MIDI Clockout"
 msgstr "MIDI 时钟输出"
 
-msgid "SoundFont"
-msgstr "声音字体"
-
 msgid "Output Gain"
 msgstr "输出增益"
 

@@ -2006,9 +2006,6 @@ msgstr "Prolaz ulaza MIDI"
 msgid "MIDI Clockout"
 msgstr "Taktovit MIDI"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Pojačavanje izlaza"
 
