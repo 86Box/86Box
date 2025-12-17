@@ -424,6 +424,8 @@ VMManagerSystem::launchMainProcess()
     args << "--vmname" << displayName;
     if (rom_path[0] != '\0')
         args << "--rompath" << QString(rom_path);
+    if (asset_path[0] != '\0')
+        args << "--assetpath" << QString(asset_path);
     if (global_cfg_overridden)
         args << "--global" << QString(global_cfg_path);
     if (!hook_enabled)
@@ -495,6 +497,8 @@ VMManagerSystem::launchSettings()
     args << "--vmpath" << config_dir << "--settings";
     if (rom_path[0] != '\0')
         args << "--rompath" << QString(rom_path);
+    if (asset_path[0] != '\0')
+        args << "--assetpath" << QString(asset_path);
     if (global_cfg_overridden)
         args << "--global" << QString(global_cfg_path);
     process->setProgram(program);
