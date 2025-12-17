@@ -331,7 +331,6 @@ int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
-int seconds_elapsed    = 0;
 int hard_reset_pending = 0;
 
 #if 0
@@ -1975,8 +1974,6 @@ pc_onesec(void)
     framecount = 0;
 
     title_update = 1;
-
-    seconds_elapsed++;
 }
 
 void

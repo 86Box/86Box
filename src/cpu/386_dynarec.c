@@ -392,9 +392,10 @@ static inline void __attribute__((optimize("O2")))
 #else
 static __inline void
 #endif
-exec386_dynarec_dyn(uint32_t phys_addr, page_t *page)
+exec386_dynarec_dyn(void)
 {
     uint32_t start_pc  = 0;
+    uint32_t phys_addr = get_phys(cs + cpu_state.pc);
     int      hash      = HASH(phys_addr);
 #    ifdef USE_NEW_DYNAREC
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
@@ -409,6 +410,8 @@ exec386_dynarec_dyn(uint32_t phys_addr, page_t *page)
     if (block && !cpu_state.abrt)
 #    endif
     {
+        page_t *page = &pages[phys_addr >> 12];
+
         /* Block must match current CS, PC, code segment size,
            and physical address. The physical address check will
            also catch any page faults at this stage */
@@ -442,30 +445,16 @@ exec386_dynarec_dyn(uint32_t phys_addr, page_t *page)
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
 #    ifdef USE_NEW_DYNAREC
             codegen_check_flush(page, page->dirty_mask, phys_addr);
-            if (block->pc == BLOCK_PC_INVALID) {
+            if (block->pc == BLOCK_PC_INVALID)
                 valid_block = 0;
-                goto invalid_block;
-            } else if (block->flags & CODEBLOCK_IN_DIRTY_LIST) {
+            else if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-invalid_block:
 #    else
             codegen_check_flush(page, page->dirty_mask[(phys_addr >> 10) & 3], phys_addr);
             page->dirty_mask[(phys_addr >> 10) & 3] = 0;
-            if (!block->valid) {
+            if (!block->valid)
                 valid_block = 0;
 #    endif
-                if (page->inv_timestamp != seconds_elapsed) {
-                    page->inv_timestamp = seconds_elapsed;
-                    page->inv_count = 1;
-                } else {
-                    page->inv_count++;
-#    define INVALIDATION_LIMIT 100 /* amount of invalidations *per second* to kick a page to the interpreter */
-#    ifdef ENABLE_386_DYNAREC_LOG
-                    if (page->inv_count >= INVALIDATION_LIMIT)
-                        x386_dynarec_log("Forcing interpreter on page %08X\n", phys_addr & 0xfffff000);
-#    endif
-                }
-            }
         }
         if (valid_block && block->page_mask2) {
             /* We don't want the second page to cause a page
@@ -790,14 +779,11 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-
-            uint32_t phys_addr = get_phys(cs + cpu_state.pc);
-            page_t *page = &pages[phys_addr >> 12];
-            if (cpu_force_interpreter || cpu_override_dynarec || (page->inv_count >= INVALIDATION_LIMIT) || (!CACHE_ON())) /*Interpret block*/
+            if (cpu_force_interpreter || cpu_override_dynarec ||  (!CACHE_ON())) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {
-                exec386_dynarec_dyn(phys_addr, page);
+                exec386_dynarec_dyn();
             }
 
             if (cpu_init) {
