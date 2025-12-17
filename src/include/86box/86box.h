@@ -321,6 +321,7 @@ extern void do_pause(int p);
 extern double isa_timing;
 extern int    io_delay;
 extern int    framecountx;
+extern int    seconds_elapsed;
 
 extern volatile int     cpu_thread_run;
 extern          uint8_t postcard_codes[POSTCARDS_NUM];
