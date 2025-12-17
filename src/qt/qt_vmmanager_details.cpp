@@ -138,7 +138,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     configureButton = new QToolButton();
     configureButton->setIcon(QIcon(":/menuicons/qt/icons/settings.ico"));
     configureButton->setEnabled(false);
-    configureButton->setToolTip(tr("Settings..."));
+    configureButton->setToolTip(tr("Settings…"));
     cadButton = new QToolButton();
     cadButton->setIcon(QIcon(":menuicons/qt/icons/send_cad.ico"));
     cadButton->setEnabled(false);
