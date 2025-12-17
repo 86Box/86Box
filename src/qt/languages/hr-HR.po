@@ -1632,7 +1632,7 @@ msgid "About &Qt"
 msgstr "O programu &Qt"
 
 msgid "&MCA devices…"
-msgstr "Uređaji MCA …"
+msgstr "Uređaji MCA…"
 
 msgid "Show non-&primary monitors"
 msgstr "Prikaži neprimarne monitore"
