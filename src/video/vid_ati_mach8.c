@@ -2371,7 +2371,7 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
                     svga->write_bank = mach->bank_w << 16;
 
                     if (mach->index == 0xbe) {
-                        if ((old ^ val) & 0x10) {
+                        if ((old ^ val) & 0x13) {
                             mach_log("ATI BE bit 4.\n");
                             svga_recalctimings(svga);
                         }
@@ -3320,30 +3320,30 @@ mach_recalctimings(svga_t *svga)
     } else {
         dev->mode = VGA_MODE;
         if (!svga->scrblank && svga->attr_palette_enable) {
-            mach_log("GDCREG5=%02x, ATTR10=%02x, ATI B0 bit 5=%02x, ON=%d.\n",
-                     svga->gdcreg[5] & 0x60, svga->attrregs[0x10] & 0x40, mach->regs[0xb0] & 0x20, dev->on);
+            mach_log("GDCREG5=%02x, ATTR10=%02x, ATI B0 bit 5=%02x, ON=%d, char_width=%d, seqreg1 bit 3=%x, clk_sel=%02x.\n",
+                     svga->gdcreg[5] & 0x60, svga->attrregs[0x10] & 0x40, mach->regs[0xb0] & 0x20, dev->on, svga->char_width, svga->seqregs[1] & 0x08, clock_sel);
+            if (ATI_MACH32)
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
+            else
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
+
+            switch ((mach->regs[0xb8] >> 6) & 3) {
+                case 1:
+                    svga->clock *= 2.0;
+                    break;
+                case 2:
+                    svga->clock *= 3.0;
+                    break;
+                case 3:
+                    svga->clock *= 4.0;
+                    break;
+                default:
+                    break;
+            }
 
             mach_log("VGA clock sel=%02x, divide reg=%02x, miscout bits2-3=%x, machregbe bit4=%02x, machregb9 bit1=%02x, charwidth=%d, htotal=%02x, hdisptime=%02x, seqregs1 bit 3=%02x.\n", clock_sel, (mach->regs[0xb8] >> 6) & 3, svga->miscout & 0x0c, mach->regs[0xbe] & 0x10, mach->regs[0xb9] & 0x02, svga->char_width, svga->htotal, svga->hdisp_time, svga->seqregs[1] & 8);
             if ((svga->gdcreg[6] & 0x01) || (svga->attrregs[0x10] & 0x01)) {
                 if ((svga->gdcreg[5] & 0x40) || (svga->attrregs[0x10] & 0x40) || (mach->regs[0xb0] & 0x20)) {
-                    if (ATI_MACH32)
-                        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
-                    else
-                        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
-
-                    switch ((mach->regs[0xb8] >> 6) & 3) {
-                        case 1:
-                            svga->clock *= 2.0;
-                            break;
-                        case 2:
-                            svga->clock *= 3.0;
-                            break;
-                        case 3:
-                            svga->clock *= 4.0;
-                            break;
-                        default:
-                            break;
-                    }
                     svga->map8 = svga->pallook;
                     mach_log("Lowres=%x, seqreg[1]bit3=%x.\n", svga->lowres, svga->seqregs[1] & 8);
                     if (svga->lowres)
@@ -3355,26 +3355,6 @@ mach_recalctimings(svga_t *svga)
                             svga->rowoffset <<= 1;
                         }
                     }
-                }
-            } else {
-                if (ATI_MACH32)
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
-                else
-                    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
-
-                switch ((mach->regs[0xb8] >> 6) & 3) {
-                    case 0:
-                    default:
-                        break;
-                    case 1:
-                        svga->clock *= 2.0;
-                        break;
-                    case 2:
-                        svga->clock *= 3.0;
-                        break;
-                    case 3:
-                        svga->clock *= 4.0;
-                        break;
                 }
             }
         }
