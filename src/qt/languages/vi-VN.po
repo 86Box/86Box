@@ -1783,7 +1783,7 @@ msgid "Serial port passthrough 4"
 msgstr "Thông qua cổng serial 4"
 
 msgid "Renderer &options…"
-msgstr "Tùy chọn kết xuất …"
+msgstr "Tùy chọn kết xuất…"
 
 msgid "PC/XT Keyboard"
 msgstr "Bàn phím PC/XT"

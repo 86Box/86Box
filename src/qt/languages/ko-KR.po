@@ -516,7 +516,7 @@ msgstr "병렬 포트 3"
 msgid "Parallel port 4"
 msgstr "병렬 포트 4"
 
-msgid "FD controller:"
+msgid "Floppy disk controller:"
 msgstr "플로피 디스크 컨트롤러:"
 
 msgid "CD-ROM controller:"
