@@ -16,6 +16,11 @@
 #include <QDebug>
 #include <QStyle>
 
+extern "C" {
+#include <86box/86box.h>
+}
+
+#include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "ui_qt_vmmanager_details.h"
@@ -138,7 +143,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     configureButton = new QToolButton();
     configureButton->setIcon(QIcon(":/menuicons/qt/icons/settings.ico"));
     configureButton->setEnabled(false);
-    configureButton->setToolTip(tr("Settings..."));
+    configureButton->setToolTip(tr("Settings…"));
     cadButton = new QToolButton();
     cadButton->setIcon(QIcon(":menuicons/qt/icons/send_cad.ico"));
     cadButton->setEnabled(false);
@@ -161,6 +166,8 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     connect(this, &VMManagerDetails::styleUpdated, inputSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, portsSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, otherSection, &VMManagerDetailSection::updateStyle);
+
+    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
 #endif
 
     sysconfig = new VMManagerSystem();

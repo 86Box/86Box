@@ -98,14 +98,14 @@
      <item>
       <widget class="QPushButton" name="pushButtonNew">
        <property name="text">
-        <string>&amp;New...</string>
+        <string>&amp;New…</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonExisting">
        <property name="text">
-        <string>&amp;Existing...</string>
+        <string>&amp;Existing…</string>
        </property>
       </widget>
      </item>

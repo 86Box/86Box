@@ -111,6 +111,9 @@
    <property name="toolTip">
     <string>Start</string>
    </property>
+   <property name="iconText">
+    <string>Start</string>
+   </property>
   </action>
   <action name="actionHard_Reset">
    <property name="icon">
@@ -121,6 +124,9 @@
     <string>&amp;Hard reset</string>
    </property>
    <property name="toolTip">
+    <string>Hard reset</string>
+   </property>
+   <property name="iconText">
     <string>Hard reset</string>
    </property>
   </action>
@@ -136,6 +142,9 @@
     <string>&amp;Force shutdown</string>
    </property>
    <property name="toolTip">
+    <string>Force shutdown</string>
+   </property>
+   <property name="iconText">
     <string>Force shutdown</string>
    </property>
    <property name="visible">
@@ -156,6 +165,9 @@
    <property name="toolTip">
     <string>Ctrl+Alt+Del</string>
    </property>
+   <property name="iconText">
+    <string>Ctrl+Alt+Del</string>
+   </property>
    <property name="visible">
     <bool>true</bool>
    </property>
@@ -166,10 +178,13 @@
      <normaloff>:/menuicons/qt/icons/settings.ico</normaloff>:/menuicons/qt/icons/settings.ico</iconset>
    </property>
    <property name="text">
-    <string>&amp;Settings...</string>
+    <string>&amp;Settings…</string>
    </property>
    <property name="toolTip">
-    <string>Settings...</string>
+    <string>Settings…</string>
+   </property>
+   <property name="iconText">
+    <string>Settings</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -181,10 +196,13 @@
      <normaloff>:/menuicons/qt/icons/new_vm.ico</normaloff>:/menuicons/qt/icons/new_vm.ico</iconset>
    </property>
    <property name="text">
-    <string>&amp;New machine...</string>
+    <string>&amp;New machine…</string>
    </property>
    <property name="toolTip">
-    <string>New machine...</string>
+    <string>New machine…</string>
+   </property>
+   <property name="iconText">
+    <string>New machine</string>
    </property>
   </action>
   <action name="actionHide_tool_bar">
@@ -194,16 +212,10 @@
    <property name="text">
     <string>Hide &amp;toolbar</string>
    </property>
-   <property name="toolTip">
-    <string>Hide tool bar</string>
-   </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
-    <string>&amp;Preferences...</string>
-   </property>
-   <property name="toolTip">
-    <string>Preferences...</string>
+    <string>&amp;Preferences…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>
@@ -211,7 +223,7 @@
   </action>
   <action name="actionCheck_for_updates">
    <property name="text">
-    <string>&amp;Check for updates...</string>
+    <string>&amp;Check for updates…</string>
    </property>
   </action>
   <action name="actionExit">
@@ -224,12 +236,12 @@
   </action>
   <action name="actionDocumentation">
    <property name="text">
-    <string>&amp;Documentation...</string>
+    <string>&amp;Documentation…</string>
    </property>
   </action>
   <action name="actionAbout_86Box">
    <property name="text">
-    <string>&amp;About 86Box...</string>
+    <string>&amp;About 86Box…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::AboutRole</enum>

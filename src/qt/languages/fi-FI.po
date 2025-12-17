@@ -72,8 +72,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "&Määritä koko..."
+msgid "Specify &dimensions…"
+msgstr "&Määritä koko…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Pakota &4:3-kuvasuhde"
@@ -198,11 +198,11 @@ msgstr "&Media"
 msgid "&Tools"
 msgstr "Työ&kalut"
 
-msgid "&Settings..."
-msgstr "&Asetukset..."
+msgid "&Settings…"
+msgstr "&Asetukset…"
 
-msgid "Settings..."
-msgstr "Asetukset..."
+msgid "Settings…"
+msgstr "Asetukset…"
 
 msgid "&Update status bar icons"
 msgstr "&Päivitä tilapalkin kuvakkeita"
@@ -213,14 +213,14 @@ msgstr "Ota &kuvakaappaus"
 msgid "S&ound"
 msgstr "&Ääni"
 
-msgid "&Preferences..."
-msgstr "&Sovellusasetukset..."
+msgid "&Preferences…"
+msgstr "&Sovellusasetukset…"
 
 msgid "Enable &Discord integration"
 msgstr "&Discord-integraatio"
 
-msgid "Sound &gain..."
-msgstr "&Äänitasot..."
+msgid "Sound &gain…"
+msgstr "&Äänitasot…"
 
 msgid "Begin trace"
 msgstr "Aloita jäljitys"
@@ -231,20 +231,20 @@ msgstr "Lopeta jäljitys"
 msgid "&Help"
 msgstr "&Ohje"
 
-msgid "&Documentation..."
-msgstr "&Ohjekirja..."
+msgid "&Documentation…"
+msgstr "&Ohjekirja…"
 
-msgid "&About 86Box..."
-msgstr "&Tietoja 86Boxista..."
+msgid "&About 86Box…"
+msgstr "&Tietoja 86Boxista…"
 
-msgid "&New image..."
-msgstr "&Uusi levykuva..."
+msgid "&New image…"
+msgstr "&Uusi levykuva…"
 
-msgid "&Existing image..."
-msgstr "&Olemassaoleva levykuva..."
+msgid "&Existing image…"
+msgstr "&Olemassaoleva levykuva…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)…"
 
 msgid "&Record"
 msgstr "&Nauhoita"
@@ -261,11 +261,11 @@ msgstr "Kelaa &loppuun"
 msgid "E&ject"
 msgstr "&Irrota"
 
-msgid "&Image..."
-msgstr "&Levykuva..."
+msgid "&Image…"
+msgstr "&Levykuva…"
 
-msgid "E&xport to 86F..."
-msgstr "&Vie 86F-tiedostoon..."
+msgid "E&xport to 86F…"
+msgstr "&Vie 86F-tiedostoon…"
 
 msgid "&Mute"
 msgstr "&Mykistä"
@@ -276,8 +276,8 @@ msgstr "&Tyhjä"
 msgid "Reload previous image"
 msgstr "Lataa edellinen levykuva uudelleen"
 
-msgid "&Folder..."
-msgstr "&Kansio..."
+msgid "&Folder…"
+msgstr "&Kansio…"
 
 msgid "Preferences"
 msgstr "Sovellusasetukset"
@@ -289,7 +289,7 @@ msgid "New Image"
 msgstr "Uusi levykuva"
 
 msgid "Settings"
-msgstr "Kokoonpano"
+msgstr "Asetukset"
 
 msgid "Specify Main Window Dimensions"
 msgstr "Määritä pääikkunan koko"
@@ -423,17 +423,17 @@ msgstr "Peliohjain:"
 msgid "Joystick"
 msgstr "Peliohjain"
 
-msgid "Joystick 1..."
-msgstr "Peliohjain 1..."
+msgid "Joystick 1…"
+msgstr "Peliohjain 1…"
 
-msgid "Joystick 2..."
-msgstr "Peliohjain 2..."
+msgid "Joystick 2…"
+msgstr "Peliohjain 2…"
 
-msgid "Joystick 3..."
-msgstr "Peliohjain 3..."
+msgid "Joystick 3…"
+msgstr "Peliohjain 3…"
 
-msgid "Joystick 4..."
-msgstr "Peliohjain 4..."
+msgid "Joystick 4…"
+msgstr "Peliohjain 4…"
 
 msgid "Sound card #1:"
 msgstr "Äänikortti 1:"
@@ -522,23 +522,23 @@ msgstr "Rinnakkaisportti 3"
 msgid "Parallel port 4"
 msgstr "Rinnakkaisportti 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Levykeohjain:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Kolmas IDE-ohjain"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Kolmas IDE-ohjain"
 
-msgid "Quaternary IDE Controller"
-msgstr "Neljäs IDE-ohjain"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Neljäs IDE-ohjain"
 
-msgid "Hard disk"
-msgstr "Kiintolevy"
+msgid "Hard disk controllers"
+msgstr "Kiintolevyohjaimet"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-ohjaimet"
 
 msgid "Controller 1:"
 msgstr "Ohjain 1:"
@@ -561,11 +561,11 @@ msgstr "Kiintolevyt:"
 msgid "Firmware Version"
 msgstr "Laiteohjelmiston versio"
 
-msgid "&New..."
-msgstr "&Uusi..."
+msgid "&New…"
+msgstr "&Uusi…"
 
-msgid "&Existing..."
-msgstr "&Olemassaoleva..."
+msgid "&Existing…"
+msgstr "&Olemassaoleva…"
 
 msgid "&Remove"
 msgstr "&Poista"
@@ -873,9 +873,6 @@ msgstr "4-painikkeinen peliohjain"
 msgid "6-button gamepad"
 msgstr "6-painikkeinen peliohjain"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2-painikkeinen lento-ohjain"
 
@@ -902,51 +899,6 @@ msgstr "ratti (3-akselinen, 3-painikkeinen)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "ratti (3-akselinen, 4-painikkeinen)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 adapterilla"
@@ -1002,11 +954,17 @@ msgstr "Sisäinen laite"
 msgid "&File"
 msgstr "&Tiedosto"
 
-msgid "&New machine..."
-msgstr "&Uusi kone..."
+msgid "&New machine…"
+msgstr "&Uusi kone…"
 
-msgid "&Check for updates..."
-msgstr "T&arkista päivitykset..."
+msgid "New machine…"
+msgstr "Uusi kone…"
+
+msgid "New machine"
+msgstr "Uusi kone"
+
+msgid "&Check for updates…"
+msgstr "T&arkista päivitykset…"
 
 msgid "Exit"
 msgstr "Poistu"
@@ -1257,26 +1215,26 @@ msgstr "Aseta näyttönimi"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Anna uusi näyttönimi tai poista se"
 
-msgid "Change &display name..."
-msgstr "Vaihda &näyttönimi..."
+msgid "Change &display name…"
+msgstr "Vaihda &näyttönimi…"
 
 msgid "Context Menu"
 msgstr "Kontekstivalikko"
 
-msgid "&Open folder..."
-msgstr "&Avaa kansio..."
+msgid "&Open folder…"
+msgstr "&Avaa kansio…"
 
-msgid "Open p&rinter tray..."
-msgstr "Avaa &tulostimen lokero..."
+msgid "Open p&rinter tray…"
+msgstr "Avaa &tulostimen lokero…"
 
-msgid "Set &icon..."
-msgstr "Aseta &kuvake..."
+msgid "Set &icon…"
+msgstr "Aseta &kuvake…"
 
 msgid "Select an icon"
 msgstr "Valitse kuvake"
 
-msgid "C&lone..."
-msgstr "K&loonaa..."
+msgid "C&lone…"
+msgstr "K&loonaa…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuaalikone \"%1\" (%2) kloonataan tänne:"
@@ -1362,8 +1320,8 @@ msgstr "Ei kuvakaappausta"
 msgid "Search"
 msgstr "Hae"
 
-msgid "Searching for VMs..."
-msgstr "Haetaan virtuaalikoneita..."
+msgid "Searching for VMs…"
+msgstr "Haetaan virtuaalikoneita…"
 
 msgid "Found %1"
 msgstr "%1 löydetty"
@@ -1398,11 +1356,11 @@ msgstr "Kiintolevy (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
 
-msgid "Custom..."
-msgstr "Mukautettu..."
+msgid "Custom…"
+msgstr "Mukautettu…"
 
-msgid "Custom (large)..."
-msgstr "Mukautettu (suuri)..."
+msgid "Custom (large)…"
+msgstr "Mukautettu (suuri)…"
 
 msgid "Add New Hard Disk"
 msgstr "Lisää uusi kiintolevy"
@@ -1520,21 +1478,6 @@ msgstr "Ylä- ja alatason levyjen aikaleimat eivät täsmää"
 
 msgid "Could not fix VHD timestamp."
 msgstr "VHD:n aikaleimaa ei pystytty korjaamaan."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1686,14 +1629,14 @@ msgstr "Tablettityökalu"
 msgid "About &Qt"
 msgstr "Tietoja &Qt:sta"
 
-msgid "&MCA devices..."
-msgstr "MCA-laitteet..."
+msgid "&MCA devices…"
+msgstr "MCA-laitteet…"
 
 msgid "Show non-&primary monitors"
 msgstr "Näytä muut kuin ensisijaiset näytöt"
 
-msgid "Open screenshots &folder..."
-msgstr "Avaa kuvakaappaukset-kansio..."
+msgid "Open screenshots &folder…"
+msgstr "Avaa kuvakaappaukset-kansio…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Sovella koko näytön venytystilaa maksimoidessa"
@@ -1713,8 +1656,8 @@ msgstr "&Yhdistetty"
 msgid "Clear image &history"
 msgstr "Tyhjennä levykuva&historia"
 
-msgid "Create..."
-msgstr "Luo..."
+msgid "Create…"
+msgstr "Luo…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Isännän CD/DVD-asema (%1)"
@@ -1755,8 +1698,8 @@ msgstr "Varjostinohjelmat"
 msgid "Remove"
 msgstr "Poista"
 
-msgid "Browse..."
-msgstr "Selaa..."
+msgid "Browse…"
+msgstr "Selaa…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL-kontekstia ei voitu luoda."
@@ -1845,8 +1788,8 @@ msgstr "Sarjaportin läpivienti 3"
 msgid "Serial port passthrough 4"
 msgstr "Sarjaportin läpivienti 4"
 
-msgid "Renderer &options..."
-msgstr "Renderöijän &asetukset..."
+msgid "Renderer &options…"
+msgstr "Renderöijän &asetukset…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT-näppäimistö"
@@ -1983,6 +1926,9 @@ msgstr "Sarjaportin IRQ"
 msgid "Parallel port IRQ"
 msgstr "Rinnakkaisportin IRQ"
 
+msgid "Hard disk"
+msgstr "Kiintolevy"
+
 msgid "BIOS Revision"
 msgstr "BIOS-versio"
 
@@ -2057,9 +2003,6 @@ msgstr "MIDI-läpivienti"
 
 msgid "MIDI Clockout"
 msgstr "MIDI-kellon ulostulo"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Lähtötaso"
@@ -2970,8 +2913,8 @@ msgstr "Siirry lataussivulle"
 msgid "Update check"
 msgstr "Päivitystarkistus"
 
-msgid "Checking for updates..."
-msgstr "Tarkistetaan päivityksiä..."
+msgid "Checking for updates…"
+msgstr "Tarkistetaan päivityksiä…"
 
 msgid "86Box Update"
 msgstr "86Box-päivitys"
@@ -3009,8 +2952,8 @@ msgstr "Kirkkaus"
 msgid "Sharpness"
 msgstr "Terävyys"
 
-msgid "&CGA composite settings..."
-msgstr "&CGA:n komposiittiasetukset..."
+msgid "&CGA composite settings…"
+msgstr "&CGA:n komposiittiasetukset…"
 
 msgid "CGA composite settings"
 msgstr "CGA:n komposiittiasetukset"
@@ -3018,8 +2961,8 @@ msgstr "CGA:n komposiittiasetukset"
 msgid "Monitor EDID"
 msgstr "Näytön EDID"
 
-msgid "Export..."
-msgstr "Vie..."
+msgid "Export…"
+msgstr "Vie…"
 
 msgid "Export EDID"
 msgstr "Vie EDID"

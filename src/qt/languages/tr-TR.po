@@ -66,8 +66,8 @@ msgstr "OpenG&L (Sürüm 3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "Pencere &boyutunu belirle..."
+msgid "Specify &dimensions…"
+msgstr "Pencere &boyutunu belirle…"
 
 msgid "Force &4:3 display ratio"
 msgstr "&4:3 görüntü oranına zorla"
@@ -192,11 +192,11 @@ msgstr "&Ortam"
 msgid "&Tools"
 msgstr "&Araçlar"
 
-msgid "&Settings..."
-msgstr "&Ayarlar..."
+msgid "&Settings…"
+msgstr "&Ayarlar…"
 
-msgid "Settings..."
-msgstr "Ayarlar..."
+msgid "Settings…"
+msgstr "Ayarlar…"
 
 msgid "&Update status bar icons"
 msgstr "Durum &çubuğu simgelerini güncelle"
@@ -207,14 +207,14 @@ msgstr "&Ekran görüntüsü al"
 msgid "S&ound"
 msgstr "&Ses"
 
-msgid "&Preferences..."
-msgstr "&Tercihler..."
+msgid "&Preferences…"
+msgstr "&Tercihler…"
 
 msgid "Enable &Discord integration"
 msgstr "&Discord entegrasyonunu etkinleştir"
 
-msgid "Sound &gain..."
-msgstr "&Sesi artır..."
+msgid "Sound &gain…"
+msgstr "&Sesi artır…"
 
 msgid "Begin trace"
 msgstr "İzlemeyi başlat"
@@ -225,20 +225,20 @@ msgstr "İzlemeyi bitir"
 msgid "&Help"
 msgstr "&Yardım"
 
-msgid "&Documentation..."
-msgstr "&Belgeler..."
+msgid "&Documentation…"
+msgstr "&Belgeler…"
 
-msgid "&About 86Box..."
-msgstr "&86Box hakkında..."
+msgid "&About 86Box…"
+msgstr "&86Box hakkında…"
 
-msgid "&New image..."
-msgstr "&Yeni görüntü oluştur..."
+msgid "&New image…"
+msgstr "&Yeni görüntü oluştur…"
 
-msgid "&Existing image..."
-msgstr "&Görüntü seç..."
+msgid "&Existing image…"
+msgstr "&Görüntü seç…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Görüntü &seç (Yazma korumalı)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Görüntü &seç (Yazma korumalı)…"
 
 msgid "&Record"
 msgstr "&Kaydet"
@@ -255,11 +255,11 @@ msgstr "Sona &doğru sar"
 msgid "E&ject"
 msgstr "&Çıkar"
 
-msgid "&Image..."
-msgstr "&Görüntü seç..."
+msgid "&Image…"
+msgstr "&Görüntü seç…"
 
-msgid "E&xport to 86F..."
-msgstr "&86F olarak kaydet..."
+msgid "E&xport to 86F…"
+msgstr "&86F olarak kaydet…"
 
 msgid "&Mute"
 msgstr "&Sessize al"
@@ -270,8 +270,8 @@ msgstr "Görüntüyü &çıkar"
 msgid "Reload previous image"
 msgstr "Önceki görüntüyü yeniden seç"
 
-msgid "&Folder..."
-msgstr "&Klasör seç..."
+msgid "&Folder…"
+msgstr "&Klasör seç…"
 
 msgid "Preferences"
 msgstr "Tercihler"
@@ -417,17 +417,17 @@ msgstr "Oyun Kolu:"
 msgid "Joystick"
 msgstr "Oyun Kolu"
 
-msgid "Joystick 1..."
-msgstr "1. Oyun Kolu..."
+msgid "Joystick 1…"
+msgstr "1. Oyun Kolu…"
 
-msgid "Joystick 2..."
-msgstr "2. Oyun Kolu..."
+msgid "Joystick 2…"
+msgstr "2. Oyun Kolu…"
 
-msgid "Joystick 3..."
-msgstr "3. Oyun Kolu..."
+msgid "Joystick 3…"
+msgstr "3. Oyun Kolu…"
 
-msgid "Joystick 4..."
-msgstr "4. Oyun Kolu..."
+msgid "Joystick 4…"
+msgstr "4. Oyun Kolu…"
 
 msgid "Sound card #1:"
 msgstr "1. Ses Kartı:"
@@ -516,23 +516,23 @@ msgstr "3. Paralel bağlantı noktası"
 msgid "Parallel port 4"
 msgstr "4. Paralel bağlantı noktası"
 
-msgid "FD Controller:"
-msgstr "Disket Denetleyicisi:"
+msgid "Floppy disk controller:"
+msgstr "Disket denetleyicisi:"
 
-msgid "CD-ROM Controller:"
-msgstr "CD-ROM Denetleyicisi:"
+msgid "CD-ROM controller:"
+msgstr "CD-ROM denetleyicisi:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Üçüncül IDE Denetleyicisi"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Üçüncül IDE denetleyicisi"
 
-msgid "Quaternary IDE Controller"
-msgstr "Dördüncül IDE Denetleyicisi"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Dördüncül IDE denetleyicisi"
 
-msgid "Hard disk"
-msgstr "Sabit disk"
+msgid "Hard disk controllers"
+msgstr "Sabit disk denetleyicileri"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI denetleyicileri"
 
 msgid "Controller 1:"
 msgstr "1. Denetleyici:"
@@ -555,11 +555,11 @@ msgstr "Sabit diskler:"
 msgid "Firmware Version"
 msgstr "Bellenim Sürümü"
 
-msgid "&New..."
-msgstr "&Yeni görüntü oluştur..."
+msgid "&New…"
+msgstr "&Yeni görüntü oluştur…"
 
-msgid "&Existing..."
-msgstr "&Görüntü dosyası seç..."
+msgid "&Existing…"
+msgstr "&Görüntü dosyası seç…"
 
 msgid "&Remove"
 msgstr "&Kaldır"
@@ -867,9 +867,6 @@ msgstr "4 düğmeli oyun tablası"
 msgid "6-button gamepad"
 msgstr "6 düğmeli oyun tablası"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2 düğmeli uçuş dümeni"
 
@@ -896,51 +893,6 @@ msgstr "direksiyonu (3 eksenli, 3 düğmeli)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "direksiyonu (3 eksenli, 4 düğmeli)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Adaptörlü Thrustmaster Formula T1/T2"
@@ -996,11 +948,17 @@ msgstr "Dahili cihaz"
 msgid "&File"
 msgstr "&Dosya"
 
-msgid "&New machine..."
-msgstr "&Yeni makine..."
+msgid "&New machine…"
+msgstr "&Yeni makine…"
 
-msgid "&Check for updates..."
-msgstr "&Güncelleştirmeleri kontrol et..."
+msgid "New machine…"
+msgstr "Yeni makine…"
+
+msgid "New machine"
+msgstr "Yeni makine"
+
+msgid "&Check for updates…"
+msgstr "&Güncelleştirmeleri kontrol et…"
 
 msgid "Exit"
 msgstr "Çıkış yap"
@@ -1251,26 +1209,26 @@ msgstr "Görüntü adını ayarla"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Yeni görünü adını girin (sıfırlamak için boş bırakın)"
 
-msgid "Change &display name..."
-msgstr "Görüntü adını &değiştirin..."
+msgid "Change &display name…"
+msgstr "Görüntü adını &değiştirin…"
 
 msgid "Context Menu"
 msgstr "Bağlam Menüsü"
 
-msgid "&Open folder..."
-msgstr "Klas&örü aç..."
+msgid "&Open folder…"
+msgstr "Klas&örü aç…"
 
-msgid "Open p&rinter tray..."
-msgstr "Yazıcı te&psisini aç..."
+msgid "Open p&rinter tray…"
+msgstr "Yazıcı te&psisini aç…"
 
-msgid "Set &icon..."
-msgstr "S&imge seç..."
+msgid "Set &icon…"
+msgstr "S&imge seç…"
 
 msgid "Select an icon"
 msgstr "Bir simge seç"
 
-msgid "C&lone..."
-msgstr "K&lonla..."
+msgid "C&lone…"
+msgstr "K&lonla…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Sanal makine \"%1\" (%2) şuraya klonlanacaktır:"
@@ -1356,8 +1314,8 @@ msgstr "Ekran görüntüsü yok"
 msgid "Search"
 msgstr "Ara"
 
-msgid "Searching for VMs..."
-msgstr "VM'ler aranıyor..."
+msgid "Searching for VMs…"
+msgstr "VM'ler aranıyor…"
 
 msgid "Found %1"
 msgstr "%1 bulundu"
@@ -1392,11 +1350,11 @@ msgstr "Sabit disk (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL veya ESDI CD-ROM sürücüleri hiçbir zaman kullanılmamıştır"
 
-msgid "Custom..."
-msgstr "Diğer..."
+msgid "Custom…"
+msgstr "Diğer…"
 
-msgid "Custom (large)..."
-msgstr "Diğer (büyük)..."
+msgid "Custom (large)…"
+msgstr "Diğer (büyük)…"
 
 msgid "Add New Hard Disk"
 msgstr "Yeni Sabit Disk Görüntüsü Oluştur"
@@ -1514,21 +1472,6 @@ msgstr "Ana ve ek disklerin zaman damgaları uyuşmuyor"
 
 msgid "Could not fix VHD timestamp."
 msgstr "VHD'nin zaman damgası düzeltilemedi."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1680,14 +1623,14 @@ msgstr "Tablet aracı"
 msgid "About &Qt"
 msgstr "&Qt hakkında"
 
-msgid "&MCA devices..."
-msgstr "MCA cihazları..."
+msgid "&MCA devices…"
+msgstr "MCA cihazları…"
 
 msgid "Show non-&primary monitors"
 msgstr "Birincil olmayan monitörleri göster"
 
-msgid "Open screenshots &folder..."
-msgstr "Ekran görüntüsü klasörünü aç..."
+msgid "Open screenshots &folder…"
+msgstr "Ekran görüntüsü klasörünü aç…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Büyütüldüğünde tam ekran germe modunu uygula"
@@ -1707,8 +1650,8 @@ msgstr "&Bağlı"
 msgid "Clear image &history"
 msgstr "Görüntü geçmişini temizle"
 
-msgid "Create..."
-msgstr "Oluştur..."
+msgid "Create…"
+msgstr "Oluştur…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Ana bilgisayar CD/DVD sürücüsü (%1)"
@@ -1749,8 +1692,8 @@ msgstr "Gölgelendiriciler"
 msgid "Remove"
 msgstr "Kaldır"
 
-msgid "Browse..."
-msgstr "Göz at..."
+msgid "Browse…"
+msgstr "Göz at…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL bağlamı oluşturulamadı."
@@ -1839,8 +1782,8 @@ msgstr "3. Seri bağlantı noktası geçişi"
 msgid "Serial port passthrough 4"
 msgstr "4. Seri bağlantı noktası geçişi"
 
-msgid "Renderer &options..."
-msgstr "Derleyici seçenekleri..."
+msgid "Renderer &options…"
+msgstr "Derleyici seçenekleri…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT Klavyesi"
@@ -1977,6 +1920,9 @@ msgstr "Seri bağlantı noktası IRQ'su"
 msgid "Parallel port IRQ"
 msgstr "Paralel bağlantı noktası IRQ'su"
 
+msgid "Hard disk"
+msgstr "Sabit disk"
+
 msgid "BIOS Revision"
 msgstr "BIOS Revizyonu"
 
@@ -2051,9 +1997,6 @@ msgstr "MIDI Geçişi"
 
 msgid "MIDI Clockout"
 msgstr "MIDI Saat Çıkışı"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Çıkış Sesi Artışı"
@@ -2964,8 +2907,8 @@ msgstr "İndirme sayfasını ziyaret et"
 msgid "Update check"
 msgstr "Güncelleme kontrolü"
 
-msgid "Checking for updates..."
-msgstr "Güncellemeler kontrol ediliyor..."
+msgid "Checking for updates…"
+msgstr "Güncellemeler kontrol ediliyor…"
 
 msgid "86Box Update"
 msgstr "86Box Güncellemesi"
@@ -3003,8 +2946,8 @@ msgstr "Parlaklık"
 msgid "Sharpness"
 msgstr "Keskinlik"
 
-msgid "&CGA composite settings..."
-msgstr "&CGA kompozit modunun ayarları..."
+msgid "&CGA composite settings…"
+msgstr "&CGA kompozit modunun ayarları…"
 
 msgid "CGA composite settings"
 msgstr "CGA kompozit modunun ayarları"
@@ -3012,8 +2955,8 @@ msgstr "CGA kompozit modunun ayarları"
 msgid "Monitor EDID"
 msgstr "Monitörün EDID'si"
 
-msgid "Export..."
-msgstr "Dışa aktar..."
+msgid "Export…"
+msgstr "Dışa aktar…"
 
 msgid "Export EDID"
 msgstr "EDID'i dışa aktar"

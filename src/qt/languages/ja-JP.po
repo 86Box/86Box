@@ -73,8 +73,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify &dimensions..."
-msgstr "ディメンションを指定(&D)..."
+msgid "Specify &dimensions…"
+msgstr "ディメンションを指定(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "4:3の縦横比を強制表示(&4)"
@@ -199,11 +199,11 @@ msgstr "メディア(&M)"
 msgid "&Tools"
 msgstr "ツール(&T)"
 
-msgid "&Settings..."
-msgstr "設定(&S)..."
+msgid "&Settings…"
+msgstr "設定(&S)…"
 
-msgid "Settings..."
-msgstr "設定..."
+msgid "Settings…"
+msgstr "設定…"
 
 msgid "&Update status bar icons"
 msgstr "ステータスバーのアイコンを更新(&U)"
@@ -214,14 +214,14 @@ msgstr "スクリーンショットを撮る(&C)"
 msgid "S&ound"
 msgstr "サウンド(&O)"
 
-msgid "&Preferences..."
-msgstr "環境設定(&P)..."
+msgid "&Preferences…"
+msgstr "環境設定(&P)…"
 
 msgid "Enable &Discord integration"
 msgstr "Discord連携機能(&D)"
 
-msgid "Sound &gain..."
-msgstr "音量調整(&G)..."
+msgid "Sound &gain…"
+msgstr "音量調整(&G)…"
 
 msgid "Begin trace"
 msgstr "トレース開始"
@@ -232,20 +232,20 @@ msgstr "トレース終了"
 msgid "&Help"
 msgstr "ヘルプ(&H)"
 
-msgid "&Documentation..."
-msgstr "文書(&D)..."
+msgid "&Documentation…"
+msgstr "文書(&D)…"
 
-msgid "&About 86Box..."
-msgstr "86Boxのバージョン情報(&A)..."
+msgid "&About 86Box…"
+msgstr "86Boxのバージョン情報(&A)…"
 
-msgid "&New image..."
-msgstr "新規イメージ(&N)..."
+msgid "&New image…"
+msgstr "新規イメージ(&N)…"
 
-msgid "&Existing image..."
-msgstr "既存のイメージを開く(&E)..."
+msgid "&Existing image…"
+msgstr "既存のイメージを開く(&E)…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "既存のイメージを開く(書き込み禁止)(&W)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "既存のイメージを開く(書き込み禁止)(&W)…"
 
 msgid "&Record"
 msgstr "録音(&R)"
@@ -262,11 +262,11 @@ msgstr "最後まで早送り(&F)"
 msgid "E&ject"
 msgstr "取り出す(&J)"
 
-msgid "&Image..."
-msgstr "イメージ(&I)..."
+msgid "&Image…"
+msgstr "イメージ(&I)…"
 
-msgid "E&xport to 86F..."
-msgstr "86Fイメージにエクスポート(&X)..."
+msgid "E&xport to 86F…"
+msgstr "86Fイメージにエクスポート(&X)…"
 
 msgid "&Mute"
 msgstr "ミュート(&M)"
@@ -277,8 +277,8 @@ msgstr "なし(&M)"
 msgid "Reload previous image"
 msgstr "前のイメージを再読み込み"
 
-msgid "&Folder..."
-msgstr "フォルダ(&F)..."
+msgid "&Folder…"
+msgstr "フォルダ(&F)…"
 
 msgid "Preferences"
 msgstr "環境設定"
@@ -424,17 +424,17 @@ msgstr "ジョイスティック:"
 msgid "Joystick"
 msgstr "ジョイスティック"
 
-msgid "Joystick 1..."
-msgstr "ジョイスティック1..."
+msgid "Joystick 1…"
+msgstr "ジョイスティック1…"
 
-msgid "Joystick 2..."
-msgstr "ジョイスティック2..."
+msgid "Joystick 2…"
+msgstr "ジョイスティック2…"
 
-msgid "Joystick 3..."
-msgstr "ジョイスティック3..."
+msgid "Joystick 3…"
+msgstr "ジョイスティック3…"
 
-msgid "Joystick 4..."
-msgstr "ジョイスティック4..."
+msgid "Joystick 4…"
+msgstr "ジョイスティック4…"
 
 msgid "Sound card #1:"
 msgstr "サウンドカード1:"
@@ -523,23 +523,23 @@ msgstr "パラレルポート3"
 msgid "Parallel port 4"
 msgstr "パラレルポート4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "FDDコントローラー:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
 
-msgid "Tertiary IDE Controller"
-msgstr "第三IDEコントローラー"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] 第三IDEコントローラー"
 
-msgid "Quaternary IDE Controller"
-msgstr "第四IDEコントローラー"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] 第四IDEコントローラー"
 
-msgid "Hard disk"
-msgstr "ハードディスク"
+msgid "Hard disk controllers"
+msgstr "ハードディスクコントローラー"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSIコントローラー"
 
 msgid "Controller 1:"
 msgstr "コントローラー1:"
@@ -562,11 +562,11 @@ msgstr "ハード ディスク:"
 msgid "Firmware Version"
 msgstr "ファームウェアバージョン"
 
-msgid "&New..."
-msgstr "新規(&N)..."
+msgid "&New…"
+msgstr "新規(&N)…"
 
-msgid "&Existing..."
-msgstr "既定(&E)..."
+msgid "&Existing…"
+msgstr "既定(&E)…"
 
 msgid "&Remove"
 msgstr "削除(&R)"
@@ -874,9 +874,6 @@ msgstr "4ボタン式ゲームパッド"
 msgid "6-button gamepad"
 msgstr "6ボタン式ゲームパッド"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2ボタン式操縦桿"
 
@@ -903,51 +900,6 @@ msgstr "ステアリングホイール(3軸、3ボタン)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "ステアリングホイール(3軸、4ボタン)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinderパッド"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "アダプター付き Thrustmaster Formula T1/T2"
@@ -1003,11 +955,17 @@ msgstr "内蔵デバイス"
 msgid "&File"
 msgstr "ファイル(&F)"
 
-msgid "&New machine..."
-msgstr "新しいマシン(&N)..."
+msgid "&New machine…"
+msgstr "新しいマシン(&N)…"
 
-msgid "&Check for updates..."
-msgstr "アップデートを確認中(&C)..."
+msgid "New machine…"
+msgstr "新しいマシン…"
+
+msgid "New machine"
+msgstr "新しいマシン"
+
+msgid "&Check for updates…"
+msgstr "アップデートを確認中(&C)…"
 
 msgid "Exit"
 msgstr "終了"
@@ -1106,7 +1064,7 @@ msgid "Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+DELを押す"
+msgstr "Ctrl+Alt+Delを押す"
 
 msgid "Press Ctrl+Alt+Esc"
 msgstr "Ctrl+Alt+Escを押す"
@@ -1258,26 +1216,26 @@ msgstr "表示名を設定する"
 msgid "Enter the new display name (blank to reset)"
 msgstr "新しい表示名を入力してください(空白にするとリセットされます)"
 
-msgid "Change &display name..."
-msgstr "表示名を変更(&D)..."
+msgid "Change &display name…"
+msgstr "表示名を変更(&D)…"
 
 msgid "Context Menu"
 msgstr "コンテキストメニュー"
 
-msgid "&Open folder..."
-msgstr "フォルダーを開く(&O)..."
+msgid "&Open folder…"
+msgstr "フォルダーを開く(&O)…"
 
-msgid "Open p&rinter tray..."
-msgstr "プリンタートレイを開く(&R)..."
+msgid "Open p&rinter tray…"
+msgstr "プリンタートレイを開く(&R)…"
 
-msgid "Set &icon..."
-msgstr "アイコンを設定(&I)..."
+msgid "Set &icon…"
+msgstr "アイコンを設定(&I)…"
 
 msgid "Select an icon"
 msgstr "アイコンを選択してください"
 
-msgid "C&lone..."
-msgstr "クローン(&L)..."
+msgid "C&lone…"
+msgstr "クローン(&L)…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "仮想マシン「%1」 (%2)は、以下の場所にクローンされます:"
@@ -1363,8 +1321,8 @@ msgstr "スクリーンショットなし"
 msgid "Search"
 msgstr "検索"
 
-msgid "Searching for VMs..."
-msgstr "仮想マシンを検索中..."
+msgid "Searching for VMs…"
+msgstr "仮想マシンを検索中…"
 
 msgid "Found %1"
 msgstr "%1が見つかりました"
@@ -1391,7 +1349,7 @@ msgid "ACPI shutdown"
 msgstr "ACPIシャットダウン"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&Iシャットダウン"
+msgstr "ACPIシャットダウン(&I)"
 
 msgid "Hard disk (%1)"
 msgstr "ハードディスク (%1)"
@@ -1399,11 +1357,11 @@ msgstr "ハードディスク (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLLやESDI CD-ROMドライブが存在しません"
 
-msgid "Custom..."
-msgstr "カスタム..."
+msgid "Custom…"
+msgstr "カスタム…"
 
-msgid "Custom (large)..."
-msgstr "カスタム (大容量)..."
+msgid "Custom (large)…"
+msgstr "カスタム (大容量)…"
 
 msgid "Add New Hard Disk"
 msgstr "新規のディスクを追加"
@@ -1521,21 +1479,6 @@ msgstr "親ディスクと子ディスクのタイムス タンプが一致し�
 
 msgid "Could not fix VHD timestamp."
 msgstr "VHD のタイムスタンプを修正できません。"
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1687,14 +1630,14 @@ msgstr "タブレットツール(&T)"
 msgid "About &Qt"
 msgstr "&Qtについて"
 
-msgid "&MCA devices..."
-msgstr "&MCAデバイス..."
+msgid "&MCA devices…"
+msgstr "&MCAデバイス…"
 
 msgid "Show non-&primary monitors"
 msgstr "プライマリーモニター以外のモニターを表示する(&P)"
 
-msgid "Open screenshots &folder..."
-msgstr "スクリーンショットフォルダを開く(&F)..."
+msgid "Open screenshots &folder…"
+msgstr "スクリーンショットフォルダを開く(&F)…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時にフルスクリーンストレッチモードを適用(&Y)"
@@ -1714,8 +1657,8 @@ msgstr "コネクテッド"
 msgid "Clear image &history"
 msgstr "クリア画像履歴(&H)"
 
-msgid "Create..."
-msgstr "作成..."
+msgid "Create…"
+msgstr "作成…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "ホスト CD/DVD ドライブ (%1)"
@@ -1756,8 +1699,8 @@ msgstr "シェーダー"
 msgid "Remove"
 msgstr "削除"
 
-msgid "Browse..."
-msgstr "参照..."
+msgid "Browse…"
+msgstr "参照…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGLコンテキストを作成できませんでした。"
@@ -1846,8 +1789,8 @@ msgstr "シリアル・ポート・パススルー 3"
 msgid "Serial port passthrough 4"
 msgstr "シリアル・ポート・パススルー 4"
 
-msgid "Renderer &options..."
-msgstr "レンダラー設定(&O)..."
+msgid "Renderer &options…"
+msgstr "レンダラー設定(&O)…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT キーボード"
@@ -1984,6 +1927,9 @@ msgstr "シリアルポートのIRQ"
 msgid "Parallel port IRQ"
 msgstr "パラレルポートのIRQ"
 
+msgid "Hard disk"
+msgstr "ハードディスク"
+
 msgid "BIOS Revision"
 msgstr "BIOSリビジョン"
 
@@ -2058,9 +2004,6 @@ msgstr "MIDI入力のパススルー"
 
 msgid "MIDI Clockout"
 msgstr "MIDIクロックの出力"
-
-msgid "SoundFont"
-msgstr "サウンドフォント"
 
 msgid "Output Gain"
 msgstr "出力ゲイン"
@@ -2971,8 +2914,8 @@ msgstr "ダウンロードページをご覧ください"
 msgid "Update check"
 msgstr "アップデートチェック"
 
-msgid "Checking for updates..."
-msgstr "アップデートを確認中..."
+msgid "Checking for updates…"
+msgstr "アップデートを確認中…"
 
 msgid "86Box Update"
 msgstr "86Box アップデート"
@@ -3010,8 +2953,8 @@ msgstr "明るさ"
 msgid "Sharpness"
 msgstr "シャープネス"
 
-msgid "&CGA composite settings..."
-msgstr "CGA複合モードの設定(&C)..."
+msgid "&CGA composite settings…"
+msgstr "CGA複合モードの設定(&C)…"
 
 msgid "CGA composite settings"
 msgstr "CGA複合モードの設定"
@@ -3019,8 +2962,8 @@ msgstr "CGA複合モードの設定"
 msgid "Monitor EDID"
 msgstr "モニターのEDID"
 
-msgid "Export..."
-msgstr "エクスポート..."
+msgid "Export…"
+msgstr "エクスポート…"
 
 msgid "Export EDID"
 msgstr "EDIDのエクスポート"

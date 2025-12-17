@@ -66,8 +66,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "Angi &dimensjoner..."
+msgid "Specify &dimensions…"
+msgstr "Angi &dimensjoner…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Tving &4:3-bildeforhold"
@@ -192,11 +192,11 @@ msgstr "&Medie"
 msgid "&Tools"
 msgstr "&Verktøy"
 
-msgid "&Settings..."
-msgstr "&Innstillinger..."
+msgid "&Settings…"
+msgstr "&Innstillinger…"
 
-msgid "Settings..."
-msgstr "Innstillinger..."
+msgid "Settings…"
+msgstr "Innstillinger…"
 
 msgid "&Update status bar icons"
 msgstr "&Oppdater statuslinjeikoner"
@@ -207,14 +207,14 @@ msgstr "Ta s&kjermbilde"
 msgid "S&ound"
 msgstr "L&yd"
 
-msgid "&Preferences..."
-msgstr "&Valg..."
+msgid "&Preferences…"
+msgstr "&Valg…"
 
 msgid "Enable &Discord integration"
 msgstr "Aktiver &Discord-integrasjon"
 
-msgid "Sound &gain..."
-msgstr "Lyd&forsterkning..."
+msgid "Sound &gain…"
+msgstr "Lyd&forsterkning…"
 
 msgid "Begin trace"
 msgstr "Start sporing"
@@ -225,20 +225,20 @@ msgstr "Stopp sporing"
 msgid "&Help"
 msgstr "&Hjelp"
 
-msgid "&Documentation..."
-msgstr "&Dokumentasjon..."
+msgid "&Documentation…"
+msgstr "&Dokumentasjon…"
 
-msgid "&About 86Box..."
-msgstr "&Om 86Box..."
+msgid "&About 86Box…"
+msgstr "&Om 86Box…"
 
-msgid "&New image..."
-msgstr "&Ny diskfil..."
+msgid "&New image…"
+msgstr "&Ny diskfil…"
 
-msgid "&Existing image..."
-msgstr "&Eksisterende diskfil..."
+msgid "&Existing image…"
+msgstr "&Eksisterende diskfil…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Eksisterende diskfil (&skrivbeskyttet)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Eksisterende diskfil (&skrivbeskyttet)…"
 
 msgid "&Record"
 msgstr "&Spill inn"
@@ -255,11 +255,11 @@ msgstr "&Spol frem til slutten"
 msgid "E&ject"
 msgstr "M&at ut"
 
-msgid "&Image..."
-msgstr "&Diskfil..."
+msgid "&Image…"
+msgstr "&Diskfil…"
 
-msgid "E&xport to 86F..."
-msgstr "E&ksporter til 86F..."
+msgid "E&xport to 86F…"
+msgstr "E&ksporter til 86F…"
 
 msgid "&Mute"
 msgstr "&Demp"
@@ -270,8 +270,8 @@ msgstr "T&øm"
 msgid "Reload previous image"
 msgstr "Last inn forrige diskfil"
 
-msgid "&Folder..."
-msgstr "&Mappe..."
+msgid "&Folder…"
+msgstr "&Mappe…"
 
 msgid "Preferences"
 msgstr "Valg"
@@ -417,17 +417,17 @@ msgstr "Styrespak:"
 msgid "Joystick"
 msgstr "Styrespak"
 
-msgid "Joystick 1..."
-msgstr "Styrespak 1..."
+msgid "Joystick 1…"
+msgstr "Styrespak 1…"
 
-msgid "Joystick 2..."
-msgstr "Styrespak 2..."
+msgid "Joystick 2…"
+msgstr "Styrespak 2…"
 
-msgid "Joystick 3..."
-msgstr "Styrespak 3..."
+msgid "Joystick 3…"
+msgstr "Styrespak 3…"
 
-msgid "Joystick 4..."
-msgstr "Styrespak 4..."
+msgid "Joystick 4…"
+msgstr "Styrespak 4…"
 
 msgid "Sound card #1:"
 msgstr "Lydkort #1:"
@@ -516,23 +516,23 @@ msgstr "Parallellport 3"
 msgid "Parallel port 4"
 msgstr "Parallellport 4"
 
-msgid "FD Controller:"
-msgstr "FD-kontroller:"
+msgid "Floppy disk controller:"
+msgstr "Diskettkontroller:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM-kontroller:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Tertiær IDE-kontroller"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Tertiær IDE-kontroller"
 
-msgid "Quaternary IDE Controller"
-msgstr "Kvartær IDE-kontroller"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Kvartær IDE-kontroller"
 
-msgid "Hard disk"
-msgstr "Harddisk"
+msgid "Hard disk controllers"
+msgstr "Harddiskkontrollere"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-kontrollere"
 
 msgid "Controller 1:"
 msgstr "Kontroller 1:"
@@ -555,11 +555,11 @@ msgstr "Harddisker:"
 msgid "Firmware Version"
 msgstr "Firmware-versjon"
 
-msgid "&New..."
-msgstr "&Ny..."
+msgid "&New…"
+msgstr "&Ny…"
 
-msgid "&Existing..."
-msgstr "&Eksisterende..."
+msgid "&Existing…"
+msgstr "&Eksisterende…"
 
 msgid "&Remove"
 msgstr "&Fjern"
@@ -867,9 +867,6 @@ msgstr "4-knapps gamepad"
 msgid "6-button gamepad"
 msgstr "6-knapps gamepad"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2-knapps flystyre"
 
@@ -896,51 +893,6 @@ msgstr "Ratt (3-akset, 3-knapps)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Ratt (3-akset, 4-knapps)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedaler"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedaler Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedaler"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedaler Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedaler"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedaler Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedaler"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedaler Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Ror-kontrollsystem"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 med adapter"
@@ -996,11 +948,17 @@ msgstr "Intern enhet"
 msgid "&File"
 msgstr "&Fil"
 
-msgid "&New machine..."
-msgstr "&Ny maskin..."
+msgid "&New machine…"
+msgstr "&Ny maskin…"
 
-msgid "&Check for updates..."
-msgstr "&Sjekk etter oppdateringer..."
+msgid "New machine…"
+msgstr "Ny maskin…"
+
+msgid "New machine"
+msgstr "Ny maskin"
+
+msgid "&Check for updates…"
+msgstr "&Sjekk etter oppdateringer…"
 
 msgid "Exit"
 msgstr "Avslutt"
@@ -1251,26 +1209,26 @@ msgstr "Angi visningsnavn"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Skriv inn nytt visningsnavn (tomt for å tilbakestille)"
 
-msgid "Change &display name..."
-msgstr "Endre &visningsnavn..."
+msgid "Change &display name…"
+msgstr "Endre &visningsnavn…"
 
 msgid "Context Menu"
 msgstr "Kontekstmeny"
 
-msgid "&Open folder..."
-msgstr "&Åpne mappe..."
+msgid "&Open folder…"
+msgstr "&Åpne mappe…"
 
-msgid "Open p&rinter tray..."
-msgstr "Åpne p&rinter-skuff..."
+msgid "Open p&rinter tray…"
+msgstr "Åpne p&rinter-skuff…"
 
-msgid "Set &icon..."
-msgstr "Angi &ikon..."
+msgid "Set &icon…"
+msgstr "Angi &ikon…"
 
 msgid "Select an icon"
 msgstr "Velg et ikon"
 
-msgid "C&lone..."
-msgstr "K&lon..."
+msgid "C&lone…"
+msgstr "K&lon…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuell maskin \"%1\" (%2) vil bli klonet til:"
@@ -1356,8 +1314,8 @@ msgstr "Ingen skjermbilde"
 msgid "Search"
 msgstr "Søk"
 
-msgid "Searching for VMs..."
-msgstr "Søker etter VMer..."
+msgid "Searching for VMs…"
+msgstr "Søker etter VMer…"
 
 msgid "Found %1"
 msgstr "Fant %1"
@@ -1392,11 +1350,11 @@ msgstr "Harddisk (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL eller ESDI CD-ROM-stasjoner eksisterte aldri"
 
-msgid "Custom..."
-msgstr "Tilpasset..."
+msgid "Custom…"
+msgstr "Tilpasset…"
 
-msgid "Custom (large)..."
-msgstr "Tilpasset (stor)..."
+msgid "Custom (large)…"
+msgstr "Tilpasset (stor)…"
 
 msgid "Add New Hard Disk"
 msgstr "Legg til ny harddisk"
@@ -1514,21 +1472,6 @@ msgstr "Tidsstemplene til overordnet og underordnet disk samsvarer ikke"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Kunne ikke rette VHD-tidsstempel."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1680,14 +1623,14 @@ msgstr "&Tegnebrettverktøy"
 msgid "About &Qt"
 msgstr "Om &Qt"
 
-msgid "&MCA devices..."
-msgstr "&MCA-enheter..."
+msgid "&MCA devices…"
+msgstr "&MCA-enheter…"
 
 msgid "Show non-&primary monitors"
 msgstr "Vis ikke-&primære skjermer"
 
-msgid "Open screenshots &folder..."
-msgstr "Åpne skjermbilde&mappe..."
+msgid "Open screenshots &folder…"
+msgstr "Åpne skjermbilde&mappe…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Bruk fullskjerms&strekkmodus ved maksimering"
@@ -1707,8 +1650,8 @@ msgstr "&Koblet til"
 msgid "Clear image &history"
 msgstr "Tøm bilde&historikk"
 
-msgid "Create..."
-msgstr "Opprett..."
+msgid "Create…"
+msgstr "Opprett…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Vert CD/DVD-stasjon (%1)"
@@ -1749,8 +1692,8 @@ msgstr "Shader-programmer"
 msgid "Remove"
 msgstr "Fjern"
 
-msgid "Browse..."
-msgstr "Bla gjennom..."
+msgid "Browse…"
+msgstr "Bla gjennom…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Kunne ikke opprette OpenGL-kontekst."
@@ -1839,8 +1782,8 @@ msgstr "Seriell port-gjennomkobling 3"
 msgid "Serial port passthrough 4"
 msgstr "Seriell port-gjennomkobling 4"
 
-msgid "Renderer &options..."
-msgstr "Gjengivelses&alternativer..."
+msgid "Renderer &options…"
+msgstr "Gjengivelses&alternativer…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT-tastatur"
@@ -1977,6 +1920,9 @@ msgstr "Serieport-IRQ"
 msgid "Parallel port IRQ"
 msgstr "Parallellport-IRQ"
 
+msgid "Hard disk"
+msgstr "Harddisk"
+
 msgid "BIOS Revision"
 msgstr "BIOS-revisjon"
 
@@ -2051,9 +1997,6 @@ msgstr "MIDI gjennom"
 
 msgid "MIDI Clockout"
 msgstr "MIDI-klokkeutgang"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Utgangsforsterkning"
@@ -2964,8 +2907,8 @@ msgstr "Besøk nedlastingssiden"
 msgid "Update check"
 msgstr "Oppdateringssjekk"
 
-msgid "Checking for updates..."
-msgstr "Ser etter oppdateringer..."
+msgid "Checking for updates…"
+msgstr "Ser etter oppdateringer…"
 
 msgid "86Box Update"
 msgstr "86Box-oppdatering"
@@ -3003,8 +2946,8 @@ msgstr "Lysstyrke"
 msgid "Sharpness"
 msgstr "Skarphet"
 
-msgid "&CGA composite settings..."
-msgstr "&CGA-komposittinnstillinger..."
+msgid "&CGA composite settings…"
+msgstr "&CGA-komposittinnstillinger…"
 
 msgid "CGA composite settings"
 msgstr "CGA-komposittinnstillinger"
@@ -3012,8 +2955,8 @@ msgstr "CGA-komposittinnstillinger"
 msgid "Monitor EDID"
 msgstr "EDID for skjerm"
 
-msgid "Export..."
-msgstr "Eksporter..."
+msgid "Export…"
+msgstr "Eksporter…"
 
 msgid "Export EDID"
 msgstr "Eksporter EDID"

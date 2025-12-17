@@ -124,7 +124,7 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     QProgressDialog progDialog(parent);
     unsigned int    found = 0;
     progDialog.setCancelButton(nullptr);
-    progDialog.setWindowTitle(tr("Searching for VMs..."));
+    progDialog.setWindowTitle(tr("Searching for VMs…"));
     progDialog.setMinimumDuration(0);
     progDialog.setValue(0);
     progDialog.setMinimum(0);

@@ -73,8 +73,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "Określ wymiary..."
+msgid "Specify &dimensions…"
+msgstr "Określ wymiary…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Wymuś proporcje wyświetlania &4:3"
@@ -199,11 +199,11 @@ msgstr "N&ośnik"
 msgid "&Tools"
 msgstr "&Narzędzia"
 
-msgid "&Settings..."
-msgstr "&Ustawienia..."
+msgid "&Settings…"
+msgstr "&Ustawienia…"
 
-msgid "Settings..."
-msgstr "Ustawienia..."
+msgid "Settings…"
+msgstr "Ustawienia…"
 
 msgid "&Update status bar icons"
 msgstr "&Aktualizuj ikony na pasku statusu"
@@ -214,14 +214,14 @@ msgstr "Zrób &zrzut ekranu"
 msgid "S&ound"
 msgstr "Dź&więk"
 
-msgid "&Preferences..."
-msgstr "&Preferencje..."
+msgid "&Preferences…"
+msgstr "&Preferencje…"
 
 msgid "Enable &Discord integration"
 msgstr "Włącz integrację z &Discordem"
 
-msgid "Sound &gain..."
-msgstr "Wzmocnienie &dźwięku..."
+msgid "Sound &gain…"
+msgstr "Wzmocnienie &dźwięku…"
 
 msgid "Begin trace"
 msgstr "Rozpocznij śledzenie"
@@ -232,20 +232,20 @@ msgstr "Zakończ śledzenie"
 msgid "&Help"
 msgstr "Pomo&c"
 
-msgid "&Documentation..."
-msgstr "&Dokumentacja..."
+msgid "&Documentation…"
+msgstr "&Dokumentacja…"
 
-msgid "&About 86Box..."
-msgstr "&O 86Boxie..."
+msgid "&About 86Box…"
+msgstr "&O 86Boxie…"
 
-msgid "&New image..."
-msgstr "&Nowy obraz..."
+msgid "&New image…"
+msgstr "&Nowy obraz…"
 
-msgid "&Existing image..."
-msgstr "&Istniejący obraz..."
+msgid "&Existing image…"
+msgstr "&Istniejący obraz…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Istniejący obraz (&Chroniony przed zapisem)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Istniejący obraz (&Chroniony przed zapisem)…"
 
 msgid "&Record"
 msgstr "&Nagraj"
@@ -262,11 +262,11 @@ msgstr "&Przewiń do końca"
 msgid "E&ject"
 msgstr "W&yjmij"
 
-msgid "&Image..."
-msgstr "&Obraz..."
+msgid "&Image…"
+msgstr "&Obraz…"
 
-msgid "E&xport to 86F..."
-msgstr "E&ksportuj do 86F..."
+msgid "E&xport to 86F…"
+msgstr "E&ksportuj do 86F…"
 
 msgid "&Mute"
 msgstr "&Wycisz"
@@ -277,8 +277,8 @@ msgstr "P&usty"
 msgid "Reload previous image"
 msgstr "Przeładuj poprzedni obraz"
 
-msgid "&Folder..."
-msgstr "&Folder..."
+msgid "&Folder…"
+msgstr "&Folder…"
 
 msgid "Preferences"
 msgstr "Preferencje"
@@ -424,17 +424,17 @@ msgstr "Joystick:"
 msgid "Joystick"
 msgstr "Joystick"
 
-msgid "Joystick 1..."
-msgstr "Joystick 1..."
+msgid "Joystick 1…"
+msgstr "Joystick 1…"
 
-msgid "Joystick 2..."
-msgstr "Joystick 2..."
+msgid "Joystick 2…"
+msgstr "Joystick 2…"
 
-msgid "Joystick 3..."
-msgstr "Joystick 3..."
+msgid "Joystick 3…"
+msgstr "Joystick 3…"
 
-msgid "Joystick 4..."
-msgstr "Joystick 4..."
+msgid "Joystick 4…"
+msgstr "Joystick 4…"
 
 msgid "Sound card #1:"
 msgstr "Karta dźwiękowa nr 1:"
@@ -523,23 +523,23 @@ msgstr "Port równoległy 3"
 msgid "Parallel port 4"
 msgstr "Port równoległy 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Kontroler dyskietek:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Kontroler CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Trzeciorzędny kontroler IDE"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Trzeciorzędny kontroler IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Czwartorzędny kontroler IDE"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Czwartorzędny kontroler IDE"
 
-msgid "Hard disk"
-msgstr "Dysk twardy"
+msgid "Hard disk controllers"
+msgstr "Kontrolery dysków twardych"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Kontrolery SCSI"
 
 msgid "Controller 1:"
 msgstr "Kontroler 1:"
@@ -562,11 +562,11 @@ msgstr "Dyski twarde:"
 msgid "Firmware Version"
 msgstr "Wersja firmware'u"
 
-msgid "&New..."
-msgstr "&Nowy..."
+msgid "&New…"
+msgstr "&Nowy…"
 
-msgid "&Existing..."
-msgstr "&Istniejący..."
+msgid "&Existing…"
+msgstr "&Istniejący…"
 
 msgid "&Remove"
 msgstr "&Usuń"
@@ -874,9 +874,6 @@ msgstr "Pad z czterema przyciskami"
 msgid "6-button gamepad"
 msgstr "Pad z sześcioma przyciskami"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "Wolant z dwoma przyciskami"
 
@@ -903,51 +900,6 @@ msgstr "Kierownica (3 osie, 3 przyciski)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Kierownica (3 osie, 4 przyciski)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 z adapterem"
@@ -1003,11 +955,17 @@ msgstr "Urządzenie wewnętrzne"
 msgid "&File"
 msgstr "&Plik"
 
-msgid "&New machine..."
-msgstr "&Nowa maszyna..."
+msgid "&New machine…"
+msgstr "&Nowa maszyna…"
 
-msgid "&Check for updates..."
-msgstr "&Sprawdź aktualizacje..."
+msgid "New machine…"
+msgstr "Nowa maszyna…"
+
+msgid "New machine"
+msgstr "Nowa maszyna"
+
+msgid "&Check for updates…"
+msgstr "&Sprawdź aktualizacje…"
 
 msgid "Exit"
 msgstr "Za&kończ"
@@ -1258,26 +1216,26 @@ msgstr "Ustaw nazwę wyświetlaną"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Podaj nową nazwę wyświetlaną (wyczyść, by zresetować)"
 
-msgid "Change &display name..."
-msgstr "Zmień wyświetlaną &nazwę..."
+msgid "Change &display name…"
+msgstr "Zmień wyświetlaną &nazwę…"
 
 msgid "Context Menu"
 msgstr "Menu kontekstowe"
 
-msgid "&Open folder..."
-msgstr "&Otwórz folder..."
+msgid "&Open folder…"
+msgstr "&Otwórz folder…"
 
-msgid "Open p&rinter tray..."
-msgstr "Otwórz &tackę drukarki..."
+msgid "Open p&rinter tray…"
+msgstr "Otwórz &tackę drukarki…"
 
-msgid "Set &icon..."
-msgstr "&Ustaw ikonę..."
+msgid "Set &icon…"
+msgstr "&Ustaw ikonę…"
 
 msgid "Select an icon"
 msgstr "Wybierz ikonę"
 
-msgid "C&lone..."
-msgstr "&Klonuj..."
+msgid "C&lone…"
+msgstr "&Klonuj…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Maszyna wirtualna „%1” (%2) zostanie sklonowana jako:"
@@ -1363,8 +1321,8 @@ msgstr "Brak zrzutów ekranu"
 msgid "Search"
 msgstr "Szukanie"
 
-msgid "Searching for VMs..."
-msgstr "Szukanie maszyn wirtualnych..."
+msgid "Searching for VMs…"
+msgstr "Szukanie maszyn wirtualnych…"
 
 msgid "Found %1"
 msgstr "Znaleziono %1"
@@ -1399,11 +1357,11 @@ msgstr "Dysk twardy (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "Napędy CD-ROM MFM/RLL lub ESDI nigdy nie istniały"
 
-msgid "Custom..."
-msgstr "Niestandardowy..."
+msgid "Custom…"
+msgstr "Niestandardowy…"
 
-msgid "Custom (large)..."
-msgstr "Niestandardowy (duży)..."
+msgid "Custom (large)…"
+msgstr "Niestandardowy (duży)…"
 
 msgid "Add New Hard Disk"
 msgstr "Dodaj nowy dysk twardy"
@@ -1521,21 +1479,6 @@ msgstr "Sygnatury czasowe dysku nadrzędnego i podrzędnego nie zgadzają się"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Nie można naprawić sygnatury czasowej VHD."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1687,14 +1630,14 @@ msgstr "Narzędzie do tabletów"
 msgid "About &Qt"
 msgstr "O &Qt"
 
-msgid "&MCA devices..."
-msgstr "Urządzenia MCA..."
+msgid "&MCA devices…"
+msgstr "Urządzenia MCA…"
 
 msgid "Show non-&primary monitors"
 msgstr "Pokaż monitory &inne niż podstawowe"
 
-msgid "Open screenshots &folder..."
-msgstr "Otwórz folder zrzutów &ekranu..."
+msgid "Open screenshots &folder…"
+msgstr "Otwórz folder zrzutów &ekranu…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Zastosowanie trybu rozciągania na pełnym ekranie w stanie zmaksymalizowanym"
@@ -1714,8 +1657,8 @@ msgstr "&Podłączone"
 msgid "Clear image &history"
 msgstr "Wyczyść historię obrazów(&H)"
 
-msgid "Create..."
-msgstr "Stwórz..."
+msgid "Create…"
+msgstr "Stwórz…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Napęd CD/DVD hosta (%1)"
@@ -1756,8 +1699,8 @@ msgstr "Shadery"
 msgid "Remove"
 msgstr "Usuń"
 
-msgid "Browse..."
-msgstr "Przeglądaj..."
+msgid "Browse…"
+msgstr "Przeglądaj…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nie można utworzyć kontekstu OpenGL."
@@ -1846,8 +1789,8 @@ msgstr "Przelotka portu szeregowego 3"
 msgid "Serial port passthrough 4"
 msgstr "Przelotka portu szeregowego 4"
 
-msgid "Renderer &options..."
-msgstr "Opcje renderowania..."
+msgid "Renderer &options…"
+msgstr "Opcje renderowania…"
 
 msgid "PC/XT Keyboard"
 msgstr "Klawiatura PC/XT"
@@ -1984,6 +1927,9 @@ msgstr "IRQ portu szeregowego"
 msgid "Parallel port IRQ"
 msgstr "IRQ portu równoległego"
 
+msgid "Hard disk"
+msgstr "Dysk twardy"
+
 msgid "BIOS Revision"
 msgstr "Rewizja BIOS-u"
 
@@ -2058,9 +2004,6 @@ msgstr "Przejście wejścia MIDI"
 
 msgid "MIDI Clockout"
 msgstr "Wyjście zegara MIDI"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Wzmocnienie wyjściowe"
@@ -2971,8 +2914,8 @@ msgstr "Odwiedź stronę pobierania"
 msgid "Update check"
 msgstr "Sprawdzanie aktualizacji"
 
-msgid "Checking for updates..."
-msgstr "Sprawdzanie aktualizacji..."
+msgid "Checking for updates…"
+msgstr "Sprawdzanie aktualizacji…"
 
 msgid "86Box Update"
 msgstr "Aktualizacja 86Boxa"
@@ -3010,8 +2953,8 @@ msgstr "Jasność"
 msgid "Sharpness"
 msgstr "Ostrość"
 
-msgid "&CGA composite settings..."
-msgstr "Ustawienia trybu kompozytowego &CGA..."
+msgid "&CGA composite settings…"
+msgstr "Ustawienia trybu kompozytowego &CGA…"
 
 msgid "CGA composite settings"
 msgstr "Ustawienia trybu kompozytowego CGA"
@@ -3019,8 +2962,8 @@ msgstr "Ustawienia trybu kompozytowego CGA"
 msgid "Monitor EDID"
 msgstr "EDID monitora"
 
-msgid "Export..."
-msgstr "Eksportuj..."
+msgid "Export…"
+msgstr "Eksportuj…"
 
 msgid "Export EDID"
 msgstr "Eksportuj EDID"

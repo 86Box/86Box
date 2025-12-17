@@ -66,8 +66,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify &dimensions..."
-msgstr "指定窗口大小(&D)..."
+msgid "Specify &dimensions…"
+msgstr "指定窗口大小(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "强制 4:3 显示比例(&4)"
@@ -192,11 +192,11 @@ msgstr "介质(&M)"
 msgid "&Tools"
 msgstr "工具(&T)"
 
-msgid "&Settings..."
-msgstr "设置(&S)..."
+msgid "&Settings…"
+msgstr "设置(&S)…"
 
-msgid "Settings..."
-msgstr "设置..."
+msgid "Settings…"
+msgstr "设置…"
 
 msgid "&Update status bar icons"
 msgstr "更新状态栏图标(&U)"
@@ -207,14 +207,14 @@ msgstr "截图(&C)"
 msgid "S&ound"
 msgstr "声音(&O)"
 
-msgid "&Preferences..."
-msgstr "首选项(&P)..."
+msgid "&Preferences…"
+msgstr "首选项(&P)…"
 
 msgid "Enable &Discord integration"
 msgstr "启用 Discord 集成(&D)"
 
-msgid "Sound &gain..."
-msgstr "音量增益(&G)..."
+msgid "Sound &gain…"
+msgstr "音量增益(&G)…"
 
 msgid "Begin trace"
 msgstr "开始追踪"
@@ -225,20 +225,20 @@ msgstr "结束追踪"
 msgid "&Help"
 msgstr "帮助(&H)"
 
-msgid "&Documentation..."
-msgstr "文档(&D)..."
+msgid "&Documentation…"
+msgstr "文档(&D)…"
 
-msgid "&About 86Box..."
-msgstr "关于 86Box(&A)..."
+msgid "&About 86Box…"
+msgstr "关于 86Box(&A)…"
 
-msgid "&New image..."
-msgstr "新建映像(&N)..."
+msgid "&New image…"
+msgstr "新建映像(&N)…"
 
-msgid "&Existing image..."
-msgstr "打开已存在的映像(&E)..."
+msgid "&Existing image…"
+msgstr "打开已存在的映像(&E)…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "打开已存在的映像并写保护(&W)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "打开已存在的映像并写保护(&W)…"
 
 msgid "&Record"
 msgstr "录制(&R)"
@@ -255,11 +255,11 @@ msgstr "快进至终点(&F)"
 msgid "E&ject"
 msgstr "弹出(&J)"
 
-msgid "&Image..."
-msgstr "映像(&I)..."
+msgid "&Image…"
+msgstr "映像(&I)…"
 
-msgid "E&xport to 86F..."
-msgstr "导出为 86F 格式(&x)..."
+msgid "E&xport to 86F…"
+msgstr "导出为 86F 格式(&x)…"
 
 msgid "&Mute"
 msgstr "静音(&M)"
@@ -270,8 +270,8 @@ msgstr "空置驱动器(&M)"
 msgid "Reload previous image"
 msgstr "载入上一个映像"
 
-msgid "&Folder..."
-msgstr "文件夹(&F)..."
+msgid "&Folder…"
+msgstr "文件夹(&F)…"
 
 msgid "Preferences"
 msgstr "首选项"
@@ -417,17 +417,17 @@ msgstr "操纵杆:"
 msgid "Joystick"
 msgstr "操纵杆"
 
-msgid "Joystick 1..."
-msgstr "操纵杆 1..."
+msgid "Joystick 1…"
+msgstr "操纵杆 1…"
 
-msgid "Joystick 2..."
-msgstr "操纵杆 2..."
+msgid "Joystick 2…"
+msgstr "操纵杆 2…"
 
-msgid "Joystick 3..."
-msgstr "操纵杆 3..."
+msgid "Joystick 3…"
+msgstr "操纵杆 3…"
 
-msgid "Joystick 4..."
-msgstr "操纵杆 4..."
+msgid "Joystick 4…"
+msgstr "操纵杆 4…"
 
 msgid "Sound card #1:"
 msgstr "声卡 1:"
@@ -516,23 +516,23 @@ msgstr "并口 3"
 msgid "Parallel port 4"
 msgstr "并口 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "软盘控制器:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
-msgid "Tertiary IDE Controller"
-msgstr "第三 IDE 控制器"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] 第三 IDE 控制器"
 
-msgid "Quaternary IDE Controller"
-msgstr "第四 IDE 控制器"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] 第四 IDE 控制器"
 
-msgid "Hard disk"
-msgstr "硬盘"
+msgid "Hard disk controllers"
+msgstr "硬盘控制器"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI 控制器"
 
 msgid "Controller 1:"
 msgstr "控制器 1:"
@@ -555,11 +555,11 @@ msgstr "硬盘:"
 msgid "Firmware Version"
 msgstr "固件版本"
 
-msgid "&New..."
-msgstr "新建(&N)..."
+msgid "&New…"
+msgstr "新建(&N)…"
 
-msgid "&Existing..."
-msgstr "现有(&E)..."
+msgid "&Existing…"
+msgstr "现有(&E)…"
 
 msgid "&Remove"
 msgstr "移除(&R)"
@@ -867,9 +867,6 @@ msgstr "4 按钮游戏手柄"
 msgid "6-button gamepad"
 msgstr "6 按钮游戏手柄"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2 按钮飞行摇杆"
 
@@ -896,51 +893,6 @@ msgstr "方向盘 (3 轴, 3 键)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "方向盘 (3 轴, 4 键)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "带适配器的 Thrustmaster Formula T1/T2"
@@ -996,11 +948,17 @@ msgstr "内部设备"
 msgid "&File"
 msgstr "文件(&F)"
 
-msgid "&New machine..."
-msgstr "新建计算机(&N)..."
+msgid "&New machine…"
+msgstr "新建计算机(&N)…"
 
-msgid "&Check for updates..."
-msgstr "检查更新(&C)..."
+msgid "New machine…"
+msgstr "新建计算机…"
+
+msgid "New machine"
+msgstr "新建计算机"
+
+msgid "&Check for updates…"
+msgstr "检查更新(&C)…"
 
 msgid "Exit"
 msgstr "退出"
@@ -1251,26 +1209,26 @@ msgstr "设置显示名称"
 msgid "Enter the new display name (blank to reset)"
 msgstr "输入新的显示名称 (留空以重置)"
 
-msgid "Change &display name..."
-msgstr "更改显示名称(&D)..."
+msgid "Change &display name…"
+msgstr "更改显示名称(&D)…"
 
 msgid "Context Menu"
 msgstr "上下文菜单"
 
-msgid "&Open folder..."
-msgstr "打开文件夹(&O)..."
+msgid "&Open folder…"
+msgstr "打开文件夹(&O)…"
 
-msgid "Open p&rinter tray..."
-msgstr "打开打印机托盘(&R)..."
+msgid "Open p&rinter tray…"
+msgstr "打开打印机托盘(&R)…"
 
-msgid "Set &icon..."
-msgstr "设置图标(&I)..."
+msgid "Set &icon…"
+msgstr "设置图标(&I)…"
 
 msgid "Select an icon"
 msgstr "选择一个图标"
 
-msgid "C&lone..."
-msgstr "克隆(&L)..."
+msgid "C&lone…"
+msgstr "克隆(&L)…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "虚拟机 \"%1\" (%2) 将被克隆到:"
@@ -1356,8 +1314,8 @@ msgstr "无截图"
 msgid "Search"
 msgstr "搜索"
 
-msgid "Searching for VMs..."
-msgstr "正在搜索虚拟机..."
+msgid "Searching for VMs…"
+msgstr "正在搜索虚拟机…"
 
 msgid "Found %1"
 msgstr "已找到 %1"
@@ -1384,7 +1342,7 @@ msgid "ACPI shutdown"
 msgstr "ACPI 关机"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&I 关机"
+msgstr "ACPI 关机(&I)"
 
 msgid "Hard disk (%1)"
 msgstr "硬盘 (%1)"
@@ -1392,11 +1350,11 @@ msgstr "硬盘 (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "不存在 MFM/RLL 或 ESDI CD-ROM 驱动器"
 
-msgid "Custom..."
-msgstr "自定义..."
+msgid "Custom…"
+msgstr "自定义…"
 
-msgid "Custom (large)..."
-msgstr "自定义 (大容量)..."
+msgid "Custom (large)…"
+msgstr "自定义 (大容量)…"
 
 msgid "Add New Hard Disk"
 msgstr "添加新硬盘"
@@ -1514,21 +1472,6 @@ msgstr "父盘与子盘的时间戳不匹配"
 
 msgid "Could not fix VHD timestamp."
 msgstr "无法修复 VHD 时间戳。"
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "光盘 %1 (%2): %3"
@@ -1680,14 +1623,14 @@ msgstr "平板工具(&T)"
 msgid "About &Qt"
 msgstr "关于 &Qt"
 
-msgid "&MCA devices..."
-msgstr "&MCA 设备..."
+msgid "&MCA devices…"
+msgstr "&MCA 设备…"
 
 msgid "Show non-&primary monitors"
 msgstr "显示非主要显示器(&P)"
 
-msgid "Open screenshots &folder..."
-msgstr "打开屏幕截图文件夹(&F)..."
+msgid "Open screenshots &folder…"
+msgstr "打开屏幕截图文件夹(&F)…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化时应用全屏拉伸模式(&Y)"
@@ -1707,8 +1650,8 @@ msgstr "已连接(&C)"
 msgid "Clear image &history"
 msgstr "清除映像历史记录(&H)"
 
-msgid "Create..."
-msgstr "创建..."
+msgid "Create…"
+msgstr "创建…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "主机 CD/DVD 驱动器 (%1)"
@@ -1749,8 +1692,8 @@ msgstr "着色器"
 msgid "Remove"
 msgstr "移除"
 
-msgid "Browse..."
-msgstr "浏览..."
+msgid "Browse…"
+msgstr "浏览…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "无法创建 OpenGL 上下文。"
@@ -1839,8 +1782,8 @@ msgstr "串口直通 3"
 msgid "Serial port passthrough 4"
 msgstr "串口直通 4"
 
-msgid "Renderer &options..."
-msgstr "渲染器选项(&O)..."
+msgid "Renderer &options…"
+msgstr "渲染器选项(&O)…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 键盘"
@@ -1977,6 +1920,9 @@ msgstr "串口的 IRQ"
 msgid "Parallel port IRQ"
 msgstr "并口的 IRQ"
 
+msgid "Hard disk"
+msgstr "硬盘"
+
 msgid "BIOS Revision"
 msgstr "BIOS 修订版"
 
@@ -2051,9 +1997,6 @@ msgstr "MIDI 输入直通"
 
 msgid "MIDI Clockout"
 msgstr "MIDI 时钟输出"
-
-msgid "SoundFont"
-msgstr "声音字体"
 
 msgid "Output Gain"
 msgstr "输出增益"
@@ -2964,8 +2907,8 @@ msgstr "访问下载页面"
 msgid "Update check"
 msgstr "更新检查"
 
-msgid "Checking for updates..."
-msgstr "正在检查更新..."
+msgid "Checking for updates…"
+msgstr "正在检查更新…"
 
 msgid "86Box Update"
 msgstr "86Box 更新"
@@ -3003,8 +2946,8 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "锐度"
 
-msgid "&CGA composite settings..."
-msgstr "CGA 复合模式设置(&C)..."
+msgid "&CGA composite settings…"
+msgstr "CGA 复合模式设置(&C)…"
 
 msgid "CGA composite settings"
 msgstr "CGA 复合模式设置"
@@ -3012,8 +2955,8 @@ msgstr "CGA 复合模式设置"
 msgid "Monitor EDID"
 msgstr "显示器的EDID"
 
-msgid "Export..."
-msgstr "导出..."
+msgid "Export…"
+msgstr "导出…"
 
 msgid "Export EDID"
 msgstr "导出EDID"
