@@ -120,7 +120,7 @@ public:
     [[nodiscard]] bool   isProcessRunning() const;
     [[nodiscard]] qint64 processId() const;
 public slots:
-    void launchMainProcess();
+    void launch86Box(bool settings = false);
     void launchSettings();
     void startButtonPressed();
     void restartButtonPressed();
