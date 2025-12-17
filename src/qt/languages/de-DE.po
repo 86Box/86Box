@@ -199,10 +199,10 @@ msgid "&Tools"
 msgstr "&Werkzeuge"
 
 msgid "&Settings…"
-msgstr "&Optionen…"
+msgstr "&Einstellungen…"
 
 msgid "Settings…"
-msgstr "Optionen…"
+msgstr "Einstellungen…"
 
 msgid "&Update status bar icons"
 msgstr "&Statusleistenicons aktualisieren"
@@ -214,7 +214,7 @@ msgid "S&ound"
 msgstr "&Ton"
 
 msgid "&Preferences…"
-msgstr "&Einstellungen…"
+msgstr "&Preferenzen…"
 
 msgid "Enable &Discord integration"
 msgstr "&Discord-Integration einschalten"
@@ -280,7 +280,7 @@ msgid "&Folder…"
 msgstr "&Verzeichnis…"
 
 msgid "Preferences"
-msgstr "Einstellungen"
+msgstr "Preferenzen"
 
 msgid "Sound Gain"
 msgstr "Klangverstärkung"
@@ -289,7 +289,7 @@ msgid "New Image"
 msgstr "Neues Abbild"
 
 msgid "Settings"
-msgstr "Optionen"
+msgstr "Einstellungen"
 
 msgid "Specify Main Window Dimensions"
 msgstr "Fenstergröße einstellen"
