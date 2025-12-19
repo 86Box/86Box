@@ -35,7 +35,7 @@ static const struct {
     uint16_t reset_flags;
     uint16_t extid_flags;
     uint8_t  pcsr_mask;  /* register 26 bits [15:8] */
-    uint8_t  eascr_mask; /* register 2A bits [14:11] (audio) or 56 bits ...  */
+    uint8_t  eascr_mask; /* register 2A bits [14:11] */
     uint8_t  modem_flags;
     uint16_t gpi_mask; /* modem GPIO input-capable bits */
     uint16_t gpo_mask; /* modem GPIO output-capable bits */
@@ -79,6 +79,14 @@ static const struct {
         .extid_flags = AC97_AMAP,
         .pcsr_mask   = 0xff,
         .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5e, 0x0000, 0x01b0}, {0, 0x60, 0x0023, 0x0001}, {0, 0x68, 0x0000, 0xdfff}, {0}}
+    },
+    {
+        .device      = &ice1232_device,
+        .misc_flags  = AC97_AUDIO | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = AC97_HPOUT | AC97_DAC_18B | AC97_ADC_18B | (27 << AC97_3D_SHIFT),
+        .extid_flags = AC97_VRA | AC97_AMAP,
+        .pcsr_mask   = 0xff,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0021, 0x00fd}, {0}}
     },
     {
         .device      = &stac9708_device,
@@ -881,6 +889,20 @@ const device_t cs4297a_device = {
     .internal_name = "cs4297a",
     .flags         = DEVICE_AC97,
     .local         = AC97_CODEC_CS4297A,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ice1232_device = {
+    .name          = "ICEnsemble ICE1232 / VIA VT1611A",
+    .internal_name = "ice1232",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_ICE1232,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,
