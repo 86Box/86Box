@@ -635,6 +635,13 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
             nvr_reg_common_write(reg, val, nvr, local);
             break;
 
+        case 0x39:
+            if (machines[machine].init == machine_at_bx6_init)
+                nvr_reg_common_write(reg, val | 0x08, nvr, local);
+            else
+                nvr_reg_common_write(reg, val, nvr, local);
+            break;
+
         default: /* non-RTC registers are just NVRAM */
             nvr_reg_common_write(reg, val, nvr, local);
             break;
@@ -792,6 +799,14 @@ nvr_read(uint16_t addr, void *priv)
                         ret = checksum & 0xff;
                 } else
                     ret = nvr->regs[local->addr[addr_id]];
+                break;
+
+            case 0x39:
+                if (!(local->lock[local->addr[addr_id]] & 0x02)) {
+                    ret = nvr->regs[local->addr[addr_id]];
+                    if (machines[machine].init == machine_at_bx6_init)
+                        ret |= 0x08;
+                }
                 break;
 
             case 0x3e:
