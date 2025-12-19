@@ -425,7 +425,7 @@ static const device_config_t bx6_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision EG",
-                .internal_name = "bx6_eg",
+                .internal_name = "bx6",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -434,7 +434,7 @@ static const device_config_t bx6_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision QS",
-                .internal_name = "bx6",
+                .internal_name = "bx6_qs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
