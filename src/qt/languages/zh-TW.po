@@ -373,13 +373,13 @@ msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
 
 msgid "CPU frame size"
-msgstr "CPU 影格大小"
+msgstr "CPU 執行期框架大小"
 
 msgid "Larger frames (less smooth)"
-msgstr "大執行幀 (操作欠平滑)"
+msgstr "大執行期框架 (運行欠平順)"
 
 msgid "Smaller frames (smoother)"
-msgstr "小執行幀 (操作更平滑)"
+msgstr "小執行期框架 (運行更平順)"
 
 msgid "Video:"
 msgstr "顯示卡:"
@@ -766,7 +766,7 @@ msgid "Floppy & CD-ROM drives"
 msgstr "軟碟/光碟機"
 
 msgid "Other removable devices"
-msgstr "其他卸除式裝置"
+msgstr "其他抽取式裝置"
 
 msgid "Other peripherals"
 msgstr "其他周邊裝置"
@@ -790,13 +790,13 @@ msgid "File"
 msgstr "檔案"
 
 msgid "C"
-msgstr "C"
+msgstr "磁柱"
 
 msgid "H"
-msgstr "H"
+msgstr "磁頭"
 
 msgid "S"
-msgstr "S"
+msgstr "磁區"
 
 msgid "KB"
 msgstr "KB"
@@ -811,10 +811,10 @@ msgid "Type"
 msgstr "類型"
 
 msgid "No PCap devices found"
-msgstr "未找到 PCap 裝置"
+msgstr "未發現 PCap 裝置"
 
 msgid "Invalid PCap device"
-msgstr "無效 PCap 裝置"
+msgstr "無效的 PCap 裝置"
 
 msgid "Generic paddle controller(s)"
 msgstr "通用旋鈕控制器"
@@ -988,7 +988,7 @@ msgid "Make sure %1 is installed and that you are on a %1-compatible network con
 msgstr "請確認 %1 已安裝且使用相容 %1 的網路連線。"
 
 msgid "Invalid configuration"
-msgstr "無效設定"
+msgstr "無效組態"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr "自動將 PostScript 檔案轉換為 PDF 需要 %1。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
@@ -1021,7 +1021,7 @@ msgid "GLSL shaders"
 msgstr "GLSL 著色器"
 
 msgid "You are loading an unsupported configuration"
-msgstr "正在載入一個不受支援的設定"
+msgstr "正在載入一個不受支援的組態"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "此模擬電腦停用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而結案。"
@@ -1114,16 +1114,16 @@ msgid "Choose directory"
 msgstr "選擇目錄"
 
 msgid "Choose configuration file"
-msgstr "選擇設定檔"
+msgstr "選擇組態檔"
 
 msgid "86Box configuration files (86box.cfg)"
-msgstr "86Box 設定檔 (86box.cfg)"
+msgstr "86Box 組態檔 (86box.cfg)"
 
 msgid "Configuration read failed"
-msgstr "設定讀取失敗"
+msgstr "組態讀取失敗"
 
 msgid "Unable to open the selected configuration file for reading: %1"
-msgstr "無法開啟選取的設定檔進行讀取: %1"
+msgstr "無法開啟選取的組態檔進行讀取: %1"
 
 msgid "Use regular expressions in search box"
 msgstr "在搜尋方塊中使用正規表示式"
@@ -1141,25 +1141,25 @@ msgid "This will help you add a new system to 86Box."
 msgstr "這將協助您在 86Box 中加入新系統。"
 
 msgid "New configuration"
-msgstr "新增設定"
+msgstr "新增組態"
 
 msgid "Complete"
 msgstr "完成"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr "精靈現在會啟動新系統的設定。"
+msgstr "精靈現在會啟動新系統的組態。"
 
 msgid "Use existing configuration"
-msgstr "使用現有設定"
+msgstr "使用現有組態"
 
 msgid "Type some notes here"
 msgstr "在此輸入備註"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr "將現有設定檔的內容貼到下面的方塊中。"
+msgstr "將現有組態檔的內容貼到下面的方塊中。"
 
 msgid "Load configuration from file"
-msgstr "從檔案載入設定"
+msgstr "從檔案載入組態"
 
 msgid "System name"
 msgstr "系統名稱"
@@ -1261,10 +1261,10 @@ msgid "Unable to create the directory for the new system"
 msgstr "無法為新系統建立目錄"
 
 msgid "Configuration write failed"
-msgstr "設定寫入失敗"
+msgstr "組態寫入失敗"
 
 msgid "Unable to open the configuration file at %1 for writing"
-msgstr "無法開啟 %1 的設定檔進行寫入"
+msgstr "無法開啟 %1 的組態檔進行寫入"
 
 msgid "Error adding system"
 msgstr "新增系統錯誤"
@@ -1309,7 +1309,7 @@ msgid "Show &config file"
 msgstr "顯示設定檔(&C)"
 
 msgid "No screenshot"
-msgstr "沒有擷圖"
+msgstr "沒有螢幕畫面擷取"
 
 msgid "Search"
 msgstr "搜尋"
@@ -1429,7 +1429,7 @@ msgid "Dynamic-size VHD"
 msgstr "動態大小 VHD"
 
 msgid "Differencing VHD"
-msgstr "差分 VHD"
+msgstr "差異影像 VHD"
 
 msgid "(N/A)"
 msgstr "(不適用)"
@@ -1450,7 +1450,7 @@ msgid "Dynamic-size VHD (.vhd)"
 msgstr "動態大小 VHD (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
-msgstr "差分 VHD (.vhd)"
+msgstr "差異影像 VHD (.vhd)"
 
 msgid "Large blocks (2 MB)"
 msgstr "大區塊 (2 MB)"
@@ -1567,7 +1567,7 @@ msgid "Failed to initialize network driver"
 msgstr "初始化網路驅動程式失敗"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "網路設定將切換為空驅動程式"
+msgstr "網路組態將切換為空驅動程式"
 
 msgid "Mouse sensitivity:"
 msgstr "滑鼠靈敏度:"
@@ -1594,13 +1594,13 @@ msgid "WinBox is no longer supported"
 msgstr "不再支援 WinBox"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "WinBox 於 2022 年因缺乏維護者而停止發展。由於我們傾注全力於將 86Box 做的更好，我們決定不再支援將 WinBox 做為管理員。\n\n在 WinBox 未提供更新前，搭配新版本的 86Box 使用將導致不正確的行為。任何由 WinBox 引起的錯誤回報將以無效結案。\n\n請造訪 86box.net 網站以取得其他可用的管理員列表。"
+msgstr "WinBox 於 2022 年因缺乏維護者而停止發展。由於我們傾注全力於將 86Box 做的更好，我們決定不再支援將 WinBox 做為前端管理程式。\n\n在 WinBox 未提供更新前，搭配新版本的 86Box 使用將導致不正確的行為。任何由 WinBox 引起的錯誤回報將以無效結案。\n\n請造訪 86box.net 網站以取得其他可用的前端管理程式列表。"
 
 msgid "Generate"
 msgstr "產生"
 
 msgid "Joystick configuration"
-msgstr "搖桿設定"
+msgstr "搖桿組態"
 
 msgid "Device"
 msgstr "裝置"
@@ -1630,7 +1630,7 @@ msgid "Show non-&primary monitors"
 msgstr "顯示非主要監視器(&P)"
 
 msgid "Open screenshots &folder…"
-msgstr "開啟螢幕擷取畫面資料夾(&F)…"
+msgstr "開啟螢幕畫面擷取資料夾(&F)…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時套用全螢幕延展模式(&Y)"
@@ -1711,7 +1711,7 @@ msgid "\nFalling back to software rendering."
 msgstr "\n回退到軟體渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>當選擇媒體影像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 設定檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
+msgstr "<html><head/><body><p>當選擇媒體影像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 組態檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "這台機器可能已被移動或複製。"
@@ -2044,7 +2044,7 @@ msgid "Reverb Output Gain"
 msgstr "迴響輸出增益"
 
 msgid "Reversed stereo"
-msgstr "反向立體聲"
+msgstr "左右互換立體聲"
 
 msgid "Nice ramp"
 msgstr "平滑漸變曲線"
@@ -2104,7 +2104,7 @@ msgid "Initial RAM size"
 msgstr "初始 RAM 大小"
 
 msgid "Serial Number"
-msgstr "序列號"
+msgstr "序號"
 
 msgid "Host ID"
 msgstr "主機 ID"
@@ -2737,7 +2737,7 @@ msgid "Shader Manager"
 msgstr "著色器管理員"
 
 msgid "Shader Configuration"
-msgstr "著色器設定"
+msgstr "著色器組態"
 
 msgid "Add"
 msgstr "新增"
@@ -2791,7 +2791,7 @@ msgid "Toggle UI in fullscreen"
 msgstr "全螢幕模式下切換使用者介面顯示"
 
 msgid "Screenshot"
-msgstr "螢幕擷取畫面"
+msgstr "螢幕畫面擷取"
 
 msgid "Release mouse pointer"
 msgstr "放開滑鼠游標"
@@ -2929,7 +2929,7 @@ msgid "The system will not be added."
 msgstr "系統將不會被新增。"
 
 msgid "&Update mouse every CPU frame"
-msgstr "每 CPU 幀更新滑鼠(&U)"
+msgstr "每 CPU 執行期框架更新滑鼠(&U)"
 
 msgid "Hue"
 msgstr "色調"

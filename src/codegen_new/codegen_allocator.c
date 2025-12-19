@@ -76,6 +76,7 @@ add_to_block_list(int code_block)
 typedef struct mem_block_t {
     uint32_t offset; /*Offset into mem_block_alloc*/
     uint32_t next;
+    uint32_t tail;
     uint16_t code_block;
 } mem_block_t;
 
@@ -93,6 +94,7 @@ codegen_allocator_init(void)
     for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
         mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;
         mem_blocks[c].code_block = BLOCK_INVALID;
+        mem_blocks[c].tail       = 0;
         if (c < MEM_BLOCK_NR - 1)
             mem_blocks[c].next = c + 2;
         else
@@ -135,11 +137,16 @@ block_allocate:
     block->code_block = code_block;
     if (parent) {
         /*Add to parent list*/
-        block->next  = parent->next;
-        parent->next = block_nr;
+        if (parent->tail) {
+            mem_blocks[parent->tail - 1].next = block_nr;
+            parent->tail = block_nr;
+        }
+        else
+            parent->next = parent->tail = block_nr;
+        block->next = block->tail = 0;
     } else {
-        block->next = 0;
-        
+        block->next = block->tail = 0;
+
         if (!valid_code_blocks[code_block]) {
             valid_code_blocks[code_block] = 1;
             add_to_block_list(code_block);
@@ -154,6 +161,7 @@ codegen_allocator_free(mem_block_t *block)
 {
     int block_nr = (((uintptr_t) block - (uintptr_t) mem_blocks) / sizeof(mem_block_t)) + 1;
 
+    block->tail = 0;
     if (valid_code_blocks[block->code_block])
         remove_from_block_list(&mem_code_blocks[block->code_block]);
 
