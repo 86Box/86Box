@@ -26,6 +26,12 @@
 #define SEEK_RECALIBRATE     -999
 #define DEFAULT_SEEK_TIME_MS 10.0
 
+/* BIOS boot status - used to detect POST vs normal operation */
+typedef enum bios_boot_status_t {
+    BIOS_BOOT_POST = 0,     /* System is in POST (Power-On Self Test) */
+    BIOS_BOOT_NORMAL        /* POST complete, normal operation */
+} bios_boot_status_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -117,6 +123,12 @@ extern void fdd_format(int drive, int side, int density, uint8_t fill);
 extern int  fdd_hole(int drive);
 extern void fdd_stop(int drive);
 extern void fdd_do_writeback(int drive);
+
+/* BIOS boot status functions */
+extern bios_boot_status_t fdd_get_boot_status(void);
+extern void fdd_set_boot_status(bios_boot_status_t status);
+extern void fdd_boot_status_reset(void);
+extern int fdd_is_post_complete(void);
 
 extern int      motorspin;
 extern uint64_t motoron[FDD_NUM];

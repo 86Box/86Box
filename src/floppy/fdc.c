@@ -784,6 +784,9 @@ fdc_sis(fdc_t *fdc)
 static void
 fdc_soft_reset(fdc_t *fdc)
 {
+    /* Reset boot status to POST on controller soft reset */
+    fdd_boot_status_reset();
+
     if (fdc->power_down) {
         timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
         fdc->interrupt = -5;
@@ -2402,6 +2405,9 @@ fdc_reset(void *priv)
     uint8_t default_rwc;
 
     fdc_t *fdc = (fdc_t *) priv;
+
+    /* Reset boot status to POST on controller reset */
+    fdd_boot_status_reset();
 
     default_rwc = (fdc->flags & FDC_FLAG_START_RWC_1) ? 1 : 0;
 

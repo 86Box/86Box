@@ -92,14 +92,14 @@ extern int fdd_get_audio_profile(int drive);
 static int16_t *load_wav(const char *filename, int *sample_count);
 
 #    ifdef ENABLE_FDD_LOG
-int fdc_do_log = ENABLE_FDD_LOG;
+static int fdd_audio_do_log = ENABLE_FDD_LOG;
 
 static void
 fdd_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (fdc_do_log) {
+    if (fdd_audio_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);

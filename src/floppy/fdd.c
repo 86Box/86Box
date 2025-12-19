@@ -101,6 +101,9 @@ typedef struct fdd_pending_op_t {
 
 static fdd_pending_op_t fdd_pending[FDD_NUM];
 
+/* BIOS boot status tracking */
+static bios_boot_status_t bios_boot_status = BIOS_BOOT_POST;
+
 char  floppyfns[FDD_NUM][512];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
@@ -212,9 +215,9 @@ int fdd_do_log = ENABLE_FDD_LOG;
 static void
 fdd_log(const char *fmt, ...)
 {
-    va_list ap, ap_copy;
+    va_list ap;
     char    timebuf[32];
-    char    fullbuf[1056]; // 32 + 1024 bytes for timestamp + message
+    char    fullbuf[1056]; /* 32 + 1024 bytes for timestamp + message */
 
     if (fdd_do_log) {
         uint32_t ticks        = plat_get_ticks();
@@ -224,26 +227,57 @@ fdd_log(const char *fmt, ...)
         snprintf(timebuf, sizeof(timebuf), "[%07u.%03u] ", seconds, milliseconds);
 
         va_start(ap, fmt);
-        va_copy(ap_copy, ap);
-
         strcpy(fullbuf, timebuf);
-        vsnprintf(fullbuf + strlen(timebuf), sizeof(fullbuf) - strlen(timebuf), fmt, ap_copy);
-
-        va_end(ap_copy);
+        vsnprintf(fullbuf + strlen(timebuf), sizeof(fullbuf) - strlen(timebuf), fmt, ap);
         va_end(ap);
 
-        va_start(ap, fmt);
-        va_end(ap);
-
-        char *msg = fullbuf;
-        va_start(ap, fmt);
-        pclog_ex("%s", (va_list) &msg);
-        va_end(ap);
+        pclog("%s", fullbuf);
     }
 }
 #else
 #    define fdd_log(fmt, ...)
 #endif
+
+/*
+ * BIOS boot status functions
+ *
+ * These functions track whether the system is in BIOS POST (Power-On Self Test)
+ * or has transitioned to normal operation. The POST state is set on:
+ *   - System hard reset (fdd_reset)
+ *   - FDC soft reset (fdd_boot_status_reset)
+ *
+ * POST is considered complete when the first floppy read operation occurs,
+ * indicating that BIOS has finished POST and is attempting to boot.
+ */
+bios_boot_status_t
+fdd_get_boot_status(void)
+{
+    return bios_boot_status;
+}
+
+void
+fdd_set_boot_status(bios_boot_status_t status)
+{
+    if (bios_boot_status != status) {
+        fdd_log("BIOS boot status changed: %s -> %s\n",
+                bios_boot_status == BIOS_BOOT_POST ? "POST" : "NORMAL",
+                status == BIOS_BOOT_POST ? "POST" : "NORMAL");
+        bios_boot_status = status;
+    }
+}
+
+void
+fdd_boot_status_reset(void)
+{
+    fdd_log("BIOS boot status reset to POST\n");
+    bios_boot_status = BIOS_BOOT_POST;
+}
+
+int
+fdd_is_post_complete(void)
+{
+    return (bios_boot_status == BIOS_BOOT_NORMAL);
+}
 
 void
 fdd_set_audio_profile(int drive, int profile)
@@ -778,6 +812,9 @@ fdd_get_bitcell_period(int rate)
 void
 fdd_reset(void)
 {
+    /* Reset boot status to POST on system reset */
+    fdd_boot_status_reset();
+
     for (uint8_t i = 0; i < FDD_NUM; i++) {
         drives[i].id = i;
         timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
@@ -788,6 +825,11 @@ void
 fdd_readsector(int drive, int sector, int track, int side, int density, int sector_size)
 {
     fdd_log("fdd_readsector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
+
+    /* First floppy read operation marks POST as complete */
+    if (bios_boot_status == BIOS_BOOT_POST) {
+        fdd_set_boot_status(BIOS_BOOT_NORMAL);
+    }
 
     if (fdd_seek_in_progress[drive]) {
         fdd_log("Seek in progress on drive %d, deferring READ (trk=%d->%d, side=%d, sec=%d)\n",
