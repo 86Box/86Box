@@ -676,10 +676,6 @@ generate_call:
     if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
         goto codegen_skip;
 #endif
-    /* TODO: Fix the recompilation so Blood II's gameplay music no longer breaks! */
-    if ((recomp_op_table == recomp_opcodes_d9) && (opcode == 0x44))
-       goto codegen_skip;
-
     if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
         goto codegen_skip;
 
