@@ -999,7 +999,7 @@ then
 		# Archive assets.
 		if [ -d archive_tmp/assets ]
 		then
-			data_dir="archive_tmp/"*".app/Contents"
+			data_dir="$(echo "archive_tmp/"*".app/Contents")"
 			mkdir -p "$data_dir/Resources"
 			mv archive_tmp/assets "$data_dir/Resources/assets"
 		fi
