@@ -308,6 +308,10 @@
    <addaction name="actionSettings"/>
   </widget>
   <action name="actionForce_interpretation">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/interpreter.ico</normaloff>:/menuicons/qt/icons/interpreter.ico</iconset>
+   </property>
    <property name="checkable">
     <bool>true</bool>
    </property>

@@ -13427,10 +13427,10 @@ const machine_t machines[] = {
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
         .name              = "[i430FX] HP Pavilion 51xx/7070/7090/71xx (Holly)",
-        .internal_name     = "hpholly",
+        .internal_name     = "holly",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
-        .init              = machine_at_hpholly_init,
+        .init              = machine_at_holly_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -20598,7 +20598,7 @@ machine_has_flags_ex(int flags)
     int ret = machine_has_flags(machine, flags);
 
     if (flags & MACHINE_PS2_KBC) {
-        if (machine_is_ps2 && (strcmp(machine_get_internal_name(), "pc5286")))
+        if (machine_is_ps2 && (machines[machine].init != machine_at_pc5286_init))
             ret |= MACHINE_PS2_KBC;
         else
             ret &= ~MACHINE_PS2_KBC;

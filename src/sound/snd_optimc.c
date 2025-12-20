@@ -1285,7 +1285,7 @@ const device_t mirosound_pcm10_device = {
 };
 
 const device_t opti_82c930_device = {
-    .name          = "OPTi 82c930",
+    .name          = "OPTi 82C930",
     .internal_name = "opti_82c930",
     .flags         = DEVICE_ISA16,
     .local         = OPTI_930 | OPTIMC_CS4231,
@@ -1299,7 +1299,7 @@ const device_t opti_82c930_device = {
 };
 
 const device_t opti_82c931_device = {
-    .name          = "OPTi 82c931",
+    .name          = "OPTi 82C931",
     .internal_name = "opti_82c931",
     .flags         = DEVICE_ISA16,
     .local         = OPTI_930 | OPTIMC_CS4231 | OPTI_931,

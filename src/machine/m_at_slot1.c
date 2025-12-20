@@ -425,7 +425,7 @@ static const device_config_t bx6_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision EG",
-                .internal_name = "bx6_eg",
+                .internal_name = "bx6",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -434,7 +434,7 @@ static const device_config_t bx6_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision QS",
-                .internal_name = "bx6",
+                .internal_name = "bx6_qs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1057,8 +1057,8 @@ machine_at_p6sba_init(const machine_t *model)
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-    device_add(&w83781d_device);    /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2 */
-    hwm_values.voltages[1] = 3300; /* Seems to be the I/O voltage, reported as "CPUi/o" in the Leadtek BIOS and "CPU2" in the SuperMicro BIOS */
+    device_add(&w83781d_device);   /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2 */
+    hwm_values.voltages[1] = 1500; /* potentially Vtt; Leadtek BIOS calls it CPUi/o; Supermicro BIOS calls it CPU2 and reads a voltage this low as N/A */
 
     return ret;
 }
