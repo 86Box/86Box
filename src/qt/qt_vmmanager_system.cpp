@@ -305,13 +305,11 @@ void
 VMManagerSystem::generateSearchTerms()
 {
     searchTerms.clear();
-#if 0
     for (const auto &value : display_table.values())
         if (value.contains(";"))
             searchTerms.append(value.split(';'));
         else
             searchTerms.append(value);
-#endif
     searchTerms.append(displayName);
     searchTerms.append(config_name);
     QRegularExpression whitespaceRegex("\\s+");
