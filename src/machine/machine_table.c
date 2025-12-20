@@ -13427,10 +13427,10 @@ const machine_t machines[] = {
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
         .name              = "[i430FX] HP Pavilion 51xx/7070/7090/71xx (Holly)",
-        .internal_name     = "hpholly",
+        .internal_name     = "holly",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
-        .init              = machine_at_hpholly_init,
+        .init              = machine_at_holly_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,

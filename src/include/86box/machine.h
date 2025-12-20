@@ -971,7 +971,7 @@ extern const device_t  p54tp4xe_device;
 #endif
 extern int             machine_at_p54tp4xe_init(const machine_t *);
 extern int             machine_at_exp8551_init(const machine_t *);
-extern int             machine_at_hpholly_init(const machine_t *);
+extern int             machine_at_holly_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t vectra52_device;
 #endif
