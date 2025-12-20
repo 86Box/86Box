@@ -1048,10 +1048,12 @@ usage:
         asset_add_path(temp);
     }
 #elif !defined(_WIN32)
-    // Add the standard asset path within the AppImage.
+    // Add the standard asset paths within the AppImage.
     p = getenv("APPDIR");
     if (p && (p[0] != '\0')) {
         path_append_filename(temp, p, "usr/local/share/" EMU_NAME "/assets");
+        asset_add_path(temp);
+        path_append_filename(temp, p, "usr/share/" EMU_NAME "/assets");
         asset_add_path(temp);
     }
 #endif
