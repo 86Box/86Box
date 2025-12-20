@@ -1693,7 +1693,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->dispontime        = 1000ULL << 32;
     svga->dispofftime       = 1000ULL << 32;
     svga->bpp               = 8;
-    svga->vram              = calloc(memsize + 8, 1);
+    svga->vram              = calloc(memsize + 4096, 1);
     svga->vram_max          = memsize;
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
     svga->decode_mask                         = 0x7fffff;
