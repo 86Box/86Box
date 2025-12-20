@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <math.h>
 #include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/io.h>
@@ -5149,7 +5150,7 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
             *atransp = 0;
             break;
         case TEXCTL_TEXFORMAT_TW15:
-            src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
+            src    = *(uint16_t*)((&svga->vram[(mystique->dwgreg.texorg + ((t * tex_pitch) + s) * 2) & mystique->vram_mask]));
             *tex_r = ((src >> 10) & 0x1f) << 3;
             *tex_g = ((src >> 5) & 0x1f) << 3;
             *tex_b = (src & 0x1f) << 3;
@@ -5159,7 +5160,7 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
                 *atransp = 0;
             break;
         case TEXCTL_TEXFORMAT_TW12:
-            src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
+            src    = *(uint16_t*)((&svga->vram[(mystique->dwgreg.texorg + ((t * tex_pitch) + s) * 2) & mystique->vram_mask]));
             *tex_r = ((src >> 8) & 0xf) << 4;
             *tex_g = ((src >> 4) & 0xf) << 4;
             *tex_b = (src & 0xf) << 4;
@@ -5173,7 +5174,7 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
             }
             break;
         case TEXCTL_TEXFORMAT_TW16:
-            src      = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
+            src      = *(uint16_t*)((&svga->vram[(mystique->dwgreg.texorg + ((t * tex_pitch) + s) * 2) & mystique->vram_mask]));
             *tex_r   = (src >> 11) << 3;
             *tex_g   = ((src >> 5) & 0x3f) << 2;
             *tex_b   = (src & 0x1f) << 3;
@@ -5188,6 +5189,40 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
 
 static double lerp(double v0, double v1, double t) {
   return (1. - t) * v0 + t * v1;
+}
+
+// Taken from GZDoom.
+static inline double
+FixedToFloat(int fixed)
+{
+    return fixed * (1.0 / (1 << 16));
+}
+
+static inline void
+persp_correct(mystique_t* mystique, int* s, int* t, int* q, double* s_frac, double* t_frac)
+{
+    const int s_shift = 20 - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
+    const int t_shift = 20 - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
+    double s_d = ((*s) >> s_shift);
+    double t_d = ((*t) >> t_shift);
+    double q_d = FixedToFloat(*q);
+
+    double throwaway1 = 0;
+    double throwaway2 = 0;
+    if (q_d == 0.0)
+        q_d = INFINITY;
+
+    s_d *= 1. / q_d;
+    t_d *= 1. / q_d;
+
+    *s_frac = fabs(modf(s_d, &throwaway1));
+    *t_frac = fabs(modf(s_d, &throwaway2));
+
+    (void)throwaway1;
+    (void)throwaway2;
+
+    *s = s_d;
+    *t = t_d;
 }
 
 static int
@@ -5223,14 +5258,11 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         s_frac = (((int32_t) mystique->dwgreg.tmr[6]) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
         t_frac = (((int32_t) mystique->dwgreg.tmr[7]) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     } else {
-        const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
-        const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
-        int64_t   q       = mystique->dwgreg.tmr[8] ? (0x100000000LL / (int64_t) (int32_t) mystique->dwgreg.tmr[8]) : 0;
+        int q = (int32_t)mystique->dwgreg.tmr[8];
+        s = (int32_t) mystique->dwgreg.tmr[6];
+        t = (int32_t) mystique->dwgreg.tmr[7];
 
-        s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) >> s_shift;
-        t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) >> t_shift;
-        s_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        persp_correct(mystique, &s, &t, &q, &s_frac, &t_frac);
     }
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
