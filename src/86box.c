@@ -1041,10 +1041,17 @@ usage:
     path_append_filename(temp, exe_path, "assets");
     asset_add_path(temp);
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
     // Add the standard asset path within the app bundle.
     if (contents_path[0] != '\0') {
         path_append_filename(temp, contents_path, "Resources/assets");
+        asset_add_path(temp);
+    }
+#elif !defined(_WIN32)
+    // Add the standard asset path within the AppImage.
+    p = getenv("APPDIR");
+    if (p && (p[0] != '\0')) {
+        path_append_filename(temp, p, "usr/local/share/" EMU_NAME "/assets");
         asset_add_path(temp);
     }
 #endif
