@@ -899,7 +899,7 @@ then
 			exit 7
 		fi
 		# Remove dot directories (including .git) and top level files.
-		rm -rf assets/.*
+		rm -rf assets/.* 2> /dev/null
 		rm -f assets/* 2> /dev/null
 		cd ..
 	fi
