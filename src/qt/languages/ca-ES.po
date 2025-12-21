@@ -25,7 +25,7 @@ msgid "&Hard reset"
 msgstr "&Reiniciació completa"
 
 msgid "&Ctrl+Alt+Del"
-msgstr "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Supr"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -40,31 +40,31 @@ msgid "Re&sume"
 msgstr "Re&prendre"
 
 msgid "E&xit"
-msgstr "&Sortir"
+msgstr "&Surt"
 
 msgid "&View"
-msgstr "&Visualització"
+msgstr "&Visualitza"
 
 msgid "&Hide status bar"
-msgstr "&Ocultar barra d'estat"
+msgstr "&Amaga la barra d'estat"
 
 msgid "Hide &toolbar"
-msgstr "Ocultar &barra d'eines"
+msgstr "Amaga la &barra d'eines"
 
 msgid "&Resizeable window"
 msgstr "Fi&nestra redimensionable"
 
 msgid "R&emember size && position"
-msgstr "&Recordar grandària i posició"
+msgstr "&Recorda grandària i posició"
 
 msgid "Remember size && position"
-msgstr "Recordar grandària i posició"
+msgstr "Recorda grandària i posició"
 
 msgid "Re&nderer"
-msgstr "Re&ndidor"
+msgstr "Re&nderitzador"
 
 msgid "&Qt (Software)"
-msgstr "&Qt (Software)"
+msgstr "&Qt (Programari)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -73,10 +73,10 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions…"
-msgstr "E&specificar dimensions…"
+msgstr "E&specifica dimensions…"
 
 msgid "Force &4:3 display ratio"
-msgstr "Forçar ràtio de visualització &4:3"
+msgstr "Força ràtio de visualització &4:3"
 
 msgid "&Window scale factor"
 msgstr "&Factor de escalat de finestra"
@@ -145,7 +145,7 @@ msgid "4:&3 Integer scale"
 msgstr "Escalat de valor enter 4:&3"
 
 msgid "EGA/(S)&VGA settings"
-msgstr "Configuracions EGA/(S)&VGA"
+msgstr "Configuració EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Monitor VGA invertit"
@@ -163,7 +163,7 @@ msgid "&RGB Grayscale"
 msgstr "&RGB en escala de grisos"
 
 msgid "Generic RGBI color monitor"
-msgstr "Monitor RGBI genèric en colors"
+msgstr "Monitor RGBI genèric a color"
 
 msgid "&Amber monitor"
 msgstr "Monitor ambr&e"
@@ -184,13 +184,13 @@ msgid "BT&709 (HDTV)"
 msgstr "BT&709 (HDTV)"
 
 msgid "&Average"
-msgstr "&Mitjà"
+msgstr "&Mitja"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "Overscan de CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
-msgstr "Canviar contrast per a la pantalla &monocromàtica"
+msgstr "Canvia contrast per a la pantalla &monocromàtica"
 
 msgid "&Media"
 msgstr "&Mitjans"
@@ -199,16 +199,16 @@ msgid "&Tools"
 msgstr "&Eines"
 
 msgid "&Settings…"
-msgstr "&Configuracions…"
+msgstr "&Configuració…"
 
 msgid "Settings…"
-msgstr "Configuracions…"
+msgstr "Configuració…"
 
 msgid "&Update status bar icons"
-msgstr "&Actualitzar icones en barra d'estat"
+msgstr "&Actualitza icones a la barra d'estat"
 
 msgid "Take s&creenshot"
-msgstr "Desar imatge de &pantalla"
+msgstr "Desa captura de &pantalla"
 
 msgid "S&ound"
 msgstr "S&o"
@@ -217,16 +217,16 @@ msgid "&Preferences…"
 msgstr "&Preferències…"
 
 msgid "Enable &Discord integration"
-msgstr "Activar integració amb D&iscord"
+msgstr "Activa integració amb D&iscord"
 
 msgid "Sound &gain…"
 msgstr "&Guany de so…"
 
 msgid "Begin trace"
-msgstr "Iniciar el rastreig"
+msgstr "Inicia el rastreig"
 
 msgid "End trace"
-msgstr "Terminar el rastreig"
+msgstr "Acaba el rastreig"
 
 msgid "&Help"
 msgstr "Aj&uda"
@@ -247,34 +247,34 @@ msgid "Existing image (&Write-protected)…"
 msgstr "Imatge existent (&Protegit d'escriptura)…"
 
 msgid "&Record"
-msgstr "&Enregistrar"
+msgstr "&Enregistra"
 
 msgid "&Play"
-msgstr "&Reproduir"
+msgstr "&Reprodueix"
 
 msgid "&Rewind to the beginning"
-msgstr "&Rebobinar al inici"
+msgstr "&Rebobina a l'inici"
 
 msgid "&Fast forward to the end"
-msgstr "&Avanç ràpid al final"
+msgstr "&Avança ràpid al final"
 
 msgid "E&ject"
-msgstr "E&xpulsar"
+msgstr "E&xpolsa"
 
 msgid "&Image…"
 msgstr "&Imatge…"
 
 msgid "E&xport to 86F…"
-msgstr "E&xportar a 86F…"
+msgstr "E&xporta a 86F…"
 
 msgid "&Mute"
-msgstr "&Silenciar"
+msgstr "&Silencia"
 
 msgid "E&mpty"
 msgstr "&CDROM buit"
 
 msgid "Reload previous image"
-msgstr "Recarregar imatge prèvia"
+msgstr "Recarrega imatge prèvia"
 
 msgid "&Folder…"
 msgstr "&Carpeta…"
@@ -289,16 +289,16 @@ msgid "New Image"
 msgstr "Nova imatge"
 
 msgid "Settings"
-msgstr "Configuracions"
+msgstr "Configuració"
 
 msgid "Specify Main Window Dimensions"
-msgstr "Especificar dimensions de la finestra principal"
+msgstr "Especifica dimensions de la finestra principal"
 
 msgid "OK"
 msgstr "D'acord"
 
 msgid "Cancel"
-msgstr "Anuŀlació"
+msgstr "Anuŀla"
 
 msgid "&Default"
 msgstr "&Per defecte"
@@ -313,7 +313,7 @@ msgid "File name:"
 msgstr "Nom de fitxer:"
 
 msgid "Disk size:"
-msgstr "Grandària del disc:"
+msgstr "Mida del disc:"
 
 msgid "RPM mode:"
 msgstr "Modalitat RPM:"
@@ -328,7 +328,7 @@ msgid "Height:"
 msgstr "Alçada:"
 
 msgid "Lock to this size"
-msgstr "Fixar a aquesta grandària"
+msgstr "Fixa a aquesta grandària"
 
 msgid "Machine type:"
 msgstr "Tipus de màquina:"
@@ -337,7 +337,7 @@ msgid "Machine:"
 msgstr "Màquina:"
 
 msgid "Configure"
-msgstr "Configurar"
+msgstr "Configura"
 
 msgid "CPU:"
 msgstr "Processador:"
@@ -364,7 +364,7 @@ msgid "Memory:"
 msgstr "Memòria:"
 
 msgid "Time synchronization"
-msgstr "Sincronització de la hora"
+msgstr "Sincronització de l'hora"
 
 msgid "Disabled"
 msgstr "Desactivat"
@@ -379,7 +379,7 @@ msgid "Dynamic Recompiler"
 msgstr "Recompilador dinàmic"
 
 msgid "CPU frame size"
-msgstr "Grandària de blocs del CPU"
+msgstr "Mida de blocs de la CPU"
 
 msgid "Larger frames (less smooth)"
 msgstr "Blocs més grans (menys suau)"
@@ -418,7 +418,7 @@ msgid "Mouse"
 msgstr "Ratolí"
 
 msgid "Joystick:"
-msgstr "Mando:"
+msgstr "Comandament:"
 
 msgid "Joystick"
 msgstr "Joystick"
@@ -436,22 +436,22 @@ msgid "Joystick 4…"
 msgstr "Joystick 4…"
 
 msgid "Sound card #1:"
-msgstr "Targeta de so 1:"
+msgstr "Targeta de so núm. 1:"
 
 msgid "Sound card #2:"
-msgstr "Targeta de so 2:"
+msgstr "Targeta de so núm. 2:"
 
 msgid "Sound card #3:"
-msgstr "Targeta de so 3:"
+msgstr "Targeta de so núm. 3:"
 
 msgid "Sound card #4:"
-msgstr "Targeta de so 4:"
+msgstr "Targeta de so núm. 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Dispositiu MIDI de sortida:"
 
 msgid "MIDI In Device:"
-msgstr "Dispositiu MIDI de entrada:"
+msgstr "Dispositiu MIDI d'entrada:"
 
 msgid "MIDI Out:"
 msgstr "Sortida MIDI:"
@@ -460,13 +460,13 @@ msgid "Standalone MPU-401"
 msgstr "MPU-401 independent"
 
 msgid "Use FLOAT32 sound"
-msgstr "Utilitzar so FLOAT32"
+msgstr "Utilitza so FLOAT32"
 
 msgid "FM synth driver"
 msgstr "Manejador de síntesi FM"
 
 msgid "Nuked (more accurate)"
-msgstr "Nuked (més acurat)"
+msgstr "Nuked (més precís)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (més ràpid)"
@@ -496,7 +496,7 @@ msgid "LPT4 Device:"
 msgstr "Dispositiu LPT4:"
 
 msgid "Internal LPT ECP DMA:"
-msgstr "DMA de ECP del LPT intern:"
+msgstr "DMA de ECP de l'LPT intern:"
 
 msgid "Serial port 1"
 msgstr "Port sèrie 1"
@@ -523,10 +523,10 @@ msgid "Parallel port 4"
 msgstr "Port paralel 4"
 
 msgid "Floppy disk controller:"
-msgstr "Controlador de disquet:"
+msgstr "Controladora de disquets:"
 
 msgid "CD-ROM controller:"
-msgstr "Controlador de CD-ROM:"
+msgstr "Controladora de CD-ROM:"
 
 msgid "[ISA16] Tertiary IDE Controller"
 msgstr "[ISA16] Controlador IDE terciari"
@@ -535,31 +535,31 @@ msgid "[ISA16] Quaternary IDE Controller"
 msgstr "[ISA16] Controlador IDE quaternari"
 
 msgid "Hard disk controllers"
-msgstr "Controladors de disc dur"
+msgstr "Controladores de disc dur"
 
 msgid "SCSI controllers"
-msgstr "Controladors SCSI"
+msgstr "Controladores SCSI"
 
 msgid "Controller 1:"
-msgstr "Controlador 1:"
+msgstr "Controladora 1:"
 
 msgid "Controller 2:"
-msgstr "Controlador 2:"
+msgstr "Controladora 2:"
 
 msgid "Controller 3:"
-msgstr "Controlador 3:"
+msgstr "Controladora 3:"
 
 msgid "Controller 4:"
-msgstr "Controlador 4:"
+msgstr "Controladora 4:"
 
 msgid "Cassette"
-msgstr "Casset"
+msgstr "Cinta"
 
 msgid "Hard disks:"
 msgstr "Discs durs:"
 
 msgid "Firmware Version"
-msgstr "Versió de firmware"
+msgstr "Versió del firmware"
 
 msgid "&New…"
 msgstr "&Nou…"
@@ -589,16 +589,16 @@ msgid "Cylinders:"
 msgstr "Cilindres:"
 
 msgid "Size (MB):"
-msgstr "Grandària (MB):"
+msgstr "Mida (MB):"
 
 msgid "Type:"
 msgstr "Tipus:"
 
 msgid "Image Format:"
-msgstr "Format de imatge:"
+msgstr "Format d'imatge:"
 
 msgid "Block Size:"
-msgstr "Grandària de bloc:"
+msgstr "Mida de bloc:"
 
 msgid "Floppy drives:"
 msgstr "Unitats de disquet:"
@@ -634,7 +634,7 @@ msgid "ISA Memory Expansion"
 msgstr "Expansió de memòria ISA"
 
 msgid "ISA ROM Cards"
-msgstr "Targetas ROM ISA"
+msgstr "Targetes ROM ISA"
 
 msgid "Card 1:"
 msgstr "Targeta 1:"
@@ -688,7 +688,7 @@ msgid "Image %1"
 msgstr "Imatge %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "El 86Box no ha pogut trobar cap de imatge ROM utilitzable.\n\nSi us plau, <a href=\"https://github.com/86Box/roms/releases/latest\">descarregueu</a> un conjunt de ROMs i extraieu-lo al directori \"roms\"."
+msgstr "El 86Box no ha pogut trobar cap de imatge ROM utilitzable.\n\nSi us plau, <a href=\"https://github.com/86Box/roms/releases/latest\">descarregueu</a> un conjunt de ROMs i extraieu-les al directori \"roms\"."
 
 msgid "(empty)"
 msgstr "(buit)"
@@ -715,22 +715,22 @@ msgid "Surface images"
 msgstr "Imatges de superfície"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "La màquina \"%hs\" no està disponible a causa dels ROMs faltants en el directori roms/machines. Canviant a una màquina disponible."
+msgstr "La màquina \"%hs\" no està disponible a causa de les ROMs faltants al directori roms/machines. Canviant a una màquina disponible."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "La tarjeta de vídeo \"%hs\" no està disponible a causa dels ROMs faltants en el directori roms/video. Canviant a una tarjeta de video disponible."
+msgstr "La tarjeta de vídeo \"%hs\" no està disponible a causa de les ROMs faltants al directori roms/video. Canviant a una tarjeta de video disponible."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "La tarjeta de vídeo 2 \"%hs\" no està disponible a causa dels ROMs faltants en el directori roms/video. Desactivnt a la segona targeta de vídeo."
+msgstr "La tarjeta de vídeo 2 \"%hs\" no està disponible a causa de les ROMs faltants al directori roms/video. Desactivant la segona targeta de vídeo."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "El dispositiu \"%hs\" no està disponible a causa dels ROMs faltants. Ignorant el dispositiu."
+msgstr "El dispositiu \"%hs\" no està disponible a causa de les ROMs faltants. Ignorant el dispositiu."
 
 msgid "Machine"
 msgstr "Màquina"
 
 msgid "Display"
-msgstr "Vídeo"
+msgstr "Pantalla"
 
 msgid "Input devices"
 msgstr "Dispositius de entrada"
@@ -769,7 +769,7 @@ msgid "Controllers:"
 msgstr "Controladors:"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Disquets i unitates de CD-ROM"
+msgstr "Disquets i unitats de CD-ROM"
 
 msgid "Other removable devices"
 msgstr "Altres dispositius extraïbles"
@@ -784,10 +784,10 @@ msgid "Click to capture mouse"
 msgstr "Feu clic per capturar el ratolí"
 
 msgid "Press %1 to release mouse"
-msgstr "Premeu %1 per soltar el ratolí"
+msgstr "Premeu %1 per alliberar el ratolí"
 
 msgid "Press %1 or middle button to release mouse"
-msgstr "Premeu %1 o bé el botó central per soltar el ratolí"
+msgstr "Premeu %1 o bé el botó central per alliberar el ratolí"
 
 msgid "Bus"
 msgstr "Bus"
@@ -817,7 +817,7 @@ msgid "Type"
 msgstr "Tipus"
 
 msgid "No PCap devices found"
-msgstr "No se trobaren dispositius PCap"
+msgstr "No s'ha trobat cap dispositiu PCap"
 
 msgid "Invalid PCap device"
 msgstr "Dispositiu PCap invàlid"
@@ -862,16 +862,16 @@ msgid "4-axis, 4-button joystick"
 msgstr "Joystick de 4 eixos, 4 botons"
 
 msgid "2-button gamepad(s)"
-msgstr "Maneta(s) de joc de 2 botons"
+msgstr "Comandament(s) de joc de 2 botons"
 
 msgid "3-button gamepad"
-msgstr "Maneta de joc de 3 botons"
+msgstr "Comandament de joc de 3 botons"
 
 msgid "4-button gamepad"
-msgstr "Maneta de joc de 4 botons"
+msgstr "Comandament de joc de 4 botons"
 
 msgid "6-button gamepad"
-msgstr "Maneta de joc de 6 botons"
+msgstr "Comandament de joc de 6 botons"
 
 msgid "2-button flight yoke"
 msgstr "Volant d'avió de 2 botons"
@@ -925,10 +925,10 @@ msgid "Flux images"
 msgstr "Imatges de fluix"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Segur que voleu fer una reinicialització completa de la màquina emulada?"
+msgstr "Esteu segurs de que voleu fer una reinicialització completa de la màquina emulada?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "Segur que voleu tancar al 86Box?"
+msgstr "Esteu segurs de que voleu tancar al 86Box?"
 
 msgid "Unable to initialize Ghostscript"
 msgstr "No fou possible inicialitzar el Ghostscript"
@@ -964,13 +964,13 @@ msgid "New machine"
 msgstr "Nova màquina"
 
 msgid "&Check for updates…"
-msgstr "&Verifica actualitzacions…"
+msgstr "&Comprova actualitzacions…"
 
 msgid "Exit"
 msgstr "Sortir"
 
 msgid "No ROMs found"
-msgstr "No se trobaren ROMs"
+msgstr "No s'han trobat ROMs"
 
 msgid "Do you want to save the settings?"
 msgstr "Voleu desar les configuracions?"
@@ -979,40 +979,40 @@ msgid "This will hard reset the emulated machine."
 msgstr "Això causarà una reinicialització completa de la màquina emulada."
 
 msgid "Save"
-msgstr "Desar"
+msgstr "Desa"
 
 msgid "About %1"
 msgstr "Quant al %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Un emulador de ordinadors anticos\n\nAutors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, y otros.\n\nAmb contribucions anteriors de Sarah Walker, leilei, JohnElliott, greatpsycho y otros.\n\nPublicat sota la GNU General Public License versió 2 o bé posterior. Veieu LICENSE per més informacions."
+msgstr "Un emulador d'ordinadors antics\n\nAutors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, i altres.\n\nAmb contribucions anteriors de Sarah Walker, leilei, JohnElliott, greatpsycho i altres.\n\nPublicat sota la GNU General Public License versió 2 o posterior. Veieu LICENSE per a més informació."
 
 msgid "Hardware not available"
 msgstr "Equip no disponible"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Assegureu-vos de que %1 està instalat i de que esteu en una connexió de xarxa compatible amb %1."
+msgstr "Assegureu-vos de que %1 està instal·lat i de que esteu en una connexió de xarxa compatible amb %1."
 
 msgid "Invalid configuration"
 msgstr "Configuració invàlida"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 és imprescindible per la conversió automàtica de fitxers PostScript a PDF.\n\nQualsevol document enviat a la impressora genèrica PostScript se desarà com ara fitxer PostScript (.ps)."
+msgstr "%1 és imprescindible per la conversió automàtica de fitxers PostScript a PDF.\n\nQualsevol document enviat a la impressora genèrica PostScript es desarà com a fitxer PostScript (.ps)."
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 és imprescindible per la conversió automàtica de fitxers PCL a PDF.\n\nQualsevol document enviat a la impressora genèrica PCL se desarà com ara fitxer Printer Command Language (.pcl)."
+msgstr "%1 és imprescindible per la conversió automàtica de fitxers PCL a PDF.\n\nQualsevol document enviat a la impressora genèrica PCL es desarà com a fitxer Printer Command Language (.pcl)."
 
 msgid "Don't show this message again"
-msgstr "No tornar a mostrar aquest missatge"
+msgstr "No tornis a mostrar aquest missatge"
 
 msgid "Don't exit"
 msgstr "No sortir"
 
 msgid "Reset"
-msgstr "Reinicialitzar"
+msgstr "Reinicialitza"
 
 msgid "Don't reset"
-msgstr "No reinicialitzar"
+msgstr "No reinicialitzis"
 
 msgid "CD-ROM images"
 msgstr "Imatges de CD-ROM"
@@ -1021,7 +1021,7 @@ msgid "%1 Device Configuration"
 msgstr "Configuració de dispositiu %1"
 
 msgid "Monitor in sleep mode"
-msgstr "Monitor en modalitat de dormida"
+msgstr "Monitor en suspens"
 
 msgid "GLSL shaders"
 msgstr "Shaders GLSL"
@@ -1030,19 +1030,19 @@ msgid "You are loading an unsupported configuration"
 msgstr "Esteu carregant una configuració no suportada"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "La filtració de tipus CPU basat en màquina seleccionada està desactivat per a aquesta màquina.\n\nAixò fa possible seleccionar una CPU que sigui incompatible amb aquesta màquina. Tanmateix, poden aparèixerr incompatibilitats amb la BIOS de la màquina o altres programes.\n\nActivar esta configuració no està oficialment suportat i qualsevol report de error pot ésser tancat com ara invàlid."
+msgstr "La filtració del tipus de CPU basat en la màquina sel·leccionada està desactivada per a aquesta màquina.\n\nAixò fa possible sel·leccionar una CPU que sigui incompatible amb aquesta màquina. Tanmateix, poden aparèixer incompatibilitats amb la BIOS de la màquina o altres programes.\n\nActivar esta configuració no està oficialment suportat i qualsevol report de error pot ser tancat com a invàlid."
 
 msgid "Continue"
-msgstr "Continuar"
+msgstr "Continua"
 
 msgid "Cassette: %1"
-msgstr "Casset: %1"
+msgstr "Cinta: %1"
 
 msgid "C&assette: %1"
-msgstr "C&asset: %1"
+msgstr "C&inta: %1"
 
 msgid "Cassette images"
-msgstr "Imatges de casset"
+msgstr "Imatges de cinta"
 
 msgid "Cartridge %1: %2"
 msgstr "Cartutx %1: %2"
@@ -1075,13 +1075,13 @@ msgid "Force shutdown"
 msgstr "Apagada forçada"
 
 msgid "Start"
-msgstr "Iniciar"
+msgstr "Inicia"
 
 msgid "&Force shutdown"
 msgstr "&Apagada forçada"
 
 msgid "&Start"
-msgstr "&Iniciar"
+msgstr "&Inicir"
 
 msgid "Not running"
 msgstr "No en execució"
@@ -1114,7 +1114,7 @@ msgid "VMs: %1"
 msgstr "MV: %1"
 
 msgid "System Directory:"
-msgstr "Directori de sistema:"
+msgstr "Directori del sistema:"
 
 msgid "Choose directory"
 msgstr "Escollir directori"
@@ -1132,10 +1132,10 @@ msgid "Unable to open the selected configuration file for reading: %1"
 msgstr "No fou possible obrir el fitxer de configuració seleccionat per llegir: %1"
 
 msgid "Use regular expressions in search box"
-msgstr "Utilitzar expressions regulars en la caixa de cerca"
+msgstr "Utilitzeu expressions regulars a la caixa de cerca"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 màquina(es) són actives en aquest moment. Segur que voleu sortir del administrador de MV?"
+msgstr "%1 màquina(es) són actives en aquest moment. Segur que voleu sortir de l'administrador de MV?"
 
 msgid "Add new system wizard"
 msgstr "Auxiliar d'addició de un nou sistema"
@@ -1156,19 +1156,19 @@ msgid "The wizard will now launch the configuration for the new system."
 msgstr "L'auxiliar ara executarà la configuració pel nou sistema."
 
 msgid "Use existing configuration"
-msgstr "Utilitzar configuració existent"
+msgstr "Utilitza una configuració existent"
 
 msgid "Type some notes here"
-msgstr "Escriure algunes notes aquí"
+msgstr "Escriviu algunes notes aquí"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr "Enganxar el contingut del fitxer de configuració existent en la caixa que de sota."
+msgstr "Enganxa el contingut del fitxer de configuració existent en la caixa de sota."
 
 msgid "Load configuration from file"
-msgstr "Carregar la configuració a partir d'un fitxer"
+msgstr "Carrega la configuració a partir d'un fitxer"
 
 msgid "System name"
-msgstr "Nomb del sistema"
+msgstr "Nom del sistema"
 
 msgid "System name:"
 msgstr "Nom del sistema:"
@@ -1186,7 +1186,7 @@ msgid "Directory does not exist"
 msgstr "El directori no existeix"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Un nou directour per el sistema serà criat en el directori escollit a dalt"
+msgstr "Un nou directori per al sistema serà creat en el directori escollit a dalt"
 
 msgid "System location:"
 msgstr "Ubicació del sistema:"
@@ -1216,25 +1216,25 @@ msgid "Enter the new display name (blank to reset)"
 msgstr "Escriviu el nou nom mostrat (buit per restablir)"
 
 msgid "Change &display name…"
-msgstr "Canviar nom &mostrat…"
+msgstr "Canvia nom &mostrat…"
 
 msgid "Context Menu"
 msgstr "Menú de context"
 
 msgid "&Open folder…"
-msgstr "&Obrir carpeta…"
+msgstr "&Obre carpeta…"
 
 msgid "Open p&rinter tray…"
-msgstr "Obrir safata de la &impressora…"
+msgstr "Obre safata de la &impressora…"
 
 msgid "Set &icon…"
-msgstr "Establir &icona…"
+msgstr "Estableix &icona…"
 
 msgid "Select an icon"
-msgstr "Escollir una icona"
+msgstr "Tria una icona"
 
 msgid "C&lone…"
-msgstr "C&lonar…"
+msgstr "C&lona…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "La màquina virtual \"%1\" (%2) serà clonada a:"
@@ -1246,10 +1246,10 @@ msgid "You cannot use the following characters in the name: %1"
 msgstr "No es pot utilitzar els seguints caràcters en el nom: %1"
 
 msgid "Clone"
-msgstr "Clonar"
+msgstr "Clona"
 
 msgid "Failed to create directory for cloned VM"
-msgstr "Error en criar el directori per la MV clonada"
+msgstr "Error en crear el directori per a la MV clonada"
 
 msgid "Failed to clone VM."
 msgstr "Error en clonar la VM."
@@ -1261,10 +1261,10 @@ msgid "The selected directory is already in use. Please select a different direc
 msgstr "El directori escollit ja està en ùs. Si us plau, escolliu un altre directori."
 
 msgid "Create directory failed"
-msgstr "Error en criar el directori"
+msgstr "Error en crear el directori"
 
 msgid "Unable to create the directory for the new system"
-msgstr "No fou possible criar el directori pel nou sistema"
+msgstr "No fou possible crear el directori pel nou sistema"
 
 msgid "Configuration write failed"
 msgstr "Error en escriure la configuració"
@@ -1279,7 +1279,7 @@ msgid "Remove directory failed"
 msgstr "Error en suprimir el directori"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr "No fou possible suprimir alguns fitxers en el directori de la màquina. Si us plau, suprimiu-los manualment."
+msgstr "No fou possible suprimir alguns fitxers al directori de la màquina. Si us plau, suprimiu-los manualment."
 
 msgid "Build"
 msgstr "Compilació"
@@ -1297,31 +1297,31 @@ msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>Una actualització pel 86Box està disponible!</b>"
 
 msgid "Warning"
-msgstr "Compte"
+msgstr "Atenció"
 
 msgid "&Kill"
-msgstr "&Terminar forçadament"
+msgstr "&Finalitza forçosament"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Terminar forçadament a la màquina virtual pot causar la pèrdua de dades. Només ho feu si el procés del 86Box es blocà.\n\n¿De verdad quiere terminar forzadamente a la máquina virtual \"%1\"?"
+msgstr "Finalitzar forçosament la màquina virtual pot causar la pèrdua de dades. Només feu-ho si el procés del 86Box s'ha blocat.\n\n¿Realment voleu finalitzar forçosament la màquina virtual \"%1\"?"
 
 msgid "&Delete"
 msgstr "&Suprimir"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Realment voleu suprimir la màquina virtual \"%1\" i tots seus fitxers? Aquesta acció no se pot desfer!"
+msgstr "Realment voleu suprimir la màquina virtual \"%1\" i tots els seus fitxers? Aquesta acció no es pot desfer!"
 
 msgid "Show &config file"
-msgstr "Mostrar fitxer de &configuració"
+msgstr "Mostra fitxer de &configuració"
 
 msgid "No screenshot"
-msgstr "Sense captura de pantalla"
+msgstr "Sense captures de pantalla"
 
 msgid "Search"
-msgstr "Cercar"
+msgstr "Cerca"
 
 msgid "Searching for VMs…"
-msgstr "Cercar per MV…"
+msgstr "Cerca per MV…"
 
 msgid "Found %1"
 msgstr "%1 trobada"
@@ -1354,7 +1354,7 @@ msgid "Hard disk (%1)"
 msgstr "Disc dur (%1)"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Mai existiren unitats de CD-ROM MFM/RLL o bé ESDI"
+msgstr "Les unitats de CD-ROM MFM/RLL o bé ESDI no han existit"
 
 msgid "Custom…"
 msgstr "Personalitzada…"
@@ -1363,10 +1363,10 @@ msgid "Custom (large)…"
 msgstr "Personalitzada (gran)…"
 
 msgid "Add New Hard Disk"
-msgstr "Afegir nou disc dur"
+msgstr "Afegeix nou disc dur"
 
 msgid "Add Existing Hard Disk"
-msgstr "Afegir disc dur existent"
+msgstr "Afegeix disc dur existent"
 
 msgid "HDI disk images cannot be larger than 4 GB."
 msgstr "Les imatges de disc HDI no poden superar els 4 GB."
@@ -1378,28 +1378,28 @@ msgid "Hard disk images"
 msgstr "Imatges de disc dur"
 
 msgid "Unable to read file"
-msgstr "No es pogué llegir el fitxer"
+msgstr "No s'ha pogut llegir el fitxer"
 
 msgid "Unable to write file"
-msgstr "No es pogué escriure el fitxer"
+msgstr "No s'ha pogut escriure el fitxer"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "No es suporten les imatges HDI o bé HDX amb una grandària de sector diferent a 512."
+msgstr "Les imatges HDI o bé HDX amb una mida de sector diferent a 512 no estan suportades."
 
 msgid "Disk image file already exists"
 msgstr "La imatge de disc ja existeix"
 
 msgid "Please specify a valid file name."
-msgstr "Si us plau especifiqueu un nomb de fitxer vàlid."
+msgstr "Si us plau, especifiqueu un nom de fitxer vàlid."
 
 msgid "Disk image created"
-msgstr "Imatge de disc criada"
+msgstr "Imatge de disc creada"
 
 msgid "Make sure the file exists and is readable."
 msgstr "Assegureu-vos que el fitxer existeix i és llegible."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Assegureu-vos que el fitxer es està desant a un directori amb permís de escirptura."
+msgstr "Assegureu-vos que el fitxer s'està desant a un directori amb permís de escirptura."
 
 msgid "Disk image too large"
 msgstr "Imatge de disc massa gran"
@@ -1408,16 +1408,16 @@ msgid "Remember to partition and format the newly-created drive."
 msgstr "Recordeu de particionar i formatar la nova unitat."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "El fitxer escollit serà sobreescrit. Segur que voleu utilitzar-lo?"
+msgstr "El fitxer triat se sobreescriurà. Esteu segurs de que voleu utilitzar-lo?"
 
 msgid "Unsupported disk image"
 msgstr "Imatge de disc no suportada"
 
 msgid "Overwrite"
-msgstr "Sobreescriure"
+msgstr "Sobreescriu"
 
 msgid "Don't overwrite"
-msgstr "No sobreescriure"
+msgstr "No sobreescriguis"
 
 msgid "Raw image"
 msgstr "Imatge en brut"
@@ -1429,10 +1429,10 @@ msgid "HDX image"
 msgstr "Imatge HDX"
 
 msgid "Fixed-size VHD"
-msgstr "VHD de grandària fixa"
+msgstr "VHD de mida fixa"
 
 msgid "Dynamic-size VHD"
-msgstr "VHD de grandària dinàmica"
+msgstr "VHD de mida dinàmica"
 
 msgid "Differencing VHD"
 msgstr "VHD diferencial"
@@ -1450,10 +1450,10 @@ msgid "HDX image (.hdx)"
 msgstr "Imatge HDX (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
-msgstr "VHD de grandària fixa (.vhd)"
+msgstr "VHD de mida fixa (.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "VHD de grandària dinàmica (.vhd)"
+msgstr "VHD de mida dinàmica (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
 msgstr "VHD diferencial (.vhd)"
@@ -1471,13 +1471,13 @@ msgid "Select the parent VHD"
 msgstr "Escolliu el VHD pare"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Això podria significar que la imatge pare es va modificar després de que es creés la imatge diferencial.\n\nTambé pot passar si les imatges foren mogudes o copiades, o a causa d'un error en el programa que crià aquest disc.\n\nVoleu corregir els registres de temps?"
+msgstr "Això podria significar que la imatge pare es va modificar després de que es creés la imatge diferencial.\n\nTambé pot passar si les imatges han sigut mogudes o copiades, o a causa d'un error all programa que va crear aquest disc.\n\nVoleu corregir les marques de temps?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Els segells de temps del pare e fill no coincideixen"
+msgstr "Les marques de temps del pare e fill no coincideixen"
 
 msgid "Could not fix VHD timestamp."
-msgstr "No fou possible corregir el segell de temps del VHD."
+msgstr "No ha sigut possible corregir la marca de temps del VHD."
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1504,13 +1504,13 @@ msgid "720 KB"
 msgstr "720 KB"
 
 msgid "1.2 MB"
-msgstr "1.2 MB"
+msgstr "1,2 MB"
 
 msgid "1.25 MB"
-msgstr "1.25 MB"
+msgstr "1,25 MB"
 
 msgid "1.44 MB"
-msgstr "1.44 MB"
+msgstr "1,44 MB"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (clúster 1024)"
@@ -1519,52 +1519,52 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (clúster 2048)"
 
 msgid "2.88 MB"
-msgstr "2.88 MB"
+msgstr "2,88 MB"
 
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3.5\" 128 MB (ISO 10090)"
+msgstr "3,5\" 128 MB (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
-msgstr "3.5\" 230 MB (ISO 13963)"
+msgstr "3,5\" 230 MB (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3.5\" 540 MB (ISO 15498)"
+msgstr "3,5\" 540 MB (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
-msgstr "3.5\" 640 MB (ISO 15498)"
+msgstr "3,5\" 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5\" 1.3 GB (GigaMO)"
+msgstr "3,5\" 1.3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3,5\" 2.3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5.25\" 600 MB"
+msgstr "5,25\" 600 MB"
 
 msgid "5.25\" 650 MB"
-msgstr "5.25\" 650 MB"
+msgstr "5,25\" 650 MB"
 
 msgid "5.25\" 1 GB"
-msgstr "5.25\" 1 GB"
+msgstr "5,25\" 1 GB"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5.25\" 1.3 GB"
+msgstr "5,25\" 1.3 GB"
 
 msgid "Perfect RPM"
 msgstr "RPM perfectes"
 
 msgid "1% below perfect RPM"
-msgstr "1% por sota dels RPM perfectes"
+msgstr "1% per sota dels RPM perfectes"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% por sota dels RPM perfectes"
+msgstr "1.5% per sota dels RPM perfectes"
 
 msgid "2% below perfect RPM"
-msgstr "2% por sota dels RPM perfectes"
+msgstr "2% per sota dels RPM perfectes"
 
 msgid "(System Default)"
 msgstr "(Per defecte del sistema)"
@@ -1576,10 +1576,10 @@ msgid "The network configuration will be switched to the null driver"
 msgstr "La configuració de xarxa es canviarà al controlador nul"
 
 msgid "Mouse sensitivity:"
-msgstr "Sensitivitat del ratón:"
+msgstr "Sensitivitat del ratolí:"
 
 msgid "Select media images from program working directory"
-msgstr "Escollir imatges de mitjans del directori de treball del programa"
+msgstr "Trieu imatges de mitjans del directori de treball del programa"
 
 msgid "PIT mode:"
 msgstr "Modalitat PIT:"
@@ -1591,19 +1591,19 @@ msgid "Slow"
 msgstr "Lenta"
 
 msgid "Fast"
-msgstr "Ráàida"
+msgstr "Rápida"
 
 msgid "&Auto-pause on focus loss"
 msgstr "Pa&usa automàtica en perdre el focus"
 
 msgid "WinBox is no longer supported"
-msgstr "El WinBox no és més suportat"
+msgstr "El WinBox ja no és suportat"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "El desenvolupament del administrador WinBox s'ha aturat en 2022 per la manca de mantenidors. Com ara dirigim els nostres esforços a fer 86Box encara millor, hem pres la decisió de no més suportar el WinBox com ara administrador.\n\nNo es proporcionaran més actualitzacions a través del WinBox, i podeu trobar un comportament incorrecte si continua en utilitzar-lo amb versions más noves del 86Box. Qualsevol report de error relacionat amb el comportament del WinBox serà tancat com ara invàlid.\n\nAneu a 86box.net per a una llista de altres administradors que podeu utilitzar."
+msgstr "El desenvolupament de l'administrador WinBox es va aturar el 2022 per la manca de mantenidors. Com que ara dirigim els nostres esforços a fer 86Box encara millor, hem pres la decisió de no suportar més el WinBox com a administrador.\n\nNo es proporcionaran més actualitzacions a través del WinBox, i podríeu trobar un comportament incorrecte si continua utilitzant amb versions más noves del 86Box. Qualsevol report de error relacionat amb el comportament del WinBox serà tancat com a invàlid.\n\nAneu a 86box.net per a una llista d'altres administradors que podeu utilitzar."
 
 msgid "Generate"
-msgstr "Generar"
+msgstr "Genera"
 
 msgid "Joystick configuration"
 msgstr "Configuració del joystick"
@@ -1624,7 +1624,7 @@ msgid "List of MCA devices:"
 msgstr "Llista de dispositius MCA:"
 
 msgid "&Tablet tool"
-msgstr "Eine de &taula"
+msgstr "Eina de &tauleta"
 
 msgid "About &Qt"
 msgstr "Quant al &Qt"
@@ -1636,31 +1636,31 @@ msgid "Show non-&primary monitors"
 msgstr "Mostrar monitors no prim&aris"
 
 msgid "Open screenshots &folder…"
-msgstr "Obrir la ca&rpeta de captures…"
+msgstr "Obre la ca&rpeta de captures…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "&Utilitzar estirament de la pantalla sencera en modalitat maximitzada"
+msgstr "&Utilitza estirament de la pantalla sencera en modalitat maximitzada"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
 
 msgid "&Pen"
-msgstr "&Bolígraf"
+msgstr "&Llapis"
 
 msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unitat de CD/DVD del amfitrió (%1:)"
+msgstr "&Unitat de CD/DVD de l'amfitrió (%1:)"
 
 msgid "&Connected"
 msgstr "&Connectat"
 
 msgid "Clear image &history"
-msgstr "Suprimir &història de imatges"
+msgstr "Esborra &historial d'imatges"
 
 msgid "Create…"
-msgstr "Criar…"
+msgstr "Crea…"
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "Unitat de CD/DVD del amfitrió (%1)"
+msgstr "Unitat de CD/DVD de l'amfitrió (%1)"
 
 msgid "Unknown Bus"
 msgstr "Bus desconegut"
@@ -1681,7 +1681,7 @@ msgid "Render behavior"
 msgstr "Comportament del renderitzador"
 
 msgid "Use target framerate:"
-msgstr "Utilitzar la freqüència de fotogrames del objectiu:"
+msgstr "Utilitza la següent freqüència de fotogrames:"
 
 msgid " fps"
 msgstr " fps"
@@ -1696,46 +1696,46 @@ msgid "Shaders"
 msgstr "Shaders"
 
 msgid "Remove"
-msgstr "Suprimir"
+msgstr "Esborra"
 
 msgid "Browse…"
-msgstr "Navegació…"
+msgstr "Navega…"
 
 msgid "Couldn't create OpenGL context."
-msgstr "Impossible de criar el context OpenGL."
+msgstr "Impossible de crear el context OpenGL."
 
 msgid "Couldn't switch to OpenGL context."
 msgstr "Impossible de canviar al context OpenGL."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "Es requereix la versió 3.0 o bé més alta del OpenGL. La versió actual és %1.%2"
+msgstr "Es requereix la versió 3.0 o superior de l'OpenGL. La versió actual és %1.%2"
 
 msgid "Error initializing OpenGL"
-msgstr "Error en inicialitzar el OpenGL"
+msgstr "Error en inicialitzar l'OpenGL"
 
 msgid "\nFalling back to software rendering."
 msgstr "\nTornant al renderitzat per software."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>En escollir imatges de mitjans (CD-ROM, disquet, etc.), el diàleg d'obertura s'iniciarà en el mateix directori que el fitxer de configuració del 86Box. És probable que aquest ajust només farà una diferència en el macOS.</p></body></html>"
+msgstr "<html><head/><body><p>En escollir imatges de mitjans (CD-ROM, disquet, etc.), el quadred de diàleg d'obertura s'iniciarà en el mateix directori que el fitxer de configuració del 86Box. És probable que aquest ajust només farà una diferència en el macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Aquesta màquina pot haver estat moguda o bé copiada."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Per garantir la funcionalitat adequada de la xarxa, el 86Box ha de saber si aquesta màquina s'ha mogut o bé copiat.\n\nSi no està segur, escolliu \"La vaig copiar\"."
+msgstr "Per garantir la funcionalitat adequada de la xarxa, el 86Box ha de saber si aquesta màquina s'ha mogut o bé copiat.\n\nSi no esteu segurs, escolliu \"La vaig copiar\"."
 
 msgid "I Moved It"
-msgstr "La vaig moure"
+msgstr "L'he moguda"
 
 msgid "I Copied It"
-msgstr "La vaig copiar"
+msgstr "L'he copiada"
 
 msgid "86Box Monitor #%1"
 msgstr "Monitor del 86Box %1"
 
 msgid "No MCA devices."
-msgstr "Cap de dispositius MCA."
+msgstr "Cap dispositiu MCA."
 
 msgid "MiB"
 msgstr "MiB"
@@ -1759,7 +1759,7 @@ msgid "Mode:"
 msgstr "Modalitat:"
 
 msgid "Interface:"
-msgstr "Interfase:"
+msgstr "Interfície:"
 
 msgid "Adapter:"
 msgstr "Adaptador:"
@@ -1771,10 +1771,10 @@ msgid "TAP Bridge Device:"
 msgstr "Dispositiu pont TAP:"
 
 msgid "86Box Unit Tester"
-msgstr "Comprovador de unitat del 86Box"
+msgstr "Comprovador d'unitats del 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr "Targeta de clau del Novell NetWare 2.x"
+msgstr "Targeta de clau per al Novell NetWare 2.x"
 
 msgid "Serial port passthrough 1"
 msgstr "Passatge de port sèrie 1"
@@ -1864,55 +1864,55 @@ msgid "System MIDI"
 msgstr "MIDI del sistema"
 
 msgid "MIDI Input Device"
-msgstr "Dispositiu de entrada MIDI"
+msgstr "Dispositiu d'entrada MIDI"
 
 msgid "BIOS file"
-msgstr "Fitxer del BIOS"
+msgstr "Fitxer de la BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr "Fitxer del BIOS (ROM núm. 1)"
+msgstr "Fitxer de la BIOS (ROM núm. 1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr "Fitxer del BIOS (ROM núm. 2)"
+msgstr "Fitxer de la BIOS (ROM núm. 2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr "Fitxer del BIOS (ROM núm. 3)"
+msgstr "Fitxer de la BIOS (ROM núm. 3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr "Fitxer del BIOS (ROM núm. 4)"
+msgstr "Fitxer de la BIOS (ROM núm. 4)"
 
 msgid "BIOS address"
-msgstr "Adreça del BIOS"
+msgstr "Adreça de la BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Adreça del BIOS (ROM núm. 1)"
+msgstr "Adreça de la BIOS (ROM núm. 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Adreça del BIOS (ROM núm. 2)"
+msgstr "Adreça de la BIOS (ROM núm. 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Adreça del BIOS (ROM núm. 3)"
+msgstr "Adreça de la BIOS (ROM núm. 3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr "Adreça del BIOS (ROM núm. 4)"
+msgstr "Adreça de la BIOS (ROM núm. 4)"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Activar escriptures per al ROM de extensió del BIOS"
+msgstr "Activa l'escriptura per a la ROM d'extensió de la BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "Activar escriptures per al ROM de extensió del BIOS (ROM núm. 1)"
+msgstr "Activa l'escriptura per a la ROM d'extensió de la BIOS (ROM núm. 1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "Activar escriptures per al ROM de extensió del BIOS (ROM núm. 2)"
+msgstr "Activa l'escriptura per a la ROM d'extensió de la BIOS (ROM núm. 2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "Activar escriptures per al ROM de extensió del BIOS (ROM núm. 3)"
+msgstr "Activa l'escriptura per a la ROM d'extensió de la BIOS (ROM núm. 3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "Activar escriptures per al ROM de extensió del BIOS (ROM núm. 4)"
+msgstr "Activa l'escriptura per a la ROM d'extensió de la BIOS (ROM núm. 4)"
 
 msgid "Linear framebuffer base"
-msgstr "Base del buffer lineal de pantalla"
+msgstr "Base del búfer lineal de pantalla"
 
 msgid "Address"
 msgstr "Adreça"
@@ -1924,25 +1924,25 @@ msgid "Serial port IRQ"
 msgstr "IRQ del port sèrie"
 
 msgid "Parallel port IRQ"
-msgstr "IRQ del port paralel"
+msgstr "IRQ del port paral·lel"
 
 msgid "Hard disk"
 msgstr "Disc dur"
 
 msgid "BIOS Revision"
-msgstr "Revisió del BIOS"
+msgstr "Revisió de la BIOS"
 
 msgid "BIOS Version"
-msgstr "Versió del BIOS"
+msgstr "Versió de la BIOS"
 
 msgid "BIOS Language"
-msgstr "Idioma del BIOS"
+msgstr "Idioma de la BIOS"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr "Unitat de expansió IBM 5161"
+msgstr "Unitat d'expansió IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "BASIC de casset IBM"
+msgstr "IBM Basic per a cinta"
 
 msgid "Translate 26 -> 17"
 msgstr "Traduir 26 -> 17"
@@ -1951,46 +1951,46 @@ msgid "Language"
 msgstr "Idioma"
 
 msgid "Enable backlight"
-msgstr "Activar retroiŀluminació"
+msgstr "Activa retroiŀluminació"
 
 msgid "Invert colors"
-msgstr "Invertir colors"
+msgstr "Inverteix colors"
 
 msgid "BIOS size"
-msgstr "Grandària del BIOS"
+msgstr "Mida de la BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr "Grandària del BIOS (ROM núm. 1)"
+msgstr "Mida de la BIOS (ROM núm. 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr "Grandària del BIOS (ROM núm. 2)"
+msgstr "Mida de la BIOS (ROM núm. 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr "Grandària del BIOS (ROM núm. 3)"
+msgstr "Mida de la BIOS (ROM núm. 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Grandària del BIOS (ROM núm. 4)"
+msgstr "Mida de la BIOS (ROM núm. 4)"
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr "Mapar C0000-C7FFF com ara UMB"
+msgstr "Mapeja C0000-C7FFF com a UMB"
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr "Mapar C8000-CFFFF com ara UMB"
+msgstr "Mapeja C8000-CFFFF com a UMB"
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr "Mapar D0000-D7FFF com ara UMB"
+msgstr "Mapeja D0000-D7FFF com a UMB"
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr "Mapar D8000-DFFFF com ara UMB"
+msgstr "Mapeja D8000-DFFFF com a UMB"
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr "Mapar E0000-E7FFF com ara UMB"
+msgstr "Mapeja E0000-E7FFF com a UMB"
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr "Mapar E8000-EFFFF com ara UMB"
+msgstr "Mapeja E8000-EFFFF com a UMB"
 
 msgid "JS9 Jumper (JIM)"
-msgstr "Pont JS9 (JIM)"
+msgstr "Jumper JS9 (JIM)"
 
 msgid "MIDI Output Device"
 msgstr "Dispositiu de sortida MIDI"
@@ -2005,7 +2005,7 @@ msgid "MIDI Clockout"
 msgstr "Sortida del rellotge MIDI"
 
 msgid "Output Gain"
-msgstr "Guany de sortida"
+msgstr "Guany de la sortida"
 
 msgid "Chorus"
 msgstr "Cor"
@@ -2029,7 +2029,7 @@ msgid "Reverb"
 msgstr "Reverberació"
 
 msgid "Reverb Room Size"
-msgstr "Mida de l'habitaciò de reverberació"
+msgstr "Mida de l'habitació de reverberació"
 
 msgid "Reverb Damping"
 msgstr "Amortiment de reverberació"
@@ -2086,13 +2086,13 @@ msgid "MAC Address OUI"
 msgstr "OUI de la adreça MAC"
 
 msgid "Enable BIOS"
-msgstr "Activar el BIOS"
+msgstr "Activar la BIOS"
 
 msgid "Baud Rate"
 msgstr "Velocitat de transmissió"
 
 msgid "TCP/IP listening port"
-msgstr "Port de auscultació TCP/IP"
+msgstr "Port TCP/IP d'escolta"
 
 msgid "Phonebook File"
 msgstr "Fitxer de llista de contactes"
@@ -2104,16 +2104,16 @@ msgid "RAM Address"
 msgstr "Adreça del RAM"
 
 msgid "RAM size"
-msgstr "Grandària del RAM"
+msgstr "Mida de la RAM"
 
 msgid "Initial RAM size"
-msgstr "Grandària inicial del RAM"
+msgstr "Mida inicial de la RAM"
 
 msgid "Serial Number"
 msgstr "Número de sèrie"
 
 msgid "Host ID"
-msgstr "ID del amfitrió"
+msgstr "ID de l'amfitrió"
 
 msgid "FDC Address"
 msgstr "Adreça del FDC"
@@ -2131,28 +2131,28 @@ msgid "Low DMA"
 msgstr "DMA baix"
 
 msgid "Enable Game port"
-msgstr "Activar port de joc"
+msgstr "Activa port de joystick"
 
 msgid "Enable Adlib ports"
-msgstr "Activar ports Adlib"
+msgstr "Activa ports Adlib"
 
 msgid "SID Model"
 msgstr "Model del SID"
 
 msgid "SID Filter Strength"
-msgstr "Força del filtre del SID"
+msgstr "Força del filtatge del SID"
 
 msgid "Surround module"
-msgstr "Mòdulo surround"
+msgstr "Mòdul surround"
 
 msgid "SB Address"
-msgstr "Adreça del SB"
+msgstr "Adreça de la SB"
 
 msgid "Adlib Address"
-msgstr "Adreça del Adlib"
+msgstr "Adreça de l'Adlib"
 
 msgid "Use EEPROM setting"
-msgstr "Uitilitzar la configuració del EEPROM"
+msgstr "Uitilitza la configuració de l'EEPROM"
 
 msgid "WSS IRQ"
 msgstr "IRQ del WSS"
@@ -2170,16 +2170,16 @@ msgid "Onboard RTC"
 msgstr "RTC integrat"
 
 msgid "Not installed"
-msgstr "No instalat"
+msgstr "No instal·lat"
 
 msgid "Enable OPL"
-msgstr "Activar OPL"
+msgstr "Activa OPL"
 
 msgid "Receive MIDI input (MPU-401)"
 msgstr "Rebre entrada MIDI (MPU-401)"
 
 msgid "SB low DMA"
-msgstr "DMA baix del SB"
+msgstr "DMA baix de la SB"
 
 msgid "6CH variant (6-channel)"
 msgstr "Variant 6CH (6 canals)"
@@ -2194,16 +2194,16 @@ msgid "High DMA"
 msgstr "DMA alt"
 
 msgid "Control PC speaker"
-msgstr "Controlar el altaveu del PC"
+msgstr "Controla l'altaveu del PC"
 
 msgid "Memory size"
-msgstr "Grandària de memòria"
+msgstr "Mida de memòria"
 
 msgid "EMU8000 Address"
 msgstr "Adreça del EMU8000"
 
 msgid "IDE Controller"
-msgstr "Controlador IDE"
+msgstr "Controladora IDE"
 
 msgid "Codec"
 msgstr "Codec"
@@ -2212,13 +2212,13 @@ msgid "GUS type"
 msgstr "Tipus de GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr "Activar ordre 0x04 \"Sortir de 86Box\""
+msgstr "Activa ordre 0x04 \"Surt de 86Box\""
 
 msgid "Display type"
 msgstr "Tipus de pantalla"
 
 msgid "Composite type"
-msgstr "Tipus de pantalla compòsita"
+msgstr "Tipus de pantalla composta"
 
 msgid "RGB type"
 msgstr "Tipus de pantalla RGB"
@@ -2233,7 +2233,7 @@ msgid "Monitor type"
 msgstr "Tipus de monitor"
 
 msgid "Character set"
-msgstr "Conjunt de caracters"
+msgstr "Conjunt de caràcters"
 
 msgid "XGA type"
 msgstr "Tipus de XGA"
@@ -2248,7 +2248,7 @@ msgid "RAMDAC type"
 msgstr "Tipus de RAMDAC"
 
 msgid "Blend"
-msgstr "Mesclar"
+msgstr "Mescla"
 
 msgid "Font"
 msgstr "Tipus de lletra"
@@ -2260,19 +2260,19 @@ msgid "Video chroma-keying"
 msgstr "Croma-clau de vídeo"
 
 msgid "Dithering"
-msgstr "Dithering"
+msgstr "Díthering"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "Activar NMI per a emulació del CGA"
+msgstr "Activar NMI per a l'emulació del CGA"
 
 msgid "Voodoo type"
 msgstr "Tipus de Voodoo"
 
 msgid "Framebuffer memory size"
-msgstr "Grandària de memòria del buffer de pantalla"
+msgstr "Mida de memòria del búffer de la pantalla"
 
 msgid "Texture memory size"
-msgstr "Grandària de memòria de textura"
+msgstr "Mida de memòria de textura"
 
 msgid "Dither subtraction"
 msgstr "Subtracció de dither"
@@ -2290,7 +2290,7 @@ msgid "Start Address"
 msgstr "Adreça inicial"
 
 msgid "Contiguous Size"
-msgstr "Grandària contigua"
+msgstr "Mida contígua"
 
 msgid "I/O Width"
 msgstr "Amplada de E/S"
@@ -2302,31 +2302,31 @@ msgid "EMS mode"
 msgstr "Modalitat EMS"
 
 msgid "EMS Address"
-msgstr "Adreça del EMS"
+msgstr "Adreça de l'EMS"
 
 msgid "EMS 1 Address"
-msgstr "Adreça del EMS 1"
+msgstr "Adreça de l'EMS 1"
 
 msgid "EMS 2 Address"
-msgstr "Adreça del EMS 2"
+msgstr "Adreça de l'EMS 2"
 
 msgid "EMS Memory Size"
-msgstr "Grandària de memòria del EMS"
+msgstr "Mida de la memòria EMS"
 
 msgid "EMS 1 Memory Size"
-msgstr "Grandària de memòria del EMS 1"
+msgstr "Mida de la memòria EMS 1"
 
 msgid "EMS 2 Memory Size"
-msgstr "Grandària de memòria del EMS 2"
+msgstr "Mida de la memòria EMS 2"
 
 msgid "Enable EMS"
-msgstr "Activar EMS"
+msgstr "Activa EMS"
 
 msgid "Enable EMS 1"
-msgstr "Activar EMS 1"
+msgstr "Activa EMS 1"
 
 msgid "Enable EMS 2"
-msgstr "Activar EMS 2"
+msgstr "Activa EMS 2"
 
 msgid "Address for > 2 MB"
 msgstr "Adreça per a > 2 MB"
@@ -2344,13 +2344,13 @@ msgid "Always at selected speed"
 msgstr "Sempre a la velocitat escollida"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr "Configuració del BIOS + Tecles de accés ràpid (desactivates durant el POST)"
+msgstr "Configuració de la BIOS + Tecles d'accés ràpid (desactivades durant el POST)"
 
 msgid "64 KB starting from F0000"
 msgstr "64 KB a partir de F0000"
 
 msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
-msgstr "128 KB a partir de E0000 (MSB de adreça invertit, últimes 64 KB primer)"
+msgstr "128 KB a partir d'E0000 (MSB d'adreça invertida, darrers 64 KB primer)"
 
 msgid "Sine"
 msgstr "Sinusoidal"
@@ -2362,10 +2362,10 @@ msgid "Linear"
 msgstr "Lineal"
 
 msgid "4th Order"
-msgstr "De 4º ordre"
+msgstr "De 4t ordre"
 
 msgid "7th Order"
-msgstr "De 7º ordre"
+msgstr "De 7è ordre"
 
 msgid "Non-timed (original)"
 msgstr "No cronometrat (original)"
@@ -2407,7 +2407,7 @@ msgid "64 KB"
 msgstr "64 KB"
 
 msgid "Disable BIOS"
-msgstr "Desactivar el BIOS"
+msgstr "Desactiva la BIOS"
 
 msgid "512 KB"
 msgstr "512 KB"
@@ -2446,19 +2446,19 @@ msgid "256 KB"
 msgstr "256 KB"
 
 msgid "Composite"
-msgstr "Compòsit"
+msgstr "Compost"
 
 msgid "True color"
-msgstr "Color veritable"
+msgstr "Color real"
 
 msgid "Old"
-msgstr "Vell"
+msgstr "Antic"
 
 msgid "New"
 msgstr "Nou"
 
 msgid "Color (generic)"
-msgstr "Colors (genèric)"
+msgstr "Color (genèric)"
 
 msgid "Green Monochrome"
 msgstr "Monocromàtic verd"
@@ -2470,10 +2470,10 @@ msgid "Gray Monochrome"
 msgstr "Monocromàtic gris"
 
 msgid "Color (no brown)"
-msgstr "Colors (sense marró)"
+msgstr "Color (sense marró)"
 
 msgid "Color (IBM 5153)"
-msgstr "Colors (IBM 5153)"
+msgstr "Color (IBM 5153)"
 
 msgid "Simple doubling"
 msgstr "Duplicació simple"
@@ -2506,16 +2506,16 @@ msgid "Monochrome (5151/MDA) (amber)"
 msgstr "Monocromàtic (5151/MDA) (ambre)"
 
 msgid "Color 40x25 (5153/CGA)"
-msgstr "Colors 40x25 (5153/CGA)"
+msgstr "Color 40x25 (5153/CGA)"
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr "Colors 80x25 (5153/CGA)"
+msgstr "Color 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "Colors millorat - modalitat normal (5154/ECD)"
+msgstr "Color millorat - modalitat normal (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "Colors millorat - modalitat millorada (5154/ECD)"
+msgstr "Color millorat - modalitat millorada (5154/ECD)"
 
 msgid "Green"
 msgstr "Verd"
@@ -2530,7 +2530,7 @@ msgid "Grayscale"
 msgstr "Escala de grisos"
 
 msgid "Color"
-msgstr "Colors"
+msgstr "Color"
 
 msgid "U.S. English"
 msgstr "Anglès dels EUA"
@@ -2545,7 +2545,7 @@ msgid "Bochs latest"
 msgstr "Bochs més nou"
 
 msgid "Apply overscan deltas"
-msgstr "Aplicar deltes del overscan"
+msgstr "Aplicar deltes de l'overscan"
 
 msgid "Mono Interlaced"
 msgstr "Monocromàtic entrallaçat"
@@ -2554,10 +2554,10 @@ msgid "Mono Non-Interlaced"
 msgstr "Monocromàtic no entrallaçat"
 
 msgid "Color Interlaced"
-msgstr "Colors entrallaçat"
+msgstr "Color entrallaçat"
 
 msgid "Color Non-Interlaced"
-msgstr "Colors no entrallaçat"
+msgstr "Color no entrallaçat"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "Gràfics 3dfx Voodoo"
@@ -2590,7 +2590,7 @@ msgid "High-Speed"
 msgstr "Alta velocitat"
 
 msgid "Stereo LPT DAC"
-msgstr "DAC LPT estéreo"
+msgstr "DAC LPT estèreo"
 
 msgid "Generic Text Printer"
 msgstr "Impressora genèrica de text"
@@ -2605,7 +2605,7 @@ msgid "Generic PCL5e Printer"
 msgstr "Impresora genèrica PCL5e"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "Protocol de Internet de línia paralela"
+msgstr "Protocol d'Internet de línia paralela"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle de protecció per a Savage Quest"
@@ -2626,7 +2626,7 @@ msgid "Data bits"
 msgstr "Bits de dades"
 
 msgid "Stop bits"
-msgstr "Bits de parada"
+msgstr "Bits d'aturada"
 
 msgid "Baud Rate of Passthrough"
 msgstr "Velocitat de transmissió de passatge"
@@ -2638,13 +2638,13 @@ msgid "Named Pipe (Client)"
 msgstr "Conducta anomenada (client)"
 
 msgid "Host Serial Passthrough"
-msgstr "Passatge del port sèrie del amfitrió"
+msgstr "Passatge del port sèrie de l'amfitrió"
 
 msgid "E&ject %1"
-msgstr "E&xpulsar %1"
+msgstr "E&xpulsa %1"
 
 msgid "&Unmute"
-msgstr "&Reactivar so"
+msgstr "&Reactiva so"
 
 msgid "Softfloat FPU"
 msgstr "FPU Softfloat"
@@ -2704,13 +2704,13 @@ msgid "Inhibit multimedia keys"
 msgstr "Inhibir tecles multimèdia"
 
 msgid "Ask for confirmation before saving settings"
-msgstr "Demanar confirmació abans de desar la configuració"
+msgstr "Demana confirmació abans de desar la configuració"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr "Demanar confirmació abans de la reiniciació completa"
+msgstr "Demana confirmació abans de la reiniciació completa"
 
 msgid "Ask for confirmation before quitting"
-msgstr "Demanar confirmació abans de sortir"
+msgstr "Demana confirmació abans de sortir"
 
 msgid "Options"
 msgstr "Opcions"
@@ -2746,7 +2746,7 @@ msgid "Shader Configuration"
 msgstr "Configuració de shaders"
 
 msgid "Add"
-msgstr "Afegir"
+msgstr "Afegeix"
 
 msgid "Move up"
 msgstr "Moure cap amunt"
@@ -2767,16 +2767,16 @@ msgid "Keybind"
 msgstr "Drecera"
 
 msgid "Clear binding"
-msgstr "Escorrar drecera"
+msgstr "Esborra drecera"
 
 msgid "Bind"
-msgstr "Vincular"
+msgstr "Vincula"
 
 msgid "Bind Key"
-msgstr "Vincular tecla"
+msgstr "Vincula tecla"
 
 msgid "Enter key combo:"
-msgstr "Escriure combinació de tecles:"
+msgstr "Escriviu combinació de tecles:"
 
 msgid "Bind conflict"
 msgstr "Conflicte entre dreceres"
@@ -2785,28 +2785,28 @@ msgid "This key combo is already in use."
 msgstr "Aquesta combinació de tecles ja està en ús."
 
 msgid "Send Control+Alt+Del"
-msgstr "Enviar Control+Alt+Del"
+msgstr "Envia Control+Alt+Supr"
 
 msgid "Send Control+Alt+Escape"
-msgstr "Enviar Control+Alt+Escape"
+msgstr "Envia Control+Alt+Esc"
 
 msgid "Toggle fullscreen"
 msgstr "Alternar pantalla completa"
 
 msgid "Toggle UI in fullscreen"
-msgstr "Alternar interfase de usuari en modalitat de pantalla completa"
+msgstr "Alternar interfície d'usuari en modalitat de pantalla completa"
 
 msgid "Screenshot"
 msgstr "Captura de pantalla"
 
 msgid "Release mouse pointer"
-msgstr "Soltar el punter del ratolí"
+msgstr "Allibera el punter del ratolí"
 
 msgid "Toggle pause"
-msgstr "Alternar pausa"
+msgstr "Alterna pausa"
 
 msgid "Toggle mute"
-msgstr "Alternar silenci"
+msgstr "Alterna silenci"
 
 msgid "Text files"
 msgstr "Fitxers de text"
@@ -2830,7 +2830,7 @@ msgid "Hub Mode"
 msgstr "Modalitat de concentrador"
 
 msgid "Hostname:"
-msgstr "Nombre del amfitrió:"
+msgstr "Nom de l'amfitrió:"
 
 msgid "ISA RAM:"
 msgstr "RAM ISA:"
@@ -2839,19 +2839,19 @@ msgid "ISA ROM:"
 msgstr "ROM ISA:"
 
 msgid "&Wipe NVRAM"
-msgstr "&Esborrar el NVRAM"
+msgstr "&Esborra la NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Això suprimirà tots els fitxers de NVRAM (i relacionats) de la màquina virtual situats al subdirectori \"nvr\". Haureu de tornar a reconfigurar la configuració del BIOS (i potser de altres dispositius a l'interior de la MV) si s'escau.\n\nSegur que voleu suprimir tots els continguts de la NVRAM de la màquina virtual \"%1\"?"
+msgstr "Això suprimirà tots els fitxers NVRAM (i relacionats) de la màquina virtual situats al subdirectori \"nvr\". Haureu de tornar a reconfigurar la configuració de la BIOS (i potser d'altres dispositius a l'interior de la MV) si s'escau.\n\nEsteu segurs que voleu esborrar tot el contingut de la NVRAM de la màquina virtual \"%1\"?"
 
 msgid "Success"
-msgstr "Èxito"
+msgstr "Èxit"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr "Els continguts de la NVRAM de la màquina virtual \"%1\" s'han esborrat amb èxit"
+msgstr "El contingut de la NVRAM de la màquina virtual \"%1\" s'ha esborrat amb èxit"
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
-msgstr "S'ha produït un error en intentar esborrar els continguts de la NVRAM de la màquina virtual \"%1\""
+msgstr "S'ha produït un error en intentar esborrar el contingut de la NVRAM de la màquina virtual \"%1\""
 
 msgid "%1 VM Manager"
 msgstr "Administrador de MV de %1"
@@ -2866,16 +2866,16 @@ msgid "No Machines Found!"
 msgstr "No s'han trobat màquines!"
 
 msgid "Check for updates on startup"
-msgstr "Verificar actualitzacions en iniciar"
+msgstr "Comprova actualitzacions en iniciar"
 
 msgid "Unable to determine release information"
-msgstr "No fou possible determinar informacions de la versió"
+msgstr "No fou possible determinar la informació de la versió"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr "S'ha produït un error en verificar actualitzacions:\n\n%1\n\nSi us plau, torneu a intentar més tard."
+msgstr "S'ha produït un error en verificar actualitzacions:\n\n%1\n\nSi us plau, torneu a intentar-ho més tard."
 
 msgid "Update check complete"
-msgstr "Verificació de actualitzacions completada"
+msgstr "Verificació de actualitzacions finalitzada"
 
 msgid "stable"
 msgstr "estable"
@@ -2884,7 +2884,7 @@ msgid "beta"
 msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr "Està executant la última versió %1 del 86Box: %2"
+msgstr "Esteu executant l'última versió %1 del 86Box: %2"
 
 msgid "version"
 msgstr "versió"
@@ -2893,22 +2893,22 @@ msgid "build"
 msgstr "compilació"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "Actualment està a executar la versió <b>%1</b>."
+msgstr "Actualment esteu executant la versió <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
-msgstr "<b>La versió %1</b> és ara disponible."
+msgstr "<b>La versió %1</b> ja és disponible."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Actualment está a executar la compialació <b>%1</b>."
+msgstr "Actualment esteu executant la compialació <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>La compilació %1</b> és ara disponible."
+msgstr "<b>La compilació %1</b> ja és disponible."
 
 msgid "Would you like to visit the download page?"
-msgstr "Voleu visitar a la pàgina de descàrregas?"
+msgstr "Voleu visitar la pàgina de descàrregues?"
 
 msgid "Visit download page"
-msgstr "Visitar a la pàgina de descarregas"
+msgstr "Visita la pàgina de descàrregues"
 
 msgid "Update check"
 msgstr "Verificació de actualitzacions"
@@ -2926,16 +2926,16 @@ msgid "%1 Hz"
 msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
-msgstr "Terminació inesperada de la màquina virtual"
+msgstr "Finalització inesperada de la màquina virtual"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "El procés de la màquina virtual \"%1\" s'ha terminat inesperadament amb con el codi de sortida %2."
+msgstr "El procés de la màquina virtual \"%1\" s'ha finalitzat inesperadament amb con el codi de sortida %2."
 
 msgid "The system will not be added."
 msgstr "El sistema no serà afegit."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Actualitza el estat del ratolí a cada bloc del CPU"
+msgstr "&Actualitza l'estat del ratolí a cada bloc del CPU"
 
 msgid "Hue"
 msgstr "Matís"
@@ -2962,19 +2962,19 @@ msgid "Monitor EDID"
 msgstr "EDID del monitor"
 
 msgid "Export…"
-msgstr "Exportar…"
+msgstr "Exporta…"
 
 msgid "Export EDID"
-msgstr "Exportar el EDID"
+msgstr "Exporta l'EDID"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr "El fitxer EDID \"%ls\" es massa gran."
+msgstr "El fitxer EDID \"%ls\" és massa gran."
 
 msgid "OpenGL input scale"
-msgstr "Escala de entrada del OpenGL"
+msgstr "Escala de entrada de l'OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "Modalitat de estirament de entrada del OpenGL"
+msgstr "Modalitat de estirament de entrada de l'OpenGL"
 
 msgid "Color scheme"
 msgstr "Esquema de colors"
@@ -2986,16 +2986,16 @@ msgid "Dark"
 msgstr "Fosc"
 
 msgid "Search:"
-msgstr "Cercar:"
+msgstr "Cerca:"
 
 msgid "Force interpretation"
-msgstr "Forçar interpretació"
+msgstr "Força interpretació"
 
 msgid "Allow recompilation"
 msgstr "Permetre recompilació"
 
 msgid "&Force interpretation"
-msgstr "&Forçar interpretació"
+msgstr "&Força interpretació"
 
 msgid "&Allow recompilation"
 msgstr "&Permetre recompilació"

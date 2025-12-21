@@ -991,7 +991,7 @@ msgid "Hardware not available"
 msgstr "Equipo no disponible"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Asegúrate de que %1 está instalado y de que estás en una conexión de red compatible con %1."
+msgstr "Asegúree de que %1 está instalado y de que estás en una conexión de red compatible con %1."
 
 msgid "Invalid configuration"
 msgstr "Configuración inválida"
@@ -1018,7 +1018,7 @@ msgid "CD-ROM images"
 msgstr "Imágenes de CD-ROM"
 
 msgid "%1 Device Configuration"
-msgstr "%1 configuración de dispositivo"
+msgstr "Configuración de dispositivo %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitor en modo ahorro"
