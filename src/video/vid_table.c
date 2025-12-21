@@ -482,21 +482,3 @@ video_is_cga(void)
 {
     return (video_get_type() == VIDEO_FLAG_TYPE_CGA);
 }
-
-int
-video_is_ega_vga(void)
-{
-    return (video_get_type() == VIDEO_FLAG_TYPE_SPECIAL);
-}
-
-int
-video_is_8514(void)
-{
-    return (video_get_type() == VIDEO_FLAG_TYPE_8514);
-}
-
-int
-video_is_xga(void)
-{
-    return (video_get_type() == VIDEO_FLAG_TYPE_XGA);
-}

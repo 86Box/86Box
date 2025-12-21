@@ -253,9 +253,6 @@ extern int         video_get_video_from_internal_name(char *s);
 extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
-extern int         video_is_ega_vga(void);
-extern int         video_is_8514(void);
-extern int         video_is_xga(void);
 extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int         video_get_type_monitor(int monitor_index);
 
@@ -290,10 +287,6 @@ extern void    video_update_timing(void);
 
 extern void loadfont_ex(char *fn, int format, int offset);
 extern void loadfont(char *fn, int format);
-
-extern int get_actual_size_x(void);
-extern int get_actual_size_y(void);
-
 extern uint32_t video_color_transform(uint32_t color);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
