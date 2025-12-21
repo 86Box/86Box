@@ -58,6 +58,21 @@ enum {
     VIDEO_AGP
 };
 
+typedef enum video_font_format_e 
+{
+    FONT_FORMAT_MDA = 0,
+    FONT_FORMAT_PC200 = 1,
+    FONT_FORMAT_CGA = 2,
+    FONT_FORMAT_WY700 = 3,
+    FONT_FORMAT_MDSI_GENIUS = 4,
+    FONT_FORMAT_TOSHIBA_3100E = 5,
+    FONT_FORMAT_KSC6501 = 6,
+    FONT_FORMAT_SIGMA = 7,
+    FONT_FORMAT_PC1512_T1000 = 8,
+    FONT_FORMAT_IM1024 = 9,
+    FONT_FORMAT_PRAVETZ = 10,
+} video_font_format;
+
 #define VIDEO_FLAG_TYPE_CGA     0
 #define VIDEO_FLAG_TYPE_MDA     1
 #define VIDEO_FLAG_TYPE_SPECIAL 2
@@ -285,8 +300,8 @@ extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);
 
-extern void loadfont_ex(char *fn, int format, int offset);
-extern void loadfont(char *fn, int format);
+#define LOAD_FONT_NO_OFFSET       0
+extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)

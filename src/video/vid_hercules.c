@@ -542,19 +542,19 @@ hercules_init(UNUSED(const device_t *info))
 
     switch(device_get_config_int("font")) {
         case 0:
-            loadfont(FONT_IBM_MDA_437_PATH, 0);
+            video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 1:
-            loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
+            video_load_font(FONT_IBM_MDA_437_NORDIC_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 2:
-            loadfont(FONT_KAM_PATH, 0);
+            video_load_font(FONT_KAM_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 3:
-            loadfont(FONT_KAMCL16_PATH, 0);
+            video_load_font(FONT_KAMCL16_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 4:
-            loadfont(FONT_TULIP_DGA_PATH, 0);
+            video_load_font(FONT_TULIP_DGA_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
     }
 

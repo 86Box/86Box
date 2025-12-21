@@ -1005,10 +1005,18 @@ video_force_resize_set_monitor(uint8_t res, int monitor_index)
 }
 
 void
-loadfont_common(FILE *fp, int format)
+video_load_font(char *fn, int format, int offset)
 {
+    FILE *fp;
+
+    fp = rom_fopen(fn, "rb");
+    if (fp == NULL)
+        return;
+
+    fseek(fp, offset, SEEK_SET);
+
     switch (format) {
-        case 0: /* MDA */
+        case FONT_FORMAT_MDA: /* MDA */
             for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x8 cell (lines 0-7) */
                 for (uint8_t d = 0; d < 8; d++)
                     fontdatm[c][d] = fgetc(fp) & 0xff;
@@ -1021,7 +1029,7 @@ loadfont_common(FILE *fp, int format)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 1: /* PC200 */
+        case FONT_FORMAT_PC200: /* PC200 */
             for (uint8_t d = 0; d < 4; d++) {
                 /* There are 4 fonts in the ROM */
                 for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
@@ -1033,26 +1041,25 @@ loadfont_common(FILE *fp, int format)
             }
             break;
 
-        default:
-        case 2: /* CGA */
+        case FONT_FORMAT_CGA: /* CGA */
             for (uint16_t c = 0; c < 256; c++)
                 for (uint8_t d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 3: /* Wyse 700 */
+        case FONT_FORMAT_WY700: /* Wyse 700 */
             for (uint16_t c = 0; c < 512; c++)
                 for (uint8_t d = 0; d < 32; d++)
                     fontdatw[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 4: /* MDSI Genius */
+        case FONT_FORMAT_MDSI_GENIUS: /* MDSI Genius */
             for (uint16_t c = 0; c < 256; c++)
                 for (uint8_t d = 0; d < 16; d++)
                     fontdat8x12[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 5: /* Toshiba 3100e */
+        case FONT_FORMAT_TOSHIBA_3100E: /* Toshiba 3100e */
             for (uint16_t d = 0; d < 2048; d += 512) { /* Four languages... */
                 for (uint16_t c = d; c < d + 256; c++) {
                     (void) !fread(&fontdatm[c][8], 1, 8, fp);
@@ -1076,7 +1083,7 @@ loadfont_common(FILE *fp, int format)
             }
             break;
 
-        case 6: /* Korean KSC-5601 */
+        case FONT_FORMAT_KSC6501: /* Korean KSC-5601 */
             if (!fontdatksc5601)
                 fontdatksc5601 = malloc(16384 * sizeof(dbcs_font_t));
 
@@ -1089,7 +1096,7 @@ loadfont_common(FILE *fp, int format)
             }
             break;
 
-        case 7: /* Sigma Color 400 */
+        case FONT_FORMAT_SIGMA: /* Sigma Color 400 */
             /* The first 4k of the character ROM holds an 8x8 font */
             for (uint16_t c = 0; c < 256; c++) {
                 (void) !fread(&fontdat[c][0], 1, 8, fp);
@@ -1098,60 +1105,30 @@ loadfont_common(FILE *fp, int format)
             /* The second 4k holds an 8x16 font */
             for (uint16_t c = 0; c < 256; c++) {
                 if (fread(&fontdatm[c][0], 1, 16, fp) != 16)
-                    fatal("loadfont(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
+                    fatal("video_load_font(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
             }
             break;
 
-        case 8: /* Amstrad PC1512, Toshiba T1000/T1200 */
+        case FONT_FORMAT_PC1512_T1000: /* Amstrad PC1512, Toshiba T1000/T1200 */
             for (uint16_t c = 0; c < 2048; c++) /* Allow up to 2048 chars */
                 for (uint8_t d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 9: /* Image Manager 1024 native font */
+        case FONT_FORMAT_IM1024: /* Image Manager 1024 native font */
             for (uint16_t c = 0; c < 256; c++)
                 (void) !fread(&fontdat12x18[c][0], 1, 36, fp);
             break;
 
-        case 10: /* Pravetz */
+        case FONT_FORMAT_PRAVETZ: /* Pravetz */
             for (uint16_t c = 0; c < 1024; c++) /* Allow up to 1024 chars */
                 for (uint8_t d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 11: /* PC200 */
-            for (uint8_t d = 0; d < 4; d++) {
-                /* There are 4 fonts in the ROM */
-                for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
-                    (void) !fread(&fontdatm2[256 * d + c][0], 1, 16, fp);
-                for (uint16_t c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
-                    (void) !fread(&fontdat2[256 * d + c][0], 1, 8, fp);
-                    fseek(fp, 8, SEEK_CUR);
-                }
-            }
-            break;
     }
 
     (void) fclose(fp);
-}
-
-void
-loadfont_ex(char *fn, int format, int offset)
-{
-    FILE *fp;
-
-    fp = rom_fopen(fn, "rb");
-    if (fp == NULL)
-        return;
-
-    fseek(fp, offset, SEEK_SET);
-    loadfont_common(fp, format);
-}
-
-void
-loadfont(char *fn, int format)
-{
-    loadfont_ex(fn, format, 0);
 }
 
 uint32_t
