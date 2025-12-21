@@ -2785,7 +2785,6 @@ static void
 kbc_at_reset(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
-    uint8_t  kbc_ven = dev->flags & KBC_VEN_MASK;
 
     dev->status        = STAT_UNLOCKED;
     dev->mem[0x20]     = 0x01;
