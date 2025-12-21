@@ -653,14 +653,15 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 static inline void
 voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int depthop)
 {
-    int block_pos       = 0;
-    int z_skip_pos      = 0;
-    int a_skip_pos      = 0;
-    int amask_skip_pos  = 0;
-    int chroma_skip_pos = 0;
-    int depth_jump_pos  = 0;
-    int depth_jump_pos2 = 0;
-    int loop_jump_pos   = 0;
+    int block_pos        = 0;
+    int z_skip_pos       = 0;
+    int a_skip_pos       = 0;
+    int amask_skip_pos   = 0;
+    int stipple_skip_pos = 0;
+    int chroma_skip_pos  = 0;
+    int depth_jump_pos   = 0;
+    int depth_jump_pos2  = 0;
+    int loop_jump_pos    = 0;
 #if 0
     xmm_01_w = (__m128i)0x0001000100010001ull;
     xmm_ff_w = (__m128i)0x00ff00ff00ff00ffull;
@@ -766,6 +767,69 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addquad((uint64_t) (uintptr_t) &i_00_ff_w);
 
     loop_jump_pos = block_pos;
+    if (params->fbzMode & FBZ_STIPPLE) {
+        /* Stipple enabled. */
+        if (params->fbzMode & FBZ_STIPPLE_PATT) {
+            /* x64's BT instruction is too slow. So use TEST instead. */
+            addbyte(0x4c); /* MOV RBX, R14(real_y)*/
+            addbyte(0x89);
+            addbyte(0xf3);
+
+            addbyte(0x83); /* AND EBX, 3 */
+            addbyte(0xe3);
+            addbyte(0x03);
+
+            addbyte(0xc1); /* SHL EBX, 3 */
+            addbyte(0xe3);
+            addbyte(0x03);
+
+            addbyte(0x8b); /*MOV EAX, state->x[EDI]*/
+            addbyte(0x87);
+            addlong(offsetof(voodoo_state_t, x));
+
+            addbyte(0xf7); /* NOT EAX */
+            addbyte(0xd0);
+
+            addbyte(0x83); /* AND EAX, 7 */
+            addbyte(0xe0);
+            addbyte(0x07);
+
+            addbyte(0x09); /* OR EAX, EBX */
+            addbyte(0xc3);
+
+            addbyte(0x88); /* MOV CL, AL */
+            addbyte(0xc1);
+
+            addbyte(0xb8); /* MOV EAX, 1*/
+            addlong(1);
+            
+            addbyte(0xd3); /* SHL EAX, CL */
+            addbyte(0xe0);
+
+            addbyte(0x85); /* TEST state->stipple[EDI], EAX */
+            addbyte(0x87);
+            addlong(offsetof(voodoo_state_t, stipple));
+
+            addbyte(0x0f); /* JZ stipple_skip_pos */
+            addbyte(0x84);
+            stipple_skip_pos = block_pos;
+            addlong(0);
+        } else {
+            addbyte(0xd1); /* ROR state->stipple[EDI], 1*/
+            addbyte(0x8f);
+            addlong(offsetof(voodoo_state_t, stipple));
+
+            addbyte(0xf7); /* TEST state->stipple[EDI], 0x80000000 */
+            addbyte(0x87);
+            addlong(offsetof(voodoo_state_t, stipple));
+            addlong(0x80000000);
+
+            addbyte(0x0f); /* JZ stipple_skip_pos */
+            addbyte(0x84);
+            stipple_skip_pos = block_pos;
+            addlong(0);
+        }
+    }
     addbyte(0x4c); /*MOV RSI, R15*/
     addbyte(0x89);
     addbyte(0xfe);
@@ -3190,6 +3254,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         *(uint32_t *) &code_block[chroma_skip_pos] = (block_pos - chroma_skip_pos) - 4;
     if (amask_skip_pos)
         *(uint32_t *) &code_block[amask_skip_pos] = (block_pos - amask_skip_pos) - 4;
+    if (stipple_skip_pos)
+        *(uint32_t *) &code_block[stipple_skip_pos] = (block_pos - stipple_skip_pos) - 4;
 
     addbyte(0x4c); /*MOV RSI, R15*/
     addbyte(0x89);
