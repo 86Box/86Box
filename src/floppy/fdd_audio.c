@@ -385,7 +385,7 @@ fdd_audio_load_profiles(void)
             }
 
             /* Load timing configurations */
-            profile->total_tracks = ini_section_get_int(section, "total_tracks", 80);
+            profile->total_tracks = ini_section_get_int(section, "total_tracks", 0);
 
             audio_profile_count++;
         }
@@ -553,7 +553,7 @@ load_profile_samples(int profile_id)
                 }
             }
         }
-    }    
+    }
 }
 
 static drive_audio_samples_t *
