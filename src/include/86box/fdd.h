@@ -27,9 +27,9 @@
 #define DEFAULT_SEEK_TIME_MS 10.0
 
 /* BIOS boot status - used to detect POST vs normal operation */
-typedef enum bios_boot_status_t {
+typedef enum {
     BIOS_BOOT_POST = 0,     /* System is in POST (Power-On Self Test) */
-    BIOS_BOOT_NORMAL        /* POST complete, normal operation */
+    BIOS_BOOT_NORMAL = 1    /* POST complete, normal operation */
 } bios_boot_status_t;
 
 #ifdef __cplusplus

@@ -724,6 +724,7 @@ fdd_close(int drive)
     drives[drive].format        = NULL;
     drives[drive].byteperiod    = NULL;
     drives[drive].stop          = NULL;
+    fdd_seek_in_progress[drive] = 0;
     d86f_destroy(drive);
     ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
 }
@@ -818,6 +819,9 @@ fdd_reset(void)
     for (uint8_t i = 0; i < FDD_NUM; i++) {
         drives[i].id = i;
         timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
+
+        /* Clear any pending seek state */
+        fdd_seek_in_progress[i] = 0;
     }
 }
 
