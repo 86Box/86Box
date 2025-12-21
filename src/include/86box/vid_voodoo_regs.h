@@ -358,6 +358,7 @@ enum {
 
 enum {
     FBZ_CHROMAKEY    = (1 << 1),
+    FBZ_STIPPLE      = (1 << 2),
     FBZ_W_BUFFER     = (1 << 3),
     FBZ_DEPTH_ENABLE = (1 << 4),
 
@@ -365,6 +366,8 @@ enum {
     FBZ_RGB_WMASK   = (1 << 9),
     FBZ_DEPTH_WMASK = (1 << 10),
     FBZ_DITHER_2x2  = (1 << 11),
+
+    FBZ_STIPPLE_PATT = (1 << 12),
 
     FBZ_ALPHA_MASK = (1 << 13),
 
