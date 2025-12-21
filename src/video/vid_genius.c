@@ -744,7 +744,7 @@ genius_init(UNUSED(const device_t *info))
     /* 160k video RAM */
     genius->vram = malloc(0x28000);
 
-    loadfont(BIOS_ROM_PATH, 4);
+    video_load_font(BIOS_ROM_PATH, FONT_FORMAT_MDSI_GENIUS, LOAD_FONT_NO_OFFSET);
 
     timer_add(&genius->timer, genius_poll, genius, 1);
 

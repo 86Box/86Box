@@ -2154,7 +2154,7 @@ machine_xt_maz1016_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    loadfont("roms/machines/maz1016/crt-8.bin", 0);
+    video_load_font("roms/machines/maz1016/crt-8.bin", FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     machine_xt_clone_init(model, 0);
 
