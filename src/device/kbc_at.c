@@ -37,7 +37,6 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/pci.h>
-#include <86box/video.h>
 #include <86box/keyboard.h>
 
 #define STAT_PARITY        0x80
@@ -2793,11 +2792,8 @@ kbc_at_reset(void *priv)
     dev->mem[0x20]    |= CCB_TRANSLATE;
     dev->command_phase = 0;
 
-    /* Set up the correct Video Type bits. */
-    if (!is286 || (kbc_ven == KBC_VEN_ACER))
-        dev->p1 = video_is_mda() ? 0xb0 : 0xf0;
-    else
-        dev->p1 = video_is_mda() ? 0xf0 : 0xb0;
+    /* Video Type is now handled in the machine P1 handler. */
+    dev->p1 = 0xf0;
     kbc_at_log("ATkbc: P1 = %02x\n", dev->p1);
 
     /* Disabled both the keyboard and auxiliary ports. */
@@ -2918,7 +2914,6 @@ kbc_at_init(const device_t *info)
     dev->is_asic  = !!(info->local & KBC_FLAG_IS_ASIC);
     dev->is_type2 = !!(info->local & KBC_FLAG_IS_TYPE2);
 
-    video_reset(gfxcard[0]);
     kbc_at_reset(dev);
 
     dev->handlers[0].read  = kbc_at_port_1_read;
