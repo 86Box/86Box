@@ -763,30 +763,6 @@ hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 }
 
 void
-blit(UNUSED(bitmap_t *src), UNUSED(bitmap_t *dst), UNUSED(int x1), UNUSED(int y1), UNUSED(int x2), UNUSED(int y2), UNUSED(int xs), UNUSED(int ys))
-{
-    //
-}
-
-void
-stretch_blit(UNUSED(bitmap_t *src), UNUSED(bitmap_t *dst), UNUSED(int x1), UNUSED(int y1), UNUSED(int xs1), UNUSED(int ys1), UNUSED(int x2), UNUSED(int y2), UNUSED(int xs2), UNUSED(int ys2))
-{
-    //
-}
-
-void
-rectfill(UNUSED(bitmap_t *b), UNUSED(int x1), UNUSED(int y1), UNUSED(int x2), UNUSED(int y2), UNUSED(uint32_t col))
-{
-    //
-}
-
-void
-set_palette(UNUSED(PALETTE p))
-{
-    //
-}
-
-void
 destroy_bitmap(bitmap_t *b)
 {
     if ((b != NULL) && (b->dat != NULL))
