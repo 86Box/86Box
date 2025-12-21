@@ -433,6 +433,33 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_EG.BIN", "" }
             },
             {
+                .name          = "Award Modular BIOS v4.51PG - Revision CW",
+                .internal_name = "bx6_CW",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bx6/BX6_CW.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision GQ",
+                .internal_name = "bx6_GQ",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bx6/BX6_GQ.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision JL",
+                .internal_name = "bx6_JL",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bx6/BX6_JL.bin", "" }
+            },
+            {
                 .name          = "Award Modular BIOS v4.51PG - Revision QS",
                 .internal_name = "bx6_qs",
                 .bios_type     = BIOS_NORMAL,
