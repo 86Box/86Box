@@ -217,8 +217,6 @@ extern int          video_fullscreen;
 extern int          video_fullscreen_scale;
 extern uint8_t      fontdat[2048][8];      /* IBM CGA font */
 extern uint8_t      fontdatm[2048][16];    /* IBM MDA font */
-extern uint8_t      fontdat2[2048][8];     /* IBM CGA 2nd instance font */
-extern uint8_t      fontdatm2[2048][16];   /* IBM MDA 2nd instance font */
 extern uint8_t      fontdatw[512][32];     /* Wyse700 font */
 extern uint8_t      fontdat8x12[256][16];  /* MDSI Genius font */
 extern uint8_t      fontdat12x18[256][36]; /* IM1024 font */

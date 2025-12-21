@@ -79,8 +79,6 @@ uint8_t      edatlookup[4][4];
 uint8_t      egaremap2bpp[256];
 uint8_t      fontdat[2048][8];            /* IBM CGA font */
 uint8_t      fontdatm[2048][16];          /* IBM MDA font */
-uint8_t      fontdat2[2048][8];           /* IBM CGA 2nd instance font */
-uint8_t      fontdatm2[2048][16];         /* IBM MDA 2nd instance font */
 uint8_t      fontdatw[512][32];           /* Wyse700 font */
 uint8_t      fontdat8x12[256][16];        /* MDSI Genius font */
 uint8_t      fontdat12x18[256][36];       /* IM1024 font */
