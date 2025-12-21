@@ -233,7 +233,7 @@ skip_pixel_blit:
                 } else
                     dst = (uint16_t *) &voodoo->fb_mem[dst_base_addr + dst_y * dst_stride];
 
-                for (int x = 0; x <= size_x; x++) {
+                for (int x = 0; x < size_x; x++) {
                     if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED) {
                         if (dst_x < voodoo->bltClipLeft || dst_x >= voodoo->bltClipRight || dst_y < voodoo->bltClipLowY || dst_y >= voodoo->bltClipHighY)
                             goto skip_pixel_fill;
