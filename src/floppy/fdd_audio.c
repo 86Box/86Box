@@ -517,10 +517,12 @@ load_profile_samples(int profile_id)
             }
         }
 
+#ifdef ENABLE_FDD_LOG
         /* Load BIOS vendor-specific POST mode seek samples if configured */
         static const char *bios_names[] = {
             "UNKNOWN", "AMI", "AWARD", "PHOENIX", "IBM", "COMPAQ", "OTHER"
         };
+#endif
 
         for (int vendor = 1; vendor < BIOS_VENDOR_COUNT; vendor++) {
             if (config->bios_post_seek_up[vendor][idx].filename[0]) {
