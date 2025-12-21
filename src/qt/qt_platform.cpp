@@ -273,7 +273,7 @@ plat_getcwd(char *bufp, int max)
     strncpy(bufp, exe_path, max);
 #    else
     CharPointer(bufp, max) = QDir::homePath().toUtf8();
-    path_append_filename(bufp, bufp, "Library/86Box");
+    path_append_filename(bufp, bufp, "Library/" EMU_NAME);
 #    endif
 #else
     CharPointer(bufp, max) = QDir::currentPath().toUtf8();
@@ -828,10 +828,10 @@ plat_init_rom_paths(void)
 
     for (auto &path : paths) {
 #ifdef __APPLE__
-        rom_add_path(QDir(path).filePath("net.86Box.86Box/roms").toUtf8().constData());
-        rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
+        rom_add_path(QDir(path).filePath("net." EMU_NAME "." EMU_NAME "/roms").toUtf8().constData());
+        rom_add_path(QDir(path).filePath(EMU_NAME "/roms").toUtf8().constData());
 #else
-        rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
+        rom_add_path(QDir(path).filePath(EMU_NAME "/roms").toUtf8().constData());
 #endif
     }
 }
@@ -852,10 +852,10 @@ plat_init_asset_paths(void)
 
     for (auto &path : paths) {
 #ifdef __APPLE__
-        asset_add_path(QDir(path).filePath("net.86Box.86Box/assets").toUtf8().constData());
-        asset_add_path(QDir(path).filePath("86Box/assets").toUtf8().constData());
+        asset_add_path(QDir(path).filePath("net." EMU_NAME "." EMU_NAME "/assets").toUtf8().constData());
+        asset_add_path(QDir(path).filePath(EMU_NAME "/assets").toUtf8().constData());
 #else
-        asset_add_path(QDir(path).filePath("86Box/assets").toUtf8().constData());
+        asset_add_path(QDir(path).filePath(EMU_NAME "/assets").toUtf8().constData());
 #endif
     }
 }

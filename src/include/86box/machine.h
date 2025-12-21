@@ -422,7 +422,6 @@ extern int             machine_get_type(int m);
 extern int             machine_get_chipset(int m);
 extern void            machine_close(void);
 extern int             machine_has_mouse(void);
-extern int             machine_is_sony(void);
 
 extern uint8_t         machine_compaq_p1_handler(void);
 extern uint8_t         machine_generic_p1_handler(void);

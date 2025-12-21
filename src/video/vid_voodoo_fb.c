@@ -254,6 +254,19 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
             int      colbfog_g  = 0;
             int      colbfog_b  = 0;
 
+            if (params->fbzMode & FBZ_STIPPLE) {
+                if (params->fbzMode & FBZ_STIPPLE_PATT) {
+                    int index = ((y & 3) << 3) | (~x & 7);
+                    if (!(params->stipple & (1 << index)))
+                        goto skip_pixel;
+                } else {
+                    voodoo->params.stipple = (voodoo->params.stipple << 1) | (voodoo->params.stipple >> 31);
+                    if (!(voodoo->params.stipple & 0x80000000)) {
+                        goto skip_pixel;
+                    }
+                }
+            }
+
             if (params->fbzMode & FBZ_DEPTH_ENABLE) {
                 uint16_t old_depth = *(uint16_t *) (&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]);
 
@@ -448,6 +461,19 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
             int      colbfog_r  = 0;
             int      colbfog_g  = 0;
             int      colbfog_b  = 0;
+
+            if (params->fbzMode & FBZ_STIPPLE) {
+                if (params->fbzMode & FBZ_STIPPLE_PATT) {
+                    int index = ((y & 3) << 3) | (~(x + c) & 7);
+                    if (!(params->stipple & (1 << index)))
+                        goto skip_pixel;
+                } else {
+                    voodoo->params.stipple = (voodoo->params.stipple << 1) | (voodoo->params.stipple >> 31);
+                    if (!(voodoo->params.stipple & 0x80000000)) {
+                        goto skip_pixel;
+                    }
+                }
+            }
 
             if (params->fbzMode & FBZ_DEPTH_ENABLE) {
                 uint16_t old_depth = *(uint16_t *) (&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]);

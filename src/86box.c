@@ -1042,10 +1042,19 @@ usage:
     path_append_filename(temp, exe_path, "assets");
     asset_add_path(temp);
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
     // Add the standard asset path within the app bundle.
     if (contents_path[0] != '\0') {
         path_append_filename(temp, contents_path, "Resources/assets");
+        asset_add_path(temp);
+    }
+#elif !defined(_WIN32)
+    // Add the standard asset paths within the AppImage.
+    p = getenv("APPDIR");
+    if (p && (p[0] != '\0')) {
+        path_append_filename(temp, p, "usr/local/share/" EMU_NAME "/assets");
+        asset_add_path(temp);
+        path_append_filename(temp, p, "usr/share/" EMU_NAME "/assets");
         asset_add_path(temp);
     }
 #endif
@@ -2132,17 +2141,6 @@ set_screen_size_natural(void)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 
-int
-get_actual_size_x(void)
-{
-    return (unscaled_size_x);
-}
-
-int
-get_actual_size_y(void)
-{
-    return (efscrnsz_y);
-}
 
 void
 do_pause(int p)

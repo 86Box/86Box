@@ -67,9 +67,6 @@ int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
 extern wchar_t  sdl_win_title[512];
-plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
-int             joysticks_present;
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
@@ -691,9 +688,9 @@ ui_msgbox_header(int flags, void *header, void *message)
 
     if (!header) {
         if (flags & MBX_ANSI)
-            header = (void *) "86Box";
+            header = (void *) EMU_NAME;
         else
-            header = (void *) L"86Box";
+            header = (void *) EMU_NAME_W;
     }
 
     msgbtn.buttonid = 1;
@@ -736,7 +733,7 @@ plat_get_exe_name(char *s, int size)
 {
     char *basepath = SDL_GetBasePath();
 
-    snprintf(s, size, "%s%s", basepath, basepath[strlen(basepath) - 1] == '/' ? "86box" : "/86box");
+    snprintf(s, size, "%s%s", basepath, basepath[strlen(basepath) - 1] == '/' ? EMU_NAME : "/" EMU_NAME);
 }
 
 void
@@ -830,7 +827,7 @@ plat_init_rom_paths(void)
         char xdg_rom_path[TMP_PATH_BUFSIZE] = {0};
         size_t used = snprintf(xdg_rom_path, sizeof(xdg_rom_path), "%s/", xdg_data_home);
         if (used < sizeof(xdg_rom_path))
-            used += snprintf(xdg_rom_path + used, sizeof(xdg_rom_path) - used, "86Box/");
+            used += snprintf(xdg_rom_path + used, sizeof(xdg_rom_path) - used, EMU_NAME "/");
         if (used < sizeof(xdg_rom_path) && !plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
         if (used < sizeof(xdg_rom_path))
@@ -850,7 +847,7 @@ plat_init_rom_paths(void)
         if (home) {
             char home_rom_path[TMP_PATH_BUFSIZE] = {0};
             size_t used = snprintf(home_rom_path, sizeof(home_rom_path),
-                                   "%s/.local/share/86Box/", home);
+                                   "%s/.local/share/" EMU_NAME "/", home);
             if (used < sizeof(home_rom_path) && !plat_dir_check(home_rom_path))
                 plat_dir_create(home_rom_path);
             if (used < sizeof(home_rom_path))
@@ -878,7 +875,7 @@ plat_init_rom_paths(void)
                 char real_xdg_rom_path[TMP_PATH_BUFSIZE] = {0};
                 size_t used = snprintf(real_xdg_rom_path,
                                        sizeof(real_xdg_rom_path),
-                                       "%s/86Box/roms/", cur_xdg);
+                                       "%s/" EMU_NAME "/roms/", cur_xdg);
                 if (used < sizeof(real_xdg_rom_path))
                     rom_add_path(real_xdg_rom_path);
                 cur_xdg = strtok_r(NULL, ":", &saveptr);
@@ -887,8 +884,8 @@ plat_init_rom_paths(void)
             free(xdg_rom_paths);
         }
     } else {
-        rom_add_path("/usr/local/share/86Box/roms/");
-        rom_add_path("/usr/share/86Box/roms/");
+        rom_add_path("/usr/local/share/" EMU_NAME "/roms/");
+        rom_add_path("/usr/share/" EMU_NAME "/roms/");
     }
 #else
     char default_rom_path[TMP_PATH_BUFSIZE] = {0};
@@ -906,7 +903,7 @@ plat_init_asset_paths(void)
         char xdg_asset_path[TMP_PATH_BUFSIZE] = {0};
         size_t used = snprintf(xdg_asset_path, sizeof(xdg_asset_path), "%s/", xdg_data_home);
         if (used < sizeof(xdg_asset_path))
-            used += snprintf(xdg_asset_path + used, sizeof(xdg_asset_path) - used, "86Box/");
+            used += snprintf(xdg_asset_path + used, sizeof(xdg_asset_path) - used, EMU_NAME "/");
         if (used < sizeof(xdg_asset_path) && !plat_dir_check(xdg_asset_path))
             plat_dir_create(xdg_asset_path);
         if (used < sizeof(xdg_asset_path))
@@ -926,7 +923,7 @@ plat_init_asset_paths(void)
         if (home) {
             char home_asset_path[TMP_PATH_BUFSIZE] = {0};
             size_t used = snprintf(home_asset_path, sizeof(home_asset_path),
-                                   "%s/.local/share/86Box/", home);
+                                   "%s/.local/share/" EMU_NAME "/", home);
             if (used < sizeof(home_asset_path) && !plat_dir_check(home_asset_path))
                 plat_dir_create(home_asset_path);
             if (used < sizeof(home_asset_path))
@@ -954,7 +951,7 @@ plat_init_asset_paths(void)
                 char real_xdg_asset_path[TMP_PATH_BUFSIZE] = {0};
                 size_t used = snprintf(real_xdg_asset_path,
                                        sizeof(real_xdg_asset_path),
-                                       "%s/86Box/assets/", cur_xdg);
+                                       "%s/" EMU_NAME "/assets/", cur_xdg);
                 if (used < sizeof(real_xdg_asset_path))
                     asset_add_path(real_xdg_asset_path);
                 cur_xdg = strtok_r(NULL, ":", &saveptr);
@@ -963,8 +960,8 @@ plat_init_asset_paths(void)
             free(xdg_asset_paths);
         }
     } else {
-        asset_add_path("/usr/local/share/86Box/assets/");
-        asset_add_path("/usr/share/86Box/assets/");
+        asset_add_path("/usr/local/share/" EMU_NAME "/assets/");
+        asset_add_path("/usr/share/" EMU_NAME "/assets/");
     }
 #else
     char default_asset_path[TMP_PATH_BUFSIZE] = {0};
@@ -986,7 +983,7 @@ plat_get_global_data_dir(char *outbuf, const size_t len)
     if (portable_mode) {
         strncpy(outbuf, exe_path, len);
     } else {
-        char *prefPath = SDL_GetPrefPath(NULL, "86Box");
+        char *prefPath = SDL_GetPrefPath(NULL, EMU_NAME);
         strncpy(outbuf, prefPath, len);
         SDL_free(prefPath);
     }
@@ -1109,7 +1106,7 @@ unix_executeLine(char *line)
                 "pause - pause the the emulated system.\n"
                 "fullscreen - toggle fullscreen.\n"
                 "version - print version and license information.\n"
-                "exit - exit 86Box.\n");
+                "exit - exit " EMU_NAME ".\n");
         } else if (strncasecmp(xargv[0], "exit", 4) == 0) {
             exit_event = 1;
         } else if (strncasecmp(xargv[0], "version", 7) == 0) {
@@ -1299,7 +1296,7 @@ monitor_thread(UNUSED(void *param))
         char  *line = NULL;
         size_t n;
 
-        printf("86Box monitor console.\n");
+        printf(EMU_NAME " monitor console.\n");
         while (!exit_event)
         {
             if (feof(stdin))
@@ -1307,10 +1304,10 @@ monitor_thread(UNUSED(void *param))
 
 #ifdef ENABLE_READLINE
             if (f_readline)
-                line = f_readline("(86Box) ");
+                line = f_readline("(" EMU_NAME ") ");
             else {
 #endif
-                printf("(86Box) ");
+                printf("(" EMU_NAME ") ");
                 (void) !getline(&line, &n, stdin);
 #ifdef ENABLE_READLINE
             }
@@ -1338,7 +1335,7 @@ main(int argc, char **argv)
     if (ret == 0)
         return 0;
     if (!pc_init_roms()) {
-        ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
+        ui_msgbox_header(MBX_FATAL, L"No ROMs found.", EMU_NAME_W L" could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
         return 6;
     }
@@ -1687,24 +1684,6 @@ plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;
-}
-
-void
-joystick_init(void)
-{
-    /* No-op. */
-}
-
-void
-joystick_close(void)
-{
-    /* No-op. */
-}
-
-void
-joystick_process(uint8_t gp)
-{
-    /* No-op. */
 }
 
 void

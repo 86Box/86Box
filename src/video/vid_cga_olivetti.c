@@ -592,7 +592,7 @@ ogc_init(UNUSED(const device_t *info))
     memset(ogc, 0x00, sizeof(ogc_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_ogc);
 
-    loadfont("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", 1);
+    video_load_font("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
 
     /* FIXME: composite is not working yet */
 #if 0
