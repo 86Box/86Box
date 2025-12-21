@@ -8,37 +8,8 @@
  *
  *          Main video-rendering module.
  *
- *          Video timing settings -
- *
- *            8-bit - 1mb/sec
- *              B = 8 ISA clocks
- *              W = 16 ISA clocks
- *              L = 32 ISA clocks
- *
- *            Slow 16-bit - 2mb/sec
- *              B = 6 ISA clocks
- *              W = 8 ISA clocks
- *              L = 16 ISA clocks
- *
- *            Fast 16-bit - 4mb/sec
- *              B = 3 ISA clocks
- *              W = 3 ISA clocks
- *              L = 6 ISA clocks
- *
- *            Slow VLB/PCI - 8mb/sec (ish)
- *              B = 4 bus clocks
- *              W = 8 bus clocks
- *              L = 16 bus clocks
- *
- *            Mid VLB/PCI -
- *              B = 4 bus clocks
- *              W = 5 bus clocks
- *              L = 10 bus clocks
- *
- *            Fast VLB/PCI -
- *              B = 3 bus clocks
- *              W = 3 bus clocks
- *              L = 4 bus clocks
+ *          Video timings are set individually by the graphics cards.
+ * 
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
