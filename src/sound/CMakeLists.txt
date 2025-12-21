@@ -31,6 +31,7 @@ add_library(snd OBJECT
     snd_ps1.c
     snd_adlib.c
     snd_adlibgold.c
+    snd_ad1816.c
     snd_ad1848.c
     snd_audiopci.c
     snd_azt2316a.c
