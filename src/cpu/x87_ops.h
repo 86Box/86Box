@@ -33,9 +33,6 @@
 #endif
 
 #include "x87_timings.h"
-#ifdef _MSC_VER
-#    include <intrin.h>
-#endif
 #include "x87_ops_conv.h"
 
 #ifdef ENABLE_FPU_LOG
@@ -390,8 +387,7 @@ x87_compare(double a, double b)
     if ((fpu_type < FPU_287XL) && !(cpu_state.npxc & 0x1000) && ((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
         eb = ea;
 
-#    if !defined(_MSC_VER) || defined(__clang__)
-    /* Memory barrier, to force GCC to write to the input parameters
+        /* Memory barrier, to force GCC to write to the input parameters
      * before the compare rather than after */
     __asm volatile(""
                    :
@@ -406,17 +402,7 @@ x87_compare(double a, double b)
         "fnstsw %0\n"
         : "=m"(result)
         : "m"(ea), "m"(eb));
-#    else
-    _ReadWriteBarrier();
-    _asm
-    {
-                fld eb
-                fld ea
-                fclex
-                fcompp
-                fnstsw result
-    }
-#    endif
+
 
     return result & (FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
 #else
@@ -451,7 +437,6 @@ x87_ucompare(double a, double b)
 #ifdef X87_INLINE_ASM
     uint32_t result;
 
-#    if !defined(_MSC_VER) || defined(__clang__)
     /* Memory barrier, to force GCC to write to the input parameters
      * before the compare rather than after */
     __asm volatile(""
@@ -467,17 +452,6 @@ x87_ucompare(double a, double b)
         "fnstsw %0\n"
         : "=m"(result)
         : "m"(a), "m"(b));
-#    else
-    _ReadWriteBarrier();
-    _asm
-    {
-                fld b
-                fld a
-                fclex
-                fcompp
-                fnstsw result
-    }
-#    endif
 
     return result & (FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
 #else

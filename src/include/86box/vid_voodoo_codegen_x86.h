@@ -8,11 +8,7 @@
 #ifndef VIDEO_VOODOO_CODEGEN_X86_H
 #define VIDEO_VOODOO_CODEGEN_X86_H
 
-#ifdef _MSC_VER
-#    include <intrin.h>
-#else
-#    include <xmmintrin.h>
-#endif
+#include <xmmintrin.h>
 
 #define BLOCK_NUM  8
 #define BLOCK_MASK (BLOCK_NUM - 1)

@@ -52,9 +52,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
-#ifndef _MSC_VER
 #include <sys/time.h>
-#endif
 #include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
