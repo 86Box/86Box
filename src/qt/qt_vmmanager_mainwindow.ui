@@ -94,11 +94,11 @@
    </attribute>
    <addaction name="actionNew_Machine"/>
    <addaction name="separator"/>
-   <addaction name="actionStartPause"/>
+   <addaction name="actionSettings"/>
    <addaction name="actionHard_Reset"/>
    <addaction name="actionForce_Shutdown"/>
+   <addaction name="actionStartPause"/>
    <addaction name="actionCtrl_Alt_Del"/>
-   <addaction name="actionSettings"/>
   </widget>
   <action name="actionStartPause">
    <property name="icon">
