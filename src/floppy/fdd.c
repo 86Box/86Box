@@ -104,7 +104,7 @@ static fdd_pending_op_t fdd_pending[FDD_NUM];
 /* BIOS boot status tracking */
 static bios_boot_status_t bios_boot_status = BIOS_BOOT_POST;
 
-char  floppyfns[FDD_NUM][512];
+char  floppyfns[FDD_NUM][MAX_IMAGE_PATH_LEN];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];

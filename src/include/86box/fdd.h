@@ -96,7 +96,7 @@ typedef struct DRIVE {
 } DRIVE;
 
 extern DRIVE      drives[FDD_NUM];
-extern char       floppyfns[FDD_NUM][512];
+extern char       floppyfns[FDD_NUM][MAX_IMAGE_PATH_LEN];
 extern char      *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 extern pc_timer_t fdd_poll_time[FDD_NUM];
 extern int        ui_writeprot[FDD_NUM];
