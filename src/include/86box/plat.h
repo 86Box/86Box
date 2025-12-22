@@ -112,10 +112,6 @@ extern "C" {
 
 #endif
 
-#if defined(_MSC_VER)
-#    define ssize_t intptr_t
-#endif
-
 /* Global variables residing in the platform module. */
 extern int          dopause;       /* system is paused */
 extern int          mouse_capture; /* mouse is captured in app */
