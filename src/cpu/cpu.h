@@ -446,15 +446,13 @@ typedef struct {
 #    define CPU_STATUS_MASK      0xffff0000
 #endif
 
-#ifdef _MSC_VER
-#    define COMPILE_TIME_ASSERT(expr) /*nada*/
+
+#ifdef EXTREME_DEBUG
+#   define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
 #else
-#    ifdef EXTREME_DEBUG
-#        define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
-#    else
-#        define COMPILE_TIME_ASSERT(expr) /*nada*/
-#    endif
+#   define COMPILE_TIME_ASSERT(expr) /*nada*/
 #endif
+
 
 COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
