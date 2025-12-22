@@ -17,6 +17,7 @@
 #include <cstdint>
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/hdd.h>
 #include <86box/scsi.h>
 #include <86box/cdrom.h>

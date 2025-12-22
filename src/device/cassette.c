@@ -43,7 +43,7 @@
 
 pc_cassette_t *cassette;
 
-char          cassette_fname[512];
+char          cassette_fname[MAX_IMAGE_PATH_LEN];
 char          cassette_mode[512];
 char *        cassette_image_history[CASSETTE_IMAGE_HISTORY];
 unsigned long cassette_pos;
