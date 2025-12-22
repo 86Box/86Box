@@ -90,16 +90,12 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    include <atomic>
 #    define atomic_flag_t std::atomic_flag
 #    define atomic_bool_t std::atomic_bool
+
 extern "C" {
 #else
 #    include <stdatomic.h>
 #    define atomic_flag_t atomic_flag
 #    define atomic_bool_t atomic_bool
-#endif
-
-#if defined(_MSC_VER)
-#    define ssize_t intptr_t
-#endif
 
 #ifdef _MSC_VER
 # define fallthrough do {} while (0) /* fallthrough */
@@ -112,6 +108,12 @@ extern "C" {
 #  endif
 #  define fallthrough do {} while (0) /* fallthrough */
 # endif
+#endif
+
+#endif
+
+#if defined(_MSC_VER)
+#    define ssize_t intptr_t
 #endif
 
 /* Global variables residing in the platform module. */
