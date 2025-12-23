@@ -19,7 +19,7 @@ msgid "&Keyboard requires capture"
 msgstr "C&apturer le clavier"
 
 msgid "&Right CTRL is left ALT"
-msgstr "CTRL &Droite devient ALT Gauche"
+msgstr "CTRL &droite devient ALT gauche"
 
 msgid "&Hard reset"
 msgstr "&Hard reset"
@@ -28,7 +28,7 @@ msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Suppr"
 
 msgid "Ctrl+Alt+&Esc"
-msgstr "Ctrl+Alt+&Esc"
+msgstr "Ctrl+A&lt+Échap"
 
 msgid "&Pause"
 msgstr "&Pause"
@@ -79,7 +79,7 @@ msgid "Force &4:3 display ratio"
 msgstr "Forcer le ratio &4:3"
 
 msgid "&Window scale factor"
-msgstr "Facteur d'&Echelle"
+msgstr "Facteur d'éch&elle"
 
 msgid "&0.5x"
 msgstr "&0.5x"
@@ -112,7 +112,7 @@ msgid "&8x"
 msgstr "&8x"
 
 msgid "Fi&lter method"
-msgstr "Mét&hode de Filtre"
+msgstr "Mét&hode de filtre"
 
 msgid "&Nearest"
 msgstr "&Plus proche"
@@ -139,16 +139,16 @@ msgid "&Square pixels (Keep ratio)"
 msgstr "Pixels &carrés (Conserver le ratio)"
 
 msgid "&Integer scale"
-msgstr "&Echelle entière"
+msgstr "Éch&elle entière"
 
 msgid "4:&3 Integer scale"
-msgstr "Echelle entière 4:&3"
+msgstr "Échelle entière 4:&3"
 
 msgid "EGA/(S)&VGA settings"
 msgstr "Réglages EGA/(S)&VGA"
 
 msgid "&Inverted VGA monitor"
-msgstr "Moniteur VGA &Inversé"
+msgstr "Moniteur VGA &inversé"
 
 msgid "VGA screen &type"
 msgstr "&Type d'écran VGA"
@@ -160,22 +160,22 @@ msgid "RGB (no brown)"
 msgstr "RVB (sans brun)"
 
 msgid "&RGB Grayscale"
-msgstr "Niveau de Gris &RVB"
+msgstr "Niveau de gris &RVB"
 
 msgid "Generic RGBI color monitor"
 msgstr "Moniteur couleur RVB générique"
 
 msgid "&Amber monitor"
-msgstr "Moniteur &Ambre"
+msgstr "Moniteur &ambre"
 
 msgid "&Green monitor"
-msgstr "Moniteur &Vert"
+msgstr "Moniteur &vert"
 
 msgid "&White monitor"
-msgstr "Moniteur &Blanc"
+msgstr "Moniteur &blanc"
 
 msgid "Grayscale &conversion type"
-msgstr "Type de &conversion du niveau de Gris"
+msgstr "Type de &conversion du niveau de gris"
 
 msgid "BT&601 (NTSC/PAL)"
 msgstr "BT&601 (NTSC/PAL)"
@@ -220,7 +220,7 @@ msgid "Enable &Discord integration"
 msgstr "Activer l'intégration &Discord"
 
 msgid "Sound &gain…"
-msgstr "&Gain Son…"
+msgstr "&Gain son…"
 
 msgid "Begin trace"
 msgstr "Démarrer traces"
@@ -235,16 +235,16 @@ msgid "&Documentation…"
 msgstr "&Documentation…"
 
 msgid "&About 86Box…"
-msgstr "&A Propos de 86Box…"
+msgstr "À &propos de 86Box…"
 
 msgid "&New image…"
 msgstr "&Nouvelle image…"
 
 msgid "&Existing image…"
-msgstr "Image &Existante…"
+msgstr "Image &existante…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "Image Existante (&Lecture seule)…"
+msgstr "Image existante (&Lecture seule)…"
 
 msgid "&Record"
 msgstr "En&registrer"
@@ -256,7 +256,7 @@ msgid "&Rewind to the beginning"
 msgstr "&Revenir au debut"
 
 msgid "&Fast forward to the end"
-msgstr "Avance rapide jusqu'à la &Fin"
+msgstr "Avance rapide jusqu'à la &fin"
 
 msgid "E&ject"
 msgstr "É&jecter"
@@ -595,7 +595,7 @@ msgid "Type:"
 msgstr "Type :"
 
 msgid "Image Format:"
-msgstr "Format Image :"
+msgstr "Format image :"
 
 msgid "Block Size:"
 msgstr "Taille du bloc :"
@@ -1300,7 +1300,7 @@ msgid "Warning"
 msgstr "Avertissement"
 
 msgid "&Kill"
-msgstr "Fo&rcer Extinction"
+msgstr "Fo&rcer extinction"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
 msgstr "La fermeture forcée d'une machine virtuelle peut entraîner une perte de données. Ne procédez ainsi que si le processus 86Box est bloqué.\n\nVoulez-vous vraiment fermer la machine virtuelle « %1 » ?"
@@ -1459,10 +1459,10 @@ msgid "Differencing VHD (.vhd)"
 msgstr "VHD différentiel (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "Grands Blocs (2 Mo)"
+msgstr "Grands blocs (2 Mo)"
 
 msgid "Small blocks (512 KB)"
-msgstr "Petits Blocs (512 Ko)"
+msgstr "Petits blocs (512 Ko)"
 
 msgid "VHD files"
 msgstr "Fichiers VHD"
@@ -1624,10 +1624,10 @@ msgid "List of MCA devices:"
 msgstr "Liste des dispositifs MCA :"
 
 msgid "&Tablet tool"
-msgstr "Outil Tablette"
+msgstr "Outil tablette"
 
 msgid "About &Qt"
-msgstr "A propos de &Qt"
+msgstr "À propos de &Qt"
 
 msgid "&MCA devices…"
 msgstr "Dispositifs MCA…"
@@ -1684,7 +1684,7 @@ msgid "Use target framerate:"
 msgstr "Utiliser le taux de rafraîchissement cible :"
 
 msgid " fps"
-msgstr " Images par seconde"
+msgstr " images par seconde"
 
 msgid "VSync"
 msgstr "VSync"
@@ -2707,7 +2707,7 @@ msgid "Ask for confirmation before saving settings"
 msgstr "Demander confirmation avant de sauvegarder les réglages"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr "Demander confirmation avant Hard Reset"
+msgstr "Demander confirmation avant hard reset"
 
 msgid "Ask for confirmation before quitting"
 msgstr "Demander confirmation avant de quitter"
@@ -2743,7 +2743,7 @@ msgid "Shader Manager"
 msgstr "Gestionnaire de shader"
 
 msgid "Shader Configuration"
-msgstr "Configuration Shader"
+msgstr "Configuration du shader"
 
 msgid "Add"
 msgstr "Ajouter"

@@ -47,7 +47,7 @@
 
 /* Recently used images */
 #define MAX_PREV_IMAGES    10
-#define MAX_IMAGE_PATH_LEN 2048
+#define MAX_IMAGE_PATH_LEN 4096
 
 /* Max UUID Length */
 #define MAX_UUID_LEN 64

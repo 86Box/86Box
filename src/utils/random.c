@@ -51,16 +51,10 @@ rdtsc(void)
 #if defined(__x86_64__)
     unsigned int hi;
     unsigned int lo;
-#    ifdef _MSC_VER
-    __asm {
-        rdtsc
-        mov hi, edx ; EDX:EAX is already standard return!!
-        mov lo, eax
-    }
-#    else
+
     __asm__ __volatile__("rdtsc"
                          : "=a"(lo), "=d"(hi));
-#    endif
+                         
     return ((unsigned long long) lo) | (((unsigned long long) hi) << 32);
 #else
     return time(NULL);

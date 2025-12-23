@@ -69,19 +69,10 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define fseeko64 fseeko
 #    define ftello64 ftello
 #    define off64_t  off_t
-#elif defined(_MSC_VER)
-// # define fopen64  fopen
-#    define fseeko64 _fseeki64
-#    define ftello64 _ftelli64
-#    define off64_t  off_t
 #endif
 
-#ifdef _MSC_VER
-#    define UNUSED(arg) arg
-#else
 /* A hack (GCC-specific?) to allow us to ignore unused parameters. */
 #    define UNUSED(arg) __attribute__((unused)) arg
-#endif
 
 /* Return the size (in wchar's) of a wchar_t array. */
 #define sizeof_w(x) (sizeof((x)) / sizeof(wchar_t))
@@ -90,28 +81,23 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    include <atomic>
 #    define atomic_flag_t std::atomic_flag
 #    define atomic_bool_t std::atomic_bool
+
 extern "C" {
 #else
 #    include <stdatomic.h>
 #    define atomic_flag_t atomic_flag
 #    define atomic_bool_t atomic_bool
-#endif
 
-#if defined(_MSC_VER)
-#    define ssize_t intptr_t
-#endif
 
-#ifdef _MSC_VER
-# define fallthrough do {} while (0) /* fallthrough */
+#if __has_attribute(fallthrough)
+# define fallthrough __attribute__((fallthrough))
 #else
-# if __has_attribute(fallthrough)
-#  define fallthrough __attribute__((fallthrough))
-# else
-#  if __has_attribute(__fallthrough__)
-#   define fallthrough __attribute__((__fallthrough__))
-#  endif
-#  define fallthrough do {} while (0) /* fallthrough */
+# if __has_attribute(__fallthrough__)
+#  define fallthrough __attribute__((__fallthrough__))
 # endif
+# define fallthrough do {} while (0) /* fallthrough */
+#endif
+
 #endif
 
 /* Global variables residing in the platform module. */

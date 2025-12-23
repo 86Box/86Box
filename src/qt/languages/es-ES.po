@@ -166,13 +166,13 @@ msgid "Generic RGBI color monitor"
 msgstr "Monitor a colores RGBI genérico"
 
 msgid "&Amber monitor"
-msgstr "Monitor Ámb&ar"
+msgstr "Monitor ámb&ar"
 
 msgid "&Green monitor"
-msgstr "Monitor &Verde"
+msgstr "Monitor &verde"
 
 msgid "&White monitor"
-msgstr "Monitor &Blanco"
+msgstr "Monitor &blanco"
 
 msgid "Grayscale &conversion type"
 msgstr "&Conversión a grises"
@@ -283,10 +283,10 @@ msgid "Preferences"
 msgstr "Preferencias"
 
 msgid "Sound Gain"
-msgstr "Ganancia de Sonido"
+msgstr "Ganancia de sonido"
 
 msgid "New Image"
-msgstr "Nueva Imagen"
+msgstr "Nueva imagen"
 
 msgid "Settings"
 msgstr "Configuraciones"
@@ -754,10 +754,10 @@ msgid "Parallel ports:"
 msgstr "Puertos paralelos:"
 
 msgid "Storage controllers"
-msgstr "Controladoras de Almacenamiento"
+msgstr "Controladoras de almacenamiento"
 
 msgid "Hard disks"
-msgstr "Discos Duros"
+msgstr "Discos duros"
 
 msgid "Disks:"
 msgstr "Discos:"
@@ -991,7 +991,7 @@ msgid "Hardware not available"
 msgstr "Equipo no disponible"
 
 msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Asegúrate de que %1 está instalado y de que estás en una conexión de red compatible con %1."
+msgstr "Asegúree de que %1 está instalado y de que estás en una conexión de red compatible con %1."
 
 msgid "Invalid configuration"
 msgstr "Configuración inválida"
@@ -1018,7 +1018,7 @@ msgid "CD-ROM images"
 msgstr "Imágenes de CD-ROM"
 
 msgid "%1 Device Configuration"
-msgstr "%1 configuración de dispositivo"
+msgstr "Configuración de dispositivo %1"
 
 msgid "Monitor in sleep mode"
 msgstr "Monitor en modo ahorro"
@@ -1192,7 +1192,7 @@ msgid "System location:"
 msgstr "Ubicación del sistema:"
 
 msgid "System name and location"
-msgstr "Nombre y ubicaciónd el sistema"
+msgstr "Nombre y ubicación del sistema"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Escribir el nombre del sistema y escoger la ubicación"
@@ -1363,10 +1363,10 @@ msgid "Custom (large)…"
 msgstr "A medida (grande)…"
 
 msgid "Add New Hard Disk"
-msgstr "Añadir Nuevo Disco Duro"
+msgstr "Añadir nuevo disco duro"
 
 msgid "Add Existing Hard Disk"
-msgstr "Añadir Disco Duro Existente"
+msgstr "Añadir disco duro existente"
 
 msgid "HDI disk images cannot be larger than 4 GB."
 msgstr "Las imágenes de disco HDI no pueden superar los 4 GB."
@@ -1375,7 +1375,7 @@ msgid "Disk images cannot be larger than 127 GB."
 msgstr "Las imágenes de disco no pueden superar los 127 GB."
 
 msgid "Hard disk images"
-msgstr "Imágenes de Disco Duro"
+msgstr "Imágenes de disco duro"
 
 msgid "Unable to read file"
 msgstr "No se pudo leer el archivo"

@@ -161,7 +161,7 @@ typedef struct hard_disk_t {
 
     void              *priv;
 
-    char               fn[1024];     /* Name of current image file */
+    char               fn[MAX_IMAGE_PATH_LEN];     /* Name of current image file */
     /* Differential VHD parent file */
     char               vhd_parent[1280];
 
