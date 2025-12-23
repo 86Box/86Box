@@ -668,7 +668,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
@@ -696,7 +696,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
@@ -735,7 +735,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
@@ -754,7 +754,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
