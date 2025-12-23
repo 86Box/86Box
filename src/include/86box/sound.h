@@ -122,6 +122,9 @@ extern const device_t adlib_device;
 extern const device_t adlib_mca_device;
 extern const device_t adgold_device;
 
+/* Analog Devices AD1816 */
+extern const device_t ad1816_device;
+
 /* Aztech Sound Galaxy 16 */
 extern const device_t azt2316a_device;
 extern const device_t acermagic_s20_device;
