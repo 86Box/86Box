@@ -229,7 +229,7 @@ msgid "End trace"
 msgstr "Arrêter traces"
 
 msgid "&Help"
-msgstr "&Aide"
+msgstr "Ai&de"
 
 msgid "&Documentation…"
 msgstr "&Documentation…"
