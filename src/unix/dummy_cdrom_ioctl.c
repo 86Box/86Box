@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
+#include <86box/86box.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
 #include <86box/log.h>

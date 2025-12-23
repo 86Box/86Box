@@ -686,7 +686,7 @@ readfontxtbl(fontx_tbl *table, int size, FILE *fp)
 }
 
 static int
-LoadFontxFile(const char *fn, void *priv)
+jega_load_font(const char *fn, void *priv)
 {
     fontx_h    fhead;
     fontx_tbl *ftbl;
@@ -793,7 +793,7 @@ jega_standalone_init(const device_t *info)
 
     rom_init(&jega->bios_rom, JEGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
-    LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
+    jega_load_font(JEGA_PATH_FONTDBCS, jega);
 
     jega_commoninit(info, jega, 0);
 
@@ -807,7 +807,7 @@ jvga_standalone_init(const device_t *info)
 
     rom_init(&jega->bios_rom, JVGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
-    LoadFontxFile(JVGA_PATH_FONTDBCS, jega);
+    jega_load_font(JVGA_PATH_FONTDBCS, jega);
 
     jega_commoninit(info, jega, 1);
 
@@ -1024,7 +1024,7 @@ if386jega_init(const device_t *info)
 
     rom_init(&jega->bios_rom, IF386_PATH_VBIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
-    LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
+    jega_load_font(JEGA_PATH_FONTDBCS, jega);
 
     jega_commoninit(info, jega, 0);
 

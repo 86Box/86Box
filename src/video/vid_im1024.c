@@ -1036,7 +1036,7 @@ im1024_init(UNUSED(const device_t *info))
     dev = (im1024_t *) malloc(sizeof(im1024_t));
     memset(dev, 0x00, sizeof(im1024_t));
 
-    loadfont(BIOS_ROM_PATH, 9);
+    video_load_font(BIOS_ROM_PATH, FONT_FORMAT_IM1024, LOAD_FONT_NO_OFFSET);
 
     dev->fifo_len   = 4096;
     dev->fifo       = (uint8_t *) malloc(dev->fifo_len);

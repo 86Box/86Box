@@ -149,11 +149,11 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     cadButton->setEnabled(false);
     cadButton->setToolTip(tr("Ctrl+Alt+Del"));
 
-    ui->toolButtonHolder->layout()->addWidget(configureButton);
+    ui->toolButtonHolder->layout()->addWidget(startPauseButton);
     ui->toolButtonHolder->layout()->addWidget(resetButton);
     ui->toolButtonHolder->layout()->addWidget(stopButton);
-    ui->toolButtonHolder->layout()->addWidget(startPauseButton);
     ui->toolButtonHolder->layout()->addWidget(cadButton);
+    ui->toolButtonHolder->layout()->addWidget(configureButton);
 
     ui->notesTextEdit->setEnabled(false);
 

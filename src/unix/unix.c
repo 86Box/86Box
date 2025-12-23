@@ -67,9 +67,6 @@ int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
 extern wchar_t  sdl_win_title[512];
-plat_joystick_state_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_state_t      joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
-int             joysticks_present;
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
@@ -1687,24 +1684,6 @@ plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;
-}
-
-void
-joystick_init(void)
-{
-    /* No-op. */
-}
-
-void
-joystick_close(void)
-{
-    /* No-op. */
-}
-
-void
-joystick_process(uint8_t gp)
-{
-    /* No-op. */
 }
 
 void

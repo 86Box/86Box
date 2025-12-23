@@ -192,11 +192,7 @@ codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
 {
 #if defined __ARM_EABI__ || defined __aarch64__ || defined _M_ARM64
     while (1) {
-#    ifndef _MSC_VER
         __clear_cache(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + MEM_BLOCK_SIZE]);
-#    else
-        FlushInstructionCache(GetCurrentProcess(), &mem_block_alloc[block->offset], MEM_BLOCK_SIZE);
-#    endif
         if (block->next)
             block = &mem_blocks[block->next - 1];
         else

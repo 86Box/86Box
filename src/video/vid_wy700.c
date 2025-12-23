@@ -886,7 +886,7 @@ wy700_init(UNUSED(const device_t *info))
     /* 128k video RAM */
     wy700->vram = malloc(0x20000);
 
-    loadfont("roms/video/wyse700/wy700.rom", 3);
+    video_load_font("roms/video/wyse700/wy700.rom", FONT_FORMAT_WY700, LOAD_FONT_NO_OFFSET);
 
     timer_add(&wy700->timer, wy700_poll, wy700, 1);
 

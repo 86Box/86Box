@@ -38,39 +38,6 @@
 static fdd_audio_profile_config_t audio_profiles[FDD_AUDIO_PROFILE_MAX];
 static int                        audio_profile_count = 0;
 
-/* Audio sample structure */
-typedef struct {
-    char     filename[512];
-    int16_t *buffer;
-    int      samples;
-    float    volume;
-} audio_sample_t;
-
-typedef struct {
-    int position;
-    int active;
-} single_step_state_t;
-
-/* Multi-track seek audio state */
-typedef struct {
-    int position;
-    int active;
-    int duration_samples;
-    int from_track;
-    int to_track;
-    int track_diff;
-} multi_seek_state_t;
-
-/* Drive type specific audio samples */
-typedef struct {
-    audio_sample_t spindlemotor_start;
-    audio_sample_t spindlemotor_loop;
-    audio_sample_t spindlemotor_stop;
-    /* Individual seek samples for each track count (indexed 0-78 for 1-79 tracks) */
-    audio_sample_t seek_up[MAX_SEEK_SAMPLES];
-    audio_sample_t seek_down[MAX_SEEK_SAMPLES];
-} drive_audio_samples_t;
-
 /* Dynamic sample storage for each profile */
 static drive_audio_samples_t profile_samples[FDD_AUDIO_PROFILE_MAX];
 
@@ -86,28 +53,115 @@ static multi_seek_state_t seek_state[FDD_NUM][MAX_CONCURRENT_SEEKS] = {};
 extern uint64_t motoron[FDD_NUM];
 extern char     exe_path[2048];
 
-extern int fdd_get_audio_profile(int drive);
-
 /* Forward declaration */
 static int16_t *load_wav(const char *filename, int *sample_count);
 
-#    ifdef ENABLE_FDD_LOG
-int fdc_do_log = ENABLE_FDD_LOG;
+extern uint8_t *rom;
+extern uint32_t biosmask;
+extern uint32_t biosaddr;
+typedef enum {
+    BIOS_VENDOR_UNKNOWN = 0,
+    BIOS_VENDOR_AMI,
+    BIOS_VENDOR_AWARD,
+    BIOS_VENDOR_PHOENIX,
+    BIOS_VENDOR_IBM,
+    BIOS_VENDOR_COMPAQ,
+    BIOS_VENDOR_OTHER
+} bios_vendor_t;
+
+#ifdef ENABLE_FDD_LOG
+int fdd_audio_do_log = ENABLE_FDD_LOG;
 
 static void
 fdd_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (fdc_do_log) {
+    if (fdd_audio_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
-#    else
+#else
 #        define fdd_log(fmt, ...)
-#    endif
+#endif
+
+/* Detect BIOS vendor by scanning ROM for signature strings */
+static bios_vendor_t
+fdd_audio_detect_bios_vendor(void)
+{
+    if (!rom || biosmask == 0)
+        return BIOS_VENDOR_UNKNOWN;
+
+    /* Search for BIOS vendor strings in ROM */
+    for (uint32_t i = 0; i < (biosmask + 1); i++) {
+        /* AMI BIOS signatures */
+        if ((i + 7) < (biosmask + 1)) {
+            if (memcmp(&rom[i], "AMIBIOS", 7) == 0) {
+                fdd_log("FDD Audio: Detected AMI BIOS\n");
+                return BIOS_VENDOR_AMI;
+            }
+            if (memcmp(&rom[i], "American Megatrends", 19) == 0) {
+                fdd_log("FDD Audio: Detected AMI BIOS (American Megatrends)\n");
+                return BIOS_VENDOR_AMI;
+            }
+        }
+
+        /* Award BIOS signatures */
+        if ((i + 5) < (biosmask + 1)) {
+            if (memcmp(&rom[i], "Award", 5) == 0) {
+                fdd_log("FDD Audio: Detected Award BIOS\n");
+                return BIOS_VENDOR_AWARD;
+            }
+        }
+
+        /* Phoenix BIOS signatures */
+        if ((i + 7) < (biosmask + 1)) {
+            if (memcmp(&rom[i], "Phoenix", 7) == 0) {
+                fdd_log("FDD Audio: Detected Phoenix BIOS\n");
+                return BIOS_VENDOR_PHOENIX;
+            }
+        }
+
+        /* IBM BIOS signatures */
+        if ((i + 3) < (biosmask + 1)) {
+            if (memcmp(&rom[i], "IBM", 3) == 0 && (i + 10) < (biosmask + 1)) {
+                if (memcmp(&rom[i], "IBM CORP", 8) == 0) {
+                    fdd_log("FDD Audio: Detected IBM BIOS\n");
+                    return BIOS_VENDOR_IBM;
+                }
+            }
+        }
+
+        /* Compaq BIOS signatures */
+        if ((i + 6) < (biosmask + 1)) {
+            if (memcmp(&rom[i], "COMPAQ", 6) == 0) {
+                fdd_log("FDD Audio: Detected Compaq BIOS\n");
+                return BIOS_VENDOR_COMPAQ;
+            }
+        }
+    }
+
+    fdd_log("FDD Audio: BIOS vendor unknown\n");
+    return BIOS_VENDOR_UNKNOWN;
+}
+
+/* Determine if this BIOS uses POST-mode FDC seeks */
+static int
+fdd_audio_get_bios_vendor(void)
+{
+    static bios_vendor_t detected_vendor = BIOS_VENDOR_UNKNOWN;
+    static int           detection_done  = 0;
+
+    /* Only detect once */
+    if (!detection_done) {
+        detected_vendor = fdd_audio_detect_bios_vendor();
+        detection_done  = 1;
+    }
+
+    return detected_vendor;
+}
 
 /* Logging function for audio profile parameters */
 static void
@@ -271,13 +325,67 @@ fdd_audio_load_profiles(void)
                 snprintf(key, sizeof(key), "seek_down_%dtrack_volume", track_count);
                 profile->seek_down[track_count - 1].volume = ini_section_get_double(section, key, 1.0);
 
+                /* POST mode seek down samples */
+                snprintf(key, sizeof(key), "post_seek_down_%dtrack_file", track_count);
+                filename = ini_section_get_string(section, key, "");
+                strncpy(profile->post_seek_down[track_count - 1].filename, filename,
+                        sizeof(profile->post_seek_down[track_count - 1].filename) - 1);
+                profile->post_seek_down[track_count - 1].filename[sizeof(profile->post_seek_down[track_count - 1].filename) - 1] = '\0';
+
+                snprintf(key, sizeof(key), "post_seek_down_%dtrack_volume", track_count);
+                profile->post_seek_down[track_count - 1].volume = ini_section_get_double(section, key, 1.0);                
+
+                /* BIOS vendor-specific POST mode seek samples */
+                static const char *bios_prefixes[] = {
+                    NULL,           /* BIOS_VENDOR_UNKNOWN */
+                    "amibios",      /* BIOS_VENDOR_AMI */
+                    "award",        /* BIOS_VENDOR_AWARD */
+                    "phoenix",      /* BIOS_VENDOR_PHOENIX */
+                    "ibm",          /* BIOS_VENDOR_IBM */
+                    "compaq",       /* BIOS_VENDOR_COMPAQ */
+                    NULL            /* BIOS_VENDOR_OTHER */
+                };
+
+                for (int vendor = 1; vendor < BIOS_VENDOR_COUNT; vendor++) {
+                    if (!bios_prefixes[vendor])
+                        continue;
+
+                    /* BIOS-specific POST mode seek up samples */
+                    snprintf(key, sizeof(key), "%s_post_seek_up_%dtrack_file", bios_prefixes[vendor], track_count);
+                    filename = ini_section_get_string(section, key, "");
+                    strncpy(profile->bios_post_seek_up[vendor][track_count - 1].filename, filename,
+                            sizeof(profile->bios_post_seek_up[vendor][track_count - 1].filename) - 1);
+                    profile->bios_post_seek_up[vendor][track_count - 1].filename[sizeof(profile->bios_post_seek_up[vendor][track_count - 1].filename) - 1] = '\0';
+
+                    snprintf(key, sizeof(key), "%s_post_seek_up_%dtrack_volume", bios_prefixes[vendor], track_count);
+                    profile->bios_post_seek_up[vendor][track_count - 1].volume = ini_section_get_double(section, key, 1.0);
+
+                    /* BIOS-specific POST mode seek down samples */
+                    snprintf(key, sizeof(key), "%s_post_seek_down_%dtrack_file", bios_prefixes[vendor], track_count);
+                    filename = ini_section_get_string(section, key, "");
+                    strncpy(profile->bios_post_seek_down[vendor][track_count - 1].filename, filename,
+                            sizeof(profile->bios_post_seek_down[vendor][track_count - 1].filename) - 1);
+                    profile->bios_post_seek_down[vendor][track_count - 1].filename[sizeof(profile->bios_post_seek_down[vendor][track_count - 1].filename) - 1] = '\0';
+
+                    snprintf(key, sizeof(key), "%s_post_seek_down_%dtrack_volume", bios_prefixes[vendor], track_count);
+                    profile->bios_post_seek_down[vendor][track_count - 1].volume = ini_section_get_double(section, key, 1.0);
+
+                    /* BIOS-specific POST mode seek time in milliseconds */
+                    snprintf(key, sizeof(key), "%s_post_seek_%dtrack_time_ms", bios_prefixes[vendor], track_count);
+                    profile->bios_post_seek_time_ms[vendor][track_count - 1] = ini_section_get_double(section, key, 0.0);
+                }
+
                 /* Seek time in milliseconds - used for FDC timing, not sample playback */
                 snprintf(key, sizeof(key), "seek_%dtrack_time_ms", track_count);
                 profile->seek_time_ms[track_count - 1] = ini_section_get_double(section, key, 6.0 * track_count);
+
+                /* POST mode seek time in milliseconds */
+                snprintf(key, sizeof(key), "post_seek_%dtrack_time_ms", track_count);
+                profile->post_seek_time_ms[track_count - 1] = ini_section_get_double(section, key, 0.0);
             }
 
             /* Load timing configurations */
-            profile->total_tracks = ini_section_get_int(section, "total_tracks", 80);
+            profile->total_tracks = ini_section_get_int(section, "total_tracks", 0);
 
             audio_profile_count++;
         }
@@ -362,7 +470,7 @@ load_profile_samples(int profile_id)
                                                     &samples->seek_up[idx].samples);
             if (samples->seek_up[idx].buffer) {
                 fdd_log("  Loaded seek_up[%d]: %s (%d samples, volume %.2f)\n",
-                        track_count, config->seek_up[idx].filename,
+                        idx, config->seek_up[idx].filename,
                         samples->seek_up[idx].samples, config->seek_up[idx].volume);
             }
         }
@@ -375,8 +483,74 @@ load_profile_samples(int profile_id)
                                                       &samples->seek_down[idx].samples);
             if (samples->seek_down[idx].buffer) {
                 fdd_log("  Loaded seek_down[%d]: %s (%d samples, volume %.2f)\n",
-                        track_count, config->seek_down[idx].filename,
+                        idx, config->seek_down[idx].filename,
                         samples->seek_down[idx].samples, config->seek_down[idx].volume);
+            }
+        }
+
+        /* Load POST mode seek samples if configured */
+        if (config->post_seek_up[idx].filename[0]) {
+            if (samples->post_seek_up[idx].buffer == NULL) {
+                strcpy(samples->post_seek_up[idx].filename, config->post_seek_up[idx].filename);
+                samples->post_seek_up[idx].volume = config->post_seek_up[idx].volume;
+                samples->post_seek_up[idx].buffer = load_wav(config->post_seek_up[idx].filename,
+                                                             &samples->post_seek_up[idx].samples);
+                if (samples->post_seek_up[idx].buffer) {
+                    fdd_log("  Loaded POST seek_up[%d] (%d-track): %s (%d samples, volume %.2f)\n",
+                            idx, track_count, config->post_seek_up[idx].filename,
+                            samples->post_seek_up[idx].samples, config->post_seek_up[idx].volume);
+                }
+            }
+        }
+
+        if (config->post_seek_down[idx].filename[0]) {
+            if (samples->post_seek_down[idx].buffer == NULL) {
+                strcpy(samples->post_seek_down[idx].filename, config->post_seek_down[idx].filename);
+                samples->post_seek_down[idx].volume = config->post_seek_down[idx].volume;
+                samples->post_seek_down[idx].buffer = load_wav(config->post_seek_down[idx].filename,
+                                                               &samples->post_seek_down[idx].samples);
+                if (samples->post_seek_down[idx].buffer) {
+                    fdd_log("  Loaded POST seek_down[%d] (%d-track): %s (%d samples, volume %.2f)\n",
+                            idx, track_count, config->post_seek_down[idx].filename,
+                            samples->post_seek_down[idx].samples, config->post_seek_down[idx].volume);
+                }
+            }
+        }
+
+#ifdef ENABLE_FDD_LOG
+        /* Load BIOS vendor-specific POST mode seek samples if configured */
+        static const char *bios_names[] = {
+            "UNKNOWN", "AMI", "AWARD", "PHOENIX", "IBM", "COMPAQ", "OTHER"
+        };
+#endif
+
+        for (int vendor = 1; vendor < BIOS_VENDOR_COUNT; vendor++) {
+            if (config->bios_post_seek_up[vendor][idx].filename[0]) {
+                if (samples->bios_post_seek_up[vendor][idx].buffer == NULL) {
+                    strcpy(samples->bios_post_seek_up[vendor][idx].filename, config->bios_post_seek_up[vendor][idx].filename);
+                    samples->bios_post_seek_up[vendor][idx].volume = config->bios_post_seek_up[vendor][idx].volume;
+                    samples->bios_post_seek_up[vendor][idx].buffer = load_wav(config->bios_post_seek_up[vendor][idx].filename,
+                                                                              &samples->bios_post_seek_up[vendor][idx].samples);
+                    if (samples->bios_post_seek_up[vendor][idx].buffer) {
+                        fdd_log("  Loaded %s POST seek_up[%d] (%d-track): %s (%d samples, volume %.2f)\n",
+                                bios_names[vendor], idx, track_count, config->bios_post_seek_up[vendor][idx].filename,
+                                samples->bios_post_seek_up[vendor][idx].samples, config->bios_post_seek_up[vendor][idx].volume);
+                    }
+                }
+            }
+
+            if (config->bios_post_seek_down[vendor][idx].filename[0]) {
+                if (samples->bios_post_seek_down[vendor][idx].buffer == NULL) {
+                    strcpy(samples->bios_post_seek_down[vendor][idx].filename, config->bios_post_seek_down[vendor][idx].filename);
+                    samples->bios_post_seek_down[vendor][idx].volume = config->bios_post_seek_down[vendor][idx].volume;
+                    samples->bios_post_seek_down[vendor][idx].buffer = load_wav(config->bios_post_seek_down[vendor][idx].filename,
+                                                                                &samples->bios_post_seek_down[vendor][idx].samples);
+                    if (samples->bios_post_seek_down[vendor][idx].buffer) {
+                        fdd_log("  Loaded %s POST seek_down[%d] (%d-track): %s (%d samples, volume %.2f)\n",
+                                bios_names[vendor], idx, track_count, config->bios_post_seek_down[vendor][idx].filename,
+                                samples->bios_post_seek_down[vendor][idx].samples, config->bios_post_seek_down[vendor][idx].volume);
+                    }
+                }
             }
         }
     }
@@ -461,6 +635,21 @@ fdd_audio_get_seek_time(int drive, int track_count, int is_seek_down)
 
     /* Return configured seek time in microseconds */
     if (track_count > 0 && track_count <= MAX_SEEK_SAMPLES) {
+        /* In POST mode, check for BIOS-specific timing first */
+        if (fdd_get_boot_status() == BIOS_BOOT_POST) {
+            int bios_vendor = fdd_audio_get_bios_vendor();
+            
+            /* Check BIOS vendor-specific timing first */
+            if (bios_vendor > 0 && bios_vendor < BIOS_VENDOR_COUNT && 
+                profile->bios_post_seek_time_ms[bios_vendor][track_count - 1] > 0.0) {
+                return profile->bios_post_seek_time_ms[bios_vendor][track_count - 1] * 1000.0;
+            }
+            
+            /* Fall back to generic POST timing */
+            if (profile->post_seek_time_ms[track_count - 1] > 0.0) {
+                return profile->post_seek_time_ms[track_count - 1] * 1000.0;
+            }
+        }        
         return profile->seek_time_ms[track_count - 1] * 1000.0;
     }
 
@@ -489,6 +678,7 @@ fdd_audio_init(void)
             seek_state[i][j].from_track       = -1;
             seek_state[i][j].to_track         = -1;
             seek_state[i][j].track_diff       = 0;
+            seek_state[i][j].sample_to_play   = NULL;
         }
     }
 
@@ -545,6 +735,30 @@ fdd_audio_close(void)
                 free(samples->seek_down[track_count].buffer);
                 samples->seek_down[track_count].buffer  = NULL;
                 samples->seek_down[track_count].samples = 0;
+            }
+            if (samples->post_seek_up[track_count].buffer) {
+                free(samples->post_seek_up[track_count].buffer);
+                samples->post_seek_up[track_count].buffer  = NULL;
+                samples->post_seek_up[track_count].samples = 0;
+            }
+            if (samples->post_seek_down[track_count].buffer) {
+                free(samples->post_seek_down[track_count].buffer);
+                samples->post_seek_down[track_count].buffer  = NULL;
+                samples->post_seek_down[track_count].samples = 0;
+            }
+
+            /* Free BIOS vendor-specific POST seek samples */
+            for (int vendor = 0; vendor < BIOS_VENDOR_COUNT; vendor++) {
+                if (samples->bios_post_seek_up[vendor][track_count].buffer) {
+                    free(samples->bios_post_seek_up[vendor][track_count].buffer);
+                    samples->bios_post_seek_up[vendor][track_count].buffer  = NULL;
+                    samples->bios_post_seek_up[vendor][track_count].samples = 0;
+                }
+                if (samples->bios_post_seek_down[vendor][track_count].buffer) {
+                    free(samples->bios_post_seek_down[vendor][track_count].buffer);
+                    samples->bios_post_seek_down[vendor][track_count].buffer  = NULL;
+                    samples->bios_post_seek_down[vendor][track_count].samples = 0;
+                }
             }
         }
     }
@@ -629,16 +843,81 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
         track_diff = max_seek_tracks;
     }
 
-    /* Get the appropriate seek sample */
-    int             idx           = track_diff - 1;
-    audio_sample_t *sample_to_use = is_seek_down ? &samples->seek_down[idx] : &samples->seek_up[idx];
+    int boot_status = fdd_get_boot_status();
+    int bios_vendor = fdd_audio_get_bios_vendor();
+    int idx = track_diff - 1;
+    int real_track_diff = to_track - from_track;
+    audio_sample_t *sample_to_use = NULL;
+
+    if (boot_status == BIOS_BOOT_POST) {
+        if (bios_vendor == BIOS_VENDOR_AMI) {
+            /* AMI BIOS POST mode: use AMI-specific samples if available */
+            
+            /* AMI BIOS quirk: for single-track seeks down (except 10->9), do not play audio */
+            if (real_track_diff == -1 && (from_track != 10 || to_track != 9)) {
+                fdd_log("FDD Audio Drive %d: AMI BIOS quirk: for single-track seeks down (except 10->9), do not play audio\n", drive);
+                return;
+            }
+
+            /* For 10->9 seek, use the 1-track sample (which should be the 10-0 sound) */
+            sample_to_use = is_seek_down ? &samples->bios_post_seek_down[bios_vendor][idx] : &samples->bios_post_seek_up[bios_vendor][idx];
+            
+            if (sample_to_use->buffer && sample_to_use->samples > 0) {
+                fdd_log("FDD Audio Drive %d: Using AMI BIOS POST mode seek sample (idx=%d, %s)\n", 
+                    drive, idx, is_seek_down ? "DOWN" : "UP");
+            } else {
+                /* Fall back to generic POST sample */
+                sample_to_use = is_seek_down ? &samples->post_seek_down[idx] : &samples->post_seek_up[idx];
+                if (sample_to_use->buffer && sample_to_use->samples > 0) {
+                    fdd_log("FDD Audio Drive %d: AMI BIOS sample not available, using generic POST sample (idx=%d, %s)\n", 
+                        drive, idx, is_seek_down ? "DOWN" : "UP");
+                } else {
+                    /* Fall back to normal sample */
+                    fdd_log("FDD Audio Drive %d: POST sample not available, using normal sample\n", drive);
+                    sample_to_use = is_seek_down ? &samples->seek_down[idx] : &samples->seek_up[idx];
+                }
+            }
+        } else if (bios_vendor > 0 && bios_vendor < BIOS_VENDOR_COUNT) {
+            /* Other known BIOS vendors: try vendor-specific samples first */
+            sample_to_use = is_seek_down ? &samples->bios_post_seek_down[bios_vendor][idx] : &samples->bios_post_seek_up[bios_vendor][idx];
+            
+            if (sample_to_use->buffer && sample_to_use->samples > 0) {
+                fdd_log("FDD Audio Drive %d: Using BIOS vendor %d POST mode seek sample (idx=%d, %s)\n", 
+                    drive, bios_vendor, idx, is_seek_down ? "DOWN" : "UP");
+            } else {
+                /* Fall back to generic POST sample */
+                sample_to_use = is_seek_down ? &samples->post_seek_down[idx] : &samples->post_seek_up[idx];
+                if (sample_to_use->buffer && sample_to_use->samples > 0) {
+                    fdd_log("FDD Audio Drive %d: BIOS-specific sample not available, using generic POST sample (idx=%d, %s)\n", 
+                        drive, idx, is_seek_down ? "DOWN" : "UP");
+                } else {
+                    /* Fall back to normal sample */
+                    fdd_log("FDD Audio Drive %d: POST sample not available, using normal sample\n", drive);
+                    sample_to_use = is_seek_down ? &samples->seek_down[idx] : &samples->seek_up[idx];
+                }
+            }
+        } else {
+            /* Unknown BIOS vendor POST mode */
+            sample_to_use = is_seek_down ? &samples->post_seek_down[idx] : &samples->post_seek_up[idx];
+            if (!sample_to_use->buffer || sample_to_use->samples == 0) {
+                fdd_log("FDD Audio Drive %d: POST sample not available, using normal sample\n", drive);
+                sample_to_use = is_seek_down ? &samples->seek_down[idx] : &samples->seek_up[idx];
+            } else {
+                fdd_log("FDD Audio Drive %d: Using POST mode seek sample (idx=%d, %s)\n", 
+                    drive, idx, is_seek_down ? "DOWN" : "UP");
+            }
+        }
+    } else {
+        /* Use normal samples */
+        sample_to_use = is_seek_down ? &samples->seek_down[idx] : &samples->seek_up[idx];
+    }
 
     /* Only proceed if we have the appropriate sample */
     if (!sample_to_use || !sample_to_use->buffer || sample_to_use->samples == 0)
         return;
 
-    fdd_log("FDD Audio Drive %d: Multi-track seek %d -> %d (%d tracks, %s)\n",
-            drive, from_track, to_track, track_diff, is_seek_down ? "DOWN" : "UP");
+    fdd_log("FDD Audio Drive %d: Multi-track seek %d -> %d (%d tracks, %s, POST=%d)\n",
+            drive, from_track, to_track, track_diff, is_seek_down ? "DOWN" : "UP", boot_status);
 
     /* Find an available seek slot */
     int slot = -1;
@@ -662,6 +941,7 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
     seek_state[drive][slot].from_track       = from_track;
     seek_state[drive][slot].to_track         = to_track;
     seek_state[drive][slot].track_diff       = track_diff;
+    seek_state[drive][slot].sample_to_play   = sample_to_use;
 
     fdd_log("FDD Audio Drive %d: Started seek in slot %d, duration %d samples\n",
             drive, slot, sample_to_use->samples);
@@ -867,30 +1147,26 @@ fdd_audio_callback(int16_t *buffer, int length)
                     if (!seek_state[drive][slot].active)
                         continue;
 
-                    int track_diff = seek_state[drive][slot].track_diff;
-                    if (track_diff > 0 && track_diff <= MAX_SEEK_SAMPLES) {
-                        int             idx          = track_diff - 1;
-                        int             is_seek_down = (seek_state[drive][slot].to_track < seek_state[drive][slot].from_track);
-                        audio_sample_t *seek_sample  = is_seek_down ? &samples->seek_down[idx] : &samples->seek_up[idx];
+                    audio_sample_t *seek_sample = seek_state[drive][slot].sample_to_play;
 
-                        if (seek_sample && seek_sample->buffer && seek_state[drive][slot].position < seek_sample->samples) {
-                            /* Mix seek sound with existing audio */
-                            float seek_left  = (float) seek_sample->buffer[seek_state[drive][slot].position * 2] / 131072.0f * seek_sample->volume;
-                            float seek_right = (float) seek_sample->buffer[seek_state[drive][slot].position * 2 + 1] / 131072.0f * seek_sample->volume;
+                    if (seek_sample && seek_sample->buffer && seek_state[drive][slot].position < seek_sample->samples) {
+                        /* Mix seek sound with existing audio */
+                        float seek_left  = (float) seek_sample->buffer[seek_state[drive][slot].position * 2] / 131072.0f * seek_sample->volume;
+                        float seek_right = (float) seek_sample->buffer[seek_state[drive][slot].position * 2 + 1] / 131072.0f * seek_sample->volume;
 
-                            left_sample += seek_left;
-                            right_sample += seek_right;
+                        left_sample += seek_left;
+                        right_sample += seek_right;
 
-                            seek_state[drive][slot].position++;
-                        } else {
-                            /* Seek sound finished */
-                            seek_state[drive][slot].active           = 0;
-                            seek_state[drive][slot].position         = 0;
-                            seek_state[drive][slot].duration_samples = 0;
-                            seek_state[drive][slot].from_track       = -1;
-                            seek_state[drive][slot].to_track         = -1;
-                            seek_state[drive][slot].track_diff       = 0;
-                        }
+                        seek_state[drive][slot].position++;
+                    } else {
+                        /* Seek sound finished */
+                        seek_state[drive][slot].active           = 0;
+                        seek_state[drive][slot].position         = 0;
+                        seek_state[drive][slot].duration_samples = 0;
+                        seek_state[drive][slot].from_track       = -1;
+                        seek_state[drive][slot].to_track         = -1;
+                        seek_state[drive][slot].track_diff       = 0;
+                        seek_state[drive][slot].sample_to_play   = NULL;
                     }
                 }
 
@@ -983,30 +1259,26 @@ fdd_audio_callback(int16_t *buffer, int length)
                     if (!seek_state[drive][slot].active)
                         continue;
 
-                    int track_diff = seek_state[drive][slot].track_diff;
-                    if (track_diff > 0 && track_diff <= MAX_SEEK_SAMPLES) {
-                        int             idx          = track_diff - 1;
-                        int             is_seek_down = (seek_state[drive][slot].to_track < seek_state[drive][slot].from_track);
-                        audio_sample_t *seek_sample  = is_seek_down ? &samples->seek_down[idx] : &samples->seek_up[idx];
+                    audio_sample_t *seek_sample = seek_state[drive][slot].sample_to_play;
 
-                        if (seek_sample && seek_sample->buffer && seek_state[drive][slot].position < seek_sample->samples) {
-                            /* Mix seek sound with existing audio */
-                            int16_t seek_left  = (int16_t) ((float) seek_sample->buffer[seek_state[drive][slot].position * 2] / 4.0f * seek_sample->volume);
-                            int16_t seek_right = (int16_t) ((float) seek_sample->buffer[seek_state[drive][slot].position * 2 + 1] / 4.0f * seek_sample->volume);
+                    if (seek_sample && seek_sample->buffer && seek_state[drive][slot].position < seek_sample->samples) {
+                        /* Mix seek sound with existing audio */
+                        int16_t seek_left  = (int16_t) ((float) seek_sample->buffer[seek_state[drive][slot].position * 2] / 4.0f * seek_sample->volume);
+                        int16_t seek_right = (int16_t) ((float) seek_sample->buffer[seek_state[drive][slot].position * 2 + 1] / 4.0f * seek_sample->volume);
 
-                            left_sample += seek_left;
-                            right_sample += seek_right;
+                        left_sample += seek_left;
+                        right_sample += seek_right;
 
-                            seek_state[drive][slot].position++;
-                        } else {
-                            /* Seek sound finished */
-                            seek_state[drive][slot].active           = 0;
-                            seek_state[drive][slot].position         = 0;
-                            seek_state[drive][slot].duration_samples = 0;
-                            seek_state[drive][slot].from_track       = -1;
-                            seek_state[drive][slot].to_track         = -1;
-                            seek_state[drive][slot].track_diff       = 0;
-                        }
+                        seek_state[drive][slot].position++;
+                    } else {
+                        /* Seek sound finished */
+                        seek_state[drive][slot].active           = 0;
+                        seek_state[drive][slot].position         = 0;
+                        seek_state[drive][slot].duration_samples = 0;
+                        seek_state[drive][slot].from_track       = -1;
+                        seek_state[drive][slot].to_track         = -1;
+                        seek_state[drive][slot].track_diff       = 0;
+                        seek_state[drive][slot].sample_to_play   = NULL;
                     }
                 }
 

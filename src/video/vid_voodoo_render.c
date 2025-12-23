@@ -88,6 +88,8 @@ typedef struct voodoo_state_t {
     uint32_t texBaseAddr;
 
     int lod_frac[2];
+
+    int stipple;
 } voodoo_state_t;
 
 #ifdef ENABLE_VOODOO_RENDER_LOG
@@ -990,6 +992,20 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                             w_depth = 0xffff;
                     }
 
+                    if (params->fbzMode & FBZ_STIPPLE) {
+                        if (params->fbzMode & FBZ_STIPPLE_PATT) {
+                            int index = ((real_y & 3) << 3) | (~x & 7);
+
+                            if (!(state->stipple & (1 << index)))
+                                goto skip_pixel;
+                        } else {
+                            state->stipple = (state->stipple << 1) | (state->stipple >> 31);
+                            if (!(state->stipple & 0x80000000)) {
+                                goto skip_pixel;
+                            }
+                        }
+                    }
+
 #if 0
                     w_depth = CLAMP16(w_depth);
 #endif
@@ -1560,6 +1576,7 @@ voodoo_render_log("voodoo_triangle %i %i %i : vA %f, %f  vB %f, %f  vC %f, %f f 
     if (lodbias & 0x20)
         lodbias |= ~0x3f;
     state.tmu[1].lod = LOD + (lodbias << 6);
+    state.stipple = params->stipple;
 
     voodoo_half_triangle(voodoo, params, &state, vertexAy_adjusted, vertexCy_adjusted, odd_even);
 }

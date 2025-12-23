@@ -33,9 +33,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+#include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
-#include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>

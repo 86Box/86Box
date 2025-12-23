@@ -18,6 +18,7 @@
 
 // Defines
 #define MDA_CRTC_NUM_REGISTERS      32
+#define MDA_VRAM                    0x1000
 
 // Enums & structures
 

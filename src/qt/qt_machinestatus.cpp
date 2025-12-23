@@ -17,9 +17,9 @@
 #include "qt_machinestatus.hpp"
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/hdd.h>
 #include <86box/timer.h>
-#include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/cartridge.h>
 #include <86box/cassette.h>

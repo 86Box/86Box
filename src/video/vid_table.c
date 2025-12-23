@@ -360,7 +360,7 @@ video_reset(int card)
                   card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
     monitor_index_global = 0;
-    loadfont(FONT_IBM_MDA_437_PATH, 0);
+    video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if ((card != VID_NONE) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY) &&
@@ -481,22 +481,4 @@ int
 video_is_cga(void)
 {
     return (video_get_type() == VIDEO_FLAG_TYPE_CGA);
-}
-
-int
-video_is_ega_vga(void)
-{
-    return (video_get_type() == VIDEO_FLAG_TYPE_SPECIAL);
-}
-
-int
-video_is_8514(void)
-{
-    return (video_get_type() == VIDEO_FLAG_TYPE_8514);
-}
-
-int
-video_is_xga(void)
-{
-    return (video_get_type() == VIDEO_FLAG_TYPE_XGA);
 }

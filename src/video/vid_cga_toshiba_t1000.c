@@ -650,7 +650,7 @@ static void *
 t1000_init(UNUSED(const device_t *info))
 {
     t1000_t *t1000 = calloc(1, sizeof(t1000_t));
-    loadfont("roms/machines/t1000/t1000font.bin", 8);
+    video_load_font("roms/machines/t1000/t1000font.bin", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
     cga_init(&t1000->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 
