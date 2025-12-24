@@ -263,6 +263,8 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig)
     // * First you clear it with VMManagerDetailSection::clear()
     // * Then you add each line with VMManagerDetailSection::addSection()
 
+    setUpdatesEnabled(false);
+
     // System
     systemSection->clear();
     systemSection->addSection("Machine", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Machine));
@@ -320,6 +322,8 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig)
     inputSection->setSections();
     portsSection->setSections();
     otherSection->setSections();
+
+    setUpdatesEnabled(true);
 }
 
 void

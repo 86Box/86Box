@@ -39,6 +39,10 @@ VMManagerDetailSection::
     ui->setupUi(this);
 
     frameGridLayout = new QGridLayout();
+    frameGridLayout->setContentsMargins(getMargins(MarginSection::DisplayGrid));
+    ui->detailFrame->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    ui->detailFrame->setLayout(frameGridLayout);
+
     // Create the collapse button, set the name and add it to the layout
     collapseButton = new CollapseButton();
     setSectionName(sectionName);
@@ -128,6 +132,8 @@ VMManagerDetailSection::
     innerFrameLayout->addWidget(buttonWidget);
     innerFrameLayout->addWidget(frame);
     setLayout(outerFrameLayout);
+
+    usedRows = 0;
 }
 
 VMManagerDetailSection::~VMManagerDetailSection()
@@ -156,6 +162,7 @@ VMManagerDetailSection::setupMainLayout()
     delete mainLayout;
     mainLayout = new QVBoxLayout;
 }
+
 void
 VMManagerDetailSection::setSections()
 {
@@ -172,24 +179,58 @@ VMManagerDetailSection::setSections()
                 continue;
             }
 
-            const auto labelValue = new QLabel();
-            labelValue->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
-            labelValue->setTextInteractionFlags(labelValue->textInteractionFlags() | Qt::TextSelectableByMouse);
-            labelValue->setText(line);
-            frameGridLayout->addWidget(labelValue, row, 1, Qt::AlignLeft);
+            auto item  = frameGridLayout->itemAtPosition(row, 1);
+            auto label = item ? ((QLabel *) item->widget()) : nullptr;
+            if (label) {
+                label->setVisible(true);
+            } else {
+                label = new QLabel();
+                label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+                label->setTextInteractionFlags(label->textInteractionFlags() | Qt::TextSelectableByMouse);
+                frameGridLayout->addWidget(label, row, 1, Qt::AlignLeft);
+            }
+            label->setText(line);
 
+            item = frameGridLayout->itemAtPosition(row, 0);
             if (!labelKey) {
-                labelKey = new QLabel();
-                labelKey->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-                labelKey->setTextInteractionFlags(labelValue->textInteractionFlags());
+                if (item)
+                    labelKey = (QLabel *) item->widget();
+                if (labelKey) {
+                    labelKey->setVisible(true);
+                } else {
+                    labelKey = new QLabel();
+                    labelKey->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+                    labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
+                    frameGridLayout->addWidget(labelKey, row, 0, Qt::AlignLeft);
+                }
                 labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
-                frameGridLayout->addWidget(labelKey, row, 0, Qt::AlignLeft);
+            } else if (item) {
+                label = (QLabel *) item->widget();
+                if (label)
+                    label->setVisible(false);
             }
 
-            const auto hSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
-            frameGridLayout->addItem(hSpacer, row, 2);
+            item = frameGridLayout->itemAtPosition(row, 2);
+            if (!item || !item->widget()) {
+                const auto hSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+                frameGridLayout->addItem(hSpacer, row, 2);
+            }
+
             empty = false;
             row++;
+        }
+    }
+
+    int prevUsedRows = usedRows;
+    usedRows = row;
+    for (; row < prevUsedRows; row++) {
+        for (int i = 0; i <= 2; i++) {
+            auto item = frameGridLayout->itemAtPosition(row, i);
+            if (item) {
+                auto widget = item->widget();
+                if (widget)
+                    widget->setVisible(false);
+            }
         }
     }
 
@@ -197,27 +238,12 @@ VMManagerDetailSection::setSections()
     if (!empty)
         setVisible(true);
 }
+
 void
 VMManagerDetailSection::clear()
 {
     sections.clear();
     setVisible(false);
-
-    // Clear everything out
-    if (frameGridLayout) {
-        while (frameGridLayout->count()) {
-            QLayoutItem *cur_item = frameGridLayout->takeAt(0);
-            if (cur_item->widget())
-                delete cur_item->widget();
-            delete cur_item;
-        }
-    }
-
-    delete frameGridLayout;
-    frameGridLayout = new QGridLayout();
-    frameGridLayout->setContentsMargins(getMargins(MarginSection::DisplayGrid));
-    ui->detailFrame->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    ui->detailFrame->setLayout(frameGridLayout);
 }
 
 #ifdef Q_OS_WINDOWS
