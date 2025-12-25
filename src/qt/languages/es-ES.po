@@ -25,7 +25,7 @@ msgid "&Hard reset"
 msgstr "&Hard reset"
 
 msgid "&Ctrl+Alt+Del"
-msgstr "&Ctrl+Alt+Del"
+msgstr "&Ctrl+Alt+Supr"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -613,7 +613,7 @@ msgid "Floppy drives:"
 msgstr "Unidades de disquete:"
 
 msgid "Turbo timings"
-msgstr "Temporizaciones Turbo"
+msgstr "Temporizaciones turbo"
 
 msgid "Check BPB"
 msgstr "Chequear BPB"
@@ -640,7 +640,7 @@ msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr "Expansión de Memoria ISA"
+msgstr "Expansión de memoria ISA"
 
 msgid "ISA ROM Cards"
 msgstr "Tarjetas ROM ISA"
@@ -718,7 +718,7 @@ msgid "All images"
 msgstr "Todas las imagenes"
 
 msgid "Basic sector images"
-msgstr "Imaáenes básicas de sector"
+msgstr "Imágenes básicas de sector"
 
 msgid "Surface images"
 msgstr "Imágenes de superficie"
@@ -727,10 +727,10 @@ msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines
 msgstr "La máquina \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una máquina disponible."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "La tarjeta de vídeo \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una tarjeta de vídeo disponible."
+msgstr "La tarjeta de vídeo \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/video. Cambiando a una tarjeta de vídeo disponible."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "La tarjeta de vídeo 2 \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Deshabilitanto la segunda tarjeta de vídeo."
+msgstr "La tarjeta de vídeo 2 \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/video. Deshabilitanto la segunda tarjeta de vídeo."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
 msgstr "El dispositivo \"%hs\" no está disponible debido a ROMs faltantes. Ignorando el dispositivo."
@@ -820,7 +820,7 @@ msgid "Default"
 msgstr "Por defecto"
 
 msgid "%1 Wait state(s)"
-msgstr "%1 estado(s) de Espera"
+msgstr "%1 estado(s) de espera"
 
 msgid "Type"
 msgstr "Tipo"
@@ -1006,7 +1006,7 @@ msgid "Invalid configuration"
 msgstr "Configuración inválida"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 es necesaria para la conversión automática de archivos PostScript a PDF.\n\nCualquier documento enviado a la impresora genérica postScript se guardará como archivo PostScript (.ps)."
+msgstr "%1 es necesaria para la conversión automática de archivos PostScript a PDF.\n\nCualquier documento enviado a la impresora genérica PostScript se guardará como archivo PostScript (.ps)."
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr "%1 es necesaria para la conversión automática de archivos PCL a PDF.\n\nCualquier documento enviado a la impresora genérica PCL se guardará como archivo Printer Command Language (.pcl)."
@@ -1039,7 +1039,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Está cargando una configuración no soportada"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "El Filtrado de tipo de CPU basado en máquina seleccionada está deshabilitado para la esta máquina.\n\nEsto hace posible seleccionar una CPU que sea incompatible con esta máquina. Por ello, pueden aparecer incompatibilidader con la BIOS de la máquina u otro software.\n\nActivar esta configuración no está oficialmente soportado y cualquier reporte de fallo puede ser cerrado como inválido."
+msgstr "El filtrado de tipo de CPU basado en máquina seleccionada está deshabilitado para la esta máquina.\n\nEsto hace posible seleccionar una CPU que sea incompatible con esta máquina. Por ello, pueden aparecer incompatibilidader con la BIOS de la máquina u otro software.\n\nActivar esta configuración no está oficialmente soportado y cualquier reporte de fallo puede ser cerrado como inválido."
 
 msgid "Continue"
 msgstr "Continuar"
@@ -1069,7 +1069,7 @@ msgid "Pause execution"
 msgstr "Pausar la ejecución"
 
 msgid "Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Supr"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Pulsar Ctrl+Alt+Supr"
@@ -1261,7 +1261,7 @@ msgid "Failed to create directory for cloned VM"
 msgstr "Error al crear el directório para la MV clonada"
 
 msgid "Failed to clone VM."
-msgstr "Error al clonar la VM."
+msgstr "Error al clonar la MV."
 
 msgid "Directory in use"
 msgstr "Directório en uso"
@@ -1300,7 +1300,7 @@ msgid "An update to 86Box is available: %1 %2"
 msgstr "Está disponible una actualización para 86Box: %1 %2"
 
 msgid "An error has occurred while checking for updates: %1"
-msgstr "Ha ocurrido un error al verificar las actualizacioens: %1"
+msgstr "Ha ocurrido un error al verificar las actualizaciones: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
 msgstr "<b>¡Una actualización para 86Box está disponible!</b>"
@@ -1744,7 +1744,7 @@ msgid "86Box Monitor #%1"
 msgstr "Monitor de 86Box %1"
 
 msgid "No MCA devices."
-msgstr "No hay dispositovos MCA."
+msgstr "No hay dispositivos MCA."
 
 msgid "MiB"
 msgstr "MiB"
@@ -2698,10 +2698,10 @@ msgid "60 Hz (JMP2 = 2)"
 msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
-msgstr "Expansión de Memoria Generica PC/XT"
+msgstr "Expansión de memoria generica PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
-msgstr "Expansión de Memoria Generica PC/AT"
+msgstr "Expansión de memoria generica PC/AT"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "No fué posible encontrar las fuentes matriciales"
@@ -2794,7 +2794,7 @@ msgid "This key combo is already in use."
 msgstr "Esta combinación de teclas ya está en uso."
 
 msgid "Send Control+Alt+Del"
-msgstr "Enviar Control+Alt+Del"
+msgstr "Enviar Control+Alt+Supr"
 
 msgid "Send Control+Alt+Escape"
 msgstr "Enviar Control+Alt+Escape"
@@ -2851,7 +2851,7 @@ msgid "&Wipe NVRAM"
 msgstr "&Limpiar el NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Estó borrará todos los archivos de NVRAM (y relacionados) de la máquina virtual ubicados en el subdirectório \"nvr\". Tendrá que reconifigurar la definiciones del BIOS (y talvez de otros dispositivoes dentro de la MV) otra vez si aplicable.\n\n¿Está seguro de que quierere limpiar todos los contenidos de la NVRAM de la máquina virtual \"%1\"?"
+msgstr "Estó borrará todos los archivos de NVRAM (y relacionados) de la máquina virtual ubicados en el subdirectório \"nvr\". Tendrá que reconfigurar la definiciones del BIOS (y tal vez de otros dispositivos dentro de la MV) otra vez si aplicable.\n\n¿Está seguro de que quiere limpiar todos los contenidos de la NVRAM de la máquina virtual \"%1\"?"
 
 msgid "Success"
 msgstr "Éxito"
@@ -2908,7 +2908,7 @@ msgid "<b>Version %1</b> is now available."
 msgstr "<b>La versión %1</b> está ahora disponible."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Actualmente está a ejecutar la compialación <b>%1</b>."
+msgstr "Actualmente está a ejecutar la compilación <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>La compilación %1</b> está ahora disponible."
