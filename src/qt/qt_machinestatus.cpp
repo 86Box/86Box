@@ -534,11 +534,10 @@ MachineStatus::refreshIcons()
         d->fdd[i].setWriteActive(machine_status.fdd[i].write_active);
     }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
-        auto status = cdrom_get_current_status(&cdrom[i]);
         d->cdrom[i].setActive(machine_status.cdrom[i].active);
         d->cdrom[i].setWriteActive(machine_status.cdrom[i].write_active);
-        d->cdrom[i].setPlay(status == 0x11);
-        d->cdrom[i].setPause((!cdrom[i].is_chinon) ? (status == 0x12) : (status == 0x15));
+        d->cdrom[i].setPlay(cdrom_is_playing(i));
+        d->cdrom[i].setPause(cdrom_is_paused(i));
         if (machine_status.cdrom[i].active) {
             ui_sb_update_icon(SB_CDROM | i, 0);
         }

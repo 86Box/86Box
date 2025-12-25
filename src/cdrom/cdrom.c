@@ -3224,6 +3224,22 @@ cdrom_is_empty(const uint8_t id)
     return ret;
 }
 
+int
+cdrom_is_playing(const uint8_t id)
+{
+    const cdrom_t *dev = &cdrom[id];
+
+    return (dev->cd_status == CD_STATUS_PLAYING);
+}
+
+int
+cdrom_is_paused(const uint8_t id)
+{
+    const cdrom_t *dev = &cdrom[id];
+
+    return (dev->cd_status == CD_STATUS_PAUSED);
+}
+
 /* The mechanics of ejecting a CD-ROM from a drive. */
 void
 cdrom_eject(const uint8_t id)
