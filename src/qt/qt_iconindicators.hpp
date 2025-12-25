@@ -16,7 +16,11 @@ enum IconIndicator {
     Browse,
     WriteProtectedBrowse,
     Export,
-    Eject
+    Eject,
+    Play,
+    Pause,
+    PlayActive,
+    PauseActive
 };
 
 QPixmap getIconWithIndicator(const QIcon &icon, const QSize &size, QIcon::Mode iconMode, IconIndicator indicator);

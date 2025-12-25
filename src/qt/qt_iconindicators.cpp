@@ -6,6 +6,10 @@ QIcon
 getIndicatorIcon(IconIndicator indicator)
 {
     switch (indicator) {
+        case Play:
+            return QIcon(":/menuicons/qt/icons/run.ico");
+        case Pause:
+            return QIcon(":/menuicons/qt/icons/pause.ico");
         case Active:
             return QIcon(":/settings/qt/icons/active.ico");
         case WriteActive:
@@ -36,13 +40,18 @@ getIconWithIndicator(const QIcon &icon, const QSize &size, QIcon::Mode iconMode,
         return iconPixmap;
 
     auto painter         = QPainter(&iconPixmap);
-    auto indicatorPixmap = getIndicatorIcon((indicator == ReadWriteActive || indicator == WriteProtectedActive) ? Active : indicator).pixmap(size);
+    auto indicatorPixmap = getIndicatorIcon((indicator == ReadWriteActive || indicator == WriteProtectedActive
+                                            || indicator == PlayActive || indicator == PauseActive)? Active : indicator)
+                                            .pixmap((indicator == Play || indicator == Pause) ? size / 2. : size);
 
     if (indicator == WriteProtectedBrowse)
         indicatorPixmap = getIndicatorIcon(WriteProtected).pixmap(size);
 
-    painter.drawPixmap(0, 0, indicatorPixmap);
-    if ((indicator == ReadWriteActive) || (indicator == WriteProtectedActive)) {
+    painter.drawPixmap(0, (indicator == Play || indicator == Pause) ? (size.height() / 2) : 0, indicatorPixmap);
+    if (indicator == PlayActive || indicator == PauseActive) {
+        auto playPauseIndicatorPixmap = getIndicatorIcon(indicator == PlayActive ? Play : Pause).pixmap(size / 2.);
+        painter.drawPixmap(0, size.height() / 2, playPauseIndicatorPixmap);
+    } else if ((indicator == ReadWriteActive) || (indicator == WriteProtectedActive)) {
         auto writeIndicatorPixmap = getIndicatorIcon(indicator == WriteProtectedActive ? WriteProtected : WriteActive).pixmap(size);
         painter.drawPixmap(0, 0, writeIndicatorPixmap);
     } else if (indicator == WriteProtectedBrowse) {
