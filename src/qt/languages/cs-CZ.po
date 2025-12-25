@@ -210,6 +210,15 @@ msgstr "&Aktualizovat ikony stavového řádku"
 msgid "Take s&creenshot"
 msgstr "Pořídit &screenshot"
 
+msgid "Take &raw screenshot"
+msgstr "Pořídit &surový screenshot"
+
+msgid "C&opy screenshot"
+msgstr "Z&kopírovát screenshot"
+
+msgid "Copy r&aw screenshot"
+msgstr "Zkopírovát s&urový screenshot"
+
 msgid "S&ound"
 msgstr "&Zvuk"
 

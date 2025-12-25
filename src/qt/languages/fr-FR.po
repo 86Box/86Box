@@ -208,7 +208,16 @@ msgid "&Update status bar icons"
 msgstr "Mettre à jour la barre de stat&us"
 
 msgid "Take s&creenshot"
-msgstr "Copie d'é&cran"
+msgstr "Faire copie d'é&cran"
+
+msgid "Take &raw screenshot"
+msgstr "Faire copie &brute d'écran"
+
+msgid "C&opy screenshot"
+msgstr "C&opier copie d'écran"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copier copie b&rute d'écran"
 
 msgid "S&ound"
 msgstr "S&on"

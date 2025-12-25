@@ -204,6 +204,15 @@ msgstr "更新狀態列圖示(&U)"
 msgid "Take s&creenshot"
 msgstr "擷圖(&C)"
 
+msgid "Take &raw screenshot"
+msgstr "原始擷圖(&R)"
+
+msgid "C&opy screenshot"
+msgstr "複製擷圖(&O)"
+
+msgid "Copy r&aw screenshot"
+msgstr "複製原始擷圖(&A)"
+
 msgid "S&ound"
 msgstr "聲音(&O)"
 

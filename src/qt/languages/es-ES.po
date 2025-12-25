@@ -210,6 +210,15 @@ msgstr "&Actualizar iconos en barra de estado"
 msgid "Take s&creenshot"
 msgstr "Tomar cap&tura"
 
+msgid "Take &raw screenshot"
+msgstr "Tomar captura &plana"
+
+msgid "C&opy screenshot"
+msgstr "C&opiar captura"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copiar captura p&lana"
+
 msgid "S&ound"
 msgstr "S&onido"
 

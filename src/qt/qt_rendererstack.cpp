@@ -33,6 +33,9 @@
 #include <atomic>
 #include <stdexcept>
 
+#include <QApplication>
+#include <QClipboard>
+
 #include <QScreen>
 #include <QMessageBox>
 #ifdef TOUCH_PR
@@ -66,9 +69,12 @@
 #    include <windows.h>
 #endif
 
+#include <png.h>
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/mouse.h>
@@ -86,6 +92,8 @@ extern MainWindow *main_window;
 #ifdef Q_OS_WINDOWS
 HWND rw_hwnd;
 #endif
+
+static unsigned char *screenshot_rgb = NULL;
 
 RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QWidget(parent)
@@ -158,12 +166,20 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
     if (monitor_index == 0)
         mouse_set_raw(raw);
+
+    screenshot_rgb = (unsigned char *) calloc(1, (size_t) 2048 * 2048 * 4);
 }
 
 RendererStack::~RendererStack()
 {
+    if (screenshot_rgb != NULL) {
+        free(screenshot_rgb);
+        screenshot_rgb = NULL;
+    }
+
     while (QApplication::overrideCursor())
         QApplication::restoreOverrideCursor();
+
     delete ui;
 }
 
@@ -372,11 +388,7 @@ RendererStack::createRenderer(Renderer renderer)
                 auto sw        = new SoftwareRenderer(this);
                 rendererWindow = sw;
                 connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
-#ifdef __HAIKU__
                 current.reset(sw);
-#else
-                current.reset(this->createWindowContainer(sw));
-#endif
             }
             break;
         case Renderer::OpenGL3:
@@ -460,6 +472,32 @@ RendererStack::createRenderer(Renderer renderer)
     }
 }
 
+uint32_t *screenshot_buf = NULL;
+
+void
+take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i)
+{
+    uint32_t temp = 0x00000000;
+
+    for (int y = 0; y < sh; ++y) {
+        for (int x = 0; x < sw; ++x) {
+            if (screenshot_buf == NULL)
+                memset(&(screenshot_rgb[(y * sw * 3) + (x * 3)]), 0x00, 3);
+            else {
+                temp                                       = screenshot_buf[((sy + y) * 2048) + sx + x];
+                screenshot_rgb[(y * sw * 3) + (x * 3)]     = (temp >> 16) & 0xff;
+                screenshot_rgb[(y * sw * 3) + (x * 3) + 1] = (temp >> 8) & 0xff;
+                screenshot_rgb[(y * sw * 3) + (x * 3) + 2] = temp & 0xff;
+            }
+        }
+    }
+
+    QImage image(screenshot_rgb, sw, sh, sw * 3, QImage::Format_RGB888);
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setImage(image, QClipboard::Clipboard);
+    monitors[i].mon_screenshots_raw_clipboard--;
+}
+
 // called from blitter thread
 void
 RendererStack::blit(int x, int y, int w, int h)
@@ -478,10 +516,11 @@ RendererStack::blit(int x, int y, int w, int h)
         video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
     }
 
-    if (monitors[m_monitor_index].mon_screenshots && !rendererTakesScreenshots) {
+    if (monitors[m_monitor_index].mon_screenshots_raw) {
         video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
     }
     video_blit_complete_monitor(m_monitor_index);
+    screenshot_buf = (uint32_t *) imagebits;
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % imagebufs.size();
 }

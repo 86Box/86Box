@@ -71,6 +71,10 @@
         <file>qt/icons/interpreter.ico</file>
         <file>qt/icons/recompiler.ico</file>
         <file>qt/icons/new_vm.ico</file>
+        <file>qt/icons/take_screenshot.ico</file>
+        <file>qt/icons/take_raw_screenshot.ico</file>
+        <file>qt/icons/copy_screenshot.ico</file>
+        <file>qt/icons/copy_raw_screenshot.ico</file>
     </qresource>
     <qresource prefix="/misc">
         <file>qt/icons/warning.ico</file>

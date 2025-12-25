@@ -204,6 +204,15 @@ msgstr "Durum &çubuğu simgelerini güncelle"
 msgid "Take s&creenshot"
 msgstr "&Ekran görüntüsü al"
 
+msgid "Take &raw screenshot"
+msgstr "Ekran &ham görüntüsü al"
+
+msgid "C&opy screenshot"
+msgstr "Ekran görüntüsü k&opyala"
+
+msgid "Copy r&aw screenshot"
+msgstr "Ekran h&am görüntüsü kopyala"
+
 msgid "S&ound"
 msgstr "&Ses"
 

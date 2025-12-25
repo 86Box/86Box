@@ -70,8 +70,6 @@
     </widget>
     <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
-    <addaction name="actionForce_interpretation"/>
-    <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="separator"/>
@@ -79,6 +77,8 @@
     <addaction name="separator"/>
     <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
+    <addaction name="separator"/>
+    <addaction name="actionForce_interpretation"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
     <addaction name="actionCtrl_Alt_Del"/>
@@ -106,6 +106,10 @@
     <addaction name="actionEnable_Discord_integration"/>
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
+    <addaction name="actionTake_raw_screenshot"/>
+    <addaction name="actionCopy_screenshot"/>
+    <addaction name="actionCopy_raw_screenshot"/>
+    <addaction name="separator"/>
     <addaction name="menuSound"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
@@ -295,8 +299,6 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionForce_interpretation"/>
-   <addaction name="separator"/>
    <addaction name="actionPause"/>
    <addaction name="actionHard_Reset"/>
    <addaction name="separator"/>
@@ -306,6 +308,13 @@
    <addaction name="actionCtrl_Alt_Esc"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
+   <addaction name="separator"/>
+   <addaction name="actionTake_screenshot"/>
+   <addaction name="actionTake_raw_screenshot"/>
+   <addaction name="actionCopy_screenshot"/>
+   <addaction name="actionCopy_raw_screenshot"/>
+   <addaction name="separator"/>
+   <addaction name="actionForce_interpretation"/>
   </widget>
   <action name="actionForce_interpretation">
    <property name="icon">
@@ -748,6 +757,37 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+F11</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/take_screenshot.ico</normaloff>:/menuicons/qt/icons/take_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionTake_raw_screenshot">
+   <property name="text">
+    <string>Take &amp;raw screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/take_raw_screenshot.ico</normaloff>:/menuicons/qt/icons/take_raw_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionCopy_screenshot">
+   <property name="text">
+    <string>C&amp;opy screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/copy_screenshot.ico</normaloff>:/menuicons/qt/icons/copy_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionCopy_raw_screenshot">
+   <property name="text">
+    <string>Copy r&amp;aw screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/copy_raw_screenshot.ico</normaloff>:/menuicons/qt/icons/copy_raw_screenshot.ico</iconset>
    </property>
   </action>
   <action name="actionMute_Unmute">

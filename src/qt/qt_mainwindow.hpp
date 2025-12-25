@@ -132,6 +132,9 @@ private slots:
     void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
     void on_actionTake_screenshot_triggered();
+    void on_actionTake_raw_screenshot_triggered();
+    void on_actionCopy_screenshot_triggered();
+    void on_actionCopy_raw_screenshot_triggered();
     void toggleFullscreenUI();
     void on_actionMute_Unmute_triggered();
     void on_actionSound_gain_triggered();

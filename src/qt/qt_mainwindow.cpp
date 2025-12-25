@@ -2264,6 +2264,36 @@ MainWindow::on_actionTake_screenshot_triggered()
 }
 
 void
+MainWindow::on_actionTake_raw_screenshot_triggered()
+{
+    startblit();
+    for (auto &monitor : monitors)
+        ++monitor.mon_screenshots_raw;
+    endblit();
+    device_force_redraw();
+}
+
+void
+MainWindow::on_actionCopy_screenshot_triggered()
+{
+    startblit();
+    for (auto &monitor : monitors)
+        ++monitor.mon_screenshots_clipboard;
+    endblit();
+    device_force_redraw();
+}
+
+void
+MainWindow::on_actionCopy_raw_screenshot_triggered()
+{
+    startblit();
+    for (auto &monitor : monitors)
+        ++monitor.mon_screenshots_raw_clipboard;
+    endblit();
+    device_force_redraw();
+}
+
+void
 MainWindow::on_actionMute_Unmute_triggered()
 {
     sound_muted ^= 1;

@@ -210,6 +210,15 @@ msgstr "&Päivitä tilapalkin kuvakkeita"
 msgid "Take s&creenshot"
 msgstr "Ota &kuvakaappaus"
 
+msgid "Take &raw screenshot"
+msgstr "Ota &raaka kuvakaapus"
+
+msgid "C&opy screenshot"
+msgstr "K&opia kuvakaapaus"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopia r&aaka kuvakaapaus"
+
 msgid "S&ound"
 msgstr "&Ääni"
 

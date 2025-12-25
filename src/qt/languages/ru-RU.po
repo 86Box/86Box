@@ -211,6 +211,15 @@ msgstr "&Обновление значков строки состояния"
 msgid "Take s&creenshot"
 msgstr "Сделать с&криншот"
 
+msgid "Take &raw screenshot"
+msgstr "Сделать &сырой скриншот"
+
+msgid "C&opy screenshot"
+msgstr "С&копировать скриншот"
+
+msgid "Copy r&aw screenshot"
+msgstr "Скопировать с&ырой скриншот"
+
 msgid "S&ound"
 msgstr "&Звук"
 
@@ -1433,7 +1442,7 @@ msgid "Don't overwrite"
 msgstr "Не перезаписывать"
 
 msgid "Raw image"
-msgstr "RAW образ"
+msgstr "Сырой образ"
 
 msgid "HDI image"
 msgstr "Образ HDI"

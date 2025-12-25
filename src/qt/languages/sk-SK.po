@@ -210,6 +210,15 @@ msgstr "&Aktualizovať ikony na stavovom riadku"
 msgid "Take s&creenshot"
 msgstr "Urobiť snímku &obrazovky"
 
+msgid "Take &raw screenshot"
+msgstr "Urobiť &surovú snímku obrazovky"
+
+msgid "C&opy screenshot"
+msgstr "S&kopírovať snímku obrazovky"
+
+msgid "Copy r&aw screenshot"
+msgstr "Skopírovať s&urovú snímku obrazovky"
+
 msgid "S&ound"
 msgstr "&Zvuk"
 

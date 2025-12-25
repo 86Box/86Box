@@ -11,21 +11,19 @@
 #include "qt_renderercommon.hpp"
 
 class SoftwareRenderer :
-#ifdef __HAIKU__
     public QWidget,
-#else
-    public QWindow,
-#endif
     public RendererCommon {
     Q_OBJECT
 public:
     explicit SoftwareRenderer(QWidget *parent = nullptr);
 
-#ifdef __HAIKU__
     void paintEvent(QPaintEvent *event) override;
-#endif
 
+#ifdef __HAIKU__
     void exposeEvent(QExposeEvent *event) override;
+#else
+    void exposeEvent(QExposeEvent *event);
+#endif
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
 

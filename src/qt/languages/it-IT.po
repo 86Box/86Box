@@ -210,6 +210,15 @@ msgstr "&Aggiorna icone della barra di stato"
 msgid "Take s&creenshot"
 msgstr "&Cattura schermata"
 
+msgid "Take &raw screenshot"
+msgstr "Cattura &grezza della schermata"
+
+msgid "C&opy screenshot"
+msgstr "C&opia cattura della schermata"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copia cattura g&rezza della schermata"
+
 msgid "S&ound"
 msgstr "A&udio"
 
@@ -1420,7 +1429,7 @@ msgid "Don't overwrite"
 msgstr "Non sovrascrivere"
 
 msgid "Raw image"
-msgstr "Immagine RAW"
+msgstr "Immagine grezza"
 
 msgid "HDI image"
 msgstr "Immagine HDI"
