@@ -20,7 +20,9 @@ enum IconIndicator {
     Play,
     Pause,
     PlayActive,
-    PauseActive
+    PauseActive,
+    Record,
+    RecordWriteActive
 };
 
 QPixmap getIconWithIndicator(const QIcon &icon, const QSize &size, QIcon::Mode iconMode, IconIndicator indicator);

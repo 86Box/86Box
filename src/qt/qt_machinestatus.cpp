@@ -83,6 +83,7 @@ struct PixmapSetEmpty {
 struct PixmapSetEmptyActive {
     QPixmap normal;
     QPixmap active;
+    QPixmap record;
     QPixmap play;
     QPixmap pause;
     QPixmap play_active;
@@ -90,6 +91,7 @@ struct PixmapSetEmptyActive {
     QPixmap empty;
     QPixmap empty_active;
     QPixmap write_active;
+    QPixmap record_write_active;
     QPixmap read_write_active;
     QPixmap empty_write_active;
     QPixmap empty_read_write_active;
@@ -175,6 +177,16 @@ struct StateEmptyActive {
     bool                    wp           = false;
     bool                    play         = false;
     bool                    pause        = false;
+    bool                    record       = false;
+
+    void setRecord(bool b)
+    {
+        if (!label || b == record)
+            return;
+
+        record = b;
+        refresh();
+    }
 
     void setPlay(bool b)
     {
@@ -240,6 +252,8 @@ struct StateEmptyActive {
                 label->setPixmap(active ? pixmaps->wp_active : pixmaps->wp);
             else if (active && write_active && !wp)
                 label->setPixmap(pixmaps->read_write_active);
+            else if (record && !active && !wp)
+                label->setPixmap(write_active ? pixmaps->record_write_active : pixmaps->record);
             else if ((play || pause) && !write_active)
                 label->setPixmap(play ? (active ? pixmaps->play_active : pixmaps->play) : (active ? pixmaps->pause_active : pixmaps->pause));
             else
@@ -280,12 +294,14 @@ PixmapSetEmptyActive::load(const QIcon &icon)
     normal                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
     play                    = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Play);
     pause                   = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Pause);
+    record                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Record);
     play_active             = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, PlayActive);
     pause_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, PauseActive);
     wp                      = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtected);
     wp_active               = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedActive);
     active                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
     write_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
+    record_write_active     = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, RecordWriteActive);
     read_write_active       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, ReadWriteActive);
     empty                   = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, None);
     empty_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, Active);
@@ -525,9 +541,20 @@ MachineStatus::refreshEmptyIcons()
 void
 MachineStatus::refreshIcons()
 {
+    /* Always show record/play statuses of cassette even if icon updates are disabled, since it's important to indicate play/record modes. */
+    if (cassette_enable) {
+        d->cassette.setRecord(!!cassette->save);
+        d->cassette.setPlay(!cassette->save);
+    }
+
     /* Check if icons should show activity. */
     if (!update_icons)
         return;
+
+    if (cassette_enable) {
+        d->cassette.setWriteActive(machine_status.cassette.write_active);
+        d->cassette.setActive(machine_status.cassette.active);
+    }
 
     for (size_t i = 0; i < FDD_NUM; ++i) {
         d->fdd[i].setActive(machine_status.fdd[i].active);

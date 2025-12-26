@@ -14,6 +14,8 @@ getIndicatorIcon(IconIndicator indicator)
             return QIcon(":/settings/qt/icons/active.ico");
         case WriteActive:
             return QIcon(":/settings/qt/icons/write_active.ico");
+        case Record:
+            return QIcon(":/settings/qt/icons/record.ico");
         case Disabled:
             return QIcon(":/settings/qt/icons/disabled.ico");
         case WriteProtected:
@@ -41,17 +43,21 @@ getIconWithIndicator(const QIcon &icon, const QSize &size, QIcon::Mode iconMode,
 
     auto painter         = QPainter(&iconPixmap);
     auto indicatorPixmap = getIndicatorIcon((indicator == ReadWriteActive || indicator == WriteProtectedActive
-                                            || indicator == PlayActive || indicator == PauseActive)? Active : indicator)
-                                            .pixmap((indicator == Play || indicator == Pause) ? size / 2. : size);
+                                            || indicator == PlayActive || indicator == PauseActive) ? Active :
+                                            (indicator == RecordWriteActive) ? Record : indicator)
+                                            .pixmap((indicator == Play || indicator == Pause || indicator == Record || indicator == RecordWriteActive) ? size / 2. : size);
 
     if (indicator == WriteProtectedBrowse)
         indicatorPixmap = getIndicatorIcon(WriteProtected).pixmap(size);
 
-    painter.drawPixmap(0, (indicator == Play || indicator == Pause) ? (size.height() / 2) : 0, indicatorPixmap);
+    if (indicator == Record || indicator == RecordWriteActive)
+        painter.drawPixmap(size.width() / 2, size.height() / 2, indicatorPixmap);
+    else
+        painter.drawPixmap(0, (indicator == Play || indicator == Pause) ? (size.height() / 2) : 0, indicatorPixmap);
     if (indicator == PlayActive || indicator == PauseActive) {
         auto playPauseIndicatorPixmap = getIndicatorIcon(indicator == PlayActive ? Play : Pause).pixmap(size / 2.);
         painter.drawPixmap(0, size.height() / 2, playPauseIndicatorPixmap);
-    } else if ((indicator == ReadWriteActive) || (indicator == WriteProtectedActive)) {
+    } else if ((indicator == ReadWriteActive) || (indicator == WriteProtectedActive) || (indicator == RecordWriteActive)) {
         auto writeIndicatorPixmap = getIndicatorIcon(indicator == WriteProtectedActive ? WriteProtected : WriteActive).pixmap(size);
         painter.drawPixmap(0, 0, writeIndicatorPixmap);
     } else if (indicator == WriteProtectedBrowse) {
