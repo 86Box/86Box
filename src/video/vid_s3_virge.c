@@ -828,6 +828,7 @@ s3_virge_recalctimings(svga_t *svga)
 
     if (virge->chip >= S3_TRIO3D2X) {
         svga_set_ramdac_type(svga, (svga->seqregs[0x1b] & 0x10) ? RAMDAC_8BIT : RAMDAC_6BIT);
+        svga->lut_map = !!(svga->seqregs[0x1b] & 0x8);
     }
     if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
@@ -5377,6 +5378,7 @@ s3_virge_init(const device_t *info)
               s3_virge_hwcursor_draw,
               s3_virge_overlay_draw);
     virge->svga.hwcursor.cur_ysize = 64;
+    virge->svga.conv_16to32        = tvp3026_conv_16to32;
 
     if (bios_fn != NULL) {
         if (virge->type == S3_VIRGE_GX2)
