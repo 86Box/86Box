@@ -129,12 +129,12 @@ ad1816_update_mastervol(void *priv)
     if (ad1816->iregs[14] & 0x8000)
         ad1816->master_l = 0;
     else
-        ad1816->master_l = ad1816_vols_5bits[(ad1816->iregs[14] >> 8) & 0x1f] / 65536.0;
+        ad1816->master_l = ad1816_vols_5bits[((ad1816->iregs[14] >> 8) & 0x1f) >> 1] / 65536.0;
 
     if (ad1816->iregs[14] & 0x0080)
         ad1816->master_r = 0;
     else
-        ad1816->master_r = ad1816_vols_5bits[(ad1816->iregs[14]) & 0x1f] / 65536.0;
+        ad1816->master_r = ad1816_vols_5bits[((ad1816->iregs[14]) & 0x1f) >> 1] / 65536.0;
 }
 
 void
@@ -327,17 +327,16 @@ ad1816_poll(void *priv)
         if (ad1816->iregs[4] & 0x8000)
             ad1816->out_l = 0;
         else
-            ad1816->out_l = (int16_t) ((ad1816->out_l * ad1816_vols_6bits[(ad1816->iregs[4] >> 8) & 0x3f]) >> 16);
+            ad1816->out_l = (int16_t) ((ad1816->out_l * ad1816_vols_6bits[((ad1816->iregs[4] >> 8) & 0x3f) >> 1]) >> 16);
 
         if (ad1816->iregs[4] & 0x0080)
             ad1816->out_r = 0;
         else
-            ad1816->out_r = (int16_t) ((ad1816->out_r * ad1816_vols_6bits[ad1816->iregs[4] & 0x3f]) >> 16);
+            ad1816->out_r = (int16_t) ((ad1816->out_r * ad1816_vols_6bits[(ad1816->iregs[4] & 0x3f) >> 1]) >> 16);
 
         if (ad1816->count < 0) {
             ad1816->count     = ad1816->iregs[8];
             ad1816->regs[1] |= 0x80;
-            ad1816->playback_pos = 0;
             if (ad1816->iregs[1] & 0x8000) {
                 ad1816_log(ad1816->log, "AD1816 Playback interrupt fired\n");
                 picint(1 << ad1816->cur_irq);
