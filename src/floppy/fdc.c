@@ -1142,7 +1142,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
                                 else
                                     timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
-                                break;
+                                break;                                
                             default:
                                 timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
                                 break;
@@ -1882,13 +1882,17 @@ fdc_callback(void *priv)
             fdc->st0                     = 0x20 | (fdc->params[0] & 3);
             if (!fdd_track0(drive_num))
                 fdc->st0 |= 0x50;
-            if (fdc->flags & FDC_FLAG_PCJR) {
-                fdc->fintr     = 1;
-                fdc->interrupt = -4;
-            } else
-                fdc->interrupt = -3;
-            timer_set_delay_u64(&fdc->timer, 2048 * TIMER_USEC);
             fdc->stat = 0x10 | (1 << fdc->rw_drive);
+            if (fdd_get_turbo(drive_num)) {
+                if (fdc->flags & FDC_FLAG_PCJR) {
+                    fdc->fintr     = 1;
+                    fdc->interrupt = -4;
+                } else {
+                    fdc->interrupt = -3;
+                }
+                timer_set_delay_u64(&fdc->timer, 2048 * TIMER_USEC);
+            }
+            /* Interrupts and callbacks in the fdd callback function (fdc_seek_complete_interrupt) */
             return;
         case 0x0d: /*Format track*/
             if (fdc->format_state == 1) {
