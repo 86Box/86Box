@@ -389,6 +389,10 @@ video_reset(int card)
 void
 video_post_reset(void)
 {
+    /* Reset the graphics card (or do nothing if it was already done
+       by the machine's init function). */
+    video_reset(gfxcard[0]);
+
     int ibm8514_has_vga = 0;
     if (gfxcard[0] == VID_INTERNAL)
         ibm8514_has_vga = (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_8514);
@@ -408,9 +412,6 @@ video_post_reset(void)
 
     if (da2_standalone_enabled)
         da2_device_add();
-    /* Reset the graphics card (or do nothing if it was already done
-       by the machine's init function). */
-    video_reset(gfxcard[0]);
 }
 
 void
