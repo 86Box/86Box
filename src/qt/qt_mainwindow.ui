@@ -321,9 +321,6 @@
     <iconset resource="../qt_resources.qrc">
      <normaloff>:/menuicons/qt/icons/interpreter.ico</normaloff>:/menuicons/qt/icons/interpreter.ico</iconset>
    </property>
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="text">
     <string>&amp;Force interpretation</string>
    </property>
