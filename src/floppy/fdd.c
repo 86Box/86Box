@@ -419,19 +419,14 @@ fdd_seek(int drive, int track_diff)
 
     fdd_changed[drive] = 0;
 
-    if (fdd[drive].turbo)
+    if (fdd[drive].turbo) {
         fdd_do_seek(drive, fdd[drive].track);
-    else {
+    } else {
         /* Trigger appropriate audio for track movements */
         int actual_track_diff = abs(old_track - fdd[drive].track);
         if (actual_track_diff > 0) {
             /* Multi-track seek */
             fdd_audio_play_multi_track_seek(drive, old_track, fdd[drive].track);
-        }
-
-        if (old_track + track_diff < 0) {
-            fdd_do_seek(drive, fdd[drive].track);
-            return;
         }
 
         fdd_seek_in_progress[drive] = 1;
