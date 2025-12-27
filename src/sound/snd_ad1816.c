@@ -337,7 +337,6 @@ ad1816_poll(void *priv)
         if (ad1816->count < 0) {
             ad1816->count     = ad1816->iregs[8];
             ad1816->regs[1] |= 0x80;
-            ad1816->playback_pos = 0;
             if (ad1816->iregs[1] & 0x8000) {
                 ad1816_log(ad1816->log, "AD1816 Playback interrupt fired\n");
                 picint(1 << ad1816->cur_irq);
