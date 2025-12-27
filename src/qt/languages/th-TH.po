@@ -1240,7 +1240,7 @@ msgid "C&lone…"
 msgstr "คัดลอก… (&L)"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
-msgstr "เครื่องเสมือน "%1" (%2) จะถูกโคลนไปยัง:"
+msgstr "เครื่องเสมือน \"%1\" (%2) จะถูกโคลนไปยัง:"
 
 msgid "Directory %1 already exists"
 msgstr "ไดเร็กทอรี %1 มีอยู่แล้ว"
