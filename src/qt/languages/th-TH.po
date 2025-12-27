@@ -1,0 +1,3004 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Language: th_TH\n"
+"X-Source-Language: en_US\n"
+
+msgid "&Action"
+msgstr "การกระทำ (&A)"
+
+msgid "&Keyboard requires capture"
+msgstr "ต้องจับภาพแป้นพิมพ์ (&K)"
+
+msgid "&Right CTRL is left ALT"
+msgstr "ปุ่ม CTRL ขวาคือปุ่ม ALT ซ้าย (&R)"
+
+msgid "&Hard Reset…"
+msgstr "รีเซ็ตแบบฮาร์ดรีเซ็ต… (&H)"
+
+msgid "&Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del (&C)"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+Esc (&E)"
+
+msgid "&Pause"
+msgstr "หยุดชั่วคราว (&P)"
+
+msgid "Pause"
+msgstr "หยุดชั่วคราว"
+
+msgid "E&xit…"
+msgstr "ออก… (&X)"
+
+msgid "Re&sume"
+msgstr "กลับมาทำงานต่อ (&S)"
+
+msgid "&View"
+msgstr "ดู (&V)"
+
+msgid "&Hide status bar"
+msgstr "ซ่อนแถบสถานะ (&H)"
+
+msgid "Hide &toolbar"
+msgstr "ซ่อนแถบเครื่องมือ (&T)"
+
+msgid "&Resizeable window"
+msgstr "หน้าต่างที่ปรับขนาดได้ (&R)"
+
+msgid "R&emember size && position"
+msgstr "จดจำขนาดและตำแหน่ง (&E)"
+
+msgid "Remember size && position"
+msgstr "จดจำขนาดและตำแหน่ง"
+
+msgid "Re&nderer"
+msgstr "ตัวแสดงผล (&N)"
+
+msgid "&Qt (Software)"
+msgstr "Qt (ซอฟต์แวร์) (&Q)"
+
+msgid "Open&GL (3.0 Core)"
+msgstr "OpenGL (3.0 Core) (&G)"
+
+msgid "&VNC"
+msgstr "VNC (&V)"
+
+msgid "Specify dimensions…"
+msgstr "ระบุขนาด…"
+
+msgid "F&orce 4:3 display ratio"
+msgstr "บังคับอัตราส่วนการแสดงผล 4:3 (&O)"
+
+msgid "&Window scale factor"
+msgstr "ตัวคูณมาตราส่วนหน้าต่าง (&W)"
+
+msgid "&0.5x"
+msgstr "0.5x (&0)"
+
+msgid "&1x"
+msgstr "1x (&1)"
+
+msgid "1.&5x"
+msgstr "1.5x (&5)"
+
+msgid "&2x"
+msgstr "2x (&2)"
+
+msgid "&3x"
+msgstr "3x (&3)"
+
+msgid "&4x"
+msgstr "4x (&4)"
+
+msgid "&5x"
+msgstr "5x (&5)"
+
+msgid "&6x"
+msgstr "6x (&6)"
+
+msgid "&7x"
+msgstr "7x (&7)"
+
+msgid "&8x"
+msgstr "8x (&8)"
+
+msgid "Filter method"
+msgstr "วิธีการกรอง"
+
+msgid "&Nearest"
+msgstr "ใกล้ที่สุด (&N)"
+
+msgid "&Linear"
+msgstr "เชิงเส้น (&L)"
+
+msgid "Hi&DPI scaling"
+msgstr "การปรับขนาด HiDPI (&D)"
+
+msgid "&Fullscreen"
+msgstr "เต็มหน้าจอ (&F)"
+
+msgid "Fullscreen &stretch mode"
+msgstr "โหมดการยืดเต็มหน้าจอ (&S)"
+
+msgid "&Full screen stretch"
+msgstr "การยืดเต็มหน้าจอ (&F)"
+
+msgid "&4:3"
+msgstr "4:3 (&4)"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "พิกเซลสี่เหลี่ยม (รักษาสัดส่วน) (&S)"
+
+msgid "&Integer scale"
+msgstr "มาตราส่วนจำนวนเต็ม (&I)"
+
+msgid "4:&3 Integer scale"
+msgstr "มาตราส่วนจำนวนเต็ม 4:3 (&3)"
+
+msgid "E&GA/(S)VGA settings"
+msgstr "การตั้งค่า EGA/(S)VGA (&G)"
+
+msgid "&Inverted VGA monitor"
+msgstr "จอภาพ VGA กลับด้าน (&I)"
+
+msgid "VGA screen &type"
+msgstr "ประเภทหน้าจอ VGA (&T)"
+
+msgid "RGB &Color"
+msgstr "สี RGB (&C)"
+
+msgid "RGB (no brown)"
+msgstr "RGB (&ไม่มีสีน้ำตาล)"
+
+msgid "&RGB Grayscale"
+msgstr "โทนสีเทา RGB (&R)"
+
+msgid "Generic RGBI color monitor"
+msgstr "จอภาพสี RGBI ทั่วไป"
+
+msgid "&Amber monitor"
+msgstr "จอภาพสีเหลืองอำพัน (&A)"
+
+msgid "&Green monitor"
+msgstr "จอภาพสีเขียว (&G)"
+
+msgid "&White monitor"
+msgstr "จอภาพสีขาว (&W)"
+
+msgid "Grayscale &conversion type"
+msgstr "ประเภทการแปลงโทนสีเทา (&C)"
+
+msgid "BT&601 (NTSC/PAL)"
+msgstr "BT601 (NTSC/PAL) (&6)"
+
+msgid "BT&709 (HDTV)"
+msgstr "BT709 (HDTV) (&7)"
+
+msgid "&Average"
+msgstr "ค่าเฉลี่ย (&A)"
+
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "CGA/PCjr/Tandy/EGA/(S)VGA โอเวอร์สแกน (&G)"
+
+msgid "Change contrast for &monochrome display"
+msgstr "เปลี่ยนความคมชัดสำหรับจอแสดงผลขาวดำ (&M)"
+
+msgid "&Media"
+msgstr "สื่อ (&M)"
+
+msgid "&Tools"
+msgstr "เครื่องมือ (&T)"
+
+msgid "&Settings…"
+msgstr "การตั้งค่า… (&S)"
+
+msgid "Settings…"
+msgstr "การตั้งค่า…"
+
+msgid "&Update status bar icons"
+msgstr "อัปเดตไอคอนแถบสถานะ (&U)"
+
+msgid "Take s&creenshot"
+msgstr "ถ่ายภาพหน้าจอ (&S)"
+
+msgid "Take &raw screenshot"
+msgstr "ถ่ายภาพหน้าจอแบบดิบ (&R)"
+
+msgid "C&opy screenshot"
+msgstr "คัดลอกภาพหน้าจอ (&O)"
+
+msgid "Copy r&aw screenshot"
+msgstr "คัดลอกภาพหน้าจอแบบดิบ (&A)"
+
+msgid "S&ound"
+msgstr "เสียง (&S)"
+
+msgid "&Preferences…"
+msgstr "การตั้งค่า… (&P)"
+
+msgid "Enable &Discord integration"
+msgstr "เปิดใช้งานการรวม Discord (&D)"
+
+msgid "Sound &gain…"
+msgstr "ระดับเสียง… (&G)"
+
+msgid "Begin trace"
+msgstr "เริ่มการติดตาม"
+
+msgid "End trace"
+msgstr "สิ้นสุดการติดตาม"
+
+msgid "&Help"
+msgstr "ความช่วยเหลือ (&H)"
+
+msgid "&Documentation…"
+msgstr "เอกสารประกอบ… (&D)"
+
+msgid "&About 86Box…"
+msgstr "เกี่ยวกับ 86Box… (&A)"
+
+msgid "&New image…"
+msgstr "ภาพใหม่… (&N)"
+
+msgid "&Existing image…"
+msgstr "ภาพที่มีอยู่… (&E)"
+
+msgid "Existing image (&Write-protected)…"
+msgstr "ภาพที่มีอยู่ (ป้องกันการเขียน)… (&W)"
+
+msgid "&Record"
+msgstr "บันทึก (&R)"
+
+msgid "&Play"
+msgstr "เล่น (&P)"
+
+msgid "&Rewind to the beginning"
+msgstr "ย้อนกลับไปยังจุดเริ่มต้น (&R)"
+
+msgid "&Fast forward to the end"
+msgstr "กรอไปข้างหน้าจนถึงจุดสิ้นสุด (&F)"
+
+msgid "E&ject"
+msgstr "นำออก (&J)"
+
+msgid "&Image…"
+msgstr "รูปภาพ… (&I)"
+
+msgid "E&xport to 86F…"
+msgstr "ส่งออกไปยัง 86F… (&X)"
+
+msgid "&Mute"
+msgstr "ปิดเสียง (&M)"
+
+msgid "E&mpty"
+msgstr "ล้างข้อมูล (&T)"
+
+msgid "Reload previous image"
+msgstr "โหลดรูปภาพก่อนหน้า"
+
+msgid "&Folder…"
+msgstr "โฟลเดอร์… (&F)"
+
+msgid "Preferences"
+msgstr "การตั้งค่า"
+
+msgid "Sound Gain"
+msgstr "ระดับเสียง"
+
+msgid "New Image"
+msgstr "รูปภาพใหม่"
+
+msgid "Settings"
+msgstr "การตั้งค่า"
+
+msgid "Specify Main Window Dimensions"
+msgstr "ระบุขนาดหน้าต่างหลัก"
+
+msgid "OK"
+msgstr "ตกลง"
+
+msgid "Cancel"
+msgstr "ยกเลิก"
+
+msgid "&Default"
+msgstr "ค่าเริ่มต้น (&D)"
+
+msgid "Language:"
+msgstr "ภาษา:"
+
+msgid "Gain"
+msgstr "เกน"
+
+msgid "File name:"
+msgstr "ชื่อไฟล์:"
+
+msgid "Disk size:"
+msgstr "ขนาดดิสก์:"
+
+msgid "RPM mode:"
+msgstr "โหมด RPM:"
+
+msgid "Progress:"
+msgstr "ความคืบหน้า:"
+
+msgid "Width:"
+msgstr "ความกว้าง:"
+
+msgid "Height:"
+msgstr "ความสูง:"
+
+msgid "Lock to this size"
+msgstr "ล็อกขนาดนี้"
+
+msgid "Machine type:"
+msgstr "ประเภทเครื่อง:"
+
+msgid "Machine:"
+msgstr "เครื่อง:"
+
+msgid "Configure"
+msgstr "กำหนดค่า"
+
+msgid "CPU:"
+msgstr "ซีพียู:"
+
+msgid "CPU type:"
+msgstr "ประเภทซีพียู:"
+
+msgid "Speed:"
+msgstr "ความเร็ว:"
+
+msgid "Frequency:"
+msgstr "ความถี่:"
+
+msgid "FPU:"
+msgstr "FPU:"
+
+msgid "Wait states:"
+msgstr "สถานะการรอ:"
+
+msgid "MB"
+msgstr "MB"
+
+msgid "Memory:"
+msgstr "หน่วยความจำ:"
+
+msgid "Time synchronization"
+msgstr "การซิงโครไนซ์เวลา"
+
+msgid "Disabled"
+msgstr "ปิดใช้งาน"
+
+msgid "Enabled (local time)"
+msgstr "เปิดใช้งาน (เวลาท้องถิ่น)"
+
+msgid "Enabled (UTC)"
+msgstr "เปิดใช้งาน (UTC)"
+
+msgid "Dynamic Recompiler"
+msgstr "ตัวคอมไพล์แบบไดนามิก"
+
+msgid "CPU frame size"
+msgstr "ขนาดเฟรมซีพียู"
+
+msgid "Larger frames (less smooth)"
+msgstr "เฟรมขนาดใหญ่ (ลื่นไหลน้อยลง)"
+
+msgid "Smaller frames (smoother)"
+msgstr "เฟรมขนาดเล็ก (ลื่นไหลมากขึ้น)"
+
+msgid "Video:"
+msgstr "วิดีโอ:"
+
+msgid "Video #2:"
+msgstr "วิดีโอ 2:"
+
+msgid "Voodoo 1 or 2 Graphics"
+msgstr "กราฟิก Voodoo 1 หรือ 2"
+
+msgid "IBM 8514/A Graphics"
+msgstr "กราฟิก IBM 8514/A"
+
+msgid "XGA Graphics"
+msgstr "กราฟิก XGA"
+
+msgid "IBM PS/55 Display Adapter Graphics"
+msgstr "กราฟิกอะแดปเตอร์แสดงผล IBM PS/55"
+
+msgid "Keyboard:"
+msgstr "คีย์บอร์ด:"
+
+msgid "Keyboard"
+msgstr "คีย์บอร์ด"
+
+msgid "Mouse:"
+msgstr "เมาส์:"
+
+msgid "Mouse"
+msgstr "เมาส์"
+
+msgid "Joystick:"
+msgstr "จอยสติ๊ก:"
+
+msgid "Joystick"
+msgstr "จอยสติ๊ก"
+
+msgid "Joystick 1…"
+msgstr "จอยสติ๊ก 1…"
+
+msgid "Joystick 2…"
+msgstr "จอยสติ๊ก 2…"
+
+msgid "Joystick 3…"
+msgstr "จอยสติ๊ก 3…"
+
+msgid "Joystick 4…"
+msgstr "จอยสติ๊ก 4…"
+
+msgid "Sound card #1:"
+msgstr "การ์ดเสียง 1:"
+
+msgid "Sound card #2:"
+msgstr "การ์ดเสียง 2:"
+
+msgid "Sound card #3:"
+msgstr "การ์ดเสียง 3:"
+
+msgid "Sound card #4:"
+msgstr "การ์ดเสียง 4:"
+
+msgid "MIDI Out Device:"
+msgstr "อุปกรณ์ MIDI เอาต์:"
+
+msgid "MIDI In Device:"
+msgstr "อุปกรณ์ MIDI อิน:"
+
+msgid "MIDI Out:"
+msgstr "MIDI เอาต์:"
+
+msgid "Standalone MPU-401"
+msgstr "MPU-401 แบบสแตนด์อโลน"
+
+msgid "Use FLOAT32 sound"
+msgstr "ใช้เสียง FLOAT32"
+
+msgid "FM synth driver"
+msgstr "ไดรเวอร์ซินธ์ FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (แม่นยำกว่า)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (เร็วกว่า)"
+
+msgid "COM1 Device:"
+msgstr "อุปกรณ์ COM1:"
+
+msgid "COM2 Device:"
+msgstr "อุปกรณ์ COM2:"
+
+msgid "COM3 Device:"
+msgstr "อุปกรณ์ COM3:"
+
+msgid "COM4 Device:"
+msgstr "อุปกรณ์ COM4:"
+
+msgid "LPT1 Device:"
+msgstr "อุปกรณ์ LPT1:"
+
+msgid "LPT2 Device:"
+msgstr "อุปกรณ์ LPT2:"
+
+msgid "LPT3 Device:"
+msgstr "อุปกรณ์ LPT3:"
+
+msgid "LPT4 Device:"
+msgstr "อุปกรณ์ LPT4:"
+
+msgid "Internal LPT ECP DMA:"
+msgstr "LPT ECP DMA ภายใน:"
+
+msgid "Serial port 1"
+msgstr "พอร์ตอนุกรม 1"
+
+msgid "Serial port 2"
+msgstr "พอร์ตอนุกรม 2"
+
+msgid "Serial port 3"
+msgstr "พอร์ตอนุกรม 3"
+
+msgid "Serial port 4"
+msgstr "พอร์ตอนุกรม 4"
+
+msgid "Parallel port 1"
+msgstr "พอร์ตขนาน 1"
+
+msgid "Parallel port 2"
+msgstr "พอร์ตขนาน 2"
+
+msgid "Parallel port 3"
+msgstr "พอร์ตขนาน 3"
+
+msgid "Parallel port 4"
+msgstr "พอร์ตขนาน 4"
+
+msgid "Floppy disk controller:"
+msgstr "ตัวควบคุมฟลอปปี้ดิสก์:"
+
+msgid "CD-ROM controller:"
+msgstr "ตัวควบคุม CD-ROM:"
+
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] ตัวควบคุม IDE ระดับที่สาม"
+
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] ตัวควบคุม IDE ระดับที่สี่"
+
+msgid "Hard disk controllers"
+msgstr "ตัวควบคุมฮาร์ดดิสก์"
+
+msgid "SCSI controllers"
+msgstr "ตัวควบคุม SCSI"
+
+msgid "Controller 1:"
+msgstr "ตัวควบคุม 1:"
+
+msgid "Controller 2:"
+msgstr "คอนโทรลเลอร์ 2:"
+
+msgid "Controller 3:"
+msgstr "คอนโทรลเลอร์ 3:"
+
+msgid "Controller 4:"
+msgstr "คอนโทรลเลอร์ 4:"
+
+msgid "Cassette"
+msgstr "เทปคาสเซ็ต"
+
+msgid "Hard disks:"
+msgstr "ฮาร์ดดิสก์:"
+
+msgid "Firmware Version"
+msgstr "เวอร์ชันเฟิร์มแวร์"
+
+msgid "&New…"
+msgstr "ใหม่… (&N)"
+
+msgid "&Existing…"
+msgstr "ที่มีอยู่แล้ว… (&E)"
+
+msgid "&Remove"
+msgstr "ลบ (&R)"
+
+msgid "Bus:"
+msgstr "บัส:"
+
+msgid "Channel:"
+msgstr "แชนเนล:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "Sectors:"
+msgstr "เซกเตอร์:"
+
+msgid "Heads:"
+msgstr "หัวอ่าน:"
+
+msgid "Cylinders:"
+msgstr "กระบอกสูบ:"
+
+msgid "Size (MB):"
+msgstr "ขนาด (MB):"
+
+msgid "Type:"
+msgstr "ประเภท:"
+
+msgid "Image Format:"
+msgstr "รูปแบบภาพ:"
+
+msgid "Block Size:"
+msgstr "ขนาดบล็อก:"
+
+msgid "Floppy drives:"
+msgstr "ฟลอปปี้ไดรฟ์:"
+
+msgid "Turbo timings"
+msgstr "เวลาเทอร์โบ"
+
+msgid "Check BPB"
+msgstr "ตรวจสอบ BPB"
+
+msgid "CD-ROM drives:"
+msgstr "ไดรฟ์ CD-ROM:"
+
+msgid "MO drives:"
+msgstr "ไดรฟ์ MO:"
+
+msgid "MO:"
+msgstr "MO:"
+
+msgid "Removable disks:"
+msgstr "ดิสก์แบบถอดได้:"
+
+msgid "Removable disk drives:"
+msgstr "ไดรฟ์ดิสก์แบบถอดได้:"
+
+msgid "ZIP 250"
+msgstr "ZIP 250"
+
+msgid "ISA RTC:"
+msgstr "ISA RTC:"
+
+msgid "ISA Memory Expansion"
+msgstr "การขยายหน่วยความจำ ISA"
+
+msgid "ISA ROM Cards"
+msgstr "การ์ด ISA ROM"
+
+msgid "Card 1:"
+msgstr "การ์ด 1:"
+
+msgid "Card 2:"
+msgstr "การ์ด 2:"
+
+msgid "Card 3:"
+msgstr "การ์ด 3:"
+
+msgid "Card 4:"
+msgstr "การ์ด 4:"
+
+msgid "Generic ISA ROM Board"
+msgstr "บอร์ด ISA ROM ทั่วไป"
+
+msgid "Generic Dual ISA ROM Board"
+msgstr "บอร์ด Dual ISA ROM ทั่วไป"
+
+msgid "Generic Quad ISA ROM Board"
+msgstr "บอร์ด Quad ISA ROM ทั่วไป"
+
+msgid "ISABugger device"
+msgstr "อุปกรณ์ ISABugger"
+
+msgid "POST card"
+msgstr "การ์ด POST"
+
+msgid "Error"
+msgstr "ข้อผิดพลาด"
+
+msgid "Fatal error"
+msgstr "ข้อผิดพลาดร้ายแรง"
+
+msgid " - PAUSED"
+msgstr "- หยุดชั่วคราว"
+
+msgid "Speed"
+msgstr "ความเร็ว"
+
+msgid "Removable disk %1 (%2): %3"
+msgstr "ดิสก์แบบถอดได้ %1 (%2): %3"
+
+msgid "&Removable disk %1 (%2): %3"
+msgstr "ดิสก์แบบถอดได้ (&R) %1 (%2): %3"
+
+msgid "Removable disk images"
+msgstr "อิมเมจดิสก์แบบถอดได้"
+
+msgid "Image %1"
+msgstr "อิมเมจ %1"
+
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box ไม่พบไฟล์ ROM ที่ใช้งานได้\n\nโปรดดาวน์โหลดชุด ROM และแตกไฟล์ลงในโฟลเดอร์ \"roms\""
+
+msgid "(empty)"
+msgstr "(ว่างเปล่า)"
+
+msgid "All files"
+msgstr "ไฟล์ทั้งหมด"
+
+msgid "Turbo"
+msgstr "เทอร์โบ"
+
+msgid "On"
+msgstr "เปิด"
+
+msgid "Off"
+msgstr "ปิด"
+
+msgid "All images"
+msgstr "รูปภาพทั้งหมด"
+
+msgid "Basic sector images"
+msgstr "รูปภาพภาคส่วนพื้นฐาน"
+
+msgid "Surface images"
+msgstr "รูปภาพพื้นผิว"
+
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "ไม่สามารถใช้งานเครื่อง \"%hs\" ได้เนื่องจากไฟล์ ROM ในไดเร็กทอรี roms/machines หายไป\nกำลังเปลี่ยนไปใช้เครื่องอื่นที่ใช้งานได้"
+
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "การ์ดแสดงผล \"%hs\" ไม่สามารถใช้งานได้เนื่องจากไฟล์ ROM ในไดเร็กทอรี roms/video หายไป\nกำลังเปลี่ยนไปใช้การ์ดแสดงผลที่ใช้งานได้"
+
+msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "การ์ดแสดงผล 2 \"%hs\" ไม่สามารถใช้งานได้เนื่องจากไฟล์ ROM ในไดเร็กทอรี roms/video หายไป\nปิดใช้งานการ์ดแสดงผลตัวที่สอง"
+
+msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgstr "อุปกรณ์ \"%hs\" ไม่พร้อมใช้งานเนื่องจาก ROM หายไป\nไม่สนใจอุปกรณ์นี้"
+
+msgid "Machine"
+msgstr "เครื่อง"
+
+msgid "Display"
+msgstr "จอแสดงผล"
+
+msgid "Input devices"
+msgstr "อุปกรณ์ป้อนข้อมูล"
+
+msgid "Sound"
+msgstr "เสียง"
+
+msgid "Network"
+msgstr "เครือข่าย"
+
+msgid "Ports (COM & LPT)"
+msgstr "พอร์ต (COM และ LPT)"
+
+msgid "Ports"
+msgstr "พอร์ต"
+
+msgid "Serial ports:"
+msgstr "พอร์ตอนุกรม:"
+
+msgid "Parallel ports:"
+msgstr "พอร์ตขนาน:"
+
+msgid "Storage controllers"
+msgstr "ตัวควบคุมการจัดเก็บข้อมูล"
+
+msgid "Hard disks"
+msgstr "ฮาร์ดดิสก์"
+
+msgid "Disks"
+msgstr "ดิสก์"
+
+msgid "Floppy:"
+msgstr "ฟลอปปี้ดิสก์:"
+
+msgid "Controllers:"
+msgstr "ตัวควบคุม:"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "ไดรฟ์ฟลอปปี้ดิสก์และซีดีรอม"
+
+msgid "Other removable devices"
+msgstr "อุปกรณ์ถอดได้อื่นๆ"
+
+msgid "Other peripherals"
+msgstr "อุปกรณ์ต่อพ่วงอื่นๆ"
+
+msgid "Other devices"
+msgstr "อุปกรณ์อื่นๆ"
+
+msgid "Click to capture mouse"
+msgstr "คลิกเพื่อจับภาพเมาส์"
+
+msgid "Press %1 to release mouse"
+msgstr "กด %1 เพื่อปล่อยเมาส์"
+
+msgid "Press %1 or middle button to release mouse"
+msgstr "กด %1 หรือปุ่มกลางเพื่อปล่อยเมาส์"
+
+msgid "Bus"
+msgstr "บัส"
+
+msgid "File"
+msgstr "ไฟล์"
+
+msgid "C"
+msgstr "C"
+
+msgid "H"
+msgstr "H"
+
+msgid "S"
+msgstr "S"
+
+msgid "KB"
+msgstr "KB"
+
+msgid "Default"
+msgstr "ค่าเริ่มต้น"
+
+msgid "%1 Wait state(s)"
+msgstr "%1 สถานะรอ"
+
+msgid "Type"
+msgstr "ประเภท"
+
+msgid "No PCap devices found"
+msgstr "ไม่พบอุปกรณ์ PCap"
+
+msgid "Invalid PCap device"
+msgstr "อุปกรณ์ PCap ไม่ถูกต้อง"
+
+msgid "Generic paddle controller(s)"
+msgstr "ตัวควบคุมแบบพายทั่วไป"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "จอยสติ๊ก 2 แกน 1 ปุ่ม"
+
+msgid "2-axis, 2-button joystick(s)"
+msgstr "จอยสติ๊ก 2 แกน 2 ปุ่ม"
+
+msgid "2-axis, 3-button joystick"
+msgstr "จอยสติ๊ก 2 แกน 3 ปุ่ม"
+
+msgid "2-axis, 4-button joystick"
+msgstr "จอยสติ๊ก 2 แกน 4 ปุ่ม"
+
+msgid "2-axis, 6-button joystick"
+msgstr "จอยสติ๊ก 2 แกน 6 ปุ่ม"
+
+msgid "2-axis, 8-button joystick"
+msgstr "จอยสติ๊ก 2 แกน 8 ปุ่ม"
+
+msgid "3-axis, 2-button joystick"
+msgstr "จอยสติ๊ก 3 แกน 2 ปุ่ม"
+
+msgid "3-axis, 3-button joystick"
+msgstr "3 แกน จอยสติ๊ก 3 ปุ่ม"
+
+msgid "3-axis, 4-button joystick"
+msgstr "จอยสติ๊ก 3 แกน 4 ปุ่ม"
+
+msgid "4-axis, 2-button joystick"
+msgstr "จอยสติ๊ก 4 แกน 2 ปุ่ม"
+
+msgid "4-axis, 3-button joystick"
+msgstr "จอยสติ๊ก 4 แกน 3 ปุ่ม"
+
+msgid "4-axis, 4-button joystick"
+msgstr "จอยสติ๊ก 4 แกน 4 ปุ่ม"
+
+msgid "2-button gamepad(s)"
+msgstr "เกมแพด 2 ปุ่ม"
+
+msgid "3-button gamepad"
+msgstr "เกมแพด 3 ปุ่ม"
+
+msgid "4-button gamepad"
+msgstr "เกมแพด 4 ปุ่ม"
+
+msgid "6-button gamepad"
+msgstr "เกมแพด 6 ปุ่ม"
+
+msgid "2-button flight yoke"
+msgstr "คันบังคับเครื่องบิน 2 ปุ่ม"
+
+msgid "3-button flight yoke"
+msgstr "คันบังคับเครื่องบิน 3 ปุ่ม"
+
+msgid "4-button flight yoke"
+msgstr "คันบังคับเครื่องบิน 4 ปุ่ม"
+
+msgid "2-button flight yoke with throttle"
+msgstr "คันบังคับเครื่องบิน 2 ปุ่มพร้อมคันเร่ง"
+
+msgid "3-button flight yoke with throttle"
+msgstr "คันบังคับเครื่องบิน 3 ปุ่มพร้อมคันเร่ง"
+
+msgid "4-button flight yoke with throttle"
+msgstr "คันบังคับเครื่องบิน 4 ปุ่มพร้อมคันเร่ง"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "พวงมาลัย (3 แกน 2 ปุ่ม)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "พวงมาลัย (3 แกน 3 ปุ่ม)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "พวงมาลัย (3 แกน 4 ปุ่ม)"
+
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 พร้อมอะแดปเตอร์"
+
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 ไม่มีอะแดปเตอร์"
+
+msgid "None"
+msgstr "ไม่มี"
+
+msgid "%1 MB (CHS: %2, %3, %4)"
+msgstr "%1 MB (CHS: %2, %3, %4)"
+
+msgid "Floppy %1 (%2): %3"
+msgstr "ฟลอปปี้ดิสก์ %1 (%2): %3"
+
+msgid "&Floppy %1 (%2): %3"
+msgstr "ฟลอปปี้ดิสก์ (&F) %1 (%2): %3"
+
+msgid "Advanced sector images"
+msgstr "ภาพเซกเตอร์ขั้นสูง"
+
+msgid "Flux images"
+msgstr "ภาพฟลักซ์"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตเครื่องจำลองแบบฮาร์ดรีเซ็ต?"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "คุณแน่ใจหรือไม่ว่าต้องการออกจาก 86Box?"
+
+msgid "Unable to initialize Ghostscript"
+msgstr "ไม่สามารถเริ่มต้น Ghostscript ได้"
+
+msgid "Unable to initialize GhostPCL"
+msgstr "ไม่สามารถเริ่มต้น GhostPCL ได้"
+
+msgid "MO %1 (%2): %3"
+msgstr "MO %1 (%2): %3"
+
+msgid "&MO %1 (%2): %3"
+msgstr "MO (&M) %1 (%2): %3"
+
+msgid "MO images"
+msgstr "MO รูปภาพ"
+
+msgid "Welcome to 86Box!"
+msgstr "ยินดีต้อนรับสู่ 86Box!"
+
+msgid "Internal device"
+msgstr "อุปกรณ์ภายใน"
+
+msgid "&File"
+msgstr "ไฟล์ (&F)"
+
+msgid "&New machine…"
+msgstr "เครื่องใหม่… (&N)"
+
+msgid "New machine…"
+msgstr "เครื่องใหม่…"
+
+msgid "New machine"
+msgstr "เครื่องใหม่"
+
+msgid "&Check for updates…"
+msgstr "ตรวจสอบการอัปเดต… (&C)"
+
+msgid "Exit"
+msgstr "ออก"
+
+msgid "No ROMs found"
+msgstr "ไม่พบ ROM"
+
+msgid "Do you want to save the settings?"
+msgstr "คุณต้องการบันทึกการตั้งค่าหรือไม่?"
+
+msgid "This will hard reset the emulated machine."
+msgstr "การทำเช่นนี้จะรีเซ็ตเครื่องจำลองแบบฮาร์ดรีเซ็ต"
+
+msgid "Save"
+msgstr "บันทึก"
+
+msgid "About 86Box"
+msgstr "เกี่ยวกับ 86Box"
+
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "โปรแกรมจำลองคอมพิวเตอร์รุ่นเก่า\n\nผู้แต่ง: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. Tinje (regneno, van Jene, 10) และอื่น ๆ\n\nโดยได้รับการสนับสนุนหลักจาก Sarah Walker, leilei, JohnElliott, greatpsycho และคนอื่นๆ ก่อนหน้านี้\n\nเผยแพร่ภายใต้สัญญาอนุญาต GNU General Public License เวอร์ชัน 2 หรือใหม่กว่า\nดูข้อมูลเพิ่มเติมได้ในเอกสาร LICENSE"
+
+msgid "Hardware not available"
+msgstr "ฮาร์ดแวร์ไม่พร้อมใช้งาน"
+
+msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "โปรดตรวจสอบให้แน่ใจว่าได้ติดตั้ง %1 แล้ว และคุณเชื่อมต่อกับเครือข่ายที่เข้ากันได้กับ %1"
+
+msgid "Invalid configuration"
+msgstr "การกำหนดค่าไม่ถูกต้อง"
+
+msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "%1 จำเป็นสำหรับการแปลงไฟล์ PostScript เป็น PDF โดยอัตโนมัติ\n\nเอกสารใดๆ ที่ส่งไปยังเครื่องพิมพ์ PostScript ทั่วไปจะถูกบันทึกเป็นไฟล์ PostScript (.ps)"
+
+msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "%1 จำเป็นสำหรับการแปลงไฟล์ PCL เป็น PDF โดยอัตโนมัติ\n\nเอกสารใดๆ ที่ส่งไปยังเครื่องพิมพ์ PCL ทั่วไปจะถูกบันทึกเป็นไฟล์ Printer Command Language (.pcl)"
+
+msgid "Don't show this message again"
+msgstr "อย่าแสดงข้อความนี้อีก"
+
+msgid "Don't exit"
+msgstr "อย่าออก"
+
+msgid "Reset"
+msgstr "รีเซ็ต"
+
+msgid "Don't reset"
+msgstr "อย่ารีเซ็ต"
+
+msgid "CD-ROM images"
+msgstr "อิมเมจซีดีรอม"
+
+msgid "%1 Device Configuration"
+msgstr "การกำหนดค่าอุปกรณ์: %1"
+
+msgid "Monitor in sleep mode"
+msgstr "จอภาพอยู่ในโหมดพักเครื่อง"
+
+msgid "GLSL shaders"
+msgstr "เชเดอร์ GLSL"
+
+msgid "You are loading an unsupported configuration"
+msgstr "คุณกำลังโหลดการกำหนดค่าที่ไม่รองรับ"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr "การกรองประเภท CPU ตามเครื่องที่เลือกถูกปิดใช้งานสำหรับเครื่องจำลองนี้\n\nซึ่งทำให้สามารถเลือก CPU ที่ไม่เข้ากันกับเครื่องที่เลือกได้\nอย่างไรก็ตาม คุณอาจพบปัญหาความไม่เข้ากันกับ BIOS ของเครื่องหรือซอฟต์แวร์อื่นๆ\n\nการเปิดใช้งานการตั้งค่านี้ไม่ได้รับการสนับสนุนอย่างเป็นทางการ และรายงานข้อผิดพลาดใดๆ ที่ส่งเข้ามาอาจถูกปิดเป็นข้อผิดพลาดที่ไม่ถูกต้อง"
+
+msgid "Continue"
+msgstr "ดำเนินการต่อ"
+
+msgid "Cassette: %1"
+msgstr "เทปคาสเซ็ต: %1"
+
+msgid "C&assette: %1"
+msgstr "เทปคาสเซ็ต (A): %1"
+
+msgid "Cassette images"
+msgstr "ภาพเทปคาสเซ็ต"
+
+msgid "Cartridge %1: %2"
+msgstr "ตลับ %1: %2"
+
+msgid "Car&tridge %1: %2"
+msgstr "ตลับ (T) %1: %2"
+
+msgid "Cartridge images"
+msgstr "ภาพตลับ"
+
+msgid "Resume execution"
+msgstr "ดำเนินการต่อ"
+
+msgid "Pause execution"
+msgstr "หยุดการทำงานชั่วคราว"
+
+msgid "Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "กด Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "กด Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "รีเซ็ตแบบฮาร์ดรีเซ็ต"
+
+msgid "Force shutdown"
+msgstr "บังคับปิดเครื่อง"
+
+msgid "Start"
+msgstr "เริ่ม"
+
+msgid "&Force shutdown"
+msgstr "บังคับปิดเครื่อง (F)"
+
+msgid "&Start"
+msgstr "เริ่ม (S)"
+
+msgid "Not running"
+msgstr "ไม่ได้ทำงาน"
+
+msgid "Running"
+msgstr "กำลังทำงาน"
+
+msgid "Paused"
+msgstr "หยุดชั่วคราว"
+
+msgid "Waiting"
+msgstr "รอ"
+
+msgid "Powered Off"
+msgstr "ปิดเครื่อง"
+
+msgid "%n running"
+msgstr "กำลังทำงาน: %1"
+
+msgid "%n paused"
+msgstr "หยุดชั่วคราว: %1"
+
+msgid "%n waiting"
+msgstr "รอ: %1"
+
+msgid "%1 total"
+msgstr "ทั้งหมด: %1"
+
+msgid "VMs: %1"
+msgstr "เครื่องเสมือน: %1"
+
+msgid "System Directory:"
+msgstr "ไดเร็กทอรีระบบ:"
+
+msgid "Choose directory"
+msgstr "เลือกไดเร็กทอรี"
+
+msgid "Choose configuration file"
+msgstr "เลือกไฟล์การกำหนดค่า"
+
+msgid "86Box configuration files (86box.cfg)"
+msgstr "ไฟล์การกำหนดค่า 86Box (86box.cfg)"
+
+msgid "Configuration read failed"
+msgstr "การอ่านการกำหนดค่าล้มเหลว"
+
+msgid "Unable to open the selected configuration file for reading: %1"
+msgstr "ไม่สามารถเปิดไฟล์การกำหนดค่าที่เลือกเพื่ออ่านได้: %1"
+
+msgid "Use regular expressions in search box"
+msgstr "ใช้นิพจน์ปกติในช่องค้นหา"
+
+msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "ขณะนี้มีเครื่องเสมือนใช้งานอยู่ %1 เครื่อง\nคุณแน่ใจหรือไม่ว่าต้องการออกจากตัวจัดการเครื่องเสมือน?"
+
+msgid "Add new system wizard"
+msgstr "วิซาร์ดการเพิ่มระบบใหม่"
+
+msgid "Introduction"
+msgstr "บทนำ"
+
+msgid "This will help you add a new system to 86Box."
+msgstr "ขั้นตอนนี้จะช่วยคุณเพิ่มระบบใหม่ลงใน 86Box"
+
+msgid "New configuration"
+msgstr "การกำหนดค่าใหม่"
+
+msgid "Complete"
+msgstr "เสร็จสิ้น"
+
+msgid "The wizard will now launch the configuration for the new system."
+msgstr "วิซาร์ดจะเริ่มการกำหนดค่าสำหรับระบบใหม่"
+
+msgid "Use existing configuration"
+msgstr "ใช้การกำหนดค่าที่มีอยู่"
+
+msgid "Type some notes here"
+msgstr "พิมพ์บันทึกย่อที่นี่"
+
+msgid "Paste the contents of the existing configuration file into the box below."
+msgstr "วางเนื้อหาของไฟล์การกำหนดค่าที่มีอยู่ลงในช่องด้านล่าง"
+
+msgid "Load configuration from file"
+msgstr "โหลดการกำหนดค่าจากไฟล์"
+
+msgid "System name"
+msgstr "ชื่อระบบ"
+
+msgid "System name:"
+msgstr "ชื่อระบบ:"
+
+msgid "System name cannot contain certain characters"
+msgstr "ชื่อระบบต้องไม่มีอักขระบางตัว"
+
+msgid "System name already exists"
+msgstr "ชื่อระบบมีอยู่แล้ว"
+
+msgid "Please enter a directory for the system"
+msgstr "โปรดป้อนไดเร็กทอรีสำหรับระบบ"
+
+msgid "Directory does not exist"
+msgstr "ไม่มีไดเร็กทอรี"
+
+msgid "A new directory for the system will be created in the selected directory above"
+msgstr "ระบบจะสร้างไดเร็กทอรีใหม่สำหรับระบบในไดเร็กทอรีที่เลือกด้านบน"
+
+msgid "System location:"
+msgstr "ตำแหน่งระบบ:"
+
+msgid "System name and location"
+msgstr "ชื่อระบบและตำแหน่ง"
+
+msgid "Enter the name of the system and choose the location"
+msgstr "ป้อนชื่อระบบและเลือกตำแหน่ง"
+
+msgid "Enter the name of the system"
+msgstr "ป้อนชื่อระบบ"
+
+msgid "Please enter a system name"
+msgstr "โปรดป้อนชื่อระบบ"
+
+msgid "Display name (optional):"
+msgstr "ชื่อที่แสดง (ไม่บังคับ):"
+
+msgid "Display name:"
+msgstr "ชื่อที่แสดง:"
+
+msgid "Set display name"
+msgstr "ตั้งชื่อที่แสดง"
+
+msgid "Enter the new display name (blank to reset)"
+msgstr "ป้อนชื่อที่แสดงใหม่ (เว้นว่างเพื่อรีเซ็ต)"
+
+msgid "Change &display name…"
+msgstr "เปลี่ยนชื่อที่แสดง… (&D)"
+
+msgid "Context Menu"
+msgstr "เมนูบริบท"
+
+msgid "&Open folder…"
+msgstr "เปิดโฟลเดอร์… (&O)"
+
+msgid "Open p&rinter tray…"
+msgstr "เปิดถาดเครื่องพิมพ์… (&R)"
+
+msgid "Set &icon…"
+msgstr "ตั้งค่าไอคอน… (&I)"
+
+msgid "Select an icon"
+msgstr "เลือกไอคอน"
+
+msgid "C&lone…"
+msgstr "คัดลอก… (&L)"
+
+msgid "Virtual machine \"%1\" (%2) will be cloned into:"
+msgstr "เครื่องเสมือน "%1" (%2) จะถูกโคลนไปยัง:"
+
+msgid "Directory %1 already exists"
+msgstr "ไดเร็กทอรี %1 มีอยู่แล้ว"
+
+msgid "You cannot use the following characters in the name: %1"
+msgstr "คุณไม่สามารถใช้อักขระต่อไปนี้ในชื่อได้: %1"
+
+msgid "Clone"
+msgstr "โคลน"
+
+msgid "Failed to create directory for cloned VM"
+msgstr "ไม่สามารถสร้างไดเร็กทอรีสำหรับเครื่องเสมือนที่โคลนได้"
+
+msgid "Failed to clone VM."
+msgstr "ไม่สามารถโคลนเครื่องเสมือนได้"
+
+msgid "Directory in use"
+msgstr "ไดเร็กทอรีถูกใช้งานอยู่"
+
+msgid "The selected directory is already in use. Please select a different directory."
+msgstr "ไดเร็กทอรีที่เลือกถูกใช้งานอยู่แล้ว\nโปรดเลือกไดเร็กทอรีอื่น"
+
+msgid "Create directory failed"
+msgstr "การสร้างไดเร็กทอรีล้มเหลว"
+
+msgid "Unable to create the directory for the new system"
+msgstr "ไม่สามารถสร้างไดเร็กทอรีสำหรับระบบใหม่ได้"
+
+msgid "Configuration write failed"
+msgstr "การเขียนการกำหนดค่าล้มเหลว"
+
+msgid "Unable to open the configuration file at %1 for writing"
+msgstr "ไม่สามารถเปิดไฟล์การกำหนดค่าที่ %1 เพื่อเขียนได้"
+
+msgid "Error adding system"
+msgstr "เกิดข้อผิดพลาดในการเพิ่มระบบ"
+
+msgid "Remove directory failed"
+msgstr "การลบไดเร็กทอรีล้มเหลว"
+
+msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
+msgstr "ไม่สามารถลบไฟล์บางไฟล์ในไดเร็กทอรีของเครื่องได้\nโปรดลบไฟล์เหล่านั้นด้วยตนเอง"
+
+msgid "Build"
+msgstr "บิลด์"
+
+msgid "Version"
+msgstr "เวอร์ชั่น"
+
+msgid "An update to 86Box is available: %1 %2"
+msgstr "มีการอัปเดต 86Box แล้ว: %1 %2"
+
+msgid "An error has occurred while checking for updates: %1"
+msgstr "เกิดข้อผิดพลาดขณะตรวจสอบการอัปเดต: %1"
+
+msgid "<b>An update to 86Box is available!</b>"
+msgstr "<b>มีการอัปเดต 86Box แล้ว!</b>"
+
+msgid "Warning"
+msgstr "คำเตือน"
+
+msgid "&Kill"
+msgstr "ฆ่า (&K)"
+
+msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
+msgstr "การปิดเครื่องเสมือนอาจทำให้ข้อมูลสูญหาย\nควรทำเช่นนี้เฉพาะในกรณีที่กระบวนการ 86Box ค้างอยู่เท่านั้น\n\nคุณต้องการปิดเครื่องเสมือน \"%1\" จริงๆ หรือไม่?"
+
+msgid "&Delete"
+msgstr "ลบ (&D)"
+
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgstr "คุณต้องการลบเครื่องเสมือน \"%1\" และไฟล์ทั้งหมดในนั้นจริง ๆ หรือไม่?\nการกระทำนี้ไม่สามารถย้อนกลับได้!"
+
+msgid "Show &config file"
+msgstr "แสดงไฟล์การกำหนดค่า (&C)"
+
+msgid "No screenshot"
+msgstr "ไม่มีภาพหน้าจอ"
+
+msgid "Search"
+msgstr "ค้นหา"
+
+msgid "Searching for VMs…"
+msgstr "กำลังค้นหา VM…"
+
+msgid "Found %1"
+msgstr "พบ: %1"
+
+msgid "System"
+msgstr "ระบบ"
+
+msgid "Storage"
+msgstr "ที่เก็บข้อมูล"
+
+msgid "Disk %1:"
+msgstr "ดิสก์ %1:"
+
+msgid "No disks"
+msgstr "ไม่มีดิสก์"
+
+msgid "Audio"
+msgstr "เสียง"
+
+msgid "Audio:"
+msgstr "เสียง:"
+
+msgid "ACPI shutdown"
+msgstr "ปิดระบบ ACPI"
+
+msgid "ACP&I shutdown"
+msgstr "ปิดระบบ ACPI (&I)"
+
+msgid "Hard disk (%1)"
+msgstr "ฮาร์ดดิสก์ (%1)"
+
+msgid "MFM/RLL or ESDI CD-ROM drives never existed"
+msgstr "ไม่เคยมีไดรฟ์ CD-ROM MFM/RLL หรือ ESDI"
+
+msgid "Custom…"
+msgstr "กำหนดเอง…"
+
+msgid "Custom (large)…"
+msgstr "กำหนดเอง (ขนาดใหญ่)…"
+
+msgid "Add New Hard Disk"
+msgstr "เพิ่มฮาร์ดดิสก์ใหม่"
+
+msgid "Add Existing Hard Disk"
+msgstr "เพิ่มฮาร์ดดิสก์ที่มีอยู่"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "อิมเมจดิสก์ HDI ต้องมีขนาดไม่เกิน 4 GB"
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "อิมเมจดิสก์ต้องมีขนาดไม่เกิน 127 GB"
+
+msgid "Hard disk images"
+msgstr "อิมเมจฮาร์ดดิสก์"
+
+msgid "Unable to read file"
+msgstr "ไม่สามารถอ่านไฟล์ได้"
+
+msgid "Unable to write file"
+msgstr "ไม่สามารถเขียนไฟล์ได้"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr "ไม่รองรับอิมเมจ HDI หรือ HDX ที่มีขนาดเซกเตอร์อื่นที่ไม่ใช่ 512"
+
+msgid "Disk image file already exists"
+msgstr "ไฟล์อิมเมจดิสก์มีอยู่แล้ว"
+
+msgid "Please specify a valid file name."
+msgstr "โปรดระบุชื่อไฟล์ที่ถูกต้อง"
+
+msgid "Disk image created"
+msgstr "สร้างอิมเมจดิสก์แล้ว"
+
+msgid "Make sure the file exists and is readable."
+msgstr "ตรวจสอบให้แน่ใจว่าไฟล์มีอยู่และสามารถอ่านได้"
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr "ตรวจสอบให้แน่ใจว่าไฟล์ถูกบันทึกไปยังไดเร็กทอรีที่สามารถเขียนได้"
+
+msgid "Disk image too large"
+msgstr "ไฟล์อิมเมจดิสก์มีขนาดใหญ่เกินไป"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "อย่าลืมแบ่งพาร์ติชั่นและฟอร์แมตไดรฟ์ที่สร้างใหม่"
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr "ไฟล์ที่เลือกจะถูกเขียนทับ คุณแน่ใจหรือไม่ว่าต้องการใช้งานไฟล์นี้?"
+
+msgid "Unsupported disk image"
+msgstr "ไฟล์อิมเมจดิสก์ไม่รองรับ"
+
+msgid "Overwrite"
+msgstr "เขียนทับ"
+
+msgid "Don't overwrite"
+msgstr "อย่าเขียนทับ"
+
+msgid "Raw image"
+msgstr "ไฟล์ภาพดิบ"
+
+msgid "HDI image"
+msgstr "ไฟล์อิมเมจ HDI"
+
+msgid "HDX image"
+msgstr "ไฟล์อิมเมจ HDX"
+
+msgid "Fixed-size VHD"
+msgstr "ฮาร์ดดิสก์เสมือนขนาดคงที่"
+
+msgid "Dynamic-size VHD"
+msgstr "ฮาร์ดดิสก์เสมือนขนาดไดนามิก"
+
+msgid "Differencing VHD"
+msgstr "ฮาร์ดดิสก์เสมือนแบบส่วนต่าง"
+
+msgid "(N/A)"
+msgstr "(ไม่มี)"
+
+msgid "Raw image (.img)"
+msgstr "ไฟล์ภาพดิบ (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "ไฟล์อิมเมจ HDI (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "ไฟล์อิมเมจ HDX (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "ฮาร์ดดิสก์เสมือนขนาดคงที่ (.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "ฮาร์ดดิสก์เสมือนขนาดไดนามิก (.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "ฮาร์ดดิสก์เสมือนแบบส่วนต่าง (.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "บล็อกขนาดใหญ่ (2 MB)"
+
+msgid "Small blocks (512 KB)"
+msgstr "บล็อกขนาดเล็ก (512 KB)"
+
+msgid "VHD files"
+msgstr "ไฟล์ VHD"
+
+msgid "Select the parent VHD"
+msgstr "เลือกฮาร์ดดิสก์เสมือนหลัก"
+
+msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "นี่อาจหมายความว่าไฟล์ภาพต้นฉบับถูกแก้ไขหลังจากสร้างไฟล์ภาพส่วนต่างแล้ว\n\nนอกจากนี้ยังอาจเกิดขึ้นได้หากไฟล์ภาพถูกย้ายหรือคัดลอก หรือเกิดจากข้อผิดพลาดในโปรแกรมที่สร้างดิสก์นี้\n\nคุณต้องการแก้ไขเวลาประทับหรือไม่?"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "เวลาประทับของดิสก์หลักและดิสก์ย่อยไม่ตรงกัน"
+
+msgid "Could not fix VHD timestamp."
+msgstr "ไม่สามารถแก้ไขเวลาประทับของ VHD ได้"
+
+msgid "CD-ROM %1 (%2): %3"
+msgstr "CD-ROM %1 (%2): %3"
+
+msgid "&CD-ROM %1 (%2): %3"
+msgstr "CD-ROM (&C) %1 (%2): %3"
+
+msgid "160 KB"
+msgstr "160 KB"
+
+msgid "180 KB"
+msgstr "180 KB"
+
+msgid "320 KB"
+msgstr "320 KB"
+
+msgid "360 KB"
+msgstr "360 KB"
+
+msgid "640 KB"
+msgstr "640 KB"
+
+msgid "720 KB"
+msgstr "720 KB"
+
+msgid "1.2 MB"
+msgstr "1.2 MB"
+
+msgid "1.25 MB"
+msgstr "1.25 MB"
+
+msgid "1.44 MB"
+msgstr "1.44 MB"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (คลัสเตอร์ 1024)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (คลัสเตอร์ 2048)"
+
+msgid "2.88 MB"
+msgstr "2.88 MB"
+
+msgid "ZIP 100"
+msgstr "ZIP 100"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 MB (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5\" 230 MB (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 MB (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 MB (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 GB (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 GB (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 MB"
+
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 MB"
+
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 GB"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 GB"
+
+msgid "Perfect RPM"
+msgstr "รอบต่อนาทีที่สมบูรณ์แบบ"
+
+msgid "1% below perfect RPM"
+msgstr "ต่ำกว่ารอบต่อนาทีที่สมบูรณ์แบบ 1%"
+
+msgid "1.5% below perfect RPM"
+msgstr "ต่ำกว่ารอบต่อนาทีที่สมบูรณ์แบบ 1.5%"
+
+msgid "2% below perfect RPM"
+msgstr "ต่ำกว่ารอบต่อนาทีที่สมบูรณ์แบบ 2%"
+
+msgid "(System Default)"
+msgstr "(ค่าเริ่มต้นของระบบ)"
+
+msgid "Failed to initialize network driver"
+msgstr "ไม่สามารถเริ่มต้นไดรเวอร์เครือข่ายได้"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "การกำหนดค่าเครือข่ายจะถูกเปลี่ยนไปใช้ไดรเวอร์ว่าง"
+
+msgid "Mouse sensitivity:"
+msgstr "ความไวของเมาส์:"
+
+msgid "Select media images from program working directory"
+msgstr "เลือกภาพสื่อจากไดเร็กทอรีการทำงานของโปรแกรม"
+
+msgid "PIT mode:"
+msgstr "โหมด PIT:"
+
+msgid "Auto"
+msgstr "อัตโนมัติ"
+
+msgid "Slow"
+msgstr "ช้า"
+
+msgid "Fast"
+msgstr "เร็ว"
+
+msgid "&Auto-pause on focus loss"
+msgstr "และหยุดอัตโนมัติเมื่อสูญเสียโฟกัส"
+
+msgid "WinBox is no longer supported"
+msgstr "WinBox ไม่ได้รับการสนับสนุนอีกต่อไป"
+
+msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
+msgstr "การพัฒนาโปรแกรมจัดการ WinBox ได้หยุดลงในปี 2022 เนื่องจากขาดผู้ดูแลรักษา\nเนื่องจากเรามุ่งเน้นความพยายามในการพัฒนา 86Box ให้ดียิ่งขึ้น เราจึงตัดสินใจที่จะไม่สนับสนุน WinBox ในฐานะโปรแกรมจัดการอีกต่อไป\n\nจะไม่มีการอัปเดตเพิ่มเติมใดๆ ผ่าน WinBox และคุณอาจพบพฤติกรรมที่ไม่ถูกต้องหากคุณยังคงใช้งานกับ 86Box เวอร์ชันใหม่กว่า\nรายงานข้อบกพร่องใดๆ ที่เกี่ยวข้องกับพฤติกรรมของ WinBox จะถูกปิดเป็นรายงานที่ไม่ถูกต้อง\n\nไปที่ 86box.net เพื่อดูรายชื่อโปรแกรมจัดการอื่นๆ ที่คุณสามารถใช้งานได้"
+
+msgid "Generate"
+msgstr "สร้าง"
+
+msgid "Joystick configuration"
+msgstr "การตั้งค่าจอยสติ๊ก"
+
+msgid "Device"
+msgstr "อุปกรณ์"
+
+msgid "%1 (X axis)"
+msgstr "%1 (แกน X)"
+
+msgid "%1 (Y axis)"
+msgstr "%1 (แกน Y)"
+
+msgid "MCA devices"
+msgstr "อุปกรณ์ MCA"
+
+msgid "List of MCA devices:"
+msgstr "รายการอุปกรณ์ MCA:"
+
+msgid "Tablet tool"
+msgstr "เครื่องมือแท็บเล็ต"
+
+msgid "About Qt"
+msgstr "เกี่ยวกับ Qt"
+
+msgid "MCA devices…"
+msgstr "อุปกรณ์ MCA…"
+
+msgid "Show non-primary monitors"
+msgstr "แสดงจอภาพที่ไม่ใช่จอหลัก"
+
+msgid "Open screenshots folder…"
+msgstr "เปิดโฟลเดอร์ภาพหน้าจอ…"
+
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "ใช้โหมดขยายเต็มหน้าจอเมื่อขยายใหญ่สุด"
+
+msgid "Cursor/Puck"
+msgstr "เคอร์เซอร์/พัค"
+
+msgid "Pen"
+msgstr "ปากกา"
+
+msgid "Host CD/DVD Drive (%1:)"
+msgstr "ไดรฟ์ CD/DVD โฮสต์ (%1:)"
+
+msgid "&Connected"
+msgstr "เชื่อมต่อแล้ว (&C)"
+
+msgid "Clear image history"
+msgstr "ล้างประวัติภาพ"
+
+msgid "Create…"
+msgstr "สร้าง…"
+
+msgid "Host CD/DVD Drive (%1)"
+msgstr "ไดรฟ์ CD/DVD โฮสต์ (%1)"
+
+msgid "Unknown Bus"
+msgstr "บัสที่ไม่รู้จัก"
+
+msgid "Null Driver"
+msgstr "ไดรเวอร์ว่าง"
+
+msgid "NIC:"
+msgstr "NIC:"
+
+msgid "NIC %1 (%2) %3"
+msgstr "NIC %1 (%2) %3"
+
+msgid "&NIC %1 (%2) %3"
+msgstr "NIC (&N) %1 (%2) %3"
+
+msgid "Render behavior"
+msgstr "พฤติกรรมการเรนเดอร์"
+
+msgid "Use target framerate:"
+msgstr "ใช้เฟรมเรตเป้าหมาย:"
+
+msgid " fps"
+msgstr " fps"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "Synchronize with video"
+msgstr "ซิงโครไนซ์กับวิดีโอ"
+
+msgid "Shaders"
+msgstr "เชเดอร์"
+
+msgid "Remove"
+msgstr "ลบ"
+
+msgid "Browse…"
+msgstr "เรียกดู…"
+
+msgid "Couldn't create OpenGL context."
+msgstr "ไม่สามารถสร้างบริบท OpenGL ได้"
+
+msgid "Couldn't switch to OpenGL context."
+msgstr "ไม่สามารถเปลี่ยนไปใช้บริบท OpenGL ได้"
+
+msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
+msgstr "ต้องใช้ OpenGL เวอร์ชัน 3.0 หรือสูงกว่า\nเวอร์ชันปัจจุบันคือ: %1.%2"
+
+msgid "Error initializing OpenGL"
+msgstr "เกิดข้อผิดพลาดในการเริ่มต้น OpenGL"
+
+msgid "\nFalling back to software rendering."
+msgstr "\nกลับไปใช้การเรนเดอร์ด้วยซอฟต์แวร์แทน"
+
+msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+msgstr "<html><head/><body><p>เมื่อเลือกอิมเมจสื่อ (CD-ROM, ฟลอปปี้ดิสก์ ฯลฯ) หน้าต่างเปิดจะเริ่มต้นในไดเร็กทอรีเดียวกับไฟล์การกำหนดค่า 86Box\nการตั้งค่านี้อาจมีผลเฉพาะบน macOS เท่านั้น</p></body></html>"
+
+msgid "This machine might have been moved or copied."
+msgstr "เครื่องนี้อาจถูกเคลื่อนย้ายหรือคัดลอกมาแล้ว"
+
+msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
+msgstr "เพื่อให้มั่นใจว่าระบบเครือข่ายทำงานได้อย่างถูกต้อง 86Box จำเป็นต้องทราบว่าเครื่องนี้ถูกย้ายหรือคัดลอกหรือไม่\n\nถ้าไม่แน่ใจ ให้เลือก \"ฉันคัดลอกมัน\""
+
+msgid "I Moved It"
+msgstr "ฉันย้ายมัน"
+
+msgid "I Copied It"
+msgstr "ฉันคัดลอกมัน"
+
+msgid "86Box Monitor #%1"
+msgstr "86Box จอภาพ "
+
+msgid "No MCA devices."
+msgstr "ไม่มีอุปกรณ์ MCA"
+
+msgid "MiB"
+msgstr "MiB"
+
+msgid "GiB"
+msgstr "GiB"
+
+msgid "Network Card #1"
+msgstr "การ์ดเครือข่าย 1"
+
+msgid "Network Card #2"
+msgstr "การ์ดเครือข่าย 2"
+
+msgid "Network Card #3"
+msgstr "การ์ดเครือข่าย 3"
+
+msgid "Network Card #4"
+msgstr "การ์ดเครือข่าย 4"
+
+msgid "Mode:"
+msgstr "โหมด:"
+
+msgid "Interface:"
+msgstr "อินเทอร์เฟซ:"
+
+msgid "Adapter:"
+msgstr "อะแดปเตอร์:"
+
+msgid "VDE Socket:"
+msgstr "ซ็อกเก็ต VDE:"
+
+msgid "TAP Bridge Device:"
+msgstr "อุปกรณ์บริดจ์ TAP:"
+
+msgid "86Box Unit Tester"
+msgstr "เครื่องทดสอบหน่วย 86Box"
+
+msgid "Novell NetWare 2.x Key Card"
+msgstr "การ์ดคีย์ Novell NetWare 2.x"
+
+msgid "Serial port passthrough 1"
+msgstr "พอร์ตอนุกรมแบบส่งผ่าน 1"
+
+msgid "Serial port passthrough 2"
+msgstr "พอร์ตอนุกรมแบบส่งผ่าน 2"
+
+msgid "Serial port passthrough 3"
+msgstr "พอร์ตอนุกรมแบบส่งผ่าน 3"
+
+msgid "Serial port passthrough 4"
+msgstr "พอร์ตอนุกรมแบบส่งผ่าน 4"
+
+msgid "Renderer options…"
+msgstr "ตัวเลือกตัวแสดงผล…"
+
+msgid "PC/XT Keyboard"
+msgstr "คีย์บอร์ด PC/XT"
+
+msgid "AT Keyboard"
+msgstr "คีย์บอร์ด AT"
+
+msgid "AX Keyboard"
+msgstr "คีย์บอร์ด AX"
+
+msgid "PS/2 Keyboard"
+msgstr "คีย์บอร์ด PS/2"
+
+msgid "PS/55 Keyboard"
+msgstr "คีย์บอร์ด PS/55"
+
+msgid "Keys"
+msgstr "ปุ่ม"
+
+msgid "Logitech/Microsoft Bus Mouse"
+msgstr "เมาส์บัส Logitech/Microsoft"
+
+msgid "Microsoft Bus Mouse (InPort)"
+msgstr "เมาส์บัส Microsoft (InPort)"
+
+msgid "Mouse Systems Serial Mouse"
+msgstr "เมาส์อนุกรม Mouse Systems"
+
+msgid "Mouse Systems Bus Mouse"
+msgstr "เมาส์บัส Mouse Systems"
+
+msgid "Microsoft Serial Mouse"
+msgstr "เมาส์อนุกรม Microsoft"
+
+msgid "Microsoft Serial BallPoint"
+msgstr "เมาส์บอลอนุกรม Microsoft"
+
+msgid "Logitech Serial Mouse"
+msgstr "เมาส์อนุกรม Logitech"
+
+msgid "PS/2 Mouse"
+msgstr "เมาส์ PS/2"
+
+msgid "PS/2 QuickPort Mouse"
+msgstr "เมาส์ PS/2 QuickPort"
+
+msgid "3M MicroTouch (Serial)"
+msgstr "3M MicroTouch (อนุกรม)"
+
+msgid "Default Baud rate"
+msgstr "อัตรา Baud เริ่มต้น"
+
+msgid "[COM] Standard Hayes-compliant Modem"
+msgstr "[COM] โมเด็มที่สอดคล้องกับ Hayes มาตรฐาน"
+
+msgid "Roland MT-32 Emulation"
+msgstr "การจำลอง Roland MT-32"
+
+msgid "Roland MT-32 (New) Emulation"
+msgstr "Roland MT-32 (ใหม่) การจำลอง"
+
+msgid "Roland CM-32L Emulation"
+msgstr "การจำลอง Roland CM-32L"
+
+msgid "Roland CM-32LN Emulation"
+msgstr "การจำลอง Roland CM-32LN"
+
+msgid "OPL4-ML Daughterboard"
+msgstr "แผงวงจรเสริม OPL4-ML"
+
+msgid "System MIDI"
+msgstr "ระบบ MIDI"
+
+msgid "MIDI Input Device"
+msgstr "อุปกรณ์อินพุต MIDI"
+
+msgid "BIOS file"
+msgstr "ไฟล์ BIOS"
+
+msgid "BIOS file (ROM #1)"
+msgstr "ไฟล์ BIOS (ROM 1)"
+
+msgid "BIOS file (ROM #2)"
+msgstr "ไฟล์ BIOS (ROM 2)"
+
+msgid "BIOS file (ROM #3)"
+msgstr "ไฟล์ BIOS (ROM 3)"
+
+msgid "BIOS file (ROM #4)"
+msgstr "ไฟล์ BIOS (ROM 4)"
+
+msgid "BIOS Address"
+msgstr "ที่อยู่ BIOS"
+
+msgid "BIOS address (ROM #1)"
+msgstr "ที่อยู่ BIOS (ROM 1)"
+
+msgid "BIOS address (ROM #2)"
+msgstr "ที่อยู่ BIOS (ROM 2)"
+
+msgid "BIOS address (ROM #3)"
+msgstr "ที่อยู่ BIOS (ROM 3)"
+
+msgid "BIOS address (ROM #4)"
+msgstr "ที่อยู่ BIOS (ROM 4)"
+
+msgid "Enable BIOS extension ROM Writes"
+msgstr "เปิดใช้งานการเขียน ROM ส่วนขยาย BIOS"
+
+msgid "Enable BIOS extension ROM Writes (ROM #1)"
+msgstr "เปิดใช้งานการเขียน ROM ส่วนขยาย BIOS (ROM 1)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #2)"
+msgstr "เปิดใช้งานการเขียน ROM ส่วนขยาย BIOS (ROM 2)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #3)"
+msgstr "เปิดใช้งานการเขียน ROM ส่วนขยาย BIOS (ROM 3)"
+
+msgid "Enable BIOS extension ROM Writes (ROM #4)"
+msgstr "เปิดใช้งานการเขียน ROM ส่วนขยาย BIOS (ROM 4)"
+
+msgid "Linear framebuffer base"
+msgstr "ฐานเฟรมบัฟเฟอร์เชิงเส้น"
+
+msgid "Address"
+msgstr "ที่อยู่"
+
+msgid "IRQ"
+msgstr "IRQ"
+
+msgid "Serial port IRQ"
+msgstr "IRQ พอร์ตอนุกรม"
+
+msgid "Parallel port IRQ"
+msgstr "IRQ พอร์ตขนาน"
+
+msgid "Hard disk"
+msgstr "ฮาร์ดดิสก์"
+
+msgid "BIOS Revision"
+msgstr "การแก้ไข BIOS"
+
+msgid "BIOS Version"
+msgstr "เวอร์ชัน BIOS"
+
+msgid "BIOS Language"
+msgstr "ภาษา BIOS"
+
+msgid "IBM 5161 Expansion Unit"
+msgstr "หน่วยขยาย IBM 5161"
+
+msgid "IBM Cassette Basic"
+msgstr "เทปคาสเซ็ตต์ IBM พื้นฐาน"
+
+msgid "Translate 26 -> 17"
+msgstr "แปล 26 -> 17"
+
+msgid "Language"
+msgstr "ภาษา"
+
+msgid "Enable backlight"
+msgstr "เปิดไฟแบ็คไลท์"
+
+msgid "Invert colors"
+msgstr "กลับสี"
+
+msgid "BIOS size"
+msgstr "ขนาด BIOS"
+
+msgid "BIOS size (ROM #1)"
+msgstr "ขนาด BIOS (ROM 1)"
+
+msgid "BIOS size (ROM #2)"
+msgstr "ขนาด BIOS (ROM 2)"
+
+msgid "BIOS size (ROM #3)"
+msgstr "ขนาด BIOS (ROM 3)"
+
+msgid "BIOS size (ROM #4)"
+msgstr "ขนาด BIOS (ROM 4)"
+
+msgid "Map C0000-C7FFF as UMB"
+msgstr "แมป C0000-C7FFF เป็น UMB"
+
+msgid "Map C8000-CFFFF as UMB"
+msgstr "แมป C8000-CFFFF เป็น UMB"
+
+msgid "Map D0000-D7FFF as UMB"
+msgstr "แมป D0000-D7FFF เป็น UMB"
+
+msgid "Map D8000-DFFFF as UMB"
+msgstr "แมป D8000-DFFFF เป็น UMB"
+
+msgid "Map E0000-E7FFF as UMB"
+msgstr "แมป E0000-E7FFF เป็น UMB"
+
+msgid "Map E8000-EFFFF as UMB"
+msgstr "แมป E8000-EFFFF เป็น UMB"
+
+msgid "JS9 Jumper (JIM)"
+msgstr "จัมเปอร์ JS9 (JIM)"
+
+msgid "MIDI Output Device"
+msgstr "อุปกรณ์เอาต์พุต MIDI"
+
+msgid "MIDI Real time"
+msgstr "MIDI เรียลไทม์"
+
+msgid "MIDI Thru"
+msgstr "MIDI ทรู"
+
+msgid "MIDI Clockout"
+msgstr "MIDI คล็อกเอาต์"
+
+msgid "Output Gain"
+msgstr "เกนเอาต์พุต"
+
+msgid "Chorus"
+msgstr "คอรัส"
+
+msgid "Chorus Voices"
+msgstr "จำนวนเสียงคอรัส"
+
+msgid "Chorus Level"
+msgstr "ระดับเสียงคอรัส"
+
+msgid "Chorus Speed"
+msgstr "ความเร็วคอรัส"
+
+msgid "Chorus Depth"
+msgstr "ความลึกคอรัส"
+
+msgid "Chorus Waveform"
+msgstr "รูปคลื่นคอรัส"
+
+msgid "Reverb"
+msgstr "รีเวิร์บ"
+
+msgid "Reverb Room Size"
+msgstr "ขนาดห้องรีเวิร์บ"
+
+msgid "Reverb Damping"
+msgstr "การลดทอนรีเวิร์บ"
+
+msgid "Reverb Width"
+msgstr "ความกว้างรีเวิร์บ"
+
+msgid "Reverb Level"
+msgstr "รีเวิร์บ ระดับ"
+
+msgid "Interpolation Method"
+msgstr "วิธีการแทรกสอด"
+
+msgid "Dynamic Sample Loading"
+msgstr "การโหลดตัวอย่างแบบไดนามิก"
+
+msgid "Reverb Output Gain"
+msgstr "อัตราขยายเอาต์พุตเสียงสะท้อน"
+
+msgid "Reversed stereo"
+msgstr "สเตอริโอแบบกลับด้าน"
+
+msgid "Nice ramp"
+msgstr "ทางลาดที่สวยงาม"
+
+msgid "Hz"
+msgstr "เฮิร์ตซ์"
+
+msgid "Buttons"
+msgstr "ปุ่ม"
+
+msgid "Serial Port"
+msgstr "พอร์ตอนุกรม"
+
+msgid "RTS toggle"
+msgstr "สลับ RTS"
+
+msgid "Revision"
+msgstr "เวอร์ชัน"
+
+msgid "Controller"
+msgstr "ตัวควบคุม"
+
+msgid "Show Crosshair"
+msgstr "แสดงเป้าเล็ง"
+
+msgid "DMA"
+msgstr "DMA"
+
+msgid "MAC Address"
+msgstr "ที่อยู่ MAC"
+
+msgid "MAC Address OUI"
+msgstr "ที่อยู่ MAC OUI"
+
+msgid "Enable BIOS"
+msgstr "เปิดใช้งาน BIOS"
+
+msgid "Baud Rate"
+msgstr "อัตรา Baud"
+
+msgid "TCP/IP listening port"
+msgstr "พอร์ตการฟัง TCP/IP"
+
+msgid "Phonebook File"
+msgstr "ไฟล์สมุดโทรศัพท์"
+
+msgid "Telnet emulation"
+msgstr "การจำลอง Telnet"
+
+msgid "RAM Address"
+msgstr "ที่อยู่ RAM"
+
+msgid "RAM size"
+msgstr "ขนาด RAM"
+
+msgid "Initial RAM size"
+msgstr "ขนาด RAM เริ่มต้น"
+
+msgid "Serial Number"
+msgstr "หมายเลขซีเรียล"
+
+msgid "Host ID"
+msgstr "รหัสโฮสต์"
+
+msgid "FDC Address"
+msgstr "ที่อยู่ FDC"
+
+msgid "MPU-401 Address"
+msgstr "ที่อยู่ MPU-401"
+
+msgid "MPU-401 IRQ"
+msgstr "IRQ MPU-401"
+
+msgid "Receive MIDI input"
+msgstr "รับอินพุต MIDI"
+
+msgid "Low DMA"
+msgstr "DMA ต่ำ"
+
+msgid "Enable Game port"
+msgstr "เปิดใช้งานพอร์ตเกม"
+
+msgid "Enable Adlib ports"
+msgstr "เปิดใช้งานพอร์ต Adlib"
+
+msgid "SID Model"
+msgstr "รุ่น SID"
+
+msgid "SID Filter Strength"
+msgstr "ความแรงของตัวกรอง SID"
+
+msgid "Surround module"
+msgstr "โมดูลเซอร์ราวด์"
+
+msgid "SB Address"
+msgstr "ที่อยู่ SB"
+
+msgid "Adlib Address"
+msgstr "ที่อยู่ Adlib"
+
+msgid "Use EEPROM setting"
+msgstr "ใช้การตั้งค่า EEPROM"
+
+msgid "WSS IRQ"
+msgstr "IRQ WSS"
+
+msgid "WSS DMA"
+msgstr "DMA WSS"
+
+msgid "RTC IRQ"
+msgstr "IRQ RTC"
+
+msgid "RTC Port Address"
+msgstr "ที่อยู่พอร์ต RTC"
+
+msgid "Onboard RTC"
+msgstr "RTC ในตัว"
+
+msgid "Not installed"
+msgstr "ไม่ได้ติดตั้ง"
+
+msgid "Enable OPL"
+msgstr "เปิดใช้งาน OPL"
+
+msgid "Receive MIDI input (MPU-401)"
+msgstr "รับอินพุต MIDI (MPU-401)"
+
+msgid "SB low DMA"
+msgstr "DMA ต่ำ SB"
+
+msgid "6CH variant (6-channel)"
+msgstr "รุ่น 6CH (6 แชนเนล)"
+
+msgid "Enable CMS"
+msgstr "เปิดใช้งาน CMS"
+
+msgid "Mixer"
+msgstr "มิกเซอร์"
+
+msgid "High DMA"
+msgstr "DMA ระดับสูง"
+
+msgid "Control PC speaker"
+msgstr "ควบคุมลำโพงพีซี"
+
+msgid "Memory size"
+msgstr "ขนาดหน่วยความจำ"
+
+msgid "EMU8000 Address"
+msgstr "ที่อยู่ EMU8000"
+
+msgid "IDE Controller"
+msgstr "ตัวควบคุม IDE"
+
+msgid "Codec"
+msgstr "ตัวแปลงสัญญาณ"
+
+msgid "GUS type"
+msgstr "ประเภท GUS"
+
+msgid "Enable 0x04 \"Exit 86Box\" command"
+msgstr "เปิดใช้งานคำสั่ง 0x04 \"ทางออก 86Box\""
+
+msgid "Display type"
+msgstr "ประเภทจอแสดงผล"
+
+msgid "Composite type"
+msgstr "ประเภทคอมโพสิต"
+
+msgid "RGB type"
+msgstr "ประเภท RGB"
+
+msgid "Line doubling type"
+msgstr "ประเภทการเพิ่มเส้นภาพ"
+
+msgid "Snow emulation"
+msgstr "การจำลองหิมะ"
+
+msgid "Monitor type"
+msgstr "ประเภทจอภาพ"
+
+msgid "Character set"
+msgstr "ชุดอักขระ"
+
+msgid "XGA type"
+msgstr "ประเภท XGA"
+
+msgid "Instance"
+msgstr "อินสแตนซ์"
+
+msgid "MMIO Address"
+msgstr "ที่อยู่ MMIO"
+
+msgid "RAMDAC type"
+msgstr "ประเภท RAMDAC"
+
+msgid "Blend"
+msgstr "การผสมสี"
+
+msgid "Font"
+msgstr "แบบอักษร"
+
+msgid "Bilinear filtering"
+msgstr "การกรองแบบไบลิเนียร์"
+
+msgid "Video chroma-keying"
+msgstr "การตัดขอบสีวิดีโอ"
+
+msgid "Dithering"
+msgstr "การกระจายสี"
+
+msgid "Enable NMI for CGA emulation"
+msgstr "เปิดใช้งาน NMI สำหรับการจำลอง CGA"
+
+msgid "Voodoo type"
+msgstr "ประเภท Voodoo"
+
+msgid "Framebuffer memory size"
+msgstr "ขนาดหน่วยความจำเฟรมบัฟเฟอร์"
+
+msgid "Texture memory size"
+msgstr "ขนาดหน่วยความจำพื้นผิว"
+
+msgid "Dither subtraction"
+msgstr "การลบการกระจายสี"
+
+msgid "Screen Filter"
+msgstr "ตัวกรองหน้าจอ"
+
+msgid "Render threads"
+msgstr "เธรดการเรนเดอร์"
+
+msgid "SLI"
+msgstr "SLI"
+
+msgid "Start Address"
+msgstr "ที่อยู่เริ่มต้น"
+
+msgid "Contiguous Size"
+msgstr "ขนาดต่อเนื่อง"
+
+msgid "I/O Width"
+msgstr "ความกว้าง I/O"
+
+msgid "Transfer Speed"
+msgstr "ความเร็วในการถ่ายโอน"
+
+msgid "EMS mode"
+msgstr "โหมด EMS"
+
+msgid "EMS Address"
+msgstr "ที่อยู่ EMS"
+
+msgid "EMS 1 Address"
+msgstr "ที่อยู่ EMS 1"
+
+msgid "EMS 2 Address"
+msgstr "ที่อยู่ EMS 2"
+
+msgid "EMS Memory Size"
+msgstr "ขนาดหน่วยความจำ EMS"
+
+msgid "EMS 1 Memory Size"
+msgstr "ขนาดหน่วยความจำ EMS 1"
+
+msgid "EMS 2 Memory Size"
+msgstr "ขนาดหน่วยความจำ EMS 2"
+
+msgid "Enable EMS"
+msgstr "เปิดใช้งาน EMS"
+
+msgid "Enable EMS 1"
+msgstr "เปิดใช้งาน EMS 1"
+
+msgid "Enable EMS 2"
+msgstr "เปิดใช้งาน EMS 2"
+
+msgid "Address for > 2 MB"
+msgstr "ที่อยู่สำหรับ > 2 MB"
+
+msgid "Frame Address"
+msgstr "ที่อยู่เฟรม"
+
+msgid "USA"
+msgstr "สหรัฐอเมริกา"
+
+msgid "Danish"
+msgstr "เดนมาร์ก"
+
+msgid "Always at selected speed"
+msgstr "ที่ความเร็วที่เลือกเสมอ"
+
+msgid "BIOS setting + Hotkeys (off during POST)"
+msgstr "การตั้งค่า BIOS + ปุ่มลัด (ปิดระหว่าง POST)"
+
+msgid "64 kB starting from F0000"
+msgstr "64 kB เริ่มต้นจาก F0000"
+
+msgid "128 kB starting from E0000 (address MSB inverted, last 64KB first)"
+msgstr "128 kB เริ่มต้นจาก E0000 (ที่อยู่ MSB กลับด้าน 64KB สุดท้ายก่อน)"
+
+msgid "Sine"
+msgstr "ไซน์"
+
+msgid "Triangle"
+msgstr "สามเหลี่ยม"
+
+msgid "Linear"
+msgstr "เชิงเส้น"
+
+msgid "4th Order"
+msgstr "ลำดับที่ 4"
+
+msgid "7th Order"
+msgstr "ลำดับที่ 7"
+
+msgid "Non-timed (original)"
+msgstr "ไม่จำกัดเวลา (ดั้งเดิม)"
+
+msgid "45 Hz (JMP2 not populated)"
+msgstr "45 Hz (JMP2 ไม่ได้ถูกใช้งาน)"
+
+msgid "Two"
+msgstr "สอง"
+
+msgid "Three"
+msgstr "สาม"
+
+msgid "Wheel"
+msgstr "ล้อ"
+
+msgid "Five + Wheel"
+msgstr "ห้า + ล้อ"
+
+msgid "Five + 2 Wheels"
+msgstr "ห้า + 2 ล้อ"
+
+msgid "A3 - SMT2 Serial / SMT3(R)V"
+msgstr "A3 - SMT2 อนุกรม / SMT3(R)V"
+
+msgid "Q1 - SMT3(R) Serial"
+msgstr "Q1 - SMT3(R) อนุกรม"
+
+msgid "8 KB"
+msgstr "8 KB"
+
+msgid "32 KB"
+msgstr "32 KB"
+
+msgid "16 KB"
+msgstr "16 KB"
+
+msgid "64 KB"
+msgstr "64 KB"
+
+msgid "Disable BIOS"
+msgstr "ปิดใช้งาน BIOS"
+
+msgid "512 KB"
+msgstr "512 KB"
+
+msgid "2 MB"
+msgstr "2 MB"
+
+msgid "8 MB"
+msgstr "8 MB"
+
+msgid "28 MB"
+msgstr "28 MB"
+
+msgid "1 MB"
+msgstr "1 MB"
+
+msgid "4 MB"
+msgstr "4 MB"
+
+msgid "12 MB"
+msgstr "12 MB"
+
+msgid "16 MB"
+msgstr "16 MB"
+
+msgid "20 MB"
+msgstr "20 MB"
+
+msgid "24 MB"
+msgstr "24 MB"
+
+msgid "SigmaTel STAC9721T (stereo)"
+msgstr "SigmaTel STAC9721T (สเตอริโอ)"
+
+msgid "256 KB"
+msgstr "256 KB"
+
+msgid "Composite"
+msgstr "คอมโพสิต"
+
+msgid "True color"
+msgstr "สีจริง"
+
+msgid "Old"
+msgstr "เก่า"
+
+msgid "New"
+msgstr "ใหม่"
+
+msgid "Color (generic)"
+msgstr "สี (ทั่วไป)"
+
+msgid "Green Monochrome"
+msgstr "สีเขียวขาวดำ"
+
+msgid "Amber Monochrome"
+msgstr "สีเหลืองอำพันขาวดำ"
+
+msgid "Gray Monochrome"
+msgstr "สีเทาขาวดำ"
+
+msgid "Color (no brown)"
+msgstr "สี (ไม่มีสีน้ำตาล)"
+
+msgid "Color (IBM 5153)"
+msgstr "สี (IBM 5153)"
+
+msgid "Simple doubling"
+msgstr "แบบง่าย การเพิ่มเป็นสองเท่า"
+
+msgid "sRGB interpolation"
+msgstr "การแทรกสอด sRGB"
+
+msgid "Linear interpolation"
+msgstr "การแทรกสอดเชิงเส้น"
+
+msgid "Has secondary 8x8 character set"
+msgstr "มีชุดอักขระ 8x8 รอง"
+
+msgid "Has Quadcolor II daughter board"
+msgstr "มีบอร์ดลูก Quadcolor II"
+
+msgid "Alternate monochrome contrast"
+msgstr "ความคมชัดขาวดำแบบอื่น"
+
+msgid "128 KB"
+msgstr "128 KB"
+
+msgid "Monochrome (5151/MDA) (white)"
+msgstr "ขาวดำ (5151/MDA) (สีขาว)"
+
+msgid "Monochrome (5151/MDA) (green)"
+msgstr "ขาวดำ (5151/MDA) (สีเขียว)"
+
+msgid "Monochrome (5151/MDA) (amber)"
+msgstr "ขาวดำ (5151/MDA) (สีเหลืองอำพัน)"
+
+msgid "Color 40x25 (5153/CGA)"
+msgstr "สี 40x25 (5153/CGA)"
+
+msgid "Color 80x25 (5153/CGA)"
+msgstr "สี 80x25 (5153/CGA)"
+
+msgid "Enhanced Color - Normal Mode (5154/ECD)"
+msgstr "สีที่ปรับปรุงแล้ว - โหมดปกติ (5154/ECD)"
+
+msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr "สีที่ปรับปรุงแล้ว - โหมดปรับปรุง (5154/ECD)"
+
+msgid "Green"
+msgstr "สีเขียว"
+
+msgid "Amber"
+msgstr "สีเหลืองอำพัน"
+
+msgid "Gray"
+msgstr "สีเทา"
+
+msgid "Grayscale"
+msgstr "โทนสีเทา"
+
+msgid "Color"
+msgstr "สี"
+
+msgid "U.S. English"
+msgstr "ภาษาอังกฤษแบบอเมริกัน"
+
+msgid "Scandinavian"
+msgstr "ภาษาสแกนดิเนเวีย"
+
+msgid "Other languages"
+msgstr "ภาษาอื่นๆ"
+
+msgid "Bochs latest"
+msgstr "Bochs รุ่นล่าสุด"
+
+msgid "Apply overscan deltas"
+msgstr "ใช้เดลต้าโอเวอร์สแกน"
+
+msgid "Mono Interlaced"
+msgstr "ขาวดำแบบอินเตอร์เลซ"
+
+msgid "Mono Non-Interlaced"
+msgstr "ขาวดำแบบไม่อินเตอร์เลซ"
+
+msgid "Color Interlaced"
+msgstr "สีแบบอินเตอร์เลซ"
+
+msgid "Color Non-Interlaced"
+msgstr "สีแบบไม่อินเตอร์เลซ"
+
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo Graphics"
+
+msgid "3Dfx Voodoo 2"
+msgstr "3Dfx Voodoo 2"
+
+msgid "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst (2 TMU)"
+
+msgid "8-bit"
+msgstr "8 บิต"
+
+msgid "16-bit"
+msgstr "16 บิต"
+
+msgid "Standard (150ns)"
+msgstr "มาตรฐาน (150ns)"
+
+msgid "High-Speed (120ns)"
+msgstr "ความเร็วสูง (120ns)"
+
+msgid "Enabled"
+msgstr "เปิดใช้งาน"
+
+msgid "Standard"
+msgstr "มาตรฐาน"
+
+msgid "High-Speed"
+msgstr "ความเร็วสูง"
+
+msgid "Stereo LPT DAC"
+msgstr "Stereo LPT DAC"
+
+msgid "Generic Text Printer"
+msgstr "เครื่องพิมพ์ข้อความทั่วไป"
+
+msgid "Generic ESC/P Dot-Matrix Printer"
+msgstr "เครื่องพิมพ์ดอทเมทริกซ์ ESC/P ทั่วไป"
+
+msgid "Generic PostScript Printer"
+msgstr "เครื่องพิมพ์ PostScript ทั่วไป"
+
+msgid "Generic PCL5e Printer"
+msgstr "เครื่องพิมพ์ PCL5e ทั่วไป"
+
+msgid "Parallel Line Internet Protocol"
+msgstr "Parallel Line Internet Protocol"
+
+msgid "Protection Dongle for Savage Quest"
+msgstr "Protection Dongle สำหรับ Savage Quest"
+
+msgid "Serial Passthrough Device"
+msgstr "อุปกรณ์ส่งผ่านอนุกรม"
+
+msgid "Passthrough Mode"
+msgstr "โหมดส่งผ่าน"
+
+msgid "Host Serial Device"
+msgstr "อุปกรณ์อนุกรมโฮสต์"
+
+msgid "Name of pipe"
+msgstr "ชื่อของไปป์"
+
+msgid "Data bits"
+msgstr "บิตข้อมูล"
+
+msgid "Stop bits"
+msgstr "บิตหยุด"
+
+msgid "Baud Rate of Passthrough"
+msgstr "อัตรา Baud ของการส่งผ่าน"
+
+msgid "Named Pipe (Server)"
+msgstr "ไปป์ที่มีชื่อ (เซิร์ฟเวอร์)"
+
+msgid "Named Pipe (Client)"
+msgstr "ไปป์ที่มีชื่อ (ไคลเอ็นต์)"
+
+msgid "Host Serial Passthrough"
+msgstr "การส่งผ่านอนุกรมโฮสต์"
+
+msgid "E&ject %1"
+msgstr "Eject %1 (&J)"
+
+msgid "&Unmute"
+msgstr "Unmute (&U)"
+
+msgid "Softfloat FPU"
+msgstr "Softfloat FPU"
+
+msgid "High performance impact"
+msgstr "ผลกระทบต่อประสิทธิภาพสูง"
+
+msgid "[Generic] RAM Disk (max. speed)"
+msgstr "[ทั่วไป] RAM Disk (ความเร็วสูงสุด)"
+
+msgid "[Generic] 1989 (3500 RPM)"
+msgstr "[ทั่วไป] 1989 (3500 RPM)"
+
+msgid "[Generic] 1992 (3600 RPM)"
+msgstr "[ทั่วไป] 1992 (3600 รอบต่อนาที)"
+
+msgid "[Generic] 1994 (4500 RPM)"
+msgstr "[ทั่วไป] 1994 (4500 รอบต่อนาที)"
+
+msgid "[Generic] 1996 (5400 RPM)"
+msgstr "[ทั่วไป] 1996 (5400 รอบต่อนาที)"
+
+msgid "[Generic] 1997 (5400 RPM)"
+msgstr "[ทั่วไป] 1997 (5400 รอบต่อนาที)"
+
+msgid "[Generic] 1998 (5400 RPM)"
+msgstr "[ทั่วไป] 1998 (5400 รอบต่อนาที)"
+
+msgid "[Generic] 2000 (7200 RPM)"
+msgstr "[ทั่วไป] 2000 (7200 รอบต่อนาที)"
+
+msgid "IBM 8514/A clone (ISA)"
+msgstr "IBM 8514/A โคลน (ISA)"
+
+msgid "Vendor"
+msgstr "ผู้ผลิต"
+
+msgid "30 Hz (JMP2 = 1)"
+msgstr "30 เฮิรตซ์ (JMP2 = 1)"
+
+msgid "60 Hz (JMP2 = 2)"
+msgstr "60 เฮิรตซ์ (JMP2 = 2)"
+
+msgid "Generic PC/XT Memory Expansion"
+msgstr "หน่วยความจำเสริม PC/XT ทั่วไป"
+
+msgid "Generic PC/AT Memory Expansion"
+msgstr "หน่วยความจำเสริม PC/AT ทั่วไป"
+
+msgid "Unable to find Dot-Matrix fonts"
+msgstr "ไม่พบฟอนต์ดอทเมทริกซ์"
+
+msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P Dot-Matrix Printer."
+msgstr "จำเป็นต้องใช้ฟอนต์ TrueType ในไดเร็กทอรี \"roms/printer/fonts\" เพื่อจำลองการทำงานของเครื่องพิมพ์ดอตแมทริกซ์ ESC/P ทั่วไป"
+
+msgid "Inhibit multimedia keys"
+msgstr "ปิดใช้งานปุ่มมัลติมีเดีย"
+
+msgid "Ask for confirmation before saving settings"
+msgstr "ขอการยืนยันก่อนบันทึกการตั้งค่า"
+
+msgid "Ask for confirmation before hard resetting"
+msgstr "ขอการยืนยันก่อนรีเซ็ตเครื่อง"
+
+msgid "Ask for confirmation before quitting"
+msgstr "ขอการยืนยันก่อนออกจากโปรแกรม"
+
+msgid "Options"
+msgstr "ตัวเลือก"
+
+msgid "Model"
+msgstr "โมเดล"
+
+msgid "Model:"
+msgstr "โมเดล:"
+
+msgid "Failed to initialize Vulkan renderer."
+msgstr "ไม่สามารถเริ่มต้นใช้งานตัวเรนเดอร์ Vulkan ได้"
+
+msgid "GLSL Error"
+msgstr "ข้อผิดพลาด GLSL"
+
+msgid "Could not load shader: %1"
+msgstr "ไม่สามารถโหลดเชเดอร์ได้: %1"
+
+msgid "Could not load texture: %1"
+msgstr "ไม่สามารถโหลดเท็กซ์เจอร์ได้: %1"
+
+msgid "Could not compile shader:\n\n%1"
+msgstr "ไม่สามารถคอมไพล์เชเดอร์ได้:\n\n%1"
+
+msgid "Program not linked:\n\n%1"
+msgstr "โปรแกรมไม่ได้เชื่อมโยง:\n\n%1"
+
+msgid "Shader Manager"
+msgstr "ตัวจัดการเชเดอร์"
+
+msgid "Shader Configuration"
+msgstr "การกำหนดค่าเชเดอร์"
+
+msgid "Add"
+msgstr "เพิ่ม"
+
+msgid "Move up"
+msgstr "เลื่อนขึ้น"
+
+msgid "Move down"
+msgstr "เลื่อนลง"
+
+msgid "Could not load file %1"
+msgstr "ไม่สามารถโหลดไฟล์ได้ %1"
+
+msgid "Key Bindings:"
+msgstr "การผูกปุ่ม:"
+
+msgid "Action"
+msgstr "การกระทำ"
+
+msgid "Keybind"
+msgstr "ผูกปุ่ม"
+
+msgid "Clear binding"
+msgstr "ล้างการผูก"
+
+msgid "Bind"
+msgstr "ผูก"
+
+msgid "Bind Key"
+msgstr "ผูกปุ่ม"
+
+msgid "Enter key combo:"
+msgstr "ป้อนชุดปุ่ม:"
+
+msgid "Bind conflict"
+msgstr "ข้อขัดแย้งในการผูก"
+
+msgid "This key combo is already in use."
+msgstr "ชุดปุ่มนี้ถูกใช้งานอยู่แล้ว"
+
+msgid "Send Control+Alt+Del"
+msgstr "ส่งคำสั่ง Control+Alt+Del"
+
+msgid "Send Control+Alt+Escape"
+msgstr "ส่งคำสั่ง Control+Alt+Escape"
+
+msgid "Toggle fullscreen"
+msgstr "สลับโหมดเต็มหน้าจอ"
+
+msgid "Toggle UI in fullscreen"
+msgstr "สลับโหมด UI ในโหมดเต็มหน้าจอ"
+
+msgid "Screenshot"
+msgstr "จับภาพหน้าจอ"
+
+msgid "Release mouse pointer"
+msgstr "ปล่อยตัวชี้เมาส์"
+
+msgid "Toggle pause"
+msgstr "สลับหยุดชั่วคราว"
+
+msgid "Toggle mute"
+msgstr "สลับปิดเสียง"
+
+msgid "Text files"
+msgstr "ไฟล์ข้อความ"
+
+msgid "ROM files"
+msgstr "ไฟล์ ROM"
+
+msgid "SoundFont files"
+msgstr "ไฟล์ SoundFont"
+
+msgid "Local Switch"
+msgstr "สวิตช์ภายในเครื่อง"
+
+msgid "Remote Switch"
+msgstr "สวิตช์ระยะไกล"
+
+msgid "Switch:"
+msgstr "สวิตช์:"
+
+msgid "Hub Mode"
+msgstr "โหมดฮับ"
+
+msgid "Hostname:"
+msgstr "ชื่อโฮสต์:"
+
+msgid "ISA RAM:"
+msgstr "ISA RAM:"
+
+msgid "ISA ROM:"
+msgstr "ISA ROM:"
+
+msgid "&Wipe NVRAM"
+msgstr "&ล้าง NVRAM"
+
+msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr "การดำเนินการนี้จะลบไฟล์ NVRAM (และไฟล์ที่เกี่ยวข้อง) ทั้งหมดของเครื่องเสมือนที่อยู่ในไดเร็กทอรีย่อย \"nvr\"\nคุณจะต้องกำหนดค่า BIOS (และอาจรวมถึงอุปกรณ์อื่นๆ ภายใน VM) ใหม่ หากจำเป็น\n\nคุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลทั้งหมดใน NVRAM ของเครื่องเสมือน \"%1\"?"
+
+msgid "Success"
+msgstr "สำเร็จ"
+
+msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
+msgstr "ลบข้อมูลใน NVRAM ของเครื่องเสมือน \"%1\" สำเร็จแล้ว"
+
+msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
+msgstr "เกิดข้อผิดพลาดขณะพยายามลบข้อมูลใน NVRAM ของเครื่องเสมือน \"%1\""
+
+msgid "%1 VM Manager"
+msgstr "%1 ตัวจัดการเครื่องเสมือน"
+
+msgid "%n disk(s)"
+msgstr "ดิสก์: %n"
+
+msgid "Unknown Status"
+msgstr "สถานะไม่ทราบ"
+
+msgid "No Machines Found!"
+msgstr "ไม่พบเครื่อง!"
+
+msgid "Check for updates on startup"
+msgstr "ตรวจสอบการอัปเดตเมื่อเริ่มต้นระบบ"
+
+msgid "Unable to determine release information"
+msgstr "ไม่สามารถระบุข้อมูลรุ่นได้"
+
+msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
+msgstr "เกิดข้อผิดพลาดขณะตรวจสอบการอัปเดต:\n\n%1\n\nโปรดลองใหม่อีกครั้งภายหลัง"
+
+msgid "Update check complete"
+msgstr "ตรวจสอบการอัปเดตเสร็จสมบูรณ์"
+
+msgid "stable"
+msgstr "เสถียร"
+
+msgid "beta"
+msgstr "เบต้า"
+
+msgid "You are running the latest %1 version of 86Box: %2"
+msgstr "คุณกำลังใช้งาน 86Box เวอร์ชัน %1 ล่าสุด: %2"
+
+msgid "version"
+msgstr "เวอร์ชัน"
+
+msgid "build"
+msgstr "บิลด์"
+
+msgid "You are currently running version <b>%1</b>."
+msgstr "ขณะนี้คุณกำลังใช้งานเวอร์ชัน <b>%1</b>"
+
+msgid "<b>Version %1</b> is now available."
+msgstr "<b>เวอร์ชัน %1</b> พร้อมใช้งานแล้ว"
+
+msgid "You are currently running build <b>%1</b>."
+msgstr "ขณะนี้คุณกำลังใช้งานบิลด์ <b>%1</b>"
+
+msgid "<b>Build %1</b> is now available."
+msgstr "<b>บิลด์ %1</b> พร้อมใช้งานแล้ว"
+
+msgid "Would you like to visit the download page?"
+msgstr "คุณต้องการเยี่ยมชมหน้าดาวน์โหลดหรือไม่?"
+
+msgid "Visit download page"
+msgstr "เยี่ยมชมหน้าดาวน์โหลด"
+
+msgid "Update check"
+msgstr "ตรวจสอบการอัปเดต"
+
+msgid "Checking for updates…"
+msgstr "กำลังตรวจสอบการอัปเดต…"
+
+msgid "86Box Update"
+msgstr "การอัปเดต 86Box"
+
+msgid "Release notes:"
+msgstr "บันทึกการเปลี่ยนแปลง:"
+
+msgid "%1 Hz"
+msgstr "%1 Hz"
+
+msgid "Virtual machine crash"
+msgstr "เครื่องเสมือนล่ม"
+
+msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
+msgstr "กระบวนการของเครื่องเสมือน \"%1\" ได้หยุดทำงานโดยไม่คาดคิดด้วยรหัสออก %2"
+
+msgid "The system will not be added."
+msgstr "ระบบจะไม่ถูกเพิ่ม"
+
+msgid "&Update mouse every CPU frame"
+msgstr "อัปเดตเมาส์ทุกเฟรม CPU (&U)"
+
+msgid "Hue"
+msgstr "เฉดสี"
+
+msgid "Saturation"
+msgstr "ความอิ่มตัวของสี"
+
+msgid "Contrast"
+msgstr "ความคมชัด"
+
+msgid "Brightness"
+msgstr "ความสว่าง"
+
+msgid "Sharpness"
+msgstr "ความคมชัด"
+
+msgid "&CGA composite settings…"
+msgstr "การตั้งค่าคอมโพสิต CGA… (&C)"
+
+msgid "CGA composite settings"
+msgstr "การตั้งค่าคอมโพสิต CGA"
+
+msgid "Monitor EDID"
+msgstr "EDID ของจอภาพ"
+
+msgid "Export…"
+msgstr "ส่งออก…"
+
+msgid "Export EDID"
+msgstr "ส่งออก EDID"
+
+msgid "EDID file \"%ls\" is too large."
+msgstr "ไฟล์ EDID \"%ls\" มีขนาดใหญ่เกินไป"
+
+msgid "OpenGL input scale"
+msgstr "มาตราส่วนอินพุต OpenGL"
+
+msgid "OpenGL input stretch mode"
+msgstr "โหมดการยืดอินพุต OpenGL"
+
+msgid "Color scheme"
+msgstr "โทนสี"
+
+msgid "Light"
+msgstr "สว่าง"
+
+msgid "Dark"
+msgstr "มืด"
+
+msgid "Search:"
+msgstr "ค้นหา:"
+
+msgid "Force interpretation"
+msgstr "บังคับการตีความ"
+
+msgid "Allow recompilation"
+msgstr "อนุญาตการคอมไพล์ใหม่"
+
+msgid "&Force interpretation"
+msgstr "บังคับการตีความ (&F)"
+
+msgid "&Allow recompilation"
+msgstr "อนุญาตการคอมไพล์ใหม่ (&A)"
