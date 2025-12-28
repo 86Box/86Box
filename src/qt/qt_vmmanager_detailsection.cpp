@@ -200,6 +200,7 @@ VMManagerDetailSection::setSections()
                 } else {
                     labelKey = new QLabel();
                     labelKey->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+                    labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
                     frameGridLayout->addWidget(labelKey, row, 0, Qt::AlignLeft);
                 }
                 labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
