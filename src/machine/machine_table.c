@@ -20709,6 +20709,21 @@ machine_get_machine_from_internal_name(const char *s)
     return 0;
 }
 
+
+int
+machine_get_machine_from_internal_name_ex(const char *s)
+{
+    int c = 0;
+
+    while (machines[c].init != NULL) {
+        if (!strcmp(machines[c].internal_name, s))
+            return c;
+        c++;
+    }
+
+    return -1;
+}
+
 int
 machine_has_mouse(void)
 {
