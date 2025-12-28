@@ -179,10 +179,9 @@ VMManagerDetailSection::setSections()
                 continue;
             }
 
-            auto    item  = frameGridLayout->itemAtPosition(row, 1);
-            QLabel *label;
-            if (item) {
-                label = (QLabel *) item->widget();
+            auto item  = frameGridLayout->itemAtPosition(row, 1);
+            auto label = item ? ((QLabel *) item->widget()) : nullptr;
+            if (label) {
                 label->setVisible(true);
             } else {
                 label = new QLabel();
@@ -194,21 +193,25 @@ VMManagerDetailSection::setSections()
 
             item = frameGridLayout->itemAtPosition(row, 0);
             if (!labelKey) {
-                if (item) {
+                if (item)
                     labelKey = (QLabel *) item->widget();
+                if (labelKey) {
                     labelKey->setVisible(true);
                 } else {
                     labelKey = new QLabel();
-                    labelKey->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+                    labelKey->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
                     labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
                     frameGridLayout->addWidget(labelKey, row, 0, Qt::AlignLeft);
                 }
                 labelKey->setText(QCoreApplication::translate("", QString(section.name + ":").toUtf8().data()));
             } else if (item) {
-                item->widget()->setVisible(false);
+                label = (QLabel *) item->widget();
+                if (label)
+                    label->setVisible(false);
             }
 
-            if (!frameGridLayout->itemAtPosition(row, 2)) {
+            item = frameGridLayout->itemAtPosition(row, 2);
+            if (!item || !item->widget()) {
                 const auto hSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
                 frameGridLayout->addItem(hSpacer, row, 2);
             }
@@ -221,10 +224,13 @@ VMManagerDetailSection::setSections()
     int prevUsedRows = usedRows;
     usedRows = row;
     for (; row < prevUsedRows; row++) {
-        for (int i = 0; i <= 1; i++) {
+        for (int i = 0; i <= 2; i++) {
             auto item = frameGridLayout->itemAtPosition(row, i);
-            if (item)
-                item->widget()->setVisible(false);
+            if (item) {
+                auto widget = item->widget();
+                if (widget)
+                    widget->setVisible(false);
+            }
         }
     }
 
