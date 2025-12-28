@@ -91,7 +91,6 @@ private:
     static QMargins getMargins(MarginSection section);
 
     QString sectionName;
-    int     usedRows;
 
     struct DetailSection {
         QString name;
