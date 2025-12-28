@@ -55,10 +55,10 @@ msgid "&Resizeable window"
 msgstr "Fenêtre &redimensionnable"
 
 msgid "R&emember size && position"
-msgstr "S&auvegarder taille && position"
+msgstr "S&auvegarder taille et position"
 
 msgid "Remember size && position"
-msgstr "Sauvegarder taille && position"
+msgstr "Sauvegarder taille et position"
 
 msgid "Re&nderer"
 msgstr "Moteur de re&ndu vidéo"
@@ -691,7 +691,7 @@ msgid "&Removable disk %1 (%2): %3"
 msgstr "&Disque amovible %1 (%2) : %3"
 
 msgid "Removable disk images"
-msgstr "Imges de disque amovible"
+msgstr "Images de disque amovible"
 
 msgid "Image %1"
 msgstr "Image %1"
@@ -931,7 +931,7 @@ msgid "Advanced sector images"
 msgstr "Images secteur avancé"
 
 msgid "Flux images"
-msgstr "Images Flux"
+msgstr "Images de flux"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Etes-vous sûr de vouloir réinitialiser la machine émulée ?"
@@ -1957,7 +1957,7 @@ msgid "Translate 26 -> 17"
 msgstr "Traduire 26 -> 17"
 
 msgid "Language"
-msgstr "Langage"
+msgstr "Langue"
 
 msgid "Enable backlight"
 msgstr "Activer le rétro-éclairage"
@@ -2662,28 +2662,28 @@ msgid "High performance impact"
 msgstr "Impact important sur la performance"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] Disque RAM (vitesse maximale)"
+msgstr "[Générique] Disque RAM (vitesse maximale)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr "[Generic] 1989 (3500 RPM)"
+msgstr "[Générique] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr "[Generic] 1992 (3600 RPM)"
+msgstr "[Générique] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr "[Generic] 1994 (4500 RPM)"
+msgstr "[Générique] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr "[Generic] 1996 (5400 RPM)"
+msgstr "[Générique] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr "[Generic] 1997 (5400 RPM)"
+msgstr "[Générique] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr "[Generic] 1998 (5400 RPM)"
+msgstr "[Générique] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr "[Generic] 2000 (7200 RPM)"
+msgstr "[Générique] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Clone IBM 8514/A (ISA)"
@@ -2911,7 +2911,7 @@ msgid "You are currently running build <b>%1</b>."
 msgstr "Vous exécutez actuellement le build <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr "<b>Le Build %1</b> est désormais disponible."
+msgstr "<b>Le build %1</b> est désormais disponible."
 
 msgid "Would you like to visit the download page?"
 msgstr "Souhaitez-vous visiter la page de téléchargement ?"
