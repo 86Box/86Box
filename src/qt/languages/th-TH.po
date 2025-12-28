@@ -1042,7 +1042,7 @@ msgid "Cassette: %1"
 msgstr "เทปคาสเซ็ต: %1"
 
 msgid "C&assette: %1"
-msgstr "เทปคาสเซ็ต (A): %1"
+msgstr "เทปคาสเซ็ต (&A): %1"
 
 msgid "Cassette images"
 msgstr "ภาพเทปคาสเซ็ต"
@@ -1051,7 +1051,7 @@ msgid "Cartridge %1: %2"
 msgstr "ตลับ %1: %2"
 
 msgid "Car&tridge %1: %2"
-msgstr "ตลับ (T) %1: %2"
+msgstr "ตลับ (&T) %1: %2"
 
 msgid "Cartridge images"
 msgstr "ภาพตลับ"
@@ -1081,10 +1081,10 @@ msgid "Start"
 msgstr "เริ่ม"
 
 msgid "&Force shutdown"
-msgstr "บังคับปิดเครื่อง (F)"
+msgstr "บังคับปิดเครื่อง (&F)"
 
 msgid "&Start"
-msgstr "เริ่ม (S)"
+msgstr "เริ่ม (&S)"
 
 msgid "Not running"
 msgstr "ไม่ได้ทำงาน"
@@ -1102,16 +1102,16 @@ msgid "Powered Off"
 msgstr "ปิดเครื่อง"
 
 msgid "%n running"
-msgstr "กำลังทำงาน: %1"
+msgstr "%n กำลังทำงาน"
 
 msgid "%n paused"
-msgstr "หยุดชั่วคราว: %1"
+msgstr "%n หยุดชั่วคราว"
 
 msgid "%n waiting"
-msgstr "รอ: %1"
+msgstr "%n รอ"
 
 msgid "%1 total"
-msgstr "ทั้งหมด: %1"
+msgstr "%1 ทั้งหมด"
 
 msgid "VMs: %1"
 msgstr "เครื่องเสมือน: %1"
@@ -2860,7 +2860,7 @@ msgid "%1 VM Manager"
 msgstr "%1 ตัวจัดการเครื่องเสมือน"
 
 msgid "%n disk(s)"
-msgstr "ดิสก์: %n"
+msgstr "%n ดิสก์"
 
 msgid "Unknown Status"
 msgstr "สถานะไม่ทราบ"
@@ -3002,3 +3002,4 @@ msgstr "บังคับการตีความ (&F)"
 
 msgid "&Allow recompilation"
 msgstr "อนุญาตการคอมไพล์ใหม่ (&A)"
+
