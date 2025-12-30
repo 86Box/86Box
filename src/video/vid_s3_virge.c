@@ -1378,96 +1378,122 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv)
         case 0xa4d4:
         case 0xa8d4:
         case 0xacd4:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.src_base;
             break;
         case 0xa4d8:
         case 0xa8d8:
         case 0xacd8:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.dest_base;
             break;
         case 0xa4dc:
         case 0xa8dc:
         case 0xacdc:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.clip_l << 16) | virge->s3d.clip_r;
             break;
         case 0xa4e0:
         case 0xa8e0:
         case 0xace0:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.clip_t << 16) | virge->s3d.clip_b;
             break;
         case 0xa4e4:
         case 0xa8e4:
         case 0xace4:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.dest_str << 16) | virge->s3d.src_str;
             break;
         case 0xa4e8:
         case 0xace8:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.mono_pat_0;
             break;
         case 0xa4ec:
         case 0xacec:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.mono_pat_1;
             break;
         case 0xa4f0:
         case 0xacf0:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.pat_bg_clr;
             break;
         case 0xa4f4:
         case 0xa8f4:
         case 0xacf4:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.pat_fg_clr;
             break;
         case 0xa4f8:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.src_bg_clr;
             break;
         case 0xa4fc:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.src_fg_clr;
             break;
         case 0xa500:
         case 0xa900:
         case 0xad00:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.cmd_set;
             break;
         case 0xa504:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.r_width << 16) | virge->s3d.r_height;
             break;
         case 0xa508:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.rsrc_x << 16) | virge->s3d.rsrc_y;
             break;
         case 0xa50c:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.rdest_x << 16) | virge->s3d.rdest_y;
             break;
         case 0xa96c:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.lxend0 << 16) | virge->s3d.lxend1;
             break;
         case 0xa970:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.ldx;
             break;
         case 0xa974:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.lxstart;
             break;
         case 0xa978:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.lystart;
             break;
         case 0xa97c:
+            s3_virge_wait_fifo_idle(virge);
             ret = (virge->s3d.line_dir << 31) | virge->s3d.lycnt;
             break;
         case 0xad68:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.prdx;
             break;
         case 0xad6c:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.prxstart;
             break;
         case 0xad70:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.pldx;
             break;
         case 0xad74:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.plxstart;
             break;
         case 0xad78:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.pystart;
             break;
         case 0xad7c:
+            s3_virge_wait_fifo_idle(virge);
             ret = virge->s3d.pycnt;
             break;
 
