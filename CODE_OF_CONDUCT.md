@@ -17,6 +17,7 @@ In order for everyone to enjoy their time contributing to 86Box or otherwise bei
 - 2.6. Do not speak on behalf of the project unless you are a team member. This includes all messages which could reasonably be understood as being an official position. Ask a team member if you're unsure about your message.
 - 2.7. Decisions by higher-ranked users supersede those by lower-ranked users.
 - 2.8. Do not engage in political discussions.
+- 2.9. Ignoring essential communication from team members does not exempt you from possible actions against you. Seniority must be earned.
 
 ## 3. Moderation and appeal protocol
 - 3.1. Rule violations are punished at the team's discretion, taking all circumstances into account.
