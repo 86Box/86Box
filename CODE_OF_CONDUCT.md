@@ -1,8 +1,9 @@
-**1. No illegal activity or Discord ToS violations**
+**1. No illegal activity or Discord or GitHub ToS violations**
 - 1.1. Do not distribute malware for non-research purposes. Post samples in a clearly named encrypted archive.
 - 1.2. Posting old software is allowed if at least 10 years old and out of support.
-- 1.3. Do not join while being under the age of 13 (this Discord server is bridged to an IRC network and Minecraft server hosted in Finland, where the minimum age is 13 (or higher if you are in a country where the minimum age is higher), as such we enforce that minimum age server-wide).
+- 1.3. Do not join while being under the age of 13.
 - 1.4. Do not post NSFW content (defined at the staff's discretion).
+- 1.5. Do not do anything forbidden by the law or the Discord or GitHub Terms of Service.
 
 **2. No offensive or disruptive behavior or harassment**
 - 2.1. No gate-keeping. We aim to accommodate and welcome people of all different opinions and knowledge levels to this server.
