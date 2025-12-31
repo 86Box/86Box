@@ -24,6 +24,7 @@
 #include <stdatomic.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/dma.h>
@@ -1191,6 +1192,9 @@ s3_virge_mmio_read(uint32_t addr, void *priv)
     virge_t *virge = (virge_t *) priv;
     uint8_t  ret;
 
+    /* Add wait states for MMIO reads to prevent excessive polling */
+    cycles -= virge->svga.monitor->mon_video_timing_read_b;
+
     switch (addr & 0xffff) {
         case 0x8504:
             if (!virge->virge_busy)
@@ -1242,6 +1246,9 @@ s3_virge_mmio_read_w(uint32_t addr, void *priv)
     virge_t *virge = (virge_t *) priv;
     uint16_t ret;
 
+    /* Add wait states for MMIO reads to prevent excessive polling */
+    cycles -= virge->svga.monitor->mon_video_timing_read_w;
+
     switch (addr & 0xfffe) {
         case 0x8504:
             ret = 0xc000;
@@ -1274,6 +1281,9 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv)
 {
     virge_t *virge = (virge_t *) priv;
     uint32_t ret   = 0xffffffff;
+
+    /* Add wait states for MMIO reads to prevent excessive polling */
+    cycles -= virge->svga.monitor->mon_video_timing_read_l;
 
     switch (addr & 0xfffc) {
         case 0x8180:

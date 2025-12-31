@@ -2169,6 +2169,14 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     uint32_t dest_dat;
                     uint32_t host_dat = 0;
                     int      mix      = 0;
+                    int      draw_pixel = !(mach64->dst_cntl & DST_POLYGON_EN);
+
+                    if (mach64->dst_cntl & DST_POLYGON_EN) {
+                        if (mach64->dst_cntl & DST_Y_MAJOR)
+                            draw_pixel = 1;
+                        else if (mach64->accel.err >= 0)
+                            draw_pixel = 1;
+                    }
 
                     if (mach64->accel.source_host) {
                         host_dat = cpu_dat;
@@ -2215,7 +2223,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             break;
                     }
 
-                    if ((mach64->accel.dst_x >= mach64->accel.sc_left) && (mach64->accel.dst_x <= mach64->accel.sc_right) && (mach64->accel.dst_y >= mach64->accel.sc_top) && (mach64->accel.dst_y <= mach64->accel.sc_bottom)) {
+                    if ((mach64->accel.dst_x >= mach64->accel.sc_left) && (mach64->accel.dst_x <= mach64->accel.sc_right) && (mach64->accel.dst_y >= mach64->accel.sc_top) && (mach64->accel.dst_y <= mach64->accel.sc_bottom) && draw_pixel) {
                         switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
                             case SRC_HOST:
                                 src_dat = host_dat;
@@ -2285,17 +2293,21 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                     if (mach64->dst_cntl & DST_Y_MAJOR) {
                         mach64->accel.dst_y += mach64->accel.yinc;
+                        mach64->accel.src_y += mach64->accel.yinc;
                         if (mach64->accel.err >= 0) {
                             mach64->accel.err += mach64->dst_bres_dec;
                             mach64->accel.dst_x += mach64->accel.xinc;
+                            mach64->accel.src_x += mach64->accel.xinc;
                         } else {
                             mach64->accel.err += mach64->dst_bres_inc;
                         }
                     } else {
                         mach64->accel.dst_x += mach64->accel.xinc;
+                        mach64->accel.src_x += mach64->accel.xinc;
                         if (mach64->accel.err >= 0) {
                             mach64->accel.err += mach64->dst_bres_dec;
                             mach64->accel.dst_y += mach64->accel.yinc;
+                            mach64->accel.src_y += mach64->accel.yinc;
                         } else {
                             mach64->accel.err += mach64->dst_bres_inc;
                         }
@@ -2347,9 +2359,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     if (mach64->dst_cntl & DST_POLYGON_EN) {
                         if (mach64->dst_cntl & DST_Y_MAJOR)
                             draw_pixel = 1;
-                        else if ((mach64->dst_cntl & DST_X_DIR) && mach64->accel.err < (mach64->dst_bres_dec + mach64->dst_bres_inc)) /*X+*/
-                            draw_pixel = 1;
-                        else if (!(mach64->dst_cntl & DST_X_DIR) && mach64->accel.err >= 0) /*X-*/
+                        else if (mach64->accel.err >= 0)
                             draw_pixel = 1;
                     }
 
@@ -2406,62 +2416,27 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         return;
                     }
 
-                    switch (mach64->dst_cntl & 7) {
-                        case 0:
-                        case 2:
-                            mach64->accel.src_x--;
-                            mach64->accel.dst_x--;
-                            break;
-                        case 1:
-                        case 3:
-                            mach64->accel.src_x++;
-                            mach64->accel.dst_x++;
-                            break;
-                        case 4:
-                        case 5:
-                            mach64->accel.src_y--;
-                            mach64->accel.dst_y--;
-                            break;
-                        case 6:
-                        case 7:
-                            mach64->accel.src_y++;
-                            mach64->accel.dst_y++;
-                            break;
-
-                        default:
-                            break;
-                    }
-                    mach64_log("x %i y %i err %i inc %i dec %i\n", mach64->accel.dst_x, mach64->accel.dst_y, mach64->accel.err, mach64->dst_bres_inc, mach64->dst_bres_dec);
-                    if (mach64->accel.err >= 0) {
-                        mach64->accel.err += mach64->dst_bres_dec;
-
-                        switch (mach64->dst_cntl & 7) {
-                            case 0:
-                            case 1:
-                                mach64->accel.src_y--;
-                                mach64->accel.dst_y--;
-                                break;
-                            case 2:
-                            case 3:
-                                mach64->accel.src_y++;
-                                mach64->accel.dst_y++;
-                                break;
-                            case 4:
-                            case 6:
-                                mach64->accel.src_x--;
-                                mach64->accel.dst_x--;
-                                break;
-                            case 5:
-                            case 7:
-                                mach64->accel.src_x++;
-                                mach64->accel.dst_x++;
-                                break;
-
-                            default:
-                                break;
+                    if (mach64->dst_cntl & DST_Y_MAJOR) {
+                        mach64->accel.dst_y += mach64->accel.yinc;
+                        mach64->accel.src_y += mach64->accel.yinc;
+                        if (mach64->accel.err >= 0) {
+                            mach64->accel.err += mach64->dst_bres_dec;
+                            mach64->accel.dst_x += mach64->accel.xinc;
+                            mach64->accel.src_x += mach64->accel.xinc;
+                        } else {
+                            mach64->accel.err += mach64->dst_bres_inc;
                         }
-                    } else
-                        mach64->accel.err += mach64->dst_bres_inc;
+                    } else {
+                        mach64->accel.dst_x += mach64->accel.xinc;
+                        mach64->accel.src_x += mach64->accel.xinc;
+                        if (mach64->accel.err >= 0) {
+                            mach64->accel.err += mach64->dst_bres_dec;
+                            mach64->accel.dst_y += mach64->accel.yinc;
+                            mach64->accel.src_y += mach64->accel.yinc;
+                        } else {
+                            mach64->accel.err += mach64->dst_bres_inc;
+                        }
+                    }
                 }
             }
             break;

@@ -14788,7 +14788,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
             .block       = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
-                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L, CPU_WINCHIP, CPU_WINCHIP2),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 2800,
@@ -20707,6 +20707,21 @@ machine_get_machine_from_internal_name(const char *s)
     }
 
     return 0;
+}
+
+
+int
+machine_get_machine_from_internal_name_ex(const char *s)
+{
+    int c = 0;
+
+    while (machines[c].init != NULL) {
+        if (!strcmp(machines[c].internal_name, s))
+            return c;
+        c++;
+    }
+
+    return -1;
 }
 
 int
