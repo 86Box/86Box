@@ -158,6 +158,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
+#include <86box/video.h>
 #include "cpu.h"
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -817,6 +818,7 @@ machine_at_t3100e_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
+    video_reset(gfxcard[0]);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     if (fdc_current[0] == FDC_INTERNAL)
