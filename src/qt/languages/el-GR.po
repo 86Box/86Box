@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-01-02 21:56+0000\n"
-"Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
 "MIME-Version: 1.0\n"
@@ -340,7 +340,7 @@ msgid "Lock to this size"
 msgstr "Κλείδωμα σε αυτό το μέγεθος"
 
 msgid "Machine type:"
-msgstr "Τύπος συστήματος"
+msgstr "Τύπος συστήματος:"
 
 msgid "Machine:"
 msgstr "Σύστημα:"
@@ -361,7 +361,7 @@ msgid "Frequency:"
 msgstr "Συχνότητα:"
 
 msgid "FPU:"
-msgstr "FPU"
+msgstr "FPU:"
 
 msgid "Wait states:"
 msgstr "Καταστάσεις αναμονής:"
@@ -751,7 +751,7 @@ msgid "Network"
 msgstr "Δίκτυο"
 
 msgid "Ports (COM & LPT)"
-msgstr "Θύρες (COM & LPT) "
+msgstr "Θύρες (COM & LPT)"
 
 msgid "Ports"
 msgstr "Θύρες"
@@ -942,10 +942,10 @@ msgid "Are you sure you want to exit 86Box?"
 msgstr "Είστε σίγουρος για την έξοδο απο το 86Box;"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Αδυναμία αρχικοποίησης Ghostscript "
+msgstr "Αδυναμία αρχικοποίησης Ghostscript"
 
 msgid "Unable to initialize GhostPCL"
-msgstr "Αδυναμία αρχικοποίησης GhostPCL "
+msgstr "Αδυναμία αρχικοποίησης GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1041,7 +1041,16 @@ msgid "You are loading an unsupported configuration"
 msgstr "Προσπαθείτε να φορτώσετε μη υποστηριζόμενη προσαρμογή"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Το φιλτράρισμα τύπου CPU βασισμένο στην επιλεγμένη μηχανή είναι απενεργοποιημένο για αυτήν την εξομειωμένη μηχανή.\n\nΑυτό δίνει την δυνατότητα να επιλέξετε CPU που δεν είναι συμβατός με την επιλεγμένη μηχανή. Παρ'όλ' αυτά υπάρχει περίτωση να έχετε ασυμβατότητες με το BIOS της μηχανής ή άλλο λογισμικό.\n\nΕνεργοποιώντας αυτή την ρύθμιση η οποία δεν υποστηρίζεται επίσημα και οι οποιεσδήποτε αναφορές σφαλμάτων θα κλείνουν ως μη έκγυρες. "
+msgstr ""
+"Το φιλτράρισμα τύπου CPU βασισμένο στην επιλεγμένη μηχανή είναι "
+"απενεργοποιημένο για αυτήν την εξομειωμένη μηχανή.\n"
+"\n"
+"Αυτό δίνει την δυνατότητα να επιλέξετε CPU που δεν είναι συμβατός με την "
+"επιλεγμένη μηχανή. Παρ'όλ' αυτά υπάρχει περίτωση να έχετε ασυμβατότητες με "
+"το BIOS της μηχανής ή άλλο λογισμικό.\n"
+"\n"
+"Ενεργοποιώντας αυτή την ρύθμιση η οποία δεν υποστηρίζεται επίσημα και οι "
+"οποιεσδήποτε αναφορές σφαλμάτων θα κλείνουν ως μη έκγυρες."
 
 msgid "Continue"
 msgstr "Συνέχεια"
@@ -1125,7 +1134,7 @@ msgid "VMs: %1"
 msgstr "VMs: %1"
 
 msgid "System Directory:"
-msgstr "Κατάλογος Συστήματος"
+msgstr "Κατάλογος Συστήματος:"
 
 msgid "Choose directory"
 msgstr "Επιλέξτε κατάλογο"
@@ -1200,7 +1209,7 @@ msgid "A new directory for the system will be created in the selected directory 
 msgstr "Ένας νέος κατάλογος για το σύστημα θα δημιουργηθεί στον παραπάνω επιλεγμένο κατάλογο"
 
 msgid "System location:"
-msgstr "Τοποθεσία συστήματος"
+msgstr "Τοποθεσία συστήματος:"
 
 msgid "System name and location"
 msgstr "Όνομα και τοποθεσία συστήματος"
@@ -1320,7 +1329,9 @@ msgid "&Delete"
 msgstr "&Διαγραφή"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα αρχεία της; Αυτή η ενέργεια είναι ανεπανόρθωτη"
+msgstr ""
+"Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα "
+"αρχεία της; Αυτή η ενέργεια είναι ανεπανόρθωτη!"
 
 msgid "Show &config file"
 msgstr "Εμφάνιση αρχείου &προσαρμογής"
@@ -1413,7 +1424,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "Βεβαιωθείτε οτι το αρχείο αποθηκεύεται σε έναν εγγράψιμο κατάλογο."
 
 msgid "Disk image too large"
-msgstr "Η εικόνα δίσκου είναι αρκετά μεγάλη."
+msgstr "Η εικόνα δίσκου είναι αρκετά μεγάλη"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "Μην ξεχάσετε να κάνετε partition και format τον νέο-δημιουργημένο δίσκο."
@@ -1428,7 +1439,7 @@ msgid "Overwrite"
 msgstr "Επανεγγραφή"
 
 msgid "Don't overwrite"
-msgstr "Να μην γίνει επανεγγραφή."
+msgstr "Να μην γίνει επανεγγραφή"
 
 msgid "Raw image"
 msgstr "Εικόνα Raw"
@@ -1587,7 +1598,7 @@ msgid "The network configuration will be switched to the null driver"
 msgstr "Η παραμετροποίηση δικτύου θα αλλάξει σε άκυρο οδηγό"
 
 msgid "Mouse sensitivity:"
-msgstr "Ευαισθησία ποντικιού"
+msgstr "Ευαισθησία ποντικιού:"
 
 msgid "Select media images from program working directory"
 msgstr "Επιλέξτε αρχεία πολυμέσων απο τον ενεργό κατάλογο προγράμματος"
