@@ -900,11 +900,12 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         strcat(path, fn);
 
         QImage image = this->grab();
-        image.save(path, "png");
+        image.rgbSwapped().save(path, "png");
         monitors[r_monitor_index].mon_screenshots--;
     }
     if (monitors[r_monitor_index].mon_screenshots_clipboard) {
         QImage image = this->grab();
+        image = image.rgbSwapped();
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setImage(image, QClipboard::Clipboard);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
