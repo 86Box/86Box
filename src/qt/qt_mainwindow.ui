@@ -380,9 +380,6 @@
    <property name="toolTip">
     <string>Press Ctrl+Alt+Del</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+F12</string>
-   </property>
   </action>
   <action name="actionCtrl_Alt_Esc">
    <property name="icon">
@@ -431,9 +428,6 @@
   <action name="actionFullscreen">
    <property name="text">
     <string>&amp;Fullscreen</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+PgUp</string>
    </property>
   </action>
   <action name="actionSoftware_Renderer">
@@ -751,9 +745,6 @@
   <action name="actionTake_screenshot">
    <property name="text">
     <string>Take s&amp;creenshot</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+F11</string>
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
