@@ -20472,13 +20472,7 @@ machine_count(void)
 }
 
 const char *
-machine_getname(void)
-{
-    return (machines[machine].name);
-}
-
-const char *
-machine_getname_ex(int m)
+machine_getname(int m)
 {
     return (machines[m].name);
 }
@@ -20697,21 +20691,6 @@ machine_get_chipset(int m)
 
 int
 machine_get_machine_from_internal_name(const char *s)
-{
-    int c = 0;
-
-    while (machines[c].init != NULL) {
-        if (!strcmp(machines[c].internal_name, s))
-            return c;
-        c++;
-    }
-
-    return 0;
-}
-
-
-int
-machine_get_machine_from_internal_name_ex(const char *s)
 {
     int c = 0;
 

@@ -1353,7 +1353,7 @@ pc_init_roms(void)
         while (machine_get_internal_name_ex(c) != NULL) {
             m = machine_available(c);
             if (!m)
-                pclog("Missing machine: %s\n", machine_getname_ex(c));
+                pclog("Missing machine: %s\n", machine_getname(c));
             c++;
         }
 
@@ -1394,7 +1394,7 @@ pc_init_modules(void)
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
-        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname());
+        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname(machine));
         c       = 0;
         machine = -1;
         while (machine_get_internal_name_ex(c) != NULL) {
@@ -1816,7 +1816,7 @@ update_mouse_msg(void)
     wchar_t  wmachine[2048];
     wchar_t *wcp;
 
-    mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
+    mbstowcs(wmachine, machine_getname(machine), strlen(machine_getname(machine)) + 1);
 
     if (!cpu_override)
         mbstowcs(wcpufamily, cpu_f->name, strlen(cpu_f->name) + 1);

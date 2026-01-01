@@ -349,16 +349,21 @@ load_machine(void)
         for (i = 0; machine_migrations[i].old; i++) {
             if (!strcmp(p, machine_migrations[i].old)) {
                 machine      = machine_get_machine_from_internal_name(machine_migrations[i].new);
-                migrate_from = p;
-                if (machine_migrations[i].new_bios) {
-                    migration_cat = ini_find_or_create_section(config, machine_get_device(machine)->name);
-                    ini_section_set_string(migration_cat, "bios", machine_migrations[i].new_bios);
+                if (machine != -1) {
+                    migrate_from = p;
+                    if (machine_migrations[i].new_bios) {
+                        migration_cat = ini_find_or_create_section(config, machine_get_device(machine)->name);
+                        ini_section_set_string(migration_cat, "bios", machine_migrations[i].new_bios);
+                    }
                 }
                 break;
             }
         }
-        if (!migrate_from)
+        if (!migrate_from) {
             machine = machine_get_machine_from_internal_name(p);
+            if (machine == -1)
+                machine = 0;
+        }
     } else {
         machine = 0;
     }
