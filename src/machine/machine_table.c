@@ -20472,13 +20472,7 @@ machine_count(void)
 }
 
 const char *
-machine_getname(void)
-{
-    return (machines[machine].name);
-}
-
-const char *
-machine_getname_ex(int m)
+machine_getname(int m)
 {
     return (machines[m].name);
 }
