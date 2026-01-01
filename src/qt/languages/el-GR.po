@@ -966,8 +966,8 @@ msgstr "Νέα μηχανή…"
 msgid "New machine"
 msgstr "Νέα μηχανή"
 
-msgid "&Check for updates..."
-msgstr "&Έλεγχος για ενημερώσεις..."
+msgid "&Check for updates…"
+msgstr "&Έλεγχος για ενημερώσεις…"
 
 msgid "Exit"
 msgstr "Έξοδος"
