@@ -1033,7 +1033,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Προσπαθείτε να φορτώσετε μη υποστηριζόμενη προσαρμογή"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Το φιλτράρισμα τύπου CPU βασισμένο στην επιλεγμένη μηχανή είναι απενεργοποιημένο για αυτήν την εξομειωμένη μηχανή.\n\nΑυτό δίνει την δυνατότητα να επιλέξετε CPU που δεν είναι συμβατός με την επιλεγμένη μηχανή. Παρ'όλ' αυτά υπάρχει περίτωση να έχετε ασυμβατότητες με το BIOS της μηχανής ή άλλο λογισμικό.\n\Ενεργοποιώντας αυτή την ρύθμιση η οποία δεν υποστηρίζεται επίσημα και οι οποιεσδήποτε αναφορές σφαλμάτων θα κλείνουν ως μη έκγυρες. "
+msgstr "Το φιλτράρισμα τύπου CPU βασισμένο στην επιλεγμένη μηχανή είναι απενεργοποιημένο για αυτήν την εξομειωμένη μηχανή.\n\nΑυτό δίνει την δυνατότητα να επιλέξετε CPU που δεν είναι συμβατός με την επιλεγμένη μηχανή. Παρ'όλ' αυτά υπάρχει περίτωση να έχετε ασυμβατότητες με το BIOS της μηχανής ή άλλο λογισμικό.\n\nΕνεργοποιώντας αυτή την ρύθμιση η οποία δεν υποστηρίζεται επίσημα και οι οποιεσδήποτε αναφορές σφαλμάτων θα κλείνουν ως μη έκγυρες. "
 
 msgid "Continue"
 msgstr "Συνέχεια"
@@ -1138,7 +1138,7 @@ msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 μηχανής(ών)" είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;" 
+msgstr "%1 μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;" 
 
 msgid "Add new system wizard"
 msgstr "Οδηγός προσθήκης νέο συστήματος"
@@ -1306,7 +1306,7 @@ msgid "&Kill"
 msgstr "&Εξαναγκαστικός τέρματισμός"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Ο εξαναγκαστικός τέρματισμός της εικονικής μηχανής μπορεί να επιφέρει απώλεια δεδομένων. Εκτελέστε τον μόνο αν το 86Box εχει κολλήσει.\n\nΘέλετε οποσήποτε να κάνετε εξαναγκαστικό τέρματισμό της εικονικής μηχανής \"%1\;"
+msgstr "Ο εξαναγκαστικός τέρματισμός της εικονικής μηχανής μπορεί να επιφέρει απώλεια δεδομένων. Εκτελέστε τον μόνο αν το 86Box εχει κολλήσει.\n\nΘέλετε οποσήποτε να κάνετε εξαναγκαστικό τέρματισμό της εικονικής μηχανής \"%1\";"
 
 msgid "&Delete"
 msgstr "&Διαγραφή"
