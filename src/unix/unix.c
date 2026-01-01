@@ -1104,6 +1104,7 @@ unix_executeLine(char *line)
                 "moeject <id> - eject image from MO drive <id>.\n\n"
                 "hardreset - hard reset the emulated system.\n"
                 "pause - pause the the emulated system.\n"
+                "screenshot - save a screenshot.\n"
                 "fullscreen - toggle fullscreen.\n"
                 "version - print version and license information.\n"
                 "exit - exit " EMU_NAME ".\n");
@@ -1144,6 +1145,11 @@ unix_executeLine(char *line)
         } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
             video_fullscreen   = video_fullscreen ? 0 : 1;
             fullscreen_pending = 1;
+        } else if (strncasecmp(xargv[0], "screenshot", 10) == 0) {
+            startblit();
+            ++monitors[0].mon_screenshots_raw;
+            endblit();
+            device_force_redraw();
         } else if (strncasecmp(xargv[0], "pause", 5) == 0) {
             plat_pause(dopause ^ 1);
             printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");

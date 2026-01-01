@@ -204,6 +204,15 @@ msgstr ""
 msgid "Take s&creenshot"
 msgstr ""
 
+msgid "Take &raw screenshot"
+msgstr ""
+
+msgid "C&opy screenshot"
+msgstr ""
+
+msgid "Copy r&aw screenshot"
+msgstr ""
+
 msgid "S&ound"
 msgstr ""
 
