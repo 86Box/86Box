@@ -391,7 +391,6 @@ extern const char *    machine_getname(int m);
 extern const char *    machine_get_internal_name(void);
 extern const char *    machine_get_nvr_name(void);
 extern int             machine_get_machine_from_internal_name(const char *s);
-extern int             machine_get_machine_from_internal_name_ex(const char *s); /* returns -1 if internal name does not exist. */
 extern void            machine_init(void);
 #ifdef EMU_DEVICE_H
 extern const device_t *machine_get_kbc_device(int m);
