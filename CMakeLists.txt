@@ -224,7 +224,7 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2025)
+    set(EMU_COPYRIGHT_YEAR 2026)
 endif()
 
 # Libasan
