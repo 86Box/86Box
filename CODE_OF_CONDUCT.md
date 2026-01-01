@@ -14,7 +14,7 @@ In order for everyone to enjoy their time contributing to 86Box or otherwise bei
 - 2.4. Do not antagonize, defame, demean, blackmail, impersonate, dox others, bring outside drama, use intentionally offensive profile aspects, or otherwise post messages to start a fight (eg. platform wars). Discuss or debate the idea, not the person.
 - 2.5. Do not backseat moderate, spam, flood, unsolicitedly ping people, advertise without permission, or evade blocks.
 - 2.6. Do not speak on behalf of the project unless you are a team member. This includes all messages which could reasonably be understood as being an official position. Ask a team member if you're unsure about your message.
-- 2.7. Decisions by higher-ranked users supersede those by lower-ranked users.
+- 2.7. Decisions by higher-ranked users supersede those by lower-ranked users. This applies to moderation **and** emulator development. Rank and seniority must be earned.
 - 2.8. Do not engage in political discussions.
 - 2.9. Ignoring essential communication from team members does not exempt you from possible actions against you. Seniority must be earned.
 
