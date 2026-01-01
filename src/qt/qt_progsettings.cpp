@@ -53,6 +53,7 @@ QVector<QPair<QString, QString>> ProgSettings::languages = {
     { "hr-HR",  "Croatian (Croatia)"       },
     { "cs-CZ",  "Czech (Czech Republic)"   },
     { "de-DE",  "German (Germany)"         },
+    { "el-GR",  "Greek (Greece)"           },
     { "en-GB",  "English (United Kingdom)" },
     { "en-US",  "English (United States)"  },
     { "fi-FI",  "Finnish (Finland)"        },
