@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-02 21:56+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
+"Language: el-GR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: el_GR\n"
 "X-Source-Language: en_US\n"
 
@@ -10,13 +16,13 @@ msgid "&Action"
 msgstr "&Ενέργειες"
 
 msgid "&Keyboard requires capture"
-msgstr "&Keyboard requires capture"
+msgstr "&Το πληκτρολόγιο απαιτεί σύνδεση"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&Το Right CTRL είναι left ALT"
+msgstr "&Αντιστοίχιση Right CTRL σε left ALT"
 
 msgid "&Hard reset"
-msgstr "&Hard reset"
+msgstr "&Ολική επανεκκίνηση"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -205,13 +211,13 @@ msgid "Take s&creenshot"
 msgstr "Λήψη σ&τιγμιότυπου"
 
 msgid "Take &raw screenshot"
-msgstr ""
+msgstr "Λήψη &αρχικού στιγμιότυπου"
 
 msgid "C&opy screenshot"
-msgstr ""
+msgstr "&Αντιγραφή στιγμιότυπου"
 
 msgid "Copy r&aw screenshot"
-msgstr ""
+msgstr "Αντιγραφή α&ρχικού στιγμιότυπου"
 
 msgid "S&ound"
 msgstr "Ή&χος"
@@ -220,7 +226,7 @@ msgid "&Preferences…"
 msgstr "&Προτιμήσεις…"
 
 msgid "Enable &Discord integration"
-msgstr "Enable &Discord integration"
+msgstr "Ενεργοποίηση διασύνδεσης &Discord"
 
 msgid "Sound &gain…"
 msgstr "&Ενίσχυση ήχου…"
@@ -334,7 +340,7 @@ msgid "Lock to this size"
 msgstr "Κλείδωμα σε αυτό το μέγεθος"
 
 msgid "Machine type:"
-msgstr "Τύπος συστήματος"
+msgstr "Τύπος συστήματος:"
 
 msgid "Machine:"
 msgstr "Σύστημα:"
@@ -355,10 +361,10 @@ msgid "Frequency:"
 msgstr "Συχνότητα:"
 
 msgid "FPU:"
-msgstr "FPU"
+msgstr "FPU:"
 
 msgid "Wait states:"
-msgstr ""
+msgstr "Καταστάσεις αναμονής:"
 
 msgid "MB"
 msgstr "MB"
@@ -526,7 +532,7 @@ msgid "Parallel port 4"
 msgstr "Παράλληλη θύρα 4"
 
 msgid "Floppy disk controller:"
-msgstr ""
+msgstr "Controller δισκέτας floppy:"
 
 msgid "CD-ROM controller:"
 msgstr "Ελεγκτής CD-ROM:"
@@ -538,7 +544,7 @@ msgid "[ISA16] Quaternary IDE Controller"
 msgstr "[ISA16] Τεταρτογενής Ελεγκτής IDE"
 
 msgid "Hard disk controllers"
-msgstr ""
+msgstr "Controllers σκληρού δίσκου"
 
 msgid "SCSI controllers"
 msgstr "Ελεγκτές SCSI"
@@ -745,7 +751,7 @@ msgid "Network"
 msgstr "Δίκτυο"
 
 msgid "Ports (COM & LPT)"
-msgstr "Θύρες (COM & LPT) "
+msgstr "Θύρες (COM & LPT)"
 
 msgid "Ports"
 msgstr "Θύρες"
@@ -766,13 +772,13 @@ msgid "Disks:"
 msgstr "Δίσκοι:"
 
 msgid "Floppy:"
-msgstr "Floppy:"
+msgstr "Δισκέτες:"
 
 msgid "Controllers:"
 msgstr "Ελεγκτές:"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Οδηγοί Floppy & CD-ROM"
+msgstr "Οδηγοί Δισκέτας & CD-ROM"
 
 msgid "Other removable devices"
 msgstr "Άλλες αφαιρούμενες συσκευές"
@@ -916,10 +922,10 @@ msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%1 MB (CHS: %2, %3, %4)"
 
 msgid "Floppy %1 (%2): %3"
-msgstr "Floppy %1 (%2): %3"
+msgstr "Δισκέτα %1 (%2): %3"
 
 msgid "&Floppy %1 (%2): %3"
-msgstr "&Floppy %1 (%2): %3"
+msgstr "&Δισκέτα %1 (%2): %3"
 
 msgid "Advanced sector images"
 msgstr "Εικόνες προχωρημένου τομέα"
@@ -928,16 +934,18 @@ msgid "Flux images"
 msgstr "Εικόνες Flux"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Είστε σίγουρος οτι θέλετε να κάνετε ολική επαναφορά του εξομειωμένου σύστηματος;"
+msgstr ""
+"Είστε σίγουρος οτι θέλετε να κάνετε ολική επανεκκίνηση του εξομειωμένου "
+"σύστηματος;"
 
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Είστε σίγουρος για την έξοδο απο το 86Box;"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Αδυναμία αρχικοποίησης Ghostscript "
+msgstr "Αδυναμία αρχικοποίησης Ghostscript"
 
 msgid "Unable to initialize GhostPCL"
-msgstr "Αδυναμία αρχικοποίησης GhostPCL "
+msgstr "Αδυναμία αρχικοποίησης GhostPCL"
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -979,7 +987,7 @@ msgid "Do you want to save the settings?"
 msgstr "Επιθυμείτε να αποθηκεύσετε τις ρυθμίσεις;"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Αυτό θα οδηγήσει σε ολική επαναφορά της εξομειωμένης μηχανής."
+msgstr "Αυτό θα οδηγήσει σε ολική επανεκκίνηση της εξομοιωμένης μηχανής."
 
 msgid "Save"
 msgstr "Αποθήκευση"
@@ -1033,7 +1041,16 @@ msgid "You are loading an unsupported configuration"
 msgstr "Προσπαθείτε να φορτώσετε μη υποστηριζόμενη προσαρμογή"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Το φιλτράρισμα τύπου CPU βασισμένο στην επιλεγμένη μηχανή είναι απενεργοποιημένο για αυτήν την εξομειωμένη μηχανή.\n\nΑυτό δίνει την δυνατότητα να επιλέξετε CPU που δεν είναι συμβατός με την επιλεγμένη μηχανή. Παρ'όλ' αυτά υπάρχει περίτωση να έχετε ασυμβατότητες με το BIOS της μηχανής ή άλλο λογισμικό.\n\nΕνεργοποιώντας αυτή την ρύθμιση η οποία δεν υποστηρίζεται επίσημα και οι οποιεσδήποτε αναφορές σφαλμάτων θα κλείνουν ως μη έκγυρες. "
+msgstr ""
+"Το φιλτράρισμα τύπου CPU βασισμένο στην επιλεγμένη μηχανή είναι "
+"απενεργοποιημένο για αυτήν την εξομειωμένη μηχανή.\n"
+"\n"
+"Αυτό δίνει την δυνατότητα να επιλέξετε CPU που δεν είναι συμβατός με την "
+"επιλεγμένη μηχανή. Παρ'όλ' αυτά υπάρχει περίτωση να έχετε ασυμβατότητες με "
+"το BIOS της μηχανής ή άλλο λογισμικό.\n"
+"\n"
+"Ενεργοποιώντας αυτή την ρύθμιση η οποία δεν υποστηρίζεται επίσημα και οι "
+"οποιεσδήποτε αναφορές σφαλμάτων θα κλείνουν ως μη έκγυρες."
 
 msgid "Continue"
 msgstr "Συνέχεια"
@@ -1048,13 +1065,13 @@ msgid "Cassette images"
 msgstr "Εικόνες κασέτας"
 
 msgid "Cartridge %1: %2"
-msgstr "Cartridge %1: %2"
+msgstr "Κασέτα δεδομένων %1: %2"
 
 msgid "Car&tridge %1: %2"
 msgstr "Car&tridge %1: %2"
 
 msgid "Cartridge images"
-msgstr "Εικόνες Cartridge"
+msgstr "Εικόνες κασέτας δεδομένων"
 
 msgid "Resume execution"
 msgstr "Συνέχεια εκτέλεσης"
@@ -1072,7 +1089,7 @@ msgid "Press Ctrl+Alt+Esc"
 msgstr "Πατήστε Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Ολική επαναφορά"
+msgstr "Ολική επανεκκίνηση"
 
 msgid "Force shutdown"
 msgstr "Εξαναγκασμός τερματισμού"
@@ -1087,10 +1104,10 @@ msgid "&Start"
 msgstr "&Εκκίνηση"
 
 msgid "Not running"
-msgstr "Δεν τρέχει"
+msgstr "Ανενεργή"
 
 msgid "Running"
-msgstr "Τρέχει"
+msgstr "Σε λειτουργία"
 
 msgid "Paused"
 msgstr "Σε παύση"
@@ -1117,7 +1134,7 @@ msgid "VMs: %1"
 msgstr "VMs: %1"
 
 msgid "System Directory:"
-msgstr "Κατάλογος Συστήματος"
+msgstr "Κατάλογος Συστήματος:"
 
 msgid "Choose directory"
 msgstr "Επιλέξτε κατάλογο"
@@ -1138,7 +1155,7 @@ msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
 msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;" 
+msgstr "%1 μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
 
 msgid "Add new system wizard"
 msgstr "Οδηγός προσθήκης νέο συστήματος"
@@ -1192,7 +1209,7 @@ msgid "A new directory for the system will be created in the selected directory 
 msgstr "Ένας νέος κατάλογος για το σύστημα θα δημιουργηθεί στον παραπάνω επιλεγμένο κατάλογο"
 
 msgid "System location:"
-msgstr "Τοποθεσία συστήματος"
+msgstr "Τοποθεσία συστήματος:"
 
 msgid "System name and location"
 msgstr "Όνομα και τοποθεσία συστήματος"
@@ -1312,7 +1329,9 @@ msgid "&Delete"
 msgstr "&Διαγραφή"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα αρχεία της; Αυτή η ενέργεια είναι ανεπανόρθωτη"
+msgstr ""
+"Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα "
+"αρχεία της; Αυτή η ενέργεια είναι ανεπανόρθωτη!"
 
 msgid "Show &config file"
 msgstr "Εμφάνιση αρχείου &προσαρμογής"
@@ -1339,7 +1358,7 @@ msgid "Disk %1:"
 msgstr "Δισκέτα %1:"
 
 msgid "No disks"
-msgstr "Καμία δισκέτα"
+msgstr "Κανένας δίσκος"
 
 msgid "Audio"
 msgstr "Ήχος"
@@ -1405,7 +1424,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "Βεβαιωθείτε οτι το αρχείο αποθηκεύεται σε έναν εγγράψιμο κατάλογο."
 
 msgid "Disk image too large"
-msgstr "Η εικόνα δίσκου είναι αρκετά μεγάλη."
+msgstr "Η εικόνα δίσκου είναι αρκετά μεγάλη"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "Μην ξεχάσετε να κάνετε partition και format τον νέο-δημιουργημένο δίσκο."
@@ -1420,7 +1439,7 @@ msgid "Overwrite"
 msgstr "Επανεγγραφή"
 
 msgid "Don't overwrite"
-msgstr "Να μην γίνει επανεγγραφή."
+msgstr "Να μην γίνει επανεγγραφή"
 
 msgid "Raw image"
 msgstr "Εικόνα Raw"
@@ -1579,7 +1598,7 @@ msgid "The network configuration will be switched to the null driver"
 msgstr "Η παραμετροποίηση δικτύου θα αλλάξει σε άκυρο οδηγό"
 
 msgid "Mouse sensitivity:"
-msgstr "Ευαισθησία ποντικιού"
+msgstr "Ευαισθησία ποντικιού:"
 
 msgid "Select media images from program working directory"
 msgstr "Επιλέξτε αρχεία πολυμέσων απο τον ενεργό κατάλογο προγράμματος"
@@ -1600,109 +1619,122 @@ msgid "&Auto-pause on focus loss"
 msgstr "&Αυτόματο-πάγωμα σε απώλεια εστίασης"
 
 msgid "WinBox is no longer supported"
-msgstr ""
+msgstr "Το WinBox δεν υποστηρίζεται πλέον"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr ""
+"Η ανάπτυξη του WinBox σταμάτησε το 2022 λόγω έλλειψης maintainers. Καθώς "
+"καταβάλλουμε κάθε δυνατή προσπάθεια για να βελτιώσουμε ακόμη περισσότερο το "
+"86Box, έχουμε λάβει την απόφαση να μην υποστηρίζουμε πλέον το WinBox ως "
+"διαχειριστή μηχανών.\n"
+"\n"
+"Δεν θα παρέχονται περαιτέρω ενημερώσεις μέσω του WinBox και ενδέχεται να "
+"αντιμετωπίσετε εσφαλμένη συμπεριφορά σε περίπτωση που συνεχίσετε να το "
+"χρησιμοποιείτε με νεότερες εκδόσεις του 86Box. Οποιεσδήποτε αναφορές "
+"σφαλμάτων που σχετίζονται με τη συμπεριφορά του WinBox θα κλείνουν ως άκυρες."
+"\n"
+"\n"
+"Μεταβείτε στο 86box.net για την λίστα με τους διαχειριστές μηχανών που "
+"μπορείτε να χρησιμοποιήσετε."
 
 msgid "Generate"
-msgstr ""
+msgstr "Δημιουργία"
 
 msgid "Joystick configuration"
-msgstr ""
+msgstr "Ρύθμιση Joystick"
 
 msgid "Device"
-msgstr ""
+msgstr "Συσκευή"
 
 msgid "%1 (X axis)"
-msgstr ""
+msgstr "%1 (άξονας X)"
 
 msgid "%1 (Y axis)"
-msgstr ""
+msgstr "%1 (άξονας Y)"
 
 msgid "MCA devices"
-msgstr ""
+msgstr "Συσκευές MCA"
 
 msgid "List of MCA devices:"
-msgstr ""
+msgstr "Λίστα συσκευών MCA:"
 
 msgid "&Tablet tool"
-msgstr ""
+msgstr "Εργαλείο &Tablet"
 
 msgid "About &Qt"
-msgstr ""
+msgstr "Σχετικά με το &Qt"
 
 msgid "&MCA devices…"
-msgstr ""
+msgstr "Συσκευές &MCA…"
 
 msgid "Show non-&primary monitors"
-msgstr ""
+msgstr "Εμφάνιση μη-&κύριων οθονών"
 
 msgid "Open screenshots &folder…"
-msgstr ""
+msgstr "Άνοιγμα &φακέλου στιγμιότυπων…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr ""
+msgstr "Εφαρμο&γή πλήρους οθόνης σε τέντωμα κατα την μεγιστοποίηση"
 
 msgid "&Cursor/Puck"
-msgstr ""
+msgstr "&Cursor/Puck"
 
 msgid "&Pen"
-msgstr ""
+msgstr "&Γραφίδα"
 
 msgid "&Host CD/DVD Drive (%1:)"
-msgstr ""
+msgstr "&Host CD/DVD Drive (%1:)"
 
 msgid "&Connected"
-msgstr ""
+msgstr "&Συνδεδεμένο"
 
 msgid "Clear image &history"
-msgstr ""
+msgstr "Καθαρισμός &ιστορικού εικόνων"
 
 msgid "Create…"
-msgstr ""
+msgstr "Δημιουργία…"
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr ""
+msgstr "Host CD/DVD Drive (%1)"
 
 msgid "Unknown Bus"
-msgstr ""
+msgstr "Άγνωστο Bus"
 
 msgid "Null Driver"
-msgstr ""
+msgstr "Κενός Οδηγός"
 
 msgid "NIC:"
-msgstr ""
+msgstr "NIC:"
 
 msgid "NIC %1 (%2) %3"
-msgstr ""
+msgstr "NIC %1 (%2) %3"
 
 msgid "&NIC %1 (%2) %3"
-msgstr ""
+msgstr "&NIC %1 (%2) %3"
 
 msgid "Render behavior"
-msgstr ""
+msgstr "Συμπεριφορά απεικόνισης"
 
 msgid "Use target framerate:"
-msgstr ""
+msgstr "Χρήση στόχου καρέ:"
 
 msgid " fps"
-msgstr ""
+msgstr " fps"
 
 msgid "VSync"
-msgstr ""
+msgstr "VSync"
 
 msgid "Synchronize with video"
-msgstr ""
+msgstr "Συγχρονισμός με βίντεο"
 
 msgid "Shaders"
-msgstr ""
+msgstr "Shaders"
 
 msgid "Remove"
-msgstr ""
+msgstr "Κατάργηση"
 
 msgid "Browse…"
-msgstr ""
+msgstr "Αναζήτηση…"
 
 msgid "Couldn't create OpenGL context."
 msgstr ""
@@ -1711,139 +1743,145 @@ msgid "Couldn't switch to OpenGL context."
 msgstr ""
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr ""
+msgstr "Απαιτείται έκδοση OpenGL 3.0 ή νεότερη. Η τρέχουσα έκδοση είναι %1.%2"
 
 msgid "Error initializing OpenGL"
-msgstr ""
+msgstr "Σφάλμα αρχικοποίησης OpenGL"
 
 msgid "\nFalling back to software rendering."
 msgstr ""
+"\n"
+"Εναλλαγή σε απεικόνιση λογισμικού."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
 
 msgid "This machine might have been moved or copied."
-msgstr ""
+msgstr "Αυτή η μηχανή ίσως έχει μετακινηθεί ή αντιγραφεί."
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
 msgstr ""
+"Για να διασφαλιστεί η σωστή λειτουργία δικτύου, το 86Box πρέπει να γνωρίζει "
+"αν αυτή η μηχανή έχει μετακινηθεί ή αντιγραφεί.\n"
+"\n"
+"Επιλέξτε \"Αντιγράφηκε\" εάν δεν είστε σίγουρος."
 
 msgid "I Moved It"
-msgstr ""
+msgstr "Μετακινήθηκε"
 
 msgid "I Copied It"
-msgstr ""
+msgstr "Αντιγράφηκε"
 
 msgid "86Box Monitor #%1"
-msgstr ""
+msgstr "Οθόνη 86Box #%1"
 
 msgid "No MCA devices."
-msgstr ""
+msgstr "Καμία συσκευή MCA."
 
 msgid "MiB"
-msgstr ""
+msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Network Card #1"
-msgstr ""
+msgstr "Κάρτα δικτύου #1"
 
 msgid "Network Card #2"
-msgstr ""
+msgstr "Κάρτα δικτύου #2"
 
 msgid "Network Card #3"
-msgstr ""
+msgstr "Κάρτα δικτύου #3"
 
 msgid "Network Card #4"
-msgstr ""
+msgstr "Κάρτα δικτύου #4"
 
 msgid "Mode:"
-msgstr ""
+msgstr "Τύπος:"
 
 msgid "Interface:"
-msgstr ""
+msgstr "Διασύνδεση:"
 
 msgid "Adapter:"
-msgstr ""
+msgstr "Προσαρμογέας:"
 
 msgid "VDE Socket:"
-msgstr ""
+msgstr "VDE Socket:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Συσκευή TAP Γέφυρας:"
 
 msgid "86Box Unit Tester"
-msgstr ""
+msgstr "Μονάδα δοκιμής 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
-msgstr ""
+msgstr "Novell NetWare 2.x Key Card"
 
 msgid "Serial port passthrough 1"
-msgstr ""
+msgstr "Διέλευση σειριακής πόρτας 1"
 
 msgid "Serial port passthrough 2"
-msgstr ""
+msgstr "Διέλευση σειριακής πόρτας 2"
 
 msgid "Serial port passthrough 3"
-msgstr ""
+msgstr "Διέλευση σειριακής πόρτας 3"
 
 msgid "Serial port passthrough 4"
-msgstr ""
+msgstr "Διέλευση σειριακής πόρτας 4"
 
 msgid "Renderer &options…"
-msgstr ""
+msgstr "%Επιλογές απεικόνισης…"
 
 msgid "PC/XT Keyboard"
-msgstr ""
+msgstr "Πληκτρολόγιο PC/XT"
 
 msgid "AT Keyboard"
-msgstr ""
+msgstr "Πληκτρολόγιο AT"
 
 msgid "AX Keyboard"
-msgstr ""
+msgstr "Πληκτρολόγιο AX"
 
 msgid "PS/2 Keyboard"
-msgstr ""
+msgstr "Πληκτρολόγιο PS/2"
 
 msgid "PS/55 Keyboard"
-msgstr ""
+msgstr "Πληκτρολόγιο PS/55"
 
 msgid "Keys"
-msgstr ""
+msgstr "Πλήκτρα"
 
 msgid "Logitech/Microsoft Bus Mouse"
-msgstr ""
+msgstr "Ποντίκι διαύλου Logitech/Microsoft"
 
 msgid "Microsoft Bus Mouse (InPort)"
-msgstr ""
+msgstr "Ποντίκι διαύλου Microsoft (InPort)"
 
 msgid "Mouse Systems Serial Mouse"
-msgstr ""
+msgstr "Σειριακό ποντίκι Mouse Systems"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Ποντίκι διαύλου Mouse Systems"
 
 msgid "Microsoft Serial Mouse"
-msgstr ""
+msgstr "Σειριακό ποντίκι Microsoft"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Σειριακό ποντίκι Microsoft BallPoint"
 
 msgid "Logitech Serial Mouse"
-msgstr ""
+msgstr "Σειριακό ποντίκι Logitech"
 
 msgid "PS/2 Mouse"
-msgstr ""
+msgstr "Ποντίκι PS/2"
 
 msgid "PS/2 QuickPort Mouse"
-msgstr ""
+msgstr "Ποντίκι PS/2 QuickPort"
 
 msgid "3M MicroTouch (Serial)"
-msgstr ""
+msgstr "3M MicroTouch (Σειριακό)"
 
 msgid "Default Baud rate"
-msgstr ""
+msgstr "Προεπιλεγμένος ρυθμός Baud"
 
 msgid "[COM] Standard Hayes-compliant Modem"
 msgstr ""
@@ -2218,16 +2256,16 @@ msgid "Enable 0x04 \"Exit 86Box\" command"
 msgstr ""
 
 msgid "Display type"
-msgstr ""
+msgstr "Τύπος εμφάνισης"
 
 msgid "Composite type"
-msgstr ""
+msgstr "Τύπος Composite"
 
 msgid "RGB type"
 msgstr ""
 
 msgid "Line doubling type"
-msgstr ""
+msgstr "Τύπος line doubling"
 
 msgid "Snow emulation"
 msgstr ""
@@ -2449,7 +2487,7 @@ msgid "256 KB"
 msgstr ""
 
 msgid "Composite"
-msgstr ""
+msgstr "Composite"
 
 msgid "True color"
 msgstr ""
@@ -2710,7 +2748,7 @@ msgid "Ask for confirmation before saving settings"
 msgstr ""
 
 msgid "Ask for confirmation before hard resetting"
-msgstr ""
+msgstr "Ερώτηση επιβεβαίωσης πριν από την ολική επανεκκίνηση"
 
 msgid "Ask for confirmation before quitting"
 msgstr ""
@@ -2725,7 +2763,7 @@ msgid "Model:"
 msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr ""
+msgstr "Αποτυχία αρχικοποίησης απεικόνισης Vulkan."
 
 msgid "GLSL Error"
 msgstr ""
@@ -2803,7 +2841,7 @@ msgid "Screenshot"
 msgstr ""
 
 msgid "Release mouse pointer"
-msgstr ""
+msgstr "Απελευθέρωση δείκτη ποντικιού"
 
 msgid "Toggle pause"
 msgstr ""
@@ -2869,13 +2907,18 @@ msgid "No Machines Found!"
 msgstr ""
 
 msgid "Check for updates on startup"
-msgstr ""
+msgstr "Έλεγχος για ενημερώσεις κατα την εκκίνηση"
 
 msgid "Unable to determine release information"
 msgstr ""
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
 msgstr ""
+"Υπήρξε σφάλμα κατα τον έλεγχο για ενημερώσεις :\n"
+"\n"
+"%1\n"
+"\n"
+"Παρακαλώ προσπαθήστε ξανά αργότερα."
 
 msgid "Update check complete"
 msgstr ""
@@ -2917,7 +2960,7 @@ msgid "Update check"
 msgstr ""
 
 msgid "Checking for updates…"
-msgstr ""
+msgstr "Έλεγχος για ενημερώσεις…"
 
 msgid "86Box Update"
 msgstr ""
@@ -2938,7 +2981,7 @@ msgid "The system will not be added."
 msgstr ""
 
 msgid "&Update mouse every CPU frame"
-msgstr ""
+msgstr "&Ανανέωση ποντικιού ανα καρέ CPU"
 
 msgid "Hue"
 msgstr ""
@@ -2956,49 +2999,49 @@ msgid "Sharpness"
 msgstr ""
 
 msgid "&CGA composite settings…"
-msgstr ""
+msgstr "Ρυθμίσεις &CGA composite…"
 
 msgid "CGA composite settings"
-msgstr ""
+msgstr "Ρυθμίσεις CGA composite"
 
 msgid "Monitor EDID"
-msgstr ""
+msgstr "Οθόνη EDID"
 
 msgid "Export…"
-msgstr ""
+msgstr "Εξαγωγή…"
 
 msgid "Export EDID"
-msgstr ""
+msgstr "Εξαγωγή EDID"
 
 msgid "EDID file \"%ls\" is too large."
-msgstr ""
+msgstr "Το αρχείο EDID \"%ls\" είναι πολύ μεγάλο."
 
 msgid "OpenGL input scale"
-msgstr ""
+msgstr "Κλίμακα OpenGL input"
 
 msgid "OpenGL input stretch mode"
-msgstr ""
+msgstr "OpenGL input σε τύπο τεντώματος"
 
 msgid "Color scheme"
-msgstr ""
+msgstr "Συνδυασμός χρωμάτων"
 
 msgid "Light"
-msgstr ""
+msgstr "Φωτεινό"
 
 msgid "Dark"
-msgstr ""
+msgstr "Σκοτεινό"
 
 msgid "Search:"
-msgstr ""
+msgstr "Αναζήτηση:"
 
 msgid "Force interpretation"
-msgstr ""
+msgstr "Εξαναγκασμός ερμηνείας"
 
 msgid "Allow recompilation"
-msgstr ""
+msgstr "Να επιτρέπεται ανασύνταξη"
 
 msgid "&Force interpretation"
-msgstr ""
+msgstr "&Εξαναγκασμός ερμηνείας"
 
 msgid "&Allow recompilation"
-msgstr ""
+msgstr "&Να επιτρέπεται ανασύνταξη"

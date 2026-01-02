@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-02 21:56+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
+"projects/86box/86box/zh_Hant/>\n"
+"Language: zh-TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: zh_TW\n"
 "X-Source-Language: en_US\n"
 
@@ -211,7 +218,7 @@ msgid "C&opy screenshot"
 msgstr "擷取螢幕畫面至剪貼簿(&O)"
 
 msgid "Copy r&aw screenshot"
-msgstr " 擷取原始螢幕畫面至剪貼薄(&A)"
+msgstr "擷取原始螢幕畫面至剪貼薄(&A)"
 
 msgid "S&ound"
 msgstr "聲音(&O)"
@@ -907,7 +914,7 @@ msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 附轉接器"
 
 msgid "Thrustmaster Formula T1/T2 without adapter"
-msgstr "Thrustmaster Formula T1/T2 不附轉接器 "
+msgstr "Thrustmaster Formula T1/T2 不附轉接器"
 
 msgid "None"
 msgstr "無"
