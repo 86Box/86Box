@@ -428,8 +428,6 @@ VulkanRenderer2::updateSamplers()
 void
 VulkanRenderer2::initResources()
 {
-    qDebug("initResources");
-
     VkDevice dev = m_window->device();
     m_devFuncs   = m_window->vulkanInstance()->deviceFunctions(dev);
 
@@ -811,8 +809,6 @@ VulkanRenderer2::initResources()
 void
 VulkanRenderer2::initSwapChainResources()
 {
-    qDebug("initSwapChainResources");
-
     // Projection matrix
     m_proj = m_window->clipCorrectionMatrix(); // adjust for Vulkan-OpenGL clip space differences
 }
@@ -820,14 +816,11 @@ VulkanRenderer2::initSwapChainResources()
 void
 VulkanRenderer2::releaseSwapChainResources()
 {
-    qDebug("releaseSwapChainResources");
 }
 
 void
 VulkanRenderer2::releaseResources()
 {
-    qDebug("releaseResources");
-
     VkDevice dev = m_window->device();
 
     if (m_sampler) {

@@ -292,7 +292,7 @@ MediaMenu::cassetteMount(const QString &filename, bool wp)
         pc_cas_set_fname(cassette, cassette_fname);
     }
 
-    ui_sb_update_icon_state(SB_CASSETTE, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_CASSETTE, cassette->fname == nullptr);
     ui_sb_update_icon_wp(SB_CASSETTE, cassette_ui_writeprot);
     mhm.addImageToHistory(0, ui::MediaType::Cassette, previous_image.filePath(), filename);
     cassetteUpdateMenu();
@@ -352,7 +352,7 @@ MediaMenu::cartridgeMount(int i, const QString &filename)
     QByteArray filenameBytes = filename.toUtf8();
     cart_load(i, filenameBytes.data());
 
-    ui_sb_update_icon_state(SB_CARTRIDGE | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_CARTRIDGE | i, cart_fns[i][0] == 0);
     mhm.addImageToHistory(i, ui::MediaType::Cartridge, previous_image.filePath(), filename);
     cartridgeUpdateMenu(i);
     ui_sb_update_tip(SB_CARTRIDGE | i);
@@ -468,7 +468,7 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString(filenameBytes));
     } else
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
-    ui_sb_update_icon_state(SB_FLOPPY | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_FLOPPY | i, drive_empty[i]);
     ui_sb_update_icon_wp(SB_FLOPPY | i, ui_writeprot[i]);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
@@ -902,7 +902,7 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
     }
     mhm.addImageToHistory(i, ui::MediaType::RDisk, rdisk_drives[i].prev_image_path, rdisk_drives[i].image_path);
 
-    ui_sb_update_icon_state(SB_RDISK | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_RDISK | i, dev->drv->fp == NULL);
     ui_sb_update_icon_wp(SB_RDISK | i, wp);
     rdiskUpdateMenu(i);
     ui_sb_update_tip(SB_RDISK | i);
@@ -1082,7 +1082,7 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
     }
     mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].prev_image_path, mo_drives[i].image_path);
 
-    ui_sb_update_icon_state(SB_MO | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_MO | i, dev->drv->fp == nullptr);
     moUpdateMenu(i);
     ui_sb_update_tip(SB_MO | i);
 
