@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-02 21:56+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-01-04 13:56+0000\n"
+"Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
 "MIME-Version: 1.0\n"
@@ -16,7 +16,7 @@ msgid "&Action"
 msgstr "&Ενέργειες"
 
 msgid "&Keyboard requires capture"
-msgstr "&Το πληκτρολόγιο απαιτεί σύνδεση"
+msgstr "&Το πληκτρολόγιο απαιτεί αγκίστρωση"
 
 msgid "&Right CTRL is left ALT"
 msgstr "&Αντιστοίχιση Right CTRL σε left ALT"
@@ -532,7 +532,7 @@ msgid "Parallel port 4"
 msgstr "Παράλληλη θύρα 4"
 
 msgid "Floppy disk controller:"
-msgstr "Controller δισκέτας floppy:"
+msgstr "Ελεγκτής δισκέτας:"
 
 msgid "CD-ROM controller:"
 msgstr "Ελεγκτής CD-ROM:"
@@ -544,7 +544,7 @@ msgid "[ISA16] Quaternary IDE Controller"
 msgstr "[ISA16] Τεταρτογενής Ελεγκτής IDE"
 
 msgid "Hard disk controllers"
-msgstr "Controllers σκληρού δίσκου"
+msgstr "Ελεγκτές σκληρού δίσκου"
 
 msgid "SCSI controllers"
 msgstr "Ελεγκτές SCSI"
@@ -580,7 +580,7 @@ msgid "&Remove"
 msgstr "&Κατάργηση"
 
 msgid "Bus:"
-msgstr "Bus:"
+msgstr "Δίαυλος:"
 
 msgid "Channel:"
 msgstr "Κανάλι:"
@@ -640,10 +640,10 @@ msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA Επέκταση Μνήμης"
+msgstr "Επέκταση Μνήμης ISA"
 
 msgid "ISA ROM Cards"
-msgstr "ISA κάρτες ROM"
+msgstr "Κάρτες ROM ISA"
 
 msgid "Card 1:"
 msgstr "Κάρτα 1:"
@@ -658,16 +658,16 @@ msgid "Card 4:"
 msgstr "Κάρτα 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "Γενική ROM πλακέτα ISA"
+msgstr "Γενική ISA ROM πλακέτα"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Γενική διπλή ROM πλακέτα ISA"
+msgstr "Γενική Διπλή ISA ROM πλακέτα"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Γενική τετραπλή ROM πλακέτα ISA"
+msgstr "Γενική Τετραπλή ISA ROM πλακέτα"
 
 msgid "ISABugger device"
-msgstr "ISABugger device"
+msgstr "Συσκευή ISABugger"
 
 msgid "POST card"
 msgstr "κάρτα POST"
@@ -790,16 +790,16 @@ msgid "Other devices"
 msgstr "Άλλες συσκευές"
 
 msgid "Click to capture mouse"
-msgstr "Κλικ για σύνδεση ποντικιού"
+msgstr "Κλικ για αγκίστρωση ποντικιού"
 
 msgid "Press %1 to release mouse"
-msgstr "Πατήσε %1 για απελευθέρωση ποντικιού"
+msgstr "Πατήστε %1 για απαγκίστρωση ποντικιού"
 
 msgid "Press %1 or middle button to release mouse"
-msgstr "Πατήσε %1 ή το μεσαίο κουμπί για απελευθέρωση ποντικιού"
+msgstr "Πατήστε %1 ή το μεσαίο κουμπί για απαγκίστρωση ποντικιού"
 
 msgid "Bus"
-msgstr "Bus"
+msgstr "Δίαυλος"
 
 msgid "File"
 msgstr "Αρχείο"
@@ -1698,7 +1698,7 @@ msgid "Host CD/DVD Drive (%1)"
 msgstr "Host CD/DVD Drive (%1)"
 
 msgid "Unknown Bus"
-msgstr "Άγνωστο Bus"
+msgstr "Άγνωστος δίαυλος"
 
 msgid "Null Driver"
 msgstr "Κενός Οδηγός"
@@ -1737,10 +1737,10 @@ msgid "Browse…"
 msgstr "Αναζήτηση…"
 
 msgid "Couldn't create OpenGL context."
-msgstr ""
+msgstr "Αδυναμία δημιουργίας περιεχομένου OpenGL."
 
 msgid "Couldn't switch to OpenGL context."
-msgstr ""
+msgstr "Αδυναμία εναλλαγής σε περιεχόμενο OpenGL."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Απαιτείται έκδοση OpenGL 3.0 ή νεότερη. Η τρέχουσα έκδοση είναι %1.%2"
@@ -1755,6 +1755,10 @@ msgstr ""
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
+"<html><head/><body><p>Όταν επιλέγετε εικόνες πολυμέσων (CD-ROM, δισκέτα κλπ.)"
+", το παράθυρο διαλόγου ανοίγματος θα ξεκινήσει στον ίδιο κατάλογο με το "
+"αρχείο διαμόρφωσης του 86Box. Αυτή η ρύθμιση πιθανότατα θα κάνει τη διαφορά "
+"μόνο σε macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Αυτή η μηχανή ίσως έχει μετακινηθεί ή αντιγραφεί."
@@ -1884,376 +1888,376 @@ msgid "Default Baud rate"
 msgstr "Προεπιλεγμένος ρυθμός Baud"
 
 msgid "[COM] Standard Hayes-compliant Modem"
-msgstr ""
+msgstr "[COM] Τυπικό μόντεμ συμβατό με Hayes"
 
 msgid "Roland MT-32 Emulation"
-msgstr ""
+msgstr "Εξομοίωση Roland MT-32"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr ""
+msgstr "Εξομοίωση Roland MT-32 (Νέο)"
 
 msgid "Roland CM-32L Emulation"
-msgstr ""
+msgstr "Εξομοίωση Roland CM-32L"
 
 msgid "Roland CM-32LN Emulation"
-msgstr ""
+msgstr "Εξομοίωση Roland CM-32LN"
 
 msgid "OPL4-ML Daughterboard"
-msgstr ""
+msgstr "Θυγατρική κάρτα OPL4-ML"
 
 msgid "System MIDI"
-msgstr ""
+msgstr "MIDI συστήματος"
 
 msgid "MIDI Input Device"
-msgstr ""
+msgstr "Συσκευή Εισαγωγής MIDI"
 
 msgid "BIOS file"
-msgstr ""
+msgstr "Αρχείο BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr ""
+msgstr "Αρχείο BIOS (ROM #1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr ""
+msgstr "Αρχείο BIOS (ROM #2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr ""
+msgstr "Αρχείο BIOS (ROM #3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr ""
+msgstr "Αρχείο BIOS (ROM #4)"
 
 msgid "BIOS address"
-msgstr ""
+msgstr "Διεύθυνση BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr ""
+msgstr "Διεύθυνση BIOS (ROM #1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr ""
+msgstr "Διεύθυνση BIOS (ROM #2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr ""
+msgstr "Διεύθυνση BIOS (ROM #3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr ""
+msgstr "Διεύθυνση BIOS (ROM #4)"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr ""
+msgstr "Ενεργοποίηση επέκτασης BIOS εγγραφών ROM"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr ""
+msgstr "Ενεργοποίηση επέκτασης BIOS εγγραφών ROM (ROM #1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr ""
+msgstr "Ενεργοποίηση επέκτασης BIOS εγγραφών ROM (ROM #2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr ""
+msgstr "Ενεργοποίηση επέκτασης BIOS εγγραφών ROM (ROM #3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr ""
+msgstr "Ενεργοποίηση επέκτασης BIOS εγγραφών ROM (ROM #4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "Βάση γραμμικού framebuffer"
 
 msgid "Address"
-msgstr ""
+msgstr "Διεύθυνση"
 
 msgid "IRQ"
-msgstr ""
+msgstr "IRQ"
 
 msgid "Serial port IRQ"
-msgstr ""
+msgstr "IRQ σειριακής θύρας"
 
 msgid "Parallel port IRQ"
-msgstr ""
+msgstr "IRQ παράλληλης θύρας"
 
 msgid "Hard disk"
 msgstr "Σκληρός δίσκος"
 
 msgid "BIOS Revision"
-msgstr ""
+msgstr "Αναθεώρηση BIOS"
 
 msgid "BIOS Version"
-msgstr ""
+msgstr "Έκδοση BIOS"
 
 msgid "BIOS Language"
-msgstr ""
+msgstr "Γλώσσα BIOS"
 
 msgid "IBM 5161 Expansion Unit"
-msgstr ""
+msgstr "Επέκταση μονάδας IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Cassette Basic"
 
 msgid "Translate 26 -> 17"
-msgstr ""
+msgstr "Μετάφρασε 26 -> 17"
 
 msgid "Language"
-msgstr ""
+msgstr "Γλώσσα"
 
 msgid "Enable backlight"
-msgstr ""
+msgstr "Ενεργοποίηση οπίσθιου φωτισμού"
 
 msgid "Invert colors"
-msgstr ""
+msgstr "Αντιστροφή χρωμάτων"
 
 msgid "BIOS size"
-msgstr ""
+msgstr "Μέγεθος BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr ""
+msgstr "Μέγεθος BIOS (ROM #1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr ""
+msgstr "Μέγεθος BIOS (ROM #2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr ""
+msgstr "Μέγεθος BIOS (ROM #3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr ""
+msgstr "Μέγεθος BIOS (ROM #4)"
 
 msgid "Map C0000-C7FFF as UMB"
-msgstr ""
+msgstr "Ορισμός C0000-C7FFF ως UMB"
 
 msgid "Map C8000-CFFFF as UMB"
-msgstr ""
+msgstr "Ορισμός C8000-CFFFF ως UMB"
 
 msgid "Map D0000-D7FFF as UMB"
-msgstr ""
+msgstr "Ορισμός D0000-D7FFF ως UMB"
 
 msgid "Map D8000-DFFFF as UMB"
-msgstr ""
+msgstr "Ορισμός D8000-DFFFF ως UMB"
 
 msgid "Map E0000-E7FFF as UMB"
-msgstr ""
+msgstr "Ορισμός E0000-E7FFF ως UMB"
 
 msgid "Map E8000-EFFFF as UMB"
-msgstr ""
+msgstr "Ορισμός E8000-EFFFF ως UMB"
 
 msgid "JS9 Jumper (JIM)"
-msgstr ""
+msgstr "JS9 Jumper (JIM)"
 
 msgid "MIDI Output Device"
-msgstr ""
+msgstr "Συσκευή Εξόδου MIDI"
 
 msgid "MIDI Real time"
-msgstr ""
+msgstr "MIDI Πραγματικού χρόνου"
 
 msgid "MIDI Thru"
-msgstr ""
+msgstr "MIDI Thru"
 
 msgid "MIDI Clockout"
-msgstr ""
+msgstr "MIDI Clockout"
 
 msgid "Output Gain"
-msgstr ""
+msgstr "Ενίσχυση Έντασης"
 
 msgid "Chorus"
-msgstr ""
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr ""
+msgstr "Chorus Voices"
 
 msgid "Chorus Level"
-msgstr ""
+msgstr "Επίπεδο Chorus"
 
 msgid "Chorus Speed"
-msgstr ""
+msgstr "Ταχύτητα Chorus"
 
 msgid "Chorus Depth"
-msgstr ""
+msgstr "Βάθος Chorus"
 
 msgid "Chorus Waveform"
-msgstr ""
+msgstr "Chorus Waveform"
 
 msgid "Reverb"
-msgstr ""
+msgstr "Reverb"
 
 msgid "Reverb Room Size"
-msgstr ""
+msgstr "Μέγεθος Δωματίου Reverb"
 
 msgid "Reverb Damping"
-msgstr ""
+msgstr "Απόσβεση Reverb"
 
 msgid "Reverb Width"
-msgstr ""
+msgstr "Πλάτος Reverb"
 
 msgid "Reverb Level"
-msgstr ""
+msgstr "Επίπεδο Reverb"
 
 msgid "Interpolation Method"
-msgstr ""
+msgstr "Μέθοδος παρεμβολής"
 
 msgid "Dynamic Sample Loading"
-msgstr ""
+msgstr "Φόρτωση Δυναμικού Δείγματος"
 
 msgid "Reverb Output Gain"
-msgstr ""
+msgstr "Ενίσχυση Εξόδου Reverb"
 
 msgid "Reversed stereo"
-msgstr ""
+msgstr "Αντίστροφο Στέρεο"
 
 msgid "Nice ramp"
-msgstr ""
+msgstr "Ωραία ράμπα"
 
 msgid "Hz"
-msgstr ""
+msgstr "Hz"
 
 msgid "Buttons"
-msgstr ""
+msgstr "Κουμπιά"
 
 msgid "Serial Port"
-msgstr ""
+msgstr "Σειριακή θύρα"
 
 msgid "RTS toggle"
-msgstr ""
+msgstr "RTS toggle"
 
 msgid "Revision"
-msgstr ""
+msgstr "Αναθεώρηση"
 
 msgid "Controller"
-msgstr ""
+msgstr "Controller"
 
 msgid "Show Crosshair"
-msgstr ""
+msgstr "Εμφάνιση στόχαστρου"
 
 msgid "DMA"
-msgstr ""
+msgstr "DMA"
 
 msgid "MAC Address"
-msgstr ""
+msgstr "Διεύθυνση MAC"
 
 msgid "MAC Address OUI"
-msgstr ""
+msgstr "Διεύθυνση MAC OUI"
 
 msgid "Enable BIOS"
-msgstr ""
+msgstr "Ενεργοποίηση BIOS"
 
 msgid "Baud Rate"
-msgstr ""
+msgstr "Τιμή Baud"
 
 msgid "TCP/IP listening port"
-msgstr ""
+msgstr "Θύρα ακρόασης TCP/IP"
 
 msgid "Phonebook File"
-msgstr ""
+msgstr "Αρχείο Τηλεφωνικού καταλόγου"
 
 msgid "Telnet emulation"
-msgstr ""
+msgstr "Εξομοίωση Telnet"
 
 msgid "RAM Address"
-msgstr ""
+msgstr "Διεύθυνση RAM"
 
 msgid "RAM size"
-msgstr ""
+msgstr "Μέγεθος RAM"
 
 msgid "Initial RAM size"
-msgstr ""
+msgstr "Αρχικό μέγεθος RAM"
 
 msgid "Serial Number"
-msgstr ""
+msgstr "Σειριακός Αριθμός"
 
 msgid "Host ID"
-msgstr ""
+msgstr "ID οικοδεσπότη"
 
 msgid "FDC Address"
-msgstr ""
+msgstr "Διεύθυνση FDC"
 
 msgid "MPU-401 Address"
-msgstr ""
+msgstr "Διεύθυνση MPU-401"
 
 msgid "MPU-401 IRQ"
-msgstr ""
+msgstr "MPU-401 IRQ"
 
 msgid "Receive MIDI input"
-msgstr ""
+msgstr "Λήψη εισαγωγής MIDI"
 
 msgid "Low DMA"
-msgstr ""
+msgstr "Χαμηλό DMA"
 
 msgid "Enable Game port"
-msgstr ""
+msgstr "Ενεργοποίηση Game port"
 
 msgid "Enable Adlib ports"
-msgstr ""
+msgstr "Ενεργοποίηση θυρών Adlib"
 
 msgid "SID Model"
-msgstr ""
+msgstr "Μοντέλο SID"
 
 msgid "SID Filter Strength"
-msgstr ""
+msgstr "Ισχύς Φίλτρου SID"
 
 msgid "Surround module"
-msgstr ""
+msgstr "Μονάδα Surround"
 
 msgid "SB Address"
-msgstr ""
+msgstr "Διεύθυνση SB"
 
 msgid "Adlib Address"
-msgstr ""
+msgstr "Διεύθυνση Adlib"
 
 msgid "Use EEPROM setting"
-msgstr ""
+msgstr "Χρήση ρύθμισης EEPROM"
 
 msgid "WSS IRQ"
-msgstr ""
+msgstr "WSS IRQ"
 
 msgid "WSS DMA"
-msgstr ""
+msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "RTC IRQ"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Διεύθυνση Θύρας RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Ενσωματωμένο RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Μη εγκατεστημένο"
 
 msgid "Enable OPL"
-msgstr ""
+msgstr "Ενεργοποίηση OPL"
 
 msgid "Receive MIDI input (MPU-401)"
-msgstr ""
+msgstr "Λήψη εισαγωγής MIDI (MPU-401)"
 
 msgid "SB low DMA"
-msgstr ""
+msgstr "χαμηλό DMA της SB"
 
 msgid "6CH variant (6-channel)"
-msgstr ""
+msgstr "Παραλλαγή 6CH (6-κάναλο)"
 
 msgid "Enable CMS"
-msgstr ""
+msgstr "Ενεργοποίηση CMS"
 
 msgid "Mixer"
-msgstr ""
+msgstr "Μίκτης"
 
 msgid "High DMA"
-msgstr ""
+msgstr "Υψηλό DMA"
 
 msgid "Control PC speaker"
-msgstr ""
+msgstr "Έλεγχος ηχείου PC"
 
 msgid "Memory size"
-msgstr ""
+msgstr "Μέγεθος μνήμης"
 
 msgid "EMU8000 Address"
-msgstr ""
+msgstr "Διεύθυνση EMU8000"
 
 msgid "IDE Controller"
-msgstr ""
+msgstr "Ελεγκτής IDE"
 
 msgid "Codec"
-msgstr ""
+msgstr "Codec"
 
 msgid "GUS type"
-msgstr ""
+msgstr "Τύπος GUS"
 
 msgid "Enable 0x04 \"Exit 86Box\" command"
-msgstr ""
+msgstr "Ενεργοποίηση εντολής 0x04 \"Έξοδος 86Box\""
 
 msgid "Display type"
 msgstr "Τύπος εμφάνισης"
@@ -2262,127 +2266,127 @@ msgid "Composite type"
 msgstr "Τύπος Composite"
 
 msgid "RGB type"
-msgstr ""
+msgstr "Τύπος RGB"
 
 msgid "Line doubling type"
 msgstr "Τύπος line doubling"
 
 msgid "Snow emulation"
-msgstr ""
+msgstr "Εξομοίωση εφέ \"χιονιού\""
 
 msgid "Monitor type"
-msgstr ""
+msgstr "Τύπος οθόνης"
 
 msgid "Character set"
-msgstr ""
+msgstr "Σετ χαρακτήρων"
 
 msgid "XGA type"
-msgstr ""
+msgstr "Τύπος XGA"
 
 msgid "Instance"
-msgstr ""
+msgstr "Παράδειγμα"
 
 msgid "MMIO Address"
-msgstr ""
+msgstr "Διεύθυνση MMIO"
 
 msgid "RAMDAC type"
-msgstr ""
+msgstr "Τύπος RAMDAC"
 
 msgid "Blend"
-msgstr ""
+msgstr "Ανάμιξη"
 
 msgid "Font"
-msgstr ""
+msgstr "Γραμματοσειρά"
 
 msgid "Bilinear filtering"
-msgstr ""
+msgstr "Διγραμμικό φίλτρο"
 
 msgid "Video chroma-keying"
-msgstr ""
+msgstr "Video chroma-keying"
 
 msgid "Dithering"
-msgstr ""
+msgstr "Χρωματική αντιπαράθεση"
 
 msgid "Enable NMI for CGA emulation"
-msgstr ""
+msgstr "Ενεργοποίηση NMI για εξομοίωση CGA"
 
 msgid "Voodoo type"
-msgstr ""
+msgstr "Τύπος Voodoo"
 
 msgid "Framebuffer memory size"
-msgstr ""
+msgstr "Μέγεθος μνήμης Framebuffer"
 
 msgid "Texture memory size"
-msgstr ""
+msgstr "Μέγεθος μνήμης υφών"
 
 msgid "Dither subtraction"
-msgstr ""
+msgstr "Αφαίρεση τρέμουλου"
 
 msgid "Screen Filter"
-msgstr ""
+msgstr "Φίλτρο οθόνης"
 
 msgid "Render threads"
-msgstr ""
+msgstr "Νήματα απεικονιστή"
 
 msgid "SLI"
-msgstr ""
+msgstr "SLI"
 
 msgid "Start Address"
-msgstr ""
+msgstr "Διεύθυνση εκκίνησης"
 
 msgid "Contiguous Size"
-msgstr ""
+msgstr "Μέγεθος συνέχειας"
 
 msgid "I/O Width"
-msgstr ""
+msgstr "Πλάτος I/O"
 
 msgid "Transfer Speed"
-msgstr ""
+msgstr "Ταχύτητα Μεταφοράς"
 
 msgid "EMS mode"
-msgstr ""
+msgstr "Τύπος EMS"
 
 msgid "EMS Address"
-msgstr ""
+msgstr "Διεύθυνση EMS"
 
 msgid "EMS 1 Address"
-msgstr ""
+msgstr "Διεύθυνση EMS 1"
 
 msgid "EMS 2 Address"
-msgstr ""
+msgstr "Διεύθυνση EMS 2"
 
 msgid "EMS Memory Size"
-msgstr ""
+msgstr "Μέγεθος μνήμης EMS"
 
 msgid "EMS 1 Memory Size"
-msgstr ""
+msgstr "Μέγεθος μνήμης EMS 1"
 
 msgid "EMS 2 Memory Size"
-msgstr ""
+msgstr "Μέγεθος μνήμης EMS 2"
 
 msgid "Enable EMS"
-msgstr ""
+msgstr "Ενεργοποίηση EMS"
 
 msgid "Enable EMS 1"
-msgstr ""
+msgstr "Ενεργοποίηση EMS 1"
 
 msgid "Enable EMS 2"
-msgstr ""
+msgstr "Ενεργοποίηση EMS 2"
 
 msgid "Address for > 2 MB"
-msgstr ""
+msgstr "Διεύθυνση για > 2 MB"
 
 msgid "Frame Address"
-msgstr ""
+msgstr "Διεύθυνση πλαισίου"
 
 msgid "USA"
-msgstr ""
+msgstr "ΗΠΑ"
 
 msgid "Danish"
-msgstr ""
+msgstr "Δανικά"
 
 msgid "Always at selected speed"
-msgstr ""
+msgstr "Πάντα στην επιλεγμένη ταχύτητα"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr ""
@@ -2718,7 +2722,7 @@ msgid "[Generic] 2000 (7200 RPM)"
 msgstr ""
 
 msgid "IBM 8514/A clone (ISA)"
-msgstr ""
+msgstr "Κλώνος IBM 8514/A (ISA)"
 
 msgid "Vendor"
 msgstr ""
@@ -2874,10 +2878,10 @@ msgid "Hostname:"
 msgstr ""
 
 msgid "ISA RAM:"
-msgstr ""
+msgstr "ISA RAM:"
 
 msgid "ISA ROM:"
-msgstr ""
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr ""
