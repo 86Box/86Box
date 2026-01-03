@@ -31,6 +31,7 @@
 #include <86box/plat.h>
 #include <86box/path.h>
 #include <86box/ini.h>
+#include <86box/sound_util.h>
 
 #ifndef DISABLE_FDD_AUDIO
 
@@ -52,9 +53,6 @@ static multi_seek_state_t seek_state[FDD_NUM][MAX_CONCURRENT_SEEKS] = {};
 
 extern uint64_t motoron[FDD_NUM];
 extern char     exe_path[2048];
-
-/* Forward declaration */
-static int16_t *load_wav(const char *filename, int *sample_count);
 
 extern uint8_t *rom;
 extern uint32_t biosmask;
@@ -412,7 +410,7 @@ load_profile_samples(int profile_id)
     if (samples->spindlemotor_start.buffer == NULL && config->spindlemotor_start.filename[0]) {
         strcpy(samples->spindlemotor_start.filename, config->spindlemotor_start.filename);
         samples->spindlemotor_start.volume = config->spindlemotor_start.volume;
-        samples->spindlemotor_start.buffer = load_wav(config->spindlemotor_start.filename,
+        samples->spindlemotor_start.buffer = sound_load_wav(config->spindlemotor_start.filename,
                                                       &samples->spindlemotor_start.samples);
         if (samples->spindlemotor_start.buffer) {
             fdd_log("  Loaded spindlemotor_start: %s (%d samples, volume %.2f)\n",
@@ -428,7 +426,7 @@ load_profile_samples(int profile_id)
     if (samples->spindlemotor_loop.buffer == NULL && config->spindlemotor_loop.filename[0]) {
         strcpy(samples->spindlemotor_loop.filename, config->spindlemotor_loop.filename);
         samples->spindlemotor_loop.volume = config->spindlemotor_loop.volume;
-        samples->spindlemotor_loop.buffer = load_wav(config->spindlemotor_loop.filename,
+        samples->spindlemotor_loop.buffer = sound_load_wav(config->spindlemotor_loop.filename,
                                                      &samples->spindlemotor_loop.samples);
         if (samples->spindlemotor_loop.buffer) {
             fdd_log("  Loaded spindlemotor_loop: %s (%d samples, volume %.2f)\n",
@@ -444,7 +442,7 @@ load_profile_samples(int profile_id)
     if (samples->spindlemotor_stop.buffer == NULL && config->spindlemotor_stop.filename[0]) {
         strcpy(samples->spindlemotor_stop.filename, config->spindlemotor_stop.filename);
         samples->spindlemotor_stop.volume = config->spindlemotor_stop.volume;
-        samples->spindlemotor_stop.buffer = load_wav(config->spindlemotor_stop.filename,
+        samples->spindlemotor_stop.buffer = sound_load_wav(config->spindlemotor_stop.filename,
                                                      &samples->spindlemotor_stop.samples);
         if (samples->spindlemotor_stop.buffer) {
             fdd_log("  Loaded spindlemotor_stop: %s (%d samples, volume %.2f)\n",
@@ -466,7 +464,7 @@ load_profile_samples(int profile_id)
         if (samples->seek_up[idx].buffer == NULL && config->seek_up[idx].filename[0]) {
             strcpy(samples->seek_up[idx].filename, config->seek_up[idx].filename);
             samples->seek_up[idx].volume = config->seek_up[idx].volume;
-            samples->seek_up[idx].buffer = load_wav(config->seek_up[idx].filename,
+            samples->seek_up[idx].buffer = sound_load_wav(config->seek_up[idx].filename,
                                                     &samples->seek_up[idx].samples);
             if (samples->seek_up[idx].buffer) {
                 fdd_log("  Loaded seek_up[%d]: %s (%d samples, volume %.2f)\n",
@@ -479,7 +477,7 @@ load_profile_samples(int profile_id)
         if (samples->seek_down[idx].buffer == NULL && config->seek_down[idx].filename[0]) {
             strcpy(samples->seek_down[idx].filename, config->seek_down[idx].filename);
             samples->seek_down[idx].volume = config->seek_down[idx].volume;
-            samples->seek_down[idx].buffer = load_wav(config->seek_down[idx].filename,
+            samples->seek_down[idx].buffer = sound_load_wav(config->seek_down[idx].filename,
                                                       &samples->seek_down[idx].samples);
             if (samples->seek_down[idx].buffer) {
                 fdd_log("  Loaded seek_down[%d]: %s (%d samples, volume %.2f)\n",
@@ -493,7 +491,7 @@ load_profile_samples(int profile_id)
             if (samples->post_seek_up[idx].buffer == NULL) {
                 strcpy(samples->post_seek_up[idx].filename, config->post_seek_up[idx].filename);
                 samples->post_seek_up[idx].volume = config->post_seek_up[idx].volume;
-                samples->post_seek_up[idx].buffer = load_wav(config->post_seek_up[idx].filename,
+                samples->post_seek_up[idx].buffer = sound_load_wav(config->post_seek_up[idx].filename,
                                                              &samples->post_seek_up[idx].samples);
                 if (samples->post_seek_up[idx].buffer) {
                     fdd_log("  Loaded POST seek_up[%d] (%d-track): %s (%d samples, volume %.2f)\n",
@@ -507,7 +505,7 @@ load_profile_samples(int profile_id)
             if (samples->post_seek_down[idx].buffer == NULL) {
                 strcpy(samples->post_seek_down[idx].filename, config->post_seek_down[idx].filename);
                 samples->post_seek_down[idx].volume = config->post_seek_down[idx].volume;
-                samples->post_seek_down[idx].buffer = load_wav(config->post_seek_down[idx].filename,
+                samples->post_seek_down[idx].buffer = sound_load_wav(config->post_seek_down[idx].filename,
                                                                &samples->post_seek_down[idx].samples);
                 if (samples->post_seek_down[idx].buffer) {
                     fdd_log("  Loaded POST seek_down[%d] (%d-track): %s (%d samples, volume %.2f)\n",
@@ -529,7 +527,7 @@ load_profile_samples(int profile_id)
                 if (samples->bios_post_seek_up[vendor][idx].buffer == NULL) {
                     strcpy(samples->bios_post_seek_up[vendor][idx].filename, config->bios_post_seek_up[vendor][idx].filename);
                     samples->bios_post_seek_up[vendor][idx].volume = config->bios_post_seek_up[vendor][idx].volume;
-                    samples->bios_post_seek_up[vendor][idx].buffer = load_wav(config->bios_post_seek_up[vendor][idx].filename,
+                    samples->bios_post_seek_up[vendor][idx].buffer = sound_load_wav(config->bios_post_seek_up[vendor][idx].filename,
                                                                               &samples->bios_post_seek_up[vendor][idx].samples);
                     if (samples->bios_post_seek_up[vendor][idx].buffer) {
                         fdd_log("  Loaded %s POST seek_up[%d] (%d-track): %s (%d samples, volume %.2f)\n",
@@ -543,7 +541,7 @@ load_profile_samples(int profile_id)
                 if (samples->bios_post_seek_down[vendor][idx].buffer == NULL) {
                     strcpy(samples->bios_post_seek_down[vendor][idx].filename, config->bios_post_seek_down[vendor][idx].filename);
                     samples->bios_post_seek_down[vendor][idx].volume = config->bios_post_seek_down[vendor][idx].volume;
-                    samples->bios_post_seek_down[vendor][idx].buffer = load_wav(config->bios_post_seek_down[vendor][idx].filename,
+                    samples->bios_post_seek_down[vendor][idx].buffer = sound_load_wav(config->bios_post_seek_down[vendor][idx].filename,
                                                                                 &samples->bios_post_seek_down[vendor][idx].samples);
                     if (samples->bios_post_seek_down[vendor][idx].buffer) {
                         fdd_log("  Loaded %s POST seek_down[%d] (%d-track): %s (%d samples, volume %.2f)\n",
@@ -945,92 +943,6 @@ fdd_audio_play_multi_track_seek(int drive, int from_track, int to_track)
 
     fdd_log("FDD Audio Drive %d: Started seek in slot %d, duration %d samples\n",
             drive, slot, sample_to_use->samples);
-}
-
-static int16_t *
-load_wav(const char *filename, int *sample_count)
-{
-    if ((filename == NULL) || (strlen(filename) == 0))
-        return NULL;
-
-    if (strstr(filename, "..") != NULL)
-        return NULL;
-
-    FILE *f = asset_fopen(filename, "rb");
-    if (f == NULL) {
-        fdd_log("FDD Audio: Failed to open WAV file: %s\n", filename);
-        return NULL;
-    }
-
-    wav_header_t hdr;
-    if (fread(&hdr, sizeof(hdr), 1, f) != 1) {
-        fdd_log("FDD Audio: Failed to read WAV header from: %s\n", filename);
-        fclose(f);
-        return NULL;
-    }
-
-    if (memcmp(hdr.riff, "RIFF", 4) || memcmp(hdr.wave, "WAVE", 4) || memcmp(hdr.fmt, "fmt ", 4) || memcmp(hdr.data, "data", 4)) {
-        fdd_log("FDD Audio: Invalid WAV format in file: %s\n", filename);
-        fclose(f);
-        return NULL;
-    }
-
-    /* Accept both mono and stereo, 16-bit PCM */
-    if (hdr.audio_format != 1 || hdr.bits_per_sample != 16 || (hdr.num_channels != 1 && hdr.num_channels != 2)) {
-        fdd_log("FDD Audio: Unsupported WAV format in %s (format: %d, bits: %d, channels: %d)\n",
-                filename, hdr.audio_format, hdr.bits_per_sample, hdr.num_channels);
-        fclose(f);
-        return NULL;
-    }
-
-    int      input_samples = hdr.data_size / 2; /* 2 bytes per sample */
-    int16_t *input_data    = malloc(hdr.data_size);
-    if (!input_data) {
-        fdd_log("FDD Audio: Failed to allocate memory for WAV data: %s\n", filename);
-        fclose(f);
-        return NULL;
-    }
-
-    if (fread(input_data, 1, hdr.data_size, f) != hdr.data_size) {
-        fdd_log("FDD Audio: Failed to read WAV data from: %s\n", filename);
-        free(input_data);
-        fclose(f);
-        return NULL;
-    }
-    fclose(f);
-
-    int16_t *output_data;
-    int      output_samples;
-
-    if (hdr.num_channels == 1) {
-        /* Convert mono to stereo */
-        output_samples = input_samples;                               /* Number of stereo sample pairs */
-        output_data    = malloc(input_samples * 2 * sizeof(int16_t)); /* Allocate for stereo */
-        if (!output_data) {
-            fdd_log("FDD Audio: Failed to allocate stereo conversion buffer for: %s\n", filename);
-            free(input_data);
-            return NULL;
-        }
-
-        /* Convert mono to stereo by duplicating each sample */
-        for (int i = 0; i < input_samples; i++) {
-            output_data[i * 2]     = input_data[i]; /* Left channel */
-            output_data[i * 2 + 1] = input_data[i]; /* Right channel */
-        }
-
-        free(input_data);
-        fdd_log("FDD Audio: Loaded %s (mono->stereo, %d samples)\n", filename, output_samples);
-    } else {
-        /* Already stereo */
-        output_data    = input_data;
-        output_samples = input_samples / 2; /* Number of stereo sample pairs */
-        fdd_log("FDD Audio: Loaded %s (stereo, %d samples)\n", filename, output_samples);
-    }
-
-    if (sample_count)
-        *sample_count = output_samples;
-
-    return output_data;
 }
 
 void

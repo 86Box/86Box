@@ -30,11 +30,11 @@
 #define I_CD 3
 #define I_MIDI 4
 #define I_FDD 5
+#define I_HDD 6
 
-static struct sio_hdl* audio[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
-static struct sio_par  info[6];
-static int             freqs[6] = { SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, 0 };
-
+static struct sio_hdl* audio[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static struct sio_par  info[7];
+static int             freqs[7] = { SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, SOUND_FREQ, 0 };
 void
 closeal(void)
 {
@@ -153,6 +153,12 @@ givealbuffer_fdd(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, I_FDD, (int) size);
 }
+
+void
+givealbuffer_hdd(const void *buf, const uint32_t size)
+{
+    givealbuffer_common(buf, I_HDD, (int) size);
+}	
 	
 void
 al_set_midi(const int freq, UNUSED(const int buf_size))

@@ -36,6 +36,7 @@ add_library(hdd OBJECT
     hdc_ide_sff8038i.c
     hdc_ide_um8673f.c
     hdc_ide_w83769f.c
+    hdd_audio.c
 )
 
 add_library(rdisk OBJECT rdisk.c)

@@ -27,6 +27,7 @@
 #include <86box/hdd.h>
 #include <86box/cdrom.h>
 #include <86box/video.h>
+#include <86box/hdd_audio.h>
 #include "cpu.h"
 
 #define HDD_OVERHEAD_TIME 50.0
@@ -38,7 +39,7 @@ hdd_init(void)
 {
     /* Clear all global data. */
     memset(hdd, 0x00, sizeof(hdd));
-
+    hdd_audio_init();
     return 0;
 }
 
@@ -196,6 +197,9 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
     }
 
     if (!max_seek_time || seek_time <= max_seek_time) {
+        if (new_cylinder != hdd->cur_cylinder)
+            hdd_audio_seek(hdd, new_cylinder);
+
         hdd->cur_addr     = dst_addr;
         hdd->cur_track    = new_track;
         hdd->cur_cylinder = new_cylinder;
