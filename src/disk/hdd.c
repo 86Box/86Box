@@ -39,7 +39,6 @@ hdd_init(void)
 {
     /* Clear all global data. */
     memset(hdd, 0x00, sizeof(hdd));
-    hdd_audio_init();
     return 0;
 }
 

@@ -172,6 +172,7 @@ typedef struct hard_disk_t {
     uint32_t           hpc;
     uint32_t           tracks;
     uint32_t           speed_preset;
+    uint32_t           audio_profile;
 
     uint32_t           num_zones;
     uint32_t           phy_cyl;
