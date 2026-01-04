@@ -106,6 +106,9 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
         }
 
         if (video_card_available(c) && device_is_valid(video_dev, machineId)) {
+            if (c == 1 && machine_get_vid_device(machineId)) {
+                name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_vid_device(machineId), machine_get_vid_device(machineId)->internal_name, 0));
+            }
             int row = Models::AddEntry(model, name, c);
             if (c == curVideoCard) {
                 selectedRow = row - removeRows;
