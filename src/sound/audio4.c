@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <sys/audio.h>
+#include <sys/audioio.h>
 #include <sys/param.h>
 
 #include <86box/86box.h>
