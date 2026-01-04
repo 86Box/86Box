@@ -65,6 +65,13 @@ extern void hdd_audio_reset(void);
 extern void hdd_audio_close(void);
 extern void hdd_audio_callback(int16_t *buffer, int length);
 extern void hdd_audio_seek(hard_disk_t *hdd, uint32_t new_cylinder);
+
+/* Per-drive spindle control */
+extern void hdd_audio_spinup_drive(int hdd_index);
+extern void hdd_audio_spindown_drive(int hdd_index);
+extern hdd_spindle_state_t hdd_audio_get_drive_spindle_state(int hdd_index);
+
+/* Legacy functions for backward compatibility - operate on all drives */
 extern void hdd_audio_spinup(void);
 extern void hdd_audio_spindown(void);
 extern hdd_spindle_state_t hdd_audio_get_spindle_state(void);
