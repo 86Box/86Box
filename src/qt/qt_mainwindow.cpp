@@ -238,20 +238,26 @@ MainWindow::MainWindow(QWidget *parent)
 
     QTimer *ledKeyboardTimer = new QTimer(this);
     ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
-    ledKeyboardTimer->setInterval(1);
+    ledKeyboardTimer->setInterval(20);
     connect(ledKeyboardTimer, &QTimer::timeout, this, [this]() {
+        uint8_t prev_caps = 255, prev_num = 255, prev_scroll = 255, prev_kana = 255;
         uint8_t caps, num, scroll, kana;
         keyboard_get_states(&caps, &num, &scroll, &kana);
 
-        if (num_label->isVisible())
+        if (num_label->isVisible() && prev_num != num)
             num_label->setPixmap(num ? this->num_icon.pixmap(QSize(16, 16)) : this->num_icon_off.pixmap(QSize(16, 16)));
-        if (caps_label->isVisible())
+        if (caps_label->isVisible() && prev_caps != caps)
             caps_label->setPixmap(caps ? this->caps_icon.pixmap(QSize(16, 16)) : this->caps_icon_off.pixmap(QSize(16, 16)));
-        if (scroll_label->isVisible())
+        if (scroll_label->isVisible() && prev_scroll != scroll)
             scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) : this->scroll_icon_off.pixmap(QSize(16, 16)));
 
-        if (kana_label->isVisible())
+        if (kana_label->isVisible() && prev_kana != kana)
             kana_label->setPixmap(kana ? this->kana_icon.pixmap(QSize(16, 16)) : this->kana_icon_off.pixmap(QSize(16, 16)));
+
+        prev_caps   = caps;
+        prev_num    = num;
+        prev_scroll = scroll;
+        prev_kana   = kana;
     });
     ledKeyboardTimer->start();
 
