@@ -1088,13 +1088,13 @@ azt_init(const device_t *info)
 
     if (!loaded_from_eeprom) {
         if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
-            read_eeprom[0]  = 0x00;
-            read_eeprom[1]  = 0x00;
-            read_eeprom[2]  = 0x00;
-            read_eeprom[3]  = 0x00;
-            read_eeprom[4]  = 0x00;
-            read_eeprom[5]  = 0x00;
-            read_eeprom[6]  = 0x00;
+            read_eeprom[0]  = 0xee; /* SB Voice mixer value */
+            read_eeprom[1]  = 0x00; /* SB Mic mixer value (bits 2-0) */
+            read_eeprom[2]  = 0x00; /* SB Record Source */
+            read_eeprom[3]  = 0xee; /* SB Master mixer value */
+            read_eeprom[4]  = 0xee; /* SB FM mixer value */
+            read_eeprom[5]  = 0xee; /* SB CD mixer value */
+            read_eeprom[6]  = 0x00; /* SB Line mixer value */
             read_eeprom[7]  = 0x00;
             read_eeprom[8]  = 0x00;
             read_eeprom[9]  = 0x00;
@@ -1371,6 +1371,17 @@ azt_init(const device_t *info)
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &azt2316a->sb->dsp);
+
+    /* Restore SBPro mixer settings from EEPROM on AZT2316A cards */
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
+        azt2316a->sb->mixer_sbpro.regs[0x04] = read_eeprom[0]; /* SBPro Voice */
+        azt2316a->sb->mixer_sbpro.regs[0x0a] = read_eeprom[1]; /* SBPro Mic */
+        azt2316a->sb->mixer_sbpro.regs[0x0c] = read_eeprom[2]; /* SBPro Record Source */
+        azt2316a->sb->mixer_sbpro.regs[0x22] = read_eeprom[3]; /* SBPro Master */
+        azt2316a->sb->mixer_sbpro.regs[0x26] = read_eeprom[4]; /* SBPro FM */
+        azt2316a->sb->mixer_sbpro.regs[0x28] = read_eeprom[5]; /* SBPro CD */
+        azt2316a->sb->mixer_sbpro.regs[0x2e] = read_eeprom[6]; /* SBPro Line */
+    }
 
     /* Restore WSS mixer settings from EEPROM on AZT1605 cards */
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
