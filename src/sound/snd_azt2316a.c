@@ -160,6 +160,7 @@
 #include <86box/nvr.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
+#include <86box/gameport.h>
 #include <86box/snd_ad1848.h>
 #include <86box/snd_azt2316a.h>
 #include <86box/snd_sb.h>
@@ -215,6 +216,8 @@ typedef struct azt2316a_t {
     int cur_wss_dma;
     int cur_mpu401_irq;
     int cur_mpu401_enabled;
+    int gameport_enabled;
+    void *gameport;
 
     uint32_t config_word;
     uint32_t config_word_unlocked;
@@ -291,7 +294,6 @@ azt1605_create_config_word(void *priv)
     uint32_t    temp     = 0;
 
     /* not implemented / hardcoded */
-    uint8_t game_enable = 1;
     uint8_t cd_type     = 0; /* TODO: see if the cd-rom was originally connected there on the real machines emulated by 86Box (Packard Bell Legend 100CD, Itautec Infoway Multimidia, etc) */
     uint8_t cd_dma8     = -1;
     uint8_t cd_irq      = 0;
@@ -346,7 +348,7 @@ azt1605_create_config_word(void *priv)
     if (azt2316a->cur_wss_enabled)
         temp += 1 << 18;
 
-    if (game_enable)
+    if (azt2316a->gameport_enabled)
         temp += 1 << 4;
 
     switch (azt2316a->cur_mpu401_addr) {
@@ -366,7 +368,7 @@ azt1605_create_config_word(void *priv)
 
     switch (cd_type) {
         case 0: // disabled
-            //do nothing
+            // do nothing
             break;
         case 1: // panasonic
             temp += 1 << 5;
@@ -459,7 +461,6 @@ azt2316a_create_config_word(void *priv)
     uint32_t    temp     = 0;
 
     /* not implemented / hardcoded */
-    uint8_t  game_enable = 1;
     uint16_t cd_addr     = 0x310;
     uint8_t  cd_type     = 0; /* TODO: see if the cd-rom was originally connected there on the real machines emulated by 86Box (Packard Bell Legend 100CD, Itautec Infoway Multimidia, etc) */
     uint8_t  cd_dma8     = -1;
@@ -534,7 +535,7 @@ azt2316a_create_config_word(void *priv)
     }
     if (azt2316a->cur_wss_enabled)
         temp += 1 << 10;
-    if (game_enable)
+    if (azt2316a->gameport_enabled)
         temp += 1 << 11;
     switch (azt2316a->cur_mpu401_addr) {
         case 0x300:
@@ -819,6 +820,11 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *priv)
                     azt2316a->cur_mpu401_enabled = 1;
                 else
                     azt2316a->cur_mpu401_enabled = 0;
+
+                if (val & 0x10)
+                    azt2316a->gameport_enabled = 1;
+                else
+                    azt2316a->gameport_enabled = 0;
                 break;
             case 1:
                 azt2316a->config_word = (azt2316a->config_word & 0xFFFF00FF) | (val << 8);
@@ -881,6 +887,8 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *priv)
 
         mpu401_change_addr(azt2316a->mpu, azt2316a->cur_mpu401_addr);
         mpu401_setirq(azt2316a->mpu, azt2316a->cur_mpu401_irq);
+
+        gameport_remap(azt2316a->gameport, (azt2316a->gameport_enabled) ? 0x200 : 0x00);
     }
 }
 
@@ -952,6 +960,11 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *priv)
                 else
                     azt2316a->cur_wss_enabled = 0;
 
+                if (val & 0x8)
+                    azt2316a->gameport_enabled = 1;
+                else
+                    azt2316a->gameport_enabled = 0;
+
                 if (val & 0x10)
                     azt2316a->cur_mpu401_addr = 0x330;
                 else
@@ -989,6 +1002,8 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *priv)
 
         mpu401_change_addr(azt2316a->mpu, azt2316a->cur_mpu401_addr);
         mpu401_setirq(azt2316a->mpu, azt2316a->cur_mpu401_irq);
+
+        gameport_remap(azt2316a->gameport, (azt2316a->gameport_enabled) ? 0x200 : 0x00);
     }
 }
 
@@ -1170,6 +1185,11 @@ azt_init(const device_t *info)
         else
             azt2316a->cur_wss_enabled = 0;
 
+        if (azt2316a->config_word & (1 << 11))
+            azt2316a->gameport_enabled = 1;
+        else
+            azt2316a->gameport_enabled = 0;
+
         if (azt2316a->config_word & (1 << 12))
             azt2316a->cur_mpu401_addr = 0x330;
         else
@@ -1218,6 +1238,11 @@ azt_init(const device_t *info)
             azt2316a->cur_mpu401_enabled = 1;
         else
             azt2316a->cur_mpu401_enabled = 0;
+
+        if (azt2316a->config_word & (1 << 4))
+            azt2316a->gameport_enabled = 1;
+        else
+            azt2316a->gameport_enabled = 0;
 
         if (azt2316a->config_word & (1 << 8))
             azt2316a->cur_irq = 9;
@@ -1361,6 +1386,9 @@ azt_init(const device_t *info)
         azt2316a->ad1848.regs[19] = read_eeprom[9];  /* CS4231 LINE/SB Voice R */
         azt2316a->ad1848.regs[26] = read_eeprom[10]; /* CS4231 Mic */
     }
+
+    azt2316a->gameport = gameport_add(&gameport_pnp_device);
+    gameport_remap(azt2316a->gameport, (azt2316a->gameport_enabled) ? 0x200: 0x00);
 
     return azt2316a;
 }
