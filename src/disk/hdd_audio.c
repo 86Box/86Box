@@ -42,13 +42,15 @@ typedef struct {
 typedef struct {
     int16_t *spindle_start_buffer;
     int      spindle_start_samples;
+    float    spindle_start_volume;
     int16_t *spindle_loop_buffer;
     int      spindle_loop_samples;
+    float    spindle_loop_volume;
     int16_t *spindle_stop_buffer;
     int      spindle_stop_samples;
+    float    spindle_stop_volume;
     int16_t *seek_buffer;
     int      seek_samples;
-    float    spindle_volume;
     float    seek_volume;
     int      loaded;
 } hdd_audio_samples_t;
@@ -65,6 +67,11 @@ static int active_audio_profile = 0;
 
 static hdd_seek_voice_t hdd_seek_voices[HDD_MAX_SEEK_VOICES];
 static mutex_t         *hdd_audio_mutex = NULL;
+
+/* Spindle motor state */
+static hdd_spindle_state_t spindle_state = HDD_SPINDLE_STOPPED;
+static int                 spindle_pos = 0;
+static int                 spindle_transition_pos = 0;  /* Position in start/stop sample */
 
 /* Load audio profiles from configuration file */
 void
@@ -248,7 +255,7 @@ hdd_audio_load_profile_samples(int profile_id)
             config->spindlemotor_loop.filename,
             &samples->spindle_loop_samples);
         if (samples->spindle_loop_buffer) {
-            samples->spindle_volume = config->spindlemotor_loop.volume;
+            samples->spindle_loop_volume = config->spindlemotor_loop.volume;
             pclog("HDD Audio: Loaded spindle loop, %d frames\n", samples->spindle_loop_samples);
         } else {
             pclog("HDD Audio: Failed to load spindle loop: %s\n", config->spindlemotor_loop.filename);
@@ -261,6 +268,7 @@ hdd_audio_load_profile_samples(int profile_id)
             config->spindlemotor_start.filename,
             &samples->spindle_start_samples);
         if (samples->spindle_start_buffer) {
+            samples->spindle_start_volume = config->spindlemotor_start.volume;
             pclog("HDD Audio: Loaded spindle start, %d frames\n", samples->spindle_start_samples);
         }
     }
@@ -271,6 +279,7 @@ hdd_audio_load_profile_samples(int profile_id)
             config->spindlemotor_stop.filename,
             &samples->spindle_stop_samples);
         if (samples->spindle_stop_buffer) {
+            samples->spindle_stop_volume = config->spindlemotor_stop.volume;
             pclog("HDD Audio: Loaded spindle stop, %d frames\n", samples->spindle_stop_samples);
         }
     }
@@ -316,18 +325,22 @@ hdd_audio_init(void)
     
     pclog("HDD Audio Init: active_audio_profile=%d\n", active_audio_profile);
     
-    /* Load samples for the active profile */
-    if (active_audio_profile > 0 && active_audio_profile < audio_profile_count) {
-        hdd_audio_load_profile_samples(active_audio_profile);
-    }
-
     for (int i = 0; i < HDD_MAX_SEEK_VOICES; i++) {
         hdd_seek_voices[i].active = 0;
         hdd_seek_voices[i].position = 0;
         hdd_seek_voices[i].volume = 1.0f;
     }
 
-    hdd_audio_mutex = thread_create_mutex();
+    /* Create mutex BEFORE loading samples or calling spinup */
+    if (!hdd_audio_mutex)
+        hdd_audio_mutex = thread_create_mutex();
+
+    /* Load samples for the active profile */
+    if (active_audio_profile > 0 && active_audio_profile < audio_profile_count) {
+        hdd_audio_load_profile_samples(active_audio_profile);
+        /* Start spindle motor */
+        hdd_audio_spinup();
+    }
 
     sound_hdd_thread_init();
 }
@@ -336,6 +349,25 @@ void
 hdd_audio_reset(void)
 {
     pclog("HDD Audio: Reset\n");
+    
+    /* Lock mutex to prevent audio callback from accessing buffers during reset */
+    if (hdd_audio_mutex)
+        thread_wait_mutex(hdd_audio_mutex);
+    
+    /* Reset spindle state first to stop audio playback */
+    spindle_state = HDD_SPINDLE_STOPPED;
+    spindle_pos = 0;
+    spindle_transition_pos = 0;
+    
+    /* Reset seek voices */
+    for (int i = 0; i < HDD_MAX_SEEK_VOICES; i++) {
+        hdd_seek_voices[i].active = 0;
+        hdd_seek_voices[i].position = 0;
+        hdd_seek_voices[i].volume = 1.0f;
+    }
+    
+    /* Reset active profile before freeing buffers */
+    active_audio_profile = 0;
     
     /* Free previously loaded samples (but keep profiles) */
     for (int i = 0; i < HDD_AUDIO_PROFILE_MAX; i++) {
@@ -358,15 +390,10 @@ hdd_audio_reset(void)
         profile_samples[i].loaded = 0;
     }
     
-    /* Reset seek voices */
-    for (int i = 0; i < HDD_MAX_SEEK_VOICES; i++) {
-        hdd_seek_voices[i].active = 0;
-        hdd_seek_voices[i].position = 0;
-        hdd_seek_voices[i].volume = 1.0f;
-    }
+    if (hdd_audio_mutex)
+        thread_release_mutex(hdd_audio_mutex);
     
     /* Find new active profile from current HDD configuration */
-    active_audio_profile = 0;
     for (int i = 0; i < HDD_NUM; i++) {
         if (hdd[i].bus_type != HDD_BUS_DISABLED) {
             pclog("HDD Audio Reset: HDD %d audio_profile=%d\n", i, hdd[i].audio_profile);
@@ -381,6 +408,8 @@ hdd_audio_reset(void)
     /* Load samples for the active profile */
     if (active_audio_profile > 0 && active_audio_profile < audio_profile_count) {
         hdd_audio_load_profile_samples(active_audio_profile);
+        /* Start spindle motor */
+        hdd_audio_spinup();
     }
 }
 
@@ -410,6 +439,10 @@ hdd_audio_seek(hard_disk_t *hdd_drive, uint32_t new_cylinder)
     if (!samples->seek_buffer || samples->seek_samples == 0) {
         return;
     }
+
+    /* Mutex must exist */
+    if (!hdd_audio_mutex)
+        return;
 
     int min_seek_spacing = 0;
     if (hdd_drive->cyl_switch_usec > 0)
@@ -441,9 +474,46 @@ hdd_audio_seek(hard_disk_t *hdd_drive, uint32_t new_cylinder)
 }
 
 void
+hdd_audio_spinup(void)
+{
+    if (spindle_state == HDD_SPINDLE_RUNNING || spindle_state == HDD_SPINDLE_STARTING)
+        return;
+    
+    pclog("HDD Audio: Spinup requested (current state: %d)\n", spindle_state);
+    
+    if (hdd_audio_mutex)
+        thread_wait_mutex(hdd_audio_mutex);
+    spindle_state = HDD_SPINDLE_STARTING;
+    spindle_transition_pos = 0;
+    if (hdd_audio_mutex)
+        thread_release_mutex(hdd_audio_mutex);
+}
+
+void
+hdd_audio_spindown(void)
+{
+    if (spindle_state == HDD_SPINDLE_STOPPED || spindle_state == HDD_SPINDLE_STOPPING)
+        return;
+    
+    pclog("HDD Audio: Spindown requested (current state: %d)\n", spindle_state);
+    
+    if (hdd_audio_mutex)
+        thread_wait_mutex(hdd_audio_mutex);
+    spindle_state = HDD_SPINDLE_STOPPING;
+    spindle_transition_pos = 0;
+    if (hdd_audio_mutex)
+        thread_release_mutex(hdd_audio_mutex);
+}
+
+hdd_spindle_state_t
+hdd_audio_get_spindle_state(void)
+{
+    return spindle_state;
+}
+
+void
 hdd_audio_callback(int16_t *buffer, int length)
 {
-    static int spindle_pos = 0;
     int frames_in_buffer = length / 2;
 
     /* Get active profile samples */
@@ -455,28 +525,86 @@ hdd_audio_callback(int16_t *buffer, int length)
     if (sound_is_float) {
         float *float_buffer = (float *) buffer;
 
-        /* Spindle sound from profile */
-        if (samples && samples->spindle_loop_buffer && samples->spindle_loop_samples > 0) {
-            float spindle_volume = samples->spindle_volume;
-            for (int i = 0; i < frames_in_buffer; i++) {
-                float left_sample = (float) samples->spindle_loop_buffer[spindle_pos * 2] / 131072.0f * spindle_volume;
-                float right_sample = (float) samples->spindle_loop_buffer[spindle_pos * 2 + 1] / 131072.0f * spindle_volume;
-                float_buffer[i * 2]     = left_sample;
-                float_buffer[i * 2 + 1] = right_sample;
+        /* Initialize buffer to silence */
+        for (int i = 0; i < length; i++) {
+            float_buffer[i] = 0.0f;
+        }
 
-                spindle_pos++;
-                if (spindle_pos >= samples->spindle_loop_samples) {
-                    spindle_pos = 0;
-                }
-            }
-        } else {
-            for (int i = 0; i < length; i++) {
-                float_buffer[i] = 0.0f;
+        /* Handle spindle states */
+        if (samples) {
+            switch (spindle_state) {
+                case HDD_SPINDLE_STARTING:
+                    /* Play spinup sound */
+                    if (samples->spindle_start_buffer && samples->spindle_start_samples > 0) {
+                        float start_volume = samples->spindle_start_volume;
+                        for (int i = 0; i < frames_in_buffer && spindle_transition_pos < samples->spindle_start_samples; i++) {
+                            float left_sample = (float) samples->spindle_start_buffer[spindle_transition_pos * 2] / 131072.0f * start_volume;
+                            float right_sample = (float) samples->spindle_start_buffer[spindle_transition_pos * 2 + 1] / 131072.0f * start_volume;
+                            float_buffer[i * 2]     = left_sample;
+                            float_buffer[i * 2 + 1] = right_sample;
+                            spindle_transition_pos++;
+                        }
+                        if (spindle_transition_pos >= samples->spindle_start_samples) {
+                            spindle_state = HDD_SPINDLE_RUNNING;
+                            spindle_pos = 0;
+                            pclog("HDD Audio: Spinup complete, now running\n");
+                        }
+                    } else {
+                        /* No start sample, go directly to running */
+                        spindle_state = HDD_SPINDLE_RUNNING;
+                        spindle_pos = 0;
+                    }
+                    break;
+
+                case HDD_SPINDLE_RUNNING:
+                    /* Play spindle loop */
+                    if (samples->spindle_loop_buffer && samples->spindle_loop_samples > 0) {
+                        float spindle_volume = samples->spindle_loop_volume;
+                        for (int i = 0; i < frames_in_buffer; i++) {
+                            float left_sample = (float) samples->spindle_loop_buffer[spindle_pos * 2] / 131072.0f * spindle_volume;
+                            float right_sample = (float) samples->spindle_loop_buffer[spindle_pos * 2 + 1] / 131072.0f * spindle_volume;
+                            float_buffer[i * 2]     = left_sample;
+                            float_buffer[i * 2 + 1] = right_sample;
+
+                            spindle_pos++;
+                            if (spindle_pos >= samples->spindle_loop_samples) {
+                                spindle_pos = 0;
+                            }
+                        }
+                    }
+                    break;
+
+                case HDD_SPINDLE_STOPPING:
+                    /* Play spindown sound */
+                    if (samples->spindle_stop_buffer && samples->spindle_stop_samples > 0) {
+                        float stop_volume = samples->spindle_stop_volume;
+                        for (int i = 0; i < frames_in_buffer && spindle_transition_pos < samples->spindle_stop_samples; i++) {
+                            float left_sample = (float) samples->spindle_stop_buffer[spindle_transition_pos * 2] / 131072.0f * stop_volume;
+                            float right_sample = (float) samples->spindle_stop_buffer[spindle_transition_pos * 2 + 1] / 131072.0f * stop_volume;
+                            float_buffer[i * 2]     = left_sample;
+                            float_buffer[i * 2 + 1] = right_sample;
+                            spindle_transition_pos++;
+                        }
+                        if (spindle_transition_pos >= samples->spindle_stop_samples) {
+                            spindle_state = HDD_SPINDLE_STOPPED;
+                            pclog("HDD Audio: Spindown complete, now stopped\n");
+                        }
+                    } else {
+                        /* No stop sample, go directly to stopped */
+                        spindle_state = HDD_SPINDLE_STOPPED;
+                    }
+                    break;
+
+                case HDD_SPINDLE_STOPPED:
+                default:
+                    /* Silence - buffer already zeroed */
+                    break;
             }
         }
 
-        /* Seek sounds from profile */
-        if (samples && samples->seek_buffer && samples->seek_samples > 0 && hdd_audio_mutex) {
+        /* Seek sounds from profile - only play when spindle is running */
+        if (samples && samples->seek_buffer && samples->seek_samples > 0 && 
+            hdd_audio_mutex && spindle_state == HDD_SPINDLE_RUNNING) {
             thread_wait_mutex(hdd_audio_mutex);
 
             for (int v = 0; v < HDD_MAX_SEEK_VOICES; v++) {
@@ -506,26 +634,78 @@ hdd_audio_callback(int16_t *buffer, int length)
             thread_release_mutex(hdd_audio_mutex);
         }
     } else {
-        /* Spindle sound from profile */
-        if (samples && samples->spindle_loop_buffer && samples->spindle_loop_samples > 0) {
-            float spindle_volume = samples->spindle_volume;
-            for (int i = 0; i < frames_in_buffer; i++) {
-                buffer[i * 2]     = (int16_t)(samples->spindle_loop_buffer[spindle_pos * 2] * spindle_volume);
-                buffer[i * 2 + 1] = (int16_t)(samples->spindle_loop_buffer[spindle_pos * 2 + 1] * spindle_volume);
+        /* Initialize buffer to silence */
+        for (int i = 0; i < length; i++) {
+            buffer[i] = 0;
+        }
 
-                spindle_pos++;
-                if (spindle_pos >= samples->spindle_loop_samples) {
-                    spindle_pos = 0;
-                }
-            }
-        } else {
-            for (int i = 0; i < length; i++) {
-                buffer[i] = 0;
+        /* Handle spindle states */
+        if (samples) {
+            switch (spindle_state) {
+                case HDD_SPINDLE_STARTING:
+                    /* Play spinup sound */
+                    if (samples->spindle_start_buffer && samples->spindle_start_samples > 0) {
+                        float start_volume = samples->spindle_start_volume;
+                        for (int i = 0; i < frames_in_buffer && spindle_transition_pos < samples->spindle_start_samples; i++) {
+                            buffer[i * 2]     = (int16_t)(samples->spindle_start_buffer[spindle_transition_pos * 2] * start_volume);
+                            buffer[i * 2 + 1] = (int16_t)(samples->spindle_start_buffer[spindle_transition_pos * 2 + 1] * start_volume);
+                            spindle_transition_pos++;
+                        }
+                        if (spindle_transition_pos >= samples->spindle_start_samples) {
+                            spindle_state = HDD_SPINDLE_RUNNING;
+                            spindle_pos = 0;
+                            pclog("HDD Audio: Spinup complete, now running\n");
+                        }
+                    } else {
+                        spindle_state = HDD_SPINDLE_RUNNING;
+                        spindle_pos = 0;
+                    }
+                    break;
+
+                case HDD_SPINDLE_RUNNING:
+                    /* Play spindle loop */
+                    if (samples->spindle_loop_buffer && samples->spindle_loop_samples > 0) {
+                        float spindle_volume = samples->spindle_loop_volume;
+                        for (int i = 0; i < frames_in_buffer; i++) {
+                            buffer[i * 2]     = (int16_t)(samples->spindle_loop_buffer[spindle_pos * 2] * spindle_volume);
+                            buffer[i * 2 + 1] = (int16_t)(samples->spindle_loop_buffer[spindle_pos * 2 + 1] * spindle_volume);
+
+                            spindle_pos++;
+                            if (spindle_pos >= samples->spindle_loop_samples) {
+                                spindle_pos = 0;
+                            }
+                        }
+                    }
+                    break;
+
+                case HDD_SPINDLE_STOPPING:
+                    /* Play spindown sound */
+                    if (samples->spindle_stop_buffer && samples->spindle_stop_samples > 0) {
+                        float stop_volume = samples->spindle_stop_volume;
+                        for (int i = 0; i < frames_in_buffer && spindle_transition_pos < samples->spindle_stop_samples; i++) {
+                            buffer[i * 2]     = (int16_t)(samples->spindle_stop_buffer[spindle_transition_pos * 2] * stop_volume);
+                            buffer[i * 2 + 1] = (int16_t)(samples->spindle_stop_buffer[spindle_transition_pos * 2 + 1] * stop_volume);
+                            spindle_transition_pos++;
+                        }
+                        if (spindle_transition_pos >= samples->spindle_stop_samples) {
+                            spindle_state = HDD_SPINDLE_STOPPED;
+                            pclog("HDD Audio: Spindown complete, now stopped\n");
+                        }
+                    } else {
+                        spindle_state = HDD_SPINDLE_STOPPED;
+                    }
+                    break;
+
+                case HDD_SPINDLE_STOPPED:
+                default:
+                    /* Silence - buffer already zeroed */
+                    break;
             }
         }
 
-        /* Seek sounds from profile */
-        if (samples && samples->seek_buffer && samples->seek_samples > 0 && hdd_audio_mutex) {
+        /* Seek sounds from profile - only play when spindle is running */
+        if (samples && samples->seek_buffer && samples->seek_samples > 0 && 
+            hdd_audio_mutex && spindle_state == HDD_SPINDLE_RUNNING) {
             thread_wait_mutex(hdd_audio_mutex);
 
             for (int v = 0; v < HDD_MAX_SEEK_VOICES; v++) {

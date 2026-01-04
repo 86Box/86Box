@@ -24,6 +24,14 @@ extern "C" {
 
 #define HDD_AUDIO_PROFILE_MAX 64
 
+/* Spindle motor states */
+typedef enum {
+    HDD_SPINDLE_STOPPED = 0,
+    HDD_SPINDLE_STARTING,
+    HDD_SPINDLE_RUNNING,
+    HDD_SPINDLE_STOPPING
+} hdd_spindle_state_t;
+
 /* Audio sample configuration structure */
 typedef struct {
     char  filename[512];
@@ -57,6 +65,9 @@ extern void hdd_audio_reset(void);
 extern void hdd_audio_close(void);
 extern void hdd_audio_callback(int16_t *buffer, int length);
 extern void hdd_audio_seek(hard_disk_t *hdd, uint32_t new_cylinder);
+extern void hdd_audio_spinup(void);
+extern void hdd_audio_spindown(void);
+extern hdd_spindle_state_t hdd_audio_get_spindle_state(void);
 
 #ifdef __cplusplus
 }
