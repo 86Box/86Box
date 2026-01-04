@@ -1,4 +1,25 @@
 /*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Aztech Sound Galaxy series audio controller emulation.
+ *
+ * Authors: Cacodemon345
+ *          Eluan Costa Miranda <eluancm@gmail.com>
+ *          win2kgamer
+ *
+ *          Copyright 2022 Cacodemon345.
+ *          Copyright 2020 Eluan Costa Miranda.
+ *          Copyright 2025-2026 win2kgamer
+ */
+
+/*
+ * Original header and notes:
+ *
  * TYPE 0x11: (Washington)
  * Aztech MMPRO16AB,
  * Aztech Sound Galaxy Pro 16 AB
@@ -66,7 +87,7 @@
  * to call the original functions, except for initialization.
  *
  * TODO/Notes:
- * -Some stuff still not understood on I/O addresses 0x624 and 0x530-0x533.
+ * -Some stuff still not understood on I/O address 0x624.
  * -Is the CS42xx dither mode used anywhere? Implement.
  * -What are the voice commands mode in Win95 mixer again?
  * -Configuration options not present on Aztech's CONFIG.EXE have been commented
@@ -100,14 +121,6 @@
  *  this behaves like a card with a regular interface disabled by jumper and
  *  the configuration just adds/removes the drivers (which will see other IDE
  *  interfaces present) from the boot process.
- * -Continue reverse engineering to see if the AZT1605 shares the SB DMA with
- *  WSS or if it is set separately by the TSR loaded on boot. Currently it is
- *  only set by PCem config and then saved to EEPROM (which would make it fixed
- *  if loading from EEPROM too).
- * -Related to the previous note, part of the SBPROV2 emulation on the CLINTON
- *  family appears to be implemented with a TSR. It's better to remove the TSR
- *  for now. I need to investigate this. Mixer is also weird under DOS (and
- *  wants to save to EEPROM? I don't think the WASHINGTON does this).
  * -Search for TODO in this file. :-)
  *
  * Misc things I use to test for regressions: Windows sounds, Descent under
@@ -159,7 +172,7 @@ int aztech_do_log = ENABLE_AZTECH_LOG;
 static void
 aztech_log(void *priv, const char *fmt, ...)
 {
-    if (aztech_log) {
+    if (aztech_do_log) {
         va_list ap;
         va_start(ap, fmt);
         log_out(priv, fmt, ap);
@@ -230,9 +243,6 @@ azt2316a_wss_read(uint16_t addr, void *priv)
     const azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t           temp;
 
-    /* TODO: when windows is initializing, writing 0x48, 0x58 and 0x60 to
-       0x530 makes reading from 0x533 return 0x44, but writing 0x50
-       makes this return 0x04. Why? */
     if (addr & 1)
         temp = 4 | (azt2316a->wss_config & 0x40);
     else
@@ -289,21 +299,10 @@ azt1605_create_config_word(void *priv)
     switch (azt2316a->cur_addr) {
         case 0x220:
             // do nothing
-#if 0
-            temp += 0 << 0;
-#endif
             break;
         case 0x240:
             temp += 1 << 0;
             break;
-#if 0
-        case 0x260: // TODO: INVALID?
-            temp += 2 << 0;
-            break;
-        case 0x280: // TODO: INVALID?
-            temp += 3 << 0;
-            break;
-#endif
         default:
             break;
     }
@@ -329,9 +328,6 @@ azt1605_create_config_word(void *priv)
     switch (azt2316a->cur_wss_addr) {
         case 0x530:
             // do nothing
-#if 0
-            temp += 0 << 16;
-#endif
             break;
         case 0x604:
             temp += 1 << 16;
@@ -356,9 +352,6 @@ azt1605_create_config_word(void *priv)
     switch (azt2316a->cur_mpu401_addr) {
         case 0x300:
             // do nothing
-#if 0
-            temp += 0 << 2;
-#endif
             break;
         case 0x330:
             temp += 1 << 2;
@@ -372,9 +365,8 @@ azt1605_create_config_word(void *priv)
         temp += 1 << 3;
 
     switch (cd_type) {
-        case 0: /* disabled
-            do nothing
-            temp += 0 << 5; */
+        case 0: // disabled
+            //do nothing
             break;
         case 1: // panasonic
             temp += 1 << 5;
@@ -403,9 +395,8 @@ azt1605_create_config_word(void *priv)
     }
 
     switch (cd_dma8) {
-        case 0xFF: /* -1
-            do nothing
-            temp += 0 << 22;*/
+        case 0xFF: // -1
+            //do nothing
             break;
         case 0:
             temp += 1 << 22;
@@ -483,21 +474,10 @@ azt2316a_create_config_word(void *priv)
     switch (azt2316a->cur_addr) {
         case 0x220:
             // do nothing
-#if 0
-            temp += 0 << 0;
-#endif
             break;
         case 0x240:
             temp += 1 << 0;
             break;
-#if 0
-        case 0x260: // TODO: INVALID?
-            temp += 2 << 0;
-            break;
-        case 0x280: // TODO: INVALID?
-            temp += 3 << 0;
-            break;
-#endif
         default:
             break;
     }
@@ -521,13 +501,6 @@ azt2316a_create_config_word(void *priv)
     }
 
     switch (azt2316a->cur_dma) {
-#if 0
-        // TODO: INVALID?
-        case 0xFF: // -1
-            // do nothing
-            //temp += 0 << 6;
-            break;
-#endif
         case 0:
             temp += 1 << 6;
             break;
@@ -545,9 +518,6 @@ azt2316a_create_config_word(void *priv)
     switch (azt2316a->cur_wss_addr) {
         case 0x530:
             // do nothing
-#if 0
-            temp += 0 << 8;
-#endif
             break;
         case 0x604:
             temp += 1 << 8;
@@ -569,9 +539,6 @@ azt2316a_create_config_word(void *priv)
     switch (azt2316a->cur_mpu401_addr) {
         case 0x300:
             // do nothing
-#if 0
-            temp += 0 << 12;
-#endif
             break;
         case 0x330:
             temp += 1 << 12;
@@ -587,9 +554,6 @@ azt2316a_create_config_word(void *priv)
     switch (cd_addr) {
         case 0x310:
             // do nothing
-#if 0
-            temp += 0 << 14;
-#endif
             break;
         case 0x320:
             temp += 1 << 14;
@@ -607,9 +571,6 @@ azt2316a_create_config_word(void *priv)
     switch (cd_type) {
         case 0: /* disabled */
             // do nothing
-#if 0
-            temp += 0 << 16; */
-#endif
             break;
         case 1: /* panasonic */
             temp += 1 << 16;
@@ -638,18 +599,15 @@ azt2316a_create_config_word(void *priv)
     }
 
     switch (cd_dma8) {
-        case 0xFF: /* -1
-            do nothing
-            temp += 0 << 20; */
+        case 0xFF: // -1
+            //do nothing
             break;
         case 0:
             temp += 1 << 20;
             break;
-#if 0
-        case 1: // TODO: INVALID?
+        case 1:
             temp += 2 << 20;
             break;
-#endif
         case 3:
             temp += 3 << 20;
             break;
@@ -659,9 +617,8 @@ azt2316a_create_config_word(void *priv)
     }
 
     switch (cd_dma16) {
-        case 0xFF: /* -1
-            do nothing
-            temp += 0 << 22; */
+        case 0xFF: // -1
+            //do nothing
             break;
         case 5:
             temp += 1 << 22;
@@ -840,7 +797,7 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *priv)
         else
             azt2316a->config_word_unlocked = 0;
     } else if (azt2316a->config_word_unlocked) {
-        if (val == 0xFF) { /* TODO: check if this still happens on eeprom.sys after having more complete emulation! */
+        if (val == 0xFF) {
             return;
         }
         switch (addr & 3) {
@@ -852,12 +809,7 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *priv)
                     azt2316a->cur_addr = 0x220;
                 else if (temp == 1)
                     azt2316a->cur_addr = 0x240;
-#if 0
-                else if (temp == 2)
-                    azt2316a->cur_addr = 0x260; // TODO: INVALID
-                else if (temp == 3)
-                    azt2316a->cur_addr = 0x280; // TODO: INVALID
-#endif
+
                 if (val & 0x4)
                     azt2316a->cur_mpu401_addr = 0x330;
                 else
@@ -1312,7 +1264,7 @@ azt_init(const device_t *info)
             azt2316a->cur_wss_enabled = 0;
 
         // these are not present on the EEPROM
-        azt2316a->cur_dma     = device_get_config_int("sb_dma8"); // TODO: investigate TSR to make this work with it - there is no software configurable DMA8?
+        azt2316a->cur_dma     = device_get_config_int("sb_dma8");
         azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
         azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
         azt2316a->cur_mode    = 0;
@@ -1434,7 +1386,6 @@ azt_close(void *priv)
             checksum += azt2316a->sb->dsp.azt_eeprom[i];
         fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, fp);
 
-        // TODO: confirm any models saving mixer settings to EEPROM and implement reading back
         // TODO: should remember to save wss duplex setting if 86Box has voice recording implemented in the future? Also, default azt2316a->wss_config
         // TODO: azt2316a->cur_mode is not saved to EEPROM?
         fwrite(&checksum, sizeof(checksum), 1, fp);
