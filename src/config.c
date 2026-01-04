@@ -51,6 +51,7 @@
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/hdd.h>
+#include <86box/hdd_audio.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
@@ -1252,6 +1253,8 @@ load_hard_disks(void)
     uint32_t      board = 0;
     uint32_t      dev = 0;
 
+    hdd_audio_load_profiles();
+
     memset(temp, '\0', sizeof(temp));
     for (uint8_t c = 0; c < HDD_NUM; c++) {
         sprintf(temp, "hdd_%02i_parameters", c + 1);
@@ -1319,6 +1322,11 @@ load_hard_disks(void)
         }
         p                   = ini_section_get_string(cat, temp, tmp2);
         hdd[c].speed_preset = hdd_preset_get_from_internal_name(p);
+
+        /* Audio Profile */
+        sprintf(temp, "hdd_%02i_audio", c + 1);
+        p = ini_section_get_string(cat, temp, "none");
+        hdd[c].audio_profile = hdd_audio_get_profile_by_internal_name(p);
 
         /* MFM/RLL */
         sprintf(temp, "hdd_%02i_mfm_channel", c + 1);
@@ -3463,6 +3471,17 @@ save_hard_disks(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
+
+        sprintf(temp, "hdd_%02i_audio", c + 1);
+        if (!hdd_is_valid(c) || hdd[c].audio_profile == 0) {
+            ini_section_delete_var(cat, temp);
+        } else {
+            const char *internal_name = hdd_audio_get_profile_internal_name(hdd[c].audio_profile);
+            if (internal_name && strcmp(internal_name, "none") != 0)
+                ini_section_set_string(cat, temp, internal_name);
+            else
+                ini_section_delete_var(cat, temp);
+        }
     }
 
     ini_delete_section_if_empty(config, cat);

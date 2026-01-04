@@ -54,6 +54,7 @@ add_library(snd OBJECT
     snd_opl_esfm.c
     snd_ymf701.c
     snd_ymf71x.c
+    sound_util.c
 )
 
 # TODO: Should platform-specific audio driver be here?
