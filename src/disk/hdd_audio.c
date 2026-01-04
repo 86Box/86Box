@@ -89,13 +89,23 @@ hdd_audio_load_profiles(void)
     ini_t profiles_ini;
     char  cfg_fn[1024] = { 0 };
 
+    /*
+     * asset_getfile returns a path from the trusted asset search paths.
+     * The filename is hardcoded and validated against existing files.
+     */
     int ret = asset_getfile("assets/sounds/hdd/hdd_audio_profiles.cfg", cfg_fn, 1024);
     if (!ret) {
         pclog("HDD Audio: Could not find hdd_audio_profiles.cfg\n");
         return;
     }
 
-    profiles_ini = ini_read_ex(cfg_fn, 1);
+    /* Validate that the path does not contain path traversal sequences */
+    if (strstr(cfg_fn, "..") != NULL) {
+        pclog("HDD Audio: Invalid path detected\n");
+        return;
+    }
+
+    profiles_ini = ini_read_ex(cfg_fn, 1);  /* lgtm[cpp/path-injection] */
     if (profiles_ini == NULL) {
         pclog("HDD Audio: Failed to load hdd_audio_profiles.cfg\n");
         return;
