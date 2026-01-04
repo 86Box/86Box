@@ -107,6 +107,8 @@ hdd_audio_load_profiles(void)
         const char *internal_name = ini_section_get_string(cat, "internal_name", "unknown");
         strncpy(config->internal_name, internal_name, sizeof(config->internal_name) - 1);
 
+        config->rpm = ini_section_get_int(cat, "rpm", 0);
+
         /* Load spindle motor sample files */
         const char *file = ini_section_get_string(cat, "spindlemotor_start_file", "");
         strncpy(config->spindlemotor_start.filename, file, sizeof(config->spindlemotor_start.filename) - 1);
@@ -165,6 +167,14 @@ hdd_audio_get_profile_internal_name(int id)
     if (id < 0 || id >= audio_profile_count)
         return NULL;
     return audio_profiles[id].internal_name;
+}
+
+uint32_t
+hdd_audio_get_profile_rpm(int id)
+{
+    if (id < 0 || id >= audio_profile_count)
+        return 0;
+    return audio_profiles[id].rpm;
 }
 
 int

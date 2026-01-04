@@ -148,15 +148,6 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
 
     Harddrives::populateBuses(ui->comboBoxBus->model());
     
-    /* Populate audio profile combobox */
-    int profile_count = hdd_audio_get_profile_count();
-    for (int i = 0; i < profile_count; i++) {
-        const char *name = hdd_audio_get_profile_name(i);
-        if (name) {
-            ui->comboBoxAudio->addItem(name, i);
-        }
-    }
-    
     on_comboBoxBus_currentIndexChanged(0);
 }
 
@@ -288,6 +279,35 @@ SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index)
         auto  col   = idx.siblingAtColumn(ColumnSpeed);
         model->setData(col, ui->comboBoxSpeed->currentData(Qt::UserRole), Qt::UserRole);
         model->setData(col, QObject::tr(hdd_preset_getname(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt())));
+        
+        /* Reset audio profile to None when speed/model changes */
+        auto audioCol = idx.siblingAtColumn(ColumnAudio);
+        model->setData(audioCol, 0, Qt::UserRole);
+        model->setData(audioCol, QObject::tr("None"));
+    }
+    
+    /* Repopulate audio profiles based on the selected speed preset's RPM */
+    populateAudioProfiles();
+}
+
+void
+SettingsHarddisks::populateAudioProfiles()
+{
+    ui->comboBoxAudio->clear();
+    
+    /* Get RPM from currently selected speed preset */
+    uint32_t target_rpm = hdd_preset_get_rpm(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt());
+    
+    /* Populate audio profile combobox with matching RPM profiles */
+    int profile_count = hdd_audio_get_profile_count();
+    for (int i = 0; i < profile_count; i++) {
+        const char *name = hdd_audio_get_profile_name(i);
+        uint32_t profile_rpm = hdd_audio_get_profile_rpm(i);
+        
+        /* Include profile if it has no RPM set (0) or matches target RPM */
+        if (name && (profile_rpm == 0 || profile_rpm == target_rpm)) {
+            ui->comboBoxAudio->addItem(name, i);
+        }
     }
 }
 
@@ -342,6 +362,9 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
     if (!match.isEmpty())
         ui->comboBoxSpeed->setCurrentIndex(match.first().row());
 
+    /* Populate audio profiles based on selected speed preset's RPM */
+    populateAudioProfiles();
+    
     model = ui->comboBoxAudio->model();
     match = model->match(model->index(0, 0), Qt::UserRole, audio);
     if (!match.isEmpty())

@@ -35,6 +35,7 @@ typedef struct {
     int                       id;
     char                      name[128];
     char                      internal_name[64];
+    uint32_t                  rpm;
     hdd_audio_sample_config_t spindlemotor_start;
     hdd_audio_sample_config_t spindlemotor_loop;
     hdd_audio_sample_config_t spindlemotor_stop;
@@ -47,6 +48,7 @@ extern int                               hdd_audio_get_profile_count(void);
 extern const hdd_audio_profile_config_t *hdd_audio_get_profile(int id);
 extern const char                       *hdd_audio_get_profile_name(int id);
 extern const char                       *hdd_audio_get_profile_internal_name(int id);
+extern uint32_t                          hdd_audio_get_profile_rpm(int id);
 extern int                               hdd_audio_get_profile_by_internal_name(const char *internal_name);
 
 /* HDD audio initialization and cleanup */

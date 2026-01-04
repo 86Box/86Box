@@ -35,6 +35,7 @@ private slots:
 private:
     Ui::SettingsHarddisks *ui;
     void                   enableCurrentlySelectedChannel();
+    void                   populateAudioProfiles();
     bool                   buschangeinprogress = false;
 };
 

@@ -234,6 +234,7 @@ extern double      hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_
 int                hdd_preset_get_num(void);
 const char        *hdd_preset_getname(int preset);
 extern const char *hdd_preset_get_internal_name(int preset);
+extern uint32_t    hdd_preset_get_rpm(int preset);
 extern int         hdd_preset_get_from_internal_name(char *s);
 extern void        hdd_preset_apply(int hdd_id);
 

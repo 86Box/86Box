@@ -589,6 +589,14 @@ hdd_preset_get_internal_name(int preset)
     return hdd_speed_presets[preset].internal_name;
 }
 
+uint32_t
+hdd_preset_get_rpm(int preset)
+{
+    if (preset < 0 || preset >= hdd_preset_get_num())
+        return 0;
+    return hdd_speed_presets[preset].rpm;
+}
+
 int
 hdd_preset_get_from_internal_name(char *s)
 {
