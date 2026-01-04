@@ -889,6 +889,7 @@ main(int argc, char *argv[])
         QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
             discord_run_callbacks();
         });
+        discordupdate.setInterval(1000);
         if (enable_discord)
             discordupdate.start(1000);
     }
