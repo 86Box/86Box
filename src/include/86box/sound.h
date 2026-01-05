@@ -134,6 +134,7 @@ extern const device_t azt2316a_device;
 extern const device_t acermagic_s20_device;
 extern const device_t mirosound_pcm10_device;
 extern const device_t azt1605_device;
+extern const device_t aztpr16_device;
 
 /* C-Media CMI8x38 */
 extern const device_t cmi8338_device;
