@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-04 13:56+0000\n"
+"PO-Revision-Date: 2026-01-05 21:56+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1834,7 +1834,7 @@ msgid "Serial port passthrough 4"
 msgstr "Διέλευση σειριακής πόρτας 4"
 
 msgid "Renderer &options…"
-msgstr "%Επιλογές απεικόνισης…"
+msgstr "&Επιλογές απεικόνισης…"
 
 msgid "PC/XT Keyboard"
 msgstr "Πληκτρολόγιο PC/XT"
