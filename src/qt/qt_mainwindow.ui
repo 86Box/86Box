@@ -310,9 +310,7 @@
    <addaction name="actionSettings"/>
    <addaction name="separator"/>
    <addaction name="actionTake_screenshot"/>
-   <addaction name="actionTake_raw_screenshot"/>
    <addaction name="actionCopy_screenshot"/>
-   <addaction name="actionCopy_raw_screenshot"/>
    <addaction name="separator"/>
    <addaction name="actionForce_interpretation"/>
   </widget>
