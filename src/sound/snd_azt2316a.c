@@ -248,8 +248,8 @@ aztpr16_update_mixer(void *priv)
     azt2316a->ad1848.cd_vol_r = aztpr16_vols_5bits[azt2316a->ad1848.regs[3] & 0x1f];
     azt2316a->ad1848.regs[4]  = ((~azt2316a->sb->mixer_sbpro.regs[0x8c]) & 0x1f); /* FM L */
     azt2316a->ad1848.regs[5]  = ((~azt2316a->sb->mixer_sbpro.regs[0x8e]) & 0x1f); /* FM R */
-    azt2316a->ad1848.regs[6]  = ((~azt2316a->sb->mixer_sbpro.regs[0x84]) & 0x3f); /* Master L */
-    azt2316a->ad1848.regs[7]  = ((~azt2316a->sb->mixer_sbpro.regs[0x86]) & 0x3f); /* Master R */
+    azt2316a->ad1848.regs[6]  = (((~azt2316a->sb->mixer_sbpro.regs[0x84]) & 0x3f) >> 1); /* Master L */
+    azt2316a->ad1848.regs[7]  = (((~azt2316a->sb->mixer_sbpro.regs[0x86]) & 0x3f) >> 1); /* Master R */
 
 }
 
