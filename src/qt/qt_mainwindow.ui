@@ -311,8 +311,6 @@
    <addaction name="separator"/>
    <addaction name="actionTake_screenshot"/>
    <addaction name="actionCopy_screenshot"/>
-   <addaction name="separator"/>
-   <addaction name="actionForce_interpretation"/>
   </widget>
   <action name="actionForce_interpretation">
    <property name="icon">
