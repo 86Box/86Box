@@ -82,6 +82,24 @@ static int                     active_drive_count = 0;
 
 static mutex_t *hdd_audio_mutex = NULL;
 
+#ifdef ENABLE_HDD_AUDIO_LOG
+int hdd_audio_do_log = ENABLE_HDD_AUDIO_LOG;
+
+static void
+hdd_audio_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (hdd_audio_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define hdd_audio_log(fmt, ...)
+#endif
+
 /* Load audio profiles from configuration file */
 void
 hdd_audio_load_profiles(void)
@@ -95,19 +113,19 @@ hdd_audio_load_profiles(void)
      */
     int ret = asset_getfile("assets/sounds/hdd/hdd_audio_profiles.cfg", cfg_fn, 1024);
     if (!ret) {
-        pclog("HDD Audio: Could not find hdd_audio_profiles.cfg\n");
+        hdd_audio_log("HDD Audio: Could not find hdd_audio_profiles.cfg\n");
         return;
     }
 
     /* Validate that the path does not contain path traversal sequences */
     if (strstr(cfg_fn, "..") != NULL) {
-        pclog("HDD Audio: Invalid path detected\n");
+        hdd_audio_log("HDD Audio: Invalid path detected\n");
         return;
     }
 
     profiles_ini = ini_read_ex(cfg_fn, 1);  /* lgtm[cpp/path-injection] */
     if (profiles_ini == NULL) {
-        pclog("HDD Audio: Failed to load hdd_audio_profiles.cfg\n");
+        hdd_audio_log("HDD Audio: Failed to load hdd_audio_profiles.cfg\n");
         return;
     }
 
@@ -153,15 +171,15 @@ hdd_audio_load_profiles(void)
         strncpy(config->seek_track.filename, file, sizeof(config->seek_track.filename) - 1);
         config->seek_track.volume = (float) ini_section_get_double(cat, "seek_track_volume", 1.0);
 
-        pclog("HDD Audio: Loaded profile %d: %s (%s)\n",
-              audio_profile_count, config->name, config->internal_name);
+        hdd_audio_log("HDD Audio: Loaded profile %d: %s (%s)\n",
+                      audio_profile_count, config->name, config->internal_name);
 
         audio_profile_count++;
     }
 
     ini_close(profiles_ini);
 
-    pclog("HDD Audio: Loaded %d audio profiles\n", audio_profile_count);
+    hdd_audio_log("HDD Audio: Loaded %d audio profiles\n", audio_profile_count);
 }
 
 /* Public API functions */
@@ -265,8 +283,8 @@ hdd_audio_load_profile_samples(int profile_id)
         samples->loaded = 1;
         return;
     }
-    
-    pclog("HDD Audio: Loading samples for profile %d (%s)\n", profile_id, config->name);
+
+    hdd_audio_log("HDD Audio: Loading samples for profile %d (%s)\n", profile_id, config->name);
     
     /* Load spindle loop (main running sound) */
     if (config->spindlemotor_loop.filename[0]) {
@@ -275,9 +293,9 @@ hdd_audio_load_profile_samples(int profile_id)
             &samples->spindle_loop_samples);
         if (samples->spindle_loop_buffer) {
             samples->spindle_loop_volume = config->spindlemotor_loop.volume;
-            pclog("HDD Audio: Loaded spindle loop, %d frames\n", samples->spindle_loop_samples);
+            hdd_audio_log("HDD Audio: Loaded spindle loop, %d frames\n", samples->spindle_loop_samples);
         } else {
-            pclog("HDD Audio: Failed to load spindle loop: %s\n", config->spindlemotor_loop.filename);
+            hdd_audio_log("HDD Audio: Failed to load spindle loop: %s\n", config->spindlemotor_loop.filename);
         }
     }
     
@@ -288,7 +306,7 @@ hdd_audio_load_profile_samples(int profile_id)
             &samples->spindle_start_samples);
         if (samples->spindle_start_buffer) {
             samples->spindle_start_volume = config->spindlemotor_start.volume;
-            pclog("HDD Audio: Loaded spindle start, %d frames\n", samples->spindle_start_samples);
+            hdd_audio_log("HDD Audio: Loaded spindle start, %d frames\n", samples->spindle_start_samples);
         }
     }
     
@@ -299,7 +317,7 @@ hdd_audio_load_profile_samples(int profile_id)
             &samples->spindle_stop_samples);
         if (samples->spindle_stop_buffer) {
             samples->spindle_stop_volume = config->spindlemotor_stop.volume;
-            pclog("HDD Audio: Loaded spindle stop, %d frames\n", samples->spindle_stop_samples);
+            hdd_audio_log("HDD Audio: Loaded spindle stop, %d frames\n", samples->spindle_stop_samples);
         }
     }
     
@@ -310,10 +328,10 @@ hdd_audio_load_profile_samples(int profile_id)
             &samples->seek_samples);
         if (samples->seek_buffer) {
             samples->seek_volume = config->seek_track.volume;
-            pclog("HDD Audio: Loaded seek sound, %d frames (%.1f ms)\n", 
-                  samples->seek_samples, (float)samples->seek_samples / 48.0f);
+            hdd_audio_log("HDD Audio: Loaded seek sound, %d frames (%.1f ms)\n", 
+                          samples->seek_samples, (float)samples->seek_samples / 48.0f);
         } else {
-            pclog("HDD Audio: Failed to load seek sound: %s\n", config->seek_track.filename);
+            hdd_audio_log("HDD Audio: Failed to load seek sound: %s\n", config->seek_track.filename);
         }
     }
     
@@ -339,7 +357,7 @@ hdd_audio_init(void)
     memset(drive_states, 0, sizeof(drive_states));
     active_drive_count = 0;
     
-    pclog("HDD Audio Init: audio_profile_count=%d\n", audio_profile_count);
+    hdd_audio_log("HDD Audio Init: audio_profile_count=%d\n", audio_profile_count);
     
     /* Create mutex BEFORE loading samples or calling spinup */
     if (!hdd_audio_mutex)
@@ -348,8 +366,8 @@ hdd_audio_init(void)
     /* Find all HDDs with valid audio profiles and initialize their states */
     for (int i = 0; i < HDD_NUM && active_drive_count < HDD_AUDIO_MAX_DRIVES; i++) {
         if (hdd[i].bus_type != HDD_BUS_DISABLED && hdd[i].audio_profile > 0) {
-            pclog("HDD Audio Init: HDD %d bus_type=%d audio_profile=%d\n", 
-                  i, hdd[i].bus_type, hdd[i].audio_profile);
+            hdd_audio_log("HDD Audio Init: HDD %d bus_type=%d audio_profile=%d\n", 
+                          i, hdd[i].bus_type, hdd[i].audio_profile);
             
             hdd_audio_drive_state_t *state = &drive_states[active_drive_count];
             state->hdd_index = i;
@@ -369,15 +387,15 @@ hdd_audio_init(void)
             /* Load samples for this profile if not already loaded */
             hdd_audio_load_profile_samples(state->profile_id);
             
-            pclog("HDD Audio: Initialized drive %d with profile %d (%s)\n", 
-                  i, state->profile_id, 
-                  hdd_audio_get_profile_name(state->profile_id));
+            hdd_audio_log("HDD Audio: Initialized drive %d with profile %d (%s)\n", 
+                          i, state->profile_id, 
+                          hdd_audio_get_profile_name(state->profile_id));
             
             active_drive_count++;
         }
     }
     
-    pclog("HDD Audio Init: %d active drives with audio\n", active_drive_count);
+    hdd_audio_log("HDD Audio Init: %d active drives with audio\n", active_drive_count);
     
     /* Start spindle motors for all active drives */
     for (int i = 0; i < active_drive_count; i++) {
@@ -390,7 +408,7 @@ hdd_audio_init(void)
 void
 hdd_audio_reset(void)
 {
-    pclog("HDD Audio: Reset\n");
+    hdd_audio_log("HDD Audio: Reset\n");
     
     /* Lock mutex to prevent audio callback from accessing buffers during reset */
     if (hdd_audio_mutex)
@@ -436,7 +454,7 @@ hdd_audio_reset(void)
     /* Find all HDDs with valid audio profiles and initialize their states */
     for (int i = 0; i < HDD_NUM && active_drive_count < HDD_AUDIO_MAX_DRIVES; i++) {
         if (hdd[i].bus_type != HDD_BUS_DISABLED && hdd[i].audio_profile > 0) {
-            pclog("HDD Audio Reset: HDD %d audio_profile=%d\n", i, hdd[i].audio_profile);
+            hdd_audio_log("HDD Audio Reset: HDD %d audio_profile=%d\n", i, hdd[i].audio_profile);
             
             hdd_audio_drive_state_t *state = &drive_states[active_drive_count];
             state->hdd_index = i;
@@ -456,15 +474,15 @@ hdd_audio_reset(void)
             /* Load samples for this profile if not already loaded */
             hdd_audio_load_profile_samples(state->profile_id);
             
-            pclog("HDD Audio: Reset drive %d with profile %d (%s)\n", 
-                  i, state->profile_id, 
-                  hdd_audio_get_profile_name(state->profile_id));
+            hdd_audio_log("HDD Audio: Reset drive %d with profile %d (%s)\n", 
+                          i, state->profile_id, 
+                          hdd_audio_get_profile_name(state->profile_id));
             
             active_drive_count++;
         }
     }
     
-    pclog("HDD Audio Reset: %d active drives with audio\n", active_drive_count);
+    hdd_audio_log("HDD Audio Reset: %d active drives with audio\n", active_drive_count);
     
     /* Start spindle motors for all active drives */
     for (int i = 0; i < active_drive_count; i++) {
@@ -555,9 +573,9 @@ hdd_audio_spinup_drive(int hdd_index)
     
     if (state->spindle_state == HDD_SPINDLE_RUNNING || state->spindle_state == HDD_SPINDLE_STARTING)
         return;
-    
-    pclog("HDD Audio: Spinup requested for drive %d (current state: %d)\n", hdd_index, state->spindle_state);
-    
+
+    hdd_audio_log("HDD Audio: Spinup requested for drive %d (current state: %d)\n", hdd_index, state->spindle_state);
+
     if (hdd_audio_mutex)
         thread_wait_mutex(hdd_audio_mutex);
     state->spindle_state = HDD_SPINDLE_STARTING;
@@ -576,9 +594,9 @@ hdd_audio_spindown_drive(int hdd_index)
     
     if (state->spindle_state == HDD_SPINDLE_STOPPED || state->spindle_state == HDD_SPINDLE_STOPPING)
         return;
-    
-    pclog("HDD Audio: Spindown requested for drive %d (current state: %d)\n", hdd_index, state->spindle_state);
-    
+
+    hdd_audio_log("HDD Audio: Spindown requested for drive %d (current state: %d)\n", hdd_index, state->spindle_state);
+
     if (hdd_audio_mutex)
         thread_wait_mutex(hdd_audio_mutex);
     state->spindle_state = HDD_SPINDLE_STOPPING;
@@ -655,7 +673,7 @@ hdd_audio_mix_spindle_start_float(hdd_audio_drive_state_t *state, hdd_audio_samp
     if (state->spindle_transition_pos >= samples->spindle_start_samples) {
         state->spindle_state = HDD_SPINDLE_RUNNING;
         state->spindle_pos = 0;
-        pclog("HDD Audio: Drive %d spinup complete, now running\n", state->hdd_index);
+        hdd_audio_log("HDD Audio: Drive %d spinup complete, now running\n", state->hdd_index);
     }
 }
 
@@ -702,7 +720,7 @@ hdd_audio_mix_spindle_stop_float(hdd_audio_drive_state_t *state, hdd_audio_sampl
     
     if (state->spindle_transition_pos >= samples->spindle_stop_samples) {
         state->spindle_state = HDD_SPINDLE_STOPPED;
-        pclog("HDD Audio: Drive %d spindown complete, now stopped\n", state->hdd_index);
+        hdd_audio_log("HDD Audio: Drive %d spindown complete, now stopped\n", state->hdd_index);
     }
 }
 
@@ -767,7 +785,7 @@ hdd_audio_mix_spindle_start_int16(hdd_audio_drive_state_t *state, hdd_audio_samp
     if (state->spindle_transition_pos >= samples->spindle_start_samples) {
         state->spindle_state = HDD_SPINDLE_RUNNING;
         state->spindle_pos = 0;
-        pclog("HDD Audio: Drive %d spinup complete, now running\n", state->hdd_index);
+        hdd_audio_log("HDD Audio: Drive %d spinup complete, now running\n", state->hdd_index);
     }
 }
 
@@ -822,7 +840,7 @@ hdd_audio_mix_spindle_stop_int16(hdd_audio_drive_state_t *state, hdd_audio_sampl
     
     if (state->spindle_transition_pos >= samples->spindle_stop_samples) {
         state->spindle_state = HDD_SPINDLE_STOPPED;
-        pclog("HDD Audio: Drive %d spindown complete, now stopped\n", state->hdd_index);
+        hdd_audio_log("HDD Audio: Drive %d spindown complete, now stopped\n", state->hdd_index);
     }
 }
 
