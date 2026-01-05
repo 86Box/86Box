@@ -123,6 +123,15 @@ hdd_audio_load_profiles(void)
         return;
     }
 
+    /* Validate the path ends with our expected filename */
+    const char *expected_suffix = "hdd_audio_profiles.cfg";
+    size_t cfg_len = strlen(cfg_fn);
+    size_t suffix_len = strlen(expected_suffix);
+    if (cfg_len < suffix_len || strcmp(cfg_fn + cfg_len - suffix_len, expected_suffix) != 0) {
+        pclog("HDD Audio: Unexpected config path\n");
+        return;
+    }
+
     profiles_ini = ini_read_ex(cfg_fn, 1);  /* lgtm[cpp/path-injection] */
     if (profiles_ini == NULL) {
         hdd_audio_log("HDD Audio: Failed to load hdd_audio_profiles.cfg\n");
