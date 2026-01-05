@@ -315,7 +315,7 @@ aztpr16_create_config_word(void *priv)
     uint32_t    temp     = 0;
 
     /* not implemented / hardcoded */
-    uint8_t cd_type     = 0;
+    uint8_t cd_type     = 1;
     uint8_t cd_irq      = 0;
 
     switch (azt2316a->cur_addr) {
