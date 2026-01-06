@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-05 21:56+0000\n"
+"PO-Revision-Date: 2026-01-07 16:56+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -136,19 +136,19 @@ msgid "&4:3"
 msgstr "&4:3"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr "&Square pixels (Διατήρηση αναλογίας)"
+msgstr "&Τετράγωνα εικονοστοιχεία (Διατήρηση αναλογίας)"
 
 msgid "&Integer scale"
-msgstr "&Integer scale"
+msgstr "&Aκέραια κλίμακα"
 
 msgid "4:&3 Integer scale"
-msgstr "4:&3 Integer scale"
+msgstr "Aκέραια κλίμακα 4:&3"
 
 msgid "EGA/(S)&VGA settings"
 msgstr "Ρυθμίσε&ις EGA/(S)VGA"
 
 msgid "&Inverted VGA monitor"
-msgstr "&Inverted VGA monitor"
+msgstr "&Αντεστραμμένο VGA monitor"
 
 msgid "VGA screen &type"
 msgstr "Τύπος οθόνης& VGA"
@@ -187,7 +187,7 @@ msgid "&Average"
 msgstr "&Σχετικό"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "Υπερσάρωση CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
 msgstr "Αλλαγή αντίθεσης γι&α μονόχρωμη οθόνη"
@@ -388,13 +388,13 @@ msgid "Dynamic Recompiler"
 msgstr "Dynamic Recompiler"
 
 msgid "CPU frame size"
-msgstr "CPU frame size"
+msgstr "Μέγεθος πλαισίου CPU"
 
 msgid "Larger frames (less smooth)"
-msgstr "Larger frames (less smooth)"
+msgstr "Μεγαλύτερα πλαίσια (λιγότερο ομαλό)"
 
 msgid "Smaller frames (smoother)"
-msgstr "Smaller frames (smoother)"
+msgstr "Μικρότερα πλαίσια (πιο ομαλό)"
 
 msgid "Video:"
 msgstr "Κάρτα γραφικών:"
@@ -2389,493 +2389,502 @@ msgid "Always at selected speed"
 msgstr "Πάντα στην επιλεγμένη ταχύτητα"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr ""
+msgstr "Ρύθμιση BIOS + Συντόμευση πλήκτρων (ανενεργά κατά το POST)"
 
 msgid "64 KB starting from F0000"
-msgstr ""
+msgstr "64 KB αρχή από F0000"
 
 msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
 msgstr ""
+"128 KB αρχή από E0000 (διεύθυνση MSB αντεστραμμένη, τελευταία 64 KB πρώτα)"
 
 msgid "Sine"
-msgstr ""
+msgstr "Ημίτονο"
 
 msgid "Triangle"
-msgstr ""
+msgstr "Τρίγωνο"
 
 msgid "Linear"
-msgstr ""
+msgstr "Γραμμικό"
 
 msgid "4th Order"
-msgstr ""
+msgstr "4η Τάξη"
 
 msgid "7th Order"
-msgstr ""
+msgstr "7η Τάξη"
 
 msgid "Non-timed (original)"
-msgstr ""
+msgstr "Χωρίς χρονικό περιορισμό (πρωτότυπο)"
 
 msgid "45 Hz (JMP2 not populated)"
-msgstr ""
+msgstr "45 Hz (JMP2 not populated)"
 
 msgid "Two"
-msgstr ""
+msgstr "Δύο"
 
 msgid "Three"
-msgstr ""
+msgstr "Τρία"
 
 msgid "Wheel"
-msgstr ""
+msgstr "Τροχό"
 
 msgid "Five + Wheel"
-msgstr ""
+msgstr "Πέντε + Τροχό"
 
 msgid "Five + 2 Wheels"
-msgstr ""
+msgstr "Πέντε + 2 Τροχοί"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr ""
+msgstr "A3 - SMT2 Serial / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr ""
+msgstr "Q1 - SMT3(R) Serial"
 
 msgid "8 KB"
-msgstr ""
+msgstr "8 KB"
 
 msgid "32 KB"
-msgstr ""
+msgstr "32 KB"
 
 msgid "16 KB"
-msgstr ""
+msgstr "16 KB"
 
 msgid "64 KB"
-msgstr ""
+msgstr "64 KB"
 
 msgid "Disable BIOS"
-msgstr ""
+msgstr "Απενεργοποίηση BIOS"
 
 msgid "512 KB"
-msgstr ""
+msgstr "512 KB"
 
 msgid "2 MB"
-msgstr ""
+msgstr "2 MB"
 
 msgid "8 MB"
-msgstr ""
+msgstr "8 MB"
 
 msgid "28 MB"
-msgstr ""
+msgstr "28 MB"
 
 msgid "1 MB"
-msgstr ""
+msgstr "1 MB"
 
 msgid "4 MB"
-msgstr ""
+msgstr "4 MB"
 
 msgid "12 MB"
-msgstr ""
+msgstr "12 MB"
 
 msgid "16 MB"
-msgstr ""
+msgstr "16 MB"
 
 msgid "20 MB"
-msgstr ""
+msgstr "20 MB"
 
 msgid "24 MB"
-msgstr ""
+msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
-msgstr ""
+msgstr "SigmaTel STAC9721T (stereo)"
 
 msgid "256 KB"
-msgstr ""
+msgstr "256 KB"
 
 msgid "Composite"
 msgstr "Composite"
 
 msgid "True color"
-msgstr ""
+msgstr "Ζωντανά χρώματα"
 
 msgid "Old"
-msgstr ""
+msgstr "Παλαιό"
 
 msgid "New"
-msgstr ""
+msgstr "Νέο"
 
 msgid "Color (generic)"
-msgstr ""
+msgstr "Έγχρωμο (γενικό)"
 
 msgid "Green Monochrome"
-msgstr ""
+msgstr "Μονόχρωμο Πράσινο"
 
 msgid "Amber Monochrome"
-msgstr ""
+msgstr "Μονόχρωμο Κεχριμπάρι"
 
 msgid "Gray Monochrome"
-msgstr ""
+msgstr "Μονόχρωμο Γκρι"
 
 msgid "Color (no brown)"
-msgstr ""
+msgstr "Έγχρωμο (χωρίς το καφέ)"
 
 msgid "Color (IBM 5153)"
-msgstr ""
+msgstr "Έγχρωμο (IBM 5153)"
 
 msgid "Simple doubling"
-msgstr ""
+msgstr "Απλός διπλασιασμός"
 
 msgid "sRGB interpolation"
-msgstr ""
+msgstr "Παρεμβολή sRGB"
 
 msgid "Linear interpolation"
-msgstr ""
+msgstr "Γραμμική παρεμβολή"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Έχει δευτερεύον σετ χαρακτήρων 8x8"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Έχει θυγατρική πλακέτα Quadcolor II"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "Εναλλακτική μονόχρωμη αντίθεση"
 
 msgid "128 KB"
-msgstr ""
+msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr ""
+msgstr "Μονόχρωμο (5151/MDA) (λευκό)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr ""
+msgstr "Μονόχρωμο (5151/MDA) πράσινο)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr ""
+msgstr "Μονόχρωμο (5151/MDA) (κεχριμπάρι)"
 
 msgid "Color 40x25 (5153/CGA)"
-msgstr ""
+msgstr "Έγχρωμο 40x25 (5153/CGA)"
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr ""
+msgstr "Έγχρωμο 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr ""
+msgstr "Ενισχυμένο Έγχρωμο - Κανονικός Τύπος (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr ""
+msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένος Τύπος (5154/ECD)"
 
 msgid "Green"
-msgstr ""
+msgstr "Πράσινο"
 
 msgid "Amber"
-msgstr ""
+msgstr "Κεχριμπάρι"
 
 msgid "Gray"
-msgstr ""
+msgstr "Γκρι"
 
 msgid "Grayscale"
-msgstr ""
+msgstr "Κλίμακα του γκρι"
 
 msgid "Color"
-msgstr ""
+msgstr "Έγχρωμο"
 
 msgid "U.S. English"
-msgstr ""
+msgstr "Αγγλικά Η.Π."
 
 msgid "Scandinavian"
-msgstr ""
+msgstr "Σκανδιναβικά"
 
 msgid "Other languages"
-msgstr ""
+msgstr "Άλλες γλώσσες"
 
 msgid "Bochs latest"
-msgstr ""
+msgstr "Τελευταία έκδοση Bochs"
 
 msgid "Apply overscan deltas"
-msgstr ""
+msgstr "Εφαρμογή υπερσάρωσης δέλτα"
 
 msgid "Mono Interlaced"
-msgstr ""
+msgstr "Μονόχρωμο πλεγμένο"
 
 msgid "Mono Non-Interlaced"
-msgstr ""
+msgstr "Μονόχρωμο Μη-πλεγμένο"
 
 msgid "Color Interlaced"
-msgstr ""
+msgstr "Έγχρωμο πλεγμένο"
 
 msgid "Color Non-Interlaced"
-msgstr ""
+msgstr "Έγχρωμο Μη-πλεγμένο"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr ""
+msgstr "Γραφικά 3Dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr ""
+msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
 
 msgid "8-bit"
-msgstr ""
+msgstr "8-bit"
 
 msgid "16-bit"
-msgstr ""
+msgstr "16-bit"
 
 msgid "Standard (150ns)"
-msgstr ""
+msgstr "Κανονικό (150ns)"
 
 msgid "High-Speed (120ns)"
-msgstr ""
+msgstr "Υψηλής-Ταχύτητας (120ns)"
 
 msgid "Enabled"
-msgstr ""
+msgstr "Ενεργοποιημένο"
 
 msgid "Standard"
-msgstr ""
+msgstr "Κανονικό"
 
 msgid "High-Speed"
-msgstr ""
+msgstr "Υψηλής-Ταχύτητας"
 
 msgid "Stereo LPT DAC"
-msgstr ""
+msgstr "Στέρεο LPT DAC"
 
 msgid "Generic Text Printer"
-msgstr ""
+msgstr "Γενικός Εκτυπωτής Κειμένου"
 
 msgid "Generic ESC/P 2 Dot-Matrix Printer"
-msgstr ""
+msgstr "Γενικός Εκτυπωτής ESC/P 2 Dot-Matrix"
 
 msgid "Generic PostScript Printer"
-msgstr ""
+msgstr "Γενικός Εκτυπωτής PostScript"
 
 msgid "Generic PCL5e Printer"
-msgstr ""
+msgstr "Γενικός Εκτυπωτής PCL5e"
 
 msgid "Parallel Line Internet Protocol"
-msgstr ""
+msgstr "Πρωτόκολλο Παράλληλης Γραμμής Internet"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr ""
+msgstr "Dongle προστασίας για το Savage Quest"
 
 msgid "Serial Passthrough Device"
-msgstr ""
+msgstr "Συσκευή Σειριακής Διέλευσης"
 
 msgid "Passthrough Mode"
-msgstr ""
+msgstr "Τύπος Διέλευσης"
 
 msgid "Host Serial Device"
-msgstr ""
+msgstr "Σειριακή Συσκευή Οικοδεσπότη"
 
 msgid "Name of pipe"
-msgstr ""
+msgstr "Όνομα pipe"
 
 msgid "Data bits"
-msgstr ""
+msgstr "Bits δεδομένων"
 
 msgid "Stop bits"
-msgstr ""
+msgstr "Bits σταματήματος"
 
 msgid "Baud Rate of Passthrough"
-msgstr ""
+msgstr "Ρυθμός Baud της Διέλευσης"
 
 msgid "Named Pipe (Server)"
-msgstr ""
+msgstr "Ονομασμένο Pipe (Διακομιστής)"
 
 msgid "Named Pipe (Client)"
-msgstr ""
+msgstr "Ονομασμένο Pipe (Πελάτης)"
 
 msgid "Host Serial Passthrough"
-msgstr ""
+msgstr "Σειριακή Διέλευση Οικοδεσπότη"
 
 msgid "E&ject %1"
-msgstr ""
+msgstr "&Εξαγωγή %1"
 
 msgid "&Unmute"
-msgstr ""
+msgstr "&Κατάργηση σίγασης"
 
 msgid "Softfloat FPU"
-msgstr ""
+msgstr "FPU Softfloat"
 
 msgid "High performance impact"
-msgstr ""
+msgstr "Μεγάλη επίπτωση στην απόδοση"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr ""
+msgstr "[Γενικό] RAM Disk (τέρμα ταχύτητα)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr ""
+msgstr "[Γενικό] 1989 (3500 RPM)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr ""
+msgstr "[Γενικό] 1992 (3600 RPM)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr ""
+msgstr "[Γενικό] 1994 (4500 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr ""
+msgstr "[Γενικό] 1996 (5400 RPM)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr ""
+msgstr "[Γενικό] 1997 (5400 RPM)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr ""
+msgstr "[Γενικό] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr ""
+msgstr "[Γενικό] 2000 (7200 RPM)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "Κλώνος IBM 8514/A (ISA)"
 
 msgid "Vendor"
-msgstr ""
+msgstr "Πωλητής"
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr ""
+msgstr "30 Hz (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr ""
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
-msgstr ""
+msgstr "Γενική Επέκταση Μνήμης PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
-msgstr ""
+msgstr "Γενική Επέκταση Μνήμης PC/AT"
 
 msgid "Unable to find Dot-Matrix fonts"
-msgstr ""
+msgstr "Αδυναμία εύρεσης γραμματοσειρών Dot-Matrix"
 
 msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr ""
+"Απαιτούνται γραμματοσειρές TrueType στον κατάλογο \"roms/printer/fonts\" για "
+"την εξομοίωση Γενικού εκτυπωτή ESC/P 2 Dot-Matrix."
 
 msgid "Inhibit multimedia keys"
-msgstr ""
+msgstr "Αναστολή πλήκτρων πολυμέσων"
 
 msgid "Ask for confirmation before saving settings"
-msgstr ""
+msgstr "Ερώτηση επιβεβαίωσης πριν από την αποθήκευση των ρυθμίσεων"
 
 msgid "Ask for confirmation before hard resetting"
 msgstr "Ερώτηση επιβεβαίωσης πριν από την ολική επανεκκίνηση"
 
 msgid "Ask for confirmation before quitting"
-msgstr ""
+msgstr "Ερώτηση επιβεβαίωσης κατά την έξοδο"
 
 msgid "Options"
-msgstr ""
+msgstr "Επιλογές"
 
 msgid "Model"
-msgstr ""
+msgstr "Μοντέλο"
 
 msgid "Model:"
-msgstr ""
+msgstr "Μοντέλο:"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr "Αποτυχία αρχικοποίησης απεικόνισης Vulkan."
+msgstr "Αποτυχία αρχικοποίησης απεικονιστή Vulkan."
 
 msgid "GLSL Error"
-msgstr ""
+msgstr "Σφάλμα GLSL"
 
 msgid "Could not load shader: %1"
-msgstr ""
+msgstr "Αδυναμία φόρτωσης σκίασης: %1"
 
 msgid "Could not load texture: %1"
-msgstr ""
+msgstr "Αδυναμία φόρτωσης υφής: %1"
 
 msgid "Could not compile shader:\n\n%1"
 msgstr ""
+"Αδυναμία σύνταξης σκίασης:\n"
+"\n"
+"%1"
 
 msgid "Program not linked:\n\n%1"
 msgstr ""
+"Το πρόγραμμα δεν είναι συνδεδεμένο:\n"
+"\n"
+"%1"
 
 msgid "Shader Manager"
-msgstr ""
+msgstr "Διαχειριστής Σκίασης"
 
 msgid "Shader Configuration"
-msgstr ""
+msgstr "Διαμόρφωση Σκίασης"
 
 msgid "Add"
-msgstr ""
+msgstr "Προσθήκη"
 
 msgid "Move up"
-msgstr ""
+msgstr "Μετακίνηση επάνω"
 
 msgid "Move down"
-msgstr ""
+msgstr "Μετακίνηση κάτω"
 
 msgid "Could not load file %1"
-msgstr ""
+msgstr "Αδυναμία φόρτωσης αρχείου %1"
 
 msgid "Key Bindings:"
-msgstr ""
+msgstr "Αντιστοιχίσεις Πλήκτρων:"
 
 msgid "Action"
-msgstr ""
+msgstr "Ενέργεια"
 
 msgid "Keybind"
-msgstr ""
+msgstr "Αντιστοιχία πλήκτρου"
 
 msgid "Clear binding"
-msgstr ""
+msgstr "Καθαρισμός αντιστοιχίας"
 
 msgid "Bind"
-msgstr ""
+msgstr "Αντιστοίχησε"
 
 msgid "Bind Key"
-msgstr ""
+msgstr "Αντιστοίχησε Πλήκτρο"
 
 msgid "Enter key combo:"
-msgstr ""
+msgstr "Εισαγωγή συνδυασμού πλήκτρων:"
 
 msgid "Bind conflict"
-msgstr ""
+msgstr "Αντίκρουση αντιστοιχίας"
 
 msgid "This key combo is already in use."
-msgstr ""
+msgstr "Αυτός ο συνδυασμός πλήκτρων χρησιμοποιείται ήδη."
 
 msgid "Send Control+Alt+Del"
-msgstr ""
+msgstr "Αποστολή Control+Alt+Del"
 
 msgid "Send Control+Alt+Escape"
-msgstr ""
+msgstr "Αποστολή Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
-msgstr ""
+msgstr "Εναλλαγή σε πλήρη οθόνη"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Εναλλαγή ΠΧ σε πλήρη οθόνη"
 
 msgid "Screenshot"
-msgstr ""
+msgstr "Λήψη στιγμιότυπου"
 
 msgid "Release mouse pointer"
 msgstr "Απελευθέρωση δείκτη ποντικιού"
 
 msgid "Toggle pause"
-msgstr ""
+msgstr "Εναλλαγή παύσης"
 
 msgid "Toggle mute"
-msgstr ""
+msgstr "Εναλλαγή σίγασης"
 
 msgid "Text files"
-msgstr ""
+msgstr "Αρχεία κειμένου"
 
 msgid "ROM files"
-msgstr ""
+msgstr "Αρχεία ROM"
 
 msgid "SoundFont files"
-msgstr ""
+msgstr "Αρχεία SoundFont"
 
 msgid "Local Switch"
-msgstr ""
+msgstr "Τοπικός Διακόπτης"
 
 msgid "Remote Switch"
-msgstr ""
+msgstr "Απομακρυσμένος Διακόπτης"
 
 msgid "Switch:"
-msgstr ""
+msgstr "Διακόπτης:"
 
 msgid "Hub Mode"
-msgstr ""
+msgstr "Λειτουργία Hub"
 
 msgid "Hostname:"
-msgstr ""
+msgstr "Όνομα οικοδεσπότη:"
 
 msgid "ISA RAM:"
 msgstr "ISA RAM:"
@@ -2884,16 +2893,23 @@ msgid "ISA ROM:"
 msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
-msgstr ""
+msgstr "&Εκκαθάριση NVRAM"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
 msgstr ""
+"Αυτό θα διαγράψει όλα τα αρχεία NVRAM (και τα σχετικά) της εικονικής μηχανής "
+"που βρίσκονται στον υποκατάλογο \"nvr\". Θα πρέπει να επαναρυθμίσετε το BIOS "
+"(και πιθανώς άλλε συσκευές εντός της εικονικής μηχανής), εάν είναι "
+"απαραίτητο.\n"
+"\n"
+"Είστε βέβαιοι ότι θέλετε να διαγράψετε όλα τα περιεχόμενα NVRAM της "
+"εικονικής μηχανής \"%1\";"
 
 msgid "Success"
-msgstr ""
+msgstr "Επιτυχία"
 
 msgid "Successfully wiped the NVRAM contents of the virtual machine \"%1\""
-msgstr ""
+msgstr "Επιτυχής διαγραφή των περιεχομένων NVRAM της εικονικής μηχανής \"%1\""
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr ""
