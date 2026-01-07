@@ -60,12 +60,7 @@ endif()
 if(NETSWITCH)
     add_compile_definitions(USE_NETSWITCH)
     list(APPEND net_sources
-	    net_netswitch.c
-        netswitch.c
-        pb_common.c
-        pb_encode.c
-        pb_decode.c
-        networkmessage.pb.c
+	    net_switch.c
     )
 endif()
 

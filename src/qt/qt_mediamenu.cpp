@@ -1176,7 +1176,7 @@ MediaMenu::nicUpdateMenu(int i)
         case NET_TYPE_TAP:
             netType = "TAP";
             break;
-        case NET_TYPE_NMSWITCH:
+        case NET_TYPE_NLSWITCH:
             netType = "Local Switch";
             break;
         case NET_TYPE_NRSWITCH:

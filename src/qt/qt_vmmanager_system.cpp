@@ -892,7 +892,7 @@ VMManagerSystem::setupVars()
                     net_type = "SLiRP";
                 else if (net_type == "pcap")
                     net_type = "PCap";
-                else if (net_type == "nmswitch")
+                else if ((net_type == "nlswitch") || (net_type == "nmswitch"))
                     net_type = tr("Local Switch");
                 else if (net_type == "nrswitch")
                     net_type = tr("Remote Switch");

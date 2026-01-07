@@ -809,8 +809,8 @@ load_network(void)
                 nc->net_type = NET_TYPE_VDE;
             else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
-            else if (!strcmp(p, "nmswitch") || !strcmp(p, "5"))
-                nc->net_type = NET_TYPE_NMSWITCH;
+            else if (!strcmp(p, "nlswitch") || !strcmp(p, "nmswitch") || !strcmp(p, "5"))
+                nc->net_type = NET_TYPE_NLSWITCH;
             else if (!strcmp(p, "nrswitch") || !strcmp(p, "6"))
                 nc->net_type = NET_TYPE_NRSWITCH;
             else
@@ -861,8 +861,8 @@ load_network(void)
                 nc->net_type = NET_TYPE_VDE;
             else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
-            else if (!strcmp(p, "nmswitch") || !strcmp(p, "5"))
-                nc->net_type = NET_TYPE_NMSWITCH;
+            else if (!strcmp(p, "nlswitch") || !strcmp(p, "nmswitch") || !strcmp(p, "5"))
+                nc->net_type = NET_TYPE_NLSWITCH;
             else if (!strcmp(p, "nrswitch") || !strcmp(p, "6"))
                 nc->net_type = NET_TYPE_NRSWITCH;
             else
@@ -2961,8 +2961,8 @@ save_network(void)
             case NET_TYPE_TAP:
                 ini_section_set_string(cat, temp, "tap");
                 break;
-            case NET_TYPE_NMSWITCH:
-                ini_section_set_string(cat, temp, "nmswitch");
+            case NET_TYPE_NLSWITCH:
+                ini_section_set_string(cat, temp, "nlswitch");
                 break;
             case NET_TYPE_NRSWITCH:
                 ini_section_set_string(cat, temp, "nrswitch");
