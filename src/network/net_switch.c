@@ -48,6 +48,7 @@
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/net_event.h>
+#include <86box/bswap.h>
 
 #define SWITCH_PKT_BATCH NET_QUEUE_LEN
 
@@ -80,7 +81,10 @@ typedef struct net_switch_t {
     uint16_t                  port_out;
 
     uint8_t        promisc;
-    uint8_t        mac_addr[6];
+    union {
+        uint8_t  mac_addr[6];
+        uint64_t mac_addr_u64;
+    };
     netcard_t *    card; /* netcard attached to us */
     thread_t *     poll_tid;
     net_evt_t      tx_event;
@@ -208,8 +212,8 @@ broadcast:
                 hostaddr->addr_tx.sin.sin_addr.s_addr = hostaddr->addr.sin.sin_addr.s_addr | (netmask ? ~netmask->sin.sin_addr.s_addr : htonl(0x00ffffff));
                 ret = 0;
             } else if (!(flags & (IFF_BROADCAST | IFF_POINTOPOINT)) ||
-                !broadcast || !broadcast->sin.sin_addr.s_addr ||
-                (broadcast->sin.sin_addr.s_addr == hostaddr->addr.sin.sin_addr.s_addr)) {
+                       !broadcast || !broadcast->sin.sin_addr.s_addr ||
+                       (broadcast->sin.sin_addr.s_addr == hostaddr->addr.sin.sin_addr.s_addr)) {
                 /* This interface is unicast-only or P2P with a bad peer address, nothing we can do. */
                 netswitch_log("Network Switch: ignored %s interface %s\n", (flags & (IFF_LOOPBACK | IFF_BROADCAST)) ? "broadcast" : "unicast", buf);
                 goto fail;
@@ -401,11 +405,11 @@ net_switch_thread(void *priv)
             len = recv(netswitch->socket_rx, (char *) netswitch->pkt.data, NET_MAX_FRAME, 0);
             if (len < 12) {
                 netswitch_log("Network Switch: recv error (%d)\n", len);
-            } else if (!memcmp(netswitch->mac_addr, &netswitch->pkt.data[6], 6)) {
+            } else if ((AS_U64(netswitch->pkt.data[6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
                 /* A packet we've sent has looped back, drop it. */
             } else if (netswitch->promisc || /* promiscuous mode? */
                        (netswitch->pkt.data[0] & 1) || /* broadcast packet? */
-                       !memcmp(netswitch->mac_addr, netswitch->pkt.data, 6)) { /* packet for me? */
+                       ((AS_U64(netswitch->pkt.data[0]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64)) { /* packet for me? */
                 netswitch_log("Network Switch: receiving %d-byte packet " MAC_FORMAT "\n",
                               len, MAC_FORMAT_ARGS(netswitch->pkt.data));
                 netswitch->pkt.len = len;
