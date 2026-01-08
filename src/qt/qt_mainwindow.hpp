@@ -141,7 +141,7 @@ private slots:
     void on_actionPreferences_triggered();
     void on_actionEnable_Discord_integration_triggered(bool checked);
     void on_actionRenderer_options_triggered();
-    void on_action_Fast_forward_triggered();
+    void on_actionFast_forward_triggered();
 
     void refreshMediaMenu();
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);

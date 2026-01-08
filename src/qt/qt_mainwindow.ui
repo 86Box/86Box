@@ -78,7 +78,7 @@
     <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
-    <addaction name="action_Fast_forward"/>
+    <addaction name="actionFast_forward"/>
     <addaction name="separator"/>
     <addaction name="actionForce_interpretation"/>
     <addaction name="separator"/>
@@ -302,8 +302,8 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionPause"/>
+   <addaction name="actionFast_forward"/>
    <addaction name="actionHard_Reset"/>
-   <addaction name="separator"/>
    <addaction name="actionACPI_Shutdown"/>
    <addaction name="separator"/>
    <addaction name="actionCtrl_Alt_Del"/>
@@ -313,8 +313,6 @@
    <addaction name="separator"/>
    <addaction name="actionTake_screenshot"/>
    <addaction name="actionCopy_screenshot"/>
-   <addaction name="separator"/>
-   <addaction name="action_Fast_forward"/>
   </widget>
   <action name="actionForce_interpretation">
    <property name="icon">
@@ -1073,7 +1071,7 @@
     <string>&amp;8x</string>
    </property>
   </action>
-  <action name="action_Fast_forward">
+  <action name="actionFast_forward">
    <property name="checkable">
     <bool>true</bool>
    </property>

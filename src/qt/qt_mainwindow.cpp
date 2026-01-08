@@ -2137,7 +2137,7 @@ MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
 }
 
 void
-MainWindow::on_action_Fast_forward_triggered()
+MainWindow::on_actionFast_forward_triggered()
 {
     fast_forward ^= 1;
 }
