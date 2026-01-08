@@ -137,7 +137,6 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     break;
 #endif
 
-#ifdef USE_NETSWITCH
                 case NET_TYPE_NLSWITCH:
                     // option_list_label->setText("Local Switch Options");
                     option_list_label->setVisible(true);
@@ -167,7 +166,6 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     hostname_label->setVisible(true);
                     hostname_value->setVisible(true);
                     break;
-#endif /* USE_NETSWITCH */
 
                 case NET_TYPE_SLIRP:
                 default:
@@ -215,11 +213,9 @@ SettingsNetwork::save()
         cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         net_cards_conf[i].net_type   = cbox->currentData().toInt();
         cbox                         = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
-#ifdef USE_NETSWITCH
         auto *hostname_value         = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
         auto *promisc_value          = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
         auto *switch_group_value     = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
-#endif /* USE_NETSWITCH */
         memset(net_cards_conf[i].host_dev_name, '\0', sizeof(net_cards_conf[i].host_dev_name));
         if (net_cards_conf[i].net_type == NET_TYPE_PCAP)
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
@@ -231,7 +227,6 @@ SettingsNetwork::save()
         else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
             strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
 #endif
-#ifdef USE_NETSWITCH
         else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             memset(net_cards_conf[i].nrs_hostname, '\0', sizeof(net_cards_conf[i].nrs_hostname));
             strncpy(net_cards_conf[i].nrs_hostname, hostname_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].nrs_hostname) - 1);
@@ -240,7 +235,6 @@ SettingsNetwork::save()
             net_cards_conf[i].promisc_mode = promisc_value->isChecked();
             net_cards_conf[i].switch_group = switch_group_value->value() - 1;
         }
-#endif /* USE_NETSWITCH */
     }
 }
 
@@ -313,12 +307,10 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         Models::AddEntry(model, "TAP", NET_TYPE_TAP);
 #endif
 
-#ifdef USE_NETSWITCH
         Models::AddEntry(model, "Local Switch", NET_TYPE_NLSWITCH);
-#    ifdef ENABLE_NET_NRSWITCH
+#ifdef ENABLE_NET_NRSWITCH
         Models::AddEntry(model, "Remote Switch", NET_TYPE_NRSWITCH);
-#    endif /* ENABLE_NET_NRSWITCH */
-#endif     /* USE_NETSWITCH */
+#endif /* ENABLE_NET_NRSWITCH */
 
         model->removeRows(0, removeRows);
         cbox->setCurrentIndex(cbox->findData(net_cards_conf[i].net_type));
@@ -354,7 +346,6 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             auto    editline         = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
             editline->setText(currentTapDevice);
 #endif
-#ifdef USE_NETSWITCH
         } else if (net_cards_conf[i].net_type == NET_TYPE_NLSWITCH) {
             auto *promisc_value = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
             promisc_value->setCheckState(net_cards_conf[i].promisc_mode == 1 ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
@@ -365,7 +356,6 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             hostname_value->setText(net_cards_conf[i].nrs_hostname);
             auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
             switch_group_value->setValue(net_cards_conf[i].switch_group + 1);
-#endif /* USE_NETSWITCH */
         }
     }
 }

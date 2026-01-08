@@ -499,13 +499,11 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
             card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
             break;
 #endif
-#ifdef USE_NETSWITCH
         case NET_TYPE_NLSWITCH:
         case NET_TYPE_NRSWITCH:
             card->host_drv      = net_switch_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, &net_cards_conf[net_card_current], net_drv_error);
             break;
-#endif /* USE_NETSWITCH */
         default:
             card->host_drv.priv = NULL;
             break;
