@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #undef AL_API
 #undef ALC_API
@@ -313,6 +314,7 @@ inital(void)
     initialized = 1;
 }
 
+extern bool fast_forward;
 void
 givealbuffer_common(const void *buf, const uint8_t src, const int size, const int freq)
 {
@@ -320,7 +322,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size, const in
     int    state;
     ALuint buffer;
 
-    if (!initialized)
+    if (!initialized || fast_forward)
         return;
 
     alGetSourcei(source[src], AL_SOURCE_STATE, &state);
@@ -331,7 +333,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size, const in
 
     alGetSourcei(source[src], AL_BUFFERS_PROCESSED, &processed);
     if (processed >= 1) {
-        const double gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
+        const double gain = (sound_muted) ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
         alListenerf(AL_GAIN, (float) gain);
 
         alSourceUnqueueBuffers(source[src], 1, &buffer);

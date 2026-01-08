@@ -65,6 +65,7 @@ extern int qt_nvr_save(void);
 #endif
 
 extern bool cpu_thread_running;
+extern bool fast_forward;
 };
 
 #include <QGuiApplication>
@@ -2133,6 +2134,12 @@ MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
     ui->actionUpdate_mouse_every_CPU_frame->setChecked(force_constant_mouse > 0 ? true : false);
     mouse_update_sample_rate();
     config_save();
+}
+
+void
+MainWindow::on_action_Fast_forward_triggered()
+{
+    fast_forward ^= 1;
 }
 
 void
