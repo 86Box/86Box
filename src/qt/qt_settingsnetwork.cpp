@@ -54,8 +54,8 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         // auto *switch_group_hlayout = findChild<QHBoxLayout *>(QString("HLayoutSwitch%1").arg(i + 1));
         // auto *switch_group_hspacer = findChild<QWidget *>(QString("horizontalSpacerSwitch%1").arg(i + 1));
         auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
-        switch_group_value->setMinimum(1);
-        switch_group_value->setMaximum(10);
+        switch_group_value->setMinimum(NET_SWITCH_GRP_MIN);
+        switch_group_value->setMaximum(NET_SWITCH_GRP_MAX);
 
         // Promiscuous option
         auto *promisc_label = findChild<QLabel *>(QString("labelPromisc%1").arg(i + 1));
@@ -230,10 +230,10 @@ SettingsNetwork::save()
         else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             memset(net_cards_conf[i].nrs_hostname, '\0', sizeof(net_cards_conf[i].nrs_hostname));
             strncpy(net_cards_conf[i].nrs_hostname, hostname_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].nrs_hostname) - 1);
-            net_cards_conf[i].switch_group = switch_group_value->value() - 1;
+            net_cards_conf[i].switch_group = switch_group_value->value();
         } else if (net_cards_conf[i].net_type == NET_TYPE_NLSWITCH) {
             net_cards_conf[i].promisc_mode = promisc_value->isChecked();
-            net_cards_conf[i].switch_group = switch_group_value->value() - 1;
+            net_cards_conf[i].switch_group = switch_group_value->value();
         }
     }
 }
@@ -350,12 +350,12 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             auto *promisc_value = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
             promisc_value->setCheckState(net_cards_conf[i].promisc_mode == 1 ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
             auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
-            switch_group_value->setValue(net_cards_conf[i].switch_group + 1);
+            switch_group_value->setValue(net_cards_conf[i].switch_group);
         } else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             auto *hostname_value = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
             hostname_value->setText(net_cards_conf[i].nrs_hostname);
             auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
-            switch_group_value->setValue(net_cards_conf[i].switch_group + 1);
+            switch_group_value->setValue(net_cards_conf[i].switch_group);
         }
     }
 }

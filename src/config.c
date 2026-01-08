@@ -887,7 +887,9 @@ load_network(void)
             strcpy(nc->host_dev_name, "none");
 
         sprintf(temp, "net_%02i_switch_group", c + 1);
-        nc->switch_group = ini_section_get_int(cat, temp, 0);
+        nc->switch_group = ini_section_get_int(cat, temp, NET_SWITCH_GRP_MIN);
+        if (nc->switch_group < NET_SWITCH_GRP_MIN)
+            nc->switch_group = NET_SWITCH_GRP_MIN;
 
         sprintf(temp, "net_%02i_promisc", c + 1);
         nc->promisc_mode = ini_section_get_int(cat, temp, 0);
@@ -2986,7 +2988,7 @@ save_network(void)
             ini_section_set_int(cat, temp, nc->link_state);
 
         sprintf(temp, "net_%02i_switch_group", c + 1);
-        if (nc->switch_group == 0)
+        if (nc->switch_group == NET_SWITCH_GRP_MIN)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, nc->switch_group);

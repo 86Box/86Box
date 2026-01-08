@@ -60,6 +60,8 @@
 #define NET_QUEUE_COUNT    4
 #define NET_CARD_MAX       4
 #define NET_HOST_INTF_MAX  64
+#define NET_SWITCH_GRP_MIN 1
+#define NET_SWITCH_GRP_MAX 10
 
 #define NET_PERIOD_10M     0.8
 #define NET_PERIOD_100M    0.08

@@ -469,7 +469,7 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
     val = 0;
     setsockopt(netswitch->socket_rx, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &val, sizeof(val));
 
-    netswitch->port_out = htons(SWITCH_MULTICAST_PORT + netcard->switch_group);
+    netswitch->port_out = htons(SWITCH_MULTICAST_PORT - NET_SWITCH_GRP_MIN + netcard->switch_group);
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
         .sin_addr = { .s_addr = htonl(INADDR_ANY) },
