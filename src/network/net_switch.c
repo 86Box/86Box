@@ -94,15 +94,15 @@ typedef struct net_switch_t {
 #endif
 } net_switch_t;
 
-#ifdef ENABLE_NETSWITCH_LOG
-int netswitch_do_log = ENABLE_NETSWITCH_LOG;
+#ifdef ENABLE_SWITCH_LOG
+int switch_do_log = ENABLE_SWITCH_LOG;
 
 static void
 netswitch_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (netswitch_do_log) {
+    if (switch_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
@@ -151,7 +151,7 @@ net_switch_add_hostaddr(net_switch_t *netswitch, net_switch_sockaddr_t *addr, ne
     hostaddr->socket_tx = -1;
     unsigned int ret = 1;
     if (addr->sa.sa_family == AF_INET) {
-#ifdef ENABLE_NETSWITCH_LOG
+#ifdef ENABLE_SWITCH_LOG
         char buf[INET_ADDRSTRLEN];
         buf[0] = '\0';
         inet_ntop(addr->sin.sin_family, &addr->sin.sin_addr.s_addr, buf, sizeof(buf));
@@ -229,7 +229,7 @@ broadcast:
 
             netswitch_log("Network Switch: added %s interface %s", (flags & (IFF_LOOPBACK | IFF_BROADCAST)) ? "broadcast" : "unicast", buf);
         }
-#ifdef ENABLE_NETSWITCH_LOG
+#ifdef ENABLE_SWITCH_LOG
         buf[0] = '\0';
         inet_ntop(hostaddr->addr_tx.sin.sin_family, &hostaddr->addr_tx.sin.sin_addr.s_addr, buf, sizeof(buf));
         netswitch_log(" -> %s:%d\n", buf, ntohs(netswitch->port_out));
