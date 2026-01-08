@@ -14,6 +14,7 @@
  */
 #include <math.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +56,8 @@ static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
 static IXAudio2SourceVoice    *srcvoicecd    = NULL;
 static IXAudio2SourceVoice    *srcvoicefdd   = NULL;
 static IXAudio2SourceVoice    *srcvoicehdd   = NULL;
+
+extern bool fast_forward;
 
 #define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
@@ -258,7 +261,7 @@ closeal(void)
 void
 givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const size_t buflen)
 {
-    if (!initialized)
+    if (!initialized || fast_forward)
         return;
 
     (void) IXAudio2MasteringVoice_SetVolume(mastervoice, sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0),

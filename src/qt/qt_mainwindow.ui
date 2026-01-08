@@ -78,6 +78,8 @@
     <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
+    <addaction name="action_Fast_forward"/>
+    <addaction name="separator"/>
     <addaction name="actionForce_interpretation"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
@@ -311,6 +313,8 @@
    <addaction name="separator"/>
    <addaction name="actionTake_screenshot"/>
    <addaction name="actionCopy_screenshot"/>
+   <addaction name="separator"/>
+   <addaction name="action_Fast_forward"/>
   </widget>
   <action name="actionForce_interpretation">
    <property name="icon">
@@ -1067,6 +1071,18 @@
    </property>
    <property name="text">
     <string>&amp;8x</string>
+   </property>
+  </action>
+  <action name="action_Fast_forward">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/settings/qt/icons/fast_forward.ico</normaloff>:/settings/qt/icons/fast_forward.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Fast forward</string>
    </property>
   </action>
  </widget>

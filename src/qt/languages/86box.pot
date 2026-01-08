@@ -3002,3 +3002,6 @@ msgstr ""
 
 msgid "&Allow recompilation"
 msgstr ""
+
+msgid "&Fast forward"
+msgstr ""

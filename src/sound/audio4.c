@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdbool.h>
 
 #include <sys/audioio.h>
 #include <sys/param.h>
@@ -41,6 +42,7 @@
 #define I_MIDI 6
 
 static int audio[7] = {-1, -1, -1, -1, -1, -1, -1};
+extern bool fast_forward;
 
 #ifdef USE_NEW_API
 static struct audio_swpar info[7];
@@ -104,7 +106,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     double gain;
     int target_rate;
 
-    if(audio[src] == -1)
+    if(audio[src] == -1 || fast_forward)
         return;
 
     gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);

@@ -63,6 +63,7 @@ int             update_icons;
 int             kbd_req_capture;
 int             hide_status_bar;
 int             hide_tool_bar;
+bool            fast_forward = false; // Technically unused.
 int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
@@ -596,10 +597,10 @@ main_thread(UNUSED(void *param))
 #endif
 
         old_time = new_time;
-        if (drawits > 0 && !dopause) {
+        if ((drawits > 0 || fast_forward) && !dopause) {
             /* Yes, so do one frame now. */
             drawits -= force_10ms ? 10 : 1;
-            if (drawits > 50)
+            if (drawits > 50 || fast_forward)
                 drawits = 0;
 
             /* Run a block of code. */
