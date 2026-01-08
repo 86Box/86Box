@@ -202,7 +202,8 @@ VMManagerMainWindow::vmmStateChanged(const VMManagerSystem *sysconfig) const
 void
 VMManagerMainWindow::preferencesTriggered()
 {
-    const auto prefs = new VMManagerPreferences();
+    bool machinesRunning = (vmm->getActiveMachineCount() > 0);
+    const auto prefs = new VMManagerPreferences(this, machinesRunning);
     if (prefs->exec() == QDialog::Accepted) {
         emit preferencesUpdated();
         updateLanguage();
