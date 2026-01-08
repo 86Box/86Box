@@ -542,7 +542,7 @@ void
 MachineStatus::refreshIcons()
 {
     /* Always show record/play statuses of cassette even if icon updates are disabled, since it's important to indicate play/record modes. */
-    if (cassette_enable) {
+    if (cassette_enable && cassette) {
         d->cassette.setRecord(!!cassette->save);
         d->cassette.setPlay(!cassette->save);
     }
