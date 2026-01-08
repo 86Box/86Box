@@ -1389,8 +1389,11 @@ skip_pixel:
         voodoo->texel_count[odd_even] += state->texel_count;
         voodoo->fbiPixelsIn += state->pixel_count;
 
-        if (voodoo->params.draw_offset == voodoo->params.front_offset && (real_y >> 1) < 2048)
-            voodoo->dirty_line[real_y >> 1] = 1;
+        if (voodoo->params.draw_offset == voodoo->params.front_offset) {
+            int dirty_idx = SLI_ENABLED ? (real_y >> 1) : real_y;
+            if (dirty_idx < 2048)
+                voodoo->dirty_line[dirty_idx] = 1;
+        }
 
 next_line:
         if (SLI_ENABLED) {
