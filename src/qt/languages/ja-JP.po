@@ -3009,3 +3009,6 @@ msgstr "解釈を強制する(&F)"
 
 msgid "&Allow recompilation"
 msgstr "再コンパイルを許可する(&A)"
+
+msgid "&Fast forward"
+msgstr ""

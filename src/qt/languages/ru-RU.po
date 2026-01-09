@@ -3021,3 +3021,6 @@ msgstr "&Принудительная интерпретация"
 
 msgid "&Allow recompilation"
 msgstr "&Разрешить рекомпиляцию"
+
+msgid "&Fast forward"
+msgstr ""

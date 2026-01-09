@@ -3002,3 +3002,6 @@ msgstr "Interpretatie &afdwingen"
 
 msgid "&Allow recompilation"
 msgstr "Recompilatie &toestaan"
+
+msgid "&Fast forward"
+msgstr ""

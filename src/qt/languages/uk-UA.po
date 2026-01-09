@@ -3010,3 +3010,6 @@ msgstr "&Примусове тлумачення"
 
 msgid "&Allow recompilation"
 msgstr "&Дозволити рекомпіляцію"
+
+msgid "&Fast forward"
+msgstr ""

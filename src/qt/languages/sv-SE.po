@@ -3002,3 +3002,6 @@ msgstr "&Tvinga tolkning"
 
 msgid "&Allow recompilation"
 msgstr "&Tillåt omkompilering"
+
+msgid "&Fast forward"
+msgstr ""

@@ -3002,3 +3002,6 @@ msgstr "强制解释执行(&F)"
 
 msgid "&Allow recompilation"
 msgstr "允许重编译(&A)"
+
+msgid "&Fast forward"
+msgstr ""

@@ -3009,3 +3009,6 @@ msgstr "&Wymuś interpretację"
 
 msgid "&Allow recompilation"
 msgstr "&Zezwól na rekompilację"
+
+msgid "&Fast forward"
+msgstr ""

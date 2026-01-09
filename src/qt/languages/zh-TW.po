@@ -3009,3 +3009,6 @@ msgstr "強制解譯執行(&F)"
 
 msgid "&Allow recompilation"
 msgstr "允許重編譯(&A)"
+
+msgid "&Fast forward"
+msgstr ""
