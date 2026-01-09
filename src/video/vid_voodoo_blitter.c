@@ -538,5 +538,4 @@ voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
             }
         }
     }
-
 }
