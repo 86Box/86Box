@@ -248,8 +248,6 @@ video_cards[] = {
     { .device = &et4000w32p_cardex_revd_pci_device,             .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &et4000w32p_diamond_revd_pci_device,            .flags = VIDEO_FLAG_TYPE_NONE },
     /* AGP */
-    { .device = &compaq_voodoo_3_3500_agp_device,               .flags = VIDEO_FLAG_TYPE_NONE },
-    { .device = &voodoo_3_3500_se_agp_device,                   .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &velocity_100_agp_device,                       .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &velocity_200_agp_device,                       .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &voodoo_3_1000_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE },
@@ -258,6 +256,8 @@ video_cards[] = {
     { .device = &voodoo_3_3500_agp_ntsc_device,                 .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &voodoo_3_3500_agp_pal_device,                  .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &voodoo_3_3500_si_agp_device,                   .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &compaq_voodoo_3_3500_agp_device,               .flags = VIDEO_FLAG_TYPE_NONE },
+    { .device = &voodoo_3_3500_se_agp_device,                   .flags = VIDEO_FLAG_TYPE_NONE },
 #ifdef USE_G100
     { .device = &productiva_g100_device,                        .flags = VIDEO_FLAG_TYPE_SPECIAL },
 #endif /*USE_G100 */
