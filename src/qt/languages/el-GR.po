@@ -3065,3 +3065,6 @@ msgstr "&Εξαναγκασμός ερμηνείας"
 
 msgid "&Allow recompilation"
 msgstr "&Να επιτρέπεται ανασύνταξη"
+
+msgid "&Fast forward"
+msgstr ""

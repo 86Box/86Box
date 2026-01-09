@@ -3008,3 +3008,6 @@ msgstr "&Pakota tulkinta"
 
 msgid "&Allow recompilation"
 msgstr "&Salli uudelleenkääntäminen"
+
+msgid "&Fast forward"
+msgstr ""

@@ -3008,3 +3008,6 @@ msgstr "&Vynútiť interpretáciu"
 
 msgid "&Allow recompilation"
 msgstr "&Povoliť rekompiláciu"
+
+msgid "&Fast forward"
+msgstr ""

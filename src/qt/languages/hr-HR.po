@@ -3010,3 +3010,6 @@ msgstr "&Prisilna interpretacija"
 
 msgid "&Allow recompilation"
 msgstr "&Omogući rekompilaciju"
+
+msgid "&Fast forward"
+msgstr ""

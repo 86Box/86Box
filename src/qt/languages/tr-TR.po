@@ -3008,3 +3008,6 @@ msgstr "&Yorumlanmasını zorla"
 
 msgid "&Allow recompilation"
 msgstr "&Derlenmesine izin ver"
+
+msgid "&Fast forward"
+msgstr ""

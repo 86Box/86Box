@@ -3002,3 +3002,6 @@ msgstr "&Buộc giải thích"
 
 msgid "&Allow recompilation"
 msgstr "&Cho phép biên dịch lại"
+
+msgid "&Fast forward"
+msgstr ""
