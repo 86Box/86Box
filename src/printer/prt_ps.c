@@ -78,6 +78,7 @@ typedef struct ps_t {
     bool    autofeed;
     bool    pcl;
     bool    pcl_escape;
+    bool    pending;
     uint8_t ctrl;
 
     char printer_path[260];
@@ -115,21 +116,6 @@ static dllimp_t ghostscript_imports[] = {
 };
 
 static void *ghostscript_handle = NULL;
-
-static void
-reset_ps(ps_t *dev)
-{
-    if (dev == NULL)
-        return;
-
-    dev->ack = false;
-
-    dev->buffer[0]  = 0;
-    dev->buffer_pos = 0;
-
-    timer_disable(&dev->pulse_timer);
-    timer_stop(&dev->timeout_timer);
-}
 
 static void
 pulse_timer(void *priv)
@@ -199,12 +185,36 @@ convert_to_pdf(ps_t *dev)
 }
 
 static void
+reset_ps(ps_t *dev)
+{
+    if (dev == NULL)
+        return;
+
+    dev->ack = false;
+
+    if (dev->pending) {
+        if (ghostscript_handle != NULL)
+            convert_to_pdf(dev);
+
+        dev->filename[0] = 0;
+
+        dev->pending     = false;
+    }
+
+    dev->buffer[0]  = 0;
+    dev->buffer_pos = 0;
+
+    timer_disable(&dev->pulse_timer);
+    timer_stop(&dev->timeout_timer);
+}
+
+static void
 write_buffer(ps_t *dev, bool finish)
 {
     char  path[1024];
     FILE *fp;
 
-    if (dev->buffer[0] == 0)
+    if (dev->buffer_pos == 0)
         return;
 
     if (dev->filename[0] == 0)
@@ -235,7 +245,10 @@ write_buffer(ps_t *dev, bool finish)
             convert_to_pdf(dev);
 
         dev->filename[0] = 0;
-    }
+
+        dev->pending     = false;
+    } else
+        dev->pending     = true;
 }
 
 static void
@@ -243,7 +256,16 @@ timeout_timer(void *priv)
 {
     ps_t *dev = (ps_t *) priv;
 
-    write_buffer(dev, true);
+    if (dev->buffer_pos != 0)
+        write_buffer(dev, true);
+    else if (dev->pending) {
+        if (ghostscript_handle != NULL)
+            convert_to_pdf(dev);
+
+        dev->filename[0] = 0;
+
+        dev->pending     = false;
+    }
 
     timer_stop(&dev->timeout_timer);
 }
