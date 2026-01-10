@@ -313,7 +313,7 @@ hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len)
         }
     }
 
-    hdd->cache.write_start_time = tsc + (uint32_t) (seek_time * cpuclock / 1000000.0);
+    hdd->cache.write_start_time = tsc + (uint64_t) (seek_time * cpuclock / 1000000.0);
 
     return seek_time;
 }
@@ -383,7 +383,7 @@ update_lru:
 
     cache->ra_ongoing    = 1;
     cache->ra_segment    = active_seg->id;
-    cache->ra_start_time = tsc + (uint32_t) (seek_time * cpuclock / 1000000.0);
+    cache->ra_start_time = tsc + (uint64_t) (seek_time * cpuclock / 1000000.0);
 
     return seek_time;
 }

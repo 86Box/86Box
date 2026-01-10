@@ -239,15 +239,23 @@ cga_recalctimings(cga_t *cga)
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
         disptime    = (double) (cga->crtc[CGA_CRTC_HTOTAL] + 1);
         _dispontime = (double) cga->crtc[CGA_CRTC_HDISP];
+        if (_dispontime >= disptime)
+            _dispontime = disptime - 1;
     } else {
         disptime    = (double) ((cga->crtc[CGA_CRTC_HTOTAL] + 1) << 1);
         _dispontime = (double) (cga->crtc[CGA_CRTC_HDISP] << 1);
+        if (_dispontime >= disptime)
+            _dispontime = disptime - 2;
     }
     _dispofftime     = disptime - _dispontime;
     _dispontime      = _dispontime * CGACONST;
     _dispofftime     = _dispofftime * CGACONST;
     cga->dispontime  = (uint64_t) (_dispontime);
+    if (cga->dispontime > 0x7fffffffffffffffULL)
+        pclog("CGA: Negative display on time (%i, %i, %i)\n", cga->cgamode & CGA_MODE_FLAG_HIGHRES, cga->crtc[CGA_CRTC_HTOTAL] + 1, cga->crtc[CGA_CRTC_HDISP]);
     cga->dispofftime = (uint64_t) (_dispofftime);
+    if (cga->dispofftime > 0x7fffffffffffffffULL)
+        pclog("CGA: Negative display off time (%i, %i, %i)\n", cga->cgamode & CGA_MODE_FLAG_HIGHRES, cga->crtc[CGA_CRTC_HTOTAL] + 1, cga->crtc[CGA_CRTC_HDISP]);
 }
 
 static void
