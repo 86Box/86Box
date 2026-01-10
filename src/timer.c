@@ -124,11 +124,8 @@ timer_process(void)
     while (1) {
         pc_timer_t *timer = timer_head;
 
-        if (!TIMER_LESS_THAN_VAL(timer, (uint64_t) tsc)) {
-            if (num == 0)
-                pclog("No processing because all timers expire later\n");
+        if (!TIMER_LESS_THAN_VAL(timer, (uint64_t) tsc))
             break;
-        }
 
         timer_remove_head();
 
@@ -150,9 +147,6 @@ timer_process(void)
     }
 
     timer_target = timer_head->ts_integer;
-
-    if (old_target > timer_target)
-        pclog("Timer wraparound!\n");
 }
 
 void

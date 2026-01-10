@@ -92,10 +92,8 @@ timer_advance_u64(pc_timer_t *timer, uint64_t delay)
     uint64_t int_delay = delay >> 32;
     uint32_t frac_delay = delay & 0xffffffff;
 
-    if (int_delay & 0x0000000080000000ULL) {
-        printf("timer_advance_u64(): Negative delay: %08X%08X!\n", (uint32_t) (int_delay), frac_delay);
+    if (int_delay & 0x0000000080000000ULL)
         int_delay |= 0xffffffff00000000ULL;
-    }
 
     if ((frac_delay + timer->ts_frac) < frac_delay)
             timer->ts_integer++;
@@ -113,10 +111,8 @@ timer_set_delay_u64(pc_timer_t *timer, uint64_t delay)
     uint64_t int_delay = delay >> 32;
     uint32_t frac_delay = delay & 0xffffffff;
 
-    if (int_delay & 0x0000000080000000ULL) {
-        printf("timer_set_delay_u64(): Negative delay: %08X%08X!\n", (uint32_t) (int_delay), frac_delay);
+    if (int_delay & 0x0000000080000000ULL)
         int_delay |= 0xffffffff00000000ULL;
-    }
 
     timer->ts_frac = frac_delay;
     timer->ts_integer = int_delay + (uint64_t)tsc;
