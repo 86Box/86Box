@@ -667,6 +667,8 @@ typedef struct voodoo_t {
 
     struct voodoo_set_t *set;
 
+    uint32_t launch_pending;
+
     uint8_t fifo_thread_run;
     uint8_t render_thread_run[4];
 

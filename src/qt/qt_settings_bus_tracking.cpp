@@ -19,9 +19,13 @@
 #include <cstdlib>
 #include <cstring>
 
+extern "C" {
+#include "86box/86box.h"
 #include "86box/hdd.h"
 #include "86box/scsi.h"
 #include "86box/cdrom.h"
+}
+
 #include "qt_settings_bus_tracking.hpp"
 
 SettingsBusTracking::SettingsBusTracking()

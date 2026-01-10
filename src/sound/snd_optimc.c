@@ -38,7 +38,9 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/plat_unused.h>
+#include <86box/hdc.h>
 #include <86box/isapnp.h>
+#include <86box/hdc_ide.h>
 #include <86box/log.h>
 
 #define PNP_ROM_OPTI931 "roms/sound/opti931/adsrom.bin"
@@ -889,7 +891,8 @@ opti931_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
     optimc_log(optimc->log, "PnP Config changed\n");
 
     switch (ld) {
-        case 0: /* Aux Device */
+        case 0: /* IDE CD-ROM */
+            ide_pnp_config_changed_opti931(0, config, (void *) 3);
             break;
         case 1: /* WSS/OPL3/SBPro/Control regs */
             if (optimc->cur_wss_addr) {
@@ -1155,6 +1158,11 @@ optimc_init(const device_t *info)
         /* Set up ISAPnP handlers to intercept Read Data port changes */
         io_sethandler(0x279, 0x0001, NULL, NULL, NULL, opti931_isapnp_write, NULL, NULL, optimc);
         io_sethandler(0xA79, 0x0001, NULL, NULL, NULL, opti931_isapnp_write, NULL, NULL, optimc);
+
+        /* Add ISAPnP quaternary IDE controller */
+        device_add(&ide_qua_pnp_device);
+        other_ide_present++;
+        ide_remove_handlers(3);
     }
 
     /* OPTi 930 DOS sound test utility starts DMA playback without setting a time constant likely making */
@@ -1277,7 +1285,7 @@ const device_t mirosound_pcm10_device = {
 };
 
 const device_t opti_82c930_device = {
-    .name          = "OPTi 82c930",
+    .name          = "OPTi 82C930",
     .internal_name = "opti_82c930",
     .flags         = DEVICE_ISA16,
     .local         = OPTI_930 | OPTIMC_CS4231,
@@ -1291,7 +1299,7 @@ const device_t opti_82c930_device = {
 };
 
 const device_t opti_82c931_device = {
-    .name          = "OPTi 82c931",
+    .name          = "OPTi 82C931",
     .internal_name = "opti_82c931",
     .flags         = DEVICE_ISA16,
     .local         = OPTI_930 | OPTIMC_CS4231 | OPTI_931,

@@ -13427,10 +13427,10 @@ const machine_t machines[] = {
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
         .name              = "[i430FX] HP Pavilion 51xx/7070/7090/71xx (Holly)",
-        .internal_name     = "hpholly",
+        .internal_name     = "holly",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
-        .init              = machine_at_hpholly_init,
+        .init              = machine_at_holly_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -14788,7 +14788,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
             .block       = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_K6, CPU_K6_2, CPU_K6_2C, CPU_K6_3, CPU_K6_2P,
-                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L),
+                               CPU_K6_3P, CPU_Cx6x86, CPU_Cx6x86MX, CPU_Cx6x86L, CPU_WINCHIP, CPU_WINCHIP2),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 2800,
@@ -15857,6 +15857,51 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = &chips_69000_onboard_device,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
+       firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
+    {
+        .name              = "[i430TX] ASUS TX97-XV (HP OEM)",
+        .internal_name     = "tx97xv",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430TX,
+        .init              = machine_at_tx97xv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 75000000,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = &mach64vt3_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -18220,6 +18265,55 @@ const machine_t machines[] = {
     },
 
     /* 440EX */
+    /* Has a SM(S)C FDC37C675 Super I/O chip with on-chip KBC with Phoenix
+       MultiKey/42 (version 1.38) KBC firmware. */
+    {
+        .name              = "[i440EX] HP Brio 83xx",
+        .internal_name     = "brio83xx",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440EX,
+        .init              = machine_at_brio83xx_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 66666667,
+            /* NOTE: Range not confirmed. */
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram       = {
+            /* PC manual says 128 MB max, but 256 MB confirmed to work
+               and 512 MB confirmed to not work. */
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = &s3_trio64v2_dx_onboard_pci_device,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
@@ -20427,13 +20521,7 @@ machine_count(void)
 }
 
 const char *
-machine_getname(void)
-{
-    return (machines[machine].name);
-}
-
-const char *
-machine_getname_ex(int m)
+machine_getname(int m)
 {
     return (machines[m].name);
 }
@@ -20553,7 +20641,7 @@ machine_has_flags_ex(int flags)
     int ret = machine_has_flags(machine, flags);
 
     if (flags & MACHINE_PS2_KBC) {
-        if (machine_is_ps2)
+        if (machine_is_ps2 && (machines[machine].init != machine_at_pc5286_init))
             ret |= MACHINE_PS2_KBC;
         else
             ret &= ~MACHINE_PS2_KBC;
@@ -20661,19 +20749,13 @@ machine_get_machine_from_internal_name(const char *s)
         c++;
     }
 
-    return 0;
+    return -1;
 }
 
 int
 machine_has_mouse(void)
 {
     return (machines[machine].flags & MACHINE_MOUSE);
-}
-
-int
-machine_is_sony(void)
-{
-    return (!strcmp(machines[machine].internal_name, "pcv90"));
 }
 
 const char *

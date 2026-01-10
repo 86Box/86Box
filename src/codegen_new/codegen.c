@@ -676,7 +676,6 @@ generate_call:
     if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
         goto codegen_skip;
 #endif
-
     if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
         goto codegen_skip;
 

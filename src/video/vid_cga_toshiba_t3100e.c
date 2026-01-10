@@ -654,7 +654,7 @@ void *
 t3100e_init(UNUSED(const device_t *info))
 {
     t3100e_t *t3100e = calloc(1, sizeof(t3100e_t));
-    loadfont("roms/machines/t3100e/t3100e_font.bin", 5);
+    video_load_font("roms/machines/t3100e/t3100e_font.bin", FONT_FORMAT_TOSHIBA_3100E, LOAD_FONT_NO_OFFSET);
     cga_init(&t3100e->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t3100e);
 

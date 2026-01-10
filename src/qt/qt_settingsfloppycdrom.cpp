@@ -149,7 +149,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
 #ifndef DISABLE_FDD_AUDIO
         // Get the profile name from the configuration system
-        const char *name = fdd_audio_get_profile_internal_name(prof);
+        const char *name = fdd_audio_get_profile_name(prof);
         if (name) {
             profName = QString(name);
         } else {
@@ -449,7 +449,7 @@ SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 
 #ifndef DISABLE_FDD_AUDIO
     // Get the profile name from the configuration system
-    const char *name = fdd_audio_get_profile_internal_name(prof);
+    const char *name = fdd_audio_get_profile_name(prof);
     if (name) {
         profName = name;
     } else {

@@ -215,7 +215,7 @@ open_pseudo_terminal(serial_passthrough_t *dev)
     char ascii_pipe_name[1024] = { 0 };
     strncpy(ascii_pipe_name, dev->named_pipe, sizeof(ascii_pipe_name));
     ascii_pipe_name[1023] = '\0';
-    dev->master_fd        = (intptr_t) CreateNamedPipeA(ascii_pipe_name, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
+    dev->master_fd        = (intptr_t) CreateNamedPipeA(ascii_pipe_name, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
     if (dev->master_fd == (intptr_t) INVALID_HANDLE_VALUE) {
         wchar_t errorMsg[1024] = { 0 };
         wchar_t finalMsg[1024] = { 0 };

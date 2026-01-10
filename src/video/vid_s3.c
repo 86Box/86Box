@@ -354,7 +354,7 @@ typedef struct s3_t {
         int        input;
         int        len, start;
         int        odf, idf, yuv;
-        atomic_int busy;
+        ATOMIC_INT busy;
     } videoengine;
 
     struct
@@ -390,7 +390,7 @@ typedef struct s3_t {
     } streams;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    atomic_int   fifo_read_idx, fifo_write_idx;
+    ATOMIC_INT   fifo_read_idx, fifo_write_idx;
 
     uint8_t fifo_thread_run;
 
@@ -398,7 +398,7 @@ typedef struct s3_t {
     event_t  *wake_fifo_thread;
     event_t  *fifo_not_full_event;
 
-    atomic_int blitter_busy;
+    ATOMIC_INT blitter_busy;
     uint64_t blitter_time;
     uint64_t status_time;
 
@@ -410,7 +410,7 @@ typedef struct s3_t {
     int        translate;
     int        enable_8514;
     int        color_16bit;
-    atomic_int busy, force_busy;
+    ATOMIC_INT busy, force_busy;
 
     bool color_key_enabled;
 
@@ -2727,7 +2727,7 @@ s3_trio64v_colorkey(s3_t* s3, uint32_t x, uint32_t y)
     uint8_t shift = ((s3->streams.chroma_ctrl >> 24) & 7) ^ 7;
     bool is15bpp = false;
 
-    uint32_t base_addr = svga->memaddr_latch;
+    uint32_t base_addr = svga->memaddr_latch << 2;
     uint32_t stride = s3->streams.pri_stride;
 
     if (!s3->color_key_enabled)
@@ -3527,7 +3527,7 @@ s3_in(uint16_t addr, void *priv)
                     }
                     break;
                 case 0x30:
-                    return s3->id; /*Chip ID*/
+                    return ((svga->crtc[0x38] & 0xcc) != 0x48) ? 0xFF : s3->id; /*Chip ID*/
                 case 0x31:
                     return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
                 case 0x35:

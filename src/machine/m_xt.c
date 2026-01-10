@@ -1705,27 +1705,6 @@ machine_xt_pcxt_init(const machine_t *model)
 static const device_config_t to16_config[] = {
     // clang-format off
     {
-        .name           = "bios",
-        .description    = "BIOS Version",
-        .type           = CONFIG_BIOS,
-        .default_string = "to16",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .bios           = {
-            {
-                .name   = "1.03",
-                .internal_name = "to16",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { "roms/machines/to16/TO16_103.bin", "" }
-            },
-            { .files_no = 0 }
-        },
-    },
-    {
         .name           = "rtc_port",
         .description    = "Onboard RTC",
         .type           = CONFIG_SELECTION,
@@ -1777,22 +1756,16 @@ const device_t to16_device = {
 int
 machine_xt_to16_init(const machine_t *model)
 {
-    int         ret      = 0;
-    int         rtc_port = 0;
-    const char *fn;
+    int ret;
 
-    /* No ROMs available. */
-    if (!device_available(model->device))
-        return ret;
-
-    device_context(model->device);
-    rtc_port = machine_get_config_int("rtc_port");
-    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret      = bios_load_linear(fn, 0x000f8000, 32768, 0);
-    device_context_restore();
+    ret = bios_load_linear("roms/machines/to16/TO16_103.bin", 0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
         return ret;
+
+    device_context(model->device);
+    int rtc_port = machine_get_config_int("rtc_port");
+    device_context_restore();
 
     machine_xt_clone_init(model, 0);
 
@@ -2181,7 +2154,7 @@ machine_xt_maz1016_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    loadfont("roms/machines/maz1016/crt-8.bin", 0);
+    video_load_font("roms/machines/maz1016/crt-8.bin", FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     machine_xt_clone_init(model, 0);
 

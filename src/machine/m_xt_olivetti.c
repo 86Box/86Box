@@ -2018,7 +2018,7 @@ m19_vid_init(m19_vid_t *vid)
 #endif
 
     /* OGC emulation part begin */
-    loadfont("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN", 7);
+    video_load_font("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN", FONT_FORMAT_SIGMA, LOAD_FONT_NO_OFFSET);
     /* composite is not working yet */
     vid->ogc.cga.composite    = 0; // (display_type != CGA_RGB);
     vid->ogc.cga.revision     = device_get_config_int("composite_type");

@@ -57,7 +57,7 @@
 #define ET4000_TYPE_ISA      1 /* ISA ET4000AX */
 #define ET4000_TYPE_MCA      2 /* MCA ET4000AX */
 #define ET4000_TYPE_KOREAN   3 /* Korean ET4000 */
-#define ET4000_TYPE_TRIGEM   4 /* Trigem 286M ET4000 */
+#define ET4000_TYPE_TRIGEM   4 /* TriGem 286M ET4000 */
 #define ET4000_TYPE_KASAN    5 /* Kasan ET4000 */
 
 #define BIOS_ROM_PATH          "roms/video/et4000/ET4000.BIN"
@@ -829,7 +829,7 @@ et4000_init(const device_t *info)
             break;
 
         case ET4000_TYPE_KOREAN: /* Korean ET4000 */
-        case ET4000_TYPE_TRIGEM: /* Trigem 286M ET4000 */
+        case ET4000_TYPE_TRIGEM: /* TriGem 286M ET4000 */
             dev->vram_size                      = device_get_config_int("memory") << 10;
             dev->port_22cb_val                  = 0x60;
             dev->port_32cb_val                  = 0;
@@ -850,7 +850,7 @@ et4000_init(const device_t *info)
                           et4000k_in, NULL, NULL, et4000k_out, NULL, NULL, dev);
             io_sethandler(0x32cb, 1,
                           et4000k_in, NULL, NULL, et4000k_out, NULL, NULL, dev);
-            loadfont(KOREAN_FONT_ROM_PATH, 6);
+            video_load_font(KOREAN_FONT_ROM_PATH, FONT_FORMAT_KSC6501, LOAD_FONT_NO_OFFSET);
             fn = KOREAN_BIOS_ROM_PATH;
             break;
 
@@ -884,7 +884,7 @@ et4000_init(const device_t *info)
                           et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);
             io_sethandler(0x0258, 2,
                           et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);
-            loadfont(KASAN_FONT_ROM_PATH, 6);
+            video_load_font(KASAN_FONT_ROM_PATH, FONT_FORMAT_KSC6501, LOAD_FONT_NO_OFFSET);
             fn = KASAN_BIOS_ROM_PATH;
             break;
 
@@ -1133,7 +1133,7 @@ const device_t et4000_mca_device = {
 };
 
 const device_t et4000k_isa_device = {
-    .name          = "Trigem Korean VGA (Tseng Labs ET4000AX Korean)",
+    .name          = "TriGem Korean VGA (Tseng Labs ET4000AX Korean)",
     .internal_name = "tgkorvga",
     .flags         = DEVICE_ISA,
     .local         = ET4000_TYPE_KOREAN,
@@ -1147,7 +1147,7 @@ const device_t et4000k_isa_device = {
 };
 
 const device_t et4000k_tg286_isa_device = {
-    .name          = "Trigem Korean VGA (Trigem 286M)",
+    .name          = "TriGem Korean VGA (TriGem 286M)",
     .internal_name = "et4000k_tg286_isa",
     .flags         = DEVICE_ISA,
     .local         = ET4000_TYPE_TRIGEM,

@@ -58,6 +58,7 @@ signals:
     void destroyRendererMonitor(int monitor_index);
     void initRendererMonitorForNonQtThread(int monitor_index);
     void destroyRendererMonitorForNonQtThread(int monitor_index);
+    void forceInterpretationCompleted();
     void hardResetCompleted();
 
     void setTitle(const QString &title);
@@ -79,6 +80,7 @@ public slots:
     void updateStatusEmptyIcons();
     void updateUiPauseState();
 private slots:
+    void on_actionForce_interpretation_triggered();
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
@@ -130,12 +132,16 @@ private slots:
     void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
     void on_actionTake_screenshot_triggered();
+    void on_actionTake_raw_screenshot_triggered();
+    void on_actionCopy_screenshot_triggered();
+    void on_actionCopy_raw_screenshot_triggered();
     void toggleFullscreenUI();
     void on_actionMute_Unmute_triggered();
     void on_actionSound_gain_triggered();
     void on_actionPreferences_triggered();
     void on_actionEnable_Discord_integration_triggered(bool checked);
     void on_actionRenderer_options_triggered();
+    void on_actionFast_forward_triggered();
 
     void refreshMediaMenu();
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);

@@ -16,6 +16,11 @@
 #include <QDebug>
 #include <QStyle>
 
+extern "C" {
+#include <86box/86box.h>
+}
+
+#include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "ui_qt_vmmanager_details.h"
@@ -138,17 +143,17 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     configureButton = new QToolButton();
     configureButton->setIcon(QIcon(":/menuicons/qt/icons/settings.ico"));
     configureButton->setEnabled(false);
-    configureButton->setToolTip(tr("Settings..."));
+    configureButton->setToolTip(tr("Settings…"));
     cadButton = new QToolButton();
     cadButton->setIcon(QIcon(":menuicons/qt/icons/send_cad.ico"));
     cadButton->setEnabled(false);
     cadButton->setToolTip(tr("Ctrl+Alt+Del"));
 
-    ui->toolButtonHolder->layout()->addWidget(configureButton);
+    ui->toolButtonHolder->layout()->addWidget(startPauseButton);
     ui->toolButtonHolder->layout()->addWidget(resetButton);
     ui->toolButtonHolder->layout()->addWidget(stopButton);
-    ui->toolButtonHolder->layout()->addWidget(startPauseButton);
     ui->toolButtonHolder->layout()->addWidget(cadButton);
+    ui->toolButtonHolder->layout()->addWidget(configureButton);
 
     ui->notesTextEdit->setEnabled(false);
 
@@ -161,6 +166,8 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     connect(this, &VMManagerDetails::styleUpdated, inputSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, portsSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, otherSection, &VMManagerDetailSection::updateStyle);
+
+    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
 #endif
 
     sysconfig = new VMManagerSystem();
@@ -199,6 +206,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
     disconnect(configureButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::launchSettings);
     disconnect(cadButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::cadButtonPressed);
 
+    disconnect(sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerDetails::onConfigUpdated);
+
     sysconfig = passed_sysconfig;
     connect(resetButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::restartButtonPressed);
     connect(stopButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::shutdownForceButtonPressed);
@@ -234,7 +243,16 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
     disconnect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
     connect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
 
+    connect(sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerDetails::onConfigUpdated);
+
     updateProcessStatus();
+}
+
+void
+VMManagerDetails::onConfigUpdated(VMManagerSystem *passed_sysconfig)
+{
+    updateConfig(passed_sysconfig);
+    updateScreenshots(passed_sysconfig);
 }
 
 void

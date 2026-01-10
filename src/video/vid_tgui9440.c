@@ -161,7 +161,7 @@ typedef struct tgui_t {
     uint8_t ramdac_ctrl;
     uint8_t alt_clock;
 
-    int clock_m, clock_n, clock_k;
+    uint16_t vclk;
 
     uint32_t vram_size, vram_mask;
 
@@ -567,17 +567,18 @@ tgui_out(uint16_t addr, uint8_t val, void *priv)
             return;
 
         case 0x3DB:
-            tgui->alt_clock = val & 0xe3;
+            tgui->alt_clock = val;
+            svga_recalctimings(svga);
             return;
 
         case 0x43c8:
-            tgui->clock_n = val & 0x7f;
-            tgui->clock_m = (tgui->clock_m & ~1) | (val >> 7);
-            break;
+            tgui->vclk = (tgui->vclk & 0xff00) | val;
+            svga_recalctimings(svga);
+            return;
         case 0x43c9:
-            tgui->clock_m = (tgui->clock_m & ~0x1e) | ((val << 1) & 0x1e);
-            tgui->clock_k = (val & 0x10) >> 4;
-            break;
+            tgui->vclk = (tgui->vclk & 0x00ff) | (val << 8);
+            svga_recalctimings(svga);
+            return;
 
         default:
             break;
@@ -693,6 +694,9 @@ tgui_recalctimings(svga_t *svga)
     uint8_t       ger22lower = (tgui->accel.ger22 & 0xff);
     uint8_t       ger22upper = (tgui->accel.ger22 >> 8);
     int           std_vga_clock = 1;
+    int           m = 0;
+    int           n = 0;
+    int           k = 0;
 
     if (tgui->type >= TGUI_9440) {
         if ((svga->crtc[0x38] & 0x19) == 0x09)
@@ -764,13 +768,23 @@ tgui_recalctimings(svga_t *svga)
     svga->lowres = !(svga->crtc[0x2a] & 0x40);
 
     if (tgui->type >= TGUI_9440) {
-        if (svga->miscout & 8)
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / (((tgui->clock_n + 8) * 14318180.0) / ((tgui->clock_m + 2) * (1 << tgui->clock_k)));
+        // Bits 0-6: M
+        // Bits 7-11: N
+        // Bit 12: K
+        // Later formula extends each variable by one extra bit (Providia 9685 and later)
+        if (((svga->miscout & 0x0c) >> 2) == 0x02) {
+            m = tgui->vclk & 0x007f;
+            n = (tgui->vclk & 0x0f80) >> 7;
+            k = (tgui->vclk & 0x1000) >> 12;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / (((m + 8) * 14318180.0) / ((n + 2) * (1 << k)));
+        }
 
-        if (svga->gdcreg[0xf] & 0x08)
+        if ((svga->gdcreg[0xf] & 0x08) || (tgui->alt_clock & 0x20))
             svga->clock *= 2.0;
         else if (svga->gdcreg[0xf] & 0x40)
             svga->clock *= 3.0;
+
+        pclog("GDCREGF=%02x, miscout=%02x.\n", svga->gdcreg[0xf] & 0x48, svga->miscout & 0x0c);
     } else {
         //pclog("TGUI9400CXi: Clock double=%d.\n", (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8)));
         switch (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8)) {

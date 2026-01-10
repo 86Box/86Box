@@ -5343,6 +5343,46 @@ add_data_vals(atkbc_dev_t *dev, uint8_t *val, uint8_t len)
 }
 
 static void
+add_data_kbd_84(uint16_t val)
+{
+    atkbc_dev_t *dev = SavedKbd;
+    uint8_t fake_shift = 0;
+    uint8_t num_lock = 0;
+    uint8_t shift_states = 0;
+
+    keyboard_get_states(NULL, &num_lock, NULL, NULL);
+    shift_states = keyboard_get_shift() & STATE_LSHIFT;
+
+    /* If NumLock is on, invert the left shift state so we can always check for
+       the the same way flag being set (and with NumLock on that then means it
+       is actually *NOT* set). */
+    if (num_lock)
+        shift_states ^= STATE_LSHIFT;
+
+    switch (val) {
+        case FAKE_LSHIFT_ON:
+            /* If NumLock is on, fake shifts are sent when shift is *NOT* presed,
+               if NumLock is off, fake shifts are sent when shift is pressed. */
+            if (shift_states) {
+                /* Send fake shift. */
+                fake_shift = num_lock ? 0x2a : 0xaa;
+                add_data_vals(dev, &fake_shift, 1);
+            }
+            break;
+        case FAKE_LSHIFT_OFF:
+            if (shift_states) {
+                /* Send fake shift. */
+                fake_shift = num_lock ? 0xaa : 0x2a;
+                add_data_vals(dev, &fake_shift, 1);
+            }
+            break;
+        default:
+            kbc_at_dev_queue_add(dev, val, 1);
+            break;
+    }
+}
+
+static void
 add_data_kbd(uint16_t val)
 {
     atkbc_dev_t *dev = SavedKbd;
@@ -5975,7 +6015,10 @@ keyboard_at_init(const device_t *info)
         bat_counter = 0x0000;
     }
 
-    keyboard_send = add_data_kbd;
+    if ((dev->type & FLAG_TYPE_MASK) > KBD_84_KEY)
+        keyboard_send = add_data_kbd;
+    else
+        keyboard_send = add_data_kbd_84;
     SavedKbd = dev;
     keyboard_update_states(0, 0, 0, 0);
 

@@ -784,6 +784,9 @@ fdc_sis(fdc_t *fdc)
 static void
 fdc_soft_reset(fdc_t *fdc)
 {
+    /* Reset boot status to POST on controller soft reset */
+    fdd_boot_status_reset();
+
     if (fdc->power_down) {
         timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
         fdc->interrupt = -5;
@@ -1139,7 +1142,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
                                 else
                                     timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
-                                break;
+                                break;                                
                             default:
                                 timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
                                 break;
@@ -1879,13 +1882,17 @@ fdc_callback(void *priv)
             fdc->st0                     = 0x20 | (fdc->params[0] & 3);
             if (!fdd_track0(drive_num))
                 fdc->st0 |= 0x50;
-            if (fdc->flags & FDC_FLAG_PCJR) {
-                fdc->fintr     = 1;
-                fdc->interrupt = -4;
-            } else
-                fdc->interrupt = -3;
-            timer_set_delay_u64(&fdc->timer, 2048 * TIMER_USEC);
             fdc->stat = 0x10 | (1 << fdc->rw_drive);
+            if (fdd_get_turbo(drive_num)) {
+                if (fdc->flags & FDC_FLAG_PCJR) {
+                    fdc->fintr     = 1;
+                    fdc->interrupt = -4;
+                } else {
+                    fdc->interrupt = -3;
+                }
+                timer_set_delay_u64(&fdc->timer, 2048 * TIMER_USEC);
+            }
+            /* Interrupts and callbacks in the fdd callback function (fdc_seek_complete_interrupt) */
             return;
         case 0x0d: /*Format track*/
             if (fdc->format_state == 1) {
@@ -2402,6 +2409,9 @@ fdc_reset(void *priv)
     uint8_t default_rwc;
 
     fdc_t *fdc = (fdc_t *) priv;
+
+    /* Reset boot status to POST on controller reset */
+    fdd_boot_status_reset();
 
     default_rwc = (fdc->flags & FDC_FLAG_START_RWC_1) ? 1 : 0;
 

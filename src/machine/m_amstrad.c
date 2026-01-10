@@ -3020,7 +3020,7 @@ machine_amstrad_init(const machine_t *model, int type)
     if (gfxcard[0] == VID_INTERNAL)
         switch (type) {
             case AMS_PC1512:
-                loadfont("roms/machines/pc1512/40078", 8);
+                video_load_font("roms/machines/pc1512/40078", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_1512_device);
                 ams->language = device_get_config_int("language");
                 vid_init_1512(ams);
@@ -3029,7 +3029,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 break;
 
             case AMS_PPC512:
-                loadfont("roms/machines/ppc512/40109", 1);
+                video_load_font("roms/machines/ppc512/40109", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_ppc512_device);
                 ams->language = device_get_config_int("language");
                 vid_init_200(ams);
@@ -3038,7 +3038,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 break;
 
             case AMS_PC1640:
-                loadfont(FONT_IBM_MDA_437_PATH, 0);
+                video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_1640_device);
                 ams->language = device_get_config_int("language");
                 vid_init_1640(ams);
@@ -3047,7 +3047,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 break;
 
             case AMS_PC200:
-                loadfont("roms/machines/pc200/40109", 1);
+                video_load_font("roms/machines/pc200/40109", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_200_device);
                 ams->language = device_get_config_int("language");
                 vid_init_200(ams);

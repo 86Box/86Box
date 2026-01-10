@@ -18,7 +18,17 @@
 
 extern "C" {
 #include <86box/plat.h>
+#include <86box/version.h>
 }
+
+QVariantHash VMManagerConfig::generalDefaults = {
+    { "hide_tool_bar",   0 },
+    { "regex_search",    0 },
+#if EMU_BUILD_NUM != 0
+    { "update_check",    1 },
+#endif
+    { "window_remember", 0 }
+};
 
 VMManagerConfig::VMManagerConfig(const ConfigType type, const QString &section)
 {
@@ -36,6 +46,8 @@ VMManagerConfig::VMManagerConfig(const ConfigType type, const QString &section)
     settings->setFallbacksEnabled(false);
     if (type == ConfigType::System && !section.isEmpty()) {
         settings->beginGroup(section);
+    } else {
+        settings->beginGroup("");
     }
 }
 
@@ -47,7 +59,10 @@ VMManagerConfig::~VMManagerConfig()
 QString
 VMManagerConfig::getStringValue(const QString &key) const
 {
-    const auto value = settings->value(key);
+    auto defaultValue = QVariant();
+    if ((config_type == ConfigType::General) && (generalDefaults.contains(key)))
+        defaultValue = generalDefaults[key];
+    const auto value = settings->value(key, defaultValue);
     // An invalid QVariant with toString will give a default QString value which is blank.
     // Therefore any variables that do not exist will return blank strings
     return value.toString();

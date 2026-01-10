@@ -69,7 +69,7 @@ machine_init_ex(int m)
     int ret = 0;
 
     if (!bios_only) {
-        machine_log("Initializing as \"%s\"\n", machine_getname());
+        machine_log("Initializing as \"%s\"\n", machine_getname(machine));
 
         machine_init_p1();
 

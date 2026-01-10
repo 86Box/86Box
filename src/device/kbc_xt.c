@@ -85,6 +85,7 @@ typedef struct xtkbd_t {
     uint8_t type;
     uint8_t pravetz_flags;
     uint8_t cpu_speed;
+    uint8_t ignore;
 
     pc_timer_t send_delay_timer;
 } xtkbd_t;
@@ -95,6 +96,8 @@ static int     key_queue_end   = 0;
 static int     is_tandy = 0;
 static int     is_t1x00 = 0;
 static int     is_amstrad = 0;
+
+#define kbd_adddata kbd_adddata_xt_common
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
 int keyboard_xt_do_log = ENABLE_KEYBOARD_XT_LOG;
@@ -117,7 +120,6 @@ kbd_log(const char *fmt, ...)
 static uint8_t
 get_fdd_switch_settings(void)
 {
-
     uint8_t fdd_count = 0;
 
     for (uint8_t i = 0; i < FDD_NUM; i++) {
@@ -134,7 +136,6 @@ get_fdd_switch_settings(void)
 static uint8_t
 get_videomode_switch_settings(void)
 {
-
     if (video_is_mda())
         return 0x30;
     else if (video_is_cga())
@@ -172,8 +173,8 @@ kbd_poll(void *priv)
     }
 }
 
-static void
-kbd_adddata(uint16_t val)
+void
+kbd_adddata_xt_common(uint16_t val)
 {
     /* Test for T1000 'Fn' key (Right Alt / Right Ctrl) */
     if (is_t1x00) {
@@ -251,6 +252,98 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
                 adddata(num_lock ? 0xaa : 0x2a);
             }
             break;
+        default:
+            adddata(val);
+            break;
+    }
+}
+
+void
+kbd_adddata_process_10x(uint16_t val, void (*adddata)(uint16_t val))
+{
+    uint8_t  fake_shift[4] = { 0 };
+    uint8_t  num_lock = 0;
+    uint8_t  shift_states = 0;
+
+    if (!adddata)
+        return;
+
+    keyboard_get_states(NULL, &num_lock, NULL, NULL);
+    shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
+
+    switch (val) {
+        case FAKE_LSHIFT_ON:
+            kbd_log("%s: Fake left shift on, scan code: ", dev->name);
+            if (num_lock) {
+                if (shift_states) {
+                    kbd_log("N/A (one or both shifts on)\n");
+                    break;
+                } else {
+                    /* Num lock on and no shifts are pressed, send non-inverted fake shift. */
+                    kbd_log("E0 2A\n");
+                    fake_shift[0] = 0xe0;
+                    fake_shift[1] = 0x2a;
+                    for (int i = 0; i < 2; i++)
+                        adddata(fake_shift[0]);
+                }
+            } else {
+                if (shift_states & STATE_LSHIFT) {
+                    /* Num lock off and left shift pressed. */
+                    kbd_log("E0 AA\n");
+                    fake_shift[0] = 0xe0;
+                    fake_shift[1] = 0xaa;
+                    for (int i = 0; i < 2; i++)
+                        adddata(fake_shift[0]);
+                }
+                if (shift_states & STATE_RSHIFT) {
+                    /* Num lock off and right shift pressed. */
+                    kbd_log("E0 B6\n");
+                    fake_shift[0] = 0xe0;
+                    fake_shift[1] = 0xb6;
+                    for (int i = 0; i < 2; i++)
+                        adddata(fake_shift[0]);
+                }
+                kbd_log(shift_states ? "" : "N/A (both shifts off)\n");
+            }
+            break;
+
+        case FAKE_LSHIFT_OFF:
+            kbd_log("%s: Fake left shift on, scan code: ", dev->name);
+            if (num_lock) {
+                if (shift_states) {
+                    kbd_log("N/A (one or both shifts on)\n");
+                    break;
+                } else {
+                    /* Num lock on and no shifts are pressed, send non-inverted fake shift. */
+                    kbd_log("E0 AA\n");
+                    fake_shift[0] = 0xe0;
+                    fake_shift[1] = 0xaa;
+                    for (int i = 0; i < 2; i++)
+                        adddata(fake_shift[0]);
+                }
+            } else {
+                if (shift_states & STATE_LSHIFT) {
+                    /* Num lock off and left shift pressed. */
+                    kbd_log("E0 2A\n");
+                    fake_shift[0] = 0xe0;
+                    fake_shift[1] = 0x2a;
+                    for (int i = 0; i < 2; i++)
+                        adddata(fake_shift[0]);
+                    break;
+                }
+                if (shift_states & STATE_RSHIFT) {
+                    /* Num lock off and right shift pressed. */
+                    kbd_log("E0 36\n");
+                    fake_shift[0] = 0xe0;
+                    fake_shift[1] = 0x36;
+                    for (int i = 0; i < 2; i++)
+                        adddata(fake_shift[0]);
+                    break;
+                }
+                kbd_log(shift_states ? "" : "N/A (both shifts off)\n");
+            }
+            break;
+
         default:
             adddata(val);
             break;

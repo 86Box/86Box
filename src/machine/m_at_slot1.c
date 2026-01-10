@@ -345,6 +345,45 @@ machine_at_ma30d_init(const machine_t *model)
 
 /* i440EX */
 int
+machine_at_brio83xx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/brio83xx/QHL0700.rom",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    // Actual settings!
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4); /* Onboard */
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* Onboard */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* Onboard */
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 02 */
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 03 */
+    pci_register_slot(0x14, PCI_CARD_VIDEO,       1, 2, 3, 4); /* Onboard */
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&s3_trio64v2_dx_onboard_pci_device);
+
+    device_add(&i440ex_device);
+    device_add(&piix4_device);
+
+    device_add_params(&fdc37c67x_device, (void *) (FDC37XXX5));
+
+    /* Chip not quite confirmed, but this does operate fine. */
+    device_add(&sst_flash_29ee020_device);
+
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+int
 machine_at_p6i440e2_init(const machine_t *model)
 {
     int ret;
@@ -425,7 +464,7 @@ static const device_config_t bx6_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision EG",
-                .internal_name = "bx6_eg",
+                .internal_name = "bx6",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -433,8 +472,35 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_EG.BIN", "" }
             },
             {
+                .name          = "Award Modular BIOS v4.51PG - Revision CW",
+                .internal_name = "bx6_CW",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bx6/BX6_CW.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision GQ",
+                .internal_name = "bx6_GQ",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bx6/BX6_GQ.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision JL",
+                .internal_name = "bx6_JL",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bx6/BX6_JL.bin", "" }
+            },
+            {
                 .name          = "Award Modular BIOS v4.51PG - Revision QS",
-                .internal_name = "bx6",
+                .internal_name = "bx6_qs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1057,8 +1123,8 @@ machine_at_p6sba_init(const machine_t *model)
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-    device_add(&w83781d_device);    /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2 */
-    hwm_values.voltages[1] = 3300; /* Seems to be the I/O voltage, reported as "CPUi/o" in the Leadtek BIOS and "CPU2" in the SuperMicro BIOS */
+    device_add(&w83781d_device);   /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2 */
+    hwm_values.voltages[1] = 1500; /* potentially Vtt; Leadtek BIOS calls it CPUi/o; Supermicro BIOS calls it CPU2 and reads a voltage this low as N/A */
 
     return ret;
 }

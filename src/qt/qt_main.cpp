@@ -100,6 +100,7 @@ extern int  qt_nvr_save(void);
 extern void exit_pause(void);
 
 bool cpu_thread_running = false;
+bool fast_forward = false;
 }
 
 #include <locale.h>
@@ -452,7 +453,7 @@ main_thread_fn()
 #endif
             drawits += static_cast<int>(new_time - old_time);
         old_time = new_time;
-        if (drawits > 0 && !dopause) {
+        if ((drawits > 0 || fast_forward) && !dopause) {
             /* Yes, so run frames now. */
             do {
 #ifdef USE_INSTRUMENT
@@ -478,8 +479,9 @@ main_thread_fn()
                 }
                 
                 drawits -= force_10ms ? 10 : 1;
-                if (drawits > 50)
+                if (drawits > 50 || fast_forward)
                     drawits = 0;
+
             } while (drawits > 0);
         } else {
             /* Just so we dont overload the host OS. */
@@ -889,6 +891,7 @@ main(int argc, char *argv[])
         QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
             discord_run_callbacks();
         });
+        discordupdate.setInterval(1000);
         if (enable_discord)
             discordupdate.start(1000);
     }

@@ -83,6 +83,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdd.h>
+#include <86box/hdd_audio.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/scsi.h>
@@ -293,6 +294,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="mute",
         .desc="Toggle mute",
         .seq="Ctrl+Alt+M"
+    },
+    {
+        .name="force_interpretation",
+        .desc="Force interpretation",
+        .seq="Ctrl+Alt+I"
     }
 };
 
@@ -338,8 +344,8 @@ __thread int is_cpu_thread = 0;
 
 static wchar_t mouse_msg[3][200];
 
-static volatile ATOMIC_INT do_pause_ack = 0;
-static volatile ATOMIC_INT pause_ack = 0;
+static ATOMIC_INT do_pause_ack = 0;
+static ATOMIC_INT pause_ack = 0;
 
 #define LOG_SIZE_BUFFER 8192            /* Log size buffer */
 
@@ -762,8 +768,10 @@ pc_init(int argc, char *argv[])
     p  = path_get_filename(exe_path);
     *p = '\0';
 #if defined(__APPLE__)
+    char contents_path[2048] = {0};
     c = strlen(exe_path);
     if ((c >= 16) && !strcmp(&exe_path[c - 16], "/Contents/MacOS/")) {
+        strncpy(contents_path, exe_path, c - 7);
         exe_path[c - 16] = '\0';
         p                = path_get_filename(exe_path);
         *p               = '\0';
@@ -1030,9 +1038,26 @@ usage:
     path_append_filename(temp, usr_path, "assets");
     asset_add_path(temp);
 
-    // Add the standard ROM path in the same directory as the executable.
+    // Add the standard asset path in the same directory as the executable.
     path_append_filename(temp, exe_path, "assets");
     asset_add_path(temp);
+
+#if defined(__APPLE__)
+    // Add the standard asset path within the app bundle.
+    if (contents_path[0] != '\0') {
+        path_append_filename(temp, contents_path, "Resources/assets");
+        asset_add_path(temp);
+    }
+#elif !defined(_WIN32)
+    // Add the standard asset paths within the AppImage.
+    p = getenv("APPDIR");
+    if (p && (p[0] != '\0')) {
+        path_append_filename(temp, p, "usr/local/share/" EMU_NAME "/assets");
+        asset_add_path(temp);
+        path_append_filename(temp, p, "usr/share/" EMU_NAME "/assets");
+        asset_add_path(temp);
+    }
+#endif
 
     plat_init_asset_paths();
 
@@ -1329,7 +1354,7 @@ pc_init_roms(void)
         while (machine_get_internal_name_ex(c) != NULL) {
             m = machine_available(c);
             if (!m)
-                pclog("Missing machine: %s\n", machine_getname_ex(c));
+                pclog("Missing machine: %s\n", machine_getname(c));
             c++;
         }
 
@@ -1370,7 +1395,7 @@ pc_init_modules(void)
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
-        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname());
+        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname(machine));
         c       = 0;
         machine = -1;
         while (machine_get_internal_name_ex(c) != NULL) {
@@ -1452,6 +1477,8 @@ pc_init_modules(void)
         fdd_audio_load_profiles();
         fdd_audio_init();
     }
+    
+    hdd_audio_init();
 
     sound_init();
 
@@ -1705,6 +1732,9 @@ pc_reset_hard_init(void)
 
     fdd_reset();
 
+    /* Reset HDD audio to pick up any profile changes */
+    hdd_audio_reset();
+
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
@@ -1802,7 +1832,7 @@ update_mouse_msg(void)
     wchar_t  wmachine[2048];
     wchar_t *wcp;
 
-    mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
+    mbstowcs(wmachine, machine_getname(machine), strlen(machine_getname(machine)) + 1);
 
     if (!cpu_override)
         mbstowcs(wcpufamily, cpu_f->name, strlen(cpu_f->name) + 1);
@@ -2124,17 +2154,6 @@ set_screen_size_natural(void)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 
-int
-get_actual_size_x(void)
-{
-    return (unscaled_size_x);
-}
-
-int
-get_actual_size_y(void)
-{
-    return (efscrnsz_y);
-}
 
 void
 do_pause(int p)

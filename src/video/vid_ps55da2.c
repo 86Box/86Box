@@ -3149,7 +3149,7 @@ da2_poll(void *priv)
 }
 
 static void
-da2_loadfont(char *fname, void *priv)
+da2_video_load_font(char *fname, void *priv)
 {
     da2_t  *da2 = (da2_t *) priv;
     uint8_t buf;
@@ -3267,10 +3267,10 @@ da2_init(UNUSED(const device_t *info))
     da2->mmio.font    = malloc(DA2_FONTROM_SIZE);
     switch (da2->mmio.charset) {
         case DA2_DCONFIG_CHARSET_HANT:
-            da2_loadfont(DA2_FONTROM_PATH_HANT, da2);
+            da2_video_load_font(DA2_FONTROM_PATH_HANT, da2);
             break;
         case DA2_DCONFIG_CHARSET_JPAN:
-            da2_loadfont(DA2_FONTROM_PATH_JPAN, da2);
+            da2_video_load_font(DA2_FONTROM_PATH_JPAN, da2);
             /* Add magic code for OS/2 J1.3. This disables BitBlt's text drawing function. */
             da2->mmio.font[0x1AFFE] = 0x80;
             da2->mmio.font[0x1AFFF] = 0x01;

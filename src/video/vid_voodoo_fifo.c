@@ -63,7 +63,7 @@ voodoo_fifo_log(const char *fmt, ...)
 #define WAKE_DELAY_DEFAULT (TIMER_USEC * 100)
 
 /* Per-card wake delay: Voodoo1 uses a larger delay to reduce FIFO wake frequency */
-#define WAKE_DELAY_OF(v) ((v)->type == VOODOO_1 ? (TIMER_USEC * 2000) : WAKE_DELAY_DEFAULT)
+#define WAKE_DELAY_OF(v) ((v)->type == VOODOO_1 ? (TIMER_USEC * 500) : WAKE_DELAY_DEFAULT)
 void
 voodoo_wake_fifo_thread(voodoo_t *voodoo)
 {

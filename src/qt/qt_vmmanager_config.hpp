@@ -35,6 +35,8 @@ public:
 
     void sync() const;
 
+    static QVariantHash generalDefaults;
+
     QSettings *settings;
     ConfigType config_type;
     QString    system_name;

@@ -158,7 +158,7 @@ machine_at_exp8551_init(const machine_t *model)
 }
 
 static void
-machine_at_hpholly_gpio_init(void)
+machine_at_holly_gpio_init(void)
 {
     uint32_t gpio = 0xffffe2ff;
 
@@ -193,19 +193,19 @@ machine_at_hpholly_gpio_init(void)
 }
 
 int
-machine_at_hpholly_init(const machine_t *model) /* HP Pavilion Holly, 7070/7090/5100/7100 */
+machine_at_holly_init(const machine_t *model) /* HP Pavilion Holly, 7070/7090/5100/7100 */
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/hpholly/1005CA2L.BIO",
-                                    "roms/machines/hpholly/1005CA2L.BI1",
+    ret = bios_load_linear_combined("roms/machines/holly/1005CA2L.BIO",
+                                    "roms/machines/holly/1005CA2L.BI1",
                                     0x20000, 128);
 
     if (bios_only || !ret)
         return ret;
 
     machine_at_common_init_ex(model, 2);
-    machine_at_hpholly_gpio_init();
+    machine_at_holly_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

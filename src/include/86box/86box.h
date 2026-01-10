@@ -47,7 +47,7 @@
 
 /* Recently used images */
 #define MAX_PREV_IMAGES    10
-#define MAX_IMAGE_PATH_LEN 2048
+#define MAX_IMAGE_PATH_LEN 4096
 
 /* Max UUID Length */
 #define MAX_UUID_LEN 64
@@ -159,9 +159,10 @@ extern int confirm_exit_cmdl; /* (O) do not ask for confirmation on quit if set 
 extern uint64_t unique_id;
 extern uint64_t source_hwnd;
 #endif
-extern char rom_path[1024]; /* (O) full path to ROMs */
-extern char log_path[1024]; /* (O) full path of logfile */
-extern char vm_name[1024];  /* (O) display name of the VM */
+extern char rom_path[1024];   /* (O) full path to ROMs */
+extern char asset_path[1024]; /* (O) full path to assets */
+extern char log_path[1024];   /* (O) full path of logfile */
+extern char vm_name[1024];    /* (O) display name of the VM */
 #ifdef USE_INSTRUMENT
 extern uint8_t  instru_enabled;
 extern uint64_t instru_run_ms;
@@ -330,7 +331,7 @@ struct accelKey {
 	char desc[64];
 	char seq[64];
 };
-#define NUM_ACCELS 9
+#define NUM_ACCELS 10
 extern struct accelKey acc_keys[NUM_ACCELS];
 extern struct accelKey def_acc_keys[NUM_ACCELS];
 extern int FindAccelerator(const char *name);

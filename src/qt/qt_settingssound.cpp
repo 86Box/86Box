@@ -89,8 +89,8 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
     c = 0;
     while (true) {
-        const QString name = DeviceConfig::DeviceName(sound_card_getdevice(c),
-                                                      sound_card_get_internal_name(c), 1);
+        QString name = DeviceConfig::DeviceName(sound_card_getdevice(c),
+                                                sound_card_get_internal_name(c), 1);
 
         if (name.isEmpty())
             break;
@@ -99,6 +99,9 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
             if (device_is_valid(sound_card_getdevice(c), machineId)) {
                 for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
                     if ((c != 1) || ((i == 0) && m_has_snd)) {
+                        if (i == 0 && c == 1 && m_has_snd && machine_get_snd_device(machineId)) {
+                            name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_snd_device(machineId), machine_get_snd_device(machineId)->internal_name, 0));
+                        }
                         int row = Models::AddEntry(models[i], name, c);
 
                         if (c == sound_card_current[i])

@@ -87,10 +87,10 @@ MediaMenu::refresh(QMenu *parentMenu)
     if (MachineStatus::hasCassette()) {
         cassetteMenu   = parentMenu->addMenu("");
         QIcon img_icon = QIcon(":/settings/qt/icons/cassette_image.ico");
-        cassetteMenu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image..."), [this]() { cassetteNewImage(); });
+        cassetteMenu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this]() { cassetteNewImage(); });
         cassetteMenu->addSeparator();
-        cassetteMenu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image..."), [this]() { cassetteSelectImage(false); });
-        cassetteMenu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)..."), [this]() { cassetteSelectImage(true); });
+        cassetteMenu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this]() { cassetteSelectImage(false); });
+        cassetteMenu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this]() { cassetteSelectImage(true); });
         cassetteMenu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cassetteImageHistoryPos[slot] = cassetteMenu->children().count();
@@ -116,7 +116,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         for (int i = 0; i < 2; i++) {
             auto *menu     = parentMenu->addMenu("");
             QIcon img_icon = QIcon(":/settings/qt/icons/cartridge_image.ico");
-            menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image..."), [this, i]() { cartridgeSelectImage(i); });
+            menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cartridgeSelectImage(i); });
             menu->addSeparator();
             for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
                 cartridgeImageHistoryPos[slot] = menu->children().count();
@@ -134,10 +134,10 @@ MediaMenu::refresh(QMenu *parentMenu)
     MachineStatus::iterateFDD([this, parentMenu](int i) {
         auto *menu     = parentMenu->addMenu("");
         QIcon img_icon = fdd_is_525(i) ? QIcon(":/settings/qt/icons/floppy_525_image.ico") : QIcon(":/settings/qt/icons/floppy_35_image.ico");
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image..."), [this, i]() { floppyNewImage(i); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { floppyNewImage(i); });
         menu->addSeparator();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image..."), [this, i]() { floppySelectImage(i, false); });
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)..."), [this, i]() { floppySelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { floppySelectImage(i, false); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { floppySelectImage(i, true); });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             floppyImageHistoryPos[slot] = menu->children().count();
@@ -145,7 +145,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         }
         menu->addSeparator();
         floppyExportPos = menu->children().count();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Export), tr("E&xport to 86F..."), [this, i]() { floppyExportTo86f(i); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Export), tr("E&xport to 86F…"), [this, i]() { floppyExportTo86f(i); });
         menu->addSeparator();
         floppyEjectPos = menu->children().count();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Eject), tr("E&ject"), [this, i]() { floppyEject(i); });
@@ -159,8 +159,8 @@ MediaMenu::refresh(QMenu *parentMenu)
         cdromMutePos = menu->children().count();
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
-        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_image.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Image..."), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_folder.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Folder..."), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_image.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_folder.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
@@ -187,10 +187,10 @@ MediaMenu::refresh(QMenu *parentMenu)
     MachineStatus::iterateRDisk([this, parentMenu](int i) {
         auto *menu     = parentMenu->addMenu("");
         QIcon img_icon = QIcon(":/settings/qt/icons/rdisk_image.ico");
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image..."), [this, i]() { rdiskNewImage(i); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { rdiskNewImage(i); });
         menu->addSeparator();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image..."), [this, i]() { rdiskSelectImage(i, false); });
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)..."), [this, i]() { rdiskSelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { rdiskSelectImage(i, false); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { rdiskSelectImage(i, true); });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             rdiskImageHistoryPos[slot] = menu->children().count();
@@ -207,10 +207,10 @@ MediaMenu::refresh(QMenu *parentMenu)
     MachineStatus::iterateMO([this, parentMenu](int i) {
         auto *menu     = parentMenu->addMenu("");
         QIcon img_icon = QIcon(":/settings/qt/icons/mo_image.ico");
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image..."), [this, i]() { moNewImage(i); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { moNewImage(i); });
         menu->addSeparator();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image..."), [this, i]() { moSelectImage(i, false); });
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)..."), [this, i]() { moSelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { moSelectImage(i, false); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { moSelectImage(i, true); });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             moImageHistoryPos[slot] = menu->children().count();
@@ -238,7 +238,7 @@ MediaMenu::refresh(QMenu *parentMenu)
 void
 MediaMenu::cassetteNewImage()
 {
-    auto      filename = QFileDialog::getSaveFileName(parentWidget, tr("Create..."));
+    auto      filename = QFileDialog::getSaveFileName(parentWidget, tr("Create…"));
     QFileInfo fileinfo(filename);
     if (fileinfo.suffix().isEmpty()) {
         filename.append(".cas");
@@ -292,7 +292,7 @@ MediaMenu::cassetteMount(const QString &filename, bool wp)
         pc_cas_set_fname(cassette, cassette_fname);
     }
 
-    ui_sb_update_icon_state(SB_CASSETTE, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_CASSETTE, cassette->fname == nullptr);
     ui_sb_update_icon_wp(SB_CASSETTE, cassette_ui_writeprot);
     mhm.addImageToHistory(0, ui::MediaType::Cassette, previous_image.filePath(), filename);
     cassetteUpdateMenu();
@@ -352,7 +352,7 @@ MediaMenu::cartridgeMount(int i, const QString &filename)
     QByteArray filenameBytes = filename.toUtf8();
     cart_load(i, filenameBytes.data());
 
-    ui_sb_update_icon_state(SB_CARTRIDGE | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_CARTRIDGE | i, cart_fns[i][0] == 0);
     mhm.addImageToHistory(i, ui::MediaType::Cartridge, previous_image.filePath(), filename);
     cartridgeUpdateMenu(i);
     ui_sb_update_tip(SB_CARTRIDGE | i);
@@ -468,7 +468,7 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString(filenameBytes));
     } else
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
-    ui_sb_update_icon_state(SB_FLOPPY | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_FLOPPY | i, drive_empty[i]);
     ui_sb_update_icon_wp(SB_FLOPPY | i, ui_writeprot[i]);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
@@ -668,7 +668,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
@@ -696,7 +696,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
@@ -735,7 +735,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
@@ -754,7 +754,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             else
                 fi.setFile(fn);
             if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
-                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn.right(fn.length() - 5);
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
                 imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
             } else {
                 menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
@@ -902,7 +902,7 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
     }
     mhm.addImageToHistory(i, ui::MediaType::RDisk, rdisk_drives[i].prev_image_path, rdisk_drives[i].image_path);
 
-    ui_sb_update_icon_state(SB_RDISK | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_RDISK | i, dev->drv->fp == NULL);
     ui_sb_update_icon_wp(SB_RDISK | i, wp);
     rdiskUpdateMenu(i);
     ui_sb_update_tip(SB_RDISK | i);
@@ -1082,7 +1082,7 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
     }
     mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].prev_image_path, mo_drives[i].image_path);
 
-    ui_sb_update_icon_state(SB_MO | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_MO | i, dev->drv->fp == nullptr);
     moUpdateMenu(i);
     ui_sb_update_tip(SB_MO | i);
 
@@ -1160,9 +1160,10 @@ MediaMenu::nicUpdateMenu(int i)
     if (!netMenus.contains(i))
         return;
 
-    QString netType = tr("Null Driver");
+    QString netType;
     switch (net_cards_conf[i].net_type) {
         default:
+            netType = tr("Null Driver");
             break;
         case NET_TYPE_SLIRP:
             netType = "SLiRP";
@@ -1176,11 +1177,11 @@ MediaMenu::nicUpdateMenu(int i)
         case NET_TYPE_TAP:
             netType = "TAP";
             break;
-        case NET_TYPE_NMSWITCH:
-            netType = "Local Switch";
+        case NET_TYPE_NLSWITCH:
+            netType = tr("Local Switch");
             break;
         case NET_TYPE_NRSWITCH:
-            netType = "Remote Switch";
+            netType = tr("Remote Switch");
             break;
     }
 

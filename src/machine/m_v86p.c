@@ -77,9 +77,9 @@ machine_v86p_init(const machine_t *model)
         return ret;
 
     if (rom_id == 2)
-        loadfont("roms/machines/v86p/V86P.FON", 8);
+        video_load_font("roms/machines/v86p/V86P.FON", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
     else
-        loadfont("roms/machines/v86p/v86pfont.rom", 8);
+        video_load_font("roms/machines/v86p/v86pfont.rom", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
 
     machine_common_init(model);
 

@@ -23,6 +23,7 @@
 #include <QStringListModel>
 #include <QTimer>
 #include <QProgressDialog>
+#include <QShortcut>
 
 #include <thread>
 #include <atomic>
@@ -140,13 +141,13 @@ VMManagerMain::VMManagerMain(QWidget *parent)
 
             contextMenu.addSeparator();
 
-            QAction settingsAction(tr("&Settings..."));
+            QAction settingsAction(tr("&Settings…"));
             contextMenu.addAction(&settingsAction);
             connect(&settingsAction, &QAction::triggered, [this] {
                 selected_sysconfig->launchSettings();
             });
 
-            QAction nameChangeAction(tr("Change &display name..."));
+            QAction nameChangeAction(tr("Change &display name…"));
             contextMenu.addAction(&nameChangeAction);
             // Use a lambda to call a function so indexAt can be passed
             connect(&nameChangeAction, &QAction::triggered, ui->listView, [this, indexAt] {
@@ -154,7 +155,7 @@ VMManagerMain::VMManagerMain(QWidget *parent)
             });
             nameChangeAction.setEnabled(!selected_sysconfig->window_obscured);
 
-            QAction setSystemIcon(tr("Set &icon..."));
+            QAction setSystemIcon(tr("Set &icon…"));
             contextMenu.addAction(&setSystemIcon);
             connect(&setSystemIcon, &QAction::triggered, [this] {
                 IconSelectionDialog dialog(":/systemicons/");
@@ -168,7 +169,7 @@ VMManagerMain::VMManagerMain(QWidget *parent)
 
             contextMenu.addSeparator();
 
-            QAction cloneMachine(tr("C&lone..."));
+            QAction cloneMachine(tr("C&lone…"));
             contextMenu.addAction(&cloneMachine);
             connect(&cloneMachine, &QAction::triggered, [this] {
                 QDialog dialog = QDialog(this);
@@ -331,7 +332,7 @@ illegal_chars:
 
             contextMenu.addSeparator();
 
-            QAction openSystemFolderAction(tr("&Open folder..."));
+            QAction openSystemFolderAction(tr("&Open folder…"));
             contextMenu.addAction(&openSystemFolderAction);
             connect(&openSystemFolderAction, &QAction::triggered, [indexAt] {
                 if (const auto configDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString(); !configDir.isEmpty()) {
@@ -343,7 +344,7 @@ illegal_chars:
                 }
             });
 
-            QAction openPrinterFolderAction(tr("Open p&rinter tray..."));
+            QAction openPrinterFolderAction(tr("Open p&rinter tray…"));
             contextMenu.addAction(&openPrinterFolderAction);
             connect(&openPrinterFolderAction, &QAction::triggered, [indexAt] {
                 if (const auto printerDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/printer/"); !printerDir.isEmpty()) {
@@ -355,7 +356,7 @@ illegal_chars:
                 }
             });
 
-            QAction openScreenshotsFolderAction(tr("Open screenshots &folder..."));
+            QAction openScreenshotsFolderAction(tr("Open screenshots &folder…"));
             contextMenu.addAction(&openScreenshotsFolderAction);
             connect(&openScreenshotsFolderAction, &QAction::triggered, [indexAt] {
                 if (const auto screenshotsDir = indexAt.data(VMManagerModel::Roles::ConfigDir).toString() + QString("/screenshots/"); !screenshotsDir.isEmpty()) {
@@ -379,7 +380,7 @@ illegal_chars:
         } else {
             QMenu contextMenu(tr("Context Menu"), ui->listView);
 
-            QAction newMachineAction(tr("&New machine..."));
+            QAction newMachineAction(tr("&New machine…"));
             contextMenu.addAction(&newMachineAction);
             connect(&newMachineAction, &QAction::triggered, this, &VMManagerMain::newMachineWizard);
 
@@ -404,7 +405,12 @@ illegal_chars:
         ui->listView->setCurrentIndex(first_index);
     }
 
+    // Connect double-click to start VM
     connect(ui->listView, &QListView::doubleClicked, this, &VMManagerMain::startButtonPressed);
+
+    // Connect Enter key to start VM
+    auto enterShortcut = new QShortcut(QKeySequence(Qt::Key_Return), ui->listView);
+    connect(enterShortcut, &QShortcut::activated, this, &VMManagerMain::startButtonPressed);
 
     // Load and apply settings
     loadSettings();
@@ -423,9 +429,11 @@ illegal_chars:
     completer->setModel(completerModel);
     ui->searchBar->setCompleter(completer);
 
-    // Set initial status bar after the event loop starts
     QTimer::singleShot(0, this, [this] {
+        // Set initial status bar after the event loop starts
         emit updateStatusRight(machineCountString());
+        // Tell the mainwindow to enable the toolbar buttons if needed
+        emit selectionOrStateChanged((this->proxy_model->rowCount(QModelIndex()) > 0) ? selected_sysconfig : nullptr);
     });
 
 #if EMU_BUILD_NUM != 0
@@ -456,22 +464,21 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
     if (!current.isValid())
         return;
 
-    /* hack to prevent strange segfaults when adding a machine after
-       removing all machines previously */
-    if (selected_sysconfig->config_signal_connected == true) {
-        disconnect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
-        selected_sysconfig->config_signal_connected = false;
-    }
+    disconnect(selected_sysconfig->process, &QProcess::stateChanged, this, &VMManagerMain::vmStateChange);
+    disconnect(selected_sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerMain::vmStateChange);
+    disconnect(selected_sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerMain::vmStateChange);
+
     const auto mapped_index = proxy_model->mapToSource(current);
     selected_sysconfig      = vm_model->getConfigObjectForIndex(mapped_index);
     vm_details->updateData(selected_sysconfig);
-    if (selected_sysconfig->config_signal_connected == false) {
-        connect(selected_sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerMain::onConfigUpdated);
-        selected_sysconfig->config_signal_connected = true;
-    }
 
     // Emit that the selection changed, include with the process state
-    emit selectionChanged(current, selected_sysconfig->process->state());
+    emit selectionOrStateChanged(selected_sysconfig);
+
+    connect(selected_sysconfig->process, &QProcess::stateChanged, this, &VMManagerMain::vmStateChange);
+    connect(selected_sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerMain::vmStateChange);
+    connect(selected_sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerMain::vmStateChange);
+
 }
 
 void
@@ -528,17 +535,13 @@ VMManagerMain::shutdownForceButtonPressed() const
     selected_sysconfig->shutdownForceButtonPressed();
 }
 
-// This function doesn't appear to be needed any longer
 void
-VMManagerMain::refresh()
+VMManagerMain::cadButtonPressed() const
 {
-    const auto current_index = ui->listView->currentIndex();
-    emit       selectionChanged(current_index, selected_sysconfig->process->state());
+    if (!currentSelectionIsValid())
+        return;
 
-    // if(!selected_sysconfig->config_file.path().isEmpty()) {
-    if (!selected_sysconfig->isValid()) {
-        // what was happening here?
-    }
+    selected_sysconfig->cadButtonPressed();
 }
 
 void
@@ -593,12 +596,6 @@ VMManagerMain::currentSelectionIsValid() const
     return ui->listView->currentIndex().isValid() && selected_sysconfig->isValid();
 }
 
-void
-VMManagerMain::onConfigUpdated(const QString &uuid)
-{
-    if (selected_sysconfig->uuid == uuid)
-        vm_details->updateData(selected_sysconfig);
-}
 // Used from MainWindow during app exit to obtain and persist the current selection
 QString
 VMManagerMain::getCurrentSelection() const
@@ -737,11 +734,14 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
         delete sysconfig;
 
         if (vm_model->rowCount(QModelIndex()) <= 0) {
+            selected_sysconfig = new VMManagerSystem();
             /* no machines left - get rid of the last machine's leftovers */
             ui->detailsArea->layout()->removeWidget(vm_details);
             delete vm_details;
             vm_details = new VMManagerDetails();
             ui->detailsArea->layout()->addWidget(vm_details);
+            /* tell the mainwindow to disable the toolbar buttons */
+            emit selectionOrStateChanged(nullptr);
         }
     }
 }
@@ -816,6 +816,15 @@ VMManagerMain::modelDataChange()
 }
 
 void
+VMManagerMain::vmStateChange()
+{
+    if (!currentSelectionIsValid())
+        return;
+
+    emit selectionOrStateChanged(selected_sysconfig);
+}
+
+void
 VMManagerMain::onPreferencesUpdated()
 {
     // Only reload values that we care about
@@ -834,6 +843,7 @@ VMManagerMain::onLanguageUpdated()
 {
     vm_model->refreshConfigs();
     modelDataChange();
+    ui->searchBar->setPlaceholderText(tr("Search"));
     /* Hack to work around details widgets not being re-translatable
        without going through layers of abstraction */
     ui->detailsArea->layout()->removeWidget(vm_details);

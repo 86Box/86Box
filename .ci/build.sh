@@ -880,6 +880,31 @@ then
 	exit 5
 fi
 
+# Download assets if we're making a release build.
+if grep -qiE "^BUILD_TYPE:[^=]+=release" build/CMakeCache.txt 2> /dev/null
+then
+	git_repo=$(git remote get-url origin 2> /dev/null)
+	if [ "$CI" = "true" ]
+	then
+		# Backup strategy when running under Jenkins.
+		[ -z "$git_repo" ] && git_repo=$GIT_URL
+	fi
+	if [ -n "$git_repo" ]
+	then
+		echo [-] Downloading assets
+		cd archive_tmp
+		if ! git clone --depth 1 "$(dirname "$git_repo")/assets.git" assets
+		then
+			echo [!] Assets download failed
+			exit 7
+		fi
+		# Remove dot directories (including .git) and top level files.
+		rm -rf assets/.* 2> /dev/null
+		rm -f assets/* 2> /dev/null
+		cd ..
+	fi
+fi
+
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
 status=0
@@ -902,7 +927,7 @@ then
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive XAudio2 DLL if required.
-	grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
+	grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
 
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
@@ -971,6 +996,14 @@ then
 			done
 		fi
 
+		# Archive assets.
+		if [ -d archive_tmp/assets ]
+		then
+			data_dir="$(echo "archive_tmp/"*".app/Contents")"
+			mkdir -p "$data_dir/Resources"
+			mv archive_tmp/assets "$data_dir/Resources/assets"
+		fi
+
 		# Sign app bundle, unless we're in an universal build.
 		[ $skip_archive -eq 0 ] && codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"
 	elif [ "$BUILD_TAG" = "precondition" ]
@@ -982,7 +1015,7 @@ else
 	cwd_root="$(pwd)"
 	check_buildtag "libs.$arch_deb"
 
-	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
+	if grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
@@ -1132,6 +1165,14 @@ else
 		cp -rp "$icon_size" "$icon_dir/apps"
 	done
 	project_icon=$(find "$icon_base/"[0-9]*x[0-9]*/* -type f -name '*.png' -o -name '*.svg' | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
+
+	# Archive assets.
+	if [ -d archive_tmp/assets ]
+	then
+		data_dir="archive_tmp/usr/local/share/$project"
+		mkdir -p "$data_dir"
+		mv archive_tmp/assets "$data_dir/assets"
+	fi
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin

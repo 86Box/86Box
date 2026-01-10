@@ -281,16 +281,12 @@ pipeline {
 															dir(dynarecNames[dynarec]) {
 																dir("$os - $archName") {
 																	ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
-																	if (presets.size() == 1)
-																		writeFile file: '.forcedir', text: ''
 																}
-																if ((osArchs.size() == 1) && (thisOsArchs.size() == 1))
-																	writeFile file: '.forcedir', text: ''
 															}
 
 															if (ret == 0) {
 																/* Archive resulting artifacts. */
-																archiveArtifacts artifacts: "**/$packageName*, **/.forcedir", defaultExcludes: false
+																archiveArtifacts artifacts: "**/$packageName*", defaultExcludes: false
 															} else {
 																/* Fail this stage. */
 																failStage()

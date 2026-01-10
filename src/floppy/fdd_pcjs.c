@@ -18,11 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#ifndef _MSC_VER
 #include <unistd.h>
-#else
-#include <io.h>
-#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>

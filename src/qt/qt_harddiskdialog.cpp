@@ -78,8 +78,8 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
         QString  text    = tr("%1 MB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
         Models::AddEntry(model, text, i);
     }
-    Models::AddEntry(model, tr("Custom..."), 127);
-    Models::AddEntry(model, tr("Custom (large)..."), 128);
+    Models::AddEntry(model, tr("Custom…"), 127);
+    Models::AddEntry(model, tr("Custom (large)…"), 128);
 
     ui->lineEditSize->setValidator(new QIntValidator());
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);

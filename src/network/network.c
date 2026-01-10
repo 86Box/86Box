@@ -52,9 +52,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
-#ifndef _MSC_VER
 #include <sys/time.h>
-#endif
 #include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -501,13 +499,11 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
             card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
             break;
 #endif
-#ifdef USE_NETSWITCH
-        case NET_TYPE_NMSWITCH:
+        case NET_TYPE_NLSWITCH:
         case NET_TYPE_NRSWITCH:
-            card->host_drv      = net_netswitch_drv;
+            card->host_drv      = net_switch_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, &net_cards_conf[net_card_current], net_drv_error);
             break;
-#endif /* USE_NETSWITCH */
         default:
             card->host_drv.priv = NULL;
             break;
@@ -519,14 +515,6 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     if (!card->host_drv.priv) {
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
-#ifdef USE_NETSWITCH
-            // FIXME: Hardcoded during dev
-            // FIXME: Remove when done!
-            if((net_cards_conf[net_card_current].net_type == NET_TYPE_NMSWITCH) ||
-                (net_cards_conf[net_card_current].net_type == NET_TYPE_NRSWITCH))
-                fatal("%s", net_drv_error);
-#endif /* USE_NETSWITCH */
-
             // We're here because of a failure
             swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:\n\n%s\n\n%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
             ui_msgbox(MBX_ERROR, tempmsg);

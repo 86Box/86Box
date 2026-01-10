@@ -432,7 +432,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
 
         /* Voodoo1: use higher CMDFIFO threshold to reduce wake frequency */
         if (voodoo->type == VOODOO_1) {
-            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) > 300)
+            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
                 voodoo_wake_fifo_thread(voodoo);
         }
         /* Other cards (Voodoo2, Banshee, Voodoo3, ...) keep the original behavior */
@@ -516,12 +516,17 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 break;
             case SST_fbiInit0:
                 if (voodoo->initEnable & 0x01) {
+                    int old_vga_pass = voodoo->fbiInit0 & FBIINIT0_VGA_PASS;
                     voodoo->fbiInit0 = val;
                     thread_wait_mutex(voodoo->force_blit_mutex);
                     voodoo->can_blit = (voodoo->fbiInit0 & FBIINIT0_VGA_PASS) ? 1 : 0;
                     if (!voodoo->can_blit)
                         voodoo->force_blit_count = 0;
                     thread_release_mutex(voodoo->force_blit_mutex);
+
+                    /* When VGA pass-through becomes active, mark all lines dirty to force full refresh */
+                    if (!old_vga_pass && (val & FBIINIT0_VGA_PASS))
+                        memset(voodoo->dirty_line, 1, sizeof(voodoo->dirty_line));
 
                     if (voodoo->set->nr_cards == 2)
                         svga_set_override(voodoo->svga, (voodoo->set->voodoos[0]->fbiInit0 | voodoo->set->voodoos[1]->fbiInit0) & 1);

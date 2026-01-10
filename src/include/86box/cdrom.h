@@ -201,6 +201,7 @@ static const struct cdrom_drive_types_s {
     { "NEC",      "CD-ROM DRIVE:211", "1.00", "nec_211",        BUS_TYPE_SCSI, 2,  3, 36, 0, 0, { -1, -1, -1, -1 } },
     /* The speed of the following two is guesswork based on the CDR-400. */
     { "NEC",      "CD-ROM DRIVE:464", "1.05", "nec_464",        BUS_TYPE_SCSI, 2,  3, 36, 0, 0, { -1, -1, -1, -1 } },
+    { "NEC",      "CD-ROM DRIVE:900", "2.5a", "nec_900",        BUS_TYPE_SCSI, 2,  4, 36, 0, 0, { -1, -1, -1, -1 } },
     /* The speed of the following two is guesswork based on the name. */
     { "ShinaKen", "CD-ROM DM-3x1S",   "1.04", "shinaken_3x1s",  BUS_TYPE_SCSI, 1,  3, 36, 0, 0, { -1, -1, -1, -1 } },
     { "SONY",     "CD-ROM CDU-541",   "1.0i", "sony_541",       BUS_TYPE_SCSI, 1,  1, 36, 1, 0, { -1, -1, -1, -1 } },
@@ -209,7 +210,10 @@ static const struct cdrom_drive_types_s {
     { "PHILIPS",  "CDD2600",          "1.07", "philips_2600",   BUS_TYPE_SCSI, 2,  6, 36, 0, 0, { -1, -1, -1, -1 } },
     /* NOTE: The real thing is a CD changer drive! */
     { "PIONEER",  "CD-ROM DRM-604X",  "2403", "pioneer_604x",   BUS_TYPE_SCSI, 2,  4, 47, 0, 0, { -1, -1, -1, -1 } },
+    { "PLEXTOR",  "CD-ROM PX-12CS",   "1.04", "plextor_12cs",   BUS_TYPE_SCSI, 2, 12, 36, 1, 0, { -1, -1, -1, -1 } },
+    { "PLEXTOR",  "CD-ROM PX-12TS",   "1.01", "plextor_12ts",   BUS_TYPE_SCSI, 2, 12, 36, 0, 0, { -1, -1, -1, -1 } },
     { "PLEXTOR",  "CD-ROM PX-32TS",   "1.03", "plextor_32ts",   BUS_TYPE_SCSI, 2, 32, 36, 0, 0, { -1, -1, -1, -1 } },
+    { "PLEXTOR",  "CD-ROM PX-83CS",   "1.01", "plextor_83cs",   BUS_TYPE_SCSI, 2,  8, 36, 1, 0, { -1, -1, -1, -1 } },
     /* The speed of the following two is guesswork based on the R55S. */
     { "TEAC",     "CD 50",            "1.00", "teac_50",        BUS_TYPE_SCSI, 2,  4, 36, 1, 0, { -1, -1, -1, -1 } },
     { "TEAC",     "CD-ROM R55S",      "1.0R", "teac_55s",       BUS_TYPE_SCSI, 2,  4, 36, 0, 0, { -1, -1, -1, -1 } },
@@ -229,6 +233,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM DRIVE:XM",  "3433", "toshiba_xm",     BUS_TYPE_SCSI, 2,  2, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray.  */
     { "TOSHIBA",  "CD-ROM XM-3201B",  "3232", "toshiba_3201b",  BUS_TYPE_SCSI, 1,  1, 96, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
     { "TOSHIBA",  "CD-ROM XM-3301TA", "0272", "toshiba_3301ta", BUS_TYPE_SCSI, 2,  2, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray.  */
+    { "TOSHIBA",  "CD-ROM XM-3701B",  "0236", "toshiba_3701b",  BUS_TYPE_SCSI, 2,  6, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray.  */
     { "TOSHIBA",  "CD-ROM XM-5701TA", "3136", "toshiba_5701a",  BUS_TYPE_SCSI, 2, 12, 96, 0, 0, { -1, -1, -1, -1 } }, /* Tray.  */
     { "TOSHIBA",  "DVD-ROM SD-M1401", "1008", "toshiba_m1401",  BUS_TYPE_SCSI, 2, 40, 96, 0, 1, { -1, -1, -1, -1 } }, /* Tray.  */
     { "MATSHITA", "CR-562",           "0.75", "cr562",          BUS_TYPE_MKE , 0,  2,  0, 0, 0, { -1, -1, -1, -1 } },
@@ -318,8 +323,8 @@ typedef struct cdrom {
 
     void              *priv;
 
-    char               image_path[1024];
-    char               prev_image_path[1280];
+    char               image_path[MAX_IMAGE_PATH_LEN];
+    char               prev_image_path[MAX_IMAGE_PATH_LEN + 256];
 
     uint32_t           sound_on;
     uint32_t           cdrom_capacity;
@@ -476,6 +481,8 @@ extern void            cdrom_close(void);
 extern void            cdrom_insert(const uint8_t id);
 extern void            cdrom_exit(const uint8_t id);
 extern int             cdrom_is_empty(const uint8_t id);
+extern int             cdrom_is_playing(const uint8_t id);
+extern int             cdrom_is_paused(const uint8_t id);
 extern void            cdrom_eject(const uint8_t id);
 extern void            cdrom_reload(const uint8_t id);
 

@@ -846,7 +846,7 @@ machine_xt_t1000_init(const machine_t *model)
     t1000.ems_port_index = 7; /* EMS disabled */
 
     /* Load the T1000 CGA Font ROM. */
-    loadfont("roms/machines/t1000/t1000font.bin", 2);
+    video_load_font("roms/machines/t1000/t1000font.bin", FONT_FORMAT_CGA, LOAD_FONT_NO_OFFSET);
 
     /*
      * The ROM drive is optional.
@@ -928,7 +928,7 @@ machine_xt_t1200_init(const machine_t *model)
     t1000.ems_port_index = 7; /* EMS disabled */
 
     /* Load the T1000 CGA Font ROM. */
-    loadfont("roms/machines/t1000/t1000font.bin", 2);
+    video_load_font("roms/machines/t1000/t1000font.bin", FONT_FORMAT_CGA, LOAD_FONT_NO_OFFSET);
 
     /* Map the EMS page frame */
     for (uint8_t pg = 0; pg < 4; pg++) {

@@ -51,6 +51,7 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
+int cpu_force_interpreter   = 0;
 int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
@@ -778,7 +779,7 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if ((!CACHE_ON()) || cpu_override_dynarec) /*Interpret block*/
+            if (cpu_force_interpreter || cpu_override_dynarec ||  (!CACHE_ON())) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {

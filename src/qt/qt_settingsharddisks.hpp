@@ -24,6 +24,7 @@ private slots:
     void on_comboBoxBus_currentIndexChanged(int index);
     void on_comboBoxChannel_currentIndexChanged(int index);
     void on_comboBoxSpeed_currentIndexChanged(int index);
+    void on_comboBoxAudio_currentIndexChanged(int index);
 
     void on_pushButtonNew_clicked();
     void on_pushButtonExisting_clicked();
@@ -34,6 +35,7 @@ private slots:
 private:
     Ui::SettingsHarddisks *ui;
     void                   enableCurrentlySelectedChannel();
+    void                   populateAudioProfiles();
     bool                   buschangeinprogress = false;
 };
 

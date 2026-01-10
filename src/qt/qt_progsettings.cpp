@@ -47,11 +47,13 @@ QTranslator                    *ProgSettings::qtTranslator = nullptr;
 
 QVector<QPair<QString, QString>> ProgSettings::languages = {
     { "system", "(System Default)"         },
+    { "ca-ES",  "Catalan (Spain)"          },
     { "zh-CN",  "Chinese (Simplified)"     },
     { "zh-TW",  "Chinese (Traditional)"    },
     { "hr-HR",  "Croatian (Croatia)"       },
     { "cs-CZ",  "Czech (Czech Republic)"   },
     { "de-DE",  "German (Germany)"         },
+    { "el-GR",  "Greek (Greece)"           },
     { "en-GB",  "English (United Kingdom)" },
     { "en-US",  "English (United States)"  },
     { "fi-FI",  "Finnish (Finland)"        },

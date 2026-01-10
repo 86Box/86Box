@@ -41,7 +41,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Checking for updates...</string>
+      <string>Checking for updates…</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

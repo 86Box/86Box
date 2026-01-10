@@ -55,64 +55,54 @@ rom_log(const char *fmt, ...)
 #    define rom_log(fmt, ...)
 #endif
 
+static void
+add_path(rom_path_t *list, const char *path)
+{
+    rom_path_t *rom_path = calloc(1, sizeof(rom_path_t));
+
+    /* Save the path, turning it into absolute if needed. */
+    if (!path_abs((char *) path)) {
+        plat_getcwd(rom_path->path, sizeof(rom_path->path));
+        path_append_filename(rom_path->path, rom_path->path, path);
+    } else {
+        strncpy(rom_path->path, path, sizeof(rom_path->path) - 1);
+    }
+
+    /* Ensure the path ends with a separator. */
+    path_slash(rom_path->path);
+
+    /* Iterate to the end of the list. */
+    if (list->path[0] != '\0') {
+        while (1) {
+            /* Check for duplicates. */
+            if (!strcmp(list->path, rom_path->path)) {
+                free(rom_path);
+                return;
+            }
+            if (list->next == NULL)
+                break;
+            list = list->next;
+        }
+
+        /* Add the new entry. */
+        list->next = rom_path;
+    } else {
+        /* Set path on the first entry. */
+        memcpy(list, rom_path, sizeof(rom_path_t));
+        free(rom_path);
+    }
+}
+
 void
 rom_add_path(const char *path)
 {
-    char cwd[1024] = { 0 };
-
-    rom_path_t *rom_path = &rom_paths;
-
-    if (rom_paths.path[0] != '\0') {
-        // Iterate to the end of the list.
-        while (rom_path->next != NULL) {
-            rom_path = rom_path->next;
-        }
-
-        // Allocate the new entry.
-        rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
-    }
-
-    // Save the path, turning it into absolute if needed.
-    if (!path_abs((char *) path)) {
-        plat_getcwd(cwd, sizeof(cwd));
-        path_slash(cwd);
-        snprintf(rom_path->path, sizeof(rom_path->path), "%s%s", cwd, path);
-    } else {
-        snprintf(rom_path->path, sizeof(rom_path->path), "%s", path);
-    }
-
-    // Ensure the path ends with a separator.
-    path_slash(rom_path->path);
+    add_path(&rom_paths, path);
 }
 
 void
 asset_add_path(const char *path)
 {
-    char cwd[1024] = { 0 };
-
-    rom_path_t *asset_path = &asset_paths;
-
-    if (asset_paths.path[0] != '\0') {
-        // Iterate to the end of the list.
-        while (asset_path->next != NULL) {
-            asset_path = asset_path->next;
-        }
-
-        // Allocate the new entry.
-        asset_path = asset_path->next = calloc(1, sizeof(rom_path_t));
-    }
-
-    // Save the path, turning it into absolute if needed.
-    if (!path_abs((char *) path)) {
-        plat_getcwd(cwd, sizeof(cwd));
-        path_slash(cwd);
-        snprintf(asset_path->path, sizeof(asset_path->path), "%s%s", cwd, path);
-    } else {
-        snprintf(asset_path->path, sizeof(asset_path->path), "%s", path);
-    }
-
-    // Ensure the path ends with a separator.
-    path_slash(asset_path->path);
+    add_path(&asset_paths, path);
 }
 
 static int

@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdbool.h>
 
 #include <sys/audioio.h>
 #include <sys/param.h>
@@ -37,17 +38,18 @@
 #define I_WT 2
 #define I_CD 3
 #define I_FDD 4
-#define I_MIDI 5
+#define I_HDD 5
+#define I_MIDI 6
 
-static int audio[6] = {-1, -1, -1, -1, -1, -1};
+static int audio[7] = {-1, -1, -1, -1, -1, -1, -1};
+extern bool fast_forward;
 
 #ifdef USE_NEW_API
-static struct audio_swpar info[5];
+static struct audio_swpar info[7];
 #else
-static audio_info_t info[6];
+static audio_info_t info[7];
 #endif
-static int freqs[6] = {SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, 0};
-
+static int freqs[7] = {SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, SOUND_FREQ, 0};
 void
 closeal(void)
 {
@@ -104,7 +106,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     double gain;
     int target_rate;
 
-    if(audio[src] == -1)
+    if(audio[src] == -1 || fast_forward)
         return;
 
     gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
@@ -171,6 +173,12 @@ void
 givealbuffer_fdd(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, I_FDD, (int) size);
+}
+
+void
+givealbuffer_hdd(const void *buf, const uint32_t size)
+{
+    givealbuffer_common(buf, I_HDD, (int) size);
 }
 
 void

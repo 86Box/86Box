@@ -718,7 +718,7 @@ ymf71x_init(const device_t *info)
     ymf71x->sb->opl_mixer = ymf71x;
     ymf71x->sb->opl_mix   = ymf71x_filter_opl;
 
-    fm_driver_get(FM_YMF262, &ymf71x->sb->opl);
+    fm_driver_get(FM_YMF289B, &ymf71x->sb->opl);
 
     sound_add_handler(ymf71x_get_buffer, ymf71x);
     music_add_handler(sb_get_music_buffer_sbpro, ymf71x->sb);

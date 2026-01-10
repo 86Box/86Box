@@ -58,6 +58,21 @@ enum {
     VIDEO_AGP
 };
 
+typedef enum video_font_format_e 
+{
+    FONT_FORMAT_MDA = 0,
+    FONT_FORMAT_PC200 = 1,
+    FONT_FORMAT_CGA = 2,
+    FONT_FORMAT_WY700 = 3,
+    FONT_FORMAT_MDSI_GENIUS = 4,
+    FONT_FORMAT_TOSHIBA_3100E = 5,
+    FONT_FORMAT_KSC6501 = 6,
+    FONT_FORMAT_SIGMA = 7,
+    FONT_FORMAT_PC1512_T1000 = 8,
+    FONT_FORMAT_IM1024 = 9,
+    FONT_FORMAT_PRAVETZ = 10,
+} video_font_format;
+
 #define VIDEO_FLAG_TYPE_CGA     0
 #define VIDEO_FLAG_TYPE_MDA     1
 #define VIDEO_FLAG_TYPE_SPECIAL 2
@@ -130,6 +145,9 @@ typedef struct monitor_t {
     int                      mon_renderedframes;
     atomic_int               mon_actualrenderedframes;
     atomic_int               mon_screenshots;
+    atomic_int               mon_screenshots_clipboard;
+    atomic_int               mon_screenshots_raw;
+    atomic_int               mon_screenshots_raw_clipboard;
     uint32_t                *mon_pal_lookup;
     int                     *mon_cga_palette;
     int                      mon_pal_lookup_static;  /* Whether it should not be freed by the API. */
@@ -202,8 +220,6 @@ extern int          video_fullscreen;
 extern int          video_fullscreen_scale;
 extern uint8_t      fontdat[2048][8];      /* IBM CGA font */
 extern uint8_t      fontdatm[2048][16];    /* IBM MDA font */
-extern uint8_t      fontdat2[2048][8];     /* IBM CGA 2nd instance font */
-extern uint8_t      fontdatm2[2048][16];   /* IBM MDA 2nd instance font */
 extern uint8_t      fontdatw[512][32];     /* Wyse700 font */
 extern uint8_t      fontdat8x12[256][16];  /* MDSI Genius font */
 extern uint8_t      fontdat12x18[256][36]; /* IM1024 font */
@@ -253,9 +269,6 @@ extern int         video_get_video_from_internal_name(char *s);
 extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
-extern int         video_is_ega_vga(void);
-extern int         video_is_8514(void);
-extern int         video_is_xga(void);
 extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int         video_get_type_monitor(int monitor_index);
 
@@ -288,12 +301,8 @@ extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);
 
-extern void loadfont_ex(char *fn, int format, int offset);
-extern void loadfont(char *fn, int format);
-
-extern int get_actual_size_x(void);
-extern int get_actual_size_y(void);
-
+#define LOAD_FONT_NO_OFFSET       0
+extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
@@ -336,6 +345,7 @@ extern const device_t mach64ct_device;
 extern const device_t mach64ct_device_onboard;
 extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
+extern const device_t mach64vt3_onboard_device;
 
 /* ATi 18800 */
 extern const device_t ati18800_wonder_device;

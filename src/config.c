@@ -51,6 +51,7 @@
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/hdd.h>
+#include <86box/hdd_audio.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
@@ -349,16 +350,21 @@ load_machine(void)
         for (i = 0; machine_migrations[i].old; i++) {
             if (!strcmp(p, machine_migrations[i].old)) {
                 machine      = machine_get_machine_from_internal_name(machine_migrations[i].new);
-                migrate_from = p;
-                if (machine_migrations[i].new_bios) {
-                    migration_cat = ini_find_or_create_section(config, machine_get_device(machine)->name);
-                    ini_section_set_string(migration_cat, "bios", machine_migrations[i].new_bios);
+                if (machine != -1) {
+                    migrate_from = p;
+                    if (machine_migrations[i].new_bios) {
+                        migration_cat = ini_find_or_create_section(config, machine_get_device(machine)->name);
+                        ini_section_set_string(migration_cat, "bios", machine_migrations[i].new_bios);
+                    }
                 }
                 break;
             }
         }
-        if (!migrate_from)
+        if (!migrate_from) {
             machine = machine_get_machine_from_internal_name(p);
+            if (machine == -1)
+                machine = 0;
+        }
     } else {
         machine = 0;
     }
@@ -408,8 +414,7 @@ load_machine(void)
     p                        = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
         /* Migrate CPU family changes. */
-        if ((!strcmp(machines[machine].internal_name, "deskpro386") ||
-            !strcmp(machines[machine].internal_name, "deskpro386_05_1988")))
+        if (machines[machine].init == machine_at_deskpro386_init)
             cpu_f = cpu_get_family("i386dx_deskpro386");
         else
             cpu_f = cpu_get_family(p);
@@ -740,6 +745,25 @@ load_sound(void)
         }
     }
 
+    /* Correct Aztech codec selection in old configs so the OPTi 930 AD1848 type isn't selected */
+    for (int i = 0; i < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); i++) {
+        sprintf(temp, "Aztech Sound Galaxy Pro 16 AB (Washington) #%i", i + 1);
+        ini_section_t c = ini_find_section(config, temp);
+        if (c != NULL) {
+            if (ini_section_get_int(c, "codec", 1) == 2)
+                ini_section_set_int(c, "codec", 3);
+        }
+    }
+    for (int i = 0; i < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); i++) {
+        sprintf(temp, "Aztech Sound Galaxy Nova 16 Extra (Clinton) #%i", i + 1);
+        ini_section_t c = ini_find_section(config, temp);
+        if (c != NULL) {
+            if (ini_section_get_int(c, "codec", 1) == 2)
+                ini_section_set_int(c, "codec", 3);
+        }
+    }
+
+
     memset(temp, '\0', sizeof(temp));
     p = ini_section_get_string(cat, "sound_type", "float");
     if (strlen(p) > 511)
@@ -785,8 +809,8 @@ load_network(void)
                 nc->net_type = NET_TYPE_VDE;
             else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
-            else if (!strcmp(p, "nmswitch") || !strcmp(p, "5"))
-                nc->net_type = NET_TYPE_NMSWITCH;
+            else if (!strcmp(p, "nlswitch") || !strcmp(p, "nmswitch") || !strcmp(p, "5"))
+                nc->net_type = NET_TYPE_NLSWITCH;
             else if (!strcmp(p, "nrswitch") || !strcmp(p, "6"))
                 nc->net_type = NET_TYPE_NRSWITCH;
             else
@@ -837,8 +861,8 @@ load_network(void)
                 nc->net_type = NET_TYPE_VDE;
             else if (!strcmp(p, "tap") || !strcmp(p, "4"))
                 nc->net_type = NET_TYPE_TAP;
-            else if (!strcmp(p, "nmswitch") || !strcmp(p, "5"))
-                nc->net_type = NET_TYPE_NMSWITCH;
+            else if (!strcmp(p, "nlswitch") || !strcmp(p, "nmswitch") || !strcmp(p, "5"))
+                nc->net_type = NET_TYPE_NLSWITCH;
             else if (!strcmp(p, "nrswitch") || !strcmp(p, "6"))
                 nc->net_type = NET_TYPE_NRSWITCH;
             else
@@ -862,18 +886,17 @@ load_network(void)
         } else
             strcpy(nc->host_dev_name, "none");
 
-         sprintf(temp, "net_%02i_switch_group", c + 1);
-         net_cards_conf[c].switch_group = ini_section_get_int(cat, temp, 0);
+        sprintf(temp, "net_%02i_switch_group", c + 1);
+        nc->switch_group = ini_section_get_int(cat, temp, NET_SWITCH_GRP_MIN);
+        if (nc->switch_group < NET_SWITCH_GRP_MIN)
+            nc->switch_group = NET_SWITCH_GRP_MIN;
 
-         sprintf(temp, "net_%02i_promisc", c + 1);
-         net_cards_conf[c].promisc_mode = ini_section_get_int(cat, temp, 0);
+        sprintf(temp, "net_%02i_promisc", c + 1);
+        nc->promisc_mode = ini_section_get_int(cat, temp, 0);
 
-         sprintf(temp, "net_%02i_nrs_host", c + 1);
-         p = ini_section_get_string(cat, temp, NULL);
-         if (p != NULL)
-            strncpy(net_cards_conf[c].nrs_hostname, p, sizeof(net_cards_conf[c].nrs_hostname) - 1);
-         else
-            strncpy(net_cards_conf[c].nrs_hostname, "", sizeof(net_cards_conf[c].nrs_hostname) - 1);
+        sprintf(temp, "net_%02i_nrs_host", c + 1);
+        p = ini_section_get_string(cat, temp, NULL);
+        strncpy(nc->nrs_hostname, p ? p : "", sizeof(nc->nrs_hostname) - 1);
 
         sprintf(temp, "net_%02i_link", c + 1);
         nc->link_state = ini_section_get_int(cat, temp,
@@ -1229,6 +1252,8 @@ load_hard_disks(void)
     uint32_t      board = 0;
     uint32_t      dev = 0;
 
+    hdd_audio_load_profiles();
+
     memset(temp, '\0', sizeof(temp));
     for (uint8_t c = 0; c < HDD_NUM; c++) {
         sprintf(temp, "hdd_%02i_parameters", c + 1);
@@ -1296,6 +1321,11 @@ load_hard_disks(void)
         }
         p                   = ini_section_get_string(cat, temp, tmp2);
         hdd[c].speed_preset = hdd_preset_get_from_internal_name(p);
+
+        /* Audio Profile */
+        sprintf(temp, "hdd_%02i_audio", c + 1);
+        p = ini_section_get_string(cat, temp, "none");
+        hdd[c].audio_profile = hdd_audio_get_profile_by_internal_name(p);
 
         /* MFM/RLL */
         sprintf(temp, "hdd_%02i_mfm_channel", c + 1);
@@ -1492,11 +1522,14 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_check_bpb", c + 1);
             ini_section_delete_var(cat, temp);
         }
-        sprintf(temp, "fdd_%02i_audio", c + 1);        
+        sprintf(temp, "fdd_%02i_audio", c + 1);
 #ifndef DISABLE_FDD_AUDIO
-        p    = ini_section_get_string(cat, temp, "none");
-        int prof = fdd_audio_get_profile_by_internal_name(p);
-        fdd_set_audio_profile(c, prof);
+        p = ini_section_get_string(cat, temp, "none");
+        if (!strcmp(p, "panasonic"))
+            d = fdd_audio_get_profile_by_internal_name("panasonic_ju4755_40t");
+        else
+            d = fdd_audio_get_profile_by_internal_name(p);
+        fdd_set_audio_profile(c, d);
 #else
         fdd_set_audio_profile(c, 0);
 #endif        
@@ -2927,8 +2960,8 @@ save_network(void)
             case NET_TYPE_TAP:
                 ini_section_set_string(cat, temp, "tap");
                 break;
-            case NET_TYPE_NMSWITCH:
-                ini_section_set_string(cat, temp, "nmswitch");
+            case NET_TYPE_NLSWITCH:
+                ini_section_set_string(cat, temp, "nlswitch");
                 break;
             case NET_TYPE_NRSWITCH:
                 ini_section_set_string(cat, temp, "nrswitch");
@@ -2955,26 +2988,22 @@ save_network(void)
             ini_section_set_int(cat, temp, nc->link_state);
 
         sprintf(temp, "net_%02i_switch_group", c + 1);
-        if (nc->device_num == 0)
+        if (nc->switch_group == NET_SWITCH_GRP_MIN)
             ini_section_delete_var(cat, temp);
         else
-            ini_section_set_int(cat, temp, net_cards_conf[c].switch_group);
+            ini_section_set_int(cat, temp, nc->switch_group);
 
         sprintf(temp, "net_%02i_promisc", c + 1);
-        if (nc->device_num == 0)
+        if (nc->promisc_mode == 0)
             ini_section_delete_var(cat, temp);
         else
-            ini_section_set_int(cat, temp, net_cards_conf[c].promisc_mode);
+            ini_section_set_int(cat, temp, nc->promisc_mode);
 
         sprintf(temp, "net_%02i_nrs_host", c + 1);
-        if (nc->device_num == 0)
+        if (nc->nrs_hostname[0] == '\0')
             ini_section_delete_var(cat, temp);
-        else {
-            if (nc->nrs_hostname[0] != '\0')
-                ini_section_set_string(cat, temp, net_cards_conf[c].nrs_hostname);
-            else
-                ini_section_delete_var(cat, temp);
-        }
+        else
+            ini_section_set_string(cat, temp, net_cards_conf[c].nrs_hostname);
     }
 
     ini_delete_section_if_empty(config, cat);
@@ -3437,6 +3466,17 @@ save_hard_disks(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
+
+        sprintf(temp, "hdd_%02i_audio", c + 1);
+        if (!hdd_is_valid(c) || hdd[c].audio_profile == 0) {
+            ini_section_delete_var(cat, temp);
+        } else {
+            const char *internal_name = hdd_audio_get_profile_internal_name(hdd[c].audio_profile);
+            if (internal_name && strcmp(internal_name, "none") != 0)
+                ini_section_set_string(cat, temp, internal_name);
+            else
+                ini_section_delete_var(cat, temp);
+        }
     }
 
     ini_delete_section_if_empty(config, cat);
