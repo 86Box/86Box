@@ -251,11 +251,7 @@ cga_recalctimings(cga_t *cga)
     _dispontime      = _dispontime * CGACONST;
     _dispofftime     = _dispofftime * CGACONST;
     cga->dispontime  = (uint64_t) (_dispontime);
-    if (cga->dispontime > 0x7fffffffffffffffULL)
-        pclog("CGA: Negative display on time (%i, %i, %i)\n", cga->cgamode & CGA_MODE_FLAG_HIGHRES, cga->crtc[CGA_CRTC_HTOTAL] + 1, cga->crtc[CGA_CRTC_HDISP]);
     cga->dispofftime = (uint64_t) (_dispofftime);
-    if (cga->dispofftime > 0x7fffffffffffffffULL)
-        pclog("CGA: Negative display off time (%i, %i, %i)\n", cga->cgamode & CGA_MODE_FLAG_HIGHRES, cga->crtc[CGA_CRTC_HTOTAL] + 1, cga->crtc[CGA_CRTC_HDISP]);
 }
 
 static void
