@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-07 16:56+0000\n"
+"PO-Revision-Date: 2026-01-10 12:56+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -127,7 +127,7 @@ msgid "&Fullscreen"
 msgstr "&Πλήρης οθόνη"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Πλήρης οθόνη &σε τύπο τεντώματος"
+msgstr "Πλήρης οθόνη &σε λειτουργία τεντώματος"
 
 msgid "&Full screen stretch"
 msgstr "&Τέντωμα πλήρους οθόνης"
@@ -325,7 +325,7 @@ msgid "Disk size:"
 msgstr "Μέγεθος δίσκου:"
 
 msgid "RPM mode:"
-msgstr "Τύπος RPM:"
+msgstr "Λειτουργία RPM:"
 
 msgid "Progress:"
 msgstr "Πρόοδος:"
@@ -1032,7 +1032,7 @@ msgid "%1 Device Configuration"
 msgstr "%1 Προσαρμογή Συσκευής"
 
 msgid "Monitor in sleep mode"
-msgstr "Οθόνη σε sleep mode"
+msgstr "Οθόνη σε λειτουργία αναμονής"
 
 msgid "GLSL shaders"
 msgstr "GLSL shaders"
@@ -1604,7 +1604,7 @@ msgid "Select media images from program working directory"
 msgstr "Επιλέξτε αρχεία πολυμέσων απο τον ενεργό κατάλογο προγράμματος"
 
 msgid "PIT mode:"
-msgstr "PIT mode:"
+msgstr "Λειτουργία PIT:"
 
 msgid "Auto"
 msgstr "Αυτόματο"
@@ -1674,7 +1674,7 @@ msgid "Open screenshots &folder…"
 msgstr "Άνοιγμα &φακέλου στιγμιότυπων…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Εφαρμο&γή πλήρους οθόνης σε τέντωμα κατα την μεγιστοποίηση"
+msgstr "&Εφαρμογή πλήρους οθόνης σε τέντωμα κατα την μεγιστοποίηση"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
@@ -1801,7 +1801,7 @@ msgid "Network Card #4"
 msgstr "Κάρτα δικτύου #4"
 
 msgid "Mode:"
-msgstr "Τύπος:"
+msgstr "Λειτουργία:"
 
 msgid "Interface:"
 msgstr "Διασύνδεση:"
@@ -2344,7 +2344,7 @@ msgid "Transfer Speed"
 msgstr "Ταχύτητα Μεταφοράς"
 
 msgid "EMS mode"
-msgstr "Τύπος EMS"
+msgstr "Λειτουργία EMS"
 
 msgid "EMS Address"
 msgstr "Διεύθυνση EMS"
@@ -2558,10 +2558,10 @@ msgid "Color 80x25 (5153/CGA)"
 msgstr "Έγχρωμο 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "Ενισχυμένο Έγχρωμο - Κανονικός Τύπος (5154/ECD)"
+msgstr "Ενισχυμένο Έγχρωμο - Κανονική Λειτουργία (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένος Τύπος (5154/ECD)"
+msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένη Λειτουργία (5154/ECD)"
 
 msgid "Green"
 msgstr "Πράσινο"
@@ -2660,7 +2660,7 @@ msgid "Serial Passthrough Device"
 msgstr "Συσκευή Σειριακής Διέλευσης"
 
 msgid "Passthrough Mode"
-msgstr "Τύπος Διέλευσης"
+msgstr "Λειτουργία Διέλευσης"
 
 msgid "Host Serial Device"
 msgstr "Σειριακή Συσκευή Οικοδεσπότη"
@@ -3040,7 +3040,7 @@ msgid "OpenGL input scale"
 msgstr "Κλίμακα OpenGL input"
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL input σε τύπο τεντώματος"
+msgstr "OpenGL input σε λειτουργία τεντώματος"
 
 msgid "Color scheme"
 msgstr "Συνδυασμός χρωμάτων"
