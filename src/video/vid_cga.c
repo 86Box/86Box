@@ -239,9 +239,13 @@ cga_recalctimings(cga_t *cga)
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
         disptime    = (double) (cga->crtc[CGA_CRTC_HTOTAL] + 1);
         _dispontime = (double) cga->crtc[CGA_CRTC_HDISP];
+        if (_dispontime >= disptime)
+            _dispontime = disptime - 1;
     } else {
         disptime    = (double) ((cga->crtc[CGA_CRTC_HTOTAL] + 1) << 1);
         _dispontime = (double) (cga->crtc[CGA_CRTC_HDISP] << 1);
+        if (_dispontime >= disptime)
+            _dispontime = disptime - 2;
     }
     _dispofftime     = disptime - _dispontime;
     _dispontime      = _dispontime * CGACONST;

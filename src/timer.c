@@ -8,7 +8,7 @@
 #include <86box/nv/vid_nv_rivatimer.h>
 
 uint64_t TIMER_USEC;
-uint32_t timer_target;
+uint64_t timer_target;
 
 /*Enabled timers are stored in a linked list, with the first timer to expire at
   the head.*/
@@ -23,68 +23,55 @@ void
 timer_enable(pc_timer_t *timer)
 {
     pc_timer_t *timer_node = timer_head;
-    int ret = 0;
-
-    if (!timer_inited || (timer == NULL))
-        return;
 
     if (timer->flags & TIMER_ENABLED)
         timer_disable(timer);
 
     if (timer->next || timer->prev)
-        fatal("timer_disable(): Attempting to enable a non-isolated "
-              "timer incorrectly marked as disabled\n");
+        fatal("timer_enable - timer->next\n");
+
+    timer->flags |= TIMER_ENABLED;
 
     /*List currently empty - add to head*/
     if (!timer_head) {
-        timer_head  = timer;
+        timer_head = timer;
         timer->next = timer->prev = NULL;
-        timer_target              = timer_head->ts.ts32.integer;
-        ret = 1;
-    } else if (TIMER_LESS_THAN(timer, timer_head)) {
-        timer->next      = timer_head;
-        timer->prev      = NULL;
-        timer_head->prev = timer;
-        timer_head       = timer;
-        timer_target     = timer_head->ts.ts32.integer;
-        ret = 1;
-    } else if (!timer_head->next) {
-        timer_head->next = timer;
-        timer->prev      = timer_head;
-        ret = 1;
+        timer_target = timer_head->ts_integer;
+        return;
     }
 
-    if (ret == 0) {
-        pc_timer_t *prev = timer_head;
-        timer_node       = timer_head->next;
+    timer_node = timer_head;
 
-        while (1) {
-            /*Timer expires before timer_node. Add to list in front of timer_node*/
-            if (TIMER_LESS_THAN(timer, timer_node)) {
-                timer->next      = timer_node;
-                timer->prev      = prev;
-                timer_node->prev = timer;
-                prev->next       = timer;
-                ret = 1;
-                break;
+    while (1) {
+        /*
+           Timer expires before timer_node.
+           Add to list in front of timer_node
+         */
+        if (TIMER_LESS_THAN(timer, timer_node)) {
+            timer->next = timer_node;
+            timer->prev = timer_node->prev;
+            timer_node->prev = timer;
+            if (timer->prev)
+                timer->prev->next = timer;
+            else {
+                timer_head = timer;
+                timer_target = timer_head->ts_integer;
             }
-
-            /*timer_node is last in the list. Add timer to end of list*/
-            if (!timer_node->next) {
-                timer_node->next = timer;
-                timer->prev      = timer_node;
-                ret = 1;
-                break;
-            }
-
-            prev       = timer_node;
-            timer_node = timer_node->next;
+            return;
         }
-    }
 
-    /* Do not mark it as enabled if it has failed every single condition. */
-    if (ret == 1)
-        timer->flags |= TIMER_ENABLED;
+        /*
+           timer_node is last in the list.
+           Add timer to end of list
+         */
+        if (!timer_node->next) {
+            timer_node->next = timer;
+            timer->prev = timer_node;
+            return;
+        }
+
+        timer_node = timer_node->next;
+    }
 }
 
 void
@@ -93,9 +80,12 @@ timer_disable(pc_timer_t *timer)
     if (!timer_inited || (timer == NULL) || !(timer->flags & TIMER_ENABLED))
         return;
 
-    if (!timer->next && !timer->prev && timer != timer_head)
+    if (!timer->next && !timer->prev && timer != timer_head) {
+        uint32_t *p = NULL;
+        *p = 5;    /* Crash deliberately. */
         fatal("timer_disable(): Attempting to disable an isolated "
               "non-head timer incorrectly marked as enabled\n");
+    }
 
     timer->flags &= ~TIMER_ENABLED;
     timer->in_callback = 0;
@@ -109,41 +99,52 @@ timer_disable(pc_timer_t *timer)
     timer->prev = timer->next = NULL;
 }
 
+static void
+timer_remove_head(void)
+{
+    if (timer_head) {
+        pc_timer_t *timer = timer_head;
+        timer_head = timer->next;
+        timer_head->prev = NULL;
+        timer->next = timer->prev = NULL;
+        timer->flags &= ~TIMER_ENABLED;
+    }
+}
+
 void
 timer_process(void)
 {
-    pc_timer_t *timer;
+    int num = 0;
 
     if (!timer_head)
         return;
 
     while (1) {
-        timer = timer_head;
+        pc_timer_t *timer = timer_head;
 
-        if (!TIMER_LESS_THAN_VAL(timer, (uint32_t) tsc))
+        if (!TIMER_LESS_THAN_VAL(timer, (uint64_t) tsc))
             break;
 
-        timer_head = timer->next;
-        if (timer_head)
-            timer_head->prev = NULL;
-
-        timer->next = timer->prev = NULL;
-        timer->flags &= ~TIMER_ENABLED;
+        timer_remove_head();
 
         if (timer->flags & TIMER_SPLIT)
             timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into
-                                                 multiple <= 1 s periods. */
+                                             multiple <= 1 s periods. */
         else if (timer->callback != NULL) {
-            /* Make sure it's not NULL, so that we can
+            /*
+               Make sure it's not NULL, so that we can
                have a NULL callback when no operation
-               is needed. */
+               is needed.
+             */
             timer->in_callback = 1;
             timer->callback(timer->priv);
             timer->in_callback = 0;
         }
+
+        num++;
     }
 
-    timer_target = timer_head->ts.ts32.integer;
+    timer_target = timer_head->ts_integer;
 }
 
 void
@@ -200,7 +201,8 @@ timer_stop(pc_timer_t *timer)
         return;
 
     timer->period = 0.0;
-    timer_disable(timer);
+    if (timer->flags & TIMER_ENABLED)
+        timer_disable(timer);
     timer->flags &= ~TIMER_SPLIT;
     timer->in_callback = 0;
 }
@@ -277,11 +279,11 @@ timer_set_new_tsc(uint64_t new_tsc)
     }
 
     timer = timer_head;
-    timer_target = new_tsc + (int32_t)(timer_get_ts_int(timer_head) - (uint32_t)tsc);
+    timer_target = new_tsc + (int64_t)(timer_get_ts_int(timer_head) - (uint64_t)tsc);
 
     while (timer) {
-        int32_t offset_from_current_tsc = (int32_t)(timer_get_ts_int(timer) - (uint32_t)tsc);
-        timer->ts.ts32.integer = new_tsc + offset_from_current_tsc;
+        int64_t offset_from_current_tsc = (int64_t)(timer_get_ts_int(timer) - (uint64_t)tsc);
+        timer->ts_integer = new_tsc + offset_from_current_tsc;
 
         timer = timer->next;
     }

@@ -280,7 +280,7 @@ update_tsc(void)
         tsc += cycdiff;
 
     if (cycdiff > 0) {
-        if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+        if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
             timer_process();
     }
 }
@@ -865,7 +865,7 @@ exec386_dynarec(int32_t cycs)
             }
 
             if (cycdiff > 0) {
-                if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+                if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                     timer_process();
             }
 
@@ -894,7 +894,7 @@ exec386(int32_t cycs)
     cycles += cycs;
 
     while (cycles > 0) {
-        cycle_period = (timer_target - (uint32_t) tsc) + 1;
+        cycle_period = (timer_target - (uint64_t) tsc) + 1;
 
         x86_was_reset = 0;
         cycdiff       = 0;
@@ -1078,7 +1078,7 @@ block_ended:
                     fatal("Life expired\n");
             }
 
-            if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+            if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                 timer_process();
 
 #ifdef USE_GDBSTUB
