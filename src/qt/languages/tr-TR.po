@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-01 20:06+0000\n"
+"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
+"Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
+"Language: tr-TR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: tr_TR\n"
 "X-Source-Language: en_US\n"
 
@@ -203,6 +209,15 @@ msgstr "Durum &çubuğu simgelerini güncelle"
 
 msgid "Take s&creenshot"
 msgstr "&Ekran görüntüsü al"
+
+msgid "Take &raw screenshot"
+msgstr "Ekran &ham görüntüsü al"
+
+msgid "C&opy screenshot"
+msgstr "Ekran görüntüsü k&opyala"
+
+msgid "Copy r&aw screenshot"
+msgstr "Ekran h&am görüntüsü kopyala"
 
 msgid "S&ound"
 msgstr "&Ses"
@@ -1762,7 +1777,7 @@ msgid "VDE Socket:"
 msgstr "VDE Soketi:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP Köprü Cihazı:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Test Cihazı"
@@ -1801,7 +1816,7 @@ msgid "PS/55 Keyboard"
 msgstr "PS/55 Klavyesi"
 
 msgid "Keys"
-msgstr "Keys"
+msgstr "Tuşlar"
 
 msgid "Logitech/Microsoft Bus Mouse"
 msgstr "Logitech/Microsoft Bus Faresi"
@@ -2044,7 +2059,7 @@ msgid "Reverb Output Gain"
 msgstr "Yankı Çıkış Sesi Artışı"
 
 msgid "Reversed stereo"
-msgstr "Tersine çevirilmiş stereo"
+msgstr "Tersine çevrilmiş stereo"
 
 msgid "Nice ramp"
 msgstr "Güzel rampa"
@@ -2155,16 +2170,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "RTC IRQ"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "RTC Bağlantı Noktası Adresi"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Yerleşik RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Kurulu değil"
 
 msgid "Enable OPL"
 msgstr "OPL'yi etkinleştir"
@@ -2788,7 +2803,7 @@ msgid "Toggle fullscreen"
 msgstr "Tam ekran modunu ayarla"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Arayüzü tam ekranda ayarla"
 
 msgid "Screenshot"
 msgstr "Ekran görüntüsü"
@@ -2993,3 +3008,6 @@ msgstr "&Yorumlanmasını zorla"
 
 msgid "&Allow recompilation"
 msgstr "&Derlenmesine izin ver"
+
+msgid "&Fast forward"
+msgstr ""

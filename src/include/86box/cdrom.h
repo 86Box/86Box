@@ -481,6 +481,8 @@ extern void            cdrom_close(void);
 extern void            cdrom_insert(const uint8_t id);
 extern void            cdrom_exit(const uint8_t id);
 extern int             cdrom_is_empty(const uint8_t id);
+extern int             cdrom_is_playing(const uint8_t id);
+extern int             cdrom_is_paused(const uint8_t id);
 extern void            cdrom_eject(const uint8_t id);
 extern void            cdrom_reload(const uint8_t id);
 

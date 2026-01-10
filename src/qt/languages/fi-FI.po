@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-06 18:56+0000\n"
+"PO-Revision-Date: 2025-12-29 09:54+0000\n"
 "Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
@@ -209,6 +209,15 @@ msgstr "&Päivitä tilapalkin kuvakkeita"
 
 msgid "Take s&creenshot"
 msgstr "Ota &kuvakaappaus"
+
+msgid "Take &raw screenshot"
+msgstr "Ota &raaka kuvakaappaus"
+
+msgid "C&opy screenshot"
+msgstr "K&opioi kuvakaappaus"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopioi r&aaka kuvakaappaus"
 
 msgid "S&ound"
 msgstr "&Ääni"
@@ -2999,3 +3008,6 @@ msgstr "&Pakota tulkinta"
 
 msgid "&Allow recompilation"
 msgstr "&Salli uudelleenkääntäminen"
+
+msgid "&Fast forward"
+msgstr ""

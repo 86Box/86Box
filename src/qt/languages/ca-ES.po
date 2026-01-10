@@ -210,6 +210,15 @@ msgstr "&Actualitza icones a la barra d'estat"
 msgid "Take s&creenshot"
 msgstr "Desa captura de &pantalla"
 
+msgid "Take &raw screenshot"
+msgstr "Desa captura en &brut de pantalla"
+
+msgid "C&opy screenshot"
+msgstr "C&opia captura de pantalla"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copy captura en b&rut de pantalla"
+
 msgid "S&ound"
 msgstr "S&o"
 
@@ -2999,3 +3008,6 @@ msgstr "&Força interpretació"
 
 msgid "&Allow recompilation"
 msgstr "&Permetre recompilació"
+
+msgid "&Fast forward"
+msgstr ""

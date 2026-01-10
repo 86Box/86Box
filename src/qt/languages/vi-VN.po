@@ -204,6 +204,15 @@ msgstr "Cậ&p nhật biểu tượng thanh trạng thái"
 msgid "Take s&creenshot"
 msgstr "Chụp &màn hình"
 
+msgid "Take &raw screenshot"
+msgstr "Chụp màn hình &thô"
+
+msgid "C&opy screenshot"
+msgstr "S&ao chép ảnh chụp màn hình"
+
+msgid "Copy r&aw screenshot"
+msgstr "Sao chép ảnh chụp màn hình t&hô"
+
 msgid "S&ound"
 msgstr "&Âm thanh"
 
@@ -2993,3 +3002,6 @@ msgstr "&Buộc giải thích"
 
 msgid "&Allow recompilation"
 msgstr "&Cho phép biên dịch lại"
+
+msgid "&Fast forward"
+msgstr ""

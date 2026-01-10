@@ -145,6 +145,9 @@ typedef struct monitor_t {
     int                      mon_renderedframes;
     atomic_int               mon_actualrenderedframes;
     atomic_int               mon_screenshots;
+    atomic_int               mon_screenshots_clipboard;
+    atomic_int               mon_screenshots_raw;
+    atomic_int               mon_screenshots_raw_clipboard;
     uint32_t                *mon_pal_lookup;
     int                     *mon_cga_palette;
     int                      mon_pal_lookup_static;  /* Whether it should not be freed by the API. */

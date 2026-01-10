@@ -275,10 +275,6 @@ if(EMU_BUILD_NUM)
     )
 endif()
 
-if(NETSWITCH)
-    target_compile_definitions(ui PRIVATE USE_NETSWITCH)
-endif()
-
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()

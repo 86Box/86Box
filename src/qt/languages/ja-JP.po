@@ -211,6 +211,15 @@ msgstr "ステータスバーのアイコンを更新(&U)"
 msgid "Take s&creenshot"
 msgstr "スクリーンショットを撮る(&C)"
 
+msgid "Take &raw screenshot"
+msgstr "生のスクリーンショットを撮る(&R)"
+
+msgid "C&opy screenshot"
+msgstr "スクリーンショットをコピーする(&O)"
+
+msgid "Copy r&aw screenshot"
+msgstr "生のスクリーンショットをコピーする(&A)"
+
 msgid "S&ound"
 msgstr "サウンド(&O)"
 
@@ -1421,7 +1430,7 @@ msgid "Don't overwrite"
 msgstr "上書きしない"
 
 msgid "Raw image"
-msgstr "Rawイメージ"
+msgstr "生のイメージ"
 
 msgid "HDI image"
 msgstr "HDIイメージ"
@@ -3000,3 +3009,6 @@ msgstr "解釈を強制する(&F)"
 
 msgid "&Allow recompilation"
 msgstr "再コンパイルを許可する(&A)"
+
+msgid "&Fast forward"
+msgstr ""

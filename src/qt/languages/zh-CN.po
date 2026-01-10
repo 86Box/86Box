@@ -204,6 +204,15 @@ msgstr "更新状态栏图标(&U)"
 msgid "Take s&creenshot"
 msgstr "截图(&C)"
 
+msgid "Take &raw screenshot"
+msgstr "原始截图(&R)"
+
+msgid "C&opy screenshot"
+msgstr "复制截图(&O)"
+
+msgid "Copy r&aw screenshot"
+msgstr "复制原始截图(&A)"
+
 msgid "S&ound"
 msgstr "声音(&O)"
 
@@ -2993,3 +3002,6 @@ msgstr "强制解释执行(&F)"
 
 msgid "&Allow recompilation"
 msgstr "允许重编译(&A)"
+
+msgid "&Fast forward"
+msgstr ""

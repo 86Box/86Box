@@ -204,6 +204,15 @@ msgstr "&Oppdater statuslinjeikoner"
 msgid "Take s&creenshot"
 msgstr "Ta s&kjermbilde"
 
+msgid "Take &raw screenshot"
+msgstr "Ta &rå skjermbilde"
+
+msgid "C&opy screenshot"
+msgstr "K&opiera skjermbilde"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopiera r&å skjermbilde"
+
 msgid "S&ound"
 msgstr "L&yd"
 
@@ -2993,3 +3002,6 @@ msgstr "&Tving tolkning"
 
 msgid "&Allow recompilation"
 msgstr "&Tillat rekompilering"
+
+msgid "&Fast forward"
+msgstr ""

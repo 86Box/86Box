@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-04 18:56+0000\n"
+"PO-Revision-Date: 2026-01-02 21:56+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -209,6 +209,15 @@ msgstr "&Aktualizovat ikony stavového řádku"
 
 msgid "Take s&creenshot"
 msgstr "Pořídit &screenshot"
+
+msgid "Take &raw screenshot"
+msgstr "Pořídit n&ezpracovaný screenshot"
+
+msgid "C&opy screenshot"
+msgstr "&Zkopírovat screenshot"
+
+msgid "Copy r&aw screenshot"
+msgstr "Zkopírovat nez&pracovaný screenshot"
 
 msgid "S&ound"
 msgstr "&Zvuk"
@@ -2999,3 +3008,6 @@ msgstr "&Vynutit interpretaci"
 
 msgid "&Allow recompilation"
 msgstr "&Povolit rekompilaci"
+
+msgid "&Fast forward"
+msgstr ""

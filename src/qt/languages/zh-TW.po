@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-02 21:56+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
+"projects/86box/86box/zh_Hant/>\n"
+"Language: zh-TW\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: zh_TW\n"
 "X-Source-Language: en_US\n"
 
@@ -202,7 +209,16 @@ msgid "&Update status bar icons"
 msgstr "更新狀態列圖示(&U)"
 
 msgid "Take s&creenshot"
-msgstr "擷圖(&C)"
+msgstr "擷取螢幕畫面(&C)"
+
+msgid "Take &raw screenshot"
+msgstr "擷取原始螢幕畫面(&R)"
+
+msgid "C&opy screenshot"
+msgstr "擷取螢幕畫面至剪貼簿(&O)"
+
+msgid "Copy r&aw screenshot"
+msgstr "擷取原始螢幕畫面至剪貼薄(&A)"
 
 msgid "S&ound"
 msgstr "聲音(&O)"
@@ -331,7 +347,7 @@ msgid "Machine:"
 msgstr "機型:"
 
 msgid "Configure"
-msgstr "設定"
+msgstr "組態"
 
 msgid "CPU:"
 msgstr "CPU:"
@@ -643,13 +659,13 @@ msgid "Card 4:"
 msgstr "擴充卡 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "通用 ISA ROM 板"
+msgstr "通用 ISA 單 ROM 板"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "通用雙 ISA ROM 板"
+msgstr "通用 ISA 雙 ROM 板"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "通用四通道 ISA ROM 板"
+msgstr "通用 ISA 四 ROM 板"
 
 msgid "ISABugger device"
 msgstr "ISABugger 裝置"
@@ -895,10 +911,10 @@ msgid "Steering wheel (3-axis, 4-button)"
 msgstr "方向盤 (3 軸, 4 鍵搖桿)"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
-msgstr "附轉接器 Thrustmaster Formula T1/T2"
+msgstr "Thrustmaster Formula T1/T2 附轉接器"
 
 msgid "Thrustmaster Formula T1/T2 without adapter"
-msgstr "不附轉接器 Thrustmaster Formula T1/T2"
+msgstr "Thrustmaster Formula T1/T2 不附轉接器"
 
 msgid "None"
 msgstr "無"
@@ -997,7 +1013,7 @@ msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny docum
 msgstr "自動將 PCL 檔案轉換為 PDF 需要 %1。\n\n使用通用 PCL 印表機列印的文件將被儲存為 Printer Command Language (.pcl) 檔案。"
 
 msgid "Don't show this message again"
-msgstr "不要再顯示此消息"
+msgstr "不要再顯示此訊息"
 
 msgid "Don't exit"
 msgstr "不退出"
@@ -1012,7 +1028,7 @@ msgid "CD-ROM images"
 msgstr "光碟影像"
 
 msgid "%1 Device Configuration"
-msgstr "%1 裝置設定"
+msgstr "%1 裝置組態"
 
 msgid "Monitor in sleep mode"
 msgstr "監視器處在睡眠狀態"
@@ -1288,7 +1304,7 @@ msgid "An error has occurred while checking for updates: %1"
 msgstr "檢查更新時發生錯誤: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr "<b>86Box 的更新可用！</b>"
+msgstr "<b>有 86Box 的更新可用！</b>"
 
 msgid "Warning"
 msgstr "警告"
@@ -1303,10 +1319,10 @@ msgid "&Delete"
 msgstr "刪除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？此操作無法撤銷！"
+msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？此操作無法回復！"
 
 msgid "Show &config file"
-msgstr "顯示設定檔(&C)"
+msgstr "顯示組態檔(&C)"
 
 msgid "No screenshot"
 msgstr "沒有螢幕畫面擷取"
@@ -1906,7 +1922,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "啟用 BIOS 擴充 ROM 寫入 (ROM 4)"
 
 msgid "Linear framebuffer base"
-msgstr "線性圖框緩衝記憶體的起始位址"
+msgstr "線性影格緩衝記憶體的起始位址"
 
 msgid "Address"
 msgstr "位址"
@@ -2326,7 +2342,7 @@ msgid "Address for > 2 MB"
 msgstr "> 2 MB 的位址"
 
 msgid "Frame Address"
-msgstr "影格位址"
+msgstr "頁框位址"
 
 msgid "USA"
 msgstr "美國"
@@ -2545,13 +2561,13 @@ msgid "Mono Interlaced"
 msgstr "單色隔行掃描"
 
 msgid "Mono Non-Interlaced"
-msgstr "單色非隔行掃描"
+msgstr "單色逐行掃描"
 
 msgid "Color Interlaced"
 msgstr "彩色隔行掃描"
 
 msgid "Color Non-Interlaced"
-msgstr "彩色非隔行掃描"
+msgstr "彩色逐行掃描"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo 圖形"
@@ -2752,28 +2768,28 @@ msgid "Could not load file %1"
 msgstr "無法載入檔案 %1"
 
 msgid "Key Bindings:"
-msgstr "按鍵綁定:"
+msgstr "按鍵組合:"
 
 msgid "Action"
-msgstr "行動"
+msgstr "動作"
 
 msgid "Keybind"
-msgstr "鍵盤綁定"
+msgstr "按鍵組合"
 
 msgid "Clear binding"
-msgstr "解除綁定"
+msgstr "解除組合"
 
 msgid "Bind"
-msgstr "綁定"
+msgstr "組合"
 
 msgid "Bind Key"
-msgstr "綁定按鍵"
+msgstr "組合按鍵"
 
 msgid "Enter key combo:"
 msgstr "輸入組合鍵:"
 
 msgid "Bind conflict"
-msgstr "綁定衝突"
+msgstr "組合衝突"
 
 msgid "This key combo is already in use."
 msgstr "此組合鍵已在使用中。"
@@ -2923,7 +2939,7 @@ msgid "Virtual machine crash"
 msgstr "虛擬機當機"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
-msgstr "虛擬機 \"%1\" 的進程以退出代碼 %2 意外終止。"
+msgstr "虛擬機 \"%1\" 的行程以結束碼 %2 意外終止。"
 
 msgid "The system will not be added."
 msgstr "系統將不會被新增。"
@@ -2993,3 +3009,6 @@ msgstr "強制解譯執行(&F)"
 
 msgid "&Allow recompilation"
 msgstr "允許重編譯(&A)"
+
+msgid "&Fast forward"
+msgstr ""

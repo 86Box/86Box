@@ -212,6 +212,15 @@ msgstr "&Обновлення значків рядка стану"
 msgid "Take s&creenshot"
 msgstr "Зробити &знімок"
 
+msgid "Take &raw screenshot"
+msgstr "Зробити &сирий знімок"
+
+msgid "C&opy screenshot"
+msgstr "С&копійовати знімок"
+
+msgid "Copy r&aw screenshot"
+msgstr "Скопійовати с&ирий знімок"
+
 msgid "S&ound"
 msgstr "&Звук"
 
@@ -1422,7 +1431,7 @@ msgid "Don't overwrite"
 msgstr "Не перезаписувати"
 
 msgid "Raw image"
-msgstr "RAW образ"
+msgstr "Сирий образ"
 
 msgid "HDI image"
 msgstr "Образ HDI"
@@ -3001,3 +3010,6 @@ msgstr "&Примусове тлумачення"
 
 msgid "&Allow recompilation"
 msgstr "&Дозволити рекомпіляцію"
+
+msgid "&Fast forward"
+msgstr ""

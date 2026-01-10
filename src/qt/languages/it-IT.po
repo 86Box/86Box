@@ -154,13 +154,13 @@ msgid "VGA screen &type"
 msgstr "Schermi &VGA"
 
 msgid "RGB &Color"
-msgstr "RGB a &Colori"
+msgstr "RGB a &colori"
 
 msgid "RGB (no brown)"
 msgstr "RGB (senza marrone)"
 
 msgid "&RGB Grayscale"
-msgstr "&RGB a Scala di grigi"
+msgstr "&RGB a scala di grigi"
 
 msgid "Generic RGBI color monitor"
 msgstr "Monitor a colori RGBI generico"
@@ -209,6 +209,15 @@ msgstr "&Aggiorna icone della barra di stato"
 
 msgid "Take s&creenshot"
 msgstr "&Cattura schermata"
+
+msgid "Take &raw screenshot"
+msgstr "Cattura &grezza della schermata"
+
+msgid "C&opy screenshot"
+msgstr "C&opia cattura della schermata"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copia cattura g&rezza della schermata"
 
 msgid "S&ound"
 msgstr "A&udio"
@@ -1114,7 +1123,7 @@ msgid "VMs: %1"
 msgstr "Macchine virtuali: %1"
 
 msgid "System Directory:"
-msgstr "Directory Sistema:"
+msgstr "Directory sistema:"
 
 msgid "Choose directory"
 msgstr "Scegli la directory"
@@ -1420,7 +1429,7 @@ msgid "Don't overwrite"
 msgstr "Non sovrascrivere"
 
 msgid "Raw image"
-msgstr "Immagine RAW"
+msgstr "Immagine grezza"
 
 msgid "HDI image"
 msgstr "Immagine HDI"
@@ -2383,10 +2392,10 @@ msgid "Wheel"
 msgstr "Rotellina"
 
 msgid "Five + Wheel"
-msgstr "Cinque + Rotellina"
+msgstr "Cinque + rotellina"
 
 msgid "Five + 2 Wheels"
-msgstr "Cinque + 2 Rotelline"
+msgstr "Cinque + 2 rotelline"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
 msgstr "A3 - SMT2 seriale / SMT3(R)V"
@@ -2999,3 +3008,6 @@ msgstr "&Forza interpretazione"
 
 msgid "&Allow recompilation"
 msgstr "&Permetti ricompilazione"
+
+msgid "&Fast forward"
+msgstr ""

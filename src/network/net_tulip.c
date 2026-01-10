@@ -291,8 +291,6 @@
 
 #define ETH_ALEN                     6
 
-static bar_t   tulip_pci_bar[3];
-
 struct tulip_descriptor {
     uint32_t status;
     uint32_t control;
@@ -338,6 +336,8 @@ struct TULIPState {
     uint32_t bios_addr;
     uint8_t  filter[16][6];
     int      has_bios;
+
+    bar_t    tulip_pci_bar[3];
 };
 
 typedef struct TULIPState TULIPState;
@@ -346,10 +346,10 @@ static void
 tulip_desc_read(TULIPState *s, uint32_t p,
                 struct tulip_descriptor *desc)
 {
-    dma_bm_read(p     , (uint8_t *) &(desc->status)   , 4, 4);
-    dma_bm_read(p +  4, (uint8_t *) &(desc->control)  , 4, 4);
-    dma_bm_read(p +  8, (uint8_t *) &(desc->buf_addr1), 4, 4);
-    dma_bm_read(p + 12, (uint8_t *) &(desc->buf_addr2), 4, 4);
+    desc->status    = mem_readl_phys(p);
+    desc->control   = mem_readl_phys(p + 4);
+    desc->buf_addr1 = mem_readl_phys(p + 8);
+    desc->buf_addr2 = mem_readl_phys(p + 12);
 
     if (s->csr[0] & CSR0_DBO) {
         bswap32s(&desc->status);
@@ -364,20 +364,15 @@ tulip_desc_write(TULIPState *s, uint32_t p,
                  struct tulip_descriptor *desc)
 {
     if (s->csr[0] & CSR0_DBO) {
-        uint32_t status    = bswap32(desc->status);
-        uint32_t control   = bswap32(desc->control);
-        uint32_t buf_addr1 = bswap32(desc->buf_addr1);
-        uint32_t buf_addr2 = bswap32(desc->buf_addr2);
-
-        dma_bm_write(p     , (uint8_t *) &status   , 4, 4);
-        dma_bm_write(p +  4, (uint8_t *) &control  , 4, 4);
-        dma_bm_write(p +  8, (uint8_t *) &buf_addr1, 4, 4);
-        dma_bm_write(p + 12, (uint8_t *) &buf_addr2, 4, 4);
+        mem_writel_phys(p, bswap32(desc->status));
+        mem_writel_phys(p + 4, bswap32(desc->control));
+        mem_writel_phys(p + 8, bswap32(desc->buf_addr1));
+        mem_writel_phys(p + 12, bswap32(desc->buf_addr2));
     } else {
-        dma_bm_write(p     , (uint8_t *) &(desc->status)   , 4, 4);
-        dma_bm_write(p +  4, (uint8_t *) &(desc->control)  , 4, 4);
-        dma_bm_write(p +  8, (uint8_t *) &(desc->buf_addr1), 4, 4);
-        dma_bm_write(p + 12, (uint8_t *) &(desc->buf_addr2), 4, 4);
+        mem_writel_phys(p, desc->status);
+        mem_writel_phys(p + 4, desc->control);
+        mem_writel_phys(p + 8, desc->buf_addr1);
+        mem_writel_phys(p + 12, desc->buf_addr2);
     }
 }
 
@@ -438,10 +433,6 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
             len = s->rx_frame_len;
         }
 
-        if (s->rx_frame_len + len > sizeof(s->rx_frame)) {
-            return;
-        }
-
         dma_bm_write(desc->buf_addr1, s->rx_frame + (s->rx_frame_size - s->rx_frame_len), len, 4);
         s->rx_frame_len -= len;
     }
@@ -451,10 +442,6 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
             len = len2;
         } else {
             len = s->rx_frame_len;
-        }
-
-        if (s->rx_frame_len + len > sizeof(s->rx_frame)) {
-            return;
         }
 
         dma_bm_write(desc->buf_addr2, s->rx_frame + (s->rx_frame_size - s->rx_frame_len), len, 4);
@@ -581,7 +568,7 @@ static const uint16_t tulip_mdi_default[] = {
     0x0600,
     0x0001,
     0x0000,
-    0x3b40,
+    0x0000,
     0x0000,
     0x0000,
     0x0000,
@@ -1241,34 +1228,34 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
             ret = 0x02;
             break;
         case 0x10:
-            ret = (tulip_pci_bar[0].addr_regs[0] & 0x80) | 0x01;
+            ret = (s->tulip_pci_bar[0].addr_regs[0] & 0x80) | 0x01;
             break;
         case 0x11:
-            ret = tulip_pci_bar[0].addr_regs[1];
+            ret = s->tulip_pci_bar[0].addr_regs[1];
             break;
         case 0x12:
-            ret = tulip_pci_bar[0].addr_regs[2];
+            ret = s->tulip_pci_bar[0].addr_regs[2];
             break;
         case 0x13:
-            ret = tulip_pci_bar[0].addr_regs[3];
+            ret = s->tulip_pci_bar[0].addr_regs[3];
             break;
 #ifdef USE_128_BYTE_BAR
         case 0x14:
-            ret = (tulip_pci_bar[1].addr_regs[0] & 0x80);
+            ret = (s->tulip_pci_bar[1].addr_regs[0] & 0x80);
             break;
 #endif
         case 0x15:
 #ifdef USE_128_BYTE_BAR
-            ret = tulip_pci_bar[1].addr_regs[1];
+            ret = s->tulip_pci_bar[1].addr_regs[1];
 #else
-            ret = tulip_pci_bar[1].addr_regs[1] & 0xf0;
+            ret = s->tulip_pci_bar[1].addr_regs[1] & 0xf0;
 #endif
             break;
         case 0x16:
-            ret = tulip_pci_bar[1].addr_regs[2];
+            ret = s->tulip_pci_bar[1].addr_regs[2];
             break;
         case 0x17:
-            ret = tulip_pci_bar[1].addr_regs[3];
+            ret = s->tulip_pci_bar[1].addr_regs[3];
             break;
         case 0x2C:
             ret = s->subsys_ven_id & 0xFF;
@@ -1283,16 +1270,16 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
             ret = s->subsys_id >> 8;
             break;
         case 0x30:
-            ret = (tulip_pci_bar[2].addr_regs[0] & 0x01);
+            ret = (s->tulip_pci_bar[2].addr_regs[0] & 0x01);
             break;
         case 0x31:
-            ret = tulip_pci_bar[2].addr_regs[1];
+            ret = s->tulip_pci_bar[2].addr_regs[1];
             break;
         case 0x32:
-            ret = tulip_pci_bar[2].addr_regs[2];
+            ret = s->tulip_pci_bar[2].addr_regs[2];
             break;
         case 0x33:
-            ret = tulip_pci_bar[2].addr_regs[3];
+            ret = s->tulip_pci_bar[2].addr_regs[3];
             break;
         case 0x3C:
             ret = s->pci_conf[0x3C];
@@ -1346,9 +1333,9 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                              tulip_readb_io, tulip_readw_io, tulip_readl_io,
                              tulip_writeb_io, tulip_writew_io, tulip_writel_io,
                              priv);
-            tulip_pci_bar[0].addr_regs[addr & 3] = val;
-            tulip_pci_bar[0].addr &= 0xffffff80;
-            s->PCIBase = tulip_pci_bar[0].addr;
+            s->tulip_pci_bar[0].addr_regs[addr & 3] = val;
+            s->tulip_pci_bar[0].addr &= 0xffffff80;
+            s->PCIBase = s->tulip_pci_bar[0].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_IO) {
                 //pclog("PCI write=%02x, base=%04x, io?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_IO);
                 if (s->PCIBase != 0)
@@ -1365,13 +1352,13 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x16:
         case 0x17:
             mem_mapping_disable(&s->memory);
-            tulip_pci_bar[1].addr_regs[addr & 3] = val;
+            s->tulip_pci_bar[1].addr_regs[addr & 3] = val;
 #ifdef USE_128_BYTE_BAR
-            tulip_pci_bar[1].addr &= 0xffffff80;
+            s->tulip_pci_bar[1].addr &= 0xffffff80;
 #else
-            tulip_pci_bar[1].addr &= 0xfffff000;
+            s->tulip_pci_bar[1].addr &= 0xfffff000;
 #endif
-            s->MMIOBase = tulip_pci_bar[1].addr;
+            s->MMIOBase = s->tulip_pci_bar[1].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
                 //pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
                 if (s->MMIOBase != 0)
@@ -1390,10 +1377,10 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 return;
 
             mem_mapping_disable(&s->bios_rom.mapping);
-            tulip_pci_bar[2].addr_regs[addr & 3] = val;
-            tulip_pci_bar[2].addr &= 0xffff0001;
-            s->bios_addr = tulip_pci_bar[2].addr & 0xffff0000;
-            if (tulip_pci_bar[2].addr_regs[0] & 0x01) {
+            s->tulip_pci_bar[2].addr_regs[addr & 3] = val;
+            s->tulip_pci_bar[2].addr &= 0xffff0001;
+            s->bios_addr = s->tulip_pci_bar[2].addr & 0xffff0000;
+            if (s->tulip_pci_bar[2].addr_regs[0] & 0x01) {
                 if (s->bios_addr != 0)
                     mem_mapping_set_addr(&s->bios_rom.mapping, s->bios_addr, 0x10000);
             }
@@ -1665,16 +1652,16 @@ nic_init(const device_t *info)
         }
     }
 
-    tulip_pci_bar[0].addr_regs[0] = 1;
-    tulip_pci_bar[1].addr_regs[0] = 0;
-    s->pci_conf[0x04]             = 7;
+    s->tulip_pci_bar[0].addr_regs[0] = 1;
+    s->tulip_pci_bar[1].addr_regs[0] = 0;
+    s->pci_conf[0x04]                = 7;
 
     /* Enable our BIOS space in PCI, if needed. */
     if (s->has_bios) {
         rom_init(&s->bios_rom, ROM_PATH_DEC21140, s->bios_addr, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-        tulip_pci_bar[2].addr         = 0xffff0000;
+        s->tulip_pci_bar[2].addr         = 0xffff0000;
     } else
-        tulip_pci_bar[2].addr         = 0;
+        s->tulip_pci_bar[2].addr         = 0;
 
     mem_mapping_disable(&s->bios_rom.mapping);
     eeprom_data = (info->local == 3) ? s->eeprom_data : (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[0];

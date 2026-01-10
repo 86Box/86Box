@@ -345,6 +345,45 @@ machine_at_ma30d_init(const machine_t *model)
 
 /* i440EX */
 int
+machine_at_brio83xx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/brio83xx/QHL0700.rom",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    // Actual settings!
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4); /* Onboard */
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* Onboard */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* Onboard */
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4); /* Slot 01 */
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1); /* Slot 02 */
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2); /* Slot 03 */
+    pci_register_slot(0x14, PCI_CARD_VIDEO,       1, 2, 3, 4); /* Onboard */
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&s3_trio64v2_dx_onboard_pci_device);
+
+    device_add(&i440ex_device);
+    device_add(&piix4_device);
+
+    device_add_params(&fdc37c67x_device, (void *) (FDC37XXX5));
+
+    /* Chip not quite confirmed, but this does operate fine. */
+    device_add(&sst_flash_29ee020_device);
+
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+int
 machine_at_p6i440e2_init(const machine_t *model)
 {
     int ret;

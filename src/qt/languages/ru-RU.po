@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-07 13:33+0000\n"
+"PO-Revision-Date: 2025-12-30 13:56+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -210,6 +210,15 @@ msgstr "&Обновление значков строки состояния"
 
 msgid "Take s&creenshot"
 msgstr "Сделать с&криншот"
+
+msgid "Take &raw screenshot"
+msgstr "Сделать н&еобработанный скриншот"
+
+msgid "C&opy screenshot"
+msgstr "Ско&пировать скриншот"
+
+msgid "Copy r&aw screenshot"
+msgstr "Скопировать необработанный скрин&шот"
 
 msgid "S&ound"
 msgstr "&Звук"
@@ -1433,7 +1442,7 @@ msgid "Don't overwrite"
 msgstr "Не перезаписывать"
 
 msgid "Raw image"
-msgstr "RAW образ"
+msgstr "Сырой образ"
 
 msgid "HDI image"
 msgstr "Образ HDI"
@@ -3012,3 +3021,6 @@ msgstr "&Принудительная интерпретация"
 
 msgid "&Allow recompilation"
 msgstr "&Разрешить рекомпиляцию"
+
+msgid "&Fast forward"
+msgstr ""

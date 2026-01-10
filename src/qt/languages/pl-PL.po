@@ -211,6 +211,15 @@ msgstr "&Aktualizuj ikony na pasku statusu"
 msgid "Take s&creenshot"
 msgstr "Zrób &zrzut ekranu"
 
+msgid "Take &raw screenshot"
+msgstr "Zrób &surowy zrzut ekranu"
+
+msgid "C&opy screenshot"
+msgstr "S&kopiuj zrzut ekranu"
+
+msgid "Copy r&aw screenshot"
+msgstr "Skopiuj s&urowy zrzut ekranu"
+
 msgid "S&ound"
 msgstr "Dź&więk"
 
@@ -3000,3 +3009,6 @@ msgstr "&Wymuś interpretację"
 
 msgid "&Allow recompilation"
 msgstr "&Zezwól na rekompilację"
+
+msgid "&Fast forward"
+msgstr ""

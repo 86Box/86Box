@@ -43,6 +43,7 @@
 #include <86box/timer.h>
 #include <86box/snd_sb.h>
 #include <86box/plat_unused.h>
+#include <86box/snd_azt2316a.h>
 
 #define SB_1  0
 #define SB_15 1
@@ -863,6 +864,76 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv)
             mixer->regs[0x26] = mixer->regs[0x28] = 0xee;
             mixer->regs[0x2e]                     = 0x00;
             sb_dsp_set_stereo(&sb->dsp, mixer->regs[0x0e] & 2);
+        } else if (sb->dsp.sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) {
+            mixer->regs[mixer->index] = val;
+            sb_log("sb_ct1345: Register WRITE, AZTPR16: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+            aztpr16_update_mixer(sb->dsp.parent);
+
+            switch (mixer->index) {
+                /* Compatibility: chain registers 0x02 and 0x22 as well as 0x06 and 0x26 */
+                case 0x02:
+                case 0x06:
+                case 0x08:
+                    mixer->regs[mixer->index + 0x20] = ((val & 0xe) << 4) | (val & 0xe);
+                    break;
+
+                case 0x22:
+                case 0x26:
+                case 0x28:
+                    mixer->regs[mixer->index - 0x20] = (val & 0xe);
+                    break;
+
+                /* More compatibility:
+                   SoundBlaster Pro selects register 020h for 030h, 022h for 032h,
+                   026h for 036h, and 028h for 038h. */
+                case 0x30:
+                case 0x32:
+                case 0x36:
+                case 0x38:
+                    mixer->regs[mixer->index - 0x10] = (val & 0xee);
+                    break;
+
+                case 0x00:
+                case 0x04:
+                case 0x0a:
+                case 0x0c:
+                case 0x0e:
+                case 0x2e:
+                    break;
+
+                /* Aztech AZTPR16 mixer */
+                case 0x84:
+                case 0x86:
+                case 0x88:
+                case 0x8a:
+                case 0x8c:
+                case 0x8e:
+                case 0xa0:
+                case 0xa2:
+                case 0xa4:
+                case 0xa6:
+                case 0xa8:
+                case 0xaa:
+                case 0xac:
+                case 0xae:
+                case 0xc2:
+                case 0xc4:
+                case 0xc6:
+                case 0xc8:
+                case 0xca:
+                case 0xcc:
+                case 0xce:
+                case 0xe0:
+                case 0xe2:
+                case 0xe4:
+                case 0xe6:
+                case 0xe8:
+                    break;
+
+                default:
+                    sb_log("sb_ct1345: Unknown register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
+                    break;
+            }
         } else {
             mixer->regs[mixer->index] = val;
 
@@ -966,6 +1037,36 @@ sb_ct1345_mixer_read(uint16_t addr, void *priv)
         case 0x36:
         case 0x38:
             return mixer->regs[mixer->index];
+
+        /* Aztech AZTPR16 mixer */
+        case 0x84:
+        case 0x86:
+        case 0x88:
+        case 0x8a:
+        case 0x8c:
+        case 0x8e:
+        case 0xa0:
+        case 0xa2:
+        case 0xa4:
+        case 0xa6:
+        case 0xa8:
+        case 0xaa:
+        case 0xac:
+        case 0xae:
+        case 0xc2:
+        case 0xc4:
+        case 0xc6:
+        case 0xc8:
+        case 0xca:
+        case 0xcc:
+        case 0xce:
+        case 0xe0:
+        case 0xe2:
+        case 0xe4:
+        case 0xe6:
+        case 0xe8:
+            if (sb->dsp.sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09)
+                return mixer->regs[mixer->index];
 
         default:
             sb_log("sb_ct1345: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);

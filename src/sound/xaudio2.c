@@ -14,6 +14,7 @@
  */
 #include <math.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +55,9 @@ static IXAudio2SourceVoice    *srcvoicewt    = NULL;
 static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
 static IXAudio2SourceVoice    *srcvoicecd    = NULL;
 static IXAudio2SourceVoice    *srcvoicefdd   = NULL;
+static IXAudio2SourceVoice    *srcvoicehdd   = NULL;
+
+extern bool fast_forward;
 
 #define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
@@ -184,6 +188,7 @@ inital(void)
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
 
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicefdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicehdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
 
     (void) IXAudio2SourceVoice_SetVolume(srcvoice, 1, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoice, 0, XAUDIO2_COMMIT_NOW);
@@ -191,6 +196,7 @@ inital(void)
     (void) IXAudio2SourceVoice_Start(srcvoicemusic, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoicewt, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoicefdd, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_Start(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
 
     const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
 
@@ -223,6 +229,8 @@ closeal(void)
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicecd);
     (void) IXAudio2SourceVoice_Stop(srcvoicefdd, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicefdd);
+    (void) IXAudio2SourceVoice_Stop(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicehdd);
     if (srcvoicemidi) {
         (void) IXAudio2SourceVoice_Stop(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
         (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemidi);
@@ -231,6 +239,7 @@ closeal(void)
     IXAudio2SourceVoice_DestroyVoice(srcvoicewt);
     IXAudio2SourceVoice_DestroyVoice(srcvoicecd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicefdd);
+    IXAudio2SourceVoice_DestroyVoice(srcvoicehdd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicemusic);
     IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
@@ -239,6 +248,7 @@ closeal(void)
     srcvoicecd   = NULL;
     srcvoicemidi = NULL;
     srcvoicefdd  = NULL;
+    srcvoicehdd  = NULL;
     mastervoice  = NULL;
     xaudio2      = NULL;
 
@@ -251,7 +261,7 @@ closeal(void)
 void
 givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const size_t buflen)
 {
-    if (!initialized)
+    if (!initialized || fast_forward)
         return;
 
     (void) IXAudio2MasteringVoice_SetVolume(mastervoice, sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0),
@@ -310,6 +320,18 @@ givealbuffer_fdd(const void *buf, const uint32_t size)
         return;
 
     givealbuffer_common(buf, srcvoicefdd, size);
+}
+
+void
+givealbuffer_hdd(const void *buf, const uint32_t size)
+{
+    if (!initialized)
+        return;
+    
+    if (!srcvoicefdd)
+        return;
+
+    givealbuffer_common(buf, srcvoicehdd, size);
 }
 
 void

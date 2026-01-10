@@ -204,6 +204,15 @@ msgstr "&Atualizar ícones da barra de status"
 msgid "Take s&creenshot"
 msgstr "Capturar &tela"
 
+msgid "Take &raw screenshot"
+msgstr "Fazer captura &bruta da tela"
+
+msgid "C&opy screenshot"
+msgstr "C&opiar captura da tela"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copiar captura b&ruta da tela"
+
 msgid "S&ound"
 msgstr "&Som"
 
@@ -2993,3 +3002,6 @@ msgstr "&Forçar interpretação"
 
 msgid "&Allow recompilation"
 msgstr "&Permitir recompilação"
+
+msgid "&Fast forward"
+msgstr ""

@@ -506,6 +506,9 @@ voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
                     for (int x = params->clipLeft; x < params->clipRight; x++)
                         cbuf[x] = col;
                 }
+                /* Mark line dirty for single buffer mode */
+                if (params->draw_offset == params->front_offset && y < 2048)
+                    voodoo->dirty_line[y] = 1;
             }
         }
     }

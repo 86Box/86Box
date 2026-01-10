@@ -204,6 +204,15 @@ msgstr "상태 바 아이콘 갱신하기(&U)"
 msgid "Take s&creenshot"
 msgstr "스크린샷 찍기(&C)"
 
+msgid "Take &raw screenshot"
+msgstr "원본 스크린샷 찍기(&R)"
+
+msgid "C&opy screenshot"
+msgstr "스크린샷 복사하세요(&O)"
+
+msgid "Copy r&aw screenshot"
+msgstr "원본 스크린샷 복사하세요(&A)"
+
 msgid "S&ound"
 msgstr "사운드(&O)"
 
@@ -1414,7 +1423,7 @@ msgid "Don't overwrite"
 msgstr "덮어쓰지 않음"
 
 msgid "Raw image"
-msgstr "Raw 이미지"
+msgstr "원본 이미지"
 
 msgid "HDI image"
 msgstr "HDI 이미지"
@@ -2993,3 +3002,6 @@ msgstr "강제 해석(&F)"
 
 msgid "&Allow recompilation"
 msgstr "재컴파일 허용(&A)"
+
+msgid "&Fast forward"
+msgstr ""

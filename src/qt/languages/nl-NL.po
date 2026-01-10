@@ -202,7 +202,16 @@ msgid "&Update status bar icons"
 msgstr "&Statusbalkpictogrammen bijwerken"
 
 msgid "Take s&creenshot"
-msgstr "Maak een schermafbeelding"
+msgstr "Maak een s&chermafbeelding"
+
+msgid "Take &raw screenshot"
+msgstr "Maak een &ruw schermafbeelding"
+
+msgid "C&opy screenshot"
+msgstr "K&opieer een schermafbeelding"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopieer een r&uw schermafbeelding"
 
 msgid "S&ound"
 msgstr "&Geluid"
@@ -2993,3 +3002,6 @@ msgstr "Interpretatie &afdwingen"
 
 msgid "&Allow recompilation"
 msgstr "Recompilatie &toestaan"
+
+msgid "&Fast forward"
+msgstr ""

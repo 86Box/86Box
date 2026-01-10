@@ -165,7 +165,9 @@ extern uint16_t scancode_map[768];
 extern uint16_t scancode_config_map[768];
 
 extern void (*keyboard_send)(uint16_t val);
+extern void kbd_adddata_xt_common(uint16_t val);
 extern void kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));
+extern void kbd_adddata_process_10x(uint16_t val, void (*adddata)(uint16_t val));
 
 extern const scancode scancode_xt[512];
 
@@ -211,6 +213,7 @@ extern void     keyboard_close(void);
 extern void     keyboard_set_table(const scancode *ptr);
 extern void     keyboard_poll_host(void);
 extern void     keyboard_process(void);
+extern void     keyboard_process_10x(void);
 extern uint16_t keyboard_convert(int ch);
 extern void     keyboard_input(int down, uint16_t scan);
 extern void     keyboard_all_up(void);

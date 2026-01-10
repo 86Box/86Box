@@ -210,6 +210,15 @@ msgstr "&Statusleistenicons aktualisieren"
 msgid "Take s&creenshot"
 msgstr "S&creenshot aufnehmen"
 
+msgid "Take &raw screenshot"
+msgstr "&Roh-Screenshot aufnehmen"
+
+msgid "C&opy screenshot"
+msgstr "Screenshot k&opieren"
+
+msgid "Copy r&aw screenshot"
+msgstr "R&oh-Screenshot kopieren"
+
 msgid "S&ound"
 msgstr "&Ton"
 
@@ -2999,3 +3008,6 @@ msgstr "&Erzwingen der Interpretation"
 
 msgid "&Allow recompilation"
 msgstr "Recompilierung &zulassen"
+
+msgid "&Fast forward"
+msgstr ""

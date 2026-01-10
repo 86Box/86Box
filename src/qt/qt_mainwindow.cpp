@@ -65,6 +65,7 @@ extern int qt_nvr_save(void);
 #endif
 
 extern bool cpu_thread_running;
+extern bool fast_forward;
 };
 
 #include <QGuiApplication>
@@ -238,20 +239,26 @@ MainWindow::MainWindow(QWidget *parent)
 
     QTimer *ledKeyboardTimer = new QTimer(this);
     ledKeyboardTimer->setTimerType(Qt::CoarseTimer);
-    ledKeyboardTimer->setInterval(1);
+    ledKeyboardTimer->setInterval(20);
     connect(ledKeyboardTimer, &QTimer::timeout, this, [this]() {
+        uint8_t prev_caps = 255, prev_num = 255, prev_scroll = 255, prev_kana = 255;
         uint8_t caps, num, scroll, kana;
         keyboard_get_states(&caps, &num, &scroll, &kana);
 
-        if (num_label->isVisible())
+        if (num_label->isVisible() && prev_num != num)
             num_label->setPixmap(num ? this->num_icon.pixmap(QSize(16, 16)) : this->num_icon_off.pixmap(QSize(16, 16)));
-        if (caps_label->isVisible())
+        if (caps_label->isVisible() && prev_caps != caps)
             caps_label->setPixmap(caps ? this->caps_icon.pixmap(QSize(16, 16)) : this->caps_icon_off.pixmap(QSize(16, 16)));
-        if (scroll_label->isVisible())
+        if (scroll_label->isVisible() && prev_scroll != scroll)
             scroll_label->setPixmap(scroll ? this->scroll_icon.pixmap(QSize(16, 16)) : this->scroll_icon_off.pixmap(QSize(16, 16)));
 
-        if (kana_label->isVisible())
+        if (kana_label->isVisible() && prev_kana != kana)
             kana_label->setPixmap(kana ? this->kana_icon.pixmap(QSize(16, 16)) : this->kana_icon_off.pixmap(QSize(16, 16)));
+
+        prev_caps   = caps;
+        prev_num    = num;
+        prev_scroll = scroll;
+        prev_kana   = kana;
     });
     ledKeyboardTimer->start();
 
@@ -2130,6 +2137,12 @@ MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
 }
 
 void
+MainWindow::on_actionFast_forward_triggered()
+{
+    fast_forward ^= 1;
+}
+
+void
 MainWindow::on_actionRemember_size_and_position_triggered()
 {
     window_remember ^= 1;
@@ -2259,6 +2272,36 @@ MainWindow::on_actionTake_screenshot_triggered()
     startblit();
     for (auto &monitor : monitors)
         ++monitor.mon_screenshots;
+    endblit();
+    device_force_redraw();
+}
+
+void
+MainWindow::on_actionTake_raw_screenshot_triggered()
+{
+    startblit();
+    for (auto &monitor : monitors)
+        ++monitor.mon_screenshots_raw;
+    endblit();
+    device_force_redraw();
+}
+
+void
+MainWindow::on_actionCopy_screenshot_triggered()
+{
+    startblit();
+    for (auto &monitor : monitors)
+        ++monitor.mon_screenshots_clipboard;
+    endblit();
+    device_force_redraw();
+}
+
+void
+MainWindow::on_actionCopy_raw_screenshot_triggered()
+{
+    startblit();
+    for (auto &monitor : monitors)
+        ++monitor.mon_screenshots_raw_clipboard;
     endblit();
     device_force_redraw();
 }

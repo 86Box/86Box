@@ -123,7 +123,8 @@ acc2036_recalc(acc2036_t *dev)
             ram_page_t *ep = &dev->ems_pages[i - start_i];
 
             mem_mapping_disable(&rp->mapping);
-            mem_mapping_set_addr(&ep->mapping, ep->virt, 0x000040000);
+            ep->virt = ((i << 14) + 0x000a0000);
+            mem_mapping_set_addr(&ep->mapping, ep->virt, 0x00004000);
             mem_mapping_set_exec(&ep->mapping, ram + ep->phys);
             mem_set_mem_state_both(ep->virt, 0x00004000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         } else {
@@ -135,7 +136,7 @@ acc2036_recalc(acc2036_t *dev)
             int     flags;
             uint8_t val;
 
-            mem_mapping_set_addr(&rp->mapping, rp->virt, 0x000040000);
+            mem_mapping_set_addr(&rp->mapping, rp->virt, 0x00004000);
             mem_mapping_set_exec(&rp->mapping, ram + rp->phys);
 
             if ((i >= 8) && (i <= 15)) {
@@ -202,6 +203,8 @@ acc2036_recalc(acc2036_t *dev)
         else
             mem_remap_top(384);
     }
+
+    mem_mapping_disable(&ram_mid_mapping);
 
     flushmmucache_nopc();
 }

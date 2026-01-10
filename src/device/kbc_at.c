@@ -470,16 +470,8 @@ kbc_scan_kbd_at(atkbc_t *dev)
                 kbc_ibf_process(dev);
         /* AT mode. */
         } else {
-#if 0
-            dev->t = dev->mem[0x28];
-#endif
-            if (dev->mem[0x2e] != 0x00) {
-#if 0
-                if (!(dev->t & 0x02))
-                    return;
-#endif
+            if (dev->mem[0x2e] != 0x00)
                 dev->mem[0x2e] = 0x00;
-            }
             dev->p2 &= 0xbf;
             if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
                 /* In our case, we never have noise on the line, so we can simplify this. */
@@ -539,9 +531,6 @@ at_main_ibf:
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
-#if 0
-            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
-#endif
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto at_main_ibf;
@@ -683,12 +672,8 @@ kbc_at_poll_ps2(atkbc_t *dev)
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
-#if 0
-            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
-#endif
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
-            // goto ps2_main_ibf;
             break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
@@ -767,19 +752,6 @@ write_p2(atkbc_t *dev, uint8_t val)
     kbc_at_log("ATkbc: write P2: %02X (old: %02X)\n", val, dev->p2);
 
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
-
-#if 0
-    /* PS/2: Handle IRQ's. */
-    if (dev->misc_flags & FLAG_PS2) {
-        /* IRQ 12 */
-        if (dev->irq[1] != 0xffff)
-            picint_common(1 << dev->irq[1], 0, val & 0x20, NULL);
-
-        /* IRQ 1 */
-        if (dev->irq[0] != 0xffff)
-            picint_common(1 << dev->irq[0], 0, val & 0x10, NULL);
-    }
-#endif
 
     /* AT, PS/2: Handle A20. */
     if ((mem_a20_key ^ val) & 0x02) { /* A20 enable change */
@@ -2199,16 +2171,6 @@ write_cmd_toshiba(void *priv, uint8_t val)
             t3100e_notify_set(0x00);
             ret = 0;
             break;
-
-        case 0xc0: /* Read P1 */
-            kbc_at_log("ATkbc: read P1\n");
-
-            /* The T3100e returns all bits set except bit 6 which
-             * is set by t3100e_mono_set() */
-            dev->p1 = (t3100e_mono_get() & 1) ? 0xff : 0xbf;
-            kbc_delay_to_ob(dev, dev->p1, 0, 0x00);
-            ret = 0;
-            break;
     }
 
     return ret;
@@ -2282,7 +2244,13 @@ read_p1(atkbc_t *dev)
               Compaq: Reserved;
               NCR: DMA mode.
      */
-    uint8_t ret = machine_get_p1(dev->p1) | (dev->p1 & 0x03);
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t ret     = 0x00;
+
+    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA))
+        ret             = machine_get_p1(0xff);
+    else
+        ret             = machine_get_p1(dev->p1) | (dev->p1 & 0x03);
 
     dev->p1 = ((dev->p1 + 1) & 0x03) | (dev->p1 & 0xfc);
 

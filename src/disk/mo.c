@@ -254,7 +254,7 @@ mo_disk_close(const mo_t *dev)
         mo_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path,
-               sizeof(dev->drv->prev_image_path));
+               sizeof(dev->drv->image_path));
         memset(dev->drv->image_path, 0, sizeof(dev->drv->image_path));
 
         dev->drv->medium_size = 0;

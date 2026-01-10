@@ -212,6 +212,15 @@ msgstr "&Ažuriraj ikone statusnog redka"
 msgid "Take s&creenshot"
 msgstr "Napravi &snimku zaslona"
 
+msgid "Take &raw screenshot"
+msgstr "Napravi &neobrađenu snimku zaslona"
+
+msgid "C&opy screenshot"
+msgstr "K&opiraj snimku zalsona"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopiraj n&eobrađenu snimku zaslona"
+
 msgid "S&ound"
 msgstr "&Zvuk"
 
@@ -3001,3 +3010,6 @@ msgstr "&Prisilna interpretacija"
 
 msgid "&Allow recompilation"
 msgstr "&Omogući rekompilaciju"
+
+msgid "&Fast forward"
+msgstr ""

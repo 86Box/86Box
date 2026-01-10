@@ -211,6 +211,15 @@ msgstr "&Atualizar ícones da barra de estado"
 msgid "Take s&creenshot"
 msgstr "Gravar imagem de &ecrã"
 
+msgid "Take &raw screenshot"
+msgstr "Gravar imagem &bruta de ecrã"
+
+msgid "C&opy screenshot"
+msgstr "Copiar imagem de ecrã"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copiar imagem b&ruta de ecrã"
+
 msgid "S&ound"
 msgstr "&Som"
 
@@ -3000,3 +3009,6 @@ msgstr "&Forçar interpretação"
 
 msgid "&Allow recompilation"
 msgstr "&Permitir recompilação"
+
+msgid "&Fast forward"
+msgstr ""

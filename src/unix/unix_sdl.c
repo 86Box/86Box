@@ -156,7 +156,7 @@ sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
         for (int row = 0; row < h; ++row)
             video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
-    if (monitors[monitor_index].mon_screenshots)
+    if (monitors[monitor_index].mon_screenshots_raw)
         video_screenshot((uint32_t *) pixeldata, 0, 0, 2048);
     blitreq = 1;
 

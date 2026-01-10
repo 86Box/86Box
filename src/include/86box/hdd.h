@@ -172,6 +172,7 @@ typedef struct hard_disk_t {
     uint32_t           hpc;
     uint32_t           tracks;
     uint32_t           speed_preset;
+    uint32_t           audio_profile;
 
     uint32_t           num_zones;
     uint32_t           phy_cyl;
@@ -233,6 +234,7 @@ extern double      hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_
 int                hdd_preset_get_num(void);
 const char        *hdd_preset_getname(int preset);
 extern const char *hdd_preset_get_internal_name(int preset);
+extern uint32_t    hdd_preset_get_rpm(int preset);
 extern int         hdd_preset_get_from_internal_name(char *s);
 extern void        hdd_preset_apply(int hdd_id);
 

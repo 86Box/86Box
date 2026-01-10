@@ -30,8 +30,11 @@
 
 #include <QDebug>
 
+#include <QApplication>
+#include <QClipboard>
 #include <QDir>
 #include <QFileInfo>
+#include <QMimeData>
 #include <QTemporaryFile>
 #include <QStandardPaths>
 #include <QCoreApplication>
@@ -977,4 +980,38 @@ plat_break(void)
 #else
     raise(SIGTRAP);
 #endif
+}
+
+static unsigned char *rgb_    = NULL;
+static int            width_  = 0;
+static int            height_ = 0;
+static volatile int   waiting = 0;
+
+static void
+send_to_clipboard(void)
+{
+    unsigned char *rgb = (unsigned char *) calloc(1, height_ * width_ * 4);
+    memcpy(rgb, rgb_, height_ * width_ * 3);
+    QImage image(rgb, width_, height_, width_ * 3, QImage::Format_RGB888);
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setImage(image, QClipboard::Clipboard);
+    free(rgb);
+    waiting = 0;
+}
+
+void
+plat_send_to_clipboard(unsigned char *rgb, int width, int height)
+{
+    rgb_    = rgb;
+    width_  = width;
+    height_ = height;
+    waiting = 1;
+
+    QTimer::singleShot(0, main_window, &send_to_clipboard);
+    while (waiting)
+        ;
+
+    height_ = 0;
+    width_  = 0;
+    rgb_    = NULL;
 }
