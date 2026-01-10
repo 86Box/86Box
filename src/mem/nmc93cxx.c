@@ -29,7 +29,6 @@
 #include <86box/nmc93cxx.h>
 #include <86box/plat_unused.h>
 
-#define ENABLE_NMC93CXX_EEPROM_LOG 1
 #ifdef ENABLE_NMC93CXX_EEPROM_LOG
 int nmc93cxx_eeprom_do_log = ENABLE_NMC93CXX_EEPROM_LOG;
 
