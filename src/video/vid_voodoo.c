@@ -338,11 +338,11 @@ voodoo_readl(uint32_t addr, void *priv)
                 break;
             case SST_hvRetrace:
                 {
-                    uint32_t line_time = (uint32_t) (voodoo->line_time >> 32);
-                    uint32_t diff      = (timer_get_ts_int(&voodoo->timer) > (tsc & 0xffffffff)) ? (timer_get_ts_int(&voodoo->timer) - (tsc & 0xffffffff)) : 0;
-                    uint32_t pre_div   = diff * voodoo->h_total;
-                    uint32_t post_div  = pre_div / line_time;
-                    uint32_t h_pos     = (voodoo->h_total - 1) - post_div;
+                    uint64_t line_time = (uint64_t) (voodoo->line_time >> 32);
+                    uint64_t diff      = (timer_get_ts_int(&voodoo->timer) > tsc) ? (timer_get_ts_int(&voodoo->timer) - tsc) : 0;
+                    uint64_t pre_div   = diff * voodoo->h_total;
+                    uint64_t post_div  = pre_div / line_time;
+                    uint64_t h_pos     = (voodoo->h_total - 1) - post_div;
 
                     if (h_pos >= voodoo->h_total)
                         h_pos = 0;

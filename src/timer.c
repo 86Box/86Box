@@ -119,8 +119,6 @@ timer_process(void)
     if (!timer_head)
         return;
 
-    uint64_t old_target = timer_target;
-
     while (1) {
         pc_timer_t *timer = timer_head;
 
