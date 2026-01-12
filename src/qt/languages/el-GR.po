@@ -3080,3 +3080,6 @@ msgstr ""
 
 msgid "Fast forward"
 msgstr ""
+
+msgid "To change the system directory, stop all running machines."
+msgstr ""

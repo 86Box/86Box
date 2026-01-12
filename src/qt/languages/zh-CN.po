@@ -3017,3 +3017,6 @@ msgstr "快进(&F)"
 
 msgid "Fast forward"
 msgstr "快进"
+
+msgid "To change the system directory, stop all running machines."
+msgstr ""
