@@ -556,11 +556,11 @@ emu8k_inw(uint16_t addr, void *priv)
                     return ret;
 
                 case 4:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].unknown_data0_4);
+                    READ16(addr, emu8k->voice[emu8k->cur_voice].z2);
                     return ret;
 
                 case 5:
-                    READ16(addr, emu8k->voice[emu8k->cur_voice].unknown_data0_5);
+                    READ16(addr, emu8k->voice[emu8k->cur_voice].z1);
                     return ret;
 
                 case 6:
@@ -888,11 +888,11 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                     return;
 
                 case 4:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].unknown_data0_4, val);
+                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].z2, val);
                     return;
 
                 case 5:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].unknown_data0_5, val);
+                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].z1, val);
                     return;
 
                 case 6:
@@ -1006,7 +1006,7 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                             case 0x9:
                                 emu8k->reverb_engine.reflections[0].feedback = (val & 0xF) / 15.0;
                                 break;
-                            case 0xB: 
+                            case 0xB:
 #if 0
                                 emu8k->reverb_engine.reflections[0].feedback_r =  (val&0xF)/15.0;
 #endif
@@ -1050,7 +1050,7 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                             case 1:
                                 emu8k->reverb_engine.refl_in_amp = val & 0xFF;
                                 break;
-                            case 3: 
+                            case 3:
 #if 0
                                 emu8k->reverb_engine.refl_in_amp_r = val&0xFF;
 #endif
@@ -1811,11 +1811,10 @@ emu8k_update(emu8k_t *emu8k)
                     emu_voice->filt_buffer[1] += (emu_voice->filt_buffer[0] * coef0) >> 24;
                     emu_voice->filt_buffer[0] += (vhp * coef0) >> 24;
                     dat = (int32_t) (emu_voice->filt_buffer[1] >> 8);
-                    if (dat > 32767) {
+                    if (dat > 32767)
                         dat = 32767;
-                    } else if (dat < -32768) {
+                    else if (dat < -32768)
                         dat = -32768;
-                    }
 
 #elif defined FILTER_MOOG
 
@@ -1823,15 +1822,15 @@ emu8k_update(emu8k_t *emu8k)
                     dat <<= 8;
 
                     dat -= (coef2 * emu_voice->filt_buffer[4]) >> 24; /*feedback*/
-                    int64_t t1 = emu_voice->filt_buffer[1];
+                    int64_t t1                = emu_voice->filt_buffer[1];
                     emu_voice->filt_buffer[1] = ((dat + emu_voice->filt_buffer[0]) * coef0 - emu_voice->filt_buffer[1] * coef1) >> 24;
                     emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
 
-                    int64_t t2 = emu_voice->filt_buffer[2];
+                    int64_t t2                = emu_voice->filt_buffer[2];
                     emu_voice->filt_buffer[2] = ((emu_voice->filt_buffer[1] + t1) * coef0 - emu_voice->filt_buffer[2] * coef1) >> 24;
                     emu_voice->filt_buffer[2] = ClipBuffer(emu_voice->filt_buffer[2]);
 
-                    int64_t t3 = emu_voice->filt_buffer[3];
+                    int64_t t3                = emu_voice->filt_buffer[3];
                     emu_voice->filt_buffer[3] = ((emu_voice->filt_buffer[2] + t2) * coef0 - emu_voice->filt_buffer[3] * coef1) >> 24;
                     emu_voice->filt_buffer[3] = ClipBuffer(emu_voice->filt_buffer[3]);
 
@@ -1841,11 +1840,10 @@ emu8k_update(emu8k_t *emu8k)
                     emu_voice->filt_buffer[0] = ClipBuffer(dat);
 
                     dat = (int32_t) (emu_voice->filt_buffer[4] >> 8);
-                    if (dat > 32767) {
+                    if (dat > 32767)
                         dat = 32767;
-                    } else if (dat < -32768) {
+                    else if (dat < -32768)
                         dat = -32768;
-                    }
 
 #elif defined FILTER_CONSTANT
 
@@ -1864,11 +1862,10 @@ emu8k_update(emu8k_t *emu8k)
                     emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
 
                     dat = (int32_t) (emu_voice->filt_buffer[1] >> 8);
-                    if (dat > 32767) {
+                    if (dat > 32767)
                         dat = 32767;
-                    } else if (dat < -32768) {
+                    else if (dat < -32768)
                         dat = -32768;
-                    }
 
 #endif
                 }
@@ -2372,6 +2369,8 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
 void
 emu8k_close(emu8k_t *emu8k)
 {
-    free(emu8k->rom);
-    free(emu8k->ram);
+    if (emu8k->rom)
+        free(emu8k->rom);
+    if (emu8k->ram)
+        free(emu8k->ram);
 }

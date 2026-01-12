@@ -6,29 +6,27 @@
  *
  *          Emulation of SCSI fixed and removable disks.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2017-2018 Miran Grca.
  */
-
 #ifndef SCSI_DISK_H
 #define SCSI_DISK_H
 
 typedef struct scsi_disk_t {
     mode_sense_pages_t ms_pages_saved;
 
-    hard_disk_t *      drv;
+    hard_disk_t       *drv;
 #ifdef EMU_IDE_H
-    ide_tf_t *         tf;
+    ide_tf_t          *tf;
 #else
-    void *             tf;
+    void              *tf;
 #endif
 
-    void *             log;
+    void              *log;
 
-    uint8_t *          temp_buffer;
+    uint8_t           *temp_buffer;
+    size_t             temp_buffer_sz;
     uint8_t            atapi_cdb[16];
     uint8_t            current_cdb[16];
     uint8_t            sense[256];

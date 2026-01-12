@@ -8,8 +8,6 @@
  *
  *          Joystick configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -19,9 +17,9 @@
 #include "qt_machinestatus.hpp"
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/hdd.h>
 #include <86box/timer.h>
-#include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/cartridge.h>
 #include <86box/cassette.h>
@@ -85,9 +83,15 @@ struct PixmapSetEmpty {
 struct PixmapSetEmptyActive {
     QPixmap normal;
     QPixmap active;
+    QPixmap record;
+    QPixmap play;
+    QPixmap pause;
+    QPixmap play_active;
+    QPixmap pause_active;
     QPixmap empty;
     QPixmap empty_active;
     QPixmap write_active;
+    QPixmap record_write_active;
     QPixmap read_write_active;
     QPixmap empty_write_active;
     QPixmap empty_read_write_active;
@@ -111,9 +115,9 @@ struct Pixmaps {
 
 struct StateActive {
     std::unique_ptr<QLabel> label;
-    PixmapSetActive        *pixmaps = nullptr;
-    bool                    active  = false;
-    bool                    write_active  = false;
+    PixmapSetActive        *pixmaps      = nullptr;
+    bool                    active       = false;
+    bool                    write_active = false;
 
     void setActive(bool b)
     {
@@ -166,11 +170,41 @@ struct StateEmpty {
 };
 struct StateEmptyActive {
     std::unique_ptr<QLabel> label;
-    PixmapSetEmptyActive   *pixmaps       = nullptr;
-    bool                    empty         = false;
-    bool                    active        = false;
-    bool                    write_active  = false;
-    bool                    wp            = false;
+    PixmapSetEmptyActive   *pixmaps      = nullptr;
+    bool                    empty        = false;
+    bool                    active       = false;
+    bool                    write_active = false;
+    bool                    wp           = false;
+    bool                    play         = false;
+    bool                    pause        = false;
+    bool                    record       = false;
+
+    void setRecord(bool b)
+    {
+        if (!label || b == record)
+            return;
+
+        record = b;
+        refresh();
+    }
+
+    void setPlay(bool b)
+    {
+        if (!label || b == play)
+            return;
+
+        play = b;
+        refresh();
+    }
+
+    void setPause(bool b)
+    {
+        if (!label || b == pause)
+            return;
+
+        pause = b;
+        refresh();
+    }
 
     void setActive(bool b)
     {
@@ -214,17 +248,21 @@ struct StateEmptyActive {
             else
                 label->setPixmap(write_active ? pixmaps->empty_write_active : (active ? pixmaps->empty_active : pixmaps->empty));
         } else {
-            if (wp)
+            if (wp && !(play || pause))
                 label->setPixmap(active ? pixmaps->wp_active : pixmaps->wp);
-            else if (active && write_active)
+            else if (active && write_active && !wp)
                 label->setPixmap(pixmaps->read_write_active);
+            else if (record && !active && !wp)
+                label->setPixmap(write_active ? pixmaps->record_write_active : pixmaps->record);
+            else if ((play || pause) && !write_active)
+                label->setPixmap(play ? (active ? pixmaps->play_active : pixmaps->play) : (active ? pixmaps->pause_active : pixmaps->pause));
             else
                 label->setPixmap(write_active ? pixmaps->write_active : (active ? pixmaps->active : pixmaps->normal));
         }
     }
 };
 
-static QSize         pixmap_size(16, 16);
+static QSize pixmap_size(16, 16);
 
 void
 PixmapSetEmpty::load(const QIcon &icon)
@@ -238,8 +276,8 @@ PixmapSetActive::load(const QIcon &icon)
 {
     normal = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
     active = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
-    
-    write_active = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
+
+    write_active      = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
     read_write_active = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, ReadWriteActive);
 }
 
@@ -254,10 +292,16 @@ void
 PixmapSetEmptyActive::load(const QIcon &icon)
 {
     normal                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    play                    = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Play);
+    pause                   = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Pause);
+    record                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Record);
+    play_active             = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, PlayActive);
+    pause_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, PauseActive);
     wp                      = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtected);
     wp_active               = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedActive);
     active                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
     write_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
+    record_write_active     = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, RecordWriteActive);
     read_write_active       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, ReadWriteActive);
     empty                   = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, None);
     empty_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, Active);
@@ -328,7 +372,7 @@ MachineStatus::MachineStatus(QObject *parent)
     : QObject(parent)
     , refreshTimer(new QTimer(this))
 {
-    d = std::make_unique<MachineStatus::States>(this);
+    d         = std::make_unique<MachineStatus::States>(this);
     soundMenu = nullptr;
     connect(refreshTimer, &QTimer::timeout, this, &MachineStatus::refreshIcons);
     refreshTimer->start(75);
@@ -337,7 +381,7 @@ MachineStatus::MachineStatus(QObject *parent)
 MachineStatus::~MachineStatus() = default;
 
 void
-MachineStatus::setSoundMenu(QMenu* menu)
+MachineStatus::setSoundMenu(QMenu *menu)
 {
     soundMenu = menu;
 }
@@ -497,9 +541,20 @@ MachineStatus::refreshEmptyIcons()
 void
 MachineStatus::refreshIcons()
 {
+    /* Always show record/play statuses of cassette even if icon updates are disabled, since it's important to indicate play/record modes. */
+    if (cassette_enable && cassette) {
+        d->cassette.setRecord(!!cassette->save);
+        d->cassette.setPlay(!cassette->save);
+    }
+
     /* Check if icons should show activity. */
     if (!update_icons)
         return;
+
+    if (cassette_enable) {
+        d->cassette.setWriteActive(machine_status.cassette.write_active);
+        d->cassette.setActive(machine_status.cassette.active);
+    }
 
     for (size_t i = 0; i < FDD_NUM; ++i) {
         d->fdd[i].setActive(machine_status.fdd[i].active);
@@ -508,6 +563,8 @@ MachineStatus::refreshIcons()
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         d->cdrom[i].setActive(machine_status.cdrom[i].active);
         d->cdrom[i].setWriteActive(machine_status.cdrom[i].write_active);
+        d->cdrom[i].setPlay(cdrom_is_playing(i));
+        d->cdrom[i].setPause(cdrom_is_paused(i));
         if (machine_status.cdrom[i].active) {
             ui_sb_update_icon(SB_CDROM | i, 0);
         }
@@ -770,7 +827,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_MFM && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong) hdd[i].hpc * (qulonglong) hdd[i].spt * (qulonglong) hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_MFM].label->setToolTip(tooltip);
@@ -786,7 +843,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_ESDI && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong) hdd[i].hpc * (qulonglong) hdd[i].spt * (qulonglong) hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_ESDI].label->setToolTip(tooltip);
@@ -802,7 +859,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_XTA && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong) hdd[i].hpc * (qulonglong) hdd[i].spt * (qulonglong) hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_XTA].label->setToolTip(tooltip);
@@ -821,7 +878,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             tooltip.append("\n");
             for (int i = 0; i < HDD_NUM; i++) {
                 if (hdd[i].bus_type == HDD_BUS_IDE && hdd[i].fn[0] != 0) {
-                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong) hdd[i].hpc * (qulonglong) hdd[i].spt * (qulonglong) hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
                 }
             }
             d->hdds[HDD_BUS_IDE].label->setToolTip(tooltip);
@@ -837,7 +894,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             tooltip.append("\n");
             for (int i = 0; i < HDD_NUM; i++) {
                 if (hdd[i].bus_type == HDD_BUS_ATAPI && hdd[i].fn[0] != 0) {
-                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                    tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 1), QString::number(hdd[i].channel & 1), QString::number((((qulonglong) hdd[i].hpc * (qulonglong) hdd[i].spt * (qulonglong) hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
                 }
             }
             d->hdds[HDD_BUS_ATAPI].label->setToolTip(tooltip);
@@ -857,7 +914,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         tooltip.append("\n");
         for (int i = 0; i < HDD_NUM; i++) {
             if (hdd[i].bus_type == HDD_BUS_SCSI && hdd[i].fn[0] != 0) {
-                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 4), QString::asprintf("%02d", hdd[i].channel & 15), QString::number((((qulonglong)hdd[i].hpc * (qulonglong)hdd[i].spt * (qulonglong)hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
+                tooltip.append(QString("\n%5:%6: %1 (C:H:S = %2:%3:%4, %7 %8)").arg(QString::fromUtf8(hdd[i].fn), QString::number(hdd[i].tracks), QString::number(hdd[i].hpc), QString::number(hdd[i].spt), QString::number(hdd[i].channel >> 4), QString::asprintf("%02d", hdd[i].channel & 15), QString::number((((qulonglong) hdd[i].hpc * (qulonglong) hdd[i].spt * (qulonglong) hdd[i].tracks) * 512ull) / 1048576ull), tr("MB")));
             }
         }
         d->hdds[HDD_BUS_SCSI].label->setToolTip(tooltip);

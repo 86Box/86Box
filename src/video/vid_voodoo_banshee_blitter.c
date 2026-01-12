@@ -1,3 +1,17 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          3DFX Voodoo emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *
+ *          Copyright 2008-2020 Sarah Walker.
+ */
 /*Current issues :
   - missing YUV blits (YUV -> 32-bit, 24-bit, or 16-bit RGB now done)
   - missing wait for vsync
@@ -1424,9 +1438,30 @@ banshee_polyfill_continue(voodoo_t *voodoo, uint32_t data)
     }
 }
 
+static inline void
+banshee_do_2d_launch(voodoo_t *voodoo)
+{
+    voodoo->launch_pending                  = 0;
+    voodoo->banshee_blt.rops[0]             = voodoo->banshee_blt.command >> 24;
+    voodoo->banshee_blt.patoff_x            = (voodoo->banshee_blt.command & COMMAND_PATOFF_X_MASK) >> COMMAND_PATOFF_X_SHIFT;
+    voodoo->banshee_blt.patoff_y            = (voodoo->banshee_blt.command & COMMAND_PATOFF_Y_MASK) >> COMMAND_PATOFF_Y_SHIFT;
+    voodoo->banshee_blt.cur_x               = 0;
+    voodoo->banshee_blt.cur_y               = 0;
+    voodoo->banshee_blt.dstX                = ((int32_t) (voodoo->banshee_blt.dstXY << 19)) >> 19;
+    voodoo->banshee_blt.dstY                = ((int32_t) (voodoo->banshee_blt.dstXY << 3)) >> 19;
+    voodoo->banshee_blt.srcX                = ((int32_t) (voodoo->banshee_blt.srcXY << 19)) >> 19;
+    voodoo->banshee_blt.srcY                = ((int32_t) (voodoo->banshee_blt.srcXY << 3)) >> 19;
+    voodoo->banshee_blt.old_srcX            = voodoo->banshee_blt.srcX;
+    voodoo->banshee_blt.host_data_remainder = 0;
+    voodoo->banshee_blt.host_data_count     = 0;
+}
+
 static void
 banshee_do_2d_blit(voodoo_t *voodoo, int count, uint32_t data)
 {
+    if (voodoo->launch_pending) {
+        banshee_do_2d_launch(voodoo);
+    }
     switch (voodoo->banshee_blt.command & COMMAND_CMD_MASK) {
         case COMMAND_CMD_NOP:
             break;
@@ -1677,21 +1712,7 @@ voodoo_2d_reg_writel(voodoo_t *voodoo, uint32_t addr, uint32_t val)
         case 0x70:
             voodoo_wait_for_render_thread_idle(voodoo);
             voodoo->banshee_blt.command = val;
-            voodoo->banshee_blt.rops[0] = val >> 24;
-#if 0
-            bansheeblt_log("command=%x %08x\n", voodoo->banshee_blt.command & COMMAND_CMD_MASK, val);
-#endif
-            voodoo->banshee_blt.patoff_x            = (val & COMMAND_PATOFF_X_MASK) >> COMMAND_PATOFF_X_SHIFT;
-            voodoo->banshee_blt.patoff_y            = (val & COMMAND_PATOFF_Y_MASK) >> COMMAND_PATOFF_Y_SHIFT;
-            voodoo->banshee_blt.cur_x               = 0;
-            voodoo->banshee_blt.cur_y               = 0;
-            voodoo->banshee_blt.dstX                = ((int32_t) (voodoo->banshee_blt.dstXY << 19)) >> 19;
-            voodoo->banshee_blt.dstY                = ((int32_t) (voodoo->banshee_blt.dstXY << 3)) >> 19;
-            voodoo->banshee_blt.srcX                = ((int32_t) (voodoo->banshee_blt.srcXY << 19)) >> 19;
-            voodoo->banshee_blt.srcY                = ((int32_t) (voodoo->banshee_blt.srcXY << 3)) >> 19;
-            voodoo->banshee_blt.old_srcX            = voodoo->banshee_blt.srcX;
-            voodoo->banshee_blt.host_data_remainder = 0;
-            voodoo->banshee_blt.host_data_count     = 0;
+            voodoo->launch_pending = 1;
             switch (voodoo->banshee_blt.command & COMMAND_CMD_MASK) {
 
 #if 0
@@ -1711,12 +1732,17 @@ voodoo_2d_reg_writel(voodoo_t *voodoo, uint32_t addr, uint32_t val)
 #endif
 
                 case COMMAND_CMD_POLYFILL:
+                    banshee_do_2d_launch(voodoo);
                     if (val & COMMAND_INITIATE) {
                         voodoo->banshee_blt.dstXY = voodoo->banshee_blt.srcXY;
                         voodoo->banshee_blt.dstX  = voodoo->banshee_blt.srcX;
                         voodoo->banshee_blt.dstY  = voodoo->banshee_blt.srcY;
                     }
                     banshee_polyfill_start(voodoo);
+                    break;
+
+                case COMMAND_CMD_HOST_TO_SCREEN_BLT:
+                case COMMAND_CMD_HOST_TO_SCREEN_STRETCH_BLT:
                     break;
 
                 default:
@@ -1765,6 +1791,9 @@ voodoo_2d_reg_writel(voodoo_t *voodoo, uint32_t addr, uint32_t val)
 #if 0
             bansheeblt_log("launch %08x  %08x %08x %08x\n", voodoo->banshee_blt.command,  voodoo->banshee_blt.commandExtra, voodoo->banshee_blt.srcColorkeyMin, voodoo->banshee_blt.srcColorkeyMax);
 #endif
+            if (voodoo->launch_pending) {
+                banshee_do_2d_launch(voodoo);
+            }
             switch (voodoo->banshee_blt.command & COMMAND_CMD_MASK) {
                 case COMMAND_CMD_SCREEN_TO_SCREEN_BLT:
                     voodoo->banshee_blt.srcXY = val;

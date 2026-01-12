@@ -4,7 +4,8 @@
 #include <QDialog>
 #include <QEvent>
 #include <QKeyEvent>
-#include <QStackedWidget>
+#include <QLayout>
+#include <QBoxLayout>
 #include <QWidget>
 #include <QCursor>
 #include <QScreen>
@@ -23,13 +24,12 @@ namespace Ui {
 class RendererStack;
 }
 
-extern "C"
-{
-    extern int vid_resize;
+extern "C" {
+extern int vid_resize;
 }
 
 class RendererCommon;
-class RendererStack : public QStackedWidget {
+class RendererStack : public QWidget {
     Q_OBJECT
 
 public:
@@ -53,16 +53,18 @@ public:
         if (this->m_monitor_index != 0 && vid_resize != 1) {
             int newX = pos().x();
             int newY = pos().y();
-        
+
             if (((frameGeometry().x() + event->size().width() + 1) > util::screenOfWidget(this)->availableGeometry().right())) {
-                //move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
+                // move(util::screenOfWidget(this)->availableGeometry().right() - size().width() - 1, pos().y());
                 newX = util::screenOfWidget(this)->availableGeometry().right() - frameGeometry().width() - 1;
-                if (newX < 1) newX = 1;
+                if (newX < 1)
+                    newX = 1;
             }
-        
+
             if (((frameGeometry().y() + event->size().height() + 1) > util::screenOfWidget(this)->availableGeometry().bottom())) {
                 newY = util::screenOfWidget(this)->availableGeometry().bottom() - frameGeometry().height() - 1;
-                if (newY < 1) newY = 1;
+                if (newY < 1)
+                    newY = 1;
             }
             move(newX, newY);
         }
@@ -76,7 +78,7 @@ public:
     {
         event->ignore();
     }
-    bool event(QEvent* event) override;
+    bool event(QEvent *event) override;
 
     enum class Renderer {
         Software,
@@ -98,10 +100,12 @@ public:
     void setFocusRenderer();
     void onResize(int width, int height);
 
+    QWidget *currentWidget() { return current.get(); }
+
     void (*mouse_capture_func)(QWindow *window) = nullptr;
     void (*mouse_uncapture_func)()              = nullptr;
 
-    void (*mouse_exit_func)()                   = nullptr;
+    void (*mouse_exit_func)() = nullptr;
 
 signals:
     void blitToRenderer(int buf_idx, int x, int y, int w, int h);
@@ -112,6 +116,8 @@ public slots:
 
 private:
     void createRenderer(Renderer renderer);
+
+    QBoxLayout *boxLayout = nullptr;
 
     Ui::RendererStack *ui;
 
@@ -134,7 +140,7 @@ private:
     std::unique_ptr<QWidget> current;
 
     std::atomic_bool rendererTakesScreenshots;
-    std::atomic_bool switchInProgress{false};
+    std::atomic_bool switchInProgress { false };
 
     char auto_mouse_type[16];
 };

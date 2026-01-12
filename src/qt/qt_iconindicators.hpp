@@ -1,5 +1,5 @@
 #ifndef QT_ICONINDICATORS_HPP
-#    define QT_ICONINDICATORS_HPP
+#define QT_ICONINDICATORS_HPP
 
 #include <QPixmap>
 #include <QIcon>
@@ -16,7 +16,13 @@ enum IconIndicator {
     Browse,
     WriteProtectedBrowse,
     Export,
-    Eject
+    Eject,
+    Play,
+    Pause,
+    PlayActive,
+    PauseActive,
+    Record,
+    RecordWriteActive
 };
 
 QPixmap getIconWithIndicator(const QIcon &icon, const QSize &size, QIcon::Mode iconMode, IconIndicator indicator);

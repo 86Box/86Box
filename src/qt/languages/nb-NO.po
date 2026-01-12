@@ -15,8 +15,8 @@ msgstr "&Tastatur krever opptak"
 msgid "&Right CTRL is left ALT"
 msgstr "&Høyre CTRL er venstre ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Hard tilbakestilling..."
+msgid "&Hard reset"
+msgstr "&Hard tilbakestilling"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -51,6 +51,9 @@ msgstr "&Justerbart vindu"
 msgid "R&emember size && position"
 msgstr "H&usk størrelse &og plassering"
 
+msgid "Remember size && position"
+msgstr "Husk størrelse og plassering"
+
 msgid "Re&nderer"
 msgstr "Re&nderer"
 
@@ -63,8 +66,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "Angi &dimensjoner..."
+msgid "Specify &dimensions…"
+msgstr "Angi &dimensjoner…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Tving &4:3-bildeforhold"
@@ -189,11 +192,11 @@ msgstr "&Medie"
 msgid "&Tools"
 msgstr "&Verktøy"
 
-msgid "&Settings..."
-msgstr "&Innstillinger..."
+msgid "&Settings…"
+msgstr "&Innstillinger…"
 
-msgid "Settings..."
-msgstr "Innstillinger..."
+msgid "Settings…"
+msgstr "Innstillinger…"
 
 msgid "&Update status bar icons"
 msgstr "&Oppdater statuslinjeikoner"
@@ -201,17 +204,26 @@ msgstr "&Oppdater statuslinjeikoner"
 msgid "Take s&creenshot"
 msgstr "Ta s&kjermbilde"
 
+msgid "Take &raw screenshot"
+msgstr "Ta &rå skjermbilde"
+
+msgid "C&opy screenshot"
+msgstr "K&opiera skjermbilde"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopiera r&å skjermbilde"
+
 msgid "S&ound"
 msgstr "L&yd"
 
-msgid "&Preferences..."
-msgstr "&Valg..."
+msgid "&Preferences…"
+msgstr "&Valg…"
 
 msgid "Enable &Discord integration"
 msgstr "Aktiver &Discord-integrasjon"
 
-msgid "Sound &gain..."
-msgstr "Lyd&forsterkning..."
+msgid "Sound &gain…"
+msgstr "Lyd&forsterkning…"
 
 msgid "Begin trace"
 msgstr "Start sporing"
@@ -222,20 +234,20 @@ msgstr "Stopp sporing"
 msgid "&Help"
 msgstr "&Hjelp"
 
-msgid "&Documentation..."
-msgstr "&Dokumentasjon..."
+msgid "&Documentation…"
+msgstr "&Dokumentasjon…"
 
-msgid "&About 86Box..."
-msgstr "&Om 86Box..."
+msgid "&About 86Box…"
+msgstr "&Om 86Box…"
 
-msgid "&New image..."
-msgstr "&Ny diskfil..."
+msgid "&New image…"
+msgstr "&Ny diskfil…"
 
-msgid "&Existing image..."
-msgstr "&Eksisterende diskfil..."
+msgid "&Existing image…"
+msgstr "&Eksisterende diskfil…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Eksisterende diskfil (&skrivbeskyttet)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Eksisterende diskfil (&skrivbeskyttet)…"
 
 msgid "&Record"
 msgstr "&Spill inn"
@@ -252,11 +264,11 @@ msgstr "&Spol frem til slutten"
 msgid "E&ject"
 msgstr "M&at ut"
 
-msgid "&Image..."
-msgstr "&Diskfil..."
+msgid "&Image…"
+msgstr "&Diskfil…"
 
-msgid "E&xport to 86F..."
-msgstr "E&ksporter til 86F..."
+msgid "E&xport to 86F…"
+msgstr "E&ksporter til 86F…"
 
 msgid "&Mute"
 msgstr "&Demp"
@@ -267,38 +279,8 @@ msgstr "T&øm"
 msgid "Reload previous image"
 msgstr "Last inn forrige diskfil"
 
-msgid "&Folder..."
-msgstr "&Mappe..."
-
-msgid "Target &framerate"
-msgstr "Mål-&bildefrekvens"
-
-msgid "&Sync with video"
-msgstr "&Synkroniser med video"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Velg shader..."
-
-msgid "&Remove shader"
-msgstr "&Fjern shader"
+msgid "&Folder…"
+msgstr "&Mappe…"
 
 msgid "Preferences"
 msgstr "Valg"
@@ -325,7 +307,7 @@ msgid "&Default"
 msgstr "&Standard"
 
 msgid "Language:"
-msgstr "Språk"
+msgstr "Språk:"
 
 msgid "Gain"
 msgstr "Forsterkning"
@@ -444,17 +426,17 @@ msgstr "Styrespak:"
 msgid "Joystick"
 msgstr "Styrespak"
 
-msgid "Joystick 1..."
-msgstr "Styrespak 1..."
+msgid "Joystick 1…"
+msgstr "Styrespak 1…"
 
-msgid "Joystick 2..."
-msgstr "Styrespak 2..."
+msgid "Joystick 2…"
+msgstr "Styrespak 2…"
 
-msgid "Joystick 3..."
-msgstr "Styrespak 3..."
+msgid "Joystick 3…"
+msgstr "Styrespak 3…"
 
-msgid "Joystick 4..."
-msgstr "Styrespak 4..."
+msgid "Joystick 4…"
+msgstr "Styrespak 4…"
 
 msgid "Sound card #1:"
 msgstr "Lydkort #1:"
@@ -543,23 +525,23 @@ msgstr "Parallellport 3"
 msgid "Parallel port 4"
 msgstr "Parallellport 4"
 
-msgid "FD Controller:"
-msgstr "FD-kontroller:"
+msgid "Floppy disk controller:"
+msgstr "Diskettkontroller:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM-kontroller:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Tertiær IDE-kontroller"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Tertiær IDE-kontroller"
 
-msgid "Quaternary IDE Controller"
-msgstr "Kvartær IDE-kontroller"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Kvartær IDE-kontroller"
 
-msgid "Hard disk"
-msgstr "Harddisk"
+msgid "Hard disk controllers"
+msgstr "Harddiskkontrollere"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-kontrollere"
 
 msgid "Controller 1:"
 msgstr "Kontroller 1:"
@@ -582,11 +564,11 @@ msgstr "Harddisker:"
 msgid "Firmware Version"
 msgstr "Firmware-versjon"
 
-msgid "&New..."
-msgstr "&Ny..."
+msgid "&New…"
+msgstr "&Ny…"
 
-msgid "&Existing..."
-msgstr "&Eksisterende..."
+msgid "&Existing…"
+msgstr "&Eksisterende…"
 
 msgid "&Remove"
 msgstr "&Fjern"
@@ -599,9 +581,6 @@ msgstr "Kanal:"
 
 msgid "ID:"
 msgstr "ID:"
-
-msgid "&Specify..."
-msgstr "&Angi..."
 
 msgid "Sectors:"
 msgstr "Sektorer:"
@@ -686,9 +665,6 @@ msgstr "ISABugger-enhet"
 
 msgid "POST card"
 msgstr "POST-kort"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Feil"
@@ -849,8 +825,17 @@ msgstr "Ingen PCap-enheter funnet"
 msgid "Invalid PCap device"
 msgstr "Ugyldig PCap-enhet"
 
+msgid "Generic paddle controller(s)"
+msgstr "Generisk padle-kontroller(e)"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "2-akset, 1-knapps styrespak(er)"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-akset, 2-knapps styrespak(er)"
+
+msgid "2-axis, 3-button joystick"
+msgstr "2-akset, 3-knapps styrespak"
 
 msgid "2-axis, 4-button joystick"
 msgstr "2-akset, 4-knapps styrespak"
@@ -864,35 +849,38 @@ msgstr "2-akset, 8-knapps styrespak"
 msgid "3-axis, 2-button joystick"
 msgstr "3-akset, 2-knapps styrespak"
 
+msgid "3-axis, 3-button joystick"
+msgstr "3-akset, 3-knapps styrespak"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3-akset, 4-knapps styrespak"
+
+msgid "4-axis, 2-button joystick"
+msgstr "4-akset, 2-knapps styrespak"
+
+msgid "4-axis, 3-button joystick"
+msgstr "4-akset, 3-knapps styrespak"
 
 msgid "4-axis, 4-button joystick"
 msgstr "4-akset, 4-knapps styrespak"
 
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedaler"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Ror-kontrollsystem"
-
 msgid "2-button gamepad(s)"
 msgstr "2-knapps gamepad(er)"
+
+msgid "3-button gamepad"
+msgstr "3-knapps gamepad"
+
+msgid "4-button gamepad"
+msgstr "4-knapps gamepad"
+
+msgid "6-button gamepad"
+msgstr "6-knapps gamepad"
 
 msgid "2-button flight yoke"
 msgstr "2-knapps flystyre"
 
-msgid "4-button gamepad"
-msgstr "4-knapps gamepad"
+msgid "3-button flight yoke"
+msgstr "3-knapps flystyre"
 
 msgid "4-button flight yoke"
 msgstr "4-knapps flystyre"
@@ -900,11 +888,26 @@ msgstr "4-knapps flystyre"
 msgid "2-button flight yoke with throttle"
 msgstr "2-knapps flystyre med gass"
 
+msgid "3-button flight yoke with throttle"
+msgstr "3-knapps flystyre med gass"
+
 msgid "4-button flight yoke with throttle"
 msgstr "4-knapps flystyre med gass"
 
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 Ratt (3-akset, 4-knapps)"
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Ratt (3-akset, 3-knapps)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Ratt (3-akset, 3-knapps)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Ratt (3-akset, 4-knapps)"
+
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 med adapter"
+
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 uten adapter"
 
 msgid "None"
 msgstr "Ingen"
@@ -954,11 +957,17 @@ msgstr "Intern enhet"
 msgid "&File"
 msgstr "&Fil"
 
-msgid "&New machine..."
-msgstr "&Ny maskin..."
+msgid "&New machine…"
+msgstr "&Ny maskin…"
 
-msgid "&Check for updates..."
-msgstr "&Sjekk etter oppdateringer..."
+msgid "New machine…"
+msgstr "Ny maskin…"
+
+msgid "New machine"
+msgstr "Ny maskin"
+
+msgid "&Check for updates…"
+msgstr "&Sjekk etter oppdateringer…"
 
 msgid "Exit"
 msgstr "Avslutt"
@@ -975,11 +984,8 @@ msgstr "Dette vil hard-resette den emulerte maskinen."
 msgid "Save"
 msgstr "Lagre"
 
-msgid "About 86Box"
-msgstr "Om 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Om %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "En emulator for gamle datamaskiner\n\nForfattere: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne og andre.\n\nMed tidligere kjernebidrag fra Sarah Walker, leilei, JohnElliott, greatpsycho og andre.\n\nUtgitt under GNU General Public License versjon 2 eller senere. Se LICENSE for mer informasjon."
@@ -1073,6 +1079,12 @@ msgstr "Tvangsavslutt"
 
 msgid "Start"
 msgstr "Start"
+
+msgid "&Force shutdown"
+msgstr "&Tvangsavslutt"
+
+msgid "&Start"
+msgstr "&Start"
 
 msgid "Not running"
 msgstr "Ikke kjørende"
@@ -1206,26 +1218,26 @@ msgstr "Angi visningsnavn"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Skriv inn nytt visningsnavn (tomt for å tilbakestille)"
 
-msgid "Change &display name..."
-msgstr "Endre &visningsnavn..."
+msgid "Change &display name…"
+msgstr "Endre &visningsnavn…"
 
 msgid "Context Menu"
 msgstr "Kontekstmeny"
 
-msgid "&Open folder..."
-msgstr "&Åpne mappe..."
+msgid "&Open folder…"
+msgstr "&Åpne mappe…"
 
-msgid "Open p&rinter tray..."
-msgstr "Åpne p&rinter-skuff..."
+msgid "Open p&rinter tray…"
+msgstr "Åpne p&rinter-skuff…"
 
-msgid "Set &icon..."
-msgstr "Angi &ikon..."
+msgid "Set &icon…"
+msgstr "Angi &ikon…"
 
 msgid "Select an icon"
 msgstr "Velg et ikon"
 
-msgid "C&lone..."
-msgstr "K&lon..."
+msgid "C&lone…"
+msgstr "K&lon…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuell maskin \"%1\" (%2) vil bli klonet til:"
@@ -1311,8 +1323,8 @@ msgstr "Ingen skjermbilde"
 msgid "Search"
 msgstr "Søk"
 
-msgid "Searching for VMs..."
-msgstr "Søker etter VMer..."
+msgid "Searching for VMs…"
+msgstr "Søker etter VMer…"
 
 msgid "Found %1"
 msgstr "Fant %1"
@@ -1323,7 +1335,7 @@ msgstr "System"
 msgid "Storage"
 msgstr "Lagring"
 
-msgid "Disk %1: "
+msgid "Disk %1:"
 msgstr "Disk %1:"
 
 msgid "No disks"
@@ -1347,11 +1359,11 @@ msgstr "Harddisk (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL eller ESDI CD-ROM-stasjoner eksisterte aldri"
 
-msgid "Custom..."
-msgstr "Tilpasset..."
+msgid "Custom…"
+msgstr "Tilpasset…"
 
-msgid "Custom (large)..."
-msgstr "Tilpasset (stor)..."
+msgid "Custom (large)…"
+msgstr "Tilpasset (stor)…"
 
 msgid "Add New Hard Disk"
 msgstr "Legg til ny harddisk"
@@ -1469,21 +1481,6 @@ msgstr "Tidsstemplene til overordnet og underordnet disk samsvarer ikke"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Kunne ikke rette VHD-tidsstempel."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1635,14 +1632,14 @@ msgstr "&Tegnebrettverktøy"
 msgid "About &Qt"
 msgstr "Om &Qt"
 
-msgid "&MCA devices..."
-msgstr "&MCA-enheter..."
+msgid "&MCA devices…"
+msgstr "&MCA-enheter…"
 
 msgid "Show non-&primary monitors"
 msgstr "Vis ikke-&primære skjermer"
 
-msgid "Open screenshots &folder..."
-msgstr "Åpne skjermbilde&mappe..."
+msgid "Open screenshots &folder…"
+msgstr "Åpne skjermbilde&mappe…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Bruk fullskjerms&strekkmodus ved maksimering"
@@ -1662,8 +1659,8 @@ msgstr "&Koblet til"
 msgid "Clear image &history"
 msgstr "Tøm bilde&historikk"
 
-msgid "Create..."
-msgstr "Opprett..."
+msgid "Create…"
+msgstr "Opprett…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Vert CD/DVD-stasjon (%1)"
@@ -1704,8 +1701,8 @@ msgstr "Shader-programmer"
 msgid "Remove"
 msgstr "Fjern"
 
-msgid "Browse..."
-msgstr "Bla gjennom..."
+msgid "Browse…"
+msgstr "Bla gjennom…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Kunne ikke opprette OpenGL-kontekst."
@@ -1737,8 +1734,8 @@ msgstr "Jeg flyttet den"
 msgid "I Copied It"
 msgstr "Jeg kopierte den"
 
-msgid "86Box Monitor #"
-msgstr "86Box-skjerm #"
+msgid "86Box Monitor #%1"
+msgstr "86Box-skjerm #%1"
 
 msgid "No MCA devices."
 msgstr "Ingen MCA-enheter."
@@ -1773,6 +1770,9 @@ msgstr "Adapter:"
 msgid "VDE Socket:"
 msgstr "VDE-kontakt:"
 
+msgid "TAP Bridge Device:"
+msgstr ""
+
 msgid "86Box Unit Tester"
 msgstr "86Box-enhetstester"
 
@@ -1791,8 +1791,8 @@ msgstr "Seriell port-gjennomkobling 3"
 msgid "Serial port passthrough 4"
 msgstr "Seriell port-gjennomkobling 4"
 
-msgid "Renderer &options..."
-msgstr "Gjengivelses&alternativer..."
+msgid "Renderer &options…"
+msgstr "Gjengivelses&alternativer…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT-tastatur"
@@ -1929,6 +1929,9 @@ msgstr "Serieport-IRQ"
 msgid "Parallel port IRQ"
 msgstr "Parallellport-IRQ"
 
+msgid "Hard disk"
+msgstr "Harddisk"
+
 msgid "BIOS Revision"
 msgstr "BIOS-revisjon"
 
@@ -2003,9 +2006,6 @@ msgstr "MIDI gjennom"
 
 msgid "MIDI Clockout"
 msgstr "MIDI-klokkeutgang"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Utgangsforsterkning"
@@ -2136,6 +2136,9 @@ msgstr "Lav DMA"
 msgid "Enable Game port"
 msgstr "Aktiver spillport"
 
+msgid "Enable Adlib ports"
+msgstr "Aktiver Adlib-porter"
+
 msgid "SID Model"
 msgstr "SID-modell"
 
@@ -2144,12 +2147,6 @@ msgstr "SID-filterstyrke"
 
 msgid "Surround module"
 msgstr "Surround-modul"
-
-msgid "CODEC"
-msgstr "Kodek"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Generer kodek-avbrudd ved kodek-oppsett (nødvendig for noen drivere)"
 
 msgid "SB Address"
 msgstr "SB-adresse"
@@ -2165,6 +2162,18 @@ msgstr "WSS-IRQ"
 
 msgid "WSS DMA"
 msgstr "WSS-DMA"
+
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
 
 msgid "Enable OPL"
 msgstr "Aktiver OPL"
@@ -2435,9 +2444,6 @@ msgstr "24 MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
-
-msgid "Classic"
-msgstr "Klassisk"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2727,9 +2733,6 @@ msgstr "GLSL-feil"
 msgid "Could not load shader: %1"
 msgstr "Kunne ikke laste shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL versjon 3.0 eller høyere kreves. Nåværende GLSL-versjon er %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Kunne ikke laste tekstur: %1"
 
@@ -2792,6 +2795,9 @@ msgstr "Send Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Veksle fullskjerm"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "Skjermbilde"
@@ -2910,8 +2916,8 @@ msgstr "Besøk nedlastingssiden"
 msgid "Update check"
 msgstr "Oppdateringssjekk"
 
-msgid "Checking for updates..."
-msgstr "Ser etter oppdateringer..."
+msgid "Checking for updates…"
+msgstr "Ser etter oppdateringer…"
 
 msgid "86Box Update"
 msgstr "86Box-oppdatering"
@@ -2949,8 +2955,8 @@ msgstr "Lysstyrke"
 msgid "Sharpness"
 msgstr "Skarphet"
 
-msgid "&CGA composite settings..."
-msgstr "&CGA-komposittinnstillinger..."
+msgid "&CGA composite settings…"
+msgstr "&CGA-komposittinnstillinger…"
 
 msgid "CGA composite settings"
 msgstr "CGA-komposittinnstillinger"
@@ -2958,8 +2964,8 @@ msgstr "CGA-komposittinnstillinger"
 msgid "Monitor EDID"
 msgstr "EDID for skjerm"
 
-msgid "Export..."
-msgstr "Eksporter..."
+msgid "Export…"
+msgstr "Eksporter…"
 
 msgid "Export EDID"
 msgstr "Eksporter EDID"
@@ -2981,3 +2987,21 @@ msgstr "Lys"
 
 msgid "Dark"
 msgstr "Mørk"
+
+msgid "Search:"
+msgstr "Søk:"
+
+msgid "Force interpretation"
+msgstr "Tving tolkning"
+
+msgid "Allow recompilation"
+msgstr "Tillat rekompilering"
+
+msgid "&Force interpretation"
+msgstr "&Tving tolkning"
+
+msgid "&Allow recompilation"
+msgstr "&Tillat rekompilering"
+
+msgid "&Fast forward"
+msgstr ""

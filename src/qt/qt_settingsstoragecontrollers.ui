@@ -31,7 +31,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="labelFD">
        <property name="text">
-        <string>FD Controller:</string>
+        <string>Floppy disk controller:</string>
        </property>
       </widget>
      </item>
@@ -39,6 +39,12 @@
       <widget class="QComboBox" name="comboBoxFD">
        <property name="maxVisibleItems">
         <number>30</number>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
       </widget>
      </item>
@@ -52,7 +58,7 @@
      <item row="1" column="0">
       <widget class="QLabel" name="labelCDInterface">
        <property name="text">
-        <string>CD-ROM Controller:</string>
+        <string>CD-ROM controller:</string>
        </property>
       </widget>
      </item>
@@ -60,6 +66,12 @@
       <widget class="QComboBox" name="comboBoxCDInterface">
        <property name="maxVisibleItems">
         <number>30</number>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
       </widget>
      </item>
@@ -75,7 +87,7 @@
    <item>
     <widget class="QGroupBox" name="groupBoxHD">
      <property name="title">
-      <string>Hard disk</string>
+      <string>Hard disk controllers</string>
      </property>
      <layout class="QGridLayout" name="gridLayoutHD">
       <item row="0" column="0">
@@ -192,7 +204,7 @@
    <item>
     <widget class="QGroupBox" name="groupBoxSCSI">
      <property name="title">
-      <string>SCSI</string>
+      <string>SCSI controllers</string>
      </property>
      <layout class="QGridLayout" name="gridLayoutSCSI">
       <item row="0" column="0">

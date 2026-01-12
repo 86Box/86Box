@@ -8,8 +8,6 @@
  *
  *          Definitions for the PS/2 cmos/nvr device.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
@@ -34,7 +32,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-
 #ifndef EMU_NVRPS2_H
 #define EMU_NVRPS2_H
 

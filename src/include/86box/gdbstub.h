@@ -8,8 +8,6 @@
  *
  *          Definitions for the GDB stub server.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.

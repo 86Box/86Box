@@ -47,7 +47,7 @@
 
 /* Recently used images */
 #define MAX_PREV_IMAGES    10
-#define MAX_IMAGE_PATH_LEN 2048
+#define MAX_IMAGE_PATH_LEN 4096
 
 /* Max UUID Length */
 #define MAX_UUID_LEN 64
@@ -79,12 +79,65 @@
 #define BCD16(x)  ((((x) / 1000) << 12) | (((x) / 100) << 8) | BCD8(x))
 #define BCD32(x)  ((((x) / 10000000) << 28) | (((x) / 1000000) << 24) | (((x) / 100000) << 20) | (((x) / 10000) << 16) | BCD16(x))
 
+#define AS_U8(x)     (*((uint8_t *) &(x)))
+#define AS_U16(x)    (*((uint16_t *) &(x)))
+#define AS_U32(x)    (*((uint32_t *) &(x)))
+#define AS_U64(x)    (*((uint64_t *) &(x)))
+#define AS_I8(x)     (*((int8_t *) &(x)))
+#define AS_I16(x)    (*((int16_t *) &(x)))
+#define AS_I32(x)    (*((int32_t *) &(x)))
+#define AS_I64(x)    (*((int64_t *) &(x)))
+#define AS_FLOAT(x)  (*((float *) &(x)))
+#define AS_DOUBLE(x) (*((double *) &(x)))
+
 #if defined(__GNUC__) || defined(__clang__)
 #    define UNLIKELY(x) __builtin_expect((x), 0)
 #    define LIKELY(x)   __builtin_expect((x), 1)
 #else
 #    define UNLIKELY(x) (x)
 #    define LIKELY(x)   (x)
+#endif
+
+/* Platform-specific atomic handling */
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+    /* On x86/x64, aligned int/uint32_t accesses are naturally atomic */
+    /* Use volatile for performance, as the original code did */
+    #define ATOMIC_INT volatile int
+    #define ATOMIC_UINT volatile uint32_t
+    #define ATOMIC_DOUBLE volatile double
+    #define ATOMIC_LOAD(var) (var)
+    #define ATOMIC_STORE(var, val) ((var) = (val))
+    #define ATOMIC_INC(var) (++(var))
+    #define ATOMIC_DEC(var) (--(var))
+    #define ATOMIC_ADD(var, val) ((var) += (val))
+    #define ATOMIC_SUB(var, val) ((var) -= (val))
+    #define ATOMIC_DOUBLE_ADD(var, val) ((var) += (val))
+#else
+    /* On ARM and other architectures, use proper atomics */
+#ifdef failing_code
+    #ifdef __cplusplus
+    #    include <atomic>
+        using atomic_int = std::atomic<int>;
+        using atomic_uint = std::atomic<unsigned int>;
+    #else
+    #    include <stdatomic.h>
+    #endif
+#else
+    #ifndef __cplusplus
+    #    include <stdatomic.h>
+    #endif
+#endif
+    
+    #define ATOMIC_INT atomic_int
+    #define ATOMIC_UINT atomic_uint
+    #define ATOMIC_DOUBLE _Atomic double
+    #define ATOMIC_LOAD(var) atomic_load(&(var))
+    #define ATOMIC_STORE(var, val) atomic_store(&(var), (val))
+    #define ATOMIC_INC(var) atomic_fetch_add(&(var), 1)
+    #define ATOMIC_DEC(var) atomic_fetch_sub(&(var), 1)
+    #define ATOMIC_ADD(var, val) atomic_fetch_add(&(var), val)
+    #define ATOMIC_SUB(var, val) atomic_fetch_sub(&(var), val)
+    #define ATOMIC_DOUBLE_ADD(var, val) atomic_double_add(&(var), val)
 #endif
 
 #ifdef __cplusplus
@@ -106,9 +159,10 @@ extern int confirm_exit_cmdl; /* (O) do not ask for confirmation on quit if set 
 extern uint64_t unique_id;
 extern uint64_t source_hwnd;
 #endif
-extern char rom_path[1024]; /* (O) full path to ROMs */
-extern char log_path[1024]; /* (O) full path of logfile */
-extern char vm_name[1024];  /* (O) display name of the VM */
+extern char rom_path[1024];   /* (O) full path to ROMs */
+extern char asset_path[1024]; /* (O) full path to assets */
+extern char log_path[1024];   /* (O) full path of logfile */
+extern char vm_name[1024];    /* (O) display name of the VM */
 #ifdef USE_INSTRUMENT
 extern uint8_t  instru_enabled;
 extern uint64_t instru_run_ms;
@@ -202,11 +256,13 @@ extern char vmm_path[1024];        /* VM Manager path to scan */
 extern int  start_vmm;             /* the current execution will start the manager */
 extern int  portable_mode;         /* we are running in portable mode 
                                       (global dirs = exe path) */
+extern int global_cfg_overridden;  /* global config file was overriden on command line */
 
 extern int  monitor_edid;                   /* (C) Which EDID to use. 0=default, 1=custom. */
 extern char monitor_edid_path[1024];        /* (C) Path to custom EDID */
 
 extern int color_scheme;                    /* (C) Color scheme of UI (Windows-only) */
+extern int fdd_sounds_enabled;              /* (C) Enable floppy drive sounds */
 
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
@@ -275,7 +331,7 @@ struct accelKey {
 	char desc[64];
 	char seq[64];
 };
-#define NUM_ACCELS 8
+#define NUM_ACCELS 10
 extern struct accelKey acc_keys[NUM_ACCELS];
 extern struct accelKey def_acc_keys[NUM_ACCELS];
 extern int FindAccelerator(const char *name);

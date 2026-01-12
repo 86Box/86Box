@@ -388,11 +388,7 @@ typedef struct {
     uint32_t old_fp_control;
     uint32_t new_fp_control;
 #    endif
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
-    uint16_t old_fp_control2;
-    uint16_t new_fp_control2;
-#    endif
-#    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined __amd64__ || defined _M_X64
+#    if defined __amd64__ || defined _M_X64
     uint32_t trunc_fp_control;
 #    endif
 #else
@@ -450,15 +446,13 @@ typedef struct {
 #    define CPU_STATUS_MASK      0xffff0000
 #endif
 
-#ifdef _MSC_VER
-#    define COMPILE_TIME_ASSERT(expr) /*nada*/
+
+#ifdef EXTREME_DEBUG
+#   define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
 #else
-#    ifdef EXTREME_DEBUG
-#        define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
-#    else
-#        define COMPILE_TIME_ASSERT(expr) /*nada*/
-#    endif
+#   define COMPILE_TIME_ASSERT(expr) /*nada*/
 #endif
+
 
 COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
@@ -827,6 +821,8 @@ extern MMX_REG  *MMP[8];
 extern uint16_t *MMEP[8];
 
 extern int  cpu_block_end;
+
+extern int  cpu_force_interpreter;
 extern int  cpu_override_dynarec;
 
 extern void mmx_init(void);

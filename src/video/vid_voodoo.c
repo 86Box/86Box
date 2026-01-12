@@ -8,8 +8,6 @@
  *
  *          Voodoo Graphics, 2, Banshee, 3 emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          leilei
  *
@@ -170,10 +168,8 @@ voodoo_readw(uint32_t addr, void *priv)
         }
 
         voodoo->flush = 1;
-        while (!FIFO_EMPTY) {
+        while (!FIFO_EMPTY)
             voodoo_wake_fifo_thread_now(voodoo);
-            thread_wait_event(voodoo->fifo_not_full_event, 1);
-        }
         voodoo_wait_for_render_thread_idle(voodoo);
         voodoo->flush = 0;
 
@@ -342,11 +338,11 @@ voodoo_readl(uint32_t addr, void *priv)
                 break;
             case SST_hvRetrace:
                 {
-                    uint32_t line_time = (uint32_t) (voodoo->line_time >> 32);
-                    uint32_t diff      = (timer_get_ts_int(&voodoo->timer) > (tsc & 0xffffffff)) ? (timer_get_ts_int(&voodoo->timer) - (tsc & 0xffffffff)) : 0;
-                    uint32_t pre_div   = diff * voodoo->h_total;
-                    uint32_t post_div  = pre_div / line_time;
-                    uint32_t h_pos     = (voodoo->h_total - 1) - post_div;
+                    uint64_t line_time = (uint64_t) (voodoo->line_time >> 32);
+                    uint64_t diff      = (timer_get_ts_int(&voodoo->timer) > tsc) ? (timer_get_ts_int(&voodoo->timer) - tsc) : 0;
+                    uint64_t pre_div   = diff * voodoo->h_total;
+                    uint64_t post_div  = pre_div / line_time;
+                    uint64_t h_pos     = (voodoo->h_total - 1) - post_div;
 
                     if (h_pos >= voodoo->h_total)
                         h_pos = 0;
@@ -429,18 +425,27 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
         voodoo_queue_command(voodoo, addr | FIFO_WRITEL_FB, val);
     } else if ((addr & 0x200000) && (voodoo->fbiInit7 & FBIINIT7_CMDFIFO_ENABLE)) {
 #if 0
-        voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, voodoo->cmdfifo_base + (addr & 0x3fffc), val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
+        voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask, val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
 #endif
         *(uint32_t *) &voodoo->fb_mem[(voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask] = val;
         voodoo->cmdfifo_depth_wr++;
-        if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
-            voodoo_wake_fifo_thread(voodoo);
+
+        /* Voodoo1: use higher CMDFIFO threshold to reduce wake frequency */
+        if (voodoo->type == VOODOO_1) {
+            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
+                voodoo_wake_fifo_thread(voodoo);
+        }
+        /* Other cards (Voodoo2, Banshee, Voodoo3, ...) keep the original behavior */
+        else {
+            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
+                voodoo_wake_fifo_thread(voodoo);
+        }
     } else
         switch (addr & 0x3fc) {
             case SST_intrCtrl:
                 fatal("intrCtrl write %08x\n", val);
                 break;
-
+            
             case SST_userIntrCMD:
                 fatal("userIntrCMD write %08x\n", val);
                 break;
@@ -511,12 +516,17 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 break;
             case SST_fbiInit0:
                 if (voodoo->initEnable & 0x01) {
+                    int old_vga_pass = voodoo->fbiInit0 & FBIINIT0_VGA_PASS;
                     voodoo->fbiInit0 = val;
                     thread_wait_mutex(voodoo->force_blit_mutex);
                     voodoo->can_blit = (voodoo->fbiInit0 & FBIINIT0_VGA_PASS) ? 1 : 0;
                     if (!voodoo->can_blit)
                         voodoo->force_blit_count = 0;
                     thread_release_mutex(voodoo->force_blit_mutex);
+
+                    /* When VGA pass-through becomes active, mark all lines dirty to force full refresh */
+                    if (!old_vga_pass && (val & FBIINIT0_VGA_PASS))
+                        memset(voodoo->dirty_line, 1, sizeof(voodoo->dirty_line));
 
                     if (voodoo->set->nr_cards == 2)
                         svga_set_override(voodoo->svga, (voodoo->set->voodoos[0]->fbiInit0 | voodoo->set->voodoos[1]->fbiInit0) & 1);

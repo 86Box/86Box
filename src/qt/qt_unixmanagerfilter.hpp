@@ -6,9 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *      Header file for Unix VM-managers (client-side)
- *
- *
+ *          Header file for Unix VM-managers (client-side)
  *
  * Authors: Teemu Korhonen
  *          Cacodemon345
@@ -16,7 +14,6 @@
  *          Copyright 2022 Teemu Korhonen
  *          Copyright 2022 Cacodemon345
  */
-
 #ifndef QT_UNIXMANAGERFILTER_HPP
 #define QT_UNIXMANAGERFILTER_HPP
 

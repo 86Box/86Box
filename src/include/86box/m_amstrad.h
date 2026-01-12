@@ -10,13 +10,10 @@
  *          PC1512, PC1640 and PC200, including their keyboard, mouse and
  *          video devices, as well as the PC2086 and PC3086 systems.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2008-2019 Sarah Walker.
  */
-
 #ifndef MACHINE_AMSTRAD_H
 #define MACHINE_AMSTRAD_H
 

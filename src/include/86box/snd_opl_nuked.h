@@ -16,7 +16,6 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
  */
-
 #ifndef SOUND_OPL_NUKED_H
 #define SOUND_OPL_NUKED_H
 
@@ -147,7 +146,7 @@ struct _opl3_chip {
 typedef struct {
     opl3_chip opl;
     int8_t    flags;
-    int8_t    pad;
+    int8_t    is_48k;
 
     uint16_t port;
     uint8_t  status;
@@ -159,6 +158,8 @@ typedef struct {
 
     int     pos;
     int32_t buffer[MUSICBUFLEN * 2];
+
+    int32_t *(*update)(void *priv);
 } nuked_drv_t;
 
 enum {

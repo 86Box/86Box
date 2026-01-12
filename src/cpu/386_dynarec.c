@@ -51,6 +51,7 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
+int cpu_force_interpreter   = 0;
 int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
@@ -242,6 +243,20 @@ static uint64_t tsc_old     = 0;
 int32_t acycs = 0;
 #    endif
 
+int
+codegen_mmx_enter(void)
+{
+    MMX_ENTER();
+    return 0;
+}
+
+int
+codegen_fp_enter(void)
+{
+    FP_ENTER();
+    return 0;
+}
+
 void
 update_tsc(void)
 {
@@ -265,7 +280,7 @@ update_tsc(void)
         tsc += cycdiff;
 
     if (cycdiff > 0) {
-        if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+        if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
             timer_process();
     }
 }
@@ -405,7 +420,7 @@ exec386_dynarec_dyn(void)
             uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
 #    ifdef USE_NEW_DYNAREC
             int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
-            uint64_t byte_mask   = 1ULL << (PAGE_BYTE_MASK_MASK & 0x3f);
+            uint64_t byte_mask   = 1ULL << (phys_addr & PAGE_BYTE_MASK_MASK);
 
             if ((page->code_present_mask & mask) ||
                 ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
@@ -764,7 +779,7 @@ exec386_dynarec(int32_t cycs)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if ((!CACHE_ON()) || cpu_override_dynarec) /*Interpret block*/
+            if (cpu_force_interpreter || cpu_override_dynarec ||  (!CACHE_ON())) /*Interpret block*/
             {
                 exec386_dynarec_int();
             } else {
@@ -850,7 +865,7 @@ exec386_dynarec(int32_t cycs)
             }
 
             if (cycdiff > 0) {
-                if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+                if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                     timer_process();
             }
 
@@ -879,7 +894,7 @@ exec386(int32_t cycs)
     cycles += cycs;
 
     while (cycles > 0) {
-        cycle_period = (timer_target - (uint32_t) tsc) + 1;
+        cycle_period = (timer_target - (uint64_t) tsc) + 1;
 
         x86_was_reset = 0;
         cycdiff       = 0;
@@ -1063,7 +1078,7 @@ block_ended:
                     fatal("Life expired\n");
             }
 
-            if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+            if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                 timer_process();
 
 #ifdef USE_GDBSTUB

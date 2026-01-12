@@ -7,7 +7,7 @@
  *          This file is part of the 86Box distribution.
  *
  *          Implementation of the common initialization functions for
-  *         the PC/AT and copatible machines.
+ *          the PC/AT and copatible machines.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <https://pcem-emulator.co.uk/>
@@ -135,5 +135,3 @@ machine_at_ps2_ide_init(const machine_t *model)
 
     device_add(&ide_isa_device);
 }
-
-

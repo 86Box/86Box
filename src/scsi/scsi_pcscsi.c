@@ -9,8 +9,6 @@
  *          Implementation of the Tekram DC-390 SCSI and related MCA
  *          controllers using the NCR 53c9x series of chips.
  *
- *
- *
  * Authors: Fabrice Bellard (QEMU)
  *          Herve Poussineau (QEMU)
  *          TheCollector1995, <mariogplayer@gmail.com>
@@ -1274,7 +1272,7 @@ esp_command_complete(void *priv, uint32_t status)
 static void
 esp_timer_on(esp_t *dev, scsi_device_t *sd, double p)
 {
-    if ((dev->rregs[ESP_CFG3] & 0x18) == 0x18) {
+    if ((dev->wregs[ESP_CFG3] & 0x18) == 0x18) {
         /* Fast SCSI: 10000000 bytes per second */
         dev->period = (p > 0.0) ? p : (((double) sd->buffer_length) * 0.1);
     } else  {
@@ -1537,11 +1535,11 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                         esp_pci_soft_reset(dev);
                     break;
                 case CMD_BUSRESET:
-                    esp_log("ESP Bus Reset val=%02x.\n", (dev->rregs[ESP_CFG1] & CFG1_RESREPT));
+                    esp_log("ESP Bus Reset val=%02x.\n", (dev->wregs[ESP_CFG1] & CFG1_RESREPT));
                     for (uint8_t i = 0; i < 16; i++)
                         scsi_device_reset(&scsi_devices[dev->bus][i]);
 
-                    if (!(dev->rregs[ESP_CFG1] & CFG1_RESREPT)) {
+                    if (!(dev->wregs[ESP_CFG1] & CFG1_RESREPT)) {
                         dev->rregs[ESP_RINTR] |= INTR_RST;
                         esp_log("ESP Bus Reset with IRQ\n");
                         esp_raise_irq(dev);
@@ -1579,7 +1577,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     esp_raise_irq(dev);
                     break;
                 case CMD_PAD:
-                    esp_log("val = %02X\n", val);
+                    esp_log("PAD=%02X\n", val);
                     timer_stop(&dev->timer);
                     timer_on_auto(&dev->timer, dev->period);
                     esp_log("ESP Transfer Pad\n");
@@ -2214,7 +2212,8 @@ esp_pci_reset(void *priv)
 
         esp_pci_soft_reset(dev);
         esp_log("PCI Reset.\n");
-    }
+    } else
+        esp_log("NULL.\n");
 }
 
 static void *

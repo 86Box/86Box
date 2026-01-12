@@ -8,8 +8,6 @@
  *
  *          Implementation of the HxC MFM image format.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2018 Miran Grca.

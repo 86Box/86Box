@@ -8,8 +8,6 @@
  *
  *          Common UI functions.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -65,11 +63,7 @@ void
 plat_delay_ms(uint32_t count)
 {
 #ifdef Q_OS_WINDOWS
-    // On Win32 the accuracy of Sleep() depends on the timer resolution, which can be set by calling timeBeginPeriod
-    // https://learn.microsoft.com/en-us/windows/win32/api/timeapi/nf-timeapi-timebeginperiod
-    timeBeginPeriod(1);
     Sleep(count);
-    timeEndPeriod(1);
 #else
     QThread::msleep(count);
 #endif
@@ -159,10 +153,8 @@ plat_mouse_capture(int on)
 int
 ui_msgbox_header(int flags, void *header, void *message)
 {
-    const auto hdr = (flags & MBX_ANSI) ? QString(static_cast<char *>(header)) :
-                            QString::fromWCharArray(static_cast<const wchar_t *>(header));
-    const auto msg = (flags & MBX_ANSI) ? QString(static_cast<char *>(message)) :
-                            QString::fromWCharArray(static_cast<const wchar_t *>(message));
+    const auto hdr = (flags & MBX_ANSI) ? QString(static_cast<char *>(header)) : QString::fromWCharArray(static_cast<const wchar_t *>(header));
+    const auto msg = (flags & MBX_ANSI) ? QString(static_cast<char *>(message)) : QString::fromWCharArray(static_cast<const wchar_t *>(message));
 
     // any error in early init
     if (main_window == nullptr) {
@@ -265,9 +257,9 @@ ui_sb_set_ready(int ready)
 void
 ui_sb_update_icon_wp(int tag, int state)
 {
-    const auto temp    = static_cast<unsigned int>(tag);
-    const int category = static_cast<int>(temp & 0xfffffff0);
-    const int item     = tag & 0xf;
+    const auto temp     = static_cast<unsigned int>(tag);
+    const int  category = static_cast<int>(temp & 0xfffffff0);
+    const int  item     = tag & 0xf;
 
     switch (category) {
         default:
@@ -293,9 +285,9 @@ ui_sb_update_icon_wp(int tag, int state)
 void
 ui_sb_update_icon_state(int tag, int state)
 {
-    const auto temp    = static_cast<unsigned int>(tag);
-    const int category = static_cast<int>(temp & 0xfffffff0);
-    const int item     = tag & 0xf;
+    const auto temp     = static_cast<unsigned int>(tag);
+    const int  category = static_cast<int>(temp & 0xfffffff0);
+    const int  item     = tag & 0xf;
 
     switch (category) {
         default:
@@ -335,9 +327,9 @@ ui_sb_update_icon_state(int tag, int state)
 void
 ui_sb_update_icon(int tag, int active)
 {
-    const auto temp    = static_cast<unsigned int>(tag);
-    const int category = static_cast<int>(temp & 0xfffffff0);
-    const int item     = tag & 0xf;
+    const auto temp     = static_cast<unsigned int>(tag);
+    const int  category = static_cast<int>(temp & 0xfffffff0);
+    const int  item     = tag & 0xf;
 
     switch (category) {
         default:
@@ -371,9 +363,9 @@ ui_sb_update_icon(int tag, int active)
 void
 ui_sb_update_icon_write(int tag, int write)
 {
-    const auto temp    = static_cast<unsigned int>(tag);
-    const int category = static_cast<int>(temp & 0xfffffff0);
-    const int item     = tag & 0xf;
+    const auto temp     = static_cast<unsigned int>(tag);
+    const int  category = static_cast<int>(temp & 0xfffffff0);
+    const int  item     = tag & 0xf;
 
     switch (category) {
         default:
@@ -403,5 +395,4 @@ ui_sb_update_icon_write(int tag, int write)
             break;
     }
 }
-
 }

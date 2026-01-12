@@ -8,8 +8,6 @@
  *
  *          Storage devices configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje
@@ -53,8 +51,8 @@ SettingsStorageControllers::save()
 {
     /* Storage devices category */
     for (uint8_t i = 0; i < HDC_MAX; ++i) {
-        QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));
-        hdc_current[i]       = cbox->currentData().toInt();
+        QComboBox *cbox = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));
+        hdc_current[i]  = cbox->currentData().toInt();
     }
     for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
         QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
@@ -142,10 +140,10 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxCDInterface->setCurrentIndex(selectedRow);
 
     // HD Controller
-    QComboBox *         hd_cbox[HDC_MAX]            = { 0 };
-    QAbstractItemModel *hd_models[HDC_MAX]          = { 0 };
-    int                 hd_removeRows_[HDC_MAX]     = { 0 };
-    int                 hd_selectedRows[HDC_MAX]    = { 0 };
+    QComboBox          *hd_cbox[HDC_MAX]         = { 0 };
+    QAbstractItemModel *hd_models[HDC_MAX]       = { 0 };
+    int                 hd_removeRows_[HDC_MAX]  = { 0 };
+    int                 hd_selectedRows[HDC_MAX] = { 0 };
 
     for (uint8_t i = 0; i < HDC_MAX; ++i) {
         hd_cbox[i]        = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));
@@ -187,7 +185,7 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     }
 
     // SCSI Card
-    QComboBox *         cbox[SCSI_CARD_MAX]         = { 0 };
+    QComboBox          *cbox[SCSI_CARD_MAX]         = { 0 };
     QAbstractItemModel *models[SCSI_CARD_MAX]       = { 0 };
     int                 removeRows_[SCSI_CARD_MAX]  = { 0 };
     int                 selectedRows[SCSI_CARD_MAX] = { 0 };

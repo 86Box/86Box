@@ -835,7 +835,7 @@ rtl8139_do_receive(void *priv, uint8_t *buf, int size_)
         uint32_t rx_space = rxdw0 & CP_RX_BUFFER_SIZE_MASK;
 
         /* write VLAN info to descriptor variables. */
-        if (s->CpCmd & CPlusRxVLAN && bswap16(*((uint16_t *) &buf[ETH_ALEN * 2])) == 0x8100) {
+        if (s->CpCmd & CPlusRxVLAN && bswap16(AS_U16(buf[ETH_ALEN * 2])) == 0x8100) {
             dot1q_buf = &buf[ETH_ALEN * 2];
             size -= VLAN_HLEN;
             /* if too small buffer, use the tailroom added duing expansion */
@@ -849,7 +849,7 @@ rtl8139_do_receive(void *priv, uint8_t *buf, int size_)
 
             rtl8139_log("C+ Rx mode : extracted vlan tag with tci: "
                         "%u\n",
-                        bswap16(*((uint16_t *) &dot1q_buf[ETHER_TYPE_LEN])));
+                        bswap16(AS_U16(dot1q_buf[ETHER_TYPE_LEN])));
         } else {
             /* reset VLAN tag flag */
             rxdw1 &= ~CP_RX_TAVA;
@@ -3257,14 +3257,9 @@ nic_init(const device_t *info)
     eep_data[1] = 0x10EC;
     eep_data[2] = 0x8139;
 
-    /* XXX: Get proper MAC addresses from real EEPROM dumps. OID taken from net_ne2000.c */
-#ifdef USE_REALTEK_OID
+    /* XXX: Get proper MAC addresses from real EEPROM dumps. OID is generic Realtek */
     eep_data[7] = 0xe000;
     eep_data[8] = 0x124c;
-#else
-    eep_data[7] = 0x1400;
-    eep_data[8] = 0x122a;
-#endif
     eep_data[9] = 0x1413;
 
     mac_bytes = (uint8_t *) &(eep_data[7]);

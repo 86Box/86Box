@@ -14,8 +14,6 @@
  *          Used by ET4000w32/p (Diamond Stealth 32) and the S3
  *          Vision964 family.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
@@ -29,18 +27,12 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/mem.h>
+#include <86box/timer.h>
+#include <86box/video.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_clockgen_icd2061.h>
 #include <86box/plat_unused.h>
-
-typedef struct icd2061_t {
-    float freq[3];
-
-    int      count;
-    int      bit_count;
-    int      unlocked;
-    int      state;
-    uint32_t data;
-    uint32_t ctrl;
-} icd2061_t;
 
 #ifdef ENABLE_ICD2061_LOG
 int icd2061_do_log = ENABLE_ICD2061_LOG;
@@ -121,7 +113,7 @@ icd2061_write(void *priv, int val)
                     q  = qa + 2;                             /* Q  (ICD2061) / M  (ICS9161) */
                     ps = (icd2061->ctrl & (1 << a)) ? 4 : 2; /* Prescale */
 
-                    icd2061->freq[a] = ((float) (p_ * ps) / (float) (q * m)) * 14318184.0f;
+                    icd2061->freq[a] = ((float) (p_ * ps) / (float) (q * m)) * icd2061->ref_clock;
 
                     icd2061_log("P = %02X, M = %01X, Q = %02X, freq[%i] = %f\n", p_, m, q, a, icd2061->freq[a]);
                 } else if (a == 6) {
@@ -149,12 +141,22 @@ icd2061_getclock(int clock, void *priv)
     return icd2061->freq[clock];
 }
 
+void
+icd2061_set_ref_clock(void *priv, float ref_clock)
+{
+    icd2061_t *icd2061 = (icd2061_t *) priv;
+
+    if (icd2061 != NULL)
+        icd2061->ref_clock = ref_clock;
+}
+
 static void *
 icd2061_init(UNUSED(const device_t *info))
 {
     icd2061_t *icd2061 = (icd2061_t *) malloc(sizeof(icd2061_t));
     memset(icd2061, 0, sizeof(icd2061_t));
 
+    icd2061->ref_clock = 14318184.0f;
     icd2061->freq[0] = 25175000.0;
     icd2061->freq[1] = 28322000.0;
     icd2061->freq[2] = 28322000.0;

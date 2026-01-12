@@ -8,7 +8,6 @@
  *
  *          Interface to the YMFM emulator.
  *
- *
  * Authors: Adrien Moulin, <adrien@elyosh.org>
  *
  *          Copyright 2022 Adrien Moulin.
@@ -57,11 +56,12 @@ enum {
 
 class YMFMChipBase {
 public:
-    YMFMChipBase(UNUSED(uint32_t clock), fm_type type, uint32_t samplerate)
+    YMFMChipBase(UNUSED(uint32_t clock), fm_type type, uint32_t samplerate, int is_48k)
         : m_buf_pos(0)
         , m_flags(0)
         , m_type(type)
         , m_samplerate(samplerate)
+        , m_48k(is_48k)
     {
         memset(m_buffer, 0, sizeof(m_buffer));
     }
@@ -75,11 +75,13 @@ public:
     void     set_do_cycles(int8_t do_cycles) { do_cycles ? m_flags |= FLAG_CYCLES : m_flags &= ~FLAG_CYCLES; }
     int32_t *buffer() const { return (int32_t *) m_buffer; }
     void     reset_buffer() { m_buf_pos = 0; }
+    int      is_48k() const { return m_48k; }
 
     virtual uint32_t sample_rate() const = 0;
 
     virtual void     write(uint16_t addr, uint8_t data)                      = 0;
     virtual void     generate(int32_t *data, uint32_t num_samples)           = 0;
+    virtual void     generate_resampled(int32_t *data, uint32_t num_samples) = 0;
     virtual int32_t *update()                                                = 0;
     virtual uint8_t  read(uint16_t addr)                                     = 0;
     virtual void     set_clock(uint32_t clock)                               = 0;
@@ -91,17 +93,19 @@ protected:
     int8_t   m_flags;
     fm_type  m_type;
     uint32_t m_samplerate;
+    int      m_48k;
 };
 
 template <typename ChipType>
 class YMFMChip : public YMFMChipBase, public ymfm::ymfm_interface {
 public:
-    YMFMChip(uint32_t clock, fm_type type, uint32_t samplerate)
-        : YMFMChipBase(clock, type, samplerate)
+    YMFMChip(uint32_t clock, fm_type type, uint32_t samplerate, int m_48k)
+        : YMFMChipBase(clock, type, samplerate, m_48k)
         , m_chip(*this)
         , m_clock(clock)
         , m_samplerate(samplerate)
         , m_samplecnt(0)
+        , m_48k(0)
     {
         memset(m_samples, 0, sizeof(m_samples));
         memset(m_oldsamples, 0, sizeof(m_oldsamples));
@@ -110,7 +114,10 @@ public:
         m_subtract[0]    = 80.0;
         m_subtract[1]    = 320.0;
         m_type           = type;
-        m_buf_pos_global = (samplerate == FREQ_49716) ? &music_pos_global : &wavetable_pos_global;
+        if (m_48k)
+            m_buf_pos_global = &sound_pos_global;
+        else
+            m_buf_pos_global = (samplerate == FREQ_49716) ? &music_pos_global : &wavetable_pos_global;
 
         if (m_type == FM_YMF278B) {
             if (rom_load_linear("roms/sound/yamaha/yrw801.rom", 0, 0x200000, 0, m_yrw801) == 0) {
@@ -177,14 +184,8 @@ public:
         }
     }
 
-#if 0
     virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
     {
-        if ((m_samplerate == FREQ_49716) || (m_samplerate == FREQ_44100)) {
-            generate(data, num_samples);
-            return;
-        }
-
         for (uint32_t i = 0; i < num_samples; i++) {
             while (m_samplecnt >= m_rateratio) {
                 m_oldsamples[0] = m_samples[0];
@@ -218,14 +219,16 @@ public:
             m_samplecnt += 1 << RSM_FRAC;
         }
     }
-#endif
 
     virtual int32_t *update() override
     {
         if (m_buf_pos >= *m_buf_pos_global)
             return m_buffer;
 
-        generate(&m_buffer[m_buf_pos * 2], *m_buf_pos_global - m_buf_pos);
+        if (m_48k)
+            generate_resampled(&m_buffer[m_buf_pos * 2], *m_buf_pos_global - m_buf_pos);
+        else        
+            generate(&m_buffer[m_buf_pos * 2], *m_buf_pos_global - m_buf_pos);
 
         for (; m_buf_pos < *m_buf_pos_global; m_buf_pos++) {
             m_buffer[m_buf_pos * 2] /= 2;
@@ -288,6 +291,8 @@ private:
     int32_t m_samplecnt;
     int32_t m_oldsamples[2];
     int32_t m_samples[2];
+
+    int                            m_48k;
 };
 
 extern "C" {
@@ -326,127 +331,128 @@ static void *
 ymfm_drv_init(const device_t *info)
 {
     YMFMChipBase *fm;
+    int is_48k = !!(info->local & FM_FORCE_48K);
 
-    switch (info->local) {
+    switch (info->local & FM_TYPE_MASK) {
         case FM_YM2149: /* OPL */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2149>(14318181, FM_YM2149, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2149>(14318181, FM_YM2149, FREQ_49716, is_48k);
             break;
 
         case FM_YM3526: /* OPL */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3526>(14318181, FM_YM3526, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3526>(14318181, FM_YM3526, FREQ_49716, is_48k);
             break;
 
         case FM_Y8950: /* MSX-Audio (OPL with ADPCM) */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::y8950>(14318181, FM_Y8950, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::y8950>(14318181, FM_Y8950, FREQ_49716, is_48k);
             break;
 
         default:
         case FM_YM3812: /* OPL2 */
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, FREQ_49716, is_48k);
             break;
 
         case FM_YMF262: /* OPL3 */
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, FREQ_49716, is_48k);
             break;
 
         case FM_YMF289B: /* OPL3-L */
             /* According to the datasheet, we should be using 33868800, but YMFM appears
                to cheat and does it using the same values as the YMF262. */
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, FREQ_49716, is_48k);
             break;
 
         case FM_YMF278B: /* OPL4 */
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, FREQ_44100);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, FREQ_44100, is_48k);
             break;
 
         case FM_YM2413: /* OPLL */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2413>(14318181, FM_YM2413, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2413>(14318181, FM_YM2413, FREQ_49716, is_48k);
             break;
 
         case FM_YM2423: /* OPLL-X */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2423>(14318181, FM_YM2423, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2423>(14318181, FM_YM2423, FREQ_49716, is_48k);
             break;
 
         case FM_YMF281: /* OPLLP */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf281>(14318181, FM_YMF281, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf281>(14318181, FM_YMF281, FREQ_49716, is_48k);
             break;
 
         case FM_DS1001: /* Konami VRC7 MMC */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ds1001>(14318181, FM_DS1001, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ds1001>(14318181, FM_DS1001, FREQ_49716, is_48k);
             break;
 
         case FM_YM2151: /* OPM */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2151>(14318181, FM_YM2151, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2151>(14318181, FM_YM2151, FREQ_49716, is_48k);
             break;
 
         case FM_YM2203: /* OPN */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2203>(14318181, FM_YM2203, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2203>(14318181, FM_YM2203, FREQ_49716, is_48k);
             break;
 
         case FM_YM2608: /* OPNA */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2608>(14318181, FM_YM2608, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2608>(14318181, FM_YM2608, FREQ_49716, is_48k);
             break;
 
         case FM_YMF288: /* OPN3L */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf288>(14318181, FM_YMF288, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf288>(14318181, FM_YMF288, FREQ_49716, is_48k);
             break;
 
         case FM_YM2610: /* OPNB */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2610>(14318181, FM_YM2610, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2610>(14318181, FM_YM2610, FREQ_49716, is_48k);
             break;
 
         case FM_YM2610B: /* OPNB2 */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2610b>(14318181, FM_YM2610B, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2610b>(14318181, FM_YM2610B, FREQ_49716, is_48k);
             break;
 
         case FM_YM2612: /* OPN2 */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2612>(14318181, FM_YM2612, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2612>(14318181, FM_YM2612, FREQ_49716, is_48k);
             break;
 
         case FM_YM3438: /* OPN2C */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3438>(14318181, FM_YM3438, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3438>(14318181, FM_YM3438, FREQ_49716, is_48k);
             break;
 
         case FM_YMF276: /* OPN2L */
             // TODO: Check function call, rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf276>(14318181, FM_YMF276, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf276>(14318181, FM_YMF276, FREQ_49716, is_48k);
             break;
 
         case FM_YM2164: /* OPP */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2164>(14318181, FM_YM2164, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2164>(14318181, FM_YM2164, FREQ_49716, is_48k);
             break;
 
         case FM_YM3806: /* OPQ */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3806>(14318181, FM_YM3806, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3806>(14318181, FM_YM3806, FREQ_49716, is_48k);
             break;
 
 #if 0
         case FM_YMF271: /* OPX */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf271>(14318181, FM_YMF271, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf271>(14318181, FM_YMF271, FREQ_49716, is_48k);
             break;
 #endif
 
         case FM_YM2414: /* OPZ */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2414>(14318181, FM_YM2414, FREQ_49716);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2414>(14318181, FM_YM2414, FREQ_49716, is_48k);
             break;
     }
 
@@ -524,8 +530,10 @@ ymfm_drv_generate(void *priv, int32_t *data, uint32_t num_samples)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
-    // drv->generate_resampled(data, num_samples);
-    drv->generate(data, num_samples);
+    if (drv->is_48k())
+        drv->generate_resampled(data, num_samples);
+    else
+        drv->generate(data, num_samples);
 }
 
 const device_t ym2149_ymfm_device = {

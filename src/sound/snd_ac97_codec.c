@@ -1,18 +1,16 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           AC'97 audio codec emulation.
+ *          AC'97 audio codec emulation.
  *
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *
- * Authors:  RichardG, <richardg867@gmail.com>
- *
- *           Copyright 2021 RichardG.
+ *          Copyright 2021-2025 RichardG.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -38,6 +36,9 @@ static const struct {
     uint16_t extid_flags;
     uint8_t  pcsr_mask;  /* register 26 bits [15:8] */
     uint8_t  eascr_mask; /* register 2A bits [14:11] */
+    uint8_t  modem_flags;
+    uint16_t gpi_mask; /* modem GPIO input-capable bits */
+    uint16_t gpo_mask; /* modem GPIO output-capable bits */
 
     const ac97_vendor_reg_t *vendor_regs;
 } ac97_codecs[] = {
@@ -46,7 +47,7 @@ static const struct {
         .device      = &ad1881_device,
         .min_rate    = 7000,
         .max_rate    = 48000,
-        .misc_flags  = AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
         .reset_flags = (1 << AC97_3D_SHIFT), /* datasheet contradicts itself on AC97_HPOUT */
         .extid_flags = AC97_VRA,
         .pcsr_mask   = 0xbf,
@@ -54,34 +55,42 @@ static const struct {
     },
     {
         .device      = &ak4540_device,
-        .misc_flags  = AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .pcsr_mask   = 0x1f
     },
     {
         .device      = &alc100_device,
-        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
         .reset_flags = (22 << AC97_3D_SHIFT),
         .extid_flags = AC97_AMAP,
         .pcsr_mask   = 0xbf
     },
     {
         .device      = &cs4297_device,
-        .misc_flags  = AC97_MASTER_6B | AC97_AUXOUT | AC97_AUXOUT_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_MASTER_6B | AC97_AUXOUT | AC97_AUXOUT_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = AC97_HPOUT | AC97_DAC_18B | AC97_ADC_18B,
         .pcsr_mask   = 0x7f,
         .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0301, 0x0000}, {0}}
     },
     {
         .device      = &cs4297a_device,
-        .misc_flags  = AC97_MASTER_6B | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_MASTER_6B | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = AC97_HPOUT | AC97_DAC_20B | AC97_ADC_18B | (6 << AC97_3D_SHIFT),
         .extid_flags = AC97_AMAP,
         .pcsr_mask   = 0xff,
         .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5e, 0x0000, 0x01b0}, {0, 0x60, 0x0023, 0x0001}, {0, 0x68, 0x0000, 0xdfff}, {0}}
     },
     {
+        .device      = &ice1232_device,
+        .misc_flags  = AC97_AUDIO | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .reset_flags = AC97_HPOUT | AC97_DAC_18B | AC97_ADC_18B | (27 << AC97_3D_SHIFT),
+        .extid_flags = AC97_VRA | AC97_AMAP,
+        .pcsr_mask   = 0xff,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0021, 0x00fd}, {0}}
+    },
+    {
         .device      = &stac9708_device,
-        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
         .extid_flags = AC97_SDAC,
         .pcsr_mask   = 0xff,
@@ -90,7 +99,7 @@ static const struct {
     },
     {
         .device      = &stac9721_device,
-        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
         .extid_flags = AC97_AMAP,
         .pcsr_mask   = 0xff,
@@ -98,21 +107,33 @@ static const struct {
     },
     {
         .device      = &tr28023_device,
-        .misc_flags  = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_POP | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_POP | AC97_MS | AC97_LPBK,
         .pcsr_mask   = 0x3f
     },
     {
         .device      = &w83971d_device,
-        .misc_flags  = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = (27 << AC97_3D_SHIFT),
         .pcsr_mask   = 0x3f
     },
     {
         .device      = &wm9701a_device,
-        .misc_flags  = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+        .misc_flags  = AC97_AUDIO | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
         .reset_flags = AC97_DAC_18B | AC97_ADC_18B,
         .pcsr_mask   = 0x3f
+    },
+#ifdef USE_SOFTMODEM
+    {
+        .device      = &si3036_device,
+        .misc_flags  = AC97_MODEM | AC97_GAIN_3B,
+        .min_rate    = 7200,
+        .max_rate    = 13714,
+        .modem_flags = AC97_LIN1 | AC97_LIN2,
+        .gpi_mask    = 0xe83a,
+        .gpo_mask    = 0xfc3f,
+        .vendor_regs = (const ac97_vendor_reg_t[]) {{0, 0x5a, 0x0142, 0x0000}, {0, 0x5c, 0xf010, 0xfefd}, {0, 0x5e, 0x004c, 0x0000}, {0, 0x62, 0x0000, 0x01f8}, {0, 0x64, 0x0080, 0x0000}, {0}}
     }
+#endif
   // clang-format on
 };
 
@@ -145,11 +166,10 @@ static const int32_t codec_attn[] = {
 };
 
 ac97_codec_t **ac97_codec             = NULL;
-ac97_codec_t **ac97_modem_codec       = NULL;
 int            ac97_codec_count       = 0;
-int            ac97_modem_codec_count = 0;
 int            ac97_codec_id          = 0;
-int            ac97_modem_codec_id    = 0;
+
+static void ac97_codec_reset_ex(ac97_codec_t *dev, uint8_t flags);
 
 uint16_t
 ac97_codec_readw(ac97_codec_t *dev, uint8_t reg)
@@ -157,10 +177,15 @@ ac97_codec_readw(ac97_codec_t *dev, uint8_t reg)
     /* Redirect a read from extended pages 1+ to the right array. */
     reg &= 0x7e;
     uint16_t ret = dev->regs[0x24 >> 1] & 0x000f;
-    if ((ret > 0) && (reg >= 0x60) && (reg < 0x6f))
+    if ((ret > 0) && (reg >= 0x60) && (reg < 0x6f)) { /* Extended */
         ret = (ret <= dev->vendor_reg_page_max) ? dev->vendor_reg_pages[(ret << 3) | ((reg & 0x0e) >> 1)] : 0;
-    else
+    } else if (reg == 0x54) { /* GPIO Status */
+        ret  = dev->gpo & ~dev->regs[0x4c >> 1]; /* outputs */
+        ret |= dev->gpi & dev->regs[0x4c >> 1] & ~dev->regs[0x50 >> 1]; /* non-sticky inputs */
+        ret |= dev->regs[reg >> 1] & dev->regs[0x4c >> 1] & dev->regs[0x50 >> 1]; /* sticky inputs */
+    } else {
         ret = dev->regs[reg >> 1];
+    }
 
     ac97_codec_log("AC97 Codec %d: readw(%02X) = %04X\n", dev->codec_id, reg, ret);
 
@@ -177,9 +202,15 @@ ac97_codec_writew(ac97_codec_t *dev, uint8_t reg, uint16_t val)
     uint16_t prev = dev->regs[reg >> 1];
     int      j;
 
+    /* Initial filtering by codec type. */
+    if (!(ac97_codecs[dev->model].misc_flags & AC97_AUDIO) && (reg <= 0x3a))
+        return;
+    if (!(ac97_codecs[dev->model].misc_flags & AC97_MODEM) && (reg >= 0x3c) && (reg <= 0x58))
+        return;
+
     switch (reg) {
         case 0x00: /* Reset / ID code */
-            ac97_codec_reset(dev);
+            ac97_codec_reset_ex(dev, AC97_AUDIO);
             return;
 
         case 0x02: /* Master Volume */
@@ -262,13 +293,13 @@ line_gain:
             break;
 
         case 0x1c: /* Record Gain */
-            val &= 0x8f0f;
+            val &= (ac97_codecs[dev->model].misc_flags & AC97_GAIN_3B) ? 0x8e0e : 0x8f0f;
             break;
 
         case 0x1e: /* Record Gain Mic */
             if (!(ac97_codecs[dev->model].reset_flags & AC97_MICPCM))
                 return;
-            val &= 0x800f;
+            val &= (ac97_codecs[dev->model].misc_flags & AC97_GAIN_3B) ? 0x800e : 0x800f;
             break;
 
         case 0x20: /* General Purpose */
@@ -352,11 +383,11 @@ line_gain:
 
         case 0x2c: /* PCM Front DAC Rate */
         case 0x32: /* PCM L/R ADC Rate */
-rate:              /* Writable only if VRA/VRM is set. */
+rate_vrx:          /* Writable only if VRA/VRM is set. */
             i = (reg >= 0x32) ? AC97_VRM : AC97_VRA;
             if (!(ac97_codecs[dev->model].extid_flags & i))
                 return;
-
+rate:
             /* Limit to supported sample rate range. */
             if (val < ac97_codecs[dev->model].min_rate)
                 val = ac97_codecs[dev->model].min_rate;
@@ -367,17 +398,17 @@ rate:              /* Writable only if VRA/VRM is set. */
         case 0x2e: /* PCM Surround DAC Rate */
             if (!(ac97_codecs[dev->model].extid_flags & AC97_SDAC))
                 return;
-            goto rate;
+            goto rate_vrx;
 
         case 0x30: /* PCM LFE DAC Rate */
             if (!(ac97_codecs[dev->model].extid_flags & AC97_LDAC))
                 return;
-            goto rate;
+            goto rate_vrx;
 
         case 0x34: /* Mic ADC Rate */
             if (!(ac97_codecs[dev->model].reset_flags & AC97_MICPCM))
                 return;
-            goto rate;
+            goto rate_vrx;
 
         case 0x36: /* Center/LFE Volume */
             if (ac97_codecs[dev->model].extid_flags & AC97_LDAC)
@@ -406,6 +437,86 @@ rate:              /* Writable only if VRA/VRM is set. */
         case 0x3a: /* S/PDIF Control */
             if (!(ac97_codecs[dev->model].extid_flags & AC97_SPDIF))
                 return;
+            break;
+
+        case 0x3c: /* Reset / Extended Modem ID */
+            ac97_codec_reset_ex(dev, AC97_MODEM);
+            return;
+
+        case 0x3e: /* Extended Modem Control/Status */
+            i = 0x0300;
+            if (ac97_codecs[dev->model].modem_flags & AC97_LIN1)
+                i |= 0x0c00;
+            if (ac97_codecs[dev->model].modem_flags & AC97_LIN2)
+                i |= 0x3000;
+            if (ac97_codecs[dev->model].modem_flags & AC97_HSET)
+                i |= 0xc000;
+            val &= i;
+
+            /* Update status bits to reflect powerdowns. */
+            val |= (~val & i) >> 8;
+            break;
+
+        case 0x40: /* Line1 DAC/ADC Rate */
+            if (!(ac97_codecs[dev->model].modem_flags & AC97_LIN1))
+                return;
+            goto rate;
+
+        case 0x42: /* Line2 DAC/ADC Rate */
+            if (!(ac97_codecs[dev->model].modem_flags & AC97_LIN2))
+                return;
+            goto rate;
+
+        case 0x44: /* Handset DAC/ADC Rate */
+            if (!(ac97_codecs[dev->model].modem_flags & AC97_HSET))
+                return;
+            goto rate;
+
+        case 0x46: /* Line 1 DAC/ADC Level */
+            if (!(ac97_codecs[dev->model].modem_flags & AC97_LIN1))
+                return;
+modem_gain:
+            val &= (ac97_codecs[dev->model].misc_flags & AC97_GAIN_3B) ? 0x8e8e : 0x8f8f;
+            break;
+
+        case 0x48: /* Line 2 DAC/ADC Level */
+            if (!(ac97_codecs[dev->model].modem_flags & AC97_LIN2))
+                return;
+            goto modem_gain;
+
+        case 0x4a: /* Handset DAC/ADC Level */
+            if (!(ac97_codecs[dev->model].modem_flags & AC97_HSET))
+                return;
+            goto modem_gain;
+
+        case 0x56: /* Miscellaneous Modem AFE Status/Control */
+            if (ac97_codecs[dev->model].modem_flags & AC97_LIN1)
+                i |= 0x0007;
+            if (ac97_codecs[dev->model].modem_flags & AC97_LIN2)
+                i |= 0x0070;
+            if (ac97_codecs[dev->model].modem_flags & AC97_HSET)
+                i |= 0x0700;
+            val &= i;
+            break;
+
+        case 0x4c: /* GPIO Pin Configuration */
+            val &= ac97_codecs[dev->model].gpi_mask | ac97_codecs[dev->model].gpo_mask;
+            break;
+
+        case 0x4e: /* GPIO Pin Polarity/Type */
+            val |= ~(ac97_codecs[dev->model].gpi_mask | ac97_codecs[dev->model].gpo_mask);
+            break;
+
+        case 0x50: /* GPIO Pin Sticky */
+            dev->regs[0x54 >> 1] &= val; /* clear sticky inputs that are no longer sticky (assumed undefined behavior) */
+            fallthrough;
+
+        case 0x52: /* GPIO Pin Wake-up Mask */
+            val &= ac97_codecs[dev->model].gpi_mask;
+            break;
+
+        case 0x54: /* GPIO Pin Status */
+            val = dev->regs[reg >> 1] & ~val; /* clear sticky inputs */
             break;
 
         case 0x60 ... 0x6e: /* Extended */
@@ -464,47 +575,83 @@ void
 ac97_codec_reset(void *priv)
 {
     ac97_codec_t *dev = (ac97_codec_t *) priv;
-    uint16_t      i;
+    ac97_codec_reset_ex(dev, AC97_AUDIO | AC97_MODEM);
+}
 
-    ac97_codec_log("AC97 Codec %d: reset()\n", dev->codec_id);
+static void
+ac97_codec_reset_ex(ac97_codec_t *dev, uint8_t flags)
+{
+    ac97_codec_log("AC97 Codec %d: reset(%02X)\n", dev->codec_id, flags);
 
     memset(dev->regs, 0, sizeof(dev->regs));
 
-    /* Set default level and gain values. */
-    dev->regs[0x02 >> 1] = AC97_MUTE;
-    if (ac97_codecs[dev->model].misc_flags & AC97_AUXOUT)
-        dev->regs[0x04 >> 1] = AC97_MUTE;
-    if (ac97_codecs[dev->model].misc_flags & AC97_MONOOUT)
-        dev->regs[0x06 >> 1] = AC97_MUTE;
-    if (ac97_codecs[dev->model].misc_flags & AC97_PHONE)
-        dev->regs[0x0c >> 1] = AC97_MUTE | 0x0008;
-    dev->regs[0x0e >> 1] = AC97_MUTE | 0x0008;                                               /* mic */
-    dev->regs[0x10 >> 1] = dev->regs[0x12 >> 1] = dev->regs[0x18 >> 1] = AC97_MUTE | 0x0808; /* line in, CD, PCM out */
-    if (ac97_codecs[dev->model].misc_flags & AC97_VIDEO)
-        dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
-    if (ac97_codecs[dev->model].misc_flags & AC97_AUXIN)
-        dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
-    dev->regs[0x1c >> 1] = AC97_MUTE;     /* record gain */
-    if (ac97_codecs[dev->model].reset_flags & AC97_MICPCM)
-        dev->regs[0x1e >> 1] = AC97_MUTE; /* mic record gain */
-    if (ac97_codecs[dev->model].misc_flags & AC97_LDAC)
-        dev->regs[0x36 >> 1] = AC97_MUTE_L;
-    if (ac97_codecs[dev->model].misc_flags & AC97_CDAC)
-        dev->regs[0x36 >> 1] |= AC97_MUTE_R;
-    if (ac97_codecs[dev->model].misc_flags & AC97_SDAC)
-        dev->regs[0x38 >> 1] = AC97_MUTE_L | AC97_MUTE_R;
+    if ((flags & AC97_AUDIO) && (ac97_codecs[dev->model].misc_flags & AC97_AUDIO)) {
+        /* Set default level and gain values. */
+        dev->regs[0x02 >> 1] = AC97_MUTE;
+        if (ac97_codecs[dev->model].misc_flags & AC97_AUXOUT)
+            dev->regs[0x04 >> 1] = AC97_MUTE;
+        if (ac97_codecs[dev->model].misc_flags & AC97_MONOOUT)
+            dev->regs[0x06 >> 1] = AC97_MUTE;
+        if (ac97_codecs[dev->model].misc_flags & AC97_PHONE)
+            dev->regs[0x0c >> 1] = AC97_MUTE | 0x0008;
+        dev->regs[0x0e >> 1] = AC97_MUTE | 0x0008;                                               /* mic */
+        dev->regs[0x10 >> 1] = dev->regs[0x12 >> 1] = dev->regs[0x18 >> 1] = AC97_MUTE | 0x0808; /* line in, CD, PCM out */
+        if (ac97_codecs[dev->model].misc_flags & AC97_VIDEO)
+            dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
+        if (ac97_codecs[dev->model].misc_flags & AC97_AUXIN)
+            dev->regs[0x16 >> 1] = AC97_MUTE | 0x0808;
+        dev->regs[0x18 >> 1] = AC97_MUTE | 0x0808; /* PCM */
+        dev->regs[0x1c >> 1] = AC97_MUTE;     /* record gain */
+        if (ac97_codecs[dev->model].reset_flags & AC97_MICPCM)
+            dev->regs[0x1e >> 1] = AC97_MUTE; /* mic record gain */
+        if (ac97_codecs[dev->model].misc_flags & AC97_LDAC)
+            dev->regs[0x36 >> 1] = AC97_MUTE_L;
+        if (ac97_codecs[dev->model].misc_flags & AC97_CDAC)
+            dev->regs[0x36 >> 1] |= AC97_MUTE_R;
+        if (ac97_codecs[dev->model].misc_flags & AC97_SDAC)
+            dev->regs[0x38 >> 1] = AC97_MUTE_L | AC97_MUTE_R;
 
-    /* Set flags. */
-    dev->regs[0x00 >> 1] = ac97_codecs[dev->model].reset_flags;
-    dev->regs[0x26 >> 1] = 0x000f;        /* codec ready */
-    dev->regs[0x28 >> 1] = (dev->codec_id << 14) | ac97_codecs[dev->model].extid_flags;
-    ac97_codec_writew(dev, 0x2a, 0x0000); /* reset variable DAC/ADC sample rates */
-    i = ac97_codecs[dev->model].extid_flags & (AC97_CDAC | AC97_SDAC | AC97_LDAC);
-    dev->regs[0x2a >> 1] |= i | (i << 5); /* any additional DACs are ready but powered down */
-    if (ac97_codecs[dev->model].extid_flags & AC97_SPDIF)
-        dev->regs[0x2a >> 1] |= AC97_SPCV;
-    if (ac97_codecs[dev->model].reset_flags & AC97_MICPCM)
-        dev->regs[0x2a >> 1] |= AC97_MADC | AC97_PRL;
+        /* Set flags. */
+        dev->regs[0x00 >> 1] = ac97_codecs[dev->model].reset_flags;
+        dev->regs[0x26 >> 1] = 0x000f;        /* codec ready */
+        dev->regs[0x28 >> 1] = (dev->codec_id << 14) | ac97_codecs[dev->model].extid_flags;
+        ac97_codec_writew(dev, 0x2a, 0x0000); /* reset variable DAC/ADC sample rates */
+        uint16_t i = ac97_codecs[dev->model].extid_flags & (AC97_CDAC | AC97_SDAC | AC97_LDAC);
+        dev->regs[0x2a >> 1] |= i | (i << 5); /* any additional DACs are ready but powered down */
+        if (ac97_codecs[dev->model].extid_flags & AC97_SPDIF)
+            dev->regs[0x2a >> 1] |= AC97_SPCV;
+        if (ac97_codecs[dev->model].reset_flags & AC97_MICPCM)
+            dev->regs[0x2a >> 1] |= AC97_MADC | AC97_PRL;
+    }
+
+    if ((flags & AC97_MODEM) && (ac97_codecs[dev->model].misc_flags & AC97_MODEM)) {
+        if (ac97_codecs[dev->model].modem_flags & AC97_LIN1) {
+            dev->regs[0x3e >> 1] |= 0x0c00;
+            dev->regs[0x40 >> 1] = /*4*/8000;
+            dev->regs[0x46 >> 1] = 0x8080;
+        }
+        if (ac97_codecs[dev->model].modem_flags & AC97_LIN2) {
+            dev->regs[0x3e >> 1] |= 0x3000;
+            dev->regs[0x42 >> 1] = /*4*/8000;
+            dev->regs[0x48 >> 1] = 0x8080;
+        }
+        if (ac97_codecs[dev->model].modem_flags & AC97_HSET) {
+            dev->regs[0x3e >> 1] |= 0xc000;
+            dev->regs[0x44 >> 1] = /*4*/8000;
+            dev->regs[0x4a >> 1] = 0x8080;
+        }
+        dev->regs[0x4c >> 1] = ac97_codecs[dev->model].gpi_mask | ac97_codecs[dev->model].gpo_mask;
+        dev->regs[0x4e >> 1] = 0xffff;
+
+        /* Set flags. */
+        dev->regs[0x3c >> 1] = (dev->codec_id << 14) | (ac97_codecs[dev->model].modem_flags & ~AC97_CIDR);
+        if (ac97_codecs[dev->model].modem_flags & AC97_CIDR)
+            dev->regs[0x56 >> 1] |= 0x2000;
+        if (ac97_codecs[dev->model].modem_flags & AC97_CID1)
+            dev->regs[0x56 >> 1] |= 0x4000;
+        if (ac97_codecs[dev->model].modem_flags & AC97_CID2)
+            dev->regs[0x56 >> 1] |= 0x8000;
+    }
 
     /* Set vendor ID. */
     dev->regs[0x7c >> 1] = ac97_codecs[dev->model].device->local >> 16;
@@ -512,13 +659,16 @@ ac97_codec_reset(void *priv)
 
     /* Set vendor-specific registers. */
     if (ac97_codecs[dev->model].vendor_regs) {
-        for (i = 0; ac97_codecs[dev->model].vendor_regs[i].index; i++) {
+        for (int i = 0; ac97_codecs[dev->model].vendor_regs[i].index; i++) {
             if (ac97_codecs[dev->model].vendor_regs[i].page > 0)
                 dev->vendor_reg_pages[(ac97_codecs[dev->model].vendor_regs[i].page << 3) | (ac97_codecs[dev->model].vendor_regs[i].index >> 1)] = ac97_codecs[dev->model].vendor_regs[i].value;
             else
                 dev->regs[ac97_codecs[dev->model].vendor_regs[i].index >> 1] = ac97_codecs[dev->model].vendor_regs[i].value;
         }
     }
+
+    if (flags & AC97_MODEM)
+        dev->gpi = dev->gpo = 0;
 }
 
 void
@@ -536,7 +686,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
         *r = 0;
     } else { /* per-channel mute */
         /* Determine attenuation value. */
-        uint8_t l_val = val >> 8;
+        uint8_t l_val = ((reg == 0x06) || (reg == 0x0c) || (reg == 0x0e)) ? val : (val >> 8); /* mono controls only have the right bits */
         uint8_t r_val = val;
         if (reg <= 0x06) { /* 6-bit level */
             *l = codec_attn[0x3f - (l_val & 0x3f)];
@@ -563,7 +713,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 uint32_t
 ac97_codec_getrate(void *priv, uint8_t reg)
 {
-    const ac97_codec_t *dev = (ac97_codec_t *) priv;
+    ac97_codec_t *dev = (ac97_codec_t *) priv;
 
     /* Get configured sample rate, which is always 48000 if VRA/VRM is not set. */
     uint32_t ret = dev->regs[reg >> 1];
@@ -575,6 +725,29 @@ ac97_codec_getrate(void *priv, uint8_t reg)
     ac97_codec_log("AC97 Codec %d: getrate(%02X) = %d\n", dev->codec_id, reg, ret);
 
     return ret;
+}
+
+void
+ac97_codec_setgpi(void *priv, uint16_t gpi)
+{
+    ac97_codec_t *dev = (ac97_codec_t *) priv;
+
+    ac97_codec_log("AC97 Codec %d: setgpi(%04X)\n", dev->codec_id, gpi);
+
+    /* Set status bits for sticky inputs. */
+    gpi &= ac97_codecs[dev->model].gpi_mask;
+    dev->regs[0x54 >> 1] |= (dev->gpi ^ gpi) & dev->regs[0x4c >> 1] & dev->regs[0x50 >> 1]; /* set on (transition & input & sticky) */
+    dev->gpi = gpi;
+}
+
+void
+ac97_codec_setgpo(void *priv, uint16_t gpo)
+{
+    ac97_codec_t *dev = (ac97_codec_t *) priv;
+
+    ac97_codec_log("AC97 Codec %d: setgpo(%04X)\n", dev->codec_id, gpo);
+
+    dev->gpo = gpo & ac97_codecs[dev->model].gpo_mask;
 }
 
 static void *
@@ -605,7 +778,7 @@ ac97_codec_init(const device_t *info)
     if (--ac97_codec_count == 0)
         ac97_codec = NULL;
     else
-        ac97_codec += sizeof(ac97_codec_t *);
+        ac97_codec++;
     dev->codec_id = ac97_codec_id++;
 
     /* Allocate vendor-specific register pages if required. */
@@ -725,6 +898,20 @@ const device_t cs4297a_device = {
     .config        = NULL
 };
 
+const device_t ice1232_device = {
+    .name          = "ICEnsemble ICE1232 / VIA VT1611A",
+    .internal_name = "ice1232",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_ICE1232,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t stac9708_device = {
     .name          = "SigmaTel STAC9708",
     .internal_name = "stac9708",
@@ -794,3 +981,19 @@ const device_t wm9701a_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+#ifdef USE_SOFTMODEM
+const device_t si3036_device = {
+    .name          = "Silicon Laboratories Si3036 Modem",
+    .internal_name = "si3036",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_SI3036,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+#endif

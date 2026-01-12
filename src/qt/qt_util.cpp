@@ -8,8 +8,6 @@
  *
  *          Utility functions.
  *
- *
- *
  * Authors: Teemu Korhonen
  *
  *          Copyright 2022 Teemu Korhonen
@@ -65,7 +63,8 @@ screenOfWidget(QWidget *widget)
 #ifdef Q_OS_WINDOWS
 
 bool
-isWindowsLightTheme(void) {
+isWindowsLightTheme(void)
+{
     if (color_scheme != 0) {
         return (color_scheme == 1);
     }
@@ -75,7 +74,7 @@ isWindowsLightTheme(void) {
     // The value is expected to be a REG_DWORD, which is a signed 32-bit little-endian
     auto buffer = std::vector<char>(4);
     auto cbData = static_cast<DWORD>(buffer.size() * sizeof(char));
-    auto res = RegGetValueW(
+    auto res    = RegGetValueW(
         HKEY_CURRENT_USER,
         L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
         L"AppsUseLightTheme",
@@ -89,10 +88,7 @@ isWindowsLightTheme(void) {
     }
 
     // convert bytes written to our buffer to an int, assuming little-endian
-    auto i = int(buffer[3] << 24 |
-        buffer[2] << 16 |
-        buffer[1] << 8 |
-        buffer[0]);
+    auto i = int(buffer[3] << 24 | buffer[2] << 16 | buffer[1] << 8 | buffer[0]);
 
     return i == 1;
 }
@@ -149,22 +145,24 @@ DlgFilter(QStringList extensions, bool last)
     return " (" % temp.join(' ') % ")" % (!last ? ";;" : "");
 }
 
-
-QString currentUuid()
+QString
+currentUuid()
 {
     return generateUuid(QString(cfg_path));
 }
 
-QString generateUuid(const QString &path)
+QString
+generateUuid(const QString &path)
 {
     auto dirPath = QFileInfo(path).dir().canonicalPath();
-    if(!dirPath.endsWith("/")) {
+    if (!dirPath.endsWith("/")) {
         dirPath.append("/");
     }
-    return QUuid::createUuidV5(QUuid{}, dirPath).toString(QUuid::WithoutBraces);
+    return QUuid::createUuidV5(QUuid {}, dirPath).toString(QUuid::WithoutBraces);
 }
 
-bool compareUuid()
+bool
+compareUuid()
 {
     // A uuid not set in the config file will have a zero length.
     // Any uuid that is lower than the minimum length will be considered invalid
@@ -174,7 +172,7 @@ bool compareUuid()
         return true;
     }
     // Do not prompt on mismatch if the system does not have any configured NICs. Just update the uuid
-    if(!hasConfiguredNICs() && uuid != currentUuid()) {
+    if (!hasConfiguredNICs() && uuid != currentUuid()) {
         storeCurrentUuid();
         return true;
     }

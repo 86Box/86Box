@@ -9,8 +9,6 @@
  *          Implementation of the IDE emulation for hard disks and ATAPI
  *          CD-ROM devices.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

@@ -8,8 +8,6 @@
  *
  *          Definitions for the hard disk image handler.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -101,6 +99,7 @@ typedef struct hdd_preset_t {
     uint32_t    max_multiple;
     double      full_stroke_ms;
     double      track_seek_ms;
+    const char *version_ex;
 } hdd_preset_t;
 
 typedef struct hdd_cache_seg_t {
@@ -162,7 +161,7 @@ typedef struct hard_disk_t {
 
     void              *priv;
 
-    char               fn[1024];     /* Name of current image file */
+    char               fn[MAX_IMAGE_PATH_LEN];     /* Name of current image file */
     /* Differential VHD parent file */
     char               vhd_parent[1280];
 
@@ -173,6 +172,7 @@ typedef struct hard_disk_t {
     uint32_t           hpc;
     uint32_t           tracks;
     uint32_t           speed_preset;
+    uint32_t           audio_profile;
 
     uint32_t           num_zones;
     uint32_t           phy_cyl;
@@ -187,6 +187,8 @@ typedef struct hard_disk_t {
     uint8_t            pad1[3];
 
     const char        *model;
+
+    const char        *version_ex;
 
     hdd_zone_t         zones[HDD_MAX_ZONES];
 
@@ -232,6 +234,7 @@ extern double      hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_
 int                hdd_preset_get_num(void);
 const char        *hdd_preset_getname(int preset);
 extern const char *hdd_preset_get_internal_name(int preset);
+extern uint32_t    hdd_preset_get_rpm(int preset);
 extern int         hdd_preset_get_from_internal_name(char *s);
 extern void        hdd_preset_apply(int hdd_id);
 

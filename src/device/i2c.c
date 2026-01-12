@@ -8,8 +8,6 @@
  *
  *          Implementation of the I2C bus and its operations.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

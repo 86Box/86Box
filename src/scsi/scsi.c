@@ -8,8 +8,6 @@
  *
  *          Handling of the SCSI controllers.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          TheCollector1995, <mariogplayer@gmail.com>

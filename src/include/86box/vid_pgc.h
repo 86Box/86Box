@@ -8,8 +8,6 @@
  *
  *          Definitions for the PGC driver.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          John Elliott, <jce@seasip.info>
  *

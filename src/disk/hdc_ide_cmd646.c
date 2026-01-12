@@ -145,6 +145,7 @@ cmd646_ide_handlers(cmd646_t *dev)
     int      first       = 0;
     int      reg09       = dev->regs[0x09];
     int      reg50       = dev->regs[0x50];
+    int      dev_enabled = (hdc_onboard_enabled || !(dev->local & CMD64X_ONBOARD));
 
     if ((dev->local & CMD_TYPE_648) && (dev->local & CMD648_RAID)) {
         reg09 = 0xff;
@@ -180,7 +181,7 @@ cmd646_ide_handlers(cmd646_t *dev)
     if (dev->local & CMD_TYPE_648)
         pri_enabled = pri_enabled && (dev->regs[0x51] & 0x04);
 
-    if (pri_enabled)
+    if (dev_enabled && pri_enabled)
         ide_handlers(first, 1);
 
     if (dev->single_channel)
@@ -205,7 +206,7 @@ cmd646_ide_handlers(cmd646_t *dev)
     sff_set_irq_mode(dev->bm[1], irq_mode[1]);
     cmd646_log("IDE %i: %04X, %04X, %i\n", first + 1, main, side, irq_mode[1]);
 
-    if ((dev->regs[0x04] & 0x01) && (dev->regs[0x51] & 0x08))
+    if (dev_enabled && (dev->regs[0x04] & 0x01) && (dev->regs[0x51] & 0x08))
         ide_handlers(first + 1, 1);
 }
 
@@ -213,9 +214,10 @@ static void
 cmd646_ide_bm_handlers(cmd646_t *dev)
 {
     uint16_t base = (dev->regs[0x20] & 0xf0) | (dev->regs[0x21] << 8);
+    int dev_enabled = (hdc_onboard_enabled || !(dev->local & CMD64X_ONBOARD));
 
-    sff_bus_master_handler(dev->bm[0], (dev->regs[0x04] & 1), base);
-    sff_bus_master_handler(dev->bm[1], (dev->regs[0x04] & 1), base + 8);
+    sff_bus_master_handler(dev->bm[0], dev_enabled && (dev->regs[0x04] & 1), base);
+    sff_bus_master_handler(dev->bm[1], dev_enabled && (dev->regs[0x04] & 1), base + 8);
 }
 
 uint8_t
@@ -296,15 +298,16 @@ cmd646_bios_handler(cmd646_t *dev)
 static void
 cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-    cmd646_t *dev   = (cmd646_t *) priv;
-    int       reg50 = dev->regs[0x50];
+    cmd646_t *dev         = (cmd646_t *) priv;
+    int       reg50       = dev->regs[0x50];
+    int       dev_enabled = (hdc_onboard_enabled || !(dev->local & CMD64X_ONBOARD));
 
     if ((dev->local & CMD_TYPE_648) && (dev->regs[0x0a] == 0x04) && (dev->regs[0x0b] == 0x01))
         reg50 |= 0x40;
 
     cmd646_log("[%04X:%08X] (%08X) cmd646_pci_write(%i, %02X, %02X)\n", CS, cpu_state.pc, ESI, func, addr, val);
 
-    if (func == 0x00)
+    if (dev_enabled && (func == 0x00))
         switch (addr) {
             case 0x04:
                 if (dev->has_bios)
@@ -480,10 +483,11 @@ cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 cmd646_pci_read(int func, int addr, void *priv)
 {
-    cmd646_t *dev = (cmd646_t *) priv;
-    uint8_t   ret = 0xff;
+    cmd646_t *dev         = (cmd646_t *) priv;
+    uint8_t   ret         = 0xff;
+    int       dev_enabled = (hdc_onboard_enabled || !(dev->local & CMD64X_ONBOARD));
 
-    if (func == 0x00) {
+    if (dev_enabled && (func == 0x00)) {
         ret = dev->regs[addr];
 
         if ((addr == 0x09) && (dev->local & CMD_TYPE_648) && (dev->regs[0x0a] == 0x04))

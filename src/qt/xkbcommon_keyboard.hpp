@@ -8,13 +8,11 @@
  *
  *          Definitions for xkbcommon keyboard input module.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2023 RichardG.
  */
 extern void *xkbcommon_keymap;
-void xkbcommon_init(struct xkb_keymap *keymap);
-void xkbcommon_close();
-uint16_t xkbcommon_translate(uint32_t keycode);
+void         xkbcommon_init(struct xkb_keymap *keymap);
+void         xkbcommon_close();
+uint16_t     xkbcommon_translate(uint32_t keycode);

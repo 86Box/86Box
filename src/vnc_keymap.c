@@ -22,8 +22,6 @@
  * NOTE:    The values are as defined in the Microsoft document named
  *          "Keyboard Scan Code Specification", version 1.3a of 2000/03/16.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Based on raw code by RichardG, <richardg867@gmail.com>
  *

@@ -8,8 +8,6 @@
  *
  *          Emulation of the Realtek RTG series of VGA ISA chips.
  *
- *
- *
  * Authors: TheCollector1995, <mariogplayer90@gmail.com>
  *
  *          Copyright 2021 TheCollector1995.

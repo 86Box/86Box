@@ -9,8 +9,6 @@
  *          Implementation of the IDE emulation for hard disks and ATAPI
  *          CD-ROM devices.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -554,7 +552,10 @@ ide_hd_identify(const ide_t *ide)
     /* Serial Number */
     ide_padstr((char *) (ide->buffer + 10), "", 20);
     /* Firmware */
-    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
+    if (hdd[ide->hdd_num].version_ex)
+        ide_padstr((char *) (ide->buffer + 23), hdd[ide->hdd_num].version_ex, 8);
+    else
+        ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
     /* Model */
     if (hdd[ide->hdd_num].model)
         ide_padstr((char *) (ide->buffer + 27), hdd[ide->hdd_num].model, 40);
@@ -2100,6 +2101,8 @@ ide_readb(uint16_t addr, void *priv)
         case 0x4: /* Cylinder low */
             if (ide->type == IDE_NONE)
                 ret = 0x7f;
+            else if (ide->type == IDE_ATAPI_SHADOW)
+                ret = 0x00;
             else
                 ret = ide->tf->cylinder & 0xff;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
@@ -2111,6 +2114,8 @@ ide_readb(uint16_t addr, void *priv)
         case 0x5: /* Cylinder high */
             if (ide->type == IDE_NONE)
                 ret = 0x7f;
+            else if (ide->type == IDE_ATAPI_SHADOW)
+                ret = 0x00;
             else
                 ret = ide->tf->cylinder >> 8;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
@@ -2996,6 +3001,36 @@ ide_pnp_config_changed_1addr(uint8_t ld, isapnp_device_config_t *config, void *p
                                      config->io[0].base : 0x0000;
         ide_boards[board]->base[1] = (config->io[0].base != ISAPNP_IO_DISABLED) ?
                                      (config->io[0].base + 0x0206) : 0x0000;
+
+        if (ide_boards[board]->base[0] && ide_boards[board]->base[1])
+            ide_set_handlers(board);
+
+        if (config->irq[0].irq != ISAPNP_IRQ_DISABLED)
+            ide_boards[board]->irq = config->irq[0].irq;
+    }
+}
+
+/* OPTi 931 PnP ROM flips the main and side IDE I/O port ranges */
+void
+ide_pnp_config_changed_opti931(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    intptr_t board = (intptr_t) priv;
+
+    if (ld)
+        return;
+
+    if (ide_boards[board]->base[0] || ide_boards[board]->base[1]) {
+        ide_remove_handlers(board);
+        ide_boards[board]->base[0] = ide_boards[board]->base[1] = 0;
+    }
+
+    ide_boards[board]->irq = -1;
+
+    if (config->activate) {
+        ide_boards[board]->base[1] = (config->io[0].base != ISAPNP_IO_DISABLED) ?
+                                     config->io[0].base : 0x0000;
+        ide_boards[board]->base[0] = (config->io[1].base != ISAPNP_IO_DISABLED) ?
+                                     config->io[1].base : 0x0000;
 
         if (ide_boards[board]->base[0] && ide_boards[board]->base[1])
             ide_set_handlers(board);

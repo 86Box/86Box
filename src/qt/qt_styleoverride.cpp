@@ -8,8 +8,6 @@
  *
  *          Style override class.
  *
- *
- *
  * Authors: Teemu Korhonen
  *
  *          Copyright 2022 Teemu Korhonen
@@ -30,10 +28,10 @@ extern "C" {
 }
 
 #ifdef Q_OS_WINDOWS
-#include <dwmapi.h>
-#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
-#endif
+#    include <dwmapi.h>
+#    ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#        define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#    endif
 #endif
 
 int
@@ -74,7 +72,7 @@ StyleOverride::polish(QWidget *widget)
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
 #ifdef Q_OS_WINDOWS
         BOOL DarkMode = !util::isWindowsLightTheme();
-        DwmSetWindowAttribute((HWND)widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
+        DwmSetWindowAttribute((HWND) widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID) &DarkMode, sizeof(DarkMode));
 #endif
     }
 
@@ -113,7 +111,6 @@ StyleOverride::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, 
             color.setBlueF(avg);
 
             image.setPixelColor(x, y, color);
-
         }
     }
 

@@ -8,14 +8,12 @@
  *
  *              Definition of Serial passthrough device.
  *
- *
  * Authors:     Andreas J. Reichel <webmaster@6th-dimension.com>,
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel.
  *              Copyright 2021-2025 Jasmine Iwanek.
  */
-
 #ifndef SERIAL_PASSTHROUGH_H
 #define SERIAL_PASSTHROUGH_H
 
@@ -65,4 +63,4 @@ extern const device_t serial_passthrough_device;
 
 extern void serial_passthrough_init(void);
 
-#endif
+#endif /*SERIAL_PASSTHROUGH_H*/

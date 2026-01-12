@@ -10,8 +10,6 @@
  *
  *          Heavily inspired by libxkbcommon interactive-wayland.c
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2023 RichardG.
@@ -31,17 +29,17 @@ extern "C" {
 #include <QGuiApplication>
 
 typedef struct {
-    struct wl_seat *wl_seat;
+    struct wl_seat     *wl_seat;
     struct wl_keyboard *wl_kbd;
-    uint32_t version;
+    uint32_t            version;
 
     struct xkb_keymap *keymap;
 
     struct wl_list link;
 } seat_t;
 
-static bool wl_init_ok = false;
-static struct wl_list seats;
+static bool                wl_init_ok = false;
+static struct wl_list      seats;
 static struct xkb_context *ctx;
 
 static void
@@ -50,7 +48,8 @@ xkbcommon_wl_set_keymap()
     /* Grab keymap from the first seat with one. */
     seat_t *seat;
     seat_t *tmp;
-    wl_list_for_each_safe(seat, tmp, &seats, link) {
+    wl_list_for_each_safe(seat, tmp, &seats, link)
+    {
         if (seat->keymap) {
             xkbcommon_init(seat->keymap);
             return;
@@ -73,7 +72,7 @@ kbd_keymap(void *data, struct wl_keyboard *wl_kbd, uint32_t format,
 
     if (seat->keymap) {
         struct xkb_keymap *keymap = seat->keymap;
-        seat->keymap = NULL;
+        seat->keymap              = NULL;
         xkbcommon_wl_set_keymap();
         xkb_keymap_unref(keymap);
     }
@@ -144,7 +143,7 @@ seat_capabilities(void *data, struct wl_seat *wl_seat, uint32_t caps)
             wl_keyboard_destroy(seat->wl_kbd);
 
         struct xkb_keymap *keymap = seat->keymap;
-        seat->keymap = NULL;
+        seat->keymap              = NULL;
         xkbcommon_wl_set_keymap();
         xkb_keymap_unref(keymap);
 
@@ -183,7 +182,8 @@ display_global_remove(void *data, struct wl_registry *wl_registry, uint32_t id)
 
     seat_t *seat;
     seat_t *tmp;
-    wl_list_for_each_safe(seat, tmp, &seats, link) {
+    wl_list_for_each_safe(seat, tmp, &seats, link)
+    {
         if (seat->wl_kbd) {
             if (seat->version >= WL_SEAT_RELEASE_SINCE_VERSION)
                 wl_keyboard_release(seat->wl_kbd);

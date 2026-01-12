@@ -5319,6 +5319,40 @@ const cpu_family_t cpu_families[] = {
                 .cache_write_cycles = 17,
                 .atclk_div          = 66
             },
+            {
+                .name               = "570",
+                .cpu_type           = CPU_K6_2C,
+                .fpus               = fpus_internal,
+                .rspeed             = 570000000,
+                .multi              = 6.0,
+                .voltage            = 2300,
+                .edx_reset          = 0x58c,
+                .cpuid_model        = 0x58c,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 52,
+                .mem_write_cycles   = 52,
+                .cache_read_cycles  = 18,
+                .cache_write_cycles = 18,
+                .atclk_div          = 68
+            },
+            {
+                .name               = "600 (570 OC)",
+                .cpu_type           = CPU_K6_2C,
+                .fpus               = fpus_internal,
+                .rspeed             = 600000000,
+                .multi              = 6.0,
+                .voltage            = 2300,
+                .edx_reset          = 0x58c,
+                .cpuid_model        = 0x58c,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 54,
+                .mem_write_cycles   = 54,
+                .cache_read_cycles  = 18,
+                .cache_write_cycles = 18,
+                .atclk_div          = 72
+            },
             { .name = "", 0 }
         }
     }, {

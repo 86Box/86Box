@@ -8,8 +8,6 @@
  *
  *          Define the various UI functions.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -72,6 +70,8 @@ extern void     ui_sb_set_text_w(wchar_t *wstr);
 extern void     ui_sb_set_text(char *str);
 extern void     ui_sb_bugui(char *str);
 extern void     ui_sb_mt32lcd(char *str);
+
+extern void     ui_update_force_interpreter(void);
 
 #ifdef __cplusplus
 }

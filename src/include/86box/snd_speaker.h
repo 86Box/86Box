@@ -8,15 +8,12 @@
  *
  *          Header of the emulation of the PC speaker.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  */
-
 #ifndef SOUND_SPEAKER_H
 #define SOUND_SPEAKER_H
 

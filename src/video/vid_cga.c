@@ -239,9 +239,13 @@ cga_recalctimings(cga_t *cga)
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) {
         disptime    = (double) (cga->crtc[CGA_CRTC_HTOTAL] + 1);
         _dispontime = (double) cga->crtc[CGA_CRTC_HDISP];
+        if (_dispontime >= disptime)
+            _dispontime = disptime - 1;
     } else {
         disptime    = (double) ((cga->crtc[CGA_CRTC_HTOTAL] + 1) << 1);
         _dispontime = (double) (cga->crtc[CGA_CRTC_HDISP] << 1);
+        if (_dispontime >= disptime)
+            _dispontime = disptime - 2;
     }
     _dispofftime     = disptime - _dispontime;
     _dispontime      = _dispontime * CGACONST;
@@ -782,13 +786,13 @@ cga_standalone_init(UNUSED(const device_t *info))
 
     switch(device_get_config_int("font")) {
         case 0:
-            loadfont(FONT_IBM_MDA_437_PATH, 0);
+            video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 1:
-            loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
+            video_load_font(FONT_IBM_MDA_437_NORDIC_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 4:
-            loadfont(FONT_TULIP_DGA_PATH, 0);
+            video_load_font(FONT_TULIP_DGA_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
     }
 
@@ -802,7 +806,7 @@ cga_pravetz_init(const device_t *info)
 {
     cga_t *cga = cga_standalone_init(info);
 
-    loadfont("roms/video/cga/PRAVETZ-VDC2.BIN", 10);
+    video_load_font("roms/video/cga/PRAVETZ-VDC2.BIN", FONT_FORMAT_PRAVETZ, LOAD_FONT_NO_OFFSET);
 
     io_removehandler(0x03dd, 0x0001, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
     io_sethandler(0x03dd, 0x0001, cga_pravetz_in, NULL, NULL, cga_pravetz_out, NULL, NULL, cga);

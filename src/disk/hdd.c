@@ -8,8 +8,6 @@
  *
  *          Common code to handle all sorts of hard disk images.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -29,6 +27,7 @@
 #include <86box/hdd.h>
 #include <86box/cdrom.h>
 #include <86box/video.h>
+#include <86box/hdd_audio.h>
 #include "cpu.h"
 
 #define HDD_OVERHEAD_TIME 50.0
@@ -40,7 +39,6 @@ hdd_init(void)
 {
     /* Clear all global data. */
     memset(hdd, 0x00, sizeof(hdd));
-
     return 0;
 }
 
@@ -198,6 +196,9 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
     }
 
     if (!max_seek_time || seek_time <= max_seek_time) {
+        if (new_cylinder != hdd->cur_cylinder)
+            hdd_audio_seek(hdd, new_cylinder);
+
         hdd->cur_addr     = dst_addr;
         hdd->cur_track    = new_track;
         hdd->cur_cylinder = new_cylinder;
@@ -312,7 +313,7 @@ hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len)
         }
     }
 
-    hdd->cache.write_start_time = tsc + (uint32_t) (seek_time * cpuclock / 1000000.0);
+    hdd->cache.write_start_time = tsc + (uint64_t) (seek_time * cpuclock / 1000000.0);
 
     return seek_time;
 }
@@ -382,7 +383,7 @@ update_lru:
 
     cache->ra_ongoing    = 1;
     cache->ra_segment    = active_seg->id;
-    cache->ra_start_time = tsc + (uint32_t) (seek_time * cpuclock / 1000000.0);
+    cache->ra_start_time = tsc + (uint64_t) (seek_time * cpuclock / 1000000.0);
 
     return seek_time;
 }
@@ -437,6 +438,7 @@ static hdd_preset_t hdd_speed_presets[] = {
     { .name = "[Generic] 1998 (5400 RPM)",                        .internal_name = "1998_5400rpm", .zones = 16, .avg_spt = 300, .heads = 8, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size = 128, .max_multiple = 32 },
     { .name = "[Generic] 2000 (7200 RPM)",                        .internal_name = "2000_7200rpm", .zones = 16, .avg_spt = 350, .heads = 6, .rpm = 7200, .full_stroke_ms = 15, .track_seek_ms = 2,   .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
     { .name = "[PIO IDE] IBM WDA-L42",                            .internal_name = "WDAL42", .model = "WDA-L42", .zones =  1,  .avg_spt = 85, .heads = 2, .rpm = 3600, .full_stroke_ms = 33, .track_seek_ms = 2.5,   .rcache_num_seg =  1, .rcache_seg_size =  32, .max_multiple =  1 },
+    { .name = "[PIO-2] IBM DSAA-3270",                            .internal_name = "DSAA3270", .model = "DSAA-3270", .zones =  8,  .avg_spt = 268, .heads = 2, .rpm = 4500, .full_stroke_ms = 25, .track_seek_ms = 2.1,   .rcache_num_seg =  3, .rcache_seg_size =  32, .max_multiple =  8, .version_ex =  "25505120" },
     { .name = "[ATA-1] Conner CP3024",                            .internal_name = "CP3024", .model = "Conner Peripherals 20MB - CP3024", .zones =  1,  .avg_spt = 33, .heads = 2, .rpm = 3500, .full_stroke_ms = 50, .track_seek_ms = 8,   .rcache_num_seg =  1, .rcache_seg_size =  8, .max_multiple =  8 }, // Needed for GRiDcase 1520 to work
     { .name = "[ATA-1] Conner CP3044",                            .internal_name = "CP3044", .model = "Conner Peripherals 40MB - CP3044", .zones =  1,  .avg_spt = 40, .heads = 2, .rpm = 3500, .full_stroke_ms = 50, .track_seek_ms = 8,   .rcache_num_seg =  1, .rcache_seg_size =  8, .max_multiple =  8 }, // Needed for GRiDcase 1520 to work
     { .name = "[ATA-1] Conner CP3104",                            .internal_name = "CP3104", .model = "Conner Peripherals 104MB - CP3104", .zones =  1,  .avg_spt = 33, .heads = 8, .rpm = 3500, .full_stroke_ms = 45, .track_seek_ms = 8,   .rcache_num_seg =  4, .rcache_seg_size =  8, .max_multiple =  8 }, // Needed for GRiDcase 1520 to work
@@ -524,6 +526,8 @@ static hdd_preset_t hdd_speed_presets[] = {
     { .name = "[ATA-4] Quantum Fireball SE4.3A",                  .internal_name = "SE43A011", .model = "QUANTUM FIREBALL SE4.3A", .zones =  2,  .avg_spt = 200, .heads = 4, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size =  128, .max_multiple =  16 },
     { .name = "[ATA-4] Quantum Fireball SE6.4A",                  .internal_name = "SE64A011", .model = "QUANTUM FIREBALL SE6.4A", .zones =  3,  .avg_spt = 200, .heads = 6, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size =  128, .max_multiple =  16 },
     { .name = "[ATA-4] Quantum Fireball SE8.4A",                  .internal_name = "SE84A011", .model = "QUANTUM FIREBALL SE8.4A", .zones =  4,  .avg_spt = 200, .heads = 8, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size =  128, .max_multiple =  16 },
+    { .name = "[ATA-4] Quantum Fireball EX12.7A",                 .internal_name = "EX12A012", .model = "QUANTUM FIREBALL EX12.7A", .zones =  4,  .avg_spt = 200, .heads = 8, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size =  128, .max_multiple =  16, .version_ex =  "A0A.0D00" },
+    { .name = "[ATA-4] Quantum Fireball LCT-08 (LA04A011)",       .internal_name = "LA04A011", .model = "QUANTUM FIREBALLlct08 04", .zones =  8,  .avg_spt = 280, .heads = 6, .rpm = 5400, .full_stroke_ms = 40, .track_seek_ms = 3,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  16, .version_ex =  "A05.0X00" },
     { .name = "[ATA-4] Seagate Medalist 2122",                    .internal_name = "ST32122A", .model = "ST32122A", .zones =  16,  .avg_spt = 215, .heads = 2, .rpm = 4500, .full_stroke_ms = 23, .track_seek_ms = 3.8,   .rcache_num_seg =  16, .rcache_seg_size =  128, .max_multiple =  16 },
     { .name = "[ATA-4] Seagate Medalist 3321",                    .internal_name = "ST33221A", .model = "ST33221A", .zones =  16,  .avg_spt = 210, .heads = 4, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 1.7,   .rcache_num_seg =  16, .rcache_seg_size =  128, .max_multiple =  16 },
     { .name = "[ATA-4] Seagate Medalist 4321",                    .internal_name = "ST34321A", .model = "ST34321A", .zones =  16,  .avg_spt = 210, .heads = 4, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2.2,   .rcache_num_seg =  16, .rcache_seg_size =  128, .max_multiple =  16 },
@@ -536,6 +540,7 @@ static hdd_preset_t hdd_speed_presets[] = {
     { .name = "[ATA-4] Western Digital Caviar 23200",             .internal_name = "AC23200", .model = "WDC AC23200LB", .zones =  16,  .avg_spt = 210, .heads = 4, .rpm = 5400, .full_stroke_ms = 21, .track_seek_ms = 3,   .rcache_num_seg =  8, .rcache_seg_size =  256, .max_multiple =  32 },
     { .name = "[ATA-4] Western Digital Caviar 26400",             .internal_name = "AC26400", .model = "WDC AC26400RN", .zones =  16,  .avg_spt = 295, .heads = 5, .rpm = 5400, .full_stroke_ms = 21, .track_seek_ms = 3,   .rcache_num_seg =  8, .rcache_seg_size =  512, .max_multiple =  32 },
     { .name = "[ATA-4] Western Digital Caviar 33200",             .internal_name = "AC33200", .model = "WDC AC33200LA", .zones =  16,  .avg_spt = 310, .heads = 5, .rpm = 5200, .full_stroke_ms = 40, .track_seek_ms = 3,   .rcache_num_seg =  16, .rcache_seg_size =  256, .max_multiple =  32 },
+    { .name = "[ATA-4] Western Digital Caviar 35100",             .internal_name = "AC35100", .model = "WDC AC35100L", .zones =  16,  .avg_spt = 315, .heads = 5, .rpm = 5400, .full_stroke_ms = 40, .track_seek_ms = 3,   .rcache_num_seg =  16, .rcache_seg_size =  256, .max_multiple =  32, .version_ex =  "09.09M08" },
     { .name = "[ATA-5] IBM Travelstar 6GN",                       .internal_name = "DARA206000", .model = "IBM-DARA-206000", .zones =  12,  .avg_spt = 292, .heads = 2, .rpm = 4200, .full_stroke_ms = 31, .track_seek_ms = 4,   .rcache_num_seg =  16, .rcache_seg_size =  512, .max_multiple =  32 },
     { .name = "[ATA-5] IBM Travelstar 9GN",                       .internal_name = "DARA209000", .model = "IBM-DARA-209000", .zones =  12,  .avg_spt = 292, .heads = 3, .rpm = 4200, .full_stroke_ms = 31, .track_seek_ms = 4,   .rcache_num_seg =  16, .rcache_seg_size =  512, .max_multiple =  32 },
     { .name = "[ATA-5] IBM/Hitachi Travelstar 12GN",              .internal_name = "DARA212000", .model = "IBM-DARA-212000", .zones =  12,  .avg_spt = 292, .heads = 4, .rpm = 4200, .full_stroke_ms = 31, .track_seek_ms = 4,   .rcache_num_seg =  16, .rcache_seg_size =  512, .max_multiple =  32 }, // Either Hitachi or IBM OEM
@@ -584,6 +589,14 @@ hdd_preset_get_internal_name(int preset)
     return hdd_speed_presets[preset].internal_name;
 }
 
+uint32_t
+hdd_preset_get_rpm(int preset)
+{
+    if (preset < 0 || preset >= hdd_preset_get_num())
+        return 0;
+    return hdd_speed_presets[preset].rpm;
+}
+
 int
 hdd_preset_get_from_internal_name(char *s)
 {
@@ -622,6 +635,9 @@ hdd_preset_apply(int hdd_id)
     hd->max_multiple_block = preset->max_multiple;
     if (preset->model)
         hd->model = preset->model;
+
+    if (preset->version_ex)
+        hd->version_ex = preset->version_ex;
 
     if (!hd->speed_preset)
         return;

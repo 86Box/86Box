@@ -51,7 +51,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>&amp;Specify...</string>
+      <string>Browse…</string>
      </property>
     </widget>
    </item>

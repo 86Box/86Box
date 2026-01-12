@@ -9,8 +9,6 @@
  *          Implementation of the Trantor 128/228 series of SCSI Host Adapters
  *          made by Trantor. These controllers were designed for the ISA and MCA bus.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

@@ -170,22 +170,44 @@ machine_at_greenb_init(const machine_t *model)
 static const device_config_t j403tg_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "403tg",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Award Modular BIOS v4.50G", .internal_name = "403tg", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/403TG.BIN", "" } },
-            { .name = "AMI WinBIOS (121593)", .internal_name = "403tg_d", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/J403TGRevD.BIN", "" } },
-            { .name = "MR BIOS V2.02", .internal_name = "403tg_d_mr", .bios_type = BIOS_NORMAL, 
-              .files_no = 1, .local = 0, .size = 65536, .files = { "roms/machines/403tg/MRBiosOPT895.bin", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMI WinBIOS (121593)",
+                .internal_name = "403tg",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/403tg/J403TGRevD.BIN", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.50G",
+                .internal_name = "403tg_award",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/403tg/403TG.BIN", "" }
+            },
+            {
+                .name          = "MR BIOS V2.02",
+                .internal_name = "403tg_mr",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/403tg/MRBiosOPT895.bin", "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -208,17 +230,17 @@ const device_t j403tg_device = {
 int
 machine_at_403tg_init(const machine_t *model)
 {
-    int ret = 0;
-    const char* fn;
+    int         ret = 0;
+    const char *fn;
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    int nvr_hack = !strcmp(device_get_config_bios("bios"), "403tg_d");
-    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
-    ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
+    int nvr_hack = !strcmp(device_get_config_bios("bios"), "403tg");
+    fn           = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret          = bios_load_linear(fn, 0x000f0000, 65536, 0);
 
     if (nvr_hack) {
         machine_at_common_init_ex(model, 2);
@@ -280,6 +302,24 @@ machine_at_win471_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/win471/486-SiS_AC0360136.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_sis_85c471_common_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_at_win471t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/win471t/486-SiS_AB6680759.BIN",
                            0x000f0000, 65536, 0);
 
     if (bios_only || !ret)

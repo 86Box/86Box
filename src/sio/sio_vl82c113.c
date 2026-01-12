@@ -134,7 +134,7 @@ vl82c113_init(UNUSED(const device_t *info))
 {
     vl82c113_t *dev  = (vl82c113_t *) calloc(1, sizeof(vl82c113_t));
 
-    if (!strcmp(machine_get_internal_name(), "martin"))
+    if (machines[machine].init == machine_at_martin_init)
         dev->nvr         = device_add(&martin_nvr_device);
     else
         dev->nvr         = device_add(&amstrad_megapc_nvr_device);

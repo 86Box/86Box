@@ -22,7 +22,6 @@
  *
  *          Copyright 2024-2025 Akamaki.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -96,20 +95,20 @@
 #define DA2_POSID_L 0xfe
 /*
      [Identification]
-    POS ID	SYS ID
-    EFFFh	*		Display Adapter (PS/55 Model 5571-S0A) [Toledo]
-    E013h	*		Layout Display Terminal (PS/55-5571 RPQ model) [LDT]
-    EFFEh	*		Display Adapter II (I/O 3E0:0A = xx0x xxxx) [Atlas]
-    |-		FFF2h	Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5530Z-SX)
-    |-		FDFEh	Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5550-V2)
-    |-		*		Display Adapter III,V (I/O 3E0:0A = xx1x xxxx)
-    ECECh	FF4Fh	Display Adapter B1 (PS/55 Model 5531Z-SX) [Atlas-KENT]
-    |-		*		Display Adapter IV
-    ECCEh	*		Display Adapter IV
-    901Fh	*		Display Adapter A2
-    901Dh	*		Display Adapter A1 [Atlas II]
-    901Eh	*		Plasma Display Adapter
-    EFD8h	*		Display Adapter/J [Atlas-SP2]
+    POS ID  SYS ID
+    EFFFh   *       Display Adapter (PS/55 Model 5571-S0A) [Toledo]
+    E013h   *       Layout Display Terminal (PS/55-5571 RPQ model) [LDT]
+    EFFEh   *       Display Adapter II (I/O 3E0:0A = xx0x xxxx) [Atlas]
+    |-      FFF2h   Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5530Z-SX)
+    |-      FDFEh   Display Adapter B2 (I/O 3E0:0A = xx1x xxxx) (PS/55 Model 5550-V2)
+    |-      *       Display Adapter III,V (I/O 3E0:0A = xx1x xxxx)
+    ECECh   FF4Fh   Display Adapter B1 (PS/55 Model 5531Z-SX) [Atlas-KENT]
+    |-      *       Display Adapter IV
+    ECCEh   *       Display Adapter IV
+    901Fh   *       Display Adapter A2
+    901Dh   *       Display Adapter A1 [Atlas II]
+    901Eh   *       Plasma Display Adapter
+    EFD8h   *       Display Adapter/J [Atlas-SP2]
 
      [Japanese DOS and Display Adapter compatibility]
     |            |                             | 5605JBK | 5605PAA | 5605PCA | 5605PDE | 5605PAW | 5605PXB |
@@ -3150,7 +3149,7 @@ da2_poll(void *priv)
 }
 
 static void
-da2_loadfont(char *fname, void *priv)
+da2_video_load_font(char *fname, void *priv)
 {
     da2_t  *da2 = (da2_t *) priv;
     uint8_t buf;
@@ -3268,10 +3267,10 @@ da2_init(UNUSED(const device_t *info))
     da2->mmio.font    = malloc(DA2_FONTROM_SIZE);
     switch (da2->mmio.charset) {
         case DA2_DCONFIG_CHARSET_HANT:
-            da2_loadfont(DA2_FONTROM_PATH_HANT, da2);
+            da2_video_load_font(DA2_FONTROM_PATH_HANT, da2);
             break;
         case DA2_DCONFIG_CHARSET_JPAN:
-            da2_loadfont(DA2_FONTROM_PATH_JPAN, da2);
+            da2_video_load_font(DA2_FONTROM_PATH_JPAN, da2);
             /* Add magic code for OS/2 J1.3. This disables BitBlt's text drawing function. */
             da2->mmio.font[0x1AFFE] = 0x80;
             da2->mmio.font[0x1AFFF] = 0x01;

@@ -8,8 +8,6 @@
  *
  *          Keybind dialog
  *
- *
- *
  * Authors: Cathode Ray Dude
  *          Cacodemon345
  *
@@ -54,7 +52,7 @@ extern "C" {
 #    include <sys/sysmacros.h>
 #endif
 #ifdef Q_OS_WINDOWS
-#include <windows.h>
+#    include <windows.h>
 #endif
 
 KeyBinder::KeyBinder(QWidget *parent)
@@ -62,10 +60,10 @@ KeyBinder::KeyBinder(QWidget *parent)
     , ui(new Ui::KeyBinder)
 {
     ui->setupUi(this);
-	singleKeySequenceEdit *seq = new singleKeySequenceEdit();
-	ui->formLayout->addRow(seq);
-	seq->setObjectName("keySequence");
-	this->setTabOrder(seq, ui->buttonBox);
+    singleKeySequenceEdit *seq = new singleKeySequenceEdit();
+    ui->formLayout->addRow(seq);
+    seq->setObjectName("keySequence");
+    this->setTabOrder(seq, ui->buttonBox);
 }
 
 KeyBinder::~KeyBinder()
@@ -74,29 +72,31 @@ KeyBinder::~KeyBinder()
 }
 
 void
-KeyBinder::showEvent( QShowEvent* event ) {
-    QWidget::showEvent( event );
-    this->findChild<QKeySequenceEdit*>()->setFocus();
-} 
-
-bool KeyBinder::eventFilter(QObject *obj, QEvent *event)
+KeyBinder::showEvent(QShowEvent *event)
 {
-	 return QObject::eventFilter(obj, event);
+    QWidget::showEvent(event);
+    this->findChild<QKeySequenceEdit *>()->setFocus();
+}
+
+bool
+KeyBinder::eventFilter(QObject *obj, QEvent *event)
+{
+    return QObject::eventFilter(obj, event);
 }
 
 QKeySequence
-KeyBinder::BindKey(QWidget* widget, QString CurValue)
+KeyBinder::BindKey(QWidget *widget, QString CurValue)
 {
-	KeyBinder kb(widget);
-	kb.setWindowTitle(tr("Bind Key"));
+    KeyBinder kb(widget);
+    kb.setWindowTitle(tr("Bind Key"));
     kb.setFixedSize(kb.minimumSizeHint());
-	kb.findChild<QKeySequenceEdit*>()->setKeySequence(QKeySequence::fromString(CurValue, QKeySequence::NativeText));
-	kb.setEnabled(true);
-	
+    kb.findChild<QKeySequenceEdit *>()->setKeySequence(QKeySequence::fromString(CurValue, QKeySequence::NativeText));
+    kb.setEnabled(true);
+
     if (kb.exec() == QDialog::Accepted) {
-		QKeySequenceEdit *seq = kb.findChild<QKeySequenceEdit*>();
-		return (seq->keySequence());
+        QKeySequenceEdit *seq = kb.findChild<QKeySequenceEdit *>();
+        return (seq->keySequence());
     } else {
-		return (false);
-	}
+        return (false);
+    }
 }

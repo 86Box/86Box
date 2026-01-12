@@ -42,8 +42,6 @@
  *          which are the same as the XGA. It supports up to 1MB of VRAM,
  *          but we lock it down to 512K. The PS/1 2122 had 256K.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

@@ -8,8 +8,6 @@
  *
  *          Implementation of the Chips & Technologies CS4031 chipset.
  *
- *
- *
  * Authors: Tiseno100
  *
  *          Copyright 2021 Tiseno100

@@ -8,8 +8,6 @@
  *
  *          Hard disk dialog code.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -21,7 +19,7 @@
 
 extern "C" {
 #ifdef __unix__
-#include <unistd.h>
+#    include <unistd.h>
 #endif
 #include <86box/86box.h>
 #include <86box/hdd.h>
@@ -77,21 +75,21 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
     for (int i = 0; i < 127; i++) {
         uint64_t size    = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
         uint32_t size_mb = size >> 11LL;
-        QString text = tr("%1 MB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
+        QString  text    = tr("%1 MB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
         Models::AddEntry(model, text, i);
     }
-    Models::AddEntry(model, tr("Custom..."), 127);
-    Models::AddEntry(model, tr("Custom (large)..."), 128);
+    Models::AddEntry(model, tr("Custom…"), 127);
+    Models::AddEntry(model, tr("Custom (large)…"), 128);
 
     ui->lineEditSize->setValidator(new QIntValidator());
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
 
     filters = QStringList({ tr("Raw image") % util::DlgFilter({ "img" }, true),
-                          tr("HDI image") % util::DlgFilter({ "hdi" }, true),
-                          tr("HDX image") % util::DlgFilter({ "hdx" }, true),
-                          tr("Fixed-size VHD") % util::DlgFilter({ "vhd" }, true),
-                          tr("Dynamic-size VHD") % util::DlgFilter({ "vhd" }, true),
-                          tr("Differencing VHD") % util::DlgFilter({ "vhd" }, true) });
+                            tr("HDI image") % util::DlgFilter({ "hdi" }, true),
+                            tr("HDX image") % util::DlgFilter({ "hdx" }, true),
+                            tr("Fixed-size VHD") % util::DlgFilter({ "vhd" }, true),
+                            tr("Dynamic-size VHD") % util::DlgFilter({ "vhd" }, true),
+                            tr("Differencing VHD") % util::DlgFilter({ "vhd" }, true) });
 
     if (existing) {
         ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?", "im?", "vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
@@ -319,7 +317,6 @@ create_drive_vhd_diff(const QString &fileName, const QString &parentFileName, in
             _86box_geometry.spt   = vhd_geometry.spt;
         }
 
-
         mvhd_close(vhd);
     }
 
@@ -416,7 +413,7 @@ HarddiskDialog::onCreateNewFile()
         file.close();
 
         _86BoxGeom _86box_geometry {};
-        int      block_size = ui->comboBoxBlockSize->currentIndex() == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
+        int        block_size = ui->comboBoxBlockSize->currentIndex() == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
         switch (img_format) {
             case IMG_FMT_VHD_FIXED:
                 {
@@ -570,7 +567,7 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     if (!file.open(QIODevice::ReadOnly)) {
         // No message box during precheck (performed when the file input loses focus and this function is called)
         // If precheck is false, the file has been chosen from a file dialog and the alert should display.
-        if(!precheck) {
+        if (!precheck) {
             QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
         }
         return;

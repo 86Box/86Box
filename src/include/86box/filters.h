@@ -5,7 +5,7 @@
 
 /* fc=150Hz */
 static inline float
-adgold_highpass_iir(int c, int i, float NewSample)
+adgold_highpass_iir(int i, float NewSample)
 {
     float ACoef[NCoef + 1] = {
         0.98657437157334349000,
@@ -19,28 +19,28 @@ adgold_highpass_iir(int c, int i, float NewSample)
         0.97261396931534050000
     };
 
-    static float y[2][2][NCoef + 1]; /* output samples */
-    static float x[2][2][NCoef + 1]; /* input samples */
+    static float y[2][NCoef + 1]; /* output samples */
+    static float x[2][NCoef + 1]; /* input samples */
     int          n;
 
     /* shift the old samples */
     for (n = NCoef; n > 0; n--) {
-        x[c][i][n] = x[c][i][n - 1];
-        y[c][i][n] = y[c][i][n - 1];
+        x[i][n] = x[i][n - 1];
+        y[i][n] = y[i][n - 1];
     }
 
     /* Calculate the new output */
-    x[c][i][0] = NewSample;
-    y[c][i][0] = ACoef[0] * x[c][i][0];
+    x[i][0] = NewSample;
+    y[i][0] = ACoef[0] * x[i][0];
     for (n = 1; n <= NCoef; n++)
-        y[c][i][0] += ACoef[n] * x[c][i][n] - BCoef[n] * y[c][i][n];
+        y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
 
-    return y[c][i][0];
+    return y[i][0];
 }
 
 /* fc=150Hz */
 static inline float
-adgold_lowpass_iir(int c, int i, float NewSample)
+adgold_lowpass_iir(int i, float NewSample)
 {
     float ACoef[NCoef + 1] = {
         0.00009159473951071446,
@@ -54,23 +54,23 @@ adgold_lowpass_iir(int c, int i, float NewSample)
         0.97261396931306277000
     };
 
-    static float y[2][2][NCoef + 1]; /* output samples */
-    static float x[2][2][NCoef + 1]; /* input samples */
+    static float y[2][NCoef + 1]; /* output samples */
+    static float x[2][NCoef + 1]; /* input samples */
     int          n;
 
     /* shift the old samples */
     for (n = NCoef; n > 0; n--) {
-        x[c][i][n] = x[c][i][n - 1];
-        y[c][i][n] = y[c][i][n - 1];
+        x[i][n] = x[i][n - 1];
+        y[i][n] = y[i][n - 1];
     }
 
     /* Calculate the new output */
-    x[c][i][0] = NewSample;
-    y[c][i][0] = ACoef[0] * x[c][i][0];
+    x[i][0] = NewSample;
+    y[i][0] = ACoef[0] * x[i][0];
     for (n = 1; n <= NCoef; n++)
-        y[c][i][0] += ACoef[n] * x[c][i][n] - BCoef[n] * y[c][i][n];
+        y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
 
-    return y[c][i][0];
+    return y[i][0];
 }
 
 /* fc=56Hz */

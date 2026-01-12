@@ -8,13 +8,10 @@
  *
  *          Definitions for the VNC renderer.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017 Fred N. van Kempen.
  */
-
 #ifndef EMU_VNC_H
 #define EMU_VNC_H
 

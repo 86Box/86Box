@@ -52,15 +52,12 @@
  *          however, are auto-configured by the system software as
  *          shown above.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2017-2018 Fred N. van Kempen.
  */
-
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -1223,6 +1220,12 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 
     if (!(dev->pos_regs[3] & 8)) {
         switch (dev->pos_regs[3] & 7) {
+            case 0:
+                dev->bios = 0xc0000;
+                break;
+            case 1:
+                dev->bios = 0xc4000;
+                break;
             case 2:
                 dev->bios = 0xc8000;
                 break;

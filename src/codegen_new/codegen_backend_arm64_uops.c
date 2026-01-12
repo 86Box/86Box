@@ -801,7 +801,8 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.tag[0] - (uintptr_t) &cpu_state);
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.tag[4] - (uintptr_t) &cpu_state);
     host_arm64_STR_IMM_W(block, REG_WZR, REG_CPUSTATE, (uintptr_t) &cpu_state.TOP - (uintptr_t) &cpu_state);
-    host_arm64_STRB_IMM(block, REG_WZR, REG_CPUSTATE, (uintptr_t) &cpu_state.ismmx - (uintptr_t) &cpu_state);
+    host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, 1);
+    host_arm64_STRB_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.ismmx - (uintptr_t) &cpu_state);
 
     return 0;
 }
@@ -849,28 +850,28 @@ codegen_LOAD_FUNC_ARG3(codeblock_t *block, uop_t *uop)
 static int
 codegen_LOAD_FUNC_ARG0_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG0, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG0, uop->imm_data);
 
     return 0;
 }
 static int
 codegen_LOAD_FUNC_ARG1_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG1, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG1, uop->imm_data);
 
     return 0;
 }
 static int
 codegen_LOAD_FUNC_ARG2_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG2, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG2, uop->imm_data);
 
     return 0;
 }
 static int
 codegen_LOAD_FUNC_ARG3_IMM(codeblock_t *block, uop_t *uop)
 {
-    host_arm64_mov_imm(block, REG_ARG3, uop->imm_data);
+    host_arm64_MOVX_IMM(block, REG_ARG3, uop->imm_data);
 
     return 0;
 }
@@ -1448,9 +1449,9 @@ codegen_PACKSSWB(codeblock_t *block, uop_t *uop)
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
-        host_arm64_SQXTN_V8B_8H(block, REG_V_TEMP, src_reg_b);
-        host_arm64_SQXTN_V8B_8H(block, dest_reg, dest_reg);
-        host_arm64_ZIP1_V2S(block, dest_reg, dest_reg, REG_V_TEMP);
+        host_arm64_INS_D(block, REG_V_TEMP, dest_reg, 0, 0);
+        host_arm64_INS_D(block, REG_V_TEMP, src_reg_b, 1, 0);
+        host_arm64_SQXTN_V8B_8H(block, dest_reg, REG_V_TEMP);
     } else
         fatal("PACKSSWB %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -1465,9 +1466,9 @@ codegen_PACKSSDW(codeblock_t *block, uop_t *uop)
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
-        host_arm64_SQXTN_V4H_4S(block, REG_V_TEMP, src_reg_b);
-        host_arm64_SQXTN_V4H_4S(block, dest_reg, dest_reg);
-        host_arm64_ZIP1_V2S(block, dest_reg, dest_reg, REG_V_TEMP);
+        host_arm64_INS_D(block, REG_V_TEMP, dest_reg, 0, 0);
+        host_arm64_INS_D(block, REG_V_TEMP, src_reg_b, 1, 0);
+        host_arm64_SQXTN_V4H_4S(block, dest_reg, REG_V_TEMP);
     } else
         fatal("PACKSSDW %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -1480,9 +1481,9 @@ codegen_PACKUSWB(codeblock_t *block, uop_t *uop)
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real), src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
-        host_arm64_UQXTN_V8B_8H(block, REG_V_TEMP, src_reg_b);
-        host_arm64_UQXTN_V8B_8H(block, dest_reg, dest_reg);
-        host_arm64_ZIP1_V2S(block, dest_reg, dest_reg, REG_V_TEMP);
+        host_arm64_INS_D(block, REG_V_TEMP, dest_reg, 0, 0);
+        host_arm64_INS_D(block, REG_V_TEMP, src_reg_b, 1, 0);
+        host_arm64_SQXTUN_V8B_8H(block, dest_reg, REG_V_TEMP);
     } else
         fatal("PACKUSWB %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 

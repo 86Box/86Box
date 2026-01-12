@@ -8,13 +8,10 @@
  *
  *          IBM XGA emulation.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2022 TheCollector1995.
  */
-
 #ifndef VIDEO_XGA_DEVICE_H
 #define VIDEO_XGA_DEVICE_H
 

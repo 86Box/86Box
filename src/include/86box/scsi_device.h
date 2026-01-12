@@ -8,15 +8,12 @@
  *
  *          Definitions for the generic SCSI device command handler.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
-
 #ifndef SCSI_DEVICE_H
 #define SCSI_DEVICE_H
 
@@ -388,6 +385,7 @@ typedef struct scsi_common_s {
     void *             log;
 
     uint8_t *          temp_buffer;
+    size_t             temp_buffer_sz;
     /*
        This is atapi_cdb in ATAPI-supporting devices,
        and pad in SCSI-only devices.

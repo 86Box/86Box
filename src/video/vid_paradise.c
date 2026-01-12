@@ -10,8 +10,6 @@
  *           PC2086, PC3086 use PVGA1A
  *           MegaPC uses W90C11A
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -489,6 +487,7 @@ void
 paradise_recalctimings(svga_t *svga)
 {
     paradise_t *paradise = (paradise_t *) svga->priv;
+    int clk_sel = 0;
 
     svga->lowres = !(svga->gdcreg[0x0e] & 0x01);
 
@@ -528,6 +527,11 @@ paradise_recalctimings(svga_t *svga)
                 break;
         }
     } else {
+        clk_sel = ((svga->miscout >> 2) & 0x03);
+        if (!(svga->gdcreg[0x0c] & 0x02))
+            clk_sel |= 0x04;
+
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
                 if (svga->bpp == 16) {
@@ -779,6 +783,8 @@ paradise_init(const device_t *info, uint32_t memory)
             paradise->vram_mask = (memory << 10) - 1;
             svga->decode_mask   = (memory << 10) - 1;
             svga->ramdac        = device_add(&sc11487_ramdac_device); /*Actually a Winbond W82c487-80, probably a clone.*/
+            svga->clock_gen     = device_add(&ics90c64a_903_device);
+            svga->getclock      = ics90c64a_vclk_getclock;
             break;
 
         default:

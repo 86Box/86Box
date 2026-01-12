@@ -8,8 +8,6 @@
  *
  *          Emulation of the National Semiconductor LM78 hardware monitoring chip.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

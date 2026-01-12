@@ -6,8 +6,6 @@
  *
  *          Handle WinPcap library processing.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.

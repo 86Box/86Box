@@ -8,8 +8,6 @@
  *
  *          Implementation of the VLSI VL82c480 chipset.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.
@@ -29,6 +27,8 @@
 #include <86box/nmi.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
+
+#define machine_at_prolineamt_init NULL /* checks for a removed machine */
 
 typedef struct vl82c480_t {
     uint8_t  idx;
@@ -132,8 +132,8 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x02: case 0x03:
                         dev->regs[dev->idx] = val;
-                        if (!strcmp(machine_get_internal_name(), "martin") ||
-                            !strcmp(machine_get_internal_name(), "prolineamt"))
+                        if ((machines[machine].init == machine_at_martin_init) ||
+                            (machines[machine].init == machine_at_prolineamt_init))
                             vl82c480_recalc_banks(dev);
                         break;
                     case 0x04:
@@ -220,9 +220,9 @@ vl82c480_init(const device_t *info)
     vl82c480_t *dev      = (vl82c480_t *) calloc(1, sizeof(vl82c480_t));
     uint32_t    sizes[8] = { 0, 0, 1024, 2048, 4096, 8192, 16384, 32768 };
     uint32_t    ms       = mem_size;
-    uint8_t     min_i    = !strcmp(machine_get_internal_name(), "prolineamt") ? 1 : 0;
-    uint8_t     min_j    = !strcmp(machine_get_internal_name(), "prolineamt") ? 4 : 2;
-    uint8_t     max_j    = !strcmp(machine_get_internal_name(), "prolineamt") ? 8 : 7;
+    uint8_t     min_i    = (machines[machine].init == machine_at_prolineamt_init) ? 1 : 0;
+    uint8_t     min_j    = (machines[machine].init == machine_at_prolineamt_init) ? 4 : 2;
+    uint8_t     max_j    = (machines[machine].init == machine_at_prolineamt_init) ? 8 : 7;
 
     dev->regs[0x00] = info->local;
     dev->regs[0x01] = 0xff;
@@ -233,7 +233,7 @@ vl82c480_init(const device_t *info)
         dev->regs[0x07] = 0x21;
     dev->regs[0x08] = 0x38;
 
-    if (!strcmp(machine_get_internal_name(), "prolineamt")) {
+    if (machines[machine].init == machine_at_prolineamt_init) {
         dev->banks[0] = 4096;
 
         /* Bank 0 is ignored if 64 MB is installed. */

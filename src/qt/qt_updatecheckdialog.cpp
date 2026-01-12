@@ -8,13 +8,10 @@
  *
  *          Update check dialog module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #include <QDir>
 #include <QTimer>
 
@@ -27,11 +24,14 @@ extern "C" {
 }
 
 UpdateCheckDialog::
-UpdateCheckDialog(const UpdateCheck::UpdateChannel channel, QWidget *parent) : QDialog(parent), ui(new Ui::UpdateCheckDialog), updateCheck(new UpdateCheck(channel))
+    UpdateCheckDialog(const UpdateCheck::UpdateChannel channel, QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::UpdateCheckDialog)
+    , updateCheck(new UpdateCheck(channel))
 {
     ui->setupUi(this);
     ui->statusLabel->setHidden(true);
-    updateChannel = channel;
+    updateChannel  = channel;
     currentVersion = UpdateCheck::getCurrentVersion(updateChannel);
     connect(updateCheck, &UpdateCheck::updateCheckError, [=](const QString &errorMsg) {
         generalDownloadError(errorMsg);
@@ -43,8 +43,7 @@ UpdateCheckDialog(const UpdateCheck::UpdateChannel channel, QWidget *parent) : Q
     });
 }
 
-UpdateCheckDialog::~
-UpdateCheckDialog()
+UpdateCheckDialog::~UpdateCheckDialog()
     = default;
 
 void

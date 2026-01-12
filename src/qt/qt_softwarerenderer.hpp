@@ -2,24 +2,28 @@
 #define SOFTWARERENDERER_HPP
 
 #include <QWidget>
-#include <QRasterWindow>
+#include <QWindow>
 #include <QPaintDevice>
+#include <QScopedPointer>
+#include <QBackingStore>
 #include <array>
 #include <atomic>
 #include "qt_renderercommon.hpp"
 
 class SoftwareRenderer :
-#ifdef __HAIKU__
     public QWidget,
-#else
-    public QRasterWindow,
-#endif
     public RendererCommon {
     Q_OBJECT
 public:
     explicit SoftwareRenderer(QWidget *parent = nullptr);
 
     void paintEvent(QPaintEvent *event) override;
+
+#ifdef __HAIKU__
+    void exposeEvent(QExposeEvent *event) override;
+#else
+    void exposeEvent(QExposeEvent *event);
+#endif
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
 
@@ -33,6 +37,10 @@ protected:
     void onPaint(QPaintDevice *device);
     void resizeEvent(QResizeEvent *event) override;
     bool event(QEvent *event) override;
+
+    void render();
+
+    QScopedPointer<QBackingStore> m_backingStore;
 };
 
 #endif // SOFTWARERENDERER_HPP

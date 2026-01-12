@@ -50,9 +50,13 @@ joystick_init(void)
     SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
 #endif
 
-    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0) {
+#ifdef __APPLE__
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
+#else
+    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0)
+#endif
         return;
-    }
+
     joysticks_present = SDL_NumJoysticks();
 
     memset(sdl_joy, 0, sizeof(sdl_joy));

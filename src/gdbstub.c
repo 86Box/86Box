@@ -8,8 +8,6 @@
  *
  *          GDB stub server for remote debugging.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.
@@ -535,8 +533,8 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_EFLAGS:
-            cpu_state.flags  = *((uint16_t *) &buf[0]);
-            cpu_state.eflags = *((uint16_t *) &buf[2]);
+            cpu_state.flags  = AS_U16(buf[0]);
+            cpu_state.eflags = AS_U16(buf[2]);
             break;
 
         case GDB_REG_CS ... GDB_REG_GS:
@@ -564,8 +562,8 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
         case GDB_REG_ST0 ... GDB_REG_ST7:
             width           = 10;
             x87_conv_t conv = {
-                .eind  = { .ll = *((uint64_t *) &buf[0]) },
-                .begin = *((uint16_t *) &buf[8])
+                .eind  = { .ll = AS_U64(buf[0]) },
+                .begin = AS_U16(buf[8])
             };
             cpu_state.ST[(cpu_state.TOP + (index - GDB_REG_ST0)) & 7] = x87_from80(&conv);
             break;
@@ -671,8 +669,8 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_EFLAGS:
-            *((uint16_t *) &buf[0]) = cpu_state.flags;
-            *((uint16_t *) &buf[2]) = cpu_state.eflags;
+            AS_U16(buf[0]) = cpu_state.flags;
+            AS_U16(buf[2]) = cpu_state.eflags;
             break;
 
         case GDB_REG_CS ... GDB_REG_GS:
@@ -697,8 +695,8 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             width = 10;
             x87_conv_t conv;
             x87_to80(cpu_state.ST[(cpu_state.TOP + (index - GDB_REG_ST0)) & 7], &conv);
-            *((uint64_t *) &buf[0]) = conv.eind.ll;
-            *((uint16_t *) &buf[8]) = conv.begin;
+            AS_U64(buf[0]) = conv.eind.ll;
+            AS_U16(buf[8]) = conv.begin;
             break;
 
         case GDB_REG_FCTRL ... GDB_REG_FSTAT:
@@ -757,7 +755,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
 #ifdef GDBSTUB_CHECK_CHECKSUM
     gdbstub_client_read_hex(client, &rcv_checksum, 1);
 #endif
-    *((uint16_t *) &client->packet[--client->packet_pos]) = 0;
+    AS_U16(client->packet[--client->packet_pos]) = 0;
 #ifdef GDBSTUB_CHECK_CHECKSUM
     for (i = 0; i < client->packet_pos; i++)
         checksum += client->packet[i];
@@ -881,6 +879,7 @@ e22:
 
             /* Read by qwords, then by dwords, then by words, then by bytes. */
             i = 0;
+            cpl_override = 1;
             if (is386) {
                 for (; i < (k & ~7); i += 8) {
                     *((uint64_t *) buf) = readmemql(j);
@@ -902,6 +901,7 @@ e22:
                 buf[0] = readmembl(j++);
                 gdbstub_client_respond_hex(client, buf, 1);
             }
+            cpl_override = 0;
             break;
 
         case 'M': /* write memory */
@@ -936,6 +936,7 @@ e22:
             /* Write by qwords, then by dwords, then by words, then by bytes. */
             p = client->packet;
             i = 0;
+            cpl_override = 1;
             if (is386) {
                 for (; i < (k & ~7); i += 8) {
                     writememql(j, *((uint64_t *) p));
@@ -957,6 +958,7 @@ e22:
                 writemembl(j++, p[0]);
                 p++;
             }
+            cpl_override = 0;
 
             /* Respond positively. */
             goto ok;

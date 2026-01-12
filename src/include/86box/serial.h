@@ -9,8 +9,6 @@
  *          Definitions for the NS8250/16450/16550/16650/16750/16850/16950
  *          UART emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,18 +17,18 @@
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
-
 #ifndef EMU_SERIAL_H
 #define EMU_SERIAL_H
 
-#define SERIAL_8250      0
-#define SERIAL_8250_PCJR 1
-#define SERIAL_16450     2
-#define SERIAL_16550     3
-#define SERIAL_16650     4
-#define SERIAL_16750     5
-#define SERIAL_16850     6
-#define SERIAL_16950     7
+#define SERIAL_8250          0
+#define SERIAL_8250_PCJR_3F8 1
+#define SERIAL_8250_PCJR_2F8 2
+#define SERIAL_16450         3
+#define SERIAL_16550         4
+#define SERIAL_16650         5
+#define SERIAL_16750         6
+#define SERIAL_16850         7
+#define SERIAL_16950         8
 
 #define SERIAL_FIFO_SIZE 16
 
@@ -154,7 +152,8 @@ extern int       serial_get_ri(serial_t *dev);
 extern uint8_t   serial_get_shadow(serial_t *dev);
 
 extern const device_t ns8250_device;
-extern const device_t ns8250_pcjr_device;
+extern const device_t ns8250_pcjr_3f8_device;
+extern const device_t ns8250_pcjr_2f8_device;
 extern const device_t ns16450_device;
 extern const device_t ns16550_device;
 extern const device_t ns16650_device;

@@ -9,13 +9,10 @@
  *          Implementation of the CD-ROM drive with SCSI(-like)
  *          commands, for both ATAPI and SCSI usage.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2018-2019 Miran Grca.
  */
-
 #ifndef EMU_SCSI_CDROM_H
 #define EMU_SCSI_CDROM_H
 
@@ -36,6 +33,7 @@ typedef struct scsi_cdrom_t {
     void *             log;
 
     uint8_t *          buffer;
+    size_t             buffer_sz;
     uint8_t            atapi_cdb[16];
     uint8_t            current_cdb[16];
     uint8_t            sense[256];

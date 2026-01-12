@@ -44,7 +44,6 @@
           10 ASKIR
           11 Disabled
 */
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>

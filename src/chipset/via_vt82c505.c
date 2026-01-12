@@ -8,8 +8,6 @@
  *
  *          Implementation of the VIA VT82C505 VL/PCI Bridge Controller.
  *
- *
- *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *

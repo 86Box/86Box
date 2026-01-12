@@ -9,15 +9,15 @@
  *          Implementation of the NEC uPD-765 and compatible floppy disk
  *          controller.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Toni Riikonen, <riikonen.toni@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2018-2020 Fred N. van Kempen.
+ *          Copyright 2025 Toni Riikonen.
  */
 #ifndef EMU_FDC_H
 #define EMU_FDC_H
@@ -251,6 +251,7 @@ extern uint8_t fdc_read(uint16_t addr, void *priv);
 extern void    fdc_reset(void *priv);
 
 extern uint8_t fdc_get_current_drive(void);
+extern void    fdc_seek_complete_interrupt(fdc_t *fdc, int drive);
 
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;

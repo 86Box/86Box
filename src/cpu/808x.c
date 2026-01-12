@@ -272,7 +272,7 @@ clock_end(void)
 
     /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
     tsc += (uint64_t) diff * ((uint64_t) xt_cpu_multi >> 32ULL); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
-    if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+    if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
         timer_process();
 }
 

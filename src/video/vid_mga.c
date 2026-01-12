@@ -8,8 +8,6 @@
  *
  *          Matrox MGA graphics card emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2008-2020 Sarah Walker.
@@ -20,6 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <math.h>
 #include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/io.h>
@@ -3598,6 +3597,12 @@ dither_24_to_8(int r, int g, int b)
     return ((b >> 6) & 3) | (((g >> 5) & 7) << 2) | (((r >> 5) & 7) << 5);
 }
 
+#define CLAMP(x)                      \
+    do {                              \
+        if ((x) & ~0xff)              \
+            x = ((x) < 0) ? 0 : 0xff; \
+    } while (0)
+
 static void
 blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 {
@@ -3613,7 +3618,50 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
     const int            trans_sel = (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANS_MASK) >> DWGCTRL_TRANS_SHIFT;
     uint8_t const *const trans     = &trans_masks[trans_sel][(mystique->dwgreg.selline & 3) * 4];
     uint32_t             data_mask = 1;
+    /* YUV stuff */
+    int                  y0;
+    int                  y1;
+    int                  u;
+    int                  v;
+    int                  dR;
+    int                  dG;
+    int                  dB;
+    int                  r0;
+    int                  g0;
+    int                  b0;
+    int                  r1;
+    int                  g1;
+    int                  b1;
+    switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
+        case DWGCTRL_BLTMOD_BUYUV:
+            y0 = (298 * ((int) (data & 0xff) - 16)) >> 8;
+            u  = ((data >> 8) & 0xff) - 0x80;
+            y1 = (298 * ((int) ((data >> 16) & 0xff) - 16)) >> 8;
+            v  = ((data >> 24) & 0xff) - 0x80;
 
+            dR = (309 * v) >> 8;
+            dG = (100 * u + 208 * v) >> 8;
+            dB = (516 * u) >> 8;
+
+            r0 = y0 + dR;
+            CLAMP(r0);
+            g0 = y0 - dG;
+            CLAMP(g0);
+            b0 = y0 + dB;
+            CLAMP(b0);
+            r1 = y1 + dR;
+            CLAMP(r1);
+            g1 = y1 - dG;
+            CLAMP(g1);
+            b1 = y1 + dB;
+            CLAMP(b1);
+
+            data64 = b0 | (g0 << 8) | (r0 << 16);
+            data64 |= ((uint64_t) b1 << 32) | ((uint64_t) g1 << 40) | ((uint64_t) r1 << 48);
+            size = 64;
+
+            break;
+    }
     switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
         case MACCESS_PWIDTH_8:
             bltckey &= 0xff;
@@ -3704,10 +3752,10 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 
                             case MACCESS_PWIDTH_24:
                                 if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
-                                    uint32_t old_dst = *((uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) * 3) & mystique->vram_mask]);
+                                    uint32_t old_dst = AS_U32(svga->vram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) * 3) & mystique->vram_mask]);
 
                                     dst                                                                                                          = bitop(data64, old_dst, mystique->dwgreg.dwgctrl_running);
-                                    *((uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) * 3) & mystique->vram_mask]) = (dst & 0xffffff) | (old_dst & 0xff000000);
+                                    AS_U32(svga->vram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) * 3) & mystique->vram_mask]) = (dst & 0xffffff) | (old_dst & 0xff000000);
                                     svga->changedvram[(((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) * 3) & mystique->vram_mask) >> 12]   = changeframecount;
                                 }
 
@@ -3947,6 +3995,65 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
                     mystique->dwgreg.iload_rem_data  = data64;
                     break;
 
+                case DWGCTRL_BLTMOD_BUYUV:
+                    while (size >= 32) {
+                        int draw = (!transc || (data & bltcmsk) != bltckey) && trans[mystique->dwgreg.xdst & 3];
+                        if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && draw) {
+                            switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
+                                case MACCESS_PWIDTH_16:
+                                {
+                                    dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w];
+
+                                    dst = bitop(dither(mystique, (data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF, mystique->dwgreg.xdst & 1, mystique->dwgreg.selline & 1), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_w) >> 11] = changeframecount;
+                                    break;
+                                }
+                                case MACCESS_PWIDTH_8:
+                                {
+                                    dst = ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask];
+
+                                    dst = bitop(dither_24_to_8((data64 >> 16) & 0xFF, (data64 >> 8) & 0xFF, data64 & 0xFF), dst, mystique->dwgreg.dwgctrl_running);
+
+                                    ((uint8_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask) >> 12] = changeframecount;
+                                    break;
+                                }
+                                default: {
+                                    dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l];
+
+                                    dst                                                                                                    = bitop(data, dst, mystique->dwgreg.dwgctrl_running);
+                                    ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l] = dst;
+                                    svga->changedvram[((mystique->dwgreg.ydst_lin + mystique->dwgreg.xdst) & mystique->vram_mask_l) >> 10] = changeframecount;
+                                    break;
+                                }
+                            }
+                        }
+
+                        size -= 32;
+                        data64 >>= 32ULL;
+
+                        if (mystique->dwgreg.xdst == mystique->dwgreg.fxright) {
+                            mystique->dwgreg.xdst = mystique->dwgreg.fxleft;
+                            mystique->dwgreg.ydst_lin += (mystique->dwgreg.pitch & PITCH_MASK);
+                            mystique->dwgreg.selline = (mystique->dwgreg.selline + 1) & 7;
+                            mystique->dwgreg.length_cur--;
+                            if (!mystique->dwgreg.length_cur) {
+                                mystique->busy = 0;
+                                mystique->blitter_complete_refcount++;
+                                break;
+                            }
+                            data64 = 0;
+                            size   = 0;
+                            break;
+                        } else
+                            mystique->dwgreg.xdst = (mystique->dwgreg.xdst + 1) & 0xffff;
+                    }
+                    mystique->dwgreg.iload_rem_count = size;
+                    mystique->dwgreg.iload_rem_data  = data64;
+                    break;
+
                 case DWGCTRL_BLTMOD_BU32BGR:
                     size += mystique->dwgreg.iload_rem_count;
                     while (size >= 32) {
@@ -3995,12 +4102,6 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
             fatal("Unknown ILOAD iload atype %03x %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
     }
 }
-
-#define CLAMP(x)                      \
-    do {                              \
-        if ((x) & ~0xff)              \
-            x = ((x) < 0) ? 0 : 0xff; \
-    } while (0)
 
 static void
 blit_iload_iload_scale(mystique_t *mystique, uint32_t data, int size)
@@ -4053,7 +4154,7 @@ blit_iload_iload_scale(mystique_t *mystique, uint32_t data, int size)
                     break;
                 case MACCESS_PWIDTH_32:
                     data64 = b0 | (g0 << 8) | (r0 << 16);
-                    data64 |= ((uint64_t) b0 << 32) | ((uint64_t) g0 << 40) | ((uint64_t) r0 << 48);
+                    data64 |= ((uint64_t) b1 << 32) | ((uint64_t) g1 << 40) | ((uint64_t) r1 << 48);
                     size = 64;
                     break;
 
@@ -4392,7 +4493,7 @@ blit_line(mystique_t *mystique, int closed, int autoline)
                 if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
                     pattern_y = ((mystique->dwgreg.funcnt % (mystique->dwgreg.stylelen + 1)) >> 4) & 0x7;
                     pattern_x = (mystique->dwgreg.funcnt % (mystique->dwgreg.stylelen + 1)) & 0xf;
-                    if (!transc || (transc && (mystique->dwgreg.pattern[pattern_y][pattern_x])))
+                    if (!transc || (mystique->dwgreg.pattern[pattern_y][pattern_x]))
                     switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                         case MACCESS_PWIDTH_8:
                             src = mystique->dwgreg.pattern[pattern_y][pattern_x] ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
@@ -4713,7 +4814,7 @@ blit_trap(mystique_t *mystique)
                         int      pattern = mystique->dwgreg.pattern[yoff][xoff];
                         uint32_t dst;
 
-                        if (!transc || (transc && pattern))
+                        if (!transc || pattern)
                         switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                             case MACCESS_PWIDTH_8:
                                 svga->vram[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask]                = (pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol) & 0xff;
@@ -4785,7 +4886,7 @@ blit_trap(mystique_t *mystique)
                         uint32_t dst;
                         uint32_t old_dst;
 
-                        if (!transc || (transc && pattern))
+                        if (!transc || pattern)
                         switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                             case MACCESS_PWIDTH_8:
                                 dst = svga->vram[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask];
@@ -5049,7 +5150,7 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
             *atransp = 0;
             break;
         case TEXCTL_TEXFORMAT_TW15:
-            src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
+            src    = *(uint16_t*)((&svga->vram[(mystique->dwgreg.texorg + ((t * tex_pitch) + s) * 2) & mystique->vram_mask]));
             *tex_r = ((src >> 10) & 0x1f) << 3;
             *tex_g = ((src >> 5) & 0x1f) << 3;
             *tex_b = (src & 0x1f) << 3;
@@ -5059,7 +5160,7 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
                 *atransp = 0;
             break;
         case TEXCTL_TEXFORMAT_TW12:
-            src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
+            src    = *(uint16_t*)((&svga->vram[(mystique->dwgreg.texorg + ((t * tex_pitch) + s) * 2) & mystique->vram_mask]));
             *tex_r = ((src >> 8) & 0xf) << 4;
             *tex_g = ((src >> 4) & 0xf) << 4;
             *tex_b = (src & 0xf) << 4;
@@ -5073,7 +5174,7 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
             }
             break;
         case TEXCTL_TEXFORMAT_TW16:
-            src      = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
+            src      = *(uint16_t*)((&svga->vram[(mystique->dwgreg.texorg + ((t * tex_pitch) + s) * 2) & mystique->vram_mask]));
             *tex_r   = (src >> 11) << 3;
             *tex_g   = ((src >> 5) & 0x3f) << 2;
             *tex_b   = (src & 0x1f) << 3;
@@ -5088,6 +5189,40 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
 
 static double lerp(double v0, double v1, double t) {
   return (1. - t) * v0 + t * v1;
+}
+
+// Taken from GZDoom.
+static inline double
+FixedToFloat(int fixed)
+{
+    return fixed * (1.0 / (1 << 16));
+}
+
+static inline void
+persp_correct(mystique_t* mystique, int* s, int* t, int* q, double* s_frac, double* t_frac)
+{
+    const int s_shift = 20 - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
+    const int t_shift = 20 - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
+    double s_d = ((*s) >> s_shift);
+    double t_d = ((*t) >> t_shift);
+    double q_d = FixedToFloat(*q);
+
+    double throwaway1 = 0;
+    double throwaway2 = 0;
+    if (q_d == 0.0)
+        q_d = INFINITY;
+
+    s_d *= 1. / q_d;
+    t_d *= 1. / q_d;
+
+    *s_frac = fabs(modf(s_d, &throwaway1));
+    *t_frac = fabs(modf(s_d, &throwaway2));
+
+    (void)throwaway1;
+    (void)throwaway2;
+
+    *s = s_d;
+    *t = t_d;
 }
 
 static int
@@ -5123,14 +5258,11 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         s_frac = (((int32_t) mystique->dwgreg.tmr[6]) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
         t_frac = (((int32_t) mystique->dwgreg.tmr[7]) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
     } else {
-        const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
-        const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
-        int64_t   q       = mystique->dwgreg.tmr[8] ? (0x100000000LL / (int64_t) (int32_t) mystique->dwgreg.tmr[8]) : 0;
+        int q = (int32_t)mystique->dwgreg.tmr[8];
+        s = (int32_t) mystique->dwgreg.tmr[6];
+        t = (int32_t) mystique->dwgreg.tmr[7];
 
-        s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) >> s_shift;
-        t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) >> t_shift;
-        s_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
-        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+        persp_correct(mystique, &s, &t, &q, &s_frac, &t_frac);
     }
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
@@ -5925,6 +6057,7 @@ blit_iload(mystique_t *mystique)
                 case DWGCTRL_BLTMOD_BMONOWF:
                 case DWGCTRL_BLTMOD_BU24RGB:
                 case DWGCTRL_BLTMOD_BU32RGB:
+                case DWGCTRL_BLTMOD_BUYUV:
                     mystique->dwgreg.length_cur      = mystique->dwgreg.length;
                     mystique->dwgreg.xdst            = mystique->dwgreg.fxleft;
                     mystique->dwgreg.iload_rem_data  = 0;

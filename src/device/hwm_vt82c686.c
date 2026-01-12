@@ -8,8 +8,6 @@
  *
  *          Emulation of the VIA VT82C686A/B integrated hardware monitor.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

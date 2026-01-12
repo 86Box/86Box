@@ -8,8 +8,6 @@
  *
  *          Other peripherals configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Jasmine Iwanek <jriwanek@gmail.com>
  *
@@ -70,8 +68,8 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         if (auto *cb = findChild<QComboBox *>(QString("comboBoxIsaRomCard%1").arg(i + 1)))
             cb->clear();
 
-    int   c           = 0;
-    int   selectedRow = 0;
+    int c           = 0;
+    int selectedRow = 0;
 
     // ISA RTC Cards
     auto *model = ui->comboBoxRTC->model();
@@ -129,8 +127,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         isamem_cbox[i]->setEnabled(isamem_models[i]->rowCount() > 1);
         isamem_cbox[i]->setCurrentIndex(-1);
         isamem_cbox[i]->setCurrentIndex(isamem_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureIsaMemCard%1").arg(i + 1))->setEnabled((isamem_type[i] != 0) &&
-                                isamem_has_config(isamem_type[i]) && machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureIsaMemCard%1").arg(i + 1))->setEnabled((isamem_type[i] != 0) && isamem_has_config(isamem_type[i]) && machineHasIsa);
     }
 
     // ISA ROM Expansion Cards
@@ -170,8 +167,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         isarom_cbox[i]->setEnabled(isarom_models[i]->rowCount() > 1);
         isarom_cbox[i]->setCurrentIndex(-1);
         isarom_cbox[i]->setCurrentIndex(isarom_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureIsaRomCard%1").arg(i + 1))->setEnabled((isarom_type[i] != 0) &&
-                                isarom_has_config(isarom_type[i]) && machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureIsaRomCard%1").arg(i + 1))->setEnabled((isarom_type[i] != 0) && isarom_has_config(isarom_type[i]) && machineHasIsa);
     }
 }
 
@@ -350,12 +346,14 @@ SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
     DeviceConfig::ConfigureDevice(&unittester_device);
 }
 
-void SettingsOtherPeripherals::on_checkBoxKeyCard_stateChanged(int arg1)
+void
+SettingsOtherPeripherals::on_checkBoxKeyCard_stateChanged(int arg1)
 {
     ui->pushButtonConfigureKeyCard->setEnabled(arg1 != 0);
 }
 
-void SettingsOtherPeripherals::on_pushButtonConfigureKeyCard_clicked()
+void
+SettingsOtherPeripherals::on_pushButtonConfigureKeyCard_clicked()
 {
     DeviceConfig::ConfigureDevice(&novell_keycard_device);
 }

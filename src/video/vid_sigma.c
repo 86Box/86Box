@@ -8,8 +8,6 @@
  *
  *          Sigma Color 400 emulation.
  *
- *
- *
  * Authors: John Elliott,
  *
  *          Copyright 2018 John Elliott.
@@ -796,7 +794,7 @@ sigma_init(UNUSED(const device_t *info))
 
     sigma->enable_nmi = device_get_config_int("enable_nmi");
 
-    loadfont(ROM_SIGMA_FONT, 7);
+    video_load_font(ROM_SIGMA_FONT, FONT_FORMAT_SIGMA, LOAD_FONT_NO_OFFSET);
     rom_init(&sigma->bios_rom, ROM_SIGMA_BIOS, bios_addr, 0x2000,
              0x1FFF, 0, MEM_MAPPING_EXTERNAL);
     /* The BIOS ROM is overlaid by RAM, so remove its default mapping

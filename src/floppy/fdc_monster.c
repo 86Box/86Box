@@ -8,8 +8,6 @@
  *
  *           Emulation of  Sergey Kiselev's Monster Floppy Disk Controller.
  *
- *
- *
  * Authors:  Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *           Miran Grca, <mgrca8@gmail.com>
  *

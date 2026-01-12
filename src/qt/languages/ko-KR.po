@@ -15,8 +15,8 @@ msgstr "키보드는 캡쳐가 필요함(&K)"
 msgid "&Right CTRL is left ALT"
 msgstr "우측CTRL로 좌측ALT 입력(&R)"
 
-msgid "&Hard Reset..."
-msgstr "재시작(&H)..."
+msgid "&Hard reset"
+msgstr "재시작(&H)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del(&C)"
@@ -51,6 +51,9 @@ msgstr "창 크기 조절 가능하게 하기(&R)"
 msgid "R&emember size && position"
 msgstr "창 크기와 위치를 기억하기(&E)"
 
+msgid "Remember size && position"
+msgstr "창 크기와 위치를 기억하기"
+
 msgid "Re&nderer"
 msgstr "렌더러(&N)"
 
@@ -63,8 +66,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify &dimensions..."
-msgstr "창 크기 지정하기...(&D)"
+msgid "Specify &dimensions…"
+msgstr "창 크기 지정하기(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "화면 비율을 4:3으로 맞추기(&4)"
@@ -189,11 +192,11 @@ msgstr "미디어(&M)"
 msgid "&Tools"
 msgstr "도구(&T)"
 
-msgid "&Settings..."
-msgstr "설정(&S)..."
+msgid "&Settings…"
+msgstr "설정(&S)…"
 
-msgid "Settings..."
-msgstr "설정..."
+msgid "Settings…"
+msgstr "설정…"
 
 msgid "&Update status bar icons"
 msgstr "상태 바 아이콘 갱신하기(&U)"
@@ -201,17 +204,26 @@ msgstr "상태 바 아이콘 갱신하기(&U)"
 msgid "Take s&creenshot"
 msgstr "스크린샷 찍기(&C)"
 
+msgid "Take &raw screenshot"
+msgstr "원본 스크린샷 찍기(&R)"
+
+msgid "C&opy screenshot"
+msgstr "스크린샷 복사하세요(&O)"
+
+msgid "Copy r&aw screenshot"
+msgstr "원본 스크린샷 복사하세요(&A)"
+
 msgid "S&ound"
 msgstr "사운드(&O)"
 
-msgid "&Preferences..."
-msgstr "환경설정(&P)..."
+msgid "&Preferences…"
+msgstr "환경설정(&P)…"
 
 msgid "Enable &Discord integration"
 msgstr "디스코드 연동 활성화하기(&D)"
 
-msgid "Sound &gain..."
-msgstr "음량 증폭(&G)..."
+msgid "Sound &gain…"
+msgstr "음량 증폭(&G)…"
 
 msgid "Begin trace"
 msgstr "추적 시작하기"
@@ -222,20 +234,20 @@ msgstr "추적 끝내기"
 msgid "&Help"
 msgstr "도움말(&H)"
 
-msgid "&Documentation..."
-msgstr "문서(&D)..."
+msgid "&Documentation…"
+msgstr "문서(&D)…"
 
-msgid "&About 86Box..."
-msgstr "86Box에 대해(&A)..."
+msgid "&About 86Box…"
+msgstr "86Box에 대해(&A)…"
 
-msgid "&New image..."
-msgstr "새 이미지(&N)..."
+msgid "&New image…"
+msgstr "새 이미지(&N)…"
 
-msgid "&Existing image..."
-msgstr "이미지 불러오기(&E)..."
+msgid "&Existing image…"
+msgstr "이미지 불러오기(&E)…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "이미지 불러오기 (쓰기방지)(&W)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "이미지 불러오기 (쓰기방지)(&W)…"
 
 msgid "&Record"
 msgstr "녹음하기(&R)"
@@ -252,11 +264,11 @@ msgstr "맨끝으로 빨리감기(&F)"
 msgid "E&ject"
 msgstr "꺼내기(&J)"
 
-msgid "&Image..."
-msgstr "이미지(&I)..."
+msgid "&Image…"
+msgstr "이미지(&I)…"
 
-msgid "E&xport to 86F..."
-msgstr "86F로 보내기(&X)..."
+msgid "E&xport to 86F…"
+msgstr "86F로 보내기(&X)…"
 
 msgid "&Mute"
 msgstr "음소거(&M)"
@@ -267,38 +279,8 @@ msgstr "비었음(&M)"
 msgid "Reload previous image"
 msgstr "이전 이미지 다시 불러오기"
 
-msgid "&Folder..."
-msgstr "폴더(&F)..."
-
-msgid "Target &framerate"
-msgstr "목표 프레임 레이트(&F)"
-
-msgid "&Sync with video"
-msgstr "비디오와 동기(&S)"
-
-msgid "&25 fps"
-msgstr "25 fps(&2)"
-
-msgid "&30 fps"
-msgstr "30 fps(&3)"
-
-msgid "&50 fps"
-msgstr "50 fps(&5)"
-
-msgid "&60 fps"
-msgstr "60 fps(&6)"
-
-msgid "&75 fps"
-msgstr "75 fps(&7)"
-
-msgid "&VSync"
-msgstr "수직 동기화(&V)"
-
-msgid "&Select shader..."
-msgstr "쉐이더 불러오기(&S)..."
-
-msgid "&Remove shader"
-msgstr "쉐이더 끄기(&R)"
+msgid "&Folder…"
+msgstr "폴더(&F)…"
 
 msgid "Preferences"
 msgstr "환경설정"
@@ -444,17 +426,17 @@ msgstr "조이스틱:"
 msgid "Joystick"
 msgstr "조이스틱"
 
-msgid "Joystick 1..."
-msgstr "조이스틱 1..."
+msgid "Joystick 1…"
+msgstr "조이스틱 1…"
 
-msgid "Joystick 2..."
-msgstr "조이스틱 2..."
+msgid "Joystick 2…"
+msgstr "조이스틱 2…"
 
-msgid "Joystick 3..."
-msgstr "조이스틱 3..."
+msgid "Joystick 3…"
+msgstr "조이스틱 3…"
 
-msgid "Joystick 4..."
-msgstr "조이스틱 4..."
+msgid "Joystick 4…"
+msgstr "조이스틱 4…"
 
 msgid "Sound card #1:"
 msgstr "사운드 카드 1:"
@@ -543,23 +525,23 @@ msgstr "병렬 포트 3"
 msgid "Parallel port 4"
 msgstr "병렬 포트 4"
 
-msgid "FD Controller:"
-msgstr "FD 컨트롤러:"
+msgid "Floppy disk controller:"
+msgstr "플로피 디스크 컨트롤러:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM 컨트롤러:"
 
-msgid "Tertiary IDE Controller"
-msgstr "제3의 IDE 컨트롤러"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] 제3의 IDE 컨트롤러"
 
-msgid "Quaternary IDE Controller"
-msgstr "제4의 IDE 컨트롤러"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] 제4의 IDE 컨트롤러"
 
-msgid "Hard disk"
-msgstr "하드 디스크"
+msgid "Hard disk controllers"
+msgstr "하드 디스크 컨트롤러"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI 컨트롤러"
 
 msgid "Controller 1:"
 msgstr "컨트롤러 1:"
@@ -582,11 +564,11 @@ msgstr "하드 디스크:"
 msgid "Firmware Version"
 msgstr "펌웨어 버전"
 
-msgid "&New..."
-msgstr "새로 만들기(&N)..."
+msgid "&New…"
+msgstr "새로 만들기(&N)…"
 
-msgid "&Existing..."
-msgstr "불러오기(&E)..."
+msgid "&Existing…"
+msgstr "불러오기(&E)…"
 
 msgid "&Remove"
 msgstr "목록에서 제거(&R)"
@@ -599,9 +581,6 @@ msgstr "채널:"
 
 msgid "ID:"
 msgstr "ID:"
-
-msgid "&Specify..."
-msgstr "열기(&S)..."
 
 msgid "Sectors:"
 msgstr "섹터:"
@@ -686,9 +665,6 @@ msgstr "ISABugger 장치"
 
 msgid "POST card"
 msgstr "POST 카드"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "오류"
@@ -849,8 +825,17 @@ msgstr "PCap 장치가 없습니다"
 msgid "Invalid PCap device"
 msgstr "PCap 장치가 올바르지 않습니다"
 
+msgid "Generic paddle controller(s)"
+msgstr "일반 패들 컨트롤러"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "2축, 1버튼 조이스틱"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2축, 2버튼 조이스틱"
+
+msgid "2-axis, 3-button joystick"
+msgstr "2축, 3버튼 조이스틱"
 
 msgid "2-axis, 4-button joystick"
 msgstr "2축, 4버튼 조이스틱"
@@ -864,35 +849,38 @@ msgstr "2축, 8버튼 조이스틱"
 msgid "3-axis, 2-button joystick"
 msgstr "3축, 2버튼 조이스틱"
 
+msgid "3-axis, 3-button joystick"
+msgstr "3축, 3버튼 조이스틱"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3축, 4버튼 조이스틱"
+
+msgid "4-axis, 2-button joystick"
+msgstr "4축, 2버튼 조이스틱"
+
+msgid "4-axis, 3-button joystick"
+msgstr "4축, 3버튼 조이스틱"
 
 msgid "4-axis, 4-button joystick"
 msgstr "4축, 4버튼 조이스틱"
 
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
-
 msgid "2-button gamepad(s)"
 msgstr "2버튼 게임패드"
+
+msgid "3-button gamepad"
+msgstr "3버튼 게임패드"
+
+msgid "4-button gamepad"
+msgstr "4버튼 게임패드"
+
+msgid "6-button gamepad"
+msgstr "6버튼 게임패드"
 
 msgid "2-button flight yoke"
 msgstr "2버튼 비행 조종간"
 
-msgid "4-button gamepad"
-msgstr "4버튼 게임패드"
+msgid "3-button flight yoke"
+msgstr "3버튼 비행 조종간"
 
 msgid "4-button flight yoke"
 msgstr "4버튼 비행 조종간"
@@ -900,11 +888,26 @@ msgstr "4버튼 비행 조종간"
 msgid "2-button flight yoke with throttle"
 msgstr "2버튼 비행 조종간과 스로틀"
 
+msgid "3-button flight yoke with throttle"
+msgstr "3버튼 비행 조종간과 스로틀"
+
 msgid "4-button flight yoke with throttle"
 msgstr "4버튼 비행 조종간과 스로틀"
 
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95 조타륜 (3축, 4버튼)"
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "조타륜 (3축, 2버튼)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "조타륜 (3축, 3버튼)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "조타륜 (3축, 4버튼)"
+
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "어댑터 포함 Thrustmaster Formula T1/T2"
+
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "어댑터 미포함 Thrustmaster Formula T1/T2"
 
 msgid "None"
 msgstr "없음"
@@ -954,11 +957,17 @@ msgstr "내부 장치"
 msgid "&File"
 msgstr "파일(&F)"
 
-msgid "&New machine..."
-msgstr "새로운 기계(&N)..."
+msgid "&New machine…"
+msgstr "새로운 기계(&N)…"
 
-msgid "&Check for updates..."
-msgstr "업데이트 확인 중(&C)..."
+msgid "New machine…"
+msgstr "새로운 기계…"
+
+msgid "New machine"
+msgstr "새로운 기계"
+
+msgid "&Check for updates…"
+msgstr "업데이트 확인 중(&C)…"
 
 msgid "Exit"
 msgstr "끝내기"
@@ -975,11 +984,8 @@ msgstr "사용중인 머신이 재부팅됩니다."
 msgid "Save"
 msgstr "저장"
 
-msgid "About 86Box"
-msgstr "86Box에 대해"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "%1에 대해"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "고전 컴퓨터 에뮬레이터\n\n저자: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\n이전 핵심 기여자로는 Sarah Walker, leilei, JohnElliott, greatpsycho 등이 있습니다.\n\nGNU General Public 라이선스 (버전 2 이상)에 의해 배포되었습니다. 자세한 내용은 LICENSE 파일을 읽어 주세요."
@@ -1073,6 +1079,12 @@ msgstr "강제 종료"
 
 msgid "Start"
 msgstr "시작"
+
+msgid "&Force shutdown"
+msgstr "강제 종료(&F)"
+
+msgid "&Start"
+msgstr "시작(&S)"
 
 msgid "Not running"
 msgstr "실행 중이 아닙니다"
@@ -1206,26 +1218,26 @@ msgstr "표시 이름 설정"
 msgid "Enter the new display name (blank to reset)"
 msgstr "새 표시 이름을 입력하세요 (비워두면 초기화됩니다)"
 
-msgid "Change &display name..."
-msgstr "표시 이름 변경(&D)..."
+msgid "Change &display name…"
+msgstr "표시 이름 변경(&D)…"
 
 msgid "Context Menu"
 msgstr "컨텍스트 메뉴"
 
-msgid "&Open folder..."
-msgstr "폴더 열기(&O)..."
+msgid "&Open folder…"
+msgstr "폴더 열기(&O)…"
 
-msgid "Open p&rinter tray..."
-msgstr "프린터 트레이를 열기(&R)..."
+msgid "Open p&rinter tray…"
+msgstr "프린터 트레이를 열기(&R)…"
 
-msgid "Set &icon..."
-msgstr "아이콘 설정(&I)..."
+msgid "Set &icon…"
+msgstr "아이콘 설정(&I)…"
 
 msgid "Select an icon"
 msgstr "아이콘을 선택하세요"
 
-msgid "C&lone..."
-msgstr "클론(&L)..."
+msgid "C&lone…"
+msgstr "클론(&L)…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "가상 머신 \"%1\" (%2)는 다음으로 복제됩니다:"
@@ -1311,8 +1323,8 @@ msgstr "스크린샷 없음"
 msgid "Search"
 msgstr "검색"
 
-msgid "Searching for VMs..."
-msgstr "가상 머신을 검색 중입니다..."
+msgid "Searching for VMs…"
+msgstr "가상 머신을 검색 중입니다…"
 
 msgid "Found %1"
 msgstr "%1 발견됨"
@@ -1323,8 +1335,8 @@ msgstr "시스템"
 msgid "Storage"
 msgstr "장치"
 
-msgid "Disk %1: "
-msgstr "디스크 %1: "
+msgid "Disk %1:"
+msgstr "디스크 %1:"
 
 msgid "No disks"
 msgstr "디스크 없음"
@@ -1339,7 +1351,7 @@ msgid "ACPI shutdown"
 msgstr "ACPI 종료"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&I 종료"
+msgstr "ACPI 종료(&I)"
 
 msgid "Hard disk (%1)"
 msgstr "하드 디스크 (%1)"
@@ -1347,11 +1359,11 @@ msgstr "하드 디스크 (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL 또는 ESDI CD-ROM 드라이브가 존재하지 않습니다"
 
-msgid "Custom..."
-msgstr "사용자 설정..."
+msgid "Custom…"
+msgstr "사용자 설정…"
 
-msgid "Custom (large)..."
-msgstr "사용자 설정 (대용량)..."
+msgid "Custom (large)…"
+msgstr "사용자 설정 (대용량)…"
 
 msgid "Add New Hard Disk"
 msgstr "새로 생성"
@@ -1360,10 +1372,10 @@ msgid "Add Existing Hard Disk"
 msgstr "기존 이미지 사용"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 디스크 이미지는 4GB 이상으로 지정할 수 없습니다"
+msgstr "HDI 디스크 이미지는 4GB 이상으로 지정할 수 없습니다."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "디스크 이미지는 127GB 이상으로 지정할 수 없습니다"
+msgstr "디스크 이미지는 127GB 이상으로 지정할 수 없습니다."
 
 msgid "Hard disk images"
 msgstr "하드 디스크 이미지"
@@ -1375,7 +1387,7 @@ msgid "Unable to write file"
 msgstr "파일을 저장할 수 없습니다"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다"
+msgstr "512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다."
 
 msgid "Disk image file already exists"
 msgstr "디스크 이미지 파일이 이미 존재합니다"
@@ -1411,7 +1423,7 @@ msgid "Don't overwrite"
 msgstr "덮어쓰지 않음"
 
 msgid "Raw image"
-msgstr "Raw 이미지"
+msgstr "원본 이미지"
 
 msgid "HDI image"
 msgstr "HDI 이미지"
@@ -1468,22 +1480,7 @@ msgid "Parent and child disk timestamps do not match"
 msgstr "부모 디스크와 자식 디스크의 타임스탬프가 일치하지 않습니다"
 
 msgid "Could not fix VHD timestamp."
-msgstr "VHD 타임스탬프를 고칠 수 없습니다"
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
+msgstr "VHD 타임스탬프를 고칠 수 없습니다."
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1635,14 +1632,14 @@ msgstr "태블릿 도구(&T)"
 msgid "About &Qt"
 msgstr "&Qt 소개"
 
-msgid "&MCA devices..."
-msgstr "&MCA 장치..."
+msgid "&MCA devices…"
+msgstr "&MCA 장치…"
 
 msgid "Show non-&primary monitors"
 msgstr "기본 모니터가 아닌 모니터 표시(&P)"
 
-msgid "Open screenshots &folder..."
-msgstr "스크린샷 폴더 열기...(&F)"
+msgid "Open screenshots &folder…"
+msgstr "스크린샷 폴더 열기(&F)…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "최대화 시 전체 화면 비율 적용(&Y)"
@@ -1662,8 +1659,8 @@ msgstr "&커넥티드"
 msgid "Clear image &history"
 msgstr "이미지 기록 지우기(&H)"
 
-msgid "Create..."
-msgstr "만들기..."
+msgid "Create…"
+msgstr "만들기…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "호스트 CD/DVD 드라이브 (%1)"
@@ -1704,8 +1701,8 @@ msgstr "셰이더"
 msgid "Remove"
 msgstr "제거"
 
-msgid "Browse..."
-msgstr "찾아보기..."
+msgid "Browse…"
+msgstr "찾아보기…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL 컨텍스트를 만들 수 없습니다."
@@ -1714,7 +1711,7 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "OpenGL 컨텍스트로 전환할 수 없습니다."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다."
+msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다"
 
 msgid "Error initializing OpenGL"
 msgstr "OpenGL 초기화 중 오류 발생"
@@ -1737,8 +1734,8 @@ msgstr "옮겼어요"
 msgid "I Copied It"
 msgstr "복사했습니다"
 
-msgid "86Box Monitor #"
-msgstr "86Box 모니터 "
+msgid "86Box Monitor #%1"
+msgstr "86Box 모니터 %1"
 
 msgid "No MCA devices."
 msgstr "MCA 장치가 없습니다."
@@ -1773,6 +1770,9 @@ msgstr "어댑터:"
 msgid "VDE Socket:"
 msgstr "VDE 소켓:"
 
+msgid "TAP Bridge Device:"
+msgstr ""
+
 msgid "86Box Unit Tester"
 msgstr "86Box 유닛 테스터"
 
@@ -1791,8 +1791,8 @@ msgstr "직렬 포트 패스스루 3"
 msgid "Serial port passthrough 4"
 msgstr "직렬 포트 패스스루 4"
 
-msgid "Renderer &options..."
-msgstr "렌더러 옵션...(&O)"
+msgid "Renderer &options…"
+msgstr "렌더러 옵션(&O)…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT 키보드"
@@ -1929,6 +1929,9 @@ msgstr "시리얼 포트 IRQ"
 msgid "Parallel port IRQ"
 msgstr "병렬 포트 IRQ"
 
+msgid "Hard disk"
+msgstr "하드 디스크"
+
 msgid "BIOS Revision"
 msgstr "BIOS 개정"
 
@@ -2003,9 +2006,6 @@ msgstr "미디 입력 패스스루"
 
 msgid "MIDI Clockout"
 msgstr "미디 클럭 출력"
-
-msgid "SoundFont"
-msgstr "사운드 글꼴"
 
 msgid "Output Gain"
 msgstr "출력 게인"
@@ -2136,6 +2136,9 @@ msgstr "낮은 DMA"
 msgid "Enable Game port"
 msgstr "게임 포트 사용"
 
+msgid "Enable Adlib ports"
+msgstr "Adlib 포트 활성화"
+
 msgid "SID Model"
 msgstr "SID 모델"
 
@@ -2144,12 +2147,6 @@ msgstr "SID 필터 강도"
 
 msgid "Surround module"
 msgstr "서라운드 모듈"
-
-msgid "CODEC"
-msgstr "코덱"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "코덱 설정 시 코덱 인터럽트 올리기(일부 드라이버에 필요)"
 
 msgid "SB Address"
 msgstr "SB 주소"
@@ -2165,6 +2162,18 @@ msgstr "WSS IRQ"
 
 msgid "WSS DMA"
 msgstr "WSS DMA"
+
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr ""
+
+msgid "Onboard RTC"
+msgstr ""
+
+msgid "Not installed"
+msgstr ""
 
 msgid "Enable OPL"
 msgstr "OPL 사용"
@@ -2435,9 +2444,6 @@ msgstr "24MB"
 
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "시그마텔 STAC9721T(스테레오)"
-
-msgid "Classic"
-msgstr "클래식"
 
 msgid "256 KB"
 msgstr "256 KB"
@@ -2727,9 +2733,6 @@ msgstr "GLSL 오류"
 msgid "Could not load shader: %1"
 msgstr "셰이더를 로드할 수 없습니다: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 GLSL 버전은 %1.%2입니다"
-
 msgid "Could not load texture: %1"
 msgstr "텍스처를 로드할 수 없습니다: %1"
 
@@ -2792,6 +2795,9 @@ msgstr "Ctrl+Alt+Esc 보내기"
 
 msgid "Toggle fullscreen"
 msgstr "전체 화면 모드 전환"
+
+msgid "Toggle UI in fullscreen"
+msgstr ""
 
 msgid "Screenshot"
 msgstr "스크린샷"
@@ -2910,8 +2916,8 @@ msgstr "다운로드 페이지 방문"
 msgid "Update check"
 msgstr "업데이트 확인"
 
-msgid "Checking for updates..."
-msgstr "업데이트 확인 중..."
+msgid "Checking for updates…"
+msgstr "업데이트 확인 중…"
 
 msgid "86Box Update"
 msgstr "86Box 업데이트"
@@ -2949,8 +2955,8 @@ msgstr "밝기"
 msgid "Sharpness"
 msgstr "선명도"
 
-msgid "&CGA composite settings..."
-msgstr "CGA 복합 모드의 설정...(&C)"
+msgid "&CGA composite settings…"
+msgstr "CGA 복합 모드의 설정(&C)…"
 
 msgid "CGA composite settings"
 msgstr "CGA 복합 모드의 설정"
@@ -2958,8 +2964,8 @@ msgstr "CGA 복합 모드의 설정"
 msgid "Monitor EDID"
 msgstr "모니터의 EDID"
 
-msgid "Export..."
-msgstr "수출..."
+msgid "Export…"
+msgstr "수출…"
 
 msgid "Export EDID"
 msgstr "EDID 내보내기"
@@ -2981,3 +2987,21 @@ msgstr "빛"
 
 msgid "Dark"
 msgstr "어둠"
+
+msgid "Search:"
+msgstr "검색:"
+
+msgid "Force interpretation"
+msgstr "강제 해석"
+
+msgid "Allow recompilation"
+msgstr "재컴파일 허용"
+
+msgid "&Force interpretation"
+msgstr "강제 해석(&F)"
+
+msgid "&Allow recompilation"
+msgstr "재컴파일 허용(&A)"
+
+msgid "&Fast forward"
+msgstr ""

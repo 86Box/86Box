@@ -8,20 +8,16 @@
  *
  *          Emulation of the SFF-8038i IDE Bus Master.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  */
-
 #ifndef EMU_HDC_IDE_SFF8038I_H
 #define EMU_HDC_IDE_SFF8038I_H
 
-enum
-{
+enum {
     IRQ_MODE_LEGACY = 0,
     IRQ_MODE_PCI_IRQ_PIN,
     IRQ_MODE_PCI_IRQ_LINE,
@@ -33,8 +29,7 @@ enum
     IRQ_MODE_SIS_551X
 };
 
-typedef struct sff8038i_t
-{
+typedef struct sff8038i_t {
     uint8_t  command;
     uint8_t  status;
     uint8_t  ptr0;

@@ -8,8 +8,6 @@
  *
  *          Emulation of a GPIO-based I2C host controller.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

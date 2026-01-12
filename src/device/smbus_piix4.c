@@ -8,8 +8,6 @@
  *
  *          Implementation of a generic PIIX4-compatible SMBus host controller.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

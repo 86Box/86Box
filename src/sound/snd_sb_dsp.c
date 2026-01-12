@@ -28,6 +28,7 @@
 #include <86box/snd_sb.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "cpu.h"
 
 /* NON-PCM SAMPLE FORMATS */
 #define ADPCM_4  1
@@ -515,7 +516,7 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->sb_command = 0;
 
     dsp->sb_8_length  = 0xffff;
-    dsp->sb_8_autolen = 0xffff;
+    dsp->sb_8_autolen = 0x7fff;
 
     dsp->sb_irq8     = 0;
     dsp->sb_irq16    = 0;
@@ -1286,6 +1287,8 @@ sb_exec_command(sb_dsp_t *dsp)
                     sb_add_data(dsp, 0x11); /* AZTECH get type, WASHINGTON/latest - according to devkit. E.g.: The one in the Itautec Infoway Multimidia */
                 else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)
                     sb_add_data(dsp, 0x0C); /* AZTECH get type, CLINTON - according to devkit. E.g.: The one in the Packard Bell Legend 100CD */
+                else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09)
+                    sb_add_data(dsp, 0x09); /* AZTECH get type, AZTPR16 */
                 else if (dsp->sb_data[0] == 0x08) {
                     /* EEPROM address to write followed by byte */
                     if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
@@ -1300,6 +1303,15 @@ sb_exec_command(sb_dsp_t *dsp)
                     sb_dsp_log("EEPROM read = %02x\n", dsp->azt_eeprom[dsp->sb_data[1]]);
                     sb_add_data(dsp, dsp->azt_eeprom[dsp->sb_data[1]]);
                     break;
+                } else if ((dsp->sb_data[0] == 0x01) && (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)) {
+                    /* Unknown command executed by EMUTSR after DSP reset */
+                    sb_dsp_log("AZT1605: Command 0x08 Subcommand 0x01\n");
+                    /* HACK: Aztech HWSET seems to rely on RP being incremented for detection to work after EMUTSR is run */
+                    dsp->sb_read_rp++;
+                    break;
+                } else if ((dsp->sb_data[0] == 0x0f) && (dsp->sb_data[1] == 0xff) && (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09)) {
+                    sb_dsp_log("AZTPR16: Command 0x08, Subcommand 0x0f/0xff\n");
+                    sb_add_data(dsp, 0x80);
                 } else
                     sb_dsp_log("AZT2316A: UNKNOWN 0x08 COMMAND: %02X\n", dsp->sb_data[0]); /* 0x08 (when shutting down, driver tries to read 1 byte of response), 0x55, 0x0D, 0x08D seen */
                 break;
@@ -1317,6 +1329,9 @@ sb_exec_command(sb_dsp_t *dsp)
                 } else if (dsp->sb_data[0] == 0x01) {
                     sb_dsp_log("AZT2316A: SB8PROV2 MODE!\n");
                     azt2316a_enable_wss(0, dsp->parent);
+                } else if ((dsp->sb_data[0] == 0x0f) && (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09)) {
+                    sb_dsp_log("AZTPR16: Mode switch command, params = %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
+                    aztpr16_wss_mode(dsp->sb_data[1], dsp->parent);
                 } else
                     sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
             }
@@ -1731,6 +1746,9 @@ sb_exec_command(sb_dsp_t *dsp)
                 } else if (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
                     sb_add_data(dsp, 0x2);
                     sb_add_data(dsp, 0x1);
+                } else if (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) {
+                    sb_add_data(dsp, 0x2);
+                    sb_add_data(dsp, 0x1);
                 }
                 break;
             }
@@ -1919,13 +1937,6 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
                 if (val == 0x01)
                     sb_add_data(dsp, 0);
                 dsp->sb_data_stat++;
-                if (IS_AZTECH(dsp)) {
-                    /* variable length commands */
-                    if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x08)
-                        sb_commands[dsp->sb_command] = 3;
-                    else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x07)
-                        sb_commands[dsp->sb_command] = 2;
-                }
                 if (IS_ESS(dsp) && dsp->sb_command >= 0x64 && dsp->sb_command <= 0x6F) {
                     sb_commands[dsp->sb_command] = 2;
                 } else if (IS_ESS(dsp) && dsp->sb_command >= 0xA0 && dsp->sb_command <= 0xCF) {
@@ -1944,13 +1955,22 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 dsp->sb_data[dsp->sb_data_stat++] = val;
+                if (IS_AZTECH(dsp)) {
+                    /* variable length commands */
+                    if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x08)
+                        sb_commands[dsp->sb_command] = 3;
+                    else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && (dsp->sb_data[0] == 0x07 || dsp->sb_data[0] == 0x0f))
+                        sb_commands[dsp->sb_command] = 2;
+                    else if (dsp->sb_command == 0x09 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x0f)
+                        sb_commands[dsp->sb_command] = 2;
+                }
             }
             if (dsp->sb_data_stat == sb_commands[dsp->sb_command] || sb_commands[dsp->sb_command] == -1) {
                 sb_exec_command(dsp);
                 dsp->sb_data_stat = -1;
                 if (IS_AZTECH(dsp)) {
                     /* variable length commands */
-                    if (dsp->sb_command == 0x08)
+                    if (dsp->sb_command == 0x08 || dsp->sb_command == 0x09)
                         sb_commands[dsp->sb_command] = 1;
                 }
             }
@@ -2768,6 +2788,7 @@ pollsb(void *priv)
                 dsp->ess_dma_counter += 4;
                 break;
             case 0x30: /* Stereo signed */
+            case 0x36:
                 data[0] = dsp->dma_readw(dsp->dma_priv);
                 data[1] = dsp->dma_readw(dsp->dma_priv);
                 if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))

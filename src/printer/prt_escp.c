@@ -6,8 +6,6 @@
  *
  *          Implementation of the Generic ESC/P 2 Dot-Matrix printer.
  *
- *
- *
  * Authors: Michael Drüing, <michael@drueing.de>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

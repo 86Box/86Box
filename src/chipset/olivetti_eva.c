@@ -11,8 +11,6 @@
  * Note:    This chipset has no datasheet, everything were done via
  *          reverse engineering the BIOS of various machines using it.
  *
- *
- *
  * Authors: EngiNerd <webmaster.crrc@yahoo.it>
  *
  *          Copyright 2020-2021 EngiNerd

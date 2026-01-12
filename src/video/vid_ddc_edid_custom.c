@@ -8,15 +8,12 @@
  *
  *          Custom monitor EDID file loader.
  *
- *
- *
  * Authors: Cacodemon345,
  *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2025 Cacodemon.
  *          Copyright 2025 David Hrdlička.
  */
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -67,7 +64,7 @@ ddc_load_edid(char *path, uint8_t *buf, size_t size)
 
     // Check the beginning of the file for the EDID header.
     uint64_t header;
-    fread(&header, sizeof(header), 1, fp);
+    (void) !fread(&header, sizeof(header), 1, fp);
 
     if (header == EDID_HEADER) {
         // Binary format. Read as is

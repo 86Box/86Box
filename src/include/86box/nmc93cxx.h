@@ -2,9 +2,9 @@
 
 typedef struct nmc93cxx_eeprom_t {
     ati_eeprom_t dev;
-    uint8_t  addrbits;
-    uint16_t size;
-    char     filename[1024];
+    uint8_t      addrbits;
+    uint16_t     size;
+    char         filename[1024];
 } nmc93cxx_eeprom_t;
 
 typedef struct nmc93cxx_eeprom_params_t {

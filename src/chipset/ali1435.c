@@ -7,8 +7,6 @@
  *          Emulation of ALi M1435 chipset that acts as both the
  *          southbridge.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.

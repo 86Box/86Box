@@ -13,9 +13,8 @@
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel.
- *              Copyright 2021-2022 Jasmine Iwanek.
+ *              Copyright 2021-2025 Jasmine Iwanek.
  */
-
 #ifndef PLAT_SERIAL_PASSTHROUGH_H
 #define PLAT_SERIAL_PASSTHROUGH_H
 
@@ -36,4 +35,4 @@ extern void plat_serpt_set_line_state(void *priv);
 }
 #endif
 
-#endif
+#endif /* PLAT_SERIAL_PASSTHROUGH_H */

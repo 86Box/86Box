@@ -15,7 +15,6 @@
  *          More info: https://www.pcjs.org/tools/diskimage/
  *          pcjs disk module v2: https://github.com/jeffpar/pcjs/blob/master/machines/pcx86/modules/v2/disk.js
  */
-
 #ifndef EMU_FLOPPY_PCJS_H
 #define EMU_FLOPPY_PCJS_H
 

@@ -22,6 +22,7 @@ add_library(plat OBJECT
     unix.c
     unix_serial_passthrough.c
     unix_netsocket.c
+    ../qt/sdl_joystick.c
 )
 
 if (NOT CPPTHREADS)
@@ -44,6 +45,7 @@ endif()
 
 add_library(ui OBJECT
     unix_sdl.c
+    unix_osd.c
     unix_cdrom.c
     dummy_cdrom_ioctl.c
 )

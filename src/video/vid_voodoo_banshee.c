@@ -8,8 +8,6 @@
  *
  *          Voodoo Banshee and 3 specific emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2008-2020 Sarah Walker.
@@ -131,6 +129,7 @@ typedef struct banshee_t {
     uint32_t agpHostAddressLow;
     uint32_t agpGraphicsAddress;
     uint32_t agpGraphicsStride;
+    uint32_t agpMoveCMD;
 
     int overlay_pix_fmt;
 
@@ -1374,6 +1373,10 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
             ret = banshee->agpReqSize;
             break;
 
+        case Agp_agpMoveCMD:
+            ret = banshee->agpMoveCMD;
+            break;
+
         case cmdBaseAddr0:
             ret = voodoo->cmdfifo_base >> 12;
 #if 0
@@ -1696,6 +1699,7 @@ banshee_cmd_write(void *priv, uint32_t addr, uint32_t val)
 #if 0
             banshee_log("AGP: %d bytes W%d from %08x S%d to %d:%08x S%d\n", src_end - src_addr, src_width, src_addr, src_stride, (val >> 3) & 3, dest_addr, dest_stride);
 #endif
+            banshee->agpMoveCMD = val;
             switch ((val >> 3) & 3) {
                 case 0: /*Linear framebuffer (Banshee)*/
                 case 1: /*Planar YUV*/

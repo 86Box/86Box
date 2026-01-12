@@ -37,6 +37,7 @@
 #include <86box/serial.h>
 #include <86box/sio.h>
 #include <86box/ibm_5161.h>
+#include <86box/isartc.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
 #include <86box/machine.h>
@@ -44,8 +45,6 @@
 #include <86box/chipset.h>
 #include <86box/port_6x.h>
 #include <86box/video.h>
-
-extern const device_t vendex_xt_rtc_onboard_device;
 
 /* 8088 */
 static void
@@ -65,46 +64,106 @@ machine_xt_common_init(const machine_t *model, int fixed_floppy)
 static const device_config_t ibmpc_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "ibm5150_5700671",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "5700671 (10/19/81)", .internal_name = "ibm5150_5700671", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_19OCT81_5700671_U33.BIN", "" } },
-            { .name = "5700051 (04/24/81)", .internal_name = "ibm5150_5700051", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc/BIOS_IBM5150_24APR81_5700051_U33.BIN", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "5700671 (10/19/81)",
+                .internal_name = "ibm5150_5700671",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/ibmpc/BIOS_IBM5150_19OCT81_5700671_U33.BIN", "" }
+            },
+            {
+                .name          = "5700051 (04/24/81)",
+                .internal_name = "ibm5150_5700051",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/ibmpc/BIOS_IBM5150_24APR81_5700051_U33.BIN", "" }
+            },
 
             // GLaBIOS for IBM PC
-            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" } },
-            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VP.ROM", "" } },
+            {
+                .name          = "GLaBIOS 0.4.0 (8088)",
+                .internal_name = "glabios_040_8088",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" }
+            },
+            {
+                .name          = "GLaBIOS 0.4.0 (V20)",
+                .internal_name = "glabios_040_v20",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VP.ROM", "" }
+            },
 
             // The following are Diagnostic ROMs.
-            { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
-            { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_8kb.bin", "" } },
-            { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
+            {
+                .name          = "Supersoft Diagnostics",
+                .internal_name = "diag_supersoft",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" }
+            },
+            {
+                .name          = "Ruud's Diagnostic Rom",
+                .internal_name = "diag_ruuds",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_8kb.bin", "" }
+            },
+            {
+                .name          = "XT RAM Test",
+                .internal_name = "diag_xtramtest",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/diagnostic/xtramtest_8k.bin", "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     {
-        .name = "enable_5161",
-        .description = "IBM 5161 Expansion Unit",
-        .type = CONFIG_BINARY,
-        .default_int = 0
+        .name           = "enable_5161",
+        .description    = "IBM 5161 Expansion Unit",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "enable_basic",
-        .description = "IBM Cassette Basic",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "enable_basic",
+        .description    = "IBM Cassette Basic",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -175,46 +234,106 @@ machine_ibmpc_init(const machine_t *model)
 static const device_config_t ibmpc82_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "ibm5150_1501476",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "1501476 (10/27/82)", .internal_name = "ibm5150_1501476", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_27OCT82_1501476_U33.BIN", "" } },
-            { .name = "5000024 (08/16/82)", .internal_name = "ibm5150_5000024", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/ibmpc82/BIOS_5150_16AUG82_5000024_U33.BIN", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "1501476 (10/27/82)",
+                .internal_name = "ibm5150_1501476",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/ibmpc82/BIOS_5150_27OCT82_1501476_U33.BIN", "" }
+            },
+            {
+                .name          = "5000024 (08/16/82)",
+                .internal_name = "ibm5150_5000024",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/ibmpc82/BIOS_5150_16AUG82_5000024_U33.BIN", "" }
+            },
 
             // GLaBIOS for IBM PC
-            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" } },
-            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VP.ROM", "" } },
+            {
+                .name          = "GLaBIOS 0.4.0 (8088)",
+                .internal_name = "glabios_040_8088",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" }
+            },
+            {
+                .name          = "GLaBIOS 0.4.0 (V20)",
+                .internal_name = "glabios_040_v20",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VP.ROM", "" }
+            },
 
             // The following are Diagnostic ROMs.
-            { .name = "Supersoft Diagnostics", .internal_name = "diag_supersoft", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" } },
-            { .name = "Ruud's Diagnostic Rom", .internal_name = "diag_ruuds", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_8kb.bin", "" } },
-            { .name = "XT RAM Test", .internal_name = "diag_xtramtest", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 40960, .files = { "roms/machines/diagnostic/xtramtest_8k.bin", "" } },
+            {
+                .name          = "Supersoft Diagnostics",
+                .internal_name = "diag_supersoft",
+                .bios_type = BIOS_NORMAL,
+                .files_no = 1,
+                .local = 0,
+                .size = 40960,
+                .files = { "roms/machines/diagnostic/Supersoft_PCXT_8KB.bin", "" }
+            },
+            {
+                .name          = "Ruud's Diagnostic Rom",
+                .internal_name = "diag_ruuds",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_8kb.bin", "" }
+            },
+            {
+                .name          = "XT RAM Test",
+                .internal_name = "diag_xtramtest",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 40960,
+                .files         = { "roms/machines/diagnostic/xtramtest_8k.bin", "" }
+            },
             { .files_no = 0 }
-        },
+        }
     },
     {
-        .name = "enable_5161",
-        .description = "IBM 5161 Expansion Unit",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "enable_5161",
+        .description    = "IBM 5161 Expansion Unit",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name = "enable_basic",
-        .description = "IBM Cassette Basic",
-        .type = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "enable_basic",
+        .description    = "IBM Cassette Basic",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -292,6 +411,7 @@ static const device_config_t ibmxt_config[] = {
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = {
             {
                 .name          = "1501512 (11/08/82)",
@@ -300,7 +420,8 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 0,
                 .size          = 65536,
-                .files         = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
                 .name          = "1501512 (11/08/82) (Alt)",
@@ -309,7 +430,8 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 0,
                 .size          = 65536,
-                .files         = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_6359116.BIN", "" }
+                .files         = { "roms/machines/ibmxt/BIOS_5160_08NOV82_U18_1501512.BIN",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_6359116.BIN", "" }
             },
             {
                 .name          = "5000026 (08/16/82)",
@@ -318,7 +440,8 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 0,
                 .size          = 65536,
-                .files         = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN", "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/ibmxt/BIOS_5160_16AUG82_U18_5000026.BIN",
+                                   "roms/machines/ibmxt/BIOS_5160_16AUG82_U19_5000027.BIN", "" }
             },
 
             // GLaBIOS for IBM XT
@@ -329,7 +452,8 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 40960,
-                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8X.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8X.ROM",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
                 .name          = "GLaBIOS 0.4.0 (V20)",
@@ -338,7 +462,8 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 40960,
-                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VX.ROM", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VX.ROM",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
 
             // The following are Diagnostic ROMs.
@@ -349,7 +474,8 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 2,
                 .size          = 65536,
-                .files         = { "roms/machines/diagnostic/Supersoft_PCXT_32KB.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/diagnostic/Supersoft_PCXT_32KB.bin",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
                 .name          = "Ruud's Diagnostic Rom",
@@ -358,7 +484,8 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 2,
                 .size          = 65536,
-                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_32kb.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/diagnostic/ruuds_diagnostic_rom_v5.4_32kb.bin",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
                 .name          = "XT RAM Test",
@@ -367,22 +494,33 @@ static const device_config_t ibmxt_config[] = {
                 .files_no      = 2,
                 .local         = 2,
                 .size          = 65536,
-                .files         = { "roms/machines/diagnostic/xtramtest_32k.bin", "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
+                .files         = { "roms/machines/diagnostic/xtramtest_32k.bin",
+                                   "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             { .files_no = 0 }
-        },
+        }
     },
     {
-        .name        = "enable_5161",
-        .description = "IBM 5161 Expansion Unit",
-        .type        = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "enable_5161",
+        .description    = "IBM 5161 Expansion Unit",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
-        .name        = "enable_basic",
-        .description = "IBM Cassette Basic",
-        .type        = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "enable_basic",
+        .description    = "IBM Cassette Basic",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -421,10 +559,10 @@ machine_ibmxt_init(const machine_t *model)
     enable_basic = machine_get_config_int("enable_basic");
     fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
     local        = device_get_bios_local(model->device, device_get_config_bios("bios"));
- 
+
     if (local == 0) // Offset for stock roms
-         offset   = 0x6000;
-    ret          = bios_load_linear(fn, 0x000fe000, 65536, offset);
+        offset = 0x6000;
+    ret = bios_load_linear(fn, 0x000fe000, 65536, offset);
 
     if (enable_basic && ret) {
         if (local == 0) { // needed for stock roms
@@ -463,6 +601,7 @@ static const device_config_t ibmxt86_config[] = {
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = {
             {
                 .name          = "1501512 (05/09/86)",
@@ -471,7 +610,8 @@ static const device_config_t ibmxt86_config[] = {
                 .files_no      = 2,
                 .local         = 0,
                 .size          = 65536,
-                .files         = { "roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
+                .files         = { "roms/machines/ibmxt86/BIOS_5160_09MAY86_U18_59X7268_62X0890_27256_F800.BIN",
+                                   "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
                 .name          = "5000026 (01/10/86)",
@@ -480,7 +620,8 @@ static const device_config_t ibmxt86_config[] = {
                 .files_no      = 2,
                 .local         = 0,
                 .size          = 65536,
-                .files         = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0851_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0854_27256_F000.BIN", "" }
+                .files         = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0851_27256_F800.BIN",
+                                   "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0854_27256_F000.BIN", "" }
             },
             {
                 .name          = "1501512 (01/10/86) (Alt)",
@@ -489,7 +630,8 @@ static const device_config_t ibmxt86_config[] = {
                 .files_no      = 2,
                 .local         = 0,
                 .size          = 65536,
-                .files         = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0852_27256_F800.BIN", "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0853_27256_F000.BIN", "" }
+                .files         = { "roms/machines/ibmxt86/BIOS_5160_10JAN86_U18_62X0852_27256_F800.BIN",
+                                   "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0853_27256_F000.BIN", "" }
             },
 
             // GLaBIOS for IBM XT
@@ -500,7 +642,8 @@ static const device_config_t ibmxt86_config[] = {
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 65536,
-                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8X.ROM", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8X.ROM",
+                                   "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
                 .name          = "GLaBIOS 0.4.0 (V20)",
@@ -509,7 +652,8 @@ static const device_config_t ibmxt86_config[] = {
                 .files_no      = 2,
                 .local         = 1,
                 .size          = 65536,
-                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VX.ROM", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VX.ROM",
+                                   "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
 
             // The following are Diagnostic ROMs.
@@ -520,7 +664,8 @@ static const device_config_t ibmxt86_config[] = {
                 .files_no      = 2,
                 .local         = 2,
                 .size          = 65536,
-                .files         = { "roms/machines/diagnostic/Supersoft_PCXT_32KB.bin", "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
+                .files         = { "roms/machines/diagnostic/Supersoft_PCXT_32KB.bin",
+                                   "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
                 .name          = "Ruud's Diagnostic Rom",
@@ -545,10 +690,15 @@ static const device_config_t ibmxt86_config[] = {
         },
     },
     {
-        .name        = "enable_5161",
-        .description = "IBM 5161 Expansion Unit",
-        .type        = CONFIG_BINARY,
-        .default_int = 1
+        .name           = "enable_5161",
+        .description    = "IBM 5161 Expansion Unit",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -575,20 +725,20 @@ machine_ibmxt86_init(const machine_t *model)
     uint8_t     enable_5161;
     const char *fn;
     uint16_t    offset = 0;
-    uint32_t    local = 0;
+    uint32_t    local  = 0;
 
     /* No ROMs available. */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    enable_5161  = machine_get_config_int("enable_5161");
-    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    local        = device_get_bios_local(model->device, device_get_config_bios("bios"));
+    enable_5161 = machine_get_config_int("enable_5161");
+    fn          = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    local       = device_get_bios_local(model->device, device_get_config_bios("bios"));
 
     if (local == 0) // Offset for stock roms
-        offset   = 0x6000;
-    ret          = bios_load_linear(fn, 0x000fe000, 65536, offset);
+        offset = 0x6000;
+    ret = bios_load_linear(fn, 0x000fe000, 65536, offset);
 
     if (ret) {
         if (local == 0) { // needed for stock roms
@@ -744,13 +894,71 @@ machine_xt_compaq_portable_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t dtk_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "dtk",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios = {
+            {
+                .name          = "2.39",
+                .internal_name = "dtk_239",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/dtk/PIM-TB10-Z.BIN", ""}
+            },
+            {
+                .name          = "2.42",
+                .internal_name = "dtk",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/dtk/dtk_erso_2.42_2764.bin", ""}
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t dtk_device = {
+    .name          = "DTK PIM-TB10-Z",
+    .internal_name = "dtk_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = dtk_config
+};
+
 int
 machine_xt_dtk_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/dtk/dtk_erso_2.42_2764.bin",
-                           0x000fe000, 8192, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
@@ -881,23 +1089,47 @@ machine_xt_super16te_init(const machine_t *model)
 static const device_config_t jukopc_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "jukost",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Bios 2.30", .internal_name = "jukost", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/jukopc/000o001.bin", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Bios 2.30",
+                .internal_name = "jukost",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/jukopc/000o001.bin", "" }
+            },
+
             // GLaBIOS for Juko ST
-            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8S.ROM", "" } },
-            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 8192, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VS.ROM", "" } },
+            {
+                .name          = "GLaBIOS 0.4.0 (8088)",
+                .internal_name = "glabios_040_8088",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8S.ROM", "" }
+            },
+            {
+                .name          = "GLaBIOS 0.4.0 (V20)",
+                .internal_name = "glabios_040_v20",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VS.ROM", "" }
+            },
+
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -928,8 +1160,8 @@ machine_xt_jukopc_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret          = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
     device_context_restore();
 
     if (bios_only || !ret)
@@ -974,36 +1206,304 @@ machine_xt_micoms_xl7turbo_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t pc500_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc500_330",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "3.30",
+                .internal_name = "pc500_330",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/pc500/rom330.bin", "" }
+            },
+            {
+                .name          = "3.1",
+                .internal_name = "pc500_310",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/pc500/rom310.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "rtc_irq",
+        .description    = "RTC IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "IRQ 2",    .value =  2 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rtc_port",
+        .description    = "RTC Port Address",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "2C0H",     .value = 0x2c0 },
+            { .description = "300H",     .value = 0x300 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc500_device = {
+    .name          = "Multitech PC-500",
+    .internal_name = "pc500_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pc500_config
+};
+
 int
 machine_xt_pc500_init(const machine_t *model)
 {
-    int ret;
+    int         ret      = 0;
+    int         rtc_port = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/pc500/rom404.bin",
-                           0x000f8000, 32768, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    rtc_port = machine_get_config_int("rtc_port");
+    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret      = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
 
-    device_add(&kbc_pc_device);
+    device_add(&kbc_pc82_device);
 
     machine_xt_common_init(model, 0);
+
+    if (rtc_port != 0)
+        device_add(&rtc58167_device);
 
     return ret;
 }
 
-int
-machine_xt_pc700_init(const machine_t *model)
-{
-    int ret;
+static const device_config_t pc500plus_config[] = {
+    // clang-format off
+    {
+        .name       = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc500plus",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "4.06",
+                .internal_name = "pc500plus_406",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom406.bin", "" }
+            },
+            {
+                .name          = "4.04",
+                .internal_name = "pc500plus",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom404.bin", "" }
+            },
+            {
+                .name          = "4.03",
+                .internal_name = "pc500plus_403",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/pc500/rom403.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "rtc_irq",
+        .description    = "RTC IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "IRQ 2",    .value =  2 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rtc_port",
+        .description    = "Onboard RTC",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "Enabled",  .value = 0x2c0 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
 
-    ret = bios_load_linear("roms/machines/pc700/multitech pc-700 3.1.bin",
-                           0x000fe000, 8192, 0);
+const device_t pc500plus_device = {
+    .name          = "Multitech PC-500 plus",
+    .internal_name = "pc500plus_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pc500plus_config
+};
+
+int
+machine_xt_pc500plus_init(const machine_t *model)
+{
+    int         ret      = 0;
+    int         rtc_port = 0;
+    const char *fn;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    rtc_port = machine_get_config_int("rtc_port");
+    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret      = bios_load_linear(fn, 0x000fc000, 16384, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
 
-    device_add(&kbc_pc_device);
+    machine_xt_clone_init(model, 0);
+
+    if (rtc_port != 0)
+        device_add(&rtc58167_device);
+
+    return ret;
+}
+
+static const device_config_t pc700_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc700",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name           = "3.30",
+                .internal_name  = "pc700",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 8192,
+                .files          = { "roms/machines/pc700/multitech pc-700 3.30.bin", "" }
+            },
+            {
+                .name           = "3.1",
+                .internal_name  = "pc700_31",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 8192,
+                .files          = { "roms/machines/pc700/multitech pc-700 3.1.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pc700_device = {
+    .name           = "Multitech PC-700",
+    .internal_name  = "pc700_device",
+    .flags          = 0,
+    .local          = 0,
+    .init           = NULL,
+    .close          = NULL,
+    .reset          = NULL,
+    .available      = NULL,
+    .speed_changed  = NULL,
+    .force_redraw   = NULL,
+    .config         = pc700_config
+};
+
+int
+machine_xt_pc700_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_pc82_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1202,26 +1702,123 @@ machine_xt_pcxt_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t to16_config[] = {
+    // clang-format off
+    {
+        .name           = "rtc_port",
+        .description    = "Onboard RTC",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Not installed", .value =     0 },
+            { .description = "RTC0",          .value = 0x300 },
+            { .description = "RTC1",          .value = 0x2c0 },
+            { .description = ""                              }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "rtc_irq",
+        .description    = "RTC IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = -1 },
+            { .description = "IRQ 2",    .value =  2 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t to16_device = {
+    .name          = "Thomson TO16",
+    .internal_name = "to16_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = to16_config
+};
+
+int
+machine_xt_to16_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/to16/TO16_103.bin", 0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_context(model->device);
+    int rtc_port = machine_get_config_int("rtc_port");
+    device_context_restore();
+
+    machine_xt_clone_init(model, 0);
+
+    if (rtc_port != 0)
+        device_add(&rtc58167_device);
+
+    return ret;
+}
+
 static const device_config_t vendex_config[] = {
     // clang-format off
     {
-        .name = "bios",
-        .description = "BIOS Version",
-        .type = CONFIG_BIOS,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
         .default_string = "vendex",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .bios = {
-            { .name = "Bios 2.03C", .internal_name = "vendex", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/vendex/Vendex Turbo 888 XT - ROM BIOS - VER 2.03C.bin", "" } },
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Bios 2.03C",
+                .internal_name = "vendex",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/vendex/Vendex Turbo 888 XT - ROM BIOS - VER 2.03C.bin", "" }
+            },
+
             // GLaBIOS for Vendex
-            { .name = "GLaBIOS 0.4.0 (8088)", .internal_name = "glabios_040_8088", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.4.0_8TV.ROM", "" } },
-            { .name = "GLaBIOS 0.4.0 (V20)", .internal_name = "glabios_040_v20", .bios_type = BIOS_NORMAL,
-              .files_no = 1, .local = 0, .size = 16384, .files = { "roms/machines/glabios/GLABIOS_0.4.0_VTV.ROM", "" } },
+            {
+                .name          = "GLaBIOS 0.4.0 (8088)",
+                .internal_name = "glabios_040_8088",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8TV.ROM", "" }
+            },
+            {
+                .name          = "GLaBIOS 0.4.0 (V20)",
+                .internal_name = "glabios_040_v20",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 16384,
+                .files         = { "roms/machines/glabios/GLABIOS_0.4.0_VTV.ROM", "" }
+            },
+
             { .files_no = 0 }
-        },
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -1252,8 +1849,8 @@ machine_xt_vendex_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
-    fn           = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret          = bios_load_linear(fn, 0x000fc000, 16384, 0);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fc000, 16384, 0);
     device_context_restore();
 
     if (bios_only || !ret)
@@ -1267,7 +1864,7 @@ machine_xt_vendex_init(const machine_t *model)
 }
 
 static void
-machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
+machine_xt_laserxt_common_init(const machine_t *model, int is_lxt3)
 {
     machine_common_init(model);
 
@@ -1518,7 +2115,7 @@ machine_xt_pc5086_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/pc5086/sys_rom.bin",
-                                 0x000f0000, 65536, 0);
+                           0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
         return ret;
@@ -1557,7 +2154,7 @@ machine_xt_maz1016_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    loadfont("roms/machines/maz1016/crt-8.bin", 0);
+    video_load_font("roms/machines/maz1016/crt-8.bin", FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     machine_xt_clone_init(model, 0);
 

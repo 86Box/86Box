@@ -8,13 +8,10 @@
  *
  *          Header of the emulation of the PC speaker.
  *
- *
- *
  * Authors: Jasmine Iwanek <jriwanek@gmail.com/>
  *
- *          Copyright 2022 Jasmine Iwanek
+ *          Copyright 2022-2025 Jasmine Iwanek
  */
-
 #ifndef DISK_SIZES_H
 #define DISK_SIZES_H
 

@@ -9,8 +9,6 @@
  *          Skeleton I/O APIC implementation, currently housing the MPS
  *          table patcher for machines that require it.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

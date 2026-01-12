@@ -12,8 +12,6 @@
  *          based design. Most cards were WD1003-WA2 or -WAH, where the
  *          -WA2 cards had a floppy controller as well (to save space.)
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

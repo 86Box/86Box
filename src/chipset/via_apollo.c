@@ -8,8 +8,6 @@
  *
  *          Implementation of the VIA Apollo series of chips.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *          Tiseno100,
@@ -350,7 +348,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x58:
-            if ((dev->id >= VIA_585) || (dev->id < VIA_597) || (dev->id == VIA_597) || ((dev->id >= VIA_693A) || (dev->id < VIA_8601)))
+            if ((dev->id >= VIA_585) || (dev->id < VIA_597) || (dev->id == VIA_597) || ((dev->id >= VIA_693A) && (dev->id < VIA_8601)))
                 dev->pci_conf[0x58] = (dev->pci_conf[0x58] & ~0xee) | (val & 0xee);
             else
                 dev->pci_conf[0x58] = val;
@@ -503,14 +501,14 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             break;
         case 0x69:
             if ((dev->id != VIA_585) || (dev->id != VIA_595)) {
-                if ((dev->id == VIA_693A) || (dev->id < VIA_8601))
+                if ((dev->id == VIA_693A) && (dev->id < VIA_8601))
                     dev->pci_conf[0x69] = (dev->pci_conf[0x69] & ~0xfe) | (val & 0xfe);
                 else
                     dev->pci_conf[0x69] = val;
             }
             break;
         case 0x6b:
-            if ((dev->id == VIA_693A) || (dev->id < VIA_8601))
+            if ((dev->id == VIA_693A) && (dev->id < VIA_8601))
                 dev->pci_conf[0x6b] = val;
             else if (dev->id == VIA_691)
                 dev->pci_conf[0x6b] = (dev->pci_conf[0x6b] & ~0xcf) | (val & 0xcf);
@@ -522,7 +520,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[0x6b] = (dev->pci_conf[0x6b] & ~0xc1) | (val & 0xc1);
             break;
         case 0x6c:
-            if ((dev->id == VIA_597) || ((dev->id == VIA_693A) || (dev->id < VIA_8601)))
+            if ((dev->id == VIA_597) || ((dev->id == VIA_693A) && (dev->id < VIA_8601)))
                 dev->pci_conf[0x6c] = (dev->pci_conf[0x6c] & ~0x1f) | (val & 0x1f);
             else if (dev->id == VIA_598)
                 dev->pci_conf[0x6c] = (dev->pci_conf[0x6c] & ~0x7f) | (val & 0x7f);

@@ -143,7 +143,7 @@ x86_doabrt(int x86_abrt)
     }
 }
 
-static void
+static inline void
 set_stack32(int s)
 {
     stack32 = s;
@@ -154,7 +154,7 @@ set_stack32(int s)
         cpu_cur_status &= ~CPU_STATUS_STACK32;
 }
 
-static void
+static inline void
 set_use32(int u)
 {
     use32 = u ? 0x300 : 0;
@@ -202,7 +202,7 @@ do_seg_load(x86seg *s, uint16_t *segdat)
 }
 #endif
 
-static void
+static inline void
 do_seg_v86_init(x86seg *s)
 {
     s->access     = 0xe2;
@@ -761,7 +761,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
     }
 }
 
-static void
+static inline void
 PUSHW(uint16_t v)
 {
     if (stack32) {
@@ -777,7 +777,7 @@ PUSHW(uint16_t v)
     }
 }
 
-static void
+static inline void
 PUSHL(uint32_t v)
 {
     if (cpu_16bitbus) {
@@ -798,7 +798,7 @@ PUSHL(uint32_t v)
     }
 }
 
-static void
+static inline void
 PUSHL_SEL(uint32_t v)
 {
     if (cpu_16bitbus) {
@@ -819,7 +819,7 @@ PUSHL_SEL(uint32_t v)
     }
 }
 
-static uint16_t
+static inline uint16_t
 POPW(void)
 {
     uint16_t tempw;
@@ -837,7 +837,7 @@ POPW(void)
     return tempw;
 }
 
-static uint32_t
+static inline uint32_t
 POPL(void)
 {
     uint32_t templ;

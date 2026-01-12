@@ -16,7 +16,6 @@
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2025      starfrost (refactoring).
  */
-
 #ifndef VIDEO_CGA_H
 #define VIDEO_CGA_H
 

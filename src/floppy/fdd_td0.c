@@ -8,8 +8,6 @@
  *
  *          Implementation of the Teledisk floppy image format.
  *
- *
- *
  * Authors: Milodrag Milanovic,
  *          Haruhiko OKUMURA,
  *          Haruyasu YOSHIZAKI,

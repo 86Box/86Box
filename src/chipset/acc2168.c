@@ -8,8 +8,6 @@
  *
  *          Implementation of the ACC 2046/2168 chipset
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Tiseno100
  *

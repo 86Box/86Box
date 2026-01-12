@@ -8,8 +8,6 @@
  *
  *          Definitions for the video controller module.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -18,7 +16,6 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
-
 #ifndef EMU_VIDEO_H
 #define EMU_VIDEO_H
 
@@ -30,8 +27,8 @@ using atomic_int  = std::atomic_int;
 #    include <stdatomic.h>
 #endif
 
-#define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16))
-#define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
+#define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16) | 0xff000000)
+#define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16) | 0xff000000)
 #define getcolr(color) (((color) >> 16) & 0xFF)
 #define getcolg(color) (((color) >> 8) & 0xFF)
 #define getcolb(color) ((color) & 0xFF)
@@ -60,6 +57,21 @@ enum {
     VIDEO_PCI,
     VIDEO_AGP
 };
+
+typedef enum video_font_format_e 
+{
+    FONT_FORMAT_MDA = 0,
+    FONT_FORMAT_PC200 = 1,
+    FONT_FORMAT_CGA = 2,
+    FONT_FORMAT_WY700 = 3,
+    FONT_FORMAT_MDSI_GENIUS = 4,
+    FONT_FORMAT_TOSHIBA_3100E = 5,
+    FONT_FORMAT_KSC6501 = 6,
+    FONT_FORMAT_SIGMA = 7,
+    FONT_FORMAT_PC1512_T1000 = 8,
+    FONT_FORMAT_IM1024 = 9,
+    FONT_FORMAT_PRAVETZ = 10,
+} video_font_format;
 
 #define VIDEO_FLAG_TYPE_CGA     0
 #define VIDEO_FLAG_TYPE_MDA     1
@@ -133,6 +145,9 @@ typedef struct monitor_t {
     int                      mon_renderedframes;
     atomic_int               mon_actualrenderedframes;
     atomic_int               mon_screenshots;
+    atomic_int               mon_screenshots_clipboard;
+    atomic_int               mon_screenshots_raw;
+    atomic_int               mon_screenshots_raw_clipboard;
     uint32_t                *mon_pal_lookup;
     int                     *mon_cga_palette;
     int                      mon_pal_lookup_static;  /* Whether it should not be freed by the API. */
@@ -205,8 +220,6 @@ extern int          video_fullscreen;
 extern int          video_fullscreen_scale;
 extern uint8_t      fontdat[2048][8];      /* IBM CGA font */
 extern uint8_t      fontdatm[2048][16];    /* IBM MDA font */
-extern uint8_t      fontdat2[2048][8];     /* IBM CGA 2nd instance font */
-extern uint8_t      fontdatm2[2048][16];   /* IBM MDA 2nd instance font */
 extern uint8_t      fontdatw[512][32];     /* Wyse700 font */
 extern uint8_t      fontdat8x12[256][16];  /* MDSI Genius font */
 extern uint8_t      fontdat12x18[256][36]; /* IM1024 font */
@@ -256,9 +269,6 @@ extern int         video_get_video_from_internal_name(char *s);
 extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
-extern int         video_is_ega_vga(void);
-extern int         video_is_8514(void);
-extern int         video_is_xga(void);
 extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int         video_get_type_monitor(int monitor_index);
 
@@ -291,12 +301,8 @@ extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);
 
-extern void loadfont_ex(char *fn, int format, int offset);
-extern void loadfont(char *fn, int format);
-
-extern int get_actual_size_x(void);
-extern int get_actual_size_y(void);
-
+#define LOAD_FONT_NO_OFFSET       0
+extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
@@ -335,7 +341,11 @@ extern void da2_device_add(void);
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
 extern const device_t mach64gx_pci_device;
+extern const device_t mach64ct_device;
+extern const device_t mach64ct_device_onboard;
+extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
+extern const device_t mach64vt3_onboard_device;
 
 /* ATi 18800 */
 extern const device_t ati18800_wonder_device;
@@ -412,7 +422,7 @@ extern const device_t cga_pravetz_device;
 /* Compaq CGA */
 extern const device_t compaq_cga_device;
 extern const device_t compaq_cga_2_device;
-extern const device_t compaq_plasma_device; 
+extern const device_t compaq_plasma_device;
 
 /* Olivetti OGC */
 extern const device_t ogc_device;
@@ -436,20 +446,20 @@ extern const device_t et4000_kasan_isa_device;
 extern const device_t et4000_mca_device;
 
 /* Tseng ET4000-W32x */
-extern const device_t et4000w32_device;
+extern const device_t et4000w32_machspeed_vga_gui_2400s_isa_device;
+extern const device_t et4000w32_machspeed_vga_gui_2400s_vlb_device;
 extern const device_t et4000w32_onboard_device;
-extern const device_t et4000w32i_isa_device;
-extern const device_t et4000w32i_vlb_device;
+extern const device_t et4000w32i_axis_microdevice_isa_device;
+extern const device_t et4000w32i_hercules_dynamite_pro_vlb_device;
 extern const device_t et4000w32p_videomagic_revb_vlb_device;
-extern const device_t et4000w32p_videomagic_revb_pci_device;
-extern const device_t et4000w32p_revc_vlb_device;
-extern const device_t et4000w32p_revc_pci_device;
-extern const device_t et4000w32p_vlb_device;
-extern const device_t et4000w32p_pci_device;
-extern const device_t et4000w32p_noncardex_vlb_device;
-extern const device_t et4000w32p_noncardex_pci_device;
-extern const device_t et4000w32p_cardex_vlb_device;
-extern const device_t et4000w32p_cardex_pci_device;
+extern const device_t et4000w32p_cardex_revc_vlb_device;
+extern const device_t et4000w32p_cardex_revc_pci_device;
+extern const device_t et4000w32p_cardex_revd_vlb_device;
+extern const device_t et4000w32p_cardex_revd_pci_device;
+extern const device_t et4000w32p_diamond_revd_vlb_device;
+extern const device_t et4000w32p_diamond_revd_pci_device;
+extern const device_t et4000w32p_generic_revd_vlb_device;
+extern const device_t et4000w32p_generic_revd_pci_device;
 
 /* MDSI Genius VHR */
 extern const device_t genius_device;
@@ -513,8 +523,11 @@ extern const device_t realtek_rtg3106_device;
 extern const device_t s3_orchid_86c911_isa_device;
 extern const device_t s3_diamond_stealth_vram_isa_device;
 extern const device_t s3_ami_86c924_isa_device;
+extern const device_t s3_elsa_winner1000_86c928_vlb_device;
+extern const device_t s3_elsa_winner2000_86c928_isa_device;
 extern const device_t s3_metheus_86c928_isa_device;
 extern const device_t s3_metheus_86c928_vlb_device;
+extern const device_t s3_elsa_winner1000_86c928_pci_device;
 extern const device_t s3_spea_mercury_lite_86c928_pci_device;
 extern const device_t s3_spea_mirage_86c801_isa_device;
 extern const device_t s3_winner1000_805_isa_device;
@@ -635,9 +648,9 @@ extern const device_t wy700_device;
 extern const device_t v6355d_device;
 
 /* Tandy */
-extern const device_t tandy_1000_video_device; 
-extern const device_t tandy_1000hx_video_device; 
-extern const device_t tandy_1000sl_video_device; 
+extern const device_t tandy_1000_video_device;
+extern const device_t tandy_1000hx_video_device;
+extern const device_t tandy_1000sl_video_device;
 
 #endif
 

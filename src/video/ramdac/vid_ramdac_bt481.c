@@ -9,8 +9,6 @@
  *          Emulation of the Brooktree BT481 true colour RAMDAC
  *          family.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2024 TheCollector1995.

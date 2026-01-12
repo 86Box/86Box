@@ -1,20 +1,17 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		86Box VM manager system details section module
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
-*/
-
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          86Box VM manager system details section module
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
+ */
 #include "qt_vmmanager_detailsection.hpp"
 #include "ui_qt_vmmanager_detailsection.h"
 
@@ -23,7 +20,7 @@
 
 #define HEADER_STYLESHEET_LIGHT "background-color: palette(midlight);"
 #ifdef Q_OS_WINDOWS
-#    define HEADER_STYLESHEET_DARK "background-color: #616161;"
+#    define HEADER_STYLESHEET_DARK     "background-color: #616161;"
 #    define BACKGROUND_STYLESHEET_DARK "background-color: #272727;"
 #else
 #    define HEADER_STYLESHEET_DARK "background-color: palette(mid);"
@@ -33,7 +30,7 @@ const QString VMManagerDetailSection::sectionSeparator = ";";
 using namespace VMManager;
 
 VMManagerDetailSection::
-VMManagerDetailSection(const QString &sectionName)
+    VMManagerDetailSection(const QString &sectionName)
     : mainLayout(new QVBoxLayout())
     , buttonLayout(new QHBoxLayout())
     , frame(new QFrame())
@@ -83,7 +80,8 @@ VMManagerDetailSection(const QString &sectionName)
 }
 
 VMManagerDetailSection::
-VMManagerDetailSection(const QVariant &varSectionName) : ui(new Ui::DetailSection)
+    VMManagerDetailSection(const QVariant &varSectionName)
+    : ui(new Ui::DetailSection)
 {
     const auto sectionName = varSectionName.toString();
 
@@ -103,7 +101,7 @@ VMManagerDetailSection(const QVariant &varSectionName) : ui(new Ui::DetailSectio
 
     const auto buttonWidget = new QWidget(this);
 
-    mainLayout      = new QVBoxLayout();
+    mainLayout   = new QVBoxLayout();
     buttonLayout = new QHBoxLayout();
     buttonWidget->setLayout(buttonLayout);
 
@@ -133,7 +131,7 @@ VMManagerDetailSection(const QVariant &varSectionName) : ui(new Ui::DetailSectio
 }
 
 VMManagerDetailSection::~VMManagerDetailSection()
-= default;
+    = default;
 
 void
 VMManagerDetailSection::setSectionName(const QString &name)
@@ -147,7 +145,7 @@ VMManagerDetailSection::setSectionName(const QString &name)
 void
 VMManagerDetailSection::addSection(const QString &name, const QString &value, VMManager::Display::Name displayField)
 {
-    const auto new_section = DetailSection { name, value};
+    const auto new_section = DetailSection { name, value };
     sections.push_back(new_section);
 }
 
@@ -161,13 +159,14 @@ VMManagerDetailSection::setupMainLayout()
 void
 VMManagerDetailSection::setSections()
 {
-    int row = 0;
+    int  row   = 0;
+    bool empty = true;
 
-    for (const auto& section : sections) {
+    for (const auto &section : sections) {
         QStringList sectionsToAdd = section.value.split(sectionSeparator);
-        QLabel *labelKey = nullptr;
+        QLabel     *labelKey      = nullptr;
 
-        for (const auto& line : sectionsToAdd) {
+        for (const auto &line : sectionsToAdd) {
             if (line.isEmpty()) {
                 // Don't bother adding entries if the values are blank
                 continue;
@@ -189,12 +188,13 @@ VMManagerDetailSection::setSections()
 
             const auto hSpacer = new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
             frameGridLayout->addItem(hSpacer, row, 2);
+            empty = false;
             row++;
         }
     }
 
     collapseButton->setContent(ui->detailFrame);
-    if (sections.size())
+    if (!empty)
         setVisible(true);
 }
 void
@@ -204,10 +204,10 @@ VMManagerDetailSection::clear()
     setVisible(false);
 
     // Clear everything out
-    if(frameGridLayout) {
-        while(frameGridLayout->count()) {
-            QLayoutItem * cur_item = frameGridLayout->takeAt(0);
-            if(cur_item->widget())
+    if (frameGridLayout) {
+        while (frameGridLayout->count()) {
+            QLayoutItem *cur_item = frameGridLayout->takeAt(0);
+            if (cur_item->widget())
                 delete cur_item->widget();
             delete cur_item;
         }
@@ -243,15 +243,15 @@ VMManagerDetailSection::getMargins(const MarginSection section)
     switch (section) {
         case MarginSection::ToolButton:
 #if defined(Q_OS_WINDOWS) or defined(Q_OS_LINUX)
-            return {10, 0, 5, 0};
+            return { 10, 0, 5, 0 };
 #else
-            return {0, 0, 5, 0};
+            return { 0, 0, 5, 0 };
 #endif
         case MarginSection::DisplayGrid:
 #if defined(Q_OS_WINDOWS) or defined(Q_OS_LINUX)
-            return {10, 0, 0, 10};
+            return { 10, 0, 0, 10 };
 #else
-            return {0, 0, 0, 10};
+            return { 0, 0, 0, 10 };
 #endif
         default:
             return {};
@@ -260,7 +260,10 @@ VMManagerDetailSection::getMargins(const MarginSection section)
 
 // CollapseButton Class
 
-CollapseButton::CollapseButton(QWidget *parent) : QToolButton(parent), content_(nullptr) {
+CollapseButton::CollapseButton(QWidget *parent)
+    : QToolButton(parent)
+    , content_(nullptr)
+{
     setCheckable(true);
     setStyleSheet("background:none; border:none;");
     setIconSize(QSize(8, 8));
@@ -268,16 +271,20 @@ CollapseButton::CollapseButton(QWidget *parent) : QToolButton(parent), content_(
     setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     connect(this, &QToolButton::toggled, [=](const bool checked) {
         setArrowType(checked ? Qt::ArrowType::DownArrow : Qt::ArrowType::RightArrow);
-        content_ != nullptr && checked ? showContent() : hideContent();
+        content_ != nullptr &&checked ? showContent() : hideContent();
     });
     setChecked(true);
 }
 
-void CollapseButton::setButtonText(const QString &text) {
+void
+CollapseButton::setButtonText(const QString &text)
+{
     setText(" " + text);
 }
 
-void CollapseButton::setContent(QWidget *content) {
+void
+CollapseButton::setContent(QWidget *content)
+{
     assert(content != nullptr);
     content_              = content;
     const auto animation_ = new QPropertyAnimation(content_, "maximumHeight"); // QObject with auto delete
@@ -293,13 +300,16 @@ void CollapseButton::setContent(QWidget *content) {
     }
 }
 
-void CollapseButton::hideContent() {
+void
+CollapseButton::hideContent()
+{
     animator_.setDirection(QAbstractAnimation::Backward);
     animator_.start();
 }
 
-void CollapseButton::showContent() {
+void
+CollapseButton::showContent()
+{
     animator_.setDirection(QAbstractAnimation::Forward);
     animator_.start();
 }
-

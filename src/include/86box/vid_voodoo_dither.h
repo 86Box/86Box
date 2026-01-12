@@ -8,14 +8,11 @@
  *
  *          Voodoo Graphics and 2 specific emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          leilei
  *
  *          Copyright 2008-2020 Sarah Walker.
  */
-
 #ifndef VIDEO_VOODOO_DITHER_H
 #define VIDEO_VOODOO_DITHER_H
 

@@ -8,8 +8,6 @@
  *
  *          SVGA renderers.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -93,7 +91,7 @@ svga_render_blank(svga_t *svga)
         line_width -= svga->x_add;
     }
 
-    if (((svga->hdisp + svga->scrollcache) > 0) && (line_width >= 0))
+    if ((line_ptr != NULL) && ((svga->hdisp + svga->scrollcache) > 0) && (line_width >= 0))
         memset(line_ptr, 0, line_width);
 }
 
@@ -108,7 +106,7 @@ svga_render_overscan_left(svga_t *svga)
 
     uint32_t *line_ptr = svga->monitor->target_buffer->line[svga->displine + svga->y_add];
 
-    if (svga->x_add >= 0)  for (int i = 0; i < svga->x_add; i++)
+    if ((line_ptr != NULL) && (svga->x_add >= 0))  for (int i = 0; i < svga->x_add; i++)
         *line_ptr++ = svga->overscan_color;
 }
 
@@ -123,10 +121,15 @@ svga_render_overscan_right(svga_t *svga)
     if (svga->scrblank || (svga->hdisp <= 0))
         return;
 
-    uint32_t *line_ptr = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp];
+    uint32_t *line_ptr = svga->monitor->target_buffer->line[svga->displine + svga->y_add];
     right              = overscan_x  - svga->left_overscan;
-    for (int i = 0; i < right; i++)
-        *line_ptr++ = svga->overscan_color;
+
+    if (line_ptr != NULL) {
+        line_ptr += svga->x_add + svga->hdisp;
+
+        for (int i = 0; i < right; i++)
+            *line_ptr++ = svga->overscan_color;
+    }
 }
 
 void
@@ -157,7 +160,7 @@ svga_render_text_40(svga_t *svga)
     svga->lastline_draw = svga->displine;
 
     if (svga->fullchange) {
-        p    = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+        p    = &svga->monitor->target_buffer->line[(svga->displine + svga->y_add) & 2047][(svga->x_add) & 2047];
         xinc = (svga->seqregs[1] & 1) ? 16 : 18;
 
         for (int x = 0; x < (svga->hdisp + svga->scrollcache); x += xinc) {
@@ -240,8 +243,10 @@ svga_render_text_80(svga_t *svga)
     svga->lastline_draw = svga->displine;
 
     if (svga->fullchange) {
-        p    = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+        p    = &svga->monitor->target_buffer->line[(svga->displine + svga->y_add) & 2047][(svga->x_add) & 2047];
         xinc = (svga->seqregs[1] & 1) ? 8 : 9;
+
+        static uint32_t col = 0x00000000;
 
         for (int x = 0; x < (svga->hdisp + svga->scrollcache); x += xinc) {
             if (!svga->force_old_addr)
@@ -263,30 +268,71 @@ svga_render_text_80(svga_t *svga)
                 charaddr = svga->charseta + (chr * 128);
 
             if (drawcursor) {
-                bg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                fg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                bg = attr & 15;
+                fg = attr >> 4;
             } else {
-                fg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                bg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                fg = attr & 15;
+                bg = attr >> 4;
                 if (attr & 0x80 && svga->attrregs[0x10] & 8) {
-                    bg = svga->pallook[svga->egapal[(attr >> 4) & 7] & svga->dac_mask];
+                    bg = (attr >> 4) & 7;
                     if (svga->blink & 16)
                         fg = bg;
                 }
             }
 
             dat = svga->vram[charaddr + (svga->scanline << 2)];
-            if (svga->seqregs[1] & 1) {
-                for (xx = 0; xx < 8; xx++)
-                    p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
+
+            if (svga->attrregs[0x10] & 0x40) {
+                if (svga->seqregs[1] & 1) {
+                    for (xx = 0; xx < 8; xx++) {
+                        uint32_t col16 = (dat & (0x80 >> xx)) ? fg : bg;
+                        if ((x + xx - svga->scrollcache) & 1) {
+                            col |= col16;
+                            if ((x + xx - 1) >= 0)
+                                p[xx - 1] = svga->pallook[col & svga->dac_mask];
+                            if ((x + xx) >= 0)
+                                p[xx] = svga->pallook[col & svga->dac_mask];
+                        } else
+                           col = col16 << 4;
+                    }
+                } else {
+                    for (xx = 0; xx < 9; xx++) {
+                        uint32_t col16;
+                        if (xx < 8)
+                            col16 = (dat & (0x80 >> xx)) ? fg : bg;
+                        else if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
+                            col16 = bg;
+                        else
+                            col16 = (dat & 1) ? fg : bg;
+                        if ((x + xx - svga->scrollcache) & 1) {
+                            col |= col16;
+                            if ((x + xx - 1) >= 0)
+                                p[xx - 1] = svga->pallook[col & svga->dac_mask];
+                            if ((x + xx) >= 0)
+                                p[xx] = svga->pallook[col & svga->dac_mask];
+                        } else
+                           col = col16 << 4;
+                    }
+                }
             } else {
-                for (xx = 0; xx < 8; xx++)
-                    p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
-                if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
-                    p[8] = bg;
-                else
-                    p[8] = (dat & 1) ? fg : bg;
+                if (svga->seqregs[1] & 1) {
+                    for (xx = 0; xx < 8; xx++) {
+                        col = (col << 4) | ((dat & (0x80 >> xx)) ? fg : bg);
+                        p[xx] = svga->pallook[svga->egapal[col & 0x0f] & svga->dac_mask];
+                    }
+                } else {
+                    for (xx = 0; xx < 8; xx++) {
+                        col = (col << 4) | ((dat & (0x80 >> xx)) ? fg : bg);
+                        p[xx] = svga->pallook[svga->egapal[col & 0x0f] & svga->dac_mask];
+                    }
+                    if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
+                        col = (col << 4) | bg;
+                    else
+                        col = (col << 4) | ((dat & 1) ? fg : bg);
+                    p[8] = svga->pallook[svga->egapal[col & 0x0f] & svga->dac_mask];
+                }
             }
+
             svga->memaddr += 4;
             p += xinc;
         }
@@ -764,6 +810,8 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     uint32_t incr_counter = 0;
     uint32_t load_counter = 0;
     uint32_t edat         = 0;
+    static uint32_t col          = 0;
+    static uint32_t col2         = 0;
     for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += charwidth) {
         if (load_counter == 0) {
             /* Find our address */
@@ -882,8 +930,21 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                 }
             } else if (combine8bits) {
                 if (svga->packed_4bpp) {
-                    uint32_t  p0      = svga->map8[c0 & svga->dac_mask];
-                    uint32_t  p1      = svga->map8[c1 & svga->dac_mask];
+                    uint32_t  p0;
+                    uint32_t  p1;
+                    if (svga->half_pixel) {
+                        col                 &= 0xf0;
+                        col                 |= (c0 >> 4) & 0xff;
+                        col2                 = (c0 << 4) & 0xff;
+                        col2                |= (c1 >> 4) & 0xff;
+                        p0                  = svga->map8[col & svga->dac_mask];
+                        p1                  = svga->map8[col2 & svga->dac_mask];
+                        col                 = (c1 << 4) & 0xff;
+                    } else {
+                        p0                = svga->map8[c0 & svga->dac_mask];
+                        p1                = svga->map8[c1 & svga->dac_mask];
+                        col                 = p1;
+                    }
                     const int outoffs = i << dwshift;
                     for (int subx = 0; subx < dotwidth; subx++)
                         p[outoffs + subx] = p0;
@@ -891,7 +952,16 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                         p[outoffs + subx + dotwidth] = p1;
                 } else {
                     uint32_t  ccombined = (c0 << 4) | c1;
-                    uint32_t  p0        = svga->map8[ccombined & svga->dac_mask];
+                    uint32_t  p0;
+                    if (svga->half_pixel) {
+                        col                 &= 0xf0;
+                        col                 |= (ccombined >> 4) & 0xff;
+                        p0                  = svga->map8[col & svga->dac_mask];
+                        col                 = (ccombined << 4) & 0xff;
+                    } else {
+                        p0                  = svga->map8[ccombined & svga->dac_mask];
+                        col                 = p0;
+                    }
                     const int outoffs   = (i >> 1) << dwshift;
                     for (int subx = 0; subx < dotwidth; subx++)
                         p[outoffs + subx] = p0;
@@ -904,6 +974,11 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                     p[outoffs + subx] = p0;
                 for (int subx = 0; subx < dotwidth; subx++)
                     p[outoffs + subx + dotwidth] = p1;
+                if ((x + i - svga->scrollcache) & 0x01)
+                    /* The lower 4 bits are undefined at this point. */
+                    col = c1 << 4;
+                else
+                    col = (c0 << 4) | c1;
             }
         }
 

@@ -12,10 +12,10 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global romver 4.1
+%global romver 5.4
 
 Name:		86Box
-Version:	5.1
+Version:	5.4
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
@@ -72,7 +72,7 @@ Collection of ROMs for use with 86Box.
 %autosetup -p1 -a1
 
 %build
-%ifarch i386 x86_64
+%ifarch x86_64
   %cmake -DRELEASE=on
 %else
   %ifarch arm aarch64
@@ -121,5 +121,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-* Sat Aug 31 Jasmine Iwanek <jriwanek[AT]gmail.com> 5.1-1
+* Sat Aug 31 Jasmine Iwanek <jriwanek[AT]gmail.com> 5.4-1
 - Bump release

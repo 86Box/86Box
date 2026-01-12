@@ -26,11 +26,11 @@ on:
 
 jobs:
 
-  macos13-x86_64:
+  macos:
 
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
 
-    runs-on: macos-13
+    runs-on: ${{ matrix.environment.runner }}
 
     strategy:
       fail-fast: true
@@ -54,12 +54,27 @@ jobs:
         ui:
           - name: SDL GUI
             qt: off
+            slug: -SDL
             static: on
-          - name: Qt GUI
+          - name: Qt 5 GUI
             qt: on
-            slug: -Qt
+            slug: -Qt5
             packages: >-
               qt@5
+        environment:
+          - arch: x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+            slug: -x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            toolchain: ./cmake/llvm-macos-aarch64.cmake
+            slug: -arm64
+            runner: macos-14
+        exclude:
+          - dynarec:
+              new: off
+            environment:
+              arch: arm64
 
     steps:
       - name: Install dependencies
@@ -81,10 +96,9 @@ jobs:
 
       - name: Configure CMake
         run: >-
-          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          cmake -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
@@ -100,82 +114,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
-          path: build/artifacts/**
-
-  macos14-arm64:
-
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, arm64"
-
-    runs-on: macos-14
-
-    strategy:
-      fail-fast: true
-      matrix:
-        build:
-#          - name: Regular
-#            preset: regular
-          - name: Debug
-            preset: dev_debug
-            slug: -Debug
-          - name: Dev
-            preset: development
-            slug: -Dev
-        dynarec:
-#          - name: ODR
-#            new: off
-#            slug: -ODR
-          - name: NDR
-            new: on
-            slug: -NDR
-        ui:
-          - name: SDL GUI
-            qt: off
-            static: on
-          - name: Qt GUI
-            qt: on
-            slug: -Qt
-            packages: >-
-              qt@5
-
-    steps:
-      - name: Install dependencies
-        run: >-
-          brew install
-          sdl2
-          rtmidi
-          openal-soft
-          fluidsynth
-          libslirp
-          vde
-          libserialport
-          ${{ matrix.ui.packages }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-
-      - name: Configure CMake
-        run: >-
-          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ./cmake/llvm-macos-aarch64.cmake
-          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
-          -D QT=${{ matrix.ui.qt }}
-          -D Qt5_ROOT=$(brew --prefix qt@5)
-          -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
-          -D OpenAL_ROOT=$(brew --prefix openal-soft)
-          -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
-
-      - name: Build
-        run: cmake --build build
-
-      - name: Generate package
-        run: cmake --install build
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-arm64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**

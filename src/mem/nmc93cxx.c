@@ -8,14 +8,12 @@
  *
  *          Emulation of National Semiconductors NMC93Cxx EEPROMs.
  *
- *
  * Authors: Cacodemon345
  *
  *          Copyright 2023 Cacodemon345
  */
 
 /* Ported over from QEMU */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

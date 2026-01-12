@@ -44,9 +44,8 @@
  *          configuration register (CTRL_SPCFG bit set) but have to
  *          remember that stuff first...
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *
  *          Copyright 1989-2018 Fred N. van Kempen.
  */
 #include <stdarg.h>

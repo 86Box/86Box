@@ -8,8 +8,6 @@
  *
  *          MDSI Genius VHR emulation.
  *
- *
- *
  * Authors: John Elliott, <jce@seasip.info>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -331,12 +329,13 @@ genius_recalctimings(genius_t *genius)
     double disptime;
     double _dispontime;
     double _dispofftime;
+    double crtcconst = (cpuclock / 53216000.0 * (double) (1ULL << 32)) * 9.0;
 
-    disptime     = 0x31;
-    _dispontime  = 0x28;
+    disptime     = 0x62;
+    _dispontime  = 0x50;
     _dispofftime = disptime - _dispontime;
-    _dispontime *= MDACONST;
-    _dispofftime *= MDACONST;
+    _dispontime *= crtcconst;
+    _dispofftime *= crtcconst;
     genius->dispontime  = (uint64_t) (_dispontime);
     genius->dispofftime = (uint64_t) (_dispofftime);
 }
@@ -746,7 +745,7 @@ genius_init(UNUSED(const device_t *info))
     /* 160k video RAM */
     genius->vram = malloc(0x28000);
 
-    loadfont(BIOS_ROM_PATH, 4);
+    video_load_font(BIOS_ROM_PATH, FONT_FORMAT_MDSI_GENIUS, LOAD_FONT_NO_OFFSET);
 
     timer_add(&genius->timer, genius_poll, genius, 1);
 

@@ -23,7 +23,6 @@
  *
  *          See https://gitlab.freedesktop.org/xorg/lib/libxcvt/-/blob/master/COPYING for libxcvt license details
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -320,7 +319,7 @@ bochs_vbe_recalctimings(svga_t* svga)
         svga->vtotal = mode.vtotal;
         svga->htotal = mode.htotal;
         svga->hblankstart = mode.hdisplay;
-        svga->hblankend = mode.hdisplay + (mode.htotal - mode.hdisplay - 1);
+        svga->hblankend = mode.htotal - 1;
         svga->vblankstart = svga->dispend; /* no vertical overscan. */
         svga->rowcount = 0;
         svga->hoverride = 1;

@@ -90,6 +90,20 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="2">
+       <widget class="QLabel" name="labelAudio">
+        <property name="text">
+         <string>Audio:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QComboBox" name="comboBoxAudio">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -98,14 +112,14 @@
      <item>
       <widget class="QPushButton" name="pushButtonNew">
        <property name="text">
-        <string>&amp;New...</string>
+        <string>&amp;New…</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonExisting">
        <property name="text">
-        <string>&amp;Existing...</string>
+        <string>&amp;Existing…</string>
        </property>
       </widget>
      </item>

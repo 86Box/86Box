@@ -12,7 +12,6 @@
  *
  *           Copyright 2022-2025 Jasmine Iwanek.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

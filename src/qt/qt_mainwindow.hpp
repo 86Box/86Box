@@ -15,6 +15,8 @@
 
 #include "qt_vmmanager_protocol.hpp"
 
+extern QTimer discordupdate;
+
 class MediaMenu;
 class RendererStack;
 
@@ -31,16 +33,15 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    void  showMessage(int flags, const QString &header, const QString &message, bool richText);
-    void  getTitle(wchar_t *title);
-    void  blitToWidget(int x, int y, int w, int h, int monitor_index);
-    QSize getRenderWidgetSize();
-    void  setSendKeyboardInput(bool enabled);
-    void  reloadAllRenderers();
-	QShortcut	*windowedShortcut;
-	QKeySequence FindAcceleratorSeq(const char *name);
-	
-	
+    void         showMessage(int flags, const QString &header, const QString &message, bool richText);
+    void         getTitle(wchar_t *title);
+    void         blitToWidget(int x, int y, int w, int h, int monitor_index);
+    QSize        getRenderWidgetSize();
+    void         setSendKeyboardInput(bool enabled);
+    void         reloadAllRenderers();
+    QShortcut   *windowedShortcut;
+    QKeySequence FindAcceleratorSeq(const char *name);
+
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
     void paint(const QImage &image);
@@ -57,13 +58,14 @@ signals:
     void destroyRendererMonitor(int monitor_index);
     void initRendererMonitorForNonQtThread(int monitor_index);
     void destroyRendererMonitorForNonQtThread(int monitor_index);
+    void forceInterpretationCompleted();
     void hardResetCompleted();
 
     void setTitle(const QString &title);
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
 
-    void showMessageForNonQtThread(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done);
+    void showMessageForNonQtThread(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done);
     void getTitleForNonQtThread(wchar_t *title);
 
     void vmmRunningStateChanged(VMManagerProtocol::RunningState state);
@@ -78,6 +80,7 @@ public slots:
     void updateStatusEmptyIcons();
     void updateUiPauseState();
 private slots:
+    void on_actionForce_interpretation_triggered();
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
@@ -129,14 +132,19 @@ private slots:
     void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
     void on_actionTake_screenshot_triggered();
+    void on_actionTake_raw_screenshot_triggered();
+    void on_actionCopy_screenshot_triggered();
+    void on_actionCopy_raw_screenshot_triggered();
+    void toggleFullscreenUI();
     void on_actionMute_Unmute_triggered();
     void on_actionSound_gain_triggered();
     void on_actionPreferences_triggered();
     void on_actionEnable_Discord_integration_triggered(bool checked);
     void on_actionRenderer_options_triggered();
+    void on_actionFast_forward_triggered();
 
     void refreshMediaMenu();
-    void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool* done = nullptr);
+    void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);
     void getTitle_(wchar_t *title);
 
     void on_actionMCA_devices_triggered();
@@ -176,11 +184,8 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 
-    static bool s_adjustingForce43; // guard against recursion
-	void adjustForForce43(const QSize &newWinSize);
-    
-	void updateShortcuts();
-    void     processKeyboardInput(bool down, uint32_t keycode);
+    void updateShortcuts();
+    void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
     void     processMacKeyboardInput(bool down, const QKeyEvent *event);
@@ -193,24 +198,27 @@ private:
     bool vnc_enabled         = false;
 
     /* Full screen ON and OFF signals */
-    bool fs_on_signal        = false;
-    bool fs_off_signal       = false;
+    bool fs_on_signal  = false;
+    bool fs_off_signal = false;
 
     /* Reload the renderers after closing renderer options dialog. */
-    bool reload_renderers    = false;
+    bool reload_renderers = false;
+
+    /* Mouse capture state before showing fullscreen UI */
+    bool mouse_was_captured = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;
     friend class RendererCommon;
-    friend class RendererStack; // For UI variable access by non-primary renderer windows.
+    friend class RendererStack;         // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 
     QLabel *caps_label, *scroll_label, *num_label, *kana_label;
-    QIcon caps_icon, scroll_icon, num_icon, kana_icon;
-    QIcon caps_icon_off, scroll_icon_off, num_icon_off, kana_icon_off;
+    QIcon   caps_icon, scroll_icon, num_icon, kana_icon;
+    QIcon   caps_icon_off, scroll_icon_off, num_icon_off, kana_icon_off;
 
-    bool isShowMessage = false;
-    bool isNonPause = false;
+    bool isShowMessage  = false;
+    bool isNonPause     = false;
     bool window_blocked = false;
 };
 

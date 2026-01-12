@@ -8,8 +8,6 @@
  *
  *          C&T 69000 emulation.
  *
- *
- *
  * Authors: Cacodemon345
  *
  *          Copyright 2023-2024 Cacodemon345

@@ -8,8 +8,6 @@
  *
  *          OpenGL renderer for Qt, mostly ported over from PCem.
  *
- *
- *
  * Authors: Teemu Korhonen
  *          Cacodemon345
  *          bit
@@ -20,15 +18,15 @@
  *          Copyright 2017 Bit
  *          Copyright 2017-2020 Sarah Walker
  */
-
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
-extern MainWindow* main_window;
+extern MainWindow *main_window;
 
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QWindow>
+#include <QClipboard>
 #include <QPainter>
 #include <QWidget>
 #include <QEvent>
@@ -45,6 +43,8 @@ extern MainWindow* main_window;
 #include <QImage>
 
 #include <cmath>
+#include <cstdarg>
+#define HAVE_STDARG_H
 
 #include "qt_openglrenderer.hpp"
 #include "qt_openglshadermanagerdialog.hpp"
@@ -59,7 +59,7 @@ extern "C" {
 #include <86box/config.h>
 #include <86box/qt-glslp-parser.h>
 
-char gl3_shader_file[MAX_USER_SHADERS][512];
+char        gl3_shader_file[MAX_USER_SHADERS][512];
 extern bool cpu_thread_running;
 }
 
@@ -74,76 +74,76 @@ extern int video_vsync;
 extern int video_focus_dim;
 extern int video_refresh_rate;
 
-const char* vertex_shader_default_tex_src =
+const char *vertex_shader_default_tex_src =
 #ifdef __APPLE__
-        "#version 150\n"
+    "#version 150\n"
 #else
-        "#version 130\n"
+    "#version 130\n"
 #endif
-        "\n"
-        "in vec4 VertexCoord;\n"
-        "in vec2 TexCoord;\n"
-        "\n"
-        "out vec2 texCoord;\n"
-        "\n"
-        "void main()\n"
-        "{\n"
-        "       gl_Position = VertexCoord;\n"
-        "       texCoord = TexCoord;\n"
-        "}\n";
+    "\n"
+    "in vec4 VertexCoord;\n"
+    "in vec2 TexCoord;\n"
+    "\n"
+    "out vec2 texCoord;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "       gl_Position = VertexCoord;\n"
+    "       texCoord = TexCoord;\n"
+    "}\n";
 
-const char* fragment_shader_default_tex_src =
+const char *fragment_shader_default_tex_src =
 #ifdef __APPLE__
-        "#version 150\n"
+    "#version 150\n"
 #else
-        "#version 130\n"
+    "#version 130\n"
 #endif
-        "\n"
-        "in vec2 texCoord;\n"
-        "uniform sampler2D Texture;\n"
-        "\n"
-        "out vec4 color;"
-        "\n"
-        "void main()\n"
-        "{\n"
-        "       color = texture(Texture, texCoord);\n"
-        "       color.a = 1.0;\n"
-        "}\n";
+    "\n"
+    "in vec2 texCoord;\n"
+    "uniform sampler2D Texture;\n"
+    "\n"
+    "out vec4 color;"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "       color = texture(Texture, texCoord);\n"
+    "       color.a = 1.0;\n"
+    "}\n";
 
-const char* vertex_shader_default_color_src =
+const char *vertex_shader_default_color_src =
 #ifdef __APPLE__
-        "#version 150\n"
+    "#version 150\n"
 #else
-        "#version 130\n"
+    "#version 130\n"
 #endif
-        "\n"
-        "in vec4 VertexCoord;\n"
-        "in vec4 Color;\n"
-        "\n"
-        "out vec4 color;\n"
-        "\n"
-        "void main()\n"
-        "{\n"
-        "       gl_Position = VertexCoord;\n"
-        "       color = Color;\n"
-        "}\n";
+    "\n"
+    "in vec4 VertexCoord;\n"
+    "in vec4 Color;\n"
+    "\n"
+    "out vec4 color;\n"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "       gl_Position = VertexCoord;\n"
+    "       color = Color;\n"
+    "}\n";
 
-const char* fragment_shader_default_color_src =
+const char *fragment_shader_default_color_src =
 #ifdef __APPLE__
-        "#version 150\n"
+    "#version 150\n"
 #else
-        "#version 130\n"
+    "#version 130\n"
 #endif
-        "\n"
-        "in vec4 color;\n"
-        "\n"
-        "out vec4 outColor;"
-        "\n"
-        "void main()\n"
-        "{\n"
-        "       outColor = color;\n"
-        "       outColor.a = 1.0;\n"
-        "}\n";
+    "\n"
+    "in vec4 color;\n"
+    "\n"
+    "out vec4 outColor;"
+    "\n"
+    "void main()\n"
+    "{\n"
+    "       outColor = color;\n"
+    "       outColor.a = 1.0;\n"
+    "}\n";
 
 #ifdef ENABLE_OGL3_LOG
 int ogl3_do_log = ENABLE_OGL3_LOG;
@@ -155,7 +155,7 @@ ogl3_log(const char *fmt, ...)
 
     if (ogl3_do_log) {
         va_start(ap, fmt);
-        ogl3_log_ex(fmt, ap);
+        pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
@@ -213,18 +213,25 @@ int
 OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const char *program, int *dst)
 {
     QRegularExpression versionRegex("^\\s*(#version\\s+\\w+)", QRegularExpression::MultilineOption);
-    QString progSource = QString(program);
-    QByteArray  finalSource = nullptr;
-    const char *source[5];
-    char        version[50];
-    char       *version_loc = (char *) strstr(program, "#version");
+    QString            progSource  = QString(program);
+    QByteArray         finalSource = nullptr;
+    const char        *source[5];
+    char               version[50];
+    char              *version_loc = (char *) strstr(program, "#version");
     if (version_loc) {
         snprintf(version, 49, "%s\n", versionRegex.match(progSource).captured(1).toLatin1().data());
         progSource.remove(versionRegex);
     } else {
-        snprintf(version, 49, "%s\n", this->glslVersion.toLatin1().data());
+        int ver = gl_version[0] * 100 + gl_version[1] * 10;
+        if (ver == 300)
+            ver = 130;
+        else if (ver == 310)
+            ver = 140;
+        else if (ver == 320)
+            ver = 150;
+        snprintf(version, 49, "#version %d\n", ver);
     }
-    
+
     /* Remove parameter lines. */
     progSource.remove(QRegularExpression("^\\s*#pragma parameter.*?\\n", QRegularExpression::MultilineOption));
 
@@ -303,27 +310,27 @@ OpenGLRenderer::find_uniforms(struct glsl_shader *glsl, int num_pass)
     u->orig.texture_size = get_uniform(p, "OrigTextureSize");
 
     for (i = 0; i < glsl->num_passes; ++i) {
-        snprintf(s, sizeof(s) -1, "Pass%dTexture", (i + 1));
+        snprintf(s, sizeof(s) - 1, "Pass%dTexture", (i + 1));
         u->pass[i].texture = get_uniform(p, s);
-        snprintf(s, sizeof(s) -1, "Pass%dInputSize", (i + 1));
+        snprintf(s, sizeof(s) - 1, "Pass%dInputSize", (i + 1));
         u->pass[i].input_size = get_uniform(p, s);
-        snprintf(s, sizeof(s) -1, "Pass%dTextureSize", (i + 1));
+        snprintf(s, sizeof(s) - 1, "Pass%dTextureSize", (i + 1));
         u->pass[i].texture_size = get_uniform(p, s);
 
-        snprintf(s, sizeof(s) -1, "PassPrev%dTexture", num_pass - i);
+        snprintf(s, sizeof(s) - 1, "PassPrev%dTexture", num_pass - i);
         u->prev_pass[i].texture = get_uniform(p, s);
-        snprintf(s, sizeof(s) -1, "PassPrev%dInputSize", num_pass - i);
+        snprintf(s, sizeof(s) - 1, "PassPrev%dInputSize", num_pass - i);
         u->prev_pass[i].input_size = get_uniform(p, s);
-        snprintf(s, sizeof(s) -1, "PassPrev%dTextureSize", num_pass - i);
+        snprintf(s, sizeof(s) - 1, "PassPrev%dTextureSize", num_pass - i);
         u->prev_pass[i].texture_size = get_uniform(p, s);
     }
 
     u->prev[0].texture   = get_uniform(p, "PrevTexture");
     u->prev[0].tex_coord = get_attrib(p, "PrevTexCoord");
     for (i = 1; i < MAX_PREV; ++i) {
-        snprintf(s, sizeof(s) -1, "Prev%dTexture", i);
+        snprintf(s, sizeof(s) - 1, "Prev%dTexture", i);
         u->prev[i].texture = get_uniform(p, s);
-        snprintf(s, sizeof(s) -1, "Prev%dTexCoord", i);
+        snprintf(s, sizeof(s) - 1, "Prev%dTexCoord", i);
         u->prev[i].tex_coord = get_attrib(p, s);
     }
     for (i = 0; i < MAX_PREV; ++i)
@@ -476,8 +483,8 @@ OpenGLRenderer::create_fbo(struct shader_fbo *fbo)
 void
 OpenGLRenderer::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
 {
-    fbo->texture.internal_format = GL_RGBA8;
-    fbo->texture.format          = GL_RGBA;
+    fbo->texture.internal_format = GL_RGB8;
+    fbo->texture.format          = GL_RGB;
     fbo->texture.min_filter = fbo->texture.mag_filter = shader->filter_linear ? GL_LINEAR : GL_NEAREST;
     fbo->texture.width                                = 2048;
     fbo->texture.height                               = 2048;
@@ -492,10 +499,10 @@ OpenGLRenderer::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
         fbo->texture.wrap_mode = GL_CLAMP_TO_BORDER;
     fbo->srgb = 0;
     if (shader->srgb_framebuffer) {
-        fbo->texture.internal_format = GL_SRGB8_ALPHA8;
+        fbo->texture.internal_format = GL_SRGB8;
         fbo->srgb                    = 1;
     } else if (shader->float_framebuffer) {
-        fbo->texture.internal_format = GL_RGBA32F;
+        fbo->texture.internal_format = GL_RGB32F;
         fbo->texture.type            = GL_FLOAT;
     }
 
@@ -589,7 +596,7 @@ load_texture(const char *f, struct shader_texture *tex)
     width  = img.size().width();
     height = img.size().height();
 
-    img.convertTo(QImage::Format_RGBA8888);
+    img.convertTo(QImage::Format_RGB888);
 
     const GLubyte *rgb = img.constBits();
 
@@ -610,8 +617,8 @@ load_texture(const char *f, struct shader_texture *tex)
 
     tex->width           = width;
     tex->height          = height;
-    tex->internal_format = GL_RGBA8;
-    tex->format          = GL_RGBA;
+    tex->internal_format = GL_RGB8;
+    tex->format          = GL_RGB;
     tex->type            = GL_UNSIGNED_BYTE;
     tex->data            = data;
     return 1;
@@ -647,7 +654,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
             ogl3_log("Load texture %s...\n", file);
 
             if (!load_texture(file, &tex->texture)) {
-                //QMessageBox::critical(main_window, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
+                // QMessageBox::critical(main_window, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
                 main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %1").arg(file), false);
                 ogl3_log("Could not load texture %s!\n", file);
                 failed = 1;
@@ -799,7 +806,7 @@ OpenGLRenderer::read_shader_config()
     for (int i = 0; i < active_shader->num_shaders; ++i) {
         struct glsl_shader *shader = &active_shader->shaders[i];
         char               *name   = shader->name;
-        snprintf(s, sizeof(s) -1, "GL3 Shaders - %s", name);
+        snprintf(s, sizeof(s) - 1, "GL3 Shaders - %s", name);
         //                shader->shader_refresh_rate = config_get_float(CFG_MACHINE, s, "shader_refresh_rate", -1);
         for (int j = 0; j < shader->num_parameters; ++j) {
             struct shader_parameter *param = &shader->parameters[j];
@@ -809,10 +816,10 @@ OpenGLRenderer::read_shader_config()
 }
 
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
-    : QWindow(parent->windowHandle())
+    : QWindow((QWindow*)nullptr)
     , renderTimer(new QTimer(this))
 {
-    connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); } );
+    connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
     imagebufs[0] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
     imagebufs[1] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
 
@@ -830,11 +837,9 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     format.setVersion(3, 2);
 #endif
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
-        format.setRenderableType(QSurfaceFormat::OpenGLES);
-
+    format.setRenderableType(QSurfaceFormat::OpenGL);
     format.setSwapInterval(video_vsync ? 1 : 0);
+    format.setAlphaBufferSize(0);
 
     setFormat(format);
 
@@ -842,8 +847,8 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
 
     source.setRect(0, 0, 100, 100);
     isInitialized = false;
-    isFinalized = false;
-    context = nullptr;
+    isFinalized   = false;
+    context       = nullptr;
 }
 
 OpenGLRenderer::~OpenGLRenderer() { finalize(); }
@@ -869,12 +874,16 @@ OpenGLRenderer::initialize()
 
         glw.initializeOpenGLFunctions();
 
+        glw.glClearColor(0, 0, 0, 1);
+
+        glw.glClear(GL_COLOR_BUFFER_BIT);
+
         ogl3_log("OpenGL information: [%s] %s (%s)\n", glw.glGetString(GL_VENDOR), glw.glGetString(GL_RENDERER), glw.glGetString(GL_VERSION));
-        glsl_version[0] = glsl_version[1] = -1;
-        glw.glGetIntegerv(GL_MAJOR_VERSION, &glsl_version[0]);
-        glw.glGetIntegerv(GL_MINOR_VERSION, &glsl_version[1]);
-        if (glsl_version[0] < 3) {
-            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2").arg(glsl_version[0]).arg(glsl_version[1]));
+        gl_version[0] = gl_version[1] = -1;
+        glw.glGetIntegerv(GL_MAJOR_VERSION, &gl_version[0]);
+        glw.glGetIntegerv(GL_MINOR_VERSION, &gl_version[1]);
+        if (gl_version[0] < 3) {
+            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current version is %1.%2").arg(gl_version[0]).arg(gl_version[1]));
         }
         ogl3_log("Using OpenGL %s\n", glw.glGetString(GL_VERSION));
         ogl3_log("Using Shading Language %s\n", glw.glGetString(GL_SHADING_LANGUAGE_VERSION));
@@ -893,20 +902,20 @@ OpenGLRenderer::initialize()
 
         glw.glEnable(GL_TEXTURE_2D);
 
-        //renderTimer->start(75);
+        // renderTimer->start(75);
         if (video_framerate != -1) {
-            renderTimer->start(ceilf(1000.f / (float)video_framerate));
+            renderTimer->start(ceilf(1000.f / (float) video_framerate));
         }
 
         scene_texture.data            = NULL;
         scene_texture.width           = 2048;
         scene_texture.height          = 2048;
         scene_texture.internal_format = GL_RGBA8;
-        scene_texture.format          = GL_BGRA;
+        scene_texture.format          = GL_RGBA;
         scene_texture.type            = GL_UNSIGNED_INT_8_8_8_8_REV;
         scene_texture.wrap_mode       = GL_CLAMP_TO_BORDER;
         scene_texture.min_filter = scene_texture.mag_filter = video_filter_method ? GL_LINEAR : GL_NEAREST;
-        scene_texture.mipmap                                = 0;
+        scene_texture.mipmap          = 0;
 
         create_texture(&scene_texture);
 
@@ -1100,10 +1109,6 @@ OpenGLRenderer::initialize()
 
         emit initialized();
 
-        glw.glClearColor(0, 0, 0, 1);
-        
-        glw.glClear(GL_COLOR_BUFFER_BIT);
-
         context->swapBuffers(this);
     } catch (const opengl_init_error &e) {
         /* Mark all buffers as in use */
@@ -1143,6 +1148,8 @@ OpenGLRenderer::finalize()
     isFinalized = true;
 }
 
+extern void take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i);
+
 void
 OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
@@ -1153,7 +1160,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     if (source.width() != w || source.height() != h) {
         glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
-        glw.glTexImage2D(GL_TEXTURE_2D, 0, (GLenum) QOpenGLTexture::RGBA8_UNorm, w, h, 0, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
+        glw.glTexImage2D(GL_TEXTURE_2D, 0, (GLenum) QOpenGLTexture::RGB8_UNorm, w, h, 0, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
         glw.glBindTexture(GL_TEXTURE_2D, 0);
     }
 
@@ -1180,6 +1187,10 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     if (video_framerate == -1)
         render();
+
+    if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {
+        take_screenshot_clipboard_monitor(x, y, w, h, r_monitor_index);
+    }
 }
 
 std::vector<std::tuple<uint8_t *, std::atomic_flag *>>
@@ -1223,6 +1234,9 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
         destination.y(),
         destination.width(),
         destination.height());
+
+    if (video_framerate == -1)
+        render();
 }
 
 void
@@ -1380,7 +1394,7 @@ OpenGLRenderer::event(QEvent *event)
     return res;
 }
 
-QDialog*
+QDialog *
 OpenGLRenderer::getOptions(QWidget *parent)
 {
     return new OpenGLShaderManagerDialog(parent);
@@ -1419,7 +1433,7 @@ OpenGLRenderer::render()
     glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
     glw.glBindTexture(GL_TEXTURE_2D, 0);
 
-    GLfloat orig_output_size[] = { (GLfloat)window_rect.w, (GLfloat)window_rect.h };
+    GLfloat orig_output_size[] = { (GLfloat) window_rect.w, (GLfloat) window_rect.h };
 
     if (active_shader->srgb)
         glw.glEnable(GL_FRAMEBUFFER_SRGB);
@@ -1500,8 +1514,8 @@ OpenGLRenderer::render()
 
         /* loop through each pass */
         for (int i = 0; i < shader->num_passes; ++i) {
-            bool resetFiltering = false;
-            struct shader_pass *pass = &shader->passes[i];
+            bool                resetFiltering = false;
+            struct shader_pass *pass           = &shader->passes[i];
 
             memcpy(pass->state.input_size, input->state.output_size, 2 * sizeof(GLfloat));
             memcpy(pass->state.input_texture_size, input->state.output_texture_size, 2 * sizeof(GLfloat));
@@ -1689,34 +1703,48 @@ OpenGLRenderer::render()
     }
 
     if (monitors[r_monitor_index].mon_screenshots) {
-        int width = destination.width(), height = destination.height();
+        int  width = destination.width(), height = destination.height();
         char path[1024];
         char fn[256];
-    
+
         memset(fn, 0, sizeof(fn));
         memset(path, 0, sizeof(path));
-    
+
         path_append_filename(path, usr_path, SCREENSHOT_PATH);
-    
+
         if (!plat_dir_check(path))
             plat_dir_create(path);
-    
+
         path_slash(path);
         strcat(path, "Monitor_");
         snprintf(&path[strlen(path)], 42, "%d_", r_monitor_index + 1);
-    
-        plat_tempfile(fn, NULL, (char*)".png");
+
+        plat_tempfile(fn, NULL, (char *) ".png");
         strcat(path, fn);
 
-        unsigned char *rgba = (unsigned char *) calloc(1, (size_t) width * height * 4);
-        
-        glw.glFinish();
-        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+        unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
 
-        QImage image(rgba, width, height, QImage::Format_RGBA8888);
+        glw.glFinish();
+        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
+
+        QImage image((uchar*)rgb, width, height, width * 3, QImage::Format_RGB888);
         image.mirrored(false, true).save(path, "png");
         monitors[r_monitor_index].mon_screenshots--;
-        free(rgba);
+        free(rgb);
+    }
+    if (monitors[r_monitor_index].mon_screenshots_clipboard) {
+        int  width = destination.width(), height = destination.height();
+
+        unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
+
+        glw.glFinish();
+        glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
+
+        QImage image((uchar*)rgb, width, height, width * 3, QImage::Format_RGB888);
+        QClipboard *clipboard = QApplication::clipboard();
+        clipboard->setImage(image.mirrored(false, true), QClipboard::Clipboard);
+        monitors[r_monitor_index].mon_screenshots_clipboard--;
+        free(rgb);
     }
 
     glw.glDisable(GL_FRAMEBUFFER_SRGB);
@@ -1724,3 +1752,4 @@ OpenGLRenderer::render()
     frameCounter++;
     context->swapBuffers(this);
 }
+

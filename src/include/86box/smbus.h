@@ -8,13 +8,10 @@
  *
  *          Definitions for the SMBus host controllers.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.
  */
-
 #ifndef EMU_SMBUS_H
 #define EMU_SMBUS_H
 

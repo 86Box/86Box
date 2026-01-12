@@ -46,15 +46,7 @@ if(DYNAREC)
         codegen_reg.c
     )
 
-    if(ARCH STREQUAL "i386")
-        target_sources(dynarec PRIVATE
-            codegen_backend_x86.c
-            codegen_backend_x86_ops.c
-            codegen_backend_x86_ops_fpu.c
-            codegen_backend_x86_ops_sse.c
-            codegen_backend_x86_uops.c
-        )
-    elseif(ARCH STREQUAL "x86_64")
+    if(ARCH STREQUAL "x86_64")
         target_sources(dynarec PRIVATE
             codegen_backend_x86-64.c
             codegen_backend_x86-64_ops.c
@@ -67,12 +59,6 @@ if(DYNAREC)
             codegen_backend_arm64_ops.c
             codegen_backend_arm64_uops.c
             codegen_backend_arm64_imm.c
-        )
-    elseif(ARCH STREQUAL "arm")
-        target_sources(dynarec PRIVATE
-            codegen_backend_arm.c
-            codegen_backend_arm_ops.c
-            codegen_backend_arm_uops.c
         )
     else()
         message(SEND_ERROR

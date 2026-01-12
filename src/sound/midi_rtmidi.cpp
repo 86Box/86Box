@@ -10,10 +10,10 @@
  *
  * Author:  Cacodemon345,
  *          Miran Grca, <mgrca8@gmail.com>
+ *
  *          Copyright 2021 Cacodemon345.
  *          Copyright 2021 Miran Grca.
  */
-
 #if defined __has_include
 #    if __has_include(<RtMidi.h>)
 #        include <RtMidi.h>

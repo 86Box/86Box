@@ -8,8 +8,6 @@
  *
  *          Hayes AT-compliant modem emulation.
  *
- *
- *
  * Authors: Cacodemon345
  *          The DOSBox Team
  *
@@ -17,7 +15,6 @@
  *          Copyright (C) 2022       The DOSBox Staging Team
  *          Copyright (C) 2002-2021  The DOSBox Team
  */
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -1566,6 +1563,8 @@ static const device_config_t modem_config[] = {
             { .description =  "57600", .value =  57600 },
             { .description =  "56000", .value =  56000 },
             { .description =  "38400", .value =  38400 },
+            { .description =  "33600", .value =  33600 },
+            { .description =  "28800", .value =  28800 },
             { .description =  "19200", .value =  19200 },
             { .description =  "14400", .value =  14400 },
             { .description =   "9600", .value =   9600 },

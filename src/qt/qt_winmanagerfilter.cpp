@@ -8,13 +8,10 @@
  *
  *          Windows VM-managers native messages filter
  *
- *
- *
  * Authors: Teemu Korhonen
  *
  *          Copyright 2022 Teemu Korhonen
  */
-
 #include "qt_winmanagerfilter.hpp"
 
 #include <windows.h>

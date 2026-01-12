@@ -8,8 +8,6 @@
  *
  *          Emulation of the VIA VT82C686A/B integrated Super I/O.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

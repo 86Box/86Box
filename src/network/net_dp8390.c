@@ -7,8 +7,6 @@
  *          Emulation of the DP8390 Network Interface Controller used by
  *          the WD family, NE1000/NE2000 family, and 3Com 3C503 NIC's.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Bochs project,
  *
@@ -516,7 +514,7 @@ dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned le
 {
     uint8_t val2;
 
-    dp8390_log("DP839: Page0 write to register 0x%02x, value=0x%02x\n",
+    dp8390_log("DP8390: Page0 write to register 0x%02x, value=0x%02x\n",
                off, val);
 
     switch (off) {

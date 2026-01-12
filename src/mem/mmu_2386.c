@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Memory handling and MMU.
+ *          Memory handling and MMU.
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -1048,7 +1048,7 @@ do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write)
     mem_debug_check_addr(addr, write ? 2 : read_type);
 
     for (i = 0; i < num; i++)
-	a64[i] = (uint64_t) addr;
+        a64[i] = (uint64_t) addr;
 
     if (!(temp_cr0 >> 31))
         return;

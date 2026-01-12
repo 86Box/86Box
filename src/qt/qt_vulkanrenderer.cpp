@@ -428,8 +428,6 @@ VulkanRenderer2::updateSamplers()
 void
 VulkanRenderer2::initResources()
 {
-    qDebug("initResources");
-
     VkDevice dev = m_window->device();
     m_devFuncs   = m_window->vulkanInstance()->deviceFunctions(dev);
 
@@ -502,16 +500,16 @@ VulkanRenderer2::initResources()
         VK_VERTEX_INPUT_RATE_VERTEX
     };
     VkVertexInputAttributeDescription vertexAttrDesc[] = {
-        {// position
+        { // position
           0, // location
           0, // binding
           VK_FORMAT_R32G32B32_SFLOAT,
-         0                },
+         0                 },
         { // texcoord
           1,
          0,
          VK_FORMAT_R32G32_SFLOAT,
-         3 * sizeof(float)}
+         3 * sizeof(float) }
     };
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo;
@@ -556,8 +554,8 @@ VulkanRenderer2::initResources()
 
     // Set up descriptor set and its layout.
     VkDescriptorPoolSize descPoolSizes[2] = {
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,          uint32_t(concurrentFrameCount)},
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount)}
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uint32_t(concurrentFrameCount) },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) }
     };
     VkDescriptorPoolCreateInfo descPoolInfo;
     memset(&descPoolInfo, 0, sizeof(descPoolInfo));
@@ -572,16 +570,16 @@ VulkanRenderer2::initResources()
     }
 
     VkDescriptorSetLayoutBinding layoutBinding[2] = {
-        {0,  // binding
+        { 0, // binding
           VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
          1, // descriptorCount
           VK_SHADER_STAGE_VERTEX_BIT,
-         nullptr},
+         nullptr },
         { 1, // binding
           VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
          1, // descriptorCount
           VK_SHADER_STAGE_FRAGMENT_BIT,
-         nullptr}
+         nullptr }
     };
     VkDescriptorSetLayoutCreateInfo descLayoutInfo = {
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -658,8 +656,8 @@ VulkanRenderer2::initResources()
     }
 
     // Shaders
-#if 0
-    #version 440
+#    if 0
+#        version 440
 
     layout(location = 0) in vec4 position;
     layout(location = 1) in vec2 texcoord;
@@ -677,10 +675,10 @@ VulkanRenderer2::initResources()
         v_texcoord = texcoord;
         gl_Position = ubuf.mvp * position;
     }
-#endif /* 0 */
+#    endif /* 0 */
     VkShaderModule vertShaderModule = createShader(QStringLiteral(":/texture_vert.spv"));
-#if 0
-    #version 440
+#    if 0
+#        version 440
 
     layout(location = 0) in vec2 v_texcoord;
 
@@ -692,7 +690,7 @@ VulkanRenderer2::initResources()
     {
         fragColor = texture(tex, v_texcoord);
     }
-#endif /* 0 */
+#    endif /* 0 */
     VkShaderModule fragShaderModule = createShader(QStringLiteral(":/texture_frag.spv"));
 
     // Graphics pipeline
@@ -811,8 +809,6 @@ VulkanRenderer2::initResources()
 void
 VulkanRenderer2::initSwapChainResources()
 {
-    qDebug("initSwapChainResources");
-
     // Projection matrix
     m_proj = m_window->clipCorrectionMatrix(); // adjust for Vulkan-OpenGL clip space differences
 }
@@ -820,14 +816,11 @@ VulkanRenderer2::initSwapChainResources()
 void
 VulkanRenderer2::releaseSwapChainResources()
 {
-    qDebug("releaseSwapChainResources");
 }
 
 void
 VulkanRenderer2::releaseResources()
 {
-    qDebug("releaseResources");
-
     VkDevice dev = m_window->device();
 
     if (m_sampler) {
@@ -913,7 +906,7 @@ VulkanRenderer2::startNextFrame()
     ensureTexture();
 
     VkClearColorValue clearColor = {
-        {0, 0, 0, 1}
+        { 0, 0, 0, 1 }
     };
     VkClearDepthStencilValue clearDS = { 1, 0 };
     VkClearValue             clearValues[2];
@@ -970,11 +963,11 @@ VulkanRenderer2::startNextFrame()
     m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &m_buf, &vbOffset);
 
     VkViewport viewport;
-    viewport.x        = destination.x();
-    viewport.y        = destination.y();
-    viewport.width    = destination.width();
-    viewport.height   = destination.height();
-    
+    viewport.x      = destination.x();
+    viewport.y      = destination.y();
+    viewport.width  = destination.width();
+    viewport.height = destination.height();
+
     viewport.minDepth = 0;
     viewport.maxDepth = 1;
     m_devFuncs->vkCmdSetViewport(cb, 0, 1, &viewport);

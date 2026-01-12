@@ -3,7 +3,7 @@
 
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
-extern MainWindow* main_window;
+extern MainWindow *main_window;
 
 #include "qt_openglshaderconfig.hpp"
 
@@ -41,14 +41,14 @@ OpenGLShaderManagerDialog::OpenGLShaderManagerDialog(QWidget *parent)
 
     for (int i = 0; i < MAX_USER_SHADERS; i++) {
         if (gl3_shader_file[i][0] != 0) {
-            char* filename = path_get_filename(gl3_shader_file[i]);
+            char *filename = path_get_filename(gl3_shader_file[i]);
             if (filename[0] != 0) {
-                glslp_t* shaderfile = glslp_parse(gl3_shader_file[i]);
+                glslp_t *shaderfile = glslp_parse(gl3_shader_file[i]);
                 if (shaderfile) {
-                    QListWidgetItem* item = new QListWidgetItem(ui->shaderListWidget);
+                    QListWidgetItem *item = new QListWidgetItem(ui->shaderListWidget);
                     item->setText(filename);
                     item->setData(Qt::UserRole + 1, QString(gl3_shader_file[i]));
-                    item->setData(Qt::UserRole + 2, (qulonglong)(uintptr_t)shaderfile);
+                    item->setData(Qt::UserRole + 2, (qulonglong) (uintptr_t) shaderfile);
                 }
             }
         }
@@ -57,7 +57,7 @@ OpenGLShaderManagerDialog::OpenGLShaderManagerDialog(QWidget *parent)
         ui->shaderListWidget->setCurrentRow(ui->shaderListWidget->count() - 1);
         auto current = ui->shaderListWidget->currentItem();
         if (current) {
-            glslp_t* shader = (glslp_t*)current->data(Qt::UserRole + 2).toULongLong();
+            glslp_t *shader = (glslp_t *) current->data(Qt::UserRole + 2).toULongLong();
             if (shader->num_parameters > 0)
                 ui->buttonConfigure->setEnabled(true);
             else
@@ -78,13 +78,14 @@ OpenGLShaderManagerDialog::~OpenGLShaderManagerDialog()
 {
     for (int i = 0; i < ui->shaderListWidget->count(); i++) {
         if (ui->shaderListWidget->item(i) && ui->shaderListWidget->item(i)->data(Qt::UserRole + 2).toULongLong()) {
-            glslp_free((glslp_t*)ui->shaderListWidget->item(i)->data(Qt::UserRole + 2).toULongLong());
+            glslp_free((glslp_t *) ui->shaderListWidget->item(i)->data(Qt::UserRole + 2).toULongLong());
         }
     }
     delete ui;
 }
 
-void OpenGLShaderManagerDialog::on_buttonBox_clicked(QAbstractButton *button)
+void
+OpenGLShaderManagerDialog::on_buttonBox_clicked(QAbstractButton *button)
 {
     if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::AcceptRole) {
         accept();
@@ -96,20 +97,20 @@ void OpenGLShaderManagerDialog::on_buttonBox_clicked(QAbstractButton *button)
     }
 }
 
-
-void OpenGLShaderManagerDialog::on_buttonMoveUp_clicked()
+void
+OpenGLShaderManagerDialog::on_buttonMoveUp_clicked()
 {
     if (ui->shaderListWidget->currentRow() == 0)
         return;
 
-    int row = ui->shaderListWidget->currentRow();
+    int  row  = ui->shaderListWidget->currentRow();
     auto item = ui->shaderListWidget->takeItem(row);
     ui->shaderListWidget->insertItem(row - 1, item);
     ui->shaderListWidget->setCurrentItem(item);
 }
 
-
-void OpenGLShaderManagerDialog::on_shaderListWidget_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous)
+void
+OpenGLShaderManagerDialog::on_shaderListWidget_currentItemChanged(QListWidgetItem *current, QListWidgetItem *previous)
 {
     if (current == nullptr) {
         ui->buttonRemove->setDisabled(true);
@@ -121,7 +122,7 @@ void OpenGLShaderManagerDialog::on_shaderListWidget_currentItemChanged(QListWidg
         ui->buttonRemove->setDisabled(false);
         ui->buttonConfigure->setDisabled(true);
         if (current) {
-            glslp_t* shader = (glslp_t*)current->data(Qt::UserRole + 2).toULongLong();
+            glslp_t *shader = (glslp_t *) current->data(Qt::UserRole + 2).toULongLong();
             if (shader->num_parameters > 0)
                 ui->buttonConfigure->setEnabled(true);
         }
@@ -130,8 +131,8 @@ void OpenGLShaderManagerDialog::on_shaderListWidget_currentItemChanged(QListWidg
     ui->buttonMoveDown->setDisabled(ui->shaderListWidget->currentRow() == (ui->shaderListWidget->count() - 1));
 }
 
-
-void OpenGLShaderManagerDialog::on_shaderListWidget_currentRowChanged(int currentRow)
+void
+OpenGLShaderManagerDialog::on_shaderListWidget_currentRowChanged(int currentRow)
 {
     auto current = ui->shaderListWidget->currentItem();
     if (current == nullptr) {
@@ -144,7 +145,7 @@ void OpenGLShaderManagerDialog::on_shaderListWidget_currentRowChanged(int curren
         ui->buttonRemove->setDisabled(false);
         ui->buttonConfigure->setDisabled(true);
         if (current) {
-            glslp_t* shader = (glslp_t*)current->data(Qt::UserRole + 2).toULongLong();
+            glslp_t *shader = (glslp_t *) current->data(Qt::UserRole + 2).toULongLong();
             if (shader->num_parameters > 0)
                 ui->buttonConfigure->setEnabled(true);
         }
@@ -153,32 +154,32 @@ void OpenGLShaderManagerDialog::on_shaderListWidget_currentRowChanged(int curren
     ui->buttonMoveDown->setDisabled(ui->shaderListWidget->currentRow() == (ui->shaderListWidget->count() - 1));
 }
 
-
-void OpenGLShaderManagerDialog::on_buttonMoveDown_clicked()
+void
+OpenGLShaderManagerDialog::on_buttonMoveDown_clicked()
 {
     if (ui->shaderListWidget->currentRow() == (ui->shaderListWidget->count() - 1))
         return;
 
-    int row = ui->shaderListWidget->currentRow();
+    int  row  = ui->shaderListWidget->currentRow();
     auto item = ui->shaderListWidget->takeItem(row);
     ui->shaderListWidget->insertItem(row + 1, item);
     ui->shaderListWidget->setCurrentItem(item);
 }
 
-
-void OpenGLShaderManagerDialog::on_buttonAdd_clicked()
+void
+OpenGLShaderManagerDialog::on_buttonAdd_clicked()
 {
     auto res = QFileDialog::getOpenFileName(this, QString(), QString(),
                                             tr("GLSL shaders") % util::DlgFilter({ "glslp", "glsl" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     if (!res.isEmpty()) {
-        auto glslp_file = res.toUtf8();
-        glslp_t* shaderfile = glslp_parse(glslp_file.data());
+        auto     glslp_file = res.toUtf8();
+        glslp_t *shaderfile = glslp_parse(glslp_file.data());
         if (shaderfile) {
-            auto filename = path_get_filename(glslp_file.data());
-            QListWidgetItem* item = new QListWidgetItem(ui->shaderListWidget);
+            auto             filename = path_get_filename(glslp_file.data());
+            QListWidgetItem *item     = new QListWidgetItem(ui->shaderListWidget);
             item->setText(filename);
             item->setData(Qt::UserRole + 1, res);
-            item->setData(Qt::UserRole + 2, (qulonglong)(uintptr_t)shaderfile);
+            item->setData(Qt::UserRole + 2, (qulonglong) (uintptr_t) shaderfile);
             if (ui->shaderListWidget->count()) {
                 ui->shaderListWidget->setCurrentRow(ui->shaderListWidget->count() - 1);
                 ui->buttonAdd->setDisabled(ui->shaderListWidget->count() >= MAX_USER_SHADERS);
@@ -189,14 +190,14 @@ void OpenGLShaderManagerDialog::on_buttonAdd_clicked()
     }
 }
 
-
-void OpenGLShaderManagerDialog::on_buttonRemove_clicked()
+void
+OpenGLShaderManagerDialog::on_buttonRemove_clicked()
 {
     if (ui->shaderListWidget->currentItem()) {
         auto item = ui->shaderListWidget->takeItem(ui->shaderListWidget->currentRow());
 
         if (item->data(Qt::UserRole + 2).toULongLong()) {
-            glslp_free((glslp_t*)item->data(Qt::UserRole + 2).toULongLong());
+            glslp_free((glslp_t *) item->data(Qt::UserRole + 2).toULongLong());
         }
         delete item;
 
@@ -205,7 +206,8 @@ void OpenGLShaderManagerDialog::on_buttonRemove_clicked()
     ui->buttonAdd->setDisabled(ui->shaderListWidget->count() >= MAX_USER_SHADERS);
 }
 
-void OpenGLShaderManagerDialog::on_OpenGLShaderManagerDialog_accepted()
+void
+OpenGLShaderManagerDialog::on_OpenGLShaderManagerDialog_accepted()
 {
     memset(gl3_shader_file, 0, sizeof(gl3_shader_file));
     for (int i = 0; i < ui->shaderListWidget->count(); i++) {
@@ -222,45 +224,44 @@ void OpenGLShaderManagerDialog::on_OpenGLShaderManagerDialog_accepted()
     endblit();
 }
 
-
-void OpenGLShaderManagerDialog::on_buttonConfigure_clicked()
+void
+OpenGLShaderManagerDialog::on_buttonConfigure_clicked()
 {
     auto item = ui->shaderListWidget->currentItem();
     if (item) {
-        glslp_t* shader = (glslp_t*)item->data(Qt::UserRole + 2).toULongLong();
+        glslp_t *shader = (glslp_t *) item->data(Qt::UserRole + 2).toULongLong();
 
         auto configDialog = new OpenGLShaderConfig(this, shader);
         configDialog->exec();
     }
 }
 
-
-void OpenGLShaderManagerDialog::on_radioButtonVideoSync_clicked()
+void
+OpenGLShaderManagerDialog::on_radioButtonVideoSync_clicked()
 {
     ui->targetFrameRate->setDisabled(true);
 }
 
-
-void OpenGLShaderManagerDialog::on_radioButtonTargetFramerate_clicked()
+void
+OpenGLShaderManagerDialog::on_radioButtonTargetFramerate_clicked()
 {
     ui->targetFrameRate->setDisabled(false);
 }
 
-
-void OpenGLShaderManagerDialog::on_horizontalSliderFramerate_sliderMoved(int position)
+void
+OpenGLShaderManagerDialog::on_horizontalSliderFramerate_sliderMoved(int position)
 {
-    (void)position;
+    (void) position;
 
     if (ui->horizontalSliderFramerate->value() != ui->targetFrameRate->value())
         ui->targetFrameRate->setValue(ui->horizontalSliderFramerate->value());
 }
 
-
-void OpenGLShaderManagerDialog::on_targetFrameRate_valueChanged(int arg1)
+void
+OpenGLShaderManagerDialog::on_targetFrameRate_valueChanged(int arg1)
 {
-    (void)arg1;
+    (void) arg1;
 
     if (ui->horizontalSliderFramerate->value() != ui->targetFrameRate->value())
         ui->horizontalSliderFramerate->setValue(ui->targetFrameRate->value());
 }
-

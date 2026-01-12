@@ -13,8 +13,6 @@
  *          printer mechanics. This would lead to a page being 66 lines
  *          of 80 characters each.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.

@@ -8,8 +8,6 @@
  *
  *          Emulation of the NCR NGA (K511, K201) video cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -20,7 +18,6 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2020      EngiNerd.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -565,7 +562,7 @@ nga_init(UNUSED(const device_t *info))
 
     charset = device_get_config_int("charset");
 
-    loadfont_ex("roms/video/nga/ncr_nga_35122.bin", 1, 4096 * charset);
+    video_load_font("roms/video/nga/ncr_nga_35122.bin", 1, 4096 * charset);
 
     nga->cga.composite    = 0;
     nga->cga.snow_enabled = device_get_config_int("snow_enabled");

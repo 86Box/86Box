@@ -8,8 +8,6 @@
  *
  *          C-Media CMI8x38 PCI audio controller emulation.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.
@@ -147,7 +145,7 @@ static void
 cmi8x38_update_irqs(cmi8x38_t *dev)
 {
     /* Calculate and use the INTR flag. */
-    if (*((uint32_t *) &dev->io_regs[0x10]) & 0x0401c003) {
+    if (AS_U32(dev->io_regs[0x10]) & 0x0401c003) {
         dev->io_regs[0x13] |= 0x80;
         pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         cmi8x38_log("CMI8x38: Raising IRQ\n");
@@ -912,19 +910,19 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
         case 0x80 ... 0x83:
         case 0x88 ... 0x8b:
             dev->io_regs[addr]                      = val;
-            dev->dma[(addr & 0x78) >> 3].sample_ptr = *((uint32_t *) &dev->io_regs[addr & 0xfc]);
+            dev->dma[(addr & 0x78) >> 3].sample_ptr = AS_U32(dev->io_regs[addr & 0xfc]);
             return;
 
         case 0x84 ... 0x85:
         case 0x8c ... 0x8d:
             dev->io_regs[addr]                           = val;
-            dev->dma[(addr & 0x78) >> 3].frame_count_dma = dev->dma[(addr & 0x78) >> 3].sample_count_out = *((uint16_t *) &dev->io_regs[addr & 0xfe]) + 1;
+            dev->dma[(addr & 0x78) >> 3].frame_count_dma = dev->dma[(addr & 0x78) >> 3].sample_count_out = AS_U16(dev->io_regs[addr & 0xfe]) + 1;
             return;
 
         case 0x86 ... 0x87:
         case 0x8e ... 0x8f:
             dev->io_regs[addr]                                = val;
-            dev->dma[(addr & 0x78) >> 3].frame_count_fragment = *((uint16_t *) &dev->io_regs[addr & 0xfe]) + 1;
+            dev->dma[(addr & 0x78) >> 3].frame_count_fragment = AS_U16(dev->io_regs[addr & 0xfe]) + 1;
             return;
 
         case 0x92:
@@ -1074,19 +1072,19 @@ cmi8x38_dma_process(void *priv)
             /* Set up base address and counters.
                Nothing reads sample_count_out; it's implemented as an assumption. */
             dma->restart         = 0;
-            dma->sample_ptr      = *((uint32_t *) &dev->io_regs[dma->reg]);
-            dma->frame_count_dma = dma->sample_count_out = *((uint16_t *) &dev->io_regs[dma->reg | 0x4]) + 1;
-            dma->frame_count_fragment                    = *((uint16_t *) &dev->io_regs[dma->reg | 0x6]) + 1;
+            dma->sample_ptr      = AS_U32(dev->io_regs[dma->reg]);
+            dma->frame_count_dma = dma->sample_count_out = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
+            dma->frame_count_fragment                    = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
 
             cmi8x38_log("CMI8x38: Starting DMA %d at %08X (count %04X fragment %04X)\n", dma->id, dma->sample_ptr, dma->frame_count_dma, dma->frame_count_fragment);
         }
 
         if (dma_status & 0x01) {
             /* Write channel: read data from FIFO. */
-            mem_writel_phys(dma->sample_ptr, *((uint32_t *) &dma->fifo[dma->fifo_end & (sizeof(dma->fifo) - 1)]));
+            mem_writel_phys(dma->sample_ptr, AS_U32(dma->fifo[dma->fifo_end & (sizeof(dma->fifo) - 1)]));
         } else {
             /* Read channel: write data to FIFO. */
-            *((uint32_t *) &dma->fifo[dma->fifo_end & (sizeof(dma->fifo) - 1)]) = mem_readl_phys(dma->sample_ptr);
+            AS_U32(dma->fifo[dma->fifo_end & (sizeof(dma->fifo) - 1)]) = mem_readl_phys(dma->sample_ptr);
         }
         dma->fifo_end += 4;
         dma->sample_ptr += 4;
@@ -1094,7 +1092,7 @@ cmi8x38_dma_process(void *priv)
         /* Check if the fragment size was reached. */
         if (--dma->frame_count_fragment <= 0) {
             /* Reset fragment counter. */
-            dma->frame_count_fragment = *((uint16_t *) &dev->io_regs[dma->reg | 0x6]) + 1;
+            dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
 #ifdef ENABLE_CMI8X38_LOG
             if (dma->frame_count_fragment > 1) /* avoid log spam if fragment counting is unused, like on the newer WDM drivers (cmudax3) */
                 cmi8x38_log("CMI8x38: DMA %d fragment size reached at %04X frames left", dma->id, dma->frame_count_dma - 1);
@@ -1181,7 +1179,7 @@ cmi8x38_poll(void *priv)
 
         case 0x02: /* Mono, 16-bit PCM */
             if ((dma->fifo_end - dma->fifo_pos) >= 2) {
-                *out_l = *out_r = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                *out_l = *out_r = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                 dma->fifo_pos += 2;
                 dma->sample_count_out -= 2;
                 goto n4spk3d;
@@ -1192,9 +1190,9 @@ cmi8x38_poll(void *priv)
             switch (dma->channels) {
                 case 2:
                     if ((dma->fifo_end - dma->fifo_pos) >= 4) {
-                        *out_l = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        *out_l = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        *out_r = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        *out_r = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
                         dma->sample_count_out -= 4;
                         goto n4spk3d;
@@ -1203,13 +1201,13 @@ cmi8x38_poll(void *priv)
 
                 case 4:
                     if ((dma->fifo_end - dma->fifo_pos) >= 8) {
-                        dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_fl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_fr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_rl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_rl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_rr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
                         dma->sample_count_out -= 8;
                         return;
@@ -1218,15 +1216,15 @@ cmi8x38_poll(void *priv)
 
                 case 5: /* not supported by WDM and Linux drivers; channel layout assumed */
                     if ((dma->fifo_end - dma->fifo_pos) >= 10) {
-                        dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_fl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_fr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_rl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_rl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_rr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_c = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_c = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
                         dma->sample_count_out -= 10;
                         return;
@@ -1235,17 +1233,17 @@ cmi8x38_poll(void *priv)
 
                 case 6:
                     if ((dma->fifo_end - dma->fifo_pos) >= 12) {
-                        dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_fl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_fr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_rl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_rl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_rr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_c = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_c = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
-                        dma->out_lfe = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+                        dma->out_lfe = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
                         dma->fifo_pos += 2;
                         dma->sample_count_out -= 12;
                         return;
@@ -1265,7 +1263,7 @@ cmi8x38_poll(void *priv)
     *out_l = *out_r = 0;
 
     /* Stop playback if DMA is disabled. */
-    if ((*((uint32_t *) &dev->io_regs[0x00]) & (0x00010001 << dma->id)) != (0x00010000 << dma->id)) {
+    if ((AS_U32(dev->io_regs[0x00]) & (0x00010001 << dma->id)) != (0x00010000 << dma->id)) {
         cmi8x38_log("CMI8x38: Stopping playback of DMA channel %d\n", dma->id);
         dma->playback_enabled = 0;
     }

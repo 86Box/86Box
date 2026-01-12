@@ -8,8 +8,6 @@
  *
  *          Implementation the PCI bus.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2023 Miran Grca.

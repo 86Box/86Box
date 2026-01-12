@@ -8,8 +8,6 @@
  *
  *          Sound/MIDI devices configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Jasmine Iwanek <jriwanek@gmail.com>
  *
@@ -73,8 +71,8 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 {
     this->machineId = machineId;
 
-    int                 c;
-    int                 selectedRow;
+    int c;
+    int selectedRow;
 
     // Sound Cards
     QComboBox          *cbox[SOUND_CARD_MAX]         = { 0 };
@@ -91,8 +89,8 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
     c = 0;
     while (true) {
-        const QString name = DeviceConfig::DeviceName(sound_card_getdevice(c),
-                                                      sound_card_get_internal_name(c), 1);
+        QString name = DeviceConfig::DeviceName(sound_card_getdevice(c),
+                                                sound_card_get_internal_name(c), 1);
 
         if (name.isEmpty())
             break;
@@ -101,6 +99,9 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
             if (device_is_valid(sound_card_getdevice(c), machineId)) {
                 for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
                     if ((c != 1) || ((i == 0) && m_has_snd)) {
+                        if (i == 0 && c == 1 && m_has_snd && machine_get_snd_device(machineId)) {
+                            name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_snd_device(machineId), machine_get_snd_device(machineId)->internal_name, 0));
+                        }
                         int row = Models::AddEntry(models[i], name, c);
 
                         if (c == sound_card_current[i])
@@ -121,10 +122,10 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
     }
 
     // Midi Out
-    c               = 0;
-    auto *model     = ui->comboBoxMidiOut->model();
-    auto removeRows = model->rowCount();
-    selectedRow     = 0;
+    c                = 0;
+    auto *model      = ui->comboBoxMidiOut->model();
+    auto  removeRows = model->rowCount();
+    selectedRow      = 0;
 
     while (true) {
         const QString name = DeviceConfig::DeviceName(midi_out_device_getdevice(c), midi_out_device_get_internal_name(c), 0);
@@ -212,8 +213,7 @@ SettingsSound::on_comboBoxSoundCard1_currentIndexChanged(int index)
     int sndCard = ui->comboBoxSoundCard1->currentData().toInt();
 
     if (sndCard == SOUND_INTERNAL)
-        ui->pushButtonConfigureSoundCard1->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) &&
-                                            device_has_config(machine_get_snd_device(machineId)));
+        ui->pushButtonConfigureSoundCard1->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) && device_has_config(machine_get_snd_device(machineId)));
     else
         ui->pushButtonConfigureSoundCard1->setEnabled(sound_card_has_config(sndCard));
 }

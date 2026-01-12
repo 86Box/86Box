@@ -8,8 +8,6 @@
  *
  *          General keyboard driver interface.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -374,7 +372,7 @@ keyboard_input(int down, uint16_t scan)
     /* kbc_at_log("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
     recv_key_ui[scan & 0x1ff] = down;
 
-    if (mouse_capture || !kbd_req_capture || video_fullscreen) {
+    if (mouse_capture || !kbd_req_capture || (video_fullscreen && !fullscreen_ui_visible)) {
         recv_key[scan & 0x1ff] = down;
         key_process(scan & 0x1ff, down);
     }

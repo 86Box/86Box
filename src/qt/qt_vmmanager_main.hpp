@@ -1,20 +1,17 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		Header for 86Box VM manager main module
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
-*/
-
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Header for 86Box VM manager main module
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
+ */
 #ifndef QT_VMMANAGER_MAIN_H
 #define QT_VMMANAGER_MAIN_H
 
@@ -35,7 +32,9 @@ extern "C" {
 #endif
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class VMManagerMain; }
+namespace Ui {
+class VMManagerMain;
+}
 QT_END_NAMESPACE
 
 class VMManagerMain final : public QWidget {
@@ -57,7 +56,7 @@ public:
         Settings,
     };
 signals:
-    void selectionChanged(const QModelIndex &currentSelection, QProcess::ProcessState processState);
+    void selectionOrStateChanged(VMManagerSystem *sysconfig);
     void updateStatusLeft(const QString &text);
     void updateStatusRight(const QString &text);
 
@@ -68,6 +67,7 @@ public slots:
     void pauseButtonPressed() const;
     void shutdownRequestButtonPressed() const;
     void shutdownForceButtonPressed() const;
+    void cadButtonPressed() const;
     void searchSystems(const QString &text) const;
     void newMachineWizard();
     void updateGlobalSettings();
@@ -84,36 +84,38 @@ public slots:
 #ifdef Q_OS_WINDOWS
     void onDarkModeUpdated();
 #endif
-    void onConfigUpdated(const QString &uuid);
     int  getActiveMachineCount();
+
+    QList<int> getPaneSizes() const;
+    void       setPaneSizes(const QList<int> &sizes);
 
 private:
     Ui::VMManagerMain *ui;
 
-    VMManagerModel        *vm_model;
-    VMManagerDetails      *vm_details;
-    VMManagerSystem       *selected_sysconfig;
+    VMManagerModel   *vm_model;
+    VMManagerDetails *vm_details;
+    VMManagerSystem  *selected_sysconfig;
     // VMManagerConfig       *config;
     QSortFilterProxyModel *proxy_model;
 #if EMU_BUILD_NUM != 0
-    bool                   updateCheck = false;
+    bool updateCheck = false;
 #endif
-    bool                   regexSearch = false;
+    bool regexSearch = false;
 
     // void updateSelection(const QItemSelection &selected,
     //                      const QItemSelection &deselected);
-    void currentSelectionChanged(const QModelIndex &current,
-                       const QModelIndex &previous);
-    void refresh();
-    void updateDisplayName(const QModelIndex &index);
-    void loadSettings();
-    [[nodiscard]] bool currentSelectionIsValid() const;
+    void                  currentSelectionChanged(const QModelIndex &current,
+                                                  const QModelIndex &previous);
+    void                  updateDisplayName(const QModelIndex &index);
+    void                  loadSettings();
+    [[nodiscard]] bool    currentSelectionIsValid() const;
     [[nodiscard]] QString machineCountString(QString states = "") const;
 #if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckStart() const;
 #endif
     void showTextFileContents(const QString &title, const QString &path);
 private slots:
+    void vmStateChange();
 #if EMU_BUILD_NUM != 0
     void backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result);
     void backgroundUpdateCheckError(const QString &errorMsg);
@@ -129,7 +131,10 @@ class IconSelectionDialog final : public QDialog {
     Q_OBJECT
 
 public:
-    explicit IconSelectionDialog(QString assetPath, QWidget *parent = nullptr) : QDialog(parent), listWidget(new QListWidget) {
+    explicit IconSelectionDialog(QString assetPath, QWidget *parent = nullptr)
+        : QDialog(parent)
+        , listWidget(new QListWidget)
+    {
         // Set the list widget to icon mode
         listWidget->setViewMode(QListWidget::IconMode);
         setFixedSize(QSize(540, 360));
@@ -143,7 +148,7 @@ public:
         setWindowTitle(tr("Select an icon"));
 
         // Loop on all files and add them as items (icons) in QListWidget
-        for(const QString& iconName : iconsDir.entryList()) {
+        for (const QString &iconName : iconsDir.entryList()) {
             const auto item = new QListWidgetItem(QIcon(assetPath + iconName), iconName);
             // Set the UserRole to the resource bundle path
             item->setData(Qt::UserRole, assetPath + iconName);
@@ -153,7 +158,7 @@ public:
         // Dialog buttons
         const auto buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
         // Use the reset button for resetting the icon to the default
-        const QPushButton* resetButton = buttonBox->button(QDialogButtonBox::Reset);
+        const QPushButton *resetButton = buttonBox->button(QDialogButtonBox::Reset);
 
         // Connect the buttons signals
         connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
@@ -171,8 +176,9 @@ public:
         layout->addWidget(buttonBox);
     }
 
-    public slots:
-    [[nodiscard]] QString getSelectedIconName() const {
+public slots:
+    [[nodiscard]] QString getSelectedIconName() const
+    {
         if (listWidget->currentIndex().isValid()) {
             return listWidget->currentItem()->data(Qt::UserRole).toString();
         }
@@ -181,7 +187,7 @@ public:
     }
 
 private:
-    QListWidget* listWidget;
+    QListWidget *listWidget;
 };
 
-#endif //QT_VMMANAGER_MAIN_H
+#endif // QT_VMMANAGER_MAIN_H

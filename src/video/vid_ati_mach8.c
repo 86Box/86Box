@@ -9,8 +9,6 @@
  *          Emulation of the 8514/A-compatible Mach8 and Mach32 graphics
  *          chips from ATI for the ISA/VLB/MCA/PCI buses.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2022-2024 TheCollector1995.
@@ -2373,7 +2371,7 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
                     svga->write_bank = mach->bank_w << 16;
 
                     if (mach->index == 0xbe) {
-                        if ((old ^ val) & 0x10) {
+                        if ((old ^ val) & 0x13) {
                             mach_log("ATI BE bit 4.\n");
                             svga_recalctimings(svga);
                         }
@@ -3116,7 +3114,7 @@ mach_recalctimings(svga_t *svga)
             svga->ati_4color = 0;
     }
 
-    mach_log("ON=%d, override=%d, gelo=%04x, gehi=%04x, crtlo=%04x, crthi=%04x, vgahdisp=%d.\n", dev->on, svga->override, mach->accel.ge_offset_lo, mach->accel.ge_offset_hi, mach->accel.crt_offset_lo, mach->accel.crt_offset_hi, svga->hdisp);
+    mach_log("ON=%d, override=%d, gelo=%04x, gehi=%04x, crtlo=%04x, crthi=%04x, vgahdisp=%d, ibmon=%x, ation=%x, graph1=%x.\n", dev->on, svga->override, mach->accel.ge_offset_lo, mach->accel.ge_offset_hi, mach->accel.crt_offset_lo, mach->accel.crt_offset_hi, svga->hdisp, dev->accel.advfunc_cntl & 0x01, mach->accel.clock_sel & 0x01, svga->gdcreg[6] & 0x01);
 
     if (dev->on) {
         dev->memaddr_latch              = 0; /*(mach->accel.crt_offset_lo | (mach->accel.crt_offset_hi << 16)) << 2;*/
@@ -3322,17 +3320,14 @@ mach_recalctimings(svga_t *svga)
     } else {
         dev->mode = VGA_MODE;
         if (!svga->scrblank && svga->attr_palette_enable) {
-            mach_log("GDCREG5=%02x, ATTR10=%02x, ATI B0 bit 5=%02x, ON=%d.\n",
-                     svga->gdcreg[5] & 0x60, svga->attrregs[0x10] & 0x40, mach->regs[0xb0] & 0x20, dev->on);
+            mach_log("GDCREG5=%02x, ATTR10=%02x, ATI B0 bit 5=%02x, ON=%d, char_width=%d, seqreg1 bit 3=%x, clk_sel=%02x.\n",
+                     svga->gdcreg[5] & 0x60, svga->attrregs[0x10] & 0x40, mach->regs[0xb0] & 0x20, dev->on, svga->char_width, svga->seqregs[1] & 0x08, clock_sel);
             if (ATI_MACH32)
                 svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
             else
                 svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
 
             switch ((mach->regs[0xb8] >> 6) & 3) {
-                case 0:
-                default:
-                    break;
                 case 1:
                     svga->clock *= 2.0;
                     break;
@@ -3341,6 +3336,8 @@ mach_recalctimings(svga_t *svga)
                     break;
                 case 3:
                     svga->clock *= 4.0;
+                    break;
+                default:
                     break;
             }
 
@@ -4048,6 +4045,10 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             }
             if (!(dev->accel.advfunc_cntl & 0x01))
                 dev->on = mach->accel.clock_sel & 0x01;
+            else {
+                if (!(mach->regs[0xb0] & 0x20) && !(mach->accel.clock_sel & 0x01))
+                    dev->on = 0;
+            }
 
             dev->vendor_mode = 1;
             dev->mode = ATI_MODE;

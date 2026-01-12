@@ -57,8 +57,6 @@
  *            Microsoft Windows NT 3.1
  *            Microsoft Windows 98 SE
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -483,7 +481,7 @@ bm_poll(void *priv)
     int xor;
     int b = mouse_get_buttons_ex();
 
-    if (!mouse_capture && !video_fullscreen)
+    if (!mouse_capture && !(video_fullscreen && !fullscreen_ui_visible))
         return 1;
 
     if (!(dev->flags & FLAG_ENABLED))
@@ -545,7 +543,7 @@ bm_update_data(mouse_t *dev)
     int xor;
 
     /* If the counters are not frozen, update them. */
-    if ((mouse_capture || video_fullscreen) && !(dev->flags & FLAG_HOLD)) {
+    if ((mouse_capture || (video_fullscreen && !fullscreen_ui_visible)) && !(dev->flags & FLAG_HOLD)) {
         /* Update the deltas and the delays. */
         mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
 

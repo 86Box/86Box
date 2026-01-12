@@ -1803,6 +1803,16 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                         lo_cmd               = 0;
 
                         image_log(img->log, "    [SESSION ] Initialization successful\n");
+                    } else if (!strcmp(command, "TAOGAP")) {
+                        ci               = &(ct->idx[2]);
+
+                        ci->type         = INDEX_ZERO;
+                        ci->file         = tf;
+                        success          = image_cue_get_frame(&frame, &line);
+                        ci->length        = frame;
+
+                        image_log(img->log, "    [INDEX   ] 02 (%8s): Initialization %s\n",
+                                  cit[ci->type + 2], success ? "successful" : "failed");
                     }
                 }
             }

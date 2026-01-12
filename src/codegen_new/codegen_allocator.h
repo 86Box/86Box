@@ -11,13 +11,11 @@
   are chained together by jump instructions.
 
   Due to the chaining, the total memory size is limited by the range of a jump
-  instruction. ARMv7 is restricted to +/- 32 MB, ARMv8 to +/- 128 MB, x86 to
-  +/- 2GB. As a result, total memory size is limited to 32 MB on ARMv7*/
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM
-#    define MEM_BLOCK_NR 32768
-#else
-#    define MEM_BLOCK_NR 131072
-#endif
+  instruction. ARMv8 is limited to +/- 128 MB, x86 to
+  +/- 2GB. It was 32 MB on ARMv7 before we removed it*/
+
+#define MEM_BLOCK_NR 131072
+
 
 #define MEM_BLOCK_MASK (MEM_BLOCK_NR - 1)
 #define MEM_BLOCK_SIZE 0x3c0

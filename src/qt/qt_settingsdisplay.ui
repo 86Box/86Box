@@ -26,163 +26,6 @@
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <item row="4" column="0" colspan="2">
-    <widget class="QCheckBox" name="checkBoxVoodoo">
-     <property name="text">
-      <string>Voodoo 1 or 2 Graphics</string>
-     </property>
-    </widget>
-   </item>
-   <item row="7" column="2">
-    <widget class="QPushButton" name="pushButtonConfigureDa2">
-     <property name="text">
-      <string>Configure</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" colspan="2">
-    <widget class="QCheckBox" name="checkBox8514">
-     <property name="text">
-      <string>IBM 8514/A Graphics</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="labelVideoSecondary">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="text">
-      <string>Video #2:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="2">
-    <widget class="QPushButton" name="pushButtonConfigure8514">
-     <property name="text">
-      <string>Configure</string>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="2">
-    <widget class="QPushButton" name="pushButtonConfigureXga">
-     <property name="text">
-      <string>Configure</string>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="0" colspan="3">
-    <widget class="QGroupBox" name="groupBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Monitor EDID</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QRadioButton" name="radioButtonDefault">
-          <property name="text">
-           <string>Default</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButtonExportDefault">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Export...</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <property name="sizeConstraint">
-         <enum>QLayout::SizeConstraint::SetNoConstraint</enum>
-        </property>
-        <item>
-         <widget class="QRadioButton" name="radioButtonCustom">
-          <property name="text">
-           <string>Custom...</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="FileField" name="lineEdit" native="true">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="3" column="0" colspan="2">
-    <widget class="QComboBox" name="comboBoxVideoSecondary">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-    </widget>
-   </item>
-   <item row="10" column="0" colspan="3">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Orientation::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="4" column="2">
-    <widget class="QPushButton" name="pushButtonConfigureVoodoo">
-     <property name="text">
-      <string>Configure</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QPushButton" name="pushButtonConfigureVideo">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="text">
-      <string>Configure</string>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="0">
     <widget class="QLabel" name="labelVideo">
      <property name="sizePolicy">
@@ -193,13 +36,6 @@
      </property>
      <property name="text">
       <string>Video:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="2">
-    <widget class="QPushButton" name="pushButtonConfigureVideoSecondary">
-     <property name="text">
-      <string>Configure</string>
      </property>
     </widget>
    </item>
@@ -216,6 +52,80 @@
      </property>
     </widget>
    </item>
+   <item row="1" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureVideo">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="labelVideoSecondary">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Video #2:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0" colspan="2">
+    <widget class="QComboBox" name="comboBoxVideoSecondary">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureVideoSecondary">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <widget class="QCheckBox" name="checkBoxVoodoo">
+     <property name="text">
+      <string>Voodoo 1 or 2 Graphics</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureVoodoo">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0" colspan="2">
+    <widget class="QCheckBox" name="checkBox8514">
+     <property name="text">
+      <string>IBM 8514/A Graphics</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="2">
+    <widget class="QPushButton" name="pushButtonConfigure8514">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
    <item row="6" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBoxXga">
      <property name="text">
@@ -223,11 +133,88 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="0">
+   <item row="6" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureXga">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBoxDa2">
      <property name="text">
       <string>IBM PS/55 Display Adapter Graphics</string>
      </property>
+    </widget>
+   </item>
+   <item row="7" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureDa2">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0" colspan="3">
+    <widget class="QGroupBox" name="groupBoxEDID">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Monitor EDID</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayoutGroupBoxEDID">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayoutEDIDDefault">
+        <item>
+         <widget class="QRadioButton" name="radioButtonDefault">
+          <property name="text">
+           <string>Default</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonExportDefault">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Export…</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayoutEDIDCustom">
+        <property name="sizeConstraint">
+         <enum>QLayout::SetNoConstraint</enum>
+        </property>
+        <item>
+         <widget class="QRadioButton" name="radioButtonCustom">
+          <property name="text">
+           <string>Custom…</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="FileField" name="lineEditCustomEDID" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </widget>
    </item>
    <item row="9" column="0" colspan="3">
@@ -240,6 +227,19 @@
      </property>
     </widget>
    </item>
+   <item row="10" column="0" colspan="3">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
   </layout>
  </widget>
  <customwidgets>
@@ -250,6 +250,23 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>comboBoxVideo</tabstop>
+  <tabstop>pushButtonConfigureVideo</tabstop>
+  <tabstop>comboBoxVideoSecondary</tabstop>
+  <tabstop>pushButtonConfigureVideoSecondary</tabstop>
+  <tabstop>checkBoxVoodoo</tabstop>
+  <tabstop>pushButtonConfigureVoodoo</tabstop>
+  <tabstop>checkBox8514</tabstop>
+  <tabstop>pushButtonConfigure8514</tabstop>
+  <tabstop>checkBoxXga</tabstop>
+  <tabstop>pushButtonConfigureXga</tabstop>
+  <tabstop>checkBoxDa2</tabstop>
+  <tabstop>pushButtonConfigureDa2</tabstop>
+  <tabstop>radioButtonDefault</tabstop>
+  <tabstop>pushButtonExportDefault</tabstop>
+  <tabstop>radioButtonCustom</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

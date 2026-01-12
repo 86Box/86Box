@@ -8,8 +8,6 @@
  *
  *          IBM XGA emulation.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2022 TheCollector1995.
@@ -2795,24 +2793,24 @@ xga_render_4bpp(svga_t *svga)
 
         for (int x = 0; x <= xga->h_disp; x += 16) {
             dat  = *(uint32_t *) (&xga->vram[xga->memaddr & xga->vram_mask]);
-            p[1] = xga->pallook[dat & 0x0f];
-            p[0] = xga->pallook[(dat >> 4) & 0x0f];
-            p[3] = xga->pallook[(dat >> 8) & 0x0f];
-            p[2] = xga->pallook[(dat >> 12) & 0x0f];
-            p[5] = xga->pallook[(dat >> 16) & 0x0f];
-            p[4] = xga->pallook[(dat >> 20) & 0x0f];
-            p[7] = xga->pallook[(dat >> 24) & 0x0f];
-            p[6] = xga->pallook[(dat >> 28) & 0x0f];
+            p[0] = xga->pallook[dat & 0x0f];
+            p[1] = xga->pallook[(dat >> 4) & 0x0f];
+            p[2] = xga->pallook[(dat >> 8) & 0x0f];
+            p[3] = xga->pallook[(dat >> 12) & 0x0f];
+            p[4] = xga->pallook[(dat >> 16) & 0x0f];
+            p[5] = xga->pallook[(dat >> 20) & 0x0f];
+            p[6] = xga->pallook[(dat >> 24) & 0x0f];
+            p[7] = xga->pallook[(dat >> 28) & 0x0f];
 
             dat  = *(uint32_t *) (&xga->vram[(xga->memaddr + 4) & xga->vram_mask]);
-            p[9] = xga->pallook[dat & 0x0f];
-            p[8] = xga->pallook[(dat >> 4) & 0x0f];
-            p[11] = xga->pallook[(dat >> 8) & 0x0f];
-            p[10] = xga->pallook[(dat >> 12) & 0x0f];
-            p[13] = xga->pallook[(dat >> 16) & 0x0f];
-            p[12] = xga->pallook[(dat >> 20) & 0x0f];
-            p[15] = xga->pallook[(dat >> 24) & 0x0f];
-            p[14] = xga->pallook[(dat >> 28) & 0x0f];
+            p[8] = xga->pallook[dat & 0x0f];
+            p[9] = xga->pallook[(dat >> 4) & 0x0f];
+            p[10] = xga->pallook[(dat >> 8) & 0x0f];
+            p[11] = xga->pallook[(dat >> 12) & 0x0f];
+            p[12] = xga->pallook[(dat >> 16) & 0x0f];
+            p[13] = xga->pallook[(dat >> 20) & 0x0f];
+            p[14] = xga->pallook[(dat >> 24) & 0x0f];
+            p[15] = xga->pallook[(dat >> 28) & 0x0f];
 
             xga->memaddr += 8;
             p += 16;
@@ -3303,152 +3301,156 @@ xga_poll(void *priv)
 
     xga_log("XGA Poll=%d.\n", xga->on);
     if (xga->on) {
-        if (!xga->linepos) {
-            if (xga->displine == xga->hwcursor_latch.y && xga->hwcursor_latch.ena) {
-                xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 32 : 0);
-                xga->hwcursor_oddeven = 0;
-            }
-
-            if (xga->displine == (xga->hwcursor_latch.y + 1) && xga->hwcursor_latch.ena && xga->interlace) {
-                xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 33 : 1);
-                xga->hwcursor_oddeven = 1;
-            }
-
-            timer_advance_u64(&svga->timer, xga->dispofftime);
-            svga->cgastat |= 1;
-            xga->linepos = 1;
-
-            if (xga->dispon) {
-                xga->h_disp_on = 1;
-
-                xga->memaddr &= xga->vram_mask;
-
-                if (xga->firstline == 2000) {
-                    xga->firstline = xga->displine;
-                    video_wait_for_buffer_monitor(svga->monitor_index);
+        if (svga->override)
+            svga_set_poll(svga);
+        else {
+            if (!xga->linepos) {
+                if (xga->displine == xga->hwcursor_latch.y && xga->hwcursor_latch.ena) {
+                    xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 32 : 0);
+                    xga->hwcursor_oddeven = 0;
                 }
 
-                if (xga->hwcursor_on)
-                    xga->changedvram[xga->memaddr >> 12] = xga->changedvram[(xga->memaddr >> 12) + 1] = xga->interlace ? 3 : 2;
+                if (xga->displine == (xga->hwcursor_latch.y + 1) && xga->hwcursor_latch.ena && xga->interlace) {
+                    xga->hwcursor_on      = xga->hwcursor_latch.cur_ysize - ((xga->hwcursor_latch.yoff & 0x20) ? 33 : 1);
+                    xga->hwcursor_oddeven = 1;
+                }
 
-                svga->render_xga(svga);
+                timer_advance_u64(&svga->timer, xga->dispofftime);
+                svga->cgastat |= 1;
+                xga->linepos = 1;
 
-                svga->x_add = svga->left_overscan;
-                xga_render_overscan_left(xga, svga);
-                xga_render_overscan_right(xga, svga);
-                svga->x_add = svga->left_overscan;
+                if (xga->dispon) {
+                    xga->h_disp_on = 1;
 
-                if (xga->hwcursor_on) {
-                    xga_hwcursor_draw(svga, xga->displine + svga->y_add);
-                    xga->hwcursor_on--;
-                    if (xga->hwcursor_on && xga->interlace)
+                    xga->memaddr &= xga->vram_mask;
+
+                    if (xga->firstline == 2000) {
+                        xga->firstline = xga->displine;
+                        video_wait_for_buffer_monitor(svga->monitor_index);
+                    }
+
+                    if (xga->hwcursor_on)
+                        xga->changedvram[xga->memaddr >> 12] = xga->changedvram[(xga->memaddr >> 12) + 1] = xga->interlace ? 3 : 2;
+
+                    svga->render_xga(svga);
+
+                    svga->x_add = svga->left_overscan;
+                    xga_render_overscan_left(xga, svga);
+                    xga_render_overscan_right(xga, svga);
+                    svga->x_add = svga->left_overscan;
+
+                    if (xga->hwcursor_on) {
+                        xga_hwcursor_draw(svga, xga->displine + svga->y_add);
                         xga->hwcursor_on--;
+                        if (xga->hwcursor_on && xga->interlace)
+                            xga->hwcursor_on--;
+                    }
+
+                    if (xga->lastline < xga->displine)
+                        xga->lastline = xga->displine;
                 }
 
-                if (xga->lastline < xga->displine)
-                    xga->lastline = xga->displine;
-            }
-
-            xga->displine++;
-            if (xga->interlace)
                 xga->displine++;
-            if ((svga->cgastat & 8) && ((xga->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
-                svga->cgastat &= ~8;
-            if (xga->displine > 1500)
-                xga->displine = 0;
-        } else {
-            timer_advance_u64(&svga->timer, xga->dispontime);
-            if (xga->dispon)
-                svga->cgastat &= ~1;
+                if (xga->interlace)
+                    xga->displine++;
+                if ((svga->cgastat & 8) && ((xga->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
+                    svga->cgastat &= ~8;
+                if (xga->displine > 1500)
+                    xga->displine = 0;
+            } else {
+                timer_advance_u64(&svga->timer, xga->dispontime);
+                if (xga->dispon)
+                    svga->cgastat &= ~1;
 
-            xga->h_disp_on = 0;
+                xga->h_disp_on = 0;
 
-            xga->linepos = 0;
-            if (xga->dispon) {
-                if (xga->scanline == xga->rowcount) {
-                    xga->scanline = 0;
+                xga->linepos = 0;
+                if (xga->dispon) {
+                    if (xga->scanline == xga->rowcount) {
+                        xga->scanline = 0;
 
-                    xga_log("MA=%08x, MALATCH=%x.\n", xga->memaddr, xga->memaddr_latch);
-                    xga->memaddr_backup += (xga->rowoffset << 3);
-                    if (xga->interlace)
+                        xga_log("MA=%08x, MALATCH=%x.\n", xga->memaddr, xga->memaddr_latch);
                         xga->memaddr_backup += (xga->rowoffset << 3);
+                        if (xga->interlace)
+                            xga->memaddr_backup += (xga->rowoffset << 3);
 
-                    xga->memaddr_backup &= xga->vram_mask;
-                    xga->memaddr = xga->memaddr_backup;
-                } else {
-                    xga->scanline++;
-                    xga->scanline &= 0x1f;
-                    xga->memaddr = xga->memaddr_backup;
+                        xga->memaddr_backup &= xga->vram_mask;
+                        xga->memaddr = xga->memaddr_backup;
+                    } else {
+                        xga->scanline++;
+                        xga->scanline &= 0x1f;
+                        xga->memaddr = xga->memaddr_backup;
+                    }
                 }
-            }
 
-            xga->vc++;
-            xga->vc &= 0x7ff;
+                xga->vc++;
+                xga->vc &= 0x7ff;
 
-            if (xga->vc == xga->split) {
-                if (xga->interlace && xga->oddeven)
-                    xga->memaddr = xga->memaddr_backup = (xga->rowoffset << 1);
-                else
-                    xga->memaddr = xga->memaddr_backup = 0;
+                if (xga->vc == xga->split) {
+                    if (xga->interlace && xga->oddeven)
+                        xga->memaddr = xga->memaddr_backup = (xga->rowoffset << 1);
+                    else
+                        xga->memaddr = xga->memaddr_backup = 0;
 
-                xga->memaddr     = (xga->memaddr << 2);
-                xga->memaddr_backup = (xga->memaddr_backup << 2);
+                    xga->memaddr     = (xga->memaddr << 2);
+                    xga->memaddr_backup = (xga->memaddr_backup << 2);
 
-                xga->scanline = 0;
-            }
-            if (xga->vc == xga->dispend) {
-                xga->dispon = 0;
-
-                for (x = 0; x < ((xga->vram_mask + 1) >> 12); x++) {
-                    if (xga->changedvram[x])
-                        xga->changedvram[x]--;
+                    xga->scanline = 0;
                 }
-                if (svga->fullchange)
-                    svga->fullchange--;
-            }
-            if (xga->vc == xga->v_syncstart) {
-                xga->dispon = 0;
-                svga->cgastat |= 8;
-                x           = xga->h_disp;
+                if (xga->vc == xga->dispend) {
+                    xga->dispon = 0;
 
-                if (xga->interlace && !xga->oddeven)
-                    xga->lastline++;
-                if (xga->interlace && xga->oddeven)
-                    xga->firstline--;
+                    for (x = 0; x < ((xga->vram_mask + 1) >> 12); x++) {
+                        if (xga->changedvram[x])
+                            xga->changedvram[x]--;
+                    }
+                    if (svga->fullchange)
+                        svga->fullchange--;
+                }
+                if (xga->vc == xga->v_syncstart) {
+                    xga->dispon = 0;
+                    svga->cgastat |= 8;
+                    x           = xga->h_disp;
 
-                wx = x;
+                    if (xga->interlace && !xga->oddeven)
+                        xga->lastline++;
+                    if (xga->interlace && xga->oddeven)
+                        xga->firstline--;
 
-                wy = xga->lastline - xga->firstline;
-                svga_doblit(wx, wy, svga);
+                    wx = x;
 
-                xga->firstline = 2000;
-                xga->lastline  = 0;
+                    wy = xga->lastline - xga->firstline;
+                    svga_doblit(wx, wy, svga);
 
-                xga->firstline_draw = 2000;
-                xga->lastline_draw  = 0;
+                    xga->firstline = 2000;
+                    xga->lastline  = 0;
 
-                xga->oddeven ^= 1;
+                    xga->firstline_draw = 2000;
+                    xga->lastline_draw  = 0;
 
-                svga->monitor->mon_changeframecount = xga->interlace ? 3 : 2;
+                    xga->oddeven ^= 1;
 
-                if (xga->interlace && xga->oddeven)
-                    xga->memaddr = xga->memaddr_backup = xga->memaddr_latch + (xga->rowoffset << 1);
-                else
-                    xga->memaddr = xga->memaddr_backup = xga->memaddr_latch;
+                    svga->monitor->mon_changeframecount = xga->interlace ? 3 : 2;
 
-                xga->memaddr     = (xga->memaddr << 2);
-                xga->memaddr_backup = (xga->memaddr_backup << 2);
-            }
-            if (xga->vc == xga->v_total) {
-                xga->vc       = 0;
-                xga->scanline = 0;
-                xga->dispon   = 1;
-                xga->displine = (xga->interlace && xga->oddeven) ? 1 : 0;
+                    if (xga->interlace && xga->oddeven)
+                        xga->memaddr = xga->memaddr_backup = xga->memaddr_latch + (xga->rowoffset << 1);
+                    else
+                        xga->memaddr = xga->memaddr_backup = xga->memaddr_latch;
 
-                svga->x_add = svga->left_overscan;
+                    xga->memaddr     = (xga->memaddr << 2);
+                    xga->memaddr_backup = (xga->memaddr_backup << 2);
+                }
+                if (xga->vc == xga->v_total) {
+                    xga->vc       = 0;
+                    xga->scanline = 0;
+                    xga->dispon   = 1;
+                    xga->displine = (xga->interlace && xga->oddeven) ? 1 : 0;
 
-                xga->hwcursor_on    = 0;
-                xga->hwcursor_latch = xga->hwcursor;
+                    svga->x_add = svga->left_overscan;
+
+                    xga->hwcursor_on    = 0;
+                    xga->hwcursor_latch = xga->hwcursor;
+                }
             }
         }
     } else

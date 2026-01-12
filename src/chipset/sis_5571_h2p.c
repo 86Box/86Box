@@ -392,7 +392,6 @@ sis_5571_host_to_pci_reset(void *priv)
     dev->pci_conf[0x91] = 0x00;
     dev->pci_conf[0x92] = 0x00;
     dev->pci_conf[0x93] = 0x00;
-    dev->pci_conf[0x93] = 0x00;
     dev->pci_conf[0x94] = 0x00;
     dev->pci_conf[0x95] = 0x00;
     dev->pci_conf[0x96] = 0x00;

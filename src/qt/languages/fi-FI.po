@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2025-12-29 09:54+0000\n"
+"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
+"Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
+"Language: fi-FI\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: fi_FI\n"
 "X-Source-Language: en_US\n"
 
@@ -15,8 +21,8 @@ msgstr "&Vaadi näppäimistön kaappaus"
 msgid "&Right CTRL is left ALT"
 msgstr "&Oikea CTRL on vasen ALT"
 
-msgid "&Hard Reset..."
-msgstr "&Uudelleenkäynnistys (kylmä)..."
+msgid "&Hard reset"
+msgstr "&Uudelleenkäynnistys (kylmä)"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Del"
@@ -28,10 +34,10 @@ msgid "&Pause"
 msgstr "&Tauko"
 
 msgid "Pause"
-msgstr ""
+msgstr "Tauko"
 
 msgid "Re&sume"
-msgstr ""
+msgstr "&Jatka"
 
 msgid "E&xit"
 msgstr "&Poistu"
@@ -51,6 +57,9 @@ msgstr "&Salli koon muuttaminen"
 msgid "R&emember size && position"
 msgstr "&Muista koko ja sijainti"
 
+msgid "Remember size && position"
+msgstr "Muista koko ja sijainti"
+
 msgid "Re&nderer"
 msgstr "&Renderöijä"
 
@@ -63,8 +72,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "&Määritä koko..."
+msgid "Specify &dimensions…"
+msgstr "&Määritä koko…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Pakota &4:3-kuvasuhde"
@@ -154,7 +163,7 @@ msgid "&RGB Grayscale"
 msgstr "&RGB, harmaasävy"
 
 msgid "Generic RGBI color monitor"
-msgstr ""
+msgstr "Yleinen RGBI-värinäyttö"
 
 msgid "&Amber monitor"
 msgstr "&Meripihkanvärinen"
@@ -189,11 +198,11 @@ msgstr "&Media"
 msgid "&Tools"
 msgstr "Työ&kalut"
 
-msgid "&Settings..."
-msgstr "&Asetukset..."
+msgid "&Settings…"
+msgstr "&Asetukset…"
 
-msgid "Settings..."
-msgstr "Asetukset..."
+msgid "Settings…"
+msgstr "Asetukset…"
 
 msgid "&Update status bar icons"
 msgstr "&Päivitä tilapalkin kuvakkeita"
@@ -201,17 +210,26 @@ msgstr "&Päivitä tilapalkin kuvakkeita"
 msgid "Take s&creenshot"
 msgstr "Ota &kuvakaappaus"
 
+msgid "Take &raw screenshot"
+msgstr "Ota &raaka kuvakaappaus"
+
+msgid "C&opy screenshot"
+msgstr "K&opioi kuvakaappaus"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopioi r&aaka kuvakaappaus"
+
 msgid "S&ound"
 msgstr "&Ääni"
 
-msgid "&Preferences..."
-msgstr "&Sovellusasetukset..."
+msgid "&Preferences…"
+msgstr "&Sovellusasetukset…"
 
 msgid "Enable &Discord integration"
 msgstr "&Discord-integraatio"
 
-msgid "Sound &gain..."
-msgstr "&Äänitasot..."
+msgid "Sound &gain…"
+msgstr "&Äänitasot…"
 
 msgid "Begin trace"
 msgstr "Aloita jäljitys"
@@ -222,20 +240,20 @@ msgstr "Lopeta jäljitys"
 msgid "&Help"
 msgstr "&Ohje"
 
-msgid "&Documentation..."
-msgstr "&Ohjekirja..."
+msgid "&Documentation…"
+msgstr "&Ohjekirja…"
 
-msgid "&About 86Box..."
-msgstr "&Tietoja 86Boxista..."
+msgid "&About 86Box…"
+msgstr "&Tietoja 86Boxista…"
 
-msgid "&New image..."
-msgstr "&Uusi levykuva..."
+msgid "&New image…"
+msgstr "&Uusi levykuva…"
 
-msgid "&Existing image..."
-msgstr "&Olemassaoleva levykuva..."
+msgid "&Existing image…"
+msgstr "&Olemassaoleva levykuva…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)…"
 
 msgid "&Record"
 msgstr "&Nauhoita"
@@ -252,11 +270,11 @@ msgstr "Kelaa &loppuun"
 msgid "E&ject"
 msgstr "&Irrota"
 
-msgid "&Image..."
-msgstr "&Levykuva..."
+msgid "&Image…"
+msgstr "&Levykuva…"
 
-msgid "E&xport to 86F..."
-msgstr "&Vie 86F-tiedostoon..."
+msgid "E&xport to 86F…"
+msgstr "&Vie 86F-tiedostoon…"
 
 msgid "&Mute"
 msgstr "&Mykistä"
@@ -267,38 +285,8 @@ msgstr "&Tyhjä"
 msgid "Reload previous image"
 msgstr "Lataa edellinen levykuva uudelleen"
 
-msgid "&Folder..."
-msgstr "&Kansio..."
-
-msgid "Target &framerate"
-msgstr "&Kuvataajuustavoite"
-
-msgid "&Sync with video"
-msgstr "&Synkronisoi videoon"
-
-msgid "&25 fps"
-msgstr "&25 ruutua/s"
-
-msgid "&30 fps"
-msgstr "&30 ruutua/s"
-
-msgid "&50 fps"
-msgstr "&50 ruutua/s"
-
-msgid "&60 fps"
-msgstr "&60 ruutua/s"
-
-msgid "&75 fps"
-msgstr "&75 ruutua/s"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "Valitse varjostin&ohjelma..."
-
-msgid "&Remove shader"
-msgstr "&Poista varjostinohjelma"
+msgid "&Folder…"
+msgstr "&Kansio…"
 
 msgid "Preferences"
 msgstr "Sovellusasetukset"
@@ -310,7 +298,7 @@ msgid "New Image"
 msgstr "Uusi levykuva"
 
 msgid "Settings"
-msgstr "Kokoonpano"
+msgstr "Asetukset"
 
 msgid "Specify Main Window Dimensions"
 msgstr "Määritä pääikkunan koko"
@@ -361,7 +349,7 @@ msgid "Configure"
 msgstr "Määritys"
 
 msgid "CPU:"
-msgstr ""
+msgstr "Suoritin:"
 
 msgid "CPU type:"
 msgstr "Suorittimen tyyppi:"
@@ -436,25 +424,25 @@ msgid "Mouse:"
 msgstr "Hiiri:"
 
 msgid "Mouse"
-msgstr ""
+msgstr "Hiiri"
 
 msgid "Joystick:"
 msgstr "Peliohjain:"
 
 msgid "Joystick"
-msgstr ""
+msgstr "Peliohjain"
 
-msgid "Joystick 1..."
-msgstr "Peliohjain 1..."
+msgid "Joystick 1…"
+msgstr "Peliohjain 1…"
 
-msgid "Joystick 2..."
-msgstr "Peliohjain 2..."
+msgid "Joystick 2…"
+msgstr "Peliohjain 2…"
 
-msgid "Joystick 3..."
-msgstr "Peliohjain 3..."
+msgid "Joystick 3…"
+msgstr "Peliohjain 3…"
 
-msgid "Joystick 4..."
-msgstr "Peliohjain 4..."
+msgid "Joystick 4…"
+msgstr "Peliohjain 4…"
 
 msgid "Sound card #1:"
 msgstr "Äänikortti 1:"
@@ -543,23 +531,23 @@ msgstr "Rinnakkaisportti 3"
 msgid "Parallel port 4"
 msgstr "Rinnakkaisportti 4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Levykeohjain:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Kolmas IDE-ohjain"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Kolmas IDE-ohjain"
 
-msgid "Quaternary IDE Controller"
-msgstr "Neljäs IDE-ohjain"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Neljäs IDE-ohjain"
 
-msgid "Hard disk"
-msgstr "Kiintolevy"
+msgid "Hard disk controllers"
+msgstr "Kiintolevyohjaimet"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-ohjaimet"
 
 msgid "Controller 1:"
 msgstr "Ohjain 1:"
@@ -582,11 +570,11 @@ msgstr "Kiintolevyt:"
 msgid "Firmware Version"
 msgstr "Laiteohjelmiston versio"
 
-msgid "&New..."
-msgstr "&Uusi..."
+msgid "&New…"
+msgstr "&Uusi…"
 
-msgid "&Existing..."
-msgstr "&Olemassaoleva..."
+msgid "&Existing…"
+msgstr "&Olemassaoleva…"
 
 msgid "&Remove"
 msgstr "&Poista"
@@ -599,9 +587,6 @@ msgstr "Kanava:"
 
 msgid "ID:"
 msgstr "ID:"
-
-msgid "&Specify..."
-msgstr "&Määritä..."
 
 msgid "Sectors:"
 msgstr "Sektorit:"
@@ -673,22 +658,19 @@ msgid "Card 4:"
 msgstr "Kortti 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr ""
+msgstr "Yleinen ISA ROM-kortti"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr ""
+msgstr "Yleinen Dual ISA ROM-kortti"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr ""
+msgstr "Yleinen Quad ISA ROM-kortti"
 
 msgid "ISABugger device"
 msgstr "ISABugger-laite"
 
 msgid "POST card"
 msgstr "POST-kortti"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Virhe"
@@ -849,8 +831,17 @@ msgstr "PCap-laitteita ei löytynyt"
 msgid "Invalid PCap device"
 msgstr "Virheellinen PCap-laite"
 
+msgid "Generic paddle controller(s)"
+msgstr "Yleinen melainohjain"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "2-akseliset 1-painikkeiset peliohjaimet"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "2-akseliset 2-painikkeiset peliohjaimet"
+
+msgid "2-axis, 3-button joystick"
+msgstr "2-akselinen 3-painikkeinen peliohjain"
 
 msgid "2-axis, 4-button joystick"
 msgstr "2-akselinen 4-painikkeinen peliohjain"
@@ -864,35 +855,38 @@ msgstr "2-akselinen 8-painikkeinen peliohjain"
 msgid "3-axis, 2-button joystick"
 msgstr "3-akselinen 2-painikkeinen peliohjain"
 
+msgid "3-axis, 3-button joystick"
+msgstr "3-akselinen 3-painikkeinen peliohjain"
+
 msgid "3-axis, 4-button joystick"
 msgstr "3-akselinen 4-painikkeinen peliohjain"
+
+msgid "4-axis, 2-button joystick"
+msgstr "4-akselinen 2-painikkeinen peliohjain"
+
+msgid "4-axis, 3-button joystick"
+msgstr "4-akselinen 3-painikkeinen peliohjain"
 
 msgid "4-axis, 4-button joystick"
 msgstr "4-akselinen 4-painikkeinen peliohjain"
 
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr ""
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr ""
-
 msgid "2-button gamepad(s)"
 msgstr "2-painikkeiset peliohjaimet"
+
+msgid "3-button gamepad"
+msgstr "3-painikkeinen peliohjain"
+
+msgid "4-button gamepad"
+msgstr "4-painikkeinen peliohjain"
+
+msgid "6-button gamepad"
+msgstr "6-painikkeinen peliohjain"
 
 msgid "2-button flight yoke"
 msgstr "2-painikkeinen lento-ohjain"
 
-msgid "4-button gamepad"
-msgstr "4-painikkeinen peliohjain"
+msgid "3-button flight yoke"
+msgstr "3-painikkeinen lento-ohjain"
 
 msgid "4-button flight yoke"
 msgstr "4-painikkeinen lento-ohjain"
@@ -900,11 +894,26 @@ msgstr "4-painikkeinen lento-ohjain"
 msgid "2-button flight yoke with throttle"
 msgstr "2-painikkeinen lento-ohjain kaasuvivulla"
 
+msgid "3-button flight yoke with throttle"
+msgstr "3-painikkeinen lento-ohjain kaasuvivulla"
+
 msgid "4-button flight yoke with throttle"
 msgstr "4-painikkeinen lento-ohjain kaasuvivulla"
 
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Win95-ratti (3-akselinen, 4-painikkeinen)"
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "ratti (3-akselinen, 2-painikkeinen)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "ratti (3-akselinen, 3-painikkeinen)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "ratti (3-akselinen, 4-painikkeinen)"
+
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 adapterilla"
+
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 ilman adapteria"
 
 msgid "None"
 msgstr "Ei mikään"
@@ -954,11 +963,17 @@ msgstr "Sisäinen laite"
 msgid "&File"
 msgstr "&Tiedosto"
 
-msgid "&New machine..."
-msgstr "&Uusi kone..."
+msgid "&New machine…"
+msgstr "&Uusi kone…"
 
-msgid "&Check for updates..."
-msgstr "T&arkista päivitykset..."
+msgid "New machine…"
+msgstr "Uusi kone…"
+
+msgid "New machine"
+msgstr "Uusi kone"
+
+msgid "&Check for updates…"
+msgstr "T&arkista päivitykset…"
 
 msgid "Exit"
 msgstr "Poistu"
@@ -975,11 +990,8 @@ msgstr "Tämä käynnistää emuloidun tietokoneen uudelleen."
 msgid "Save"
 msgstr "Tallenna"
 
-msgid "About 86Box"
-msgstr "Tietoja 86Box:sta"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "Tietoja %1:sta"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ja muut.\n\nSisältää Sarah Walkerin, leilein, JohnElliottin, greatpsychon ja muiden aiemmat keskeiset työpanokset.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
@@ -1073,6 +1085,12 @@ msgstr "Pakota sammutus"
 
 msgid "Start"
 msgstr "Käynnistä"
+
+msgid "&Force shutdown"
+msgstr "&Pakota sammutus"
+
+msgid "&Start"
+msgstr "&Käynnistä"
 
 msgid "Not running"
 msgstr "Ei käynnissä"
@@ -1183,7 +1201,7 @@ msgid "System location:"
 msgstr "Koneen sijainti:"
 
 msgid "System name and location"
-msgstr "Koneen nimi ja sijainti:"
+msgstr "Koneen nimi ja sijainti"
 
 msgid "Enter the name of the system and choose the location"
 msgstr "Anna koneen nimi ja valitse sijainti"
@@ -1206,26 +1224,26 @@ msgstr "Aseta näyttönimi"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Anna uusi näyttönimi tai poista se"
 
-msgid "Change &display name..."
-msgstr "Vaihda &näyttönimi"
+msgid "Change &display name…"
+msgstr "Vaihda &näyttönimi…"
 
 msgid "Context Menu"
 msgstr "Kontekstivalikko"
 
-msgid "&Open folder..."
-msgstr "&Avaa kansio..."
+msgid "&Open folder…"
+msgstr "&Avaa kansio…"
 
-msgid "Open p&rinter tray..."
-msgstr "Avaa &tulostimen lokero..."
+msgid "Open p&rinter tray…"
+msgstr "Avaa &tulostimen lokero…"
 
-msgid "Set &icon..."
-msgstr "Aseta &kuvake..."
+msgid "Set &icon…"
+msgstr "Aseta &kuvake…"
 
 msgid "Select an icon"
 msgstr "Valitse kuvake"
 
-msgid "C&lone..."
-msgstr "K&loonaa..."
+msgid "C&lone…"
+msgstr "K&loonaa…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuaalikone \"%1\" (%2) kloonataan tänne:"
@@ -1311,20 +1329,20 @@ msgstr "Ei kuvakaappausta"
 msgid "Search"
 msgstr "Hae"
 
-msgid "Searching for VMs..."
-msgstr "Haetaan virtuaalikoneita..."
+msgid "Searching for VMs…"
+msgstr "Haetaan virtuaalikoneita…"
 
 msgid "Found %1"
 msgstr "%1 löydetty"
 
 msgid "System"
-msgstr "Kone"
+msgstr "Järjestelmä"
 
 msgid "Storage"
 msgstr "Tallennus"
 
-msgid "Disk %1: "
-msgstr "Levy %1: "
+msgid "Disk %1:"
+msgstr "Levy %1:"
 
 msgid "No disks"
 msgstr "Ei levyjä"
@@ -1347,11 +1365,11 @@ msgstr "Kiintolevy (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
 
-msgid "Custom..."
-msgstr "Mukautettu..."
+msgid "Custom…"
+msgstr "Mukautettu…"
 
-msgid "Custom (large)..."
-msgstr "Mukautettu (suuri)..."
+msgid "Custom (large)…"
+msgstr "Mukautettu (suuri)…"
 
 msgid "Add New Hard Disk"
 msgstr "Lisää uusi kiintolevy"
@@ -1375,7 +1393,7 @@ msgid "Unable to write file"
 msgstr "Tiedostoa ei voitu kirjoittaa"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512"
+msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512."
 
 msgid "Disk image file already exists"
 msgstr "Levykuva on jo olemassa"
@@ -1387,7 +1405,7 @@ msgid "Disk image created"
 msgstr "Levykuva luotu"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Varmista, että tiedosto on olemassa ja lukukelpoinen"
+msgstr "Varmista, että tiedosto on olemassa ja lukukelpoinen."
 
 msgid "Make sure the file is being saved to a writable directory."
 msgstr "Varmista, että tiedoston tallennuskansioon pystyy kirjoittamaan."
@@ -1469,21 +1487,6 @@ msgstr "Ylä- ja alatason levyjen aikaleimat eivät täsmää"
 
 msgid "Could not fix VHD timestamp."
 msgstr "VHD:n aikaleimaa ei pystytty korjaamaan."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1635,14 +1638,14 @@ msgstr "Tablettityökalu"
 msgid "About &Qt"
 msgstr "Tietoja &Qt:sta"
 
-msgid "&MCA devices..."
-msgstr "MCA-laitteet..."
+msgid "&MCA devices…"
+msgstr "MCA-laitteet…"
 
 msgid "Show non-&primary monitors"
 msgstr "Näytä muut kuin ensisijaiset näytöt"
 
-msgid "Open screenshots &folder..."
-msgstr "Avaa kuvakaappaukset-kansio..."
+msgid "Open screenshots &folder…"
+msgstr "Avaa kuvakaappaukset-kansio…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Sovella koko näytön venytystilaa maksimoidessa"
@@ -1662,8 +1665,8 @@ msgstr "&Yhdistetty"
 msgid "Clear image &history"
 msgstr "Tyhjennä levykuva&historia"
 
-msgid "Create..."
-msgstr "Luo..."
+msgid "Create…"
+msgstr "Luo…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Isännän CD/DVD-asema (%1)"
@@ -1704,8 +1707,8 @@ msgstr "Varjostinohjelmat"
 msgid "Remove"
 msgstr "Poista"
 
-msgid "Browse..."
-msgstr "Selaa..."
+msgid "Browse…"
+msgstr "Selaa…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGL-kontekstia ei voitu luoda."
@@ -1737,8 +1740,8 @@ msgstr "Siirsin sen"
 msgid "I Copied It"
 msgstr "Kopioin sen"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Ei MCA-laitteita."
@@ -1773,6 +1776,9 @@ msgstr "Sovitin:"
 msgid "VDE Socket:"
 msgstr "VDE-socket:"
 
+msgid "TAP Bridge Device:"
+msgstr "TAP-siltalaite:"
+
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
 
@@ -1791,8 +1797,8 @@ msgstr "Sarjaportin läpivienti 3"
 msgid "Serial port passthrough 4"
 msgstr "Sarjaportin läpivienti 4"
 
-msgid "Renderer &options..."
-msgstr "Renderöijän &asetukset..."
+msgid "Renderer &options…"
+msgstr "Renderöijän &asetukset…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT-näppäimistö"
@@ -1822,7 +1828,7 @@ msgid "Mouse Systems Serial Mouse"
 msgstr "Mouse Systems-sarjahiiri"
 
 msgid "Mouse Systems Bus Mouse"
-msgstr ""
+msgstr "Mouse Systems Bus-hiiri"
 
 msgid "Microsoft Serial Mouse"
 msgstr "Microsoft-sarjahiiri"
@@ -1929,6 +1935,9 @@ msgstr "Sarjaportin IRQ"
 msgid "Parallel port IRQ"
 msgstr "Rinnakkaisportin IRQ"
 
+msgid "Hard disk"
+msgstr "Kiintolevy"
+
 msgid "BIOS Revision"
 msgstr "BIOS-versio"
 
@@ -2004,9 +2013,6 @@ msgstr "MIDI-läpivienti"
 msgid "MIDI Clockout"
 msgstr "MIDI-kellon ulostulo"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Lähtötaso"
 
@@ -2068,7 +2074,7 @@ msgid "Serial Port"
 msgstr "Sarjaportti"
 
 msgid "RTS toggle"
-msgstr ""
+msgstr "RTS-kytkin"
 
 msgid "Revision"
 msgstr "Versio"
@@ -2136,6 +2142,9 @@ msgstr "Matala DMA"
 msgid "Enable Game port"
 msgstr "Peliportti"
 
+msgid "Enable Adlib ports"
+msgstr "Adlib-portit"
+
 msgid "SID Model"
 msgstr "SID-malli"
 
@@ -2144,12 +2153,6 @@ msgstr "SID-filtterin vahvuus"
 
 msgid "Surround module"
 msgstr "Surround-moduuli"
-
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "CODEC-keskeytys CODEC-asennuksen yhteydessä (jotkut ohjaimet tarvitsevat sitä)"
 
 msgid "SB Address"
 msgstr "SB-osoite"
@@ -2165,6 +2168,18 @@ msgstr "WSS-IRQ"
 
 msgid "WSS DMA"
 msgstr "WSS-DMA"
+
+msgid "RTC IRQ"
+msgstr ""
+
+msgid "RTC Port Address"
+msgstr "RTC-portin osoite"
+
+msgid "Onboard RTC"
+msgstr "Sisäänrakennettu RTC"
+
+msgid "Not installed"
+msgstr "Ei asennettu"
 
 msgid "Enable OPL"
 msgstr "OPL"
@@ -2436,9 +2451,6 @@ msgstr "24 Mt"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klassinen"
-
 msgid "256 KB"
 msgstr "256 Kt"
 
@@ -2482,10 +2494,10 @@ msgid "Linear interpolation"
 msgstr "Lineaarinen interpolointi"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Vaihtoehtoinen 8x8-merkistö"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Quadcolor II-tytärkortti"
 
 msgid "Alternate monochrome contrast"
 msgstr "Vaihtoehtoinen yksivärikontrasti"
@@ -2542,7 +2554,7 @@ msgid "Bochs latest"
 msgstr "Uusin Bochs"
 
 msgid "Apply overscan deltas"
-msgstr ""
+msgstr "Käytä yliskannausdeltoja"
 
 msgid "Mono Interlaced"
 msgstr "Lomitettu yksivärinen"
@@ -2727,9 +2739,6 @@ msgstr "GLSL-virhe"
 msgid "Could not load shader: %1"
 msgstr "Varjostinta %1 ei voitu ladata"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Vähintään OpenGL-versio 3.0 vaaditaan. Tämänhetkinen GLSL-versio on %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Tekstuuria ei voitu ladata: %1"
 
@@ -2792,6 +2801,9 @@ msgstr "Lähetä Control+Alt+Escape"
 
 msgid "Toggle fullscreen"
 msgstr "Koko näyttö"
+
+msgid "Toggle UI in fullscreen"
+msgstr "Käyttöliittymä koko näyttö-tilassa"
 
 msgid "Screenshot"
 msgstr "Kuvakaappaus"
@@ -2896,7 +2908,7 @@ msgid "<b>Version %1</b> is now available."
 msgstr "<b>Versio %1</b> on nyt saatavilla."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "Käytät käännöstä <b>%1</b>"
+msgstr "Käytät käännöstä <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>Käännös %1</b> on nyt saatavilla."
@@ -2910,8 +2922,8 @@ msgstr "Siirry lataussivulle"
 msgid "Update check"
 msgstr "Päivitystarkistus"
 
-msgid "Checking for updates..."
-msgstr "Tarkistetaan päivityksiä..."
+msgid "Checking for updates…"
+msgstr "Tarkistetaan päivityksiä…"
 
 msgid "86Box Update"
 msgstr "86Box-päivitys"
@@ -2949,17 +2961,17 @@ msgstr "Kirkkaus"
 msgid "Sharpness"
 msgstr "Terävyys"
 
-msgid "&CGA composite settings..."
-msgstr "&CGA:n komposiittiasetukset..."
+msgid "&CGA composite settings…"
+msgstr "&CGA:n komposiittiasetukset…"
 
 msgid "CGA composite settings"
 msgstr "CGA:n komposiittiasetukset"
 
 msgid "Monitor EDID"
-msgstr "Monitorin EDID"
+msgstr "Näytön EDID"
 
-msgid "Export..."
-msgstr "Viedä..."
+msgid "Export…"
+msgstr "Vie…"
 
 msgid "Export EDID"
 msgstr "Vie EDID"
@@ -2968,16 +2980,34 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "EDID-tiedosto \"%ls\" on liian suuri."
 
 msgid "OpenGL input scale"
-msgstr "OpenGL:n syöttöasteikko"
+msgstr "OpenGL-syötteen skaalaus"
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL:n syötteen venytystila"
+msgstr "OpenGL-syötteen venytystila"
 
 msgid "Color scheme"
-msgstr "Värimaailma"
+msgstr "Väriteema"
 
 msgid "Light"
-msgstr "Valo"
+msgstr "Vaalea"
 
 msgid "Dark"
 msgstr "Tumma"
+
+msgid "Search:"
+msgstr "Hae:"
+
+msgid "Force interpretation"
+msgstr "Pakota tulkinta"
+
+msgid "Allow recompilation"
+msgstr "Salli uudelleenkääntäminen"
+
+msgid "&Force interpretation"
+msgstr "&Pakota tulkinta"
+
+msgid "&Allow recompilation"
+msgstr "&Salli uudelleenkääntäminen"
+
+msgid "&Fast forward"
+msgstr ""

@@ -28,8 +28,6 @@
  *                  7  If set can remove "snow" in some cases
  *                     (A860_Delay_L ?) ??
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *

@@ -8,13 +8,10 @@
  *
  *          Header for the media history management module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2022 The 86Box development team
  */
-
 #ifndef QT_MEDIAHISTORYMANAGER_HPP
 #define QT_MEDIAHISTORYMANAGER_HPP
 

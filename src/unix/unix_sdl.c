@@ -16,6 +16,7 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
+#include <86box/unix_osd.h>
 #include <86box/unix_sdl.h>
 
 #define RENDERER_FULL_SCREEN 1
@@ -45,7 +46,7 @@ static int          cur_wy      = 0;
 static int          cur_ww      = 0;
 static int          cur_wh      = 0;
 static volatile int sdl_enabled = 1;
-static SDL_mutex   *sdl_mutex   = NULL;
+SDL_mutex          *sdl_mutex   = NULL;
 int                 mouse_capture;
 int                 title_set         = 0;
 int                 resize_pending    = 0;
@@ -155,7 +156,7 @@ sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
         for (int row = 0; row < h; ++row)
             video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
-    if (monitors[monitor_index].mon_screenshots)
+    if (monitors[monitor_index].mon_screenshots_raw)
         video_screenshot((uint32_t *) pixeldata, 0, 0, 2048);
     blitreq = 1;
 
@@ -189,6 +190,9 @@ sdl_real_blit(SDL_Rect *r_src)
     if (ret)
         fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
 
+    // give the osd an opportunity to draw itself
+    osd_present();
+
     SDL_RenderPresent(sdl_render);
 }
 
@@ -214,6 +218,7 @@ sdl_blit(int x, int y, int w, int h)
             sdl_resize(resize_w, resize_h);
         resize_pending = 0;
     }
+
     r_src.x = x;
     r_src.y = y;
     r_src.w = w;
@@ -314,6 +319,7 @@ sdl_select_best_hw_driver(void)
 void
 sdl_reinit_texture(void)
 {
+    osd_deinit();
     sdl_destroy_texture();
 
     if (sdl_flags & RENDERER_HARDWARE) {
@@ -324,6 +330,7 @@ sdl_reinit_texture(void)
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
                                 SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+    osd_init();
 }
 
 void
@@ -411,6 +418,10 @@ sdl_init_common(int flags)
         fprintf(stderr, "SDL: initialization failed (%s)\n", SDL_GetError());
         return (0);
     }
+
+    // Ensure mouse and touchpads behaves the same for us, dunno if these really do something
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1");
+    SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
 
     if (flags & RENDERER_HARDWARE) {
         if (flags & RENDERER_OPENGL) {

@@ -15,15 +15,14 @@
  *          Copyright 2015-2020 Andrew Jenner.
  *          Copyright 2016-2020 Miran Grca.
  */
-
 #ifndef EMU_PIC_H
 #define EMU_PIC_H
 
 typedef struct pic_latch {
-    uint8_t     d;
-    uint8_t     e;
-    uint8_t     q;
-    uint8_t     nq;
+    uint8_t d;
+    uint8_t e;
+    uint8_t q;
+    uint8_t nq;
 } pic_latch_t;
 
 typedef struct pic {

@@ -10,8 +10,6 @@
  *
  *          Used by the TLIVESA1 driver for ET4000.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -33,66 +31,35 @@
 
 typedef struct sc1502x_ramdac_t {
     int     state;
+    int     use_rs2;
     uint8_t ctrl;
     uint8_t idx;
     uint8_t regs[256];
     uint32_t pixel_mask;
-    uint8_t enable_ext;
 } sc1502x_ramdac_t;
 
 static void
-sc1502x_ramdac_bpp(uint8_t val, sc1502x_ramdac_t *ramdac, svga_t *svga)
+sc1502x_ramdac_bpp(sc1502x_ramdac_t *ramdac, svga_t *svga)
 {
-    int oldbpp = 0;
-    if (val == 0xff)
-        return;
-    ramdac->ctrl = val;
-    oldbpp       = svga->bpp;
-    switch ((val & 1) | ((val & 0xc0) >> 5)) {
-        case 0:
-            svga->bpp = 8;
-            break;
-        case 2:
-        case 3:
-            switch (val & 0x20) {
-                case 0x00:
-                    svga->bpp = 32;
-                    break;
-                case 0x20:
-                    svga->bpp = 24;
-                    break;
-
-                default:
-                    break;
-            }
-            break;
-        case 4:
-        case 5:
-            svga->bpp = 15;
-            break;
-        case 6:
+    int oldbpp = svga->bpp;
+    //pclog("BPP Val=%02x, truecolortype=%02x.\n", ramdac->ctrl, ramdac->regs[0x10] & 0x01);
+    if (ramdac->ctrl & 0x80) {
+        if (ramdac->ctrl & 0x40) {
             svga->bpp = 16;
-            break;
-        case 7:
-            if (val & 4) {
-                switch (val & 0x20) {
-                    case 0x00:
-                        svga->bpp = 32;
-                        break;
-                    case 0x20:
-                        svga->bpp = 24;
-                        break;
-
-                    default:
-                        break;
-                }
-            } else
-                svga->bpp = 16;
-            break;
-
-        default:
-            break;
+        } else
+            svga->bpp = 15;
+    } else {
+        if (ramdac->ctrl & 0x40) {
+            if (ramdac->regs[0x10] & 0x01)
+                svga->bpp = 32;
+            else if (ramdac->ctrl & 0x20)
+                svga->bpp = 24;
+            else
+                svga->bpp = 32;
+        } else
+            svga->bpp = 8;
     }
+    //pclog("SVGA BPP=%d.\n", svga->bpp);
     if (oldbpp != svga->bpp)
         svga_recalctimings(svga);
 }
@@ -104,29 +71,30 @@ sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 
     switch (addr) {
         case 0x3C6:
-            if (ramdac->state == 0)
-                ramdac->enable_ext = (val == 0x10);
-
-            if (ramdac->state == 4) {
+            if ((ramdac->state == 4) || (ramdac->ctrl & 0x10)) {
                 ramdac->state = 0;
-                sc1502x_ramdac_bpp(val, ramdac, svga);
+                ramdac->ctrl = val;
+                if (val != 0xff)
+                    sc1502x_ramdac_bpp(ramdac, svga);
                 return;
             }
             ramdac->state = 0;
+            svga_out(addr, val, svga);
             break;
         case 0x3C7:
-            if (ramdac->enable_ext) {
+            if (ramdac->ctrl & 0x10)
                 ramdac->idx = val;
-                return;
-            }
+            else
+                svga_out(addr, val, svga);
+
             ramdac->state = 0;
             break;
         case 0x3C8:
-            if (ramdac->enable_ext) {
+            if (ramdac->ctrl & 0x10) {
                 switch (ramdac->idx) {
                     case 8:
-                        ramdac->regs[ramdac->idx] = val;
-                        svga_set_ramdac_type(svga, (ramdac->regs[ramdac->idx] & 1) ? RAMDAC_8BIT : RAMDAC_6BIT);
+                        ramdac->regs[8] = val;
+                        svga->ramdac_type = (val & 0x01) ? RAMDAC_8BIT : RAMDAC_6BIT;
                         break;
                     case 0x0d:
                         ramdac->pixel_mask = val & svga->dac_mask;
@@ -137,24 +105,98 @@ sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
                     case 0x0f:
                         ramdac->pixel_mask |= ((val & svga->dac_mask) << 16);
                         break;
+                    case 0x10:
+                        ramdac->regs[0x10] = val;
+                        sc1502x_ramdac_bpp(ramdac, svga);
+                        break;
                     default:
                         ramdac->regs[ramdac->idx] = val;
                         break;
                 }
-                return;
-            }
+            } else
+                svga_out(addr, val, svga);
+
             ramdac->state = 0;
             break;
         case 0x3C9:
-            if (ramdac->enable_ext)
-                return;
             ramdac->state = 0;
+            svga_out(addr, val, svga);
             break;
 
         default:
             break;
     }
-    svga_out(addr, val, svga);
+}
+
+void
+sc1502x_rs2_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga)
+{
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) priv;
+    uint8_t rs = (addr & 0x03);
+    rs |= ((!!rs2) << 2);
+
+    //pclog("RS=%02x, Write=%02x.\n", rs, val);
+    switch (rs) {
+        case 0x00:
+            if (ramdac->ctrl & 0x10) {
+                //pclog("RAMDAC IDX=%02x, Write=%02x.\n", ramdac->idx, val);
+                switch (ramdac->idx) {
+                    case 8:
+                        ramdac->regs[8] = val;
+                        svga->ramdac_type = (val & 0x01) ? RAMDAC_8BIT : RAMDAC_6BIT;
+                        break;
+                    case 0x0d:
+                        ramdac->pixel_mask = val & svga->dac_mask;
+                        break;
+                    case 0x0e:
+                        ramdac->pixel_mask |= ((val & svga->dac_mask) << 8);
+                        break;
+                    case 0x0f:
+                        ramdac->pixel_mask |= ((val & svga->dac_mask) << 16);
+                        break;
+                    case 0x10:
+                        ramdac->regs[0x10] = val;
+                        sc1502x_ramdac_bpp(ramdac, svga);
+                        break;
+                    default:
+                        ramdac->regs[ramdac->idx] = val;
+                        break;
+                }
+            } else
+                svga_out(addr, val, svga);
+            break;
+        case 0x01:
+            svga_out(addr, val, svga);
+            break;
+        case 0x02:
+            if (ramdac->ctrl & 0x10) {
+                ramdac->ctrl = val;
+                if (val != 0xff)
+                    sc1502x_ramdac_bpp(ramdac, svga);
+            } else
+                svga_out(addr, val, svga);
+            break;
+        case 0x03:
+            if (ramdac->ctrl & 0x10)
+                ramdac->idx = val;
+            else
+                svga_out(addr, val, svga);
+            break;
+        case 0x04:
+        case 0x05:
+        case 0x07:
+            svga_out(addr, val, svga);
+            break;
+        case 0x06:
+            ramdac->ctrl = val;
+            if (val != 0xff)
+                sc1502x_ramdac_bpp(ramdac, svga);
+            break;
+
+        default:
+            svga_out(addr, val, svga);
+            break;
+    }
 }
 
 uint8_t
@@ -166,8 +208,7 @@ sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
     switch (addr) {
         case 0x3C6:
             if (ramdac->state == 4) {
-                ramdac->state = 0;
-                temp          = ramdac->ctrl;
+                temp = ramdac->ctrl;
                 break;
             }
             ramdac->state++;
@@ -176,7 +217,7 @@ sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
             ramdac->state = 0;
             break;
         case 0x3C8:
-            if (ramdac->enable_ext) {
+            if (ramdac->ctrl & 0x10) {
                 switch (ramdac->idx) {
                     case 9:
                         temp = 0x53;
@@ -203,14 +244,72 @@ sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
                         temp = ramdac->regs[ramdac->idx];
                         break;
                 }
-            } else
-                ramdac->state = 0;
+            }
+            ramdac->state = 0;
             break;
         case 0x3C9:
-            if (ramdac->enable_ext)
+            if (ramdac->ctrl & 0x10)
                 temp = ramdac->idx;
-            else
-                ramdac->state = 0;
+
+            ramdac->state = 0;
+            break;
+
+        default:
+            break;
+    }
+
+    return temp;
+}
+
+uint8_t
+sc1502x_rs2_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
+{
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) priv;
+    uint8_t rs = (addr & 0x03);
+    uint8_t temp = svga_in(addr, svga);
+    rs |= ((!!rs2) << 2);
+
+    switch (rs) {
+        case 0x00:
+            if (ramdac->ctrl & 0x10) {
+                switch (ramdac->idx) {
+                    case 9:
+                        temp = 0x53;
+                        break;
+                    case 0x0a:
+                        temp = 0x3a;
+                        break;
+                    case 0x0b:
+                        temp = 0xb1;
+                        break;
+                    case 0x0c:
+                        temp = 0x41;
+                        break;
+                    case 0x0d:
+                        temp = ramdac->pixel_mask & 0xff;
+                        break;
+                    case 0x0e:
+                        temp = ramdac->pixel_mask >> 8;
+                        break;
+                    case 0x0f:
+                        temp = ramdac->pixel_mask >> 16;
+                        break;
+                    default:
+                        temp = ramdac->regs[ramdac->idx];
+                        break;
+                }
+            }
+            break;
+        case 0x01:
+            if (ramdac->ctrl & 0x10)
+                temp = ramdac->idx;
+            break;
+        case 0x02:
+            if (ramdac->ctrl & 0x10)
+                temp = ramdac->ctrl;
+            break;
+        case 0x06:
+            temp = ramdac->ctrl;
             break;
 
         default:
@@ -221,7 +320,7 @@ sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 }
 
 static void *
-sc1502x_ramdac_init(UNUSED(const device_t *info))
+sc1502x_ramdac_init(const device_t *info)
 {
     sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) malloc(sizeof(sc1502x_ramdac_t));
     memset(ramdac, 0, sizeof(sc1502x_ramdac_t));
@@ -246,6 +345,20 @@ const device_t sc1502x_ramdac_device = {
     .internal_name = "sc1502x_ramdac",
     .flags         = 0,
     .local         = 0,
+    .init          = sc1502x_ramdac_init,
+    .close         = sc1502x_ramdac_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sc1502x_rs2_ramdac_device = {
+    .name          = "Sierra SC1502x RAMDAC with RS2",
+    .internal_name = "sc1502x_rs2_ramdac",
+    .flags         = 0,
+    .local         = 1,
     .init          = sc1502x_ramdac_init,
     .close         = sc1502x_ramdac_close,
     .reset         = NULL,

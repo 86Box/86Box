@@ -8,8 +8,6 @@
  *
  *          ATI 28800 emulation (VGA Charger and Korean VGA)
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          greatpsycho,
@@ -576,16 +574,16 @@ ati28800k_init(const device_t *info)
         default:
         case 0:
             rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-            loadfont(FONT_ATIKOR_PATH, 6);
+            video_load_font(FONT_ATIKOR_PATH, FONT_FORMAT_KSC6501, LOAD_FONT_NO_OFFSET);
             break;
         case 1:
             rom_init_interleaved(&ati28800->bios_rom, BIOS_ATIKOR_4620P_PATH_L, BIOS_ATIKOR_4620P_PATH_H, 0xc0000,
                                  0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-            loadfont(FONT_ATIKOR_4620P_PATH, 6);
+            video_load_font(FONT_ATIKOR_4620P_PATH, FONT_FORMAT_KSC6501, LOAD_FONT_NO_OFFSET);
             break;
         case 2:
             rom_init(&ati28800->bios_rom, BIOS_ATIKOR_6033P_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-            loadfont(FONT_ATIKOR_6033P_PATH, 6);
+            video_load_font(FONT_ATIKOR_6033P_PATH, FONT_FORMAT_KSC6501,LOAD_FONT_NO_OFFSET);
             break;
     }
 

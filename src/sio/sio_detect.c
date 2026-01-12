@@ -8,8 +8,6 @@
  *
  *          Super I/O chip detection code.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

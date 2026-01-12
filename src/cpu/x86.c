@@ -373,6 +373,8 @@ reset_common(int hard)
     in_lock    = 0;
 
     cpu_cpurst_on_sr = 0;
+
+    cpu_force_interpreter = 0;
 }
 
 /* Hard reset. */

@@ -8,7 +8,6 @@
  *
  *          IBM PCjr video subsystem emulation
  *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Connor Hyde / starfrost <mario64crashed@gmail.com> 
@@ -18,7 +17,6 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2025 starfrost
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -271,7 +269,7 @@ vid_get_h_overscan_delta(pcjr_t *pcjr)
             break;
     }
 
-    ret = pcjr->crtc[0x02] - def;
+    ret = def - pcjr->crtc[0x02];
 
     if (ret < -8)
         ret = -8;
@@ -467,8 +465,10 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
-                for (uint8_t c = 0; c < 8; c++)
-                    buffer32->line[line][ef_x + (c << 1)] = buffer32->line[line][ef_x + (c << 1) + 1] = dat <<= 2;
+                for (uint8_t c = 0; c < 8; c++) {
+                    buffer32->line[line][ef_x + (c << 1)] = buffer32->line[line][ef_x + (c << 1) + 1] = cols[dat >> 14];
+                    dat <<= 2;
+                }
             }
             break;
         case 0x102: /*640x200x2*/

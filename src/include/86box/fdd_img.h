@@ -9,8 +9,6 @@
  *          Implementation of the raw sector-based floppy image format,
  *          as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

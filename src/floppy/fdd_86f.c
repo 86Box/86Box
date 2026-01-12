@@ -10,8 +10,6 @@
  *          data in the form of FM/MFM-encoded transitions) which also
  *          forms the core of the emulator's floppy disk emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

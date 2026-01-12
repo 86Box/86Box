@@ -8,8 +8,6 @@
  *
  *          Implementation of the ALi M1621/2 CPU-to-PCI Bridge.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Miran Grca.

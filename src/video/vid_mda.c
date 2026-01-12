@@ -8,8 +8,6 @@
  *
  *          IBM Monochrome Display and Printer Adapter emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Connor Hyde, <mario64crashed@gmail.com>
@@ -416,27 +414,27 @@ mda_init(mda_t *mda)
 void *
 mda_standalone_init(UNUSED(const device_t *info))
 {
-    mda_t *mda = malloc(sizeof(mda_t));
-    memset(mda, 0, sizeof(mda_t));
+    mda_t *mda = calloc(1, sizeof(mda_t));
+
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_mda);
 
-    mda->vram = malloc(0x1000);
+    mda->vram = malloc(MDA_VRAM);
 
     switch (device_get_config_int("font")) {
         case 0:
-            loadfont(FONT_IBM_MDA_437_PATH, 0);
+            video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 1:
-            loadfont(FONT_IBM_MDA_437_NORDIC_PATH, 0);
+            video_load_font(FONT_IBM_MDA_437_NORDIC_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 2:
-            loadfont(FONT_KAM_PATH, 0);
+            video_load_font(FONT_KAM_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 3:
-            loadfont(FONT_KAMCL16_PATH, 0);
+            video_load_font(FONT_KAMCL16_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
         case 4:
-            loadfont(FONT_TULIP_DGA_PATH, 0);
+            video_load_font(FONT_TULIP_DGA_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
             break;
     }
 

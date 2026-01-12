@@ -8,8 +8,6 @@
  *
  *          Definitions for the FDI floppy file format.
  *
- *
- *
  * Authors: Toni Wilen, <twilen@arabuusimiehet.com>
  *          and Vincent Joguin,
  *          Thomas Harte, <T.Harte@excite.co.uk>

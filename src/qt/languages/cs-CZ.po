@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-02 21:56+0000\n"
+"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
+"Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
+"Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: cs_CZ\n"
 "X-Source-Language: en_US\n"
 
@@ -15,7 +21,7 @@ msgstr "&Klávesnice vyžaduje záběr myši"
 msgid "&Right CTRL is left ALT"
 msgstr "&Pravý Ctrl je levý Alt"
 
-msgid "&Hard Reset..."
+msgid "&Hard reset"
 msgstr "&Resetovat"
 
 msgid "&Ctrl+Alt+Del"
@@ -51,6 +57,9 @@ msgstr "&Měnitelná velikost okna"
 msgid "R&emember size && position"
 msgstr "&Pamatovat velikost a pozici"
 
+msgid "Remember size && position"
+msgstr "Pamatovat velikost a pozici"
+
 msgid "Re&nderer"
 msgstr "&Renderer"
 
@@ -63,8 +72,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "&Zadat velikost..."
+msgid "Specify &dimensions…"
+msgstr "&Zadat velikost…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Dodržovat poměr stran &4:3"
@@ -189,11 +198,11 @@ msgstr "&Média"
 msgid "&Tools"
 msgstr "&Nástroje"
 
-msgid "&Settings..."
-msgstr "&Nastavení..."
+msgid "&Settings…"
+msgstr "&Nastavení…"
 
-msgid "Settings..."
-msgstr "Nastavení..."
+msgid "Settings…"
+msgstr "Nastavení…"
 
 msgid "&Update status bar icons"
 msgstr "&Aktualizovat ikony stavového řádku"
@@ -201,17 +210,26 @@ msgstr "&Aktualizovat ikony stavového řádku"
 msgid "Take s&creenshot"
 msgstr "Pořídit &screenshot"
 
+msgid "Take &raw screenshot"
+msgstr "Pořídit n&ezpracovaný screenshot"
+
+msgid "C&opy screenshot"
+msgstr "&Zkopírovat screenshot"
+
+msgid "Copy r&aw screenshot"
+msgstr "Zkopírovat nez&pracovaný screenshot"
+
 msgid "S&ound"
 msgstr "&Zvuk"
 
-msgid "&Preferences..."
-msgstr "&Předvolby..."
+msgid "&Preferences…"
+msgstr "&Předvolby…"
 
 msgid "Enable &Discord integration"
 msgstr "Povolit integraci s &Discordem"
 
-msgid "Sound &gain..."
-msgstr "&Zesílení zvuku"
+msgid "Sound &gain…"
+msgstr "&Zesílení zvuku…"
 
 msgid "Begin trace"
 msgstr "Začít trace"
@@ -222,20 +240,20 @@ msgstr "Zastavit trace"
 msgid "&Help"
 msgstr "Ná&pověda"
 
-msgid "&Documentation..."
-msgstr "&Dokumentace"
+msgid "&Documentation…"
+msgstr "&Dokumentace…"
 
-msgid "&About 86Box..."
-msgstr "&O programu 86Box"
+msgid "&About 86Box…"
+msgstr "&O programu 86Box…"
 
-msgid "&New image..."
-msgstr "&Nový obraz..."
+msgid "&New image…"
+msgstr "&Nový obraz…"
 
-msgid "&Existing image..."
-msgstr "&Existující obraz..."
+msgid "&Existing image…"
+msgstr "&Existující obraz…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Existující obraz (&ochrana proti zápisu)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Existující obraz (&ochrana proti zápisu)…"
 
 msgid "&Record"
 msgstr "&Nahrávat"
@@ -252,11 +270,11 @@ msgstr "Přetočit na &konec"
 msgid "E&ject"
 msgstr "&Vyjmout"
 
-msgid "&Image..."
-msgstr "&Obraz..."
+msgid "&Image…"
+msgstr "&Obraz…"
 
-msgid "E&xport to 86F..."
-msgstr "E&xportovat do 86F..."
+msgid "E&xport to 86F…"
+msgstr "E&xportovat do 86F…"
 
 msgid "&Mute"
 msgstr "&Ztišit"
@@ -267,38 +285,8 @@ msgstr "&Vyjmout"
 msgid "Reload previous image"
 msgstr "Načíst znova předchozí obraz"
 
-msgid "&Folder..."
-msgstr "&Složka..."
-
-msgid "Target &framerate"
-msgstr "&Cílová snímková frekvence"
-
-msgid "&Sync with video"
-msgstr "&Synchronizovat s obrazem"
-
-msgid "&25 fps"
-msgstr "&25 fps"
-
-msgid "&30 fps"
-msgstr "&30 fps"
-
-msgid "&50 fps"
-msgstr "&50 fps"
-
-msgid "&60 fps"
-msgstr "&60 fps"
-
-msgid "&75 fps"
-msgstr "&75 fps"
-
-msgid "&VSync"
-msgstr "&VSync"
-
-msgid "&Select shader..."
-msgstr "&Zvolit shader..."
-
-msgid "&Remove shader"
-msgstr "&Odebrat shader"
+msgid "&Folder…"
+msgstr "&Složka…"
 
 msgid "Preferences"
 msgstr "Předvolby"
@@ -444,17 +432,17 @@ msgstr "Joystick:"
 msgid "Joystick"
 msgstr "Joystick"
 
-msgid "Joystick 1..."
-msgstr "Joystick 1..."
+msgid "Joystick 1…"
+msgstr "Joystick 1…"
 
-msgid "Joystick 2..."
-msgstr "Joystick 2..."
+msgid "Joystick 2…"
+msgstr "Joystick 2…"
 
-msgid "Joystick 3..."
-msgstr "Joystick 3..."
+msgid "Joystick 3…"
+msgstr "Joystick 3…"
 
-msgid "Joystick 4..."
-msgstr "Joystick 4..."
+msgid "Joystick 4…"
+msgstr "Joystick 4…"
 
 msgid "Sound card #1:"
 msgstr "Zvuková karta 1:"
@@ -543,23 +531,23 @@ msgstr "Povolit port LPT3"
 msgid "Parallel port 4"
 msgstr "Povolit port LPT4"
 
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "Disketový řadič:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Řadič CD-ROM:"
 
-msgid "Tertiary IDE Controller"
-msgstr "Třetí řadič IDE"
+msgid "[ISA16] Tertiary IDE Controller"
+msgstr "[ISA16] Třetí řadič IDE"
 
-msgid "Quaternary IDE Controller"
-msgstr "Čtvrtý řadič IDE"
+msgid "[ISA16] Quaternary IDE Controller"
+msgstr "[ISA16] Čtvrtý řadič IDE"
 
-msgid "Hard disk"
-msgstr "Pevný disk"
+msgid "Hard disk controllers"
+msgstr "Řadiče pevných disků"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Řadiče SCSI"
 
 msgid "Controller 1:"
 msgstr "Řadič 1:"
@@ -582,11 +570,11 @@ msgstr "Pevné disky:"
 msgid "Firmware Version"
 msgstr "Verze firmware"
 
-msgid "&New..."
-msgstr "&Nový..."
+msgid "&New…"
+msgstr "&Nový…"
 
-msgid "&Existing..."
-msgstr "&Existující..."
+msgid "&Existing…"
+msgstr "&Existující…"
 
 msgid "&Remove"
 msgstr "&Odebrat"
@@ -599,9 +587,6 @@ msgstr "Kanál:"
 
 msgid "ID:"
 msgstr "ID:"
-
-msgid "&Specify..."
-msgstr "&Zadat..."
 
 msgid "Sectors:"
 msgstr "Sektory:"
@@ -686,9 +671,6 @@ msgstr "Zařízení ISABugger"
 
 msgid "POST card"
 msgstr "Karta pro kódy POST"
-
-msgid "86Box"
-msgstr "86Box"
 
 msgid "Error"
 msgstr "Chyba"
@@ -849,8 +831,17 @@ msgstr "Nebyla nalezena žádná PCap zařízení"
 msgid "Invalid PCap device"
 msgstr "Neplatné PCap zařízení"
 
+msgid "Generic paddle controller(s)"
+msgstr "Obecný otočný ovladač"
+
+msgid "2-axis, 1-button joystick(s)"
+msgstr "Joystick s 2 osami a 1 tlačítkem"
+
 msgid "2-axis, 2-button joystick(s)"
 msgstr "Joystick s 2 osami a 2 tlačítky"
+
+msgid "2-axis, 3-button joystick"
+msgstr "Joystick s 2 osami a 3 tlačítky"
 
 msgid "2-axis, 4-button joystick"
 msgstr "Joystick s 2 osami a 4 tlačítky"
@@ -864,35 +855,38 @@ msgstr "Joystick s 2 osami a 8 tlačítky"
 msgid "3-axis, 2-button joystick"
 msgstr "Joystick s 3 osami a 2 tlačítky"
 
+msgid "3-axis, 3-button joystick"
+msgstr "Joystick s 3 osami a 3 tlačítky"
+
 msgid "3-axis, 4-button joystick"
 msgstr "Joystick s 3 osami a 4 tlačítky"
 
+msgid "4-axis, 2-button joystick"
+msgstr "Joystick se 4 osami a 2 tlačítky"
+
+msgid "4-axis, 3-button joystick"
+msgstr "Joystick se 4 osami a 3 tlačítky"
+
 msgid "4-axis, 4-button joystick"
-msgstr "Joystick s 4 osami a 4 tlačítky"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
+msgstr "Joystick se 4 osami a 4 tlačítky"
 
 msgid "2-button gamepad(s)"
-msgstr "Ovladač se 2 tlačítky"
+msgstr "Ovladač s 2 tlačítky"
 
-msgid "2-button flight yoke"
-msgstr "Letecký knipl se 2 tlačítky"
+msgid "3-button gamepad"
+msgstr "Ovladač s 3 tlačítky"
 
 msgid "4-button gamepad"
 msgstr "Ovladač se 4 tlačítky"
+
+msgid "6-button gamepad"
+msgstr "Ovladač se 6 tlačítky"
+
+msgid "2-button flight yoke"
+msgstr "Letecký knipl s 2 tlačítky"
+
+msgid "3-button flight yoke"
+msgstr "Letecký knipl s 3 tlačítky"
 
 msgid "4-button flight yoke"
 msgstr "Letecký knipl se 4 tlačítky"
@@ -900,11 +894,26 @@ msgstr "Letecký knipl se 4 tlačítky"
 msgid "2-button flight yoke with throttle"
 msgstr "Letecký knipl s 2 tlačítky a pákou"
 
-msgid "4-button flight yoke with throttle"
-msgstr "Letecký knipl s 4 tlačítky a pákou"
+msgid "3-button flight yoke with throttle"
+msgstr "Letecký knipl s 3 tlačítky a pákou"
 
-msgid "Win95 Steering Wheel (3-axis, 4-button)"
-msgstr "Volant pro Windows 95 (3 osy, 4 tlačítka)"
+msgid "4-button flight yoke with throttle"
+msgstr "Letecký knipl se 4 tlačítky a pákou"
+
+msgid "Steering wheel (3-axis, 2-button)"
+msgstr "Volant (3 osy, 2 tlačítka)"
+
+msgid "Steering wheel (3-axis, 3-button)"
+msgstr "Volant (3 osy, 3 tlačítka)"
+
+msgid "Steering wheel (3-axis, 4-button)"
+msgstr "Volant (3 osy, 4 tlačítka)"
+
+msgid "Thrustmaster Formula T1/T2 with adapter"
+msgstr "Thrustmaster Formula T1/T2 s adaptérem"
+
+msgid "Thrustmaster Formula T1/T2 without adapter"
+msgstr "Thrustmaster Formula T1/T2 bez adaptéru"
 
 msgid "None"
 msgstr "Žadné"
@@ -954,11 +963,17 @@ msgstr "Vestavěné zařízení"
 msgid "&File"
 msgstr "&Soubor"
 
-msgid "&New machine..."
-msgstr "&Nový počítač..."
+msgid "&New machine…"
+msgstr "&Nový počítač…"
 
-msgid "&Check for updates..."
-msgstr "&Zkontrolovat aktualizace..."
+msgid "New machine…"
+msgstr "Nový počítač…"
+
+msgid "New machine"
+msgstr "Nový počítač"
+
+msgid "&Check for updates…"
+msgstr "&Zkontrolovat aktualizace…"
 
 msgid "Exit"
 msgstr "Ukončit"
@@ -975,11 +990,8 @@ msgstr "Pokračováním se resetuje emulovaný počítač."
 msgid "Save"
 msgstr "Uložit"
 
-msgid "About 86Box"
-msgstr "O programu 86Box"
-
-msgid "86Box v"
-msgstr "86Box v"
+msgid "About %1"
+msgstr "O programu %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Emulátor starých počítačů\n\nAutoři: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nS předchozími příspěvky od Sarah Walker, leilei, JohnElliott, greatpsycho a dalších.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
@@ -1073,6 +1085,12 @@ msgstr "Vynutit vypnutí"
 
 msgid "Start"
 msgstr "Spustit"
+
+msgid "&Force shutdown"
+msgstr "&Vynutit vypnutí"
+
+msgid "&Start"
+msgstr "&Spustit"
 
 msgid "Not running"
 msgstr "Neběží"
@@ -1177,7 +1195,7 @@ msgid "Directory does not exist"
 msgstr "Adresář neexistuje"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Pro tento systém bude vytvořen nový adresář ve výše zvoleném adresáři."
+msgstr "Pro tento systém bude vytvořen nový adresář ve výše zvoleném adresáři"
 
 msgid "System location:"
 msgstr "Umístění systému:"
@@ -1206,32 +1224,32 @@ msgstr "Nastavit zobrazované jméno"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Zadejte nové zobrazované jméno (prázdné pole pro vymazání)"
 
-msgid "Change &display name..."
-msgstr "Změnit &zobrazované jméno..."
+msgid "Change &display name…"
+msgstr "Změnit &zobrazované jméno…"
 
 msgid "Context Menu"
 msgstr "Kontextová nabídka"
 
-msgid "&Open folder..."
-msgstr "&Otevřít složku..."
+msgid "&Open folder…"
+msgstr "&Otevřít složku…"
 
-msgid "Open p&rinter tray..."
-msgstr "Otevřít zásobník &tiskárny..."
+msgid "Open p&rinter tray…"
+msgstr "Otevřít zásobník &tiskárny…"
 
-msgid "Set &icon..."
-msgstr "Nastavit &ikonu..."
+msgid "Set &icon…"
+msgstr "Nastavit &ikonu…"
 
 msgid "Select an icon"
 msgstr "Vyberte ikonu"
 
-msgid "C&lone..."
-msgstr "K&lonovat..."
+msgid "C&lone…"
+msgstr "K&lonovat…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuální počítač \"%1\" (%2) bude naklonován do:"
 
 msgid "Directory %1 already exists"
-msgstr "Adresář %1 již existuje."
+msgstr "Adresář %1 již existuje"
 
 msgid "You cannot use the following characters in the name: %1"
 msgstr "V názvu nelze použít následující znaky: %1"
@@ -1311,8 +1329,8 @@ msgstr "Žádný snímek obrazovky"
 msgid "Search"
 msgstr "Hledat"
 
-msgid "Searching for VMs..."
-msgstr "Hledání virtuálních počítačů..."
+msgid "Searching for VMs…"
+msgstr "Hledání virtuálních počítačů…"
 
 msgid "Found %1"
 msgstr "Nalezeno %1"
@@ -1323,8 +1341,8 @@ msgstr "Systém"
 msgid "Storage"
 msgstr "Úložiště"
 
-msgid "Disk %1: "
-msgstr "Disk %1: "
+msgid "Disk %1:"
+msgstr "Disk %1:"
 
 msgid "No disks"
 msgstr "Žádné disky"
@@ -1347,11 +1365,11 @@ msgstr "Pevný disk (%1)"
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "CD-ROM mechaniky pro rozhraní MFM/RLL nebo ESDI nikdy neexistovaly"
 
-msgid "Custom..."
-msgstr "Vlastní..."
+msgid "Custom…"
+msgstr "Vlastní…"
 
-msgid "Custom (large)..."
-msgstr "Vlastní (velký)..."
+msgid "Custom (large)…"
+msgstr "Vlastní (velký)…"
 
 msgid "Add New Hard Disk"
 msgstr "Přidat nový pevný disk"
@@ -1469,21 +1487,6 @@ msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Nebylo možné opravit časové razítko VHD disku."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1635,14 +1638,14 @@ msgstr "Nástroj pro tablety"
 msgid "About &Qt"
 msgstr "O platformě &Qt"
 
-msgid "&MCA devices..."
-msgstr "Zařízení MCA ..."
+msgid "&MCA devices…"
+msgstr "Zařízení MCA…"
 
 msgid "Show non-&primary monitors"
 msgstr "Zobrazit neprimární monitory"
 
-msgid "Open screenshots &folder..."
-msgstr "Otevřít složku se snímky obrazovky"
+msgid "Open screenshots &folder…"
+msgstr "Otevřít složku se snímky obrazovky…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Použít režim roztá&hnutí při celé obrazovce pro maximalizované okno"
@@ -1662,8 +1665,8 @@ msgstr "&Připojeno"
 msgid "Clear image &history"
 msgstr "Vymaž &historie snímků"
 
-msgid "Create..."
-msgstr "Vytvořit..."
+msgid "Create…"
+msgstr "Vytvořit…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Jednotka CD/DVD hostitele (%1)"
@@ -1704,8 +1707,8 @@ msgstr "Shadery"
 msgid "Remove"
 msgstr "Odstranit"
 
-msgid "Browse..."
-msgstr "Browse..."
+msgid "Browse…"
+msgstr "Procházet…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Nepodařilo se vytvořit kontext OpenGL."
@@ -1737,8 +1740,8 @@ msgstr "Přesunul jsem jej"
 msgid "I Copied It"
 msgstr "Zkopíroval jsem jej"
 
-msgid "86Box Monitor #"
-msgstr "86Box Monitor "
+msgid "86Box Monitor #%1"
+msgstr "86Box Monitor %1"
 
 msgid "No MCA devices."
 msgstr "Žádné zařízení MCA."
@@ -1771,7 +1774,10 @@ msgid "Adapter:"
 msgstr "Adaptér:"
 
 msgid "VDE Socket:"
-msgstr "Zásuvka VDE:"
+msgstr "VDE socket:"
+
+msgid "TAP Bridge Device:"
+msgstr "Zařízení TAP mostu:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Unit Tester"
@@ -1791,8 +1797,8 @@ msgstr "Průchod sériového portu 3"
 msgid "Serial port passthrough 4"
 msgstr "Průchod sériového portu 4"
 
-msgid "Renderer &options..."
-msgstr "Možnosti rendereru..."
+msgid "Renderer &options…"
+msgstr "Možnosti rendereru…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT klávesnice"
@@ -1888,13 +1894,13 @@ msgid "BIOS address"
 msgstr "Adresa BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Adresa BIOS (ROM 4)"
+msgstr "Adresa BIOS (ROM 1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Adresa BIOS (ROM 4)"
+msgstr "Adresa BIOS (ROM 2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Adresa BIOS (ROM 4)"
+msgstr "Adresa BIOS (ROM 3)"
 
 msgid "BIOS address (ROM #4)"
 msgstr "Adresa BIOS (ROM 4)"
@@ -1928,6 +1934,9 @@ msgstr "Přerušení sériového portu"
 
 msgid "Parallel port IRQ"
 msgstr "Přerušení paralelního portu"
+
+msgid "Hard disk"
+msgstr "Pevný disk"
 
 msgid "BIOS Revision"
 msgstr "Revize BIOS"
@@ -2003,9 +2012,6 @@ msgstr "Průchod vstupu MIDI"
 
 msgid "MIDI Clockout"
 msgstr "Výstup MIDI hodin"
-
-msgid "SoundFont"
-msgstr "SoundFont"
 
 msgid "Output Gain"
 msgstr "Zesílení výstupu"
@@ -2136,6 +2142,9 @@ msgstr "Nízký DMA kanál"
 msgid "Enable Game port"
 msgstr "Povolit herní port"
 
+msgid "Enable Adlib ports"
+msgstr "Povolit porty Adlib"
+
 msgid "SID Model"
 msgstr "Model SID"
 
@@ -2144,12 +2153,6 @@ msgstr "Síla filtru SID"
 
 msgid "Surround module"
 msgstr "Modul Surround"
-
-msgid "CODEC"
-msgstr "CODEC"
-
-msgid "Raise CODEC interrupt on CODEC setup (needed by some drivers)"
-msgstr "Vyvolát přerušení CODEC při nastavení CODEC (potřebují některé ovladače)"
 
 msgid "SB Address"
 msgstr "Adresa SB"
@@ -2165,6 +2168,18 @@ msgstr "IRQ WSS"
 
 msgid "WSS DMA"
 msgstr "DMA kanál WSS"
+
+msgid "RTC IRQ"
+msgstr "IRQ hodin reálného času"
+
+msgid "RTC Port Address"
+msgstr "Adresa portu hodin reálného času"
+
+msgid "Onboard RTC"
+msgstr "Integrované hodiny reálného času"
+
+msgid "Not installed"
+msgstr "Nenainstalováno"
 
 msgid "Enable OPL"
 msgstr "Povolit OPL"
@@ -2436,9 +2451,6 @@ msgstr "24 MB"
 msgid "SigmaTel STAC9721T (stereo)"
 msgstr "SigmaTel STAC9721T (stereo)"
 
-msgid "Classic"
-msgstr "Klasické"
-
 msgid "256 KB"
 msgstr "256 KB"
 
@@ -2485,7 +2497,7 @@ msgid "Has secondary 8x8 character set"
 msgstr "Má druhou sadu 8x8 znaků"
 
 msgid "Has Quadcolor II daughter board"
-msgstr "Má dceřinnou desků Quadcolor II"
+msgstr "Má dceřinnou desku Quadcolor II"
 
 msgid "Alternate monochrome contrast"
 msgstr "Alternativní monochromatický kontrast"
@@ -2727,9 +2739,6 @@ msgstr "Chyba GLSL"
 msgid "Could not load shader: %1"
 msgstr "Nebylo možné načíst shader: %1"
 
-msgid "OpenGL version 3.0 or greater is required. Current GLSL version is %1.%2"
-msgstr "Je vyžadováno OpenGL verze 3.0 nebo větší. Současná verze GLSL je %1.%2"
-
 msgid "Could not load texture: %1"
 msgstr "Nebylo možné načíst texturu: %1"
 
@@ -2758,7 +2767,7 @@ msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
 msgid "Key Bindings:"
-msgstr "Nastavení kláves"
+msgstr "Nastavení kláves:"
 
 msgid "Action"
 msgstr "Akce"
@@ -2776,7 +2785,7 @@ msgid "Bind Key"
 msgstr "Nastavit klávesu"
 
 msgid "Enter key combo:"
-msgstr "Zadejte kombinaci kláves"
+msgstr "Zadejte kombinaci kláves:"
 
 msgid "Bind conflict"
 msgstr "Konflikt nastavení"
@@ -2792,6 +2801,9 @@ msgstr "Stisknout Ctrl+Alt+Esc"
 
 msgid "Toggle fullscreen"
 msgstr "Přepnout režim celé obrazovky"
+
+msgid "Toggle UI in fullscreen"
+msgstr "Přepnout rozhraní při celé obrazovce"
 
 msgid "Screenshot"
 msgstr "Pořídit snímek obrazovky"
@@ -2827,7 +2839,7 @@ msgid "Hub Mode"
 msgstr "Režim hubu"
 
 msgid "Hostname:"
-msgstr "Hostitelské jméno"
+msgstr "Hostitelské jméno:"
 
 msgid "ISA RAM:"
 msgstr "ISA paměť RAM:"
@@ -2910,8 +2922,8 @@ msgstr "Navštívit stránku pro stažení"
 msgid "Update check"
 msgstr "Kontrola aktualizací"
 
-msgid "Checking for updates..."
-msgstr "Probíhá kontrola aktualizací..."
+msgid "Checking for updates…"
+msgstr "Probíhá kontrola aktualizací…"
 
 msgid "86Box Update"
 msgstr "Aktualizace 86Box"
@@ -2949,8 +2961,8 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrost"
 
-msgid "&CGA composite settings..."
-msgstr "Nastavení kompozitního výstupu &CGA..."
+msgid "&CGA composite settings…"
+msgstr "Nastavení kompozitního výstupu &CGA…"
 
 msgid "CGA composite settings"
 msgstr "Nastavení kompozitního výstupu CGA"
@@ -2958,8 +2970,8 @@ msgstr "Nastavení kompozitního výstupu CGA"
 msgid "Monitor EDID"
 msgstr "EDID monitoru"
 
-msgid "Export..."
-msgstr "Exportovat..."
+msgid "Export…"
+msgstr "Exportovat…"
 
 msgid "Export EDID"
 msgstr "Exportovat EDID"
@@ -2968,16 +2980,34 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "Soubor EDID \"%ls\" je příliš velký."
 
 msgid "OpenGL input scale"
-msgstr "Vstupní měřítko OpenGL"
+msgstr "Měřítko vstupu OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "režim roztažení vstupu OpenGL"
+msgstr "Režim roztažení vstupu OpenGL"
 
 msgid "Color scheme"
 msgstr "Barevné schéma"
 
 msgid "Light"
-msgstr "Světlo"
+msgstr "Světlé"
 
 msgid "Dark"
-msgstr "Tmavá"
+msgstr "Tmavé"
+
+msgid "Search:"
+msgstr "Hledat:"
+
+msgid "Force interpretation"
+msgstr "Vynutit interpretaci"
+
+msgid "Allow recompilation"
+msgstr "Povolit rekompilaci"
+
+msgid "&Force interpretation"
+msgstr "&Vynutit interpretaci"
+
+msgid "&Allow recompilation"
+msgstr "&Povolit rekompilaci"
+
+msgid "&Fast forward"
+msgstr ""

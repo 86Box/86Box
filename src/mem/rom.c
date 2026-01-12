@@ -12,8 +12,6 @@
  *          - pc2386 video BIOS is underdumped (16k instead of 24k)
  *          - c386sx16 BIOS fails checksum
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -28,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -56,34 +55,54 @@ rom_log(const char *fmt, ...)
 #    define rom_log(fmt, ...)
 #endif
 
+static void
+add_path(rom_path_t *list, const char *path)
+{
+    rom_path_t *rom_path = calloc(1, sizeof(rom_path_t));
+
+    /* Save the path, turning it into absolute if needed. */
+    if (!path_abs((char *) path)) {
+        plat_getcwd(rom_path->path, sizeof(rom_path->path));
+        path_append_filename(rom_path->path, rom_path->path, path);
+    } else {
+        strncpy(rom_path->path, path, sizeof(rom_path->path) - 1);
+    }
+
+    /* Ensure the path ends with a separator. */
+    path_slash(rom_path->path);
+
+    /* Iterate to the end of the list. */
+    if (list->path[0] != '\0') {
+        while (1) {
+            /* Check for duplicates. */
+            if (!strcmp(list->path, rom_path->path)) {
+                free(rom_path);
+                return;
+            }
+            if (list->next == NULL)
+                break;
+            list = list->next;
+        }
+
+        /* Add the new entry. */
+        list->next = rom_path;
+    } else {
+        /* Set path on the first entry. */
+        memcpy(list, rom_path, sizeof(rom_path_t));
+        free(rom_path);
+    }
+}
+
 void
 rom_add_path(const char *path)
 {
-    char cwd[1024] = { 0 };
+    add_path(&rom_paths, path);
+}
 
-    rom_path_t *rom_path = &rom_paths;
-
-    if (rom_paths.path[0] != '\0') {
-        // Iterate to the end of the list.
-        while (rom_path->next != NULL) {
-            rom_path = rom_path->next;
-        }
-
-        // Allocate the new entry.
-        rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
-    }
-
-    // Save the path, turning it into absolute if needed.
-    if (!path_abs((char *) path)) {
-        plat_getcwd(cwd, sizeof(cwd));
-        path_slash(cwd);
-        snprintf(rom_path->path, sizeof(rom_path->path), "%s%s", cwd, path);
-    } else {
-        snprintf(rom_path->path, sizeof(rom_path->path), "%s", path);
-    }
-
-    // Ensure the path ends with a separator.
-    path_slash(rom_path->path);
+void
+asset_add_path(const char *path)
+{
+    add_path(&asset_paths, path);
 }
 
 static int
@@ -91,8 +110,9 @@ rom_check(const char *fn)
 {
     FILE *fp = NULL;
     int ret = 0;
+    char last = fn[strlen(fn) - 1];
 
-    if ((fn[strlen(fn) - 1] == '/') || (fn[strlen(fn) - 1] == '\\'))
+    if ((last == '/') || (last == '\\'))
         ret = plat_dir_check((char *) fn);
     else {
         fp = fopen(fn, "rb");
@@ -111,10 +131,35 @@ rom_get_full_path(char *dest, const char *fn)
 
     dest[0] = 0x00;
 
-    if (strstr(fn, "roms/") == fn) {
+    if (!strncmp(fn, "roms/", 5)) {
         /* Relative path */
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
+
+            if (rom_check(temp)) {
+                strcpy(dest, temp);
+                return;
+            }
+        }
+
+        return;
+    } else {
+        /* Absolute path */
+        strcpy(dest, fn);
+    }
+}
+
+void
+asset_get_full_path(char *dest, const char *fn)
+{
+    char temp[1024] = { 0 };
+
+    dest[0] = 0x00;
+
+    if (!strncmp(fn, "assets/", 7)) {
+        /* Relative path */
+        for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
+            path_append_filename(temp, asset_path->path, fn + 7);
 
             if (rom_check(temp)) {
                 strcpy(dest, temp);
@@ -138,14 +183,38 @@ rom_fopen(const char *fn, char *mode)
     if ((fn == NULL) || (mode == NULL))
         return NULL;
 
-    if (strstr(fn, "roms/") == fn) {
+    if (!strncmp(fn, "roms/", 5)) {
         /* Relative path */
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
 
-            if ((fp = plat_fopen(temp, mode)) != NULL) {
+            if ((fp = plat_fopen(temp, mode)) != NULL)
                 return fp;
-            }
+        }
+
+        return fp;
+    } else {
+        /* Absolute path */
+        return plat_fopen(fn, mode);
+    }
+}
+
+FILE *
+asset_fopen(const char *fn, char *mode)
+{
+    char        temp[1024];
+    FILE       *fp = NULL;
+
+    if ((fn == NULL) || (mode == NULL))
+        return NULL;
+
+    if (!strncmp(fn, "assets/", 7)) {
+        /* Relative path */
+        for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
+            path_append_filename(temp, asset_path->path, fn + 7);
+
+            if ((fp = plat_fopen(temp, mode)) != NULL)
+                return fp;
         }
 
         return fp;
@@ -156,16 +225,16 @@ rom_fopen(const char *fn, char *mode)
 }
 
 int
-rom_getfile(char *fn, char *s, int size)
+rom_getfile(const char *fn, char *s, int size)
 {
     char        temp[1024];
 
-    if (strstr(fn, "roms/") == fn) {
+    if (!strncmp(fn, "roms/", 5)) {
         /* Relative path */
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
 
-            if (rom_present(temp)) {
+            if (plat_file_check(temp)) {
                 strncpy(s, temp, size);
                 return 1;
             }
@@ -174,7 +243,35 @@ rom_getfile(char *fn, char *s, int size)
         return 0;
     } else {
         /* Absolute path */
-        if (rom_present(fn)) {
+        if (plat_file_check(fn)) {
+            strncpy(s, fn, size);
+            return 1;
+        }
+
+        return 0;
+    }
+}
+
+int
+asset_getfile(const char *fn, char *s, int size)
+{
+    char        temp[1024];
+
+    if (!strncmp(fn, "assets/", 7)) {
+        /* Relative path */
+        for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
+            path_append_filename(temp, asset_path->path, fn + 7);
+
+            if (plat_file_check(temp)) {
+                strncpy(s, temp, size);
+                return 1;
+            }
+        }
+
+        return 0;
+    } else {
+        /* Absolute path */
+        if (plat_file_check(fn)) {
             strncpy(s, fn, size);
             return 1;
         }
@@ -186,15 +283,49 @@ rom_getfile(char *fn, char *s, int size)
 int
 rom_present(const char *fn)
 {
-    FILE *fp;
+    char temp[1024];
 
-    fp = rom_fopen(fn, "rb");
-    if (fp != NULL) {
-        (void) fclose(fp);
-        return 1;
+    if (fn == NULL)
+        return 0;
+
+    if (!strncmp(fn, "roms/", 5)) {
+        /* Relative path */
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
+
+            if (plat_file_check(temp))
+                return 1;
+        }
+
+        return 0;
+    } else {
+        /* Absolute path */
+        return plat_file_check(fn);
     }
+}
 
-    return 0;
+int
+asset_present(const char *fn)
+{
+    char temp[1024];
+
+    if (fn == NULL)
+        return 0;
+
+    if (!strncmp(fn, "assets/", 7)) {
+        /* Relative path */
+        for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
+            path_append_filename(temp, asset_path->path, fn + 7);
+
+            if (plat_file_check(temp))
+                return 1;
+        }
+
+        return 0;
+    } else {
+        /* Absolute path */
+        return plat_file_check(fn);
+    }
 }
 
 uint8_t
@@ -598,13 +729,14 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
      */
     if (!bios_only)
         ptr = (flags & FLAG_AUX) ? rom : rom_reset(addr, sz);
+    else
+        return (!fn1 || rom_present(fn1)) && (!fn2 || rom_present(fn2));
 
     if (!(flags & FLAG_AUX) && ((addr + sz) > 0x00100000))
         sz = 0x00100000 - addr;
 
 #ifdef ENABLE_ROM_LOG
-    if (!bios_only)
-        rom_log("%sing %i bytes of %sBIOS starting with ptr[%08X] (ptr = %08X)\n", (bios_only) ? "Check" : "Load", sz, (flags & FLAG_AUX) ? "auxiliary " : "", addr - biosaddr, ptr);
+    rom_log("%sing %i bytes of %sBIOS starting with ptr[%08X] (ptr = %08X)\n", (bios_only) ? "Check" : "Load", sz, (flags & FLAG_AUX) ? "auxiliary " : "", addr - biosaddr, ptr);
 #endif
 
     if (flags & FLAG_INT)
@@ -616,7 +748,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
             ret = rom_load_linear(fn1, addr - biosaddr, sz, off, ptr);
     }
 
-    if (!bios_only && (flags & FLAG_REP) && (old_sz >= 65536) && (sz < old_sz)) {
+    if ((flags & FLAG_REP) && (old_sz >= 65536) && (sz < old_sz)) {
         old_sz /= sz;
         for (int i = 0; i < (old_sz - 1); i++) {
             rom_log("Copying ptr[%08X] to ptr[%08X]\n", addr - biosaddr, i * sz);
@@ -624,7 +756,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
         }
     }
 
-    if (!bios_only && ret && !(flags & FLAG_AUX))
+    if (ret && !(flags & FLAG_AUX))
         bios_add();
 
     return ret;
@@ -633,42 +765,28 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
 int
 bios_load_linear_combined(const char *fn1, const char *fn2, int sz, UNUSED(int off))
 {
-    uint8_t ret = 0;
-
-    ret = bios_load_linear(fn1, 0x000f0000, 131072, 128);
-    ret &= bios_load_aux_linear(fn2, 0x000e0000, sz - 65536, 128);
-
-    return ret;
+    return bios_load_linear(fn1, 0x000f0000, 131072, 128) &&
+        bios_load_aux_linear(fn2, 0x000e0000, sz - 65536, 128);
 }
 
 int
 bios_load_linear_combined2(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
-    uint8_t ret = 0;
-
-    ret = bios_load_linear(fn3, 0x000f0000, 262144, off);
-    ret &= bios_load_aux_linear(fn1, 0x000d0000, 65536, off);
-    ret &= bios_load_aux_linear(fn2, 0x000c0000, 65536, off);
-    ret &= bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off);
-    if (fn5 != NULL)
-        ret &= bios_load_aux_linear(fn5, 0x000ec000, 16384, 0);
-
-    return ret;
+    return bios_load_linear(fn3, 0x000f0000, 262144, off) &&
+        bios_load_aux_linear(fn1, 0x000d0000, 65536, off) &&
+        bios_load_aux_linear(fn2, 0x000c0000, 65536, off) &&
+        bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off) &&
+        (!fn5 || bios_load_aux_linear(fn5, 0x000ec000, 16384, 0));
 }
 
 int
 bios_load_linear_combined2_ex(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
-    uint8_t ret = 0;
-
-    ret = bios_load_linear(fn3, 0x000e0000, 262144, off);
-    ret &= bios_load_aux_linear(fn1, 0x000c0000, 65536, off);
-    ret &= bios_load_aux_linear(fn2, 0x000d0000, 65536, off);
-    ret &= bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off);
-    if (fn5 != NULL)
-        ret &= bios_load_aux_linear(fn5, 0x000fc000, 16384, 0);
-
-    return ret;
+    return bios_load_linear(fn3, 0x000e0000, 262144, off) &&
+        bios_load_aux_linear(fn1, 0x000c0000, 65536, off) &&
+        bios_load_aux_linear(fn2, 0x000d0000, 65536, off) &&
+        bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off) &&
+        (!fn5 || bios_load_aux_linear(fn5, 0x000fc000, 16384, 0));
 }
 
 int

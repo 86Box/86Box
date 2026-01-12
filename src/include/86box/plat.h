@@ -8,8 +8,6 @@
  *
  *          Define the various platform support functions.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -17,7 +15,6 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
  */
-
 #ifndef EMU_PLAT_H
 #define EMU_PLAT_H
 
@@ -72,19 +69,10 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define fseeko64 fseeko
 #    define ftello64 ftello
 #    define off64_t  off_t
-#elif defined(_MSC_VER)
-// # define fopen64  fopen
-#    define fseeko64 _fseeki64
-#    define ftello64 _ftelli64
-#    define off64_t  off_t
 #endif
 
-#ifdef _MSC_VER
-#    define UNUSED(arg) arg
-#else
 /* A hack (GCC-specific?) to allow us to ignore unused parameters. */
 #    define UNUSED(arg) __attribute__((unused)) arg
-#endif
 
 /* Return the size (in wchar's) of a wchar_t array. */
 #define sizeof_w(x) (sizeof((x)) / sizeof(wchar_t))
@@ -93,28 +81,23 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    include <atomic>
 #    define atomic_flag_t std::atomic_flag
 #    define atomic_bool_t std::atomic_bool
+
 extern "C" {
 #else
 #    include <stdatomic.h>
 #    define atomic_flag_t atomic_flag
 #    define atomic_bool_t atomic_bool
-#endif
 
-#if defined(_MSC_VER)
-#    define ssize_t intptr_t
-#endif
 
-#ifdef _MSC_VER
-# define fallthrough do {} while (0) /* fallthrough */
+#if __has_attribute(fallthrough)
+# define fallthrough __attribute__((fallthrough))
 #else
-# if __has_attribute(fallthrough)
-#  define fallthrough __attribute__((fallthrough))
-# else
-#  if __has_attribute(__fallthrough__)
-#   define fallthrough __attribute__((__fallthrough__))
-#  endif
-#  define fallthrough do {} while (0) /* fallthrough */
+# if __has_attribute(__fallthrough__)
+#  define fallthrough __attribute__((__fallthrough__))
 # endif
+# define fallthrough do {} while (0) /* fallthrough */
+#endif
+
 #endif
 
 /* Global variables residing in the platform module. */
@@ -135,6 +118,7 @@ extern int      update_icons;
 extern int kbd_req_capture;
 extern int hide_status_bar;
 extern int hide_tool_bar;
+extern int fullscreen_ui_visible;
 
 /* System-related functions. */
 extern FILE    *plat_fopen(const char *path, const char *mode);
@@ -149,7 +133,9 @@ extern void     plat_get_global_data_dir(char *outbuf, size_t len);
 extern void     plat_get_temp_dir(char *outbuf, uint8_t len);
 extern void     plat_get_vmm_dir(char *outbuf, size_t len);
 extern void     plat_init_rom_paths(void);
+extern void     plat_init_asset_paths(void);
 extern int      plat_dir_check(char *path);
+extern int      plat_file_check(const char *path);
 extern int      plat_dir_create(char *path);
 extern void    *plat_mmap(size_t size, uint8_t executable);
 extern void     plat_munmap(void *ptr, size_t size);
@@ -165,8 +151,12 @@ extern void     plat_resize_request(int x, int y, int monitor_index);
 extern int      plat_language_code(char *langcode);
 extern void     plat_language_code_r(int id, char *outbuf, int len);
 extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
+#ifdef _WIN32
+extern void     plat_get_system_directory(char *outbuf);
+#endif
 extern void     plat_set_thread_name(void *thread, const char *name);
 extern void     plat_break(void);
+extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height);
 
 /* Resource management. */
 extern wchar_t *plat_get_string(int id);

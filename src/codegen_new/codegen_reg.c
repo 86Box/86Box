@@ -201,7 +201,11 @@ static const uint8_t native_requested_sizes[9][8] =
     [REG_DOUBLE][IREG_SIZE_Q >> IREG_SIZE_SHIFT]        = 1,
     [REG_FPU_ST_DOUBLE][IREG_SIZE_Q >> IREG_SIZE_SHIFT] = 1,
 
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+    [REG_POINTER][IREG_SIZE_Q >> IREG_SIZE_SHIFT] = 1
+#else
     [REG_POINTER][(sizeof(void *) == 4) ? (IREG_SIZE_L >> IREG_SIZE_SHIFT) : (IREG_SIZE_Q >> IREG_SIZE_SHIFT)] = 1
+#endif
 };
 
 void

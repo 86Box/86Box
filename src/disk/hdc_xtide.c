@@ -21,8 +21,6 @@
  *          already on their way out, the newer IDE standard based on the
  *          PC/AT controller and 16b design became the IDE we now know.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

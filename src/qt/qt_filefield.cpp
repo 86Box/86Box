@@ -8,8 +8,6 @@
  *
  *          File field widget.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *

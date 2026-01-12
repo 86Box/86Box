@@ -9,8 +9,6 @@
  *          Implementation of the NCR 53c400 series of SCSI Host Adapters
  *          made by NCR. These controllers were designed for the ISA and MCA bus.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>

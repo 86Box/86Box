@@ -8,8 +8,6 @@
  *
  *          Device configuration UI code.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -52,7 +50,7 @@ extern "C" {
 #    include <sys/sysmacros.h>
 #endif
 #ifdef Q_OS_WINDOWS
-#include <windows.h>
+#    include <windows.h>
 #endif
 
 DeviceConfig::DeviceConfig(QWidget *parent)
@@ -89,15 +87,16 @@ EnumerateSerialDevices()
     for (int i = 1; i < 256; i++) {
         devstr[0] = 0;
         snprintf(devstr.data(), 1024, R"(\\.\COM%d)", i);
-        const auto handle = CreateFileA(devstr.data(),
-                                               GENERIC_READ | GENERIC_WRITE, 0,
-                                               nullptr, OPEN_EXISTING,
-                                               0, nullptr);
+        const auto handle  = CreateFileA(devstr.data(),
+                                         GENERIC_READ | GENERIC_WRITE, 0,
+                                         nullptr, OPEN_EXISTING,
+                                         0, nullptr);
         const auto dwError = GetLastError();
         if ((handle != INVALID_HANDLE_VALUE) || (dwError == ERROR_ACCESS_DENIED) ||
             (dwError == ERROR_GEN_FAILURE) || (dwError == ERROR_SHARING_VIOLATION) ||
             (dwError == ERROR_SEM_TIMEOUT)) {
-            if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle);
+            if (handle != INVALID_HANDLE_VALUE)
+                CloseHandle(handle);
             serialDevices.push_back(QString(devstr));
         }
     }
@@ -116,8 +115,8 @@ EnumerateSerialDevices()
 void
 DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 {
-    auto *        device_context = static_cast<device_context_t *>(dc);
-    const auto *  config         = static_cast<const _device_config_ *>(c);
+    auto         *device_context = static_cast<device_context_t *>(dc);
+    const auto   *config         = static_cast<const _device_config_ *>(c);
     const QString blank          = "";
     int           p;
     int           q;
@@ -138,7 +137,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 
         const int config_major_type = (config_type >> CONFIG_SHIFT) << CONFIG_SHIFT;
 
-        int value = 0;
+        int  value    = 0;
         auto selected = blank;
 
         switch (config_major_type) {
@@ -166,210 +165,211 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
             default:
                 break;
             case CONFIG_BINARY:
-            {
-                auto *cbox  = new QCheckBox();
-                cbox->setObjectName(config->name);
-                cbox->setChecked(value > 0);
-                this->ui->formLayout->addRow(tr(config->description), cbox);
-                break;
-            }
+                {
+                    auto *cbox = new QCheckBox();
+                    cbox->setObjectName(config->name);
+                    cbox->setChecked(value > 0);
+                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    break;
+                }
 #ifdef USE_RTMIDI
             case CONFIG_MIDI_OUT:
-            {
-                auto *cbox = new QComboBox();
-                cbox->setObjectName(config->name);
-                cbox->setMaxVisibleItems(30);
-                auto *model        = cbox->model();
-                int   currentIndex = -1;
-                for (int i = 0; i < rtmidi_out_get_num_devs(); i++) {
-                    char midiName[512] = { 0 };
-                    rtmidi_out_get_dev_name(i, midiName);
+                {
+                    auto *cbox = new QComboBox();
+                    cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
+                    auto *model        = cbox->model();
+                    int   currentIndex = -1;
+                    for (int i = 0; i < rtmidi_out_get_num_devs(); i++) {
+                        char midiName[512] = { 0 };
+                        rtmidi_out_get_dev_name(i, midiName);
 
-                    Models::AddEntry(model, midiName, i);
-                    if (i == value)
-                        currentIndex = i;
+                        Models::AddEntry(model, midiName, i);
+                        if (i == value)
+                            currentIndex = i;
+                    }
+                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    cbox->setCurrentIndex(currentIndex);
+                    break;
                 }
-                this->ui->formLayout->addRow(tr(config->description), cbox);
-                cbox->setCurrentIndex(currentIndex);
-                break;
-            }
             case CONFIG_MIDI_IN:
-            {
-                auto *cbox = new QComboBox();
-                cbox->setObjectName(config->name);
-                cbox->setMaxVisibleItems(30);
-                auto *model        = cbox->model();
-                int   currentIndex = -1;
-                for (int i = 0; i < rtmidi_in_get_num_devs(); i++) {
-                    char midiName[512] = { 0 };
-                    rtmidi_in_get_dev_name(i, midiName);
+                {
+                    auto *cbox = new QComboBox();
+                    cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
+                    auto *model        = cbox->model();
+                    int   currentIndex = -1;
+                    for (int i = 0; i < rtmidi_in_get_num_devs(); i++) {
+                        char midiName[512] = { 0 };
+                        rtmidi_in_get_dev_name(i, midiName);
 
-                    Models::AddEntry(model, midiName, i);
-                    if (i == value)
-                        currentIndex = i;
+                        Models::AddEntry(model, midiName, i);
+                        if (i == value)
+                            currentIndex = i;
+                    }
+                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    cbox->setCurrentIndex(currentIndex);
+                    break;
                 }
-                this->ui->formLayout->addRow(tr(config->description), cbox);
-                cbox->setCurrentIndex(currentIndex);
-                break;
-            }
 #endif
             case CONFIG_INT:
             case CONFIG_SELECTION:
             case CONFIG_HEX16:
             case CONFIG_HEX20:
-            {
-                auto *cbox = new QComboBox();
-                cbox->setObjectName(config->name);
-                cbox->setMaxVisibleItems(30);
-                auto *model        = cbox->model();
-                int   currentIndex = -1;
+                {
+                    auto *cbox = new QComboBox();
+                    cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
+                    auto *model        = cbox->model();
+                    int   currentIndex = -1;
 
-                for (auto *sel = config->selection; (sel != nullptr) && (sel->description != nullptr) &&
-                                                    (strlen(sel->description) > 0); ++sel) {
-                    int row = Models::AddEntry(model, tr(sel->description), sel->value);
+                    for (auto *sel = config->selection; (sel != nullptr) && (sel->description != nullptr) &&
+                                                        (strlen(sel->description) > 0); ++sel) {
+                        int row = Models::AddEntry(model, tr(sel->description), sel->value);
 
-                    if (sel->value == value)
-                        currentIndex = row;
-                }
-                this->ui->formLayout->addRow(tr(config->description), cbox);
-                cbox->setCurrentIndex(currentIndex);
-                break;
-            }
-            case CONFIG_BIOS:
-            {
-                auto *cbox = new QComboBox();
-                cbox->setObjectName(config->name);
-                cbox->setMaxVisibleItems(30);
-                auto *model        = cbox->model();
-                int   currentIndex = -1;
-
-                q = 0;
-                for (auto *bios = config->bios; (bios != nullptr) &&
-                                                (bios->name != nullptr) &&
-                                                (bios->internal_name != nullptr) &&
-                                                (strlen(bios->name) > 0) &&
-                                                (strlen(bios->internal_name) > 0) &&
-                                                (bios->files_no > 0); ++bios) {
-                    p = 0;
-                    for (int d = 0; d < bios->files_no; d++)
-                        p += !!rom_present(const_cast<char *>(bios->files[d]));
-                    if (p == bios->files_no) {
-                        const int row = Models::AddEntry(model, tr(bios->name), q);
-                        if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
+                        if (sel->value == value)
                             currentIndex = row;
                     }
-                    q++;
+                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    cbox->setCurrentIndex(currentIndex);
+                    break;
                 }
-                this->ui->formLayout->addRow(tr(config->description), cbox);
-                cbox->setCurrentIndex(currentIndex);
-                break;
-            }
+            case CONFIG_BIOS:
+                {
+                    auto *cbox = new QComboBox();
+                    cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
+                    auto *model        = cbox->model();
+                    int   currentIndex = -1;
+
+                    q = 0;
+                    for (auto *bios = config->bios; (bios != nullptr) &&
+                                                    (bios->name != nullptr) &&
+                                                    (bios->internal_name != nullptr) &&
+                                                    (strlen(bios->name) > 0) &&
+                                                    (strlen(bios->internal_name) > 0) &&
+                                                    (bios->files_no > 0); ++bios) {
+                        p = 0;
+                        for (int d = 0; d < bios->files_no; d++)
+                            p += !!rom_present(const_cast<char *>(bios->files[d]));
+                        if (p == bios->files_no) {
+                            const int row = Models::AddEntry(model, tr(bios->name), q);
+                            if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
+                                currentIndex = row;
+                        }
+                        q++;
+                    }
+                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    cbox->setCurrentIndex(currentIndex);
+                    break;
+                }
             case CONFIG_SPINNER:
-            {
-                auto *spinBox = new QSpinBox();
-                spinBox->setObjectName(config->name);
-                spinBox->setMaximum(config->spinner.max);
-                spinBox->setMinimum(config->spinner.min);
-                if (config->spinner.step > 0)
-                    spinBox->setSingleStep(config->spinner.step);
-                spinBox->setValue(value);
-                this->ui->formLayout->addRow(tr(config->description), spinBox);
-                break;
-            }
+                {
+                    auto *spinBox = new QSpinBox();
+                    spinBox->setObjectName(config->name);
+                    spinBox->setMaximum(config->spinner.max);
+                    spinBox->setMinimum(config->spinner.min);
+                    if (config->spinner.step > 0)
+                        spinBox->setSingleStep(config->spinner.step);
+                    spinBox->setValue(value);
+                    this->ui->formLayout->addRow(tr(config->description), spinBox);
+                    break;
+                }
             case CONFIG_FNAME:
-            {
-                auto *fileField = new FileField(this);
-                fileField->setObjectName(config->name);
-                fileField->setFileName(selected);
-                /* Get the actually used part of the filter */
+                {
+                    auto *fileField = new FileField(this);
+                    fileField->setObjectName(config->name);
+                    fileField->setFileName(selected);
+                    /* Get the actually used part of the filter */
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-                QString filter = QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter, "|")));
+                    QString filter = QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter, "|")));
 #else
-                QString filter = QString(config->file_filter).split("|").at(0);
+                    QString filter = QString(config->file_filter).split("|").at(0);
 #endif
-                /* Extract the description and the extension list */
-                QRegularExpressionMatch match = QRegularExpression("(.+) \\((.+)\\)$").match(filter);
-                QString description = match.captured(1);
-                QString extensions = match.captured(2);
-                /* Split the extension list up and strip the filename globs */
-                QRegularExpression re("\\*\\.(.*)");
+                    /* Extract the description and the extension list */
+                    QRegularExpressionMatch match       = QRegularExpression("(.+) \\((.+)\\)$").match(filter);
+                    QString                 description = match.captured(1);
+                    QString                 extensions  = match.captured(2);
+                    /* Split the extension list up and strip the filename globs */
+                    QRegularExpression re("\\*\\.(.*)");
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-                QStringList extensionList;
-                int i = 0;
-                while (extensions.section(' ', i, i) != "") {
-                    QString extension = re.match(extensions.section(' ', i, i)).captured(1);
-                    extensionList.append(extension);
-                    i++;
+                    QStringList extensionList;
+                    int         i = 0;
+                    while (extensions.section(' ', i, i) != "") {
+                        QString extension = re.match(extensions.section(' ', i, i)).captured(1);
+                        extensionList.append(extension);
+                        i++;
+                    }
+#else
+                    QStringList extensionList = extensions.split(" ");
+                    for (int i = 0; i < extensionList.count(); i++)
+                        extensionList[i] = re.match(extensionList[i]).captured(1);
+#endif
+                    fileField->setFilter(tr(description.toUtf8().constData()) % util::DlgFilter(extensionList) % tr("All files") % util::DlgFilter({ "*" }, true));
+                    this->ui->formLayout->addRow(tr(config->description), fileField);
+                    break;
                 }
-#else
-                QStringList extensionList = extensions.split(" ");
-                for (int i = 0; i < extensionList.count(); i++)
-                    extensionList[i] = re.match(extensionList[i]).captured(1);
-#endif
-                fileField->setFilter(tr(description.toUtf8().constData()) % util::DlgFilter(extensionList) % tr("All files") % util::DlgFilter({ "*" }, true));
-                this->ui->formLayout->addRow(tr(config->description), fileField);
-                break;
-            }
             case CONFIG_STRING:
-            {
-                const auto lineEdit = new QLineEdit;
-                lineEdit->setObjectName(config->name);
-                lineEdit->setCursor(Qt::IBeamCursor);
-                lineEdit->setText(selected);
-                this->ui->formLayout->addRow(tr(config->description), lineEdit);
-                break;
-            }
+                {
+                    const auto lineEdit = new QLineEdit;
+                    lineEdit->setObjectName(config->name);
+                    lineEdit->setCursor(Qt::IBeamCursor);
+                    lineEdit->setText(selected);
+                    this->ui->formLayout->addRow(tr(config->description), lineEdit);
+                    break;
+                }
             case CONFIG_SERPORT:
-            {
-                auto *cbox = new QComboBox();
-                cbox->setObjectName(config->name);
-                cbox->setMaxVisibleItems(30);
-                auto *model         = cbox->model();
-                int   currentIndex  = 0;
-                auto  serialDevices = EnumerateSerialDevices();
+                {
+                    auto *cbox = new QComboBox();
+                    cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
+                    auto *model         = cbox->model();
+                    int   currentIndex  = 0;
+                    auto  serialDevices = EnumerateSerialDevices();
 
-                Models::AddEntry(model, tr("None"), -1);
-                for (int i = 0; i < serialDevices.size(); i++) {
-                    const int row = Models::AddEntry(model, serialDevices[i], i);
-                    if (selected == serialDevices[i])
-                        currentIndex = row;
+                    Models::AddEntry(model, tr("None"), -1);
+                    for (int i = 0; i < serialDevices.size(); i++) {
+                        const int row = Models::AddEntry(model, serialDevices[i], i);
+                        if (selected == serialDevices[i])
+                            currentIndex = row;
+                    }
+
+                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    cbox->setCurrentIndex(currentIndex);
+                    break;
                 }
-
-                this->ui->formLayout->addRow(tr(config->description), cbox);
-                cbox->setCurrentIndex(currentIndex);
-                break;
-            }
             case CONFIG_MAC:
-            {
-                // QHBoxLayout for the line edit widget and the generate button
-                const auto hboxLayout     = new QHBoxLayout();
-                const auto generateButton = new QPushButton(tr("Generate"));
-                const auto lineEdit       = new QLineEdit;
-                // Allow the line edit to expand and fill available space
-                lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding,QSizePolicy::Preferred);
-                lineEdit->setInputMask("HH:HH:HH;0");
-                lineEdit->setObjectName(config->name);
-                // Display the current or generated MAC in uppercase
-                // When stored it will be converted to lowercase
-                if (config_get_mac(device_context->name, config->name,
-                                   config->default_int) & 0xFF000000) {
-                    lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(),
-                                      random_generate(), random_generate()));
-                } else {
-                    auto current_mac = QString(config_get_string(device_context->name, config->name,
-                                               const_cast<char *>(config->default_string)));
-                    lineEdit->setText(current_mac.toUpper());
+                {
+                    // QHBoxLayout for the line edit widget and the generate button
+                    const auto hboxLayout     = new QHBoxLayout();
+                    const auto generateButton = new QPushButton(tr("Generate"));
+                    const auto lineEdit       = new QLineEdit;
+                    // Allow the line edit to expand and fill available space
+                    lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+                    lineEdit->setInputMask("HH:HH:HH;0");
+                    lineEdit->setObjectName(config->name);
+                    // Display the current or generated MAC in uppercase
+                    // When stored it will be converted to lowercase
+                    if (config_get_mac(device_context->name, config->name,
+                                       config->default_int)
+                        & 0xFF000000) {
+                        lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(),
+                                                            random_generate(), random_generate()));
+                    } else {
+                        auto current_mac = QString(config_get_string(device_context->name, config->name,
+                                                                     const_cast<char *>(config->default_string)));
+                        lineEdit->setText(current_mac.toUpper());
+                    }
+                    // Action for the generate button
+                    connect(generateButton, &QPushButton::clicked, [lineEdit] {
+                        lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(),
+                                                            random_generate(), random_generate()));
+                    });
+                    hboxLayout->addWidget(lineEdit);
+                    hboxLayout->addWidget(generateButton);
+                    this->ui->formLayout->addRow(tr(config->description), hboxLayout);
+                    break;
                 }
-                // Action for the generate button
-                connect(generateButton, &QPushButton::clicked, [lineEdit] {
-                    lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(),
-                                      random_generate(), random_generate()));
-                });
-                hboxLayout->addWidget(lineEdit);
-                hboxLayout->addWidget(generateButton);
-                this->ui->formLayout->addRow(tr(config->description), hboxLayout);
-                break;
-            }
         }
         ++config;
     }

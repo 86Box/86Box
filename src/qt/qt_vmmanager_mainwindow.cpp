@@ -1,20 +1,17 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		86Box VM manager main window
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
-*/
-
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          86Box VM manager main window
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
+ */
 #include "qt_vmmanager_mainwindow.hpp"
 #include "qt_vmmanager_main.hpp"
 #include "qt_vmmanager_preferences.hpp"
@@ -27,23 +24,19 @@
 #include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 
-#include <QLineEdit>
-#include <QStringListModel>
-#include <QCompleter>
 #include <QCloseEvent>
 #include <QDesktopServices>
 
-extern "C"
-{
+extern "C" {
 extern void config_load_global();
 extern void config_save_global();
 }
 
-VMManagerMainWindow* vmm_main_window = nullptr;
-extern WindowsDarkModeFilter* vmm_dark_mode_filter;
+VMManagerMainWindow          *vmm_main_window = nullptr;
+extern WindowsDarkModeFilter *vmm_dark_mode_filter;
 
 VMManagerMainWindow::
-VMManagerMainWindow(QWidget *parent)
+    VMManagerMainWindow(QWidget *parent)
     : ui(new Ui::VMManagerMainWindow)
     , vmm(new VMManagerMain(this))
     , statusLeft(new QLabel)
@@ -53,8 +46,11 @@ VMManagerMainWindow(QWidget *parent)
 
     vmm_main_window = this;
 
+    runIcon = QIcon(":/menuicons/qt/icons/run.ico");
+    pauseIcon = QIcon(":/menuicons/qt/icons/pause.ico");
+
     // Connect signals from the VMManagerMain widget
-    connect(vmm, &VMManagerMain::selectionChanged, this, &VMManagerMainWindow::vmmSelectionChanged);
+    connect(vmm, &VMManagerMain::selectionOrStateChanged, this, &VMManagerMainWindow::vmmStateChanged);
 
     setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     setCentralWidget(vmm);
@@ -65,57 +61,32 @@ VMManagerMainWindow(QWidget *parent)
     connect(ui->actionSettings, &QAction::triggered, vmm, &VMManagerMain::settingsButtonPressed);
     connect(ui->actionHard_Reset, &QAction::triggered, vmm, &VMManagerMain::restartButtonPressed);
     connect(ui->actionForce_Shutdown, &QAction::triggered, vmm, &VMManagerMain::shutdownForceButtonPressed);
+    connect(ui->actionCtrl_Alt_Del, &QAction::triggered, vmm, &VMManagerMain::cadButtonPressed);
 
-    // Set up menu actions
-    // (Disable this if the EMU_BUILD_NUM == 0)
-    #if EMU_BUILD_NUM == 0
-        ui->actionCheck_for_updates->setVisible(false);
-    #else
-        connect(ui->actionCheck_for_updates, &QAction::triggered, this, &VMManagerMainWindow::checkForUpdatesTriggered);
-    #endif
-    
-    // TODO: Remove all of this (all the way to END REMOVE) once certain the search will no longer be in the toolbar.
-    // BEGIN REMOVE
-    // Everything is still setup here for it but it is all hidden. None of it will be
-    // needed if the search stays in VMManagerMain
-    ui->actionStartPause->setEnabled(true);
-    ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+// Set up menu actions
+// (Disable this if the EMU_BUILD_NUM == 0)
+#if EMU_BUILD_NUM == 0
+    ui->actionCheck_for_updates->setVisible(false);
+#else
+    connect(ui->actionCheck_for_updates, &QAction::triggered, this, &VMManagerMainWindow::checkForUpdatesTriggered);
+#endif
+
+    // Set up the toolbar
+    ui->actionStartPause->setEnabled(false);
+    ui->actionStartPause->setIcon(runIcon);
     ui->actionStartPause->setText(tr("Start"));
     ui->actionStartPause->setToolTip(tr("Start"));
     ui->actionHard_Reset->setEnabled(false);
     ui->actionForce_Shutdown->setEnabled(false);
     ui->actionCtrl_Alt_Del->setEnabled(false);
+    ui->actionSettings->setEnabled(false);
 
-    const auto searchBar = new QLineEdit();
-    searchBar->setMinimumWidth(150);
-    searchBar->setPlaceholderText(tr("Search"));
-    searchBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    searchBar->setClearButtonEnabled(true);
-    // Spacer to make the search go all the way to the right
-    const auto spacer = new QWidget();
-    spacer->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
-    ui->toolBar->addWidget(spacer);
-    ui->toolBar->addWidget(searchBar);
-    // Connect signal for search
-    connect(searchBar, &QLineEdit::textChanged, vmm, &VMManagerMain::searchSystems);
     // Preferences
     connect(ui->actionPreferences, &QAction::triggered, this, &VMManagerMainWindow::preferencesTriggered);
 
-    // Create a completer for the search bar
-    auto *completer = new QCompleter(this);
-    completer->setCaseSensitivity(Qt::CaseInsensitive);
-    completer->setFilterMode(Qt::MatchContains);
-    // Get the completer list
-    const auto allStrings = vmm->getSearchCompletionList();
-    // Set up the completer
-    auto *completerModel = new QStringListModel(allStrings, completer);
-    completer->setModel(completerModel);
-    searchBar->setCompleter(completer);
 #ifdef Q_OS_WINDOWS
     ui->toolBar->setBackgroundRole(QPalette::Light);
 #endif
-    ui->toolBar->setVisible(false);
-    // END REMOVE
 
     // Status bar widgets
     statusLeft->setAlignment(Qt::AlignLeft);
@@ -130,65 +101,103 @@ VMManagerMainWindow(QWidget *parent)
     connect(this, &VMManagerMainWindow::languageUpdated, vmm, &VMManagerMain::onLanguageUpdated);
 #ifdef Q_OS_WINDOWS
     connect(this, &VMManagerMainWindow::darkModeUpdated, vmm, &VMManagerMain::onDarkModeUpdated);
-    connect(this, &VMManagerMainWindow::preferencesUpdated, [] () { vmm_dark_mode_filter->reselectDarkMode(); });
+    connect(this, &VMManagerMainWindow::preferencesUpdated, []() { vmm_dark_mode_filter->reselectDarkMode(); });
 #endif
 
     {
         auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
-        this->ui->actionRemember_size_and_position->setChecked(!!config->getStringValue("window_remember").toInt());
-        if (ui->actionRemember_size_and_position->isChecked()) {
-            QStringList list = config->getStringValue("window_coordinates").split(',');
-            for (auto& cur : list) {
-                cur = cur.trimmed();
-            }
-            QRect geom;
-            geom.setX(list[0].toInt());
-            geom.setY(list[1].toInt());
-            geom.setWidth(list[2].toInt());
-            geom.setHeight(list[3].toInt());
+        ui->actionHide_tool_bar->setChecked(!!config->getStringValue("hide_tool_bar").toInt());
+        if (ui->actionHide_tool_bar->isChecked())
+            ui->toolBar->setVisible(false);
+        if (!!config->getStringValue("window_remember").toInt()) {
+            QString coords = config->getStringValue("window_coordinates");
+            if (!coords.isEmpty()) {
+                QStringList list = coords.split(',');
+                for (auto &cur : list) {
+                    cur = cur.trimmed();
+                }
+                QRect geom;
+                geom.setX(list[0].toInt());
+                geom.setY(list[1].toInt());
+                geom.setWidth(list[2].toInt());
+                geom.setHeight(list[3].toInt());
 
-            setGeometry(geom);
+                setGeometry(geom);
+            }
+
             if (!!config->getStringValue("window_maximized").toInt()) {
                 setWindowState(windowState() | Qt::WindowMaximized);
             }
+
+            QString splitter = config->getStringValue("window_splitter");
+            if (!splitter.isEmpty()) {
+                QStringList list = splitter.split(',');
+                for (auto &cur : list) {
+                    cur = cur.trimmed();
+                }
+                QList<int> paneSizes;
+                paneSizes.append(list[0].toInt());
+                paneSizes.append(list[1].toInt());
+
+                vmm->setPaneSizes(paneSizes);
+            }
         } else {
-            config->setStringValue("window_remember", "");
             config->setStringValue("window_coordinates", "");
             config->setStringValue("window_maximized", "");
+            config->setStringValue("window_splitter", "");
         }
         delete config;
     }
-
 }
 
-VMManagerMainWindow::~
-VMManagerMainWindow()
+VMManagerMainWindow::~VMManagerMainWindow()
     = default;
 
 void
-VMManagerMainWindow::vmmSelectionChanged(const QModelIndex &currentSelection, const QProcess::ProcessState processState) const
+VMManagerMainWindow::vmmStateChanged(const VMManagerSystem *sysconfig) const
 {
-    if (processState == QProcess::Running) {
-        ui->actionStartPause->setEnabled(true);
-        ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
-        ui->actionStartPause->setText(tr("Pause"));
-        ui->actionStartPause->setToolTip(tr("Pause"));
-        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
-        connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
-        ui->actionHard_Reset->setEnabled(true);
-        ui->actionForce_Shutdown->setEnabled(true);
-        ui->actionCtrl_Alt_Del->setEnabled(true);
-    } else {
-        ui->actionStartPause->setEnabled(true);
-        ui->actionStartPause->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
-        ui->actionStartPause->setText(tr("Start"));
-        ui->actionStartPause->setToolTip(tr("Start"));
-        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
-        connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
+    if (sysconfig == nullptr) {
+        // This doubles both as a safety check and a way to disable
+        // all machine-related buttons when no machines are present
+        ui->actionStartPause->setEnabled(false);
+        ui->actionSettings->setEnabled(false);
         ui->actionHard_Reset->setEnabled(false);
         ui->actionForce_Shutdown->setEnabled(false);
         ui->actionCtrl_Alt_Del->setEnabled(false);
+        return;
     }
+    const bool running = sysconfig->process->state() == QProcess::ProcessState::Running;
+
+    if (running) {
+        if (sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
+            ui->actionStartPause->setIcon(pauseIcon);
+            ui->actionStartPause->setText(tr("&Pause"));
+            ui->actionStartPause->setToolTip(tr("Pause"));
+            ui->actionStartPause->setIconText(tr("Pause"));
+        } else {
+            ui->actionStartPause->setIcon(runIcon);
+            ui->actionStartPause->setText(tr("&Continue"));
+            ui->actionStartPause->setToolTip(tr("Continue"));
+            ui->actionStartPause->setIconText(tr("Continue"));
+        }
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
+        connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
+    } else {
+        ui->actionStartPause->setIcon(runIcon);
+        ui->actionStartPause->setText(tr("&Start"));
+        ui->actionStartPause->setToolTip(tr("Start"));
+        ui->actionStartPause->setIconText(tr("Start"));
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::pauseButtonPressed);
+        disconnect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
+        connect(ui->actionStartPause, &QAction::triggered, vmm, &VMManagerMain::startButtonPressed);
+    }
+
+    ui->actionStartPause->setEnabled(!sysconfig->window_obscured);
+    ui->actionSettings->setEnabled(!sysconfig->window_obscured);
+    ui->actionHard_Reset->setEnabled(sysconfig->window_obscured ? false : running);
+    ui->actionForce_Shutdown->setEnabled(sysconfig->window_obscured ? false : running);
+    ui->actionCtrl_Alt_Del->setEnabled(sysconfig->window_obscured ? false : running);
 }
 void
 VMManagerMainWindow::preferencesTriggered()
@@ -212,16 +221,17 @@ void
 VMManagerMainWindow::saveSettings() const
 {
     const auto currentSelection = vmm->getCurrentSelection();
-    const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+    const auto config           = new VMManagerConfig(VMManagerConfig::ConfigType::General);
     config->setStringValue("last_selection", currentSelection);
-    config->setStringValue("window_remember", QString::number(ui->actionRemember_size_and_position->isChecked()));
-    if (ui->actionRemember_size_and_position->isChecked()) {
+    config->setStringValue("hide_tool_bar", (ui->toolBar->isVisible() ? "0" : "1"));
+    if (!!config->getStringValue("window_remember").toInt()) {
         config->setStringValue("window_coordinates", QString::asprintf("%i, %i, %i, %i", this->geometry().x(), this->geometry().y(), this->geometry().width(), this->geometry().height()));
         config->setStringValue("window_maximized", this->isMaximized() ? "1" : "");
+        config->setStringValue("window_splitter", QString::asprintf("%i, %i", vmm->getPaneSizes()[0], vmm->getPaneSizes()[1]));
     } else {
-        config->setStringValue("window_remember", "");
         config->setStringValue("window_coordinates", "");
         config->setStringValue("window_maximized", "");
+        config->setStringValue("window_splitter", "");
     }
     // Sometimes required to ensure the settings save before the app exits
     config->sync();
@@ -236,7 +246,6 @@ VMManagerMainWindow::updateLanguage()
     setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     emit languageUpdated();
 }
-
 
 #ifdef Q_OS_WINDOWS
 void
@@ -283,6 +292,15 @@ void
 VMManagerMainWindow::setStatusRight(const QString &text) const
 {
     statusRight->setText(text);
+}
+
+void
+VMManagerMainWindow::on_actionHide_tool_bar_triggered()
+{
+    const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+    int isHidden = config->getStringValue("hide_tool_bar").toInt();
+    ui->toolBar->setVisible(!!isHidden);
+    config->setStringValue("hide_tool_bar", (isHidden ? "0" : "1"));
 }
 
 #if EMU_BUILD_NUM != 0

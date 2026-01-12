@@ -10,8 +10,6 @@
  *
  *          Re-worked version based on the 82C235 datasheet and errata.
  *
- *
- *
  * Authors: Original by GreatPsycho for PCem.
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *

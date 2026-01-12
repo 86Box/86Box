@@ -8,13 +8,10 @@
  *
  *          Definitions for the SMRAM interface.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.
  */
-
 #ifndef EMU_SMRAM_H
 #define EMU_SMRAM_H
 

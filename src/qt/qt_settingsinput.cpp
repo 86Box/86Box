@@ -61,7 +61,7 @@ SettingsInput::SettingsInput(QWidget *parent)
     keyTable->setColumnWidth(0, 200);
     keyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     QStringList headers;
-    //headers << "Action" << "Bound key";
+    // headers << "Action" << "Bound key";
     keyTable->setHorizontalHeaderLabels(horizontalHeader);
     keyTable->verticalHeader()->setVisible(false);
     keyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -71,7 +71,7 @@ SettingsInput::SettingsInput(QWidget *parent)
 
     // Make a working copy of acc_keys so we can check for dupes later without getting
     // confused
-    for(int x = 0; x < NUM_ACCELS; x++) {
+    for (int x = 0; x < NUM_ACCELS; x++) {
         strcpy(acc_keys_t[x].name, acc_keys[x].name);
         strcpy(acc_keys_t[x].desc, acc_keys[x].desc);
         strcpy(acc_keys_t[x].seq, acc_keys[x].seq);
@@ -96,7 +96,7 @@ SettingsInput::save()
     joystick_type[0] = ui->comboBoxJoystick0->currentData().toInt();
 
     // Copy accelerators from working set to global set
-    for(int x = 0; x < NUM_ACCELS; x++) {
+    for (int x = 0; x < NUM_ACCELS; x++) {
         strcpy(acc_keys[x].name, acc_keys_t[x].name);
         strcpy(acc_keys[x].desc, acc_keys_t[x].desc);
         strcpy(acc_keys[x].seq, acc_keys_t[x].seq);
@@ -111,7 +111,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     this->machineId = machineId;
 
     auto *keyboardModel = ui->comboBoxKeyboard->model();
-    auto  removeRows = keyboardModel->rowCount();
+    auto  removeRows    = keyboardModel->rowCount();
 
     int selectedRow = 0;
 
@@ -119,11 +119,10 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     int has_int_kbd = !!machine_has_flags(machineId, MACHINE_KEYBOARD);
 
     for (int i = 0; i < keyboard_get_ndev(); ++i) {
-        const auto *dev           = keyboard_get_device(i);
-        int         ikbd          = (i == KEYBOARD_TYPE_INTERNAL);
+        const auto *dev  = keyboard_get_device(i);
+        int         ikbd = (i == KEYBOARD_TYPE_INTERNAL);
 
-        int         pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") &&
-                                    strstr(machine_get_internal_name_ex(machineId), "pc5086"));
+        int pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") && machines[machineId].init == machine_xt_pc5086_init);
 
         if ((ikbd != has_int_kbd) || !device_is_valid(dev, machineId) || pc5086_filter)
             continue;
@@ -209,7 +208,7 @@ void
 SettingsInput::on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
 {
     // Enable/disable bind/clear buttons if user clicked valid row
-    QTableWidgetItem *cell = ui->tableKeys->item(currentRow,1);
+    QTableWidgetItem *cell = ui->tableKeys->item(currentRow, 1);
     if (!cell) {
         ui->pushButtonBind->setEnabled(false);
         ui->pushButtonClearBind->setEnabled(false);
@@ -223,7 +222,7 @@ void
 SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
 {
     // Edit bind
-    QTableWidgetItem *cell = ui->tableKeys->item(row,1);
+    QTableWidgetItem *cell = ui->tableKeys->item(row, 1);
     if (!cell)
         return;
 
@@ -236,8 +235,8 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
         // Otherwise, check for conflicts.
         // Check against the *working* copy - NOT the one in use by the app,
         // so we don't test against shortcuts the user already changed.
-        for(int x = 0; x < NUM_ACCELS; x++) {
-            if(QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
+        for (int x = 0; x < NUM_ACCELS; x++) {
+            if (QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
                 // That key is already in use
                 QMessageBox::warning(this, tr("Bind conflict"), tr("This key combo is already in use."), QMessageBox::StandardButton::Ok);
                 return;
@@ -247,7 +246,7 @@ SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
         // Go ahead and apply the bind.
 
         // Find the correct accelerator key entry
-        int accKeyID = FindAccelerator(ui->tableKeys->item(row,2)->text().toUtf8().constData());
+        int accKeyID = FindAccelerator(ui->tableKeys->item(row, 2)->text().toUtf8().constData());
         if (accKeyID < 0)
             return; // this should never happen
 
@@ -280,7 +279,7 @@ SettingsInput::on_pushButtonClearBind_clicked()
 
     cell->setText("");
     // Find the correct accelerator key entry
-    int accKeyID = FindAccelerator(ui->tableKeys->item(cell->row(),2)->text().toUtf8().constData());
+    int accKeyID = FindAccelerator(ui->tableKeys->item(cell->row(), 2)->text().toUtf8().constData());
     if (accKeyID < 0)
         return; // this should never happen
 
@@ -335,7 +334,7 @@ SettingsInput::on_pushButtonConfigureMouse_clicked()
 }
 
 static int
-get_axis(JoystickConfiguration &jc, int axis, uint8_t gameport_nr, int joystick_nr)
+get_axis(JoystickConfiguration &jc, uint8_t gameport_nr, int joystick_nr, int axis)
 {
     int axis_sel = jc.selectedAxis(axis);
     int nr_axes  = plat_joystick_state[joystick_state[gameport_nr][joystick_nr].plat_joystick_nr - 1].nr_axes;
@@ -351,7 +350,7 @@ get_axis(JoystickConfiguration &jc, int axis, uint8_t gameport_nr, int joystick_
 }
 
 static int
-get_pov(JoystickConfiguration &jc, int pov, uint8_t gameport_nr, int joystick_nr)
+get_pov(JoystickConfiguration &jc, uint8_t gameport_nr, int joystick_nr, int pov)
 {
     int pov_sel = jc.selectedPov(pov);
     int nr_povs = plat_joystick_state[joystick_state[gameport_nr][joystick_nr].plat_joystick_nr - 1].nr_povs * 2;
@@ -379,17 +378,15 @@ updateJoystickConfig(int type, uint8_t gameport_nr, int joystick_nr, QWidget *pa
 
     joystick_state[gameport_nr][joystick_nr].plat_joystick_nr = jc.selectedDevice();
     if (joystick_state[gameport_nr][joystick_nr].plat_joystick_nr) {
-        for (int axis_nr = 0; axis_nr < joystick_get_axis_count(type); axis_nr++) {
-            joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr] = get_axis(jc, axis_nr, gameport_nr, joystick_nr);
-        }
+        for (int axis_nr = 0; axis_nr < joystick_get_axis_count(type); axis_nr++)
+            joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr] = get_axis(jc, gameport_nr, joystick_nr, axis_nr);
 
-        for (int button_nr = 0; button_nr < joystick_get_button_count(type); button_nr++) {
+        for (int button_nr = 0; button_nr < joystick_get_button_count(type); button_nr++)
             joystick_state[gameport_nr][joystick_nr].button_mapping[button_nr] = jc.selectedButton(button_nr);
-        }
 
-        for (int pov_nr = 0; pov_nr < joystick_get_pov_count(type) * 2; pov_nr += 2) {
-            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0] = get_pov(jc, pov_nr, gameport_nr, joystick_nr);
-            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1] = get_pov(jc, pov_nr + 1, gameport_nr, joystick_nr);
+        for (int pov_nr = 0; pov_nr < joystick_get_pov_count(type); pov_nr++) {
+            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0] = get_pov(jc, gameport_nr, joystick_nr, pov_nr * 2); // X Axis
+            joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1] = get_pov(jc, gameport_nr, joystick_nr, pov_nr * 2 + 1); // Y Axis
         }
     }
 }

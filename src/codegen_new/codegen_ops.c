@@ -86,13 +86,8 @@ RecompOpFn recomp_opcodes_0f[512] = {
 
 /*40*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*50*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
-/*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#else
 /*60*/  ropPUNPCKLBW,   ropPUNPCKLWD,   ropPUNPCKLDQ,   ropPACKSSWB,    ropPCMPGTB,     ropPCMPGTW,     ropPCMPGTD,     ropPACKUSWB,    ropPUNPCKHBW,   ropPUNPCKHWD,   ropPUNPCKHDQ,   ropPACKSSDW,    NULL,           NULL,           ropMOVD_r_d,    ropMOVQ_r_q,
 /*70*/  NULL,           ropPSxxW_imm,   ropPSxxD_imm,   ropPSxxQ_imm,   ropPCMPEQB,     ropPCMPEQW,     ropPCMPEQD,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVD_d_r,    ropMOVQ_q_r,
-#endif
 
 /*80*/  ropJO_16,       ropJNO_16,      ropJB_16,       ropJNB_16,      ropJE_16,       ropJNE_16,      ropJBE_16,      ropJNBE_16,     ropJS_16,       ropJNS_16,      ropJP_16,       ropJNP_16,      ropJL_16,       ropJNL_16,      ropJLE_16,      ropJNLE_16,
 /*90*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -100,13 +95,11 @@ RecompOpFn recomp_opcodes_0f[512] = {
 /*b0*/  NULL,           NULL,           ropLSS_16,      NULL,           ropLFS_16,      ropLGS_16,      ropMOVZX_16_8,  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVSX_16_8,  NULL,
 
 /*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
-/*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#else
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULLW,      NULL,           NULL,           ropPSUBUSB,     ropPSUBUSW,     NULL,           ropPAND,        ropPADDUSB,     ropPADDUSW,     NULL,           ropPANDN,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULHW,      NULL,           NULL,           ropPSUBSB,      ropPSUBSW,      NULL,           ropPOR,         ropPADDSB,      ropPADDSW,      NULL,           ropPXOR,
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPSUBB,       ropPSUBW,       ropPSUBD,       NULL,           ropPADDB,       ropPADDW,       ropPADDD,       NULL,
+#else
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMADDWD,     NULL,           NULL,           ropPSUBB,       ropPSUBW,       ropPSUBD,       NULL,           ropPADDB,       ropPADDW,       ropPADDD,       NULL,
 #endif
 
@@ -119,13 +112,8 @@ RecompOpFn recomp_opcodes_0f[512] = {
 
 /*40*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*50*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
-/*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#else
 /*60*/  ropPUNPCKLBW,   ropPUNPCKLWD,   ropPUNPCKLDQ,   ropPACKSSWB,    ropPCMPGTB,     ropPCMPGTW,     ropPCMPGTD,     ropPACKUSWB,    ropPUNPCKHBW,   ropPUNPCKHWD,   ropPUNPCKHDQ,   ropPACKSSDW,    NULL,           NULL,           ropMOVD_r_d,    ropMOVQ_r_q,
 /*70*/  NULL,           ropPSxxW_imm,   ropPSxxD_imm,   ropPSxxQ_imm,   ropPCMPEQB,     ropPCMPEQW,     ropPCMPEQD,     NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVD_d_r,    ropMOVQ_q_r,
-#endif
 
 /*80*/  ropJO_32,       ropJNO_32,      ropJB_32,       ropJNB_32,      ropJE_32,       ropJNE_32,      ropJBE_32,      ropJNBE_32,     ropJS_32,       ropJNS_32,      ropJP_32,       ropJNP_32,      ropJL_32,       ropJNL_32,      ropJLE_32,      ropJNLE_32,
 /*90*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -133,13 +121,11 @@ RecompOpFn recomp_opcodes_0f[512] = {
 /*b0*/  NULL,           NULL,           ropLSS_32,      NULL,           ropLFS_32,      ropLGS_32,      ropMOVZX_32_8,  ropMOVZX_32_16, NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropMOVSX_32_8,  ropMOVSX_32_16,
 
 /*c0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
-/*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-#else
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULLW,      NULL,           NULL,           ropPSUBUSB,     ropPSUBUSW,     NULL,           ropPAND,        ropPADDUSB,     ropPADDUSW,     NULL,           ropPANDN,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMULHW,      NULL,           NULL,           ropPSUBSB,      ropPSUBSW,      NULL,           ropPOR,         ropPADDSB,      ropPADDSW,      NULL,           ropPXOR,
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+/*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPSUBB,       ropPSUBW,       ropPSUBD,       NULL,           ropPADDB,       ropPADDW,       ropPADDD,       NULL,
+#else
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           ropPMADDWD,     NULL,           NULL,           ropPSUBB,       ropPSUBW,       ropPSUBD,       NULL,           ropPADDB,       ropPADDW,       ropPADDD,       NULL,
 #endif
     // clang-format on
@@ -272,6 +258,7 @@ RecompOpFn recomp_opcodes_d8[512] = {
 
 RecompOpFn recomp_opcodes_d9[512] = {
     // clang-format off
+    /* TODO: Fix the recompilation of D9 44 so Blood II's gameplay music no longer breaks! */
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -279,7 +266,7 @@ RecompOpFn recomp_opcodes_d9[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,
 
-/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*50*/  ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,
 /*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,
@@ -301,7 +288,7 @@ RecompOpFn recomp_opcodes_d9[512] = {
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*30*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,
 
-/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
+/*40*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*50*/  ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,
 /*60*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*70*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,       ropFSTCW,

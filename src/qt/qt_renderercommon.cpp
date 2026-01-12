@@ -8,13 +8,10 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
@@ -120,18 +117,19 @@ void
 RendererCommon::onResize(int width, int height)
 {
     /* This is needed so that the if below does not take like, 5 lines. */
-    bool is_fs = (video_fullscreen == 0);
-    bool parent_max = (parentWidget->isMaximized() == false);
+    bool is_fs            = (video_fullscreen == 0);
+    bool parent_max       = (parentWidget->isMaximized() == false);
     bool main_is_ancestor = main_window->isAncestorOf(parentWidget);
-    bool main_max = main_window->isMaximized();
-    bool main_is_max = (main_is_ancestor && main_max == false);
+    bool main_max         = main_window->isMaximized();
+    bool main_is_max      = (main_is_ancestor && main_max == false);
 
-    width = round(pixelRatio * width);
+    width  = round(pixelRatio * width);
     height = round(pixelRatio * height);
 
-    if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1))
+    if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1) && !(force_43 && vid_resize))
         destination.setRect(0, 0, width, height);
     else {
+        auto   temp_fullscreen_scale = video_fullscreen_scale;
         double dx;
         double dy;
         double dw;
@@ -145,14 +143,19 @@ RendererCommon::onResize(int width, int height)
         double hsr = hw / hh;
         double r43 = 4.0 / 3.0;
 
-        switch (video_fullscreen_scale) {
+        if (force_43 && is_fs && vid_resize) {
+            if (!video_fullscreen_scale_maximized || (video_fullscreen_scale_maximized && parent_max && main_is_max))
+                temp_fullscreen_scale = FULLSCR_SCALE_43;
+        }
+
+        switch (temp_fullscreen_scale) {
             case FULLSCR_SCALE_INT:
             case FULLSCR_SCALE_INT43:
                 gsr = gw / gh;
 
-                if (video_fullscreen_scale == FULLSCR_SCALE_INT43) {
+                if (temp_fullscreen_scale == FULLSCR_SCALE_INT43) {
                     gh = gw / r43;
-//                  gw = gw;
+                    // gw = gw;
 
                     gsr = r43;
                 }
@@ -174,7 +177,7 @@ RendererCommon::onResize(int width, int height)
                 break;
             case FULLSCR_SCALE_43:
             case FULLSCR_SCALE_KEEPRATIO:
-                if (video_fullscreen_scale == FULLSCR_SCALE_43)
+                if (temp_fullscreen_scale == FULLSCR_SCALE_43)
                     gsr = r43;
                 else
                     gsr = gw / gh;
@@ -200,8 +203,8 @@ RendererCommon::onResize(int width, int height)
     monitors[r_monitor_index].mon_res_x = (double) destination.width();
     monitors[r_monitor_index].mon_res_y = (double) destination.height();
 
-    destinationF.setRect((double)destination.x() / (double)width, (double)destination.y() / (double)height,
-                        (double)destination.width() / (double)width, (double)destination.height() / (double)height);
+    destinationF.setRect((double) destination.x() / (double) width, (double) destination.y() / (double) height,
+                         (double) destination.width() / (double) width, (double) destination.height() / (double) height);
 }
 
 bool
@@ -217,10 +220,12 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
         case QEvent::MouseButtonPress:
         case QEvent::MouseMove:
         case QEvent::MouseButtonRelease:
+#ifdef TOUCH_PR
         case QEvent::TouchBegin:
         case QEvent::TouchEnd:
         case QEvent::TouchCancel:
         case QEvent::TouchUpdate:
+#endif
         case QEvent::Wheel:
         case QEvent::Enter:
         case QEvent::Leave:

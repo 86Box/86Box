@@ -8,8 +8,6 @@
  *
  *          Implementation of the STMicroelectronics STPC series of SoCs.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

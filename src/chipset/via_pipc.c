@@ -8,8 +8,6 @@
  *
  *          Emulation of the VIA PIPC southbridges.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *
@@ -989,7 +987,7 @@ pipc_read(int func, int addr, void *priv)
         }
     } else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) { /* AC97 / MC97 */
         if (addr == 0x40)
-            ret = ac97_via_read_status(dev->ac97, func - pm_func - 1);
+            ret = ac97_via_read_status(dev->ac97);
         else
             ret = dev->ac97_regs[func - pm_func - 1][addr];
     }
@@ -1585,7 +1583,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x41:
                 dev->ac97_regs[func][addr] = val;
-                ac97_via_write_control(dev->ac97, func, val);
+                ac97_via_write_control(dev->ac97, val);
                 break;
 
             case 0x42:

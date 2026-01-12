@@ -25,10 +25,9 @@ Homepage: https://86box.net/
 Rules-Requires-Root: no
 
 Package: 86box
-Architecture: amd64 armhf arm64 i386
+Architecture: amd64 arm64
 Depends: ${shlibs:Depends},
          ${misc:Depends},
-         sse2-support [i386]
 Recommends: libpcap0.8-dev
 Description: An emulator for classic IBM PC clones
              86Box is a low level x86 emulator that runs older operating systems and software

@@ -8,8 +8,6 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
@@ -35,9 +33,14 @@
 #include <atomic>
 #include <stdexcept>
 
+#include <QApplication>
+#include <QClipboard>
+
 #include <QScreen>
 #include <QMessageBox>
+#ifdef TOUCH_PR
 #include <QTouchEvent>
+#endif
 #include <QStringBuilder>
 
 #include <QPainter>
@@ -66,32 +69,45 @@
 #    include <windows.h>
 #endif
 
+#include <png.h>
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/mouse.h>
 }
 
 struct mouseinputdata {
-    atomic_bool         mouse_tablet_in_proximity;
+    atomic_bool mouse_tablet_in_proximity;
 
-    char                *mouse_type;
+    char *mouse_type;
 };
 static mouseinputdata mousedata;
 
 extern MainWindow *main_window;
 
 #ifdef Q_OS_WINDOWS
-HWND   rw_hwnd;
+HWND rw_hwnd;
 #endif
 
+static unsigned char *screenshot_rgb = NULL;
+
 RendererStack::RendererStack(QWidget *parent, int monitor_index)
-    : QStackedWidget(parent)
+    : QWidget(parent)
+    , boxLayout(new QBoxLayout(QBoxLayout::TopToBottom, this))
     , ui(new Ui::RendererStack)
 {
+    boxLayout->setContentsMargins(0, 0, 0, 0);
+#ifdef TOUCH_PR
     setAttribute(Qt::WA_AcceptTouchEvents, true);
+#endif
+#ifdef Q_OS_WINDOWS
+    setAttribute(Qt::WA_NativeWindow, true);
+    (void) winId();
+#endif
     rendererTakesScreenshots = false;
 #ifdef Q_OS_WINDOWS
     int raw = 1;
@@ -103,18 +119,17 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
     m_monitor_index = monitor_index;
 
-
     if (monitor_index >= 1) {
-        QTimer* frameRateTimer = new QTimer(this);
+        QTimer *frameRateTimer = new QTimer(this);
         frameRateTimer->setSingleShot(false);
         frameRateTimer->setInterval(1000);
         connect(frameRateTimer, &QTimer::timeout, [this] {
-            this->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : "")));
+            this->setWindowTitle(QObject::tr("86Box Monitor #%1").arg(m_monitor_index + 1) + QString(" - ") + tr("%1 Hz").arg(QString::number(monitors[m_monitor_index].mon_actualrenderedframes.load()) + (monitors[m_monitor_index].mon_interlace ? "i" : "")));
         });
         frameRateTimer->start(1000);
     }
 #if defined __unix__ && !defined __HAIKU__
-    memset(auto_mouse_type, 0, sizeof (auto_mouse_type));
+    memset(auto_mouse_type, 0, sizeof(auto_mouse_type));
     mousedata.mouse_type = getenv("EMU86BOX_MOUSE");
     if (!mousedata.mouse_type || (mousedata.mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
@@ -151,12 +166,20 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
     if (monitor_index == 0)
         mouse_set_raw(raw);
+
+    screenshot_rgb = (unsigned char *) calloc(1, (size_t) 2048 * 2048 * 4);
 }
 
 RendererStack::~RendererStack()
 {
-    while (QApplication::overrideCursor()) 
+    if (screenshot_rgb != NULL) {
+        free(screenshot_rgb);
+        screenshot_rgb = NULL;
+    }
+
+    while (QApplication::overrideCursor())
         QApplication::restoreOverrideCursor();
+
     delete ui;
 }
 
@@ -165,7 +188,8 @@ qt_mouse_capture(int on)
 {
     if (!on) {
         mouse_capture = 0;
-        while (QApplication::overrideCursor()) QApplication::restoreOverrideCursor();
+        while (QApplication::overrideCursor())
+            QApplication::restoreOverrideCursor();
 #ifdef __APPLE__
         CGAssociateMouseAndMouseCursorPosition(true);
 #endif
@@ -184,17 +208,16 @@ void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
 #ifdef Q_OS_WINDOWS
-    rw_hwnd        = (HWND) this->winId();                
+    rw_hwnd = (HWND) this->winId();
 #endif
 
+    event->accept();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPosition().toPoint() : event->position().toPoint()) &&
 #else
     if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPos() : event->pos()) &&
 #endif
-        (event->button() == Qt::LeftButton) && !mouse_capture &&
-        (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) &&
-        (mouse_input_mode == 0)) {
+        (event->button() == Qt::LeftButton) && !mouse_capture && (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) && (mouse_input_mode == 0)) {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent)
@@ -210,15 +233,13 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
     }
     if (mouse_capture || (mouse_input_mode >= 1)) {
 #ifdef Q_OS_WINDOWS
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
-             ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
-#ifndef __APPLE__
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
-             (m_monitor_index < 1))
-#else
+#    ifndef __APPLE__
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
+#    else
         if ((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity)
-#endif
+#    endif
 #endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
     }
@@ -231,15 +252,13 @@ RendererStack::mousePressEvent(QMouseEvent *event)
     isMouseDown |= 1;
     if (mouse_capture || (mouse_input_mode >= 1)) {
 #ifdef Q_OS_WINDOWS
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
-             ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
-#ifndef __APPLE__
-        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
-             (m_monitor_index < 1))
-#else
+#    ifndef __APPLE__
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
+#    else
         if ((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity)
-#endif
+#    endif
 #endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() | event->button());
     }
@@ -255,7 +274,7 @@ RendererStack::wheelEvent(QWheelEvent *event)
     }
 
 #if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
-    double numSteps = (double) event->angleDelta().y() / 120.0;
+    double numSteps  = (double) event->angleDelta().y() / 120.0;
     double numStepsW = (double) event->angleDelta().x() / 120.0;
 
     mouse_set_z((int) numSteps);
@@ -287,18 +306,18 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
-#if defined __unix__ && !defined __HAIKU__
+#    if defined __unix__ && !defined __HAIKU__
     if (!stricmp(mousedata.mouse_type, "wayland"))
         mouse_scale(event->pos().x() - oldPos.x(), event->pos().y() - oldPos.y());
-#endif
+#    endif
 
     if (QApplication::platformName() == "eglfs") {
         leaveEvent((QEvent *) event);
         ignoreNextMouseEvent--;
     }
-#if !defined _WIN32
+#    if !defined _WIN32
     QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
-#endif
+#    endif
     ignoreNextMouseEvent = 2;
     oldPos               = event->pos();
 #endif
@@ -342,11 +361,11 @@ RendererStack::leaveEvent(QEvent *event)
 void
 RendererStack::switchRenderer(Renderer renderer)
 {
-    //startblit();
+    // startblit();
     switchInProgress = true;
     if (current) {
         rendererWindow->finalize();
-        removeWidget(current.get());
+        boxLayout->removeWidget(current.get());
         disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
 
         /* Create new renderer only after previous is destroyed! */
@@ -369,23 +388,19 @@ RendererStack::createRenderer(Renderer renderer)
                 auto sw        = new SoftwareRenderer(this);
                 rendererWindow = sw;
                 connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
-#ifdef __HAIKU__
                 current.reset(sw);
-#else
-                current.reset(this->createWindowContainer(sw, this));
-#endif
             }
             break;
         case Renderer::OpenGL3:
             {
                 this->createWinId();
                 this->rendererTakesScreenshots = true;
-                auto hw        = new OpenGLRenderer(this);
-                rendererWindow = hw;
+                auto hw                        = new OpenGLRenderer(this);
+                rendererWindow                 = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &OpenGLRenderer::initialized, [=]() {
                     /* Buffers are available only after initialization. */
-                    imagebufs = rendererWindow->getBuffers();
+                    imagebufs        = rendererWindow->getBuffers();
                     switchInProgress = false;
                     emit rendererChanged();
                 });
@@ -394,7 +409,7 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
-                current.reset(this->createWindowContainer(hw, this));
+                current.reset(this->createWindowContainer(hw));
                 break;
             }
 #if QT_CONFIG(vulkan)
@@ -417,7 +432,7 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
                     /* Buffers are available only after initialization. */
-                    imagebufs = rendererWindow->getBuffers();
+                    imagebufs        = rendererWindow->getBuffers();
                     switchInProgress = false;
                     emit rendererChanged();
                 });
@@ -429,7 +444,7 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
-                current.reset(this->createWindowContainer(hw, this));
+                current.reset(this->createWindowContainer(hw));
                 break;
             }
 #endif
@@ -440,30 +455,54 @@ RendererStack::createRenderer(Renderer renderer)
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    current->setAttribute(Qt::WA_AlwaysStackOnTop);
     current->setStyleSheet("background-color: black");
-    addWidget(current.get());
 
     this->setStyleSheet("background-color: black");
+    boxLayout->addWidget(current.get());
 
     rendererWindow->r_monitor_index = m_monitor_index;
 
     currentBuf = 0;
 
     if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
-        imagebufs = rendererWindow->getBuffers();
+        imagebufs        = rendererWindow->getBuffers();
         switchInProgress = false;
         emit rendererChanged();
     }
+}
+
+uint32_t *screenshot_buf = NULL;
+
+void
+take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i)
+{
+    uint32_t temp = 0x00000000;
+
+    for (int y = 0; y < sh; ++y) {
+        for (int x = 0; x < sw; ++x) {
+            if (screenshot_buf == NULL)
+                memset(&(screenshot_rgb[(y * sw * 3) + (x * 3)]), 0x00, 3);
+            else {
+                temp                                       = screenshot_buf[((sy + y) * 2048) + sx + x];
+                screenshot_rgb[(y * sw * 3) + (x * 3)]     = (temp >> 16) & 0xff;
+                screenshot_rgb[(y * sw * 3) + (x * 3) + 1] = (temp >> 8) & 0xff;
+                screenshot_rgb[(y * sw * 3) + (x * 3) + 2] = temp & 0xff;
+            }
+        }
+    }
+
+    QImage image(screenshot_rgb, sw, sh, sw * 3, QImage::Format_RGB888);
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setImage(image, QClipboard::Clipboard);
+    monitors[i].mon_screenshots_raw_clipboard--;
 }
 
 // called from blitter thread
 void
 RendererStack::blit(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) ||
-        (w > 2048) || (h > 2048) || (switchInProgress) ||
-        (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() ||
-        std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || ((w + y) > 2048) || ((h + x) > 2048) || (switchInProgress) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete_monitor(m_monitor_index);
         return;
     }
@@ -477,10 +516,11 @@ RendererStack::blit(int x, int y, int w, int h)
         video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
     }
 
-    if (monitors[m_monitor_index].mon_screenshots && !rendererTakesScreenshots) {
+    if (monitors[m_monitor_index].mon_screenshots_raw) {
         video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
     }
     video_blit_complete_monitor(m_monitor_index);
+    screenshot_buf = (uint32_t *) imagebits;
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % imagebufs.size();
 }
@@ -507,48 +547,99 @@ RendererStack::changeEvent(QEvent *event)
 }
 
 bool
-RendererStack::event(QEvent* event)
+RendererStack::event(QEvent *event)
 {
     if (event->type() == QEvent::MouseMove) {
-        QMouseEvent* mouse_event = (QMouseEvent*)event;
+        QMouseEvent *mouse_event = (QMouseEvent *) event;
 
         if (m_monitor_index >= 1) {
             if (mouse_input_mode >= 1) {
+#ifdef TOUCH_PR
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-                mouse_x_abs       = (mouse_event->position().x()) / (double)width();
-                mouse_y_abs       = (mouse_event->position().y()) / (double)height();
+                mouse_x_abs = (mouse_event->position().x()) / (double) width();
+                mouse_y_abs = (mouse_event->position().y()) / (double) height();
 #else
-                mouse_x_abs       = (mouse_event->localPos().x()) / (double)width();
-                mouse_y_abs       = (mouse_event->localPos().y()) / (double)height();
+                mouse_x_abs = (mouse_event->localPos().x()) / (double) width();
+                mouse_y_abs = (mouse_event->localPos().y()) / (double) height();
+#endif
+#else
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                mouse_x_abs       = (mouse_event->position().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->position().y()) / (long double)height();
+#else
+                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+#endif
 #endif
                 if (!mouse_tablet_in_proximity)
                     mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
                 mouse_x_abs -= rendererWindow->destinationF.left();
                 mouse_y_abs -= rendererWindow->destinationF.top();
 
-                if (mouse_x_abs < 0) mouse_x_abs = 0;
-                if (mouse_y_abs < 0) mouse_y_abs = 0;
+                if (mouse_x_abs < 0)
+                    mouse_x_abs = 0;
+                if (mouse_y_abs < 0)
+                    mouse_y_abs = 0;
 
                 mouse_x_abs /= rendererWindow->destinationF.width();
                 mouse_y_abs /= rendererWindow->destinationF.height();
 
-                if (mouse_x_abs > 1) mouse_x_abs = 1;
-                if (mouse_y_abs > 1) mouse_y_abs = 1;
+                if (mouse_x_abs > 1)
+                    mouse_x_abs = 1;
+                if (mouse_y_abs > 1)
+                    mouse_y_abs = 1;
             }
-            return QStackedWidget::event(event);
+            return QWidget::event(event);
         }
 
+#ifdef TOUCH_PR
+#ifdef Q_OS_WINDOWS
+        if (mouse_input_mode == 0) {
+#    if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            mouse_x_abs = (mouse_event->position().x()) / (double) width();
+            mouse_y_abs = (mouse_event->position().y()) / (double) height();
+#    else
+            mouse_x_abs = (mouse_event->localPos().x()) / (double) width();
+            mouse_y_abs = (mouse_event->localPos().y()) / (double) height();
+#    endif
+            mouse_x_abs -= rendererWindow->destinationF.left();
+            mouse_y_abs -= rendererWindow->destinationF.top();
+
+            if (mouse_x_abs < 0)
+                mouse_x_abs = 0;
+            if (mouse_y_abs < 0)
+                mouse_y_abs = 0;
+
+            mouse_x_abs /= rendererWindow->destinationF.width();
+            mouse_y_abs /= rendererWindow->destinationF.height();
+
+            if (mouse_x_abs > 1)
+                mouse_x_abs = 1;
+            if (mouse_y_abs > 1)
+                mouse_y_abs = 1;
+            return QWidget::event(event);
+        }
+#endif
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        mouse_x_abs = (mouse_event->position().x()) / (double) width();
+        mouse_y_abs = (mouse_event->position().y()) / (double) height();
+#else
+        mouse_x_abs = (mouse_event->localPos().x()) / (double) width();
+        mouse_y_abs = (mouse_event->localPos().y()) / (double) height();
+#endif
+#else
 #ifdef Q_OS_WINDOWS
         if (mouse_input_mode == 0) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-            mouse_x_abs           = (mouse_event->position().x()) / (double)width();
-            mouse_y_abs           = (mouse_event->position().y()) / (double)height();
+            mouse_x_abs = (mouse_event->position().x()) / (long double)width();
+            mouse_y_abs = (mouse_event->position().y()) / (long double)height();
 #else
-            mouse_x_abs           = (mouse_event->localPos().x()) / (double)width();
-            mouse_y_abs           = (mouse_event->localPos().y()) / (double)height();
+            mouse_x_abs = (mouse_event->localPos().x()) / (long double)width();
+            mouse_y_abs = (mouse_event->localPos().y()) / (long double)height();
 #endif
-            mouse_x_abs          -= rendererWindow->destinationF.left();
-            mouse_y_abs          -= rendererWindow->destinationF.top();
+            mouse_x_abs -= rendererWindow->destinationF.left();
+            mouse_y_abs -= rendererWindow->destinationF.top();
 
             if (mouse_x_abs < 0) mouse_x_abs = 0;
             if (mouse_y_abs < 0) mouse_y_abs = 0;
@@ -558,130 +649,158 @@ RendererStack::event(QEvent* event)
 
             if (mouse_x_abs > 1) mouse_x_abs = 1;
             if (mouse_y_abs > 1) mouse_y_abs = 1;
-            return QStackedWidget::event(event);
+            return QWidget::event(event);
         }
 #endif
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        mouse_x_abs               = (mouse_event->position().x()) / (double)width();
-        mouse_y_abs               = (mouse_event->position().y()) / (double)height();
+        mouse_x_abs               = (mouse_event->position().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->position().y()) / (long double)height();
 #else
-        mouse_x_abs               = (mouse_event->localPos().x()) / (double)width();
-        mouse_y_abs               = (mouse_event->localPos().y()) / (double)height();
+        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+#endif
 #endif
         mouse_x_abs              -= rendererWindow->destinationF.left();
         mouse_y_abs              -= rendererWindow->destinationF.top();
 
-        if (mouse_x_abs < 0) mouse_x_abs = 0;
-        if (mouse_y_abs < 0) mouse_y_abs = 0;
+        if (mouse_x_abs < 0)
+            mouse_x_abs = 0;
+        if (mouse_y_abs < 0)
+            mouse_y_abs = 0;
 
         mouse_x_abs /= rendererWindow->destinationF.width();
         mouse_y_abs /= rendererWindow->destinationF.height();
 
-        if (mouse_x_abs > 1) mouse_x_abs = 1;
-        if (mouse_y_abs > 1) mouse_y_abs = 1;
+        if (mouse_x_abs > 1)
+            mouse_x_abs = 1;
+        if (mouse_y_abs > 1)
+            mouse_y_abs = 1;
         mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
-    } else switch (event->type()) {
-        case QEvent::TouchBegin:
-        case QEvent::TouchUpdate:
-        {
+#ifdef TOUCH_PR
+    } else
+        switch (event->type()) {
+            case QEvent::TouchBegin:
+            case QEvent::TouchUpdate:
+                {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-            QTouchEvent* touchevent = (QTouchEvent*)event;
-            if (mouse_input_mode == 0) break;
-            if (touchevent->touchPoints().count()) {
-                mouse_x_abs  = (touchevent->touchPoints()[0].pos().x()) / (double)width();
-                mouse_y_abs  = (touchevent->touchPoints()[0].pos().y()) / (double)height();
-                mouse_x_abs -= rendererWindow->destinationF.left();
-                mouse_y_abs -= rendererWindow->destinationF.top();
-        
-                if (mouse_x_abs < 0) mouse_x_abs = 0;
-                if (mouse_y_abs < 0) mouse_y_abs = 0;
-        
-                mouse_x_abs /= rendererWindow->destinationF.width();
-                mouse_y_abs /= rendererWindow->destinationF.height();
+                    QTouchEvent *touchevent = (QTouchEvent *) event;
+                    if (mouse_input_mode == 0)
+                        break;
+                    if (touchevent->touchPoints().count()) {
+                        mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double) width();
+                        mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double) height();
+                        mouse_x_abs -= rendererWindow->destinationF.left();
+                        mouse_y_abs -= rendererWindow->destinationF.top();
 
-                if (mouse_x_abs > 1) mouse_x_abs = 1;
-                if (mouse_y_abs > 1) mouse_y_abs = 1;
-            }
-            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
-            touchevent->accept();
-            return true;
+                        if (mouse_x_abs < 0)
+                            mouse_x_abs = 0;
+                        if (mouse_y_abs < 0)
+                            mouse_y_abs = 0;
+
+                        mouse_x_abs /= rendererWindow->destinationF.width();
+                        mouse_y_abs /= rendererWindow->destinationF.height();
+
+                        if (mouse_x_abs > 1)
+                            mouse_x_abs = 1;
+                        if (mouse_y_abs > 1)
+                            mouse_y_abs = 1;
+                    }
+                    mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+                    touchevent->accept();
+                    return true;
 #else
-            QTouchEvent* touchevent = (QTouchEvent*)event;
-            if (mouse_input_mode == 0) break;
-            if (touchevent->pointCount()) {
-                mouse_x_abs  = (touchevent->point(0).position().x()) / (double)width();
-                mouse_y_abs  = (touchevent->point(0).position().y()) / (double)height();
-                mouse_x_abs -= rendererWindow->destinationF.left();
-                mouse_y_abs -= rendererWindow->destinationF.top();
-        
-                if (mouse_x_abs < 0) mouse_x_abs = 0;
-                if (mouse_y_abs < 0) mouse_y_abs = 0;
-        
-                mouse_x_abs /= rendererWindow->destinationF.width();
-                mouse_y_abs /= rendererWindow->destinationF.height();
+                    QTouchEvent *touchevent = (QTouchEvent *) event;
+                    if (mouse_input_mode == 0)
+                        break;
+                    if (touchevent->pointCount()) {
+                        mouse_x_abs = (touchevent->point(0).position().x()) / (double) width();
+                        mouse_y_abs = (touchevent->point(0).position().y()) / (double) height();
+                        mouse_x_abs -= rendererWindow->destinationF.left();
+                        mouse_y_abs -= rendererWindow->destinationF.top();
 
-                if (mouse_x_abs > 1) mouse_x_abs = 1;
-                if (mouse_y_abs > 1) mouse_y_abs = 1;
-            }
-            mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
-            touchevent->accept();
-            return true;
+                        if (mouse_x_abs < 0)
+                            mouse_x_abs = 0;
+                        if (mouse_y_abs < 0)
+                            mouse_y_abs = 0;
+
+                        mouse_x_abs /= rendererWindow->destinationF.width();
+                        mouse_y_abs /= rendererWindow->destinationF.height();
+
+                        if (mouse_x_abs > 1)
+                            mouse_x_abs = 1;
+                        if (mouse_y_abs > 1)
+                            mouse_y_abs = 1;
+                    }
+                    mouse_set_buttons_ex(mouse_get_buttons_ex() | 1);
+                    touchevent->accept();
+                    return true;
 #endif
-        }
-        case QEvent::TouchEnd:
-        case QEvent::TouchCancel:
-        {
+                }
+            case QEvent::TouchEnd:
+            case QEvent::TouchCancel:
+                {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-            QTouchEvent* touchevent = (QTouchEvent*)event;
-            if (mouse_input_mode == 0) break;
-            if (touchevent->touchPoints().count()) {
-                mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double)width();
-                mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double)height();
-                mouse_x_abs              -= rendererWindow->destinationF.left();
-                mouse_y_abs              -= rendererWindow->destinationF.top();
-        
-                if (mouse_x_abs < 0) mouse_x_abs = 0;
-                if (mouse_y_abs < 0) mouse_y_abs = 0;
-        
-                mouse_x_abs /= rendererWindow->destinationF.width();
-                mouse_y_abs /= rendererWindow->destinationF.height();
+                    QTouchEvent *touchevent = (QTouchEvent *) event;
+                    if (mouse_input_mode == 0)
+                        break;
+                    if (touchevent->touchPoints().count()) {
+                        mouse_x_abs = (touchevent->touchPoints()[0].pos().x()) / (double) width();
+                        mouse_y_abs = (touchevent->touchPoints()[0].pos().y()) / (double) height();
+                        mouse_x_abs -= rendererWindow->destinationF.left();
+                        mouse_y_abs -= rendererWindow->destinationF.top();
 
-                if (mouse_x_abs > 1) mouse_x_abs = 1;
-                if (mouse_y_abs > 1) mouse_y_abs = 1;
-            }
-            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
-            touchevent->accept();
-            return true;
+                        if (mouse_x_abs < 0)
+                            mouse_x_abs = 0;
+                        if (mouse_y_abs < 0)
+                            mouse_y_abs = 0;
+
+                        mouse_x_abs /= rendererWindow->destinationF.width();
+                        mouse_y_abs /= rendererWindow->destinationF.height();
+
+                        if (mouse_x_abs > 1)
+                            mouse_x_abs = 1;
+                        if (mouse_y_abs > 1)
+                            mouse_y_abs = 1;
+                    }
+                    mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+                    touchevent->accept();
+                    return true;
 #else
-            QTouchEvent* touchevent = (QTouchEvent*)event;
-            if (mouse_input_mode == 0) break;
-            if (touchevent->pointCount()) {
-                mouse_x_abs = (touchevent->point(0).position().x()) / (double)width();
-                mouse_y_abs = (touchevent->point(0).position().y()) / (double)height();
-                mouse_x_abs              -= rendererWindow->destinationF.left();
-                mouse_y_abs              -= rendererWindow->destinationF.top();
-        
-                if (mouse_x_abs < 0) mouse_x_abs = 0;
-                if (mouse_y_abs < 0) mouse_y_abs = 0;
-        
-                mouse_x_abs /= rendererWindow->destinationF.width();
-                mouse_y_abs /= rendererWindow->destinationF.height();
+                    QTouchEvent *touchevent = (QTouchEvent *) event;
+                    if (mouse_input_mode == 0)
+                        break;
+                    if (touchevent->pointCount()) {
+                        mouse_x_abs = (touchevent->point(0).position().x()) / (double) width();
+                        mouse_y_abs = (touchevent->point(0).position().y()) / (double) height();
+                        mouse_x_abs -= rendererWindow->destinationF.left();
+                        mouse_y_abs -= rendererWindow->destinationF.top();
 
-                if (mouse_x_abs > 1) mouse_x_abs = 1;
-                if (mouse_y_abs > 1) mouse_y_abs = 1;
-            }
-            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
-            touchevent->accept();
-            return true;
+                        if (mouse_x_abs < 0)
+                            mouse_x_abs = 0;
+                        if (mouse_y_abs < 0)
+                            mouse_y_abs = 0;
+
+                        mouse_x_abs /= rendererWindow->destinationF.width();
+                        mouse_y_abs /= rendererWindow->destinationF.height();
+
+                        if (mouse_x_abs > 1)
+                            mouse_x_abs = 1;
+                        if (mouse_y_abs > 1)
+                            mouse_y_abs = 1;
+                    }
+                    mouse_set_buttons_ex(mouse_get_buttons_ex() & ~1);
+                    touchevent->accept();
+                    return true;
 #endif
+                }
+
+            default:
+                return QWidget::event(event);
+#endif /*TOUCH_PR*/
         }
 
-        default:
-            return QStackedWidget::event(event);
-    }
-
-    return QStackedWidget::event(event);
+    return QWidget::event(event);
 }
 
 void
@@ -697,7 +816,7 @@ RendererStack::onResize(int width, int height)
 #ifdef Q_OS_WINDOWS
     if (mouse_capture) {
         RECT rect;
-        if (GetWindowRect((HWND)this->winId(), &rect)) {
+        if (GetWindowRect((HWND) this->winId(), &rect)) {
             ClipCursor(&rect);
         }
     }

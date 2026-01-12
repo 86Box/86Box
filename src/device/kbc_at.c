@@ -37,7 +37,6 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/pci.h>
-#include <86box/video.h>
 #include <86box/keyboard.h>
 
 #define STAT_PARITY        0x80
@@ -65,7 +64,6 @@
 #define FLAG_CLOCK         0x01
 #define FLAG_CACHE         0x02
 #define FLAG_PS2           0x04
-#define FLAG_PCI           0x08
 
 enum {
     STATE_RESET = 0,       /* KBC reset state, only accepts command AA. */
@@ -110,6 +108,11 @@ typedef struct atkbc_t {
     uint8_t is_green;
     uint8_t kblock_switch;
     uint8_t is_type2;
+    uint8_t ami_revision;
+    uint8_t ami_is_amikey_2;
+    uint8_t ami_is_megakey;
+    uint8_t award_revision;
+    uint8_t chips_revision;
 
     uint8_t mem[0x100];
 
@@ -117,6 +120,8 @@ typedef struct atkbc_t {
     uint8_t key_ctrl_queue[64];
 
     uint8_t handler_enable[2];
+
+    uint16_t phoenix_revision;
 
     uint16_t base_addr[2];
     uint16_t irq[2];
@@ -144,15 +149,6 @@ typedef struct atkbc_t {
 
 /* Keyboard controller ports. */
 kbc_at_port_t  *kbc_at_ports[2] = { NULL, NULL };
-
-static uint8_t  kbc_ami_revision    = '8';
-static uint8_t  kbc_ami_is_clone    = 0;
-
-static uint8_t  kbc_award_revision  = 0x42;
-
-static uint8_t  kbc_chips_revision  = 0xa6;
-
-static uint16_t kbc_phoenix_version = 0x0416;
 
 static void (*kbc_at_do_poll)(atkbc_t *dev);
 
@@ -474,16 +470,8 @@ kbc_scan_kbd_at(atkbc_t *dev)
                 kbc_ibf_process(dev);
         /* AT mode. */
         } else {
-#if 0
-            dev->t = dev->mem[0x28];
-#endif
-            if (dev->mem[0x2e] != 0x00) {
-#if 0
-                if (!(dev->t & 0x02))
-                    return;
-#endif
+            if (dev->mem[0x2e] != 0x00)
                 dev->mem[0x2e] = 0x00;
-            }
             dev->p2 &= 0xbf;
             if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
                 /* In our case, we never have noise on the line, so we can simplify this. */
@@ -543,9 +531,6 @@ at_main_ibf:
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
-#if 0
-            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
-#endif
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto at_main_ibf;
@@ -687,12 +672,8 @@ kbc_at_poll_ps2(atkbc_t *dev)
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
-#if 0
-            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
-#endif
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
-            // goto ps2_main_ibf;
             break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
@@ -772,19 +753,6 @@ write_p2(atkbc_t *dev, uint8_t val)
 
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
-#if 0
-    /* PS/2: Handle IRQ's. */
-    if (dev->misc_flags & FLAG_PS2) {
-        /* IRQ 12 */
-        if (dev->irq[1] != 0xffff)
-            picint_common(1 << dev->irq[1], 0, val & 0x20, NULL);
-
-        /* IRQ 1 */
-        if (dev->irq[0] != 0xffff)
-            picint_common(1 << dev->irq[0], 0, val & 0x10, NULL);
-    }
-#endif
-
     /* AT, PS/2: Handle A20. */
     if ((mem_a20_key ^ val) & 0x02) { /* A20 enable change */
         mem_a20_key = val & 0x02;
@@ -806,15 +774,15 @@ write_p2(atkbc_t *dev, uint8_t val)
             cpu_set_edx();
             flushmmucache();
             if ((kbc_ven == KBC_VEN_ALI) ||
-                !strcmp(machine_get_internal_name(), "spc7700plw") ||
-                !strcmp(machine_get_internal_name(), "pl4600c"))
+                (machines[machine].init == machine_at_spc7700plw_init) ||
+                (machines[machine].init == machine_at_pl4600c_init))
                 smbase = 0x00030000;
 
             /* Yes, this is a hack, but until someone gets ahold of the real PCD-2L
                and can find out what they actually did to make it boot from FFFFF0
                correctly despite A20 being gated when the CPU is reset, this will
                have to do. */
-            if ((kbc_ven == KBC_VEN_SIEMENS) || !strcmp(machine_get_internal_name(), "acera1g"))
+            if ((kbc_ven == KBC_VEN_SIEMENS) || (machines[machine].init == machine_at_acera1g_init))
                 is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
         }
     }
@@ -1044,7 +1012,7 @@ write_cmd_ami(void *priv, uint8_t val)
             break;
 
         case 0xa0: /* copyright message */
-            switch (kbc_ami_revision) {
+            switch (dev->ami_revision) {
                 case 0x35:
                     copr    = "(C)1994 AMI";
                     coprlen = strlen(copr) + 1;
@@ -1088,7 +1056,7 @@ write_cmd_ami(void *priv, uint8_t val)
 
         case 0xa1: /* get controller version */
             kbc_at_log("ATkbc: AMI - get controller version\n");
-            kbc_delay_to_ob(dev, kbc_ami_revision, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ami_revision, 0, 0x00);
             ret = 0;
             break;
 
@@ -1160,8 +1128,7 @@ write_cmd_ami(void *priv, uint8_t val)
 
         case 0xaf: /* set extended controller RAM */
             if ((kbc_ven != KBC_VEN_SIEMENS) && (kbc_ven != KBC_VEN_ALI)) {
-                if (((kbc_ami_revision >= 'H') && (kbc_ami_revision < 'X')) ||
-                    (kbc_ami_revision = '5')) {
+                if (dev->ami_is_amikey_2) {
                     kbc_at_log("ATkbc: set extended controller RAM\n");
                     dev->wantdata      = 1;
                     dev->state         = STATE_KBC_PARAM;
@@ -1187,7 +1154,7 @@ write_cmd_ami(void *priv, uint8_t val)
             kbc_at_log("ATkbc: set KBC lines P22-P23 (P2 bits 2-3) low\n");
             if (!(dev->flags & DEVICE_PCI))
                 write_p2(dev, dev->p2 & ~(4 << (val & 0x01)));
-            if (strstr(machine_get_internal_name(), "sb486pv") != NULL)
+            if (machines[machine].init == machine_at_sb486pv_init)
                 kbc_delay_to_ob(dev, 0x03, 0, 0x00);
             else
                 kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
@@ -1224,8 +1191,7 @@ write_cmd_ami(void *priv, uint8_t val)
             break;
 
         case 0xc4:
-            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
-                (kbc_ami_revision = '5')) {
+            if (dev->ami_is_megakey) {
                 /* set KBC line P14 low */
                 kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) low\n");
                 dev->p1 &= 0xef;
@@ -1235,8 +1201,7 @@ write_cmd_ami(void *priv, uint8_t val)
             }
             break;
         case 0xc5:
-            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
-                (kbc_ami_revision = '5')) {
+            if (dev->ami_is_megakey) {
                 /* set KBC line P15 low */
                 kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) low\n");
                 dev->p1 &= 0xdf;
@@ -1280,8 +1245,7 @@ write_cmd_ami(void *priv, uint8_t val)
             break;
 
         case 0xcc:
-            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
-                (kbc_ami_revision = '5')) {
+            if (dev->ami_is_megakey) {
                 /* set KBC line P14 high */
                 kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) high\n");
                 dev->p1 |= 0x10;
@@ -1292,8 +1256,7 @@ write_cmd_ami(void *priv, uint8_t val)
             break;
         case 0xcd:
             /* set KBC line P15 high */
-            if (((kbc_ami_revision >= 'P') && (kbc_ami_revision < 'X')) ||
-                (kbc_ami_revision = '5')) {
+            if (dev->ami_is_megakey) {
                 kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) high\n");
                 dev->p1 |= 0x20;
                 kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
@@ -1512,7 +1475,7 @@ write_cmd_umc(void *priv, uint8_t val)
 
         case 0xa1: /* get controller version */
             kbc_at_log("ATkbc: UMC - get controller version\n");
-            kbc_delay_to_ob(dev, kbc_ami_revision, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ami_revision, 0, 0x00);
             ret = 0;
             break;
     }
@@ -1567,7 +1530,7 @@ write_cmd_award(void *priv, uint8_t val)
 
         case 0xa1: /* get controller version */
             kbc_at_log("ATkbc: AMI - get controller version\n");
-            kbc_delay_to_ob(dev, kbc_ami_revision, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ami_revision, 0, 0x00);
             ret = 0;
             break;
 
@@ -1587,7 +1550,7 @@ write_cmd_award(void *priv, uint8_t val)
                  in Norton Commander 3.0. */
         case 0xaf: /* read keyboard version */
             kbc_at_log("ATkbc: read keyboard version\n");
-            kbc_delay_to_ob(dev, kbc_award_revision, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->award_revision, 0, 0x00);
             ret = 0;
             break;
 
@@ -1701,7 +1664,7 @@ write_cmd_data_chips(void *priv, uint8_t val)
                         break;
                     case 0x00: /* return ID  */
                         kbc_at_log("ATkbc: C&T - return ID\n");
-                        kbc_delay_to_ob(dev, kbc_chips_revision, 0, 0x00);
+                        kbc_delay_to_ob(dev, dev->chips_revision, 0, 0x00);
                         break;
                     case 0x02: /* write input port */
                         kbc_at_log("ATkbc: C&T - write input port\n");
@@ -1757,6 +1720,13 @@ write_cmd_chips(void *priv, uint8_t val)
             kbc_at_log("ATkbc: C&T - CHIPS extensions\n");
             dev->wantdata  = 1;
             dev->state     = STATE_KBC_PARAM;
+            ret = 0;
+            break;
+
+        case 0xb3: /* Unknown */
+            kbc_at_log("ATkbc: C&T - Unknown\n");
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             ret = 0;
             break;
     }
@@ -1967,8 +1937,8 @@ write_cmd_phoenix(void *priv, uint8_t val)
                  revision level and proper CPU bits. */
         case 0xd5: /* Read MultiKey code revision level */
             kbc_at_log("ATkbc: Phoenix - Read MultiKey code revision level\n");
-            kbc_at_queue_add(dev, kbc_phoenix_version >> 8);
-            kbc_at_queue_add(dev, kbc_phoenix_version & 0xff);
+            kbc_at_queue_add(dev, dev->phoenix_revision >> 8);
+            kbc_at_queue_add(dev, dev->phoenix_revision & 0xff);
             ret = 0;
             break;
 
@@ -2201,16 +2171,6 @@ write_cmd_toshiba(void *priv, uint8_t val)
             t3100e_notify_set(0x00);
             ret = 0;
             break;
-
-        case 0xc0: /* Read P1 */
-            kbc_at_log("ATkbc: read P1\n");
-
-            /* The T3100e returns all bits set except bit 6 which
-             * is set by t3100e_mono_set() */
-            dev->p1 = (t3100e_mono_get() & 1) ? 0xff : 0xbf;
-            kbc_delay_to_ob(dev, dev->p1, 0, 0x00);
-            ret = 0;
-            break;
     }
 
     return ret;
@@ -2284,7 +2244,13 @@ read_p1(atkbc_t *dev)
               Compaq: Reserved;
               NCR: DMA mode.
      */
-    uint8_t ret = machine_get_p1(dev->p1) | (dev->p1 & 0x03);
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t ret     = 0x00;
+
+    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA))
+        ret             = machine_get_p1(0xff);
+    else
+        ret             = machine_get_p1(dev->p1) | (dev->p1 & 0x03);
 
     dev->p1 = ((dev->p1 + 1) & 0x03) | (dev->p1 & 0xfc);
 
@@ -2627,7 +2593,7 @@ kbc_at_process_cmd(void *priv)
                 if (dev->ib == 0xbb)
                     break;
 
-                if (strstr(machine_get_internal_name(), "pb41") != NULL)
+                if (machines[machine].init == machine_at_pb410a_init)
                     cpu_override_dynarec = 1;
 
                 if (dev->misc_flags & FLAG_PS2) {
@@ -2759,7 +2725,7 @@ kbc_at_port_1_read(uint16_t port, void *priv)
      */
     if (!(dev->misc_flags & FLAG_PS2) && (dev->irq[0] != 0xffff))
         picintclevel(1 << dev->irq[0], &dev->irq_state);
-    if ((strstr(machine_get_internal_name(), "pb41") != NULL) && (cpu_override_dynarec == 1))
+    if ((machines[machine].init == machine_at_pb410a_init) && (cpu_override_dynarec == 1))
         cpu_override_dynarec = 0;
 
     kbc_at_log("ATkbc: [%04X:%08X] read (%04X) = %02X\n",  CS, cpu_state.pc, port, ret);
@@ -2787,18 +2753,14 @@ static void
 kbc_at_reset(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
-    uint8_t  kbc_ven = dev->flags & KBC_VEN_MASK;
 
     dev->status        = STAT_UNLOCKED;
     dev->mem[0x20]     = 0x01;
     dev->mem[0x20]    |= CCB_TRANSLATE;
     dev->command_phase = 0;
 
-    /* Set up the correct Video Type bits. */
-    if (!is286 || (kbc_ven == KBC_VEN_ACER))
-        dev->p1 = video_is_mda() ? 0xb0 : 0xf0;
-    else
-        dev->p1 = video_is_mda() ? 0xf0 : 0xb0;
+    /* Video Type is now handled in the machine P1 handler. */
+    dev->p1 = 0xf0;
     kbc_at_log("ATkbc: P1 = %02x\n", dev->p1);
 
     /* Disabled both the keyboard and auxiliary ports. */
@@ -2810,7 +2772,6 @@ kbc_at_reset(void *priv)
     dev->sc_or = 0;
 
     dev->ami_flags = (machine_has_flags_ex(MACHINE_PS2_KBC)) ? 0x01 : 0x00;
-    dev->misc_flags &= FLAG_PCI;
 
     if (machine_has_flags_ex(MACHINE_PS2_KBC)) {
         dev->misc_flags |= FLAG_PS2;
@@ -2920,11 +2881,7 @@ kbc_at_init(const device_t *info)
     dev->is_asic  = !!(info->local & KBC_FLAG_IS_ASIC);
     dev->is_type2 = !!(info->local & KBC_FLAG_IS_TYPE2);
 
-    video_reset(gfxcard[0]);
     kbc_at_reset(dev);
-
-    if (info->flags & DEVICE_PCI)
-        dev->misc_flags |= FLAG_PCI;
 
     dev->handlers[0].read  = kbc_at_port_1_read;
     dev->handlers[0].write = kbc_at_port_1_write;
@@ -2942,12 +2899,13 @@ kbc_at_init(const device_t *info)
     dev->write_cmd_data_ven = NULL;
     dev->write_cmd_ven      = NULL;
 
-    kbc_ami_revision        = '8';
-    kbc_award_revision      = 0x42;
+    dev->ami_revision        = '8';
 
-    kbc_chips_revision      = 0xa6;
+    dev->award_revision      = 0x42;
 
-    kbc_phoenix_version     = 0x0416;
+    dev->chips_revision      = 0xa6;
+
+    dev->phoenix_revision    = 0x0416;
 
     switch (dev->flags & KBC_VEN_MASK) {
         default:
@@ -2957,9 +2915,9 @@ kbc_at_init(const device_t *info)
         case KBC_VEN_AWARD:
         case KBC_VEN_VIA:
             if ((info->local & 0xff00) != 0x0000)
-                kbc_ami_revision = (info->local >> 8) & 0xff;
+                dev->ami_revision = (info->local >> 8) & 0xff;
             if ((info->local & 0xff0000) != 0x000000)
-                kbc_award_revision = (info->local >> 16) & 0xff;
+                dev->award_revision = (info->local >> 16) & 0xff;
             dev->write_cmd_data_ven = write_cmd_data_award;
             dev->write_cmd_ven = write_cmd_award;
             break;
@@ -2973,23 +2931,22 @@ kbc_at_init(const device_t *info)
             break;
 
         case KBC_VEN_ALI:
-            kbc_ami_revision = 'F';
-            kbc_award_revision = 0x43;
+            dev->ami_revision = 'F';
+            dev->award_revision = 0x43;
             dev->write_cmd_data_ven = write_cmd_data_ami;
             dev->write_cmd_ven = write_cmd_ami;
             break;
 
         case KBC_VEN_AMI_TRIGEM:
             dev->is_green = !!(info->local & KBC_FLAG_IS_GREEN);
-            kbc_ami_revision = 'Z';
+            dev->ami_revision = 'Z';
             dev->write_cmd_data_ven = write_cmd_data_ami;
             dev->write_cmd_ven = write_cmd_ami;
             break;
 
         case KBC_VEN_AMI:
         case KBC_VEN_HOLTEK:
-            kbc_ami_is_clone = !!(info->local & KBC_FLAG_IS_CLONE);
-            kbc_ami_revision = (info->local >> 8) & 0xff;
+            dev->ami_revision = (info->local >> 8) & 0xff;
 
             dev->write_cmd_data_ven = write_cmd_data_ami;
             dev->write_cmd_ven = write_cmd_ami;
@@ -2997,18 +2954,18 @@ kbc_at_init(const device_t *info)
 
         case KBC_VEN_UMC:
             if ((info->local & 0xff00) != 0x0000)
-                kbc_ami_revision = (info->local >> 8) & 0xff;
+                dev->ami_revision = (info->local >> 8) & 0xff;
             else
-                kbc_ami_revision = 0x48;
+                dev->ami_revision = 0x48;
 
             dev->write_cmd_ven = write_cmd_umc;
             break;
 
         case KBC_VEN_SIS:
             if ((info->local & 0xff00) != 0x0000)
-                kbc_ami_revision = (info->local >> 8) & 0xff;
+                dev->ami_revision = (info->local >> 8) & 0xff;
             else
-                kbc_ami_revision = 0x48;
+                dev->ami_revision = 0x48;
 
             dev->write_cmd_data_ven = write_cmd_data_sis;
             dev->write_cmd_ven = write_cmd_sis;
@@ -3016,14 +2973,14 @@ kbc_at_init(const device_t *info)
 
         case KBC_VEN_CHIPS:
             if ((info->local & 0xff00) != 0x0000)
-                kbc_chips_revision = (info->local >> 8) & 0xff;
+                dev->chips_revision = (info->local >> 8) & 0xff;
             dev->write_cmd_data_ven = write_cmd_data_chips;
             dev->write_cmd_ven = write_cmd_chips;
             break;
 
         case KBC_VEN_PHOENIX:
             if ((info->local & 0xffff00) != 0x000000)
-                kbc_phoenix_version = (info->local >> 8) & 0xffff;
+                dev->phoenix_revision = (info->local >> 8) & 0xffff;
             dev->write_cmd_data_ven = write_cmd_data_phoenix;
             dev->write_cmd_ven = write_cmd_phoenix;
             break;
@@ -3038,6 +2995,11 @@ kbc_at_init(const device_t *info)
             dev->write_cmd_ven = write_cmd_toshiba;
             break;
     }
+
+    dev->ami_is_amikey_2 = ((dev->ami_revision >= 'H') && (dev->ami_revision < 'X')) ||
+                           (dev->ami_revision == '5');
+    dev->ami_is_megakey  = ((dev->ami_revision >= 'P') && (dev->ami_revision < 'X')) ||
+                           (dev->ami_revision == '5');
 
     max_ports = 2;
 

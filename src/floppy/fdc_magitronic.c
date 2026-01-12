@@ -12,7 +12,6 @@
  *
  *          Copyright 2021 Tiseno100
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

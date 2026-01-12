@@ -8,8 +8,6 @@
  *
  *          Definitions for the I2C handler.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

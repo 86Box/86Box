@@ -8,8 +8,6 @@
  *
  *          Emulation of the Mach32-compatible ATI 68875 RAMDAC and clones.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2022-2023 TheCollector1995.

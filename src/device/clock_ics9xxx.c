@@ -8,8 +8,6 @@
  *
  *          Emulation of the ICS9xxx series of clock generators.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

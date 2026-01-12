@@ -8,15 +8,12 @@
  *
  *          Definitions for the mouse driver.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  */
-
 #ifndef EMU_MOUSE_H
 #define EMU_MOUSE_H
 

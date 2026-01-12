@@ -1,3 +1,4 @@
+extern char *path_get_basename(const char *path);
 extern void  path_get_dirname(char *dest, const char *path);
 extern char *path_get_filename(char *s);
 extern char *path_get_extension(char *s);

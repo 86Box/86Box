@@ -8,8 +8,6 @@
  *
  *          Program settings UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -189,8 +187,7 @@ Settings::Settings(QWidget *parent)
             &SettingsOtherRemovable::reloadBusChannels_MO);
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
-           [this](const QModelIndex &current, const QModelIndex &previous) {
-                  ui->stackedWidget->setCurrentIndex(current.row()); });
+            [this](const QModelIndex &current, const QModelIndex &previous) { ui->stackedWidget->setCurrentIndex(current.row()); });
 
     ui->listView->setCurrentIndex(model->index(0, 0));
 
@@ -226,14 +223,12 @@ Settings::accept()
 {
     if (confirm_save && !settings_only) {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box",
-                                QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"),
-                                tr("This will hard reset the emulated machine.")),
+                                QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")),
                                 QMessageBox::Save | QMessageBox::Cancel, this);
         QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_save);
-        QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
-                         confirm_save = (state == Qt::CheckState::Unchecked); });
+        QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) { confirm_save = (state == Qt::CheckState::Unchecked); });
         questionbox.exec();
         if (questionbox.result() == QMessageBox::Cancel) {
             confirm_save = true;

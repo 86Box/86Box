@@ -6,7 +6,7 @@ typedef struct net_evt_t {
     HANDLE handle;
 #else
     int fds[2];
-#endif
+#endif /* _WIN32 */
 } net_evt_t;
 
 extern void net_event_init(net_evt_t *event);
@@ -17,6 +17,6 @@ extern void net_event_close(net_evt_t *event);
 extern HANDLE net_event_get_handle(net_evt_t *event);
 #else
 extern int net_event_get_fd(net_evt_t *event);
-#endif
+#endif /* _WIN32 */
 
-#endif
+#endif /* EMU_NET_EVENT_H */

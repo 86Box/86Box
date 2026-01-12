@@ -307,7 +307,7 @@ rdisk_disk_close(const rdisk_t *dev)
         rdisk_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path,
-               sizeof(dev->drv->prev_image_path));
+               sizeof(dev->drv->image_path));
         memset(dev->drv->image_path, 0, sizeof(dev->drv->image_path));
 
         dev->drv->medium_size = 0;
@@ -747,8 +747,17 @@ static void
 rdisk_buf_alloc(rdisk_t *dev, const uint32_t len)
 {
     rdisk_log(dev->log, "Allocated buffer length: %i\n", len);
-    if (dev->buffer == NULL)
+
+    if (dev->buffer == NULL) {
         dev->buffer = (uint8_t *) malloc(len);
+        dev->buffer_sz = len;
+    }
+
+    if (len > dev->buffer_sz) {
+        uint8_t *buf = (uint8_t *) realloc(dev->buffer, len);
+        dev->buffer = buf;
+        dev->buffer_sz = len;
+    }
 }
 
 static void

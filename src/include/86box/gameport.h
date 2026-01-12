@@ -172,28 +172,72 @@ extern void  gameport_update_joystick_type(uint8_t gp);
 extern void  gameport_remap(void *priv, uint16_t address);
 extern void *gameport_add(const device_t *gameport_type);
 
+// Paddle Controllers
+extern const joystick_t joystick_generic_paddle;
+
+// 2 axis Generic Joysticks
+extern const joystick_t joystick_2axis_1button;
 extern const joystick_t joystick_2axis_2button;
-extern const joystick_t joystick_2button_gamepad;
-extern const joystick_t joystick_2button_flight_yoke;
+extern const joystick_t joystick_2axis_3button;
 extern const joystick_t joystick_2axis_4button;
-extern const joystick_t joystick_4button_gamepad;
-extern const joystick_t joystick_4button_flight_yoke;
-extern const joystick_t joystick_3axis_2button;
-extern const joystick_t joystick_2button_yoke_throttle;
-extern const joystick_t joystick_3axis_4button;
-extern const joystick_t joystick_4button_yoke_throttle;
-extern const joystick_t joystick_win95_steering_wheel;
-extern const joystick_t joystick_4axis_4button;
 extern const joystick_t joystick_2axis_6button;
 extern const joystick_t joystick_2axis_8button;
 
+// 3 axis Generic Joysticks
+extern const joystick_t joystick_3axis_2button;
+extern const joystick_t joystick_3axis_3button;
+extern const joystick_t joystick_3axis_4button;
+
+// 4 axis Generic Joysticks
+extern const joystick_t joystick_4axis_2button;
+extern const joystick_t joystick_4axis_3button;
+extern const joystick_t joystick_4axis_4button;
+
+// Generic Gamepads
+extern const joystick_t joystick_2button_gamepad;
+extern const joystick_t joystick_3button_gamepad;
+extern const joystick_t joystick_4button_gamepad;
+extern const joystick_t joystick_6button_gamepad;
+
+extern const joystick_t joystick_gravis_gamepad;
+
+// Generic Steering Wheels
+extern const joystick_t joystick_steering_wheel_2_button;
+extern const joystick_t joystick_steering_wheel_3_button;
+extern const joystick_t joystick_steering_wheel_4_button;
+
+// Generic Flight Yokes
+extern const joystick_t joystick_2button_flight_yoke;
+extern const joystick_t joystick_4button_flight_yoke;
+extern const joystick_t joystick_3button_flight_yoke;
+
+extern const joystick_t joystick_2button_yoke_throttle;
+extern const joystick_t joystick_3button_yoke_throttle;
+extern const joystick_t joystick_4button_yoke_throttle;
+
+extern const joystick_t joystick_ch_flightstick;
+extern const joystick_t joystick_ch_flightstick_ch_pedals;
+extern const joystick_t joystick_ch_flightstick_ch_pedals_pro;
+
 extern const joystick_t joystick_ch_flightstick_pro;
 extern const joystick_t joystick_ch_flightstick_pro_ch_pedals;
+extern const joystick_t joystick_ch_flightstick_pro_ch_pedals_pro;
+
+extern const joystick_t joystick_ch_virtual_pilot;
+extern const joystick_t joystick_ch_virtual_pilot_ch_pedals;
+extern const joystick_t joystick_ch_virtual_pilot_ch_pedals_pro;
+
+extern const joystick_t joystick_ch_virtual_pilot_pro;
+extern const joystick_t joystick_ch_virtual_pilot_pro_ch_pedals;
+extern const joystick_t joystick_ch_virtual_pilot_pro_ch_pedals_pro;
 
 extern const joystick_t joystick_sw_pad;
 
 extern const joystick_t joystick_tm_fcs;
 extern const joystick_t joystick_tm_fcs_rcs;
+
+extern const joystick_t joystick_tm_formula_t1t2;
+extern const joystick_t joystick_tm_formula_t1t2wa;
 
 #ifdef __cplusplus
 }

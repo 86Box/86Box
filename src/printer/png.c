@@ -6,8 +6,6 @@
  *
  *          Provide centralized access to the PNG image handler.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018 Fred N. van Kempen.

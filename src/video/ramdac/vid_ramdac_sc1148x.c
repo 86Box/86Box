@@ -10,8 +10,6 @@
  *
  *          Used by the S3 911 and 924 chips.
  *
- *
- *
  * Authors: TheCollector1995, <mariogplayer90@gmail.com>
  *
  *          Copyright 2020 TheCollector1995.

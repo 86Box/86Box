@@ -419,7 +419,7 @@ void mtr_flush_with_state(int is_last) {
         len = snprintf(linebuf, ARRAY_SIZE(linebuf), "%s{\"cat\":\"%s\",\"pid\":%i,\"tid\":%i,\"ts\":%" PRId64 ",\"ph\":\"%c\",\"name\":\"%s\",\"args\":{%s}%s}",
                 first_line ? "" : ",\n",
                 cat, raw->pid, raw->tid, raw->ts - time_offset, raw->ph, raw->name, arg_buf, id_buf);
-        fwrite(linebuf, 1, len, f);
+        fwrite(linebuf, 1, len, fp);
         first_line = 0;
 
         if (raw->arg_type == MTR_ARG_TYPE_STRING_COPY) {

@@ -158,11 +158,11 @@
        <item row="6" column="0">
         <widget class="QLabel" name="labelBridgeTAPNIC1">
          <property name="text">
-          <string>TAP Bridge Device</string>
+          <string>TAP Bridge Device:</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="1" colspan="2">
+       <item row="6" column="1">
         <widget class="QLineEdit" name="bridgeTAPNIC1">
          <property name="maxLength">
           <number>127</number>
@@ -373,11 +373,11 @@
        <item row="6" column="0">
         <widget class="QLabel" name="labelBridgeTAPNIC2">
          <property name="text">
-          <string>TAP Bridge Device</string>
+          <string>TAP Bridge Device:</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="1" colspan="2">
+       <item row="6" column="1">
         <widget class="QLineEdit" name="bridgeTAPNIC2">
          <property name="maxLength">
           <number>127</number>
@@ -588,11 +588,11 @@
        <item row="6" column="0">
         <widget class="QLabel" name="labelBridgeTAPNIC3">
          <property name="text">
-          <string>TAP Bridge Device</string>
+          <string>TAP Bridge Device:</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="1" colspan="2">
+       <item row="6" column="1">
         <widget class="QLineEdit" name="bridgeTAPNIC3">
          <property name="maxLength">
           <number>127</number>
@@ -803,11 +803,11 @@
        <item row="6" column="0">
         <widget class="QLabel" name="labelBridgeTAPNIC4">
          <property name="text">
-          <string>TAP Bridge Device</string>
+          <string>TAP Bridge Device:</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="1" colspan="2">
+       <item row="6" column="1">
         <widget class="QLineEdit" name="bridgeTAPNIC4">
          <property name="maxLength">
           <number>127</number>

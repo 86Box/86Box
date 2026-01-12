@@ -8,8 +8,6 @@
  *
  *          Definitions for the common CD-ROM interface controller handler.
  *
- *
- *
  * Authors: TheCollector1995
  *
  *          Copyright 2022 TheCollector1995.

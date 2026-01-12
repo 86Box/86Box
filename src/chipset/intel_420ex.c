@@ -9,8 +9,6 @@
  *          Emulation of Intel 82420EX chipset that acts as both the
  *          northbridge and the southbridge.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2020 Miran Grca.

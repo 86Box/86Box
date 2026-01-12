@@ -8,8 +8,6 @@
  *
  *          Various definitions for portable byte-swapping.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          neozeed,
  *
@@ -34,7 +32,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-
 #ifndef BSWAP_H
 #define BSWAP_H
 
@@ -163,7 +160,7 @@ CPU_CONVERT(le, 64, uint64_t)
 
 /* unaligned versions (optimized for frequent unaligned accesses)*/
 
-#if defined(__i386__) || defined(__powerpc__)
+#if defined(__powerpc__)
 #    define cpu_to_le16wu(p, v) cpu_to_le16w(p, v)
 #    define cpu_to_le32wu(p, v) cpu_to_le32w(p, v)
 #    define le16_to_cpupu(p)    le16_to_cpup(p)

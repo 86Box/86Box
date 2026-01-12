@@ -9,8 +9,6 @@
  *          Implementation of the Intel 1 Mbit and 2 Mbit, 8-bit and
  *          16-bit flash devices.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *

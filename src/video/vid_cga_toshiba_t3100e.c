@@ -22,8 +22,6 @@
  *          61 50 52 0F 19 06 19 19 02 0D 0B 0C   MONO
  *          2D 28 22 0A 67 00 64 67 02 03 06 07   640x400
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          John Elliott, <jce@seasip.info>
@@ -656,7 +654,7 @@ void *
 t3100e_init(UNUSED(const device_t *info))
 {
     t3100e_t *t3100e = calloc(1, sizeof(t3100e_t));
-    loadfont("roms/machines/t3100e/t3100e_font.bin", 5);
+    video_load_font("roms/machines/t3100e/t3100e_font.bin", FONT_FORMAT_TOSHIBA_3100E, LOAD_FONT_NO_OFFSET);
     cga_init(&t3100e->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t3100e);
 

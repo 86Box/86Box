@@ -1,4 +1,4 @@
-name: CodeQL Analysis (Windows, msys2)
+name: CodeQL Analysis (Windows)
 
 on:
 
@@ -31,9 +31,9 @@ on:
 
 jobs:
 
-  analyze-msys2:
+  analyze-windows:
 
-    name: "Analyze (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
 
     runs-on: ${{ matrix.environment.runner }}
 
@@ -70,33 +70,34 @@ jobs:
             new: on
             slug: -NDR
         ui:
-          - name: Qt GUI
+          - name: Qt 5 GUI
             qt: on
+            slug: -Qt5
             static: off
-            slug: -Qt
             packages: >-
               qt5-base:p
               qt5-tools:p
               vulkan-headers:p
+#              qt5-static:p
         environment:
 #          - msystem: MSYS
 #            toolchain: ./cmake/flags-gcc-x86_64.cmake
 #            slug: "-MSYS64"
-          - msystem: MINGW64
-            prefix: mingw-w64-x86_64
-            toolchain: ./cmake/flags-gcc-x86_64.cmake
-            slug: "-64"
-            runner: windows-2022
+#          - msystem: MINGW64
+#            prefix: mingw-w64-x86_64
+#            toolchain: ./cmake/flags-gcc-x86_64.cmake
+#            slug: "MINGW64"
+#            runner: windows-2022
 #          - msystem: CLANG64
 #            prefix: mingw-w64-clang-x86_64
 #            toolchain: ./cmake/llvm-win32-x86_64.cmake
 #            slug: "CLANG64"
 #            runner: windows-2022
-#          - msystem: UCRT64
-#            prefix: mingw-w64-ucrt-x86_64
-#            toolchain: ./cmake/flags-gcc-x86_64.cmake
-#            slug: "UCRT64"
-#            runner: windows-2022
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+            slug: "-64"
+            runner: windows-2022
 #          - msystem: CLANGARM64
 #            toolchain: ./cmake/flags-gcc-aarch64.cmake
 #            slug: -arm64
@@ -147,10 +148,9 @@ jobs:
 
       - name: Configure CMake
         run: >-
-          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          cmake -S . -B build --preset ${{ matrix.build.preset }}
           --toolchain ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
 
@@ -169,7 +169,7 @@ jobs:
       - name: SonarQube Scan
 #        if: matrix.build.preset == 'dev_debug' && matrix.dynarec.new == 'on' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
         if: 0
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -177,4 +177,4 @@ jobs:
         with:
            # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
            args: >
-             --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
+             --define sonar.cfamily.compile-commands=build/compile_commands.json

@@ -8,22 +8,20 @@
  *
  *          Update details module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #include "qt_updatedetails.hpp"
 #include "ui_qt_updatedetails.h"
 
 #include <QDesktopServices>
 #include <QPushButton>
 
-
 UpdateDetails::
-UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : QDialog(parent), ui(new Ui::UpdateDetails)
+    UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::UpdateDetails)
 {
     ui->setupUi(this);
     ui->updateTitle->setText(tr("<b>An update to 86Box is available!</b>"));
@@ -42,7 +40,7 @@ UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : 
     const auto updateDetailsText = QString("%1 %2%3").arg(latestVersionText, currentVersionText.append(' '), tr("Would you like to visit the download page?"));
     ui->updateDetails->setText(updateDetailsText);
 
-    if(updateResult.channel == UpdateCheck::UpdateChannel::Stable) {
+    if (updateResult.channel == UpdateCheck::UpdateChannel::Stable) {
         ui->updateText->setMarkdown(githubUpdateToMarkdown(updateResult.githubInfo));
     } else {
         ui->updateText->setMarkdown(jenkinsUpdateToMarkdown(updateResult.jenkinsInfo));
@@ -59,8 +57,7 @@ UpdateDetails(const UpdateCheck::UpdateResult &updateResult, QWidget *parent) : 
     ui->icon->setPixmap(logo);
 }
 
-UpdateDetails::~
-UpdateDetails()
+UpdateDetails::~UpdateDetails()
     = default;
 
 QString
@@ -112,25 +109,25 @@ UpdateDetails::visitDownloadPage(const UpdateCheck::UpdateChannel &channel)
         case UpdateCheck::UpdateChannel::CI:
             QDesktopServices::openUrl(QUrl("https://86box.net/builds#"
 #ifdef Q_OS_WINDOWS
-                "win"
+                                           "win"
 #elif defined(Q_OS_MACOS)
-                "mac"
+                                           "mac"
 #elif defined(Q_OS_LINUX)
-                "lin"
+                                           "lin"
 #endif
 
 #if defined(__aarch64__) || defined(_M_ARM64)
-                "arm64"
+                                           "arm64"
 #elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
-                "64"
+                                           "64"
 #endif
 
 #ifdef USE_NEW_DYNAREC
-                "ndr"
+                                           "ndr"
 #else
-                "odr"
+                                           "odr"
 #endif
-            ));
+                                           ));
             break;
     }
 }

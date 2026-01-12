@@ -9,8 +9,6 @@
  *          A better random number generation, used for floppy weak bits
  *          and network MAC address generation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
@@ -19,7 +17,7 @@
 #include <stdlib.h>
 #include <86box/random.h>
 
-#if !(defined(__i386__) || defined(__x86_64__))
+#if !defined(__x86_64__)
 #    include <time.h>
 #endif
 
@@ -50,19 +48,13 @@ rotr32c(uint32_t x, uint32_t n)
 static __inline unsigned long long
 rdtsc(void)
 {
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__x86_64__)
     unsigned int hi;
     unsigned int lo;
-#    ifdef _MSC_VER
-    __asm {
-        rdtsc
-        mov hi, edx ; EDX:EAX is already standard return!!
-        mov lo, eax
-    }
-#    else
+
     __asm__ __volatile__("rdtsc"
                          : "=a"(lo), "=d"(hi));
-#    endif
+                         
     return ((unsigned long long) lo) | (((unsigned long long) hi) << 32);
 #else
     return time(NULL);

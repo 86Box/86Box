@@ -8,8 +8,6 @@
  *
  *          Definitions for the Toshiba T1000/T1200 machines.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          John Elliott, <jce@seasip.info>
@@ -36,7 +34,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-
 #ifndef MACHINE_T1000_H
 #define MACHINE_T1000_H
 

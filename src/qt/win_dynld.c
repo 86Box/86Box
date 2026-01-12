@@ -8,8 +8,6 @@
  *
  *          Try to load a support DLL.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017-2018 Fred N. van Kempen

@@ -8,8 +8,6 @@
  *
  *          Implementation of the ALi M1531B CPU-to-PCI Bridge.
  *
- *
- *
  * Authors: Tiseno100,
  *
  *          Copyright 2021 Tiseno100.

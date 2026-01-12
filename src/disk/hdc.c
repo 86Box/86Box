@@ -8,8 +8,6 @@
  *
  *          Common code to handle all sorts of disk controllers.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -31,6 +29,8 @@
 #include <86box/hdd.h>
 
 int hdc_current[HDC_MAX] = { 0, 0 };
+
+int hdc_onboard_enabled  = 1;
 
 #ifdef ENABLE_HDC_LOG
 int hdc_do_log = ENABLE_HDC_LOG;
@@ -114,6 +114,8 @@ hdc_init(void)
 void
 hdc_reset(void)
 {
+    hdc_onboard_enabled = 1;
+
     for (int i = 0; i < HDC_MAX; i++) {
         hdc_log("HDC %i: reset(current=%d, internal=%d)\n", i,
                 hdc_current[i], hdc_current[i] == HDC_INTERNAL);

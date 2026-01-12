@@ -1,45 +1,49 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		86Box VM manager system details module
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
-*/
-
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          86Box VM manager system details module
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
+ */
 #include <QApplication>
 #include <QDebug>
 #include <QStyle>
 
+extern "C" {
+#include <86box/86box.h>
+}
+
+#include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "ui_qt_vmmanager_details.h"
 
 #define TOOLBUTTON_STYLESHEET_LIGHT "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(midlight)} QToolButton:pressed {background: palette(mid)}"
 #ifdef Q_OS_WINDOWS
-#    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {padding: 5px}"
+#    define TOOLBUTTON_STYLESHEET_DARK       "QToolButton {padding: 5px}"
 #    define SCREENSHOTBORDER_STYLESHEET_DARK "QLabel { border: 1px solid gray }"
 #else
 #    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(dark)} QToolButton:pressed {background: palette(mid)}"
 #endif
-#define SCROLLAREA_STYLESHEET_LIGHT "QWidget {background-color: palette(light)} QScrollBar{ background-color: none }"
+#define SCROLLAREA_STYLESHEET_LIGHT  "QWidget {background-color: palette(light)} QScrollBar{ background-color: none }"
 #define SYSTEMLABEL_STYLESHEET_LIGHT "background-color: palette(midlight);"
 
 using namespace VMManager;
 
-VMManagerDetails::VMManagerDetails(QWidget *parent) :
-    QWidget(parent), ui(new Ui::VMManagerDetails) {
+VMManagerDetails::VMManagerDetails(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::VMManagerDetails)
+{
     ui->setupUi(this);
 
-    const auto leftColumnLayout = qobject_cast<QVBoxLayout*>(ui->leftColumn->layout());
+    const auto leftColumnLayout = qobject_cast<QVBoxLayout *>(ui->leftColumn->layout());
 
     // Each section here gets its own VMManagerDetailSection, named in the constructor.
     // When a system is selected in the list view it is updated through this object
@@ -119,7 +123,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     ui->ssNavTBHolder->setStyleSheet(toolButtonStyleSheet);
 
     pauseIcon = QIcon(":/menuicons/qt/icons/pause.ico");
-    runIcon = QIcon(":/menuicons/qt/icons/run.ico");
+    runIcon   = QIcon(":/menuicons/qt/icons/run.ico");
 
     // Experimenting
     startPauseButton = new QToolButton();
@@ -139,17 +143,17 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     configureButton = new QToolButton();
     configureButton->setIcon(QIcon(":/menuicons/qt/icons/settings.ico"));
     configureButton->setEnabled(false);
-    configureButton->setToolTip(tr("Settings..."));
+    configureButton->setToolTip(tr("Settings…"));
     cadButton = new QToolButton();
     cadButton->setIcon(QIcon(":menuicons/qt/icons/send_cad.ico"));
     cadButton->setEnabled(false);
     cadButton->setToolTip(tr("Ctrl+Alt+Del"));
 
-    ui->toolButtonHolder->layout()->addWidget(configureButton);
+    ui->toolButtonHolder->layout()->addWidget(startPauseButton);
     ui->toolButtonHolder->layout()->addWidget(resetButton);
     ui->toolButtonHolder->layout()->addWidget(stopButton);
-    ui->toolButtonHolder->layout()->addWidget(startPauseButton);
     ui->toolButtonHolder->layout()->addWidget(cadButton);
+    ui->toolButtonHolder->layout()->addWidget(configureButton);
 
     ui->notesTextEdit->setEnabled(false);
 
@@ -162,17 +166,21 @@ VMManagerDetails::VMManagerDetails(QWidget *parent) :
     connect(this, &VMManagerDetails::styleUpdated, inputSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, portsSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, otherSection, &VMManagerDetailSection::updateStyle);
+
+    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
 #endif
 
     sysconfig = new VMManagerSystem();
 }
 
-VMManagerDetails::~VMManagerDetails() {
+VMManagerDetails::~VMManagerDetails()
+{
     delete ui;
 }
 
 void
-VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
+VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
+{
 
     // Set the scrollarea background but also set the scroll bar to none. Otherwise it will also
     // set the scrollbar background to the same.
@@ -198,6 +206,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     disconnect(configureButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::launchSettings);
     disconnect(cadButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::cadButtonPressed);
 
+    disconnect(sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerDetails::onConfigUpdated);
+
     sysconfig = passed_sysconfig;
     connect(resetButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::restartButtonPressed);
     connect(stopButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::shutdownForceButtonPressed);
@@ -205,9 +215,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     connect(cadButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::cadButtonPressed);
     cadButton->setEnabled(true);
 
-    bool running = sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running ||
-        sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::RunningWaiting;
-    if(running) {
+    bool running = sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running || sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::RunningWaiting;
+    if (running) {
         startPauseButton->setIcon(pauseIcon);
         connect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::pauseButtonPressed);
     } else {
@@ -221,9 +230,7 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     updateScreenshots(passed_sysconfig);
 
     ui->systemLabel->setText(passed_sysconfig->displayName);
-    ui->statusLabel->setText(sysconfig->process->processId() == 0 ?
-        tr("Not running") :
-        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
+    ui->statusLabel->setText(sysconfig->process->processId() == 0 ? tr("Not running") : QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
     ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
     ui->notesTextEdit->setEnabled(true);
 
@@ -236,11 +243,21 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig) {
     disconnect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
     connect(sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerDetails::updateProcessStatus);
 
+    connect(sysconfig, &VMManagerSystem::configurationChanged, this, &VMManagerDetails::onConfigUpdated);
+
     updateProcessStatus();
 }
 
 void
-VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
+VMManagerDetails::onConfigUpdated(VMManagerSystem *passed_sysconfig)
+{
+    updateConfig(passed_sysconfig);
+    updateScreenshots(passed_sysconfig);
+}
+
+void
+VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig)
+{
     // Each detail section here has its own VMManagerDetailSection.
     // When a system is selected in the list view it is updated here, through this object:
     // * First you clear it with VMManagerDetailSection::clear()
@@ -255,7 +272,7 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
     // Video
     videoSection->clear();
     videoSection->addSection("Video", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Video));
-    if(!passed_sysconfig->getDisplayValue(VMManager::Display::Name::Voodoo).isEmpty()) {
+    if (!passed_sysconfig->getDisplayValue(VMManager::Display::Name::Voodoo).isEmpty()) {
         videoSection->addSection("Voodoo", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Voodoo));
     }
 
@@ -306,7 +323,8 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig) {
 }
 
 void
-VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
+VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig)
+{
     // Disable screenshot navigation buttons by default
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
@@ -318,7 +336,7 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
     if (!screenshots.empty()) {
         ui->screenshot->setFrameStyle(QFrame::NoFrame);
         ui->screenshot->setEnabled(true);
-        if(screenshots.size() > 1) {
+        if (screenshots.size() > 1) {
             ui->screenshotNext->setEnabled(true);
             ui->screenshotPrevious->setEnabled(true);
             ui->screenshotNextTB->setEnabled(true);
@@ -327,7 +345,7 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
 #ifdef Q_OS_WINDOWS
         ui->screenshot->setStyleSheet("");
 #endif
-        if(QFileInfo::exists(screenshots.last().filePath())) {
+        if (QFileInfo::exists(screenshots.last().filePath())) {
             screenshotIndex = screenshots.size() - 1;
             const QPixmap pic(screenshots.at(screenshotIndex).filePath());
             ui->screenshot->setPixmap(pic.scaled(240, 160, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -354,18 +372,17 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig) {
 }
 
 void
-VMManagerDetails::updateProcessStatus() {
-    const bool running = sysconfig->process->state() == QProcess::ProcessState::Running;
-    QString status_text = running ?
-        QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())) :
-        tr("Not running");
+VMManagerDetails::updateProcessStatus()
+{
+    const bool running     = sysconfig->process->state() == QProcess::ProcessState::Running;
+    QString    status_text = running ? QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())) : tr("Not running");
     status_text.append(sysconfig->window_obscured ? QString(" (%1)").arg(tr("Waiting")) : "");
     ui->statusLabel->setText(status_text);
     resetButton->setEnabled(running);
     stopButton->setEnabled(running);
     cadButton->setEnabled(running);
-    if(running) {
-        if(sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
+    if (running) {
+        if (sysconfig->getProcessStatus() == VMManagerSystem::ProcessStatus::Running) {
             startPauseButton->setIcon(pauseIcon);
             startPauseButton->setToolTip(tr("Pause"));
         } else {
@@ -407,7 +424,7 @@ VMManagerDetails::updateWindowStatus()
 void
 VMManagerDetails::updateStyle()
 {
-    QString toolButtonStyleSheet;
+    QString    toolButtonStyleSheet;
     const bool lightMode = util::isWindowsLightTheme();
     if (lightMode) {
         toolButtonStyleSheet = TOOLBUTTON_STYLESHEET_LIGHT;
@@ -475,10 +492,9 @@ VMManagerDetails::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched->isWidgetType() && event->type() == QEvent::FocusOut) {
         // Make sure it's the textedit
-        if (const auto *textEdit = qobject_cast<QPlainTextEdit*>(watched); textEdit) {
+        if (const auto *textEdit = qobject_cast<QPlainTextEdit *>(watched); textEdit) {
             saveNotes();
         }
     }
     return QWidget::eventFilter(watched, event);
 }
-

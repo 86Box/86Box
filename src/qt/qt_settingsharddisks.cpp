@@ -8,8 +8,6 @@
  *
  *          Hard disk configuration UI module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
@@ -22,6 +20,7 @@
 extern "C" {
 #include <86box/86box.h>
 #include <86box/hdd.h>
+#include <86box/hdd_audio.h>
 }
 
 #include <QStandardItemModel>
@@ -38,11 +37,14 @@ const int ColumnHeads     = 3;
 const int ColumnSectors   = 4;
 const int ColumnSize      = 5;
 const int ColumnSpeed     = 6;
+const int ColumnAudio     = 7;
 
 const int DataBus                = Qt::UserRole;
 const int DataBusChannel         = Qt::UserRole + 1;
 const int DataBusPrevious        = Qt::UserRole + 2;
 const int DataBusChannelPrevious = Qt::UserRole + 3;
+
+QIcon hard_disk_icon;
 
 #if 0
 static void
@@ -74,32 +76,40 @@ static void
 addRow(QAbstractItemModel *model, hard_disk_t *hd)
 {
     const QString userPath = usr_path;
-    int row = model->rowCount();
+    int           row      = model->rowCount();
 
     model->insertRow(row);
 
-    QString busName = Harddrives::BusChannelName(hd->bus_type, hd->channel);
-    model->setData(model->index(row, ColumnBus), busName);
-    model->setData(model->index(row, ColumnBus), QIcon(":/settings/qt/icons/hard_disk.ico"), Qt::DecorationRole);
-    model->setData(model->index(row, ColumnBus), hd->bus_type, DataBus);
-    model->setData(model->index(row, ColumnBus), hd->bus_type, DataBusPrevious);
-    model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannel);
-    model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannelPrevious);
+    auto    busIndex = model->index(row, ColumnBus);
+    QString busName  = Harddrives::BusChannelName(hd->bus_type, hd->channel);
+    model->setData(busIndex, busName);
+    model->setData(busIndex, hard_disk_icon, Qt::DecorationRole);
+    model->setData(busIndex, hd->bus_type, DataBus);
+    model->setData(busIndex, hd->bus_type, DataBusPrevious);
+    model->setData(busIndex, hd->channel, DataBusChannel);
+    model->setData(busIndex, hd->channel, DataBusChannelPrevious);
     Harddrives::busTrackClass->device_track(1, DEV_HDD, hd->bus_type, hd->channel);
-    QString fileName = hd->fn;
+    auto    filenameIndex = model->index(row, ColumnFilename);
+    QString fileName      = hd->fn;
     if (fileName.startsWith(userPath, Qt::CaseInsensitive))
-        model->setData(model->index(row, ColumnFilename), fileName.mid(userPath.size()));
+        model->setData(filenameIndex, fileName.mid(userPath.size()));
     else
-        model->setData(model->index(row, ColumnFilename), fileName);
+        model->setData(filenameIndex, fileName);
 
-    model->setData(model->index(row, ColumnFilename), fileName, Qt::UserRole);
+    model->setData(filenameIndex, fileName, Qt::UserRole);
 
     model->setData(model->index(row, ColumnCylinders), hd->tracks);
     model->setData(model->index(row, ColumnHeads), hd->hpc);
     model->setData(model->index(row, ColumnSectors), hd->spt);
     model->setData(model->index(row, ColumnSize), (hd->tracks * hd->hpc * hd->spt) >> 11);
-    model->setData(model->index(row, ColumnSpeed), QObject::tr(hdd_preset_getname(hd->speed_preset)));
-    model->setData(model->index(row, ColumnSpeed), hd->speed_preset, Qt::UserRole);
+    auto speedIndex = model->index(row, ColumnSpeed);
+    model->setData(speedIndex, QObject::tr(hdd_preset_getname(hd->speed_preset)));
+    model->setData(speedIndex, hd->speed_preset, Qt::UserRole);
+    
+    auto audioIndex = model->index(row, ColumnAudio);
+    const char *audioName = hdd_audio_get_profile_name(hd->audio_profile);
+    model->setData(audioIndex, audioName ? QObject::tr(audioName) : QObject::tr("None"));
+    model->setData(audioIndex, hd->audio_profile, Qt::UserRole);
 }
 
 SettingsHarddisks::SettingsHarddisks(QWidget *parent)
@@ -108,7 +118,9 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
 {
     ui->setupUi(this);
 
-    QAbstractItemModel *model = new QStandardItemModel(0, 7, this);
+    hard_disk_icon = QIcon(":/settings/qt/icons/hard_disk.ico");
+
+    QAbstractItemModel *model = new QStandardItemModel(0, 8, this);
     model->setHeaderData(ColumnBus, Qt::Horizontal, tr("Bus"));
     model->setHeaderData(ColumnFilename, Qt::Horizontal, tr("File"));
     model->setHeaderData(ColumnCylinders, Qt::Horizontal, tr("C"));
@@ -116,6 +128,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     model->setHeaderData(ColumnSectors, Qt::Horizontal, tr("S"));
     model->setHeaderData(ColumnSize, Qt::Horizontal, tr("MiB"));
     model->setHeaderData(ColumnSpeed, Qt::Horizontal, tr("Model"));
+    model->setHeaderData(ColumnAudio, Qt::Horizontal, tr("Audio"));
     ui->tableView->setModel(model);
 
     for (int i = 0; i < HDD_NUM; i++) {
@@ -134,6 +147,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     onTableRowChanged(QModelIndex());
 
     Harddrives::populateBuses(ui->comboBoxBus->model());
+    
     on_comboBoxBus_currentIndexChanged(0);
 }
 
@@ -157,6 +171,7 @@ SettingsHarddisks::save()
         hdd[i].hpc          = idx.siblingAtColumn(ColumnHeads).data().toUInt();
         hdd[i].spt          = idx.siblingAtColumn(ColumnSectors).data().toUInt();
         hdd[i].speed_preset = idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
+        hdd[i].audio_profile = idx.siblingAtColumn(ColumnAudio).data(Qt::UserRole).toUInt();
 
         QByteArray fileName = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
         strncpy(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn) - 1);
@@ -164,7 +179,9 @@ SettingsHarddisks::save()
     }
 }
 
-void SettingsHarddisks::reloadBusChannels() {
+void
+SettingsHarddisks::reloadBusChannels()
+{
     const auto selected = ui->comboBoxChannel->currentIndex();
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
     ui->comboBoxChannel->setCurrentIndex(selected);
@@ -243,10 +260,10 @@ SettingsHarddisks::on_comboBoxChannel_currentIndexChanged(int index)
 void
 SettingsHarddisks::enableCurrentlySelectedChannel()
 {
-    const auto *item_model = qobject_cast<QStandardItemModel*>(ui->comboBoxChannel->model());
-    const auto index = ui->comboBoxChannel->currentIndex();
-    auto *item = item_model->item(index);
-    if(item)
+    const auto *item_model = qobject_cast<QStandardItemModel *>(ui->comboBoxChannel->model());
+    const auto  index      = ui->comboBoxChannel->currentIndex();
+    auto       *item       = item_model->item(index);
+    if (item)
         item->setEnabled(true);
 }
 
@@ -262,6 +279,53 @@ SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index)
         auto  col   = idx.siblingAtColumn(ColumnSpeed);
         model->setData(col, ui->comboBoxSpeed->currentData(Qt::UserRole), Qt::UserRole);
         model->setData(col, QObject::tr(hdd_preset_getname(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt())));
+        
+        /* Reset audio profile to None when speed/model changes */
+        auto audioCol = idx.siblingAtColumn(ColumnAudio);
+        model->setData(audioCol, 0, Qt::UserRole);
+        model->setData(audioCol, QObject::tr("None"));
+    }
+    
+    /* Repopulate audio profiles based on the selected speed preset's RPM */
+    populateAudioProfiles();
+}
+
+void
+SettingsHarddisks::populateAudioProfiles()
+{
+    ui->comboBoxAudio->clear();
+    
+    /* Get RPM from currently selected speed preset */
+    uint32_t target_rpm = hdd_preset_get_rpm(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt());
+    
+    /* Populate audio profile combobox with matching RPM profiles */
+    int profile_count = hdd_audio_get_profile_count();
+    for (int i = 0; i < profile_count; i++) {
+        const char *name = hdd_audio_get_profile_name(i);
+        uint32_t profile_rpm = hdd_audio_get_profile_rpm(i);
+        
+        /* Include profile if it has no RPM set (0) or matches target RPM */
+        if (name && (profile_rpm == 0 || profile_rpm == target_rpm)) {
+            ui->comboBoxAudio->addItem(name, i);
+        }
+    }
+}
+
+void
+SettingsHarddisks::on_comboBoxAudio_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    auto idx = ui->tableView->selectionModel()->currentIndex();
+    if (idx.isValid()) {
+        auto *model = ui->tableView->model();
+        auto  col   = idx.siblingAtColumn(ColumnAudio);
+        int   prof  = ui->comboBoxAudio->currentData(Qt::UserRole).toInt();
+        model->setData(col, prof, Qt::UserRole);
+        
+        const char *audioName = hdd_audio_get_profile_name(prof);
+        model->setData(col, audioName ? QObject::tr(audioName) : QObject::tr("None"));
     }
 }
 
@@ -272,13 +336,16 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
     ui->labelBus->setHidden(hidden);
     ui->labelChannel->setHidden(hidden);
     ui->labelSpeed->setHidden(hidden);
+    ui->labelAudio->setHidden(hidden);
     ui->comboBoxBus->setHidden(hidden);
     ui->comboBoxChannel->setHidden(hidden);
     ui->comboBoxSpeed->setHidden(hidden);
+    ui->comboBoxAudio->setHidden(hidden);
 
     uint32_t bus        = current.siblingAtColumn(ColumnBus).data(DataBus).toUInt();
     uint32_t busChannel = current.siblingAtColumn(ColumnBus).data(DataBusChannel).toUInt();
     uint32_t speed      = current.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
+    uint32_t audio      = current.siblingAtColumn(ColumnAudio).data(Qt::UserRole).toUInt();
 
     auto *model = ui->comboBoxBus->model();
     auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);
@@ -294,6 +361,14 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
     match = model->match(model->index(0, 0), Qt::UserRole, speed);
     if (!match.isEmpty())
         ui->comboBoxSpeed->setCurrentIndex(match.first().row());
+
+    /* Populate audio profiles based on selected speed preset's RPM */
+    populateAudioProfiles();
+    
+    model = ui->comboBoxAudio->model();
+    match = model->match(model->index(0, 0), Qt::UserRole, audio);
+    if (!match.isEmpty())
+        ui->comboBoxAudio->setCurrentIndex(match.first().row());
 
     reloadBusChannels();
 }
@@ -354,8 +429,8 @@ SettingsHarddisks::on_pushButtonRemove_clicked()
     if (!idx.isValid())
         return;
 
-    auto       *model = ui->tableView->model();
-    const auto  col   = idx.siblingAtColumn(ColumnBus);
+    auto      *model = ui->tableView->model();
+    const auto col   = idx.siblingAtColumn(ColumnBus);
     Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannel).toInt());
     model->removeRow(idx.row());
     ui->pushButtonNew->setEnabled(true);

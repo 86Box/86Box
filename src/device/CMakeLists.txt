@@ -18,6 +18,8 @@
 
 add_library(dev OBJECT
     access_bus.c
+    ast_nvr.c
+    ast_readout.c
     bugger.c
     cartridge.c
     cassette.c
@@ -79,6 +81,17 @@ endif()
 
 if(ISAMEM_BRAT)
     target_compile_definitions(dev PRIVATE USE_ISAMEM_BRAT)
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    if(VFIO)
+        include(CheckIncludeFile)
+        check_include_file("linux/vfio.h" VFIO_AVAILABLE)
+        if(VFIO_AVAILABLE)
+            add_compile_definitions(USE_VFIO)
+            target_sources(dev PRIVATE vfio.c)
+        endif()
+    endif()
 endif()
 
 if(LASERXT)

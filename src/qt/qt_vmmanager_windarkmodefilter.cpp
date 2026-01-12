@@ -8,15 +8,12 @@
  *
  *          Generic Windows native event filter for dark mode handling
  *
- *
- *
  * Authors: Teemu Korhonen
  *          Cacodemon345
  *
  *          Copyright 2021 Teemu Korhonen
  *          Copyright 2024-2025 Cacodemon345.
  */
-
 #include "qt_vmmanager_windarkmodefilter.hpp"
 
 #include <QDebug>
@@ -28,7 +25,7 @@
 #include <windows.h>
 #include <dwmapi.h>
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
-#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#    define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
 #include <86box/86box.h>
@@ -71,7 +68,8 @@ WindowsDarkModeFilter::reselectDarkMode()
     }
     window->updateDarkMode();
 
-    if (NewDarkMode != OldDarkMode)  QTimer::singleShot(1000, [this] () {
+    if (NewDarkMode != OldDarkMode)
+        QTimer::singleShot(1000, [this]() {
             BOOL DarkMode = NewDarkMode;
             DwmSetWindowAttribute((HWND) window->winId(),
                                   DWMWA_USE_IMMERSIVE_DARK_MODE,
@@ -93,11 +91,8 @@ WindowsDarkModeFilter::nativeEventFilter(const QByteArray &eventType, void *mess
         MSG *msg = static_cast<MSG *>(message);
 
         if ((msg != nullptr) && (msg->message == WM_SETTINGCHANGE)) {
-            if ((((void *) msg->lParam) != nullptr) &&
-                (wcscmp(L"ImmersiveColorSet", (wchar_t*)msg->lParam) == 0) &&
-                color_scheme == 0) {
+            if ((((void *) msg->lParam) != nullptr) && (wcscmp(L"ImmersiveColorSet", (wchar_t *) msg->lParam) == 0) && color_scheme == 0) 
                 reselectDarkMode();
-            }
         }
     }
 

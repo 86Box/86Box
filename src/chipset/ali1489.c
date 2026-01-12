@@ -8,8 +8,6 @@
  *
  *          Implementation of the ALi M1489 chipset.
  *
- *
- *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *

@@ -43,7 +43,7 @@
 
 pc_cassette_t *cassette;
 
-char          cassette_fname[512];
+char          cassette_fname[MAX_IMAGE_PATH_LEN];
 char          cassette_mode[512];
 char *        cassette_image_history[CASSETTE_IMAGE_HISTORY];
 unsigned long cassette_pos;
@@ -500,7 +500,10 @@ pc_cas_set_motor(pc_cassette_t *cas, unsigned char val)
     else
         timer_disable(&cas->timer);
 
-    ui_sb_update_icon(SB_CASSETTE, !!val);
+    if (!cas->save)
+        ui_sb_update_icon(SB_CASSETTE, !!val);
+    else
+        ui_sb_update_icon_write(SB_CASSETTE, !!val);
 }
 
 unsigned char
@@ -665,8 +668,12 @@ cassette_callback(void *priv)
 
     pc_cas_clock(cas, 8);
 
-    if (cas->motor)
-        ui_sb_update_icon(SB_CASSETTE, 1);
+    if (cas->motor) {
+        if (cas->pcm && cas->save)
+            ui_sb_update_icon_write(SB_CASSETTE, 1);
+        else
+            ui_sb_update_icon(SB_CASSETTE, 1);
+    }
 
     timer_advance_u64(&cas->timer, 8ULL * PITCONST);
 }

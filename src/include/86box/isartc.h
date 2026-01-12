@@ -6,8 +6,6 @@
  *
  *          Definitions for the ISARTC cards.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018 Fred N. van Kempen.
@@ -56,6 +54,10 @@ extern const char     *isartc_get_internal_name(int t);
 extern int             isartc_get_from_internal_name(const char *str);
 extern const device_t *isartc_get_device(int t);
 extern int             isartc_has_config(int board);
+
+/* On-board RTC devices */
+extern const device_t vendex_xt_rtc_onboard_device;
+extern const device_t rtc58167_device;
 
 #ifdef __cplusplus
 }

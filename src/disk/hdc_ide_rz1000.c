@@ -51,6 +51,7 @@ typedef struct rz1000_t {
     int      irq_mode[2];
     int      irq_pin;
     int      irq_line;
+    uint8_t  type;
 } rz1000_t;
 
 static int next_id = 0;
@@ -197,9 +198,12 @@ rz1000_reset(void *priv)
 
     rz1000_log("dev->local = %08X\n", dev->local);
 
+    dev->type = ((dev->local >> 8) & 0x01);
+    rz1000_log("dev->type = %04X\n", dev->type);
+
     dev->regs[0x00] = 0x42;       /* PC Technology */
     dev->regs[0x01] = 0x10;
-    dev->regs[0x02] = 0x00;       /* RZ-1000 */
+    dev->regs[0x02] = dev->type;  /* RZ-1000/RZ-1001 */
     dev->regs[0x03] = 0x10;
     dev->regs[0x04] = 0x00;
     dev->regs[0x07] = 0x02;       /* DEVSEL timing: 01 medium */
@@ -288,6 +292,20 @@ const device_t ide_rz1000_pci_single_channel_device = {
     .internal_name = "ide_rz1000_pci_single_channel",
     .flags         = DEVICE_PCI,
     .local         = 0x20000,
+    .init          = rz1000_init,
+    .close         = rz1000_close,
+    .reset         = rz1000_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_rz1001_pci_device = {
+    .name          = "PC Technology RZ-1001 PCI",
+    .internal_name = "ide_rz1001_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0x60100,
     .init          = rz1000_init,
     .close         = rz1000_close,
     .reset         = rz1000_reset,

@@ -26,8 +26,6 @@
  * NOTE:    The IRQ functionalities have been implemented, but not yet
  *          tested, as I need to write test software for them first :)
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018 Fred N. van Kempen.
@@ -84,13 +82,14 @@
 #include <86box/pic.h>
 #include <86box/isartc.h>
 
-#define ISARTC_EV170   0
-#define ISARTC_DTK     1
-#define ISARTC_P5PAK   2
-#define ISARTC_A6PAK   3
-#define ISARTC_VENDEX  4
-#define ISARTC_MPLUS2  5
-#define ISARTC_MM58167 10
+#define ISARTC_EV170    0
+#define ISARTC_DTK      1
+#define ISARTC_P5PAK    2
+#define ISARTC_A6PAK    3
+#define ISARTC_VENDEX   4
+#define ISARTC_MPLUS2   5
+#define ISARTC_RTC58167 6
+#define ISARTC_MM58167  10
 
 #define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B.ROM"  /* Generic 58167, AST or EV-170 */
 #define ISARTC_ROM_MM58167_2 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B2.ROM" /* PII-147 */
@@ -114,7 +113,8 @@ typedef struct rtcdev_t {
     void    (*f_wr)(uint16_t, uint8_t, void *);
     uint8_t (*f_rd)(uint16_t, void *);
     int8_t    year; /* register for YEAR value */
-    char      pad[3];
+    int8_t    century; /* register for CENTURY value */
+    char      pad[2];
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
@@ -320,9 +320,14 @@ mm67_time_get(nvr_t *nvr, struct tm *tm)
             tm->tm_year = regs[dev->year];
         if (dev->flags & FLAG_YEAR80)
             tm->tm_year += 80;
-#ifdef MM67_CENTURY
-        tm->tm_year += (regs[MM67_CENTURY] * 100) - 1900;
-#endif
+
+        if ((dev->century != -1) && !(dev->flags & FLAG_YEAR80)) {
+            if (dev->flags & FLAG_YEARBCD)
+                tm->tm_year += (RTC_DCB(regs[dev->century]) * 100) - 1900;
+            else
+                tm->tm_year += (regs[dev->century] * 100) - 1900;
+        }
+
 #if ISARTC_DEBUG > 1
         isartc_log("ISARTC: get_time: year=%i [%02x]\n", tm->tm_year, regs[dev->year]);
 #endif
@@ -352,9 +357,14 @@ mm67_time_set(nvr_t *nvr, struct tm *tm)
             regs[dev->year] = RTC_BCD(year % 100);
         else
             regs[dev->year] = year % 100;
-#ifdef MM67_CENTURY
-        regs[MM67_CENTURY] = (year + 1900) / 100;
-#endif
+
+        if ((dev->year != -1) && !(dev->flags & FLAG_YEAR80)) {
+            if (dev->flags & FLAG_YEARBCD)
+                regs[dev->century] = RTC_BCD((year + 1900) / 100);
+            else
+                regs[dev->century] = (year + 1900) / 100;
+        }
+
 #if ISARTC_DEBUG > 1
         isartc_log("ISARTC: set_time: [%02x] year=%i (%i)\n", regs[dev->year], year, tm->tm_year);
 #endif
@@ -475,9 +485,13 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
                         dev->nvr.regs[dev->year] = RTC_BCD(val);
                     else
                         dev->nvr.regs[dev->year] = val;
-#ifdef MM67_CENTURY
-                    dev->nvr.regs[MM67_CENTURY] = 19;
-#endif
+
+                    if ((dev->century != -1) && !(dev->flags & FLAG_YEAR80)) {
+                        if (dev->flags & FLAG_YEARBCD)
+                            dev->nvr.regs[dev->century] = RTC_BCD(19);
+                        else
+                            dev->nvr.regs[dev->century] = (1900 + val) / 100;
+                    }
                 }
             }
             break;
@@ -511,6 +525,73 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+/* Multitech PC-500/PC-500+ onboard RTC 58167 device disigned to use I/O port
+ * base+0 as register index and base+1 as register data read/write window,
+ * according to the official RTC utilities SDATE.EXE, STIME.EXE, and TODAY.EXE
+ *
+ * the RTC utilities check the RTC millisecond counter first to deteminate the
+ * presence of the RTC 58167 IC, so here implement the bogus_msec to fool them 
+ */
+static uint8_t rtc58167_index = 0x00;
+
+static uint8_t
+rtc58167_read(uint16_t port, void *priv)
+{
+    uint8_t ret = 0xff;
+    uint16_t bogus_msec = (uint16_t)((tsc * 1000) / cpu_s->rspeed);
+
+    switch (port)
+    {
+        case 0x2c0:
+        case 0x300:
+            ret = rtc58167_index;
+            break;
+
+        case 0x2c1:
+        case 0x301:
+            switch (rtc58167_index)
+            {
+                case MM67_MSEC:
+                    ret = (uint8_t)(bogus_msec % 10) << 4;
+                    break;
+
+                case MM67_HUNTEN:
+                    ret = RTC_BCD((uint8_t)((bogus_msec / 10) % 100));
+                    break;
+
+                default:
+                    ret = mm67_read(((port - 1) + rtc58167_index), priv);
+                    break;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+static void
+rtc58167_write(uint16_t port, uint8_t val, void *priv)
+{
+    switch (port)
+    {
+        case 0x2c0:
+        case 0x300:
+            rtc58167_index = val;
+            break;
+
+        case 0x2c1:
+        case 0x301:
+            mm67_write(((port - 1) + rtc58167_index), val, priv);
+            break;
+
+        default:
+            break;
+    }
+}
+
 /************************************************************************
  *                                                                      *
  *            Generic code for all supported chips.                     *
@@ -523,7 +604,7 @@ isartc_init(const device_t *info)
 {
     rtcdev_t *dev;
     int       is_at = IS_AT(machine);
-    is_at           = is_at || !strcmp(machine_get_internal_name(), "xi8088");
+    is_at           = is_at || (machines[machine].init == machine_xt_xi8088_init);
 
     /* Create a device instance. */
     dev = (rtcdev_t *) calloc(1, sizeof(rtcdev_t));
@@ -531,6 +612,7 @@ isartc_init(const device_t *info)
     dev->board    = info->local;
     dev->irq      = -1;
     dev->year     = -1;
+    dev->century  = -1;
     dev->nvr.data = dev;
     dev->nvr.size = 16;
 
@@ -594,6 +676,20 @@ isartc_init(const device_t *info)
             dev->nvr.start   = mm67_start;
             dev->nvr.tick    = mm67_tick;
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
+            break;
+
+        case ISARTC_RTC58167: /* Multitech PC-500/PC-500+ onboard RTC */
+            dev->flags |= FLAG_YEARBCD;
+            dev->base_addr   = machine_get_config_int("rtc_port");
+            dev->base_addrsz = 8;
+            dev->irq         = machine_get_config_int("rtc_irq");
+            dev->f_rd        = rtc58167_read;
+            dev->f_wr        = rtc58167_write;
+            dev->nvr.reset   = mm67_reset;
+            dev->nvr.start   = mm67_start;
+            dev->nvr.tick    = mm67_tick;
+            dev->year        = MM67_AL_HUNTEN;  /* year,    NON STANDARD */
+            dev->century     = MM67_AL_SEC;     /* century, NON STANDARD */
             break;
 
         default:
@@ -931,18 +1027,32 @@ const device_t vendex_xt_rtc_onboard_device = {
     .config        = NULL
 };
 
+const device_t rtc58167_device = {
+    .name          = "RTC 58167 IC (Multitech)",
+    .internal_name = "rtc58167_xt_rtc",
+    .flags         = DEVICE_ISA,
+    .local         = ISARTC_RTC58167,
+    .init          = isartc_init,
+    .close         = isartc_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 static const struct {
     const device_t *dev;
 } boards[] = {
     // clang-format off
-    { &device_none    },
-    { &ev170_device   },
-    { &pii147_device  },
-    { &p5pak_device   },
-    { &a6pak_device   },
-    { &mplus2_device  },
-    { &mm58167_device },
-    { NULL            }
+    { &device_none     },
+    { &ev170_device    },
+    { &pii147_device   },
+    { &p5pak_device    },
+    { &a6pak_device    },
+    { &mplus2_device   },
+    { &mm58167_device  },
+    { NULL             }
     // clang-format on
 };
 

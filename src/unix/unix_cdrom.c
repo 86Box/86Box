@@ -8,15 +8,12 @@
  *
  *          Handle the platform-side of CDROM/RDisk/MO drives.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2017-2018 Fred N. van Kempen.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -46,13 +43,14 @@ cassette_mount(char *fn, uint8_t wp)
     memset(cassette_fname, 0, sizeof(cassette_fname));
     cassette_ui_writeprot = wp;
     pc_cas_set_fname(cassette, fn);
+
     if (fn != NULL)
         memcpy(cassette_fname, fn, MIN(511, strlen(fn)));
+
     ui_sb_update_icon_state(SB_CASSETTE, (fn == NULL) ? 1 : 0);
-#if 0
-    media_menu_update_cassette();
-#endif
+
     ui_sb_update_tip(SB_CASSETTE);
+
     config_save();
 }
 
@@ -61,11 +59,11 @@ cassette_eject(void)
 {
     pc_cas_set_fname(cassette, NULL);
     memset(cassette_fname, 0x00, sizeof(cassette_fname));
+
     ui_sb_update_icon_state(SB_CASSETTE, 1);
-#if 0
-    media_menu_update_cassette();
-#endif
+
     ui_sb_update_tip(SB_CASSETTE);
+
     config_save();
 }
 
@@ -74,11 +72,11 @@ cartridge_mount(uint8_t id, char *fn, UNUSED(uint8_t wp))
 {
     cart_close(id);
     cart_load(id, fn);
+
     ui_sb_update_icon_state(SB_CARTRIDGE | id, strlen(cart_fns[id]) ? 0 : 1);
-#if 0
-    media_menu_update_cartridge(id);
-#endif
+
     ui_sb_update_tip(SB_CARTRIDGE | id);
+
     config_save();
 }
 
@@ -86,11 +84,11 @@ void
 cartridge_eject(uint8_t id)
 {
     cart_close(id);
+
     ui_sb_update_icon_state(SB_CARTRIDGE | id, 1);
-#if 0
-    media_menu_update_cartridge(id);
-#endif
+
     ui_sb_update_tip(SB_CARTRIDGE | id);
+
     config_save();
 }
 
@@ -100,11 +98,11 @@ floppy_mount(uint8_t id, char *fn, uint8_t wp)
     fdd_close(id);
     ui_writeprot[id] = wp;
     fdd_load(id, fn);
+
     ui_sb_update_icon_state(SB_FLOPPY | id, strlen(floppyfns[id]) ? 0 : 1);
-#if 0
-    media_menu_update_floppy(id);
-#endif
+
     ui_sb_update_tip(SB_FLOPPY | id);
+
     config_save();
 }
 
@@ -112,11 +110,11 @@ void
 floppy_eject(uint8_t id)
 {
     fdd_close(id);
+
     ui_sb_update_icon_state(SB_FLOPPY | id, 1);
-#if 0
-    media_menu_update_floppy(id);
-#endif
+
     ui_sb_update_tip(SB_FLOPPY | id);
+
     config_save();
 }
 
@@ -131,34 +129,16 @@ plat_cdrom_ui_update(uint8_t id, UNUSED(uint8_t reload))
         ui_sb_update_icon_state(SB_CDROM | id, 0);
     }
 
-#if 0
-    media_menu_update_cdrom(id);
-#endif
     ui_sb_update_tip(SB_CDROM | id);
 }
 
 void
 cdrom_mount(uint8_t id, char *fn)
 {
-    strcpy(cdrom[id].prev_image_path, cdrom[id].image_path);
-    if (cdrom[id].ops && cdrom[id].ops->close)
-        cdrom[id].ops->close(cdrom[id].local);
-    cdrom[id].ops = NULL;
-    memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
-    if ((fn != NULL) && (strlen(fn) >= 1) && (fn[strlen(fn) - 1] == '\\'))
-            fn[strlen(fn) - 1] = '/';
-    image_open(&(cdrom[id]), fn);
-    /* Signal media change to the emulated machine. */
-    if (cdrom[id].insert)
-        cdrom[id].insert(cdrom[id].priv);
-    if (cdrom[id].image_path[0] == 0x00)
-        ui_sb_update_icon_state(SB_CDROM | id, 0);
-    else
-        ui_sb_update_icon_state(SB_CDROM | id, 1);
-#if 0
-    media_menu_update_cdrom(id);
-#endif
-    ui_sb_update_tip(SB_CDROM | id);
+    int ret = cdrom_load( &(cdrom[id]), fn, 0);
+
+    plat_cdrom_ui_update(id, 0);
+
     config_save();
 }
 
@@ -174,9 +154,7 @@ mo_eject(uint8_t id)
     }
 
     ui_sb_update_icon_state(SB_MO | id, 1);
-#if 0
-    media_menu_update_mo(id);
-#endif
+
     ui_sb_update_tip(SB_MO | id);
     config_save();
 }
@@ -191,9 +169,7 @@ mo_mount(uint8_t id, char *fn, uint8_t wp)
     mo_load(dev, fn, 0);
 
     ui_sb_update_icon_state(SB_MO | id, strlen(mo_drives[id].image_path) ? 0 : 1);
-#if 0
-    media_menu_update_mo(id);
-#endif
+
     ui_sb_update_tip(SB_MO | id);
 
     config_save();
@@ -211,9 +187,6 @@ mo_reload(uint8_t id)
         ui_sb_update_icon_state(SB_MO | id, 0);
     }
 
-#if 0
-    media_menu_update_mo(id);
-#endif
     ui_sb_update_tip(SB_MO | id);
 
     config_save();
@@ -231,10 +204,9 @@ rdisk_eject(uint8_t id)
     }
 
     ui_sb_update_icon_state(SB_RDISK | id, 1);
-#if 0
-    media_menu_update_rdisk(id);
-#endif
+
     ui_sb_update_tip(SB_RDISK | id);
+
     config_save();
 }
 
@@ -248,9 +220,7 @@ rdisk_mount(uint8_t id, char *fn, uint8_t wp)
     rdisk_load(dev, fn, 0);
 
     ui_sb_update_icon_state(SB_RDISK | id, strlen(rdisk_drives[id].image_path) ? 0 : 1);
-#if 0
-    media_menu_update_rdisk(id);
-#endif
+
     ui_sb_update_tip(SB_RDISK | id);
 
     config_save();
@@ -268,9 +238,6 @@ rdisk_reload(uint8_t id)
         ui_sb_update_icon_state(SB_RDISK | id, 0);
     }
 
-#if 0
-    media_menu_update_rdisk(id);
-#endif
     ui_sb_update_tip(SB_RDISK | id);
 
     config_save();

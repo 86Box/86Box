@@ -13,8 +13,6 @@
  *          8MB of DRAM chips', because it works fine with bus-based
  *          memory expansion.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2018 Fred N. van Kempen.

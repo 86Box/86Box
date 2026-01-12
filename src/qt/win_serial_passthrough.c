@@ -1,19 +1,18 @@
 /*
- * 86Box        A hypervisor and IBM PC system emulator that specializes in
- *              running old operating systems and software designed for IBM
- *              PC systems and compatibles from 1981 through fairly recent
- *              system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *              This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *              Definitions for platform specific serial to host passthrough
+ *          Definitions for platform specific serial to host passthrough
  *
+ * Authors: Andreas J. Reichel <webmaster@6th-dimension.com>,
+ *          Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
- * Authors:     Andreas J. Reichel <webmaster@6th-dimension.com>,
- *              Jasmine Iwanek <jasmine@iwanek.co.uk>
- *
- *              Copyright 2021      Andreas J. Reichel
- *              Copyright 2021-2025 Jasmine Iwanek
+ *          Copyright 2021      Andreas J. Reichel
+ *          Copyright 2021-2025 Jasmine Iwanek
  */
 
 #define _XOPEN_SOURCE 500
@@ -216,7 +215,7 @@ open_pseudo_terminal(serial_passthrough_t *dev)
     char ascii_pipe_name[1024] = { 0 };
     strncpy(ascii_pipe_name, dev->named_pipe, sizeof(ascii_pipe_name));
     ascii_pipe_name[1023] = '\0';
-    dev->master_fd        = (intptr_t) CreateNamedPipeA(ascii_pipe_name, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
+    dev->master_fd        = (intptr_t) CreateNamedPipeA(ascii_pipe_name, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
     if (dev->master_fd == (intptr_t) INVALID_HANDLE_VALUE) {
         wchar_t errorMsg[1024] = { 0 };
         wchar_t finalMsg[1024] = { 0 };

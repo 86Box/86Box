@@ -5,21 +5,25 @@ extern "C" {
 void
 plat_midi_play_msg(uint8_t *msg)
 {
+    //
 }
 
 void
 plat_midi_play_sysex(uint8_t *sysex, unsigned int len)
 {
+    //
 }
 
 void
 plat_midi_input_init(void)
 {
+    //
 }
 
 void
 plat_midi_input_close(void)
 {
+    //
 }
 
 int
@@ -31,11 +35,13 @@ plat_midi_write(uint8_t val)
 void
 plat_midi_init()
 {
+    //
 }
 
 void
 plat_midi_close()
 {
+    //
 }
 
 int

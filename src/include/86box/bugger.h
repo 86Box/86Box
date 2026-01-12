@@ -15,8 +15,6 @@
  *
  *          Definitions for the BUGGER card.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 1989-2018 Fred N. van Kempen.

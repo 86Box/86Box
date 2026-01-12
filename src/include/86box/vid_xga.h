@@ -8,8 +8,6 @@
  *
  *          IBM XGA emulation.
  *
- *
- *
  * Authors: TheCollector1995.
  *
  *          Copyright 2022 TheCollector1995.

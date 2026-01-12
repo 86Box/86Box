@@ -531,7 +531,6 @@ mke_command(mke_t *mke, uint8_t value)
     uint16_t     i;
     /* This is wasteful handling of buffers for compatibility, but will optimize later. */
     uint8_t      x[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int          old_cd_status;
 
     if (mke->command_buffer_pending) {
         mke->command_buffer[6 - mke->command_buffer_pending + 1] = value;
@@ -769,7 +768,6 @@ mke_command(mke_t *mke, uint8_t value)
                 }
                 break;
             case CMD1_SEEK:
-                old_cd_status = mke->cdrom_dev->cd_status;
                 fifo8_reset(&mke->info_fifo);
                 CHECK_READY_READ();
                 /* TODO: DOES THIS IMPACT CURRENT PLAY LENGTH? */
@@ -782,10 +780,6 @@ mke_command(mke_t *mke, uint8_t value)
                 /* Note for self: Panasonic/MKE drives send seek commands in MSF format. */
                 cdrom_seek(mke->cdrom_dev, MSFtoLBA(mke->command_buffer[1], mke->command_buffer[2],
                            mke->command_buffer[3]) - 150, 0);
-                if ((old_cd_status == CD_STATUS_PLAYING) || (old_cd_status == CD_STATUS_PAUSED)) {
-                    cdrom_audio_play(mke->cdrom_dev, mke->cdrom_dev->seek_pos, -1, 0);
-                    cdrom_audio_pause_resume(mke->cdrom_dev, old_cd_status == CD_STATUS_PLAYING);
-                }
                 fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
             case CMD1_SESSINFO:
@@ -832,6 +826,9 @@ mke_command(mke_t *mke, uint8_t value)
                 break;
             default:
                 mke_log("MKE: Unknown Commnad [%02x]\n", mke->command_buffer[0]);
+                fifo8_reset(&mke->info_fifo);
+                fifo8_push_all(&mke->info_fifo, x, 6);
+                fifo8_push(&mke->info_fifo, mke_cdrom_status(mke->cdrom_dev, mke));
                 break;
         }
     } else if (!mke->command_buffer_pending) {
@@ -1041,6 +1038,7 @@ static const device_config_t mke_config[] = {
             { .description = "320H", .value = 0x320 },
             { .description = "330H", .value = 0x330 },
             { .description = "340H", .value = 0x340 },
+            { .description = "630H", .value = 0x630 },
             { NULL                                  }
         },
         .bios           = { { 0 } }

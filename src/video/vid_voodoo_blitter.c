@@ -8,8 +8,6 @@
  *
  *          3DFX Voodoo emulation.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2008-2020 Sarah Walker.
@@ -220,14 +218,7 @@ skip_pixel_blit:
             break;
 
         case BLIT_COMMAND_CPU_TO_SCREEN:
-            voodoo->blt.dst_x      = voodoo->bltDstX;
-            voodoo->blt.dst_y      = voodoo->bltDstY;
-            voodoo->blt.cur_x      = 0;
-            voodoo->blt.size_x     = size_x;
-            voodoo->blt.size_y     = size_y;
-            voodoo->blt.x_dir      = x_dir;
-            voodoo->blt.y_dir      = y_dir;
-            voodoo->blt.dst_stride = (voodoo->bltCommand & BLTCMD_DST_TILED) ? ((voodoo->bltDstXYStride & 0x3f) * 32 * 2) : (voodoo->bltDstXYStride & 0xff8);
+            voodoo->launch_pending = 1;
             break;
 
         case BLIT_COMMAND_RECT_FILL:
@@ -236,13 +227,13 @@ skip_pixel_blit:
                 int       dst_x = voodoo->bltDstX;
 
                 if (SLI_ENABLED) {
-                    if ((!(voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && (voodoo->blt.dst_y & 1)) || ((voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && !(voodoo->blt.dst_y & 1)))
+                    if ((!(voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && (dst_y & 1)) || ((voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && !(dst_y & 1)))
                         goto skip_line_fill;
                     dst = (uint16_t *) &voodoo->fb_mem[dst_base_addr + (dst_y >> 1) * dst_stride];
                 } else
                     dst = (uint16_t *) &voodoo->fb_mem[dst_base_addr + dst_y * dst_stride];
 
-                for (int x = 0; x <= size_x; x++) {
+                for (int x = 0; x < size_x; x++) {
                     if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED) {
                         if (dst_x < voodoo->bltClipLeft || dst_x >= voodoo->bltClipRight || dst_y < voodoo->bltClipLowY || dst_y >= voodoo->bltClipHighY)
                             goto skip_pixel_fill;
@@ -304,6 +295,18 @@ voodoo_v2_blit_data(voodoo_t *voodoo, uint32_t data)
 
     if ((voodoo->bltCommand & BLIT_COMMAND_MASK) != BLIT_COMMAND_CPU_TO_SCREEN)
         return;
+
+    if (voodoo->launch_pending) {
+        voodoo->blt.dst_x      = voodoo->bltDstX;
+        voodoo->blt.dst_y      = voodoo->bltDstY;
+        voodoo->blt.cur_x      = 0;
+        voodoo->blt.size_x     = voodoo->bltSizeX;
+        voodoo->blt.size_y     = voodoo->bltSizeY;
+        voodoo->blt.x_dir      = (voodoo->bltSizeX > 0) ? 1 : -1;
+        voodoo->blt.y_dir      = (voodoo->bltSizeY > 0) ? 1 : -1;
+        voodoo->blt.dst_stride = (voodoo->bltCommand & BLTCMD_DST_TILED) ? ((voodoo->bltDstXYStride & 0x3f) * 32 * 2) : (voodoo->bltDstXYStride & 0xff8);
+        voodoo->launch_pending = 0;
+    }
 
     if (SLI_ENABLED) {
         addr = base_addr + (voodoo->blt.dst_y >> 1) * voodoo->blt.dst_stride;
@@ -503,6 +506,9 @@ voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
                     for (int x = params->clipLeft; x < params->clipRight; x++)
                         cbuf[x] = col;
                 }
+                /* Mark line dirty for single buffer mode */
+                if (params->draw_offset == params->front_offset && y < 2048)
+                    voodoo->dirty_line[y] = 1;
             }
         }
     }

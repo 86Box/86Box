@@ -8,8 +8,6 @@
  *
  *          Common storage devices module.
  *
- *
- *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
  *          Copyright 2021 Joakim L. Gilje
@@ -19,6 +17,7 @@
 #include <cstdint>
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/hdd.h>
 #include <86box/scsi.h>
 #include <86box/cdrom.h>
@@ -59,13 +58,13 @@ Harddrives::populateCDROMBuses(QAbstractItemModel *model)
 #endif
 
     model->setData(model->index(0, 0), QObject::tr("Disabled"));
-    model->setData(model->index(1, 0), QObject::tr("ATAPI"));
-    model->setData(model->index(2, 0), QObject::tr("SCSI"));
+    model->setData(model->index(1, 0), "ATAPI");
+    model->setData(model->index(2, 0), "SCSI");
 #ifdef USE_CDROM_MITSUMI
-    model->setData(model->index(3, 0), QObject::tr("Mitsumi"));
-    model->setData(model->index(4, 0), QObject::tr("Panasonic/MKE"));
+    model->setData(model->index(3, 0), "Mitsumi");
+    model->setData(model->index(4, 0), "Panasonic/MKE");
 #else
-    model->setData(model->index(3, 0), QObject::tr("Panasonic/MKE"));
+    model->setData(model->index(3, 0), "Panasonic/MKE");
 #endif
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
@@ -86,8 +85,8 @@ Harddrives::populateRemovableBuses(QAbstractItemModel *model)
     model->insertRows(0, 3);
 
     model->setData(model->index(0, 0), QObject::tr("Disabled"));
-    model->setData(model->index(1, 0), QObject::tr("ATAPI"));
-    model->setData(model->index(2, 0), QObject::tr("SCSI"));
+    model->setData(model->index(1, 0), "ATAPI");
+    model->setData(model->index(2, 0), "SCSI");
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_ATAPI, Qt::UserRole);
@@ -125,10 +124,10 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
 {
     model->removeRows(0, model->rowCount());
 
-    int busRows         = 0;
-    int shifter         = 1;
-    int orer            = 1;
-    int subChannelWidth = 1;
+    int        busRows         = 0;
+    int        shifter         = 1;
+    int        orer            = 1;
+    int        subChannelWidth = 1;
     QList<int> busesToCheck;
     QList<int> channelsInUse;
     switch (bus) {
@@ -162,15 +161,15 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             busesToCheck.append(HDD_BUS_SCSI);
             break;
         case CDROM_BUS_MKE:
-            shifter         = 2;
-            orer            = 3;
-            busRows         = 4;
+            shifter = 2;
+            orer    = 3;
+            busRows = 4;
             busesToCheck.append(CDROM_BUS_MKE);
             break;
         default:
             break;
     }
-    if(sbt != nullptr && !busesToCheck.empty()) {
+    if (sbt != nullptr && !busesToCheck.empty()) {
         for (auto const &checkBus : busesToCheck) {
             channelsInUse.append(sbt->busChannelsInUse(checkBus));
         }
@@ -181,9 +180,9 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         auto idx = model->index(i, 0);
         model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
         model->setData(idx, ((i >> shifter) << shifter) | (i & orer), Qt::UserRole);
-        const auto *channelModel = qobject_cast<QStandardItemModel*>(model);
-        auto *channelItem = channelModel->item(i);
-        if(channelItem) {
+        const auto *channelModel = qobject_cast<QStandardItemModel *>(model);
+        auto       *channelItem  = channelModel->item(i);
+        if (channelItem) {
             channelItem->setEnabled(!channelsInUse.contains(i));
         }
     }

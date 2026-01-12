@@ -11,8 +11,6 @@
  *              word 0 - base address
  *              word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2020 Miran Grca.
@@ -1378,13 +1376,12 @@ piix_reset_hard(piix_t *dev)
         if (dev->type < 5)
             fregs[0x20] = 0x01;
         fregs[0x3d] = 0x04;
-        if (dev->type > 4)
-            fregs[0x60] = (dev->type > 3) ? 0x10 : 0x00;
         if (dev->type < 5) {
+            fregs[0x60] = (dev->type > 3) ? 0x10 : 0x00;
             fregs[0x6a] = (dev->type == 3) ? 0x01 : 0x00;
             fregs[0xc1] = 0x20;
             fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
-        }
+        } else
         dev->max_func = 2; /* It starts with USB disabled, then enables it. */
     }
 
@@ -1595,7 +1592,7 @@ piix_init(const device_t *info)
            - Bit 4: CMOS clear jumper, must be clear;
            - Bit 0: Password switch, must be clear.
          */
-        if (!strcmp(machine_get_internal_name(), "richmond"))
+        if (machines[machine].init == machine_at_richmond_init)
             acpi_set_gpireg2_default(dev->acpi, 0xee);
         else
             acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);

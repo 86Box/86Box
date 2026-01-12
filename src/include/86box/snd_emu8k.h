@@ -199,8 +199,8 @@ typedef struct emu8k_voice_t {
      * something, similarly to targets and current, but... of what?
      * what is curious is that if they are already zero, they are not written to, so it really
      * looks like they are information about the status of the channel. (lfo position maybe?) */
-    uint32_t unknown_data0_4;
-    uint32_t unknown_data0_5;
+    uint32_t z2;
+    uint32_t z1;
     union {
         uint32_t psst;
         struct {
@@ -229,7 +229,7 @@ typedef struct emu8k_voice_t {
     };
 #define CCCA_FILTQ_GET(ccca)    (ccca >> 28)
 #define CCCA_FILTQ_SET(ccca, q) ccca = (ccca & 0x0FFFFFFF) | (q << 28)
-/* Bit 27 should always be zero */
+/* Bit 27 should always be zero on EMU8000 */
 #define CCCA_DMA_ACTIVE(ccca)      (ccca & 0x04000000)
 #define CCCA_DMA_WRITE_MODE(ccca)  (ccca & 0x02000000)
 #define CCCA_DMA_WRITE_RIGHT(ccca) (ccca & 0x01000000)
@@ -316,7 +316,9 @@ typedef struct emu8k_voice_t {
 
     int env_engine_on;
 
-    emu8k_mem_internal_t addr, loop_start, loop_end;
+    emu8k_mem_internal_t addr;
+    emu8k_mem_internal_t loop_start;
+    emu8k_mem_internal_t loop_end;
 
     int32_t initial_att;
     int32_t initial_filter;

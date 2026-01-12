@@ -9,8 +9,6 @@
  *          Emulation of the EGA and Chips & Technologies SuperEGA
  *          graphics cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -149,7 +147,6 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
             ega->vres           = !(val & 0x80);
             ega->pallook        = ega->vres ? pallook16 : pallook64;
             ega->vidclock       = val & 4;
-            pclog("clock = %01X\n", (val & 0x0c) >> 2);
             ega->miscout        = val;
             ega->overscan_color = ega->vres ? pallook16[ega->attrregs[0x11] & 0x0f] :
                                               pallook64[ega->attrregs[0x11] & 0x3f];

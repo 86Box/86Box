@@ -13,17 +13,16 @@
  *          Copyright 2007-2024 Sarah Walker
  *          Copyright 2025 Connor Hyde / starfrost, <mario64crashed@gmail.com>
  */
-
 #ifndef VIDEO_MDA_H
 #define VIDEO_MDA_H
 
 // Defines
 #define MDA_CRTC_NUM_REGISTERS      32
+#define MDA_VRAM                    0x1000
 
 // Enums & structures
 
-typedef enum mda_registers_e
-{
+typedef enum mda_registers_e {
     MDA_REGISTER_START = 0x3B0,
 
     MDA_REGISTER_CRTC_INDEX = 0x3B4,
@@ -38,8 +37,7 @@ typedef enum mda_registers_e
 } mda_registers; 
 
 // Motorola MC6845 CRTC registers (without light pen for some reason)
-typedef enum mda_crtc_registers_e
-{
+typedef enum mda_crtc_registers_e {
     MDA_CRTC_HTOTAL = 0x0,                              // Horizontal total (total number of characters incl. hsync)
     MDA_CRTC_HDISP = 0x1,                               // Horizontal display 
     MDA_CRTC_HSYNC_POS = 0x2,                           // Horizontal position of horizontal ysnc
@@ -58,16 +56,14 @@ typedef enum mda_crtc_registers_e
     MDA_CRTC_CURSOR_ADDR_LOW = 0xF,                     // Cursor address low 8 bits
 } mda_crtc_registers;
 
-typedef enum mda_mode_flags_e
-{
+typedef enum mda_mode_flags_e {
     MDA_MODE_HIGHRES = 1 << 0,                          // MUST be enabled for sane operation
     MDA_MODE_BW = 1 << 1,                    // UNUSED in most cases. Not present on Hercules
     MDA_MODE_VIDEO_ENABLE = 1 << 3, 
     MDA_MODE_BLINK = 1 << 5,
 } mda_mode_flags;
 
-typedef enum mda_colors_e 
-{
+typedef enum mda_colors_e {
     MDA_COLOR_BLACK = 0,
     MDA_COLOR_BLUE = 1,
     MDA_COLOR_GREEN = 2,

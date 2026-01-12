@@ -9,8 +9,6 @@
  *          Implementation of Ports 61, 62, and 63 used by various
  *          machines.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2021 Miran Grca.

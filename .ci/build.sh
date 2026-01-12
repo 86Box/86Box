@@ -325,9 +325,7 @@ echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 toolchain_prefix=flags-gcc
 is_mac && toolchain_prefix=llvm-macos
 case $arch in
-	32 | x86)	toolchain="$toolchain_prefix-i686";;
 	64 | x86_64*)	toolchain="$toolchain_prefix-x86_64";;
-	ARM32 | arm32)	toolchain="$toolchain_prefix-armv7";;
 	ARM64 | arm64)	toolchain="$toolchain_prefix-aarch64";;
 	*)		toolchain="$toolchain_prefix-$arch";;
 esac
@@ -340,7 +338,8 @@ strip_binary=strip
 if is_windows
 then
 	# Switch into the correct MSYSTEM if required.
-	msys=MINGW$arch
+	msys=UCRT$arch
+	[ ! -d "/$msys" ] && msys=MINGW$arch
 	[ ! -d "/$msys" ] && msys=CLANG$arch
 	if [ -d "/$msys" ]
 	then
@@ -600,8 +599,8 @@ then
 		cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
 	fi
 
-	# Enable Libserialport 
-		cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
+	# Enable libserialport.
+	cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
 
 	# Install dependencies only if we're in a new build and/or MacPorts prefix.
 	if check_buildtag "$(basename "$macports")"
@@ -670,9 +669,7 @@ then
 else
 	# Determine Debian architecture.
 	case $arch in
-		x86)	arch_deb="i386";;
 		x86_64)	arch_deb="amd64";;
-		arm32)	arch_deb="armhf";;
 		*)	arch_deb="$arch";;
 	esac
         grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
@@ -710,15 +707,12 @@ else
 
 	# Determine toolchain architecture triplet.
 	case $arch in
-		x86)	arch_triplet="i686-linux-gnu";;
-		arm32)	arch_triplet="arm-linux-gnueabihf";;
 		arm64)	arch_triplet="aarch64-linux-gnu";;
 		*)	arch_triplet="$arch-linux-gnu";;
 	esac
 
 	# Determine library directory name for this architecture.
 	case $arch in
-		x86)	libdir="i386-linux-gnu";;
 		*)	libdir="$arch_triplet";;
 	esac
 
@@ -791,9 +785,7 @@ rm -rf build
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
-	32 | x86)	cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
 	64 | x86_64*)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm -D NEW_DYNAREC=ON";;
 	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64 -D NEW_DYNAREC=ON";;
 	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
@@ -888,6 +880,31 @@ then
 	exit 5
 fi
 
+# Download assets if we're making a release build.
+if grep -qiE "^BUILD_TYPE:[^=]+=release" build/CMakeCache.txt 2> /dev/null
+then
+	git_repo=$(git remote get-url origin 2> /dev/null)
+	if [ "$CI" = "true" ]
+	then
+		# Backup strategy when running under Jenkins.
+		[ -z "$git_repo" ] && git_repo=$GIT_URL
+	fi
+	if [ -n "$git_repo" ]
+	then
+		echo [-] Downloading assets
+		cd archive_tmp
+		if ! git clone --depth 1 "$(dirname "$git_repo")/assets.git" assets
+		then
+			echo [!] Assets download failed
+			exit 7
+		fi
+		# Remove dot directories (including .git) and top level files.
+		rm -rf assets/.* 2> /dev/null
+		rm -f assets/* 2> /dev/null
+		cd ..
+	fi
+fi
+
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
 status=0
@@ -910,7 +927,7 @@ then
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive XAudio2 DLL if required.
-	grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
+	grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
 
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
@@ -979,6 +996,14 @@ then
 			done
 		fi
 
+		# Archive assets.
+		if [ -d archive_tmp/assets ]
+		then
+			data_dir="$(echo "archive_tmp/"*".app/Contents")"
+			mkdir -p "$data_dir/Resources"
+			mv archive_tmp/assets "$data_dir/Resources/assets"
+		fi
+
 		# Sign app bundle, unless we're in an universal build.
 		[ $skip_archive -eq 0 ] && codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"
 	elif [ "$BUILD_TAG" = "precondition" ]
@@ -990,7 +1015,7 @@ else
 	cwd_root="$(pwd)"
 	check_buildtag "libs.$arch_deb"
 
-	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
+	if grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
@@ -1141,6 +1166,14 @@ else
 	done
 	project_icon=$(find "$icon_base/"[0-9]*x[0-9]*/* -type f -name '*.png' -o -name '*.svg' | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
+	# Archive assets.
+	if [ -d archive_tmp/assets ]
+	then
+		data_dir="archive_tmp/usr/local/share/$project"
+		mkdir -p "$data_dir"
+		mv archive_tmp/assets "$data_dir/assets"
+	fi
+
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
 	if [ $strip -ne 0 ]
@@ -1185,8 +1218,6 @@ then
 else
 	# Determine AppImage runtime architecture.
 	case $arch in
-		x86)	arch_appimage="i686";;
-		arm32)	arch_appimage="armhf";;
 		arm64)	arch_appimage="aarch64";;
 		*)	arch_appimage="$arch";;
 	esac

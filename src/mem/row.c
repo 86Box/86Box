@@ -1,16 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		DRAM row handling.
+ *          DRAM row handling.
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -155,18 +155,9 @@ row_allocate(uint8_t row_id, uint8_t set)
         mem_mapping_set_exec(&rows[row_id].mapping, rows[row_id].buf + rows[row_id].ram_base);
         mem_mapping_set_mask(&rows[row_id].mapping, rows[row_id].ram_mask);
         if ((rows[row_id].host_base == rows[row_id].ram_base) && (rows[row_id].host_size == rows[row_id].ram_size)) {
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
             mem_mapping_set_handler(&rows[row_id].mapping, mem_read_ram,mem_read_ramw,mem_read_raml,
                                     mem_write_ram,mem_write_ramw,mem_write_raml);
-#else
-            if (rows[row_id].buf == ram2) {
-                mem_mapping_set_handler(&rows[row_id].mapping, mem_read_ram_2gb,mem_read_ram_2gbw,mem_read_ram_2gbl,
-                                        mem_write_ram,mem_write_ramw,mem_write_raml);
-            } else {
-                mem_mapping_set_handler(&rows[row_id].mapping, mem_read_ram,mem_read_ramw,mem_read_raml,
-                                        mem_write_ram,mem_write_ramw,mem_write_raml);
-            }
-#endif
+
         } else {
             mem_mapping_set_handler(&rows[row_id].mapping, row_read, row_readw, row_readl,
                                     row_write, row_writew, row_writel);
@@ -268,10 +259,6 @@ row_init(const device_t *info)
     mem_mapping_disable(&ram_low_mapping);
     mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    if (mem_size > 1048576)
-        mem_mapping_disable(&ram_2gb_mapping);
-#endif
 
     for (uint32_t c = 0; c < pages_sz; c++) {
         pages[c].mem = page_ff;
@@ -279,9 +266,9 @@ row_init(const device_t *info)
         pages[c].write_w = NULL;
         pages[c].write_l = NULL;
 #ifdef USE_NEW_DYNAREC
-	pages[c].evict_prev = EVICT_NOT_IN_LIST;
-	pages[c].byte_dirty_mask = &byte_dirty_mask[c * 64];
-	pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
+    pages[c].evict_prev = EVICT_NOT_IN_LIST;
+    pages[c].byte_dirty_mask = &byte_dirty_mask[c * 64];
+    pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
 #endif
     }
 
@@ -303,12 +290,7 @@ row_init(const device_t *info)
         rows[i].ram_size -= rows[i].ram_base;
 
         rows[i].buf = ram;
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-        if (rows[i].ram_base >= (1 << 30)) {
-            rows[i].ram_base -= (1 << 30);
-            rows[i].buf = ram2;
-        }
-#endif
+
 
         rows[i].ram_mask = rows[i].ram_size - 1;
 

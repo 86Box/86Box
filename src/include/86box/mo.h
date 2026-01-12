@@ -17,7 +17,6 @@
  *          Copyright 2020-2025 Miran Grca.
  *          Copyright 2020-2025 Fred N. van Kempen
  */
-
 #ifndef EMU_MO_H
 #define EMU_MO_H
 
@@ -114,8 +113,8 @@ typedef struct mo_drive_t {
     FILE              *fp;
     void              *priv;
 
-    char               image_path[1024];
-    char               prev_image_path[1024];
+    char               image_path[MAX_IMAGE_PATH_LEN];
+    char               prev_image_path[MAX_IMAGE_PATH_LEN + 256];
 
     char              *image_history[MO_IMAGE_HISTORY];
 
@@ -140,6 +139,7 @@ typedef struct mo_t {
     void *             log;
 
     uint8_t           *buffer;
+    size_t             buffer_sz;
     uint8_t            atapi_cdb[16];
     uint8_t            current_cdb[16];
     uint8_t            sense[256];

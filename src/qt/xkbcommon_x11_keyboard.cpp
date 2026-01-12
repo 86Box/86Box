@@ -10,8 +10,6 @@
  *
  *          Heavily inspired by libxkbcommon interactive-x11.c
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2023 RichardG.
@@ -19,12 +17,12 @@
 extern "C" {
 /* xkb.h has identifiers named "explicit", which is a C++ keyword now... */
 #ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wkeyword-macro"
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wkeyword-macro"
 #endif
 #define explicit explicit_
 #ifdef __clang__
-#pragma clang diagnostic pop
+#    pragma clang diagnostic pop
 #endif
 #include <xcb/xkb.h>
 #undef explicit
@@ -40,10 +38,10 @@ extern "C" {
 void
 xkbcommon_x11_init()
 {
-    xcb_connection_t *conn;
+    xcb_connection_t   *conn;
     struct xkb_context *ctx;
-    int32_t core_kbd_device_id;
-    struct xkb_keymap *keymap;
+    int32_t             core_kbd_device_id;
+    struct xkb_keymap  *keymap;
 
     conn = (xcb_connection_t *) QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("connection");
     if (!conn) {

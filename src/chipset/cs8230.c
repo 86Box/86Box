@@ -8,8 +8,6 @@
  *
  *          Emulation of C&T CS8230 ("386/AT") chipset.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2020 Sarah Walker.

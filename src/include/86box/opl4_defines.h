@@ -5,7 +5,6 @@
  * opl4_defines.h
  *
  */
-
 #ifndef __OPL4_DEFINES_H
 #define __OPL4_DEFINES_H
 

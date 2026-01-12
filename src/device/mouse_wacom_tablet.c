@@ -106,7 +106,7 @@ typedef struct mouse_wacom_t {
     int last_abs_y; /* Suppressed/Increment Mode. */
     union {
         uint32_t settings; /* Settings DWORD */
-        /* We don't target any architectures except x86/x64/ARM32/ARM64.
+        /* We don't target any architectures except x64/ARM64.
            (The ABIs for those are explicit in little-endian bit ordering) */
         struct settings_bits {
             uint8_t remote_mode            : 1;

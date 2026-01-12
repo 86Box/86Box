@@ -10,8 +10,6 @@
  *          Adapters made by NCR and later Symbios and LSI. These
  *          controllers were designed for the PCI bus.
  *
- *
- *
  * Authors: Paul Brook (QEMU)
  *          Artyom Tarasenko (QEMU)
  *          TheCollector1995, <mariogplayer@gmail.com>

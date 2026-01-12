@@ -2,6 +2,7 @@
 #define QT_SETTINGSOTHERREMOVABLE_HPP
 
 #include <QWidget>
+#include <QStandardItemModel>
 
 namespace Ui {
 class SettingsOtherRemovable;
@@ -37,8 +38,16 @@ private slots:
 
 private:
     Ui::SettingsOtherRemovable *ui;
+
+    void setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
+    void setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
     void enableCurrentlySelectedChannel_MO();
     void enableCurrentlySelectedChannel_RDisk();
+
+    QIcon mo_disabled_icon;
+    QIcon mo_icon;
+    QIcon rdisk_disabled_icon;
+    QIcon rdisk_icon;
 };
 
 #endif // QT_SETTINGSOTHERREMOVABLE_HPP

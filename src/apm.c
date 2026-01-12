@@ -8,8 +8,6 @@
  *
  *          Advanced Power Management emulation.
  *
- *
- *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2019 Miran Grca.

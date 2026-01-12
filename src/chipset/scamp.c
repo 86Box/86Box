@@ -13,8 +13,6 @@
  *          8MB of DRAM chips', because it works fine with bus-based
  *          memory expansion.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2020 Sarah Walker.
@@ -94,7 +92,7 @@ typedef struct ram_struct_t {
     int   bank;
 } ram_struct_t;
 
-typedef struct card_mem_t {
+typedef struct mem_page_t {
     int       in_ram;
     uint32_t  virt_addr;
     uint32_t  phys_addr;
@@ -125,10 +123,6 @@ typedef struct scamp_t {
     int           mem_flags[64];
     mem_mapping_t mem_mappings[64]; /* The entire first 1 MB of memory space. */
     mem_page_t    mem_pages[64];
-
-    uint32_t      card_mem_size;
-    uint8_t      *card_mem;
-    mem_page_t    card_pages[4];
 
     port_92_t    *port_92;
 } scamp_t;
@@ -1180,14 +1174,6 @@ scamp_init(UNUSED(const device_t *info))
             if (i >= 56)
                 scamp_mem_update_state(dev, i * EMS_PGSIZE, EMS_PGSIZE, MEM_FLAG_ROMCS, MEM_FMASK_ROMCS);
         }
-    }
-
-    dev->card_mem = NULL;
-
-    for (uint8_t i = 0; i < 4; i++) {
-        dev->card_pages[i].virt_addr = i * EMS_PGSIZE;
-        dev->card_pages[i].phys_addr = dev->card_pages[i].virt_addr;
-        dev->card_pages[i].mem       = dev->card_mem + dev->card_pages[i].phys_addr;
     }
 
     dev->port_92 = device_add(&port_92_device);

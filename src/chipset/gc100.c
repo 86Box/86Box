@@ -12,8 +12,6 @@
  *          GC100 chipset, the GC100A chipset has been reverese-engineered.
  *          Thus, its behavior may not be fully accurate.
  *
- *
- *
  * Authors: EngiNerd, <webmaster.crrc@yahoo.it>
  *
  *          Copyright 2020-2021 EngiNerd.

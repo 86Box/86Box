@@ -79,9 +79,11 @@
 #include <86box/mouse.h>
 #include <86box/gameport.h>
 #include <86box/fdd.h>
+#include <86box/fdd_audio.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdd.h>
+#include <86box/hdd_audio.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/scsi.h>
@@ -107,6 +109,7 @@
 #include <86box/apm.h>
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
+#include <86box/vfio.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -118,7 +121,6 @@
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
 int          dopause = 1;  /* system is paused */
-atomic_flag  doresize; /* screen resize requested */
 volatile int is_quit;  /* system exit requested */
 uint64_t     timer_freq;
 char         emu_version[200]; /* version ID string */
@@ -142,10 +144,12 @@ int confirm_exit_cmdl = 1; /* (O) do not ask for confirmation on quit if set to 
 uint64_t unique_id   = 0;
 uint64_t source_hwnd = 0;
 #endif
-char       rom_path[1024] = { '\0' };     /* (O) full path to ROMs */
-rom_path_t rom_paths      = { "", NULL }; /* (O) full paths to ROMs */
-char       log_path[1024] = { '\0' };     /* (O) full path of logfile */
-char       vm_name[1024]  = { '\0' };     /* (O) display name of the VM */
+char       rom_path[1024]   = { '\0' };     /* (O) full path to ROMs */
+rom_path_t rom_paths        = { "", NULL }; /* (O) full paths to ROMs */
+char       asset_path[1024] = { '\0' };     /* (O) full path to assets */
+rom_path_t asset_paths      = { "", NULL }; /* (O) full paths to assets */
+char       log_path[1024]   = { '\0' };     /* (O) full path of logfile */
+char       vm_name[1024]    = { '\0' };     /* (O) display name of the VM */
 int      do_nothing                             = 0;
 int      dump_missing                           = 0;
 int      clear_cmos                             = 0;
@@ -169,6 +173,7 @@ int      vid_api                                = 0;              /* (C) video r
 int      vid_cga_contrast                       = 0;              /* (C) video */
 int      video_fullscreen                       = 0;              /* (C) video */
 int      video_fullscreen_scale                 = 0;              /* (C) video */
+int      fullscreen_ui_visible                  = 0;              /* (C) video */
 int      enable_overscan                        = 0;              /* (C) video */
 int      force_43                               = 0;              /* (C) video */
 int      video_filter_method                    = 1;              /* (C) video */
@@ -230,6 +235,7 @@ int      other_scsi_present = 0;                                  /* SCSI contro
 int      is_pcjr = 0;                                             /* The current machine is PCjr. */
 int      portable_mode = 0;                                       /* We are running in portable mode
                                                                      (global dirs = exe path) */
+int      global_cfg_overridden = 0;                               /* Global config file was overriden on command line */
 
 int      monitor_edid = 0;                                        /* (C) Which EDID to use. 0=default, 1=custom. */
 char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to custom EDID */
@@ -237,6 +243,7 @@ char     monitor_edid_path[1024] = { 0 };                         /* (C) Path to
 double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 3.x input scale */
 int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
 int      color_scheme = 0;                                        /* (C) Color scheme of UI (Windows-only) */
+int      fdd_sounds_enabled = 1;                                  /* (C) Floppy drive sounds enabled */
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
@@ -257,6 +264,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="fullscreen",
         .desc="Toggle fullscreen",
         .seq="Ctrl+Alt+PgUp"
+    },
+    {
+        .name="toggle_ui_fullscreen",
+        .desc="Toggle UI in fullscreen",
+        .seq="Ctrl+Alt+PgDown"
     },
     {
         .name="screenshot",
@@ -282,6 +294,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="mute",
         .desc="Toggle mute",
         .seq="Ctrl+Alt+M"
+    },
+    {
+        .name="force_interpretation",
+        .desc="Force interpretation",
+        .seq="Ctrl+Alt+I"
     }
 };
 
@@ -327,8 +344,8 @@ __thread int is_cpu_thread = 0;
 
 static wchar_t mouse_msg[3][200];
 
-static volatile atomic_int do_pause_ack = 0;
-static volatile atomic_int pause_ack = 0;
+static ATOMIC_INT do_pause_ack = 0;
+static ATOMIC_INT pause_ack = 0;
 
 #define LOG_SIZE_BUFFER 8192            /* Log size buffer */
 
@@ -653,6 +670,7 @@ pc_show_usage(char *s)
             "\n%sUsage: 86box [options] [cfg-file]\n\n"
             "Valid options are:\n\n"
             "-? or --help\t\t\t- show this information\n"
+            "-A or --assetpath path\t\t- set 'path' to be asset path\n"
 #ifdef SHOW_EXTRA_PARAMS
             "-C or --config path\t\t- set 'path' to be config file\n"
 #endif
@@ -723,6 +741,7 @@ pc_init(int argc, char *argv[])
 {
     char            *ppath = NULL;
     char            *rpath = NULL;
+    char            *apath = NULL;
     char            *cfg = NULL;
     char            *global = NULL;
     char            *p;
@@ -749,8 +768,10 @@ pc_init(int argc, char *argv[])
     p  = path_get_filename(exe_path);
     *p = '\0';
 #if defined(__APPLE__)
+    char contents_path[2048] = {0};
     c = strlen(exe_path);
     if ((c >= 16) && !strcmp(&exe_path[c - 16], "/Contents/MacOS/")) {
+        strncpy(contents_path, exe_path, c - 7);
         exe_path[c - 16] = '\0';
         p                = path_get_filename(exe_path);
         *p               = '\0';
@@ -789,6 +810,7 @@ pc_init(int argc, char *argv[])
      */
     plat_getcwd(usr_path, sizeof(usr_path) - 1);
     plat_getcwd(rom_path, sizeof(rom_path) - 1);
+    plat_getcwd(asset_path, sizeof(asset_path) - 1);
 
     for (c = 1; c < argc; c++) {
         if (argv[c][0] != '-')
@@ -842,6 +864,12 @@ usage:
 
             rpath = argv[++c];
             rom_add_path(rpath);
+        } else if (!strcasecmp(argv[c], "--assetpath") || !strcasecmp(argv[c], "-A")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            apath = argv[++c];
+            asset_add_path(apath);
         } else if (!strcasecmp(argv[c], "--config") || !strcasecmp(argv[c], "-C")) {
             if ((c + 1) == argc || plat_dir_check(argv[c + 1]))
                 goto usage;
@@ -852,6 +880,7 @@ usage:
             if ((c + 1) == argc || plat_dir_check(argv[c + 1]))
                 goto usage;
 
+            global_cfg_overridden = 1;
             global = argv[++c];
         } else if (!strcasecmp(argv[c], "--image") || !strcasecmp(argv[c], "-I")) {
             if ((c + 1) == argc)
@@ -964,6 +993,7 @@ usage:
 
     path_slash(usr_path);
     path_slash(rom_path);
+    path_slash(asset_path);
 
     /*
      * If the user provided a path for files, use that
@@ -1004,6 +1034,33 @@ usage:
 
     plat_init_rom_paths();
 
+    // Add the VM-local asset path.
+    path_append_filename(temp, usr_path, "assets");
+    asset_add_path(temp);
+
+    // Add the standard asset path in the same directory as the executable.
+    path_append_filename(temp, exe_path, "assets");
+    asset_add_path(temp);
+
+#if defined(__APPLE__)
+    // Add the standard asset path within the app bundle.
+    if (contents_path[0] != '\0') {
+        path_append_filename(temp, contents_path, "Resources/assets");
+        asset_add_path(temp);
+    }
+#elif !defined(_WIN32)
+    // Add the standard asset paths within the AppImage.
+    p = getenv("APPDIR");
+    if (p && (p[0] != '\0')) {
+        path_append_filename(temp, p, "usr/local/share/" EMU_NAME "/assets");
+        asset_add_path(temp);
+        path_append_filename(temp, p, "usr/share/" EMU_NAME "/assets");
+        asset_add_path(temp);
+    }
+#endif
+
+    plat_init_asset_paths();
+
     /*
      * If the user provided a path for ROMs, use that
      * instead of the current working directory. We do
@@ -1033,6 +1090,36 @@ usage:
             plat_dir_create(rom_path);
     } else
         rom_path[0] = '\0';
+
+    /*
+     * If the user provided a path for ROMs, use that
+     * instead of the current working directory. We do
+     * make sure that if that was a relative path, we
+     * make it absolute.
+     */
+    if (apath != NULL) {
+        if (!path_abs(apath)) {
+            /*
+             * This looks like a relative path.
+             *
+             * Add it to the current working directory
+             * to convert it (back) to an absolute path.
+             */
+            strcat(asset_path, apath);
+        } else {
+            /*
+             * The user-provided path seems like an
+             * absolute path, so just use that.
+             */
+            strcpy(asset_path, apath);
+        }
+
+        /* If the specified path does not yet exist,
+           create it. */
+        if (!plat_dir_check(asset_path))
+            plat_dir_create(asset_path);
+    } else
+        asset_path[0] = '\0';
 
     /* Grab the name of the configuration file. */
     if (cfg == NULL)
@@ -1071,6 +1158,8 @@ usage:
     path_slash(usr_path);
     if (rom_path[0] != '\0')
         path_slash(rom_path);
+    if (asset_path[0] != '\0')
+        path_slash(asset_path);
 
     /* At this point, we can safely create the full path name. */
     path_append_filename(cfg_path, usr_path, p);
@@ -1078,7 +1167,10 @@ usage:
     /* Build the global configuration file path. */
     if (global == NULL) {
         plat_get_global_config_dir(global_cfg_path, sizeof(global_cfg_path));
-        path_append_filename(global_cfg_path, global_cfg_path, GLOBAL_CONFIG_FILE);
+        // avoid strcpy global_cfg_path over itself (valgrind says it's bad...)
+        // path_append_filename(global_cfg_path, global_cfg_path, GLOBAL_CONFIG_FILE);
+        path_slash(global_cfg_path);
+        strcat(global_cfg_path, GLOBAL_CONFIG_FILE);
     } else {
         strncpy(global_cfg_path, global, sizeof(global_cfg_path) - 1);
     }
@@ -1151,11 +1243,13 @@ usage:
         start_vmm = 1;
     } else {
         strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path) - 1);
+        vmm_path[sizeof(vmm_path) - 1] = '\0';
     }
 
     if (start_vmm) {
         pclog("# VM Manager enabled. Path: %s\n", vmm_path);
         strncpy(usr_path, vmm_path, sizeof(usr_path) - 1);
+        usr_path[sizeof(usr_path) - 1] = '\0';
     } else
 #endif
     {
@@ -1165,6 +1259,10 @@ usage:
 
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             pclog("# ROM path: %s\n", rom_path->path);
+        }
+
+        for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
+            pclog("# Asset path: %s\n", asset_path->path);
         }
 
         /*
@@ -1256,7 +1354,7 @@ pc_init_roms(void)
         while (machine_get_internal_name_ex(c) != NULL) {
             m = machine_available(c);
             if (!m)
-                pclog("Missing machine: %s\n", machine_getname_ex(c));
+                pclog("Missing machine: %s\n", machine_getname(c));
             c++;
         }
 
@@ -1297,7 +1395,7 @@ pc_init_modules(void)
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
-        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname());
+        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname(machine));
         c       = 0;
         machine = -1;
         while (machine_get_internal_name_ex(c) != NULL) {
@@ -1374,6 +1472,13 @@ pc_init_modules(void)
     video_init();
 
     fdd_init();
+    
+    if (fdd_sounds_enabled) {
+        fdd_audio_load_profiles();
+        fdd_audio_init();
+    }
+    
+    hdd_audio_init();
 
     sound_init();
 
@@ -1473,12 +1578,22 @@ pc_send_cae(void)
    extern void     softresetx86(void);
    extern void     hardresetx86(void);
 
+   extern void     biu_set_bus_cycle(int bus_cycle);
+   extern void     biu_set_bus_state(int bus_state);
+   extern void     biu_set_bus_next_state(int bus_next_state);
+   extern void     biu_set_cycle_t1(void);
+   extern void     biu_set_next_cycle(void);
+   extern int      biu_get_bus_cycle(void);
+   extern int      biu_get_bus_state(void);
+   extern int      biu_get_bus_next_state(void);
    extern void     prefetch_queue_set_pos(int pos);
    extern void     prefetch_queue_set_ip(uint16_t ip);
-   extern void     prefetch_queue_set_prefetching(int p);
+   extern void     prefetch_queue_set_in(uint16_t in);
+   extern void     prefetch_queue_set_suspended(int p);
    extern int      prefetch_queue_get_pos(void);
    extern uint16_t prefetch_queue_get_ip(void);
-   extern int      prefetch_queue_get_prefetching(void);
+   extern uint16_t prefetch_queue_get_in(void);
+   extern int      prefetch_queue_get_suspended(void);
    extern int      prefetch_queue_get_size(void);
  */
 static void
@@ -1617,6 +1732,9 @@ pc_reset_hard_init(void)
 
     fdd_reset();
 
+    /* Reset HDD audio to pick up any profile changes */
+    hdd_audio_reset();
+
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
@@ -1641,6 +1759,11 @@ pc_reset_hard_init(void)
     /* Initialize the Voodoo cards here inorder to minimize
        the chances of the SCSI controller ending up on the bridge. */
     video_voodoo_init();
+
+#if defined(USE_VFIO) && defined(__linux__)
+    /* Initialize VFIO */
+    vfio_init();
+#endif
 
     /* installs first game port if no device provides one, must be late */
     if (joystick_type[0])
@@ -1703,12 +1826,13 @@ pc_reset_hard_init(void)
 void
 update_mouse_msg(void)
 {
+#ifdef USE_SDL_UI
     wchar_t  wcpufamily[2048];
     wchar_t  wcpu[2048];
     wchar_t  wmachine[2048];
     wchar_t *wcp;
 
-    mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
+    mbstowcs(wmachine, machine_getname(machine), strlen(machine_getname(machine)) + 1);
 
     if (!cpu_override)
         mbstowcs(wcpufamily, cpu_f->name, strlen(cpu_f->name) + 1);
@@ -1719,21 +1843,20 @@ update_mouse_msg(void)
     if (wcp) /* remove parentheses */
         *(wcp - 1) = L'\0';
     mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name) + 1);
-#ifdef _WIN32
-    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%%i.%%i%%%% - %ls",
-             plat_get_string(STRING_MOUSE_CAPTURE));
-    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%%i.%%i%%%% - %ls",
-             (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
-    wcsncpy(mouse_msg[2], L"%i.%i%%", sizeof_w(mouse_msg[2]));
-#else
-    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i.%%i%%%% - %ls - %ls/%ls - %ls",
+    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
              EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
              plat_get_string(STRING_MOUSE_CAPTURE));
-    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i.%%i%%%% - %ls - %ls/%ls - %ls",
+    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
              EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
              (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
-    swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i.%%i%%%% - %ls - %ls/%ls",
+    swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls",
              EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu);
+#else
+    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%%i%%%% - %ls",
+             plat_get_string(STRING_MOUSE_CAPTURE));
+    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%%i%%%% - %ls",
+             (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
+    wcsncpy(mouse_msg[2], L"%i%%", sizeof_w(mouse_msg[2]));
 #endif
 }
 
@@ -1801,9 +1924,6 @@ pc_close(UNUSED(thread_t *ptr))
 
     gdbstub_close();
 
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    mem_free();
-#endif
 }
 
 #ifdef __APPLE__
@@ -1818,9 +1938,9 @@ _ui_window_title(void *s)
 void
 ack_pause(void)
 {
-    if (atomic_load(&do_pause_ack)) {
-        atomic_store(&do_pause_ack, 0);
-        atomic_store(&pause_ack, 1);
+    if (ATOMIC_LOAD(do_pause_ack)) {
+        ATOMIC_STORE(do_pause_ack, 0);
+        ATOMIC_STORE(pause_ack, 1);
     }
 }
 
@@ -1864,7 +1984,13 @@ pc_run(void)
 
     if (title_update) {
         mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
-        swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps / (force_10ms ? 1 : 10), force_10ms ? 0 : (fps % 10));
+#ifdef SCREENSHOT_MODE
+        if (force_10ms)
+            fps = ((fps + 2) / 5) * 5;
+        else
+            fps = ((fps + 20) / 50) * 50;
+#endif
+        swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps / (force_10ms ? 1 : 10));
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */
         dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);
@@ -2028,17 +2154,6 @@ set_screen_size_natural(void)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 
-int
-get_actual_size_x(void)
-{
-    return (unscaled_size_x);
-}
-
-int
-get_actual_size_y(void)
-{
-    return (efscrnsz_y);
-}
 
 void
 do_pause(int p)
@@ -2049,10 +2164,10 @@ do_pause(int p)
         do_pause_ack = p;
     dopause = !!p;
     if ((p == 1) && !old_p) {
-        while (!atomic_load(&pause_ack))
+        while (!ATOMIC_LOAD(pause_ack))
             ;
     }
-    atomic_store(&pause_ack, 0);
+    ATOMIC_STORE(pause_ack, 0);
 }
 
 // Helper to find an accelerator key and return it's index in acc_keys

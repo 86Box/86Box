@@ -11,8 +11,6 @@
  *          of SCSI Host Adapters made by Mylex.
  *          These controllers were designed for various buses.
  *
- *
- *
  * Authors: TheCollector1995, <mariogplayer@gmail.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -20,7 +18,6 @@
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2017-2018 Fred N. van Kempen.
  */
-
 #ifndef SCSI_X54X_H
 #define SCSI_X54X_H
 
@@ -536,4 +533,4 @@ extern void   *x54x_init(const device_t *info);
 extern void    x54x_close(void *priv);
 extern void    x54x_device_reset(void *priv);
 
-#endif
+#endif /*SCSI_X54X_H*/

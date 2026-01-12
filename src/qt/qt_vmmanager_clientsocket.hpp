@@ -1,20 +1,17 @@
 /*
-* 86Box	A hypervisor and IBM PC system emulator that specializes in
-*		running old operating systems and software designed for IBM
-*		PC systems and compatibles from 1981 through fairly recent
-*		system designs based on the PCI bus.
-*
-*		This file is part of the 86Box distribution.
-*
-*		Header file for 86Box VM manager client socket module
-*
-*
-*
-* Authors:	cold-brewed
-*
-*		Copyright 2024 cold-brewed
-*/
-
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Header file for 86Box VM manager client socket module
+ *
+ * Authors: cold-brewed
+ *
+ *          Copyright 2024 cold-brewed
+ */
 #ifndef QT_VMMANAGER_CLIENTSOCKET_HPP
 #define QT_VMMANAGER_CLIENTSOCKET_HPP
 
@@ -28,7 +25,7 @@ class VMManagerClientSocket final : public QObject {
     Q_OBJECT
 
 public:
-    explicit VMManagerClientSocket(QObject* object = nullptr);
+    explicit VMManagerClientSocket(QObject *object = nullptr);
     bool IPCConnect(const QString &server);
 
     void sendWinIdMessage(WId id);
@@ -48,13 +45,13 @@ public slots:
     void globalConfigurationChanged() const;
 
 private:
-    QString server_name;
+    QString       server_name;
     QLocalSocket *socket;
-    bool server_connected;
-    bool window_blocked = false;
-    void connected() const;
-    void disconnected() const;
-    static void connectionError(QLocalSocket::LocalSocketError socketError);
+    bool          server_connected;
+    bool          window_blocked = false;
+    void          connected() const;
+    void          disconnected() const;
+    static void   connectionError(QLocalSocket::LocalSocketError socketError);
 
     // Main convenience send function
     void sendMessage(VMManagerProtocol::ClientMessage protocol_message) const;
@@ -70,7 +67,6 @@ private:
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
-
 };
 
 #endif // QT_VMMANAGER_CLIENTSOCKET_HPP

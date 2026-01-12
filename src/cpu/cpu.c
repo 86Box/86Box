@@ -386,11 +386,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
         return 1;
 
     /* Cyrix 6x86MX on the NuPRO 592. */
-    if (((cpu_s->cyrix_id & 0xff00) == 0x0400) && (strstr(machine_s->internal_name, "nupro") != NULL))
-        return 0;
-
-    /* Cyrix 6x86MX or MII on the P5MMS98. */
-    if ((cpu_s->cpu_type == CPU_Cx6x86MX) && (strstr(machine_s->internal_name, "p5mms98") != NULL))
+    if (((cpu_s->cyrix_id & 0xff00) == 0x0400) && (machine_s->init == machine_at_nupro592_init))
         return 0;
 
     /* Check CPU blocklist. */
@@ -1554,7 +1550,7 @@ cpu_set(void)
 
             if ((cpu_s->cpu_type == CPU_Cx6x86L) || (cpu_s->cpu_type == CPU_Cx6x86MX))
                 ccr4 = 0x80;
-            else if (CPU_Cx6x86)
+            else if (cpu_s->cpu_type == CPU_Cx6x86)
                 CPUID = 0; /* Disabled on powerup by default */
             break;
 

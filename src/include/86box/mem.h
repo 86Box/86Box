@@ -8,8 +8,6 @@
  *
  *          Definitions for the memory interface.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
@@ -18,7 +16,6 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
  */
-
 #ifndef EMU_MEM_H
 #define EMU_MEM_H
 
@@ -265,24 +262,17 @@ extern uint32_t biosmask;
 extern uint32_t biosaddr;
 
 extern int        readlookup[256];
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-extern uintptr_t *readlookup2;
-#endif
 extern uintptr_t  old_rl2;
 extern uint8_t    uncached;
 extern int        readlnext;
 extern int        writelookup[256];
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-extern uintptr_t *writelookup2;
-#endif
+
 extern int        writelnext;
 extern uint32_t   ram_mapped_addr[64];
 extern uint8_t    page_ff[4096];
 
 extern mem_mapping_t ram_low_mapping;
-#if 1
 extern mem_mapping_t ram_mid_mapping;
-#endif
 extern mem_mapping_t ram_remapped_mapping;
 extern mem_mapping_t ram_high_mapping;
 extern mem_mapping_t ram_2gb_mapping;
@@ -292,16 +282,11 @@ extern mem_mapping_t bios_high_mapping;
 extern uint32_t mem_logical_addr;
 
 extern page_t  *pages;
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-extern page_t **page_lookup;
-#endif
 
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
 /* The lookup tables. */
 extern page_t *page_lookup[1048576];
 extern uintptr_t readlookup2[1048576];
 extern uintptr_t writelookup2[1048576];
-#endif
 
 extern uint32_t get_phys_virt;
 extern uint32_t get_phys_phys;
@@ -470,9 +455,6 @@ extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
 
 extern void mem_init(void);
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-extern void mem_free(void);
-#endif
 extern void mem_close(void);
 extern void mem_zero(void);
 extern void mem_reset(void);

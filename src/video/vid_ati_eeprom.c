@@ -8,8 +8,6 @@
  *
  *          Emulation of the EEPROM on select ATI cards.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
@@ -56,9 +54,8 @@ ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn, int mca)
     strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
     fp   = nvr_fopen(eeprom->fn, "rb");
     size = 128;
-    if (!fp) {
+    if (fp == NULL) {
         if (mca) {
-            (void) fseek(fp, 2L, SEEK_SET);
             memset(eeprom->data + 2, 0xff, size - 2);
             fp = nvr_fopen(eeprom->fn, "wb");
             fwrite(eeprom->data, 1, size, fp);

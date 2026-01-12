@@ -8,8 +8,6 @@
  *
  *          Emulation of the National Semiconductor LM75 temperature sensor chip.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

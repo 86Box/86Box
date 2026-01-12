@@ -8,13 +8,10 @@
  *
  *          Header for the update check module
  *
- *
- *
  * Authors: cold-brewed
  *
  *          Copyright 2024 cold-brewed
  */
-
 #ifndef QT_UPDATECHECK_HPP
 #define QT_UPDATECHECK_HPP
 
@@ -34,16 +31,16 @@ public:
     };
 
     struct JenkinsChangeSetItem {
-        QString buildId;           // sha hash
-        QString author;            // github username
-        QString message;           // commit message
+        QString     buildId;       // sha hash
+        QString     author;        // github username
+        QString     message;       // commit message
         QStringList affectedPaths; // list of files in the change
     };
 
     struct JenkinsReleaseInfo {
-        int buildNumber = 0;
-        QString result;
-        qint64 timestamp = 0;
+        int                         buildNumber = 0;
+        QString                     result;
+        qint64                      timestamp = 0;
         QList<JenkinsChangeSetItem> changeSetItems;
     };
 
@@ -58,19 +55,19 @@ public:
     };
 
     struct UpdateResult {
-        UpdateChannel channel;
-        bool updateAvailable = false;
-        bool upToDate = false;
-        QString currentVersion;
-        QString latestVersion;
-        QList<GithubReleaseInfo> githubInfo;
+        UpdateChannel             channel;
+        bool                      updateAvailable = false;
+        bool                      upToDate        = false;
+        QString                   currentVersion;
+        QString                   latestVersion;
+        QList<GithubReleaseInfo>  githubInfo;
         QList<JenkinsReleaseInfo> jenkinsInfo;
     };
 
     explicit UpdateCheck(UpdateChannel channel, QObject *parent = nullptr);
     ~UpdateCheck() override;
-    void checkForUpdates();
-    static int versionCompare(const QString &version1, const QString &version2);
+    void                         checkForUpdates();
+    static int                   versionCompare(const QString &version1, const QString &version2);
     [[nodiscard]] static QString getCurrentVersion(const UpdateChannel &updateChannel = UpdateChannel::Stable);
 
 signals:
@@ -89,15 +86,14 @@ private:
     static QUrl jenkinsLatestNReleasesUrl(const int &count);
 
     static std::optional<QList<JenkinsReleaseInfo>> parseJenkinsJson(const QString &filename);
-    static std::optional<JenkinsReleaseInfo> parseJenkinsRelease(const QJsonObject &json);
+    static std::optional<JenkinsReleaseInfo>        parseJenkinsRelease(const QJsonObject &json);
 
     static std::optional<QList<GithubReleaseInfo>> parseGithubJson(const QString &filename);
-    static std::optional<GithubReleaseInfo> parseGithubRelease(const QJsonObject &json);
-
+    static std::optional<GithubReleaseInfo>        parseGithubRelease(const QJsonObject &json);
 
 private slots:
-    void jenkinsDownloadComplete(const QString &filename, const QVariant& varData);
-    void githubDownloadComplete(const QString &filename, const QVariant& varData);
+    void jenkinsDownloadComplete(const QString &filename, const QVariant &varData);
+    void githubDownloadComplete(const QString &filename, const QVariant &varData);
     void generalDownloadError(const QString &error);
 };
 

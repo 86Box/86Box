@@ -8,8 +8,6 @@
  *
  *          Source file for Unix VM-managers (client-side)
  *
- *
- *
  * Authors: Teemu Korhonen
  *          Cacodemon345
  *

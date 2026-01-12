@@ -36,11 +36,8 @@ def osFlags = [
 ]
 
 def archNames = [
-	'32': 'x86 (32-bit)',
-	'x86': 'x86 (32-bit)',
 	'64': 'x64 (64-bit)',
 	'x86_64': 'x64 (64-bit)',
-	'arm32': 'ARM (32-bit)',
 	'arm64': 'ARM (64-bit)'
 ]
 
@@ -57,11 +54,8 @@ def dynarecNames = [
 ]
 
 def dynarecArchs = [
-	'32': ['ODR', 'NDR'],
-	'x86': ['ODR', 'NDR'],
 	'64': ['ODR', 'NDR'],
 	'x86_64': ['ODR', 'NDR'],
-	'arm32': ['NDR'],
 	'arm64': ['NDR'],
 	'x86_64+arm64': ['ODR', 'NDR']
 ]
@@ -287,16 +281,12 @@ pipeline {
 															dir(dynarecNames[dynarec]) {
 																dir("$os - $archName") {
 																	ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
-																	if (presets.size() == 1)
-																		writeFile file: '.forcedir', text: ''
 																}
-																if ((osArchs.size() == 1) && (thisOsArchs.size() == 1))
-																	writeFile file: '.forcedir', text: ''
 															}
 
 															if (ret == 0) {
 																/* Archive resulting artifacts. */
-																archiveArtifacts artifacts: "**/$packageName*, **/.forcedir", defaultExcludes: false
+																archiveArtifacts artifacts: "**/$packageName*", defaultExcludes: false
 															} else {
 																/* Fail this stage. */
 																failStage()

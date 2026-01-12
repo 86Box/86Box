@@ -6,8 +6,6 @@
  *
  *          Implement a generic NVRAM/CMOS/RTC device.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>,
  *          David Hrdlička, <hrdlickadavid@outlook.com>
  *

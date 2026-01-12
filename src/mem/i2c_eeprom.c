@@ -8,8 +8,6 @@
  *
  *          Emulation of the 24Cxx series of I2C EEPROMs.
  *
- *
- *
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2020 RichardG.

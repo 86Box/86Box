@@ -44,8 +44,6 @@
  *
  *            This is expected to be done shortly.
  *
- *
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          John Elliott, <jce@seasip.info>
  *
