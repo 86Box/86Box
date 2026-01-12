@@ -384,6 +384,39 @@ machine_at_brio83xx_init(const machine_t *model)
 }
 
 int
+machine_at_como_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/como/COMO.ROM",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+
+    device_add(&i440ex_device);
+    device_add(&piix4e_device);
+    device_add_params(&fdc37m60x_device, (void*)(FDC37XXX2 | FDC37C93X_NO_NVR | FDC37XXXX_370));
+    device_add(&intel_flash_bxt_device);
+    device_add(&lm78_device);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(&cs4235_onboard_device);
+
+    return ret;
+}
+
+int
 machine_at_p6i440e2_init(const machine_t *model)
 {
     int ret;

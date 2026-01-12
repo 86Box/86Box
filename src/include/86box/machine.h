@@ -1205,6 +1205,7 @@ extern int             machine_at_ma30d_init(const machine_t *);
 /* i440EX */
 extern int             machine_at_brio83xx_init(const machine_t *);
 extern int             machine_at_p6i440e2_init(const machine_t *);
+extern int             machine_at_como_init(const machine_t *);
 
 /* i440BX */
 extern int             machine_at_bf6_init(const machine_t *);

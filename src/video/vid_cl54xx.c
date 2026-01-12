@@ -768,6 +768,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                             svga->seqregs[6] = 0x0f;
                         if (svga->crtc[0x27] < CIRRUS_ID_CLGD5429)
                             gd54xx->unlocked = (svga->seqregs[6] == 0x12);
+                        else
+                            gd54xx->unlocked = 1;
                         break;
                     case 0x08:
                         if (gd54xx->i2c)
@@ -1642,6 +1644,10 @@ gd54xx_in(uint16_t addr, void *priv)
                         break;
                     case 0x24: /*Attribute controller toggle readback (R)*/
                         ret = svga->attrff << 7;
+                        break;
+                    case 0x25: /* Part ID */
+                        if (svga->crtc[0x27] == CIRRUS_ID_CLGD5434)
+                            ret = 0xb0;
                         break;
                     case 0x26: /*Attribute controller index readback (R)*/
                         ret = svga->attraddr & 0x3f;
