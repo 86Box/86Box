@@ -1657,7 +1657,7 @@ msgid "&Connected"
 msgstr "已连接(&C)"
 
 msgid "Clear image &history"
-msgstr "清除映像历史记录(&H)"
+msgstr "清除镜像文件历史记录(&H)"
 
 msgid "Create…"
 msgstr "创建…"
@@ -1720,7 +1720,7 @@ msgid "\nFalling back to software rendering."
 msgstr "\n回到软件渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
+msgstr "<html><head/><body><p>选择媒体镜像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "这台机器可能被移动或复制过。"
@@ -1762,7 +1762,7 @@ msgid "Mode:"
 msgstr "模式:"
 
 msgid "Interface:"
-msgstr "界面:"
+msgstr "接口:"
 
 msgid "Adapter:"
 msgstr "适配器:"
@@ -2569,7 +2569,7 @@ msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst（2 个 TMU）"
+msgstr "Obsidian SB50 + Amethyst（双TMU）"
 
 msgid "8-bit"
 msgstr "8 位"
@@ -2923,7 +2923,7 @@ msgid "86Box Update"
 msgstr "86Box 更新"
 
 msgid "Release notes:"
-msgstr "发行版说明:"
+msgstr "发行说明："
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
@@ -3004,4 +3004,4 @@ msgid "&Allow recompilation"
 msgstr "允许重编译(&A)"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "快进(&F)"
