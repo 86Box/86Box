@@ -212,14 +212,26 @@ msgstr "&Ažuriraj ikone statusnog redka"
 msgid "Take s&creenshot"
 msgstr "Napravi &snimku zaslona"
 
+msgid "Take screenshot"
+msgstr "Napravi snimku zaslona"
+
 msgid "Take &raw screenshot"
 msgstr "Napravi &neobrađenu snimku zaslona"
 
+msgid "Take raw screenshot"
+msgstr "Napravi neobrađenu snimku zaslona"
+
 msgid "C&opy screenshot"
-msgstr "K&opiraj snimku zalsona"
+msgstr "K&opiraj snimku zaslona"
+
+msgid "Copy screenshot"
+msgstr "Kopiraj snimku zaslona"
 
 msgid "Copy r&aw screenshot"
 msgstr "Kopiraj n&eobrađenu snimku zaslona"
+
+msgid "Copy raw screenshot"
+msgstr "Kopiraj neobrađenu snimku zaslona"
 
 msgid "S&ound"
 msgstr "&Zvuk"
@@ -2806,9 +2818,6 @@ msgstr "Uključi/isključi cijelozaslonski način"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Prebaci korisničko sučelje u načinu cijelog zaslona"
-
-msgid "Screenshot"
-msgstr "Snimka zaslona"
 
 msgid "Release mouse pointer"
 msgstr "Otpusti pokazivač miša"

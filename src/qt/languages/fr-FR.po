@@ -210,14 +210,26 @@ msgstr "Mettre à jour la barre de stat&us"
 msgid "Take s&creenshot"
 msgstr "Faire copie d'é&cran"
 
+msgid "Take screenshot"
+msgstr "Faire copie d'écran"
+
 msgid "Take &raw screenshot"
 msgstr "Faire copie &brute d'écran"
+
+msgid "Take raw screenshot"
+msgstr "Faire copie brute d'écran"
 
 msgid "C&opy screenshot"
 msgstr "C&opier copie d'écran"
 
+msgid "Copy screenshot"
+msgstr "Copier copie d'écran"
+
 msgid "Copy r&aw screenshot"
 msgstr "Copier copie b&rute d'écran"
+
+msgid "Copy raw screenshot"
+msgstr "Copier copie brute d'écran"
 
 msgid "S&ound"
 msgstr "S&on"
@@ -2804,9 +2816,6 @@ msgstr "Activer/désactiver le mode plein écran"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Basculer l'interface utilisateur en mode plein écran"
-
-msgid "Screenshot"
-msgstr "Capture d'écran"
 
 msgid "Release mouse pointer"
 msgstr "Relâcher le pointeur de la souris"

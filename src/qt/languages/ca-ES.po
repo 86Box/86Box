@@ -210,14 +210,26 @@ msgstr "&Actualitza icones a la barra d'estat"
 msgid "Take s&creenshot"
 msgstr "Desa captura de &pantalla"
 
+msgid "Take screenshot"
+msgstr "Desa captura de pantalla"
+
 msgid "Take &raw screenshot"
 msgstr "Desa captura en &brut de pantalla"
+
+msgid "Take raw screenshot"
+msgstr "Desa captura en brut de pantalla"
 
 msgid "C&opy screenshot"
 msgstr "C&opia captura de pantalla"
 
+msgid "Copy screenshot"
+msgstr "Copia captura de pantalla"
+
 msgid "Copy r&aw screenshot"
 msgstr "Copy captura en b&rut de pantalla"
+
+msgid "Copy raw screenshot"
+msgstr "Copy captura en brut de pantalla"
 
 msgid "S&ound"
 msgstr "S&o"
@@ -2804,9 +2816,6 @@ msgstr "Alternar pantalla completa"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Alternar interfície d'usuari en modalitat de pantalla completa"
-
-msgid "Screenshot"
-msgstr "Captura de pantalla"
 
 msgid "Release mouse pointer"
 msgstr "Allibera el punter del ratolí"

@@ -210,14 +210,26 @@ msgstr "&Statusleistenicons aktualisieren"
 msgid "Take s&creenshot"
 msgstr "S&creenshot aufnehmen"
 
+msgid "Take screenshot"
+msgstr "Screenshot aufnehmen"
+
 msgid "Take &raw screenshot"
 msgstr "&Roh-Screenshot aufnehmen"
+
+msgid "Take raw screenshot"
+msgstr "Roh-Screenshot aufnehmen"
 
 msgid "C&opy screenshot"
 msgstr "Screenshot k&opieren"
 
+msgid "Copy screenshot"
+msgstr "Screenshot kopieren"
+
 msgid "Copy r&aw screenshot"
 msgstr "R&oh-Screenshot kopieren"
+
+msgid "Copy raw screenshot"
+msgstr "Roh-Screenshot kopieren"
 
 msgid "S&ound"
 msgstr "&Ton"
@@ -2804,9 +2816,6 @@ msgstr "Vollbild umschalten"
 
 msgid "Toggle UI in fullscreen"
 msgstr "UI im Vollbildmodus umschalten"
-
-msgid "Screenshot"
-msgstr "Bildschirmaufnahme"
 
 msgid "Release mouse pointer"
 msgstr "Mauszeiger freigeben"

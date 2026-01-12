@@ -212,14 +212,26 @@ msgstr "&Posodabljaj ikone statusne vrstice"
 msgid "Take s&creenshot"
 msgstr "&Zajemi posnetek zaslona"
 
+msgid "Take screenshot"
+msgstr "Zajemi posnetek zaslona"
+
 msgid "Take &raw screenshot"
 msgstr "Zajemi &neobdelan posnetek zaslona"
+
+msgid "Take raw screenshot"
+msgstr "Zajemi neobdelan posnetek zaslona"
 
 msgid "C&opy screenshot"
 msgstr "K&opiraj posnetek zaslona"
 
+msgid "Copy screenshot"
+msgstr "Kopiraj posnetek zaslona"
+
 msgid "Copy r&aw screenshot"
 msgstr "Kopriaj n&eobdelan posenetk zaslona"
+
+msgid "Copy raw screenshot"
+msgstr "Kopriaj neobdelan posenetk zaslona"
 
 msgid "S&ound"
 msgstr "Z&vok"
@@ -2806,9 +2818,6 @@ msgstr "Preklopi celozaslonski način"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Preklopi uporabniški vmesnik v načinu polnega zaslona"
-
-msgid "Screenshot"
-msgstr "Zajem zaslona"
 
 msgid "Release mouse pointer"
 msgstr "Izpusti kazalec miške"

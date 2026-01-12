@@ -211,14 +211,26 @@ msgstr "&Обновление значков строки состояния"
 msgid "Take s&creenshot"
 msgstr "Сделать с&криншот"
 
+msgid "Take screenshot"
+msgstr "Сделать скриншот"
+
 msgid "Take &raw screenshot"
 msgstr "Сделать н&еобработанный скриншот"
+
+msgid "Take raw screenshot"
+msgstr "Сделать необработанный скриншот"
 
 msgid "C&opy screenshot"
 msgstr "Ско&пировать скриншот"
 
+msgid "Copy screenshot"
+msgstr "Скопировать скриншот"
+
 msgid "Copy r&aw screenshot"
 msgstr "Скопировать необработанный скрин&шот"
+
+msgid "Copy raw screenshot"
+msgstr "Скопировать необработанный скриншот"
 
 msgid "S&ound"
 msgstr "&Звук"
@@ -2817,9 +2829,6 @@ msgstr "Переключить полноэкранный режим"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Переключить UI в полноэкранном режиме"
-
-msgid "Screenshot"
-msgstr "Скриншот"
 
 msgid "Release mouse pointer"
 msgstr "Отпустить указатель мыши"

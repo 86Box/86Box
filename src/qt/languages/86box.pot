@@ -204,13 +204,25 @@ msgstr ""
 msgid "Take s&creenshot"
 msgstr ""
 
+msgid "Take screenshot"
+msgstr ""
+
 msgid "Take &raw screenshot"
+msgstr ""
+
+msgid "Take raw screenshot"
 msgstr ""
 
 msgid "C&opy screenshot"
 msgstr ""
 
+msgid "Copy screenshot"
+msgstr ""
+
 msgid "Copy r&aw screenshot"
+msgstr ""
+
+msgid "Copy raw screenshot"
 msgstr ""
 
 msgid "S&ound"
@@ -2797,9 +2809,6 @@ msgid "Toggle fullscreen"
 msgstr ""
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
-
-msgid "Screenshot"
 msgstr ""
 
 msgid "Release mouse pointer"

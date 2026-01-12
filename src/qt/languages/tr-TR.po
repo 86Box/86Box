@@ -210,14 +210,26 @@ msgstr "Durum &çubuğu simgelerini güncelle"
 msgid "Take s&creenshot"
 msgstr "&Ekran görüntüsü al"
 
+msgid "Take screenshot"
+msgstr "Ekran görüntüsü al"
+
 msgid "Take &raw screenshot"
 msgstr "Ekran &ham görüntüsü al"
+
+msgid "Take raw screenshot"
+msgstr "Ekran ham görüntüsü al"
 
 msgid "C&opy screenshot"
 msgstr "Ekran görüntüsü k&opyala"
 
+msgid "Copy screenshot"
+msgstr "Ekran görüntüsü kopyala"
+
 msgid "Copy r&aw screenshot"
 msgstr "Ekran h&am görüntüsü kopyala"
+
+msgid "Copy raw screenshot"
+msgstr "Ekran ham görüntüsü kopyala"
 
 msgid "S&ound"
 msgstr "&Ses"
@@ -2804,9 +2816,6 @@ msgstr "Tam ekran modunu ayarla"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Arayüzü tam ekranda ayarla"
-
-msgid "Screenshot"
-msgstr "Ekran görüntüsü"
 
 msgid "Release mouse pointer"
 msgstr "Fare imlecini serbest bırak"

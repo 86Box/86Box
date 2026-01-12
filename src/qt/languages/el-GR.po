@@ -210,14 +210,26 @@ msgstr "&Ανανέωση εικονιδίων γραμμής κατάσταση
 msgid "Take s&creenshot"
 msgstr "Λήψη σ&τιγμιότυπου"
 
+msgid "Take screenshot"
+msgstr "Λήψη στιγμιότυπου"
+
 msgid "Take &raw screenshot"
 msgstr "Λήψη &αρχικού στιγμιότυπου"
+
+msgid "Take raw screenshot"
+msgstr "Λήψη αρχικού στιγμιότυπου"
 
 msgid "C&opy screenshot"
 msgstr "&Αντιγραφή στιγμιότυπου"
 
+msgid "Copy screenshot"
+msgstr "Αντιγραφή στιγμιότυπου"
+
 msgid "Copy r&aw screenshot"
 msgstr "Αντιγραφή α&ρχικού στιγμιότυπου"
+
+msgid "Copy raw screenshot"
+msgstr "Αντιγραφή αρχικού στιγμιότυπου"
 
 msgid "S&ound"
 msgstr "Ή&χος"
@@ -2849,9 +2861,6 @@ msgstr "Εναλλαγή σε πλήρη οθόνη"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Εναλλαγή ΠΧ σε πλήρη οθόνη"
-
-msgid "Screenshot"
-msgstr "Λήψη στιγμιότυπου"
 
 msgid "Release mouse pointer"
 msgstr "Απελευθέρωση δείκτη ποντικιού"

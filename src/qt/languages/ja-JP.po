@@ -211,14 +211,26 @@ msgstr "ステータスバーのアイコンを更新(&U)"
 msgid "Take s&creenshot"
 msgstr "スクリーンショットを撮る(&C)"
 
+msgid "Take screenshot"
+msgstr "スクリーンショットを撮る"
+
 msgid "Take &raw screenshot"
 msgstr "生のスクリーンショットを撮る(&R)"
+
+msgid "Take raw screenshot"
+msgstr "生のスクリーンショットを撮る"
 
 msgid "C&opy screenshot"
 msgstr "スクリーンショットをコピーする(&O)"
 
+msgid "Copy screenshot"
+msgstr "スクリーンショットをコピーする"
+
 msgid "Copy r&aw screenshot"
 msgstr "生のスクリーンショットをコピーする(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "生のスクリーンショットをコピーする"
 
 msgid "S&ound"
 msgstr "サウンド(&O)"
@@ -2805,9 +2817,6 @@ msgstr "フルスクリーン表示を切り替える"
 
 msgid "Toggle UI in fullscreen"
 msgstr "全画面表示時にUIを切り替える"
-
-msgid "Screenshot"
-msgstr "スクリーンショット"
 
 msgid "Release mouse pointer"
 msgstr "マウスポインターを解放する"

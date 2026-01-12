@@ -204,14 +204,26 @@ msgstr "更新状态栏图标(&U)"
 msgid "Take s&creenshot"
 msgstr "截图(&C)"
 
+msgid "Take screenshot"
+msgstr "截图"
+
 msgid "Take &raw screenshot"
 msgstr "原始截图(&R)"
+
+msgid "Take raw screenshot"
+msgstr "原始截图"
 
 msgid "C&opy screenshot"
 msgstr "复制截图(&O)"
 
+msgid "Copy screenshot"
+msgstr "复制截图"
+
 msgid "Copy r&aw screenshot"
 msgstr "复制原始截图(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "复制原始截图"
 
 msgid "S&ound"
 msgstr "声音(&O)"
@@ -2798,9 +2810,6 @@ msgstr "切换全屏"
 
 msgid "Toggle UI in fullscreen"
 msgstr "在全屏模式下激活菜单栏"
-
-msgid "Screenshot"
-msgstr "截图"
 
 msgid "Release mouse pointer"
 msgstr "释放鼠标"

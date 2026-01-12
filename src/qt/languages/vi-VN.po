@@ -204,14 +204,26 @@ msgstr "Cậ&p nhật biểu tượng thanh trạng thái"
 msgid "Take s&creenshot"
 msgstr "Chụp &màn hình"
 
+msgid "Take screenshot"
+msgstr "Chụp màn hình"
+
 msgid "Take &raw screenshot"
 msgstr "Chụp màn hình &thô"
+
+msgid "Take raw screenshot"
+msgstr "Chụp màn hình thô"
 
 msgid "C&opy screenshot"
 msgstr "S&ao chép ảnh chụp màn hình"
 
+msgid "Copy screenshot"
+msgstr "Sao chép ảnh chụp màn hình"
+
 msgid "Copy r&aw screenshot"
 msgstr "Sao chép ảnh chụp màn hình t&hô"
+
+msgid "Copy raw screenshot"
+msgstr "Sao chép ảnh chụp màn hình thô"
 
 msgid "S&ound"
 msgstr "&Âm thanh"
@@ -2798,9 +2810,6 @@ msgstr "Bật/tắt toàn màn hình"
 
 msgid "Toggle UI in fullscreen"
 msgstr ""
-
-msgid "Screenshot"
-msgstr "Chụp màn hình"
 
 msgid "Release mouse pointer"
 msgstr "Thả con trỏ chuột"

@@ -204,14 +204,26 @@ msgstr "&Uppdatera statusfältets ikoner"
 msgid "Take s&creenshot"
 msgstr "Tag s&kärmbild"
 
+msgid "Take screenshot"
+msgstr "Tag skärmbild"
+
 msgid "Take &raw screenshot"
 msgstr "Tag &rå skärmbild"
 
+msgid "Take raw screenshot"
+msgstr "Tag rå skärmbild"
+
 msgid "C&opy screenshot"
+msgstr "&Kopiera skärmbild"
+
+msgid "Copy screenshot"
 msgstr "Kopiera skärmbild"
 
 msgid "Copy r&aw screenshot"
 msgstr "Kopera r&å skärmbild"
+
+msgid "Copy raw screenshot"
+msgstr "Kopera rå skärmbild"
 
 msgid "S&ound"
 msgstr "L&jud"
@@ -2798,9 +2810,6 @@ msgstr "Helskärm"
 
 msgid "Toggle UI in fullscreen"
 msgstr ""
-
-msgid "Screenshot"
-msgstr "Skärmbild"
 
 msgid "Release mouse pointer"
 msgstr "Släpp muspekare"

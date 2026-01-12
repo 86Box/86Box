@@ -210,16 +210,28 @@ msgid "&Update status bar icons"
 msgstr "&Обновлення значків рядка стану"
 
 msgid "Take s&creenshot"
-msgstr "Зробити &знімок"
+msgstr "&Зробити скріншот"
+
+msgid "Take screenshot"
+msgstr "Зробити скріншот"
 
 msgid "Take &raw screenshot"
-msgstr "Зробити &сирий знімок"
+msgstr "Зробити &сирий скріншот"
+
+msgid "Take raw screenshot"
+msgstr "Зробити сирий скріншот"
 
 msgid "C&opy screenshot"
-msgstr "С&копійовати знімок"
+msgstr "С&копійовати скріншот"
+
+msgid "Copy screenshot"
+msgstr "Скопійовати скріншот"
 
 msgid "Copy r&aw screenshot"
-msgstr "Скопійовати с&ирий знімок"
+msgstr "Скопійовати с&ирий скріншот"
+
+msgid "Copy raw screenshot"
+msgstr "Скопійовати сирий скріншот"
 
 msgid "S&ound"
 msgstr "&Звук"
@@ -2806,9 +2818,6 @@ msgstr "Переключити повноекранний режим"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Переключити UI в повноекранному режимі"
-
-msgid "Screenshot"
-msgstr "Скріншот"
 
 msgid "Release mouse pointer"
 msgstr "Відпустити вказівник миші"

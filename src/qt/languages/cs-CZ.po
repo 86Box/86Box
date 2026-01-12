@@ -210,14 +210,26 @@ msgstr "&Aktualizovat ikony stavového řádku"
 msgid "Take s&creenshot"
 msgstr "Pořídit &screenshot"
 
+msgid "Take screenshot"
+msgstr "Pořídit screenshot"
+
 msgid "Take &raw screenshot"
 msgstr "Pořídit n&ezpracovaný screenshot"
+
+msgid "Take raw screenshot"
+msgstr "Pořídit nezpracovaný screenshot"
 
 msgid "C&opy screenshot"
 msgstr "&Zkopírovat screenshot"
 
+msgid "Copy screenshot"
+msgstr "Zkopírovat screenshot"
+
 msgid "Copy r&aw screenshot"
 msgstr "Zkopírovat nez&pracovaný screenshot"
+
+msgid "Copy raw screenshot"
+msgstr "Zkopírovat nezpracovaný screenshot"
 
 msgid "S&ound"
 msgstr "&Zvuk"
@@ -2804,9 +2816,6 @@ msgstr "Přepnout režim celé obrazovky"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Přepnout rozhraní při celé obrazovce"
-
-msgid "Screenshot"
-msgstr "Pořídit snímek obrazovky"
 
 msgid "Release mouse pointer"
 msgstr "Uvolnit kurzor myši"

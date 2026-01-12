@@ -204,14 +204,26 @@ msgstr "&Atualizar ícones da barra de status"
 msgid "Take s&creenshot"
 msgstr "Capturar &tela"
 
+msgid "Take screenshot"
+msgstr "Capturar tela"
+
 msgid "Take &raw screenshot"
 msgstr "Fazer captura &bruta da tela"
+
+msgid "Take raw screenshot"
+msgstr "Fazer captura bruta da tela"
 
 msgid "C&opy screenshot"
 msgstr "C&opiar captura da tela"
 
+msgid "Copy screenshot"
+msgstr "Copiar captura da tela"
+
 msgid "Copy r&aw screenshot"
 msgstr "Copiar captura b&ruta da tela"
+
+msgid "Copy raw screenshot"
+msgstr "Copiar captura bruta da tela"
 
 msgid "S&ound"
 msgstr "&Som"
@@ -2798,9 +2810,6 @@ msgstr "Alternar tela cheia"
 
 msgid "Toggle UI in fullscreen"
 msgstr "Alternar interface em tela cheia"
-
-msgid "Screenshot"
-msgstr "Captura de tela"
 
 msgid "Release mouse pointer"
 msgstr "Liberar ponteiro do mouse"
