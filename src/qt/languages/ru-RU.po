@@ -3033,3 +3033,6 @@ msgstr "Разреш&ить рекомпиляцию"
 
 msgid "&Fast forward"
 msgstr "П&еремотка вперёд"
+
+msgid "Fast forward"
+msgstr "Перемотка вперёд"

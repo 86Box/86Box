@@ -291,6 +291,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .seq=""
     },
     {
+        .name="fast_forward",
+        .desc="Fast forward",
+        .seq="Ctrl+Alt+F"
+    },
+    {
         .name="release_mouse",
         .desc="Release mouse pointer",
         .seq="Ctrl+End"

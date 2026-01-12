@@ -3022,3 +3022,6 @@ msgstr "&Dovoli prevajanje"
 
 msgid "&Fast forward"
 msgstr ""
+
+msgid "Fast forward"
+msgstr ""

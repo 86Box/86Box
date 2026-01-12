@@ -3020,3 +3020,6 @@ msgstr "&Permetre recompilació"
 
 msgid "&Fast forward"
 msgstr ""
+
+msgid "Fast forward"
+msgstr ""

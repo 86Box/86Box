@@ -1094,6 +1094,9 @@
    <property name="text">
     <string>&amp;Fast forward</string>
    </property>
+   <property name="toolTip">
+    <string>Fast forward</string>
+   </property>
   </action>
  </widget>
  <customwidgets>

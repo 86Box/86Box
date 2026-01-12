@@ -3014,3 +3014,6 @@ msgstr "&Cho phép biên dịch lại"
 
 msgid "&Fast forward"
 msgstr ""
+
+msgid "Fast forward"
+msgstr ""

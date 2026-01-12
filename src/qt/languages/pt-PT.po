@@ -3021,3 +3021,6 @@ msgstr "&Permitir recompilação"
 
 msgid "&Fast forward"
 msgstr ""
+
+msgid "Fast forward"
+msgstr ""

@@ -3022,3 +3022,6 @@ msgstr "&Omogući rekompilaciju"
 
 msgid "&Fast forward"
 msgstr ""
+
+msgid "Fast forward"
+msgstr ""

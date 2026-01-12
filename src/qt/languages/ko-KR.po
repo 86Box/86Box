@@ -3014,3 +3014,6 @@ msgstr "재컴파일 허용(&A)"
 
 msgid "&Fast forward"
 msgstr ""
+
+msgid "Fast forward"
+msgstr ""

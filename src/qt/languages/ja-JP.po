@@ -3021,3 +3021,6 @@ msgstr "再コンパイルを許可する(&A)"
 
 msgid "&Fast forward"
 msgstr ""
+
+msgid "Fast forward"
+msgstr ""

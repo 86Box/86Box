@@ -1042,6 +1042,10 @@ MainWindow::updateShortcuts()
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionHard_Reset->setShortcut(seq);
 
+    accID = FindAccelerator("fast_forward");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionFast_forward->setShortcut(seq);
+
     accID = FindAccelerator("fullscreen");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionFullscreen->setShortcut(seq);
@@ -1581,6 +1585,10 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset")) {
                 ui->actionHard_Reset->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fast_forward")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fast_forward")) {
+                ui->actionFast_forward->trigger();
             }
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_del")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del")) {
