@@ -35,6 +35,8 @@ public:
 
     ~VMManagerDetails() override;
 
+    void reset();
+
     void updateData(VMManagerSystem *passed_sysconfig);
 
     void updateProcessStatus();

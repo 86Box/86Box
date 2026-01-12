@@ -734,12 +734,9 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
         delete sysconfig;
 
         if (vm_model->rowCount(QModelIndex()) <= 0) {
-            selected_sysconfig = new VMManagerSystem();
             /* no machines left - get rid of the last machine's leftovers */
-            ui->detailsArea->layout()->removeWidget(vm_details);
-            delete vm_details;
-            vm_details = new VMManagerDetails();
-            ui->detailsArea->layout()->addWidget(vm_details);
+            selected_sysconfig = new VMManagerSystem();
+            vm_details->reset();
             /* tell the mainwindow to disable the toolbar buttons */
             emit selectionOrStateChanged(nullptr);
         }
