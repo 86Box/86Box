@@ -752,6 +752,16 @@ plat_chdir(char *path)
     return QDir::setCurrent(QString(path)) ? 0 : -1;
 }
 
+#ifdef _WIN32
+void plat_get_system_directory(char *outbuf)
+{
+    wchar_t wc[512];
+    GetSystemWindowsDirectoryW(wc, 512);
+    QString str = QString::fromWCharArray(wc);
+    strcpy(outbuf, str.toUtf8());
+}
+#endif
+
 void
 plat_get_global_config_dir(char *outbuf, const size_t len)
 {

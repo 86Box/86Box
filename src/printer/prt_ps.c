@@ -77,9 +77,12 @@ typedef struct ps_t {
     bool    error;
     bool    autofeed;
     bool    pcl;
-    bool    pcl_escape;
     bool    pending;
+    bool    pjl;
+    bool    pjl_command;
     uint8_t ctrl;
+    uint8_t pcl_escape;
+    uint16_t pjl_command_start;
 
     char printer_path[260];
 
@@ -286,23 +289,65 @@ process_data(ps_t *dev)
 {
     /* On PCL, check for escape sequences. */
     if (dev->pcl) {
-        if (dev->data == 0x1B)
-            dev->pcl_escape = true;
-        else if (dev->pcl_escape) {
-            dev->pcl_escape = false;
-            if (dev->data == 0xE) {
-                dev->buffer[dev->buffer_pos++] = dev->data;
-                dev->buffer[dev->buffer_pos]   = 0;
+        if (dev->pjl) {
+            dev->buffer[dev->buffer_pos++] = dev->data;
 
-                if (dev->buffer_pos > 2)
-                    write_buffer(dev, true);
-
-                return;
+            /* Filter out any PJL commands. */
+            if (dev->pjl_command && (dev->data == '\n')) {
+                dev->pjl_command = false;
+                if (!memcmp(&(dev->buffer[dev->pjl_command_start]), "@PJL ENTER LANGUAGE=PCL", 0x17))
+                    dev->pjl = false;
+                else if (!memcmp(&(dev->buffer[dev->pjl_command_start]), "@PJL ENTER LANGUAGE=POSTSCRIPT", 0x1e))
+                    fatal("Printing PostScript using the PCL printer is not (yet) supported!\n");
+                dev->buffer_pos = dev->pjl_command_start;
+            } else if (!dev->pjl_command && (dev->buffer_pos >= 0x05) && !memcmp(&(dev->buffer[dev->buffer_pos - 0x5]), "@PJL ", 0x05)) {
+                dev->pjl_command = true;
+                dev->pjl_command_start = dev->buffer_pos - 0x05;
             }
+
+            dev->buffer[dev->buffer_pos]   = 0;
+            return;
+        } else if (dev->data == 0x1b)
+            dev->pcl_escape = 1;
+        else  switch (dev->pcl_escape) {
+            case 1:
+                dev->pcl_escape = (dev->data == 0x25) ? 2 : 0;
+                if (dev->data == 0x0e) {
+                    dev->buffer[dev->buffer_pos++] = dev->data;
+                    dev->buffer[dev->buffer_pos]   = 0;
+
+                    if (dev->buffer_pos > 2)
+                        write_buffer(dev, true);
+
+                    return;
+                }
+                break;
+            case 2:
+                dev->pcl_escape = (dev->data == 0x2d) ? 3 : 0;
+                break;
+            case 3:
+                dev->pcl_escape = (dev->data == 0x31) ? 4 : 0;
+                break;
+            case 4:
+                dev->pcl_escape = (dev->data == 0x32) ? 5 : 0;
+                break;
+            case 5:
+                dev->pcl_escape = (dev->data == 0x33) ? 6 : 0;
+                break;
+            case 6:
+                dev->pcl_escape = (dev->data == 0x34) ? 7 : 0;
+                break;
+            case 7:
+                dev->pcl_escape = (dev->data == 0x35) ? 8 : 0;
+                break;
+            case 8:
+                dev->pcl_escape = 0;
+                if (dev->data == 0x58)
+                    dev->pjl = true;
+                break;
         }
-    }
-    /* On PostScript, check for non-printable characters. */
-    else if ((dev->data < 0x20) || (dev->data == 0x7f)) {
+    } else if ((dev->data < 0x20) || (dev->data == 0x7f)) {
+        /* On PostScript, check for non-printable characters. */
         switch (dev->data) {
             /* The following characters are considered white-space
                by the PostScript specification */

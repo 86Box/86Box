@@ -266,7 +266,7 @@ msgid "&Rewind to the beginning"
 msgstr "倒帶至起點(&R)"
 
 msgid "&Fast forward to the end"
-msgstr "快進至終點(&F)"
+msgstr "快轉至終點(&F)"
 
 msgid "E&ject"
 msgstr "退出(&J)"
@@ -2987,7 +2987,7 @@ msgid "OpenGL input stretch mode"
 msgstr "OpenGL 的輸入延展模式"
 
 msgid "Color scheme"
-msgstr "配色方案"
+msgstr "色彩配置"
 
 msgid "Light"
 msgstr "亮色"
@@ -3011,4 +3011,4 @@ msgid "&Allow recompilation"
 msgstr "允許重編譯(&A)"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "快轉(&F)"
