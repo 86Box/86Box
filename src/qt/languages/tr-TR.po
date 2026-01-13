@@ -1143,8 +1143,8 @@ msgstr "Seçili yapılandırma dosyası okunmak için açılamıyor: %1"
 msgid "Use regular expressions in search box"
 msgstr "Arama kutusunda düzenli ifadeler kullan"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 makine şu anda aktif. Yine de VM yöneticisinden çıkmak istediğinize emin misiniz?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n makine şu anda aktif. Yine de VM yöneticisinden çıkmak istediğinize emin misiniz?"
 
 msgid "Add new system wizard"
 msgstr "Yeni sistem ekleme sihirbazı"

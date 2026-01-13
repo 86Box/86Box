@@ -1137,8 +1137,8 @@ msgstr "Không thể mở cấu hình đã chọn để đọc: %1"
 msgid "Use regular expressions in search box"
 msgstr "Dùng regex trong hộp tìm kiếm"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
 
 msgid "Add new system wizard"
 msgstr "Thêm trình thuật sĩ hệ thống mới"

@@ -1145,8 +1145,8 @@ msgstr "Неможливо відкрити вибраний файл конфі
 msgid "Use regular expressions in search box"
 msgstr "Використовувати регулярні вирази в полі пошуку"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 машина(и) наразі активна(і). Ви впевнені, що все одно хочете вийти з менеджера віртуальної машини?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n машина(и) наразі активна(і). Ви впевнені, що все одно хочете вийти з менеджера віртуальної машини?"
 
 msgid "Add new system wizard"
 msgstr "Майстер додавання нової системи"

@@ -1137,8 +1137,8 @@ msgstr "Kan ikke åpne valgt konfigurasjonsfil for lesing: %1"
 msgid "Use regular expressions in search box"
 msgstr "Bruk regulære uttrykk i søkeboksen"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 maskin(er) er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n maskin(er) er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
 
 msgid "Add new system wizard"
 msgstr "Legg til ny system-veiviser"

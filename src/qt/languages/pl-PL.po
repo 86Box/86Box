@@ -1144,8 +1144,8 @@ msgstr "Nie udało się otworzyć wybranego pliku konfiguracyjnego do odczytu: %
 msgid "Use regular expressions in search box"
 msgstr "Użyj wyrażeń regularnych w polu wyszukiwania"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Liczba obecnie aktywnych maszyn: %1. Czy na pewno chcesz, mimo to, wyjść z menedżera maszyn wirtualnych?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Liczba obecnie aktywnych maszyn: %n. Czy na pewno chcesz, mimo to, wyjść z menedżera maszyn wirtualnych?"
 
 msgid "Add new system wizard"
 msgstr "Kreator dodawania nowego systemu"

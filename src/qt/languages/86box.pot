@@ -1137,7 +1137,7 @@ msgstr ""
 msgid "Use regular expressions in search box"
 msgstr ""
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr ""
 
 msgid "Add new system wizard"

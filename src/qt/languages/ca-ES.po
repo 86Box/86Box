@@ -1143,8 +1143,8 @@ msgstr "No fou possible obrir el fitxer de configuració seleccionat per llegir:
 msgid "Use regular expressions in search box"
 msgstr "Utilitzeu expressions regulars a la caixa de cerca"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 màquina(es) són actives en aquest moment. Segur que voleu sortir de l'administrador de MV?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n màquina(es) són actives en aquest moment. Segur que voleu sortir de l'administrador de MV?"
 
 msgid "Add new system wizard"
 msgstr "Auxiliar d'addició de un nou sistema"

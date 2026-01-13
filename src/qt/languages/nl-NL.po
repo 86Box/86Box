@@ -1137,8 +1137,8 @@ msgstr "Openen van geselecteerd configuratiebestand voor lezen niet mogelijk: %1
 msgid "Use regular expressions in search box"
 msgstr "Gebruik reguliere expressies in zoekveld"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 machine(s) zijn nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n machine(s) zijn nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
 
 msgid "Add new system wizard"
 msgstr "Wizard toevoegen van nieuw systeem"

@@ -1143,8 +1143,8 @@ msgstr "Nebylo možné otevřít vybraný konfigurační soubor pro čtení: %1"
 msgid "Use regular expressions in search box"
 msgstr "Použít ve vyhledávacím poli regulární výrazy"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 počítač(ů) je stále aktivních. Opravdu chcete ukončit správce virtuálních počítačů?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n počítač(ů) je stále aktivních. Opravdu chcete ukončit správce virtuálních počítačů?"
 
 msgid "Add new system wizard"
 msgstr "Průvodce přidáním nového systému"

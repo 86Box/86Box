@@ -1137,8 +1137,8 @@ msgstr "Não foi possível abrir o arquivo de configuração selecionado para le
 msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) está(ão) ativa(s) no momento. Tem certeza de que deseja sair do gerenciador de MVs mesmo assim?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n máquina(s) está(ão) ativa(s) no momento. Tem certeza de que deseja sair do gerenciador de MVs mesmo assim?"
 
 msgid "Add new system wizard"
 msgstr "Assistente para novo sistema"

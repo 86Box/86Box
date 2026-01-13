@@ -1137,8 +1137,8 @@ msgstr "선택한 구성 파일을 읽기 위해 열 수 없습니다: %1"
 msgid "Use regular expressions in search box"
 msgstr "검색 상자에 정규 표현식 사용"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "현재 %1대의 머신이 활성화되어 있습니다. 가상 머신 관리자를 종료하시겠습니까?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "현재 %n대의 머신이 활성화되어 있습니다. 가상 머신 관리자를 종료하시겠습니까?"
 
 msgid "Add new system wizard"
 msgstr "새로운 시스템을 추가하는 마법사"

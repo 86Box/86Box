@@ -1143,8 +1143,8 @@ msgstr "Valittua määritystä ei voitu avata: %1"
 msgid "Use regular expressions in search box"
 msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
 
 msgid "Add new system wizard"
 msgstr "Koneenlisäysohjelma"

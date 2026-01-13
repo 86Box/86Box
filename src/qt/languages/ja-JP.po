@@ -1144,8 +1144,8 @@ msgstr "選択した設定ファイルを読み込むことができませんで
 msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "現在、%1台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
 
 msgid "Add new system wizard"
 msgstr "新しいシステムを追加するためのウィザード"

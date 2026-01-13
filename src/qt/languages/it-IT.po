@@ -1143,8 +1143,8 @@ msgstr "Impossibile aprire il file di configurazione selezionato per la lettura:
 msgid "Use regular expressions in search box"
 msgstr "Utilizza espressioni regolari nella casella di ricerca"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Sono attualmente attive %1 macchina/e. Vuoi comunque uscire dal gestore delle macchine virtuali?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Sono attualmente attive %n macchina/e. Vuoi comunque uscire dal gestore delle macchine virtuali?"
 
 msgid "Add new system wizard"
 msgstr "Procedura guidata nuovo sistema"

@@ -1145,8 +1145,8 @@ msgstr "Nije moguće otvoriti odabranu konfiguracijsku datoteku za čitanje: %1"
 msgid "Use regular expressions in search box"
 msgstr "U polju za pretraživanje koristite regularne izraze"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Broj trenutno aktivnih računala je %1. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Broj trenutno aktivnih računala je %n. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
 
 msgid "Add new system wizard"
 msgstr "Čarobnjak za dodavanje novog sistema"

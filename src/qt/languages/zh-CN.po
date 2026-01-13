@@ -1137,8 +1137,8 @@ msgstr "无法打开选定的配置文件进行读取：%1"
 msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"

@@ -1143,8 +1143,8 @@ msgstr "Impossible d'ouvrir le fichier de configuration sélectionné pour lectu
 msgid "Use regular expressions in search box"
 msgstr "Utilisez des expressions régulières dans le champ de recherche"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 machine(s) sont actuellement actives. Êtes-vous sûr de vouloir quitter le gestionnaire de machines virtuelles malgré tout ?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n machine(s) sont actuellement actives. Êtes-vous sûr de vouloir quitter le gestionnaire de machines virtuelles malgré tout ?"
 
 msgid "Add new system wizard"
 msgstr "Assistant pour ajouter un nouveau système"

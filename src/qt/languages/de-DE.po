@@ -1143,8 +1143,8 @@ msgstr "Die ausgewählte Konfigurationsdatei konnte nicht eingelesen werden: %1"
 msgid "Use regular expressions in search box"
 msgstr "Benutze reguläre Ausdrücke in der Suche"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 Maschinen sind aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n Maschinen sind aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
 
 msgid "Add new system wizard"
 msgstr "Assistent für ein neues System"
