@@ -2685,7 +2685,7 @@ const machine_t machines[] = {
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = NULL, /* Discrete onboard video card? */
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -5684,7 +5684,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &if386jega_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
