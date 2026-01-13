@@ -1211,7 +1211,7 @@ machine_at_pb810_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cs4237b_device);
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
