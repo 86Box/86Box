@@ -95,6 +95,9 @@ serial_reset_port(serial_t *dev)
 
     serial_update_ints(dev);
     dev->irq_state = 0;
+
+    if (dev->char_port.chardev.control)
+        dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.priv);
 }
 
 void
@@ -111,6 +114,13 @@ serial_transmit_period(serial_t *dev)
     dev->transmit_period = (16000000.0 * ddlab) / dev->clock_src;
     if (dev->sd && dev->sd->transmit_period_callback)
         dev->sd->transmit_period_callback(dev, dev->sd->priv, dev->transmit_period);
+
+    dev->char_port.com.baud      = dev->clock_src / (16.0 * ddlab);
+    dev->char_port.com.data_bits = (dev->lcr & 0x03) + 5;
+    dev->char_port.com.parity    = (dev->lcr >> 3) & 0x7;
+    dev->char_port.com.stop_bits = !!(dev->lcr & 0x04) + 1;
+    if (dev->char_port.chardev.port_config)
+        dev->char_port.chardev.port_config(dev->char_port.priv);
 }
 
 void
@@ -161,6 +171,22 @@ serial_receive_timer(void *priv)
     serial_log("serial_receive_timer()\n");
 
     timer_on_auto(&dev->receive_timer, /* dev->bits * */ dev->transmit_period);
+
+    if (dev->char_port.chardev.read) {
+        uint8_t val;
+        if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.priv) > 0)
+            serial_write_fifo(dev, val);
+    }
+    if (dev->char_port.chardev.status) {
+        uint8_t prev_msr = dev->msr;
+        uint32_t flags = dev->char_port.chardev.status(dev->char_port.priv);
+        uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
+        dev->msr = (dev->msr & ~mask) | (flags & mask);
+        mask &= ~CHAR_COM_RI;
+        dev->msr |= ((prev_msr & mask) ^ (dev->msr & mask)) >> 4;
+        if (!(prev_msr & CHAR_COM_RI) && !(dev->msr & CHAR_COM_RI))
+            dev->msr |= CHAR_COM_RI >> 4;
+    }
 
     if (dev->fifo_enabled) {
         /* FIFO mode. */
@@ -233,8 +259,10 @@ serial_transmit(serial_t *dev, uint8_t val)
 {
     if (dev->mctrl & 0x10)
         write_fifo(dev, val);
-    else if (dev->sd->dev_write)
+    else if (dev->sd && dev->sd->dev_write)
         dev->sd->dev_write(dev, dev->sd->priv, val);
+    else if (dev->char_port.chardev.write)
+        dev->char_port.chardev.write(&val, sizeof(val), dev->char_port.priv);
 
 #ifdef ENABLE_SERIAL_CONSOLE
     if ((val >= ' ' && val <= '~') || val == '\r' || val == '\n') {
@@ -596,6 +624,8 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 if (dev->sd && dev->sd->lcr_callback)
                     dev->sd->lcr_callback(dev, dev->sd->priv, dev->lcr);
             }
+            if (((old ^ val) & 0x40) && dev->char_port.chardev.control)
+                dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.priv);
             break;
         case 4:
             if ((val & 2) && !(dev->mctrl & 2)) {
@@ -610,6 +640,8 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 serial_reset_fifo(dev);
             if (dev->sd && dev->sd->dtr_callback && (val ^ dev->mctrl) & 1)
                 dev->sd->dtr_callback(dev, val & 1, dev->sd->priv);
+            if (((dev->mctrl ^ val) & 0x03) && dev->char_port.chardev.control)
+                dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.priv);
             dev->mctrl = val & 0x1f;
             if (val & 0x10) {
                 new_msr = (val & 0x0c) << 4;
@@ -896,8 +928,9 @@ serial_close(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    if (dev->sd) {
-        memset(dev->sd, 0, sizeof(serial_device_t));
+    if (dev->sd || dev->char_port.type) {
+        if (dev->sd)
+            memset(dev->sd, 0, sizeof(serial_device_t));
         fifo_close(dev->rcvr_fifo);
     }
 
@@ -909,7 +942,7 @@ serial_reset(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    if (dev->sd) {
+    if (dev->sd || dev->char_port.type) {
         timer_disable(&dev->transmit_timer);
         timer_disable(&dev->timeout_timer);
         timer_disable(&dev->receive_timer);
@@ -933,6 +966,9 @@ serial_reset(void *priv)
         dev->dlab      = 96;
         dev->fcr       = 0x06;
 
+        if (dev->char_port.chardev.control)
+            dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.priv);
+
         serial_transmit_period(dev);
         serial_update_speed(dev);
     }
@@ -955,6 +991,12 @@ serial_init(const device_t *info)
         memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
+
+        if (next_inst == 0) {
+            // DEBUG CODE
+            dev->char_port.type = CHAR_PORT_COM;
+            char_init(&dev->char_port, "hostser:COM4", next_inst);
+        }
 
         if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;

@@ -659,6 +659,22 @@ delete_nvr_file(uint8_t flash)
     fn = NULL;
 }
 
+#ifdef _WIN32
+void
+pc_debug_console(void)
+{
+    if (force_debug)
+        return;
+
+    if (AllocConsole()) {
+        force_debug = 1;
+        freopen("CONIN$", "r", stdin);
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+    }
+}
+#endif
+
 extern void  device_find_all_descs(void);
 
 static void
@@ -831,7 +847,7 @@ usage:
             lvmp = 1;
 #ifdef _WIN32
         } else if (!strcasecmp(argv[c], "--debug") || !strcasecmp(argv[c], "-D")) {
-            force_debug = 1;
+            pc_debug_console();
 #endif
 #ifndef USE_SDL_UI
         } else if (!strcasecmp(argv[c], "--vmmpath") ||

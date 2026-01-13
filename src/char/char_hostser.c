@@ -12,7 +12,7 @@
  *
  * Authors: RichardG, <richardg867@gmail.com>
  *
- *          Copyright 2025 RichardG.
+ *          Copyright 2025-2026 RichardG.
  */
 
 #include <stdarg.h>
@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
 #elif defined(USE_LINUX_TERMIOS)
 #    include <asm/termios.h>
@@ -30,9 +31,11 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/ini.h>
 #include <86box/char.h>
 #include <86box/log.h>
 
+#define ENABLE_HOSTSER_LOG 1
 #ifdef ENABLE_HOSTSER_LOG
 int hostser_do_log = ENABLE_HOSTSER_LOG;
 
@@ -60,11 +63,11 @@ typedef struct {
     HANDLE fd;
     DCB    prev_config;
 #else
-    int             fd;
+    int fd;
 #    ifdef TCGETS2
     struct termios2 prev_config;
 #    else
-    struct termios  prev_config;
+    struct termios prev_config;
 #    endif
 #endif
     uint8_t prev_config_valid;
@@ -178,6 +181,9 @@ hostser_disconnect(hostser_t *dev)
     CloseHandle(dev->fd);
     dev->fd = NULL;
 #else
+    if (dev->fd == -1)
+        return;
+
     /* Restore serial port configuration. */
     if (dev->prev_config_valid)
 #    ifdef TCSETS2
@@ -242,6 +248,8 @@ hostser_connect(hostser_t *dev)
     dev->prev_config_valid = tcgetattr(dev->fd, &dev->prev_config) != -1;
 #    endif
 #endif
+
+    hostser_log(dev->log, "Connected\n");
 
     return 1;
 }
@@ -585,11 +593,15 @@ hostser_init(const device_t *info)
 {
     hostser_t *dev = (hostser_t *) calloc(1, sizeof(hostser_t));
 
-    dev->log = log_open("Host Serial");
-    dev->path = device_get_config_string("path");
-    hostser_log(dev->log, "init(%s)\n", path);
+    dev->port = (char_port_t *) info->local;
+    dev->path = ini_get_string(dev->port->config, "", "path", NULL);
+    char buf[256] = {0};
+    snprintf(buf, sizeof(buf) - 1, "Host Serial %s", dev->path);
+    dev->log = log_open(buf);
+    hostser_log(dev->log, "init(%s)\n", dev->path);
 
-    hostser_connect(dev);
+    if (dev->path)
+        hostser_connect(dev);
 
     return dev;
 }
@@ -598,7 +610,7 @@ hostser_init(const device_t *info)
 static const device_config_t hostser_config[] = {
     {
         .name           = "path",
-        .description    = "Host Serial Device",
+        .description    = "Host serial device",
         .type           = CONFIG_SERPORT,
         .default_string = NULL,
         .default_int    = 0,
@@ -606,7 +618,8 @@ static const device_config_t hostser_config[] = {
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
-    }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 

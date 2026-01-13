@@ -12,7 +12,7 @@
  *
  * Authors: RichardG, <richardg867@gmail.com>
  *
- *          Copyright 2025 RichardG.
+ *          Copyright 2025-2026 RichardG.
  */
 #ifndef EMU_CHAR_H
 #define EMU_CHAR_H
@@ -64,9 +64,26 @@ enum { /* device status */
     CHAR_DISCONNECTED = 0x80000000
 };
 
+typedef struct _char_device_ {
+    device_t device;
+    uint32_t flags;
+
+    ssize_t       (*read)(uint8_t *buf, ssize_t len, void *priv);
+    ssize_t       (*write)(uint8_t *buf, ssize_t len, void *priv);
+    void          (*port_config)(void *priv);
+    void          (*control)(uint32_t flags, void *priv);
+    uint32_t      (*status)(void *priv);
+} char_device_t;
+
 typedef struct {
-    struct _char_device_ *chardev;
+    char_device_t chardev;
+    uintptr_t local;
     void *priv;
+#ifdef EMU_INI_H
+    ini_t config;
+#else
+    void *config;
+#endif
 
     uint8_t type;
     union {
@@ -82,20 +99,10 @@ typedef struct {
     };
 } char_port_t;
 
-typedef struct _char_device_ {
-    const device_t device;
-
-    uint32_t flags;
-
-    ssize_t       (*read)(uint8_t *buf, ssize_t len, void *priv);
-    ssize_t       (*write)(uint8_t *buf, ssize_t len, void *priv);
-    void          (*port_config)(void *priv);
-    void          (*control)(uint32_t flags, void *priv);
-    uint32_t      (*status)(void *priv);
-} char_device_t;
-
-extern char_port_t *char_port;
+extern const char_device_t *char_get(const char *internal_name);
+extern void                 char_init(char_port_t *port, const char *init_string, int instance);
 
 extern const char_device_t hostser_device;
+extern const char_device_t stdio_device;
 
 #endif /*EMU_CHAR_H*/

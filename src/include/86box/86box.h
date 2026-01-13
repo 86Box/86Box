@@ -306,6 +306,9 @@ extern void pc_send_cab(void);
 extern void pc_run(void);
 extern void pc_start(void);
 extern void pc_onesec(void);
+#ifdef _WIN32
+extern void pc_debug_console(void);
+#endif
 
 extern uint16_t get_last_addr(void);
 

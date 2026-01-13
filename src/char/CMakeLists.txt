@@ -19,6 +19,7 @@
 add_library(char OBJECT
     char.c
     char_hostser.c
+    char_stdio.c
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
