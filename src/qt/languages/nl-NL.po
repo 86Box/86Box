@@ -1221,9 +1221,6 @@ msgstr "Voer een nieuwe weergavenaam in (laat leeg om te herstellen)"
 msgid "Change &display name…"
 msgstr "Pas &weergavenaam aan…"
 
-msgid "Context Menu"
-msgstr "Contextmenu"
-
 msgid "&Open folder…"
 msgstr "&Open map…"
 

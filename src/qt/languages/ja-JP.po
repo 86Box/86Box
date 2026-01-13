@@ -1228,9 +1228,6 @@ msgstr "新しい表示名を入力してください(空白にするとリセ�
 msgid "Change &display name…"
 msgstr "表示名を変更(&D)…"
 
-msgid "Context Menu"
-msgstr "コンテキストメニュー"
-
 msgid "&Open folder…"
 msgstr "フォルダーを開く(&O)…"
 

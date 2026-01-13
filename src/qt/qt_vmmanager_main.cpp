@@ -98,7 +98,7 @@ VMManagerMain::VMManagerMain(QWidget *parent)
     connect(ui->listView, &QListView::customContextMenuRequested, [this, parent](const QPoint &pos) {
         const auto indexAt = ui->listView->indexAt(pos);
         if (indexAt.isValid()) {
-            QMenu contextMenu(tr("Context Menu"), ui->listView);
+            QMenu contextMenu("", ui->listView);
 
             QAction startAction(tr("&Start"));
             contextMenu.addAction(&startAction);
@@ -378,7 +378,7 @@ illegal_chars:
 
             contextMenu.exec(ui->listView->viewport()->mapToGlobal(pos));
         } else {
-            QMenu contextMenu(tr("Context Menu"), ui->listView);
+            QMenu contextMenu("", ui->listView);
 
             QAction newMachineAction(tr("&New machine…"));
             contextMenu.addAction(&newMachineAction);

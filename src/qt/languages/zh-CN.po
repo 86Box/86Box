@@ -1221,9 +1221,6 @@ msgstr "输入新的显示名称 (留空以重置)"
 msgid "Change &display name…"
 msgstr "更改显示名称(&D)…"
 
-msgid "Context Menu"
-msgstr "上下文菜单"
-
 msgid "&Open folder…"
 msgstr "打开文件夹(&O)…"
 

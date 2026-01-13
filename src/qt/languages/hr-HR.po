@@ -1229,9 +1229,6 @@ msgstr "Unesite novo prikazno ime (prazno za ponovo postaviti)"
 msgid "Change &display name…"
 msgstr "Promijeni &prikazno ime…"
 
-msgid "Context Menu"
-msgstr "Kontekstni izbornik"
-
 msgid "&Open folder…"
 msgstr "&Otvori mapu…"
 

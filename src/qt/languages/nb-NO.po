@@ -1221,9 +1221,6 @@ msgstr "Skriv inn nytt visningsnavn (tomt for å tilbakestille)"
 msgid "Change &display name…"
 msgstr "Endre &visningsnavn…"
 
-msgid "Context Menu"
-msgstr "Kontekstmeny"
-
 msgid "&Open folder…"
 msgstr "&Åpne mappe…"
 

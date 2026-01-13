@@ -1227,9 +1227,6 @@ msgstr "Inserisci il nuovo nome da visualizzare (vuoto per reimpostarlo)"
 msgid "Change &display name…"
 msgstr "Modifica &nome visualizzato…"
 
-msgid "Context Menu"
-msgstr "Menu contestuale"
-
 msgid "&Open folder…"
 msgstr "&Apri cartella…"
 

@@ -1227,9 +1227,6 @@ msgstr "Anna uusi näyttönimi tai poista se"
 msgid "Change &display name…"
 msgstr "Vaihda &näyttönimi…"
 
-msgid "Context Menu"
-msgstr "Kontekstivalikko"
-
 msgid "&Open folder…"
 msgstr "&Avaa kansio…"
 

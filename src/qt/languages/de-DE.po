@@ -1227,9 +1227,6 @@ msgstr "Gebe den neuen Anzeigenamen ein (leer lassen zum Zurücksetzen)"
 msgid "Change &display name…"
 msgstr "&Anzeigename ändern…"
 
-msgid "Context Menu"
-msgstr "Kontextmenü"
-
 msgid "&Open folder…"
 msgstr "&Ordner öffnen…"
 

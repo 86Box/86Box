@@ -1229,9 +1229,6 @@ msgstr "Введіть нове відображуване ім'я (порожн
 msgid "Change &display name…"
 msgstr "Змінити &відображуване ім'я…"
 
-msgid "Context Menu"
-msgstr "Контекстне меню"
-
 msgid "&Open folder…"
 msgstr "&Відкрити папку…"
 

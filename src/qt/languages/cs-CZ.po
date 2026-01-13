@@ -1227,9 +1227,6 @@ msgstr "Zadejte nové zobrazované jméno (prázdné pole pro vymazání)"
 msgid "Change &display name…"
 msgstr "Změnit &zobrazované jméno…"
 
-msgid "Context Menu"
-msgstr "Kontextová nabídka"
-
 msgid "&Open folder…"
 msgstr "&Otevřít složku…"
 

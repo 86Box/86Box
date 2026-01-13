@@ -1221,9 +1221,6 @@ msgstr "Digite o novo nome de exibição (em branco para restaurar)"
 msgid "Change &display name…"
 msgstr "Mudar o &nome de exibição…"
 
-msgid "Context Menu"
-msgstr "Menu de contexto"
-
 msgid "&Open folder…"
 msgstr "Abrir &pasta…"
 

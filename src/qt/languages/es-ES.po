@@ -1227,9 +1227,6 @@ msgstr "Escribir el nuevo nombre mostrado (vacío para restablecer)"
 msgid "Change &display name…"
 msgstr "Cambiar nombre &mostrado…"
 
-msgid "Context Menu"
-msgstr "Menú de contexto"
-
 msgid "&Open folder…"
 msgstr "&Abrir carpeta…"
 

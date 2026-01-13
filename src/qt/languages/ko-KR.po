@@ -1221,9 +1221,6 @@ msgstr "새 표시 이름을 입력하세요 (비워두면 초기화됩니다)"
 msgid "Change &display name…"
 msgstr "표시 이름 변경(&D)…"
 
-msgid "Context Menu"
-msgstr "컨텍스트 메뉴"
-
 msgid "&Open folder…"
 msgstr "폴더 열기(&O)…"
 

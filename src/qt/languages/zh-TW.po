@@ -1228,9 +1228,6 @@ msgstr "輸入新的顯示名稱 (留空以重設)"
 msgid "Change &display name…"
 msgstr "變更顯示名稱(&D)…"
 
-msgid "Context Menu"
-msgstr "內容選單"
-
 msgid "&Open folder…"
 msgstr "開啟資料夾(&O)…"
 

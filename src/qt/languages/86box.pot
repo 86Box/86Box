@@ -1221,9 +1221,6 @@ msgstr ""
 msgid "Change &display name…"
 msgstr ""
 
-msgid "Context Menu"
-msgstr ""
-
 msgid "&Open folder…"
 msgstr ""
 

@@ -1227,9 +1227,6 @@ msgstr "Escriviu el nou nom mostrat (buit per restablir)"
 msgid "Change &display name…"
 msgstr "Canvia nom &mostrat…"
 
-msgid "Context Menu"
-msgstr "Menú de context"
-
 msgid "&Open folder…"
 msgstr "&Obre carpeta…"
 

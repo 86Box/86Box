@@ -1221,9 +1221,6 @@ msgstr "Điền tên hiển thị mới (để trống để đặt lại)"
 msgid "Change &display name…"
 msgstr "Thay đổi tên hiển thị…"
 
-msgid "Context Menu"
-msgstr "Menu ngữ cảnh"
-
 msgid "&Open folder…"
 msgstr "Mở thư mục…"
 
