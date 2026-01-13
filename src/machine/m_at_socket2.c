@@ -347,10 +347,6 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&et4000w32_onboard_device);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        for (uint16_t i = 0; i < 32768; i++)
-            rom[i] = mem_readb_phys(0x000c0000 + i);
-
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C661 | FDC37C6XX_IDE_PRI));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
@@ -358,6 +354,9 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    if (gfxcard[0] == VID_INTERNAL) {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
     }
     mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
     mem_mapping_set_exec(&bios_mapping, rom);
