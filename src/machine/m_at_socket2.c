@@ -92,7 +92,7 @@ machine_at_acera1g_init(const machine_t *model)
     device_add(&ali1429g_device);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5428_onboard_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -343,6 +343,7 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     machine_at_common_ide_init(model);
     device_add(&sis_85c461_device);
+
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&et4000w32_onboard_device);
 

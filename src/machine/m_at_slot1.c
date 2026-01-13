@@ -320,31 +320,13 @@ static const device_config_t ms6117_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 2.0 (latest)",
+                .name          = "AMIBIOS 6 (071595) - Revision 2.0",
                 .internal_name = "ms6117a",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
                 .files         = { "roms/machines/ms6117/A617MS20.ROM", "" }
-            },
-            {
-                .name          = "AMIBIOS 6 (071595) - Revision 4.10tc (Traditional Chinese)",
-                .internal_name = "ms6117atc",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 131072,
-                .files         = { "roms/machines/ms6117/A617C410.ROM", "" }
-            },
-            {
-                .name          = "AMIBIOS 6 (071595) - Revision 3.11sc (Simplified Chinese)",
-                .internal_name = "ms6117asc",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 131072,
-                .files         = { "roms/machines/ms6117/A617C311.ROM", "" }
             },
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 1.10j (Japanese)",
@@ -356,7 +338,25 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/A617J110.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.2 (Latest)",
+                .name          = "AMIBIOS 6 (071595) - Revision 3.11sc (Simplified Chinese)",
+                .internal_name = "ms6117asc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/A617C311.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 4.10tc (Traditional Chinese)",
+                .internal_name = "ms6117atc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/A617C410.ROM", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision 3.2",
                 .internal_name = "ms6117w",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -372,15 +372,6 @@ static const device_config_t ms6117_config[] = {
                 .local         = 0,
                 .size          = 262144,
                 .files         = { "roms/machines/ms6117/611732x_patched.BIN", "" }
-            },
-            {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.5 (Viglen Vig67M)",
-                .internal_name = "ms6117wvi",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 131072,
-                .files         = { "roms/machines/ms6117/w617v115.BIN", "" }
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
@@ -399,6 +390,15 @@ static const device_config_t ms6117_config[] = {
                 .local         = 0,
                 .size          = 262144,
                 .files         = { "roms/machines/ms6117/BIOS.BIN", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision 1.5 (Viglen Vig67M)",
+                .internal_name = "ms6117wvi",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/w617v115.BIN", "" }
             },
             { .files_no = 0 }
         }
@@ -951,7 +951,7 @@ static const device_config_t ga686_config[] = {
                 .files         = { "roms/machines/686bx/31nologo.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision F1 (Latest)",
+                .name          = "Award Modular BIOS v4.51PG - Revision F1",
                 .internal_name = "686bx_f1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

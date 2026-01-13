@@ -2685,7 +2685,7 @@ const machine_t machines[] = {
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = NULL, /* Discrete onboard video card? */
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -4442,7 +4442,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &gd5401_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -4884,7 +4884,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &ati28800k_spc4620p_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -5373,7 +5373,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = &tvga8900d_device,
+        .vid_device               = &tvga8900d_device, /* Onboard variant not yet emulated */
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -5684,7 +5684,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &if386jega_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -6043,7 +6043,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &paradise_wd90c11_megapc_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -8445,7 +8445,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &et4000w32_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -10632,7 +10632,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = &gd5430_onboard_pci_device,
-        .snd_device               = &ess_1688_device,
+        .snd_device               = &ess_1688_device, /* Onboard variant not yet emulated */
         .net_device               = NULL
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -12069,7 +12069,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_vision864_pci_device,
+        .vid_device               = &s3_phoenix_vision864_pci_device,  /* Onboard variant not yet emulated */
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -15721,7 +15721,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &cs4237b_device,
         .net_device               = NULL
     },
     /* This has the AMIKey 'H' firmware, possibly AMIKey-2. Photos show it with a BestKey, so it
@@ -16044,7 +16044,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = &s3_trio64v2_dx_onboard_pci_device,
-        .snd_device               = &cs4236b_device,
+        .snd_device               = &cs4236b_onboard_device,
         .net_device               = &pcnet_am79c973_onboard_device
     },
     /* This has the Phoenix MultiKey KBC firmware on the NSC Super I/O chip. */
@@ -18233,18 +18233,18 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SLOT1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 60000000,
-            .max_bus     = 83333333,
-            .min_voltage = 1500,
+            .min_bus     = 66666667,
+            .max_bus     = 75000000,
+            .min_voltage = 1800,
             .max_voltage = 3500,
             .min_multi   = 2.0,
-            .max_multi   = 5.5
+            .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
         .ram       = {
             .min  = 8192,
-            .max  = 786432,
+            .max  = 1048576,
             .step = 8192
         },
         .nvrmask                  = 255,

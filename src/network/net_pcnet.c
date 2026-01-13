@@ -3317,7 +3317,7 @@ const device_t pcnet_am79c973_device = {
 };
 
 const device_t pcnet_am79c973_onboard_device = {
-    .name          = "AMD PCnet-FAST III",
+    .name          = "AMD PCnet-FAST III (On-Board)",
     .internal_name = "pcnetfast_onboard",
     .flags         = DEVICE_PCI,
     .local         = DEV_AM79C973 | 0x0100,

@@ -664,7 +664,7 @@ const device_config_t ogc_m24_config[] = {
 };
 
 const device_t ogc_m24_device = {
-    .name          = "Olivetti M21/M24/M28 (GO317/318/380/709) video card",
+    .name          = "Olivetti M21/M24/M28 (GO317/318/380/709)",
     .internal_name = "ogc_m24",
     .flags         = DEVICE_ISA,
     .local         = 0,

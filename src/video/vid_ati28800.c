@@ -838,7 +838,7 @@ const device_t ati28800k_device = {
 };
 
 const device_t ati28800k_spc4620p_device = {
-    .name          = "ATI Korean VGA On-Board SPC-4620P",
+    .name          = "ATI Korean VGA On-Board (Samsung SPC-4620P)",
     .internal_name = "ati28800k_spc4620p",
     .flags         = DEVICE_ISA,
     .local         = 1,
@@ -852,7 +852,7 @@ const device_t ati28800k_spc4620p_device = {
 };
 
 const device_t ati28800k_spc6033p_device = {
-    .name          = "ATI Korean VGA On-Board SPC-6033P",
+    .name          = "ATI Korean VGA On-Board (Samsung SPC-6033P)",
     .internal_name = "ati28800k_spc6033p",
     .flags         = DEVICE_ISA,
     .local         = 2,
