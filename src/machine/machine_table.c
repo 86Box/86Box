@@ -12069,7 +12069,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_vision864_pci_device,
+        .vid_device               = &s3_phoenix_vision864_pci_device,  /* Onboard variant not yet emulated */
         .snd_device               = NULL,
         .net_device               = NULL
     },
