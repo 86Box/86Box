@@ -354,7 +354,7 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    if (gfxcard[0] == VID_INTERNAL) {
+    if (gfxcard[0] != VID_INTERNAL) {
         for (uint16_t i = 0; i < 32768; i++)
             rom[i] = mem_readb_phys(0x000c0000 + i);
     }
