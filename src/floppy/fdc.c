@@ -77,7 +77,7 @@ int         lastbyte = 0;
 int floppymodified[4];
 int floppyrate[4];
 
-int fdc_current[FDC_MAX] = { 0, 0 };
+int fdc_current[FDC_MAX] = { FDC_INTERNAL, 0 };
 
 volatile int fdcinited = 0;
 
