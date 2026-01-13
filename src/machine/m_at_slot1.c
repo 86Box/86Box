@@ -356,7 +356,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/A617J110.ROM", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Revision 3.2 (Latest)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 3.2 (Latest)",
                 .internal_name = "ms6117w",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -365,7 +365,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/W617MS32.BIN", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Revision 3.2 (Patched for large HDDs)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 3.2 [Patched for larger drives]",
                 .internal_name = "ms6117wp",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -374,7 +374,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/611732x_patched.BIN", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Revision 1.5 (Viglen OEM)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 1.5 (Viglen Vig67M)",
                 .internal_name = "ms6117wvi",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -383,7 +383,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/w617v115.BIN", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
                 .internal_name = "ms6117wfs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -392,7 +392,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/AWARD 1.04 .BIN", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Revision 1.02 (LG IBM OEM)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 1.02 (LG IBM Multinet x7E)",
                 .internal_name = "ms6117wlg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -952,7 +952,7 @@ static const device_config_t ga686_config[] = {
             },
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision F1 (Latest)",
-                .internal_name = "686bx",
+                .internal_name = "686bx_f1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1079,7 +1079,7 @@ static const device_config_t ms6119_config[] = {
                 .files         = { "roms/machines/ms6119/vig69m.212", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet i x7G)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet x7G)",
                 .internal_name = "lgibmx7g",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1708,7 +1708,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/W6199VC8.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq OEM) [patched for large drives]",
+                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq OEM) [Patched for larger drives]",
                 .internal_name = "ms6199va_200p",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
