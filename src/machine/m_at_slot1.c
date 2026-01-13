@@ -307,6 +307,167 @@ machine_at_spitfire_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t ms6117_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ms6117a",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 2.0 (latest)",
+                .internal_name = "ms6117a",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/A617MS20.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 4.10tc (Traditional Chinese)",
+                .internal_name = "ms6117atc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/A617C410.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 3.11sc (Simplified Chinese)",
+                .internal_name = "ms6117asc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/A617C311.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.10j (Japanese)",
+                .internal_name = "ms6117aj",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/A617J110.ROM", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 3.2 (Latest)",
+                .internal_name = "ms6117w",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6117/W617MS32.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 3.2 (Patched for large HDDs)",
+                .internal_name = "ms6117wp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6117/611732x_patched.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.5 (Viglen OEM)",
+                .internal_name = "ms6117wvi",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/w617v115.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
+                .internal_name = "ms6117wfs",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms6117/AWARD 1.04 .BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.02 (LG IBM OEM)",
+                .internal_name = "ms6117wlg",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/ms6117/BIOS.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ms6117_device = {
+    .name          = "MSI MS-6117",
+    .internal_name = "ms6117",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ms6117_config
+};
+
+int
+machine_at_ms6117_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    if (!strcmp(fn, "roms/machines/ms6117/W617MS32.BIN") || !strcmp(fn, "roms/machines/ms6117/611732x_patched.BIN") || !strcmp(fn, "roms/machines/ms6117/BIOS.BIN"))
+        ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    else
+        ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440lx_device);
+    device_add(&piix4e_device);
+    device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
+
+    if (!strcmp(fn, "roms/machines/ms6117/W617MS32.BIN") || !strcmp(fn, "roms/machines/ms6117/611732x_patched.BIN") || !strcmp(fn, "roms/machines/ms6117/BIOS.BIN"))
+        device_add(&winbond_flash_w29c020_device); /* assumed */
+    else
+        device_add(&winbond_flash_w29c011a_device);
+    
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+
+    return ret;
+}
+
 int
 machine_at_ma30d_init(const machine_t *model)
 {
