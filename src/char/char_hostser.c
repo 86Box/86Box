@@ -23,10 +23,17 @@
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
-#elif defined(USE_LINUX_TERMIOS)
-#    include <asm/termios.h>
 #else
-#    include <termios.h>
+#    include <errno.h>
+#    include <fcntl.h>
+#    ifdef USE_LINUX_TERMIOS
+#        include <asm/termbits.h>
+#        include <asm/ioctls.h>
+#    else
+#        include <termios.h>
+#    endif
+#    include <unistd.h>
+#    include <sys/ioctl.h>
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -34,6 +41,7 @@
 #include <86box/ini.h>
 #include <86box/char.h>
 #include <86box/log.h>
+#include <86box/plat_fallthrough.h>
 
 #define ENABLE_HOSTSER_LOG 1
 #ifdef ENABLE_HOSTSER_LOG
@@ -267,7 +275,7 @@ hostser_read(uint8_t *buf, ssize_t len, void *priv)
     ssize_t ret = 0;
     if (dev->fd != -1) {
         ret = read(dev->fd, buf, len);
-        if (ret == (ssize_t) -1)
+        if (ret < 0)
             ret = 0;
     }
 #endif
@@ -286,11 +294,11 @@ hostser_write(uint8_t *buf, ssize_t len, void *priv)
         WriteFile(dev->fd, buf, len, &ret, NULL);
 #else
     ssize_t ret = 0;
-    if (dev->fd) {
+    if (dev->fd != -1) {
         do {
             ret = write(dev->fd, buf, len);
-        } while ((ret == 0) || ((ret == (ssize_t) -1) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
-        if (ret == (ssize_t) -1)
+        } while ((ret == 0) || ((ret < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
+        if (ret < 0)
             ret = 0;
     }
 #endif
@@ -341,7 +349,7 @@ hostser_port_config(void *priv)
 
             if (dev->port->com.stop_bits <= 1)
                 port_config.StopBits = ONESTOPBIT;
-            else if (dev->port->com.data_bits == 5)
+            else if (dev->port->com.data_bits <= 5)
                 port_config.StopBits = ONE5STOPBITS;
             else
                 port_config.StopBits = TWOSTOPBITS;
@@ -513,7 +521,11 @@ hostser_control(uint32_t flags, void *priv)
         return;
 
     if (flags & CHAR_COM_BREAK)
+#ifdef USE_LINUX_TERMIOS
+        ioctl(dev->fd, TCSBRK, 1);
+#else
         tcsendbreak(dev->fd, 0);
+#endif
 
     int set = 0;
     int clear = 0;

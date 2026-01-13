@@ -995,7 +995,7 @@ serial_init(const device_t *info)
         if (next_inst == 0) {
             // DEBUG CODE
             dev->char_port.type = CHAR_PORT_COM;
-            char_init(&dev->char_port, "hostser:COM4", next_inst);
+            char_init(&dev->char_port, "stdio", next_inst);
         }
 
         if (info->local & 0xfff00000) {

@@ -19,14 +19,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
-#    include <fcntl.h>
-#elif defined(USE_LINUX_TERMIOS)
-#    include <asm/termios.h>
 #else
+#    include <errno.h>
+#    include <fcntl.h>
 #    include <termios.h>
+#    include <unistd.h>
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -67,6 +69,12 @@ typedef struct {
 #else
     int fd_in;
     int fd_out;
+#define SAVED_FFLAG  1
+#define SAVED_TCFLAG 2
+    int saved;
+    int saved_fflag;
+    tcflag_t saved_lflag;
+    tcflag_t saved_iflag;
 #endif
 } stdio_t;
 
@@ -95,7 +103,7 @@ stdio_read(uint8_t *buf, ssize_t len, void *priv)
     ssize_t ret = 0;
     if (dev->fd_in != -1) {
         ret = read(dev->fd_in, buf, len);
-        if (ret == (ssize_t) -1)
+        if (ret < 0)
             ret = 0;
     }
 #endif
@@ -114,11 +122,11 @@ stdio_write(uint8_t *buf, ssize_t len, void *priv)
         WriteFile(dev->fd_out, buf, len, &ret, NULL);
 #else
     ssize_t ret = 0;
-    if (dev->fd_out) {
+    if (dev->fd_out != -1) {
         do {
             ret = write(dev->fd_out, buf, len);
-        } while ((ret == 0) || ((ret == (ssize_t) -1) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
-        if (ret == (ssize_t) -1)
+        } while ((ret == 0) || ((ret < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
+        if (ret < 0)
             ret = 0;
     }
 #endif
@@ -143,7 +151,24 @@ stdio_control(uint32_t flags, void *priv)
 static uint32_t
 stdio_status(void *priv)
 {
-    return CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_DCD;
+    stdio_t *dev = (stdio_t *) priv;
+
+    uint32_t ret = 0;
+#ifdef _WIN32
+    if (dev->fd_in)
+#else
+    if (dev->fd_in != -1)
+#endif
+        ret |= CHAR_COM_DCD;
+#ifdef _WIN32
+    if (dev->fd_out)
+#else
+    if (dev->fd_out != -1)
+#endif
+        ret |= CHAR_COM_CTS;
+    if (ret)
+        ret |= CHAR_COM_DSR;
+    return ret;
 }
 
 static void
@@ -159,12 +184,26 @@ stdio_close(void *priv)
 
     stdio_log(dev->log, "close()\n");
 
+    /* Restore existing terminal configuration. */
 #ifdef _WIN32
     if (!SetConsoleMode(dev->fd_in, dev->saved_in_mode))
         stdio_log(dev->log, "Input restore SetConsoleMode failed (%08X)\n", GetLastError());
-
     if (!SetConsoleMode(dev->fd_out, dev->saved_out_mode))
         stdio_log(dev->log, "Output restore SetConsoleMode failed (%08X)\n", GetLastError());
+#else
+    if (dev->saved & SAVED_FFLAG)
+        fcntl(dev->fd_out, F_SETFL, dev->saved_fflag);
+    if (dev->saved & SAVED_TCFLAG) {
+        struct termios ios;
+        if (tcgetattr(STDIN_FILENO, &ios)) {
+            stdio_log(dev->log, "Restore tcgetattr failed (%d)\n", errno);
+        } else {
+            ios.c_lflag = dev->saved_lflag;
+            ios.c_iflag = dev->saved_iflag;
+            if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ios))
+                stdio_log(dev->log, "Restore tcsetattr failed (%d)\n", errno);
+        }
+    }
 #endif
 
     free(dev);
@@ -188,20 +227,48 @@ stdio_init(const device_t *info)
     }
     dev->fd_out = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    /* Enable ANSI input. */
-    if (!GetConsoleMode(dev->fd_in, &dev->saved_in_mode))
-        stdio_log(dev->log, "Input GetConsoleMode failed (%08X)\n", GetLastError());
-    if (!SetConsoleMode(dev->fd_in, ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_EXTENDED_FLAGS)) /* ENABLE_EXTENDED_FLAGS disables quickedit */
-        stdio_log(dev->log, "Input SetConsoleMode failed (%08X)\n", GetLastError());
+    /* Enable raw and ANSI input. */
+    if (dev->fd_in) {
+        if (!GetConsoleMode(dev->fd_in, &dev->saved_in_mode))
+            stdio_log(dev->log, "Input GetConsoleMode failed (%08X)\n", GetLastError());
+        if (!SetConsoleMode(dev->fd_in, ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_EXTENDED_FLAGS)) /* ENABLE_EXTENDED_FLAGS disables quickedit */
+            stdio_log(dev->log, "Input SetConsoleMode failed (%08X)\n", GetLastError());
+    }
 
     /* Enable ANSI output. */
-    if (!GetConsoleMode(dev->fd_out, &dev->saved_out_mode))
-        stdio_log(dev->log, "Output GetConsoleMode failed (%08X)\n", GetLastError());
-    if (!SetConsoleMode(dev->fd_out, dev->saved_out_mode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
-        stdio_log(dev->log, "Output SetConsoleMode failed (%08X)\n", GetLastError());
+    if (dev->fd_out) {
+        if (!GetConsoleMode(dev->fd_out, &dev->saved_out_mode))
+            stdio_log(dev->log, "Output GetConsoleMode failed (%08X)\n", GetLastError());
+        if (!SetConsoleMode(dev->fd_out, ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+            stdio_log(dev->log, "Output SetConsoleMode failed (%08X)\n", GetLastError());
+    }
 #else
     dev->fd_in = 2;
     dev->fd_out = 0;
+
+    /* Enable non-blocking input. */
+    dev->saved_fflag = fcntl(dev->fd_out, F_GETFL);
+    if (dev->saved_fflag >= 0) {
+        dev->saved |= SAVED_FFLAG;
+        fcntl(dev->fd_out, F_SETFL, dev->saved_fflag | O_NONBLOCK);
+    }
+
+    /* Enable raw input. */
+    struct termios ios;
+    if (tcgetattr(STDIN_FILENO, &ios)) {
+        stdio_log(dev->log, "tcgetattr failed (%d)\n", errno);
+    } else {
+        /* Save existing flags for restoration purposes. */
+        dev->saved |= SAVED_TCFLAG;
+        dev->saved_lflag = ios.c_lflag;
+        dev->saved_iflag = ios.c_iflag;
+
+        /* Set new flags. */
+        ios.c_lflag &= ~(ECHO | ICANON | ISIG);
+        ios.c_iflag &= ~IXON;
+        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ios))
+            stdio_log(dev->log, "tcsetattr failed (%d)\n", errno);
+    }
 #endif
 
     /* Disconnect logging from stdout. */
