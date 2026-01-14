@@ -848,7 +848,7 @@ static const device_config_t pcjr_config[] = {
 };
 
 const device_t pcjr_device = {
-    .name          = "IBM PCjr",
+    .name          = "IBM PCjr (Video)",
     .internal_name = "pcjr",
     .flags         = 0,
     .local         = 0,
