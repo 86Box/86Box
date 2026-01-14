@@ -253,8 +253,10 @@ hostser_connect(hostser_t *dev)
 #    elif defined(USE_LINUX_TERMIOS)
     dev->prev_config_valid = !ioctl(dev->fd, TCGETS, &dev->prev_config);
 #    else
-    dev->prev_config_valid = tcgetattr(dev->fd, &dev->prev_config) != -1;
+    dev->prev_config_valid = !tcgetattr(dev->fd, &dev->prev_config);
 #    endif
+    if (!dev->prev_config_valid)
+        hostser_log(dev->log, "tcgetattr failed (%d)\n", errno);
 #endif
 
     hostser_log(dev->log, "Connected\n");
@@ -520,13 +522,6 @@ hostser_control(uint32_t flags, void *priv)
     if (dev->fd == -1)
         return;
 
-    if (flags & CHAR_COM_BREAK)
-#ifdef USE_LINUX_TERMIOS
-        ioctl(dev->fd, TCSBRK, 1);
-#else
-        tcsendbreak(dev->fd, 0);
-#endif
-
     int set = 0;
     int clear = 0;
 
@@ -541,6 +536,7 @@ hostser_control(uint32_t flags, void *priv)
 
     ioctl(dev->fd, TIOCMBIS, &set);
     ioctl(dev->fd, TIOCMBIC, &clear);
+    ioctl(dev->fd, (flags & CHAR_COM_BREAK) ? TIOCSBRK : TIOCCBRK);
 #endif
 }
 
@@ -577,7 +573,7 @@ hostser_status(void *priv)
                 ret |= CHAR_COM_CTS;
             if (status & TIOCM_DSR)
                 ret |= CHAR_COM_DSR;
-            if (status & TIOCM_RI)
+            if (status & TIOCM_RNG)
                 ret |= CHAR_COM_RI;
             if (status & TIOCM_CAR)
                 ret |= CHAR_COM_DCD;
