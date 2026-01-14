@@ -531,11 +531,11 @@ msgstr "Styrenhet för diskett:"
 msgid "CD-ROM controller:"
 msgstr "Styrenhet för CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tertiär IDE-kontroller"
+msgid "Tertiary IDE Controller"
+msgstr "Tertiär IDE-kontroller"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Kvartär IDE-kontroller"
+msgid "Quaternary IDE Controller"
+msgstr "Kvartär IDE-kontroller"
 
 msgid "Hard disk controllers"
 msgstr "Hårddiskkontroller"
@@ -1842,8 +1842,8 @@ msgstr "3M MicroTouch (serie)"
 msgid "Default Baud rate"
 msgstr "Standard Baudhastighet"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standard Hayes-kompatibelt modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standard Hayes-kompatibelt modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 emulering"

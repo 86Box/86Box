@@ -531,11 +531,11 @@ msgstr "Floppy disk controller:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM controller:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tertiaire IDE-controller"
+msgid "Tertiary IDE Controller"
+msgstr "Tertiaire IDE-controller"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Quaternaire IDE-controller"
+msgid "Quaternary IDE Controller"
+msgstr "Quaternaire IDE-controller"
 
 msgid "Hard disk controllers"
 msgstr "Harde schijfcontrollers"
@@ -1842,8 +1842,8 @@ msgstr "3M MicroTouch (serieel)"
 msgid "Default Baud rate"
 msgstr "Standaard baudrate"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standaard Hayes-compatibele modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standaard Hayes-compatibele modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulatie"

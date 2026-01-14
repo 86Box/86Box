@@ -539,11 +539,11 @@ msgstr "Disketni krmilnik:"
 msgid "CD-ROM controller:"
 msgstr "Krmilnik CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Terciarni krmilnik IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Terciarni krmilnik IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Kvartarni krmilnik IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Kvartarni krmilnik IDE"
 
 msgid "Hard disk controllers"
 msgstr "Krmilniki trdih diskov"
@@ -1850,8 +1850,8 @@ msgstr "3M MicroTouch (serijska)"
 msgid "Default Baud rate"
 msgstr "Privzeta baudna hitrost"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standardni modem v skladen s Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standardni modem v skladen s Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulacija Roland MT-32"

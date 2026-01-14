@@ -537,11 +537,11 @@ msgstr "Disketten-Controller:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM-Controller:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tertiärer IDE-Controller"
+msgid "Tertiary IDE Controller"
+msgstr "Tertiärer IDE-Controller"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Quartärer IDE-Controller"
+msgid "Quaternary IDE Controller"
+msgstr "Quartärer IDE-Controller"
 
 msgid "Hard disk controllers"
 msgstr "Festplattencontroller"
@@ -1848,8 +1848,8 @@ msgstr "3M MicroTouch (Seriell)"
 msgid "Default Baud rate"
 msgstr "Standard-Baudrate"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standard Hayes-kompatibles Modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standard Hayes-kompatibles Modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-Emulation"

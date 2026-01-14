@@ -531,11 +531,11 @@ msgstr "플로피 디스크 컨트롤러:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 컨트롤러:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 제3의 IDE 컨트롤러"
+msgid "Tertiary IDE Controller"
+msgstr "제3의 IDE 컨트롤러"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 제4의 IDE 컨트롤러"
+msgid "Quaternary IDE Controller"
+msgstr "제4의 IDE 컨트롤러"
 
 msgid "Hard disk controllers"
 msgstr "하드 디스크 컨트롤러"
@@ -1842,8 +1842,8 @@ msgstr "3M 마이크로터치(직렬)"
 msgid "Default Baud rate"
 msgstr "기본 보드 속도"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 표준 헤이즈 호환 모뎀"
+msgid "Standard Hayes-compliant Modem"
+msgstr "표준 헤이즈 호환 모뎀"
 
 msgid "Roland MT-32 Emulation"
 msgstr "롤랜드 MT-32 에뮬레이션"

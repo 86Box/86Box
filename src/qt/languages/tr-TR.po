@@ -537,11 +537,11 @@ msgstr "Disket denetleyicisi:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM denetleyicisi:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Üçüncül IDE denetleyicisi"
+msgid "Tertiary IDE Controller"
+msgstr "Üçüncül IDE denetleyicisi"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Dördüncül IDE denetleyicisi"
+msgid "Quaternary IDE Controller"
+msgstr "Dördüncül IDE denetleyicisi"
 
 msgid "Hard disk controllers"
 msgstr "Sabit disk denetleyicileri"
@@ -1848,8 +1848,8 @@ msgstr "3M MicroTouch (seri)"
 msgid "Default Baud rate"
 msgstr "Varsayılan Baud hızı"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standart Hayes Uyumlu Modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standart Hayes Uyumlu Modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 Emülasyonu"

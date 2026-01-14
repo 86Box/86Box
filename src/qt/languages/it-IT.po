@@ -537,11 +537,11 @@ msgstr "Controller del floppy disk:"
 msgid "CD-ROM controller:"
 msgstr "Controller CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Controller IDE terziario"
+msgid "Tertiary IDE Controller"
+msgstr "Controller IDE terziario"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Controller IDE quaternario"
+msgid "Quaternary IDE Controller"
+msgstr "Controller IDE quaternario"
 
 msgid "Hard disk controllers"
 msgstr "Controller del disco rigido"
@@ -1848,8 +1848,8 @@ msgstr "3M MicroTouch (seriale)"
 msgid "Default Baud rate"
 msgstr "Velocità di trasmissione predefinita"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Modem standard conforme a Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Modem standard conforme a Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulazione Roland MT-32"

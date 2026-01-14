@@ -538,11 +538,11 @@ msgstr "FDDコントローラー:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 第三IDEコントローラー"
+msgid "Tertiary IDE Controller"
+msgstr "第三IDEコントローラー"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 第四IDEコントローラー"
+msgid "Quaternary IDE Controller"
+msgstr "第四IDEコントローラー"
 
 msgid "Hard disk controllers"
 msgstr "ハードディスクコントローラー"
@@ -1849,8 +1849,8 @@ msgstr "3Mマイクロタッチ（シリアル）"
 msgid "Default Baud rate"
 msgstr "デフォルトのボーレート"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 標準ヘイズ準拠モデム"
+msgid "Standard Hayes-compliant Modem"
+msgstr "標準ヘイズ準拠モデム"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32エミュレーション"

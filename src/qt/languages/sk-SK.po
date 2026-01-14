@@ -537,11 +537,11 @@ msgstr "Disketový radič:"
 msgid "CD-ROM controller:"
 msgstr "Radič CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tretí radič IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Tretí radič IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Štvrtý radič IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Štvrtý radič IDE"
 
 msgid "Hard disk controllers"
 msgstr "Radiče pevných diskov"
@@ -1848,8 +1848,8 @@ msgstr "3M MicroTouch (sériová)"
 msgid "Default Baud rate"
 msgstr "Východná prenosová rýchlosť"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Štandardný modem kompatibilný s Hayesom"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Štandardný modem kompatibilný s Hayesom"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulácia Roland MT-32"

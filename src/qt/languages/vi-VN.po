@@ -531,11 +531,11 @@ msgstr "Bộ điều khiển ổ mềm:"
 msgid "CD-ROM controller:"
 msgstr "Bộ điều khiển CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Bộ điều khiển IDE thứ ba"
+msgid "Tertiary IDE Controller"
+msgstr "Bộ điều khiển IDE thứ ba"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Bộ điều khiển IDE thứ tư"
+msgid "Quaternary IDE Controller"
+msgstr "Bộ điều khiển IDE thứ tư"
 
 msgid "Hard disk controllers"
 msgstr "Bộ điều khiển ổ cứng"
@@ -1842,8 +1842,8 @@ msgstr "3M MicroTouch (Serial)"
 msgid "Default Baud rate"
 msgstr "Tốc độ baud mặc định"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Modem tuân thủ tiêu chuẩn Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Modem tuân thủ tiêu chuẩn Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Mô phỏng Roland MT-32"

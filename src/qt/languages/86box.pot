@@ -531,10 +531,10 @@ msgstr ""
 msgid "CD-ROM controller:"
 msgstr ""
 
-msgid "[ISA16] Tertiary IDE Controller"
+msgid "Tertiary IDE Controller"
 msgstr ""
 
-msgid "[ISA16] Quaternary IDE Controller"
+msgid "Quaternary IDE Controller"
 msgstr ""
 
 msgid "Hard disk controllers"
@@ -1842,7 +1842,7 @@ msgstr ""
 msgid "Default Baud rate"
 msgstr ""
 
-msgid "[COM] Standard Hayes-compliant Modem"
+msgid "Standard Hayes-compliant Modem"
 msgstr ""
 
 msgid "Roland MT-32 Emulation"

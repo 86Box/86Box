@@ -539,11 +539,11 @@ msgstr "Контролер гнучких дисків:"
 msgid "CD-ROM controller:"
 msgstr "Контролер CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Третинний контролер IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Третинний контролер IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Четвертинний контролер IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Четвертинний контролер IDE"
 
 msgid "Hard disk controllers"
 msgstr "Контролери жорстких дисків"
@@ -1850,8 +1850,8 @@ msgstr "3M MicroTouch (послідовна)"
 msgid "Default Baud rate"
 msgstr "Швидкість передачі даних за замовчуванням"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Стандартний модем, сумісний зі стандартом Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Стандартний модем, сумісний зі стандартом Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Емуляція Roland MT-32"

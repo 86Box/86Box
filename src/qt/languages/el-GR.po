@@ -537,11 +537,11 @@ msgstr "Ελεγκτής δισκέτας:"
 msgid "CD-ROM controller:"
 msgstr "Ελεγκτής CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Τριτογενής Ελεγκτής IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Τριτογενής Ελεγκτής IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Τεταρτογενής Ελεγκτής IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Τεταρτογενής Ελεγκτής IDE"
 
 msgid "Hard disk controllers"
 msgstr "Ελεγκτές σκληρού δίσκου"
@@ -1884,8 +1884,8 @@ msgstr "3M MicroTouch (Σειριακό)"
 msgid "Default Baud rate"
 msgstr "Προεπιλεγμένος ρυθμός Baud"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Τυπικό μόντεμ συμβατό με Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Τυπικό μόντεμ συμβατό με Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Εξομοίωση Roland MT-32"

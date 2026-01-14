@@ -537,11 +537,11 @@ msgstr "Levykeohjain:"
 msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Kolmas IDE-ohjain"
+msgid "Tertiary IDE Controller"
+msgstr "Kolmas IDE-ohjain"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Neljäs IDE-ohjain"
+msgid "Quaternary IDE Controller"
+msgstr "Neljäs IDE-ohjain"
 
 msgid "Hard disk controllers"
 msgstr "Kiintolevyohjaimet"
@@ -1848,8 +1848,8 @@ msgstr "3M MicroTouch (sarja)"
 msgid "Default Baud rate"
 msgstr "Oletussiirtonopeus"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Tavallinen Hayes-yhteensopiva modeemi"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Tavallinen Hayes-yhteensopiva modeemi"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulointi"
