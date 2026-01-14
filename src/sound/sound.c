@@ -123,12 +123,10 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_ess0968_pnp_device       },
     { &ssi2001_device               },
     { &mmb_device                   },
+#ifdef USE_LIBSERIALPORT /*The following devices required LIBSERIALPORT*/
+    { &opl2board_device             },
+#endif
     { &pasplus_device               },
-    { &voicemasterkey_device        },
-    { &soundmasterplus_device       },
-    { &soundman_device              },
-    { &isadacr0_device              },
-    { &isadacr1_device              },
     { &sb_1_device                  },
     { &sb_15_device                 },
     { &sb_2_device                  },
@@ -137,11 +135,13 @@ static const SOUND_CARD sound_cards[] = {
     { &entertainer_device           },
     { &pssj_isa_device              },
     { &tndy_device                  },
-#ifdef USE_LIBSERIALPORT /*The following devices required LIBSERIALPORT*/
-    { &opl2board_device             },
-#endif
     /* ISA/Sidecar */
     { &adlib_device                 },
+    { &soundmasterplus_device       },
+    { &voicemasterkey_device        },
+    { &isadacr0_device              },
+    { &isadacr1_device              },
+    { &soundman_device              },
     /* ISA16 */
     { &acermagic_s20_device         },
     { &ad1816_device                },
