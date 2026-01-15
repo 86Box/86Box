@@ -210,14 +210,26 @@ msgstr "&Actualizar iconos en barra de estado"
 msgid "Take s&creenshot"
 msgstr "Tomar cap&tura"
 
+msgid "Take screenshot"
+msgstr "Tomar captura"
+
 msgid "Take &raw screenshot"
 msgstr "Tomar captura &plana"
+
+msgid "Take raw screenshot"
+msgstr "Tomar captura plana"
 
 msgid "C&opy screenshot"
 msgstr "C&opiar captura"
 
+msgid "Copy screenshot"
+msgstr "Copiar captura"
+
 msgid "Copy r&aw screenshot"
 msgstr "Copiar captura p&lana"
+
+msgid "Copy raw screenshot"
+msgstr "Copiar captura plana"
 
 msgid "S&ound"
 msgstr "S&onido"
@@ -2805,9 +2817,6 @@ msgstr "Alternar pantalla completa"
 msgid "Toggle UI in fullscreen"
 msgstr "Alternar interfaz de usuario en modo de pantalla completa"
 
-msgid "Screenshot"
-msgstr "Captura de pantalla"
-
 msgid "Release mouse pointer"
 msgstr "Soltar el puntero del ratón"
 
@@ -3010,4 +3019,7 @@ msgid "&Allow recompilation"
 msgstr "&Permitir recompilación"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
 msgstr ""

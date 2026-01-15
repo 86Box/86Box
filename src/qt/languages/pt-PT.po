@@ -211,14 +211,26 @@ msgstr "&Atualizar ícones da barra de estado"
 msgid "Take s&creenshot"
 msgstr "Gravar imagem de &ecrã"
 
+msgid "Take screenshot"
+msgstr "Gravar imagem de ecrã"
+
 msgid "Take &raw screenshot"
 msgstr "Gravar imagem &bruta de ecrã"
 
+msgid "Take raw screenshot"
+msgstr "Gravar imagem bruta de ecrã"
+
 msgid "C&opy screenshot"
+msgstr "&Copiar imagem de ecrã"
+
+msgid "Copy screenshot"
 msgstr "Copiar imagem de ecrã"
 
 msgid "Copy r&aw screenshot"
 msgstr "Copiar imagem b&ruta de ecrã"
+
+msgid "Copy raw screenshot"
+msgstr "Copiar imagem bruta de ecrã"
 
 msgid "S&ound"
 msgstr "&Som"
@@ -2806,9 +2818,6 @@ msgstr "Alternar o modo em ecrã cheio"
 msgid "Toggle UI in fullscreen"
 msgstr "Alternar interface do utilizador em ecrã inteiro"
 
-msgid "Screenshot"
-msgstr "Captura de ecrã"
-
 msgid "Release mouse pointer"
 msgstr "Soltar o ponteiro do rato"
 
@@ -3011,4 +3020,7 @@ msgid "&Allow recompilation"
 msgstr "&Permitir recompilação"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
 msgstr ""

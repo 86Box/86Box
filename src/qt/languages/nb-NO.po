@@ -204,14 +204,26 @@ msgstr "&Oppdater statuslinjeikoner"
 msgid "Take s&creenshot"
 msgstr "Ta s&kjermbilde"
 
+msgid "Take screenshot"
+msgstr "Ta skjermbilde"
+
 msgid "Take &raw screenshot"
 msgstr "Ta &rå skjermbilde"
+
+msgid "Take raw screenshot"
+msgstr "Ta rå skjermbilde"
 
 msgid "C&opy screenshot"
 msgstr "K&opiera skjermbilde"
 
+msgid "Copy screenshot"
+msgstr "Kopiera skjermbilde"
+
 msgid "Copy r&aw screenshot"
 msgstr "Kopiera r&å skjermbilde"
+
+msgid "Copy raw screenshot"
+msgstr "Kopiera rå skjermbilde"
 
 msgid "S&ound"
 msgstr "L&yd"
@@ -2799,9 +2811,6 @@ msgstr "Veksle fullskjerm"
 msgid "Toggle UI in fullscreen"
 msgstr ""
 
-msgid "Screenshot"
-msgstr "Skjermbilde"
-
 msgid "Release mouse pointer"
 msgstr "Frigi musepeker"
 
@@ -3004,4 +3013,7 @@ msgid "&Allow recompilation"
 msgstr "&Tillat rekompilering"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
 msgstr ""

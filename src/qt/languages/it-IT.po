@@ -210,14 +210,26 @@ msgstr "&Aggiorna icone della barra di stato"
 msgid "Take s&creenshot"
 msgstr "&Cattura schermata"
 
+msgid "Take screenshot"
+msgstr "Cattura schermata"
+
 msgid "Take &raw screenshot"
 msgstr "Cattura &grezza della schermata"
+
+msgid "Take raw screenshot"
+msgstr "Cattura grezza della schermata"
 
 msgid "C&opy screenshot"
 msgstr "C&opia cattura della schermata"
 
+msgid "Copy screenshot"
+msgstr "Copia cattura della schermata"
+
 msgid "Copy r&aw screenshot"
 msgstr "Copia cattura g&rezza della schermata"
+
+msgid "Copy raw screenshot"
+msgstr "Copia cattura grezza della schermata"
 
 msgid "S&ound"
 msgstr "A&udio"
@@ -2805,9 +2817,6 @@ msgstr "Attiva/disattiva schermo intero"
 msgid "Toggle UI in fullscreen"
 msgstr "Attivare/disattivare interfaccia utente in modalità a schermo intero"
 
-msgid "Screenshot"
-msgstr "Istantanea dello schermo"
-
 msgid "Release mouse pointer"
 msgstr "Rilascia il puntatore del mouse"
 
@@ -3010,4 +3019,7 @@ msgid "&Allow recompilation"
 msgstr "&Permetti ricompilazione"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
 msgstr ""

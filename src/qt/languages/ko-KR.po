@@ -204,14 +204,26 @@ msgstr "상태 바 아이콘 갱신하기(&U)"
 msgid "Take s&creenshot"
 msgstr "스크린샷 찍기(&C)"
 
+msgid "Take screenshot"
+msgstr "스크린샷 찍기"
+
 msgid "Take &raw screenshot"
 msgstr "원본 스크린샷 찍기(&R)"
+
+msgid "Take raw screenshot"
+msgstr "원본 스크린샷 찍기"
 
 msgid "C&opy screenshot"
 msgstr "스크린샷 복사하세요(&O)"
 
+msgid "Copy screenshot"
+msgstr "스크린샷 복사하세요"
+
 msgid "Copy r&aw screenshot"
 msgstr "원본 스크린샷 복사하세요(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "원본 스크린샷 복사하세요"
 
 msgid "S&ound"
 msgstr "사운드(&O)"
@@ -2799,9 +2811,6 @@ msgstr "전체 화면 모드 전환"
 msgid "Toggle UI in fullscreen"
 msgstr ""
 
-msgid "Screenshot"
-msgstr "스크린샷"
-
 msgid "Release mouse pointer"
 msgstr "마우스 포인터를 해제합니다"
 
@@ -3004,4 +3013,7 @@ msgid "&Allow recompilation"
 msgstr "재컴파일 허용(&A)"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
 msgstr ""

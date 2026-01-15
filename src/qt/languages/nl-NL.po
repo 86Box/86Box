@@ -204,14 +204,26 @@ msgstr "&Statusbalkpictogrammen bijwerken"
 msgid "Take s&creenshot"
 msgstr "Maak een s&chermafbeelding"
 
+msgid "Take screenshot"
+msgstr "Maak een schermafbeelding"
+
 msgid "Take &raw screenshot"
 msgstr "Maak een &ruw schermafbeelding"
+
+msgid "Take raw screenshot"
+msgstr "Maak een ruw schermafbeelding"
 
 msgid "C&opy screenshot"
 msgstr "K&opieer een schermafbeelding"
 
+msgid "Copy screenshot"
+msgstr "Kopieer een schermafbeelding"
+
 msgid "Copy r&aw screenshot"
 msgstr "Kopieer een r&uw schermafbeelding"
+
+msgid "Copy raw screenshot"
+msgstr "Kopieer een ruw schermafbeelding"
 
 msgid "S&ound"
 msgstr "&Geluid"
@@ -2799,9 +2811,6 @@ msgstr "Volledig scherm omschakelen"
 msgid "Toggle UI in fullscreen"
 msgstr ""
 
-msgid "Screenshot"
-msgstr "Schermafbeelding"
-
 msgid "Release mouse pointer"
 msgstr "Geef muis vrij"
 
@@ -3004,4 +3013,7 @@ msgid "&Allow recompilation"
 msgstr "Recompilatie &toestaan"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
 msgstr ""

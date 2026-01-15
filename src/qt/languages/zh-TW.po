@@ -211,14 +211,26 @@ msgstr "更新狀態列圖示(&U)"
 msgid "Take s&creenshot"
 msgstr "擷取螢幕畫面(&C)"
 
+msgid "Take screenshot"
+msgstr "擷取螢幕畫面"
+
 msgid "Take &raw screenshot"
 msgstr "擷取原始螢幕畫面(&R)"
+
+msgid "Take raw screenshot"
+msgstr "擷取原始螢幕畫面"
 
 msgid "C&opy screenshot"
 msgstr "擷取螢幕畫面至剪貼簿(&O)"
 
+msgid "Copy screenshot"
+msgstr "擷取螢幕畫面至剪貼簿"
+
 msgid "Copy r&aw screenshot"
 msgstr "擷取原始螢幕畫面至剪貼薄(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "擷取原始螢幕畫面至剪貼薄"
 
 msgid "S&ound"
 msgstr "聲音(&O)"
@@ -2806,9 +2818,6 @@ msgstr "切換全螢幕"
 msgid "Toggle UI in fullscreen"
 msgstr "全螢幕模式下切換使用者介面顯示"
 
-msgid "Screenshot"
-msgstr "螢幕畫面擷取"
-
 msgid "Release mouse pointer"
 msgstr "放開滑鼠游標"
 
@@ -3012,3 +3021,6 @@ msgstr "允許重編譯(&A)"
 
 msgid "&Fast forward"
 msgstr "快轉(&F)"
+
+msgid "Fast forward"
+msgstr "快轉"
