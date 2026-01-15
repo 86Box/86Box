@@ -36,6 +36,7 @@
 #include <86box/char.h>
 #include <86box/log.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 
 #define ENABLE_STDIO_LOG 1
 #ifdef ENABLE_STDIO_LOG
@@ -64,17 +65,21 @@ typedef struct {
 #ifdef _WIN32
     HANDLE fd_in;
     HANDLE fd_out;
-    uint16_t buf_in;
+    int prev_in_mode_valid : 1;
+    int prev_out_mode_valid : 1;
     DWORD prev_in_mode;
     DWORD prev_out_mode;
+    ATOMIC_INT buf_in_valid;
+    uint8_t buf_in;
+    thread_t *thread_in;
+    event_t *event_in;
 #else
     int fd_in;
     int fd_out;
+    int prev_config_valid : 1;
+    int prev_flags_valid : 1;
     struct termios prev_config;
     int prev_flags;
-#    define PREV_CONFIG_VALID 1
-#    define PREV_FLAGS_VALID  2
-    uint8_t prev_config_valid;
 #endif
 } stdio_t;
 
@@ -86,11 +91,13 @@ stdio_stdin_thread(void *priv)
 
     while (1) {
         DWORD read;
-        if (!ReadFile(dev->fd_in, &dev->buf_in, 1, &read, NULL))
+        if (!dev->fd_in || !ReadFile(dev->fd_in, &dev->buf_in, 1, &read, NULL))
             break;
         if (read <= 0)
             continue;
-        //thread_wait_event();
+        dev->buf_in_valid = 1;
+        thread_wait_event(dev->event_in, -1);
+        thread_reset_event(dev->event_in);
     }
 }
 #endif
@@ -101,6 +108,17 @@ stdio_read(uint8_t *buf, ssize_t len, void *priv)
     stdio_t *dev = (stdio_t *) priv;
 
 #ifdef _WIN32
+    if (dev->thread_in) {
+        if (dev->buf_in_valid && (len > 0)) {
+            *buf = dev->buf_in;
+            dev->buf_in_valid = 0;
+            thread_set_event(dev->event_in);
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
     DWORD ret = 0;
     if (dev->fd_in) {
         while (len-- > 0) {
@@ -203,17 +221,27 @@ stdio_close(void *priv)
 
     /* Restore existing terminal configuration. */
 #ifdef _WIN32
-    if (!SetConsoleMode(dev->fd_in, dev->prev_in_mode))
+    if (dev->thread_in) {
+        /* Terminate input thread if it's being used. */
+        stdio_log(dev->log, "Waiting for stdin thread to terminate...");
+        HANDLE fd_in = dev->fd_in;
+        dev->fd_in = NULL;
+        CancelIoEx(fd_in, NULL);
+        thread_set_event(dev->event_in);
+        thread_wait(dev->thread_in);
+        stdio_log(dev->log, " done.\n");
+    }
+    if (dev->event_in)
+        thread_destroy_event(dev->event_in);
+    if (dev->prev_in_mode_valid && !SetConsoleMode(dev->fd_in, dev->prev_in_mode))
         stdio_log(dev->log, "Input restore SetConsoleMode failed (%08X)\n", GetLastError());
-    if (!SetConsoleMode(dev->fd_out, dev->prev_out_mode))
+    if (dev->prev_out_mode_valid && !SetConsoleMode(dev->fd_out, dev->prev_out_mode))
         stdio_log(dev->log, "Output restore SetConsoleMode failed (%08X)\n", GetLastError());
 #else
-    if (dev->prev_config_valid & PREV_CONFIG_VALID) {
-        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &dev->prev_config))
-            stdio_log(dev->log, "Restore tcsetattr failed (%d)\n", errno);
-    }
-    if (dev->prev_config_valid & PREV_FLAGS_VALID)
-        fcntl(dev->fd_out, F_SETFL, dev->prev_flags);
+    if (dev->prev_config_valid && tcsetattr(STDIN_FILENO, TCSAFLUSH, &dev->prev_config))
+        stdio_log(dev->log, "Restore TCSAFLUSH failed (%d)\n", errno);
+    if (dev->prev_flags_valid && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
+        stdio_log(dev->log, "Restore F_SETFL failed (%d)\n", errno);
 #endif
 
     free(dev);
@@ -228,49 +256,59 @@ stdio_init(const device_t *info)
     dev->port = (char_port_t *) info->local;
     stdio_log(dev->log, "init()\n");
 
-    /* Set file descriptors. */
 #ifdef _WIN32
+    /* Spawn a console if required. (GUI executable) */
     dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
-    if (!dev->fd_in || !GetConsoleMode(dev->fd_in, &dev->prev_in_mode)) {
+    if (!dev->fd_in) {
+        stdio_log(dev->log, "No Windows console, spawning one\n");
         pc_debug_console();
         dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
     }
     dev->fd_out = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    /* Enable raw and ANSI input. */
+    /* Discover what kind of stdin we're dealing with. */
     if (dev->fd_in) {
-        if (!GetConsoleMode(dev->fd_in, &dev->prev_in_mode))
+        dev->prev_in_mode_valid = !!GetConsoleMode(dev->fd_in, &dev->prev_in_mode);
+        if (dev->prev_in_mode_valid) {
+            /* Proper console (CLI executable or spawned earlier), enable raw and ANSI output and use console events. */
+            if (!SetConsoleMode(dev->fd_in, ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_EXTENDED_FLAGS)) /* ENABLE_EXTENDED_FLAGS disables quickedit */
+                stdio_log(dev->log, "Input SetConsoleMode failed (%08X)\n", GetLastError());
+        } else {
+            /* Redirected (or MSYS2), use file I/O. */
             stdio_log(dev->log, "Input GetConsoleMode failed (%08X)\n", GetLastError());
-        if (!SetConsoleMode(dev->fd_in, ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_EXTENDED_FLAGS)) /* ENABLE_EXTENDED_FLAGS disables quickedit */
-            stdio_log(dev->log, "Input SetConsoleMode failed (%08X)\n", GetLastError());
+            dev->event_in = thread_create_event();
+            dev->thread_in = thread_create(stdio_stdin_thread, dev);
+        }
     }
 
-    /* Enable ANSI output. */
+    /* Enable ANSI output if we're on a proper console. */
     if (dev->fd_out) {
-        if (!GetConsoleMode(dev->fd_out, &dev->prev_out_mode))
+        dev->prev_out_mode_valid = !!GetConsoleMode(dev->fd_out, &dev->prev_out_mode);
+        if (!dev->prev_out_mode_valid)
             stdio_log(dev->log, "Output GetConsoleMode failed (%08X)\n", GetLastError());
         if (!SetConsoleMode(dev->fd_out, ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
             stdio_log(dev->log, "Output SetConsoleMode failed (%08X)\n", GetLastError());
     }
 #else
+    /* Set file descriptors. */
     dev->fd_in = STDIN_FILENO;
     dev->fd_out = STDOUT_FILENO;
 
     /* Save current stdout flags for restoring on close. */
     dev->prev_flags = fcntl(dev->fd_out, F_GETFL);
     if (dev->prev_flags >= 0) {
-        dev->prev_config_valid |= PREV_FLAGS_VALID;
+        dev->prev_flags_valid = 1;
 
         /* Enable non-blocking input. */
         if (fcntl(dev->fd_out, F_SETFL, dev->prev_flags | O_NONBLOCK))
-            stdio_log(dev->log, "fcntl F_SETFL failed (%d)\n", errno);
+            stdio_log(dev->log, "F_SETFL failed (%d)\n", errno);
     } else {
-        stdio_log(dev->log, "fcntl F_GETFL failed (%d)\n", errno);
+        stdio_log(dev->log, "F_GETFL failed (%d)\n", errno);
     }
 
     /* Save current terminal configuration for restoring on close. */
     if (!tcgetattr(STDIN_FILENO, &dev->prev_config)) {
-        dev->prev_config_valid |= PREV_CONFIG_VALID;
+        dev->prev_config_valid = 1;
 
         /* Enable raw input. */
         struct termios ios;
@@ -278,7 +316,7 @@ stdio_init(const device_t *info)
         ios.c_lflag &= ~(ECHO | ICANON | ISIG);
         ios.c_iflag &= ~IXON;
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ios))
-            stdio_log(dev->log, "tcsetattr failed (%d)\n", errno);
+            stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
     } else {
         stdio_log(dev->log, "tcgetattr failed (%d)\n", errno);
     }
