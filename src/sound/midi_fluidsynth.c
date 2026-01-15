@@ -155,7 +155,9 @@ fluidsynth_init(UNUSED(const device_t *info))
 {
     fluidsynth_t  *data = &fsdev;
     midi_device_t *dev;
+#ifdef _WIN32
     char           path[4096] = { 0 };
+#endif
 
     memset(data, 0, sizeof(fluidsynth_t));
 

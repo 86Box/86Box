@@ -543,10 +543,10 @@ msgstr ""
 msgid "CD-ROM controller:"
 msgstr ""
 
-msgid "[ISA16] Tertiary IDE Controller"
+msgid "Tertiary IDE Controller"
 msgstr ""
 
-msgid "[ISA16] Quaternary IDE Controller"
+msgid "Quaternary IDE Controller"
 msgstr ""
 
 msgid "Hard disk controllers"
@@ -1149,7 +1149,7 @@ msgstr ""
 msgid "Use regular expressions in search box"
 msgstr ""
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr ""
 
 msgid "Add new system wizard"
@@ -1231,9 +1231,6 @@ msgid "Enter the new display name (blank to reset)"
 msgstr ""
 
 msgid "Change &display name…"
-msgstr ""
-
-msgid "Context Menu"
 msgstr ""
 
 msgid "&Open folder…"
@@ -1857,7 +1854,7 @@ msgstr ""
 msgid "Default Baud rate"
 msgstr ""
 
-msgid "[COM] Standard Hayes-compliant Modem"
+msgid "Standard Hayes-compliant Modem"
 msgstr ""
 
 msgid "Roland MT-32 Emulation"

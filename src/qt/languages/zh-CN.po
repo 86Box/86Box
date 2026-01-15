@@ -543,11 +543,11 @@ msgstr "软盘控制器:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 第三 IDE 控制器"
+msgid "Tertiary IDE Controller"
+msgstr "第三 IDE 控制器"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 第四 IDE 控制器"
+msgid "Quaternary IDE Controller"
+msgstr "第四 IDE 控制器"
 
 msgid "Hard disk controllers"
 msgstr "硬盘控制器"
@@ -1149,8 +1149,8 @@ msgstr "无法打开选定的配置文件进行读取：%1"
 msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"
@@ -1232,9 +1232,6 @@ msgstr "输入新的显示名称 (留空以重置)"
 
 msgid "Change &display name…"
 msgstr "更改显示名称(&D)…"
-
-msgid "Context Menu"
-msgstr "上下文菜单"
 
 msgid "&Open folder…"
 msgstr "打开文件夹(&O)…"
@@ -1857,8 +1854,8 @@ msgstr "3M MicroTouch (串口)"
 msgid "Default Baud rate"
 msgstr "默认波特率"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 标准 Hayes 兼容调制解调器"
+msgid "Standard Hayes-compliant Modem"
+msgstr "标准 Hayes 兼容调制解调器"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 仿真"

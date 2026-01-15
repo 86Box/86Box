@@ -551,11 +551,11 @@ msgstr "Kontroler diskete:"
 msgid "CD-ROM controller:"
 msgstr "Kontroler CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tercijarni IDE kontroler"
+msgid "Tertiary IDE Controller"
+msgstr "Tercijarni IDE kontroler"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Kvaternarni IDE kontroler"
+msgid "Quaternary IDE Controller"
+msgstr "Kvaternarni IDE kontroler"
 
 msgid "Hard disk controllers"
 msgstr "Kontroleri tvrdih diskova"
@@ -1157,8 +1157,8 @@ msgstr "Nije moguće otvoriti odabranu konfiguracijsku datoteku za čitanje: %1"
 msgid "Use regular expressions in search box"
 msgstr "U polju za pretraživanje koristite regularne izraze"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Broj trenutno aktivnih računala je %1. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Broj trenutno aktivnih računala je %n. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
 
 msgid "Add new system wizard"
 msgstr "Čarobnjak za dodavanje novog sistema"
@@ -1240,9 +1240,6 @@ msgstr "Unesite novo prikazno ime (prazno za ponovo postaviti)"
 
 msgid "Change &display name…"
 msgstr "Promijeni &prikazno ime…"
-
-msgid "Context Menu"
-msgstr "Kontekstni izbornik"
 
 msgid "&Open folder…"
 msgstr "&Otvori mapu…"
@@ -1865,8 +1862,8 @@ msgstr "3M MicroTouch (serijski)"
 msgid "Default Baud rate"
 msgstr "Zadana brzina prijenosa podataka"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standardni modem, usklađen s standardom Hayesom"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standardni modem, usklađen s standardom Hayesom"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulacija Rolanda MT-32"

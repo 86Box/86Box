@@ -549,11 +549,11 @@ msgstr "Ελεγκτής δισκέτας:"
 msgid "CD-ROM controller:"
 msgstr "Ελεγκτής CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Τριτογενής Ελεγκτής IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Τριτογενής Ελεγκτής IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Τεταρτογενής Ελεγκτής IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Τεταρτογενής Ελεγκτής IDE"
 
 msgid "Hard disk controllers"
 msgstr "Ελεγκτές σκληρού δίσκου"
@@ -1166,8 +1166,8 @@ msgstr "Αδυναμία ανοίγματος επιλεγμένου αρχεί�
 msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
 
 msgid "Add new system wizard"
 msgstr "Οδηγός προσθήκης νέο συστήματος"
@@ -1249,9 +1249,6 @@ msgstr "Εισάγετε το νέο όνομα εμφάνισης (κενό γ�
 
 msgid "Change &display name…"
 msgstr "Αλλαγή &ονόματος εμφάνισης…"
-
-msgid "Context Menu"
-msgstr "Μενού επιλογών"
 
 msgid "&Open folder…"
 msgstr "&Άνοιγμα φακέλου…"
@@ -1899,8 +1896,8 @@ msgstr "3M MicroTouch (Σειριακό)"
 msgid "Default Baud rate"
 msgstr "Προεπιλεγμένος ρυθμός Baud"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Τυπικό μόντεμ συμβατό με Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Τυπικό μόντεμ συμβατό με Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Εξομοίωση Roland MT-32"

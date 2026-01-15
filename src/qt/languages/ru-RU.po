@@ -550,11 +550,11 @@ msgstr "Контроллер гибких дисков:"
 msgid "CD-ROM controller:"
 msgstr "Контроллер CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Третичный контроллер IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Третичный контроллер IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Четвертичный контроллер IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Четвертичный контроллер IDE"
 
 msgid "Hard disk controllers"
 msgstr "Контроллеры жёстких дисков"
@@ -1168,8 +1168,8 @@ msgstr "Невозможно открыть выбранный файл конф
 msgid "Use regular expressions in search box"
 msgstr "Использовать регулярные выражения в поле поиска"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 машина(ы) в настоящее время активна(ы). Вы уверены, что всё равно хотите выйти из менеджера виртуальной машины?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n машина(ы) в настоящее время активна(ы). Вы уверены, что всё равно хотите выйти из менеджера виртуальной машины?"
 
 msgid "Add new system wizard"
 msgstr "Мастер добавления новой системы"
@@ -1251,9 +1251,6 @@ msgstr "Введите новое отображаемое имя (оставь�
 
 msgid "Change &display name…"
 msgstr "Изменить &отображаемое имя…"
-
-msgid "Context Menu"
-msgstr "Контекстное меню"
 
 msgid "&Open folder…"
 msgstr "&Открыть папку…"
@@ -1876,8 +1873,8 @@ msgstr "3M MicroTouch (последовательный)"
 msgid "Default Baud rate"
 msgstr "Скорость передачи данных по умолчанию"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Стандартный Hayes-совместимый модем"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Стандартный Hayes-совместимый модем"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Эмуляция Roland MT-32"

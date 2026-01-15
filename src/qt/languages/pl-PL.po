@@ -550,11 +550,11 @@ msgstr "Kontroler dyskietek:"
 msgid "CD-ROM controller:"
 msgstr "Kontroler CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Trzeciorzędny kontroler IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Trzeciorzędny kontroler IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Czwartorzędny kontroler IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Czwartorzędny kontroler IDE"
 
 msgid "Hard disk controllers"
 msgstr "Kontrolery dysków twardych"
@@ -1156,8 +1156,8 @@ msgstr "Nie udało się otworzyć wybranego pliku konfiguracyjnego do odczytu: %
 msgid "Use regular expressions in search box"
 msgstr "Użyj wyrażeń regularnych w polu wyszukiwania"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Liczba obecnie aktywnych maszyn: %1. Czy na pewno chcesz, mimo to, wyjść z menedżera maszyn wirtualnych?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Liczba obecnie aktywnych maszyn: %n. Czy na pewno chcesz, mimo to, wyjść z menedżera maszyn wirtualnych?"
 
 msgid "Add new system wizard"
 msgstr "Kreator dodawania nowego systemu"
@@ -1239,9 +1239,6 @@ msgstr "Podaj nową nazwę wyświetlaną (wyczyść, by zresetować)"
 
 msgid "Change &display name…"
 msgstr "Zmień wyświetlaną &nazwę…"
-
-msgid "Context Menu"
-msgstr "Menu kontekstowe"
 
 msgid "&Open folder…"
 msgstr "&Otwórz folder…"
@@ -1864,8 +1861,8 @@ msgstr "3M MicroTouch (szeregowy)"
 msgid "Default Baud rate"
 msgstr "Domyślna szybkość transmisji"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standardowy modem zgodny z Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standardowy modem zgodny z Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulacja Roland MT-32"

@@ -12,6 +12,9 @@ msgstr "RGB &Colour"
 msgid "&RGB Grayscale"
 msgstr "&RGB Greyscale"
 
+msgid "Generic RGBI color monitor"
+msgstr "Generic RGBI colour monitor"
+
 msgid "Time synchronization"
 msgstr "Time synchronisation"
 
@@ -21,14 +24,14 @@ msgstr "Unable to initialise Ghostscript"
 msgid "Unable to initialize GhostPCL"
 msgstr "Unable to initialise GhostPCL"
 
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialise network driver"
+
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behaviour will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Appl&y fullscreen stretch mode when maximised"
-
-msgid "Failed to initialize network driver"
-msgstr "Failed to initialise network driver"
 
 msgid "Render behavior"
 msgstr "Render behaviour"
@@ -41,6 +44,12 @@ msgstr "Error initialising OpenGL"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialogue will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
+
+msgid "Invert colors"
+msgstr "Invert colours"
+
+msgid "True color"
+msgstr "True colour"
 
 msgid "Color (generic)"
 msgstr "Colour (generic)"
@@ -75,5 +84,5 @@ msgstr "Colour"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Failed to initialise Vulkan renderer."
 
-msgid "True color"
-msgstr "True colour"
+msgid "Color scheme"
+msgstr "Colour scheme"
