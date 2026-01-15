@@ -202,10 +202,19 @@ VMManagerMainWindow::vmmStateChanged(const VMManagerSystem *sysconfig) const
 void
 VMManagerMainWindow::preferencesTriggered()
 {
-    const auto prefs = new VMManagerPreferences();
+    bool machinesRunning = (vmm->getActiveMachineCount() > 0);
+    auto old_vmm_path = QString(vmm_path_cfg);
+    const auto prefs = new VMManagerPreferences(this, machinesRunning);
     if (prefs->exec() == QDialog::Accepted) {
         emit preferencesUpdated();
         updateLanguage();
+
+        auto new_vmm_path = QString(vmm_path_cfg);
+        if (!machinesRunning && (new_vmm_path != old_vmm_path)) {
+            qDebug() << "Machine path changed: old path " << old_vmm_path << ", new path " << new_vmm_path;
+            strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path));
+            vmm->reload();
+        }
     }
 }
 

@@ -122,6 +122,13 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     }
     ui->ssNavTBHolder->setStyleSheet(toolButtonStyleSheet);
 
+    // Margins are a little different on macos
+#ifdef Q_OS_MACOS
+    ui->systemLabel->setMargin(15);
+#else
+    ui->systemLabel->setMargin(10);
+#endif
+
     pauseIcon = QIcon(":/menuicons/qt/icons/pause.ico");
     runIcon   = QIcon(":/menuicons/qt/icons/run.ico");
 
@@ -179,6 +186,61 @@ VMManagerDetails::~VMManagerDetails()
 }
 
 void
+VMManagerDetails::reset()
+{
+    systemSection->clear();
+    videoSection->clear();
+    storageSection->clear();
+    audioSection->clear();
+    networkSection->clear();
+    inputSection->clear();
+    portsSection->clear();
+    otherSection->clear();
+    systemSection->setSections();
+    videoSection->setSections();
+    storageSection->setSections();
+    audioSection->setSections();
+    networkSection->setSections();
+    inputSection->setSections();
+    portsSection->setSections();
+    otherSection->setSections();
+
+    ui->screenshotNext->setEnabled(false);
+    ui->screenshotPrevious->setEnabled(false);
+    ui->screenshotNextTB->setEnabled(false);
+    ui->screenshotPreviousTB->setEnabled(false);
+    ui->screenshot->setPixmap(QString());
+    ui->screenshot->setFixedSize(240, 160);
+    ui->screenshot->setFrameStyle(QFrame::Box | QFrame::Sunken);
+    ui->screenshot->setText(tr("No screenshot"));
+    ui->screenshot->setEnabled(false);
+    ui->screenshot->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+#ifdef Q_OS_WINDOWS
+    if (!util::isWindowsLightTheme()) {
+        ui->screenshot->setStyleSheet(SCREENSHOTBORDER_STYLESHEET_DARK);
+    } else {
+        ui->screenshot->setStyleSheet("");
+    }
+#endif
+
+    startPauseButton->setEnabled(false);
+    resetButton->setEnabled(false);
+    stopButton->setEnabled(false);
+    configureButton->setEnabled(false);
+    cadButton->setEnabled(false);
+
+    ui->systemLabel->setText(tr("No Machines Found!"));
+    ui->systemLabel->setStyleSheet("");
+    ui->statusLabel->setText("");
+    ui->scrollArea->setStyleSheet("");
+
+    ui->notesTextEdit->setPlainText("");
+    ui->notesTextEdit->setEnabled(false);
+
+    sysconfig = new VMManagerSystem();
+}
+
+void
 VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
 {
 
@@ -191,12 +253,6 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
         ui->scrollArea->setStyleSheet(SCROLLAREA_STYLESHEET_LIGHT);
         ui->systemLabel->setStyleSheet(SYSTEMLABEL_STYLESHEET_LIGHT);
     }
-    // Margins are a little different on macos
-#ifdef Q_OS_MACOS
-    ui->systemLabel->setMargin(15);
-#else
-    ui->systemLabel->setMargin(10);
-#endif
 
     // disconnect old signals before assigning the passed systemconfig object
     disconnect(startPauseButton, &QToolButton::clicked, sysconfig, &VMManagerSystem::startButtonPressed);

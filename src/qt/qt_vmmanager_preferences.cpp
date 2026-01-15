@@ -33,7 +33,7 @@ extern "C" {
 }
 
 VMManagerPreferences::
-    VMManagerPreferences(QWidget *parent)
+    VMManagerPreferences(QWidget *parent, bool machinesRunning)
     : ui(new Ui::VMManagerPreferences)
 {
     ui->setupUi(this);
@@ -48,6 +48,12 @@ VMManagerPreferences::
     } else if (!QString(vmm_path).isEmpty()) {
         // If specified on command line
         ui->systemDirectory->setText(QDir::toNativeSeparators(QDir(vmm_path).path()));
+    }
+
+    if (machinesRunning) {
+        ui->systemDirectory->setEnabled(false);
+        ui->dirSelectButton->setEnabled(false);
+        ui->dirSelectButton->setToolTip(tr("To change the system directory, stop all running machines."));
     }
 
     ui->comboBoxLanguage->setItemData(0, 0);

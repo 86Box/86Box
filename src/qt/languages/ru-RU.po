@@ -3033,3 +3033,6 @@ msgstr "П&еремотка вперёд"
 
 msgid "Fast forward"
 msgstr "Перемотка вперёд"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "Чтобы изменить системную папку, остановите все запущенные машины."
