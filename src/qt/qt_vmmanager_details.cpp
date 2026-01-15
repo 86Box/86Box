@@ -93,21 +93,12 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     // Set the icons for the screenshot navigation buttons
     ui->screenshotNext->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowRight));
     ui->screenshotPrevious->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowLeft));
-    ui->screenshotNextTB->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowRight));
-    ui->screenshotPreviousTB->setIcon(QApplication::style()->standardIcon(QStyle::SP_ArrowLeft));
     // Disabled by default
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
-    ui->screenshotNextTB->setEnabled(false);
-    ui->screenshotPreviousTB->setEnabled(false);
     // Connect their signals
-    connect(ui->screenshotNext, &QPushButton::clicked, this, &VMManagerDetails::nextScreenshot);
-    connect(ui->screenshotNextTB, &QToolButton::clicked, this, &VMManagerDetails::nextScreenshot);
-    connect(ui->screenshotPreviousTB, &QToolButton::clicked, this, &VMManagerDetails::previousScreenshot);
-    connect(ui->screenshotPrevious, &QPushButton::clicked, this, &VMManagerDetails::previousScreenshot);
-    // These push buttons can be taken out if the tool buttons stay
-    ui->screenshotNext->setVisible(false);
-    ui->screenshotPrevious->setVisible(false);
+    connect(ui->screenshotNext, &QToolButton::clicked, this, &VMManagerDetails::nextScreenshot);
+    connect(ui->screenshotPrevious, &QToolButton::clicked, this, &VMManagerDetails::previousScreenshot);
     QString toolButtonStyleSheet;
     // Simple method to try and determine if light mode is enabled
 #ifdef Q_OS_WINDOWS
@@ -207,8 +198,6 @@ VMManagerDetails::reset()
 
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
-    ui->screenshotNextTB->setEnabled(false);
-    ui->screenshotPreviousTB->setEnabled(false);
     ui->screenshot->setPixmap(QString());
     ui->screenshot->setFixedSize(240, 160);
     ui->screenshot->setFrameStyle(QFrame::Box | QFrame::Sunken);
@@ -384,8 +373,6 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig)
     // Disable screenshot navigation buttons by default
     ui->screenshotNext->setEnabled(false);
     ui->screenshotPrevious->setEnabled(false);
-    ui->screenshotNextTB->setEnabled(false);
-    ui->screenshotPreviousTB->setEnabled(false);
 
     // Different actions are taken depending on the existence and number of screenshots
     screenshots = passed_sysconfig->getScreenshots();
@@ -395,8 +382,6 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig)
         if (screenshots.size() > 1) {
             ui->screenshotNext->setEnabled(true);
             ui->screenshotPrevious->setEnabled(true);
-            ui->screenshotNextTB->setEnabled(true);
-            ui->screenshotPreviousTB->setEnabled(true);
         }
 #ifdef Q_OS_WINDOWS
         ui->screenshot->setStyleSheet("");
@@ -409,8 +394,6 @@ VMManagerDetails::updateScreenshots(VMManagerSystem *passed_sysconfig)
     } else {
         ui->screenshotNext->setEnabled(false);
         ui->screenshotPrevious->setEnabled(false);
-        ui->screenshotNextTB->setEnabled(false);
-        ui->screenshotPreviousTB->setEnabled(false);
         ui->screenshot->setPixmap(QString());
         ui->screenshot->setFixedSize(240, 160);
         ui->screenshot->setFrameStyle(QFrame::Box | QFrame::Sunken);

@@ -34,6 +34,7 @@ private:
     QString                   settingsFile;
 private slots:
     void chooseDirectoryLocation();
+    void on_pushButtonDefaultSystemDir_released();
     void on_pushButtonLanguage_released();
 
 protected:

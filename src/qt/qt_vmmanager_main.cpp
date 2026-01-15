@@ -288,6 +288,7 @@ illegal_chars:
                         // Get the index of the newly-created system and select it
                         const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
                         ui->listView->setCurrentIndex(mapped_index);
+                        modelDataChange();
                     } else {
                         QDir(dstPath).removeRecursively();
                         QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM."), QMessageBox::Ok);
@@ -764,6 +765,7 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                 const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
                 ui->listView->setCurrentIndex(mapped_index);
                 delete new_system;
+                modelDataChange();
             });
 }
 
