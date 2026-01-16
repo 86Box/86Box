@@ -1581,9 +1581,9 @@ piix_init(const device_t *info)
 
     if (dev->type > 3) {
         if (!strcmp(machine_get_internal_name(), "ms5156"))
-            dev->nvr   = device_add(&piix4_nvr_device);
-        else
             dev->nvr   = device_add(&piix4_ami_1995_nvr_device);
+        else
+            dev->nvr   = device_add(&piix4_nvr_device);
         dev->smbus = device_add(&piix4_smbus_device);
 
         dev->acpi = device_add(&acpi_intel_device);
