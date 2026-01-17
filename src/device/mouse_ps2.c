@@ -77,21 +77,23 @@ static void
 ps2_report_coordinates(atkbc_dev_t *dev, int main)
 {
     uint8_t buff[3] = { 0x08, 0x00, 0x00 };
-    int delta_x;
-    int delta_y;
-    int overflow_x;
-    int overflow_y;
+    int delta_x = 0;
+    int delta_y = 0;
+    int overflow_x = 0;
+    int overflow_y = 0;
     int b = mouse_get_buttons_ex();
-    int delta_z;
-    int delta_w;
+    int delta_z = 0;
+    int delta_w = 0;
 
     mouse_subtract_coords(&delta_x, &delta_y, &overflow_x, &overflow_y,
                           -256, 255, 1, 0);
 
-    if (dev->flags & FLAG_5BTN)
-        mouse_subtract_z(&delta_z, -32, 31, 1);
-    else
-        mouse_subtract_z(&delta_z, -8, 7, 1);
+    if (!mouse_w_changed()) {
+        if (dev->flags & FLAG_5BTN)
+            mouse_subtract_z(&delta_z, -32, 31, 1);
+        else
+            mouse_subtract_z(&delta_z, -8, 7, 1);
+    }
     mouse_subtract_w(&delta_w, -1, 1, 0);
 
     buff[0] |= (overflow_y << 7) | (overflow_x << 6) |

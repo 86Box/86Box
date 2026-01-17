@@ -406,6 +406,12 @@ mouse_mbut_changed(void)
     return !!(mouse_delta_b & 0x04);
 }
 
+int
+mouse_w_changed(void)
+{
+    return ((ATOMIC_LOAD(mouse_w) != 0) && (mouse_nbut >= 6));
+}
+
 static void
 mouse_timer_poll(UNUSED(void *priv))
 {
