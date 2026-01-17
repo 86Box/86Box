@@ -90,6 +90,7 @@ typedef struct hdd_preset_t {
     const char *name;
     const char *internal_name;
     const char *model;
+    const char *version;
     uint32_t    zones;
     uint32_t    avg_spt;
     uint32_t    heads;
@@ -99,7 +100,6 @@ typedef struct hdd_preset_t {
     uint32_t    max_multiple;
     double      full_stroke_ms;
     double      track_seek_ms;
-    const char *version_ex;
 } hdd_preset_t;
 
 typedef struct hdd_cache_seg_t {
@@ -188,7 +188,7 @@ typedef struct hard_disk_t {
 
     const char        *model;
 
-    const char        *version_ex;
+    const char        *version;
 
     hdd_zone_t         zones[HDD_MAX_ZONES];
 

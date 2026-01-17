@@ -702,7 +702,7 @@ const device_t oti037c_device = {
 };
 
 const device_t oti037_pbl300sx_device = {
-    .name          = "Oak OTI-037 (Packard Bell Legend 300SX)",
+    .name          = "Oak OTI-037 On-Board (Packard Bell PB300/PB320)",
     .internal_name = "oti037_pbl300sx",
     .flags         = DEVICE_ISA,
     .local         = 1,
@@ -730,7 +730,7 @@ const device_t oti067_device = {
 };
 
 const device_t oti067_ama932j_device = {
-    .name          = "Oak OTI-067 (AMA-932J)",
+    .name          = "Oak OTI-067 On-Board (Arche AMA-932J)",
     .internal_name = "oti067_ama932j",
     .flags         = DEVICE_ISA,
     .local         = 3,
@@ -744,7 +744,7 @@ const device_t oti067_ama932j_device = {
 };
 
 const device_t oti067_m300_device = {
-    .name          = "Oak OTI-067 (Olivetti M300-08/15)",
+    .name          = "Oak OTI-067 On-Board (Olivetti M300-08/15)",
     .internal_name = "oti067_m300",
     .flags         = DEVICE_ISA,
     .local         = 4,
@@ -772,7 +772,7 @@ const device_t oti077_device = {
 };
 
 const device_t oti077_acer100t_device = {
-    .name          = "Oak OTI-077 (Acer 100T)",
+    .name          = "Oak OTI-077 On-Board (Acer 100T)",
     .internal_name = "oti077_acer100t",
     .flags         = DEVICE_ISA,
     .local         = 6,
@@ -785,7 +785,7 @@ const device_t oti077_acer100t_device = {
     .config        = oti077_acer100t_config
 };
 const device_t oti077_pcs44c_device = {
-    .name          = "Oak OTI-077 (Olivetti PCS 44/C)",
+    .name          = "Oak OTI-077 On-Board (Olivetti PCS 44/C)",
     .internal_name = "oti077_pcs44c",
     .flags         = DEVICE_ISA,
     .local         = 7,

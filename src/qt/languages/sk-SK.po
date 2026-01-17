@@ -210,14 +210,26 @@ msgstr "&Aktualizovať ikony na stavovom riadku"
 msgid "Take s&creenshot"
 msgstr "Urobiť snímku &obrazovky"
 
+msgid "Take screenshot"
+msgstr "Urobiť snímku obrazovky"
+
 msgid "Take &raw screenshot"
 msgstr "Urobiť &surovú snímku obrazovky"
+
+msgid "Take raw screenshot"
+msgstr "Urobiť surovú snímku obrazovky"
 
 msgid "C&opy screenshot"
 msgstr "S&kopírovať snímku obrazovky"
 
+msgid "Copy screenshot"
+msgstr "Skopírovať snímku obrazovky"
+
 msgid "Copy r&aw screenshot"
 msgstr "Skopírovať s&urovú snímku obrazovky"
+
+msgid "Copy raw screenshot"
+msgstr "Skopírovať surovú snímku obrazovky"
 
 msgid "S&ound"
 msgstr "&Zvuk"
@@ -537,11 +549,11 @@ msgstr "Disketový radič:"
 msgid "CD-ROM controller:"
 msgstr "Radič CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tretí radič IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Tretí radič IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Štvrtý radič IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Štvrtý radič IDE"
 
 msgid "Hard disk controllers"
 msgstr "Radiče pevných diskov"
@@ -1143,8 +1155,8 @@ msgstr "Nie je možné otvoriť vybraný konfiguračný súbor na čítanie: %1"
 msgid "Use regular expressions in search box"
 msgstr "Použiť v poli vyhľadávania regulárne výrazy"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 počítač(ov) je stále aktívnych. Naozaj chcete ukončiť správcu virtuálnych počítačov?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n počítač(ov) je stále aktívnych. Naozaj chcete ukončiť správcu virtuálnych počítačov?"
 
 msgid "Add new system wizard"
 msgstr "Sprievodca pridávaním nového systému"
@@ -1226,9 +1238,6 @@ msgstr "Zadajte nové zobrazené meno (prázdne pole pre vymazanie)"
 
 msgid "Change &display name…"
 msgstr "Zmeniť &zobrazené meno…"
-
-msgid "Context Menu"
-msgstr "Kontextové menu"
 
 msgid "&Open folder…"
 msgstr "&Otvoriť priečinok…"
@@ -1851,8 +1860,8 @@ msgstr "3M MicroTouch (sériová)"
 msgid "Default Baud rate"
 msgstr "Východná prenosová rýchlosť"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Štandardný modem kompatibilný s Hayesom"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Štandardný modem kompatibilný s Hayesom"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulácia Roland MT-32"
@@ -2805,9 +2814,6 @@ msgstr "Prepnúť režim celej obrazovky"
 msgid "Toggle UI in fullscreen"
 msgstr "Prepnúť používateľské rozhranie v režime celej obrazovky"
 
-msgid "Screenshot"
-msgstr "Zhotoviť snímku obrazovky"
-
 msgid "Release mouse pointer"
 msgstr "Uvoľniť kurzor myši"
 
@@ -3010,4 +3016,10 @@ msgid "&Allow recompilation"
 msgstr "&Povoliť rekompiláciu"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

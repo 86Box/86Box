@@ -204,14 +204,26 @@ msgstr "상태 바 아이콘 갱신하기(&U)"
 msgid "Take s&creenshot"
 msgstr "스크린샷 찍기(&C)"
 
+msgid "Take screenshot"
+msgstr "스크린샷 찍기"
+
 msgid "Take &raw screenshot"
 msgstr "원본 스크린샷 찍기(&R)"
+
+msgid "Take raw screenshot"
+msgstr "원본 스크린샷 찍기"
 
 msgid "C&opy screenshot"
 msgstr "스크린샷 복사하세요(&O)"
 
+msgid "Copy screenshot"
+msgstr "스크린샷 복사하세요"
+
 msgid "Copy r&aw screenshot"
 msgstr "원본 스크린샷 복사하세요(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "원본 스크린샷 복사하세요"
 
 msgid "S&ound"
 msgstr "사운드(&O)"
@@ -531,11 +543,11 @@ msgstr "플로피 디스크 컨트롤러:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 컨트롤러:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 제3의 IDE 컨트롤러"
+msgid "Tertiary IDE Controller"
+msgstr "제3의 IDE 컨트롤러"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 제4의 IDE 컨트롤러"
+msgid "Quaternary IDE Controller"
+msgstr "제4의 IDE 컨트롤러"
 
 msgid "Hard disk controllers"
 msgstr "하드 디스크 컨트롤러"
@@ -1137,8 +1149,8 @@ msgstr "선택한 구성 파일을 읽기 위해 열 수 없습니다: %1"
 msgid "Use regular expressions in search box"
 msgstr "검색 상자에 정규 표현식 사용"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "현재 %1대의 머신이 활성화되어 있습니다. 가상 머신 관리자를 종료하시겠습니까?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "현재 %n대의 머신이 활성화되어 있습니다. 가상 머신 관리자를 종료하시겠습니까?"
 
 msgid "Add new system wizard"
 msgstr "새로운 시스템을 추가하는 마법사"
@@ -1220,9 +1232,6 @@ msgstr "새 표시 이름을 입력하세요 (비워두면 초기화됩니다)"
 
 msgid "Change &display name…"
 msgstr "표시 이름 변경(&D)…"
-
-msgid "Context Menu"
-msgstr "컨텍스트 메뉴"
 
 msgid "&Open folder…"
 msgstr "폴더 열기(&O)…"
@@ -1845,8 +1854,8 @@ msgstr "3M 마이크로터치(직렬)"
 msgid "Default Baud rate"
 msgstr "기본 보드 속도"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 표준 헤이즈 호환 모뎀"
+msgid "Standard Hayes-compliant Modem"
+msgstr "표준 헤이즈 호환 모뎀"
 
 msgid "Roland MT-32 Emulation"
 msgstr "롤랜드 MT-32 에뮬레이션"
@@ -2799,9 +2808,6 @@ msgstr "전체 화면 모드 전환"
 msgid "Toggle UI in fullscreen"
 msgstr ""
 
-msgid "Screenshot"
-msgstr "스크린샷"
-
 msgid "Release mouse pointer"
 msgstr "마우스 포인터를 해제합니다"
 
@@ -3004,4 +3010,10 @@ msgid "&Allow recompilation"
 msgstr "재컴파일 허용(&A)"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

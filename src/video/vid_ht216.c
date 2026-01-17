@@ -1917,7 +1917,7 @@ const device_t v7_vga_1024i_device = {
 };
 
 const device_t ht216_32_pb410a_device = {
-    .name          = "Headland HT216-32 (Packard Bell PB410A)",
+    .name          = "Headland HT216-32 On-Board (Packard Bell PB410A)",
     .internal_name = "ht216_32_pb410a",
     .flags         = DEVICE_VLB,
     .local         = 0x7861, /*HT216-32*/

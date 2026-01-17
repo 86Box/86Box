@@ -526,13 +526,13 @@ WindowsRawInputFilter::mouse_handle(RAWMOUSE *raw)
     mouse_set_buttons_ex(b);
 
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
-        delta_z = (SHORT) state.usButtonData / 120;
+        delta_z = (SHORT) state.usButtonData;
         mouse_set_z(delta_z);
     } else
         delta_z = 0;
 
     if (state.usButtonFlags & RI_MOUSE_HWHEEL) {
-        delta_w = (SHORT) state.usButtonData / 120;
+        delta_w = (SHORT) state.usButtonData;
         mouse_set_w(delta_w);
     } else
         delta_w = 0;

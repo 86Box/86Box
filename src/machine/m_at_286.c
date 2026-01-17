@@ -938,7 +938,7 @@ machine_at_pc7286_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5401_onboard_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add_params(&dw90c50_device, (void *) DW90C50_IDE);
     device_add(&vl82c113_device); /* The keyboard controller is part of the VL82c113. */
@@ -1161,7 +1161,7 @@ machine_at_spc4620p_init(const machine_t *model)
         return ret;
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&ati28800k_spc4620p_device);
+        device_add(machine_get_vid_device(machine));
 
     machine_at_scat_init(model, 1, 1);
 

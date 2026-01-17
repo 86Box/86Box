@@ -1029,7 +1029,7 @@ const device_config_t sl_vid_config[] = {
 };
 
 const device_t tandy_1000_video_device = {
-    .name          = "Tandy 1000",
+    .name          = "Tandy 1000 SX (Video)",
     .internal_name = "tandy1000_video",
     .flags         = 0,
     .local         = 0,
@@ -1043,7 +1043,7 @@ const device_t tandy_1000_video_device = {
 };
 
 const device_t tandy_1000hx_video_device = {
-    .name          = "Tandy 1000 HX",
+    .name          = "Tandy 1000 HX (Video)",
     .internal_name = "tandy1000_hx_video",
     .flags         = 0,
     .local         = 0,
@@ -1057,7 +1057,7 @@ const device_t tandy_1000hx_video_device = {
 };
 
 const device_t tandy_1000sl_video_device = {
-    .name          = "Tandy 1000SL2",
+    .name          = "Tandy 1000SL2 (Video)",
     .internal_name = "tandy1000_sl_video",
     .flags         = 0,
     .local         = 1,

@@ -1224,6 +1224,10 @@ extern const device_t  ga686_device;
 #endif
 extern int             machine_at_ga686_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern const device_t  ms6117_device;
+#endif
+extern int             machine_at_ms6117_init(const machine_t *);
+#ifdef EMU_DEVICE_H
 extern const device_t  ms6119_device;
 #endif
 extern int             machine_at_ms6119_init(const machine_t *);

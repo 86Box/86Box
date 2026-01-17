@@ -492,8 +492,18 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
     else if (device == nullptr)
         return "";
     else {
-        char temp[512];
-        device_get_name(device, bus, temp);
-        return tr((const char *) temp);
+        char        temp[512];
+        const char *tempbus;
+        if (bus == 1) {
+            device_get_name(device, -1, temp);
+            tempbus = device_get_bus_name(device);
+            if (tempbus != nullptr)
+                return QString("[%1] %2").arg(tr(tempbus), tr((const char *) temp));
+            else
+                return tr((const char *) temp);
+        } else {
+            device_get_name(device, bus, temp);
+            return tr((const char *) temp);
+        }
     }
 }

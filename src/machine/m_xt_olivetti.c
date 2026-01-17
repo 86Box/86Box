@@ -2119,7 +2119,7 @@ const device_config_t m19_vid_config[] = {
 };
 
 const device_t m19_vid_device = {
-    .name          = "Olivetti M19 graphics card",
+    .name          = "Olivetti M19 (Video)",
     .internal_name = "m19_vid",
     .flags         = 0,
     .local         = 0,

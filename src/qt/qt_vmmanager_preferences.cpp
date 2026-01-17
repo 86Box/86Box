@@ -29,11 +29,12 @@ extern WindowsDarkModeFilter *vmm_dark_mode_filter;
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/plat.h>
 #include <86box/version.h>
 }
 
 VMManagerPreferences::
-    VMManagerPreferences(QWidget *parent)
+    VMManagerPreferences(QWidget *parent, bool machinesRunning)
     : ui(new Ui::VMManagerPreferences)
 {
     ui->setupUi(this);
@@ -48,6 +49,13 @@ VMManagerPreferences::
     } else if (!QString(vmm_path).isEmpty()) {
         // If specified on command line
         ui->systemDirectory->setText(QDir::toNativeSeparators(QDir(vmm_path).path()));
+    }
+
+    if (machinesRunning) {
+        ui->systemDirectory->setEnabled(false);
+        ui->dirSelectButton->setEnabled(false);
+        ui->pushButtonDefaultSystemDir->setEnabled(false);
+        ui->dirSelectButton->setToolTip(tr("To change the system directory, stop all running machines."));
     }
 
     ui->comboBoxLanguage->setItemData(0, 0);
@@ -89,6 +97,14 @@ VMManagerPreferences::chooseDirectoryLocation()
     const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), ui->systemDirectory->text());
     if (!directory.isEmpty())
         ui->systemDirectory->setText(QDir::toNativeSeparators(directory));
+}
+
+void
+VMManagerPreferences::on_pushButtonDefaultSystemDir_released()
+{
+    char temp[1024];
+    plat_get_vmm_dir(temp, sizeof(temp));
+    ui->systemDirectory->setText(QDir::toNativeSeparators(QDir(temp).path()));
 }
 
 void

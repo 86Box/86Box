@@ -784,7 +784,7 @@ const device_config_t vid_1512_config[] = {
 };
 
 const device_t vid_1512_device = {
-    .name          = "Amstrad PC1512 (video)",
+    .name          = "Amstrad PC1512 (Video)",
     .internal_name = "vid_1512",
     .flags         = 0,
     .local         = 0,
@@ -985,7 +985,7 @@ const device_config_t vid_1640_config[] = {
 };
 
 const device_t vid_1640_device = {
-    .name          = "Amstrad PC1640 (video)",
+    .name          = "Amstrad PC1640 (Video)",
     .internal_name = "vid_1640",
     .flags         = 0,
     .local         = 0,
@@ -1911,7 +1911,7 @@ const device_config_t vid_200_config[] = {
 };
 
 const device_t vid_200_device = {
-    .name          = "Amstrad PC200 (video)",
+    .name          = "Amstrad PC200 (Video)",
     .internal_name = "vid_200",
     .flags         = 0,
     .local         = 0,
@@ -2019,7 +2019,7 @@ const device_config_t vid_ppc512_config[] = {
 };
 
 const device_t vid_ppc512_device = {
-    .name          = "Amstrad PPC512 (video)",
+    .name          = "Amstrad PPC512 (Video)",
     .internal_name = "vid_ppc512",
     .flags         = 0,
     .local         = 0,
@@ -2036,7 +2036,7 @@ const device_config_t vid_pc2086_config[] = {
     // clang-format off
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -2054,7 +2054,7 @@ const device_config_t vid_pc2086_config[] = {
 };
 
 const device_t vid_pc2086_device = {
-    .name          = "Amstrad PC2086",
+    .name          = "Amstrad PC2086 (Video)",
     .internal_name = "vid_pc2086",
     .flags         = 0,
     .local         = 0,
@@ -2071,7 +2071,7 @@ const device_config_t vid_pc3086_config[] = {
     // clang-format off
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -2089,7 +2089,7 @@ const device_config_t vid_pc3086_config[] = {
 };
 
 const device_t vid_pc3086_device = {
-    .name          = "Amstrad PC3086",
+    .name          = "Amstrad PC3086 (Video)",
     .internal_name = "vid_pc3086",
     .flags         = 0,
     .local         = 0,

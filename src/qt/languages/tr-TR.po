@@ -210,14 +210,26 @@ msgstr "Durum &çubuğu simgelerini güncelle"
 msgid "Take s&creenshot"
 msgstr "&Ekran görüntüsü al"
 
+msgid "Take screenshot"
+msgstr "Ekran görüntüsü al"
+
 msgid "Take &raw screenshot"
 msgstr "Ekran &ham görüntüsü al"
+
+msgid "Take raw screenshot"
+msgstr "Ekran ham görüntüsü al"
 
 msgid "C&opy screenshot"
 msgstr "Ekran görüntüsü k&opyala"
 
+msgid "Copy screenshot"
+msgstr "Ekran görüntüsü kopyala"
+
 msgid "Copy r&aw screenshot"
 msgstr "Ekran h&am görüntüsü kopyala"
+
+msgid "Copy raw screenshot"
+msgstr "Ekran ham görüntüsü kopyala"
 
 msgid "S&ound"
 msgstr "&Ses"
@@ -537,11 +549,11 @@ msgstr "Disket denetleyicisi:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM denetleyicisi:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Üçüncül IDE denetleyicisi"
+msgid "Tertiary IDE Controller"
+msgstr "Üçüncül IDE denetleyicisi"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Dördüncül IDE denetleyicisi"
+msgid "Quaternary IDE Controller"
+msgstr "Dördüncül IDE denetleyicisi"
 
 msgid "Hard disk controllers"
 msgstr "Sabit disk denetleyicileri"
@@ -1143,8 +1155,8 @@ msgstr "Seçili yapılandırma dosyası okunmak için açılamıyor: %1"
 msgid "Use regular expressions in search box"
 msgstr "Arama kutusunda düzenli ifadeler kullan"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 makine şu anda aktif. Yine de VM yöneticisinden çıkmak istediğinize emin misiniz?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n makine şu anda aktif. Yine de VM yöneticisinden çıkmak istediğinize emin misiniz?"
 
 msgid "Add new system wizard"
 msgstr "Yeni sistem ekleme sihirbazı"
@@ -1226,9 +1238,6 @@ msgstr "Yeni görünü adını girin (sıfırlamak için boş bırakın)"
 
 msgid "Change &display name…"
 msgstr "Görüntü adını &değiştirin…"
-
-msgid "Context Menu"
-msgstr "Bağlam Menüsü"
 
 msgid "&Open folder…"
 msgstr "Klas&örü aç…"
@@ -1851,8 +1860,8 @@ msgstr "3M MicroTouch (seri)"
 msgid "Default Baud rate"
 msgstr "Varsayılan Baud hızı"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standart Hayes Uyumlu Modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standart Hayes Uyumlu Modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 Emülasyonu"
@@ -2805,9 +2814,6 @@ msgstr "Tam ekran modunu ayarla"
 msgid "Toggle UI in fullscreen"
 msgstr "Arayüzü tam ekranda ayarla"
 
-msgid "Screenshot"
-msgstr "Ekran görüntüsü"
-
 msgid "Release mouse pointer"
 msgstr "Fare imlecini serbest bırak"
 
@@ -3010,4 +3016,10 @@ msgid "&Allow recompilation"
 msgstr "&Derlenmesine izin ver"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

@@ -483,7 +483,7 @@ device_has_config(const device_t *dev)
     return (c > 0) ? 1 : 0;
 }
 
-static const char *
+const char *
 device_get_bus_name(const device_t *dev)
 {
     const char *sbus = NULL;
@@ -556,9 +556,11 @@ device_get_name(const device_t *dev, int bus, char *name)
 
         if (sbus != NULL) {
             /* First concatenate [<Bus>] before the device's name. */
-            strcat(name, "[");
-            strcat(name, sbus);
-            strcat(name, "] ");
+            if (bus > 0) {
+                strcat(name, "[");
+                strcat(name, sbus);
+                strcat(name, "] ");
+            }
 
             /* Then change string from ISA16 to ISA if applicable. */
             if (!strcmp(sbus, "ISA16"))

@@ -5809,7 +5809,7 @@ const device_t mach64vt2_device = {
 };
 
 const device_t mach64vt3_onboard_device = {
-    .name          = "ATI Mach64VT3 (Onboard)",
+    .name          = "ATI Mach64VT3 (On-Board)",
     .internal_name = "mach64vt3_onboard",
     .flags         = DEVICE_PCI,
     .local         = MACH64_VT3 | (1 << 19),

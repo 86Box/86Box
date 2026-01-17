@@ -272,8 +272,28 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
     },
     {
         .name="screenshot",
-        .desc="Screenshot",
+        .desc="Take screenshot",
         .seq="Ctrl+F11"
+    },
+    {
+        .name="raw_screenshot",
+        .desc="Take raw screenshot",
+        .seq=""
+    },
+    {
+        .name="copy_screenshot",
+        .desc="Copy screenshot",
+        .seq=""
+    },
+    {
+        .name="copy_raw_screenshot",
+        .desc="Copy raw screenshot",
+        .seq=""
+    },
+    {
+        .name="fast_forward",
+        .desc="Fast forward",
+        .seq="Ctrl+Alt+F"
     },
     {
         .name="release_mouse",

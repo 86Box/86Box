@@ -211,14 +211,26 @@ msgstr "ステータスバーのアイコンを更新(&U)"
 msgid "Take s&creenshot"
 msgstr "スクリーンショットを撮る(&C)"
 
+msgid "Take screenshot"
+msgstr "スクリーンショットを撮る"
+
 msgid "Take &raw screenshot"
 msgstr "生のスクリーンショットを撮る(&R)"
+
+msgid "Take raw screenshot"
+msgstr "生のスクリーンショットを撮る"
 
 msgid "C&opy screenshot"
 msgstr "スクリーンショットをコピーする(&O)"
 
+msgid "Copy screenshot"
+msgstr "スクリーンショットをコピーする"
+
 msgid "Copy r&aw screenshot"
 msgstr "生のスクリーンショットをコピーする(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "生のスクリーンショットをコピーする"
 
 msgid "S&ound"
 msgstr "サウンド(&O)"
@@ -538,11 +550,11 @@ msgstr "FDDコントローラー:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 第三IDEコントローラー"
+msgid "Tertiary IDE Controller"
+msgstr "第三IDEコントローラー"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 第四IDEコントローラー"
+msgid "Quaternary IDE Controller"
+msgstr "第四IDEコントローラー"
 
 msgid "Hard disk controllers"
 msgstr "ハードディスクコントローラー"
@@ -1144,8 +1156,8 @@ msgstr "選択した設定ファイルを読み込むことができませんで
 msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "現在、%1台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
 
 msgid "Add new system wizard"
 msgstr "新しいシステムを追加するためのウィザード"
@@ -1227,9 +1239,6 @@ msgstr "新しい表示名を入力してください(空白にするとリセ�
 
 msgid "Change &display name…"
 msgstr "表示名を変更(&D)…"
-
-msgid "Context Menu"
-msgstr "コンテキストメニュー"
 
 msgid "&Open folder…"
 msgstr "フォルダーを開く(&O)…"
@@ -1852,8 +1861,8 @@ msgstr "3Mマイクロタッチ（シリアル）"
 msgid "Default Baud rate"
 msgstr "デフォルトのボーレート"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 標準ヘイズ準拠モデム"
+msgid "Standard Hayes-compliant Modem"
+msgstr "標準ヘイズ準拠モデム"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32エミュレーション"
@@ -2806,9 +2815,6 @@ msgstr "フルスクリーン表示を切り替える"
 msgid "Toggle UI in fullscreen"
 msgstr "全画面表示時にUIを切り替える"
 
-msgid "Screenshot"
-msgstr "スクリーンショット"
-
 msgid "Release mouse pointer"
 msgstr "マウスポインターを解放する"
 
@@ -3011,4 +3017,10 @@ msgid "&Allow recompilation"
 msgstr "再コンパイルを許可する(&A)"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

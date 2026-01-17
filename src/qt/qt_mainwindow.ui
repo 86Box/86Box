@@ -744,6 +744,9 @@
    <property name="text">
     <string>Take s&amp;creenshot</string>
    </property>
+   <property name="toolTip">
+    <string>Take screenshot</string>
+   </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
      <normaloff>:/menuicons/qt/icons/take_screenshot.ico</normaloff>:/menuicons/qt/icons/take_screenshot.ico</iconset>
@@ -752,6 +755,9 @@
   <action name="actionTake_raw_screenshot">
    <property name="text">
     <string>Take &amp;raw screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Take raw screenshot</string>
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
@@ -762,6 +768,9 @@
    <property name="text">
     <string>C&amp;opy screenshot</string>
    </property>
+   <property name="toolTip">
+    <string>Copy screenshot</string>
+   </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
      <normaloff>:/menuicons/qt/icons/copy_screenshot.ico</normaloff>:/menuicons/qt/icons/copy_screenshot.ico</iconset>
@@ -770,6 +779,9 @@
   <action name="actionCopy_raw_screenshot">
    <property name="text">
     <string>Copy r&amp;aw screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy raw screenshot</string>
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
@@ -1081,6 +1093,9 @@
    </property>
    <property name="text">
     <string>&amp;Fast forward</string>
+   </property>
+   <property name="toolTip">
+    <string>Fast forward</string>
    </property>
   </action>
  </widget>

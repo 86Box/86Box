@@ -210,14 +210,26 @@ msgstr "&Päivitä tilapalkin kuvakkeita"
 msgid "Take s&creenshot"
 msgstr "Ota &kuvakaappaus"
 
+msgid "Take screenshot"
+msgstr "Ota kuvakaappaus"
+
 msgid "Take &raw screenshot"
 msgstr "Ota &raaka kuvakaappaus"
+
+msgid "Take raw screenshot"
+msgstr "Ota raaka kuvakaappaus"
 
 msgid "C&opy screenshot"
 msgstr "K&opioi kuvakaappaus"
 
+msgid "Copy screenshot"
+msgstr "Kopioi kuvakaappaus"
+
 msgid "Copy r&aw screenshot"
 msgstr "Kopioi r&aaka kuvakaappaus"
+
+msgid "Copy raw screenshot"
+msgstr "Kopioi raaka kuvakaappaus"
 
 msgid "S&ound"
 msgstr "&Ääni"
@@ -537,11 +549,11 @@ msgstr "Levykeohjain:"
 msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Kolmas IDE-ohjain"
+msgid "Tertiary IDE Controller"
+msgstr "Kolmas IDE-ohjain"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Neljäs IDE-ohjain"
+msgid "Quaternary IDE Controller"
+msgstr "Neljäs IDE-ohjain"
 
 msgid "Hard disk controllers"
 msgstr "Kiintolevyohjaimet"
@@ -1143,8 +1155,8 @@ msgstr "Valittua määritystä ei voitu avata: %1"
 msgid "Use regular expressions in search box"
 msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
 
 msgid "Add new system wizard"
 msgstr "Koneenlisäysohjelma"
@@ -1226,9 +1238,6 @@ msgstr "Anna uusi näyttönimi tai poista se"
 
 msgid "Change &display name…"
 msgstr "Vaihda &näyttönimi…"
-
-msgid "Context Menu"
-msgstr "Kontekstivalikko"
 
 msgid "&Open folder…"
 msgstr "&Avaa kansio…"
@@ -1851,8 +1860,8 @@ msgstr "3M MicroTouch (sarja)"
 msgid "Default Baud rate"
 msgstr "Oletussiirtonopeus"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Tavallinen Hayes-yhteensopiva modeemi"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Tavallinen Hayes-yhteensopiva modeemi"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulointi"
@@ -2805,9 +2814,6 @@ msgstr "Koko näyttö"
 msgid "Toggle UI in fullscreen"
 msgstr "Käyttöliittymä koko näyttö-tilassa"
 
-msgid "Screenshot"
-msgstr "Kuvakaappaus"
-
 msgid "Release mouse pointer"
 msgstr "Vapauta hiiren osoitin"
 
@@ -3010,4 +3016,10 @@ msgid "&Allow recompilation"
 msgstr "&Salli uudelleenkääntäminen"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

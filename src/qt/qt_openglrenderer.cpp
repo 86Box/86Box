@@ -600,7 +600,7 @@ load_texture(const char *f, struct shader_texture *tex)
 
     const GLubyte *rgb = img.constBits();
 
-    int bpp = 4;
+    int bpp = 3;
 
     GLubyte *data = (GLubyte *) malloc((size_t) width * height * bpp);
 
@@ -611,7 +611,6 @@ load_texture(const char *f, struct shader_texture *tex)
             data[(y * width + x) * bpp + 0] = rgb[(Y * width + x) * 3 + 0];
             data[(y * width + x) * bpp + 1] = rgb[(Y * width + x) * 3 + 1];
             data[(y * width + x) * bpp + 2] = rgb[(Y * width + x) * 3 + 2];
-            data[(y * width + x) * bpp + 3] = rgb[(Y * width + x) * 3 + 3];
         }
     }
 

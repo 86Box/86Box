@@ -34,6 +34,12 @@
 #include <86box/plat.h>
 #include <86box/plat_unused.h>
 
+#ifdef _WIN32
+#define WHEEL_DELTA 120
+#else
+#define WHEEL_DELTA 1
+#endif
+
 typedef struct mouse_t {
     const device_t *device;
 } mouse_t;
@@ -510,16 +516,28 @@ mouse_subtract_z(int *delta_z, int min, int max, int invert)
 {
     int z = ATOMIC_LOAD(mouse_z);
     int real_z = invert ? -z : z;
+    min *= WHEEL_DELTA;
+    max *= WHEEL_DELTA;
 
+#if WHEEL_DELTA > 1
+    if ((real_z > -WHEEL_DELTA) && (real_z < WHEEL_DELTA)) {
+        *delta_z = 0;
+        return;
+    } else
+#endif
     if (real_z > max) {
-        *delta_z = max;
+        *delta_z = max / WHEEL_DELTA;
         real_z -= max;
     } else if (real_z < min) {
-        *delta_z = min;
+        *delta_z = min / WHEEL_DELTA;
         real_z += ABS(min);
     } else {
-        *delta_z = real_z;
+        *delta_z = real_z / WHEEL_DELTA;
+#if WHEEL_DELTA > 1
+        real_z -= ((real_z / WHEEL_DELTA) * WHEEL_DELTA);
+#else
         real_z = 0;
+#endif
     }
 
     ATOMIC_STORE(mouse_z, invert ? -real_z : real_z);
@@ -530,16 +548,28 @@ mouse_subtract_w(int *delta_w, int min, int max, int invert)
 {
     int w = ATOMIC_LOAD(mouse_w);
     int real_w = invert ? -w : w;
+    min *= WHEEL_DELTA;
+    max *= WHEEL_DELTA;
 
+#if WHEEL_DELTA > 1
+    if ((real_w > -WHEEL_DELTA) && (real_w < WHEEL_DELTA)) {
+        *delta_w = 0;
+        return;
+    } else
+#endif
     if (real_w > max) {
-        *delta_w = max;
+        *delta_w = max / WHEEL_DELTA;
         real_w -= max;
     } else if (real_w < min) {
-        *delta_w = min;
+        *delta_w = min / WHEEL_DELTA;
         real_w += ABS(min);
     } else {
-        *delta_w = real_w;
+        *delta_w = real_w / WHEEL_DELTA;
+#if WHEEL_DELTA > 1
+        real_w -= ((real_w / WHEEL_DELTA) * WHEEL_DELTA);
+#else
         real_w = 0;
+#endif
     }
 
     ATOMIC_STORE(mouse_w, invert ? -real_w : real_w);
