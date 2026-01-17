@@ -78,7 +78,7 @@ typedef struct {
     struct termios prev_config;
 #    endif
 #endif
-    uint8_t prev_config_valid;
+    int prev_config_valid : 1;
 } hostser_t;
 
 #ifdef _WIN32
@@ -226,11 +226,19 @@ hostser_connect(hostser_t *dev)
         return 0;
     }
 
+    /* Save current serial port configuration for restoring on close. */
+    dev->prev_config_valid = !!GetCommState(dev->fd, &dev->prev_config);
+
+    /* Set buffer sizes. */
+    SetupComm(dev->fd, 2048, 2048);
+
     /* Set port timeouts. */
     SetCommTimeouts(dev->fd, &timeouts);
 
-    /* Save current serial port configuration for restoring on close. */
-    dev->prev_config_valid = !!GetCommState(dev->fd, &dev->prev_config);
+    /* Clear any outstanding errors. */
+    DWORD err;
+    COMSTAT stats;
+    ClearCommError(dev->fd, &err, &stats);
 #else
     /* Open serial port. */
     dev->fd = open(dev->path, O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -271,8 +279,13 @@ hostser_read(uint8_t *buf, ssize_t len, void *priv)
 
 #ifdef _WIN32
     DWORD ret = 0;
-    if (dev->fd)
-        ReadFile(dev->fd, buf, len, &ret, NULL);
+    if (dev->fd) {
+        DWORD err;
+        COMSTAT stats;
+        ClearCommError(dev->fd, &err, &stats);
+        if (stats.cbInQue > 0)
+            ReadFile(dev->fd, buf, len, &ret, NULL);
+    }
 #else
     ssize_t ret = 0;
     if (dev->fd != -1) {
