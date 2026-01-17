@@ -30,6 +30,8 @@
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2</dpiAwareness>
       <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+      <highResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">true</highResolutionScrollingAware>
+      <ultraHighResolutionScrollingAware xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">true</ultraHighResolutionScrollingAware>
     </windowsSettings>
   </application>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">

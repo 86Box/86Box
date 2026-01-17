@@ -95,6 +95,7 @@ extern  int            mouse_wheel_moved(void);
 extern  int            mouse_moved(void);
 extern  int            mouse_state_changed(void);
 extern  int            mouse_mbut_changed(void);
+extern  int            mouse_w_changed(void);
 extern void            mouse_scale_fx(double x);
 extern void            mouse_scale_fy(double y);
 extern void            mouse_scale_x(int x);
