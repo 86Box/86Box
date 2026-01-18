@@ -373,10 +373,10 @@ static const uint_8t gfmul_e[256] = {
 static void copy_block16( void *d, const void *s )
 {
 #if defined( HAVE_UINT_32T )
-    ((uint_32t*)d)[ 0] = ((uint_32t*)s)[ 0];
-    ((uint_32t*)d)[ 1] = ((uint_32t*)s)[ 1];
-    ((uint_32t*)d)[ 2] = ((uint_32t*)s)[ 2];
-    ((uint_32t*)d)[ 3] = ((uint_32t*)s)[ 3];
+    ((uint32_t *)d)[ 0] = ((uint32_t *)s)[ 0];
+    ((uint32_t *)d)[ 1] = ((uint32_t *)s)[ 1];
+    ((uint32_t *)d)[ 2] = ((uint32_t *)s)[ 2];
+    ((uint32_t *)d)[ 3] = ((uint32_t *)s)[ 3];
 #else
     ((uint_8t*)d)[ 0] = ((uint_8t*)s)[ 0];
     ((uint_8t*)d)[ 1] = ((uint_8t*)s)[ 1];
@@ -407,10 +407,10 @@ static void copy_block( void * d, void *s, uint_8t nn )
 static void copy_and_key( void *d, const void *s, const void *k )
 {
 #if defined( HAVE_UINT_32T )
-    ((uint_32t*)d)[ 0] = ((uint_32t*)s)[ 0] ^ ((uint_32t*)k)[ 0];
-    ((uint_32t*)d)[ 1] = ((uint_32t*)s)[ 1] ^ ((uint_32t*)k)[ 1];
-    ((uint_32t*)d)[ 2] = ((uint_32t*)s)[ 2] ^ ((uint_32t*)k)[ 2];
-    ((uint_32t*)d)[ 3] = ((uint_32t*)s)[ 3] ^ ((uint_32t*)k)[ 3];
+    ((uint32_t *)d)[ 0] = ((uint32_t *)s)[ 0] ^ ((uint32_t *)k)[ 0];
+    ((uint32_t *)d)[ 1] = ((uint32_t *)s)[ 1] ^ ((uint32_t *)k)[ 1];
+    ((uint32_t *)d)[ 2] = ((uint32_t *)s)[ 2] ^ ((uint32_t *)k)[ 2];
+    ((uint32_t *)d)[ 3] = ((uint32_t *)s)[ 3] ^ ((uint32_t *)k)[ 3];
 #elif 1
     ((uint_8t*)d)[ 0] = ((uint_8t*)s)[ 0] ^ ((uint_8t*)k)[ 0];
     ((uint_8t*)d)[ 1] = ((uint_8t*)s)[ 1] ^ ((uint_8t*)k)[ 1];

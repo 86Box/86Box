@@ -39,7 +39,6 @@ add_library(utils OBJECT
     common/xts.c
 
     # Crypto
-    crypto/aescrypt.c
     crypto/aeskey.c
     crypto/aessmall.c
     crypto/aestab.c
