@@ -74,6 +74,13 @@ typedef union rgba_u {
 #define FIFO_FULL       ((voodoo->fifo_write_idx - voodoo->fifo_read_idx) >= FIFO_SIZE - 4)
 #define FIFO_EMPTY      (voodoo->fifo_read_idx == voodoo->fifo_write_idx)
 
+#define VOODOO_BUF_FRONT   0
+#define VOODOO_BUF_BACK    1
+#define VOODOO_BUF_AUX     2
+#define VOODOO_BUF_UNKNOWN 3
+#define VOODOO_BUF_COUNT   4
+#define VOODOO_BUF_NONE    0xff
+
 #define FIFO_TYPE       0xff000000
 #define FIFO_ADDR       0x00ffffff
 
@@ -98,6 +105,8 @@ typedef struct
 {
     uint32_t addr_type;
     uint32_t val;
+    uint8_t  target_buf;
+    uint8_t  pad[3];
 } fifo_entry_t;
 
 typedef struct voodoo_params_t {
@@ -356,6 +365,8 @@ typedef struct voodoo_t {
     event_t  *wake_fifo_thread;
     event_t  *wake_main_thread;
     event_t  *fifo_not_full_event;
+    event_t  *fifo_empty_event;
+    ATOMIC_INT fifo_empty_signaled;
     event_t  *render_not_full_event[4];
     event_t  *wake_render_thread[4];
 
@@ -399,6 +410,8 @@ typedef struct voodoo_t {
     ATOMIC_INT   cmd_written;
     ATOMIC_INT   cmd_written_fifo;
     ATOMIC_INT   cmd_written_fifo_2;
+    ATOMIC_INT   pending_fb_writes_buf[VOODOO_BUF_COUNT];
+    ATOMIC_INT   pending_draw_cmds_buf[VOODOO_BUF_COUNT];
 
     voodoo_params_t params_buffer[PARAM_SIZE];
     ATOMIC_INT      params_read_idx[4];
@@ -627,6 +640,12 @@ typedef struct voodoo_t {
     int fb_write_buffer;
     int fb_draw_buffer;
     int buffer_cutoff;
+    int queued_disp_buffer;
+    int queued_draw_buffer;
+    int queued_fb_write_buffer;
+    int queued_fb_draw_buffer;
+    uint32_t queued_lfbMode;
+    uint32_t queued_fbzMode;
 
     uint32_t tile_base;
     uint32_t tile_stride;
@@ -657,6 +676,32 @@ typedef struct voodoo_t {
 
     uint64_t time;
     int      render_time[4];
+    uint64_t fifo_full_waits;
+    uint64_t fifo_full_wait_ticks;
+    uint64_t fifo_full_spin_checks;
+    uint64_t fifo_empty_waits;
+    uint64_t fifo_empty_wait_ticks;
+    uint64_t fifo_empty_spin_checks;
+    uint64_t render_waits;
+    uint64_t render_wait_ticks;
+    uint64_t render_wait_spin_checks;
+    uint64_t readl_fb_count;
+    uint64_t readl_fb_sync_count;
+    uint64_t readl_fb_nosync_count;
+    uint64_t readl_fb_relaxed_count;
+    uint64_t readl_fb_sync_buf[3];
+    uint64_t readl_fb_nosync_buf[3];
+    uint64_t readl_fb_relaxed_buf[3];
+    uint64_t readl_reg_count;
+    uint64_t readl_tex_count;
+    int      wait_stats_enabled;
+    int      wait_stats_explicit;
+    int      lfb_relax_enabled;
+    int      lfb_relax_full;
+    int      lfb_relax_ignore_cmdfifo;
+    int      lfb_relax_ignore_draw;
+    int      lfb_relax_ignore_fb_writes;
+    int      lfb_relax_front_sync;
 
     int      force_blit_count;
     int      can_blit;
