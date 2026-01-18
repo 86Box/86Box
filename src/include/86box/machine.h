@@ -734,6 +734,7 @@ extern int             machine_at_dell466np_init(const machine_t *);
 extern int             machine_at_valuepoint433_init(const machine_t *);
 
 /* VLSI 82C480 */
+extern int             machine_at_monsoon_init(const machine_t *);
 extern int             machine_at_martin_init(const machine_t *);
 
 /* m_at_socket3.c */
