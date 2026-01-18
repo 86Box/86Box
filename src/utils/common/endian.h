@@ -32,7 +32,7 @@ extern "C"
 
 #	if defined (__APPLE__) || defined (TC_MACOSX)
 #		include <machine/endian.h>
-#	elif defined (TC_BSD)
+#	elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined (TC_BSD)
 #		include <sys/endian.h>
 #	else
 #		include <endian.h>
