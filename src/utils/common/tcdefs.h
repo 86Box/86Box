@@ -15,6 +15,8 @@
 #include <inttypes.h>
 #include <stdlib.h>
 
+#include <86box/86box.h>
+
 #define TC_APP_NAME						"TrueCrypt"
 
 // Version displayed to user
@@ -103,7 +105,11 @@ typedef union
 } UINT64_STRUCT;
 
 
+#ifdef ORIGINAL_FATAL
 #define TC_THROW_FATAL_EXCEPTION	*(char *) 0 = 0
+#else
+#define TC_THROW_FATAL_EXCEPTION	fatal("TrueCrypt: Fatal exception");
+#endif
 
 #define burn(mem,size) do { volatile char *burnm = (volatile char *)(mem); int burnc = size; while (burnc--) *burnm++ = 0; } while (0)
 
