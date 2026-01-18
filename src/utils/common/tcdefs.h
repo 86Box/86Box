@@ -13,6 +13,7 @@
 #define TCDEFS_H
 
 #include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <86box/86box.h>
