@@ -175,6 +175,20 @@ typedef struct
     uint32_t trk_blocks_offs;
 } mds_sess_block_t;    /* 24 bytes */
 
+/* MDF v2.01 session block. */
+typedef struct
+{
+    int64_t  sess_start;
+    uint16_t sess_id;
+    uint8_t  all_blocks_num;
+    uint8_t  non_track_blocks_num;
+    uint16_t first_trk;
+    uint16_t last_trk;
+    uint32_t pad;
+    uint32_t trk_blocks_offs;
+    int64_t  sess_end;
+} mds_v2_sess_block_t;    /* 24 bytes */
+
 typedef struct
 {
     uint8_t  trk_mode;
@@ -219,6 +233,17 @@ typedef struct
     uint32_t pad;
     uint32_t pad0;
 } mds_footer_t;    /* 16 bytes */
+
+/* MDF v2.01 track footer block. */
+typedef struct
+{
+    uint32_t fn_offs;
+    uint32_t pad;     /* Always wide */
+    uint32_t pad0;
+    uint32_t pad1;
+    uint64_t trk_sectors;
+    uint64_t pad2;
+} mds_v2_footer_t;    /* 16 bytes */
 
 typedef struct
 {
@@ -1949,6 +1974,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     track_index_t *ci                            = NULL;
     track_file_t  *tf                            = NULL;
     int            is_viso                       = 0;
+    int            version                       = 1;
     int            last_t                        = -1;
     int            error;
     char           pathname[MAX_FILENAME_LENGTH];
@@ -1956,9 +1982,11 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
     mds_hdr_t             mds_hdr             = { 0 };
     mds_sess_block_t      mds_sess_block      = { 0 };
+    mds_v2_sess_block_t   mds_v2_sess_block   = { 0 };
     mds_trk_block_t       mds_trk_block       = { 0 };
     mds_trk_ex_block_t    mds_trk_ex_block    = { 0 };
     mds_footer_t          mds_footer          = { 0 };
+    mds_v2_footer_t       mds_v2_footer       = { 0 };
     mds_dpm_block_t       mds_dpm_block       = { 0 };
     uint32_t              mds_dpm_blocks_num  = 0x00000000;
     uint32_t              mds_dpm_block_offs  = 0x00000000;
@@ -2006,6 +2034,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 #else
         warning("\"%s\" is a Daemon Tools encrypted MDS which is not supported\n", mdsfile);
 #endif
+        version = 2;
         fclose(fp);
         return 0;
     }
@@ -2083,9 +2112,18 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     }
 
     for (int s = 0; s < mds_hdr.sess_num; s++) {
-        fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_sess_block_t)), SEEK_SET);
-        if (fread(&mds_sess_block, 1, sizeof(mds_sess_block_t), fp) != sizeof(mds_sess_block_t))
-            return 0;
+        if (version == 2) {
+            fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_v2_sess_block_t)), SEEK_SET);
+            if (fread(&mds_v2_sess_block, 1, sizeof(mds_v2_sess_block_t), fp) != sizeof(mds_v2_sess_block_t))
+                return 0;
+            memcpy(&mds_sess_block, &mds_v2_sess_block, sizeof(mds_sess_block_t));
+            mds_sess_block.sess_start = (int32_t) mds_v2_sess_block.sess_start;
+            mds_sess_block.sess_end   = (int32_t) mds_v2_sess_block.sess_end;
+        } else {
+            fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_sess_block_t)), SEEK_SET);
+            if (fread(&mds_sess_block, 1, sizeof(mds_sess_block_t), fp) != sizeof(mds_sess_block_t))
+                return 0;
+        }
 
         for (int t = 0; t < mds_sess_block.all_blocks_num; t++) {
             fseek(fp, mds_sess_block.trk_blocks_offs + (t * sizeof(mds_trk_block_t)), SEEK_SET);
@@ -2127,9 +2165,17 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             uint32_t astart2 = mds_trk_block.start_sect + mds_trk_ex_block.trk_sectors;
 
             if (mds_trk_block.footer_offs != 0ULL)  for (uint32_t ff = 0; ff < mds_trk_block.files_num; ff++) {
-                fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_footer_t)), SEEK_SET);
-                if (fread(&mds_footer, 1, sizeof(mds_footer_t), fp) != sizeof(mds_footer_t))
-                    return 0;
+                if (version == 2) {
+                    fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_v2_footer_t)), SEEK_SET);
+                    if (fread(&mds_v2_footer, 1, sizeof(mds_v2_footer_t), fp) != sizeof(mds_v2_footer_t))
+                        return 0;
+                    memcpy(&mds_footer, &mds_v2_footer, sizeof(mds_footer));
+                    mds_footer.fn_is_wide = 1;
+                } else {
+                    fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_footer_t)), SEEK_SET);
+                    if (fread(&mds_footer, 1, sizeof(mds_footer_t), fp) != sizeof(mds_footer_t))
+                        return 0;
+                }
 
                 uint16_t wfn[2048] = { 0 };
                 char     fn[2048] = { 0 };
@@ -2149,7 +2195,10 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                         break;
                 }
 
-                if (!stricmp(fn, "*.mdf")) {
+                if (strlen(fn) == 0)
+                    /* This is in MDX files - the file name string is empty. */
+                    strcpy(fn, mdsfile);
+                else if (!stricmp(fn, "*.mdf")) {
                     strcpy(fn, mdsfile);
                     fn[strlen(mdsfile) - 3] = 'm';
                     fn[strlen(mdsfile) - 2] = 'd';
@@ -2681,7 +2730,8 @@ image_open(cdrom_t *dev, const char *path)
     if (img != NULL) {
         int       ret;
         const int is_cue  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CUE"));
-        const int is_mds  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "MDS"));
+        const int is_mds  = ((ext == 4) && (!stricmp(path + strlen(path) - ext + 1, "MDS") ||
+                                            !stricmp(path + strlen(path) - ext + 1, "MDX")));
         char      n[1024] = { 0 };
 
         sprintf(n, "CD-ROM %i Image", dev->id + 1);
