@@ -2,7 +2,6 @@
 #include "edc.h"
 
 
-#include "common/tcdefs.h"
 #include "common/crypto.h"
 #include "common/endian.h"
 #include "common/pkcs5.h"
@@ -10,7 +9,16 @@
 
 #include <string.h>
 
+#define byte   uint8_t
+#define uint64 uint64_t
 
+typedef union {
+    struct {
+        uint32_t LowPart;
+        uint32_t HighPart;
+    };
+    uint64_t Value;
+} UINT64_STRUCT;
 
 void unshuffle1(u8 *data)
 {
@@ -33,7 +41,7 @@ void unshuffle1(u8 *data)
 }
 
 void DecryptBlock(u8 *buf,
-	TC_LARGEST_COMPILER_UINT len,
+	uint64_t len,
 	u32 secSz,
 	u64 secN,
 	u8 flags,
@@ -104,12 +112,7 @@ UINT64_STRUCT GetHeaderField64 (byte *header, size_t offset)
     /* modify BE->LE */
 	UINT64_STRUCT uint64Struct;
 
-#ifndef TC_NO_COMPILER_INT64
 	uint64Struct.Value = LE64 (*(uint64 *) (header + offset));
-#else
-	uint64Struct.HighPart = LE32 (*(uint32 *) (header + offset));
-	uint64Struct.LowPart = LE32 (*(uint32 *) (header + offset + 4));
-#endif
 	return uint64Struct;
 }
 
@@ -175,7 +178,7 @@ int ReadHeader (int bBoot, char *encryptedHeader, Password *password, PCRYPTO_IN
 
 		default:
 			// Unknown/wrong ID
-			TC_THROW_FATAL_EXCEPTION;
+			fatal("ReadHeader(): Unknown/wrong ID\n");
 		}
 
 		// Test all available modes of operation
@@ -303,8 +306,8 @@ int ReadHeader (int bBoot, char *encryptedHeader, Password *password, PCRYPTO_IN
 
 				// Clear out the temporary key buffers
 // ret:
-				burn (dk, sizeof(dk));
-				burn (&keyInfo, sizeof (keyInfo));
+				memset (dk, 0x00, sizeof(dk));
+				memset (&keyInfo, 0x00, sizeof (keyInfo));
 
 				return 0;
 			}
@@ -319,8 +322,8 @@ err:
 		*retInfo = NULL;
 	}
 
-	burn (&keyInfo, sizeof (keyInfo));
-	burn (dk, sizeof(dk));
+	memset (&keyInfo, 0x00, sizeof (keyInfo));
+	memset (dk, 0x00, sizeof(dk));
 	return status;
 }
 

@@ -28,7 +28,19 @@
 #define CRYPTO_H
 
 #include <inttypes.h>
-#include "tcdefs.h"
+
+enum
+{
+    ERR_SUCCESS = 0,
+
+    ERR_OUTOFMEMORY = 2,
+    ERR_PASSWORD_WRONG,
+
+    ERR_CIPHER_INIT_FAILURE = 17,
+    ERR_CIPHER_INIT_WEAK_KEY,
+
+    ERR_MODE_INIT_FAILED = 27
+};
 
 #ifdef __cplusplus
 extern "C" {
@@ -171,11 +183,7 @@ typedef struct
 
 #define PRAND_DISK_WIPE_PASSES	200
 
-#if !defined (TC_WINDOWS_BOOT) || defined (TC_WINDOWS_BOOT_AES)
 #	include "../crypto/aes.h"
-#else
-#	include "../crypto/aesSmall.h"
-#endif
 
 #include "../crypto/blowfish.h"
 #include "../crypto/cast.h"
@@ -278,12 +286,8 @@ int HashIsDeprecated (int hashId);
 
 int GetMaxPkcs5OutSize (void);
 
-//void EncryptDataUnits (uint8_t *buf, const UINT64_STRUCT *structUnitNo, TC_LARGEST_COMPILER_UINT nbrUnits, PCRYPTO_INFO ci);
-//void DecryptDataUnits (uint8_t *buf, const UINT64_STRUCT *structUnitNo, TC_LARGEST_COMPILER_UINT nbrUnits, PCRYPTO_INFO ci);
-void EncryptBuffer (uint8_t *buf, TC_LARGEST_COMPILER_UINT len, PCRYPTO_INFO cryptoInfo);
-void DecryptBuffer (uint8_t *buf, TC_LARGEST_COMPILER_UINT len, uint32_t secSz, uint64_t secN, uint8_t flags, PCRYPTO_INFO cryptoInfo);
-
-#ifndef TC_NO_COMPILER_INT64
+void EncryptBuffer (uint8_t *buf, uint64_t len, PCRYPTO_INFO cryptoInfo);
+void DecryptBuffer (uint8_t *buf, uint64_t len, uint32_t secSz, uint64_t secN, uint8_t flags, PCRYPTO_INFO cryptoInfo);
 
 void Xor128 (uint64_t *a, uint64_t *b);
 void Xor64 (uint64_t *a, uint64_t *b);
@@ -294,8 +298,6 @@ void EncryptBufferLRW64 (uint8_t *buffer, uint64_t length, uint64_t blockIndex, 
 void DecryptBufferLRW64 (uint8_t *buffer, uint64_t length, uint64_t blockIndex, PCRYPTO_INFO cryptoInfo);
 
 void InitSectorIVAndWhitening (uint64_t unitNo,	int blockSize, 	uint32_t *iv, uint64_t *ivSeed, uint32_t *whitening);
-//uint64_t DataUnit2LRWIndex (uint64_t dataUnit, int blockSize, PCRYPTO_INFO ci);
-#endif	// #ifndef TC_NO_COMPILER_INT64
 
 #ifdef __cplusplus
 }

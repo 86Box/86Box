@@ -9,12 +9,10 @@
  file License.txt included in TrueCrypt binary and source code distribution
  packages. */
 
-#ifndef TC_HEADER_CRC
-#define TC_HEADER_CRC
+#ifndef HEADER_CRC
+#define HEADER_CRC
 
 #include <inttypes.h>
-
-#include "tcdefs.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -34,4 +32,4 @@ extern uint32_t crc_32_tab[];
 }
 #endif
 
-#endif // TC_HEADER_CRC
+#endif // HEADER_CRC

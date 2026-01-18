@@ -1,8 +1,9 @@
 #ifndef MDS_H
 #define MDS_H
 
-#include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "defines.h"
@@ -19,8 +20,6 @@ typedef struct Decoder_t
     int mode;
     int ctr;
 } Decoder;
-
-
 
 enum TRACK_TYPE
 {
@@ -140,7 +139,7 @@ typedef struct __attribute__((packed))
 
 
 // decode.c
-void DecryptBlock(u8 *buf,	TC_LARGEST_COMPILER_UINT len, u32 secSz, u64 secN, u8 flags, PCRYPTO_INFO cryptoInfo);
+void DecryptBlock(u8 *buf,	uint64_t len, u32 secSz, u64 secN, u8 flags, PCRYPTO_INFO cryptoInfo);
 
 int decode1(u8 *data, const char *pass, PCRYPTO_INFO *ci);
 

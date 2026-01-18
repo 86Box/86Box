@@ -263,46 +263,8 @@ static uint_8t fi(const uint_8t x)
 
 static int init = 0;
 
-#ifdef TC_WINDOWS_BOOT
-
-#pragma optimize ("l", on)
-uint_8t aes_enc_tab[256][8];
-uint_8t aes_dec_tab[256][8];
-
-#endif
-
 AES_RETURN aes_init(void)
 {   uint_32t  i, w;
-
-#ifdef TC_WINDOWS_BOOT
-
-	if (init)
-		return EXIT_SUCCESS;
-
-    for (i = 0; i < 256; ++i)
-    {
-        uint_8t x = fwd_affine(fi((uint_8t)i));
-		aes_enc_tab[i][0] = 0;
-		aes_enc_tab[i][1] = x;
-		aes_enc_tab[i][2] = x;
-		aes_enc_tab[i][3] = f3(x);
-		aes_enc_tab[i][4] = f2(x);
-		aes_enc_tab[i][5] = x;
-		aes_enc_tab[i][6] = x;
-		aes_enc_tab[i][7] = f3(x);
-
-        x = fi((uint_8t)inv_affine((uint_8t)i));
-		aes_dec_tab[i][0] = fe(x);
-		aes_dec_tab[i][1] = f9(x);
-		aes_dec_tab[i][2] = fd(x);
-		aes_dec_tab[i][3] = fb(x);
-		aes_dec_tab[i][4] = fe(x);
-		aes_dec_tab[i][5] = f9(x);
-		aes_dec_tab[i][6] = fd(x);
-		aes_dec_tab[i][7] = x;
-    }
-
-#else // TC_WINDOWS_BOOT
 
 #if defined(FF_TABLES)
 
@@ -413,8 +375,6 @@ AES_RETURN aes_init(void)
         t_set(i,l)[3][i] = upr(w,3);
 #endif
     }
-
-#endif // TC_WINDOWS_BOOT
 
     init = 1;
     return EXIT_SUCCESS;

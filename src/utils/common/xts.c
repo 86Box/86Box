@@ -6,31 +6,6 @@
  distribution packages.
 */
 
-/* For low-memory environments, define XTS_LOW_RESOURCE_VERSION, which will save
-0.5 KB of RAM, but the speed will be 15-20% lower. However, on multi-core CPUs,
-the XTS_LOW_RESOURCE_VERSION code might eventually be faster when parallelized,
-because it processes the buffer continuously as a whole -- it does not divide the
-buffer into data units (nevertheless, note that GenerateWhiteningValues supports
-more than one data unit).
-
-Note that when TC_NO_COMPILER_INT64 is defined, XTS_LOW_RESOURCE_VERSION is implicitly
-defined as well (because the non-low-resource version needs 64-bit types).
-
-For big-endian platforms (PowerPC, SPARC, etc.) define BYTE_ORDER as BIG_ENDIAN. */
-
-
-#ifdef TC_MINIMIZE_CODE_SIZE
-#	define XTS_LOW_RESOURCE_VERSION
-#	pragma optimize ("tl", on)
-#endif
-
-#ifdef TC_NO_COMPILER_INT64
-#	ifndef XTS_LOW_RESOURCE_VERSION
-#		define XTS_LOW_RESOURCE_VERSION
-#	endif
-#endif
-
-
 #include "xts.h"
 
 
@@ -47,7 +22,7 @@ For big-endian platforms (PowerPC, SPARC, etc.) define BYTE_ORDER as BIG_ENDIAN.
 //                     aligned with the start of a data unit. If it is aligned, startCipherBlockNo must be 0; if it
 //                     is not aligned, startCipherBlockNo must reflect the misalignment accordingly.
 void EncryptBufferXTS (uint8_t *buffer,
-					   TC_LARGEST_COMPILER_UINT length,
+					   uint64_t length,
 					   const UINT64_STRUCT *startDataUnitNo,
 					   unsigned int startCipherBlockNo,
 					   uint8_t *ks,
@@ -63,7 +38,7 @@ void EncryptBufferXTS (uint8_t *buffer,
 	uint64_t *bufPtr = (uint64_t *) buffer;
 	unsigned int startBlock = startCipherBlockNo, endBlock, block;
 	uint64_t *const finalInt64WhiteningValuesPtr = whiteningValuesPtr64 + sizeof (whiteningValues) / sizeof (*whiteningValuesPtr64) - 1;
-	TC_LARGEST_COMPILER_UINT blockCount, dataUnitNo;
+	uint64_t blockCount, dataUnitNo;
 
 	/* The encrypted data unit number (i.e. the resultant ciphertext block) is to be multiplied in the
 	finite field GF(2^128) by j-th power of n, where j is the sequential plaintext/ciphertext block
@@ -79,7 +54,7 @@ void EncryptBufferXTS (uint8_t *buffer,
 	*((uint64_t *) byteBufUnitNo + 1) = 0;
 
 	if (length % BYTES_PER_XTS_BLOCK)
-		TC_THROW_FATAL_EXCEPTION;
+		fatal("EncryptBufferXTS: Length not divisible by %i\n", BYTES_PER_XTS_BLOCK);
 
 	blockCount = length / BYTES_PER_XTS_BLOCK;
 
@@ -177,14 +152,14 @@ void EncryptBufferXTS (uint8_t *buffer,
 		*((uint64_t *) byteBufUnitNo) = LE64 (dataUnitNo);
 	}
 
-	FAST_ERASE64 (whiteningValue, sizeof(whiteningValue));
-	FAST_ERASE64 (whiteningValues, sizeof(whiteningValues));
+	memset (whiteningValue, 0x00, sizeof(whiteningValue));
+	memset (whiteningValues, 0x00, sizeof(whiteningValues));
 }
 
 
 // For descriptions of the input parameters, see EncryptBufferXTS().
 void DecryptBufferXTS (uint8_t *buffer,
-					   TC_LARGEST_COMPILER_UINT length,
+					   uint64_t length,
 					   const UINT64_STRUCT *startDataUnitNo,
 					   unsigned int startCipherBlockNo,
 					   uint8_t *ks,
@@ -200,7 +175,7 @@ void DecryptBufferXTS (uint8_t *buffer,
 	uint64_t *bufPtr = (uint64_t *) buffer;
 	unsigned int startBlock = startCipherBlockNo, endBlock, block;
 	uint64_t *const finalInt64WhiteningValuesPtr = whiteningValuesPtr64 + sizeof (whiteningValues) / sizeof (*whiteningValuesPtr64) - 1;
-	TC_LARGEST_COMPILER_UINT blockCount, dataUnitNo;
+	uint64_t blockCount, dataUnitNo;
 
 	// Convert the 64-bit data unit number into a little-endian 16-byte array.
 	// Note that as we are converting a 64-bit number into a 16-byte array we can always zero the last 8 bytes.
@@ -209,7 +184,7 @@ void DecryptBufferXTS (uint8_t *buffer,
 	*((uint64_t *) byteBufUnitNo + 1) = 0;
 
 	if (length % BYTES_PER_XTS_BLOCK)
-		TC_THROW_FATAL_EXCEPTION;
+		fatal("DecryptBufferXTS: Length not divisible by %i\n", BYTES_PER_XTS_BLOCK);
 
 	blockCount = length / BYTES_PER_XTS_BLOCK;
 
@@ -304,8 +279,8 @@ void DecryptBufferXTS (uint8_t *buffer,
 		*((uint64_t *) byteBufUnitNo) = LE64 (dataUnitNo);
 	}
 
-	FAST_ERASE64 (whiteningValue, sizeof(whiteningValue));
-	FAST_ERASE64 (whiteningValues, sizeof(whiteningValues));
+	memset (whiteningValue, 0x00, sizeof(whiteningValue));
+	memset (whiteningValues, 0x00, sizeof(whiteningValues));
 }
 
 
@@ -317,7 +292,7 @@ void DecryptBufferXTS (uint8_t *buffer,
 // are stored in memory as a sequence of 64-bit integers in reverse order. For descriptions of the input
 // parameters, see EncryptBufferXTS().
 static void GenerateWhiteningValues (uint64_t *bufPtr64,
-							TC_LARGEST_COMPILER_UINT length,
+							uint64_t length,
 							const UINT64_STRUCT *startDataUnitNo,
 							unsigned int startBlock,
 							uint8_t *ks2,
@@ -330,7 +305,7 @@ static void GenerateWhiteningValues (uint64_t *bufPtr64,
 	uint64_t *whiteningValuePtr64 = (uint64_t *) whiteningValue;
 	uint8_t finalCarry;
 	uint64_t *const finalInt64WhiteningValuePtr = whiteningValuePtr64 + sizeof (whiteningValue) / sizeof (*whiteningValuePtr64) - 1;
-	TC_LARGEST_COMPILER_UINT blockCount, dataUnitNo;
+	uint64_t blockCount, dataUnitNo;
 
 	dataUnitNo = startDataUnitNo->Value;
 
@@ -415,7 +390,7 @@ static void GenerateWhiteningValues (uint64_t *bufPtr64,
 		*((uint64_t *) byteBufUnitNo) = LE64 (dataUnitNo);
 	}
 
-	FAST_ERASE64 (whiteningValue, sizeof(whiteningValue));
+	memset (whiteningValue, 0x00, sizeof(whiteningValue));
 }
 #endif	// #if 0
 
@@ -431,14 +406,7 @@ static void GenerateWhiteningValues (uint64_t *bufPtr64,
 // Increases a 64-bit value by one in a way compatible with non-64-bit environments/platforms
 static void IncUint64Struct (UINT64_STRUCT *uint64Struct)
 {
-#ifdef TC_NO_COMPILER_INT64
-	if (!++uint64Struct->LowPart)
-	{
-		uint64Struct->HighPart++;
-	}
-#else
 	uint64Struct->Value++;
-#endif
 }
 
 
@@ -460,13 +428,13 @@ static void Uint64ToLE16ByteArray (uint8_t *byteBuf, unsigned __int32 highInt32,
 // Generates and XORs XTS whitening values into blocks in the buffer.
 // For descriptions of the input parameters, see EncryptBufferXTS().
 static void WhiteningPass (uint8_t *buffer,
-							TC_LARGEST_COMPILER_UINT length,
+							uint64_t length,
 							const UINT64_STRUCT *startDataUnitNo,
 							unsigned int startBlock,
 							uint8_t *ks2,
 							int cipher)
 {
-	TC_LARGEST_COMPILER_UINT blockCount;
+	uint64_t blockCount;
 	UINT64_STRUCT dataUnitNo;
 	unsigned int block;
 	unsigned int endBlock;
@@ -555,7 +523,7 @@ static void WhiteningPass (uint8_t *buffer,
 		Uint64ToLE16ByteArray (byteBufUnitNo, dataUnitNo.HighPart, dataUnitNo.LowPart);
 	}
 
-	FAST_ERASE64 (whiteningValue, sizeof(whiteningValue));
+	memset (whiteningValue, 0x00, sizeof(whiteningValue));
 }
 
 
@@ -570,18 +538,18 @@ static void WhiteningPass (uint8_t *buffer,
 //                     aligned with the start of a data unit. If it is aligned, startCipherBlockNo must be 0; if it
 //                     is not aligned, startCipherBlockNo must reflect the misalignment accordingly.
 void EncryptBufferXTS (uint8_t *buffer,
-					   TC_LARGEST_COMPILER_UINT length,
+					   uint64_t length,
 					   const UINT64_STRUCT *dataUnitNo,
 					   unsigned int startCipherBlockNo,
 					   uint8_t *ks,
 					   uint8_t *ks2,
 					   int cipher)
 {
-	TC_LARGEST_COMPILER_UINT blockCount;
+	uint64_t blockCount;
 	uint8_t *bufPtr = buffer;
 
 	if (length % BYTES_PER_XTS_BLOCK)
-		TC_THROW_FATAL_EXCEPTION;
+		fatal("EncryptBufferXTS(): Length not divisibly by %i\n", BYTES_PER_XTS_BLOCK);
 
 	// Pre-whitening (all plaintext blocks in the buffer)
 	WhiteningPass (buffer, length, dataUnitNo, startCipherBlockNo, ks2, cipher);
@@ -600,18 +568,18 @@ void EncryptBufferXTS (uint8_t *buffer,
 
 // For descriptions of the input parameters, see EncryptBufferXTS().
 void DecryptBufferXTS (uint8_t *buffer,
-					   TC_LARGEST_COMPILER_UINT length,
+					   uint64_t length,
 					   const UINT64_STRUCT *dataUnitNo,
 					   unsigned int startCipherBlockNo,
 					   uint8_t *ks,
 					   uint8_t *ks2,
 					   int cipher)
 {
-	TC_LARGEST_COMPILER_UINT blockCount;
+	uint64_t blockCount;
 	uint8_t *bufPtr = buffer;
 
 	if (length % BYTES_PER_XTS_BLOCK)
-		TC_THROW_FATAL_EXCEPTION;
+		fatal("DecryptBufferXTS(): Length not disivibly by %i\n", BYTES_PER_XTS_BLOCK);
 
 	WhiteningPass (buffer, length, dataUnitNo, startCipherBlockNo, ks2, cipher);
 

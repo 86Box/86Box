@@ -91,19 +91,11 @@
 
 #define X(i)	x[i]
 
-#ifndef TC_MINIMIZE_CODE_SIZE
-
 static u_char PADDING[64] = {
 	0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
-
-#else
-
-static u_char PADDING[64];
-
-#endif
 
 void
 RMD160Init(RMD160_CTX *ctx)
@@ -157,12 +149,7 @@ void RMD160Final(u_char digest[20], RMD160_CTX *ctx)
 	u_char size[8];
 	u_int32_t padlen;
 
-#ifndef TC_NO_COMPILER_INT64
 	PUT_64BIT_LE(size, ctx->count);
-#else
-	*(uint32_t *) (size + 4) = 0;
-	PUT_32BIT_LE(size, ctx->count);
-#endif
 	/*
 	 * pad to 64 byte blocks, at least one byte from PADDING plus 8 bytes
 	 * for the size
@@ -179,8 +166,6 @@ void RMD160Final(u_char digest[20], RMD160_CTX *ctx)
 
 	memset(ctx, 0, sizeof (*ctx));
 }
-
-#ifndef TC_MINIMIZE_CODE_SIZE
 
 void
 RMD160Transform(u_int32_t state[5], const u_char block[64])
@@ -393,118 +378,3 @@ RMD160Transform(u_int32_t state[5], const u_char block[64])
 	state[4] = state[0] + bb + c;
 	state[0] = t;
 }
-
-#else // TC_MINIMIZE_CODE_SIZE
-
-/*
- Copyright (c) 2008 TrueCrypt Foundation. All rights reserved.
-
- Governed by the TrueCrypt License 2.4 the full text of which is contained
- in the file License.txt included in TrueCrypt binary and source code
- distribution packages.
-*/
-
-#pragma optimize ("tl", on)
-
-typedef uint32_t uint32;
-typedef unsigned __int8 byte;
-
-static const byte OrderTab[] = {
-	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-	7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8,
-	3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12,
-	1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2,
-	4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13,
-	5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12,
-	6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2,
-	15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13,
-	8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14,
-	12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11
-};
-
-static const byte RolTab[] = {
-	11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8,
-	7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12,
-	11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5,
-	11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12,
-	9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6,
-	8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6,
-	9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11,
-	9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5,
-	15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8,
-	8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
-};
-
-static const uint32 KTab[] = {
-	0x00000000UL,
-	0x5A827999UL,
-	0x6ED9EBA1UL,
-	0x8F1BBCDCUL,
-	0xA953FD4EUL,
-	0x50A28BE6UL,
-	0x5C4DD124UL,
-	0x6D703EF3UL,
-	0x7A6D76E9UL,
-	0x00000000UL
-};
-
-
-void RMD160Transform (u_int32_t state[5], const u_char block[64])
-{
-	uint32 a, b, c, d, e;
-	uint32 a2, b2, c2, d2, e2;
-	uint32 *data = (uint32 *) block;
-	byte pos;
-	uint32 tmp;
-
-	a = state[0];
-	b = state[1];
-	c = state[2];
-	d = state[3];
-	e = state[4];
-
-	for (pos = 0; pos < 160; ++pos)
-	{
-		tmp = a + data[OrderTab[pos]] + KTab[pos >> 4];
-
-		switch (pos >> 4)
-		{
-		case 0: case 9: tmp += F0 (b, c, d); break;
-		case 1: case 8: tmp += F1 (b, c, d); break;
-		case 2: case 7: tmp += F2 (b, c, d); break;
-		case 3: case 6: tmp += F3 (b, c, d); break;
-		case 4: case 5: tmp += F4 (b, c, d); break;
-		}
-
-		tmp = ROL (RolTab[pos], tmp) + e;
-		a = e;
-		e = d;
-		d = ROL (10, c);
-		c = b;
-		b = tmp;
-
-		if (pos == 79)
-		{
-			a2 = a;
-			b2 = b;
-			c2 = c;
-			d2 = d;
-			e2 = e;
-
-			a = state[0];
-			b = state[1];
-			c = state[2];
-			d = state[3];
-			e = state[4];
-		}
-	}
-
-	tmp = state[1] + c2 + d;
-	state[1] = state[2] + d2 + e;
-	state[2] = state[3] + e2 + a;
-	state[3] = state[4] + a2 + b;
-	state[4] = state[0] + b2 + c;
-	state[0] = tmp;
-}
-
-#endif // TC_MINIMIZE_CODE_SIZE

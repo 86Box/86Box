@@ -9,11 +9,8 @@
  file License.txt included in TrueCrypt binary and source code distribution
  packages. */
 
-#include "tcdefs.h"
 #include "crc.h"
 #include "../common/endian.h"
-
-#ifndef TC_MINIMIZE_CODE_SIZE
 
 /* CRC polynomial 0x04c11db7 */
 uint32_t crc_32_tab[]=
@@ -96,38 +93,3 @@ int crc32_selftests (void)
 
 	return bSuccess;
 }
-
-#else // TC_MINIMIZE_CODE_SIZE
-
-uint32_t GetCrc32 (unsigned char *data, int length)
-{
-    uint32_t r = 0xFFFFFFFFUL;
-	int i, b;
-
-    for (i = 0; i < length; ++i)
-    {
-        r ^= data[i];
-        for (b = 0; b < 8; ++b)
-        {
-            if ((unsigned __int8) r & 1)
-                r = (r >> 1) ^ 0xEDB88320UL;
-            else
-                r >>= 1;
-        }
-    }
-
-	return r ^ 0xFFFFFFFFUL;
-}
-
-int crc32_selftests ()
-{
-	unsigned __int8 testData[32];
-	unsigned __int8 i;
-
-	for (i = 0; i < sizeof (testData); ++i)
-		testData[i] = i;
-
-	return GetCrc32 (testData, sizeof (testData)) == 0x91267E8AUL;
-}
-
-#endif // TC_MINIMIZE_CODE_SIZE

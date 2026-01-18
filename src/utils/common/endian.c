@@ -9,7 +9,6 @@
  file License.txt included in TrueCrypt binary and source code distribution
  packages. */
 
-#include "tcdefs.h"
 #include "../common/endian.h"
 
 
@@ -27,7 +26,6 @@ uint32_t MirrorBytes32 (uint32_t x)
 	return (n << 8) | (uint8_t) (x >> 24);
 }
 
-#ifndef TC_NO_COMPILER_INT64
 uint64_t MirrorBytes64 (uint64_t x)
 {
 	uint64_t n = (uint8_t) x;
@@ -39,7 +37,6 @@ uint64_t MirrorBytes64 (uint64_t x)
 	n <<= 8; n |= (uint8_t) (x >> 48);
 	return (n << 8) | (uint8_t) (x >> 56);
 }
-#endif
 
 void
 LongReverse (uint32_t *buffer, unsigned byteCount)

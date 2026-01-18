@@ -49,7 +49,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include "gfmul.h"
-#include "tcdefs.h"
 #include "../common/endian.h"
 
 /* BUFFER_ALIGN32 or BUFFER_ALIGN64 must be defined at this point to    */
@@ -595,7 +594,6 @@ void MirrorBits128 (uint8_t *a)
 			SetBit128 (127 - i, t);
 	}
 	memcpy (a, t, sizeof (t));
-	burn (t,sizeof (t));
 }
 
 void MirrorBits64 (uint8_t *a)
@@ -609,7 +607,6 @@ void MirrorBits64 (uint8_t *a)
 			SetBit64 (63 - i, t);
 	}
 	memcpy (a, t, sizeof (t));
-	burn (t,sizeof (t));
 }
 
 /* Allocate and initialize speed optimization table
@@ -620,7 +617,7 @@ int Gf128Tab64Init (uint8_t *a, GfCtx *ctx)
 	uint8_t am[16];
 	int i, j;
 
-	ctx8k = (GfCtx8k *) TCalloc (sizeof (GfCtx8k));
+	ctx8k = (GfCtx8k *) malloc (sizeof (GfCtx8k));
 	if (!ctx8k)
 		return 0;
 
@@ -644,9 +641,7 @@ int Gf128Tab64Init (uint8_t *a, GfCtx *ctx)
 		}
 	}
 
-	burn (ctx8k ,sizeof (*ctx8k));
-	burn (am, sizeof (am));
-	TCfree (ctx8k);
+	free (ctx8k);
 	return 1;
 }
 
@@ -658,7 +653,7 @@ int Gf64TabInit (uint8_t *a, GfCtx *ctx)
 	uint8_t am[8];
 	int i, j;
 
-	ctx4k = (GfCtx4k64 *) TCalloc (sizeof (GfCtx4k64));
+	ctx4k = (GfCtx4k64 *) malloc (sizeof (GfCtx4k64));
 	if (!ctx4k)
 		return 0;
 
@@ -682,9 +677,7 @@ int Gf64TabInit (uint8_t *a, GfCtx *ctx)
 		}
 	}
 
-	burn (ctx4k,sizeof (*ctx4k));
-	burn (am, sizeof (am));
-	TCfree (ctx4k);
+	free (ctx4k);
 	return 1;
 }
 
@@ -842,7 +835,7 @@ int GfMulSelfTest (void)
 	uint8_t b[16];
 	uint8_t p1[16];
 	uint8_t p2[16];
-	GfCtx *gfCtx = (GfCtx *) TCalloc (sizeof (GfCtx));
+	GfCtx *gfCtx = (GfCtx *) malloc (sizeof (GfCtx));
 	int i, j;
 
 	if (!gfCtx)
@@ -884,7 +877,7 @@ int GfMulSelfTest (void)
 			result = 0;
 	}
 
-	TCfree (gfCtx);
+	free (gfCtx);
 	return result;
 }
 

@@ -9,8 +9,8 @@
  file License.txt included in TrueCrypt binary and source code distribution
  packages. */
 
-#ifndef TC_ENDIAN_H
-#define TC_ENDIAN_H
+#ifndef ENDIAN_H
+#define ENDIAN_H
 
 #include <inttypes.h>
 
@@ -18,6 +18,11 @@
 extern "C"
 {
 #endif
+
+#define uint16 uint16_t
+#define uint32 uint32_t
+
+#define uint64 uint64_t
 
 #ifdef _WIN32
 
@@ -30,9 +35,9 @@ extern "C"
 
 #elif !defined(BYTE_ORDER)
 
-#	if defined (__APPLE__) || defined (TC_MACOSX)
+#	if defined (__APPLE__)
 #		include <machine/endian.h>
-#	elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined (TC_BSD)
+#	elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 #		include <sys/endian.h>
 #	else
 #		include <endian.h>
@@ -126,13 +131,11 @@ extern "C"
 
 uint16_t MirrorBytes16 (uint16_t x);
 uint32_t MirrorBytes32 (uint32_t x);
-#ifndef TC_NO_COMPILER_INT64
 uint64_t MirrorBytes64 (uint64_t x);
-#endif
 void LongReverse ( uint32_t *buffer , unsigned byteCount );
 
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* TC_ENDIAN_H */
+#endif /* ENDIAN_H */

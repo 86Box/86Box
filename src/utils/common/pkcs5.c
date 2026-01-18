@@ -9,8 +9,6 @@
  file License.txt included in TrueCrypt binary and source code distribution
  packages. */
 
-#include "tcdefs.h"
-
 #include <memory.h>
 #include "../crypto/rmd160.h"
 #include "../crypto/sha1.h"
@@ -61,7 +59,7 @@ void hmac_sha512
 		k = key;
 		lk = SHA512_DIGESTSIZE;
 
-		burn (&tctx, sizeof(tctx));		// Prevent leaks
+		memset (&tctx, 0x00, sizeof(tctx));		// Prevent leaks
 	}
 
 	/**** Inner Digest ****/
@@ -98,12 +96,12 @@ void hmac_sha512
 	hmac_truncate (osha, out, t);
 
 	/* Prevent leaks */
-	burn (&ictx, sizeof(ictx));
-	burn (&octx, sizeof(octx));
-	burn (isha, sizeof(isha));
-	burn (osha, sizeof(osha));
-	burn (buf, sizeof(buf));
-	burn (key, sizeof(key));
+	memset (&ictx, 0x00, sizeof(ictx));
+	memset (&octx, 0x00, sizeof(octx));
+	memset (isha, 0x00, sizeof(isha));
+	memset (osha, 0x00, sizeof(osha));
+	memset (buf, 0x00, sizeof(buf));
+	memset (key, 0x00, sizeof(key));
 }
 
 
@@ -134,8 +132,8 @@ void derive_u_sha512 (char *pwd, int pwd_len, char *salt, int salt_len, int iter
 	}
 
 	/* Prevent possible leaks. */
-	burn (j, sizeof(j));
-	burn (k, sizeof(k));
+	memset (j, 0x00, sizeof(j));
+	memset (k, 0x00, sizeof(k));
 }
 
 
@@ -169,7 +167,7 @@ void derive_key_sha512 (char *pwd, int pwd_len, char *salt, int salt_len, int it
 
 
 	/* Prevent possible leaks. */
-	burn (u, sizeof(u));
+	memset (u, 0x00, sizeof(u));
 }
 
 
@@ -203,7 +201,7 @@ void hmac_sha1
 		k = key;
 		lk = SHA1_DIGESTSIZE;
 
-		burn (&tctx, sizeof(tctx));		// Prevent leaks
+		memset (&tctx, 0x00, sizeof(tctx));		// Prevent leaks
 	}
 
 	/**** Inner Digest ****/
@@ -240,12 +238,12 @@ void hmac_sha1
 	hmac_truncate (osha, out, t);
 
 	/* Prevent leaks */
-	burn (&ictx, sizeof(ictx));
-	burn (&octx, sizeof(octx));
-	burn (isha, sizeof(isha));
-	burn (osha, sizeof(osha));
-	burn (buf, sizeof(buf));
-	burn (key, sizeof(key));
+	memset (&ictx, 0x00, sizeof(ictx));
+	memset (&octx, 0x00, sizeof(octx));
+	memset (isha, 0x00, sizeof(isha));
+	memset (osha, 0x00, sizeof(osha));
+	memset (buf, 0x00, sizeof(buf));
+	memset (key, 0x00, sizeof(key));
 }
 
 
@@ -277,8 +275,8 @@ void derive_u_sha1 (char *pwd, int pwd_len, char *salt, int salt_len, int iterat
 	}
 
 	/* Prevent possible leaks. */
-	burn (j, sizeof(j));
-	burn (k, sizeof(k));
+	memset (j, 0x00, sizeof(j));
+	memset (k, 0x00, sizeof(k));
 }
 
 
@@ -313,7 +311,7 @@ void derive_key_sha1 (char *pwd, int pwd_len, char *salt, int salt_len, int iter
 
 
 	/* Prevent possible leaks. */
-	burn (u, sizeof(u));
+	memset (u, 0x00, sizeof(u));
 }
 
 
@@ -338,7 +336,7 @@ void hmac_ripemd160 (char *key, int keylen, char *input, int len, char *digest)
         key = (char *) tk;
         keylen = RIPEMD160_DIGESTSIZE;
 
-		burn (&tctx, sizeof(tctx));	// Prevent leaks
+		memset (&tctx, 0x00, sizeof(tctx));	// Prevent leaks
     }
 
 	/*
@@ -377,10 +375,10 @@ void hmac_ripemd160 (char *key, int keylen, char *input, int len, char *digest)
     RMD160Final((uint8_t *) digest, &context);         /* finish up 2nd pass */
 
 	/* Prevent possible leaks. */
-    burn (k_ipad, sizeof(k_ipad));
-    burn (k_opad, sizeof(k_opad));
-	burn (tk, sizeof(tk));
-	burn (&context, sizeof(context));
+    memset (k_ipad, 0x00, sizeof(k_ipad));
+    memset (k_opad, 0x00, sizeof(k_opad));
+	memset (tk, 0x00, sizeof(tk));
+	memset (&context, 0x00, sizeof(context));
 }
 
 void derive_u_ripemd160 (char *pwd, int pwd_len, char *salt, int salt_len, int iterations, char *u, int b)
@@ -410,8 +408,8 @@ void derive_u_ripemd160 (char *pwd, int pwd_len, char *salt, int salt_len, int i
 	}
 
 	/* Prevent possible leaks. */
-	burn (j, sizeof(j));
-	burn (k, sizeof(k));
+	memset (j, 0x00, sizeof(j));
+	memset (k, 0x00, sizeof(k));
 }
 
 void derive_key_ripemd160 (char *pwd, int pwd_len, char *salt, int salt_len, int iterations, char *dk, int dklen)
@@ -444,7 +442,7 @@ void derive_key_ripemd160 (char *pwd, int pwd_len, char *salt, int salt_len, int
 
 
 	/* Prevent possible leaks. */
-	burn (u, sizeof(u));
+	memset (u, 0x00, sizeof(u));
 }
 
 void hmac_whirlpool
@@ -476,7 +474,7 @@ void hmac_whirlpool
 		k = key;
 		lk = WHIRLPOOL_DIGESTSIZE;
 
-		burn (&tctx, sizeof(tctx));		// Prevent leaks
+		memset (&tctx, 0x00, sizeof(tctx));		// Prevent leaks
 	}
 
 	/**** Inner Digest ****/
@@ -513,12 +511,12 @@ void hmac_whirlpool
 	hmac_truncate (owhi, out, t);
 
 	/* Prevent possible leaks. */
-	burn (&ictx, sizeof(ictx));
-	burn (&octx, sizeof(octx));
-	burn (owhi, sizeof(owhi));
-	burn (iwhi, sizeof(iwhi));
-	burn (buf, sizeof(buf));
-	burn (key, sizeof(key));
+	memset (&ictx, 0x00, sizeof(ictx));
+	memset (&octx, 0x00, sizeof(octx));
+	memset (owhi, 0x00, sizeof(owhi));
+	memset (iwhi, 0x00, sizeof(iwhi));
+	memset (buf, 0x00, sizeof(buf));
+	memset (key, 0x00, sizeof(key));
 }
 
 void derive_u_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, int iterations, char *u, int b)
@@ -548,8 +546,8 @@ void derive_u_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, int i
 	}
 
 	/* Prevent possible leaks. */
-	burn (j, sizeof(j));
-	burn (k, sizeof(k));
+	memset (j, 0x00, sizeof(j));
+	memset (k, 0x00, sizeof(k));
 }
 
 void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, int iterations, char *dk, int dklen)
@@ -582,7 +580,7 @@ void derive_key_whirlpool (char *pwd, int pwd_len, char *salt, int salt_len, int
 
 
 	/* Prevent possible leaks. */
-	burn (u, sizeof(u));
+	memset (u, 0x00, sizeof(u));
 }
 
 
@@ -625,7 +623,7 @@ int get_pkcs5_iteration_count (int pkcs5_prf_id, int bBoot)
 		return 1000;
 
 	default:
-		TC_THROW_FATAL_EXCEPTION;	// Unknown/wrong ID
+		fatal("get_pkcs5_iteration_count(): Unknown/wrong ID\n");	// Unknown/wrong ID
 	}
 	return 0;
 }

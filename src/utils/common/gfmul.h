@@ -32,8 +32,6 @@
 
 #include <inttypes.h>
 
-#include "tcdefs.h"
-
 #if defined(__cplusplus)
 extern "C"
 {

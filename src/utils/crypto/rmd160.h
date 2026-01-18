@@ -43,11 +43,7 @@ extern "C"
 /* RMD160 context. */
 typedef struct RMD160Context {
 	u_int32_t state[5];	/* state */
-#ifndef TC_NO_COMPILER_INT64
 	u_int64_t count;	/* number of bits, modulo 2^64 */
-#else
-	u_int32_t count;
-#endif
 	u_char buffer[64];	/* input buffer */
 } RMD160_CTX;
 

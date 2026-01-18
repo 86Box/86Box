@@ -302,9 +302,7 @@
     If this section is included, tables are used to provide faster finite
     field arithmetic (this has no effect if FIXED_TABLES is defined).
 */
-#if !defined (TC_WINDOWS_BOOT)
 #define FF_TABLES
-#endif
 
 /*  7. INTERNAL STATE VARIABLE FORMAT
 
@@ -323,7 +321,7 @@
     statically into the binary file.  Otherwise the subroutine aes_init()
     must be called to compute them before the code is first used.
 */
-#if !defined (TC_WINDOWS_BOOT) && !(defined( _MSC_VER ) && ( _MSC_VER <= 800 ))
+#if !(defined( _MSC_VER ) && ( _MSC_VER <= 800 ))
 #define FIXED_TABLES
 #endif
 

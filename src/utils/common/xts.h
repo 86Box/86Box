@@ -13,7 +13,6 @@
 
 #include <inttypes.h>
 
-#include "tcdefs.h"
 #include "../common/endian.h"
 #include "crypto.h"
 
@@ -43,34 +42,18 @@ extern "C" {
 #endif
 
 // Custom data types
-
-#ifndef TC_LARGEST_COMPILER_UINT
-#	ifdef TC_NO_COMPILER_INT64
-		typedef uint32_t	TC_LARGEST_COMPILER_UINT;
-#	else
-		typedef uint64_t	TC_LARGEST_COMPILER_UINT;
-#	endif
-#endif
-
-#ifndef TCDEFS_H
-typedef union
-{
-	struct
-	{
-		uint32_t LowPart;
-		uint32_t HighPart;
-	};
-#	ifndef TC_NO_COMPILER_INT64
-	uint64_t Value;
-#	endif
-
+typedef union {
+    struct {
+        uint32_t LowPart;
+        uint32_t HighPart;
+    };
+    uint64_t Value;
 } UINT64_STRUCT;
-#endif
 
 // Public function prototypes
 
-void EncryptBufferXTS (uint8_t *buffer, TC_LARGEST_COMPILER_UINT length, const UINT64_STRUCT *startDataUnitNo, unsigned int startCipherBlockNo, uint8_t *ks, uint8_t *ks2, int cipher);
-void DecryptBufferXTS (uint8_t *buffer, TC_LARGEST_COMPILER_UINT length, const UINT64_STRUCT *startDataUnitNo, unsigned int startCipherBlockNo, uint8_t *ks, uint8_t *ks2, int cipher);
+void EncryptBufferXTS (uint8_t *buffer, uint64_t length, const UINT64_STRUCT *startDataUnitNo, unsigned int startCipherBlockNo, uint8_t *ks, uint8_t *ks2, int cipher);
+void DecryptBufferXTS (uint8_t *buffer, uint64_t length, const UINT64_STRUCT *startDataUnitNo, unsigned int startCipherBlockNo, uint8_t *ks, uint8_t *ks2, int cipher);
 
 #ifdef __cplusplus
 }

@@ -28,7 +28,17 @@
 #ifndef _SHA2_H
 #define _SHA2_H
 
-#include "../common/tcdefs.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <86box/86box.h>
+
+#define uint_64t uint64_t
+
+#define uint_32t uint32_t
+#define uint_8t  uint8_t
+
 #include "../common/endian.h"
 
 #define SHA_64BIT

@@ -9,10 +9,8 @@
  file License.txt included in TrueCrypt binary and source code distribution
  packages. */
 
-#ifndef TC_HEADER_PKCS5
-#define TC_HEADER_PKCS5
-
-#include "tcdefs.h"
+#ifndef HEADER_PKCS5
+#define HEADER_PKCS5
 
 #if defined(__cplusplus)
 extern "C"
@@ -38,4 +36,4 @@ char *get_pkcs5_prf_name (int pkcs5_prf_id);
 }
 #endif
 
-#endif // TC_HEADER_PKCS5
+#endif // HEADER_PKCS5

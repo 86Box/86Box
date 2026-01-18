@@ -33,7 +33,10 @@
 #ifndef _AES_H
 #define _AES_H
 
-#include "../common/tcdefs.h"
+#include <stdint.h>
+
+#define uint_32t uint32_t
+#define uint_8t  uint8_t
 
 #ifndef EXIT_SUCCESS
 #define EXIT_SUCCESS    0
