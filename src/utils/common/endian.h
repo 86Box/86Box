@@ -30,7 +30,7 @@ extern "C"
 
 #elif !defined(BYTE_ORDER)
 
-#	ifdef TC_MACOSX
+#	if defined (__APPLE__) || defined (TC_MACOSX)
 #		include <machine/endian.h>
 #	elif defined (TC_BSD)
 #		include <sys/endian.h>
