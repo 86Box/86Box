@@ -19,6 +19,7 @@
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
 #include <inttypes.h>
+#define ENABLE_IMAGE_LOG 1
 #ifdef ENABLE_IMAGE_LOG
 #include <stdarg.h>
 #endif
@@ -27,12 +28,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <zlib.h>
 #include <sys/stat.h>
 #ifndef _WIN32
 #    include <libgen.h>
 #endif
 #include <86box/86box.h>
 #include <86box/log.h>
+#include <86box/nvr.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/cdrom.h>
@@ -41,11 +44,15 @@
 
 #include <sndfile.h>
 
+#define NO_CHIPHER_IDS_ENUM
+#include "../utils/mds.h"
+
 #define MAX_LINE_LENGTH     512
 #define MAX_FILENAME_LENGTH 256
 #define CROSS_LEN           512
 
 static char temp_keyword[1024];
+static char temp_file[260]     = { 0 };
 
 #define INDEX_SPECIAL -2 /* Track A0h onwards. */
 #define INDEX_NONE    -1 /* Empty block. */
@@ -137,12 +144,6 @@ typedef enum
     MODE2_FORM1 = 0xac,    /* sector size = 2048 */
     MODE2_FORM2 = 0xad     /* sector size = 2324 (+4) */
 } mds_trk_mode_t;
-
-typedef enum
-{
-    NONE           = 0x00,    /* no subchannel */
-    PW_INTERLEAVED = 0x08     /* 96-byte PW subchannel, interleaved */
-} mds_subch_mode_t;
 
 #pragma pack(push, 1)
 typedef struct
@@ -1967,6 +1968,187 @@ long int utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
     return (long int)j;
 }
 
+int
+mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
+{
+    int      is_mdx     = 0;
+
+    uint64_t mdx_offset = 0ULL;
+    uint64_t mdx_size_1 = 0ULL;
+
+    if (*fp == NULL) {
+#ifdef ENABLE_IMAGE_LOG
+        log_warning(img->log, "    [MDS   ] \"%s\" is not open\n",
+                    mdsfile);
+#else
+        warning("\"%s\" is not open\n", mdsfile);
+#endif
+        return 0;
+    }
+
+    pclog("mds_decrypt_track_data(): Decrypting MDS...\n");
+    /*
+       If we are here, them we have already determined in
+       image_load_mds() that the version is 2.x.
+     */
+    fseek(*fp, 0x2c, SEEK_SET);
+
+    uint64_t offset = 0ULL;
+    fread(&offset, 1, 4, *fp);
+    pclog("mds_decrypt_track_data(): Offset is %016" PRIX64 "\n", offset);
+
+    if (offset == 0xffffffff) {
+        pclog("mds_decrypt_track_data(): File is MDX\n");
+        is_mdx = 1;
+
+        fread(&mdx_offset, 1, 8, *fp);
+        fread(&mdx_size_1, 1, 8, *fp);
+        pclog("mds_decrypt_track_data(): MDX footer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", mdx_size_1, mdx_offset);
+
+        offset = mdx_offset + (mdx_size_1 - 0x40);
+        pclog("mds_decrypt_track_data(): MDX offset is %016" PRIX64 "\n", offset);
+    }
+
+    fseek(*fp, offset, SEEK_SET);
+
+    uint8_t data1[0x200];
+
+    fread(data1, 0x200, 1, *fp);
+    pclog("mds_decrypt_track_data(): Read the first data buffer\n");
+
+    PCRYPTO_INFO ci;
+    decode1(data1, NULL, &ci);
+    printf("data1: %02X %02X %02X %02X\n", data1[0], data1[1], data1[2], data1[3]);
+    FILE *d1f = fopen("data1.tmp", "wb");
+    fwrite(data1, 1, 0x200, d1f);
+    fclose(d1f);
+    pclog("mds_decrypt_track_data(): Decoded the first data buffer\n");
+
+    /* Compressed size at 0x150? */
+    uint32_t decSize = getU32(data1 + 0x154);    /* Decompressed size? */
+    pclog("mds_decrypt_track_data(): Decompressed size is %i bytes\n", decSize);
+
+    uint64_t data2Offset = 0x30;                         /* For MDS v2. */
+    uint64_t data2Size = offset - 0x30;                  /* For MDS v2. */
+
+    if (is_mdx) {
+        data2Offset = mdx_offset;
+        data2Size = mdx_size_1 - 0x40;
+    }
+    pclog("mds_decrypt_track_data(): Second data buffer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", data2Size, data2Offset);
+
+    fseek(*fp, data2Offset, SEEK_SET);
+
+    u8 *data2 = (u8 *)malloc(data2Size);
+    fread(data2, 1, data2Size, *fp);
+    pclog("mds_decrypt_track_data(): Read the second data buffer\n");
+
+    DecryptBlock(data2, data2Size, 0, 0, 4, ci);
+    pclog("mds_decrypt_track_data(): Decoded the second data buffer\n");
+
+    u8 *mdxHeader = (u8 *)malloc(decSize + 0x12);
+
+    z_stream infstream;
+    infstream.zalloc = Z_NULL;
+    infstream.zfree = Z_NULL;
+    infstream.opaque = Z_NULL;
+    infstream.avail_in = data2Size;
+    infstream.next_in = data2;
+    infstream.avail_out = decSize;
+    infstream.next_out = mdxHeader + 0x12;
+
+    inflateInit(&infstream);
+
+    inflate(&infstream, Z_NO_FLUSH);
+    inflateEnd(&infstream);
+
+    fseek(*fp, 0, SEEK_SET);
+    fread(mdxHeader, 1, 0x12, *fp);
+
+    u8 medium_type = getU8(mdxHeader + offsetof(MDX_Header, medium_type));
+    int isDVD = 1;
+
+    if (medium_type < 3) // 0, 1, 2
+        isDVD = 0;
+
+    Decoder encryptInfo;
+    encryptInfo.mode = -1;
+    encryptInfo.ctr = 1;
+
+    u32 keyBlockOff = getU32(mdxHeader + offsetof(MDX_Header, encryption_block_offset));
+
+    if (keyBlockOff) {
+        pclog("Encryption detected\n");
+
+        const char *password = NULL;
+
+        pclog("Trying without password\n");
+
+        PCRYPTO_INFO ci2;
+        if (decode1(mdxHeader + keyBlockOff, password, &ci2) == 0) {
+            if (password)
+                pclog("Password \"%s\": OK\n", password);
+            else
+                pclog("It's encrypted with NULL password. OK!\n");
+        } else {
+            if (password)
+                pclog("Password \"%s\": WRONG\n", password);
+            else
+                pclog("Please specify password. Seems it's necessery.\n");
+
+            pclog("But we save header_not_decrypted.out with encrypted key block\n");
+
+#if 0
+            FILE *b = fopen("header_not_decrypted.out", "wb");
+            fwrite(mdxHeader, 1, decSize + 0x12, b);
+            fclose(b);
+#else
+#ifdef ENABLE_IMAGE_LOG
+            log_warning(img->log, "    [MDS   ] \"%s\" is an unsupported password-protected file\n",
+                        mdsfile);
+#else
+            warning("\"%s\" is an unsupported password-protected file\n", mdsfile);
+#endif
+            fclose(*fp);
+            *fp = NULL;
+#endif
+
+            return 0;
+        }
+
+        /*
+           Seems it's always use one mode AES 256 with GF. */
+        encryptInfo.bsize = 32;
+        encryptInfo.mode = 2;
+
+        u8 *keyblock = mdxHeader + keyBlockOff;
+        memcpy(encryptInfo.dg, keyblock + 0x50, 0x20);
+        Gf128Tab64Init(keyblock + 0x50, &encryptInfo.gf_ctx);
+        aes_encrypt_key(keyblock + 0x70, encryptInfo.bsize, &encryptInfo.encr);
+        aes_decrypt_key(keyblock + 0x70, encryptInfo.bsize, &encryptInfo.decr);
+    } else
+        pclog("No encryption detected\n");
+
+    fclose(*fp);
+    *fp = NULL;
+
+    /* Dump mdxHeader */
+    pclog("\nDumping header into header.out... ");
+
+    plat_tempfile(temp_file, "mds_v2", ".tmp");
+    *fp = plat_fopen64(nvr_path(temp_file), "wb");
+    fwrite(mdxHeader, 1, decSize + 0x12, *fp);
+    fclose(*fp);
+
+    fclose(*fp);
+    *fp = NULL;
+
+    *fp = plat_fopen64(nvr_path(temp_file), "rb");
+
+    pclog("Done\n");
+    return isDVD + 1;
+}
+
 static int
 image_load_mds(cd_image_t *img, const char *mdsfile)
 {
@@ -2018,28 +2200,49 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
     if (memcmp(mds_hdr.file_sig, "MEDIA DESCRIPTOR", 16)) {
 #ifdef ENABLE_IMAGE_LOG
-        log_warning(img->log, "    [MDS   ] \"%s\"\n is not an actual MDF file",
+        log_warning(img->log, "    [MDS   ] \"%s\" is not an actual MDF file\n",
                     mdsfile);
 #else
-        warning("\"%s\"\n is not an actual MDF file", mdsfile);
+        warning("\"%s\" is not an actual MDF file\n", mdsfile);
 #endif
         fclose(fp);
         return 0;
     }
 
     if (mds_hdr.file_ver[0] == 0x02) {
+        int mdsx = mdsx_init();
+        if (!mdsx) {
 #ifdef ENABLE_IMAGE_LOG
-        log_warning(img->log, "    [MDS   ] \"%s\" is a Daemon Tools encrypted MDS which is not supported\n",
-                    mdsfile);
+            log_warning(img->log, "    [MDS   ] Error initializing dynamic library\n");
 #else
-        warning("\"%s\" is a Daemon Tools encrypted MDS which is not supported\n", mdsfile);
+            warning("Error initializing dynamic library\n", mdsfile);
 #endif
-        version = 2;
-        fclose(fp);
-        return 0;
-    }
+            if (fp != NULL)
+                fclose(fp);
+            return 0;
+        }
 
-    img->is_dvd = (mds_hdr.medium_type >= 0x10);
+        image_log(img->log, "Pass 1.5 (decrypting the Media Descriptor Sheet)...\n");
+
+        fseek(fp, 0, SEEK_SET);
+        int ret = mds_decrypt_track_data(img, mdsfile, &fp);
+
+        mdsx_close();
+
+        if (ret == 0) {
+#ifdef ENABLE_IMAGE_LOG
+            log_warning(img->log, "    [MDS   ] Error decrypting \"%s\"\n",
+                        mdsfile);
+#else
+            warning("Error decrypting \"%s\"\n", mdsfile);
+#endif
+            if (fp != NULL)
+                fclose(fp);
+            return 0;
+        } else
+            img->is_dvd = ret - 1;
+    } else
+        img->is_dvd = (mds_hdr.medium_type >= 0x10);
 
     if (img->is_dvd) {
         if (mds_hdr.disc_struct_offs != 0x00) {
@@ -2702,6 +2905,11 @@ image_close(void *local)
             free(img->bad_sectors);
 
         free(img);
+
+        if (temp_file[0] != 0x00) {
+            remove(temp_file);
+            temp_file[0] = 0x00;
+        }
     }
 }
 

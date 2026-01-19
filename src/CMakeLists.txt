@@ -134,6 +134,7 @@ target_link_libraries(86Box
     scsi
     sio
     snd
+    mdsx_dll
     utils
     vid
     voodoo

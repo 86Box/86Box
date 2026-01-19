@@ -1,13 +1,90 @@
 #ifndef MDS_H
 #define MDS_H
 
-#include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "defines.h"
-#include "common/crypto.h"
+// #include "common/crypto.h"
+
+#if defined( AES_VAR ) || defined( AES_256 )
+#define KS_LENGTH       60
+#elif defined( AES_192 )
+#define KS_LENGTH       52
+#else
+#define KS_LENGTH       44
+#endif
+
+#define AES_RETURN               int
+#define TC_LARGEST_COMPILER_UINT uint64_t
+
+#define u16                      uint16_t
+
+typedef union
+{
+    uint32_t l;
+    uint8_t  b[4];
+} aes_inf;
+
+typedef struct
+{
+    uint32_t ks[KS_LENGTH];
+    aes_inf  inf;
+} aes_encrypt_ctx;
+
+typedef struct
+{
+    uint32_t ks[KS_LENGTH];
+    aes_inf  inf;
+} aes_decrypt_ctx;
+
+#ifndef u4byte
+#define u4byte	uint32_t
+#endif
+
+typedef struct
+{
+	u4byte l_key[40];
+	u4byte s_key[4];
+#if !defined (TC_MINIMIZE_CODE_SIZE) || defined (TC_WINDOWS_BOOT_TWOFISH)
+	u4byte mk_tab[4 * 256];
+#endif
+	u4byte k_len;
+} TwofishInstance;
+
+#define AES_KS              (sizeof(aes_encrypt_ctx) + sizeof(aes_decrypt_ctx))
+#define SERPENT_KS          (140 * 4)
+#define TWOFISH_KS          sizeof(TwofishInstance)
+#define MAX_EXPANDED_KEY    (AES_KS + SERPENT_KS + TWOFISH_KS)
+#define MASTER_KEYDATA_SIZE 256
+#define PKCS5_SALT_SIZE     64
+/* Encryption block length */
+#define CBLK_LEN            16
+#define CBLK_LEN8           8
+
+typedef struct
+{
+    /* Union not used to support faster mounting */
+    uint32_t gf_t128[CBLK_LEN * 2 / 2][16][CBLK_LEN / 4];
+    uint32_t gf_t64[CBLK_LEN8 * 2][16][CBLK_LEN8 / 4];
+} GfCtx;
+
+typedef struct CRYPTO_INFO_t
+{
+    int ea;
+    int mode;
+    uint8_t ks[MAX_EXPANDED_KEY];
+    uint8_t ks2[MAX_EXPANDED_KEY];
+
+    GfCtx gf_ctx;
+
+    uint8_t master_keydata[MASTER_KEYDATA_SIZE];
+    uint8_t k2[MASTER_KEYDATA_SIZE];
+    uint8_t salt[PKCS5_SALT_SIZE];
+    int noIterations;
+    int pkcs5;
+} CRYPTO_INFO, *PCRYPTO_INFO;
 
 typedef struct Decoder_t
 {
@@ -20,6 +97,8 @@ typedef struct Decoder_t
     int mode;
     int ctr;
 } Decoder;
+
+
 
 enum TRACK_TYPE
 {
@@ -139,11 +218,29 @@ typedef struct __attribute__((packed))
 
 
 // decode.c
-void DecryptBlock(u8 *buf,	uint64_t len, u32 secSz, u64 secN, u8 flags, PCRYPTO_INFO cryptoInfo);
+#if 0
+void DecryptBlock(u8 *buf,	TC_LARGEST_COMPILER_UINT len, u32 secSz, u64 secN, u8 flags, PCRYPTO_INFO cryptoInfo);
 
 int decode1(u8 *data, const char *pass, PCRYPTO_INFO *ci);
 
 void decryptMdxData(Decoder *ctx, u8 *buffer, u32 length, u64 blockSize, u64 blockIndex);
+#else
+#ifdef _WIN32
+#    define MDSXDLLAPI __stdcall
+#else
+#    define MDSXDLLAPI
+#endif
+
+extern void(MDSXDLLAPI *DecryptBlock)(u8 *buf,	TC_LARGEST_COMPILER_UINT len, u32 secSz, u64 secN, u8 flags, PCRYPTO_INFO cryptoInfo);
+extern int(MDSXDLLAPI *decode1)(u8 *data, const char *pass, PCRYPTO_INFO *ci);
+extern void(MDSXDLLAPI *decryptMdxData)(Decoder *ctx, u8 *buffer, u32 length, u64 blockSize, u64 blockIndex);
+extern int(MDSXDLLAPI *Gf128Tab64Init)(uint8_t *a, GfCtx *ctx);
+extern AES_RETURN(MDSXDLLAPI *aes_encrypt_key)(const unsigned char *key, int key_len, aes_encrypt_ctx cx[1]);
+extern AES_RETURN(MDSXDLLAPI *aes_decrypt_key)(const unsigned char *key, int key_len, aes_decrypt_ctx cx[1]);
+
+extern void mdsx_close(void);
+extern int  mdsx_init(void);
+#endif
 
 
 // utils.c
