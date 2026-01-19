@@ -19,7 +19,6 @@
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
 #include <inttypes.h>
-#define ENABLE_IMAGE_LOG 1
 #ifdef ENABLE_IMAGE_LOG
 #include <stdarg.h>
 #endif
@@ -43,6 +42,12 @@
 #include <86box/cdrom_image_viso.h>
 
 #include <sndfile.h>
+
+#ifdef ENABLE_IMAGE_LOG
+#define LOG_VAR(a) size_t a =
+#else
+#define LOG_VAR(a)
+#endif
 
 #define NO_CHIPHER_IDS_ENUM
 #include "../utils/mds.h"
@@ -214,7 +219,13 @@ typedef struct
     uint64_t start_offs;
     uint32_t files_num;
     uint32_t footer_offs;
-    uint8_t  pad1[24];
+    union {
+        uint8_t  pad1[24];
+        struct {
+            uint64_t start_sect_v2;
+            uint8_t  pad2[16];
+        };
+    };        
 } mds_trk_block_t;    /* 80 bytes */
 
 /*
@@ -1986,7 +1997,7 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
         return 0;
     }
 
-    pclog("mds_decrypt_track_data(): Decrypting MDS...\n");
+    image_log(img->log, "mds_decrypt_track_data(): Decrypting MDS...\n");
     /*
        If we are here, them we have already determined in
        image_load_mds() that the version is 2.x.
@@ -1995,18 +2006,18 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     uint64_t offset = 0ULL;
     fread(&offset, 1, 4, *fp);
-    pclog("mds_decrypt_track_data(): Offset is %016" PRIX64 "\n", offset);
+    image_log(img->log, "mds_decrypt_track_data(): Offset is %016" PRIX64 "\n", offset);
 
     if (offset == 0xffffffff) {
-        pclog("mds_decrypt_track_data(): File is MDX\n");
+        image_log(img->log, "mds_decrypt_track_data(): File is MDX\n");
         is_mdx = 1;
 
         fread(&mdx_offset, 1, 8, *fp);
         fread(&mdx_size_1, 1, 8, *fp);
-        pclog("mds_decrypt_track_data(): MDX footer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", mdx_size_1, mdx_offset);
+        image_log(img->log, "mds_decrypt_track_data(): MDX footer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", mdx_size_1, mdx_offset);
 
         offset = mdx_offset + (mdx_size_1 - 0x40);
-        pclog("mds_decrypt_track_data(): MDX offset is %016" PRIX64 "\n", offset);
+        image_log(img->log, "mds_decrypt_track_data(): MDX offset is %016" PRIX64 "\n", offset);
     }
 
     fseek(*fp, offset, SEEK_SET);
@@ -2014,19 +2025,19 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     uint8_t data1[0x200];
 
     fread(data1, 0x200, 1, *fp);
-    pclog("mds_decrypt_track_data(): Read the first data buffer\n");
+    image_log(img->log, "mds_decrypt_track_data(): Read the first data buffer\n");
 
     PCRYPTO_INFO ci;
     decode1(data1, NULL, &ci);
-    printf("data1: %02X %02X %02X %02X\n", data1[0], data1[1], data1[2], data1[3]);
+    image_log(img->log, "data1: %02X %02X %02X %02X\n", data1[0], data1[1], data1[2], data1[3]);
     FILE *d1f = fopen("data1.tmp", "wb");
     fwrite(data1, 1, 0x200, d1f);
     fclose(d1f);
-    pclog("mds_decrypt_track_data(): Decoded the first data buffer\n");
+    image_log(img->log, "mds_decrypt_track_data(): Decoded the first data buffer\n");
 
     /* Compressed size at 0x150? */
     uint32_t decSize = getU32(data1 + 0x154);    /* Decompressed size? */
-    pclog("mds_decrypt_track_data(): Decompressed size is %i bytes\n", decSize);
+    image_log(img->log, "mds_decrypt_track_data(): Decompressed size is %i bytes\n", decSize);
 
     uint64_t data2Offset = 0x30;                         /* For MDS v2. */
     uint64_t data2Size = offset - 0x30;                  /* For MDS v2. */
@@ -2035,16 +2046,16 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
         data2Offset = mdx_offset;
         data2Size = mdx_size_1 - 0x40;
     }
-    pclog("mds_decrypt_track_data(): Second data buffer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", data2Size, data2Offset);
+    image_log(img->log, "mds_decrypt_track_data(): Second data buffer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", data2Size, data2Offset);
 
     fseek(*fp, data2Offset, SEEK_SET);
 
     u8 *data2 = (u8 *)malloc(data2Size);
     fread(data2, 1, data2Size, *fp);
-    pclog("mds_decrypt_track_data(): Read the second data buffer\n");
+    image_log(img->log, "mds_decrypt_track_data(): Read the second data buffer\n");
 
     DecryptBlock(data2, data2Size, 0, 0, 4, ci);
-    pclog("mds_decrypt_track_data(): Decoded the second data buffer\n");
+    image_log(img->log, "mds_decrypt_track_data(): Decoded the second data buffer\n");
 
     u8 *mdxHeader = (u8 *)malloc(decSize + 0x12);
 
@@ -2078,25 +2089,29 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     u32 keyBlockOff = getU32(mdxHeader + offsetof(MDX_Header, encryption_block_offset));
 
     if (keyBlockOff) {
-        pclog("Encryption detected\n");
+        image_log(img->log, "Encryption detected\n");
 
         const char *password = NULL;
 
-        pclog("Trying without password\n");
+        image_log(img->log, "Trying without password\n");
 
         PCRYPTO_INFO ci2;
+#ifdef ENABLE_IMAGE_LOG
         if (decode1(mdxHeader + keyBlockOff, password, &ci2) == 0) {
             if (password)
-                pclog("Password \"%s\": OK\n", password);
+                image_log(img->log, "Password \"%s\": OK\n", password);
             else
-                pclog("It's encrypted with NULL password. OK!\n");
+                image_log(img->log, "It's encrypted with NULL password. OK!\n");
         } else {
             if (password)
-                pclog("Password \"%s\": WRONG\n", password);
+                image_log(img->log, "Password \"%s\": WRONG\n", password);
             else
-                pclog("Please specify password. Seems it's necessery.\n");
+                image_log(img->log, "Please specify password. Seems it's necessery.\n");
 
-            pclog("But we save header_not_decrypted.out with encrypted key block\n");
+            image_log(img->log, "But we save header_not_decrypted.out with encrypted key block\n");
+#else
+        if (decode1(mdxHeader + keyBlockOff, password, &ci2) != 0) {
+#endif
 
 #if 0
             FILE *b = fopen("header_not_decrypted.out", "wb");
@@ -2127,15 +2142,15 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
         aes_encrypt_key(keyblock + 0x70, encryptInfo.bsize, &encryptInfo.encr);
         aes_decrypt_key(keyblock + 0x70, encryptInfo.bsize, &encryptInfo.decr);
     } else
-        pclog("No encryption detected\n");
+        image_log(img->log, "No encryption detected\n");
 
     fclose(*fp);
     *fp = NULL;
 
     /* Dump mdxHeader */
-    pclog("\nDumping header into header.out... ");
-
     plat_tempfile(temp_file, "mds_v2", ".tmp");
+    image_log(img->log, "\nDumping header into %s... ", nvr_path(temp_file));
+
     *fp = plat_fopen64(nvr_path(temp_file), "wb");
     fwrite(mdxHeader, 1, decSize + 0x12, *fp);
     fclose(*fp);
@@ -2145,7 +2160,7 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     *fp = plat_fopen64(nvr_path(temp_file), "rb");
 
-    pclog("Done\n");
+    image_log(img->log, "Done\n");
     return isDVD + 1;
 }
 
@@ -2213,9 +2228,9 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
         int mdsx = mdsx_init();
         if (!mdsx) {
 #ifdef ENABLE_IMAGE_LOG
-            log_warning(img->log, "    [MDS   ] Error initializing dynamic library\n");
+            log_warning(img->log, "    [MDS   ] Error initializing dynamic library %s\n", mdsfile);
 #else
-            warning("Error initializing dynamic library\n", mdsfile);
+            warning("Error initializing dynamic library %s\n", mdsfile);
 #endif
             if (fp != NULL)
                 fclose(fp);
@@ -2239,8 +2254,15 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             if (fp != NULL)
                 fclose(fp);
             return 0;
-        } else
+        } else {
             img->is_dvd = ret - 1;
+            version     = 2;
+
+            fseek(fp, 0, SEEK_SET);
+            if (fread(&mds_hdr, 1, sizeof(mds_hdr_t), fp) != sizeof(mds_hdr_t))
+                return 0;
+        }
+        image_log(img->log, "ret = %i\n", ret);
     } else
         img->is_dvd = (mds_hdr.medium_type >= 0x10);
 
@@ -2288,17 +2310,23 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 
     if (mds_hdr.dpm_blocks_offs != 0x00) {
         fseek(fp, mds_hdr.dpm_blocks_offs, SEEK_SET);
-        if (fread(&mds_dpm_blocks_num, 1, sizeof(uint32_t), fp) != sizeof(uint32_t))
+        if (LOG_VAR(dbnret) fread(&mds_dpm_blocks_num, 1, sizeof(uint32_t), fp) != sizeof(uint32_t)) {
+            image_log(img->log, "dbnret = %i (expected: %i)\n", (int) dbnret, (int) sizeof(uint32_t));
             return 0;
+        }
 
         if (mds_dpm_blocks_num > 0)  for (int b = 0; b < mds_dpm_blocks_num; b++) {
             fseek(fp, mds_hdr.dpm_blocks_offs + 4 + (b * 4), SEEK_SET);
-            if (fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp) != sizeof(uint32_t))
+            if (LOG_VAR(dboret) fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp) != sizeof(uint32_t)) {
+                image_log(img->log, "dboret = %i (expected: %i)\n", (int) dboret, (int) sizeof(uint32_t));
                 return 0;
+            }
 
             fseek(fp, mds_dpm_block_offs, SEEK_SET);
-            if (fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp) != sizeof(mds_dpm_block_t))
+            if (LOG_VAR(dbret) fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp) != sizeof(mds_dpm_block_t)) {
+                image_log(img->log, "dbret = %i (expected: %i)\n", (int) dbret, (int) sizeof(mds_dpm_block_t));
                 return 0;
+            }
 
             /* We currently only support the bad sectors block and not (yet) actual DPM. */
             if (mds_dpm_block.type == 0x00000002) {
@@ -2307,8 +2335,10 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 img->bad_sectors     = (uint32_t *) malloc(img->bad_sectors_num * sizeof(uint32_t));
                 fseek(fp, mds_dpm_block_offs + sizeof(mds_dpm_block_t), SEEK_SET);
                 int read_size = img->bad_sectors_num * sizeof(uint32_t);
-                if (fread(img->bad_sectors, 1, read_size, fp) != read_size)
+                if (LOG_VAR(dbtret) fread(img->bad_sectors, 1, read_size, fp) != read_size) {
+                    image_log(img->log, "dbtret = %i (expected: %i)\n", (int) dbtret, (int) read_size);
                     return 0;
+                }
                 break;
             }
         }
@@ -2317,21 +2347,32 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     for (int s = 0; s < mds_hdr.sess_num; s++) {
         if (version == 2) {
             fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_v2_sess_block_t)), SEEK_SET);
-            if (fread(&mds_v2_sess_block, 1, sizeof(mds_v2_sess_block_t), fp) != sizeof(mds_v2_sess_block_t))
+            if (LOG_VAR(hret) fread(&mds_v2_sess_block, 1, sizeof(mds_v2_sess_block_t), fp) != sizeof(mds_v2_sess_block_t)) {
+                image_log(img->log, "hret = %i (expected: %i)\n", (int) hret, (int) sizeof(mds_v2_sess_block_t));
                 return 0;
+            }
             memcpy(&mds_sess_block, &mds_v2_sess_block, sizeof(mds_sess_block_t));
             mds_sess_block.sess_start = (int32_t) mds_v2_sess_block.sess_start;
             mds_sess_block.sess_end   = (int32_t) mds_v2_sess_block.sess_end;
         } else {
             fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_sess_block_t)), SEEK_SET);
-            if (fread(&mds_sess_block, 1, sizeof(mds_sess_block_t), fp) != sizeof(mds_sess_block_t))
+            if (LOG_VAR(hret2) fread(&mds_sess_block, 1, sizeof(mds_sess_block_t), fp) != sizeof(mds_sess_block_t)) {
+                image_log(img->log, "hret2 = %i (expected: %i)\n", (int) hret2, (int) sizeof(mds_sess_block_t));
                 return 0;
+            }
         }
 
         for (int t = 0; t < mds_sess_block.all_blocks_num; t++) {
             fseek(fp, mds_sess_block.trk_blocks_offs + (t * sizeof(mds_trk_block_t)), SEEK_SET);
-            if (fread(&mds_trk_block, 1, sizeof(mds_trk_block_t), fp) != sizeof(mds_trk_block_t))
+            if (LOG_VAR(tbret) fread(&mds_trk_block, 1, sizeof(mds_trk_block_t), fp) != sizeof(mds_trk_block_t)) {
+                image_log(img->log, "tbret = %i (expected: %i)\n", (int) tbret, (int) sizeof(mds_trk_block));
                 return 0;
+            }
+
+            if (version == 2) {
+                image_log(img->log, "Start sector V2: %016" PRIX64 "\n", mds_trk_block.start_sect_v2);
+                mds_trk_block.start_sect = (uint32_t) mds_trk_block.start_sect_v2;
+            }
 
             if (last_t != -1) {
                 /*
@@ -2358,8 +2399,10 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 mds_trk_ex_block.trk_sectors = mds_trk_block.ex_offs;
             } else if (mds_trk_block.ex_offs != 0ULL) {
                 fseek(fp, mds_trk_block.ex_offs, SEEK_SET);
-                if (fread(&mds_trk_ex_block, 1, sizeof(mds_trk_ex_block), fp) != sizeof(mds_trk_ex_block))
+                if (LOG_VAR(tret) fread(&mds_trk_ex_block, 1, sizeof(mds_trk_ex_block), fp) != sizeof(mds_trk_ex_block)) {
+                    image_log(img->log, "tret = %i (expected: %i)\n", (int) tret, (int) sizeof(mds_trk_ex_block));
                     return 0;
+                }
             }
 
             uint32_t astart = mds_trk_block.start_sect - mds_trk_ex_block.pregap;
@@ -2367,46 +2410,61 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             uint32_t aend2 = aend + mds_trk_ex_block.trk_sectors;
             uint32_t astart2 = mds_trk_block.start_sect + mds_trk_ex_block.trk_sectors;
 
+            ct->skip = 0;
+
             if (mds_trk_block.footer_offs != 0ULL)  for (uint32_t ff = 0; ff < mds_trk_block.files_num; ff++) {
                 if (version == 2) {
                     fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_v2_footer_t)), SEEK_SET);
-                    if (fread(&mds_v2_footer, 1, sizeof(mds_v2_footer_t), fp) != sizeof(mds_v2_footer_t))
+                    if (LOG_VAR(fret) fread(&mds_v2_footer, 1, sizeof(mds_v2_footer_t), fp) != sizeof(mds_v2_footer_t)) {
+                        image_log(img->log, "fret = %i (expected: %i)\n", (int) fret, (int) sizeof(mds_v2_footer_t));
                         return 0;
+                    } 
                     memcpy(&mds_footer, &mds_v2_footer, sizeof(mds_footer));
                     mds_footer.fn_is_wide = 1;
                 } else {
                     fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_footer_t)), SEEK_SET);
-                    if (fread(&mds_footer, 1, sizeof(mds_footer_t), fp) != sizeof(mds_footer_t))
+                    if (LOG_VAR(fret2) fread(&mds_footer, 1, sizeof(mds_footer_t), fp) != sizeof(mds_footer_t)) {
+                        image_log(img->log, "fret2 = %i (expected: %i)\n", (int) fret2, (int) sizeof(mds_footer_t));
                         return 0;
+                    }
                 }
 
                 uint16_t wfn[2048] = { 0 };
                 char     fn[2048] = { 0 };
-                fseek(fp, mds_footer.fn_offs, SEEK_SET);
-                if (mds_footer.fn_is_wide) {
-                    for (int i = 0; i < 256; i++) {
-                        if (fread(&(wfn[i]), 1, 2, fp) != 2)
-                            return 0;
-                        if (wfn[i] == 0x0000)
-                            break;
-                    }
-                    (void) utf16_to_utf8(wfn, 2048, (uint8_t *) fn, 2048);
-                } else  for (int i = 0; i < 512; i++) {
-                    if (fread(&fn[i], 1, 1, fp) != 1)
-                        return 0;
-                    if (fn[i] == 0x00)
-                        break;
-                }
 
-                if (strlen(fn) == 0)
+                if (mds_footer.fn_offs == 0x00000000) {
                     /* This is in MDX files - the file name string is empty. */
                     strcpy(fn, mdsfile);
-                else if (!stricmp(fn, "*.mdf")) {
-                    strcpy(fn, mdsfile);
-                    fn[strlen(mdsfile) - 3] = 'm';
-                    fn[strlen(mdsfile) - 2] = 'd';
-                    fn[strlen(mdsfile) - 1] = 'f';
+                    ct->skip = 0x40;
+                } else {
+                    fseek(fp, mds_footer.fn_offs, SEEK_SET);
+                    if (mds_footer.fn_is_wide) {
+                        for (int i = 0; i < 256; i++) {
+                            if (LOG_VAR(fnret) fread(&(wfn[i]), 1, 2, fp) != 2) {
+                                image_log(img->log, "fnret = %i (expected: %i)\n", (int) fnret, (int) 2);
+                                return 0;
+                            }
+                            if (wfn[i] == 0x0000)
+                                break;
+                        }
+                        (void) utf16_to_utf8(wfn, 2048, (uint8_t *) fn, 2048);
+                    } else  for (int i = 0; i < 512; i++) {
+                        if (LOG_VAR(fnret2) fread(&fn[i], 1, 1, fp) != 1) {
+                            image_log(img->log, "fnret2 = %i (expected: %i)\n", (int) fnret2, (int) 1);
+                            return 0;
+                        }
+                        if (fn[i] == 0x00)
+                            break;
+                    }
+
+                    if (!stricmp(fn, "*.mdf")) {
+                        strcpy(fn, mdsfile);
+                        fn[strlen(mdsfile) - 3] = 'm';
+                        fn[strlen(mdsfile) - 2] = 'd';
+                        fn[strlen(mdsfile) - 1] = 'f';
+                    }
                 }
+                image_log(img->log, "fn = \"%s\"\n", fn);
 
                 char    filename[2048] = { 0 };
                 if (!path_abs(fn))
@@ -2452,7 +2510,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 success         = 1;
 
             if (((ct->sector_size == 2336) || (ct->sector_size == 2332)) && (ct->mode == 2) && (ct->form == 1))
-                ct->skip        = 8;
+                ct->skip       += 8;
 
             ci = &(ct->idx[0]);
             if (ct->point < 0xa0) {
@@ -2469,7 +2527,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 ci->start = aend + 150;
                 ci->length = mds_trk_ex_block.trk_sectors;
                 ci->type = INDEX_NORMAL;
-                ci->file_start = mds_trk_block.start_offs / ct->sector_size;
+                ci->file_start = (mds_trk_block.start_offs - (ct->skip & 0x40)) / ct->sector_size;
                 ci->file_length = ci->length;
                 ci->file = tf;
             } else {
