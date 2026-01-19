@@ -1699,7 +1699,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/w6199vms.350", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq OEM)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A)",
                 .internal_name = "ms6199va_200",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1708,7 +1708,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/W6199VC8.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq OEM) [Patched for larger drives]",
+                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A) [Patched for larger drives]",
                 .internal_name = "ms6199va_200p",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1717,7 +1717,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/W6199VC8.PCD", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.7 (Packard Bell OEM)",
+                .name          = "Award Modular BIOS v4.51PG - Revision 3.7 (Packard Bell Phoenix)",
                 .internal_name = "ms6199va_370",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

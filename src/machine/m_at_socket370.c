@@ -512,7 +512,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/ms-6318-ver5.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 1.8 (HP OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.8 (HP Pavilion A7xx)",
                 .internal_name = "ms6318_180",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -521,7 +521,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/med2000v2.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 1.9 (HP OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.9 (HP Pavilion A8xx)",
                 .internal_name = "ms6318_190",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -530,7 +530,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/med2000.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 2.02 (HP OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 2.02 (HP Medion 2000A)",
                 .internal_name = "ms6318_202",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -539,7 +539,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/ms6318hp.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 1.3 (Medion OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.3 (Medion MED 2000)",
                 .internal_name = "ms6318_130",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -548,7 +548,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/ms6318.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 7.51 (Medion OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 7.51 (Medion MD6318)",
                 .internal_name = "ms6318_751",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
