@@ -61,6 +61,7 @@ signals:
     void updateStatusRight(const QString &text);
 
 public slots:
+    void reload();
     void startButtonPressed() const;
     void settingsButtonPressed();
     void restartButtonPressed() const;

@@ -131,8 +131,6 @@ extern const device_t ad1816_device;
 
 /* Aztech Sound Galaxy 16 */
 extern const device_t azt2316a_device;
-extern const device_t acermagic_s20_device;
-extern const device_t mirosound_pcm10_device;
 extern const device_t azt1605_device;
 extern const device_t aztpr16_device;
 
@@ -231,6 +229,8 @@ extern const device_t entertainer_device;
 extern const device_t mmb_device;
 
 /* OPTi 82c93x */
+extern const device_t acermagic_s20_device;
+extern const device_t mirosound_pcm10_device;
 extern const device_t opti_82c930_device;
 extern const device_t opti_82c931_device;
 

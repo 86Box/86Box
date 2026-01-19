@@ -210,14 +210,26 @@ msgstr "&Statusleistenicons aktualisieren"
 msgid "Take s&creenshot"
 msgstr "S&creenshot aufnehmen"
 
+msgid "Take screenshot"
+msgstr "Screenshot aufnehmen"
+
 msgid "Take &raw screenshot"
 msgstr "&Roh-Screenshot aufnehmen"
+
+msgid "Take raw screenshot"
+msgstr "Roh-Screenshot aufnehmen"
 
 msgid "C&opy screenshot"
 msgstr "Screenshot k&opieren"
 
+msgid "Copy screenshot"
+msgstr "Screenshot kopieren"
+
 msgid "Copy r&aw screenshot"
 msgstr "R&oh-Screenshot kopieren"
+
+msgid "Copy raw screenshot"
+msgstr "Roh-Screenshot kopieren"
 
 msgid "S&ound"
 msgstr "&Ton"
@@ -537,11 +549,11 @@ msgstr "Disketten-Controller:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM-Controller:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tertiärer IDE-Controller"
+msgid "Tertiary IDE Controller"
+msgstr "Tertiärer IDE-Controller"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Quartärer IDE-Controller"
+msgid "Quaternary IDE Controller"
+msgstr "Quartärer IDE-Controller"
 
 msgid "Hard disk controllers"
 msgstr "Festplattencontroller"
@@ -1143,8 +1155,8 @@ msgstr "Die ausgewählte Konfigurationsdatei konnte nicht eingelesen werden: %1"
 msgid "Use regular expressions in search box"
 msgstr "Benutze reguläre Ausdrücke in der Suche"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 Maschinen sind aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n Maschinen sind aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
 
 msgid "Add new system wizard"
 msgstr "Assistent für ein neues System"
@@ -1226,9 +1238,6 @@ msgstr "Gebe den neuen Anzeigenamen ein (leer lassen zum Zurücksetzen)"
 
 msgid "Change &display name…"
 msgstr "&Anzeigename ändern…"
-
-msgid "Context Menu"
-msgstr "Kontextmenü"
 
 msgid "&Open folder…"
 msgstr "&Ordner öffnen…"
@@ -1851,8 +1860,8 @@ msgstr "3M MicroTouch (Seriell)"
 msgid "Default Baud rate"
 msgstr "Standard-Baudrate"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standard Hayes-kompatibles Modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standard Hayes-kompatibles Modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-Emulation"
@@ -2805,9 +2814,6 @@ msgstr "Vollbild umschalten"
 msgid "Toggle UI in fullscreen"
 msgstr "UI im Vollbildmodus umschalten"
 
-msgid "Screenshot"
-msgstr "Bildschirmaufnahme"
-
 msgid "Release mouse pointer"
 msgstr "Mauszeiger freigeben"
 
@@ -3010,4 +3016,10 @@ msgid "&Allow recompilation"
 msgstr "Recompilierung &zulassen"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

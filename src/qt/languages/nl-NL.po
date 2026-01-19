@@ -204,14 +204,26 @@ msgstr "&Statusbalkpictogrammen bijwerken"
 msgid "Take s&creenshot"
 msgstr "Maak een s&chermafbeelding"
 
+msgid "Take screenshot"
+msgstr "Maak een schermafbeelding"
+
 msgid "Take &raw screenshot"
 msgstr "Maak een &ruw schermafbeelding"
+
+msgid "Take raw screenshot"
+msgstr "Maak een ruw schermafbeelding"
 
 msgid "C&opy screenshot"
 msgstr "K&opieer een schermafbeelding"
 
+msgid "Copy screenshot"
+msgstr "Kopieer een schermafbeelding"
+
 msgid "Copy r&aw screenshot"
 msgstr "Kopieer een r&uw schermafbeelding"
+
+msgid "Copy raw screenshot"
+msgstr "Kopieer een ruw schermafbeelding"
 
 msgid "S&ound"
 msgstr "&Geluid"
@@ -531,11 +543,11 @@ msgstr "Floppy disk controller:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM controller:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tertiaire IDE-controller"
+msgid "Tertiary IDE Controller"
+msgstr "Tertiaire IDE-controller"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Quaternaire IDE-controller"
+msgid "Quaternary IDE Controller"
+msgstr "Quaternaire IDE-controller"
 
 msgid "Hard disk controllers"
 msgstr "Harde schijfcontrollers"
@@ -1137,8 +1149,8 @@ msgstr "Openen van geselecteerd configuratiebestand voor lezen niet mogelijk: %1
 msgid "Use regular expressions in search box"
 msgstr "Gebruik reguliere expressies in zoekveld"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 machine(s) zijn nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n machine(s) zijn nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
 
 msgid "Add new system wizard"
 msgstr "Wizard toevoegen van nieuw systeem"
@@ -1220,9 +1232,6 @@ msgstr "Voer een nieuwe weergavenaam in (laat leeg om te herstellen)"
 
 msgid "Change &display name…"
 msgstr "Pas &weergavenaam aan…"
-
-msgid "Context Menu"
-msgstr "Contextmenu"
 
 msgid "&Open folder…"
 msgstr "&Open map…"
@@ -1845,8 +1854,8 @@ msgstr "3M MicroTouch (serieel)"
 msgid "Default Baud rate"
 msgstr "Standaard baudrate"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standaard Hayes-compatibele modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standaard Hayes-compatibele modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulatie"
@@ -2799,9 +2808,6 @@ msgstr "Volledig scherm omschakelen"
 msgid "Toggle UI in fullscreen"
 msgstr ""
 
-msgid "Screenshot"
-msgstr "Schermafbeelding"
-
 msgid "Release mouse pointer"
 msgstr "Geef muis vrij"
 
@@ -3004,4 +3010,10 @@ msgid "&Allow recompilation"
 msgstr "Recompilatie &toestaan"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

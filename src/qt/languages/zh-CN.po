@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-18 19:18+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
+"projects/86box/86box/zh_Hans/>\n"
+"Language: zh-CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: zh_CN\n"
 "X-Source-Language: en_US\n"
 
@@ -204,14 +211,26 @@ msgstr "更新状态栏图标(&U)"
 msgid "Take s&creenshot"
 msgstr "截图(&C)"
 
+msgid "Take screenshot"
+msgstr "截图"
+
 msgid "Take &raw screenshot"
 msgstr "原始截图(&R)"
+
+msgid "Take raw screenshot"
+msgstr "原始截图"
 
 msgid "C&opy screenshot"
 msgstr "复制截图(&O)"
 
+msgid "Copy screenshot"
+msgstr "复制截图"
+
 msgid "Copy r&aw screenshot"
 msgstr "复制原始截图(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "复制原始截图"
 
 msgid "S&ound"
 msgstr "声音(&O)"
@@ -531,11 +550,11 @@ msgstr "软盘控制器:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 第三 IDE 控制器"
+msgid "Tertiary IDE Controller"
+msgstr "第三 IDE 控制器"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 第四 IDE 控制器"
+msgid "Quaternary IDE Controller"
+msgstr "第四 IDE 控制器"
 
 msgid "Hard disk controllers"
 msgstr "硬盘控制器"
@@ -1137,8 +1156,8 @@ msgstr "无法打开选定的配置文件进行读取：%1"
 msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"
@@ -1220,9 +1239,6 @@ msgstr "输入新的显示名称 (留空以重置)"
 
 msgid "Change &display name…"
 msgstr "更改显示名称(&D)…"
-
-msgid "Context Menu"
-msgstr "上下文菜单"
 
 msgid "&Open folder…"
 msgstr "打开文件夹(&O)…"
@@ -1657,7 +1673,7 @@ msgid "&Connected"
 msgstr "已连接(&C)"
 
 msgid "Clear image &history"
-msgstr "清除映像历史记录(&H)"
+msgstr "清除镜像文件历史记录(&H)"
 
 msgid "Create…"
 msgstr "创建…"
@@ -1720,7 +1736,7 @@ msgid "\nFalling back to software rendering."
 msgstr "\n回到软件渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>选择媒体图像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
+msgstr "<html><head/><body><p>选择媒体镜像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "这台机器可能被移动或复制过。"
@@ -1762,7 +1778,7 @@ msgid "Mode:"
 msgstr "模式:"
 
 msgid "Interface:"
-msgstr "界面:"
+msgstr "接口:"
 
 msgid "Adapter:"
 msgstr "适配器:"
@@ -1845,8 +1861,8 @@ msgstr "3M MicroTouch (串口)"
 msgid "Default Baud rate"
 msgstr "默认波特率"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 标准 Hayes 兼容调制解调器"
+msgid "Standard Hayes-compliant Modem"
+msgstr "标准 Hayes 兼容调制解调器"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 仿真"
@@ -2569,7 +2585,7 @@ msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst（2 个 TMU）"
+msgstr "Obsidian SB50 + Amethyst（双TMU）"
 
 msgid "8-bit"
 msgstr "8 位"
@@ -2799,9 +2815,6 @@ msgstr "切换全屏"
 msgid "Toggle UI in fullscreen"
 msgstr "在全屏模式下激活菜单栏"
 
-msgid "Screenshot"
-msgstr "截图"
-
 msgid "Release mouse pointer"
 msgstr "释放鼠标"
 
@@ -2923,7 +2936,7 @@ msgid "86Box Update"
 msgstr "86Box 更新"
 
 msgid "Release notes:"
-msgstr "发行版说明:"
+msgstr "发行说明："
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
@@ -3004,4 +3017,10 @@ msgid "&Allow recompilation"
 msgstr "允许重编译(&A)"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "快进(&F)"
+
+msgid "Fast forward"
+msgstr "快进"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"

@@ -750,7 +750,7 @@ machine_at_wd76c10_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&paradise_wd90c11_megapc_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

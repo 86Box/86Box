@@ -1203,7 +1203,7 @@ const device_t cs4236b_device = {
 };
 
 const device_t cs4236b_onboard_device = {
-    .name          = "Crystal CS4236B",
+    .name          = "Crystal CS4236B (On-Board)",
     .internal_name = "cs4236b",
     .flags         = DEVICE_ISA16,
     .local         = CRYSTAL_CS4236B | CRYSTAL_NOEEPROM,

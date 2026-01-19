@@ -329,12 +329,13 @@ genius_recalctimings(genius_t *genius)
     double disptime;
     double _dispontime;
     double _dispofftime;
+    double crtcconst = (cpuclock / 53216000.0 * (double) (1ULL << 32)) * 9.0;
 
-    disptime     = 0x31;
-    _dispontime  = 0x28;
+    disptime     = 0x62;
+    _dispontime  = 0x50;
     _dispofftime = disptime - _dispontime;
-    _dispontime *= MDACONST;
-    _dispofftime *= MDACONST;
+    _dispontime *= crtcconst;
+    _dispofftime *= crtcconst;
     genius->dispontime  = (uint64_t) (_dispontime);
     genius->dispofftime = (uint64_t) (_dispofftime);
 }

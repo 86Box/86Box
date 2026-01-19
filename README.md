@@ -56,6 +56,14 @@ We operate an IRC channel and a Discord server for discussing 86Box, its develop
 
 [![Visit our Discord server](https://discordapp.com/api/guilds/262614059009048590/embed.png)](https://discord.gg/QXK9XTv)
 
+[Forum: SoftHistory](https://forum.softhistory.org/)
+
+[Wiki: SoftHistory](https://wiki.softhistory.org/)
+
+[Twitter: @86BoxEmulator](https://twitter.com/86BoxEmulator)
+
+[YouTube: 86Box](https://youtube.com/c/86Box)
+
 Contributions
 -------------
 
@@ -77,6 +85,5 @@ Donations
 
 We do not charge you for the emulator but donations are still welcome:
 <https://paypal.me/86Box>.
-
 You can also support the project on Patreon:
 <https://www.patreon.com/86box>.

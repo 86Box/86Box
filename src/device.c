@@ -483,6 +483,61 @@ device_has_config(const device_t *dev)
     return (c > 0) ? 1 : 0;
 }
 
+const char *
+device_get_bus_name(const device_t *dev)
+{
+    const char *sbus = NULL;
+
+    if ((dev->flags & (DEVICE_SIDECAR | DEVICE_ISA)) == (DEVICE_SIDECAR | DEVICE_ISA))
+        sbus = "ISA/Sidecar";
+    else if (dev->flags & DEVICE_SIDECAR)
+        sbus = "Sidecar";
+    else if (dev->flags & DEVICE_XT_KBC)
+        sbus = "XT KBC";
+    else if (dev->flags & DEVICE_ISA16)
+        sbus = "ISA16";
+    else if (dev->flags & DEVICE_AT_KBC)
+        sbus = "AT KBC";
+    else if (dev->flags & DEVICE_PS2_KBC)
+        sbus = "PS/2 KBC";
+    else if (dev->flags & DEVICE_ISA)
+        sbus = "ISA";
+    else if (dev->flags & DEVICE_CBUS)
+        sbus = "C-BUS";
+    else if (dev->flags & DEVICE_PCMCIA)
+        sbus = "PCMCIA";
+    else if (dev->flags & DEVICE_MCA)
+        sbus = "MCA";
+    else if (dev->flags & DEVICE_MCA32)
+        sbus = "MCA32";
+    else if (dev->flags & DEVICE_HIL)
+        sbus = "HP HIL";
+    else if (dev->flags & DEVICE_EISA)
+        sbus = "EISA";
+    else if (dev->flags & DEVICE_AT32)
+        sbus = "AT/32";
+    else if (dev->flags & DEVICE_OLB)
+        sbus = "OLB";
+    else if (dev->flags & DEVICE_VLB)
+        sbus = "VLB";
+    else if (dev->flags & DEVICE_PCI)
+        sbus = "PCI";
+    else if (dev->flags & DEVICE_CARDBUS)
+        sbus = "CardBus";
+    else if (dev->flags & DEVICE_USB)
+        sbus = "USB";
+    else if (dev->flags & DEVICE_AGP)
+        sbus = "AGP";
+    else if (dev->flags & DEVICE_AC97)
+        sbus = "AMR";
+    else if (dev->flags & DEVICE_COM)
+        sbus = "COM";
+    else if (dev->flags & DEVICE_LPT)
+        sbus = "LPT";
+
+    return sbus;
+}
+
 void
 device_get_name(const device_t *dev, int bus, char *name)
 {
@@ -497,59 +552,15 @@ device_get_name(const device_t *dev, int bus, char *name)
     name[0] = 0x00;
 
     if (bus) {
-        if ((dev->flags & (DEVICE_SIDECAR | DEVICE_ISA)) ==
-            (DEVICE_SIDECAR | DEVICE_ISA))
-            sbus = "ISA/Sidecar";
-        else if (dev->flags & DEVICE_SIDECAR)
-            sbus = "Sidecar";
-        else if (dev->flags & DEVICE_XT_KBC)
-            sbus = "XT KBC";
-        else if (dev->flags & DEVICE_ISA16)
-            sbus = "ISA16";
-        else if (dev->flags & DEVICE_AT_KBC)
-            sbus = "AT KBC";
-        else if (dev->flags & DEVICE_PS2_KBC)
-            sbus = "PS/2 KBC";
-        else if (dev->flags & DEVICE_ISA)
-            sbus = "ISA";
-        else if (dev->flags & DEVICE_CBUS)
-            sbus = "C-BUS";
-        else if (dev->flags & DEVICE_PCMCIA)
-            sbus = "PCMCIA";
-        else if (dev->flags & DEVICE_MCA)
-            sbus = "MCA";
-        else if (dev->flags & DEVICE_MCA32)
-            sbus = "MCA32";
-        else if (dev->flags & DEVICE_HIL)
-            sbus = "HP HIL";
-        else if (dev->flags & DEVICE_EISA)
-            sbus = "EISA";
-        else if (dev->flags & DEVICE_AT32)
-            sbus = "AT/32";
-        else if (dev->flags & DEVICE_OLB)
-            sbus = "OLB";
-        else if (dev->flags & DEVICE_VLB)
-            sbus = "VLB";
-        else if (dev->flags & DEVICE_PCI)
-            sbus = "PCI";
-        else if (dev->flags & DEVICE_CARDBUS)
-            sbus = "CardBus";
-        else if (dev->flags & DEVICE_USB)
-            sbus = "USB";
-        else if (dev->flags & DEVICE_AGP)
-            sbus = "AGP";
-        else if (dev->flags & DEVICE_AC97)
-            sbus = "AMR";
-        else if (dev->flags & DEVICE_COM)
-            sbus = "COM";
-        else if (dev->flags & DEVICE_LPT)
-            sbus = "LPT";
+        sbus = device_get_bus_name(dev);
 
         if (sbus != NULL) {
             /* First concatenate [<Bus>] before the device's name. */
-            strcat(name, "[");
-            strcat(name, sbus);
-            strcat(name, "] ");
+            if (bus > 0) {
+                strcat(name, "[");
+                strcat(name, sbus);
+                strcat(name, "] ");
+            }
 
             /* Then change string from ISA16 to ISA if applicable. */
             if (!strcmp(sbus, "ISA16"))

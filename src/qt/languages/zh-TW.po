@@ -211,14 +211,26 @@ msgstr "更新狀態列圖示(&U)"
 msgid "Take s&creenshot"
 msgstr "擷取螢幕畫面(&C)"
 
+msgid "Take screenshot"
+msgstr "擷取螢幕畫面"
+
 msgid "Take &raw screenshot"
 msgstr "擷取原始螢幕畫面(&R)"
+
+msgid "Take raw screenshot"
+msgstr "擷取原始螢幕畫面"
 
 msgid "C&opy screenshot"
 msgstr "擷取螢幕畫面至剪貼簿(&O)"
 
+msgid "Copy screenshot"
+msgstr "擷取螢幕畫面至剪貼簿"
+
 msgid "Copy r&aw screenshot"
 msgstr "擷取原始螢幕畫面至剪貼薄(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "擷取原始螢幕畫面至剪貼薄"
 
 msgid "S&ound"
 msgstr "聲音(&O)"
@@ -263,10 +275,10 @@ msgid "&Play"
 msgstr "播放(&P)"
 
 msgid "&Rewind to the beginning"
-msgstr "倒帶至起點(&R)"
+msgstr "倒轉至起點(&R)"
 
 msgid "&Fast forward to the end"
-msgstr "快進至終點(&F)"
+msgstr "快轉至終點(&F)"
 
 msgid "E&ject"
 msgstr "退出(&J)"
@@ -538,11 +550,11 @@ msgstr "軟碟控制器:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 第三 IDE 控制器"
+msgid "Tertiary IDE Controller"
+msgstr "第三 IDE 控制器"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 第四 IDE 控制器"
+msgid "Quaternary IDE Controller"
+msgstr "第四 IDE 控制器"
 
 msgid "Hard disk controllers"
 msgstr "硬碟控制器"
@@ -872,16 +884,16 @@ msgid "4-axis, 4-button joystick"
 msgstr "4 軸, 4 鍵搖桿"
 
 msgid "2-button gamepad(s)"
-msgstr "2 鍵遊戲手柄"
+msgstr "2 鍵遊戲手把"
 
 msgid "3-button gamepad"
-msgstr "3 鍵遊戲手柄"
+msgstr "3 鍵遊戲手把"
 
 msgid "4-button gamepad"
-msgstr "4 鍵遊戲手柄"
+msgstr "4 鍵遊戲手把"
 
 msgid "6-button gamepad"
-msgstr "6 鍵遊戲手柄"
+msgstr "6 鍵遊戲手把"
 
 msgid "2-button flight yoke"
 msgstr "2 按鈕飛行搖桿"
@@ -902,13 +914,13 @@ msgid "4-button flight yoke with throttle"
 msgstr "4 按鈕帶油門飛行搖桿"
 
 msgid "Steering wheel (3-axis, 2-button)"
-msgstr "方向盤 (3 軸, 2 鍵搖桿)"
+msgstr "方向盤 (3 軸, 2 鍵)"
 
 msgid "Steering wheel (3-axis, 3-button)"
-msgstr "方向盤 (3 軸, 3 鍵搖桿)"
+msgstr "方向盤 (3 軸, 3 鍵)"
 
 msgid "Steering wheel (3-axis, 4-button)"
-msgstr "方向盤 (3 軸, 4 鍵搖桿)"
+msgstr "方向盤 (3 軸, 4 鍵)"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 附轉接器"
@@ -1142,10 +1154,10 @@ msgid "Unable to open the selected configuration file for reading: %1"
 msgstr "無法開啟選取的組態檔進行讀取: %1"
 
 msgid "Use regular expressions in search box"
-msgstr "在搜尋方塊中使用正規表示式"
+msgstr "在搜尋欄中使用正規表示式"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
 
 msgid "Add new system wizard"
 msgstr "新增系統精靈"
@@ -1172,7 +1184,7 @@ msgid "Type some notes here"
 msgstr "在此輸入備註"
 
 msgid "Paste the contents of the existing configuration file into the box below."
-msgstr "將現有組態檔的內容貼到下面的方塊中。"
+msgstr "將現有組態檔的內容貼到下面的輸入欄中。"
 
 msgid "Load configuration from file"
 msgstr "從檔案載入組態"
@@ -1227,9 +1239,6 @@ msgstr "輸入新的顯示名稱 (留空以重設)"
 
 msgid "Change &display name…"
 msgstr "變更顯示名稱(&D)…"
-
-msgid "Context Menu"
-msgstr "內容選單"
 
 msgid "&Open folder…"
 msgstr "開啟資料夾(&O)…"
@@ -1313,7 +1322,7 @@ msgid "&Kill"
 msgstr "強制終止(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "強行終止虛擬機器可能會導致資料遺失。只有在 86Box 過程卡住時才執行此操作。\n\n您真的希望強制終止虛擬機器 \"%1\"？"
+msgstr "強制終止虛擬機器可能會導致資料遺失。只有在 86Box 過程卡住時才執行此操作。\n\n您真的希望強制終止虛擬機器 \"%1\"？"
 
 msgid "&Delete"
 msgstr "刪除(&D)"
@@ -1415,7 +1424,7 @@ msgid "Disk image too large"
 msgstr "磁碟影像太大"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "請記得為新創建的影像分區並格式化。"
+msgstr "請記得為新創建的影像建立分割區並格式化。"
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "選定的檔案將被覆蓋。確定繼續使用此檔案嗎？"
@@ -1424,10 +1433,10 @@ msgid "Unsupported disk image"
 msgstr "不支援的磁碟影像"
 
 msgid "Overwrite"
-msgstr "覆蓋"
+msgstr "覆寫"
 
 msgid "Don't overwrite"
-msgstr "不覆蓋"
+msgstr "不覆寫"
 
 msgid "Raw image"
 msgstr "原始影像"
@@ -1721,13 +1730,13 @@ msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "需要 OpenGL 版本 3.0 或更高版本。目前版本為 %1.%2"
 
 msgid "Error initializing OpenGL"
-msgstr "初始化 OpenGL 出錯"
+msgstr "初始化 OpenGL 錯誤"
 
 msgid "\nFalling back to software rendering."
-msgstr "\n回退到軟體渲染。"
+msgstr "\n退回到軟體渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>當選擇媒體影像 (CD-ROM、軟碟等) 時，開啟對話方塊會在與 86Box 組態檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
+msgstr "<html><head/><body><p>當選擇媒體影像 (CD-ROM、軟碟等) 時，開啟對話框會在與 86Box 組態檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "這台機器可能已被移動或複製。"
@@ -1852,8 +1861,8 @@ msgstr "3M MicroTouch (序列埠)"
 msgid "Default Baud rate"
 msgstr "預設鮑率"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 標準 Hayes 相容的數據機"
+msgid "Standard Hayes-compliant Modem"
+msgstr "標準 Hayes 相容的數據機"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 模擬"
@@ -1970,7 +1979,7 @@ msgid "BIOS size"
 msgstr "BIOS 大小"
 
 msgid "BIOS size (ROM #1)"
-msgstr "BIOS 大小 (ROM )"
+msgstr "BIOS 大小 (ROM 1)"
 
 msgid "BIOS size (ROM #2)"
 msgstr "BIOS 大小 (ROM 2)"
@@ -2012,7 +2021,7 @@ msgid "MIDI Thru"
 msgstr "MIDI 輸入直通"
 
 msgid "MIDI Clockout"
-msgstr "MIDI 時鐘輸出"
+msgstr "MIDI 時脈輸出"
 
 msgid "Output Gain"
 msgstr "輸出增益"
@@ -2036,19 +2045,19 @@ msgid "Chorus Waveform"
 msgstr "合唱波形"
 
 msgid "Reverb"
-msgstr "混響"
+msgstr "殘響"
 
 msgid "Reverb Room Size"
-msgstr "混響室的大小"
+msgstr "殘響室的大小"
 
 msgid "Reverb Damping"
-msgstr "混響阻尼"
+msgstr "殘響阻尼"
 
 msgid "Reverb Width"
-msgstr "混響寬度"
+msgstr "殘響寬度"
 
 msgid "Reverb Level"
-msgstr "混響位準"
+msgstr "殘響位準"
 
 msgid "Interpolation Method"
 msgstr "插值方法"
@@ -2057,7 +2066,7 @@ msgid "Dynamic Sample Loading"
 msgstr "動態取樣載入"
 
 msgid "Reverb Output Gain"
-msgstr "迴響輸出增益"
+msgstr "殘響輸出增益"
 
 msgid "Reversed stereo"
 msgstr "左右互換立體聲"
@@ -2192,7 +2201,7 @@ msgid "SB low DMA"
 msgstr "SB 低 DMA"
 
 msgid "6CH variant (6-channel)"
-msgstr "6CH 變數 (6 通道)"
+msgstr "6CH 變體 (6 通道)"
 
 msgid "Enable CMS"
 msgstr "啟用 CMS"
@@ -2378,7 +2387,7 @@ msgid "7th Order"
 msgstr "七階"
 
 msgid "Non-timed (original)"
-msgstr "非定時 (原始)"
+msgstr "無計時 (原始)"
 
 msgid "45 Hz (JMP2 not populated)"
 msgstr "45 Hz (JMP2 未安插)"
@@ -2501,7 +2510,7 @@ msgid "Has Quadcolor II daughter board"
 msgstr "具有 Quadcolor II 子板"
 
 msgid "Alternate monochrome contrast"
-msgstr "交替單色對比"
+msgstr "反轉單色對比"
 
 msgid "128 KB"
 msgstr "128 KB"
@@ -2522,10 +2531,10 @@ msgid "Color 80x25 (5153/CGA)"
 msgstr "彩色 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "增強彩色 - 一般模式 (5154/ECD)"
+msgstr "增強色彩 - 一般模式 (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "增強彩色 - 增強模式 (5154/ECD)"
+msgstr "增強色彩 - 增強模式 (5154/ECD)"
 
 msgid "Green"
 msgstr "綠色"
@@ -2660,7 +2669,7 @@ msgid "Softfloat FPU"
 msgstr "Softfloat 浮點運算器模擬"
 
 msgid "High performance impact"
-msgstr "對效能影響大"
+msgstr "對效能影響高"
 
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[通用] RAM 磁碟 (最大速度)"
@@ -2806,9 +2815,6 @@ msgstr "切換全螢幕"
 msgid "Toggle UI in fullscreen"
 msgstr "全螢幕模式下切換使用者介面顯示"
 
-msgid "Screenshot"
-msgstr "螢幕畫面擷取"
-
 msgid "Release mouse pointer"
 msgstr "放開滑鼠游標"
 
@@ -2882,7 +2888,7 @@ msgid "Unable to determine release information"
 msgstr "無法確定版本發佈資訊"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr "檢查更新時出錯:\n\n%1\n\n請稍後再試。"
+msgstr "檢查更新時錯誤:\n\n%1\n\n請稍後再試。"
 
 msgid "Update check complete"
 msgstr "更新檢查完成"
@@ -2930,7 +2936,7 @@ msgid "86Box Update"
 msgstr "86Box 更新"
 
 msgid "Release notes:"
-msgstr "版本發佈說明:"
+msgstr "版本發佈備註:"
 
 msgid "%1 Hz"
 msgstr "%1 Hz"
@@ -2987,7 +2993,7 @@ msgid "OpenGL input stretch mode"
 msgstr "OpenGL 的輸入延展模式"
 
 msgid "Color scheme"
-msgstr "配色方案"
+msgstr "色彩配置"
 
 msgid "Light"
 msgstr "亮色"
@@ -3011,4 +3017,10 @@ msgid "&Allow recompilation"
 msgstr "允許重編譯(&A)"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "快轉(&F)"
+
+msgid "Fast forward"
+msgstr "快轉"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "欲變更系統目錄，請先停止全部運行中的機器。"

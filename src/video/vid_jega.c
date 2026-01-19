@@ -1042,7 +1042,7 @@ if386jega_available(void)
 }
 
 const device_t if386jega_device = {
-    .name          = "JEGA (if386AX)",
+    .name          = "JEGA On-Board (OKI if386AX30L)",
     .internal_name = "if386jega",
     .flags         = DEVICE_ISA,
     .local         = 0,

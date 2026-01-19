@@ -16,6 +16,7 @@
 #include <86box/thread.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/plat.h>
 
 #define RENDER_RATE                100
 #define BUFFER_SEGMENTS            10
@@ -154,6 +155,9 @@ fluidsynth_init(UNUSED(const device_t *info))
 {
     fluidsynth_t  *data = &fsdev;
     midi_device_t *dev;
+#ifdef _WIN32
+    char           path[4096] = { 0 };
+#endif
 
     memset(data, 0, sizeof(fluidsynth_t));
 
@@ -170,6 +174,17 @@ fluidsynth_init(UNUSED(const device_t *info))
     if (!sound_font || sound_font[0] == 0)
         sound_font = (access("/usr/share/sounds/sf2/FluidR3_GM.sf2", F_OK) == 0 ? "/usr/share/sounds/sf2/FluidR3_GM.sf2" :
                       (access("/usr/share/soundfonts/default.sf2", F_OK) == 0 ? "/usr/share/soundfonts/default.sf2" : ""));
+#elif defined _WIN32
+    if (!sound_font || sound_font[0] == 0) {
+        // FluidSynth 2.5.x and later supports DLS without libinstpatch.
+        int major, minor, patch;
+        fluid_version(&major, &minor, &patch);
+        if ((major == 2 && minor >= 5) || (major >= 3)) {
+            plat_get_system_directory(path);
+            strcat(path, "\\system32\\drivers\\gm.dls");
+            sound_font = plat_file_check(path) ? path : "";
+        }
+    }
 #endif
     data->sound_font = fluid_synth_sfload(data->synth, sound_font, 1);
 

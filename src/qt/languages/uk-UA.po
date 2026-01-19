@@ -210,16 +210,28 @@ msgid "&Update status bar icons"
 msgstr "&Обновлення значків рядка стану"
 
 msgid "Take s&creenshot"
-msgstr "Зробити &знімок"
+msgstr "&Зробити скріншот"
+
+msgid "Take screenshot"
+msgstr "Зробити скріншот"
 
 msgid "Take &raw screenshot"
-msgstr "Зробити &сирий знімок"
+msgstr "Зробити &сирий скріншот"
+
+msgid "Take raw screenshot"
+msgstr "Зробити сирий скріншот"
 
 msgid "C&opy screenshot"
-msgstr "С&копійовати знімок"
+msgstr "С&копійовати скріншот"
+
+msgid "Copy screenshot"
+msgstr "Скопійовати скріншот"
 
 msgid "Copy r&aw screenshot"
-msgstr "Скопійовати с&ирий знімок"
+msgstr "Скопійовати с&ирий скріншот"
+
+msgid "Copy raw screenshot"
+msgstr "Скопійовати сирий скріншот"
 
 msgid "S&ound"
 msgstr "&Звук"
@@ -539,11 +551,11 @@ msgstr "Контролер гнучких дисків:"
 msgid "CD-ROM controller:"
 msgstr "Контролер CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Третинний контролер IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Третинний контролер IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Четвертинний контролер IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Четвертинний контролер IDE"
 
 msgid "Hard disk controllers"
 msgstr "Контролери жорстких дисків"
@@ -1145,8 +1157,8 @@ msgstr "Неможливо відкрити вибраний файл конфі
 msgid "Use regular expressions in search box"
 msgstr "Використовувати регулярні вирази в полі пошуку"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 машина(и) наразі активна(і). Ви впевнені, що все одно хочете вийти з менеджера віртуальної машини?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n машина(и) наразі активна(і). Ви впевнені, що все одно хочете вийти з менеджера віртуальної машини?"
 
 msgid "Add new system wizard"
 msgstr "Майстер додавання нової системи"
@@ -1228,9 +1240,6 @@ msgstr "Введіть нове відображуване ім'я (порожн
 
 msgid "Change &display name…"
 msgstr "Змінити &відображуване ім'я…"
-
-msgid "Context Menu"
-msgstr "Контекстне меню"
 
 msgid "&Open folder…"
 msgstr "&Відкрити папку…"
@@ -1853,8 +1862,8 @@ msgstr "3M MicroTouch (послідовна)"
 msgid "Default Baud rate"
 msgstr "Швидкість передачі даних за замовчуванням"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Стандартний модем, сумісний зі стандартом Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Стандартний модем, сумісний зі стандартом Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Емуляція Roland MT-32"
@@ -2807,9 +2816,6 @@ msgstr "Переключити повноекранний режим"
 msgid "Toggle UI in fullscreen"
 msgstr "Переключити UI в повноекранному режимі"
 
-msgid "Screenshot"
-msgstr "Скріншот"
-
 msgid "Release mouse pointer"
 msgstr "Відпустити вказівник миші"
 
@@ -3012,4 +3018,10 @@ msgid "&Allow recompilation"
 msgstr "&Дозволити рекомпіляцію"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

@@ -212,14 +212,26 @@ msgstr "&Ažuriraj ikone statusnog redka"
 msgid "Take s&creenshot"
 msgstr "Napravi &snimku zaslona"
 
+msgid "Take screenshot"
+msgstr "Napravi snimku zaslona"
+
 msgid "Take &raw screenshot"
 msgstr "Napravi &neobrađenu snimku zaslona"
 
+msgid "Take raw screenshot"
+msgstr "Napravi neobrađenu snimku zaslona"
+
 msgid "C&opy screenshot"
-msgstr "K&opiraj snimku zalsona"
+msgstr "K&opiraj snimku zaslona"
+
+msgid "Copy screenshot"
+msgstr "Kopiraj snimku zaslona"
 
 msgid "Copy r&aw screenshot"
 msgstr "Kopiraj n&eobrađenu snimku zaslona"
+
+msgid "Copy raw screenshot"
+msgstr "Kopiraj neobrađenu snimku zaslona"
 
 msgid "S&ound"
 msgstr "&Zvuk"
@@ -539,11 +551,11 @@ msgstr "Kontroler diskete:"
 msgid "CD-ROM controller:"
 msgstr "Kontroler CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tercijarni IDE kontroler"
+msgid "Tertiary IDE Controller"
+msgstr "Tercijarni IDE kontroler"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Kvaternarni IDE kontroler"
+msgid "Quaternary IDE Controller"
+msgstr "Kvaternarni IDE kontroler"
 
 msgid "Hard disk controllers"
 msgstr "Kontroleri tvrdih diskova"
@@ -1145,8 +1157,8 @@ msgstr "Nije moguće otvoriti odabranu konfiguracijsku datoteku za čitanje: %1"
 msgid "Use regular expressions in search box"
 msgstr "U polju za pretraživanje koristite regularne izraze"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Broj trenutno aktivnih računala je %1. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Broj trenutno aktivnih računala je %n. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
 
 msgid "Add new system wizard"
 msgstr "Čarobnjak za dodavanje novog sistema"
@@ -1228,9 +1240,6 @@ msgstr "Unesite novo prikazno ime (prazno za ponovo postaviti)"
 
 msgid "Change &display name…"
 msgstr "Promijeni &prikazno ime…"
-
-msgid "Context Menu"
-msgstr "Kontekstni izbornik"
 
 msgid "&Open folder…"
 msgstr "&Otvori mapu…"
@@ -1853,8 +1862,8 @@ msgstr "3M MicroTouch (serijski)"
 msgid "Default Baud rate"
 msgstr "Zadana brzina prijenosa podataka"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standardni modem, usklađen s standardom Hayesom"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standardni modem, usklađen s standardom Hayesom"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulacija Rolanda MT-32"
@@ -2807,9 +2816,6 @@ msgstr "Uključi/isključi cijelozaslonski način"
 msgid "Toggle UI in fullscreen"
 msgstr "Prebaci korisničko sučelje u načinu cijelog zaslona"
 
-msgid "Screenshot"
-msgstr "Snimka zaslona"
-
 msgid "Release mouse pointer"
 msgstr "Otpusti pokazivač miša"
 
@@ -3012,4 +3018,10 @@ msgid "&Allow recompilation"
 msgstr "&Omogući rekompilaciju"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

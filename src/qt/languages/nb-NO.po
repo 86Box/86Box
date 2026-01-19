@@ -204,14 +204,26 @@ msgstr "&Oppdater statuslinjeikoner"
 msgid "Take s&creenshot"
 msgstr "Ta s&kjermbilde"
 
+msgid "Take screenshot"
+msgstr "Ta skjermbilde"
+
 msgid "Take &raw screenshot"
 msgstr "Ta &rå skjermbilde"
+
+msgid "Take raw screenshot"
+msgstr "Ta rå skjermbilde"
 
 msgid "C&opy screenshot"
 msgstr "K&opiera skjermbilde"
 
+msgid "Copy screenshot"
+msgstr "Kopiera skjermbilde"
+
 msgid "Copy r&aw screenshot"
 msgstr "Kopiera r&å skjermbilde"
+
+msgid "Copy raw screenshot"
+msgstr "Kopiera rå skjermbilde"
 
 msgid "S&ound"
 msgstr "L&yd"
@@ -531,11 +543,11 @@ msgstr "Diskettkontroller:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM-kontroller:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tertiær IDE-kontroller"
+msgid "Tertiary IDE Controller"
+msgstr "Tertiær IDE-kontroller"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Kvartær IDE-kontroller"
+msgid "Quaternary IDE Controller"
+msgstr "Kvartær IDE-kontroller"
 
 msgid "Hard disk controllers"
 msgstr "Harddiskkontrollere"
@@ -1137,8 +1149,8 @@ msgstr "Kan ikke åpne valgt konfigurasjonsfil for lesing: %1"
 msgid "Use regular expressions in search box"
 msgstr "Bruk regulære uttrykk i søkeboksen"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 maskin(er) er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n maskin(er) er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
 
 msgid "Add new system wizard"
 msgstr "Legg til ny system-veiviser"
@@ -1220,9 +1232,6 @@ msgstr "Skriv inn nytt visningsnavn (tomt for å tilbakestille)"
 
 msgid "Change &display name…"
 msgstr "Endre &visningsnavn…"
-
-msgid "Context Menu"
-msgstr "Kontekstmeny"
 
 msgid "&Open folder…"
 msgstr "&Åpne mappe…"
@@ -1845,8 +1854,8 @@ msgstr "3M MicroTouch (seriell)"
 msgid "Default Baud rate"
 msgstr "Standard baudrate"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standard Hayes-kompatibelt modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standard Hayes-kompatibelt modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulering"
@@ -2799,9 +2808,6 @@ msgstr "Veksle fullskjerm"
 msgid "Toggle UI in fullscreen"
 msgstr ""
 
-msgid "Screenshot"
-msgstr "Skjermbilde"
-
 msgid "Release mouse pointer"
 msgstr "Frigi musepeker"
 
@@ -3004,4 +3010,10 @@ msgid "&Allow recompilation"
 msgstr "&Tillat rekompilering"
 
 msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
 msgstr ""

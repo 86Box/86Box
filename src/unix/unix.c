@@ -63,7 +63,7 @@ int             update_icons;
 int             kbd_req_capture;
 int             hide_status_bar;
 int             hide_tool_bar;
-bool            fast_forward = false; // Technically unused.
+bool            fast_forward = false;
 int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
@@ -1105,6 +1105,7 @@ unix_executeLine(char *line)
                 "moeject <id> - eject image from MO drive <id>.\n\n"
                 "hardreset - hard reset the emulated system.\n"
                 "pause - pause the the emulated system.\n"
+                "fastfwd - toggle fast forward.\n"
                 "screenshot - save a screenshot.\n"
                 "fullscreen - toggle fullscreen.\n"
                 "version - print version and license information.\n"
@@ -1154,6 +1155,9 @@ unix_executeLine(char *line)
         } else if (strncasecmp(xargv[0], "pause", 5) == 0) {
             plat_pause(dopause ^ 1);
             printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
+        } else if (strncasecmp(xargv[0], "fastfwd", 7) == 0) {
+            fast_forward ^= 1;
+            printf("%s", fast_forward ? "Fast forward on.\n" : "Fast forward off.\n");
         } else if (strncasecmp(xargv[0], "hardreset", 9) == 0) {
             pc_reset_hard();
         } else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3) {
