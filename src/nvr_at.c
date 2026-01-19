@@ -1191,6 +1191,9 @@ nvr_at_init(const device_t *info)
     if (info->local & 0x20)
         local->def = 0x00;
 
+    if (machines[machine].init == machine_at_monsoon_init)
+        local->def = 0xff;
+
     if (info->local & 0x40)
         local->flags |= FLAG_MULTI_BANK;
 
