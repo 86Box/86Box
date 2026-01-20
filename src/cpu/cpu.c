@@ -1897,7 +1897,7 @@ cpu_set_pci_speed(int speed)
 {
     if (speed)
         cpu_pci_speed = speed;
-    else if (cpu_busspeed < 42500000)
+    else if (cpu_busspeed < 40000000)
         cpu_pci_speed = cpu_busspeed;
     else if (cpu_busspeed < 84000000)
         cpu_pci_speed = cpu_busspeed / 2;
