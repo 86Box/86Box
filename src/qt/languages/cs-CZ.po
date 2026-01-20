@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-02 21:56+0000\n"
+"PO-Revision-Date: 2026-01-20 03:58+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -3019,7 +3019,8 @@ msgid "&Fast forward"
 msgstr ""
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Zrychlit"
 
 msgid "To change the system directory, stop all running machines."
 msgstr ""
+"Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
