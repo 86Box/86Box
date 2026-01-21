@@ -1717,7 +1717,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
         case 0x7: /* Command register */
             if ((ide->tf->atastat & (BSY_STAT | DRQ_STAT)) &&
-                ((val != WIN_SRST) || (ide->type != IDE_ATAPI)))
+                ((val != WIN_SRST) || (ide->type != IDE_ATAPI)) &&
+                ((val != WIN_VERIFY) || (prev != WIN_IDENTIFY)))
                 break;
 
             if ((ide->type == IDE_NONE) || ((ide->type & IDE_SHADOW) && (val != WIN_DRIVE_DIAGNOSTICS)))
