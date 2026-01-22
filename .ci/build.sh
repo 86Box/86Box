@@ -378,7 +378,7 @@ then
 		fi
 
 		# Establish general dependencies.
-		pkgs="git"
+		pkgs="git make"
 
 		# Gather installed architecture-specific packages for updating.
 		# This prevents outdated shared libraries, unmet dependencies
