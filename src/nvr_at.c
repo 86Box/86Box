@@ -289,15 +289,16 @@
 
 #define RTC_REGS           14 /* number of registers */
 
-#define FLAG_NO_NMI        0x001
-#define FLAG_AMI_1992_HACK 0x002
-#define FLAG_AMI_1994_HACK 0x004
-#define FLAG_AMI_1995_HACK 0x008
-#define FLAG_AMI_1999_HACK 0x010
-#define FLAG_P6RP4_HACK    0x020
-#define FLAG_PIIX4         0x040
-#define FLAG_MULTI_BANK    0x080
-#define FLAG_MARTIN_HACK   0x100
+#define FLAG_NO_NMI         0x001
+#define FLAG_AMI_1992_HACK  0x002
+#define FLAG_AMI_1994_HACK  0x004
+#define FLAG_AMI_1995_HACK  0x008
+#define FLAG_AMI_1999_HACK  0x010
+#define FLAG_AMI_1999J_HACK 0x020
+#define FLAG_P6RP4_HACK     0x040
+#define FLAG_PIIX4          0x080
+#define FLAG_MULTI_BANK     0x100
+#define FLAG_MARTIN_HACK    0x200
 
 typedef struct local_t {
     int8_t stat;
@@ -578,7 +579,9 @@ nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
         nvr->is_new = 0;
     if ((reg == 0x52) && (local->flags & FLAG_AMI_1995_HACK))
         nvr->is_new = 0;
-    if ((reg == 0x55) && (local->flags & FLAG_AMI_1999_HACK))
+    if ((reg == 0x54) && (local->flags & FLAG_AMI_1999_HACK))
+        nvr->is_new = 0;
+    if ((reg == 0x55) && (local->flags & FLAG_AMI_1999J_HACK))
         nvr->is_new = 0;
     if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
         return;
@@ -834,6 +837,20 @@ nvr_read(uint16_t addr, void *priv)
                     for (i = 0x37; i <= 0x3d; i++)
                         checksum += nvr->regs[i];
                     for (i = 0x40; i <= 0x73; i++) {
+                        if (i == 0x54)
+                            checksum += (nvr->regs[i] & 0x3f);
+                        else
+                            checksum += nvr->regs[i];
+                    }
+                    if (local->addr[addr_id] == 0x3e)
+                        ret = checksum >> 8;
+                    else
+                        ret = checksum & 0xff;
+                } else if (!nvr->is_new && (local->flags & FLAG_AMI_1999J_HACK)) {
+                    /* The checksum at 3E-3F is for 37-3D and 40-73. */
+                    for (i = 0x37; i <= 0x3d; i++)
+                        checksum += nvr->regs[i];
+                    for (i = 0x40; i <= 0x73; i++) {
                         if (i == 0x55)
                             checksum += (nvr->regs[i] & 0xfc);
                         else
@@ -875,8 +892,15 @@ nvr_read(uint16_t addr, void *priv)
                     ret = nvr->regs[local->addr[addr_id]];
                 break;
 
-            case 0x55:
+            case 0x54:
                 if (!nvr->is_new && (local->flags & FLAG_AMI_1999_HACK))
+                    ret = nvr->regs[local->addr[addr_id]] & 0x3f;
+                else
+                    ret = nvr->regs[local->addr[addr_id]];
+                break;
+
+            case 0x55:
+                if (!nvr->is_new && (local->flags & FLAG_AMI_1999J_HACK))
                     ret = nvr->regs[local->addr[addr_id]] & 0xfc;
                 else
                     ret = nvr->regs[local->addr[addr_id]];
@@ -1198,15 +1222,20 @@ nvr_at_init(const device_t *info)
             local->cent = RTC_CENTURY_VIA;
             break;
         case 8: /* Epson Equity LT */
-            if ((info->local & 0x1f) == 0x18) {
-                local->flags |= (FLAG_PIIX4 | FLAG_AMI_1999_HACK);
-                local->def = 0x00;
-                nvr->irq    = 8;
-                local->cent = RTC_CENTURY_AT;
-            } else {
-                nvr->irq    = -1;
-                local->cent = RTC_CENTURY_ELT;
-            }
+            nvr->irq    = -1;
+            local->cent = RTC_CENTURY_ELT;
+            break;
+        case 9: /* Intel PIIX4 + AMI 1999 hack */
+            local->flags |= (FLAG_PIIX4 | FLAG_AMI_1999_HACK);
+            local->def = 0x00;
+            nvr->irq    = 8;
+            local->cent = RTC_CENTURY_AT;
+            break;
+        case 0x0a: /* Intel PIIX4 + AMI 1999J hack */
+            local->flags |= (FLAG_PIIX4 | FLAG_AMI_1999J_HACK);
+            local->def = 0x00;
+            nvr->irq    = 8;
+            local->cent = RTC_CENTURY_AT;
             break;
 
         default:
@@ -1485,7 +1514,21 @@ const device_t piix4_ami_1995_nvr_device = {
     .name          = "Intel PIIX4 AMI WinBIOS 1995 PC/AT NVRAM",
     .internal_name = "piix4_ami_1995_nvr",
     .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 8,
+    .local         = 0x10 | 9,
+    .init          = nvr_at_init,
+    .close         = nvr_at_close,
+    .reset         = nvr_at_reset,
+    .available     = NULL,
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t piix4_ami_1995j_nvr_device = {
+    .name          = "Intel PIIX4 AMI WinBIOS 1995J PC/AT NVRAM",
+    .internal_name = "piix4_ami_1995j_nvr",
+    .flags         = DEVICE_ISA16,
+    .local         = 0x10 | 10,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,

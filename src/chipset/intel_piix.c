@@ -1554,7 +1554,7 @@ piix_init(const device_t *info)
     dev->rev        = (info->local >> 4) & 0x0f;
     dev->func_shift = (info->local >> 8) & 0x0f;
     dev->no_mirq0   = (info->local >> 12) & 0x0f;
-    dev->func0_id   = info->local >> 16;
+    dev->func0_id   = (info->local >> 16) & 0xffff;
 
     pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev, &dev->pci_slot);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
@@ -1580,7 +1580,9 @@ piix_init(const device_t *info)
         dev->usb   = device_add(&usb_device);
 
     if (dev->type > 3) {
-        if (!strcmp(machine_get_internal_name(), "ms5156"))
+        if (info->local & PIIX4_NVR_AMI_1995J)
+            dev->nvr   = device_add(&piix4_ami_1995j_nvr_device);
+        else if (info->local & PIIX4_NVR_AMI_1995)
             dev->nvr   = device_add(&piix4_ami_1995_nvr_device);
         else
             dev->nvr   = device_add(&piix4_nvr_device);
