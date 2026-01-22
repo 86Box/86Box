@@ -2664,7 +2664,7 @@ vfio_dev_init(vfio_device_t *dev)
                 vfio_region_init(dev, &reg, &dev->vga_mem);   /* memory [A0000:BFFFF] */
 
                 /* Inform that a PCI VGA video card is attached if no video card is emulated. */
-                if (gfxcard == VID_NONE)
+                if (gfxcard[0] == VID_NONE)
                     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
                 break;
 

@@ -23,6 +23,8 @@ extern "C" {
 #include "qt_progsettings.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_details.hpp"
+#include "qt_defs.hpp"
+
 #include "ui_qt_vmmanager_details.h"
 
 #define TOOLBUTTON_STYLESHEET_LIGHT "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(midlight)} QToolButton:pressed {background: palette(mid)}"
@@ -279,8 +281,8 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
     ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
     ui->notesTextEdit->setEnabled(true);
 
-    disconnect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
-    connect(sysconfig->process, &QProcess::stateChanged, this, &VMManagerDetails::updateProcessStatus);
+    disconnect(sysconfig->process, &QProcess::CHECK_STATE_CHANGED, this, &VMManagerDetails::updateProcessStatus);
+    connect(sysconfig->process, &QProcess::CHECK_STATE_CHANGED, this, &VMManagerDetails::updateProcessStatus);
 
     disconnect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);
     connect(sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerDetails::updateWindowStatus);

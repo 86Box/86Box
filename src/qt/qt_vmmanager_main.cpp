@@ -34,6 +34,8 @@
 #include "qt_vmmanager_model.hpp"
 #include "qt_vmmanager_addmachine.hpp"
 
+#include "qt_defs.hpp"
+
 extern VMManagerMainWindow *vmm_main_window;
 
 // https://stackoverflow.com/a/36460740
@@ -515,7 +517,7 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
     if (!current.isValid())
         return;
 
-    disconnect(selected_sysconfig->process, &QProcess::stateChanged, this, &VMManagerMain::vmStateChange);
+    disconnect(selected_sysconfig->process, &QProcess::CHECK_STATE_CHANGED, this, &VMManagerMain::vmStateChange);
     disconnect(selected_sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerMain::vmStateChange);
     disconnect(selected_sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerMain::vmStateChange);
 
@@ -526,7 +528,7 @@ VMManagerMain::currentSelectionChanged(const QModelIndex &current,
     // Emit that the selection changed, include with the process state
     emit selectionOrStateChanged(selected_sysconfig);
 
-    connect(selected_sysconfig->process, &QProcess::stateChanged, this, &VMManagerMain::vmStateChange);
+    connect(selected_sysconfig->process, &QProcess::CHECK_STATE_CHANGED, this, &VMManagerMain::vmStateChange);
     connect(selected_sysconfig, &VMManagerSystem::windowStatusChanged, this, &VMManagerMain::vmStateChange);
     connect(selected_sysconfig, &VMManagerSystem::clientProcessStatusChanged, this, &VMManagerMain::vmStateChange);
 
