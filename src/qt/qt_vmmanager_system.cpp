@@ -30,8 +30,6 @@
 // #include "qt_vmmanager_details_section.hpp"
 #include "qt_vmmanager_detailsection.hpp"
 
-#include "qt_defs.hpp"
-
 #ifdef Q_OS_WINDOWS
 #    include <windows.h>
 #endif
@@ -103,7 +101,7 @@ VMManagerSystem::VMManagerSystem(const QString &sysconfig_file)
     find86BoxBinary();
     platform = QApplication::platformName();
     process  = new QProcess();
-    connect(process, &QProcess::CHECK_STATE_CHANGED, this, &VMManagerSystem::processStatusChanged);
+    connect(process, &QProcess::stateChanged, this, &VMManagerSystem::processStatusChanged);
 
     // Server type for this instance (Standard should always be used instead of Legacy)
     socket_server_type = VMManagerServerSocket::ServerType::Standard;
