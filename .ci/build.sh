@@ -913,6 +913,7 @@ grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEB
 cd archive_tmp
 git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" mdsx || exit 99
 make -C mdsx/src -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
+rm -f mdsx/src/*.a
 mv mdsx/src/mdsx.* . || exit 99
 rm -rf mdsx
 cd ..
