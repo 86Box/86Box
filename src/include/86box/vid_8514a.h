@@ -164,8 +164,11 @@ typedef struct ibm8514_t {
         int      y_count;
         int      input;
         int      input2;
+        int      input3;
         int      output;
         int      output2;
+        int      output3;
+        int      init_cx;
 
         int      ssv_len;
         int      ssv_len_back;
