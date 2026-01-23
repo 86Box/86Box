@@ -740,7 +740,7 @@ pc_show_usage(char *s)
             s);
 
 #ifdef _WIN32
-    ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
+    ui_msgbox(MBX_ANSI | MBX_INFO, p);
 #else
     always_log("%s", p);
 #endif
