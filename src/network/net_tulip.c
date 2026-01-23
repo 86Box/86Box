@@ -733,7 +733,9 @@ tulip_tx(TULIPState *s, struct tulip_descriptor *desc)
         if ((s->csr[6] >> CSR6_OM_SHIFT) & CSR6_OM_MASK) {
             /* Internal or external Loopback */
             tulip_receive(s, s->tx_frame, s->tx_frame_len);
-        } else if (s->tx_frame_len <= sizeof(s->tx_frame)) {
+        } else if (net_cards_conf[s->nic->card_num].link_state & NET_LINK_DOWN)
+            desc->status |= (TDES0_ES | TDES0_NC);
+        else if (s->tx_frame_len <= sizeof(s->tx_frame)) {
             //pclog("Transmit!.\n");
             network_tx(s->nic, s->tx_frame, s->tx_frame_len);
         }
