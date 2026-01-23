@@ -900,7 +900,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         strcat(path, fn);
 
         QImage image = this->grab();
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) && !defined(Q_OS_WINDOWS)
         image.save(path, "png");
 #else
         image.rgbSwapped().save(path, "png");
