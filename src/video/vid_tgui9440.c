@@ -784,7 +784,7 @@ tgui_recalctimings(svga_t *svga)
         else if (svga->gdcreg[0xf] & 0x40)
             svga->clock *= 3.0;
 
-        pclog("GDCREGF=%02x, miscout=%02x.\n", svga->gdcreg[0xf] & 0x48, svga->miscout & 0x0c);
+        // pclog("GDCREGF=%02x, miscout=%02x.\n", svga->gdcreg[0xf] & 0x48, svga->miscout & 0x0c);
     } else {
         //pclog("TGUI9400CXi: Clock double=%d.\n", (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8)));
         switch (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8)) {
