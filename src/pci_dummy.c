@@ -38,7 +38,7 @@ pci_dummy_interrupt(int set, pci_dummy_t *dev)
 }
 
 static uint8_t
-pci_dummy_read(uint16_t port, void *priv)
+pci_dummy_read(uint16_t port, UNUSED(int len), void *priv)
 {
     pci_dummy_t *dev = (pci_dummy_t *) priv;
     uint8_t      ret = 0xff;
@@ -90,7 +90,7 @@ pci_dummy_readl(uint16_t port, void *priv)
 }
 
 static void
-pci_dummy_write(uint16_t port, UNUSED(uint8_t val), void *priv)
+pci_dummy_write(uint16_t port, UNUSED(uint8_t val), UNUSED(int len), void *priv)
 {
     pci_dummy_t *dev = (pci_dummy_t *) priv;
 

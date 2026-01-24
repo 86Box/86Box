@@ -40,15 +40,15 @@ typedef struct pci_card_t {
     uint8_t     irq_routing[PCI_INT_PINS_NUM];
 
     void *      priv;
-    void        (*write)(int func, int addr, uint8_t val, void *priv);
-    uint8_t     (*read)(int func, int addr, void *priv);
+    void        (*write)(int func, int addr, int len, uint8_t val, void *priv);
+    uint8_t     (*read)(int func, int addr, int len, void *priv);
 } pci_card_t;
 
 typedef struct pci_card_desc_t {
     uint8_t     type;
     void *      priv;
-    void        (*write)(int func, int addr, uint8_t val, void *priv);
-    uint8_t     (*read)(int func, int addr, void *priv);
+    void        (*write)(int func, int addr, int len, uint8_t val, void *priv);
+    uint8_t     (*read)(int func, int addr, int len, void *priv);
     uint8_t     *slot;
 } pci_card_desc_t;
 
@@ -91,6 +91,7 @@ static int         pci_card;
 static int         pci_bus;
 static int         pci_key;
 static int         pci_trc_reg = 0;
+static int         pci_access_len = 0;
 static uint32_t    pci_enable = 0x00000000;
 
 static void        pci_reset_regs(void);
@@ -174,7 +175,7 @@ pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
                 return;
 
             if (pci_flags & FLAG_NO_IRQ_STEERING)
-                irq_line = pci_cards[slot].read(0, 0x3c, pci_cards[slot].priv);
+                irq_line = pci_cards[slot].read(0, 0x3c, 1, pci_cards[slot].priv);
             else {
                 irq_routing = pci_cards[slot].irq_routing[pci_int_index];
 
@@ -349,12 +350,12 @@ pci_reg_write(uint16_t port, uint8_t val)
     slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
     if (slot != PCI_CARD_INVALID) {
         if (pci_cards[slot].write)
-            pci_cards[slot].write(pci_func, pci_index | (port & 0x03), val, pci_cards[slot].priv);
+            pci_cards[slot].write(pci_func, pci_index | (port & 0x03), pci_access_len, val, pci_cards[slot].priv);
     }
-    pci_log("PCI: [WB] Mechanism #%i, slot %02X, %s card %02X:%02X, function %02X, index %02X = %02X\n",
+    pci_log("PCI: [WB] Mechanism #%i, slot %02X, %s card %02X:%02X, function %02X, index %02X, length %I = %02X\n",
             (port >= 0xc000) ? 2 : 1, slot,
             (slot == PCI_CARD_INVALID) ? "non-existent" : (pci_cards[slot].write ? "used" : "unused"),
-            pci_card, pci_bus, pci_func, pci_index | (port & 0x03), val);
+            pci_card, pci_bus, pci_func, pci_index | (port & 0x03), pci_access_len, val);
 }
 
 static void
@@ -364,6 +365,8 @@ pci_reset_regs(void)
     pci_enable = 0x00000000;
 
     pci_flags &= ~(FLAG_CONFIG_IO_ON | FLAG_CONFIG_M1_IO_ON);
+
+    pci_access_len = 1;
 }
 
 void
@@ -496,16 +499,24 @@ pci_writew(uint16_t port, uint16_t val, UNUSED(void *priv))
 {
     if (port & 0x0001) {
         /* Non-aligned access, split into two byte accesses. */
+        if (pci_access_len == 1)
+            pci_access_len = 2;
         pci_write(port, val & 0xff, priv);
         pci_write(port + 1, val >> 8, priv);
+        if (pci_access_len == 2)
+            pci_access_len = 1;
     } else {
         /* Aligned access, still split because we cheat. */
         switch (port) {
             case 0xcfc:
             case 0xcfe:
             case 0xc000 ... 0xcffe:
+                if (pci_access_len == 1)
+                    pci_access_len = 2;
                 pci_write(port, val & 0xff, priv);
                 pci_write(port + 1, val >> 8, priv);
+                if (pci_access_len == 2)
+                    pci_access_len = 1;
                 break;
 
             default:
@@ -519,8 +530,10 @@ pci_writel(uint16_t port, uint32_t val, UNUSED(void *priv))
 {
     if (port & 0x0003) {
         /* Non-aligned access, split into two word accesses. */
+        pci_access_len = 4;
         pci_writew(port, val & 0xffff, priv);
         pci_writew(port + 2, val >> 16, priv);
+        pci_access_len = 1;
     } else {
         /* Aligned access. */
         switch (port) {
@@ -545,8 +558,10 @@ pci_writel(uint16_t port, uint32_t val, UNUSED(void *priv))
             case 0xcfc:
             case 0xc000 ... 0xcffc:
                 /* Still split because we cheat. */
+                pci_access_len = 4;
                 pci_writew(port, val & 0xffff, priv);
                 pci_writew(port + 2, val >> 16, priv);
+                pci_access_len = 1;
                 break;
 
             default:
@@ -569,12 +584,12 @@ pci_reg_read(uint16_t port)
     slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
     if (slot != PCI_CARD_INVALID) {
         if (pci_cards[slot].read)
-            ret = pci_cards[slot].read(pci_func, pci_index | (port & 0x03), pci_cards[slot].priv);
+            ret = pci_cards[slot].read(pci_func, pci_index | (port & 0x03), pci_access_len, pci_cards[slot].priv);
     }
-    pci_log("PCI: [RB] Mechanism #%i, slot %02X, %s card %02X:%02X, function %02X, index %02X = %02X\n",
+    pci_log("PCI: [RB] Mechanism #%i, slot %02X, %s card %02X:%02X, function %02X, index %02X, length %i = %02X\n",
             (port >= 0xc000) ? 2 : 1, slot,
             (slot == PCI_CARD_INVALID) ? "non-existent" : (pci_cards[slot].read ? "used" : "unused"),
-            pci_card, pci_bus, pci_func, pci_index | (port & 0x03), ret);
+            pci_card, pci_bus, pci_access_len, pci_index | (port & 0x03), pci_func, ret);
 
     return ret;
 }
@@ -643,8 +658,12 @@ pci_readw(uint16_t port, UNUSED(void *priv))
             case 0xcfc:
             case 0xcfe:
             case 0xc000 ... 0xcffe:
+                if (pci_access_len == 1)
+                    pci_access_len = 2;
                 ret = pci_read(port, priv);
                 ret |= ((uint16_t) pci_read(port + 1, priv)) << 8;
+                if (pci_access_len == 2)
+                    pci_access_len = 1;
                 break;
 
             default:
@@ -662,8 +681,10 @@ pci_readl(uint16_t port, UNUSED(void *priv))
 
     if (port & 0x0003) {
         /* Non-aligned access, split into two word accesses. */
+        pci_access_len = 4;
         ret = pci_readw(port, priv);
         ret |= ((uint32_t) pci_readw(port + 2, priv)) << 16;
+        pci_access_len = 1;
     } else {
         /* Aligned access. */
         switch (port) {
@@ -682,8 +703,10 @@ pci_readl(uint16_t port, UNUSED(void *priv))
             case 0xcfc:
             case 0xc000 ... 0xcffc:
                 /* Still split because we cheat. */
+                pci_access_len = 4;
                 ret = pci_readw(port, priv);
                 ret |= ((uint32_t) pci_readw(port + 2, priv)) << 16;
+                pci_access_len = 1;
                 break;
         }
     }
@@ -781,8 +804,8 @@ pci_find_slot(uint8_t add_type, uint8_t ignore_slot)
 
 /* Add a PCI card. */
 void
-pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv),
-             void (*write)(int func, int addr, uint8_t val, void *priv), void *priv, uint8_t *slot)
+pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, int len, void *priv),
+             void (*write)(int func, int addr, int len, uint8_t val, void *priv), void *priv, uint8_t *slot)
 {
     pci_card_desc_t *dev;
 
@@ -853,7 +876,8 @@ pci_register_card(int pci_card)
 
 /* Add an instance of the PCI bridge. */
 void
-pci_add_bridge(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv, uint8_t *slot)
+pci_add_bridge(uint8_t add_type, uint8_t (*read)(int func, int addr, int len, void *priv),
+               void (*write)(int func, int addr, int len, uint8_t val, void *priv), void *priv, uint8_t *slot)
 {
     pci_card_t *card;
     uint8_t bridge_slot = (add_type == PCI_ADD_NORMAL) ? last_normal_pci_card_id : pci_find_slot(add_type, 0xff);

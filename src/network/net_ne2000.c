@@ -799,7 +799,7 @@ nic_update_bios(nic_t *dev)
 }
 
 static uint8_t
-nic_pci_read(UNUSED(int func), int addr, void *priv)
+nic_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const nic_t  *dev = (nic_t *) priv;
     uint8_t       ret = 0x00;
@@ -894,7 +894,7 @@ nic_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-nic_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+nic_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     nic_t  *dev = (nic_t *) priv;
     uint8_t valxor;

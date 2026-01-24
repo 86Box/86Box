@@ -5024,7 +5024,7 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
 }
 
 static uint8_t
-s3_virge_pci_read(UNUSED(int func), int addr, void *priv)
+s3_virge_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const virge_t *virge = (virge_t *) priv;
     const svga_t  *svga  = &virge->svga;
@@ -5189,7 +5189,7 @@ s3_virge_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+s3_virge_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;

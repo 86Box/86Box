@@ -216,7 +216,7 @@ sis_85c496_drb_recalc(sis_85c496_t *dev)
 
 /* 00 - 3F = PCI Configuration, 40 - 7F = 85C496, 80 - FF = 85C497 */
 static void
-sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+sis_85c49x_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
     uint8_t       old;
@@ -507,7 +507,7 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_85c49x_pci_read(UNUSED(int func), int addr, void *priv)
+sis_85c49x_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const sis_85c496_t *dev = (sis_85c496_t *) priv;
     uint8_t             ret = dev->pci_conf[addr];
@@ -577,35 +577,35 @@ sis_85c496_reset(void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
 
-    sis_85c49x_pci_write(0, 0x44, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x45, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x58, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x59, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x5a, 0x00, dev);
-    // sis_85c49x_pci_write(0, 0x5a, 0x06, dev);
+    sis_85c49x_pci_write(0, 0x44, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x45, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x58, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x59, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x5a, 1, 0x00, dev);
+    // sis_85c49x_pci_write(0, 0x5a, 1, 0x06, dev);
 
     for (uint8_t i = 0; i < 8; i++)
         dev->pci_conf[0x48 + i] = 0x02;
 
-    sis_85c49x_pci_write(0, 0x80, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x81, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x9e, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x8d, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xa0, 0xff, dev);
-    sis_85c49x_pci_write(0, 0xa1, 0xff, dev);
-    sis_85c49x_pci_write(0, 0xc0, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc1, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc2, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc3, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc8, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc9, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xca, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xcb, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x80, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x81, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x9e, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x8d, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xa0, 1, 0xff, dev);
+    sis_85c49x_pci_write(0, 0xa1, 1, 0xff, dev);
+    sis_85c49x_pci_write(0, 0xc0, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc1, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc2, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc3, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc8, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc9, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xca, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xcb, 1, 0x00, dev);
 
-    sis_85c49x_pci_write(0, 0xd0, 0x79, dev);
-    sis_85c49x_pci_write(0, 0xd1, 0xff, dev);
-    sis_85c49x_pci_write(0, 0xd0, 0x78, dev);
-    sis_85c49x_pci_write(0, 0xd4, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xd0, 1, 0x79, dev);
+    sis_85c49x_pci_write(0, 0xd1, 1, 0xff, dev);
+    sis_85c49x_pci_write(0, 0xd0, 1, 0x78, dev);
+    sis_85c49x_pci_write(0, 0xd4, 1, 0x00, dev);
 
     dev->pci_conf[0x67] = 0x00;
     dev->pci_conf[0xc6] = 0x00;

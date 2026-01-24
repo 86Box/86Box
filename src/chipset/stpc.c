@@ -213,7 +213,7 @@ stpc_localbus_read(uint16_t addr, void *priv)
 }
 
 static void
-stpc_nb_write(int func, int addr, uint8_t val, void *priv)
+stpc_nb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
@@ -260,7 +260,7 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-stpc_nb_read(int func, int addr, void *priv)
+stpc_nb_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const stpc_t *dev = (stpc_t *) priv;
     uint8_t       ret;
@@ -337,7 +337,7 @@ stpc_ide_bm_handlers(stpc_t *dev)
 }
 
 static void
-stpc_ide_write(int func, int addr, uint8_t val, void *priv)
+stpc_ide_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
@@ -445,7 +445,7 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-stpc_ide_read(int func, int addr, void *priv)
+stpc_ide_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const stpc_t *dev = (stpc_t *) priv;
     uint8_t       ret;
@@ -466,12 +466,12 @@ stpc_ide_read(int func, int addr, void *priv)
 }
 
 static void
-stpc_isab_write(int func, int addr, uint8_t val, void *priv)
+stpc_isab_write(int func, int addr, int len, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
     if ((func == 1) && (dev->local != STPC_ATLAS)) {
-        stpc_ide_write(0, addr, val, priv);
+        stpc_ide_write(0, addr, len, val, priv);
         return;
     }
 
@@ -507,13 +507,13 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-stpc_isab_read(int func, int addr, void *priv)
+stpc_isab_read(int func, int addr, int len, void *priv)
 {
     const stpc_t *dev = (stpc_t *) priv;
     uint8_t       ret;
 
     if ((func == 1) && (dev->local != STPC_ATLAS))
-        ret = stpc_ide_read(0, addr, priv);
+        ret = stpc_ide_read(0, addr, len, priv);
     else if (func > 0)
         ret = 0xff;
     else
@@ -524,7 +524,7 @@ stpc_isab_read(int func, int addr, void *priv)
 }
 
 static void
-stpc_usb_write(int func, int addr, uint8_t val, void *priv)
+stpc_usb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
@@ -571,7 +571,7 @@ stpc_usb_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-stpc_usb_read(int func, int addr, void *priv)
+stpc_usb_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const stpc_t *dev = (stpc_t *) priv;
     uint8_t       ret;

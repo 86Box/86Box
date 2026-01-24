@@ -7092,7 +7092,7 @@ ati8514_pos_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-mach32_pci_read(UNUSED(int func), int addr, void *priv)
+mach32_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const mach_t *mach = (mach_t *) priv;
     uint8_t       ret  = 0x00;
@@ -7171,7 +7171,7 @@ mach32_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-mach32_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+mach32_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     mach_t *mach = (mach_t *) priv;
     if ((addr >= 0x30) && (addr <= 0x33) && !mach->has_bios)
