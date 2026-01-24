@@ -1431,20 +1431,20 @@ static const device_config_t vei8_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "vei8",
+        .default_string = "6110zu",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision QHW.10.01 (HP Sherwood-B)",
-                .internal_name = "vei8",
+                .name          = "Award Modular BIOS v6.00PG - Revision 61100003 (beta)",
+                .internal_name = "6110zu0003",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 262144,
-                .files         = { "roms/machines/vei8/QHW1001.BIN", "" }
+                .files         = { "roms/machines/vei8/61100003.BIN", "" }
             },
             {
                 .name          = "Award Modular BIOS v6.00PG - Revision R804",
@@ -1454,6 +1454,15 @@ static const device_config_t vei8_config[] = {
                 .local         = 0,
                 .size          = 262144,
                 .files         = { "roms/machines/vei8/r804.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v6.00PG - Revision QHW.10.01 (HP Sherwood-B)",
+                .internal_name = "vei8",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/vei8/QHW1001.BIN", "" }
             },
             { .files_no = 0 }
         }
