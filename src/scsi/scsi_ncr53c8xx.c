@@ -2283,7 +2283,7 @@ uint8_t ncr53c8xx_pci_regs[256];
 bar_t   ncr53c8xx_pci_bar[4];
 
 static uint8_t
-ncr53c8xx_pci_read(UNUSED(int func), int addr, void *priv)
+ncr53c8xx_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
@@ -2387,7 +2387,7 @@ ncr53c8xx_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-ncr53c8xx_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+ncr53c8xx_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint8_t      valxor;

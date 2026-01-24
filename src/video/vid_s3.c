@@ -458,8 +458,8 @@ static void     s3_accel_out_l(uint16_t port, uint32_t val, void *priv);
 static uint8_t  s3_accel_in(uint16_t port, void *priv);
 static uint16_t s3_accel_in_w(uint16_t port, void *priv);
 static uint32_t s3_accel_in_l(uint16_t port, void *priv);
-static uint8_t  s3_pci_read(int func, int addr, void *priv);
-static void     s3_pci_write(int func, int addr, uint8_t val, void *priv);
+static uint8_t  s3_pci_read(int func, int addr, int len, void *priv);
+static void     s3_pci_write(int func, int addr, int len, uint8_t val, void *priv);
 
 #ifdef ENABLE_S3_LOG
 int s3_do_log = ENABLE_S3_LOG;
@@ -2013,7 +2013,7 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
         int addr_lo = addr & 1;
         if (svga->crtc[0x53] & 0x08) {
             if ((addr >= 0x08000) && (addr <= 0x0803f))
-                s3_pci_write(0, addr & 0xff, val, s3);
+                s3_pci_write(0, addr & 0xff, 1, val, s3);
         }
 
         switch (addr & 0x1fffe) {
@@ -6736,7 +6736,7 @@ s3_accel_read(uint32_t addr, void *priv)
 
     if (svga->crtc[0x53] & 0x08) {
         if ((addr >= 0x08000) && (addr <= 0x0803f))
-            return s3_pci_read(0, addr & 0xff, s3);
+            return s3_pci_read(0, addr & 0xff, 1, s3);
         switch (addr & 0x1ffff) {
             case 0x83b0 ... 0x83df:
                 return s3_in(addr & 0x3ff, s3);
@@ -11001,7 +11001,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
 }
 
 static uint8_t
-s3_pci_read(UNUSED(int func), int addr, void *priv)
+s3_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const s3_t   *s3   = (s3_t *) priv;
     const svga_t *svga = &s3->svga;
@@ -11090,7 +11090,7 @@ s3_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-s3_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+s3_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;

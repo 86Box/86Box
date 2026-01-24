@@ -199,7 +199,7 @@ sis_85c50x_smm_recalc(sis_85c50x_t *dev)
 }
 
 static void
-sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
+sis_85c50x_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
 
@@ -311,7 +311,7 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_85c50x_read(int func, int addr, void *priv)
+sis_85c50x_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
     uint8_t             ret = 0xff;
@@ -344,7 +344,7 @@ sis_85c50x_ide_recalc(sis_85c50x_t *dev)
 }
 
 static void
-sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
+sis_85c50x_sb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
 
@@ -393,7 +393,7 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_85c50x_sb_read(int func, int addr, void *priv)
+sis_85c50x_sb_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
     uint8_t             ret = 0xff;
@@ -553,17 +553,17 @@ sis_85c50x_reset(void *priv)
     dev->pci_conf[0x0a] = 0x00;
     dev->pci_conf[0x0b] = 0x06;
 
-    sis_85c50x_write(0, 0x51, 0x00, dev);
-    sis_85c50x_write(0, 0x53, 0x00, dev);
-    sis_85c50x_write(0, 0x54, 0x00, dev);
-    sis_85c50x_write(0, 0x55, 0x00, dev);
-    sis_85c50x_write(0, 0x56, 0x00, dev);
-    sis_85c50x_write(0, 0x5b, 0x00, dev);
-    sis_85c50x_write(0, 0x60, 0x00, dev);
-    sis_85c50x_write(0, 0x64, 0x00, dev);
-    sis_85c50x_write(0, 0x65, 0x00, dev);
-    sis_85c50x_write(0, 0x68, 0x00, dev);
-    sis_85c50x_write(0, 0x69, 0xff, dev);
+    sis_85c50x_write(0, 0x51, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x53, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x54, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x55, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x56, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x5b, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x60, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x64, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x65, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x68, 1, 0x00, dev);
+    sis_85c50x_write(0, 0x69, 1, 0xff, dev);
 
     if (dev->type & 1) {
         for (uint8_t i = 0; i < 8; i++)
@@ -586,10 +586,10 @@ sis_85c50x_reset(void *priv)
     dev->pci_conf_sb[0x0b] = 0x06;
     if (dev->type & 2)
         dev->pci_conf_sb[0x0e] = 0x80;
-    sis_85c50x_sb_write(0, 0x41, 0x80, dev);
-    sis_85c50x_sb_write(0, 0x42, 0x80, dev);
-    sis_85c50x_sb_write(0, 0x43, 0x80, dev);
-    sis_85c50x_sb_write(0, 0x44, 0x80, dev);
+    sis_85c50x_sb_write(0, 0x41, 1, 0x80, dev);
+    sis_85c50x_sb_write(0, 0x42, 1, 0x80, dev);
+    sis_85c50x_sb_write(0, 0x43, 1, 0x80, dev);
+    sis_85c50x_sb_write(0, 0x44, 1, 0x80, dev);
 
     if (dev->type & 2) {
         /* IDE (SiS 5503) */

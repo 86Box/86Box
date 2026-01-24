@@ -464,7 +464,7 @@ piix_trap_update(void *priv)
 }
 
 static void
-piix_write(int func, int addr, uint8_t val, void *priv)
+piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     piix_t  *dev = (piix_t *) priv;
     uint8_t *fregs;
@@ -1192,7 +1192,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-piix_read(int func, int addr, void *priv)
+piix_read(int func, int addr, UNUSED(int len), void *priv)
 {
     piix_t        *dev = (piix_t *) priv;
     uint8_t        ret = 0xff;
@@ -1447,68 +1447,68 @@ piix_reset(void *priv)
     const piix_t *dev = (piix_t *) priv;
 
     if (dev->type > 3) {
-        piix_write(3, 0x04, 0x00, priv);
-        piix_write(3, 0x5b, 0x00, priv);
+        piix_write(3, 0x04, 1, 0x00, priv);
+        piix_write(3, 0x5b, 1, 0x00, priv);
     } else {
-        piix_write(0, 0xa0, 0x08, priv);
-        piix_write(0, 0xa2, 0x00, priv);
-        piix_write(0, 0xa4, 0x00, priv);
-        piix_write(0, 0xa5, 0x00, priv);
-        piix_write(0, 0xa6, 0x00, priv);
-        piix_write(0, 0xa7, 0x00, priv);
-        piix_write(0, 0xa8, 0x0f, priv);
+        piix_write(0, 0xa0, 1, 0x08, priv);
+        piix_write(0, 0xa2, 1, 0x00, priv);
+        piix_write(0, 0xa4, 1, 0x00, priv);
+        piix_write(0, 0xa5, 1, 0x00, priv);
+        piix_write(0, 0xa6, 1, 0x00, priv);
+        piix_write(0, 0xa7, 1, 0x00, priv);
+        piix_write(0, 0xa8, 1, 0x0f, priv);
     }
 
     /* Disable the PIC mouse latch. */
-    piix_write(0, 0x4e, 0x03, priv);
+    piix_write(0, 0x4e, 1, 0x03, priv);
 
     if (dev->type == 5)
-        piix_write(0, 0xe1, 0x40, priv);
-    piix_write(1, 0x04, 0x00, priv);
+        piix_write(0, 0xe1, 1, 0x40, priv);
+    piix_write(1, 0x04, 1, 0x00, priv);
     if (dev->type == 5) {
-        piix_write(1, 0x09, 0x8a, priv);
-        piix_write(1, 0x10, 0xf1, priv);
-        piix_write(1, 0x11, 0x01, priv);
-        piix_write(1, 0x14, 0xf5, priv);
-        piix_write(1, 0x15, 0x03, priv);
-        piix_write(1, 0x18, 0x71, priv);
-        piix_write(1, 0x19, 0x01, priv);
-        piix_write(1, 0x1c, 0x75, priv);
-        piix_write(1, 0x1d, 0x03, priv);
+        piix_write(1, 0x09, 1, 0x8a, priv);
+        piix_write(1, 0x10, 1, 0xf1, priv);
+        piix_write(1, 0x11, 1, 0x01, priv);
+        piix_write(1, 0x14, 1, 0xf5, priv);
+        piix_write(1, 0x15, 1, 0x03, priv);
+        piix_write(1, 0x18, 1, 0x71, priv);
+        piix_write(1, 0x19, 1, 0x01, priv);
+        piix_write(1, 0x1c, 1, 0x75, priv);
+        piix_write(1, 0x1d, 1, 0x03, priv);
     } else
-        piix_write(1, 0x09, 0x80, priv);
-    piix_write(1, 0x20, 0x01, priv);
-    piix_write(1, 0x21, 0x00, priv);
-    piix_write(1, 0x41, 0x00, priv);
-    piix_write(1, 0x43, 0x00, priv);
+        piix_write(1, 0x09, 1, 0x80, priv);
+    piix_write(1, 0x20, 1, 0x01, priv);
+    piix_write(1, 0x21, 1, 0x00, priv);
+    piix_write(1, 0x41, 1, 0x00, priv);
+    piix_write(1, 0x43, 1, 0x00, priv);
 
     ide_pri_disable();
     ide_sec_disable();
 
     if (dev->type >= 3) {
-        piix_write(2, 0x04, 0x00, priv);
+        piix_write(2, 0x04, 1, 0x00, priv);
         if (dev->type == 5) {
-            piix_write(2, 0x10, 0x00, priv);
-            piix_write(2, 0x11, 0x00, priv);
-            piix_write(2, 0x12, 0x00, priv);
-            piix_write(2, 0x13, 0x00, priv);
+            piix_write(2, 0x10, 1, 0x00, priv);
+            piix_write(2, 0x11, 1, 0x00, priv);
+            piix_write(2, 0x12, 1, 0x00, priv);
+            piix_write(2, 0x13, 1, 0x00, priv);
         } else {
-            piix_write(2, 0x20, 0x01, priv);
-            piix_write(2, 0x21, 0x00, priv);
-            piix_write(2, 0x22, 0x00, priv);
-            piix_write(2, 0x23, 0x00, priv);
+            piix_write(2, 0x20, 1, 0x01, priv);
+            piix_write(2, 0x21, 1, 0x00, priv);
+            piix_write(2, 0x22, 1, 0x00, priv);
+            piix_write(2, 0x23, 1, 0x00, priv);
         }
     }
 
     if (dev->type >= 4) {
-        piix_write(0, 0xb0, is_pentium ? 0x00 : 0x04, priv);
-        piix_write(3, 0x40, 0x01, priv);
-        piix_write(3, 0x41, 0x00, priv);
-        piix_write(3, 0x5b, 0x00, priv);
-        piix_write(3, 0x80, 0x00, priv);
-        piix_write(3, 0x90, 0x01, priv);
-        piix_write(3, 0x91, 0x00, priv);
-        piix_write(3, 0xd2, 0x00, priv);
+        piix_write(0, 0xb0, 1, is_pentium ? 0x00 : 0x04, priv);
+        piix_write(3, 0x40, 1, 0x01, priv);
+        piix_write(3, 0x41, 1, 0x00, priv);
+        piix_write(3, 0x5b, 1, 0x00, priv);
+        piix_write(3, 0x80, 1, 0x00, priv);
+        piix_write(3, 0x90, 1, 0x01, priv);
+        piix_write(3, 0x91, 1, 0x00, priv);
+        piix_write(3, 0xd2, 1, 0x00, priv);
     }
 
     sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);

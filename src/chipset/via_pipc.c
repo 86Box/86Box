@@ -170,8 +170,8 @@ pipc_log(const char *fmt, ...)
 static void    pipc_sgd_handlers(pipc_t *dev, uint8_t modem);
 static void    pipc_codec_handlers(pipc_t *dev, uint8_t modem);
 static void    pipc_sb_handlers(pipc_t *dev, uint8_t modem);
-static uint8_t pipc_read(int func, int addr, void *priv);
-static void    pipc_write(int func, int addr, uint8_t val, void *priv);
+static uint8_t pipc_read(int func, int addr, int len, void *priv);
+static void    pipc_write(int func, int addr, int len, uint8_t val, void *priv);
 
 static void
 pipc_io_trap_pact(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
@@ -930,7 +930,7 @@ pipc_sb_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 static uint8_t
-pipc_read(int func, int addr, void *priv)
+pipc_read(int func, int addr, UNUSED(int len), void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
     uint8_t ret = 0xff;
@@ -1026,7 +1026,7 @@ pipc_ddma_update(pipc_t *dev, int addr)
 }
 
 static void
-pipc_write(int func, int addr, uint8_t val, void *priv)
+pipc_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
     int     c;
@@ -1661,34 +1661,34 @@ pipc_reset(void *priv)
     pipc_t *dev     = (pipc_t *) priv;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
 
-    pipc_write(pm_func, 0x41, 0x00, priv);
-    pipc_write(pm_func, 0x48, 0x01, priv);
-    pipc_write(pm_func, 0x49, 0x00, priv);
+    pipc_write(pm_func, 0x41, 1, 0x00, priv);
+    pipc_write(pm_func, 0x48, 1, 0x01, priv);
+    pipc_write(pm_func, 0x49, 1, 0x00, priv);
 
     dev->power_regs[0x42] = ((dev->local >> 16) == VIA_PIPC_586) ? 0x00 : 0x50;
     acpi_set_irq_line(dev->acpi, 0x00);
 
-    pipc_write(1, 0x04, 0x80, priv);
-    pipc_write(1, 0x09, 0x85, priv);
-    pipc_write(1, 0x10, 0xf1, priv);
-    pipc_write(1, 0x11, 0x01, priv);
-    pipc_write(1, 0x14, 0xf5, priv);
-    pipc_write(1, 0x15, 0x03, priv);
-    pipc_write(1, 0x18, 0x71, priv);
-    pipc_write(1, 0x19, 0x01, priv);
-    pipc_write(1, 0x1c, 0x75, priv);
-    pipc_write(1, 0x1d, 0x03, priv);
-    pipc_write(1, 0x20, 0x01, priv);
-    pipc_write(1, 0x21, 0xcc, priv);
+    pipc_write(1, 0x04, 1, 0x80, priv);
+    pipc_write(1, 0x09, 1, 0x85, priv);
+    pipc_write(1, 0x10, 1, 0xf1, priv);
+    pipc_write(1, 0x11, 1, 0x01, priv);
+    pipc_write(1, 0x14, 1, 0xf5, priv);
+    pipc_write(1, 0x15, 1, 0x03, priv);
+    pipc_write(1, 0x18, 1, 0x71, priv);
+    pipc_write(1, 0x19, 1, 0x01, priv);
+    pipc_write(1, 0x1c, 1, 0x75, priv);
+    pipc_write(1, 0x1d, 1, 0x03, priv);
+    pipc_write(1, 0x20, 1, 0x01, priv);
+    pipc_write(1, 0x21, 1, 0xcc, priv);
     if (dev->local <= VIA_PIPC_586B)
-        pipc_write(1, 0x40, 0x04, priv);
+        pipc_write(1, 0x40, 1, 0x04, priv);
     else
-        pipc_write(1, 0x40, 0x00, priv);
+        pipc_write(1, 0x40, 1, 0x00, priv);
 
     if (dev->local < VIA_PIPC_586B)
-        pipc_write(0, 0x44, 0x00, priv);
+        pipc_write(0, 0x44, 1, 0x00, priv);
 
-    pipc_write(0, 0x77, 0x00, priv);
+    pipc_write(0, 0x77, 1, 0x00, priv);
 
     sff_set_slot(dev->bm[0], dev->pci_slot);
     sff_set_slot(dev->bm[1], dev->pci_slot);

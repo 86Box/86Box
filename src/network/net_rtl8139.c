@@ -3100,7 +3100,7 @@ rtl8139_timer(void *priv)
 }
 
 static uint8_t
-rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
+rtl8139_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const RTL8139State *s = (RTL8139State *) priv;
 
@@ -3157,7 +3157,7 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-rtl8139_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+rtl8139_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     RTL8139State *s = (RTL8139State *) priv;
 

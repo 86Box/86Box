@@ -3066,7 +3066,7 @@ banshee_vsync_callback(svga_t *svga)
 }
 
 static uint8_t
-banshee_pci_read(int func, int addr, void *priv)
+banshee_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const banshee_t *banshee = (banshee_t *) priv;
 #if 0
@@ -3276,7 +3276,7 @@ banshee_pci_read(int func, int addr, void *priv)
 }
 
 static void
-banshee_pci_write(int func, int addr, uint8_t val, void *priv)
+banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     banshee_t *banshee = (banshee_t *) priv;
 #if 0

@@ -1997,7 +1997,7 @@ esp_bios_disable(esp_t *dev)
 #define EE_ADAPT_OPTION_SCAM_SUPPORT    0x08
 
 static uint8_t
-esp_pci_read(UNUSED(int func), int addr, void *priv)
+esp_pci_read(UNUSED(int func), int addr, int len, void *priv)
 {
     esp_t *dev = (esp_t *) priv;
 
@@ -2009,12 +2009,15 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
             if (!dev->has_bios || dev->local)
                 return 0x22;
             else {
-                if (nmc93cxx_eeprom_read(dev->eeprom))
-                    return 0x22;
-                else {
-                    dev->eeprom->dev.out = 1;
-                    return 2;
+                uint8_t ret = 0x22;
+
+                if (len == 1) {
+                    /* First byte of address space is AND-ed with EEPROM DO line */
+                    if (!nmc93cxx_eeprom_read(dev->eeprom))
+                        ret &= 0x00;
                 }
+
+                return ret;
             }
             break;
         case 0x01:
@@ -2084,7 +2087,7 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-esp_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+esp_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     esp_t  *dev = (esp_t *) priv;
     uint8_t valxor;

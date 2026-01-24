@@ -1117,7 +1117,7 @@ BuslogicBIOSUpdate(buslogic_data_t *bl)
 }
 
 static uint8_t
-BuslogicPCIRead(UNUSED(int func), int addr, void *priv)
+BuslogicPCIRead(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const x54x_t *dev = (x54x_t *) priv;
 #ifdef ENABLE_BUSLOGIC_LOG
@@ -1203,7 +1203,7 @@ BuslogicPCIRead(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-BuslogicPCIWrite(UNUSED(int func), int addr, uint8_t val, void *priv)
+BuslogicPCIWrite(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;

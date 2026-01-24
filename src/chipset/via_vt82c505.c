@@ -38,7 +38,7 @@ typedef struct vt82c505_t {
 } vt82c505_t;
 
 static void
-vt82c505_write(int func, int addr, uint8_t val, void *priv)
+vt82c505_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     vt82c505_t   *dev = (vt82c505_t *) priv;
     uint8_t       irq;
@@ -126,7 +126,7 @@ vt82c505_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-vt82c505_read(int func, int addr, void *priv)
+vt82c505_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const vt82c505_t *dev = (vt82c505_t *) priv;
     uint8_t           ret = 0xff;
@@ -147,7 +147,7 @@ vt82c505_out(uint16_t addr, uint8_t val, void *priv)
     if (addr == 0xa8)
         dev->index = val;
     else if ((addr == 0xa9) && (dev->index >= 0x80) && (dev->index <= 0x9f))
-        vt82c505_write(0, dev->index, val, priv);
+        vt82c505_write(0, dev->index, 1, val, priv);
 }
 
 static uint8_t
@@ -157,7 +157,7 @@ vt82c505_in(uint16_t addr, void *priv)
     uint8_t           ret = 0xff;
 
     if ((addr == 0xa9) && (dev->index >= 0x80) && (dev->index <= 0x9f))
-        ret = vt82c505_read(0, dev->index, priv);
+        ret = vt82c505_read(0, dev->index, 1, priv);
 
     return ret;
 }
@@ -173,16 +173,16 @@ vt82c505_reset(void *priv)
     for (uint8_t i = 0x80; i <= 0x9f; i++) {
         switch (i) {
             case 0x81:
-                vt82c505_write(0, i, 0x01, priv);
+                vt82c505_write(0, i, 1, 0x01, priv);
                 break;
             case 0x84:
-                vt82c505_write(0, i, 0x03, priv);
+                vt82c505_write(0, i, 1, 0x03, priv);
                 break;
             case 0x93:
-                vt82c505_write(0, i, 0x40, priv);
+                vt82c505_write(0, i, 1, 0x40, priv);
                 break;
             default:
-                vt82c505_write(0, i, 0x00, priv);
+                vt82c505_write(0, i, 1, 0x00, priv);
                 break;
         }
     }

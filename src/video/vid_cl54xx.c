@@ -3934,7 +3934,7 @@ gd54xx_start_blit(uint32_t cpu_dat, uint32_t count, gd54xx_t *gd54xx, svga_t *sv
 }
 
 static uint8_t
-cl_pci_read(UNUSED(int func), int addr, void *priv)
+cl_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const gd54xx_t *gd54xx = (gd54xx_t *) priv;
     const svga_t   *svga   = &gd54xx->svga;
@@ -4046,7 +4046,7 @@ cl_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-cl_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+cl_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     gd54xx_t     *gd54xx = (gd54xx_t *) priv;
     const svga_t *svga   = &gd54xx->svga;

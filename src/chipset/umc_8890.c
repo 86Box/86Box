@@ -119,7 +119,7 @@ um8890_smram(umc_8890_t *dev)
 }
 
 static void
-um8890_write(int func, int addr, uint8_t val, void *priv)
+um8890_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     umc_8890_t *dev = (umc_8890_t *)priv;
 
@@ -158,7 +158,7 @@ um8890_write(int func, int addr, uint8_t val, void *priv)
 
 
 static uint8_t
-um8890_read(int func, int addr, void *priv)
+um8890_read(int func, int addr, UNUSED(int len), void *priv)
 {
     umc_8890_t *dev = (umc_8890_t *)priv;
     uint8_t ret = 0xff;

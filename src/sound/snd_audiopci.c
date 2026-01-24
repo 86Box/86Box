@@ -1905,7 +1905,7 @@ update_legacy(es137x_t *dev, uint32_t old_legacy_ctrl)
 }
 
 static uint8_t
-es1370_pci_read(int func, int addr, void *priv)
+es1370_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const es137x_t *dev = (es137x_t *) priv;
 
@@ -2001,7 +2001,7 @@ es1370_pci_read(int func, int addr, void *priv)
 }
 
 static uint8_t
-es1371_pci_read(int func, int addr, void *priv)
+es1371_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const es137x_t *dev = (es137x_t *) priv;
 
@@ -2103,7 +2103,7 @@ es137x_io_set(es137x_t *dev, int set)
 }
 
 static void
-es1370_pci_write(int func, int addr, uint8_t val, void *priv)
+es1370_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
 
@@ -2154,7 +2154,7 @@ es1370_pci_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static void
-es1371_pci_write(int func, int addr, uint8_t val, void *priv)
+es1371_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
 

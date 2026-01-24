@@ -1096,7 +1096,7 @@ tgui_hwcursor_draw(svga_t *svga, int displine)
 }
 
 uint8_t
-tgui_pci_read(UNUSED(int func), int addr, void *priv)
+tgui_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const tgui_t *tgui = (tgui_t *) priv;
 
@@ -1166,7 +1166,7 @@ tgui_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 void
-tgui_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+tgui_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     tgui_t *tgui = (tgui_t *) priv;
     svga_t *svga = &tgui->svga;
