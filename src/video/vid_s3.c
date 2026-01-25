@@ -12237,15 +12237,11 @@ s3_init(const device_t *info)
         checksum = s3_calc_crc16(64, s3->eeprom_data);
 
         s3->eeprom_data[0x00] = checksum;
-        params.nwords          = 64;
+        params.type            = NMC_93C46_x16_64;
         params.default_content = s3->eeprom_data;
         params.filename        = filename;
         snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, s3->eeprom_inst);
         s3->eeprom = device_add_inst_params(&nmc93cxx_device, s3->eeprom_inst, &params);
-        if (s3->eeprom == NULL) {
-            free(s3);
-            return NULL;
-        }
     }
 
     s3->accel.multifunc[0xd] = 0xd000;
