@@ -177,16 +177,16 @@ catalyst_flash_add_mappings(flash_t *dev)
     mem_mapping_add(&dev->mapping, 0xe0000, 0x20000,
                     flash_read, flash_readw, flash_readl,
                     flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
 
     mem_mapping_add(&(dev->mapping_h[0]), 0xfffc0000, 0x20000,
                     flash_read, flash_readw, flash_readl,
                     flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
     mem_mapping_add(&(dev->mapping_h[1]), 0xfffe0000, 0x20000,
                     flash_read, flash_readw, flash_readl,
                     flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
 }
 
 static void
