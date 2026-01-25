@@ -1642,16 +1642,12 @@ nic_init(const device_t *info)
     }
 
     if (info->local != 3) {
-        params.nwords          = 64;
-        params.default_content = (uint16_t *) s->eeprom_data;
+        params.type            = NMC_93C46_x16_64;
+        params.default_content = s->eeprom_data;
         params.filename        = filename;
         int inst               = device_get_instance();
         snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, inst);
         s->eeprom = device_add_inst_params(&nmc93cxx_device, inst, &params);
-        if (s->eeprom == NULL) {
-            free(s);
-            return NULL;
-        }
     }
 
     s->tulip_pci_bar[0].addr_regs[0] = 1;
