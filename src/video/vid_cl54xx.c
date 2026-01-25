@@ -2288,7 +2288,7 @@ gd54xx_write(uint32_t addr, uint8_t val, void *priv)
 
     xga_write_test(addr, val, svga);
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40)) {
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
         svga_write(addr, val, svga);
         return;
     }
@@ -2318,7 +2318,7 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *priv)
     xga_write_test(addr, val, svga);
     xga_write_test(addr + 1, val >> 8, svga);
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40)) {
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
         svga_writew(addr, val, svga);
         return;
     }
@@ -2357,7 +2357,7 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *priv)
     xga_write_test(addr + 2, val >> 16, svga);
     xga_write_test(addr + 3, val >> 24, svga);
 
-    if ((svga->seqregs[0x07] & 0x01) == 0) {
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
         svga_writel(addr, val, svga);
         return;
     }
@@ -2914,7 +2914,7 @@ gd54xx_read(uint32_t addr, void *priv)
     svga_t   *svga   = (svga_t *) priv;
     gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40))
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
         return svga_read(addr, svga);
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
@@ -2935,7 +2935,7 @@ gd54xx_readw(uint32_t addr, void *priv)
     gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
     uint16_t  ret;
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40))
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
         return svga_readw(addr, svga);
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
@@ -2960,7 +2960,7 @@ gd54xx_readl(uint32_t addr, void *priv)
     gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
     uint32_t  ret;
 
-    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) || !(svga->gdcreg[5] & 0x40))
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
         return svga_readl(addr, svga);
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
