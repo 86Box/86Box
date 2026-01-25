@@ -2569,7 +2569,7 @@ vfio_dev_prereset(vfio_device_t *dev)
     dev->can_flr_reset = (dev->pcie_cap && (vfio_config_readb(0, dev->pcie_cap + 7, 1, dev) & 0x10)) || (dev->af_cap && (vfio_config_readb(0, dev->af_cap + 3, 1, dev) & 0x02));
 
     /* Disable bus master, BARs, expansion ROM and VGA regions; also enable INTx. */
-    vfio_config_writew(0, 0x04, vfio_config_readw(0, 0x04, 2, dev) & ~0x0407, dev);
+    vfio_config_writew(0, 0x04, 2, vfio_config_readw(0, 0x04, 2, dev) & ~0x0407, dev);
 }
 
 static void
