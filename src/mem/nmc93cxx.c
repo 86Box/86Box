@@ -130,9 +130,6 @@ nmc93cxx_eeprom_log(nmc93cxx_eeprom_t *dev, int lvl, const char *fmt, ...)
         va_end(ap);
     }
 }
-#else
-#    define nmc93cxx_eeprom_log(dev, lvl, fmt, ...)
-#endif
 
 #define MAKE_CASE(x) case x: return #x;
 static char*
@@ -149,7 +146,7 @@ nmc93cxx_eeprom_state_to_name(EepromState state)
     }
 }
 
-static char*
+static char *
 nmc93cxx_eeprom_cmd_to_name(EepromCommand command)
 {
     switch (command) {
@@ -167,6 +164,9 @@ nmc93cxx_eeprom_cmd_to_name(EepromCommand command)
     }
 }
 #undef MAKE_CASE
+#else
+#    define nmc93cxx_eeprom_log(dev, lvl, fmt, ...)
+#endif
 
 static void
 nmc93cxx_eeprom_set_state(nmc93cxx_eeprom_t *dev, EepromState state)
@@ -305,11 +305,11 @@ nmc93cxx_eeprom_init(const device_t *info)
     snprintf(dev->filename, sizeof(dev->filename), "%s", params_details->filename);
     FILE *fp = nvr_fopen(dev->filename, "rb");
     if (fp) {
-        fill_default = !fread(dev->array_data, dev->data_bits / 8, dev->cells, fp);
+        fill_default = !fread(dev->array_data, (size_t) dev->data_bits / 8, dev->cells, fp);
         fclose(fp);
     }
     if (fill_default && params_details->default_content) {
-        memcpy(dev->array_data, params_details->default_content, dev->cells * (dev->data_bits / 8));
+        memcpy(dev->array_data, params_details->default_content, (size_t) dev->cells * ((size_t) dev->data_bits / 8));
     }
 
     /* Compute address bits */
