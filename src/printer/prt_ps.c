@@ -156,7 +156,7 @@ convert_to_pdf(ps_t *dev)
     gsargv[arg++] = "-sDEVICE=pdfwrite";
     if (dev->pcl) {
         gsargv[arg++] = "-LPCL";
-        gsargv[arg++] = "-lPCL5E";
+        gsargv[arg++] = "-lPCL5C";
     }
     gsargv[arg++] = "-q";
     gsargv[arg++] = "-o";
@@ -299,11 +299,14 @@ process_data(ps_t *dev)
                     dev->pjl = false;
                 else if (!memcmp(&(dev->buffer[dev->pjl_command_start]), "@PJL ENTER LANGUAGE=POSTSCRIPT", 0x1e))
                     fatal("Printing PostScript using the PCL printer is not (yet) supported!\n");
+                dev->buffer[dev->buffer_pos] = 0x00;
                 dev->buffer_pos = dev->pjl_command_start;
             } else if (!dev->pjl_command && (dev->buffer_pos >= 0x05) && !memcmp(&(dev->buffer[dev->buffer_pos - 0x5]), "@PJL ", 0x05)) {
                 dev->pjl_command = true;
                 dev->pjl_command_start = dev->buffer_pos - 0x05;
-            }
+            } else if (!dev->pjl_command && (dev->data == 0x1b))
+                /* The universal exit code is also valid in PJL. */
+                dev->pcl_escape = 1;
 
             dev->buffer[dev->buffer_pos]   = 0;
             return;
@@ -312,15 +315,6 @@ process_data(ps_t *dev)
         else  switch (dev->pcl_escape) {
             case 1:
                 dev->pcl_escape = (dev->data == 0x25) ? 2 : 0;
-                if (dev->data == 0x0e) {
-                    dev->buffer[dev->buffer_pos++] = dev->data;
-                    dev->buffer[dev->buffer_pos]   = 0;
-
-                    if (dev->buffer_pos > 2)
-                        write_buffer(dev, true);
-
-                    return;
-                }
                 break;
             case 2:
                 dev->pcl_escape = (dev->data == 0x2d) ? 3 : 0;
@@ -342,8 +336,19 @@ process_data(ps_t *dev)
                 break;
             case 8:
                 dev->pcl_escape = 0;
-                if (dev->data == 0x58)
+                if (dev->data == 0x58) {
                     dev->pjl = true;
+
+                    dev->buffer[dev->buffer_pos++] = dev->data;
+                    dev->buffer[dev->buffer_pos]   = 0;
+
+                    if (dev->pjl)
+                        /* Wipe the slate clean so that there won't be a bogus empty page output to PDF. */
+                        dev->pending  = false;
+                    else if (dev->buffer_pos > 9)
+                        write_buffer(dev, true);
+                    return;
+                }
                 break;
         }
     } else if ((dev->data < 0x20) || (dev->data == 0x7f)) {
