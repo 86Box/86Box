@@ -703,6 +703,7 @@ extern int             machine_at_d824_init(const machine_t *);
 
 /* VLSI 82C486 */
 extern int             machine_at_pcs44c_init(const machine_t *);
+extern int             machine_at_sensation1_init(const machine_t *);
 extern int             machine_at_tuliptc38_init(const machine_t *);
 
 /* ZyMOS Poach */
