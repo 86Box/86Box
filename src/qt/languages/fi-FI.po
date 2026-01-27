@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-29 09:54+0000\n"
-"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
+"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
 "MIME-Version: 1.0\n"
@@ -637,7 +637,7 @@ msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
 
 msgid "MO:"
-msgstr ""
+msgstr "MO:"
 
 msgid "Removable disks:"
 msgstr "Irrotettavat levyt:"
@@ -1843,7 +1843,7 @@ msgid "Microsoft Serial Mouse"
 msgstr "Microsoft-sarjahiiri"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Microsoft BallPoint-sarjahiiri"
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech-sarjahiiri"
@@ -1930,7 +1930,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "Salli BIOS-laajennuksen ROM-kirjoitukset (ROM #4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "Lineaarisen kehyspuskurin perusosoite"
 
 msgid "Address"
 msgstr "Osoite"
@@ -2179,7 +2179,7 @@ msgid "WSS DMA"
 msgstr "WSS-DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "RTC:n IRQ"
 
 msgid "RTC Port Address"
 msgstr "RTC-portin osoite"
@@ -2380,10 +2380,10 @@ msgid "Linear"
 msgstr "Lineaarinen"
 
 msgid "4th Order"
-msgstr ""
+msgstr "4. kertaluku"
 
 msgid "7th Order"
-msgstr ""
+msgstr "7. kertaluku"
 
 msgid "Non-timed (original)"
 msgstr "Ajastamaton (alkuperäinen)"
