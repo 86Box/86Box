@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-01-28 08:57+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
@@ -2872,7 +2872,7 @@ msgid "%1 VM Manager"
 msgstr ""
 
 msgid "%n disk(s)"
-msgstr ""
+msgstr "%n Festplatte(n)"
 
 msgid "Unknown Status"
 msgstr "Unbekannter Status"
