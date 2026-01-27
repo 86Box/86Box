@@ -530,25 +530,28 @@ ps_init(const device_t *info)
     dev->lpt  = lpt_attach(ps_write_data, ps_write_ctrl, ps_strobe, ps_read_status, NULL, NULL, NULL, dev);
     dev->lang = device_get_config_int("language");
 
-    /* Try loading the DLL. */
-    ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
+    if (dev->lang != LANG_RAW) {
+        /* Try loading the DLL. */
+        ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
 #ifdef PATH_GHOSTSCRIPT_DLL_ALT1
-    if (ghostscript_handle == NULL) {
-        ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT1, ghostscript_imports);
+        if (ghostscript_handle == NULL) {
+            ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT1, ghostscript_imports);
 #    ifdef PATH_GHOSTSCRIPT_DLL_ALT2
-        if (ghostscript_handle == NULL)
-            ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT2, ghostscript_imports);
+            if (ghostscript_handle == NULL)
+                ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT2, ghostscript_imports);
 #    endif
-    }
+        }
 #endif
-    if (ghostscript_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
-    } else {
-        if (gsapi_revision(&rev, sizeof(rev)) == 0) {
-            pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
-        } else {
-            dynld_close(ghostscript_handle);
-            ghostscript_handle = NULL;
+
+        if (ghostscript_handle == NULL) {
+            ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
+            } else {
+                if (gsapi_revision(&rev, sizeof(rev)) == 0) {
+                pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+            } else {
+                dynld_close(ghostscript_handle);
+                ghostscript_handle = NULL;
+            }
         }
     }
 
@@ -579,25 +582,28 @@ pcl_init(const device_t *info)
     dev->lpt  = lpt_attach(ps_write_data, ps_write_ctrl, ps_strobe, ps_read_status, NULL, NULL, NULL, dev);
     dev->lang = device_get_config_int("language");
 
-    /* Try loading the DLL. */
-    ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL, ghostscript_imports);
+    if (dev->lang != LANG_RAW) {
+        /* Try loading the DLL. */
+        ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL, ghostscript_imports);
 #ifdef PATH_GHOSTPCL_DLL_ALT1
-    if (ghostscript_handle == NULL) {
-        ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT1, ghostscript_imports);
+        if (ghostscript_handle == NULL) {
+            ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT1, ghostscript_imports);
 #    ifdef PATH_GHOSTPCL_DLL_ALT2
-        if (ghostscript_handle == NULL)
-            ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT2, ghostscript_imports);
+            if (ghostscript_handle == NULL)
+                ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT2, ghostscript_imports);
 #    endif
-    }
+        }
 #endif
-    if (ghostscript_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTPCL_ERROR_TITLE), plat_get_string(STRING_GHOSTPCL_ERROR_DESC));
-    } else {
-        if (gsapi_revision(&rev, sizeof(rev)) == 0) {
-            pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+
+        if (ghostscript_handle == NULL) {
+            ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTPCL_ERROR_TITLE), plat_get_string(STRING_GHOSTPCL_ERROR_DESC));
         } else {
-            dynld_close(ghostscript_handle);
-            ghostscript_handle = NULL;
+            if (gsapi_revision(&rev, sizeof(rev)) == 0) {
+                pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+            } else {
+                dynld_close(ghostscript_handle);
+                ghostscript_handle = NULL;
+            }
         }
     }
 
