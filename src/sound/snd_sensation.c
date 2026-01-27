@@ -203,8 +203,8 @@ sensation_visdac_updatefreq(sensation_t *dev)
     sensation_log(dev->log, "VISDAC frequency update: val %02X\n", rate);
 
     switch (rate) {
-        case 0x00: /* Unknown sample rate */
-            dev->visdac_freq = 22050;
+        case 0x00: /* 44KHz */
+            dev->visdac_freq = 44100;
             break;
         case 0x01: /* 22KHz */
             dev->visdac_freq = 22050;
@@ -212,8 +212,8 @@ sensation_visdac_updatefreq(sensation_t *dev)
         case 0x02: /* 11KHz */
             dev->visdac_freq = 11025;
             break;
-        case 0x03: /* Likely 44KHz */
-            dev->visdac_freq = 44100;
+        case 0x03: /* 5.0125KHz? VISBIOS.DOC mentions this sample rate being supported */
+            dev->visdac_freq = 5012;
             break;
         default:
             break;
