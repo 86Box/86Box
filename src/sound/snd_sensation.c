@@ -236,8 +236,7 @@ sensation_visdac_poll(void *priv)
 
     sensation_visdac_update(dev);
 
-    if ((dev->visdac_mode & 0x10) && (dev->visdac_regs[0x0e] >= 0x01 || dev->visdac_regs[0x0c] >= 0x12)) {
-    //if (dev->visdac_mode & 0x10) {
+    if (dev->visdac_mode & 0x10) {
 
         int32_t temp;
         uint8_t format;
@@ -298,8 +297,21 @@ sensation_visdac_poll(void *priv)
                 picint(1 << dev->visdac_irq);
             }
         }
-        if (!(dev->visdac_playback_pos & 0x03))
-            dev->visdac_count--;
+        switch (format) {
+            case 0x80: /* 8-bit Mono */
+                if (!(dev->visdac_playback_pos & 0x01))
+                    dev->visdac_count--;
+                break;
+            case 0x00: /* 8-bit Stereo */
+            case 0x88: /* 16-bit Mono */
+                    dev->visdac_count--;
+                    break;
+            case 0x08: /* 16-bit Stereo */
+                    dev->visdac_count -= 2;
+                    break;
+            default:
+                    break;
+        }
     } else {
         dev->visdac_out_l = dev->visdac_out_r = 0;
     }
