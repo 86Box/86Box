@@ -3018,10 +3018,13 @@ msgid "&Allow recompilation"
 msgstr "&Dovoli prevajanje"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Hitro previj"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Hitro previj"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Da bi spremenili sistemski imenik, ustavite vse naprave, ki se izvajajo."
+
+msgid "Raw"
+msgstr "Neobdelan"

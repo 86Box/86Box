@@ -3022,5 +3022,7 @@ msgid "Fast forward"
 msgstr "Zrychlit"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
-"Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
+msgstr "Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
+
+msgid "Raw"
+msgstr "Surový"

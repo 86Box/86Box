@@ -1996,7 +1996,7 @@ escp_init(const device_t *info)
     dev = (escp_t *) calloc(1, sizeof(escp_t));
     dev->ctrl = 0x04;
 
-    dev->lpt  = lpt_attach(info->local & 0xf, write_data, write_ctrl, strobe, read_status, read_ctrl, NULL, NULL, dev);
+    dev->lpt  = lpt_attach(write_data, write_ctrl, strobe, read_status, read_ctrl, NULL, NULL, dev);
 
     rom_get_full_path(dev->fontpath, "roms/printer/fonts/");
 

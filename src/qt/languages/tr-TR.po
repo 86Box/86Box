@@ -3023,3 +3023,6 @@ msgstr "İleri sar"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Sistem dizinini değiştirmek için tüm çalışan makineleri durdurun."
+
+msgid "Raw"
+msgstr "Ham"

@@ -3010,10 +3010,13 @@ msgid "&Allow recompilation"
 msgstr "&Tillåt omkompilering"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Spola fram"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Spola fram"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "ör att ändra systemkatalogen, stoppa alla maskiner som är körs."
+
+msgid "Raw"
+msgstr "Rå"

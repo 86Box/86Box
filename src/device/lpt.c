@@ -59,9 +59,7 @@ static const struct {
     { &lpt_prt_text_device      },
     { &lpt_prt_escp_device      },
     { &lpt_prt_ps_device        },
-#ifdef USE_PCL
     { &lpt_prt_pcl_device       },
-#endif
     { &lpt_plip_device          },
     { &lpt_hasp_savquest_device },
     { NULL                      }
@@ -145,13 +143,12 @@ lpt_devices_init(void)
 
         if ((lpt_devices[lpt_ports[i].device].device != NULL) && 
             (lpt_devices[lpt_ports[i].device].device != &lpt_none_device))
-            device_add_params((device_t *) lpt_devices[lpt_ports[i].device].device, (void *) (uintptr_t) i);
+            device_add_inst((device_t *) lpt_devices[lpt_ports[i].device].device, i + 1);
     }
 }
 
 void *
-lpt_attach(int     port,
-           void    (*write_data)(uint8_t val, void *priv),
+lpt_attach(void    (*write_data)(uint8_t val, void *priv),
            void    (*write_ctrl)(uint8_t val, void *priv),
            void    (*strobe)(uint8_t old, uint8_t val,void *priv),
            uint8_t (*read_status)(void *priv),
@@ -160,6 +157,8 @@ lpt_attach(int     port,
            void    (*epp_request_read)(uint8_t is_addr, void *priv),
            void    *priv)
 {
+    int port                        = device_get_instance() - 1;
+
     lpt_devs[port].write_data       = write_data;
     lpt_devs[port].write_ctrl       = write_ctrl;
     lpt_devs[port].strobe           = strobe;

@@ -3010,10 +3010,13 @@ msgid "&Allow recompilation"
 msgstr "재컴파일 허용(&A)"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "빠른 전진(&F)"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "빠른 전진"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "시스템 디렉터리를 변경하려면 실행 중인 모든 머신을 중지하십시오."
+
+msgid "Raw"
+msgstr "원본"

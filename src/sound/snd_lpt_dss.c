@@ -118,7 +118,7 @@ dss_init(UNUSED(const device_t *info))
 {
     dss_t *dss = calloc(1, sizeof(dss_t));
 
-    dss->lpt   = lpt_attach(info->local & 0xf, dss_write_data, dss_write_ctrl, NULL, dss_read_status, NULL, NULL, NULL, dss);
+    dss->lpt   = lpt_attach(dss_write_data, dss_write_ctrl, NULL, dss_read_status, NULL, NULL, NULL, dss);
 
     sound_add_handler(dss_get_buffer, dss);
     timer_add(&dss->timer, dss_callback, dss, 1);

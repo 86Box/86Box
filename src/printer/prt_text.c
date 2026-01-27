@@ -461,7 +461,7 @@ prnt_init(const device_t *info)
     prnt_t *dev = (prnt_t *) calloc(1, sizeof(prnt_t));
 
     dev->ctrl = 0x04;
-    dev->lpt  = lpt_attach(info->local & 0xf, write_data, write_ctrl, strobe, read_status, NULL, NULL, NULL, dev);
+    dev->lpt  = lpt_attach(write_data, write_ctrl, strobe, read_status, NULL, NULL, NULL, dev);
 
     /* Initialize parameters. */
     reset_printer(dev);

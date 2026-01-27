@@ -132,8 +132,7 @@ extern void                lpt_port_remove(lpt_t *dev);
 extern void                lpt1_remove_ams(lpt_t *dev);
 
 extern void                lpt_devices_init(void);
-extern void *              lpt_attach(int     port,
-                                      void    (*write_data)(uint8_t val, void *priv),
+extern void *              lpt_attach(void    (*write_data)(uint8_t val, void *priv),
                                       void    (*write_ctrl)(uint8_t val, void *priv),
                                       void    (*strobe)(uint8_t old, uint8_t val,void *priv),
                                       uint8_t (*read_status)(void *priv),

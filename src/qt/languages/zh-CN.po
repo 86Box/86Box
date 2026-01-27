@@ -3024,3 +3024,6 @@ msgstr "快进"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"
+
+msgid "Raw"
+msgstr "原始"

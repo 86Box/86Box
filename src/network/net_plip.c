@@ -447,7 +447,7 @@ plip_lpt_init(const device_t *info)
 
     plip_log(1, "PLIP: lpt_init()\n");
 
-    dev->lpt  = lpt_attach(info->local & 0xf, plip_write_data, plip_write_ctrl, NULL, plip_read_status, NULL, NULL, NULL, dev);
+    dev->lpt  = lpt_attach(plip_write_data, plip_write_ctrl, NULL, plip_read_status, NULL, NULL, NULL, dev);
 
     memset(dev->mac, 0xfc, 6); /* static MAC used by Linux; just a placeholder */
 

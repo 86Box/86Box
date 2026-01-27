@@ -3083,6 +3083,7 @@ msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
-"Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές "
-"σε λειτουργία."
+msgstr "Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές σε λειτουργία."
+
+msgid "Raw"
+msgstr "Αρχικος"

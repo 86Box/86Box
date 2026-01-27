@@ -3016,10 +3016,13 @@ msgid "&Allow recompilation"
 msgstr "&Salli uudelleenkääntäminen"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Nopea eteneminen"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Nopea eteneminen"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Järjestelmähakemiston muuttamiseksi pysäytä kaikki käynnissä olevat koneet."
+
+msgid "Raw"
+msgstr "Raaka"

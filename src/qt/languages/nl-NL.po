@@ -3010,10 +3010,13 @@ msgid "&Allow recompilation"
 msgstr "Recompilatie &toestaan"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Snel vooruitspoelen"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Snel vooruitspoelen"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Om de systeemmap te wijzigen, moet u alle actieve machines stoppen."
+
+msgid "Raw"
+msgstr "Ruw"

@@ -308,7 +308,7 @@ hasp_init(const device_t *info, int type)
 
     hasp_log("HASP: init(%d)\n", type);
 
-    dev->lpt  = lpt_attach(info->local & 0xf, hasp_write_data, NULL, NULL, hasp_read_status, NULL, NULL, NULL, dev);
+    dev->lpt  = lpt_attach(hasp_write_data, NULL, NULL, hasp_read_status, NULL, NULL, NULL, dev);
     dev->type = &hasp_types[type];
 
     dev->status = 0x80;

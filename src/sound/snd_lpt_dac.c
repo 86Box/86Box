@@ -93,7 +93,7 @@ dac_init(UNUSED(const device_t *info))
 {
     lpt_dac_t *lpt_dac = calloc(1, sizeof(lpt_dac_t));
 
-    lpt_dac->lpt = lpt_attach(info->local & 0xf, dac_write_data, dac_write_ctrl, dac_strobe, dac_read_status, NULL, NULL, NULL, lpt_dac);
+    lpt_dac->lpt = lpt_attach(dac_write_data, dac_write_ctrl, dac_strobe, dac_read_status, NULL, NULL, NULL, lpt_dac);
 
     sound_add_handler(dac_get_buffer, lpt_dac);
 

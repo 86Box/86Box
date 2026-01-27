@@ -3024,3 +3024,6 @@ msgstr "快轉"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "欲變更系統目錄，請先停止全部運行中的機器。"
+
+msgid "Raw"
+msgstr "原始"
