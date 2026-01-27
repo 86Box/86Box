@@ -141,6 +141,7 @@ typedef struct sensation_t {
     uint8_t visdac_playback_pos : 2;
     uint8_t visdac_playback_pos_test;
     int visdac_irq_status;
+    uint8_t visdac_dma_nodata;
 
     int16_t visdac_out_l;
     int16_t visdac_out_r;
@@ -177,8 +178,10 @@ sensation_visdac_dmaread(sensation_t *dev, int channel)
 
         if (dev->visdac_dma_data == DMA_NODATA) {
             sensation_log(dev->log, "VISDAC DMA: no data!\n");
+            dev->visdac_dma_nodata = 1;
             return DMA_NODATA;
-        }
+        } else
+            dev->visdac_dma_nodata = 0;
 
         ret = dev->visdac_dma_data & 0xff;
     }
@@ -246,18 +249,27 @@ sensation_visdac_poll(void *priv)
         switch (format) {
             case 0x80: /* 8-bit Mono PCM */
                 dev->visdac_out_l = dev->visdac_out_r = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) ^ 0x80) << 8);
+                if (dev->visdac_dma_nodata) {
+                    dev->visdac_out_l = dev->visdac_out_r = 0;
+                }
                 dev->visdac_playback_pos++;
                 dev->visdac_playback_pos_test++;
                 break;
             case 0x00: /* 8-bit Stereo PCM */
                 dev->visdac_out_l = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) ^ 0x80) << 8);
                 dev->visdac_out_r = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) ^ 0x80) << 8);
+                if (dev->visdac_dma_nodata) {
+                    dev->visdac_out_l = dev->visdac_out_r = 0;
+                }
                 dev->visdac_playback_pos += 2;
                 dev->visdac_playback_pos_test += 2;
                 break;
             case 0x88: /* 16-bit Mono PCM */
                 temp = (int32_t) sensation_visdac_dmaread(dev, dev->visdac_dma);
                 dev->visdac_out_l = dev->visdac_out_r = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) << 8) | temp);
+                if (dev->visdac_dma_nodata) {
+                    dev->visdac_out_l = dev->visdac_out_r = 0;
+                }
                 dev->visdac_playback_pos += 2;
                 dev->visdac_playback_pos_test += 2;
                 break;
@@ -266,6 +278,9 @@ sensation_visdac_poll(void *priv)
                 dev->visdac_out_l = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) << 8) | temp);
                 temp = (int32_t) sensation_visdac_dmaread(dev, dev->visdac_dma);
                 dev->visdac_out_r = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) << 8) | temp);
+                if (dev->visdac_dma_nodata) {
+                    dev->visdac_out_l = dev->visdac_out_r = 0;
+                }
                 dev->visdac_playback_pos += 4;
                 dev->visdac_playback_pos_test += 4;
                 break;
