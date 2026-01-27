@@ -465,14 +465,15 @@ ps_read_status(void *priv)
 }
 
 static void *
-ps_init(void *lpt)
+ps_init(const device_t *info)
 {
     ps_t            *dev = (ps_t *) calloc(1, sizeof(ps_t));
     gsapi_revision_t rev;
 
     dev->ctrl = 0x04;
-    dev->lpt  = lpt;
     dev->pcl  = false;
+
+    dev->lpt  = lpt_attach(info->local & 0xf, ps_write_data, ps_write_ctrl, ps_strobe, ps_read_status, NULL, NULL, NULL, dev);
 
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
@@ -513,14 +514,15 @@ ps_init(void *lpt)
 
 #ifdef USE_PCL
 static void *
-pcl_init(void *lpt)
+pcl_init(const device_t *info)
 {
     ps_t            *dev = (ps_t *) calloc(1, sizeof(ps_t));
     gsapi_revision_t rev;
 
     dev->ctrl = 0x04;
-    dev->lpt  = lpt;
     dev->pcl  = true;
+
+    dev->lpt  = lpt_attach(info->local & 0xf, ps_write_data, ps_write_ctrl, ps_strobe, ps_read_status, NULL, NULL, NULL, dev);
 
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL, ghostscript_imports);
@@ -579,36 +581,32 @@ ps_close(void *priv)
     free(dev);
 }
 
-const lpt_device_t lpt_prt_ps_device = {
-    .name             = "Generic PostScript Printer",
-    .internal_name    = "postscript",
-    .init             = ps_init,
-    .close            = ps_close,
-    .write_data       = ps_write_data,
-    .write_ctrl       = ps_write_ctrl,
-    .strobe           = ps_strobe,
-    .read_status      = ps_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+const device_t lpt_prt_ps_device = {
+    .name          = "Generic PostScript Printer",
+    .internal_name = "postscript",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = ps_init,
+    .close         = ps_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 #ifdef USE_PCL
-const lpt_device_t lpt_prt_pcl_device = {
-    .name             = "Generic PCL5e Printer",
-    .internal_name    = "pcl",
-    .init             = pcl_init,
-    .close            = ps_close,
-    .write_data       = ps_write_data,
-    .write_ctrl       = ps_write_ctrl,
-    .strobe           = ps_strobe,
-    .read_status      = ps_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+const device_t lpt_prt_pcl_device = {
+    .name          = "Generic PCL5e Printer",
+    .internal_name = "pcl",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = pcl_init,
+    .close         = ps_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 #endif
