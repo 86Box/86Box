@@ -106,7 +106,11 @@ compaq_plasma_waitstates(UNUSED(void *priv))
     int ws;
 
     ws = ws_array[cycles & 0xf];
-    sub_cycles(ws);
+
+    if (is_nec)
+        sub_cycles_vx0(ws);
+    else
+        sub_cycles(ws);
 }
 
 static void

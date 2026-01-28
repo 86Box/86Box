@@ -78,7 +78,7 @@ enum {
 
 /* Temporary BIU externs - move to 808x_biu.h. */
 extern void        biu_resume_on_queue_read(void);
-extern void        wait(int c);
+extern void        wait_vx0(int c);
 extern void        biu_reset(void);
 extern void        cpu_io_vx0(int bits, int out, uint16_t port);
 extern void        biu_state_set_eu(void);

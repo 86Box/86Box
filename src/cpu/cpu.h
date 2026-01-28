@@ -729,6 +729,7 @@ extern int  idivl(int32_t val);
 extern void resetmcr(void);
 extern void resetx86(void);
 extern void refreshread(void);
+extern void refreshread_vx0(void);
 extern void resetreadlookup(void);
 extern void softresetx86(void);
 extern void hardresetx86(void);

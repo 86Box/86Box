@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
+"Language: ko-KR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: ko_KR\n"
 "X-Source-Language: en_US\n"
 
@@ -1780,7 +1786,7 @@ msgid "VDE Socket:"
 msgstr "VDE 소켓:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP 브리지 장치:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box 유닛 테스터"
@@ -2173,16 +2179,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "RTC의 IRQ"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "RTC의 포트 주소"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "온보드 RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "설치되지 않음"
 
 msgid "Enable OPL"
 msgstr "OPL 사용"
@@ -2806,7 +2812,7 @@ msgid "Toggle fullscreen"
 msgstr "전체 화면 모드 전환"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "전체 화면 모드에서 UI 전환"
 
 msgid "Release mouse pointer"
 msgstr "마우스 포인터를 해제합니다"

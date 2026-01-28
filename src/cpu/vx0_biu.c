@@ -38,7 +38,7 @@
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
 
-#define do_cycle()           wait(1)
+#define do_cycle()           wait_vx0(1)
 #define do_cycle_i()         do_cycle()
 
 uint8_t            biu_preload_byte      = 0x00;
@@ -287,6 +287,15 @@ bus_inw(uint16_t port)
     return ret;
 }
 
+void
+resub_cycles_vx0(int old_cycles)
+{
+    if (old_cycles > cycles)
+        wait_states = old_cycles - cycles;
+
+    cycles = old_cycles;
+}
+
 static void
 bus_do_io(int io_type)
 {
@@ -310,7 +319,7 @@ bus_do_io(int io_type)
             AL = bus_inb((uint16_t) cpu_state.eaaddr);
     }
 
-    resub_cycles(old_cycles);
+    resub_cycles_vx0(old_cycles);
 }
 
 static void
@@ -370,7 +379,7 @@ bus_do_mem(int io_type)
             mem_data = (mem_data & 0xff00) | ((uint16_t) bus_readb(mem_seg, (uint32_t) mem_addr));
     }
 
-    resub_cycles(old_cycles);
+    resub_cycles_vx0(old_cycles);
 }
 
 static void
@@ -508,15 +517,6 @@ do_bus_access(void)
                 break;
         }
     }
-}
-
-void
-resub_cycles(int old_cycles)
-{
-    if (old_cycles > cycles)
-        wait_states = old_cycles - cycles;
-
-    cycles = old_cycles;
 }
 
 static uint8_t
@@ -705,7 +705,7 @@ biu_eu_request(void)
 }
 
 void
-wait(int c)
+wait_vx0(int c)
 {
     x808x_biu_log("[%04X:%04X] %02X %i cycles\n", CS, cpu_state.pc, opcode, c);
 
@@ -715,7 +715,7 @@ wait(int c)
 
 /* This is for external subtraction of cycles, ie. wait states. */
 void
-sub_cycles(int c)
+sub_cycles_vx0(int c)
 {
     cycles -= c;
 }
@@ -1143,7 +1143,7 @@ biu_suspend_fetch(void)
 
 /* Memory refresh read - called by reads and writes on DMA channel 0. */
 void
-refreshread(void)
+refreshread_vx0(void)
 {
     if (dma_state == DMA_STATE_IDLE) {
         dma_state = DMA_STATE_TIMER;

@@ -147,7 +147,7 @@ def runBuild(args) {
 	if (isUnix())
 		return sh(returnStatus: true, script: "chmod u+x '$WORKSPACE/.ci/build.sh' && exec '$WORKSPACE/.ci/build.sh' $args")
 	else
-		return bat(returnStatus: true, script: "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'")
+		return bat(returnStatus: true, script: "C:\\msys64\\msys2_shell.cmd -ucrt64 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'")
 }
 
 def failStage() {

@@ -41,11 +41,11 @@
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
 
-#define do_cycle()           wait(1)
+#define do_cycle()           wait_vx0(1)
 #define do_cycle_no_modrm()  if (!nx)       \
                                  do_cycle()
 #define do_cycle_i()         do_cycle()
-#define do_cycles(c)         wait(c)
+#define do_cycles(c)         wait_vx0(c)
 #define do_cycles_i(c)       do_cycles(c)
 #define do_cycle_nx()        nx = 1
 #define do_cycle_nx_i()      nx = 1
@@ -222,12 +222,6 @@ const uint8_t opf_0f[256]  = {      0,      0,      0,      0,      0,      0,  
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* F0 */
                                     0,      0,      0,      0,      0,      0,      0,      0 }; /* F8 */
 
-uint8_t            use_custom_nmi_vector = 0;
-
-uint32_t           custom_nmi_vector     = 0x00000000;
-
-/* Is the CPU 8088 or 8086. */
-int                is8086                = 0;
 int                nx                    = 0;
 
 static uint32_t    cpu_src               = 0;
@@ -420,12 +414,6 @@ sync_to_i8080(void)
     emulated_processor.cf = (cpu_state.flags >> 0) & 1;
 
     emulated_processor.interrupt_delay = noint;
-}
-
-uint16_t
-get_last_addr(void)
-{
-    return last_addr;
 }
 
 static void

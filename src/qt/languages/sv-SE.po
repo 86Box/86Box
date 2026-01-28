@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
+"Language: sv-SE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: sv_SE\n"
 "X-Source-Language: en_US\n"
 
@@ -1780,7 +1786,7 @@ msgid "VDE Socket:"
 msgstr "VDE-sockel:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP-bryggaenhet:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box enhetsprövare"
@@ -2173,16 +2179,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ för RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Portadress för RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Inbyggd RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Ej installerad"
 
 msgid "Enable OPL"
 msgstr "Aktivera OPL"
@@ -2806,7 +2812,7 @@ msgid "Toggle fullscreen"
 msgstr "Helskärm"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Växla UI till helskärmsläge"
 
 msgid "Release mouse pointer"
 msgstr "Släpp muspekare"
