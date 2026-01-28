@@ -3616,7 +3616,7 @@ const cpu_family_t cpu_families[] = {
     {
         .package       = CPU_PKG_SOCKET4,
         .manufacturer  = "Intel",
-        .name          = "Pentium",
+        .name          = "Pentium (Socket 4)",
         .internal_name = "pentium_p5",
         .cpus          = (const CPU[]) {
             {
@@ -3736,7 +3736,7 @@ const cpu_family_t cpu_families[] = {
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "Intel",
-        .name          = "Pentium",
+        .name          = "Pentium (Socket 5/7)",
         .internal_name = "pentium_p54c",
         .cpus          = (const CPU[]) {
             {
