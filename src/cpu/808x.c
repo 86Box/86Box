@@ -51,7 +51,8 @@ uint32_t custom_nmi_vector     = 0x00000000;
 static uint8_t pfq[6];
 
 /* Variables to aid with the prefetch queue operation. */
-static int biu_cycles = 0, pfq_pos = 0;
+static int biu_cycles = 0;
+int        pfq_pos    = 0;
 
 /* The IP equivalent of the current prefetch queue position. */
 static uint16_t pfq_ip;
@@ -66,7 +67,7 @@ static int cpu_alu_op, pfq_size;
 static uint32_t cpu_src = 0, cpu_dest = 0;
 static uint32_t cpu_data = 0;
 
-static uint16_t last_addr = 0x0000;
+uint16_t        last_addr = 0x0000;
 
 static uint32_t *ovr_seg     = NULL;
 static int       prefetching = 1, completed = 1;
@@ -204,65 +205,10 @@ prefetch_queue_get_size(void)
 }
 static void set_if(int cond);
 
-void
-sync_from_i8080(void)
-{
-    AL = emulated_processor.a;
-    BH = emulated_processor.h;
-    BL = emulated_processor.l;
-    CH = emulated_processor.b;
-    CL = emulated_processor.c;
-    DH = emulated_processor.d;
-    DL = emulated_processor.e;
-    BP = emulated_processor.sp;
-    
-    cpu_state.pc = emulated_processor.pc;
-    cpu_state.flags &= 0xFF00;
-    cpu_state.flags |= emulated_processor.sf << 7;
-    cpu_state.flags |= emulated_processor.zf << 6;
-    cpu_state.flags |= emulated_processor.hf << 4;
-    cpu_state.flags |= emulated_processor.pf << 2;
-    cpu_state.flags |= 1 << 1;
-    cpu_state.flags |= emulated_processor.cf << 0;
-    set_if(emulated_processor.iff);
-}
-
-void
-sync_to_i8080(void)
-{
-    if (!is_nec)
-        return;
-    emulated_processor.a  = AL;
-    emulated_processor.h  = BH;
-    emulated_processor.l  = BL;
-    emulated_processor.b  = CH;
-    emulated_processor.c  = CL;
-    emulated_processor.d  = DH;
-    emulated_processor.e  = DL;
-    emulated_processor.sp = BP;
-    emulated_processor.pc = cpu_state.pc;
-    emulated_processor.iff = !!(cpu_state.flags & I_FLAG);
-
-    emulated_processor.sf = (cpu_state.flags >> 7) & 1;
-    emulated_processor.zf = (cpu_state.flags >> 6) & 1;
-    emulated_processor.hf = (cpu_state.flags >> 4) & 1;
-    emulated_processor.pf = (cpu_state.flags >> 2) & 1;
-    emulated_processor.cf = (cpu_state.flags >> 0) & 1;
-
-    emulated_processor.interrupt_delay = noint;
-}
-
-
 uint16_t
 get_last_addr(void)
 {
     return last_addr;
-}
-
-static void
-clock_start(void)
-{
-    cycdiff = cycles;
 }
 
 static void
@@ -293,7 +239,7 @@ fetch_and_bus(int c, int bus)
     pfq_add(c, !bus);
     if (bus < 2) {
         clock_end();
-        clock_start();
+        cycdiff = cycles;
     }
 }
 
@@ -412,7 +358,7 @@ readmemw(uint32_t s, uint16_t a)
     else {
         wait_cycs(4, 1);
         ret = read_mem_b(s + a);
-        ret |= read_mem_b(s + ((is186 && !is_nec) ? (a + 1) : (a + 1) & 0xffff)) << 8;
+        ret |= read_mem_b(s + (is186 ? (a + 1) : (a + 1) & 0xffff)) << 8;
     }
 
     return ret;
@@ -484,7 +430,7 @@ writememw(uint32_t s, uint32_t a, uint16_t v)
     else {
         write_mem_b(addr, v & 0xff);
         wait_cycs(4, 1);
-        addr = s + ((is186 && !is_nec) ? (a + 1) : ((a + 1) & 0xffff));
+        addr = s + (is186 ? (a + 1) : ((a + 1) & 0xffff));
         write_mem_b(addr, v >> 8);
     }
 
@@ -693,8 +639,6 @@ reset_808x(int hard)
 
     load_cs(0xFFFF);
     cpu_state.pc = 0;
-    if (is_nec)
-        cpu_state.flags |= MD_FLAG;
     rammask = 0xfffff;
 
     prefetching = 1;
@@ -929,7 +873,7 @@ seteaq(uint64_t val)
 static void
 push(uint16_t *val)
 {
-    if ((is186 && !is_nec) && (SP == 1)) {
+    if (is186 && (SP == 1)) {
         writememw(ss - 1, 0, *val);
         SP = cpu_state.eaaddr = 0xFFFF;
         return;
@@ -1085,11 +1029,6 @@ interrupt(uint16_t addr)
     uint16_t new_cs, new_ip;
     uint16_t tempf;
 
-    if (!(cpu_state.flags & MD_FLAG) && is_nec) {
-        sync_from_i8080();
-        x808x_log("CALLN/INT#/NMI#\n");
-    }
-
     addr <<= 2;
     cpu_state.eaaddr = addr;
     old_cs           = CS;
@@ -1103,11 +1042,9 @@ interrupt(uint16_t addr)
     pfq_clear();
     ovr_seg = NULL;
     access(39, 16);
-    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
+    tempf = cpu_state.flags & 0x0fd7;
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
-    if (is_nec)
-        cpu_state.flags |= MD_FLAG;
     access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
@@ -1116,71 +1053,6 @@ interrupt(uint16_t addr)
     set_ip(new_ip);
     access(41, 16);
     push(&old_ip);
-}
-
-/* Ditto, but for breaking into emulation mode. */
-static void
-interrupt_brkem(uint16_t addr)
-{
-    uint16_t old_cs, old_ip;
-    uint16_t new_cs, new_ip;
-    uint16_t tempf;
-
-    addr <<= 2;
-    cpu_state.eaaddr = addr;
-    old_cs           = CS;
-    access(5, 16);
-    new_ip = readmemw(0, cpu_state.eaaddr);
-    wait_cycs(1, 0);
-    cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
-    access(6, 16);
-    new_cs      = readmemw(0, cpu_state.eaaddr);
-    prefetching = 0;
-    pfq_clear();
-    ovr_seg = NULL;
-    access(39, 16);
-    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
-    push(&tempf);
-    cpu_state.flags      &= ~(MD_FLAG);
-    cpu_md_write_disable  = 0;
-    access(40, 16);
-    push(&old_cs);
-    old_ip = cpu_state.pc;
-    load_cs(new_cs);
-    access(68, 16);
-    set_ip(new_ip);
-    access(41, 16);
-    push(&old_ip);
-    sync_to_i8080();
-    x808x_log("BRKEM mode\n");
-}
-
-void
-retem_i8080(void)
-{
-    sync_from_i8080();
-
-    prefetching = 0;
-    pfq_clear();
-
-    set_ip(pop());
-    load_cs(pop());
-    cpu_state.flags = pop();
-
-    emulated_processor.iff = !!(cpu_state.flags & I_FLAG);
-
-    cpu_md_write_disable = 1;
-
-    noint      = 1;
-    nmi_enable = 1;
-
-    x808x_log("RETEM mode\n");
-}
-
-void
-interrupt_808x(uint16_t addr)
-{
-    interrupt(addr);
 }
 
 static void
@@ -1189,11 +1061,6 @@ custom_nmi(void)
     uint16_t old_cs, old_ip;
     uint16_t new_cs, new_ip;
     uint16_t tempf;
-
-    if (!(cpu_state.flags & MD_FLAG) && is_nec) {
-        sync_from_i8080();
-        pclog("NMI# (CUTSOM)\n");
-    }
 
     cpu_state.eaaddr = 0x0002;
     old_cs           = CS;
@@ -1209,11 +1076,9 @@ custom_nmi(void)
     pfq_clear();
     ovr_seg = NULL;
     access(39, 16);
-    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
+    tempf = cpu_state.flags & 0x0fd7;
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
-    if (is_nec)
-        cpu_state.flags |= MD_FLAG;
     access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
@@ -1225,10 +1090,10 @@ custom_nmi(void)
 }
 
 static int
-irq_pending(int nec_hlt)
+irq_pending(void)
 {
     uint8_t temp;
-    int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
+    int     i_flag = (cpu_state.flags & I_FLAG);
 
     temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || (i_flag && pic.int_pending && !noint);
 
@@ -1236,12 +1101,12 @@ irq_pending(int nec_hlt)
 }
 
 static void
-check_interrupts(int nec_hlt)
+check_interrupts(void)
 {
     int temp;
-    int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
+    int     i_flag = (cpu_state.flags & I_FLAG);
 
-    if (irq_pending(nec_hlt)) {
+    if (irq_pending()) {
         if ((cpu_state.flags & T_FLAG) && !(noint & 1)) {
             interrupt(1);
             return;
@@ -1290,13 +1155,10 @@ rep_action(int bits)
         return 0;
     wait_cycs(2, 0);
     t = CX;
-    if (irq_pending(0) && (repeating != 0)) {
+    if (irq_pending() && (repeating != 0)) {
         access(71, bits);
         pfq_clear();
-        if (is_nec && (ovr_seg != NULL))
-            set_ip(cpu_state.pc - 3);
-        else
-            set_ip(cpu_state.pc - 2);
+        set_ip(cpu_state.pc - 2);
         t = 0;
     }
     if (t == 0) {
@@ -1919,32 +1781,16 @@ void
 execx86(int cycs)
 {
     uint8_t  temp = 0, temp2, old_af, nests;
-    uint8_t  temp_val, temp_al, bit, handled = 0;
-    uint8_t  odd, zero, nibbles_count, destcmp;
-    uint8_t  destbyte, srcbyte, nibble_result, bit_length;
-    uint8_t  bit_offset;
-    int8_t   nibble_result_s;
-    uint16_t addr, tempw, new_cs, new_ip;
+    uint16_t addr, tempw, new_cs, new_ip, handled = 0;
     uint16_t tempw_int, size, tempbp, lowbound;
-    uint16_t highbound, regval, orig_sp, wordtopush;
-    uint16_t immediate, old_flags;
+    uint16_t highbound, regval, orig_sp, wordtopush, immediate;
     int      bits;
-    uint32_t dest_seg, i, carry, nibble;
-    uint32_t srcseg, byteaddr;
+    uint32_t dest_seg;
 
     cycles += cycs;
 
     while (cycles > 0) {
-        clock_start();
-
-        if (is_nec && !(cpu_state.flags & MD_FLAG)) {
-            i8080_step(&emulated_processor);
-            set_if(emulated_processor.iff);
-            cycles -= emulated_processor.cyc;
-            emulated_processor.cyc = 0;
-            completed = 1;
-            goto exec_completed;
-        }
+        cycdiff = cycles;
 
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;
@@ -2002,18 +1848,6 @@ execx86(int cycs)
                         interrupt(5);
                     }
                     handled = 1;
-                    break;
-
-                case 0x64:
-                case 0x65:
-                    if (is_nec) {
-                        /* REPC/REPNC */
-                        wait_cycs(1, 0);
-                        in_rep     = (opcode == 0x64 ? 1 : 2);
-                        rep_c_flag = 1;
-                        completed  = 0;
-                        handled    = 1;
-                    }
                     break;
 
                 case 0x68:
@@ -2111,7 +1945,6 @@ execx86(int cycs)
                     tempw_int = 0;
                     size      = pfq_fetchw();
                     nests     = pfq_fetchb();
-                    i         = 0;
 
                     push(&BP);
                     tempw_int = SP;
@@ -2141,8 +1974,7 @@ execx86(int cycs)
 
                     wait_cycs((cpu_mod != 3) ? 9 : 6, 0);
 
-                    if (!is_nec)
-                        cpu_src &= 0x1F;
+                    cpu_src &= 0x1F;
                     while (cpu_src != 0) {
                         cpu_dest = cpu_data;
                         oldc     = cpu_state.flags & C_FLAG;
@@ -2239,299 +2071,6 @@ execx86(int cycs)
                 case 0x0F:
                 case 0x17:
                 case 0x1F: /* POP seg */
-                    if (is_nec && (opcode == 0x0F)) {
-                        uint8_t orig_opcode = opcode;
-                        opcode              = pfq_fetchb();
-                        switch (opcode) {
-                            case 0x28: /* ROL4 r/m */
-                                do_mod_rm();
-                                wait_cycs(21, 0);
-
-                                temp_val = geteab();
-                                temp_al  = AL;
-
-                                temp_al &= 0xF;
-                                temp_al |= (temp_val & 0xF0);
-                                temp_val = (temp_al & 0xF) | ((temp_val & 0xF) << 4);
-                                temp_al >>= 4;
-                                temp_al &= 0xF;
-                                seteab(temp_val);
-                                AL = temp_al;
-
-                                handled = 1;
-                                break;
-
-                            case 0x2a: /* ROR4 r/m */
-                                do_mod_rm();
-                                wait_cycs(21, 0);
-
-                                temp_val = geteab();
-                                temp_al  = AL;
-
-                                AL       = temp_val & 0xF;
-                                temp_val = (temp_val >> 4) | ((temp_al & 0xF) << 4);
-
-                                seteab(temp_val);
-
-                                handled = 1;
-                                break;
-
-                            case 0x10: /* TEST1 r8/m8, CL*/
-                            case 0x11: /* TEST1 r16/m16, CL*/
-                            case 0x18: /* TEST1 r8/m8, imm3 */
-                            case 0x19: /* TEST1 r16/m16, imm4 */
-                                bits = 8 << (opcode & 0x1);
-                                do_mod_rm();
-                                wait_cycs(3, 0);
-
-                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                read_ea(0, bits);
-
-                                set_zf_ex(!(cpu_data & (1 << bit)));
-                                cpu_state.flags &= ~(V_FLAG | C_FLAG);
-
-                                handled = 1;
-                                break;
-
-                            case 0x16: /* NOT1 r8/m8, CL*/
-                            case 0x17: /* NOT1 r16/m16, CL*/
-                            case 0x1e: /* NOT1 r8/m8, imm3 */
-                            case 0x1f: /* NOT1 r16/m16, imm4 */
-                                bits = 8 << (opcode & 0x1);
-                                do_mod_rm();
-                                wait_cycs(3, 0);
-
-                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                read_ea(0, bits);
-
-                                if (bits == 8)
-                                    seteab((cpu_data & 0xFF) ^ (1 << bit));
-                                else
-                                    seteaw((cpu_data & 0xFFFF) ^ (1 << bit));
-
-                                handled = 1;
-                                break;
-
-                            case 0x14: /* SET1 r8/m8, CL*/
-                            case 0x15: /* SET1 r16/m16, CL*/
-                            case 0x1c: /* SET1 r8/m8, imm3 */
-                            case 0x1d: /* SET1 r16/m16, imm4 */
-                                bits = 8 << (opcode & 0x1);
-                                do_mod_rm();
-                                wait_cycs(3, 0);
-
-                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                read_ea(0, bits);
-
-                                if (bits == 8)
-                                    seteab((cpu_data & 0xFF) | (1 << bit));
-                                else
-                                    seteaw((cpu_data & 0xFFFF) | (1 << bit));
-
-                                handled = 1;
-                                break;
-
-                            case 0x12: /* CLR1 r8/m8, CL*/
-                            case 0x13: /* CLR1 r16/m16, CL*/
-                            case 0x1a: /* CLR1 r8/m8, imm3 */
-                            case 0x1b: /* CLR1 r16/m16, imm4 */
-                                bits = 8 << (opcode & 0x1);
-                                do_mod_rm();
-                                wait_cycs(3, 0);
-
-                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                read_ea(0, bits);
-
-                                if (bits == 8)
-                                    seteab((cpu_data & 0xFF) & ~(1 << bit));
-                                else
-                                    seteaw((cpu_data & 0xFFFF) & ~(1 << bit));
-
-                                handled = 1;
-                                break;
-
-                            case 0x20: /* ADD4S */
-                                odd           = !!(CL % 2);
-                                zero          = 1;
-                                nibbles_count = CL - odd;
-                                i             = 0;
-                                carry         = 0;
-                                nibble        = 0;
-                                srcseg        = ovr_seg ? *ovr_seg : ds;
-
-                                wait_cycs(5, 0);
-                                for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
-                                    wait_cycs(19, 0);
-                                    destcmp = read_mem_b((es) + DI + i);
-                                    for (nibble = 0; nibble < 2; nibble++) {
-                                        destbyte = destcmp >> (nibble ? 4 : 0);
-                                        srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
-                                        destbyte &= 0xF;
-                                        srcbyte &= 0xF;
-                                        nibble_result = (i == (nibbles_count / 2) && nibble == 1) ? (destbyte + carry) : ((uint8_t) (destbyte)) + ((uint8_t) (srcbyte)) + ((uint32_t) carry);
-                                        carry         = 0;
-                                        while (nibble_result >= 10) {
-                                            nibble_result -= 10;
-                                            carry++;
-                                        }
-                                        if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
-                                            zero = (nibble_result == 0);
-                                        destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
-                                    }
-                                    write_mem_b(es + DI + i, destcmp);
-                                }
-                                set_cf(!!carry);
-                                set_zf(!!zero);
-                                handled = 1;
-                                break;
-
-                            case 0x22: /* SUB4S */
-                                odd           = !!(CL % 2);
-                                zero          = 1;
-                                nibbles_count = CL - odd;
-                                i             = 0;
-                                carry         = 0;
-                                nibble        = 0;
-                                srcseg        = ovr_seg ? *ovr_seg : ds;
-
-                                wait_cycs(5, 0);
-                                for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
-                                    wait_cycs(19, 0);
-                                    destcmp = read_mem_b((es) + DI + i);
-                                    for (nibble = 0; nibble < 2; nibble++) {
-                                        destbyte = destcmp >> (nibble ? 4 : 0);
-                                        srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
-                                        destbyte &= 0xF;
-                                        srcbyte &= 0xF;
-                                        nibble_result_s = (i == (nibbles_count / 2) && nibble == 1) ? ((int8_t) destbyte - (int8_t) carry) : ((int8_t) (destbyte)) - ((int8_t) (srcbyte)) - ((int8_t) carry);
-                                        carry           = 0;
-                                        while (nibble_result_s < 0) {
-                                            nibble_result_s += 10;
-                                            carry++;
-                                        }
-                                        if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
-                                            zero = (nibble_result_s == 0);
-                                        destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result_s << (4 * nibble)));
-                                    }
-                                    write_mem_b(es + DI + i, destcmp);
-                                }
-                                set_cf(!!carry);
-                                set_zf(!!zero);
-                                handled = 1;
-                                break;
-
-                            case 0x26: /* CMP4S */
-                                odd           = !!(CL % 2);
-                                zero          = 1;
-                                nibbles_count = CL - odd;
-                                i             = 0;
-                                carry         = 0;
-                                nibble        = 0;
-                                srcseg        = ovr_seg ? *ovr_seg : ds;
-
-                                wait_cycs(5, 0);
-                                for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
-                                    wait_cycs(19, 0);
-                                    destcmp = read_mem_b((es) + DI + i);
-                                    for (nibble = 0; nibble < 2; nibble++) {
-                                        destbyte = destcmp >> (nibble ? 4 : 0);
-                                        srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
-                                        destbyte &= 0xF;
-                                        srcbyte &= 0xF;
-                                        nibble_result_s = ((int8_t) (destbyte)) - ((int8_t) (srcbyte)) - ((int8_t) carry);
-                                        carry           = 0;
-                                        while (nibble_result_s < 0) {
-                                            nibble_result_s += 10;
-                                            carry++;
-                                        }
-                                        if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
-                                            zero = (nibble_result_s == 0);
-                                        destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result_s << (4 * nibble)));
-                                    }
-                                }
-                                set_cf(!!carry);
-                                set_zf(!!zero);
-                                handled = 1;
-                                break;
-
-                            case 0x31: /* INS reg1, reg2 */
-                            case 0x39: /* INS reg8, imm4 */
-                                do_mod_rm();
-                                wait_cycs(1, 0);
-
-                                bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
-                                bit_offset = getr8(cpu_rm) & 0xF;
-                                byteaddr   = (es) + DI;
-                                i          = 0;
-
-                                if (bit_offset >= 8) {
-                                    DI++;
-                                    byteaddr++;
-                                    bit_offset -= 8;
-                                }
-                                for (i = 0; i < bit_length; i++) {
-                                    byteaddr = (es) + DI;
-                                    writememb(es, DI, (read_mem_b(byteaddr) & ~(1 << (bit_offset))) | ((!!(AX & (1 << i))) << bit_offset));
-                                    bit_offset++;
-                                    if (bit_offset == 8) {
-                                        DI++;
-                                        bit_offset = 0;
-                                    }
-                                }
-                                setr8(cpu_rm, bit_offset);
-
-                                handled = 1;
-                                break;
-
-                            case 0x33: /* EXT reg1, reg2 */
-                            case 0x3b: /* EXT reg8, imm4 */
-                                do_mod_rm();
-                                wait_cycs(1, 0);
-
-                                bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
-                                bit_offset = getr8(cpu_rm) & 0xF;
-                                byteaddr   = (ds) + SI;
-                                i          = 0;
-
-                                if (bit_offset >= 8) {
-                                    SI++;
-                                    byteaddr++;
-                                    bit_offset -= 8;
-                                }
-
-                                AX = 0;
-                                for (i = 0; i < bit_length; i++) {
-                                    byteaddr = (ds) + SI;
-                                    AX |= (!!(readmemb(byteaddr) & (1 << bit_offset))) << i;
-                                    bit_offset++;
-                                    if (bit_offset == 8) {
-                                        SI++;
-                                        bit_offset = 0;
-                                    }
-                                }
-                                setr8(cpu_rm, bit_offset);
-
-                                handled = 1;
-                                break;
-
-                            case 0xFF: /* BRKEM */
-                                interrupt_brkem(pfq_fetchb());
-                                handled = 1;
-                                break;
-
-                            default:
-                                opcode = orig_opcode;
-                                cpu_state.pc--;
-                                break;
-                        }
-                    } else
-                        handled = 0;
-                    if (handled)
-                        break;
                     access(22, 16);
                     if (opcode == 0x0F) {
                         load_cs(pop());
@@ -3019,28 +2558,21 @@ execx86(int cycs)
                     }
 #else
                     wait_cycs(7, 0);
-                    check_interrupts(0);
+                    check_interrupts();
 #endif
                     break;
                 case 0x9C: /*PUSHF*/
                     access(33, 16);
-                    if (is_nec)
-                        tempw = (cpu_state.flags & 0x8fd7) | 0x7000;
-                    else
-                        tempw = (cpu_state.flags & 0x0fd7) | 0xf000;
+                    tempw = (cpu_state.flags & 0x0fd7) | 0xf000;
                     push(&tempw);
                     break;
                 case 0x9D: { /*POPF*/
                     uint16_t old_flags = cpu_state.flags;
                     access(25, 16);
-                    if (is_nec && cpu_md_write_disable)
-                        cpu_state.flags = pop() | 0x8002;
-                    else
-                        cpu_state.flags = pop() | 0x0002;
+                    cpu_state.flags = pop() | 0x0002;
                     wait_cycs(1, 0);
                     if ((old_flags ^ cpu_state.flags) & T_FLAG)
                         noint = 1;
-                    sync_to_i8080();
                     break;
                 } case 0x9E: /*SAHF*/
                     wait_cycs(1, 0);
@@ -3306,15 +2838,10 @@ execx86(int cycs)
                     access(62, 8);
                     set_ip(new_ip);
                     access(45, 8);
-                    if (is_nec && cpu_md_write_disable)
-                        cpu_state.flags = pop() | 0x8002;
-                    else
-                        cpu_state.flags = pop() | 0x0002;
+                    cpu_state.flags = pop() | 0x0002;
                     wait_cycs(5, 0);
                     noint      = 2;
                     nmi_enable = 1;
-                    if (is_nec && !(cpu_state.flags & MD_FLAG))
-                        sync_to_i8080();
                     break;
 
                 case 0xD0:
@@ -3335,7 +2862,7 @@ execx86(int cycs)
                         cpu_src = CL;
                         wait_cycs((cpu_mod != 3) ? 9 : 6, 0);
                     }
-                    if (is186 && !is_nec)
+                    if (is186)
                         cpu_src &= 0x1F;
                     while (cpu_src != 0) {
                         cpu_dest = cpu_data;
@@ -3414,15 +2941,7 @@ execx86(int cycs)
 
                 case 0xD4: /*AAM*/
                     wait_cycs(1, 0);
-#ifdef NO_VARIANT_ON_NEC
-                    if (is_nec) {
-                        (void) pfq_fetchb();
-                        cpu_src = 10;
-                    } else
-                        cpu_src = pfq_fetchb();
-#else
                     cpu_src = pfq_fetchb();
-#endif
                     if (x86_div(AL, 0)) {
                         cpu_data = AL;
                         set_pzs(8);
@@ -3430,11 +2949,7 @@ execx86(int cycs)
                     break;
                 case 0xD5: /*AAD*/
                     wait_cycs(1, 0);
-                    if (is_nec) {
-                        (void) pfq_fetchb();
-                        mul(10, AH);
-                    } else
-                        mul(pfq_fetchb(), AH);
+                    mul(pfq_fetchb(), AH);
                     cpu_dest = AL;
                     cpu_src  = cpu_data;
                     add(8);
@@ -3443,13 +2958,10 @@ execx86(int cycs)
                     set_pzs(8);
                     break;
                 case 0xD6: /*SALC*/
-                    if (!is_nec) {
-                        wait_cycs(1, 0);
-                        AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
-                        wait_cycs(1, 0);
-                        break;
-                    }
-                    fallthrough;
+                    wait_cycs(1, 0);
+                    AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
+                    wait_cycs(1, 0);
+                    break;
                 case 0xD7: /*XLATB*/
                     cpu_state.eaaddr = (BX + AL) & 0xffff;
                     access(4, 8);
@@ -3651,9 +3163,9 @@ execx86(int cycs)
                         pfq_clear();
                     }
                     wait_cycs(1, 0);
-                    if (irq_pending(is_nec)) {
+                    if (irq_pending()) {
                         wait_cycs(cycles & 1, 0);
-                        check_interrupts(is_nec);
+                        check_interrupts();
                     } else {
                         repeating = 1;
                         completed = 0;
@@ -3699,7 +3211,6 @@ execx86(int cycs)
                             break;
                         case 0x20: /* MUL */
                         case 0x28: /* IMUL */
-                            old_flags = cpu_state.flags;
                             wait_cycs(1, 0);
                             mul(get_accum(bits), cpu_data);
                             if (opcode & 1) {
@@ -3711,17 +3222,12 @@ execx86(int cycs)
                                 AL = (uint8_t) cpu_data;
                                 AH = (uint8_t) cpu_dest;
                                 set_co_mul(bits, AH != ((AL & 0x80) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xff));
-                                if (!is_nec)
-                                    cpu_data = AH;
+                                cpu_data = AH;
                             }
                             set_sf(bits);
                             set_pf();
                             if (cpu_mod != 3)
                                 wait_cycs(1, 0);
-                            /* NOTE: When implementing the V20, care should be taken to not change
-                                     the zero flag. */
-                            if (is_nec)
-                                cpu_state.flags = (cpu_state.flags & ~Z_FLAG) | (old_flags & Z_FLAG);
                             break;
                         case 0x30: /* DIV */
                         case 0x38: /* IDIV */
@@ -3843,7 +3349,7 @@ execx86(int cycs)
                     break;
             }
         }
-exec_completed:
+
         if (completed) {
             repeating  = 0;
             ovr_seg    = NULL;
@@ -3852,7 +3358,7 @@ exec_completed:
             if (in_lock)
                 clear_lock = 1;
             clock_end();
-            check_interrupts(0);
+            check_interrupts();
 
             if (noint)
                 noint = 0;

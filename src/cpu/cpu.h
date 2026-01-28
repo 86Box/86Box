@@ -718,6 +718,7 @@ extern void codegen_reset(void);
 extern void cpu_set_edx(void);
 extern int  divl(uint32_t val);
 extern void execx86(int32_t cycs);
+extern void execvx0(int32_t cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
@@ -808,6 +809,8 @@ extern void SF_FPU_reset(void);
 
 extern void reset_808x(int hard);
 extern void interrupt_808x(uint16_t addr);
+
+extern void reset_vx0(int hard);
 
 extern void cpu_register_fast_off_handler(void *timer);
 extern void cpu_fast_off_advance(void);

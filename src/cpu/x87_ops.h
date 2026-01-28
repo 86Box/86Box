@@ -551,7 +551,11 @@ static int
 FPU_ILLEGAL_a16(UNUSED(uint32_t fetchdat))
 {
     geteaw();
+#ifdef FPU_NEC
+    do_cycles(timing_rr);
+#else
     wait_cycs(timing_rr, 0);
+#endif
     return 0;
 }
 #else
