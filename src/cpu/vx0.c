@@ -41,11 +41,11 @@
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
 
-#define do_cycle()           wait(1)
+#define do_cycle()           wait_vx0(1)
 #define do_cycle_no_modrm()  if (!nx)       \
                                  do_cycle()
 #define do_cycle_i()         do_cycle()
-#define do_cycles(c)         wait(c)
+#define do_cycles(c)         wait_vx0(c)
 #define do_cycles_i(c)       do_cycles(c)
 #define do_cycle_nx()        nx = 1
 #define do_cycle_nx_i()      nx = 1

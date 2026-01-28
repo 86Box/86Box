@@ -38,7 +38,7 @@
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
 
-#define do_cycle()           wait(1)
+#define do_cycle()           wait_vx0(1)
 #define do_cycle_i()         do_cycle()
 
 uint8_t            biu_preload_byte      = 0x00;
@@ -705,7 +705,7 @@ biu_eu_request(void)
 }
 
 void
-wait(int c)
+wait_vx0(int c)
 {
     x808x_biu_log("[%04X:%04X] %02X %i cycles\n", CS, cpu_state.pc, opcode, c);
 
