@@ -138,13 +138,15 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
         if (lptName == nullptr)
             break;
 
-        const QString name = tr(lptName);
+        if (lpt_device_available(c)) {
+            const QString name = tr(lptName);
 
-        for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
-            int row = Models::AddEntry(models[i], name, c);
+            for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
+                int row = Models::AddEntry(models[i], name, c);
 
-            if (c == lpt_ports[i].device)
-                selectedRows[i] = row - removeRows_[i];
+                if (c == lpt_ports[i].device)
+                    selectedRows[i] = row - removeRows_[i];
+            }
         }
 
         c++;
