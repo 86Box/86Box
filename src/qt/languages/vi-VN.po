@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
+">\n"
+"Language: vi-VN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: vi_VN\n"
 "X-Source-Language: en_US\n"
 
@@ -1780,7 +1787,7 @@ msgid "VDE Socket:"
 msgstr "Ổ cắm VDE:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "Thiết bị cầu nối TAP:"
 
 msgid "86Box Unit Tester"
 msgstr "Trình kiểm tra đơn vị 86box"
@@ -2173,16 +2180,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ của RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Địa chỉ cổng của RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "RTC tích hợp trên bo mạch"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Chưa được cài đặt"
 
 msgid "Enable OPL"
 msgstr "Bật OPL"
@@ -2806,7 +2813,7 @@ msgid "Toggle fullscreen"
 msgstr "Bật/tắt toàn màn hình"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
+msgstr "Chuyển đổi giao diện người dùng sang chế độ toàn màn hình"
 
 msgid "Release mouse pointer"
 msgstr "Thả con trỏ chuột"
