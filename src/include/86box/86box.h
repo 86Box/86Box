@@ -315,6 +315,9 @@ extern uint16_t get_last_addr(void);
 extern void sub_cycles(int c);
 extern void resub_cycles(int old_cycles);
 
+extern void sub_cycles_vx0(int c);
+extern void resub_cycles_vx0(int old_cycles);
+
 extern void ack_pause(void);
 extern void do_pause(int p);
 

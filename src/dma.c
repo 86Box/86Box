@@ -1503,7 +1503,7 @@ dma_channel_read_only(int channel)
     dma_channel_advance(channel);
 
     if (!dma_at && !channel)
-        refreshread();
+        is_nec ? refreshread_vx0() : refreshread();
 
     if (!dma_c->size) {
         temp = _dma_read(dma_c->ac, dma_c);
@@ -1611,7 +1611,7 @@ dma_channel_read(int channel)
         dma_channel_advance(channel);
 
     if (!dma_at && !channel)
-        refreshread();
+        is_nec ? refreshread_vx0() : refreshread();
 
     if (!dma_c->size) {
         temp = _dma_read(dma_c->ac, dma_c);
