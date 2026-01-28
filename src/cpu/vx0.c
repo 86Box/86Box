@@ -222,8 +222,6 @@ const uint8_t opf_0f[256]  = {      0,      0,      0,      0,      0,      0,  
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* F0 */
                                     0,      0,      0,      0,      0,      0,      0,      0 }; /* F8 */
 
-/* Is the CPU 8088 or 8086. */
-int                is8086                = 0;
 int                nx                    = 0;
 
 static uint32_t    cpu_src               = 0;
