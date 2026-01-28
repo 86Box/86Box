@@ -915,7 +915,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     if (dev->accel.cx > 0)
                         dev->accel.cx--;
                     mach_log("BitBLT: Src Negative X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
-                    mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config
+                    mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config,
                     mach->accel.src_width & 1);
                 } else {
                     mach->accel.src_stepx = 1;
@@ -4717,6 +4717,11 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                             dev->force_busy = 1;
                             dev->data_available = 1;
                         }
+                        if (dev->accel.input3)
+                            temp = 0xffff;
+
+                        mach_log("Opcode=%d, Len=%d, port=%04x, input=%d, temp=%04x, fullcmd=%04x, crx=%d, cry=%d, frgdsel=%x, bkgdsel=%x.\n", cmd, len, port, dev->accel.input, temp, dev->accel.cmd, dev->accel.cx, dev->accel.cy, dev->accel.frgd_sel, dev->accel.bkgd_sel);
+
                         if (dev->accel.input) {
                             ibm8514_accel_out_pixtrans(svga, port, temp & 0xff, len);
                             if (dev->accel.odd_in) { /*WORDs on odd destination scan lengths.*/
@@ -7087,7 +7092,7 @@ ati8514_pos_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static uint8_t
-mach32_pci_read(UNUSED(int func), int addr, void *priv)
+mach32_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const mach_t *mach = (mach_t *) priv;
     uint8_t       ret  = 0x00;
@@ -7166,7 +7171,7 @@ mach32_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-mach32_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+mach32_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     mach_t *mach = (mach_t *) priv;
     if ((addr >= 0x30) && (addr <= 0x33) && !mach->has_bios)

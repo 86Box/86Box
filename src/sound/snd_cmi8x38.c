@@ -966,7 +966,7 @@ cmi8x38_remap(cmi8x38_t *dev)
 }
 
 static uint8_t
-cmi8x38_pci_read(int func, int addr, void *priv)
+cmi8x38_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const cmi8x38_t *dev = (cmi8x38_t *) priv;
     uint8_t          ret = 0xff;
@@ -980,7 +980,7 @@ cmi8x38_pci_read(int func, int addr, void *priv)
 }
 
 static void
-cmi8x38_pci_write(int func, int addr, uint8_t val, void *priv)
+cmi8x38_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 

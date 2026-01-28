@@ -1979,7 +1979,7 @@ read_status(void *priv)
 }
 
 static void *
-escp_init(void *lpt)
+escp_init(const device_t *info)
 {
     escp_t *dev = NULL;
 
@@ -1995,7 +1995,8 @@ escp_init(void *lpt)
     /* Initialize a device instance. */
     dev = (escp_t *) calloc(1, sizeof(escp_t));
     dev->ctrl = 0x04;
-    dev->lpt  = lpt;
+
+    dev->lpt  = lpt_attach(write_data, write_ctrl, strobe, read_status, read_ctrl, NULL, NULL, dev);
 
     rom_get_full_path(dev->fontpath, "roms/printer/fonts/");
 
@@ -2109,13 +2110,13 @@ static const device_config_t lpt_prt_escp_config[] = {
 #endif
 // clang-format on
 
-const device_t prt_escp_device = {
+const device_t lpt_prt_escp_device = {
     .name          = "Generic ESC/P 2 Dot-Matrix Printer",
     .internal_name = "dot_matrix",
     .flags         = DEVICE_LPT,
     .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
+    .init          = escp_init,
+    .close         = escp_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,
@@ -2125,21 +2126,4 @@ const device_t prt_escp_device = {
 #else
     .config        = NULL
 #endif
-};
-
-const lpt_device_t lpt_prt_escp_device = {
-    .name             = "Generic ESC/P 2 Dot-Matrix Printer",
-    .internal_name    = "dot_matrix",
-    .init             = escp_init,
-    .close            = escp_close,
-    .write_data       = write_data,
-    .write_ctrl       = write_ctrl,
-    .strobe           = strobe,
-    .read_status      = read_status,
-    .read_ctrl        = read_ctrl,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL,
-    .cfgdevice        = (device_t *) &prt_escp_device
 };

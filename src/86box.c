@@ -683,12 +683,12 @@ delete_nvr_file(uint8_t flash)
 extern void  device_find_all_descs(void);
 
 static void
-pc_show_usage(char *s)
+pc_show_usage(void)
 {
     char p[8192] = { 0 };
 
     sprintf(p,
-            "\n%sUsage: 86box [options] [cfg-file]\n\n"
+            "\nUsage: 86box [options] [cfg-file]\n\n"
             "Valid options are:\n\n"
             "-? or --help\t\t\t- show this information\n"
             "-A or --assetpath path\t\t- set 'path' to be asset path\n"
@@ -737,16 +737,12 @@ pc_show_usage(char *s)
             "-Y or --donothing\t\t- do not show any UI or run the emulation\n"
 #endif
             "-Z or --lastvmpath\t\t- the last param. is VM path rather than config\n"
-            "\nA config file can be specified. If none is, the default file will be used.\n",
-            s);
+            "\nA config file can be specified. If none is, the default file will be used.\n");
 
 #ifdef _WIN32
-    ui_msgbox(MBX_ANSI | ((s == NULL) ? MBX_INFO : MBX_WARNING), p);
+    ui_msgbox(MBX_ANSI | MBX_INFO, p);
 #else
-    if (s == NULL)
-        always_log("%s", p);
-    else
-        ui_msgbox(MBX_ANSI | MBX_WARNING, p);
+    always_log("%s", p);
 #endif
 }
 
@@ -846,7 +842,7 @@ usage:
                 }
             }
 
-            pc_show_usage("");
+            pc_show_usage();
             return 0;
         } else if (!strcasecmp(argv[c], "--lastvmpath") || !strcasecmp(argv[c], "-Z")) {
             lvmp = 1;
@@ -1708,6 +1704,8 @@ pc_reset_hard_init(void)
     scsi_device_init();
 
     ide_hard_reset();
+
+    lpt_ports_reset();
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();

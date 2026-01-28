@@ -32,6 +32,7 @@
 #include "qt_progsettings.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
+#include "qt_defs.hpp"
 
 extern "C" {
 #include <86box/86box.h>
@@ -228,7 +229,7 @@ Settings::accept()
         QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_save);
-        QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) { confirm_save = (state == Qt::CheckState::Unchecked); });
+        QObject::connect(chkbox, &QCheckBox::CHECK_STATE_CHANGED, [](int state) { confirm_save = (state == Qt::CheckState::Unchecked); });
         questionbox.exec();
         if (questionbox.result() == QMessageBox::Cancel) {
             confirm_save = true;

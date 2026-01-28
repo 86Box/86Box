@@ -105,6 +105,9 @@ extern const device_t i450kx_device;
 extern const device_t sio_device;
 extern const device_t sio_zb_device;
 
+#define PIIX4_NVR_AMI_1995  0x0000000100000000
+#define PIIX4_NVR_AMI_1995J 0x0000000200000000
+
 extern const device_t piix_device;
 extern const device_t piix_no_mirq_device;
 extern const device_t piix_old_device;

@@ -1603,10 +1603,12 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
     int    ch;
     int    bad = 0;
     int    reset = 0;
+    int    prev;
 
     ch        = dev->cur_dev;
     ide       = ide_drives[ch];
     ide_other = ide_drives[ch ^ 1];
+    prev      = ide->command;
 
     ide_log("[%04X:%08X] ide_writeb(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
@@ -1649,37 +1651,31 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x4: /* Cylinder low */
-            if (ide->type & IDE_SHADOW)
-                break;
-
-            if (!(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide->type & IDE_SHADOW) && !(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide->tf->cylinder = (ide->tf->cylinder & 0xff00) | val;
                 ide->lba_addr     = (ide->lba_addr & 0xfff00ff) | (val << 8);
             }
 
-            if (!(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide_other->type & IDE_SHADOW) && !(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide_other->tf->cylinder = (ide_other->tf->cylinder & 0xff00) | val;
                 ide_other->lba_addr     = (ide_other->lba_addr & 0xfff00ff) | (val << 8);
             }
             break;
 
         case 0x5: /* Cylinder high */
-            if (ide->type & IDE_SHADOW)
-                break;
-
-            if (!(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide->type & IDE_SHADOW) && !(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide->tf->cylinder = (ide->tf->cylinder & 0xff) | (val << 8);
                 ide->lba_addr     = (ide->lba_addr & 0xf00ffff) | (val << 16);
             }
 
-            if (!(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide_other->type & IDE_SHADOW) && !(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide_other->tf->cylinder = (ide_other->tf->cylinder & 0xff) | (val << 8);
                 ide_other->lba_addr     = (ide_other->lba_addr & 0xf00ffff) | (val << 16);
             }
             break;
 
         case 0x6: /* Drive/Head */
-            if (ch != ((val >> 4) & 1) + (ide->board << 1)) {
+            if (ch != (((val >> 4) & 1) + (ide->board << 1))) {
                 if (!ide->reset && !ide_other->reset && ide->irqstat) {
                     ide_irq_lower(ide);
                     ide->irqstat = 1;
@@ -1721,7 +1717,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
         case 0x7: /* Command register */
             if ((ide->tf->atastat & (BSY_STAT | DRQ_STAT)) &&
-                ((val != WIN_SRST) || (ide->type != IDE_ATAPI)))
+                ((val != WIN_SRST) || (ide->type != IDE_ATAPI)) &&
+                ((val != WIN_VERIFY) || (prev != WIN_IDENTIFY)))
                 break;
 
             if ((ide->type == IDE_NONE) || ((ide->type & IDE_SHADOW) && (val != WIN_DRIVE_DIAGNOSTICS)))
@@ -1786,7 +1783,13 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                         uint32_t sec_count;
                         double   wait_time;
-                        if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
+                        if ((val == WIN_READ) && (prev == WIN_SETIDLE1)) {
+                            /* Do the callback instantly - this happens on the Intel Monsoon. */
+                            (void) hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
+                            ide->do_initial_read = 1;
+                            ide_callback(ide);
+                            break;
+                        } else if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
                             /* TODO: Make DMA timing more accurate. */
                             sec_count        = ide->tf->secount ? ide->tf->secount : 256;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num],
@@ -2346,6 +2349,7 @@ ide_callback(void *priv)
 
         case WIN_READ:
         case WIN_READ_NORETRY:
+            ide_log("IDE(%d) read(%d,%d,%d)\n", ide->channel, ide->tf->cylinder, ide->tf->head, ide->tf->sector);
             if (ide->type == IDE_ATAPI) {
                 ide_set_signature(ide);
                 err = ABRT_ERR;

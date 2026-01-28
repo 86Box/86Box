@@ -112,13 +112,13 @@ ali1533_ddma_handler(UNUSED(ali1543_t *dev))
 static void ali5229_ide_handler(ali1543_t *dev);
 static void ali5229_ide_irq_handler(ali1543_t *dev);
 
-static void ali5229_write(int func, int addr, uint8_t val, void *priv);
+static void ali5229_write(int func, int addr, int len, uint8_t val, void *priv);
 
-static void    ali7101_write(int func, int addr, uint8_t val, void *priv);
-static uint8_t ali7101_read(int func, int addr, void *priv);
+static void    ali7101_write(int func, int addr, int len, uint8_t val, void *priv);
+static uint8_t ali7101_read(int func, int addr, int len, void *priv);
 
 static void
-ali1533_write(int func, int addr, uint8_t val, void *priv)
+ali1533_write(int func, int addr, int len, uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
     ali1543_log("M1533: dev->pci_conf[%02x] = %02x\n", addr, val);
@@ -453,7 +453,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x7c ... 0xff:
             if ((dev->type == 1) && !dev->pmu_dev_enable) {
                 dev->pmu_dev_enable = 1;
-                ali7101_write(func, addr, val, priv);
+                ali7101_write(func, addr, len, val, priv);
                 dev->pmu_dev_enable = 0;
             }
             break;
@@ -464,7 +464,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ali1533_read(int func, int addr, void *priv)
+ali1533_read(int func, int addr, int len, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
@@ -478,7 +478,7 @@ ali1533_read(int func, int addr, void *priv)
                 ret = (ret & 0xbf) | (dev->ide_dev_enable ? 0x40 : 0x00);
             else if ((dev->type == 1) && ((addr >= 0x7c) && (addr <= 0xff)) && !dev->pmu_dev_enable) {
                 dev->pmu_dev_enable = 1;
-                ret                 = ali7101_read(func, addr, priv);
+                ret                 = ali7101_read(func, addr, len, priv);
                 dev->pmu_dev_enable = 0;
             }
         }
@@ -690,23 +690,23 @@ ali5229_chip_reset(ali1543_t *dev)
         dev->ide_conf[0x4f] = 0x1a;
     }
 
-    ali5229_write(0, 0x04, 0x05, dev);
-    ali5229_write(0, 0x10, 0xf1, dev);
-    ali5229_write(0, 0x11, 0x01, dev);
-    ali5229_write(0, 0x14, 0xf5, dev);
-    ali5229_write(0, 0x15, 0x03, dev);
-    ali5229_write(0, 0x18, 0x71, dev);
-    ali5229_write(0, 0x19, 0x01, dev);
-    ali5229_write(0, 0x1a, 0x75, dev);
-    ali5229_write(0, 0x1b, 0x03, dev);
-    ali5229_write(0, 0x20, 0x01, dev);
-    ali5229_write(0, 0x21, 0xf0, dev);
-    ali5229_write(0, 0x4d, 0x00, dev);
+    ali5229_write(0, 0x04, 1, 0x05, dev);
+    ali5229_write(0, 0x10, 1, 0xf1, dev);
+    ali5229_write(0, 0x11, 1, 0x01, dev);
+    ali5229_write(0, 0x14, 1, 0xf5, dev);
+    ali5229_write(0, 0x15, 1, 0x03, dev);
+    ali5229_write(0, 0x18, 1, 0x71, dev);
+    ali5229_write(0, 0x19, 1, 0x01, dev);
+    ali5229_write(0, 0x1a, 1, 0x75, dev);
+    ali5229_write(0, 0x1b, 1, 0x03, dev);
+    ali5229_write(0, 0x20, 1, 0x01, dev);
+    ali5229_write(0, 0x21, 1, 0xf0, dev);
+    ali5229_write(0, 0x4d, 1, 0x00, dev);
     dev->ide_conf[0x09] = 0xfa;
-    ali5229_write(0, 0x09, 0xfa, dev);
-    ali5229_write(0, 0x52, 0x00, dev);
+    ali5229_write(0, 0x09, 1, 0xfa, dev);
+    ali5229_write(0, 0x52, 1, 0x00, dev);
 
-    ali5229_write(0, 0x50, 0x02, dev);
+    ali5229_write(0, 0x50, 1, 0x02, dev);
 
     sff_set_slot(dev->ide_controller[0], dev->ide_slot);
     sff_set_slot(dev->ide_controller[1], dev->ide_slot);
@@ -716,7 +716,7 @@ ali5229_chip_reset(ali1543_t *dev)
 }
 
 static void
-ali5229_write(int func, int addr, uint8_t val, void *priv)
+ali5229_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
     ali1543_log("M5229: [W] dev->ide_conf[%02x] = %02x\n", addr, val);
@@ -885,7 +885,7 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ali5229_read(int func, int addr, void *priv)
+ali5229_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
@@ -908,7 +908,7 @@ ali5229_read(int func, int addr, void *priv)
 }
 
 static void
-ali5237_write(int func, int addr, uint8_t val, void *priv)
+ali5237_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
     ali1543_log("M5237: dev->usb_conf[%02x] = %02x\n", addr, val);
@@ -975,7 +975,7 @@ ali5237_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ali5237_read(int func, int addr, void *priv)
+ali5237_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
@@ -987,7 +987,7 @@ ali5237_read(int func, int addr, void *priv)
 }
 
 static void
-ali7101_write(int func, int addr, uint8_t val, void *priv)
+ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
     ali1543_log("M7101: [W] dev->pmu_conf[%02x] = %02x\n", addr, val);
@@ -1408,7 +1408,7 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ali7101_read(int func, int addr, void *priv)
+ali7101_read(int func, int addr, UNUSED(int len), void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
@@ -1516,11 +1516,11 @@ ali1543_reset(void *priv)
     dev->usb_conf[0x0b] = 0x0c;
     dev->usb_conf[0x3d] = 0x01;
 
-    ali5237_write(0, 0x04, 0x00, dev);
-    ali5237_write(0, 0x10, 0x00, dev);
-    ali5237_write(0, 0x11, 0x00, dev);
-    ali5237_write(0, 0x12, 0x00, dev);
-    ali5237_write(0, 0x13, 0x00, dev);
+    ali5237_write(0, 0x04, 1, 0x00, dev);
+    ali5237_write(0, 0x10, 1, 0x00, dev);
+    ali5237_write(0, 0x11, 1, 0x00, dev);
+    ali5237_write(0, 0x12, 1, 0x00, dev);
+    ali5237_write(0, 0x13, 1, 0x00, dev);
 
     /* M7101 */
     memset(dev->pmu_conf, 0x00, sizeof(dev->pmu_conf));
@@ -1536,26 +1536,26 @@ ali1543_reset(void *priv)
     acpi_set_slot(dev->acpi, dev->pmu_slot);
     acpi_set_nvr(dev->acpi, dev->nvr);
 
-    ali7101_write(0, 0x04, 0x0f, dev);
-    ali7101_write(0, 0x10, 0x01, dev);
-    ali7101_write(0, 0x11, 0x00, dev);
-    ali7101_write(0, 0x12, 0x00, dev);
-    ali7101_write(0, 0x13, 0x00, dev);
-    ali7101_write(0, 0x14, 0x01, dev);
-    ali7101_write(0, 0x15, 0x00, dev);
-    ali7101_write(0, 0x16, 0x00, dev);
-    ali7101_write(0, 0x17, 0x00, dev);
-    ali7101_write(0, 0x40, 0x00, dev);
-    ali7101_write(0, 0x41, 0x00, dev);
-    ali7101_write(0, 0x42, 0x00, dev);
-    ali7101_write(0, 0x43, 0x00, dev);
-    ali7101_write(0, 0x77, 0x00, dev);
-    ali7101_write(0, 0xbd, 0x00, dev);
-    ali7101_write(0, 0xc0, 0x00, dev);
-    ali7101_write(0, 0xc1, 0x00, dev);
-    ali7101_write(0, 0xc2, 0x00, dev);
-    ali7101_write(0, 0xc3, 0x00, dev);
-    ali7101_write(0, 0xe0, 0x00, dev);
+    ali7101_write(0, 0x04, 1, 0x0f, dev);
+    ali7101_write(0, 0x10, 1, 0x01, dev);
+    ali7101_write(0, 0x11, 1, 0x00, dev);
+    ali7101_write(0, 0x12, 1, 0x00, dev);
+    ali7101_write(0, 0x13, 1, 0x00, dev);
+    ali7101_write(0, 0x14, 1, 0x01, dev);
+    ali7101_write(0, 0x15, 1, 0x00, dev);
+    ali7101_write(0, 0x16, 1, 0x00, dev);
+    ali7101_write(0, 0x17, 1, 0x00, dev);
+    ali7101_write(0, 0x40, 1, 0x00, dev);
+    ali7101_write(0, 0x41, 1, 0x00, dev);
+    ali7101_write(0, 0x42, 1, 0x00, dev);
+    ali7101_write(0, 0x43, 1, 0x00, dev);
+    ali7101_write(0, 0x77, 1, 0x00, dev);
+    ali7101_write(0, 0xbd, 1, 0x00, dev);
+    ali7101_write(0, 0xc0, 1, 0x00, dev);
+    ali7101_write(0, 0xc1, 1, 0x00, dev);
+    ali7101_write(0, 0xc2, 1, 0x00, dev);
+    ali7101_write(0, 0xc3, 1, 0x00, dev);
+    ali7101_write(0, 0xe0, 1, 0x00, dev);
 
     /* Do the bridge last due to device deactivations. */
     /* M1533 */
@@ -1570,19 +1570,19 @@ ali1543_reset(void *priv)
     dev->pci_conf[0x0a] = 0x01;
     dev->pci_conf[0x0b] = 0x06;
 
-    ali1533_write(0, 0x41, 0x00, dev);    /* Disables the keyboard and mouse IRQ latch. */
-    ali1533_write(0, 0x48, 0x00, dev);    /* Disables all IRQ's. */
-    ali1533_write(0, 0x44, 0x00, dev);
-    ali1533_write(0, 0x4d, 0x00, dev);
-    ali1533_write(0, 0x53, 0x00, dev);
-    ali1533_write(0, 0x58, 0x00, dev);
-    ali1533_write(0, 0x5f, 0x00, dev);
-    ali1533_write(0, 0x72, 0x00, dev);
-    ali1533_write(0, 0x74, 0x00, dev);
-    ali1533_write(0, 0x75, 0x00, dev);
-    ali1533_write(0, 0x76, 0x00, dev);
+    ali1533_write(0, 0x41, 1, 0x00, dev);    /* Disables the keyboard and mouse IRQ latch. */
+    ali1533_write(0, 0x48, 1, 0x00, dev);    /* Disables all IRQ's. */
+    ali1533_write(0, 0x44, 1, 0x00, dev);
+    ali1533_write(0, 0x4d, 1, 0x00, dev);
+    ali1533_write(0, 0x53, 1, 0x00, dev);
+    ali1533_write(0, 0x58, 1, 0x00, dev);
+    ali1533_write(0, 0x5f, 1, 0x00, dev);
+    ali1533_write(0, 0x72, 1, 0x00, dev);
+    ali1533_write(0, 0x74, 1, 0x00, dev);
+    ali1533_write(0, 0x75, 1, 0x00, dev);
+    ali1533_write(0, 0x76, 1, 0x00, dev);
     if (dev->type == 1)
-        ali1533_write(0, 0x78, 0x00, dev);
+        ali1533_write(0, 0x78, 1, 0x00, dev);
 
     unmask_a20_in_smm = 1;
 }

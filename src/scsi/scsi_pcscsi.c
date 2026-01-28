@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -1997,7 +1998,7 @@ esp_bios_disable(esp_t *dev)
 #define EE_ADAPT_OPTION_SCAM_SUPPORT    0x08
 
 static uint8_t
-esp_pci_read(UNUSED(int func), int addr, void *priv)
+esp_pci_read(UNUSED(int func), int addr, int len, void *priv)
 {
     esp_t *dev = (esp_t *) priv;
 
@@ -2009,12 +2010,15 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
             if (!dev->has_bios || dev->local)
                 return 0x22;
             else {
-                if (nmc93cxx_eeprom_read(dev->eeprom))
-                    return 0x22;
-                else {
-                    dev->eeprom->dev.out = 1;
-                    return 2;
+                uint8_t ret = 0x22;
+
+                if (len == 1) {
+                    /* First byte of address space is AND-ed with EEPROM DO line */
+                    if (!nmc93cxx_eeprom_read(dev->eeprom))
+                        ret &= 0x00;
                 }
+
+                return ret;
             }
             break;
         case 0x01:
@@ -2084,23 +2088,21 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-esp_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+esp_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     esp_t  *dev = (esp_t *) priv;
     uint8_t valxor;
-    int     eesk;
-    int     eedi;
 
     esp_log("%04X:%08X: ESP PCI: Write value %02X to register %02X\n", CS, cpu_state.pc, val, addr);
 
     if (!dev->local) {
         if ((addr >= 0x80) && (addr <= 0xFF)) {
             if (addr == 0x80) {
-                eesk = val & 0x80 ? 1 : 0;
-                eedi = val & 0x40 ? 1 : 0;
-                nmc93cxx_eeprom_write(dev->eeprom, 1, eesk, eedi);
+                bool eesk = !!(val & 0x80);
+                bool eedi = !!(val & 0x40);
+                nmc93cxx_eeprom_write(dev->eeprom, true, eesk, eedi);
             } else if (addr == 0xc0)
-                nmc93cxx_eeprom_write(dev->eeprom, 0, 0, 0);
+                nmc93cxx_eeprom_write(dev->eeprom, false, false, false);
             // esp_log("ESP PCI: Write value %02X to register %02X\n", val, addr);
             return;
         }
@@ -2297,8 +2299,8 @@ dc390_init(const device_t *info)
         dev->eeprom_data[EE_CHKSUM1] = checksum & 0xff;
         dev->eeprom_data[EE_CHKSUM2] = checksum >> 8;
 
-        params.nwords          = 64;
-        params.default_content = (uint16_t *) dev->eeprom_data;
+        params.type            = NMC_93C46_x16_64;
+        params.default_content = dev->eeprom_data;
         params.filename        = filename;
         snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, dev->eeprom_inst);
         dev->eeprom = device_add_inst_params(&nmc93cxx_device, dev->eeprom_inst, &params);

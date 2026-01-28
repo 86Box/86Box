@@ -441,13 +441,14 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 }
 
 static void *
-plip_lpt_init(void *lpt)
+plip_lpt_init(const device_t *info)
 {
     plip_t *dev = (plip_t *) calloc(1, sizeof(plip_t));
 
     plip_log(1, "PLIP: lpt_init()\n");
 
-    dev->lpt = lpt;
+    dev->lpt  = lpt_attach(plip_write_data, plip_write_ctrl, NULL, plip_read_status, NULL, NULL, NULL, dev);
+
     memset(dev->mac, 0xfc, 6); /* static MAC used by Linux; just a placeholder */
 
     dev->status = 0x80;
@@ -485,24 +486,22 @@ plip_close(void *priv)
     free(priv);
 }
 
-const lpt_device_t lpt_plip_device = {
-    .name             = "Parallel Line Internet Protocol",
-    .internal_name    = "plip",
-    .init             = plip_lpt_init,
-    .close            = plip_close,
-    .write_data       = plip_write_data,
-    .write_ctrl       = plip_write_ctrl,
-    .strobe           = NULL,
-    .read_status      = plip_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+const device_t lpt_plip_device = {
+    .name          = "Parallel Line Internet Protocol (LPT)",
+    .internal_name = "plip",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = plip_lpt_init,
+    .close         = plip_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t plip_device = {
-    .name          = "Parallel Line Internet Protocol",
+    .name          = "Parallel Line Internet Protocol (Network)",
     .internal_name = "plip",
     .flags         = DEVICE_LPT,
     .local         = 0,

@@ -3016,10 +3016,13 @@ msgid "&Allow recompilation"
 msgstr "&Permetti ricompilazione"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Avanti veloce"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Avanti veloce"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Per modificare la directory di sistema, arrestare tutte le macchine in funzione."
+
+msgid "Raw"
+msgstr "Grezzo"

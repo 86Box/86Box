@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-10 12:56+0000\n"
+"PO-Revision-Date: 2026-01-26 17:57+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -2919,24 +2919,26 @@ msgstr "Επιτυχής διαγραφή των περιεχομένων NVRAM 
 
 msgid "An error occurred trying to wipe the NVRAM contents of the virtual machine \"%1\""
 msgstr ""
+"Ένα σφάλμα προέκυψε κατά την εκκαθάριση των περιεχομένων της NVRAM της "
+"εικονικής μηχανής \"%1\""
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "%1 VM Manager"
 
 msgid "%n disk(s)"
-msgstr ""
+msgstr "%n δίσκος(οι)"
 
 msgid "Unknown Status"
-msgstr ""
+msgstr "Άγνωστη Κατάσταση"
 
 msgid "No Machines Found!"
-msgstr ""
+msgstr "Δεν βρέθηκαν μηχανές!"
 
 msgid "Check for updates on startup"
 msgstr "Έλεγχος για ενημερώσεις κατα την εκκίνηση"
 
 msgid "Unable to determine release information"
-msgstr ""
+msgstr "Αδυναμία προσδιορισμού πληροφοριών έκδοσης"
 
 msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
 msgstr ""
@@ -2947,82 +2949,84 @@ msgstr ""
 "Παρακαλώ προσπαθήστε ξανά αργότερα."
 
 msgid "Update check complete"
-msgstr ""
+msgstr "Ο έλεγχος ενημερώσεων ολοκληρώθηκε"
 
 msgid "stable"
-msgstr ""
+msgstr "σταθερή"
 
 msgid "beta"
-msgstr ""
+msgstr "δοκιμαστική"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr ""
+msgstr "Τρέχετε την τελευταία %1 έκδοση του 86Box: %2"
 
 msgid "version"
-msgstr ""
+msgstr "έκδοση"
 
 msgid "build"
-msgstr ""
+msgstr "build"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr ""
+msgstr "Τρέχετε την έκδοση <b>%1</b>."
 
 msgid "<b>Version %1</b> is now available."
-msgstr ""
+msgstr "<b>Έκδοση %1</b> είναι διαθέσιμη."
 
 msgid "You are currently running build <b>%1</b>."
-msgstr ""
+msgstr "Τρέχετε το build <b>%1</b>."
 
 msgid "<b>Build %1</b> is now available."
-msgstr ""
+msgstr "<b>Build %1</b> είναι τώρα διαθέσιμο."
 
 msgid "Would you like to visit the download page?"
-msgstr ""
+msgstr "Επιθυμείτε να επισκεφθείτε την σελίδα λήψεων;"
 
 msgid "Visit download page"
-msgstr ""
+msgstr "Επίσκεψη σελίδας λήψεων"
 
 msgid "Update check"
-msgstr ""
+msgstr "Έλεγχος ενημερώσεων"
 
 msgid "Checking for updates…"
 msgstr "Έλεγχος για ενημερώσεις…"
 
 msgid "86Box Update"
-msgstr ""
+msgstr "Ενημέρωση 86Box"
 
 msgid "Release notes:"
-msgstr ""
+msgstr "Σημειώσεις έκδοσης:"
 
 msgid "%1 Hz"
-msgstr ""
+msgstr "%1 Hz"
 
 msgid "Virtual machine crash"
-msgstr ""
+msgstr "Σφάλμα εικονικής μηχανής"
 
 msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2."
 msgstr ""
+"Η διεργασία της εικονικής μηχανής \"%1\" τερματίστηκε απροσδόκητα με κωδικό "
+"εξόδου %2."
 
 msgid "The system will not be added."
-msgstr ""
+msgstr "Το σύστημα δεν θα προστεθεί."
 
 msgid "&Update mouse every CPU frame"
 msgstr "&Ανανέωση ποντικιού ανα καρέ CPU"
 
 msgid "Hue"
-msgstr ""
+msgstr "Απόχρωση"
 
 msgid "Saturation"
-msgstr ""
+msgstr "Κορεσμός"
 
 msgid "Contrast"
-msgstr ""
+msgstr "Αντίθεση"
 
 msgid "Brightness"
-msgstr ""
+msgstr "Φωτεινότητα"
 
 msgid "Sharpness"
-msgstr ""
+msgstr "Οξύτητα"
 
 msgid "&CGA composite settings…"
 msgstr "Ρυθμίσεις &CGA composite…"
@@ -3073,10 +3077,13 @@ msgid "&Allow recompilation"
 msgstr "&Να επιτρέπεται ανασύνταξη"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Γρήγορα μπροστά"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Γρήγορα μπροστά"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές σε λειτουργία."
+
+msgid "Raw"
+msgstr "Αρχικος"

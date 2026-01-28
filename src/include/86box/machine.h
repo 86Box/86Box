@@ -1097,6 +1097,10 @@ extern const device_t  an430tx_device;
 extern int             machine_at_an430tx_init(const machine_t *);
 extern int             machine_at_ym430tx_init(const machine_t *);
 extern int             machine_at_thunderbolt_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ms5156_device;
+#endif
+extern int             machine_at_ms5156_init(const machine_t *);
 extern int             machine_at_ma23c_init(const machine_t *);
 extern int             machine_at_mb540n_init(const machine_t *);
 extern int             machine_at_56a5_init(const machine_t *);
@@ -1404,6 +1408,9 @@ extern const device_t  tandy_1000sl_video_device;
 extern int             machine_tandy1000sl2_init(const machine_t *);
 
 /* m_v86p.c */
+#ifdef EMU_DEVICE_H
+extern const device_t  v86p_device;
+#endif
 extern int             machine_v86p_init(const machine_t *);
 
 /* m_xt.c */
@@ -1475,6 +1482,9 @@ extern int             machine_xt_to16_init(const machine_t *);
 extern const device_t  vendex_device;
 #endif
 extern int             machine_xt_vendex_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  laserxt_device;
+#endif
 extern int             machine_xt_laserxt_init(const machine_t *);
 extern int             machine_xt_znic_init(const machine_t *);
 extern int             machine_xt_z151_init(const machine_t *);

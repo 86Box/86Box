@@ -2652,7 +2652,7 @@ et4000w32p_io_set(et4000w32p_t *et4000)
 }
 
 uint8_t
-et4000w32p_pci_read(UNUSED(int func), int addr, void *priv)
+et4000w32p_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const et4000w32p_t *et4000 = (et4000w32p_t *) priv;
 
@@ -2709,7 +2709,7 @@ et4000w32p_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 void
-et4000w32p_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+et4000w32p_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
     svga_t       *svga   = &et4000->svga;

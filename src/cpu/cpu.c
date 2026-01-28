@@ -1865,6 +1865,8 @@ cpu_set(void)
                 cpu_exec = exec386_2386;
     } else if (cpu_s->cpu_type >= CPU_286)
         cpu_exec = exec386_2386;
+    else if (is_nec)
+        cpu_exec = execvx0;
     else
         cpu_exec = execx86;
     mmx_init();
@@ -1897,7 +1899,7 @@ cpu_set_pci_speed(int speed)
 {
     if (speed)
         cpu_pci_speed = speed;
-    else if (cpu_busspeed < 42500000)
+    else if (cpu_busspeed < 40000000)
         cpu_pci_speed = cpu_busspeed;
     else if (cpu_busspeed < 84000000)
         cpu_pci_speed = cpu_busspeed / 2;

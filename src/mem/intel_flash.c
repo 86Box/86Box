@@ -320,16 +320,16 @@ intel_flash_add_mappings(flash_t *dev)
             mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
                             flash_read, flash_readw, flash_readl,
                             flash_write, flash_writew, flash_writel,
-                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         }
         mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - sub, 0x10000,
                         flash_read, flash_readw, flash_readl,
                         flash_write, flash_writew, flash_writel,
-                        dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                        dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         mem_mapping_add(&(dev->mapping_h[i + max]), (base | 0xfff00000), 0x10000,
                         flash_read, flash_readw, flash_readl,
                         flash_write, flash_writew, flash_writel,
-                        dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                        dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
     }
 }
 

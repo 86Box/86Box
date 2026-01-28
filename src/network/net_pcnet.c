@@ -2588,7 +2588,7 @@ pcnet_ioset(nic_t *dev, uint16_t addr, int len)
 }
 
 static void
-pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+pcnet_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     nic_t  *dev = (nic_t *) priv;
     uint8_t valxor;
@@ -2671,7 +2671,7 @@ pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-pcnet_pci_read(UNUSED(int func), int addr, void *priv)
+pcnet_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const nic_t *dev = (nic_t *) priv;
 

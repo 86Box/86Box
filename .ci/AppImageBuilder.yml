@@ -48,6 +48,7 @@ AppDir:
     - libfreetype6
     - libgomp1
     - libgs9
+    - libinstpatch-1.0-2
     - libpng16-16
     - libqt5core5a # if QT:BOOL=ON
     - libqt5gui5 # if QT:BOOL=ON

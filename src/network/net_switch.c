@@ -372,25 +372,29 @@ net_switch_thread(void *priv)
             net_event_clear(&netswitch->tx_event);
             netswitch->during_tx = 1;
             packets = network_tx_popv(netswitch->card, netswitch->pkt_tx_v, SWITCH_PKT_BATCH);
-            for (int i = 0; i < packets; i++) {
+            if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN)) {
+                for (int i = 0; i < packets; i++) {
 #define MAC_FORMAT "(%02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X)"
 #define MAC_FORMAT_ARGS(p) (p)[6], (p)[7], (p)[8], (p)[9], (p)[10], (p)[11], (p)[0], (p)[1], (p)[2], (p)[3], (p)[4], (p)[5]
-                netswitch_log("Network Switch: sending %d-byte packet " MAC_FORMAT "\n",
-                              netswitch->pkt_tx_v[i].len, MAC_FORMAT_ARGS(netswitch->pkt_tx_v[i].data));
+                    netswitch_log("Network Switch: sending %d-byte packet " MAC_FORMAT "\n",
+                                  netswitch->pkt_tx_v[i].len, MAC_FORMAT_ARGS(netswitch->pkt_tx_v[i].data));
 
-                /* Send through all known host interfaces. */
-                for (net_switch_hostaddr_t *hostaddr = netswitch->hostaddrs; hostaddr; hostaddr = hostaddr->next)
-                    sendto(hostaddr->socket_tx,
-                           (char *) netswitch->pkt_tx_v[i].data, netswitch->pkt_tx_v[i].len, 0,
-                           &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
+                    /* Send through all known host interfaces. */
+                    for (net_switch_hostaddr_t *hostaddr = netswitch->hostaddrs; hostaddr; hostaddr = hostaddr->next)
+                        sendto(hostaddr->socket_tx,
+                               (char *) netswitch->pkt_tx_v[i].data, netswitch->pkt_tx_v[i].len, 0,
+                               &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
+                }
             }
             netswitch->during_tx = 0;
 
             if (netswitch->recv_on_tx) {
                 do {
                     packets = network_rx_on_tx_popv(netswitch->card, netswitch->pkt_tx_v, SWITCH_PKT_BATCH);
-                    for (int i = 0; i < packets; i++)
-                        network_rx_put_pkt(netswitch->card, &(netswitch->pkt_tx_v[i]));
+                    if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN)) {
+                        for (int i = 0; i < packets; i++)
+                            network_rx_put_pkt(netswitch->card, &(netswitch->pkt_tx_v[i]));
+                    }
                 } while (packets > 0);
                 netswitch->recv_on_tx = 0;
             }
@@ -407,9 +411,9 @@ net_switch_thread(void *priv)
                 netswitch_log("Network Switch: recv error (%d)\n", len);
             } else if ((AS_U64(netswitch->pkt.data[6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
                 /* A packet we've sent has looped back, drop it. */
-            } else if (netswitch->promisc || /* promiscuous mode? */
+            } else if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN) && (netswitch->promisc || /* promiscuous mode? */
                        (netswitch->pkt.data[0] & 1) || /* broadcast packet? */
-                       ((AS_U64(netswitch->pkt.data[0]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64)) { /* packet for me? */
+                       ((AS_U64(netswitch->pkt.data[0]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64))) { /* packet for me? */
                 netswitch_log("Network Switch: receiving %d-byte packet " MAC_FORMAT "\n",
                               len, MAC_FORMAT_ARGS(netswitch->pkt.data));
                 netswitch->pkt.len = len;

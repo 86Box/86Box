@@ -261,8 +261,8 @@ void
 ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, int len)
 {
     ibm8514_t *dev       = (ibm8514_t *) svga->dev8514;
-    uint8_t    nibble    = 0;
-    uint32_t   pixelxfer = 0;
+    uint8_t    nibble    = 0x0000;
+    uint32_t   pixelxfer = 0x00000000;
     uint32_t   monoxfer  = 0xffffffff;
     int        pixcnt    = 0;
     int        pixcntl   = (dev->accel.multifunc[0x0a] >> 6) & 3;
@@ -289,9 +289,24 @@ ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, in
                                 val = (val >> 8) | (val << 8);
                         }
                         if ((cmd <= 2) || (cmd == 4) || (cmd == 6)) {
-                            if ((dev->accel.cmd & 0x08) && (cmd >= 2))
-                                monoxfer = val;
-                            else {
+                            if (dev->accel.cmd & 0x08) {
+                                if (val & 0x02)
+                                    nibble |= 0x08;
+                                if (val & 0x04)
+                                    nibble |= 0x04;
+                                if (val & 0x08)
+                                    nibble |= 0x02;
+                                if (val & 0x10)
+                                    nibble |= 0x01;
+                                if (val & 0x200)
+                                    nibble |= 0x80;
+                                if (val & 0x400)
+                                    nibble |= 0x40;
+                                if (val & 0x800)
+                                    nibble |= 0x20;
+                                if (val & 0x1000)
+                                    nibble |= 0x10;
+                            } else {
                                 if (val & 0x02)
                                     nibble |= 0x80;
                                 if (val & 0x04)
@@ -308,9 +323,8 @@ ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, in
                                     nibble |= 0x02;
                                 if (val & 0x1000)
                                     nibble |= 0x01;
-
-                                monoxfer = nibble;
                             }
+                            monoxfer = nibble;
                         } else
                             monoxfer = val;
                     } else
@@ -545,7 +559,7 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                 if (dev->accel.cmd & 0x100)
                     dev->accel.cmd_back = 0;
 
-                ibm8514_log("8514/A CMD=%04x, frgd color=%04x, frgdmix=%02x, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.frgd_color, dev->accel.frgd_mix, dev->accel.multifunc[0x0a]);
+                ibm8514_log("8514A CMDflags=%04x, frgd color=%04x, frgdmix=%02x, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.frgd_color, dev->accel.frgd_mix, dev->accel.multifunc[0x0a]);
                 ibm8514_accel_start(-1, 0, -1, 0, svga, len);
             }
             break;
@@ -893,8 +907,9 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
                             READ_HIGH(dev->accel.dest + dev->accel.cx, temp);
                         }
                         ibm8514_accel_out_pixtrans(svga, port, (temp >> 8) & 0xff, len);
-                    } else
+                    } else {
                         ibm8514_accel_out_pixtrans(svga, port, temp, len);
+                    }
                 }
             }
             break;
@@ -976,6 +991,10 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
                     dev->data_available = 0;
                     dev->data_available2 = 0;
                     temp |= INT_FIFO_EMP;
+                }
+                if (!dev->fifo_idx) {
+                    if (dev->accel.cmd_back)
+                        temp |= 0x800;
                 }
                 temp |= (dev->subsys_stat | (dev->vram_512k_8514 ? 0x00 : 0x80));
                 temp |= 0x20;
@@ -1066,6 +1085,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     uint16_t   bkgd_color      = dev->accel.bkgd_color;
     uint32_t   old_mix_dat;
     int        and3            = dev->accel.cur_x & 3;
+    int        and3_blt        = dev->accel.destx & 3;
     int        poly_src;
 
     if (!dev->bpp) {
@@ -1225,7 +1245,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             old_dest_dat = dest_dat;
                             MIX(mix_dat & mix_mask, dest_dat, src_dat);
                             dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-
                             if (dev->accel.ssv_draw) {
                                 if ((dev->accel.cmd & 0x04) && dev->accel.ssv_len) {
                                     WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
@@ -1296,42 +1315,44 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         (dev->accel.cy >= clip_t) &&
                         (dev->accel.cy <= clip_b)) {
                         dev->subsys_stat |= INT_GE_BSY;
-                        switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
-                            case 0:
-                                src_dat = bkgd_color;
-                                break;
-                            case 1:
-                                src_dat = frgd_color;
-                                break;
-                            case 2:
-                                src_dat = cpu_dat;
-                                break;
-                            case 3:
-                                src_dat = 0;
-                                break;
+                        if (ibm8514_cpu_src(svga) || !cpu_input) {
+                            switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
+                                case 1:
+                                    src_dat = frgd_color;
+                                    break;
+                                case 2:
+                                    src_dat = cpu_dat;
+                                    break;
+                                case 3:
+                                    src_dat = 0;
+                                    break;
 
-                            default:
-                                break;
-                        }
+                                default:
+                                    break;
+                            }
 
-                        READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
 
-                        if ((compare_mode == 0) ||
-                            ((compare_mode == 0x10) && (dest_dat >= compare)) ||
-                            ((compare_mode == 0x18) && (dest_dat < compare)) ||
-                            ((compare_mode == 0x20) && (dest_dat != compare)) ||
-                            ((compare_mode == 0x28) && (dest_dat == compare)) ||
-                            ((compare_mode == 0x30) && (dest_dat <= compare)) ||
-                            ((compare_mode == 0x38) && (dest_dat > compare))) {
-                            old_dest_dat = dest_dat;
-                            MIX(mix_dat & mix_mask, dest_dat, src_dat);
-                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                            if ((compare_mode == 0) ||
+                                ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
 
-                            if (dev->accel.ssv_draw) {
-                                if ((dev->accel.cmd & 0x04) && dev->accel.ssv_len) {
-                                    WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
-                                } else if (!(dev->accel.cmd & 0x04)) {
-                                    WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                if (dev->accel.ssv_draw) {
+                                    if ((dev->accel.cmd & 0x04) && dev->accel.ssv_len) {
+                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                    } else if (!(dev->accel.cmd & 0x04)) {
+                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                    }
                                 }
                             }
                         }
@@ -1406,12 +1427,42 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                 dev->accel.sy = dev->accel.maj_axis_pcnt;
 
+                ibm8514_log("CMD=%d, full=%04x, curx=%d, cury=%d, pixcntl=%x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, bkgdmix=%02x, and3=%d, sy=%d, polygon=%02x.\n",
+                          cmd, dev->accel.cmd, dev->accel.cx, dev->accel.cy, pixcntl, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.bkgd_mix, and3, dev->accel.sy, dev->accel.multifunc[0x0a] & 0x06);
+
                 ibm8514_log("Line Draw 8514/A CMD=%04x, frgdmix=%d, bkgdmix=%d, c(%d,%d), pixcntl=%d, sy=%d, polyfill=%x, selfrmix=%02x, selbkmix=%02x, bkgdcol=%02x, frgdcol=%02x, clipt=%d, clipb=%d.\n", dev->accel.cmd, frgd_mix, bkgd_mix, dev->accel.cx, dev->accel.cy, pixcntl, dev->accel.sy, dev->accel.multifunc[0x0a] & 6, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, bkgd_color, frgd_color, dev->accel.clip_top, clip_b);
                 if (ibm8514_cpu_src(svga)) {
                     if (dev->accel.cmd & 0x02) {
                         if (!(dev->accel.cmd & 0x1000)) {
-                            if (dev->accel.cmd & 0x08)
-                                dev->accel.output = 1;
+                            if (dev->accel.cmd & 0x08) {
+                                if (and3) {
+                                    dev->accel.sy += and3;
+                                    dev->accel.output = 1;
+                                    switch (dev->accel.cmd & 0xe0) {
+                                        case 0x00:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x20:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x60:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0x80:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xa0:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xe0:
+                                            dev->accel.cx -= and3;
+                                            break;
+
+                                        default:
+                                            break;
+                                    }
+                                }
+                            }
                         }
                     }
                     dev->force_busy = 1;
@@ -1424,174 +1475,258 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                     dev->force_busy2 = 1;
                     dev->data_available  = 1;
                     dev->data_available2 = 1;
-                    return;
+                    return; /*Wait for data from CPU*/
                 }
             }
 
             if (dev->accel.cmd & 0x08) { /*Vector Line*/
-                if (ibm8514_cpu_dest(svga) && cpu_input && (dev->accel.cmd & 0x02))
-                    count >>= 1;
+                if (ibm8514_cpu_dest(svga)) {
+                    if (dev->accel.cmd & 0x02)
+                        count >>= 1;
 
-                if (dev->accel.cmd & 0x02)
-                    ibm8514_log("Line Draw Vector Single pixtrans=%04x, count=%d.\n", mix_dat, count);
+                    if ((dev->accel.multifunc[0x0a] & 0x06) == 0x04) {
+                        ibm8514_log("Destination Vector Line CNT=%d.\n", count);
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if ((dev->accel.cx >= clip_l) &&
+                                (dev->accel.cx <= clip_r) &&
+                                (dev->accel.cy >= clip_t) &&
+                                (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= INT_GE_BSY;
+                            } else
+                                ibm8514_log("Scissor out of bounds.\n");
 
-                while (count-- && (dev->accel.sy >= 0)) {
-                    if ((dev->accel.cx >= clip_l) &&
-                        (dev->accel.cx <= clip_r) &&
-                        (dev->accel.cy >= clip_t) &&
-                        (dev->accel.cy <= clip_b)) {
-                        dev->subsys_stat |= INT_GE_BSY;
-                        if (ibm8514_cpu_dest(svga) && (pixcntl == 0)) {
-                            mix_dat = mix_mask; /* Mix data = forced to foreground register. */
-                        } else if (ibm8514_cpu_dest(svga) && (pixcntl == 3)) {
-                            /* Mix data = current video memory value. */
-                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, mix_dat);
-                            mix_dat = ((mix_dat & rd_mask) == rd_mask);
-                            mix_dat = mix_dat ? mix_mask : 0;
-                        }
-
-                        if (ibm8514_cpu_dest(svga)) {
-                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, src_dat);
-                            if (pixcntl == 3)
-                                src_dat = ((src_dat & rd_mask) == rd_mask);
-                        } else {
-                            if (dev->accel.output) {
-                                switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
-                                    case 0:
-                                        src_dat = bkgd_color;
-                                        break;
-                                    case 1:
-                                        src_dat = frgd_color;
-                                        break;
-                                    case 2:
-                                        src_dat = cpu_dat;
-                                        break;
-                                    case 3:
-                                        src_dat = 0;
-                                        break;
-
-                                    default:
-                                        break;
-                                }
-                            } else {
-                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
-                                    case 0:
-                                        src_dat = bkgd_color;
-                                        break;
-                                    case 1:
-                                        src_dat = frgd_color;
-                                        break;
-                                    case 2:
-                                        src_dat = cpu_dat;
-                                        break;
-                                    case 3:
-                                        src_dat = 0;
-                                        break;
-
-                                    default:
-                                        break;
-                                }
+                            if (!dev->accel.sy) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
+                                break;
                             }
-                        }
 
-                        READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                            switch (dev->accel.cmd & 0xe0) {
+                                case 0x00:
+                                    dev->accel.cx++;
+                                    break;
+                                case 0x20:
+                                    dev->accel.cx++;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x40:
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x60:
+                                    dev->accel.cx--;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x80:
+                                    dev->accel.cx--;
+                                    break;
+                                case 0xa0:
+                                    dev->accel.cx--;
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xc0:
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xe0:
+                                    dev->accel.cx++;
+                                    dev->accel.cy++;
+                                    break;
 
-                        if ((compare_mode == 0) ||
-                            ((compare_mode == 0x10) && (dest_dat >= compare)) ||
-                            ((compare_mode == 0x18) && (dest_dat < compare)) ||
-                            ((compare_mode == 0x20) && (dest_dat != compare)) ||
-                            ((compare_mode == 0x28) && (dest_dat == compare)) ||
-                            ((compare_mode == 0x30) && (dest_dat <= compare)) ||
-                            ((compare_mode == 0x38) && (dest_dat > compare))) {
-                            old_dest_dat = dest_dat;
-                            if (dev->accel.output) {
-                                MIX(mix_dat & 0x01, dest_dat, src_dat);
-                            } else {
-                                MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                default:
+                                    break;
                             }
-                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                            if ((dev->accel.cmd & 0x02) && ibm8514_cpu_src(svga)) {
-                                if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
-                                    WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
-                                } else if (!(dev->accel.cmd & 0x04)) {
-                                    WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
-                                }
-                            } else {
-                                if (ibm8514_cpu_src(svga) || !cpu_input) {
-                                    if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
-                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
-                                    } else if (!(dev->accel.cmd & 0x04)) {
-                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                            dev->accel.sy--;
+                        }
+                    } else {
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if ((dev->accel.cx >= clip_l) &&
+                                (dev->accel.cx <= clip_r) &&
+                                (dev->accel.cy >= clip_t) &&
+                                (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= INT_GE_BSY;
+                            }
+
+                            if (!dev->accel.sy) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
+                                break;
+                            }
+
+                            switch (dev->accel.cmd & 0xe0) {
+                                case 0x00:
+                                    dev->accel.cx++;
+                                    break;
+                                case 0x20:
+                                    dev->accel.cx++;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x40:
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x60:
+                                    dev->accel.cx--;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x80:
+                                    dev->accel.cx--;
+                                    break;
+                                case 0xa0:
+                                    dev->accel.cx--;
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xc0:
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xe0:
+                                    dev->accel.cx++;
+                                    dev->accel.cy++;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            dev->accel.sy--;
+                        }
+                    }
+                } else {
+                    if (ibm8514_cpu_src(svga)) {
+                        if ((dev->accel.cmd & 0x02) && (pixcntl != 2))
+                            count >>= 1;
+                    }
+
+                    while (count-- && (dev->accel.sy >= 0)) {
+                        ibm8514_log("CurrentX=%d, CurrentY=%d, Count=%d.\n", dev->accel.cx, dev->accel.cy, count);
+                        if ((dev->accel.cx >= clip_l) &&
+                            (dev->accel.cx <= clip_r) &&
+                            (dev->accel.cy >= clip_t) &&
+                            (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= INT_GE_BSY;
+                            switch ((mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
+                                case 1:
+                                    src_dat = frgd_color;
+                                    break;
+                                case 2:
+                                    src_dat = cpu_dat;
+                                    break;
+                                case 3:
+                                    src_dat = 0;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                            if ((compare_mode == 0) ||
+                                ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                if ((dev->accel.cmd & 0x02) && ibm8514_cpu_src(svga)) {
+                                    if (!(dev->accel.cmd & 0x1000)) {
+                                        if (dev->accel.x_count >= and3) {
+                                            if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
+                                                WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                            } else if (!(dev->accel.cmd & 0x04)) {
+                                                WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                            }
+                                        }
+                                    } else {
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        }
+                                    }
+                                } else {
+                                    if (ibm8514_cpu_src(svga) || !cpu_input) {
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    if (!dev->accel.sy) {
-                        if (cpu_input) {
-                            dev->force_busy = 0;
-                            dev->force_busy2 = 0;
+                        if (!dev->accel.sy) {
+                            if (cpu_input) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                            }
+                            dev->fifo_idx = 0;
+                            dev->accel.cmd_back = 1;
+                            if (!cpu_input) {
+                                dev->accel.cur_x = dev->accel.cx;
+                                dev->accel.cur_y = dev->accel.cy;
+                            }
+                            break;
                         }
-                        dev->fifo_idx = 0;
-                        dev->accel.cmd_back = 1;
-                        if (!cpu_input) {
-                            dev->accel.cur_x = dev->accel.cx;
-                            dev->accel.cur_y = dev->accel.cy;
+
+                        if (dev->bpp)
+                            cpu_dat >>= 16;
+                        else
+                            cpu_dat >>= 8;
+
+                        switch (dev->accel.cmd & 0xe0) {
+                            case 0x00:
+                                dev->accel.cx++;
+                                break;
+                            case 0x20:
+                                dev->accel.cx++;
+                                dev->accel.cy--;
+                                break;
+                            case 0x40:
+                                dev->accel.cy--;
+                                break;
+                            case 0x60:
+                                dev->accel.cx--;
+                                dev->accel.cy--;
+                                break;
+                            case 0x80:
+                                dev->accel.cx--;
+                                break;
+                            case 0xa0:
+                                dev->accel.cx--;
+                                dev->accel.cy++;
+                                break;
+                            case 0xc0:
+                                dev->accel.cy++;
+                                break;
+                            case 0xe0:
+                                dev->accel.cx++;
+                                dev->accel.cy++;
+                                break;
+
+                            default:
+                                break;
                         }
-                        break;
+
+                        if (dev->accel.cmd & 0x02)
+                            mix_dat >>= 1;
+                        else {
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
+                        }
+                        dev->accel.sy--;
+                        dev->accel.x_count++;
                     }
-
-                    if (dev->accel.output)
-                        mix_dat >>= 1;
-                    else {
-                        mix_dat <<= 1;
-                        mix_dat |= 1;
-                    }
-
-                    if (dev->bpp)
-                        cpu_dat >>= 16;
-                    else
-                        cpu_dat >>= 8;
-
-                    switch (dev->accel.cmd & 0xe0) {
-                        case 0x00:
-                            dev->accel.cx++;
-                            break;
-                        case 0x20:
-                            dev->accel.cx++;
-                            dev->accel.cy--;
-                            break;
-                        case 0x40:
-                            dev->accel.cy--;
-                            break;
-                        case 0x60:
-                            dev->accel.cx--;
-                            dev->accel.cy--;
-                            break;
-                        case 0x80:
-                            dev->accel.cx--;
-                            break;
-                        case 0xa0:
-                            dev->accel.cx--;
-                            dev->accel.cy++;
-                            break;
-                        case 0xc0:
-                            dev->accel.cy++;
-                            break;
-                        case 0xe0:
-                            dev->accel.cx++;
-                            dev->accel.cy++;
-                            break;
-
-                        default:
-                            break;
-                    }
-
-                    dev->accel.sy--;
                 }
-                dev->accel.x_count = 0;
-                dev->accel.output = 0;
             } else { /*Bresenham Line*/
                 if (pixcntl == 1) {
                     dev->accel.temp_cnt = 8;
@@ -1817,6 +1952,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
             if (!cpu_input) {
                 dev->accel.x_count = 0;
                 dev->accel.output = 0;
+                dev->accel.output2 = 0;
                 dev->accel.input = 0;
                 dev->accel.input2 = 0;
                 dev->accel.odd_in = 0;
@@ -1832,6 +1968,9 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
                 dev->accel.sy = dev->accel.multifunc[0] & 0x7ff;
 
+                ibm8514_log("CMD=%d, full=%04x, curx=%d, cury=%d, pixcntl=%x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, bkgdmix=%02x.\n",
+                          cmd, dev->accel.cmd, dev->accel.cx, dev->accel.cy, pixcntl, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.bkgd_mix);
+
                 dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                 if (cmd == 4)
@@ -1842,18 +1981,42 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 if (ibm8514_cpu_src(svga)) {
                     if (dev->accel.cmd & 0x02) {
                         if (!(dev->accel.cmd & 0x1000)) {
-                            if (dev->accel.cmd & 0x08) {
-                                dev->accel.x_count = dev->accel.cx - (and3 + 3);
-                                dev->accel.sx += (and3 + 3);
-                            } else {
-                                dev->accel.x_count = dev->accel.cx;
+                            if (!(dev->accel.cmd & 0x08)) {
                                 if (and3) {
                                     if (dev->accel.cmd & 0x20)
-                                        dev->accel.x_count -= and3;
+                                        dev->accel.cx -= and3;
                                     else
-                                        dev->accel.x_count += and3;
+                                        dev->accel.cx += and3;
 
                                     dev->accel.sx += 8;
+                                }
+                            } else {
+                                if (and3) {
+                                    dev->accel.sx += and3;
+                                    dev->accel.output2 = 1;
+                                    switch (dev->accel.cmd & 0xe0) {
+                                        case 0x00:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x20:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x60:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0x80:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xa0:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xe0:
+                                            dev->accel.cx -= and3;
+                                            break;
+
+                                        default:
+                                            break;
+                                    }
                                 }
                             }
                         }
@@ -1885,7 +2048,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             }
                         }
                     }
-                    ibm8514_log("INPUT=%d.\n", dev->accel.input);
+                    ibm8514_log("INPUT1=%d, INPUT2=%d.\n", dev->accel.input, dev->accel.input2);
                     dev->force_busy = 1;
                     dev->force_busy2 = 1;
                     dev->data_available  = 1;
@@ -1905,7 +2068,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 (dev->accel.cy >= clip_t) &&
                                 (dev->accel.cy <= clip_b)) {
                                 dev->subsys_stat |= INT_GE_BSY;
-                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                ibm8514_log("RectRadial: MIXDATA=%08x, mask=%04x, frgdcol=%02x, bkgdcol=%02x, cpudat=%08x.\n", mix_dat, mix_mask, frgd_color, bkgd_color, cpu_dat);
+                                switch ((mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
                                     case 0:
                                         src_dat = bkgd_color;
                                         break;
@@ -1933,15 +2097,15 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                     ((compare_mode == 0x30) && (dest_dat <= compare)) ||
                                     ((compare_mode == 0x38) && (dest_dat > compare))) {
                                     old_dest_dat = dest_dat;
-                                    MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                    MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                                    if ((dev->accel.cmd & 0x02) && (dev->accel.x_count != dev->accel.cx))
-                                        goto skip_vector_rect_write;
-
-                                    if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
-                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
-                                    } else if (!(dev->accel.cmd & 0x04)) {
-                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                    if (dev->accel.x_count >= and3) {
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                            ibm8514_log("RectFill Radial CX=%d, CY=%d, dstdat=%02x, olddst=%02x, srcdat=%02x.\n", dev->accel.cx, dev->accel.cy, dest_dat, old_dest_dat, src_dat);
+                                        }
                                     }
                                 }
                             }
@@ -1970,42 +2134,24 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                     break;
                             }
 
-skip_vector_rect_write:
-                            switch (dev->accel.cmd & 0xe0) {
-                                case 0x00:
-                                    dev->accel.x_count++;
-                                    break;
-                                case 0x20:
-                                    dev->accel.x_count++;
-                                    break;
-                                case 0x60:
-                                    dev->accel.x_count--;
-                                    break;
-                                case 0x80:
-                                    dev->accel.x_count--;
-                                    break;
-                                case 0xa0:
-                                    dev->accel.x_count--;
-                                    break;
-                                case 0xe0:
-                                    dev->accel.x_count++;
-                                    break;
-
-                                default:
-                                    break;
-                            }
-
                             if (dev->bpp)
                                 cpu_dat >>= 16;
                             else
                                 cpu_dat >>= 8;
 
-                            mix_dat <<= 1;
-                            mix_dat |= 1;
-
+                            if (dev->accel.cmd & 0x02)
+                                mix_dat >>= 1;
+                            else {
+                                mix_dat <<= 1;
+                                mix_dat |= 1;
+                            }
                             dev->accel.sx--;
+                            dev->accel.x_count++;
                             if (dev->accel.sx < 0) {
                                 dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+                                dev->accel.x_count = 0;
+                                if (dev->accel.output2)
+                                    dev->accel.sx += and3;
 
                                 if (dev->accel.cmd & 0x20)
                                     dev->accel.cx -= (dev->accel.sx + 1);
@@ -2039,7 +2185,6 @@ skip_vector_rect_write:
                                 dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                                 dev->accel.sy--;
-                                dev->accel.x_count = 0;
 
                                 if (dev->accel.sy < 0) {
                                     dev->force_busy = 0;
@@ -2056,100 +2201,66 @@ skip_vector_rect_write:
                     ibm8514_log("Vectored Rectangle with normal processing (TODO).\n");
             } else { /*Normal Rectangle*/
                 if (cpu_input) {
-                    ibm8514_log("Normal Pixel Rectangle Fill Transfer SY=%d.\n", dev->accel.sy);
+                    ibm8514_log("Normal Pixel Rectangle Fill Transfer SY=%d, fullcmd=%04x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, polygontype=%02x, pixcntl=%x, curx=%d, cury=%d.\n", dev->accel.sy, dev->accel.cmd, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.multifunc[0x0a] & 0x06, pixcntl, dev->accel.cx, dev->accel.cy);
                     while (count-- && (dev->accel.sy >= 0)) {
                         if ((dev->accel.cx >= clip_l) &&
                             (dev->accel.cx <= clip_r) &&
                             (dev->accel.cy >= clip_t) &&
                             (dev->accel.cy <= clip_b)) {
                             dev->subsys_stat |= INT_GE_BSY;
-                            if (ibm8514_cpu_dest(svga) && (pixcntl == 0)) {
-                                mix_dat = mix_mask; /* Mix data = forced to foreground register. */
-                            } else if (ibm8514_cpu_dest(svga) && (pixcntl == 3)) {
-                                /* Mix data = current video memory value. */
-                                READ(dev->accel.dest + dev->accel.cx, mix_dat);
-                                mix_dat = ((mix_dat & rd_mask) == rd_mask);
-                                mix_dat = mix_dat ? mix_mask : 0;
-                            }
+                            if (ibm8514_cpu_src(svga) || !cpu_input) {
+                                switch ((mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = cpu_dat;
+                                        break;
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
 
-                            if (ibm8514_cpu_dest(svga)) {
-                                READ(dev->accel.dest + dev->accel.cx, src_dat);
-                                if (pixcntl == 3)
-                                    src_dat = ((src_dat & rd_mask) == rd_mask);
-                            } else {
-                                if (dev->accel.cmd & 0x02) {
-                                    switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
-                                        case 0:
-                                            src_dat = bkgd_color;
-                                            break;
-                                        case 1:
-                                            src_dat = frgd_color;
-                                            break;
-                                        case 2:
-                                            src_dat = cpu_dat;
-                                            break;
-                                        case 3:
-                                            src_dat = 0;
-                                            break;
-
-                                        default:
-                                            break;
-                                    }
-                                } else {
-                                    switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
-                                        case 0:
-                                            src_dat = bkgd_color;
-                                            break;
-                                        case 1:
-                                            src_dat = frgd_color;
-                                            break;
-                                        case 2:
-                                            src_dat = cpu_dat;
-                                            break;
-                                        case 3:
-                                            src_dat = 0;
-                                            break;
-
-                                        default:
-                                            break;
-                                    }
+                                    default:
+                                        break;
                                 }
-                            }
 
-                            READ(dev->accel.dest + dev->accel.cx, dest_dat);
+                                READ(dev->accel.dest + dev->accel.cx, dest_dat);
 
-                            if ((compare_mode == 0) ||
-                                ((compare_mode == 0x10) && (dest_dat >= compare)) ||
-                                ((compare_mode == 0x18) && (dest_dat < compare)) ||
-                                ((compare_mode == 0x20) && (dest_dat != compare)) ||
-                                ((compare_mode == 0x28) && (dest_dat == compare)) ||
-                                ((compare_mode == 0x30) && (dest_dat <= compare)) ||
-                                ((compare_mode == 0x38) && (dest_dat > compare))) {
-                                old_dest_dat = dest_dat;
-                                if (dev->accel.cmd & 0x02) {
-                                    MIX(mix_dat & 0x01, dest_dat, src_dat);
-                                    if ((dev->accel.x_count != dev->accel.cx) && !(dev->accel.cmd & 0x1000) && and3)
-                                        goto skip_nibble_rect_write;
-
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                                    if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
-                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
-                                    } else if (!(dev->accel.cmd & 0x04)) {
-                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
-                                    }
-                                } else {
-                                    if (ibm8514_cpu_dest(svga) && (cmd == 2)) {
-                                        if (pixcntl == 3) {
-                                            MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                    if (dev->accel.cmd & 0x02) {
+                                        if (dev->accel.cmd & 0x1000) {
+                                            if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                                WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                            } else if (!(dev->accel.cmd & 0x04)) {
+                                                WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                            }
+                                        } else {
+                                            if (dev->accel.x_count >= and3) {
+                                                if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                                    WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                                } else if (!(dev->accel.cmd & 0x04)) {
+                                                    WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                                }
+                                            }
                                         }
                                     } else {
-                                        MIX(mix_dat & mix_mask, dest_dat, src_dat);
-                                    }
-                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                                    if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
-                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
-                                    } else if (!(dev->accel.cmd & 0x04)) {
-                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        }
                                     }
                                 }
                             }
@@ -2158,12 +2269,6 @@ skip_vector_rect_write:
                             dev->accel.cx++;
                         else
                             dev->accel.cx--;
-
-skip_nibble_rect_write:
-                        if (dev->accel.cmd & 0x20)
-                            dev->accel.x_count++;
-                        else
-                            dev->accel.x_count--;
 
                         if (dev->accel.cmd & 0x02)
                             mix_dat >>= 1;
@@ -2178,10 +2283,13 @@ skip_nibble_rect_write:
                             cpu_dat >>= 8;
 
                         dev->accel.sx--;
+                        dev->accel.x_count++;
                         if (dev->accel.sx < 0) {
                             dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+                            dev->accel.x_count = 0;
                             if (dev->accel.input)
                                 dev->accel.odd_in = 1;
+
                             if (dev->accel.output || dev->accel.input2)
                                 dev->accel.sx -= 2;
 
@@ -2198,7 +2306,6 @@ skip_nibble_rect_write:
                             dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
 
                             dev->accel.sy--;
-                            dev->accel.x_count = 0;
 
                             if (dev->accel.sy < 0) {
                                 dev->fifo_idx = 0;
@@ -2844,6 +2951,9 @@ skip_nibble_rect_write:
                 dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
                 dev->accel.sy = dev->accel.multifunc[0] & 0x7ff;
 
+                ibm8514_log("CMD=%d, full=%04x, curx=%d, cury=%d, destx=%d, desty=%d, pixcntl=%x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, bkgdmix=%02x.\n",
+                          cmd, dev->accel.cmd, dev->accel.cx, dev->accel.cy, dev->accel.dx, dev->accel.dy, pixcntl, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.bkgd_mix);
+
                 dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
                 dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
                 dev->accel.fill_state = 0;
@@ -2851,12 +2961,11 @@ skip_nibble_rect_write:
                 if (ibm8514_cpu_src(svga)) {
                     if (dev->accel.cmd & 0x02) {
                         if (!(dev->accel.cmd & 0x1000)) {
-                            dev->accel.x_count = dev->accel.cx;
-                            if (and3) {
+                            if (and3_blt) {
                                 if (dev->accel.cmd & 0x20)
-                                    dev->accel.x_count -= and3;
+                                    dev->accel.dx -= and3_blt;
                                 else
-                                    dev->accel.x_count += and3;
+                                    dev->accel.dx += and3_blt;
 
                                 dev->accel.sx += 8;
                             }
@@ -2900,50 +3009,27 @@ skip_nibble_rect_write:
                                     mix_dat = mix_dat ? mix_mask : 0x00;
                             }
                         }
-                        if (dev->accel.cmd & 0x02) {
-                            switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
-                                case 0:
-                                    src_dat = bkgd_color;
-                                    break;
-                                case 1:
-                                    src_dat = frgd_color;
-                                    break;
-                                case 2:
-                                    src_dat = cpu_dat;
-                                    break;
-                                case 3:
-                                    READ(dev->accel.src + dev->accel.cx, src_dat);
-                                    if (pixcntl == 3) {
-                                        if (dev->accel.cmd & 0x10)
-                                            src_dat = ((src_dat & rd_mask) == rd_mask);
-                                    }
-                                    break;
 
-                                default:
-                                    break;
-                            }
-                        } else {
-                            switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
-                                case 0:
-                                    src_dat = bkgd_color;
-                                    break;
-                                case 1:
-                                    src_dat = frgd_color;
-                                    break;
-                                case 2:
-                                    src_dat = cpu_dat;
-                                    break;
-                                case 3:
-                                    READ(dev->accel.src + dev->accel.cx, src_dat);
-                                    if (pixcntl == 3) {
-                                        if (dev->accel.cmd & 0x10)
-                                            src_dat = ((src_dat & rd_mask) == rd_mask);
-                                    }
-                                    break;
+                        switch (((mix_dat & (dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
+                            case 0:
+                                src_dat = bkgd_color;
+                                break;
+                            case 1:
+                                src_dat = frgd_color;
+                                break;
+                            case 2:
+                                src_dat = cpu_dat;
+                                break;
+                            case 3:
+                                READ(dev->accel.src + dev->accel.cx, src_dat);
+                                if (pixcntl == 3) {
+                                    if (dev->accel.cmd & 0x10)
+                                        src_dat = ((src_dat & rd_mask) == rd_mask);
+                                }
+                                break;
 
-                                default:
-                                    break;
-                            }
+                            default:
+                                break;
                         }
 
                         READ(dev->accel.dest + dev->accel.dx, dest_dat);
@@ -2956,16 +3042,17 @@ skip_nibble_rect_write:
                             ((compare_mode == 0x30) && (dest_dat <= compare)) ||
                             ((compare_mode == 0x38) && (dest_dat > compare))) {
                             old_dest_dat = dest_dat;
+                            MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
+                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                             if (dev->accel.cmd & 0x02) {
-                                MIX(mix_dat & 0x01, dest_dat, src_dat);
-                                if ((dev->accel.x_count != dev->accel.cx) && !(dev->accel.cmd & 0x1000) && and3)
-                                    goto skip_nibble_bitblt_write;
-
-                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                                WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                if (dev->accel.cmd & 0x1000) {
+                                    WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                } else {
+                                    if (dev->accel.x_count >= and3_blt) {
+                                        WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                    }
+                                }
                             } else {
-                                MIX(mix_dat & mix_mask, dest_dat, src_dat);
-                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
                             }
                         }
@@ -2978,12 +3065,6 @@ skip_nibble_rect_write:
                         dev->accel.dx--;
                         dev->accel.cx--;
                     }
-
-skip_nibble_bitblt_write:
-                    if (dev->accel.cmd & 0x20)
-                        dev->accel.x_count++;
-                    else
-                        dev->accel.x_count--;
 
                     if (dev->accel.cmd & 0x02)
                         mix_dat >>= 1;
@@ -2998,7 +3079,9 @@ skip_nibble_bitblt_write:
                         cpu_dat >>= 8;
 
                     dev->accel.sx--;
+                    dev->accel.x_count++;
                     if (dev->accel.sx < 0) {
+                        dev->accel.x_count = 0;
                         dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
 
                         if (dev->accel.cmd & 0x20) {
@@ -3021,7 +3104,6 @@ skip_nibble_bitblt_write:
                         dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
 
                         dev->accel.sy--;
-                        dev->accel.x_count = 0;
 
                         if (dev->accel.sy < 0) {
                             dev->accel.cmd_back = 1;
@@ -3252,7 +3334,10 @@ skip_nibble_bitblt_write:
                             }
                         }
                     } else {
-                        while (count-- && dev->accel.sy >= 0) {
+                        if ((dev->accel.cmd == 0xc073) && (dev->accel.frgd_mix == 0x05) && (frgd_mix == 3))
+                            ibm8514_log("BitBLT PBRUSH: DX=%d, DY=%d, cl=%d, cr=%d, ct=%d, cb=%d.\n", dev->accel.dx, dev->accel.dy, clip_l, clip_r, clip_t, clip_b);
+
+                        while (count-- && (dev->accel.sy >= 0)) {
                             if ((dev->accel.dx >= clip_l) &&
                                 (dev->accel.dx <= clip_r) &&
                                 (dev->accel.dy >= clip_t) &&
@@ -3303,7 +3388,8 @@ skip_nibble_bitblt_write:
                                     MIX(mix_dat & mix_mask, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                     WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
-                                    ibm8514_log("BitBLT DX=%d, DY=%d, data=%02x, old=%02x, src=%02x, frmix=%02x, bkmix=%02x, pixcntl=%d.\n", dev->accel.dx, dev->accel.dy, dest_dat, old_dest_dat, src_dat, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, pixcntl);
+                                    if ((dev->accel.cmd == 0xc073) && (dev->accel.frgd_mix == 0x05) && (frgd_mix == 3))
+                                        ibm8514_log("BitBLT CX=%d, CY=%d, DX=%d, DY=%d, data=%02x, old=%02x, src=%02x, frmix=%02x, bkmix=%02x, pixcntl=%d.\n", dev->accel.cx, dev->accel.cy, dev->accel.dx, dev->accel.dy, dest_dat, old_dest_dat, src_dat, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, pixcntl);
                                 }
                             }
 

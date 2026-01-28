@@ -1005,7 +1005,7 @@ voodoo_recalcmapping(voodoo_set_t *set)
 }
 
 uint8_t
-voodoo_pci_read(int func, int addr, void *priv)
+voodoo_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const voodoo_t *voodoo = (voodoo_t *) priv;
 
@@ -1069,7 +1069,7 @@ voodoo_pci_read(int func, int addr, void *priv)
 }
 
 void
-voodoo_pci_write(int func, int addr, uint8_t val, void *priv)
+voodoo_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     voodoo_t *voodoo = (voodoo_t *) priv;
 

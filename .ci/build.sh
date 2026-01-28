@@ -12,7 +12,7 @@
 #
 # Authors: RichardG, <richardg867@gmail.com>
 #
-#          Copyright 2021-2023 RichardG.
+#          Copyright 2021-2026 RichardG.
 #
 
 #
@@ -334,6 +334,7 @@ toolchain_file="cmake/$toolchain.cmake"
 toolchain_file_libs=
 
 # Perform platform-specific setup.
+cc_binary=gcc
 strip_binary=strip
 if is_windows
 then
@@ -377,7 +378,7 @@ then
 		fi
 
 		# Establish general dependencies.
-		pkgs="git"
+		pkgs="git make"
 
 		# Gather installed architecture-specific packages for updating.
 		# This prevents outdated shared libraries, unmet dependencies
@@ -698,7 +699,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libinstpatch-dev libserialport-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -742,6 +743,7 @@ set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgcon
 include("$(realpath "$toolchain_file")")
 EOF
 	toolchain_file="$toolchain_file_new"
+	cc_binary="$arch_triplet-gcc"
 	strip_binary="$arch_triplet-strip"
 
 	# Create a separate toolchain file for library compilation without including
@@ -881,14 +883,14 @@ then
 fi
 
 # Download assets if we're making a release build.
+git_repo=$(git remote get-url origin 2> /dev/null)
+if [ "$CI" = "true" ]
+then
+	# Backup strategy when running under Jenkins.
+	[ -z "$git_repo" ] && git_repo=$GIT_URL
+fi
 if grep -qiE "^BUILD_TYPE:[^=]+=release" build/CMakeCache.txt 2> /dev/null
 then
-	git_repo=$(git remote get-url origin 2> /dev/null)
-	if [ "$CI" = "true" ]
-	then
-		# Backup strategy when running under Jenkins.
-		[ -z "$git_repo" ] && git_repo=$GIT_URL
-	fi
 	if [ -n "$git_repo" ]
 	then
 		echo [-] Downloading assets
@@ -904,6 +906,17 @@ then
 		cd ..
 	fi
 fi
+
+# Build mdsx library.
+debug_args=
+grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
+cd archive_tmp
+git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" mdsx || exit 99
+make -C mdsx/src -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
+rm -f mdsx/src/*.a
+mv mdsx/src/mdsx.* . || exit 99
+rm -rf mdsx
+cd ..
 
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
@@ -951,6 +964,9 @@ then
 		# Archive Discord Game SDK library.
 		unzip -j "$discord_zip" "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
 		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+
+		# Archive mdsx library.
+		mv "archive_tmp/mdsx.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
 
 		# Hack to convert x86_64 binaries to x86_64h when building that architecture.
 		if [ "$arch" = "x86_64h" ]
@@ -1081,7 +1097,8 @@ else
 		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
+	cmake -G Ninja -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
+		-D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF \
 		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
@@ -1135,6 +1152,9 @@ else
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
 	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+
+	# Archive mdsx library.
+	mv "archive_tmp/mdsx.so" "archive_tmp/usr/lib/"
 
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
@@ -1257,7 +1277,7 @@ EOF
 	then
 		rm -rf "$cache_dir/appimage-builder-"* # remove old versions
 		python3 -m venv "$appimage_builder_dir" # venv to solve some Debian setuptools headaches
-		"$appimage_builder_dir/bin/pip" install -U "git+https://github.com/AppImageCrafters/appimage-builder.git@$appimage_builder_commit"
+		"$appimage_builder_dir/bin/pip" install -U "git+https://github.com/AppImageCrafters/appimage-builder.git@$appimage_builder_commit" 'setuptools<81'
 	fi
 
 	# Symlink appimage-builder global cache directory.

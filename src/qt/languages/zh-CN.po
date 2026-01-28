@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-18 19:18+0000\n"
+"PO-Revision-Date: 2026-01-23 17:57+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -2666,7 +2666,7 @@ msgid "&Unmute"
 msgstr "解除静音(&U)"
 
 msgid "Softfloat FPU"
-msgstr "Softfloat FPU"
+msgstr "软浮点FPU"
 
 msgid "High performance impact"
 msgstr "重大性能影响"
@@ -3024,3 +3024,6 @@ msgstr "快进"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"
+
+msgid "Raw"
+msgstr "原始"

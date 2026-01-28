@@ -182,7 +182,7 @@ nic_config_reset(void *priv)
 {
     nic_t   *dev           = (nic_t *) priv;
 
-    uint8_t *data          = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
+    const uint8_t *data    = (const uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
 
     dev->config1           = (data[0x00] & 0x7f) | 0x80;
     dev->config2           = (data[0x01] & 0xdf);
@@ -425,7 +425,7 @@ page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
 
             case 0xd: /* CONFIG4 */
                 if (dev->board == NE2K_RTL8019AS_PNP) {
-                    uint8_t *data = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
+                    const uint8_t *data = (const uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
                     ret           = data[0x03];
                 }
                 break;
@@ -464,7 +464,7 @@ page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
                 if ((val & 0xc0) == 0x80)
                     nmc93cxx_eeprom_write(dev->eeprom, !!(val & 0x08), !!(val & 0x04), !!(val & 0x02));
                 else if ((val & 0xc0) == 0x40) {
-                    uint8_t *data          = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
+                    const uint8_t *data          = (const uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
 
                     dev->config1           = (data[0x00] & 0x7f) | 0x80;
                     dev->config2           = (data[0x01] & 0xdf);
@@ -799,7 +799,7 @@ nic_update_bios(nic_t *dev)
 }
 
 static uint8_t
-nic_pci_read(UNUSED(int func), int addr, void *priv)
+nic_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const nic_t  *dev = (nic_t *) priv;
     uint8_t       ret = 0x00;
@@ -894,7 +894,7 @@ nic_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-nic_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+nic_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     nic_t  *dev = (nic_t *) priv;
     uint8_t valxor;
@@ -1391,18 +1391,15 @@ nic_init(const device_t *info)
         nmc93cxx_eeprom_params_t params;
         char                     filename[1024] = { 0 };
 
-        params.nwords          = 64;
-        params.default_content = (uint16_t *) dev->eeprom_data;
+        params.type            = NMC_93C46_x16_64;
+        params.default_content = dev->eeprom_data;
         params.filename        = filename;
         int inst               = device_get_instance();
         snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, inst);
         dev->eeprom            = device_add_inst_params(&nmc93cxx_device, inst, &params);
-        if (dev->eeprom == NULL) {
-            free(dev);
-            return NULL;
-        }
+
         if (info->local == NE2K_RTL8019AS_PNP) {
-            uint8_t *data = (uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
+            const uint8_t *data = (const uint8_t *) nmc93cxx_eeprom_data(dev->eeprom);
 
             dev->config1           = (data[0x00] & 0x7f) | 0x80;
             dev->config2           = (data[0x01] & 0xdf);

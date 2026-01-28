@@ -48,7 +48,6 @@ typedef struct opti822_t {
     uint8_t pci_regs[256];
 } opti822_t;
 
-// #define ENABLE_OPTI822_LOG 1
 #ifdef ENABLE_OPTI822_LOG
 int opti822_do_log = ENABLE_OPTI822_LOG;
 
@@ -131,7 +130,7 @@ opti822_update_irqs(opti822_t *dev, int set)
 }
 
 static void
-opti822_pci_write(int func, int addr, uint8_t val, void *priv)
+opti822_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     opti822_t *dev = (opti822_t *) priv;
     int        irq;
@@ -336,7 +335,7 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-opti822_pci_read(int func, int addr, void *priv)
+opti822_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const opti822_t *dev = (opti822_t *) priv;
     uint8_t          ret;

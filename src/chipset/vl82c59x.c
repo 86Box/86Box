@@ -208,7 +208,7 @@ vl82c59x_set_pm_io(void *priv)
 }
 
 static void
-vl82c59x_write(int func, int addr, uint8_t val, void *priv)
+vl82c59x_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     vl82c59x_t *dev = (vl82c59x_t *) priv;
 
@@ -275,7 +275,7 @@ vl82c59x_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-vl82c59x_read(int func, int addr, void *priv)
+vl82c59x_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const vl82c59x_t *dev = (vl82c59x_t *) priv;
     uint8_t             ret = 0xff;
@@ -292,7 +292,7 @@ vl82c59x_read(int func, int addr, void *priv)
 }
 
 static void
-vl82c59x_sb_write(int func, int addr, uint8_t val, void *priv)
+vl82c59x_sb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     vl82c59x_t *dev = (vl82c59x_t *) priv;
     uint8_t       irq;
@@ -380,7 +380,7 @@ vl82c59x_sb_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-vl82c59x_sb_read(int func, int addr, void *priv)
+vl82c59x_sb_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const vl82c59x_t *dev = (vl82c59x_t *) priv;
     uint8_t             ret = 0xff;

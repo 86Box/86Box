@@ -193,11 +193,14 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 
     memcpy(slirp->pkt.data, (uint8_t *) qp, pkt_len);
     slirp->pkt.len = pkt_len;
-    if (slirp->during_tx) {
-        network_rx_on_tx_put_pkt(slirp->card, &slirp->pkt);
-        slirp->recv_on_tx = 1;
-    } else
-        network_rx_put_pkt(slirp->card, &slirp->pkt);
+
+    if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+        if (slirp->during_tx) {
+            network_rx_on_tx_put_pkt(slirp->card, &slirp->pkt);
+            slirp->recv_on_tx = 1;
+        } else
+            network_rx_put_pkt(slirp->card, &slirp->pkt);
+    }
 
     return pkt_len;
 }
@@ -362,8 +365,10 @@ net_slirp_rx_deferred_packets(net_slirp_t *slirp)
     if (slirp->recv_on_tx) {
         do {
             packets = network_rx_on_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-            for (int i = 0; i < packets; i++)
-                 network_rx_put_pkt(slirp->card, &(slirp->pkt_tx_v[i]));
+            if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+                for (int i = 0; i < packets; i++)
+                     network_rx_put_pkt(slirp->card, &(slirp->pkt_tx_v[i]));
+            }
         } while (packets > 0);
         slirp->recv_on_tx = 0;
     }
@@ -403,8 +408,10 @@ net_slirp_thread(void *priv)
                 {
                     slirp->during_tx = 1;
                     int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-                    for (int i = 0; i < packets; i++)
-                        net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+                    if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+                        for (int i = 0; i < packets; i++)
+                            net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+                    }
                     slirp->during_tx = 0;
 
                     net_slirp_rx_deferred_packets(slirp);
@@ -456,8 +463,10 @@ net_slirp_thread(void *priv)
 
             slirp->during_tx = 1;
             int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-            for (int i = 0; i < packets; i++)
-                net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+            if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+                for (int i = 0; i < packets; i++)
+                    net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+            }
             slirp->during_tx = 0;
 
             net_slirp_rx_deferred_packets(slirp);

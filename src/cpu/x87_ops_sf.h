@@ -354,7 +354,11 @@ sf_FI(uint32_t fetchdat)
     fpu_state.cwd &= ~FPU_SW_Summary;
     if (rmdat == 0xe1)
         fpu_state.cwd |= FPU_SW_Summary;
+#ifdef FPU_NEC
+    do_cycles(3);
+#else
     wait_cycs(3, 0);
+#endif
     return 0;
 }
 #else

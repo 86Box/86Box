@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-01 20:06+0000\n"
+"PO-Revision-Date: 2026-01-22 09:57+0000\n"
 "Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -3016,10 +3016,13 @@ msgid "&Allow recompilation"
 msgstr "&Derlenmesine izin ver"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&İleri sar"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "İleri sar"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Sistem dizinini değiştirmek için tüm çalışan makineleri durdurun."
+
+msgid "Raw"
+msgstr "Ham"

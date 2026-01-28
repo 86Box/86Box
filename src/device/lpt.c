@@ -34,19 +34,22 @@ lpt_port_t    lpt_ports[PARALLEL_MAX];
 
 lpt_device_t  lpt_devs[PARALLEL_MAX];
 
-const lpt_device_t lpt_none_device = {
+const device_t lpt_none_device = {
     .name          = "None",
     .internal_name = "none",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
     .init          = NULL,
     .close         = NULL,
-    .write_data    = NULL,
-    .write_ctrl    = NULL,
-    .read_status   = NULL,
-    .read_ctrl     = NULL
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static const struct {
-    const lpt_device_t *device;
+    const device_t *device;
 } lpt_devices[] = {
   // clang-format off
     { &lpt_none_device          },
@@ -56,9 +59,7 @@ static const struct {
     { &lpt_prt_text_device      },
     { &lpt_prt_escp_device      },
     { &lpt_prt_ps_device        },
-#ifdef USE_PCL
     { &lpt_prt_pcl_device       },
-#endif
     { &lpt_plip_device          },
     { &lpt_hasp_savquest_device },
     { NULL                      }
@@ -83,50 +84,41 @@ lpt_log(const char *fmt, ...)
 #    define lpt_log(fmt, ...)
 #endif
 
+int
+lpt_device_available(int id)
+{
+    if (lpt_devices[id].device)
+        return device_available(lpt_devices[id].device);
+
+    return 1;
+}
+
 const device_t *
 lpt_device_getdevice(const int id)
 {
-    return (device_t *) lpt_devices[id].device->cfgdevice;
+    return lpt_devices[id].device;
 }
 
 int
 lpt_device_has_config(const int id)
 {
-    int   c                    = 0;
-    const device_t        *dev = (device_t *) lpt_devices[id].device->cfgdevice;
-    const device_config_t *config;
-    if (dev == NULL)
+    if (lpt_devices[id].device == NULL)
         return 0;
-
-    if (dev->config == NULL)
-        return 0;
-
-    config = dev->config;
-
-    while (config->type != CONFIG_END) {
-        c++;
-        config++;
-    }
-
-    return (c > 0) ? 1 : 0;
+    return device_has_config(lpt_devices[id].device);
 }
 
 const char *
 lpt_device_get_name(const int id)
 {
     if (lpt_devices[id].device == NULL)
-        return NULL;
-
+        return 0;
     return lpt_devices[id].device->name;
 }
 
 const char *
 lpt_device_get_internal_name(const int id)
 {
-    if (lpt_devices[id].device == NULL)
-        return NULL;
-
-    return lpt_devices[id].device->internal_name;
+    return device_get_internal_name(lpt_devices[id].device);
 }
 
 int
@@ -147,29 +139,43 @@ void
 lpt_devices_init(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        lpt_t *dev = lpt_devs[i].lpt;
+        memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
-        if (lpt_devices[lpt_ports[i].device].device != NULL) {
-            memcpy(&(lpt_devs[i]), (lpt_device_t *) lpt_devices[lpt_ports[i].device].device, sizeof(lpt_device_t));
-
-            if (lpt_devs[i].init)
-                lpt_devs[i].priv = lpt_devs[i].init(dev);
-        } else
-            memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
-
-        lpt_devs[i].lpt = dev;
+        if ((lpt_devices[lpt_ports[i].device].device != NULL) && 
+            (lpt_devices[lpt_ports[i].device].device != &lpt_none_device))
+            device_add_inst((device_t *) lpt_devices[lpt_ports[i].device].device, i + 1);
     }
+}
+
+void *
+lpt_attach(void    (*write_data)(uint8_t val, void *priv),
+           void    (*write_ctrl)(uint8_t val, void *priv),
+           void    (*strobe)(uint8_t old, uint8_t val,void *priv),
+           uint8_t (*read_status)(void *priv),
+           uint8_t (*read_ctrl)(void *priv),
+           void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
+           void    (*epp_request_read)(uint8_t is_addr, void *priv),
+           void    *priv)
+{
+    int port                        = device_get_instance() - 1;
+
+    lpt_devs[port].write_data       = write_data;
+    lpt_devs[port].write_ctrl       = write_ctrl;
+    lpt_devs[port].strobe           = strobe;
+    lpt_devs[port].read_status      = read_status;
+    lpt_devs[port].read_ctrl        = read_ctrl;
+    lpt_devs[port].epp_write_data   = epp_write_data;
+    lpt_devs[port].epp_request_read = epp_request_read;
+    lpt_devs[port].priv             = priv;
+
+    return lpt_ports[port].lpt;
 }
 
 void
 lpt_devices_close(void)
 {
-    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        if (lpt_devs[i].close)
-            lpt_devs[i].close(lpt_devs[i].priv);
-
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++)
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
-    }
 }
 
 static uint8_t
@@ -954,10 +960,10 @@ lpt_init(const device_t *info)
 
     if (lpt_ports[next_inst].enabled || (info->local & 0xFFF00000)) {
         lpt_log("Adding parallel port %i...\n", next_inst);
-        dev->dt         = &(lpt_devs[next_inst]);
-        dev->dt->lpt    = dev;
+        dev->dt                  = &(lpt_devs[next_inst]);
+        lpt_ports[next_inst].lpt = dev;
 
-        dev->fifo       = NULL;
+        dev->fifo                = NULL;
         memset(&dev->fifo_out_timer, 0x00, sizeof(pc_timer_t));
 
         lpt_port_zero(dev);
@@ -1033,7 +1039,14 @@ lpt_standalone_init(void)
 {
     while (next_inst < (PARALLEL_MAX - 1))
         device_add_inst(&lpt_port_device, next_inst + 1);
-};
+}
+
+void
+lpt_ports_reset(void)
+{
+    for (int i = 0; i < PARALLEL_MAX; i++)
+        lpt_ports[i].lpt = NULL;
+}
 
 const device_t lpt_port_device = {
     .name          = "Parallel Port",

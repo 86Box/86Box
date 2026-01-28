@@ -266,12 +266,12 @@ extern void        pci_remap_bus(uint8_t bus_index, uint8_t bus_number);
 extern void        pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc, int intd);
 
 /* Add a PCI card. */
-extern void        pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv),
-                                void (*write)(int func, int addr, uint8_t val, void *priv), void *priv, uint8_t *slot);
+extern void        pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, int len, void *priv),
+                                void (*write)(int func, int addr, int len, uint8_t val, void *priv), void *priv, uint8_t *slot);
 
 /* Add an instance of the PCI bridge. */
-extern void        pci_add_bridge(uint8_t agp, uint8_t (*read)(int func, int addr, void *priv),
-                                  void (*write)(int func, int addr, uint8_t val, void *priv), void *priv,
+extern void        pci_add_bridge(uint8_t agp, uint8_t (*read)(int func, int addr, int len, void *priv),
+                                  void (*write)(int func, int addr, int len, uint8_t val, void *priv), void *priv,
                                   uint8_t *slot);
 
 /* Register the cards that have been added into slots. */

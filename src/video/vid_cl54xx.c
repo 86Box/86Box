@@ -2288,8 +2288,14 @@ gd54xx_write(uint32_t addr, uint8_t val, void *priv)
 
     xga_write_test(addr, val, svga);
 
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
+        svga_write(addr, val, svga);
+        return;
+    }
+
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
+
     svga_write_linear(addr, val, svga);
 }
 
@@ -2311,6 +2317,11 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *priv)
 
     xga_write_test(addr, val, svga);
     xga_write_test(addr + 1, val >> 8, svga);
+
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
+        svga_writew(addr, val, svga);
+        return;
+    }
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
@@ -2345,6 +2356,11 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *priv)
     xga_write_test(addr + 1, val >> 8, svga);
     xga_write_test(addr + 2, val >> 16, svga);
     xga_write_test(addr + 3, val >> 24, svga);
+
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA)) {
+        svga_writel(addr, val, svga);
+        return;
+    }
 
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
@@ -2898,6 +2914,9 @@ gd54xx_read(uint32_t addr, void *priv)
     svga_t   *svga   = (svga_t *) priv;
     gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
 
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
+        return svga_read(addr, svga);
+
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
         !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
         return gd54xx_mem_sys_dest_read(gd54xx, 0);
@@ -2915,6 +2934,9 @@ gd54xx_readw(uint32_t addr, void *priv)
     svga_t   *svga   = (svga_t *) priv;
     gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
     uint16_t  ret;
+
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
+        return svga_readw(addr, svga);
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
         !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
@@ -2937,6 +2959,9 @@ gd54xx_readl(uint32_t addr, void *priv)
     svga_t   *svga   = (svga_t *) priv;
     gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
     uint32_t  ret;
+
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA))
+        return svga_readl(addr, svga);
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
         !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
@@ -3934,7 +3959,7 @@ gd54xx_start_blit(uint32_t cpu_dat, uint32_t count, gd54xx_t *gd54xx, svga_t *sv
 }
 
 static uint8_t
-cl_pci_read(UNUSED(int func), int addr, void *priv)
+cl_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const gd54xx_t *gd54xx = (gd54xx_t *) priv;
     const svga_t   *svga   = &gd54xx->svga;
@@ -4046,7 +4071,7 @@ cl_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-cl_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+cl_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     gd54xx_t     *gd54xx = (gd54xx_t *) priv;
     const svga_t *svga   = &gd54xx->svga;

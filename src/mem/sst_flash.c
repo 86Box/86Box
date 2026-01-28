@@ -485,18 +485,18 @@ sst_add_mappings(sst_t *dev)
             mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
                             sst_read, sst_readw, sst_readl,
                             sst_write, NULL, NULL,
-                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         }
         if (is6117) {
             mem_mapping_add(&(dev->mapping_h[i]), (base | 0x3f00000), 0x10000,
                             sst_read, sst_readw, sst_readl,
                             sst_write, NULL, NULL,
-                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         } else {
             mem_mapping_add(&(dev->mapping_h[i]), (base | (cpu_16bitbus ? 0xf00000 : 0xfff00000)), 0x10000,
                             sst_read, sst_readw, sst_readl,
                             sst_write, NULL, NULL,
-                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
         }
     }
 }

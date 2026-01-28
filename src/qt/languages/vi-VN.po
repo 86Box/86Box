@@ -3010,10 +3010,13 @@ msgid "&Allow recompilation"
 msgstr "&Cho phép biên dịch lại"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Chuyển nhanh băng"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Chuyển nhanh băng"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Để thay đổi thư mục hệ thống, hãy tắt tất cả các máy đang chạy."
+
+msgid "Raw"
+msgstr "Thô"

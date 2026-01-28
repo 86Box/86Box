@@ -246,12 +246,12 @@ vfio_log(const char *fmt, ...)
 #endif
 
 static uint8_t  vfio_bar_gettype(vfio_device_t *dev, vfio_region_t *bar);
-static uint8_t  vfio_config_readb(int func, int addr, void *priv);
-static uint16_t vfio_config_readw(int func, int addr, void *priv);
-static uint32_t vfio_config_readl(int func, int addr, void *priv);
-static void     vfio_config_writeb(int func, int addr, uint8_t val, void *priv);
-static void     vfio_config_writew(int func, int addr, uint16_t val, void *priv);
-static void     vfio_config_writel(int func, int addr, uint32_t val, void *priv);
+static uint8_t  vfio_config_readb(int func, int addr, int len, void *priv);
+static uint16_t vfio_config_readw(int func, int addr, int len, void *priv);
+static uint32_t vfio_config_readl(int func, int addr, int len, void *priv);
+static void     vfio_config_writeb(int func, int addr, int len, uint8_t val, void *priv);
+static void     vfio_config_writew(int func, int addr, int len, uint16_t val, void *priv);
+static void     vfio_config_writel(int func, int addr, int len, uint32_t val, void *priv);
 static void     vfio_irq_intx_setpin(vfio_device_t *dev);
 static void     vfio_irq_msi_disable(vfio_device_t *dev);
 static void     vfio_irq_msix_disable(vfio_device_t *dev);
@@ -371,7 +371,7 @@ vfio_quirk_configmirror_readb(uint32_t addr, void *priv)
     vfio_mem_readb_fd(addr, bar);
 
     /* Read configuration register. */
-    uint8_t ret = vfio_config_readb(0, addr - bar->quirks.configmirror.offset, dev);
+    uint8_t ret = vfio_config_readb(0, addr - bar->quirks.configmirror.offset, 1, dev);
     vfio_log_op("VFIO %s: Config mirror: Read %02X from index %02X\n",
                 dev->name, ret, addr - bar->quirks.configmirror.offset);
 
@@ -388,7 +388,7 @@ vfio_quirk_configmirror_readw(uint32_t addr, void *priv)
     vfio_mem_readw_fd(addr, bar);
 
     /* Read configuration register. */
-    uint16_t ret = vfio_config_readw(0, addr - bar->quirks.configmirror.offset, dev);
+    uint16_t ret = vfio_config_readw(0, addr - bar->quirks.configmirror.offset, 2, dev);
     vfio_log_op("VFIO %s: Config mirror: Read %04X from index %02X\n",
                 dev->name, ret, addr - bar->quirks.configmirror.offset);
 
@@ -405,7 +405,7 @@ vfio_quirk_configmirror_readl(uint32_t addr, void *priv)
     vfio_mem_readl_fd(addr, bar);
 
     /* Read configuration register. */
-    uint32_t ret = vfio_config_readl(0, addr - bar->quirks.configmirror.offset, dev);
+    uint32_t ret = vfio_config_readl(0, addr - bar->quirks.configmirror.offset, 4, dev);
     vfio_log_op("VFIO %s: Config mirror: Read %08X from index %02X\n",
                 dev->name, ret, addr - bar->quirks.configmirror.offset);
 
@@ -421,7 +421,7 @@ vfio_quirk_configmirror_writeb(uint32_t addr, uint8_t val, void *priv)
     /* Write configuration register. */
     vfio_log_op("VFIO %s: Config mirror: Write %02X to index %02X\n",
                 dev->name, val, addr - bar->quirks.configmirror.offset);
-    vfio_config_writeb(0, addr - bar->quirks.configmirror.offset, val, dev);
+    vfio_config_writeb(0, addr - bar->quirks.configmirror.offset, 1, val, dev);
 }
 
 static void
@@ -433,7 +433,7 @@ vfio_quirk_configmirror_writew(uint32_t addr, uint16_t val, void *priv)
     /* Write configuration register. */
     vfio_log_op("VFIO %s: Config mirror: Write %04X to index %02X\n",
                 dev->name, val, addr - bar->quirks.configmirror.offset);
-    vfio_config_writew(0, addr - bar->quirks.configmirror.offset, val, dev);
+    vfio_config_writew(0, addr - bar->quirks.configmirror.offset, 2, val, dev);
 }
 
 static void
@@ -445,7 +445,7 @@ vfio_quirk_configmirror_writel(uint32_t addr, uint32_t val, void *priv)
     /* Write configuration register. */
     vfio_log_op("VFIO %s: Config mirror: Write %08X to index %02X\n",
                 dev->name, val, addr - bar->quirks.configmirror.offset);
-    vfio_config_writel(0, addr - bar->quirks.configmirror.offset, val, dev);
+    vfio_config_writel(0, addr - bar->quirks.configmirror.offset, 4, val, dev);
 }
 
 static void
@@ -541,11 +541,11 @@ vfio_quirk_configwindow_data_readb(uint16_t addr, void *priv)
     /* Read configuration register if part of the main PCI configuration space. */
     uint32_t index = bar->quirks.configwindow.index;
     if ((index >= bar->quirks.configwindow.offset[0].start) && (index <= bar->quirks.configwindow.offset[0].end)) {
-        ret = vfio_config_readb(0, index - bar->quirks.configwindow.offset[0].start, dev);
+        ret = vfio_config_readb(0, index - bar->quirks.configwindow.offset[0].start, 1, dev);
         vfio_log_op("VFIO %s: Config window: Read %02X from primary index %08X\n",
                     dev->name, ret, index);
     } else if ((index >= bar->quirks.configwindow.offset[1].start) && (index <= bar->quirks.configwindow.offset[1].end)) {
-        ret = vfio_config_readb(0, index - bar->quirks.configwindow.offset[1].start, dev);
+        ret = vfio_config_readb(0, index - bar->quirks.configwindow.offset[1].start, 1, dev);
         vfio_log_op("VFIO %s: Config window: Read %02X from secondary index %08X\n",
                     dev->name, ret, index);
     }
@@ -565,11 +565,11 @@ vfio_quirk_configwindow_data_readw(uint16_t addr, void *priv)
     /* Read configuration register if part of the main PCI configuration space. */
     uint32_t index = bar->quirks.configwindow.index;
     if ((index >= bar->quirks.configwindow.offset[0].start) && (index <= bar->quirks.configwindow.offset[0].end)) {
-        ret = vfio_config_readw(0, index - bar->quirks.configwindow.offset[0].start, dev);
+        ret = vfio_config_readw(0, index - bar->quirks.configwindow.offset[0].start, 2, dev);
         vfio_log_op("VFIO %s: Config window: Read %04X from primary index %08X\n",
                     dev->name, ret, index);
     } else if ((index >= bar->quirks.configwindow.offset[1].start) && (index <= bar->quirks.configwindow.offset[1].end)) {
-        ret = vfio_config_readw(0, index - bar->quirks.configwindow.offset[1].start, dev);
+        ret = vfio_config_readw(0, index - bar->quirks.configwindow.offset[1].start, 2, dev);
         vfio_log_op("VFIO %s: Config window: Read %04X from secondary index %08X\n",
                     dev->name, ret, index);
     }
@@ -589,11 +589,11 @@ vfio_quirk_configwindow_data_readl(uint16_t addr, void *priv)
     /* Read configuration register if part of the main PCI configuration space. */
     uint32_t index = bar->quirks.configwindow.index;
     if ((index >= bar->quirks.configwindow.offset[0].start) && (index <= bar->quirks.configwindow.offset[0].end)) {
-        ret = vfio_config_readl(0, index - bar->quirks.configwindow.offset[0].start, dev);
+        ret = vfio_config_readl(0, index - bar->quirks.configwindow.offset[0].start, 4, dev);
         vfio_log_op("VFIO %s: Config window: Read %08X from primary index %08X\n",
                     dev->name, ret, index);
     } else if ((index >= bar->quirks.configwindow.offset[1].start) && (index <= bar->quirks.configwindow.offset[1].end)) {
-        ret = vfio_config_readl(0, index - bar->quirks.configwindow.offset[1].start, dev);
+        ret = vfio_config_readl(0, index - bar->quirks.configwindow.offset[1].start, 4, dev);
         vfio_log_op("VFIO %s: Config window: Read %08X from secondary index %08X\n",
                     dev->name, ret, index);
     }
@@ -612,12 +612,12 @@ vfio_quirk_configwindow_data_writeb(uint16_t addr, uint8_t val, void *priv)
     if ((index >= bar->quirks.configwindow.offset[0].start) && (index <= bar->quirks.configwindow.offset[0].end)) {
         vfio_log_op("VFIO %s: Config window: Write %02X to primary index %08X\n",
                     dev->name, val, index);
-        vfio_config_writeb(0, index - bar->quirks.configwindow.offset[0].start, val, dev);
+        vfio_config_writeb(0, index - bar->quirks.configwindow.offset[0].start, 1, val, dev);
         return;
     } else if ((index >= bar->quirks.configwindow.offset[1].start) && (index <= bar->quirks.configwindow.offset[1].end)) {
         vfio_log_op("VFIO %s: Config window: Write %02X to secondary index %08X\n",
                     dev->name, val, index);
-        vfio_config_writeb(0, index - bar->quirks.configwindow.offset[1].start, val, dev);
+        vfio_config_writeb(0, index - bar->quirks.configwindow.offset[1].start, 1, val, dev);
         return;
     }
 
@@ -636,12 +636,12 @@ vfio_quirk_configwindow_data_writew(uint16_t addr, uint16_t val, void *priv)
     if ((index >= bar->quirks.configwindow.offset[0].start) && (index <= bar->quirks.configwindow.offset[0].end)) {
         vfio_log_op("VFIO %s: Config window: Write %04X to primary index %08X\n",
                     dev->name, val, index);
-        vfio_config_writew(0, index - bar->quirks.configwindow.offset[0].start, val, dev);
+        vfio_config_writew(0, index - bar->quirks.configwindow.offset[0].start, 2, val, dev);
         return;
     } else if ((index >= bar->quirks.configwindow.offset[1].start) && (index <= bar->quirks.configwindow.offset[1].end)) {
         vfio_log_op("VFIO %s: Config window: Write %04X to secondary index %08X\n",
                     dev->name, val, index);
-        vfio_config_writew(0, index - bar->quirks.configwindow.offset[1].start, val, dev);
+        vfio_config_writew(0, index - bar->quirks.configwindow.offset[1].start, 2, val, dev);
         return;
     }
 
@@ -660,12 +660,12 @@ vfio_quirk_configwindow_data_writel(uint16_t addr, uint32_t val, void *priv)
     if ((index >= bar->quirks.configwindow.offset[0].start) && (index <= bar->quirks.configwindow.offset[0].end)) {
         vfio_log_op("VFIO %s: Config window: Write %08X to primary index %08X\n",
                     dev->name, val, index);
-        vfio_config_writel(0, index - bar->quirks.configwindow.offset[0].start, val, dev);
+        vfio_config_writel(0, index - bar->quirks.configwindow.offset[0].start, 4, val, dev);
         return;
     } else if ((index >= bar->quirks.configwindow.offset[1].start) && (index <= bar->quirks.configwindow.offset[1].end)) {
         vfio_log_op("VFIO %s: Config window: Write %08X to secondary index %08X\n",
                     dev->name, val, index);
-        vfio_config_writel(0, index - bar->quirks.configwindow.offset[1].start, val, dev);
+        vfio_config_writel(0, index - bar->quirks.configwindow.offset[1].start, 4, val, dev);
         return;
     }
 
@@ -1037,7 +1037,7 @@ vfio_quirk_nvidia3d0_data_readb(uint16_t addr, void *priv)
 
     /* Read configuration register if part of the main PCI configuration space. */
     if ((prev_state == NVIDIA_3D0_READ) && (((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00001800) || ((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00088000))) {
-        ret = vfio_config_readb(0, dev->quirks.nvidia3d0.index, dev);
+        ret = vfio_config_readb(0, dev->quirks.nvidia3d0.index, 1, dev);
         vfio_log_op("VFIO %s: NVIDIA 3D0: Read %02X from index %08X\n", dev->name,
                     ret, dev->quirks.nvidia3d0.index);
     }
@@ -1057,7 +1057,7 @@ vfio_quirk_nvidia3d0_data_readw(uint16_t addr, void *priv)
 
     /* Read configuration register if part of the main PCI configuration space. */
     if ((prev_state == NVIDIA_3D0_READ) && (((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00001800) || ((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00088000))) {
-        ret = vfio_config_readw(0, dev->quirks.nvidia3d0.index, dev);
+        ret = vfio_config_readw(0, dev->quirks.nvidia3d0.index, 2, dev);
         vfio_log_op("VFIO %s: NVIDIA 3D0: Read %04X from index %08X\n", dev->name,
                     ret, dev->quirks.nvidia3d0.index);
     }
@@ -1077,7 +1077,7 @@ vfio_quirk_nvidia3d0_data_readl(uint16_t addr, void *priv)
 
     /* Read configuration register if part of the main PCI configuration space. */
     if ((prev_state == NVIDIA_3D0_READ) && (((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00001800) || ((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00088000))) {
-        ret = vfio_config_readl(0, dev->quirks.nvidia3d0.index, dev);
+        ret = vfio_config_readl(0, dev->quirks.nvidia3d0.index, 4, dev);
         vfio_log_op("VFIO %s: NVIDIA 3D0: Read %08X from index %08X\n", dev->name,
                     ret, dev->quirks.nvidia3d0.index);
     }
@@ -1104,7 +1104,7 @@ vfio_quirk_nvidia3d0_data_writeb(uint16_t addr, uint8_t val, void *priv)
             /* Write configuration register. */
             vfio_log_op("VFIO %s: NVIDIA 3D0: Write %02X to index %08X\n", dev->name,
                         val, dev->quirks.nvidia3d0.index);
-            vfio_config_writeb(0, dev->quirks.nvidia3d0.index, val, dev);
+            vfio_config_writeb(0, dev->quirks.nvidia3d0.index, val, 1, dev);
             return;
         }
     }
@@ -1131,7 +1131,7 @@ vfio_quirk_nvidia3d0_data_writew(uint16_t addr, uint16_t val, void *priv)
         if (((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00001800) || ((dev->quirks.nvidia3d0.index & 0xffffff00) == 0x00088000)) {
             vfio_log_op("VFIO %s: NVIDIA 3D0: Write %04X to index %08X\n", dev->name,
                         val, dev->quirks.nvidia3d0.index);
-            vfio_config_writew(0, dev->quirks.nvidia3d0.index, val, dev);
+            vfio_config_writew(0, dev->quirks.nvidia3d0.index, val, 2, dev);
             return;
         }
     }
@@ -1159,7 +1159,7 @@ vfio_quirk_nvidia3d0_data_writel(uint16_t addr, uint32_t val, void *priv)
             /* Write configuration register. */
             vfio_log_op("VFIO %s: NVIDIA 3D0: Write %08X to index %08X\n", dev->name,
                         val, dev->quirks.nvidia3d0.index);
-            vfio_config_writel(0, dev->quirks.nvidia3d0.index, val, dev);
+            vfio_config_writel(0, dev->quirks.nvidia3d0.index, val, 4, dev);
             return;
         }
     }
@@ -1198,7 +1198,7 @@ vfio_quirk_remap(vfio_device_t *dev, vfio_region_t *bar, uint8_t enable)
             /* BAR 2 configuration space mirror, and BAR 1/4 configuration space window. */
             if (j && !i) {
                 /* QEMU only enables the mirror here if BAR 2 is 64-bit capable. */
-                if ((bar->bar_id == 2) && ((vfio_config_readb(0, 0x18, dev) & 0x07) == 0x04))
+                if ((bar->bar_id == 2) && ((vfio_config_readb(0, 0x18, 1, dev) & 0x07) == 0x04))
                     vfio_quirk_configmirror(dev, bar, 0x4000, 0, enable);
                 else if (bar->bar_id == 4)
                     vfio_quirk_configwindow(dev, bar, 0x00, 4, 0x04, 4, 0x4000, 0x4000, enable);
@@ -1479,7 +1479,7 @@ ceilpow2(uint32_t size)
 }
 
 static uint8_t
-vfio_config_readb(int func, int addr, void *priv)
+vfio_config_readb(int func, int addr, UNUSED(int len), void *priv)
 {
     vfio_device_t *dev = (vfio_device_t *) priv;
     if (func)
@@ -1602,19 +1602,19 @@ end:
 }
 
 static uint16_t
-vfio_config_readw(int func, int addr, void *priv)
+vfio_config_readw(int func, int addr, UNUSED(int len), void *priv)
 {
-    return vfio_config_readb(func, addr, priv) | (vfio_config_readb(func, addr + 1, priv) << 8);
+    return vfio_config_readb(func, addr, 2, priv) | (vfio_config_readb(func, addr + 1, 2, priv) << 8);
 }
 
 static uint32_t
-vfio_config_readl(int func, int addr, void *priv)
+vfio_config_readl(int func, int addr, UNUSED(int len), void *priv)
 {
-    return vfio_config_readb(func, addr, priv) | (vfio_config_readb(func, addr + 1, priv) << 8) | (vfio_config_readb(func, addr + 2, priv) << 16) | (vfio_config_readb(func, addr + 3, priv) << 24);
+    return vfio_config_readb(func, addr, 4, priv) | (vfio_config_readb(func, addr + 1, 4, priv) << 8) | (vfio_config_readb(func, addr + 2, 4, priv) << 16) | (vfio_config_readb(func, addr + 3, 4, priv) << 24);
 }
 
 static void
-vfio_config_writeb(int func, int addr, uint8_t val, void *priv)
+vfio_config_writeb(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     vfio_device_t *dev = (vfio_device_t *) priv;
     if (func)
@@ -1850,19 +1850,19 @@ end:
 }
 
 static void
-vfio_config_writew(int func, int addr, uint16_t val, void *priv)
+vfio_config_writew(int func, int addr, UNUSED(int len), uint16_t val, void *priv)
 {
-    vfio_config_writeb(func, addr, val, priv);
-    vfio_config_writeb(func, addr | 1, val >> 8, priv);
+    vfio_config_writeb(func, addr, 2, val, priv);
+    vfio_config_writeb(func, addr | 1, 2, val >> 8, priv);
 }
 
 static void
-vfio_config_writel(int func, int addr, uint32_t val, void *priv)
+vfio_config_writel(int func, int addr, UNUSED(int len), uint32_t val, void *priv)
 {
-    vfio_config_writeb(func, addr, val, priv);
-    vfio_config_writeb(func, addr | 1, val >> 8, priv);
-    vfio_config_writeb(func, addr | 2, val >> 16, priv);
-    vfio_config_writeb(func, addr | 3, val >> 24, priv);
+    vfio_config_writeb(func, addr, 4, val, priv);
+    vfio_config_writeb(func, addr | 1, 4, val >> 8, priv);
+    vfio_config_writeb(func, addr | 2, 4, val >> 16, priv);
+    vfio_config_writeb(func, addr | 3, 4, val >> 24, priv);
 }
 
 static void
@@ -2549,13 +2549,13 @@ vfio_dev_prereset(vfio_device_t *dev)
     /* Extra steps for devices with power management capability. */
     if (dev->pm_cap) {
         /* Make sure the device is in D0 state. */
-        uint8_t pm_ctrl = vfio_config_readb(0, dev->pm_cap + 4, dev),
+        uint8_t pm_ctrl = vfio_config_readb(0, dev->pm_cap + 4, 1, dev),
                 state   = pm_ctrl & 0x03;
         if (state) {
             pm_ctrl &= ~0x03;
-            vfio_config_writeb(0, dev->pm_cap + 4, pm_ctrl, dev);
+            vfio_config_writeb(0, dev->pm_cap + 4, pm_ctrl, 1, dev);
 
-            pm_ctrl = vfio_config_readb(0, dev->pm_cap + 4, dev);
+            pm_ctrl = vfio_config_readb(0, dev->pm_cap + 4, 1, dev);
             state   = pm_ctrl & 0x03;
             if (state)
                 vfio_log("VFIO %s: Device stuck in D%d state\n", dev->name, state);
@@ -2566,10 +2566,10 @@ vfio_dev_prereset(vfio_device_t *dev)
     }
 
     /* Enable function-level reset if supported. */
-    dev->can_flr_reset = (dev->pcie_cap && (vfio_config_readb(0, dev->pcie_cap + 7, dev) & 0x10)) || (dev->af_cap && (vfio_config_readb(0, dev->af_cap + 3, dev) & 0x02));
+    dev->can_flr_reset = (dev->pcie_cap && (vfio_config_readb(0, dev->pcie_cap + 7, 1, dev) & 0x10)) || (dev->af_cap && (vfio_config_readb(0, dev->af_cap + 3, 1, dev) & 0x02));
 
     /* Disable bus master, BARs, expansion ROM and VGA regions; also enable INTx. */
-    vfio_config_writew(0, 0x04, vfio_config_readw(0, 0x04, dev) & ~0x0407, dev);
+    vfio_config_writew(0, 0x04, 2, vfio_config_readw(0, 0x04, 2, dev) & ~0x0407, dev);
 }
 
 static void
@@ -2664,7 +2664,7 @@ vfio_dev_init(vfio_device_t *dev)
                 vfio_region_init(dev, &reg, &dev->vga_mem);   /* memory [A0000:BFFFF] */
 
                 /* Inform that a PCI VGA video card is attached if no video card is emulated. */
-                if (gfxcard == VID_NONE)
+                if (gfxcard[0] == VID_NONE)
                     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
                 break;
 

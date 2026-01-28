@@ -3017,10 +3017,13 @@ msgid "&Allow recompilation"
 msgstr "再コンパイルを許可する(&A)"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "早送り(&F)"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "早送り"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "システムディレクトリを変更するには、稼働中のマシンをすべて停止してください。"
+
+msgid "Raw"
+msgstr "生"
