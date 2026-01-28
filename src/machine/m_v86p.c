@@ -48,35 +48,101 @@
 #include <86box/sio.h>
 #include <86box/video.h>
 
+static const device_config_t v86p_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "v86p_122089",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "12/20/89",
+                .internal_name = "v86p_122089",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_122089_Even.rom",
+                                   "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_122089_Odd.rom",
+                                   "" }
+            },
+            {
+                .name          = "09/04/89",
+                .internal_name = "v86p_090489",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Even.rom",
+                                   "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Odd.rom",
+                                   "" }
+            },
+            {
+                .name          = "09/04/89 (Alt)",
+                .internal_name = "v86p_jvernet",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 1,
+                .size          = 65536,
+                .files         = { "roms/machines/v86p/V86P.ROM",
+                                   "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t v86p_device = {
+    .name          = "Victor V86P",
+    .internal_name = "v86p_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = v86p_config
+};
+
 int
 machine_v86p_init(const machine_t *model)
 {
-    int ret;
-    int rom_id = 0;
+    int ret      = 0;
+    int files_no = 0;
+    int local    = 0;
+    const char  *fn1, *fn2;
 
-    ret = bios_load_interleavedr("roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_122089_Even.rom",
-                                 "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_122089_Odd.rom",
-                                 0x000f8000, 65536, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
 
-    if (!ret) {
-        /* Try an older version of the BIOS. */
-        rom_id = 1;
-        ret    = bios_load_interleavedr("roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Even.rom",
-                                        "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_090489_Odd.rom",
-                                        0x000f8000, 65536, 0);
+    device_context(model->device);
+    files_no = device_get_bios_num_files(model->device, device_get_config_bios("bios"));
+    local    = device_get_bios_local(model->device, device_get_config_bios("bios"));
+    fn1      = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+
+    if (files_no > 1)
+    {
+        fn2 = device_get_bios_file(model->device, device_get_config_bios("bios"), 1);
+        ret = bios_load_interleavedr(fn1, fn2, 0x000f8000, 65536, 0);
     }
-
-    if (!ret) {
-        /* Try JVERNET's BIOS. */
-        rom_id = 2;
-        ret    = bios_load_linear("roms/machines/v86p/V86P.ROM",
-                                  0x000f0000, 65536, 0);
-    }
+    else
+        ret = bios_load_linear(fn1, 0x000f0000, 65536, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
 
-    if (rom_id == 2)
+    if (local > 0)
         video_load_font("roms/machines/v86p/V86P.FON", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
     else
         video_load_font("roms/machines/v86p/v86pfont.rom", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
