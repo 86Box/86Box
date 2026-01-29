@@ -7691,10 +7691,8 @@ static const device_config_t mach32_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "512 KB", .value =  512 },
             { .description = "1 MB",   .value = 1024 },
             { .description = "2 MB",   .value = 2048 },
-            { .description = "4 MB",   .value = 4096 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
@@ -7727,10 +7725,8 @@ static const device_config_t mach32_pci_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "512 KB", .value =  512 },
             { .description = "1 MB",   .value = 1024 },
             { .description = "2 MB",   .value = 2048 },
-            { .description = "4 MB",   .value = 4096 },
             { .description = ""                      }
         },
         .bios           = { { 0 } }
