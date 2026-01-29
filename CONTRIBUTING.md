@@ -2,7 +2,7 @@
 The 86Box project welcomes contributions from anyone, as long as some basic guidelines are followed.
 
 ## Emulated hardware
-In order to accept new emulated hardware, the following criteria must be met:
+In order to accept new emulated hardware or a request thereof, the following criteria must be met:
 
 * A ROM must be available and be added to [our ROM repository](https://github.com/86Box/roms)
 * Documentation must be available or it must be feasible to reverse engineer with a reasonable amount of time and effort
