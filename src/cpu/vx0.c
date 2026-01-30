@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          808x CPU emulation, mostly ported from reenigne's XTCE, which
+ *          Vx0 CPU emulation, mostly ported from reenigne's XTCE, which
  *          is cycle-accurate.
  *
  * Authors: Andrew Jenner, <https://www.reenigne.org>
@@ -317,25 +317,25 @@ static uint8_t     modrm_cycs_post[256]  = { [MODRM_ADDR_BX_SI]        = 0,
                                              [MODRM_ADDR_BX_DISP16]    = 2,
                                              [0x88 ... 0xff]           = 0 };
 
-#ifdef ENABLE_808X_LOG
+#ifdef ENABLE_VX0_LOG
 #if 0
 void dumpregs(int);
 #endif
-int x808x_do_log = ENABLE_808X_LOG;
+int vx0_do_log = ENABLE_VX0_LOG;
 
 static void
-x808x_log(const char *fmt, ...)
+vx0_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (x808x_do_log) {
+    if (vx0_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define x808x_log(fmt, ...)
+#    define vx0_log(fmt, ...)
 #endif
 
 static i8080 emulated_processor;
@@ -584,7 +584,7 @@ geteal(void)
     uint32_t ret;
 
     if (cpu_mod == 3) {
-        fatal("808x register geteal()\n");
+        fatal("Vx0 register geteal()\n");
         ret = 0xffffffff;
     } else
         ret = readmeml(easeg, cpu_state.eaaddr);
@@ -599,7 +599,7 @@ geteaq(void)
     uint32_t ret;
 
     if (cpu_mod == 3) {
-        fatal("808x register geteaq()\n");
+        fatal("Vx0 register geteaq()\n");
         ret = 0xffffffff;
     } else
         ret = readmemq(easeg, cpu_state.eaaddr);
@@ -669,7 +669,7 @@ static void
 seteal(uint32_t val)
 {
     if (cpu_mod == 3) {
-        fatal("808x register seteal()\n");
+        fatal("Vx0 register seteal()\n");
         return;
     } else
         writememl(easeg, cpu_state.eaaddr, val);
@@ -679,7 +679,7 @@ static void
 seteaq(uint64_t val)
 {
     if (cpu_mod == 3) {
-        fatal("808x register seteaq()\n");
+        fatal("Vx0 register seteaq()\n");
         return;
     } else
         writememq(easeg, cpu_state.eaaddr, val);
@@ -1023,7 +1023,7 @@ intr_routine(uint16_t intr, int skip_first)
 
     if (!(cpu_state.flags & MD_FLAG) && is_nec) {
         sync_from_i8080();
-        x808x_log("CALLN/INT#/NMI#\n");
+        vx0_log("CALLN/INT#/NMI#\n");
     }
 
     if (!skip_first)
@@ -1268,7 +1268,7 @@ sw_int(uint16_t intr)
 
     if (!(cpu_state.flags & MD_FLAG) && is_nec) {
         sync_from_i8080();
-        x808x_log("CALLN/INT#/NMI#\n");
+        vx0_log("CALLN/INT#/NMI#\n");
     }
 
     do_cycles_i(3);
@@ -1344,7 +1344,7 @@ interrupt_brkem(uint16_t addr)
     push(&old_ip);
 
     sync_to_i8080();
-    x808x_log("BRKEM mode\n");
+    vx0_log("BRKEM mode\n");
 }
 
 void
@@ -1367,7 +1367,7 @@ retem_i8080(void)
 
     retem = 1;
 
-    x808x_log("RETEM mode\n");
+    vx0_log("RETEM mode\n");
 }
 
 void
@@ -1388,7 +1388,7 @@ custom_nmi(void)
 
     if (!(cpu_state.flags & MD_FLAG) && is_nec) {
         sync_from_i8080();
-        x808x_log("CALLN/INT#/NMI#\n");
+        vx0_log("CALLN/INT#/NMI#\n");
     }
 
     do_cycle_i();
@@ -4705,7 +4705,7 @@ execute_instruction(void)
             break;
 
         default:
-            x808x_log("Illegal opcode: %02X\n", opcode);
+            vx0_log("Illegal opcode: %02X\n", opcode);
             biu_pfq_fetchb();
             do_cycles(8);
             break;
@@ -4759,7 +4759,7 @@ execvx0(int cycs)
             oldc    = cpu_state.flags & C_FLAG;
         }
 
-        x808x_log("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
+        vx0_log("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
 
         execute_instruction();
 
