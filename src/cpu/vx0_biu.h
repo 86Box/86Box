@@ -116,6 +116,7 @@ extern int         rep_c_flag;
 extern int         noint;
 extern int         tempc_fpu;
 extern int         clear_lock;
+extern int         is_new_biu;
 
 extern int         schedule_fetch;
 extern int         in_lock;
@@ -129,5 +130,9 @@ extern uint32_t    cpu_dest;
 extern uint32_t    cpu_data;
 
 extern uint32_t   *ovr_seg;
+
+/* Pointer tables needed for segment overrides. */
+extern uint32_t *  opseg[4];
+extern x86seg   *  _opseg[4];
 
 #endif /*EMU_808X_BIU_H*/

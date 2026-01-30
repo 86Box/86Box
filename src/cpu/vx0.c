@@ -232,11 +232,6 @@ static int         in_hlt                = 0;
 static int         retem                 = 0;
 static int         halted                = 0;
 
-/* Pointer tables needed for segment overrides. */
-static uint32_t *  opseg[4];
-
-static x86seg   *  _opseg[4];
-
 enum {
     MODRM_ADDR_BX_SI        = 0x00,
     MODRM_ADDR_BX_DI,
@@ -473,8 +468,7 @@ void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_vx0(int hard)
 {
-    reset_808x(hard);
-
+    is_new_biu = 1;
     halted     = 0;
     in_hlt     = 0;
     in_0f      = 0;
@@ -4732,7 +4726,7 @@ execvx0(int cycs)
 
 #ifdef DEBUG_INSTRUCTIONS
         if (repeating) {
-            if ((opcode >= 0xa0) && (opcode <= 0xaf) && (opcode != 0x8e)) {
+            if ((opcode >= MIN_INS) && (opcode <= MAX_INS) && (opcode != SKIP_INS)) {
                 execx86_instruction();
                 goto check_completed;
             }
@@ -4751,7 +4745,7 @@ execvx0(int cycs)
                 decode();
 
 #ifdef DEBUG_INSTRUCTIONS
-                if ((opcode >= 0xa0) && (opcode <= 0xaf) && (opcode != 0x8e)) {
+                if ((opcode >= MIN_INS) && (opcode <= MAX_INS) && (opcode != SKIP_INS)) {
                     oldc    = cpu_state.flags & C_FLAG;
 
                     execx86_instruction();

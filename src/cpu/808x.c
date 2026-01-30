@@ -64,6 +64,7 @@ int        rep_c_flag = 0;
 int        noint      = 0;
 int        tempc_fpu  = 0;
 int        clear_lock = 0;
+int        is_new_biu = 0;
 
 uint32_t   cpu_src    = 0;
 uint32_t   cpu_dest   = 0;
@@ -72,12 +73,12 @@ uint32_t   cpu_data   = 0;
 
 uint32_t * ovr_seg    = NULL;
 
+/* Pointer tables needed for segment overrides. */
+uint32_t *  opseg[4];
+x86seg   *  _opseg[4];
+
 /* The IP equivalent of the current prefetch queue position. */
 static uint16_t pfq_ip;
-
-/* Pointer tables needed for segment overrides. */
-static uint32_t *opseg[4];
-static x86seg   *_opseg[4];
 
 static int pfq_size;
 
@@ -255,7 +256,7 @@ fetch_and_bus(int c, int bus)
 static void
 wait_cycs(int c, int bus)
 {
-    if (is_nec)
+    if (is_new_biu)
         wait_vx0(c);
     else {
         cycles -= c;
@@ -296,7 +297,7 @@ resub_cycles(int old_cycles)
 static void
 cpu_io(int bits, int out, uint16_t port)
 {
-    if (is_nec)
+    if (is_new_biu)
         cpu_io_vx0(bits, out, port);
     else {
         int old_cycles = cycles;
@@ -343,7 +344,7 @@ cpu_io(int bits, int out, uint16_t port)
 static uint8_t
 readmemb(uint32_t s, uint32_t a)
 {
-    if (is_nec)
+    if (is_new_biu)
         return readmemb_vx0(s, a);
     else {
         uint8_t ret;
@@ -371,7 +372,7 @@ readmembf(uint32_t a)
 static uint16_t
 readmemw(uint32_t s, uint16_t a)
 {
-    if (is_nec)
+    if (is_new_biu)
         return readmemw_vx0(s, a);
     else {
         uint16_t ret;
@@ -382,7 +383,7 @@ readmemw(uint32_t s, uint16_t a)
         else {
             wait_cycs(4, 1);
             ret = read_mem_b(s + a);
-            ret |= read_mem_b(s + (is186 ? (a + 1) : (a + 1) & 0xffff)) << 8;
+            ret |= read_mem_b(s + ((is186 && !is_nec) ? (a + 1) : (a + 1) & 0xffff)) << 8;
         }
 
         return ret;
@@ -402,7 +403,7 @@ readmemwf(uint16_t a)
 static uint16_t
 readmem(uint32_t s)
 {
-    if (is_nec)
+    if (is_new_biu)
         return readmem_vx0(s);
     else {
         if (opcode & 1)
@@ -415,7 +416,7 @@ readmem(uint32_t s)
 static uint32_t
 readmeml(uint32_t s, uint16_t a)
 {
-    if (is_nec)
+    if (is_new_biu)
         return readmeml_vx0(s, a);
     else {
         uint32_t temp;
@@ -430,7 +431,7 @@ readmeml(uint32_t s, uint16_t a)
 static uint64_t
 readmemq(uint32_t s, uint16_t a)
 {
-    if (is_nec)
+    if (is_new_biu)
         return readmemq_vx0(s, a);
     else {
         uint64_t temp;
@@ -446,7 +447,7 @@ readmemq(uint32_t s, uint16_t a)
 static void
 writememb(uint32_t s, uint32_t a, uint8_t v)
 {
-    if (is_nec)
+    if (is_new_biu)
         writememb_vx0(s, a, v);
     else {
         uint32_t addr = s + a;
@@ -463,7 +464,7 @@ writememb(uint32_t s, uint32_t a, uint8_t v)
 static void
 writememw(uint32_t s, uint32_t a, uint16_t v)
 {
-    if (is_nec)
+    if (is_new_biu)
         writememw_vx0(s, a, v);
     else {
         uint32_t addr = s + a;
@@ -474,7 +475,7 @@ writememw(uint32_t s, uint32_t a, uint16_t v)
         else {
             write_mem_b(addr, v & 0xff);
             wait_cycs(4, 1);
-            addr = s + (is186 ? (a + 1) : ((a + 1) & 0xffff));
+            addr = s + ((is186 && !is_nec) ? (a + 1) : ((a + 1) & 0xffff));
             write_mem_b(addr, v >> 8);
         }
 
@@ -486,7 +487,7 @@ writememw(uint32_t s, uint32_t a, uint16_t v)
 static void
 writemem(uint32_t s, uint16_t v)
 {
-    if (is_nec)
+    if (is_new_biu)
         writemem_vx0(s, v);
     else {
         if (opcode & 1)
@@ -499,7 +500,7 @@ writemem(uint32_t s, uint16_t v)
 static void
 writememl(uint32_t s, uint32_t a, uint32_t v)
 {
-    if (is_nec)
+    if (is_new_biu)
         writememl_vx0(s, a, v);
     else {
         writememw(s, a, v & 0xffff);
@@ -510,7 +511,7 @@ writememl(uint32_t s, uint32_t a, uint32_t v)
 static void
 writememq(uint32_t s, uint32_t a, uint64_t v)
 {
-    if (is_nec)
+    if (is_new_biu)
         writememl_vx0(s, a, v);
     else {
         writememl(s, a, v & 0xffffffff);
@@ -542,7 +543,7 @@ pfq_write(void)
 static uint8_t
 pfq_read(void)
 {
-    if (is_nec)
+    if (is_new_biu)
         return biu_pfq_read();
     else {
         uint8_t temp = pfq[0];
@@ -560,7 +561,7 @@ pfq_read(void)
 static uint8_t
 pfq_fetchb_common(void)
 {
-    if (is_nec)
+    if (is_new_biu)
         return biu_pfq_fetchb_common();
     else {
         uint8_t temp;
@@ -581,7 +582,7 @@ pfq_fetchb_common(void)
 static uint8_t
 pfq_fetchb(void)
 {
-    if (is_nec)
+    if (is_new_biu)
         return biu_pfq_fetchb();
     else {
         uint8_t ret;
@@ -597,7 +598,7 @@ pfq_fetchb(void)
 static uint16_t
 pfq_fetchw(void)
 {
-    if (is_nec)
+    if (is_new_biu)
         return biu_pfq_fetchw();
     else {
         uint16_t temp;
@@ -613,7 +614,7 @@ pfq_fetchw(void)
 static uint16_t
 pfq_fetch(void)
 {
-    if (is_nec)
+    if (is_new_biu)
         return biu_pfq_fetch();
     else {
         if (opcode & 1)
@@ -642,7 +643,7 @@ pfq_add(int c, int add)
 static void
 pfq_clear_pos(void)
 {
-    if (is_nec)
+    if (is_new_biu)
         biu_queue_flush();
     else
         pfq_pos = 0;
@@ -652,7 +653,7 @@ pfq_clear_pos(void)
 static void
 pfq_clear(void)
 {
-    if (is_nec) {
+    if (is_new_biu) {
         biu_suspend_fetch();
         biu_queue_flush();
     } else {
@@ -705,6 +706,7 @@ static void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_808x(int hard)
 {
+    is_new_biu = 0;
     biu_cycles = 0;
     in_rep     = 0;
     completed  = 1;
@@ -730,6 +732,8 @@ reset_808x(int hard)
 
     load_cs(0xFFFF);
     cpu_state.pc = 0;
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
     rammask = 0xfffff;
 
     prefetching = 1;
@@ -750,10 +754,9 @@ reset_808x(int hard)
 static void
 set_ip(uint16_t new_ip)
 {
-    if (is_nec) {
+    if (is_new_biu)
         cpu_state.pc          = new_ip;
-        biu_queue_flush();
-    } else {
+    else {
         pfq_ip = cpu_state.pc = new_ip;
         prefetching           = 1;
     }
@@ -969,7 +972,7 @@ seteaq(uint64_t val)
 static void
 push(uint16_t *val)
 {
-    if (is186 && (SP == 1)) {
+    if ((is186 && !is_nec) && (SP == 1)) {
         writememw(ss - 1, 0, *val);
         SP = cpu_state.eaaddr = 0xFFFF;
         return;
@@ -992,57 +995,39 @@ static void
 access(int num, UNUSED(int bits))
 {
     switch (num) {
-        case 0:
+        case  0:
         case 61:
-        case 63:
-        case 64:
+        case 63 ... 64:
         case 67:
         case 69:
-        case 71:
-        case 72:
+        case 71 ... 72:
         default:
             break;
-        case 1:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
+        case  1:
+        case  6 ...  9:
         case 17:
-        case 20:
-        case 21:
+        case 20 ... 21:
         case 24:
         case 28:
-        case 47:
-        case 48:
-        case 49:
-        case 50:
-        case 51:
-        case 55:
-        case 56:
+        case 47 ... 51:
+        case 55 ... 56:
         case 62:
         case 66:
         case 68:
             wait_cycs(1, 0);
             break;
-        case 3:
+        case  3:
         case 11:
         case 15:
-        case 22:
-        case 23:
-        case 25:
-        case 26:
+        case 22 ... 23:
+        case 25 ... 26:
         case 35:
-        case 44:
-        case 45:
-        case 46:
-        case 52:
-        case 53:
-        case 54:
+        case 44 ... 46:
+        case 52 ... 54:
             wait_cycs(2, 0);
             break;
         case 16:
-        case 18:
-        case 19:
+        case 18 ... 19:
         case 27:
         case 32:
         case 37:
@@ -1050,19 +1035,15 @@ access(int num, UNUSED(int bits))
             wait_cycs(3, 0);
             break;
         case 10:
-        case 12:
-        case 13:
-        case 14:
-        case 29:
-        case 30:
-        case 33:
-        case 34:
+        case 12 ... 14:
+        case 29 ... 30:
+        case 33 ... 34:
         case 39:
         case 41:
         case 60:
             wait_cycs(4, 0);
             break;
-        case 4:
+        case  4:
         case 70:
             wait_cycs(5, 0);
             break;
@@ -1079,7 +1060,10 @@ access(int num, UNUSED(int bits))
             break;
         case 36:
             wait_cycs(1, 0);
-            pfq_clear();
+            if (is_new_biu)
+                biu_suspend_fetch();
+            else
+                pfq_clear();
             wait_cycs(1, 0);
             if (cpu_mod != 3)
                 wait_cycs(1, 0);
@@ -1087,7 +1071,10 @@ access(int num, UNUSED(int bits))
             break;
         case 43:
             wait_cycs(2, 0);
-            pfq_clear();
+            if (is_new_biu)
+                biu_suspend_fetch();
+            else
+                pfq_clear();
             wait_cycs(1, 0);
             break;
         case 57:
@@ -1102,14 +1089,20 @@ access(int num, UNUSED(int bits))
             break;
         case 59:
             wait_cycs(2, 0);
-            pfq_clear();
+            if (is_new_biu)
+                biu_suspend_fetch();
+            else
+                pfq_clear();
             if (cpu_mod != 3)
                 wait_cycs(1, 0);
             wait_cycs(3, 0);
             break;
         case 65:
             wait_cycs(1, 0);
-            pfq_clear();
+            if (is_new_biu)
+                biu_suspend_fetch();
+            else
+                pfq_clear();
             wait_cycs(2, 0);
             if (cpu_mod != 3)
                 wait_cycs(1, 0);
@@ -1134,20 +1127,39 @@ interrupt(uint16_t addr)
     cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
     access(6, 16);
     new_cs      = readmemw(0, cpu_state.eaaddr);
-    prefetching = 0;
-    pfq_clear();
+    if (is_new_biu)
+        biu_suspend_fetch();
+    else {
+        prefetching = 0;
+        pfq_clear();
+    }
     ovr_seg = NULL;
-    access(39, 16);
-    tempf = cpu_state.flags & 0x0fd7;
+    if (is_new_biu)
+        wait_cycs(2, 0);
+    else
+        access(39, 16);
+    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
-    access(40, 16);
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
+    if (is_new_biu)
+        wait_cycs(4, 0);
+    else
+        access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
     load_cs(new_cs);
-    access(68, 16);
+    if (is_new_biu)
+        wait_cycs(3, 0);
+    else
+        access(68, 16);
     set_ip(new_ip);
-    access(41, 16);
+    if (is_new_biu) {
+        biu_queue_flush();
+        wait_cycs(4, 0);
+    } else
+        access(41, 16);
     push(&old_ip);
 }
 
@@ -1172,9 +1184,11 @@ custom_nmi(void)
     pfq_clear();
     ovr_seg = NULL;
     access(39, 16);
-    tempf = cpu_state.flags & 0x0fd7;
+    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
     access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
@@ -1186,10 +1200,10 @@ custom_nmi(void)
 }
 
 static int
-irq_pending(void)
+irq_pending(int nec_hlt)
 {
     uint8_t temp;
-    int     i_flag = (cpu_state.flags & I_FLAG);
+    int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
     temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || (i_flag && pic.int_pending && !noint);
 
@@ -1197,12 +1211,12 @@ irq_pending(void)
 }
 
 static void
-check_interrupts(void)
+check_interrupts(int nec_hlt)
 {
     int temp;
-    int     i_flag = (cpu_state.flags & I_FLAG);
+    int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
-    if (irq_pending()) {
+    if (irq_pending(nec_hlt)) {
         if ((cpu_state.flags & T_FLAG) && !(noint & 1)) {
             interrupt(1);
             return;
@@ -1251,10 +1265,13 @@ rep_action(int bits)
         return 0;
     wait_cycs(2, 0);
     t = CX;
-    if (irq_pending() && (repeating != 0)) {
+    if (irq_pending(0) && (repeating != 0)) {
         access(71, bits);
         pfq_clear();
-        set_ip(cpu_state.pc - 2);
+        if (is_nec && (ovr_seg != NULL))
+            set_ip(cpu_state.pc - 3);
+        else
+            set_ip(cpu_state.pc - 2);
         t = 0;
     }
     if (t == 0) {
@@ -1276,14 +1293,14 @@ jump(uint16_t delta)
 {
     uint16_t old_ip;
     access(67, 8);
-    if (is_nec)
+    if (is_new_biu)
         biu_suspend_fetch();
     else
         pfq_clear();
     wait_cycs(5, 0);
     old_ip = cpu_state.pc;
     set_ip((cpu_state.pc + delta) & 0xffff);
-    if (is_nec)
+    if (is_new_biu)
         biu_queue_flush();
     return old_ip;
 }
@@ -1882,7 +1899,7 @@ execx86_instruction(void)
 {
     uint8_t  temp = 0, temp2, old_af, nests;
     uint16_t addr, tempw, new_cs, new_ip, handled = 0;
-    uint16_t tempw_int, size, tempbp, lowbound;
+    uint16_t tempw_int, size, tempbp, lowbound, old_flags;
     uint16_t highbound, regval, orig_sp, wordtopush, immediate;
     int      bits;
     uint32_t dest_seg;
@@ -1935,6 +1952,18 @@ execx86_instruction(void)
                     interrupt(5);
                 }
                 handled = 1;
+                break;
+
+            case 0x64:
+            case 0x65:
+                if (is_nec) {
+                    /* REPC/REPNC */
+                    wait_cycs(1, 0);
+                    in_rep     = (opcode == 0x64 ? 1 : 2);
+                    rep_c_flag = 1;
+                    completed  = 0;
+                    handled    = 1;
+                }
                 break;
 
             case 0x68:
@@ -2058,7 +2087,9 @@ execx86_instruction(void)
 
                 wait_cycs((cpu_mod != 3) ? 9 : 6, 0);
 
-                cpu_src &= 0x1F;
+                if (!is_nec)
+                    cpu_src &= 0x1f;
+
                 while (cpu_src != 0) {
                     cpu_dest = cpu_data;
                     oldc     = cpu_state.flags & C_FLAG;
@@ -2516,13 +2547,22 @@ execx86_instruction(void)
                 new_ip = pfq_fetchw();
                 wait_cycs(1, 0);
                 new_cs = pfq_fetchw();
-                pfq_clear();
-                access(31, 16);
+                if (is_new_biu)
+                    biu_suspend_fetch();
+                else {
+                    pfq_clear();
+                    access(31, 16);
+                }
                 push(&(CS));
-                access(60, 16);
+                if (!is_new_biu)
+                    access(60, 16);
                 cpu_state.oldpc = cpu_state.pc;
                 load_cs(new_cs);
                 set_ip(new_ip);
+                if (is_new_biu) {
+                    wait_cycs(3, 0);
+                    biu_queue_flush();
+                }
                 access(32, 16);
                 push((uint16_t *) &(cpu_state.oldpc));
                 break;
@@ -2537,22 +2577,29 @@ execx86_instruction(void)
                 } else {
                     repeating = 1;
                     completed = 0;
-                    clock_end();
+                    if (!is_new_biu)
+                        clock_end();
                 }
 #else
                 wait_cycs(7, 0);
-                check_interrupts();
+                check_interrupts(0);
 #endif
                 break;
             case 0x9c:             /* PUSHF */
                 access(33, 16);
-                tempw = (cpu_state.flags & 0x0fd7) | 0xf000;
+                if (is_nec)
+                    tempw = (cpu_state.flags & 0x8fd7) | 0x7000;
+                else
+                    tempw = (cpu_state.flags & 0x0fd7) | 0xf000;
                 push(&tempw);
                 break;
             case 0x9d: {           /* POPF */
                 uint16_t old_flags = cpu_state.flags;
                 access(25, 16);
-                cpu_state.flags = pop() | 0x0002;
+                if (is_nec && cpu_md_write_disable)
+                    cpu_state.flags = pop() | 0x8002;
+                else
+                    cpu_state.flags = pop() | 0x0002;
                 wait_cycs(1, 0);
                 if ((old_flags ^ cpu_state.flags) & T_FLAG)
                     noint = 1;
@@ -2616,7 +2663,7 @@ execx86_instruction(void)
                     break;
                 }
                 repeating = 1;
-                if (!is_nec)
+                if (!is_new_biu)
                     clock_end();
                 break;
 
@@ -2656,7 +2703,7 @@ execx86_instruction(void)
                     break;
                 }
                 repeating = 1;
-                if (!is_nec)
+                if (!is_new_biu)
                     clock_end();
                 break;
 
@@ -2687,7 +2734,7 @@ execx86_instruction(void)
                     break;
                 }
                 repeating = 1;
-                if (!is_nec)
+                if (!is_new_biu)
                     clock_end();
                 break;
 
@@ -2717,7 +2764,10 @@ execx86_instruction(void)
                 }
                 if ((opcode & 9) == 9)
                     wait_cycs(1, 0);
-                pfq_clear();
+                if (is_new_biu)
+                    biu_suspend_fetch();
+                else
+                    pfq_clear();
                 access(26, bits);
                 new_ip = pop();
                 wait_cycs(2, 0);
@@ -2736,6 +2786,8 @@ execx86_instruction(void)
                 load_cs(new_cs);
                 access(72, bits);
                 set_ip(new_ip);
+                if (is_new_biu)
+                    biu_queue_flush();
                 break;
 
             case 0xc4 ... 0xc5:    /* LsS rw, rmd */
@@ -2786,8 +2838,13 @@ execx86_instruction(void)
                 load_cs(new_cs);
                 access(62, 8);
                 set_ip(new_ip);
+                if (is_new_biu)
+                    biu_queue_flush();
                 access(45, 8);
-                cpu_state.flags = pop() | 0x0002;
+                if (is_nec && cpu_md_write_disable)
+                    cpu_state.flags = pop() | 0x8002;
+                else
+                    cpu_state.flags = pop() | 0x0002;
                 wait_cycs(5, 0);
                 noint      = 2;
                 nmi_enable = 1;
@@ -2807,7 +2864,7 @@ execx86_instruction(void)
                     cpu_src = CL;
                     wait_cycs((cpu_mod != 3) ? 9 : 6, 0);
                 }
-                if (is186)
+                if (is186 && !is_nec)
                     cpu_src &= 0x1f;
                 while (cpu_src != 0) {
                     cpu_dest = cpu_data;
@@ -2894,7 +2951,11 @@ execx86_instruction(void)
                 break;
             case 0xd5:             /* AAD */
                 wait_cycs(1, 0);
-                mul(pfq_fetchb(), AH);
+                if (is_nec) {
+                    (void) pfq_fetchb();
+                    mul(10, AH);
+                } else
+                    mul(pfq_fetchb(), AH);
                 cpu_dest = AL;
                 cpu_src  = cpu_data;
                 add(8);
@@ -2903,10 +2964,13 @@ execx86_instruction(void)
                 set_pzs(8);
                 break;
             case 0xd6:             /* SALC */
-                wait_cycs(1, 0);
-                AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
-                wait_cycs(1, 0);
-                break;
+                if (!is_nec) {
+                    wait_cycs(1, 0);
+                    AL = (cpu_state.flags & C_FLAG) ? 0xff : 0x00;
+                    wait_cycs(1, 0);
+                    break;
+                }
+                fallthrough;
             case 0xd7:             /* XLATB */
                 cpu_state.eaaddr = (BX + AL) & 0xffff;
                 access(4, 8);
@@ -3054,8 +3118,13 @@ execx86_instruction(void)
                 tempw = pfq_fetchw();
                 load_cs(tempw);
                 access(70, 8);
-                pfq_clear();
+                if (is_new_biu)
+                    biu_suspend_fetch();
+                else
+                    pfq_clear();
                 set_ip(addr);
+                if (is_new_biu)
+                    biu_queue_flush();
                 break;
             case 0xeb:             /* JMP rel */
                 wait_cycs(1, 0);
@@ -3083,9 +3152,9 @@ execx86_instruction(void)
                     pfq_clear();
                 }
                 wait_cycs(1, 0);
-                if (irq_pending()) {
+                if (irq_pending(is_nec)) {
                     wait_cycs(cycles & 1, 0);
-                    check_interrupts();
+                    check_interrupts(is_nec);
                 } else {
                     repeating = 1;
                     completed = 0;
@@ -3126,6 +3195,7 @@ execx86_instruction(void)
                         set_ea(cpu_data);
                         break;
                     case 0x20: case 0x28:    /* MUL, IMUL */
+                        old_flags = cpu_state.flags;
                         wait_cycs(1, 0);
                         mul(get_accum(bits), cpu_data);
                         if (opcode & 1) {
@@ -3137,12 +3207,17 @@ execx86_instruction(void)
                             AL = (uint8_t) cpu_data;
                             AH = (uint8_t) cpu_dest;
                             set_co_mul(bits, AH != ((AL & 0x80) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xff));
-                            cpu_data = AH;
+                            if (!is_nec)
+                                cpu_data = AH;
                         }
                         set_sf(bits);
                         set_pf();
                         if (cpu_mod != 3)
                             wait_cycs(1, 0);
+                        /* NOTE: When implementing the V20, care should be taken to not change
+                                 the zero flag. */
+                        if (is_nec)
+                            cpu_state.flags = (cpu_state.flags & ~Z_FLAG) | (old_flags & Z_FLAG);
                         break;
                     case 0x30: case 0x38:    /* DIV, IDIV */
                         if (cpu_mod != 3)
@@ -3193,13 +3268,18 @@ execx86_instruction(void)
                         cpu_data_opff_rm();
                         access(63, bits);
                         wait_cycs(1, 0);
-                        pfq_clear();
+                        if (is_new_biu)
+                            biu_suspend_fetch();
+                        else
+                            pfq_clear();
                         wait_cycs(4, 0);
                         if (cpu_mod != 3)
                             wait_cycs(1, 0);
                         wait_cycs(1, 0); /* Wait. */
                         cpu_state.oldpc = cpu_state.pc;
                         set_ip(cpu_data);
+                        if (is_new_biu)
+                            biu_queue_flush();
                         wait_cycs(2, 0);
                         access(35, bits);
                         push((uint16_t *) &(cpu_state.oldpc));
@@ -3214,10 +3294,15 @@ execx86_instruction(void)
                         access(36, bits);
                         push(&(CS));
                         access(64, bits);
-                        wait_cycs(4, 0);
+                        if (!is_new_biu)
+                            wait_cycs(4, 0);
                         cpu_state.oldpc = cpu_state.pc;
                         load_cs(new_cs);
                         set_ip(new_ip);
+                        if (is_new_biu) {
+                            wait_cycs(3, 0);
+                            biu_queue_flush();
+                        }
                         access(37, bits);
                         push((uint16_t *) &(cpu_state.oldpc));
                         break;
@@ -3225,6 +3310,8 @@ execx86_instruction(void)
                         cpu_data_opff_rm();
                         access(65, bits);
                         set_ip(cpu_data);
+                        if (is_new_biu)
+                            biu_queue_flush();
                         break;
                     case 0x28:               /* JMP rmd */
                         new_ip = cpu_data;
@@ -3236,6 +3323,8 @@ execx86_instruction(void)
                         load_cs(new_cs);
                         access(66, bits);
                         set_ip(new_ip);
+                        if (is_new_biu)
+                            biu_queue_flush();
                         break;
                     case 0x30: case 0x38:    /* PUSH rm */
                         if (cpu_mod != 3)
@@ -3285,7 +3374,7 @@ execx86(int cycs)
             if (in_lock)
                 clear_lock = 1;
             clock_end();
-            check_interrupts();
+            check_interrupts(0);
 
             if (noint)
                 noint = 0;
