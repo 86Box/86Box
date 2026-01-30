@@ -224,20 +224,6 @@ const uint8_t opf_0f[256]  = {      0,      0,      0,      0,      0,      0,  
 
 int                nx                    = 0;
 
-static uint32_t    cpu_src               = 0;
-static uint32_t    cpu_dest              = 0;
-
-static uint32_t    cpu_data              = 0;
-
-static int         oldc;
-static int         cpu_alu_op;
-static int         completed             = 1;
-static int         in_rep                = 0;
-static int         repeating             = 0;
-static int         rep_c_flag            = 0;
-static int         clear_lock            = 0;
-static int         noint                 = 0;
-static int         tempc_fpu             = 0;
 static int         started               = 0;
 static int         group_delay           = 0;
 static int         modrm_loaded          = 0;
@@ -245,8 +231,6 @@ static int         in_0f                 = 0;
 static int         in_hlt                = 0;
 static int         retem                 = 0;
 static int         halted                = 0;
-
-static uint32_t *  ovr_seg               = NULL;
 
 /* Pointer tables needed for segment overrides. */
 static uint32_t *  opseg[4];
@@ -489,6 +473,8 @@ void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_vx0(int hard)
 {
+    reset_808x(hard);
+
     halted     = 0;
     in_hlt     = 0;
     in_0f      = 0;
@@ -1854,17 +1840,59 @@ do_mod_rm(void)
 }
 
 static void
-decode(void)
+decode_modrm(void)
 {
     uint8_t op_f;
+
+    modrm_loaded = 0;
+
+    if (is_nec) {
+        if (in_0f)
+            op_f = (uint8_t) opf_0f[opcode];
+        else
+            op_f = (uint8_t) opf_nec[opcode];
+    } else
+        op_f = (uint8_t) opf[opcode];
+
+    if (op_f & OP_GRP) {
+        do_mod_rm();
+        modrm_loaded = 1;
+
+        op_f |= (OP_MRM | OP_EA);
+
+        if (opcode >= 0xf0) {
+            op_f |= OP_DELAY;
+            group_delay = 1;
+        }
+    }
+
+    if (!modrm_loaded && (op_f & OP_MRM)) {
+        do_mod_rm();
+        modrm_loaded = 1;
+    }
+
+    if (modrm_loaded && !(op_f & OP_EA)) {
+        if (is_nec)
+            do_cycle();
+        else {
+            if (opcode == 0x8f) {
+                if (cpu_mod == 3)
+                   do_cycles_i(2);
+            } else
+                do_cycles_i(2);
+        }
+    }
+}
+
+static void
+decode(void)
+{
     uint8_t prefix = 0;
 
     if (halted)
         opcode  = 0xf4;
     else
         opcode  = biu_pfq_fetchb_common();
-
-    modrm_loaded = 0;
 
     while (1) {
         prefix = 0;
@@ -1913,43 +1941,6 @@ decode(void)
 
         opcode  = biu_pfq_fetchb_common();
     }
-
-    if (is_nec) {
-        if (in_0f)
-            op_f = (uint8_t) opf_0f[opcode];
-        else
-            op_f = (uint8_t) opf_nec[opcode];
-    } else
-        op_f = (uint8_t) opf[opcode];
-
-    if (op_f & OP_GRP) {
-        do_mod_rm();
-        modrm_loaded = 1;
-
-        op_f |= (OP_MRM | OP_EA);
-
-        if (opcode >= 0xf0) {
-            op_f |= OP_DELAY;
-            group_delay = 1;
-        }
-    }
-
-    if (!modrm_loaded && (op_f & OP_MRM)) {
-        do_mod_rm();
-        modrm_loaded = 1;
-    }
-
-    if (modrm_loaded && !(op_f & OP_EA)) {
-        if (is_nec)
-            do_cycle();
-        else {
-            if (opcode == 0x8f) {
-                if (cpu_mod == 3)
-                   do_cycles_i(2);
-            } else
-                do_cycles_i(2);
-        }
-    }
 }
 
 static void
@@ -1992,6 +1983,10 @@ string_op(int bits)
                     lods_di(bits);
                     tmpa = cpu_data;
                     lods(bits);
+                    /* Swap them or else the operation goes wrong. */
+                    uint32_t tmpa2 = tmpa;
+                    tmpa = cpu_data;
+                    cpu_data = tmpa2;
                 } else {
                     lods(bits);
                     tmpa = cpu_data;
@@ -4735,7 +4730,16 @@ execvx0(int cycs)
             startx86();
         }
 
+#ifdef DEBUG_INSTRUCTIONS
+        if (repeating) {
+            if ((opcode >= 0xa0) && (opcode <= 0xaf) && (opcode != 0x8e)) {
+                execx86_instruction();
+                goto check_completed;
+            }
+        } else {
+#else
         if (!repeating) {
+#endif
             cpu_state.oldpc = cpu_state.pc;
 
             if (clear_lock) {
@@ -4743,8 +4747,20 @@ execvx0(int cycs)
                 clear_lock = 0;
             }
 
-            if (!is_nec || (cpu_state.flags & MD_FLAG))
+            if (!is_nec || (cpu_state.flags & MD_FLAG)) {
                 decode();
+
+#ifdef DEBUG_INSTRUCTIONS
+                if ((opcode >= 0xa0) && (opcode <= 0xaf) && (opcode != 0x8e)) {
+                    oldc    = cpu_state.flags & C_FLAG;
+
+                    execx86_instruction();
+                    goto check_completed;
+                }
+#endif
+
+                decode_modrm();
+            }
 
             oldc    = cpu_state.flags & C_FLAG;
         }
@@ -4753,6 +4769,9 @@ execvx0(int cycs)
 
         execute_instruction();
 
+#ifdef DEBUG_INSTRUCTIONS
+check_completed:
+#endif
         if (completed) {
             if (opcode != 0xf4)
                 finalize();
