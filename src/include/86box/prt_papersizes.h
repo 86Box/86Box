@@ -47,4 +47,8 @@
 #define A4_PAGE_WIDTH   8.25
 #define A4_PAGE_HEIGHT  11.75
 
+/* Standard B4 */
+#define B4_PAGE_WIDTH   9.875
+#define B4_PAGE_HEIGHT  13.875
+
 #endif /*EMU_PLAT_FALLTHROUGH_H*/
