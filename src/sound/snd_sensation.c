@@ -394,7 +394,6 @@ sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
 
     sensation_log(visdac->log, "[%04X:%08X] Sensation VISDAC Write: port = %02X, val = %02X\n", CS, cpu_state.pc, port, val);
 
-    uint8_t oldmode = visdac->visdac_mode;
     switch (port & 0xF) {
         case 0x00: /* Mode/Enable register */
             visdac->visdac_regs[0x00] = val;
