@@ -50,8 +50,6 @@
 #include "cpu.h"
 #include <86box/log.h>
 
-#define ENABLE_SENSATION_LOG 1
-
 #ifdef ENABLE_SENSATION_LOG
 int sensation_do_log = ENABLE_SENSATION_LOG;
 
