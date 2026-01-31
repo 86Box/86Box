@@ -1704,6 +1704,8 @@ pc_reset_hard_init(void)
 
     ide_hard_reset();
 
+    lpt_ports_reset();
+
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 

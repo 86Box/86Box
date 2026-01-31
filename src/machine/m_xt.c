@@ -1884,10 +1884,17 @@ machine_xt_laserxt_common_init(const machine_t *model, int is_lxt3)
 int
 machine_xt_laserxt_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/ltxt/27c64.bin",
-                           0x000fe000, 8192, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;

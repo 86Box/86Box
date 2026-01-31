@@ -455,13 +455,13 @@ read_status(void *priv)
 }
 
 static void *
-prnt_init(void *lpt)
+prnt_init(const device_t *info)
 {
     /* Initialize a device instance. */
     prnt_t *dev = (prnt_t *) calloc(1, sizeof(prnt_t));
 
     dev->ctrl = 0x04;
-    dev->lpt  = lpt;
+    dev->lpt  = lpt_attach(write_data, write_ctrl, strobe, read_status, NULL, NULL, NULL, dev);
 
     /* Initialize parameters. */
     reset_printer(dev);
@@ -523,13 +523,13 @@ static const device_config_t lpt_prt_text_config[] = {
 #endif
 // clang-format on
 
-const device_t prt_text_device = {
+const device_t lpt_prt_text_device = {
     .name          = "Generic Text Printer",
     .internal_name = "text_prt",
     .flags         = DEVICE_LPT,
     .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
+    .init          = prnt_init,
+    .close         = prnt_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,
@@ -539,21 +539,4 @@ const device_t prt_text_device = {
 #else
     .config        = NULL
 #endif
-};
-
-const lpt_device_t lpt_prt_text_device = {
-    .name             = "Generic Text Printer",
-    .internal_name    = "text_prt",
-    .init             = prnt_init,
-    .close            = prnt_close,
-    .write_data       = write_data,
-    .write_ctrl       = write_ctrl,
-    .strobe           = strobe,
-    .read_status      = read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL,
-    .cfgdevice        = (device_t *) &prt_text_device
 };

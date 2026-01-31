@@ -297,6 +297,37 @@ lxt_init(const device_t *info)
 
 static const device_config_t laserxt_config[] = {
     {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "laserxt_126",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "1.08",
+                .internal_name = "laserxt_108",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/ltxt/ltxt-v1.08.bin", "" }
+            },
+            {
+                .name          = "1.26",
+                .internal_name = "laserxt_126",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/ltxt/27c64.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
         .name           = "ems_1_base",
         .description    = "EMS 1 Address",
         .type           = CONFIG_HEX16,

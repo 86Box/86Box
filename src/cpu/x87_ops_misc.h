@@ -7,7 +7,11 @@ opFI(uint32_t fetchdat)
     cpu_state.npxc &= ~0x80;
     if (rmdat == 0xe1)
         cpu_state.npxc |= 0x80;
+#ifdef FPU_NEC
+    do_cycles(3);
+#else
     wait_cycs(3, 0);
+#endif
     return 0;
 }
 #else

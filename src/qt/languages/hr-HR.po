@@ -3018,10 +3018,13 @@ msgid "&Allow recompilation"
 msgstr "&Omogući rekompilaciju"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Brzo naprijed"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Brzo naprijed"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Za promjenu sustavskog direktorija zaustavite sve pokrenute strojeve."
+
+msgid "Raw"
+msgstr "Neobrađeni podaci"

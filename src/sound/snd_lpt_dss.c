@@ -114,11 +114,11 @@ dss_callback(void *priv)
 }
 
 static void *
-dss_init(void *lpt)
+dss_init(UNUSED(const device_t *info))
 {
     dss_t *dss = calloc(1, sizeof(dss_t));
 
-    dss->lpt = lpt;
+    dss->lpt   = lpt_attach(dss_write_data, dss_write_ctrl, NULL, dss_read_status, NULL, NULL, NULL, dss);
 
     sound_add_handler(dss_get_buffer, dss);
     timer_add(&dss->timer, dss_callback, dss, 1);
@@ -133,18 +133,16 @@ dss_close(void *priv)
     free(dss);
 }
 
-const lpt_device_t dss_device = {
-    .name             = "Disney Sound Source",
-    .internal_name    = "dss",
-    .init             = dss_init,
-    .close            = dss_close,
-    .write_data       = dss_write_data,
-    .strobe           = NULL,
-    .write_ctrl       = dss_write_ctrl,
-    .read_status      = dss_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+const device_t dss_device = {
+    .name          = "Disney Sound Source",
+    .internal_name = "dss",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = dss_init,
+    .close         = dss_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

@@ -89,11 +89,11 @@ dac_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 static void *
-dac_init(void *lpt)
+dac_init(UNUSED(const device_t *info))
 {
     lpt_dac_t *lpt_dac = calloc(1, sizeof(lpt_dac_t));
 
-    lpt_dac->lpt = lpt;
+    lpt_dac->lpt = lpt_attach(dac_write_data, dac_write_ctrl, dac_strobe, dac_read_status, NULL, NULL, NULL, lpt_dac);
 
     sound_add_handler(dac_get_buffer, lpt_dac);
 
@@ -101,9 +101,9 @@ dac_init(void *lpt)
 }
 
 static void *
-dac_stereo_init(void *lpt)
+dac_stereo_init(const device_t *info)
 {
-    lpt_dac_t *lpt_dac = dac_init(lpt);
+    lpt_dac_t *lpt_dac = dac_init(info);
 
     lpt_dac->is_stereo = 1;
 
@@ -117,34 +117,30 @@ dac_close(void *priv)
     free(lpt_dac);
 }
 
-const lpt_device_t lpt_dac_device = {
-    .name             = "LPT DAC / Covox Speech Thing",
-    .internal_name    = "lpt_dac",
-    .init             = dac_init,
-    .close            = dac_close,
-    .write_data       = dac_write_data,
-    .write_ctrl       = dac_write_ctrl,
-    .strobe           = dac_strobe,
-    .read_status      = dac_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+const device_t lpt_dac_device = {
+    .name          = "LPT DAC / Covox Speech Thing",
+    .internal_name = "lpt_dac",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = dac_init,
+    .close         = dac_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
-const lpt_device_t lpt_dac_stereo_device = {
-    .name             = "Stereo LPT DAC",
-    .internal_name    = "lpt_dac_stereo",
-    .init             = dac_stereo_init,
-    .close            = dac_close,
-    .write_data       = dac_write_data,
-    .write_ctrl       = dac_write_ctrl,
-    .strobe           = dac_strobe,
-    .read_status      = dac_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+const device_t lpt_dac_stereo_device = {
+    .name          = "Stereo LPT DAC",
+    .internal_name = "lpt_dac_stereo",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = dac_stereo_init,
+    .close         = dac_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

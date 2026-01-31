@@ -3016,10 +3016,13 @@ msgid "&Allow recompilation"
 msgstr "&Povoliť rekompiláciu"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Rýchly posun dopredu"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Rýchly posun dopredu"
 
 msgid "To change the system directory, stop all running machines."
-msgstr ""
+msgstr "Ak chcete zmeniť systémový adresár, zastavte všetky bežiace stroje."
+
+msgid "Raw"
+msgstr "Surový"

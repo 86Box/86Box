@@ -1865,6 +1865,8 @@ cpu_set(void)
                 cpu_exec = exec386_2386;
     } else if (cpu_s->cpu_type >= CPU_286)
         cpu_exec = exec386_2386;
+    else if (is_nec)
+        cpu_exec = execvx0;
     else
         cpu_exec = execx86;
     mmx_init();
