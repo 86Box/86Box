@@ -966,7 +966,7 @@ sensation_mma_poll(sensation_t *dev, int channel)
     if (dev->sensation_mma_fifo_start[channel] != dev->sensation_mma_fifo_end[channel]) {
         switch (dev->sensation_mma_regs[channel][0xc] & 0x60) {
             case 0x00: /*8-bit*/
-                dat                                    = dev->sensation_mma_fifo[channel][dev->sensation_mma_fifo_start[channel]] * 256;
+                dat                                    = dev->sensation_mma_fifo[channel][dev->sensation_mma_fifo_start[channel]] * 128;
                 dev->sensation_mma_out[channel]        = dat;
                 dev->sensation_mma_fifo_start[channel] = (dev->sensation_mma_fifo_start[channel] + 1) & 255;
                 break;
