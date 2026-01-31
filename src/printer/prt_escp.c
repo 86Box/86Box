@@ -267,23 +267,6 @@ typedef struct escp_t {
     PALETTE palcol;
 } escp_t;
 
-static void
-update_font(escp_t *dev);
-static void
-blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add);
-static void
-draw_hline(escp_t *dev, unsigned from_x, unsigned to_x, unsigned y, int8_t broken);
-static void
-init_codepage(escp_t *dev, uint16_t num);
-static void
-reset_printer(escp_t *dev);
-static void
-setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns);
-static void
-print_bit_graph(escp_t *dev, uint8_t ch);
-static void
-new_page(escp_t *dev, int8_t save, int8_t resetx);
-
 /* Codepage table, needed for ESC t ( */
 static const uint16_t codepages[15] = {
     0, 437, 932, 850, 851, 853, 855, 860,
@@ -433,93 +416,6 @@ fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID,
 }
 
 static void
-reset_printer(escp_t *dev)
-{
-    dev->top_margin = dev->left_margin = 0.0;
-    dev->right_margin         = dev->page_width;
-    switch (dev->paper_size) {
-        case PAPER_A4:
-            dev->page_height = A4_PAGE_HEIGHT;
-            break;
-        case PAPER_LEGAL_SIDE:
-            dev->page_height = LEGAL_PAGE_WIDTH;
-            break;
-        case PAPER_B4_SIDE:
-            dev->page_height = B4_PAGE_WIDTH;
-            break;
-        case PAPER_LETTER:
-        default:
-            dev->page_height = LETTER_PAGE_HEIGHT;
-    }
-    dev->bottom_margin = dev->page_height;
-    /* TODO: these should be configurable. */
-    dev->color  = COLOR_BLACK;
-    dev->curr_x = dev->curr_y = 0.0;
-    dev->esc_seen             = 0;
-    dev->fss_seen             = 0;
-    dev->esc_pending          = 0;
-    dev->esc_parms_req = dev->esc_parms_curr = 0;
-    dev->lpi                  = PAGE_LPI;
-    dev->linespacing          = 1.0 / dev->lpi;
-    dev->cpi                  = PAGE_CPI;
-    dev->curr_char_table      = 1;
-    dev->font_style           = 0;
-    dev->print_quality        = QUALITY_DRAFT;
-    dev->extra_intra_space    = 0.0;
-    dev->print_upper_control  = 1;
-    dev->bg_remaining_bytes   = 0;
-    dev->density_k            = 0;
-    dev->density_l            = 1;
-    dev->density_y            = 2;
-    dev->density_z            = 3;
-    dev->char_tables[0]       = 0;                             /* italics */
-    dev->char_tables[1] = dev->char_tables[2] = dev->char_tables[3] = 437; /* all other tables use CP437 */
-    dev->defined_unit                                               = -1.0;
-    dev->multipoint_mode                                            = 0;
-    dev->multipoint_size                                            = 0.0;
-    dev->multipoint_cpi                                             = 0.0;
-    dev->hmi                                                        = -1;
-    dev->msb                                                        = 255;
-    dev->print_everything_count                                     = 0;
-    dev->lq_typeface                                                = TYPEFACE_COURIER;
-
-    init_codepage(dev, dev->char_tables[dev->curr_char_table]);
-
-    update_font(dev);
-
-    new_page(dev, 0, 1);
-
-    for (uint8_t i = 0; i < 32; i++)
-        dev->horizontal_tabs[i] = i * 8.0 * (1.0 / dev->cpi);
-    dev->num_horizontal_tabs = 32;
-    dev->num_vertical_tabs   = -1;
-
-    if (dev->page != NULL)
-        dev->page->dirty = 0;
-
-    escp_log("ESC/P: width=%.1fin,height=%.1fin dpi=%i cpi=%i lpi=%i\n",
-             dev->page_width, dev->page_height, (int) dev->dpi,
-             (int) dev->cpi, (int) dev->lpi);
-}
-
-static void
-reset_printer_hard(escp_t *dev)
-{
-    dev->ack = 0;
-    timer_disable(&dev->pulse_timer);
-    timer_stop(&dev->timeout_timer);
-    reset_printer(dev);
-}
-
-/* Select a ASCII->Unicode mapping by CP number */
-static void
-init_codepage(escp_t *dev, uint16_t num)
-{
-    /* Get the codepage map for this number. */
-    select_codepage(num, dev->curr_cpmap);
-}
-
-static void
 update_font(escp_t *dev)
 {
     char        path[1024];
@@ -631,6 +527,205 @@ update_font(escp_t *dev)
         matrix.yy = 0x10000L;
         FT_Set_Transform(dev->fontface, &matrix, 0);
     }
+}
+
+/* Select a ASCII->Unicode mapping by CP number */
+static void
+init_codepage(escp_t *dev, uint16_t num)
+{
+    /* Get the codepage map for this number. */
+    select_codepage(num, dev->curr_cpmap);
+}
+
+static void
+reset_printer(escp_t *dev)
+{
+    dev->top_margin = dev->left_margin = 0.0;
+    dev->right_margin         = dev->page_width;
+    switch (dev->paper_size) {
+        case PAPER_A4:
+            dev->page_height = A4_PAGE_HEIGHT;
+            break;
+        case PAPER_LEGAL_SIDE:
+            dev->page_height = LEGAL_PAGE_WIDTH;
+            break;
+        case PAPER_B4_SIDE:
+            dev->page_height = B4_PAGE_WIDTH;
+            break;
+        case PAPER_LETTER:
+        default:
+            dev->page_height = LETTER_PAGE_HEIGHT;
+    }
+    dev->bottom_margin = dev->page_height;
+    /* TODO: these should be configurable. */
+    dev->color  = COLOR_BLACK;
+    dev->curr_x = dev->curr_y = 0.0;
+    dev->esc_seen             = 0;
+    dev->fss_seen             = 0;
+    dev->esc_pending          = 0;
+    dev->esc_parms_req = dev->esc_parms_curr = 0;
+    dev->lpi                  = PAGE_LPI;
+    dev->linespacing          = 1.0 / dev->lpi;
+    dev->cpi                  = PAGE_CPI;
+    dev->curr_char_table      = 1;
+    dev->font_style           = 0;
+    dev->print_quality        = QUALITY_DRAFT;
+    dev->extra_intra_space    = 0.0;
+    dev->print_upper_control  = 1;
+    dev->bg_remaining_bytes   = 0;
+    dev->density_k            = 0;
+    dev->density_l            = 1;
+    dev->density_y            = 2;
+    dev->density_z            = 3;
+    dev->char_tables[0]       = 0;                             /* italics */
+    dev->char_tables[1] = dev->char_tables[2] = dev->char_tables[3] = 437; /* all other tables use CP437 */
+    dev->defined_unit                                               = -1.0;
+    dev->multipoint_mode                                            = 0;
+    dev->multipoint_size                                            = 0.0;
+    dev->multipoint_cpi                                             = 0.0;
+    dev->hmi                                                        = -1;
+    dev->msb                                                        = 255;
+    dev->print_everything_count                                     = 0;
+    dev->lq_typeface                                                = TYPEFACE_COURIER;
+
+    init_codepage(dev, dev->char_tables[dev->curr_char_table]);
+
+    update_font(dev);
+
+    new_page(dev, 0, 1);
+
+    for (uint8_t i = 0; i < 32; i++)
+        dev->horizontal_tabs[i] = i * 8.0 * (1.0 / dev->cpi);
+    dev->num_horizontal_tabs = 32;
+    dev->num_vertical_tabs   = -1;
+
+    if (dev->page != NULL)
+        dev->page->dirty = 0;
+
+    escp_log("ESC/P: width=%.1fin,height=%.1fin dpi=%i cpi=%i lpi=%i\n",
+             dev->page_width, dev->page_height, (int) dev->dpi,
+             (int) dev->cpi, (int) dev->lpi);
+}
+
+static void
+reset_printer_hard(escp_t *dev)
+{
+    dev->ack = 0;
+    timer_disable(&dev->pulse_timer);
+    timer_stop(&dev->timeout_timer);
+    reset_printer(dev);
+}
+
+static void
+setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
+{
+    escp_log("Density=%d\n", density);
+    switch (density) {
+        case 0:
+            dev->bg_h_density        = 60;
+            dev->bg_v_density        = 60;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 1:
+            dev->bg_h_density        = 120;
+            dev->bg_v_density        = 60;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 2:
+            dev->bg_h_density        = 120;
+            dev->bg_v_density        = 60;
+            dev->bg_adjacent         = 0;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 3:
+            dev->bg_h_density        = 60;
+            dev->bg_v_density        = 240;
+            dev->bg_adjacent         = 0;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 4:
+            dev->bg_h_density        = 80;
+            dev->bg_v_density        = 60;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 6:
+            dev->bg_h_density        = 90;
+            dev->bg_v_density        = 60;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 32:
+            dev->bg_h_density        = 60;
+            dev->bg_v_density        = 180;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 3;
+            break;
+
+        case 33:
+            dev->bg_h_density        = 120;
+            dev->bg_v_density        = 180;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 3;
+            break;
+
+        case 38:
+            dev->bg_h_density        = 90;
+            dev->bg_v_density        = 180;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 3;
+            break;
+
+        case 39:
+            dev->bg_h_density        = 180;
+            dev->bg_v_density        = 180;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 3;
+            break;
+
+        case 40:
+            dev->bg_h_density        = 360;
+            dev->bg_v_density        = 180;
+            dev->bg_adjacent         = 0;
+            dev->bg_bytes_per_column = 3;
+            break;
+
+        case 71:
+            dev->bg_h_density        = 180;
+            dev->bg_v_density        = 360;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 6;
+            break;
+
+        case 72:
+            dev->bg_h_density        = 360;
+            dev->bg_v_density        = 360;
+            dev->bg_adjacent         = 0;
+            dev->bg_bytes_per_column = 6;
+            break;
+
+        case 73:
+            dev->bg_h_density        = 360;
+            dev->bg_v_density        = 360;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 6;
+            break;
+
+        default:
+            escp_log("ESC/P: Unsupported bit image density %d.\n", density);
+            break;
+    }
+
+    dev->bg_remaining_bytes = num_columns * dev->bg_bytes_per_column;
+    dev->bg_bytes_read      = 0;
 }
 
 /* This is the actual ESC/P interpreter. */
@@ -1081,8 +1176,8 @@ process_char(escp_t *dev, uint8_t ch)
                 dev->linespacing = 1.0 / 6.0;
                 break;
 
-            case '3': /* set n/180-inch line spacing */
-                dev->linespacing = (double) dev->esc_parms[0] / 180.0;
+            case '3': /* set n/180 or n/216-inch line spacing */
+                dev->linespacing = (double) dev->esc_parms[0] / (dev->lang >= LANG_ESCP ? 180.0 : 216.0);
                 break;
 
             case '4': /* select italic font */
@@ -1131,9 +1226,9 @@ process_char(escp_t *dev, uint8_t ch)
                 reset_printer(dev);
                 break;
 
-            case 'A': /* set n/60-inch line spacing */
+            case 'A': /* set n/60 or n/72-inch line spacing */
             case 0x841: // FS A
-                dev->linespacing = (double) dev->esc_parms[0] / 60.0;
+                dev->linespacing = (double) dev->esc_parms[0] / (dev->lang >= LANG_ESCP ? 60.0 : 72.0);
                 break;
 
             case 'C': /* set page length in lines */
@@ -1293,7 +1388,7 @@ process_char(escp_t *dev, uint8_t ch)
                 rel_move  = PARAM16(0);
                 unit_size = dev->defined_unit;
                 if (unit_size < 0)
-                    unit_size = (dev->print_quality == QUALITY_DRAFT ? 120.0 : 180.0);
+                    unit_size = (dev->print_quality == QUALITY_DRAFT || dev->lang < LANG_ESCP) ? 120.0 : 180.0;
                 dev->curr_x += ((double) rel_move / unit_size);
                 break;
 
@@ -1650,6 +1745,115 @@ process_char(escp_t *dev, uint8_t ch)
     }
 }
 
+/* TODO: This can be optimized quite a bit... I'm just too lazy right now ;-) */
+static void
+blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add)
+{
+    const FT_Bitmap *bitmap = &dev->fontface->glyph->bitmap;
+    uint8_t          src;
+    uint8_t         *dst;
+
+    /* check if freetype is available */
+    if (ft_lib == NULL)
+        return;
+
+    for (unsigned int y = 0; y < bitmap->rows; y++) {
+        for (unsigned int x = 0; x < bitmap->width; x++) {
+            src = *(bitmap->buffer + x + y * bitmap->pitch);
+            /* ignore background, and respect page size */
+            if (src > 0 && (destx + x < (unsigned) dev->page->w) && (desty + y < (unsigned) dev->page->h)) {
+                dst = (uint8_t *) dev->page->pixels + (x + destx) + (y + desty) * dev->page->pitch;
+                src >>= 3;
+
+                if (add) {
+                    if (((*dst) & 0x1f) + src > 31)
+                        *dst |= (dev->color | 0x1f);
+                    else {
+                        *dst += src;
+                        *dst |= dev->color;
+                    }
+                } else
+                    *dst = src | dev->color;
+            }
+        }
+    }
+}
+
+/* Draw anti-aliased line. */
+static void
+draw_hline(escp_t *dev, unsigned from_x, unsigned to_x, unsigned y, int8_t broken)
+{
+    unsigned breakmod = dev->dpi / 15;
+    unsigned gapstart = (breakmod * 4) / 5;
+
+    for (unsigned int x = from_x; x <= to_x; x++) {
+        /* Skip parts if broken line or going over the border. */
+        if ((!broken || (x % breakmod <= gapstart)) && (x < dev->page->w)) {
+            if (y > 0 && (y - 1) < dev->page->h)
+                *((uint8_t *) dev->page->pixels + x + (y - 1) * (unsigned) dev->page->pitch) = 240;
+            if (y < dev->page->h)
+                *((uint8_t *) dev->page->pixels + x + y * (unsigned) dev->page->pitch) = !broken ? 255 : 240;
+            if (y + 1 < dev->page->h)
+                *((uint8_t *) dev->page->pixels + x + (y + 1) * (unsigned) dev->page->pitch) = 240;
+        }
+    }
+}
+
+static void
+print_bit_graph(escp_t *dev, uint8_t ch)
+{
+    uint8_t  pixel_w; /* width of the "pixel" */
+    uint8_t  pixel_h; /* height of the "pixel" */
+    double   old_y;
+
+    dev->bg_column[dev->bg_bytes_read++] = ch;
+    dev->bg_remaining_bytes--;
+
+    /* Only print after reading a full column. */
+    if (dev->bg_bytes_read < dev->bg_bytes_per_column)
+        return;
+
+    old_y = dev->curr_y;
+
+    pixel_w = 1;
+    pixel_h = 1;
+
+    if (dev->bg_adjacent) {
+        /* if page DPI is bigger than bitgraphics DPI, drawn pixels get "bigger" */
+        pixel_w = dev->dpi / dev->bg_h_density > 0 ? dev->dpi / dev->bg_h_density : 1;
+        pixel_h = dev->dpi / dev->bg_v_density > 0 ? dev->dpi / dev->bg_v_density : 1;
+    }
+
+    for (uint8_t i = 0; i < dev->bg_bytes_per_column; i++) {
+        /* for each byte */
+        for (uint8_t j = 128; j != 0; j >>= 1) {
+            /* for each bit */
+            if (dev->bg_column[i] & j) {
+                /* draw a "pixel" */
+                for (uint8_t xx = 0; xx < pixel_w; xx++) {
+                    for (uint8_t yy = 0; yy < pixel_h; yy++) {
+                        if (((PIXX + xx) < (unsigned) dev->page->w) && ((PIXY + yy) < (unsigned) dev->page->h))
+                            *((uint8_t *) dev->page->pixels + (PIXX + xx) + (PIXY + yy) * dev->page->pitch) |= (dev->color | 0x1f);
+                    }
+                }
+            }
+
+            dev->curr_y += 1.0 / (double) dev->bg_v_density;
+        }
+    }
+
+    /* Mark page dirty. */
+    dev->page->dirty = 1;
+
+    /* Restore Y-position. */
+    dev->curr_y = old_y;
+
+    dev->bg_bytes_read = 0;
+
+    /* Advance print head. */
+    dev->curr_x += 1.0 / dev->bg_h_density;
+}
+
 static void
 handle_char(escp_t *dev, uint8_t ch)
 {
@@ -1765,227 +1969,6 @@ handle_char(escp_t *dev, uint8_t ch)
         if (dev->curr_y > dev->bottom_margin)
             new_page(dev, 1, 0);
     }
-}
-
-/* TODO: This can be optimized quite a bit... I'm just too lazy right now ;-) */
-static void
-blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add)
-{
-    const FT_Bitmap *bitmap = &dev->fontface->glyph->bitmap;
-    uint8_t          src;
-    uint8_t         *dst;
-
-    /* check if freetype is available */
-    if (ft_lib == NULL)
-        return;
-
-    for (unsigned int y = 0; y < bitmap->rows; y++) {
-        for (unsigned int x = 0; x < bitmap->width; x++) {
-            src = *(bitmap->buffer + x + y * bitmap->pitch);
-            /* ignore background, and respect page size */
-            if (src > 0 && (destx + x < (unsigned) dev->page->w) && (desty + y < (unsigned) dev->page->h)) {
-                dst = (uint8_t *) dev->page->pixels + (x + destx) + (y + desty) * dev->page->pitch;
-                src >>= 3;
-
-                if (add) {
-                    if (((*dst) & 0x1f) + src > 31)
-                        *dst |= (dev->color | 0x1f);
-                    else {
-                        *dst += src;
-                        *dst |= dev->color;
-                    }
-                } else
-                    *dst = src | dev->color;
-            }
-        }
-    }
-}
-
-/* Draw anti-aliased line. */
-static void
-draw_hline(escp_t *dev, unsigned from_x, unsigned to_x, unsigned y, int8_t broken)
-{
-    unsigned breakmod = dev->dpi / 15;
-    unsigned gapstart = (breakmod * 4) / 5;
-
-    for (unsigned int x = from_x; x <= to_x; x++) {
-        /* Skip parts if broken line or going over the border. */
-        if ((!broken || (x % breakmod <= gapstart)) && (x < dev->page->w)) {
-            if (y > 0 && (y - 1) < dev->page->h)
-                *((uint8_t *) dev->page->pixels + x + (y - 1) * (unsigned) dev->page->pitch) = 240;
-            if (y < dev->page->h)
-                *((uint8_t *) dev->page->pixels + x + y * (unsigned) dev->page->pitch) = !broken ? 255 : 240;
-            if (y + 1 < dev->page->h)
-                *((uint8_t *) dev->page->pixels + x + (y + 1) * (unsigned) dev->page->pitch) = 240;
-        }
-    }
-}
-
-static void
-setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
-{
-    escp_log("Density=%d\n", density);
-    switch (density) {
-        case 0:
-            dev->bg_h_density        = 60;
-            dev->bg_v_density        = 60;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 1;
-            break;
-
-        case 1:
-            dev->bg_h_density        = 120;
-            dev->bg_v_density        = 60;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 1;
-            break;
-
-        case 2:
-            dev->bg_h_density        = 120;
-            dev->bg_v_density        = 60;
-            dev->bg_adjacent         = 0;
-            dev->bg_bytes_per_column = 1;
-            break;
-
-        case 3:
-            dev->bg_h_density        = 60;
-            dev->bg_v_density        = 240;
-            dev->bg_adjacent         = 0;
-            dev->bg_bytes_per_column = 1;
-            break;
-
-        case 4:
-            dev->bg_h_density        = 80;
-            dev->bg_v_density        = 60;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 1;
-            break;
-
-        case 6:
-            dev->bg_h_density        = 90;
-            dev->bg_v_density        = 60;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 1;
-            break;
-
-        case 32:
-            dev->bg_h_density        = 60;
-            dev->bg_v_density        = 180;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 3;
-            break;
-
-        case 33:
-            dev->bg_h_density        = 120;
-            dev->bg_v_density        = 180;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 3;
-            break;
-
-        case 38:
-            dev->bg_h_density        = 90;
-            dev->bg_v_density        = 180;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 3;
-            break;
-
-        case 39:
-            dev->bg_h_density        = 180;
-            dev->bg_v_density        = 180;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 3;
-            break;
-
-        case 40:
-            dev->bg_h_density        = 360;
-            dev->bg_v_density        = 180;
-            dev->bg_adjacent         = 0;
-            dev->bg_bytes_per_column = 3;
-            break;
-
-        case 71:
-            dev->bg_h_density        = 180;
-            dev->bg_v_density        = 360;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 6;
-            break;
-
-        case 72:
-            dev->bg_h_density        = 360;
-            dev->bg_v_density        = 360;
-            dev->bg_adjacent         = 0;
-            dev->bg_bytes_per_column = 6;
-            break;
-
-        case 73:
-            dev->bg_h_density        = 360;
-            dev->bg_v_density        = 360;
-            dev->bg_adjacent         = 1;
-            dev->bg_bytes_per_column = 6;
-            break;
-
-        default:
-            escp_log("ESC/P: Unsupported bit image density %d.\n", density);
-            break;
-    }
-
-    dev->bg_remaining_bytes = num_columns * dev->bg_bytes_per_column;
-    dev->bg_bytes_read      = 0;
-}
-
-static void
-print_bit_graph(escp_t *dev, uint8_t ch)
-{
-    uint8_t  pixel_w; /* width of the "pixel" */
-    uint8_t  pixel_h; /* height of the "pixel" */
-    double   old_y;
-
-    dev->bg_column[dev->bg_bytes_read++] = ch;
-    dev->bg_remaining_bytes--;
-
-    /* Only print after reading a full column. */
-    if (dev->bg_bytes_read < dev->bg_bytes_per_column)
-        return;
-
-    old_y = dev->curr_y;
-
-    pixel_w = 1;
-    pixel_h = 1;
-
-    if (dev->bg_adjacent) {
-        /* if page DPI is bigger than bitgraphics DPI, drawn pixels get "bigger" */
-        pixel_w = dev->dpi / dev->bg_h_density > 0 ? dev->dpi / dev->bg_h_density : 1;
-        pixel_h = dev->dpi / dev->bg_v_density > 0 ? dev->dpi / dev->bg_v_density : 1;
-    }
-
-    for (uint8_t i = 0; i < dev->bg_bytes_per_column; i++) {
-        /* for each byte */
-        for (uint8_t j = 128; j != 0; j >>= 1) {
-            /* for each bit */
-            if (dev->bg_column[i] & j) {
-                /* draw a "pixel" */
-                for (uint8_t xx = 0; xx < pixel_w; xx++) {
-                    for (uint8_t yy = 0; yy < pixel_h; yy++) {
-                        if (((PIXX + xx) < (unsigned) dev->page->w) && ((PIXY + yy) < (unsigned) dev->page->h))
-                            *((uint8_t *) dev->page->pixels + (PIXX + xx) + (PIXY + yy) * dev->page->pitch) |= (dev->color | 0x1f);
-                    }
-                }
-            }
-
-            dev->curr_y += 1.0 / (double) dev->bg_v_density;
-        }
-    }
-
-    /* Mark page dirty. */
-    dev->page->dirty = 1;
-
-    /* Restore Y-position. */
-    dev->curr_y = old_y;
-
-    dev->bg_bytes_read = 0;
-
-    /* Advance print head. */
-    dev->curr_x += 1.0 / dev->bg_h_density;
 }
 
 static void
