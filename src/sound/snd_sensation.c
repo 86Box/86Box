@@ -130,23 +130,15 @@ typedef struct sensation_t {
     uint8_t visdac_ctrl;
     uint8_t visdac_dma_ff;
     uint32_t visdac_dma_data;
-
-    uint8_t visdac_wave;
-    uint8_t visdac_dac_val;
     uint16_t visdac_freq;
-    int     visdac_amplitude;
 
     pc_timer_t visdac_timer_count;
     uint64_t visdac_timer_latch;
     int visdac_enable;
 
-    int visdac_wave_pos;
-    int visdac_pulse_width;
-
     int16_t visdac_buffer[SOUNDBUFLEN * 2];
     int visdac_pos;
-    uint8_t visdac_playback_pos : 2;
-    uint8_t visdac_playback_pos_test;
+    uint8_t visdac_playback_pos : 1;
     int visdac_irq_status;
     uint8_t visdac_dma_nodata;
 
@@ -182,9 +174,7 @@ sensation_filter_cd_audio(int channel, double *buffer, void *priv)
 void
 sensation_visdac_update(sensation_t *dev)
 {
-    //sensation_log(dev->log, "VISDAC output: %i L/%i R\n", dev->visdac_out_l, dev->visdac_out_r);
     for (; dev->visdac_pos < sound_pos_global; dev->visdac_pos++) {
-        //sensation_log(dev->log, "VISDAC pos: %i, global pos: %i\n", dev->visdac_pos, sound_pos_global);
         dev->visdac_buffer[dev->visdac_pos * 2]     = dev->visdac_out_l;
         dev->visdac_buffer[dev->visdac_pos * 2 + 1] = dev->visdac_out_r;
     }
@@ -212,11 +202,6 @@ sensation_visdac_dmaread(sensation_t *dev, int channel)
     }
 
     dev->visdac_dma_ff = !dev->visdac_dma_ff;
-
-    /* AFAIK VIS DAC is never on an 8-bit DMA but this line is for that */
-    //ret = dma_channel_read(dev->visdac_dma);
-
-    //sensation_log(dev->log, "VISDAC DMA val = %02X\n", ret);
 
     return ret;
 }
@@ -267,8 +252,6 @@ sensation_visdac_poll(void *priv)
         uint8_t format;
 
         format = (dev->visdac_mode & 0x88);
-        //sensation_log(dev->log, "VISDAC format = %02X\n", format);
-        //sensation_log(dev->log, "VISDAC count = %04X, pos = %02X\n", dev->visdac_count, dev->visdac_playback_pos);
 
         switch (format) {
             case 0x80: /* 8-bit Mono PCM */
@@ -277,7 +260,6 @@ sensation_visdac_poll(void *priv)
                     dev->visdac_out_l = dev->visdac_out_r = 0;
                 }
                 dev->visdac_playback_pos++;
-                dev->visdac_playback_pos_test++;
                 break;
             case 0x00: /* 8-bit Stereo PCM */
                 dev->visdac_out_l = (int16_t) ((sensation_visdac_dmaread(dev, dev->visdac_dma) ^ 0x80) << 8);
@@ -285,8 +267,6 @@ sensation_visdac_poll(void *priv)
                 if (dev->visdac_dma_nodata) {
                     dev->visdac_out_l = dev->visdac_out_r = 0;
                 }
-                dev->visdac_playback_pos += 2;
-                dev->visdac_playback_pos_test += 2;
                 break;
             case 0x88: /* 16-bit Mono PCM */
                 temp = (int32_t) sensation_visdac_dmaread(dev, dev->visdac_dma);
@@ -294,8 +274,6 @@ sensation_visdac_poll(void *priv)
                 if (dev->visdac_dma_nodata) {
                     dev->visdac_out_l = dev->visdac_out_r = 0;
                 }
-                dev->visdac_playback_pos += 2;
-                dev->visdac_playback_pos_test += 2;
                 break;
             case 0x08: /* 16-bit Stereo PCM */
                 temp = (int32_t) sensation_visdac_dmaread(dev, dev->visdac_dma);
@@ -305,8 +283,6 @@ sensation_visdac_poll(void *priv)
                 if (dev->visdac_dma_nodata) {
                     dev->visdac_out_l = dev->visdac_out_r = 0;
                 }
-                dev->visdac_playback_pos += 4;
-                dev->visdac_playback_pos_test += 4;
                 break;
             default:
                 break;
@@ -319,8 +295,6 @@ sensation_visdac_poll(void *priv)
             dev->visdac_out_r = 0;
         else
             dev->visdac_out_r = (int16_t) ((dev->visdac_out_r * dev->wave_vol_r) >> 16);
-        //if (!(dev->visdac_playback_pos & 0x03))
-        //    dev->visdac_count--;
         if (dev->visdac_count < 0) {
             dev->visdac_count = ((dev->visdac_regs[0x0e] << 8) | dev->visdac_regs[0x0c]);
             dev->visdac_ctrl |= 0x04;
@@ -1121,8 +1095,6 @@ sensation_get_buffer(int32_t *buffer, int len, void *priv)
 
         buffer[c] += mma_buffer[c];
         buffer[c + 1] += mma_buffer[c + 1];
-
-        //sensation_log(dev->log, "VISDAC buffer output: %i L/%i R\n", dev->visdac_buffer[c], dev->visdac_buffer[c +1]);
 
         if (dev->visdac_mode & 0x10) {
             buffer[c] += dev->visdac_buffer[c];
