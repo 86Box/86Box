@@ -1086,10 +1086,16 @@ sensation_get_buffer(int32_t *buffer, int len, void *priv)
     sensation_visdac_update(dev);
 
     for (c = 0; c < len * 2; c += 2) {
-        mma_buffer[c] = (opl_buf[c] * dev->fm_vol_l) / 65536.0;
-        mma_buffer[c] += dev->mma_buffer[0][c >> 1];
-        mma_buffer[c + 1] = (opl_buf[c + 1] * dev->fm_vol_r) / 65536.0;
-        mma_buffer[c + 1] += dev->mma_buffer[1][c >> 1];
+        mma_buffer[c] = (dev->mma_buffer[0][c >> 1] * dev->wave_vol_l) / 32768.0;
+        mma_buffer[c + 1] = (dev->mma_buffer[1][c >> 1] * dev->wave_vol_r) / 32768.0;
+
+        if ((dev->sensation_mma_regs[0][9] & 0x60) == 0x40)
+            mma_buffer[c] = mma_buffer[c + 1];
+        if ((dev->sensation_mma_regs[0][9] & 0x60) == 0x20)
+            mma_buffer[c + 1] = mma_buffer[c];
+
+        mma_buffer[c] += (opl_buf[c] * dev->fm_vol_l) / 65536.0;
+        mma_buffer[c + 1] += (opl_buf[c + 1] * dev->fm_vol_r) / 65536.0;
 
         buffer[c] += mma_buffer[c];
         buffer[c + 1] += mma_buffer[c + 1];
