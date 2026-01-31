@@ -1336,7 +1336,7 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 'J': /* advance print pos vertically */
-                dev->curr_y += (double) ((double) dev->esc_parms[0] / 180.0);
+                dev->curr_y += ((double) dev->esc_parms[0] / (dev->lang >= LANG_ESCP ? 180.0 : 216.0));
                 if (dev->curr_y > dev->bottom_margin)
                     new_page(dev, 1, 0);
                 break;
@@ -1460,7 +1460,8 @@ process_char(escp_t *dev, uint8_t ch)
                 unit_size = dev->defined_unit;
                 if (unit_size < 0)
                     unit_size = (dev->print_quality == QUALITY_DRAFT || dev->lang < LANG_ESCP) ? 120.0 : 180.0;
-                dev->curr_x += ((double) rel_move / unit_size);
+                if (dev->curr_x + ((double) rel_move / unit_size) < dev->right_margin)
+                    dev->curr_x += ((double) rel_move / unit_size);
                 break;
 
             case '^': // Select 60/120-dpi, 9-pin graphics)
