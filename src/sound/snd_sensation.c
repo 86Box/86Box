@@ -9,8 +9,13 @@
  *          Tandy Sensation 1 (25-1650)/VIS custom audio emulation.
  *
  *          Combination of a Yamaha OPL3, MMA (YMZ263B) and the undocumented
- *          VIS DAC/mixer hardware. Compatible with the "Gold Sound Standard"
- *          but not fully Adlib Gold-compatible.
+ *          VIS 16-bit DAC/mixer hardware. The mixer is based around a pair of
+ *          Fujitsu MB87077s accessed through two sets of indexed registers on
+ *          the DAC.
+ *
+ *          Despite the presence of both an OPL3 and an MMA the hardware is
+ *          not Adlib Gold-compatible (it lacks the EEPROM, Philips TDA8425
+ *          volume/tone control and the Adlib Gold control regsisters.)
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
@@ -521,9 +526,26 @@ sensation_visdac_write(uint16_t port, uint8_t val, void *priv)
             visdac->visdac_regs[0x06] = val;
             break;
         case 0x07: /* Mixer Source Select */
+            /* Known valid source values:
+             * 0x08 = Mic
+             * 0x09 = Line
+             * 0x0A = CD
+             * 0x0B = Wave
+             * 0x0C = Phone
+             * 0x0E = MMA Wave (written when the MMA DAC is in use under Win3.1)
+             *
+             * 0x07 and 0x0F are written to this register during POST but seem unused by the drivers
+             */
             visdac->visdac_regs[0x07] = val;
             break;
         case 0x08: /* Mixer Crossover Control */
+            /* Connects the selected source's left/right channels to the left and/or right speakers
+             * Any combination of the below values can be used:
+             * 0x05 = Route left channel to left speaker
+             * 0x10 = Route right channel to left speaker
+             * 0x28 = Route left channel to right speaker
+             * 0x42 = Route right channel to right speaker
+             */
             visdac->visdac_regs[0x08] = val;
             break;
         case 0x09: /* Control register */
