@@ -623,47 +623,67 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
     switch (density) {
         case 0:
             dev->bg_h_density        = 60;
-            dev->bg_v_density        = 60;
+            dev->bg_v_density        = dev->lang >= LANG_ESCP ? 60 : 72;
             dev->bg_adjacent         = 1;
             dev->bg_bytes_per_column = 1;
             break;
 
         case 1:
             dev->bg_h_density        = 120;
-            dev->bg_v_density        = 60;
+            dev->bg_v_density        = dev->lang >= LANG_ESCP ? 60 : 72;
             dev->bg_adjacent         = 1;
             dev->bg_bytes_per_column = 1;
             break;
 
         case 2:
             dev->bg_h_density        = 120;
-            dev->bg_v_density        = 60;
+            dev->bg_v_density        = dev->lang >= LANG_ESCP ? 60 : 72;
             dev->bg_adjacent         = 0;
             dev->bg_bytes_per_column = 1;
             break;
 
         case 3:
-            dev->bg_h_density        = 60;
-            dev->bg_v_density        = 240;
+            dev->bg_h_density        = 240;
+            dev->bg_v_density        = dev->lang >= LANG_ESCP ? 60 : 72;
             dev->bg_adjacent         = 0;
             dev->bg_bytes_per_column = 1;
             break;
 
         case 4:
             dev->bg_h_density        = 80;
-            dev->bg_v_density        = 60;
+            dev->bg_v_density        = dev->lang >= LANG_ESCP ? 60 : 72;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 5:
+            if (dev->lang >= LANG_ESCP)
+                break;
+            dev->bg_h_density        = 72;
+            dev->bg_v_density        = 72;
             dev->bg_adjacent         = 1;
             dev->bg_bytes_per_column = 1;
             break;
 
         case 6:
             dev->bg_h_density        = 90;
-            dev->bg_v_density        = 60;
+            dev->bg_v_density        = dev->lang >= LANG_ESCP ? 60 : 72;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 1;
+            break;
+
+        case 7:
+            if (dev->lang >= LANG_ESCP)
+                break;
+            dev->bg_h_density        = 144;
+            dev->bg_v_density        = 72;
             dev->bg_adjacent         = 1;
             dev->bg_bytes_per_column = 1;
             break;
 
         case 32:
+            if (dev->lang < LANG_ESCP)
+                break;
             dev->bg_h_density        = 60;
             dev->bg_v_density        = 180;
             dev->bg_adjacent         = 1;
@@ -671,6 +691,8 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             break;
 
         case 33:
+            if (dev->lang < LANG_ESCP)
+                break;
             dev->bg_h_density        = 120;
             dev->bg_v_density        = 180;
             dev->bg_adjacent         = 1;
@@ -678,6 +700,8 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             break;
 
         case 38:
+            if (dev->lang < LANG_ESCP)
+                break;
             dev->bg_h_density        = 90;
             dev->bg_v_density        = 180;
             dev->bg_adjacent         = 1;
@@ -685,6 +709,8 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             break;
 
         case 39:
+            if (dev->lang < LANG_ESCP)
+                break;
             dev->bg_h_density        = 180;
             dev->bg_v_density        = 180;
             dev->bg_adjacent         = 1;
@@ -692,6 +718,8 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             break;
 
         case 40:
+            if (dev->lang < LANG_ESCP)
+                break;
             dev->bg_h_density        = 360;
             dev->bg_v_density        = 180;
             dev->bg_adjacent         = 0;
@@ -699,6 +727,8 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             break;
 
         case 71:
+            if (dev->lang < LANG_ESCP)
+                break;
             dev->bg_h_density        = 180;
             dev->bg_v_density        = 360;
             dev->bg_adjacent         = 1;
@@ -706,6 +736,8 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             break;
 
         case 72:
+            if (dev->lang < LANG_ESCP)
+                break;
             dev->bg_h_density        = 360;
             dev->bg_v_density        = 360;
             dev->bg_adjacent         = 0;
@@ -713,10 +745,30 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             break;
 
         case 73:
+            if (dev->lang < LANG_ESCP2)
+                break;
             dev->bg_h_density        = 360;
             dev->bg_v_density        = 360;
             dev->bg_adjacent         = 1;
             dev->bg_bytes_per_column = 6;
+            break;
+
+        case 254:
+            if (dev->lang >= LANG_ESCP)
+                break;
+            dev->bg_h_density        = 120;
+            dev->bg_v_density        = 72;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 2;
+            break;
+
+        case 255:
+            if (dev->lang >= LANG_ESCP)
+                break;
+            dev->bg_h_density        = 60;
+            dev->bg_v_density        = 72;
+            dev->bg_adjacent         = 1;
+            dev->bg_bytes_per_column = 2;
             break;
 
         default:
@@ -758,14 +810,11 @@ process_char(escp_t *dev, uint8_t ch)
             case 0x0f: // Select condensed printing (ESC SI)
             case '#': // Cancel MSB control
             case '0': // Select 1/8-inch line spacing
-            case '1': // Select 7/60-inch line spacing
             case '2': // Select 1/6-inch line spacing
             case '4': // Select italic font
             case '5': // Cancel italic font
             case '6': // Enable printing of upper control codes
             case '7': // Enable upper control codes
-            case '8': // Disable paper-out detector
-            case '9': // Enable paper-out detector
             case '<': // Unidirectional mode (one line)
             case '=': // Set MSB to 0
             case '>': // Set MSB to 1
@@ -778,12 +827,20 @@ process_char(escp_t *dev, uint8_t ch)
             case 'O': // Cancel bottom margin
             case 'P': // Select 10.5-point, 10-cpi
             case 'T': // Cancel superscript/subscript printing
-            case '^': // Enable printing of all character codes on next character
                 dev->esc_parms_req = 0;
                 break;
             case 'g': // Select 10.5-point, 15-cpi
                 dev->esc_parms_req = 0;
                 if (dev->lang == LANG_EX1000) {
+                    dev->esc_pending = 0;
+                    return 1;
+                }
+                break;
+            case '1': // Select 7/72-inch line spacing
+            case '8': // Disable paper-out detector
+            case '9': // Enable paper-out detector
+                dev->esc_parms_req = 0;
+                if (dev->lang >= LANG_ESCP) {
                     dev->esc_pending = 0;
                     return 1;
                 }
@@ -903,6 +960,16 @@ process_char(escp_t *dev, uint8_t ch)
                     dev->esc_pending = 0;
                     return 1;
                 }
+            case '^': /* 9-pin ESC/P: Select 60/120-dpi, 9-bit graphics
+                         IBM: Enable printing of all character codes on next character */
+                if (dev->lang <= LANG_9PIN)
+                    dev->esc_parms_req = 3;
+                else {
+                    dev->esc_parms_req = 0;
+                    if (dev->lang == LANG_ESCP)
+                        dev->esc_pending = 0;
+                }
+                break;
             case '*': // Select bit image
                 dev->esc_parms_req = 3;
                 break;
@@ -1168,8 +1235,8 @@ process_char(escp_t *dev, uint8_t ch)
                 dev->linespacing = 1.0 / 8.0;
                 break;
 
-            case '1': /* select 7/60-inch line spacing */
-                dev->linespacing = 7.0 / 60.0;
+            case '1': /* select 7/72-inch line spacing */
+                dev->linespacing = 7.0 / 72.0;
                 break;
 
             case '2': /* select 1/6-inch line spacing */
@@ -1212,6 +1279,14 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case '?': /* reassign bit-image mode */
+                if ((dev->esc_parms[1] == 3 || dev->esc_parms[1] == 5) && dev->lang >= LANG_ESCP)
+                    break;
+                if (dev->esc_parms[1] > 7) {
+                    if (dev->lang < LANG_ESCP)
+                        break;
+                    if (dev->esc_parms[1] > 40 && dev->lang < LANG_ESCP2)
+                        break;
+                }
                 if (dev->esc_parms[0] == 'K')
                     dev->density_k = dev->esc_parms[1];
                 if (dev->esc_parms[0] == 'L')
@@ -1267,12 +1342,10 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 'K': /* select 60-dpi graphics */
-                /* TODO: graphics stuff */
                 setup_bit_image(dev, dev->density_k, PARAM16(0));
                 break;
 
             case 'L': /* select 120-dpi graphics */
-                /* TODO: graphics stuff */
                 setup_bit_image(dev, dev->density_l, PARAM16(0));
                 break;
 
@@ -1375,12 +1448,10 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 'Y': /* select 120-dpi, double-speed graphics */
-                /* TODO: graphics stuff */
                 setup_bit_image(dev, dev->density_y, PARAM16(0));
                 break;
 
             case 'Z': /* select 240-dpi graphics */
-                /* TODO: graphics stuff */
                 setup_bit_image(dev, dev->density_z, PARAM16(0));
                 break;
 
@@ -1390,6 +1461,10 @@ process_char(escp_t *dev, uint8_t ch)
                 if (unit_size < 0)
                     unit_size = (dev->print_quality == QUALITY_DRAFT || dev->lang < LANG_ESCP) ? 120.0 : 180.0;
                 dev->curr_x += ((double) rel_move / unit_size);
+                break;
+
+            case '^': // Select 60/120-dpi, 9-pin graphics)
+                setup_bit_image(dev, 255 - dev->esc_parms[0], PARAM16(0));
                 break;
 
             case 'a': /* select justification */
@@ -1414,8 +1489,7 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 'j': // Reverse paper feed (ESC j)
-                reverse = (double) PARAM16(0) / (double) 216.0;
-                reverse = dev->curr_y - reverse;
+                reverse = dev->curr_y - (double) PARAM16(0) / (double) 216.0;
                 if (reverse < dev->left_margin)
                     dev->curr_y = dev->left_margin;
                 else
@@ -1827,6 +1901,8 @@ print_bit_graph(escp_t *dev, uint8_t ch)
     for (uint8_t i = 0; i < dev->bg_bytes_per_column; i++) {
         /* for each byte */
         for (uint8_t j = 128; j != 0; j >>= 1) {
+            if (dev->bg_v_density == 72 && i == 1 && j != 128) // 9-bit mode from ESC ^
+                break;
             /* for each bit */
             if (dev->bg_column[i] & j) {
                 /* draw a "pixel" */
