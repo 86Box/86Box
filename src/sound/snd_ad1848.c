@@ -270,6 +270,13 @@ ad1848_read(uint16_t addr, void *priv)
                         return ret;
                     }
                     break;
+                    
+                case 24:
+                    ret = ad1848->regs[ad1848->index];
+                    break;
+                case 25:
+                    ret = ad1848->xregs[ad1848->index];
+                    break;  
 
                 default:
                     break;
