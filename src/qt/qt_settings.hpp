@@ -30,6 +30,7 @@ public:
     static Settings *settings;
 protected slots:
     void accept() override;
+    void reject() override;
 
 private:
     Ui::Settings               *ui;
