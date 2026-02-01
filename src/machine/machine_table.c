@@ -7806,7 +7806,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -7825,7 +7825,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &sensationaud_device,
         .net_device               = NULL
     },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */

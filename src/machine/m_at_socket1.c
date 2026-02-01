@@ -392,13 +392,15 @@ machine_at_sensation1_init(const machine_t *model)
     device_add(&vl82c113_device);
 
     device_add(&pssj_1e0_device);
-    device_add(&sensationaud_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_nsc_dp8473_device);
 
     //if (gfxcard[0] == VID_INTERNAL)
     //    device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     return ret;
 }
