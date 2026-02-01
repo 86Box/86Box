@@ -44,6 +44,9 @@ extern "C" {
 #include <QApplication>
 #include <QStyle>
 
+#include <dirent.h>
+#include <unistd.h>
+
 class SettingsModel : public QAbstractListModel {
 public:
     SettingsModel(QObject *parent)
@@ -236,5 +239,36 @@ Settings::accept()
             return;
         }
     }
+
     QDialog::accept();
+}
+
+static int
+plat_path_is_empty(char *path)
+{
+    int n            = 0;
+    DIR *dir         = opendir(path);
+    struct dirent *d;
+
+    if (dir == NULL)
+        /* Not a directory or doesn't exist. */
+        return 1;
+
+    while ((d = readdir(dir)) != NULL) {
+        if (++n > 2)
+            break;
+    }
+
+    closedir(dir);
+
+    return (n <= 2);
+}
+
+void
+Settings::reject()
+{
+    if (plat_path_is_empty(usr_path))
+        rmdir(usr_path);
+
+    QDialog::reject();
 }
