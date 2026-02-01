@@ -400,7 +400,8 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         ret = CallNextHookEx(NULL, nCode, wParam, lParam);
 
     if (lpKdhs->scanCode == 0x00000045) {
-        if ((lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000090)) {
+        if ((lpKdhs->flags & LLKHF_EXTENDED) && ((lpKdhs->vkCode == 0x00000090) ||
+                                                 (lpKdhs->vkCode == 0x00000013))) {
             /* NumLock. */
             lpKdhs->flags &= ~LLKHF_EXTENDED;
         } else if (!(lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000013)) {
