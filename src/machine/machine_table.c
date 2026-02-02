@@ -18511,10 +18511,11 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK(CPU_CYRIX3S),
             .min_bus     = 66666667,
             .max_bus     = 83333333,
-            .min_voltage = 2050,
-            .max_voltage = 3100,
-            .min_multi   = 3.5,
-            .max_multi   = 5.0
+            /* TODO: to find the actual voltage and multiplier bus speeds. */
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
@@ -18531,11 +18532,11 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &como_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = NULL, /* Onboard video not yet emulated: ATi Rage IIc AGP */
         .snd_device               = &cs4235_onboard_device,
         .net_device               = NULL
     },

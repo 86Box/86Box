@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          808x BIU emulation.
+ *          Vx0 BIU emulation.
  *
  * Authors: Andrew Jenner, <https://www.reenigne.org>
  *          Miran Grca, <mgrca8@gmail.com>
@@ -86,22 +86,22 @@ static int         dma_wait_states       = 0;
 /* DEBUG stuff. */
 const char *lpBiuStates[7] = { "Ti   ", "Ti S ", "Ti D ", "Ti R ", "Tw   ", "T%i PF", "T%i EU" };
 
-#ifdef ENABLE_808X_BIU_LOG
-int x808x_biu_do_log = ENABLE_808X_BIU_LOG;
+#ifdef ENABLE_VX0_BIU_LOG
+int vx0_biu_do_log = ENABLE_VX0_BIU_LOG;
 
 static void
-x808x_biu_log(const char *fmt, ...)
+vx0_biu_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (x808x_biu_do_log) {
+    if (vx0_biu_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define x808x_biu_log(fmt, ...)
+#    define vx0_biu_log(fmt, ...)
 #endif
 
 void
@@ -301,7 +301,7 @@ bus_do_io(int io_type)
 {
     int      old_cycles = cycles;
 
-    x808x_biu_log("(%02X) bus_do_io(%02X): %04X\n", opcode, io_type, cpu_state.eaaddr);
+    vx0_biu_log("(%02X) bus_do_io(%02X): %04X\n", opcode, io_type, cpu_state.eaaddr);
 
     if (io_type & BUS_OUT) {
         if (io_type & BUS_WIDE)
@@ -388,18 +388,18 @@ biu_print_cycle(void)
     if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
         if (biu_state >= BIU_STATE_PF) {
             if (biu_wait) {
-                x808x_biu_log("[%04X:%04X] [%i, %i] (%i) %s (%i)\n", CS, cpu_state.pc, dma_state, dma_wait_states,
-                              pfq_pos, lpBiuStates[BIU_STATE_WAIT], wait_states);
+                vx0_biu_log("[%04X:%04X] [%i, %i] (%i) %s (%i)\n", CS, cpu_state.pc, dma_state, dma_wait_states,
+                            pfq_pos, lpBiuStates[BIU_STATE_WAIT], wait_states);
             } else {
                 char temp[16] = { 0 };
 
                 sprintf(temp, lpBiuStates[biu_state], biu_cycles + 1);
-                x808x_biu_log("[%04X:%04X] [%i, %i] (%i) %s\n", CS, cpu_state.pc, dma_state, dma_wait_states,
-                              pfq_pos, temp);
+                vx0_biu_log("[%04X:%04X] [%i, %i] (%i) %s\n", CS, cpu_state.pc, dma_state, dma_wait_states,
+                            pfq_pos, temp);
             }
         } else {
-            x808x_biu_log("[%04X:%04X] [%i, %i] (%i) %s\n", CS, cpu_state.pc, dma_state, dma_wait_states,
-                          pfq_pos, lpBiuStates[biu_state]);
+            vx0_biu_log("[%04X:%04X] [%i, %i] (%i) %s\n", CS, cpu_state.pc, dma_state, dma_wait_states,
+                        pfq_pos, lpBiuStates[biu_state]);
         }
     }
 }
@@ -456,8 +456,8 @@ static void
 biu_cycle_idle(int type)
 {
     if ((CS == DEBUG_SEG) && (cpu_state.pc >= DEBUG_OFF_L) && (cpu_state.pc <= DEBUG_OFF_H)) {
-        x808x_biu_log("[%04X:%04X] [%i, %i] (%i) %s\n", CS, cpu_state.pc, dma_state, dma_wait_states,
-                      pfq_pos, lpBiuStates[type]);
+        vx0_biu_log("[%04X:%04X] [%i, %i] (%i) %s\n", CS, cpu_state.pc, dma_state, dma_wait_states,
+                    pfq_pos, lpBiuStates[type]);
     }
 
     run_dma_cycle();
@@ -493,7 +493,7 @@ do_bus_access(void)
 {
     int io_type = (biu_state == BIU_STATE_EU) ? bus_request_type : BUS_CODE;
 
-    x808x_biu_log("[%04X:%04X] %02X bus access %02X\n", CS, cpu_state.pc, opcode, io_type);
+    vx0_biu_log("[%04X:%04X] %02X bus access %02X\n", CS, cpu_state.pc, opcode, io_type);
 
     if (io_type != 0) {
         wait_states = 0;
@@ -707,7 +707,7 @@ biu_eu_request(void)
 void
 wait_vx0(int c)
 {
-    x808x_biu_log("[%04X:%04X] %02X %i cycles\n", CS, cpu_state.pc, opcode, c);
+    vx0_biu_log("[%04X:%04X] %02X %i cycles\n", CS, cpu_state.pc, opcode, c);
 
     for (uint8_t i = 0; i < c; i++)
         biu_cycle();

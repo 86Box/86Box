@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          808x CPU emulation, mostly ported from reenigne's XTCE, which
+ *          Vx0 CPU emulation, mostly ported from reenigne's XTCE, which
  *          is cycle-accurate.
  *
  * Authors: Andrew Jenner, <https://www.reenigne.org>
@@ -224,20 +224,6 @@ const uint8_t opf_0f[256]  = {      0,      0,      0,      0,      0,      0,  
 
 int                nx                    = 0;
 
-static uint32_t    cpu_src               = 0;
-static uint32_t    cpu_dest              = 0;
-
-static uint32_t    cpu_data              = 0;
-
-static int         oldc;
-static int         cpu_alu_op;
-static int         completed             = 1;
-static int         in_rep                = 0;
-static int         repeating             = 0;
-static int         rep_c_flag            = 0;
-static int         clear_lock            = 0;
-static int         noint                 = 0;
-static int         tempc_fpu             = 0;
 static int         started               = 0;
 static int         group_delay           = 0;
 static int         modrm_loaded          = 0;
@@ -245,13 +231,6 @@ static int         in_0f                 = 0;
 static int         in_hlt                = 0;
 static int         retem                 = 0;
 static int         halted                = 0;
-
-static uint32_t *  ovr_seg               = NULL;
-
-/* Pointer tables needed for segment overrides. */
-static uint32_t *  opseg[4];
-
-static x86seg   *  _opseg[4];
 
 enum {
     MODRM_ADDR_BX_SI        = 0x00,
@@ -338,25 +317,25 @@ static uint8_t     modrm_cycs_post[256]  = { [MODRM_ADDR_BX_SI]        = 0,
                                              [MODRM_ADDR_BX_DISP16]    = 2,
                                              [0x88 ... 0xff]           = 0 };
 
-#ifdef ENABLE_808X_LOG
+#ifdef ENABLE_VX0_LOG
 #if 0
 void dumpregs(int);
 #endif
-int x808x_do_log = ENABLE_808X_LOG;
+int vx0_do_log = ENABLE_VX0_LOG;
 
 static void
-x808x_log(const char *fmt, ...)
+vx0_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (x808x_do_log) {
+    if (vx0_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define x808x_log(fmt, ...)
+#    define vx0_log(fmt, ...)
 #endif
 
 static i8080 emulated_processor;
@@ -489,6 +468,7 @@ void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_vx0(int hard)
 {
+    is_new_biu = 1;
     halted     = 0;
     in_hlt     = 0;
     in_0f      = 0;
@@ -604,7 +584,7 @@ geteal(void)
     uint32_t ret;
 
     if (cpu_mod == 3) {
-        fatal("808x register geteal()\n");
+        fatal("Vx0 register geteal()\n");
         ret = 0xffffffff;
     } else
         ret = readmeml(easeg, cpu_state.eaaddr);
@@ -619,7 +599,7 @@ geteaq(void)
     uint32_t ret;
 
     if (cpu_mod == 3) {
-        fatal("808x register geteaq()\n");
+        fatal("Vx0 register geteaq()\n");
         ret = 0xffffffff;
     } else
         ret = readmemq(easeg, cpu_state.eaaddr);
@@ -689,7 +669,7 @@ static void
 seteal(uint32_t val)
 {
     if (cpu_mod == 3) {
-        fatal("808x register seteal()\n");
+        fatal("Vx0 register seteal()\n");
         return;
     } else
         writememl(easeg, cpu_state.eaaddr, val);
@@ -699,7 +679,7 @@ static void
 seteaq(uint64_t val)
 {
     if (cpu_mod == 3) {
-        fatal("808x register seteaq()\n");
+        fatal("Vx0 register seteaq()\n");
         return;
     } else
         writememq(easeg, cpu_state.eaaddr, val);
@@ -1043,7 +1023,7 @@ intr_routine(uint16_t intr, int skip_first)
 
     if (!(cpu_state.flags & MD_FLAG) && is_nec) {
         sync_from_i8080();
-        x808x_log("CALLN/INT#/NMI#\n");
+        vx0_log("CALLN/INT#/NMI#\n");
     }
 
     if (!skip_first)
@@ -1288,7 +1268,7 @@ sw_int(uint16_t intr)
 
     if (!(cpu_state.flags & MD_FLAG) && is_nec) {
         sync_from_i8080();
-        x808x_log("CALLN/INT#/NMI#\n");
+        vx0_log("CALLN/INT#/NMI#\n");
     }
 
     do_cycles_i(3);
@@ -1364,7 +1344,7 @@ interrupt_brkem(uint16_t addr)
     push(&old_ip);
 
     sync_to_i8080();
-    x808x_log("BRKEM mode\n");
+    vx0_log("BRKEM mode\n");
 }
 
 void
@@ -1387,7 +1367,7 @@ retem_i8080(void)
 
     retem = 1;
 
-    x808x_log("RETEM mode\n");
+    vx0_log("RETEM mode\n");
 }
 
 void
@@ -1408,7 +1388,7 @@ custom_nmi(void)
 
     if (!(cpu_state.flags & MD_FLAG) && is_nec) {
         sync_from_i8080();
-        x808x_log("CALLN/INT#/NMI#\n");
+        vx0_log("CALLN/INT#/NMI#\n");
     }
 
     do_cycle_i();
@@ -1854,17 +1834,59 @@ do_mod_rm(void)
 }
 
 static void
-decode(void)
+decode_modrm(void)
 {
     uint8_t op_f;
+
+    modrm_loaded = 0;
+
+    if (is_nec) {
+        if (in_0f)
+            op_f = (uint8_t) opf_0f[opcode];
+        else
+            op_f = (uint8_t) opf_nec[opcode];
+    } else
+        op_f = (uint8_t) opf[opcode];
+
+    if (op_f & OP_GRP) {
+        do_mod_rm();
+        modrm_loaded = 1;
+
+        op_f |= (OP_MRM | OP_EA);
+
+        if (opcode >= 0xf0) {
+            op_f |= OP_DELAY;
+            group_delay = 1;
+        }
+    }
+
+    if (!modrm_loaded && (op_f & OP_MRM)) {
+        do_mod_rm();
+        modrm_loaded = 1;
+    }
+
+    if (modrm_loaded && !(op_f & OP_EA)) {
+        if (is_nec)
+            do_cycle();
+        else {
+            if (opcode == 0x8f) {
+                if (cpu_mod == 3)
+                   do_cycles_i(2);
+            } else
+                do_cycles_i(2);
+        }
+    }
+}
+
+static void
+decode(void)
+{
     uint8_t prefix = 0;
 
     if (halted)
         opcode  = 0xf4;
     else
         opcode  = biu_pfq_fetchb_common();
-
-    modrm_loaded = 0;
 
     while (1) {
         prefix = 0;
@@ -1913,43 +1935,6 @@ decode(void)
 
         opcode  = biu_pfq_fetchb_common();
     }
-
-    if (is_nec) {
-        if (in_0f)
-            op_f = (uint8_t) opf_0f[opcode];
-        else
-            op_f = (uint8_t) opf_nec[opcode];
-    } else
-        op_f = (uint8_t) opf[opcode];
-
-    if (op_f & OP_GRP) {
-        do_mod_rm();
-        modrm_loaded = 1;
-
-        op_f |= (OP_MRM | OP_EA);
-
-        if (opcode >= 0xf0) {
-            op_f |= OP_DELAY;
-            group_delay = 1;
-        }
-    }
-
-    if (!modrm_loaded && (op_f & OP_MRM)) {
-        do_mod_rm();
-        modrm_loaded = 1;
-    }
-
-    if (modrm_loaded && !(op_f & OP_EA)) {
-        if (is_nec)
-            do_cycle();
-        else {
-            if (opcode == 0x8f) {
-                if (cpu_mod == 3)
-                   do_cycles_i(2);
-            } else
-                do_cycles_i(2);
-        }
-    }
 }
 
 static void
@@ -1992,6 +1977,10 @@ string_op(int bits)
                     lods_di(bits);
                     tmpa = cpu_data;
                     lods(bits);
+                    /* Swap them or else the operation goes wrong. */
+                    uint32_t tmpa2 = tmpa;
+                    tmpa = cpu_data;
+                    cpu_data = tmpa2;
                 } else {
                     lods(bits);
                     tmpa = cpu_data;
@@ -4716,7 +4705,7 @@ execute_instruction(void)
             break;
 
         default:
-            x808x_log("Illegal opcode: %02X\n", opcode);
+            vx0_log("Illegal opcode: %02X\n", opcode);
             biu_pfq_fetchb();
             do_cycles(8);
             break;
@@ -4735,7 +4724,16 @@ execvx0(int cycs)
             startx86();
         }
 
+#ifdef DEBUG_INSTRUCTIONS
+        if (repeating) {
+            if ((opcode >= MIN_INS) && (opcode <= MAX_INS) && (opcode != SKIP_INS)) {
+                execx86_instruction();
+                goto check_completed;
+            }
+        } else {
+#else
         if (!repeating) {
+#endif
             cpu_state.oldpc = cpu_state.pc;
 
             if (clear_lock) {
@@ -4743,16 +4741,31 @@ execvx0(int cycs)
                 clear_lock = 0;
             }
 
-            if (!is_nec || (cpu_state.flags & MD_FLAG))
+            if (!is_nec || (cpu_state.flags & MD_FLAG)) {
                 decode();
+
+#ifdef DEBUG_INSTRUCTIONS
+                if ((opcode >= MIN_INS) && (opcode <= MAX_INS) && (opcode != SKIP_INS)) {
+                    oldc    = cpu_state.flags & C_FLAG;
+
+                    execx86_instruction();
+                    goto check_completed;
+                }
+#endif
+
+                decode_modrm();
+            }
 
             oldc    = cpu_state.flags & C_FLAG;
         }
 
-        x808x_log("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
+        vx0_log("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
 
         execute_instruction();
 
+#ifdef DEBUG_INSTRUCTIONS
+check_completed:
+#endif
         if (completed) {
             if (opcode != 0xf4)
                 finalize();

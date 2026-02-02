@@ -1495,6 +1495,7 @@ pc_init_modules(void)
         fdd_audio_init();
     }
     
+    hdd_audio_load_profiles();
     hdd_audio_init();
 
     sound_init();

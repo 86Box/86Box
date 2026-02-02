@@ -76,7 +76,8 @@ enum {
     DMA_STATE_OPERATING
 };
 
-/* Temporary BIU externs - move to 808x_biu.h. */
+extern void        execx86_instruction(void);
+
 extern void        biu_resume_on_queue_read(void);
 extern void        wait_vx0(int c);
 extern void        biu_reset(void);
@@ -106,11 +107,32 @@ extern void        biu_wait_for_read_finish(void);
 extern uint8_t     biu_preload_byte;
 
 extern int         nx;
+extern int         oldc;
+extern int         cpu_alu_op;
+extern int         completed;
+extern int         in_rep;
+extern int         repeating;
+extern int         rep_c_flag;
+extern int         noint;
+extern int         tempc_fpu;
+extern int         clear_lock;
+extern int         is_new_biu;
 
 extern int         schedule_fetch;
 extern int         in_lock;
 extern int         bus_request_type;
 extern int         pic_data;
 extern int         biu_queue_preload;
+
+extern uint32_t    cpu_src;
+extern uint32_t    cpu_dest;
+
+extern uint32_t    cpu_data;
+
+extern uint32_t   *ovr_seg;
+
+/* Pointer tables needed for segment overrides. */
+extern uint32_t *  opseg[4];
+extern x86seg   *  _opseg[4];
 
 #endif /*EMU_808X_BIU_H*/

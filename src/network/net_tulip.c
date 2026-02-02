@@ -886,7 +886,6 @@ static void
 tulip_reset(void *priv)
 {
     TULIPState     *s           = (TULIPState *) priv;
-    const uint16_t *eeprom_data = nmc93cxx_eeprom_data(s->eeprom);
     s->csr[0]                   = 0xfe000000;
     s->csr[1]                   = 0xffffffff;
     s->csr[2]                   = 0xffffffff;
@@ -901,6 +900,8 @@ tulip_reset(void *priv)
     s->csr[14]                  = 0xffffffff;
     s->csr[15]                  = 0x8ff00000;
     if (s->device_info->local != 3) {
+        const uint16_t *eeprom_data = nmc93cxx_eeprom_data(s->eeprom);
+
         s->subsys_id                = eeprom_data[1];
         s->subsys_ven_id            = eeprom_data[0];
     }
