@@ -2869,7 +2869,7 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "Beim Leeren des NVRAMs der virtuellen Maschine ist ein Fehler aufgetreten \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "%1 VM-Manager"
+msgstr "%1 VM Manager"
 
 msgid "%n disk(s)"
 msgstr "%n Festplatte(n)"
