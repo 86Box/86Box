@@ -566,7 +566,7 @@ static const device_config_t como_config[] = {
                 .files         = { "roms/machines/como/COMO_Olivetti_OEM.ROM", "" }
             },
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 1.12",
+                .name          = "AMIBIOS 6 (071595) - Revision 1.12 (eMachines OEM)",
                 .internal_name = "como",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
