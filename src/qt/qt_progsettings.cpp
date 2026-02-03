@@ -159,6 +159,8 @@ ProgSettings::~ProgSettings()
     delete ui;
 }
 
+static QString sys_lang;
+
 #ifdef Q_OS_WINDOWS
 /* Returns the standard UI font for Windows, which by default varies for different
    languages. It can also be changed via external tools, if the user wants that.
@@ -168,6 +170,28 @@ ProgSettings::~ProgSettings()
 QFont
 ProgSettings::getUIFont()
 {
+    QString langCode = languageIdToCode(lang_id);
+
+    if ((langCode != sys_lang) && ((langCode == "ja-JP") || (langCode == "ko-KR") ||
+                                   (langCode == "zh-CN") || (langCode == "zh-TW"))) {
+        /*
+           Work around Windows' inappropriate, ugly default fonts when using an East Asian
+           language when it is not also the system language.
+         */
+        if (langCode == "ja-JP") {
+            /* Check for Windows 10 or later to choose the appropriate system font */
+            if (QVersionNumber::fromString(QSysInfo::kernelVersion()).majorVersion() >= 10)
+                return QFont("Yu Gothic UI", 9);
+            else
+                return QFont("Meiryo UI", 9);
+        } else if (langCode == "ko-KR")
+            return QFont("Malgun Gothic", 9);
+        else if (langCode == "zh-CN")
+            return QFont("Microsoft YaHei", 9);
+        else if (langCode == "zh-TW")
+            return QFont("Microsoft JhengHei", 9);
+    }
+
     // Get the system (primary monitor) DPI. The font returned by
     // SystemParametersInfo is scaled according to this and we need
     // to get the font size in points to pass into QFont's constructor.
@@ -220,8 +244,41 @@ ProgSettings::languageIdToCode(int id)
 }
 
 void
+ProgSettings::getSysLang(QObject *parent)
+{
+    if (qtTranslator) {
+        QApplication::removeTranslator(qtTranslator);
+        qtTranslator = nullptr;
+    }
+    if (translator) {
+        QApplication::removeTranslator(translator);
+        translator = nullptr;
+    }
+    qtTranslator             = new QTranslator(parent);
+    translator               = new CustomTranslator(parent);
+    QString localetofilename = "";
+    for (int i = 0; i < QLocale::system().uiLanguages().size(); i++) {
+        localetofilename = QLocale::system().uiLanguages()[i];
+        if (translator->load(QLatin1String("86box_") + localetofilename, QLatin1String(":/"))) {
+            qDebug() << "Translations loaded.";
+            QCoreApplication::installTranslator(translator);
+            /* First try qtbase */
+            if (!loadQtTranslations(QLatin1String("qtbase_") + localetofilename.replace('-', '_')))
+                /* If that fails, try legacy qt_* translations */
+                if (!loadQtTranslations(QLatin1String("qt_") + localetofilename.replace('-', '_')))
+                    qDebug() << "Failed to find Qt translations!";
+            if (QCoreApplication::installTranslator(qtTranslator))
+                qDebug() << "Qt translations loaded.";
+            sys_lang = localetofilename;
+            break;
+        }
+    }
+}
+
+void
 ProgSettings::loadTranslators(QObject *parent)
 {
+    getSysLang(parent);
     if (qtTranslator) {
         QApplication::removeTranslator(qtTranslator);
         qtTranslator = nullptr;

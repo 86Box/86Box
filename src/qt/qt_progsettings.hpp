@@ -19,6 +19,7 @@ public:
 #endif
     static int     languageCodeToId(QString langCode);
     static QString languageIdToCode(int id);
+    static void    getSysLang(QObject *parent = nullptr);
     static void    loadTranslators(QObject *parent = nullptr);
     static void    reloadStrings();
     class CustomTranslator : public QTranslator {
