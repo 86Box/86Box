@@ -2431,7 +2431,7 @@ MainWindow::changeEvent(QEvent *event)
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
         auto size = this->centralWidget()->size();
-        QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+        QApplication::setFont(ProgSettings::getUIFont());
         QApplication::processEvents();
         main_window->centralWidget()->setFixedSize(size);
         QApplication::processEvents();

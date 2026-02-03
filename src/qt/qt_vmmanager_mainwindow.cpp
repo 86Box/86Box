@@ -269,7 +269,7 @@ VMManagerMainWindow::changeEvent(QEvent *event)
 {
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
-        QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+        QApplication::setFont(QFont(ProgSettings::getUIFont()));
     }
 #endif
     QWidget::changeEvent(event);

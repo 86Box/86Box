@@ -165,7 +165,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     connect(this, &VMManagerDetails::styleUpdated, portsSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, otherSection, &VMManagerDetailSection::updateStyle);
 
-    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+    QApplication::setFont(ProgSettings::getUIFont());
 #endif
 
     sysconfig = new VMManagerSystem();

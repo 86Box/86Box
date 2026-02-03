@@ -28,6 +28,8 @@
 #ifdef Q_OS_WINDOWS
 #    include <QSysInfo>
 #    include <QVersionNumber>
+#    define  WIN32_LEAN_AND_MEAN
+#    include <windows.h>
 #endif
 
 extern "C" {
@@ -158,26 +160,42 @@ ProgSettings::~ProgSettings()
 }
 
 #ifdef Q_OS_WINDOWS
-/* Return the standard font name on Windows, which is overridden per-language
-   to prevent CJK fonts with embedded bitmaps being chosen as a fallback. */
-QString
-ProgSettings::getFontName(int langId)
+/* Returns the standard UI font for Windows, which by default varies for different
+   languages. It can also be changed via external tools, if the user wants that.
+
+   We use the message font here since that is what most Windows components and
+   other third-party programs use. */
+QFont
+ProgSettings::getUIFont()
 {
-    QString langCode = languageIdToCode(lang_id);
-    if (langCode == "ja-JP") {
-        /* Check for Windows 10 or later to choose the appropriate system font */
-        if (QVersionNumber::fromString(QSysInfo::kernelVersion()).majorVersion() >= 10)
-            return "Yu Gothic UI";
-        else
-            return "Meiryo UI";
-    } else if (langCode == "ko-KR")
-        return "Malgun Gothic";
-    else if (langCode == "zh-CN")
-        return "Microsoft YaHei";
-    else if (langCode == "zh-TW")
-        return "Microsoft JhengHei";
-    else
-        return "Segoe UI";
+    // Get the system (primary monitor) DPI. The font returned by
+    // SystemParametersInfo is scaled according to this and we need
+    // to get the font size in points to pass into QFont's constructor.
+    HDC hdc = GetDC(NULL);
+    int systemDpi = GetDeviceCaps(hdc, LOGPIXELSY);
+    ReleaseDC(NULL, hdc);
+
+    // Get the font metrics.
+    NONCLIENTMETRICSW ncm = {};
+    ncm.cbSize = sizeof(ncm);
+    // This should never happen, but just to be safe, return Segoe UI if
+    // SPI fails.
+    if (!SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(ncm), &ncm, 0))
+    {
+        return QFont("Segoe UI", 9);
+    }
+
+    QString fontName = QString::fromWCharArray(ncm.lfMessageFont.lfFaceName);
+    // Windows' conversion from points to pixels goes as follows:
+    // 
+    //     -MulDiv(PointSize, GetDeviceCaps(hDC, LOGPIXELSY), 72)
+    // 
+    // (source: https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createfontw)
+    //
+    // Let's reverse that calculation to get the point size from the message font.
+    int fontSize = -MulDiv(ncm.lfMessageFont.lfHeight, 72, systemDpi);
+    
+    return QFont(fontName, fontSize);
 }
 #endif
 

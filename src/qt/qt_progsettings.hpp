@@ -15,7 +15,7 @@ public:
     explicit ProgSettings(QWidget *parent = nullptr);
     ~ProgSettings();
 #ifdef Q_OS_WINDOWS
-    static QString getFontName(int langId);
+    static QFont getUIFont();
 #endif
     static int     languageCodeToId(QString langCode);
     static QString languageIdToCode(int id);
