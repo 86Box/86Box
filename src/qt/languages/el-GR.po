@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-26 17:57+0000\n"
+"PO-Revision-Date: 2026-02-04 18:32+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -61,7 +61,7 @@ msgid "Remember size && position"
 msgstr "Απομνήμευση μεγέθους && θέσης"
 
 msgid "Re&nderer"
-msgstr "Re&nderer"
+msgstr "&Απεικονιστής"
 
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
@@ -397,7 +397,7 @@ msgid "Enabled (UTC)"
 msgstr "Ενεργό (UTC)"
 
 msgid "Dynamic Recompiler"
-msgstr "Dynamic Recompiler"
+msgstr "Δυναμικός Αναμεταγλωττιστής"
 
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
@@ -619,7 +619,7 @@ msgid "Image Format:"
 msgstr "Τύπος Εικόνας:"
 
 msgid "Block Size:"
-msgstr "Block Size:"
+msgstr "Μέγεθος Block:"
 
 msgid "Floppy drives:"
 msgstr "Οδηγοί δισκέτας:"
@@ -721,10 +721,10 @@ msgid "Turbo"
 msgstr "Turbo"
 
 msgid "On"
-msgstr "On"
+msgstr "Ενεργό"
 
 msgid "Off"
-msgstr "Off"
+msgstr "Ανενεργό"
 
 msgid "All images"
 msgstr "Όλες οι εικόνες"
@@ -1080,7 +1080,7 @@ msgid "Cartridge %1: %2"
 msgstr "Κασέτα δεδομένων %1: %2"
 
 msgid "Car&tridge %1: %2"
-msgstr "Car&tridge %1: %2"
+msgstr "&Κασέτα δεδομένων %1: %2"
 
 msgid "Cartridge images"
 msgstr "Εικόνες κασέτας δεδομένων"
@@ -1460,13 +1460,13 @@ msgid "HDX image"
 msgstr "Εικόνα HDX"
 
 msgid "Fixed-size VHD"
-msgstr "Fixed-size VHD"
+msgstr "Σταθερό-μέγεθος VHD"
 
 msgid "Dynamic-size VHD"
-msgstr "Dynamic-size VHD"
+msgstr "Δυναμικό-μέγεθος VHD"
 
 msgid "Differencing VHD"
-msgstr "Differencing VHD"
+msgstr "Διαφοροποίηση VHD"
 
 msgid "(N/A)"
 msgstr "(Μ/Δ)"
@@ -1481,19 +1481,19 @@ msgid "HDX image (.hdx)"
 msgstr "Εικόνα HDX (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
-msgstr "Fixed-size VHD (.vhd)"
+msgstr "Σταθερό-μέγεθος VHD (.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "Dynamic-size VHD (.vhd)"
+msgstr "Δυναμικό-μέγεθος VHD (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
-msgstr "Differencing VHD (.vhd)"
+msgstr "Διαφοροποίηση VHD (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "Large blocks (2 MB)"
+msgstr "Μεγάλα blocks (2 MB)"
 
 msgid "Small blocks (512 KB)"
-msgstr "Small blocks (512 KB)"
+msgstr "Μικρά blocks (512 KB)"
 
 msgid "VHD files"
 msgstr "Αρχεία VHD"
@@ -2964,7 +2964,7 @@ msgid "version"
 msgstr "έκδοση"
 
 msgid "build"
-msgstr "build"
+msgstr "δομή"
 
 msgid "You are currently running version <b>%1</b>."
 msgstr "Τρέχετε την έκδοση <b>%1</b>."
