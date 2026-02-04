@@ -8761,6 +8761,50 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
+    /* Has AMIKey F KBC firmware. */
+    {
+        .name              = "[OPTi 499] ADD-X Normerel Xenon",
+        .internal_name     = "xenon",
+        .type              = MACHINE_TYPE_486_S3,
+        .chipset           = MACHINE_CHIPSET_OPTI_499,
+        .init              = machine_at_xenon_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_IDE | MACHINE_APM,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
     /* Version 1.0 has an AMIKEY-2, version 2.0 has a VIA VT82C42N KBC. */
     {
         .name              = "[OPTi 895] Jetway J-403TG",
@@ -18511,11 +18555,10 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK(CPU_CYRIX3S),
             .min_bus     = 66666667,
             .max_bus     = 83333333,
-            /* TODO: to find the actual voltage and multiplier bus speeds. */
-            .min_voltage = 1800,
-            .max_voltage = 3500,
-            .min_multi   = 1.5,
-            .max_multi   = 8.0
+            .min_voltage = 2050,
+            .max_voltage = 3100,
+            .min_multi   = 3.5,
+            .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,

@@ -166,6 +166,29 @@ machine_at_greenb_init(const machine_t *model)
     return ret;
 }
 
+/* OPTi 499 */
+int
+machine_at_xenon_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/xenon/addx-bios-7-71-i28f001.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti499_device);
+    device_add(&ide_vlb_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C661 | FDC37C6XX_IDE_PRI));
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
 /* OPTi 895 */
 static const device_config_t j403tg_config[] = {
     // clang-format off
