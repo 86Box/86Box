@@ -220,9 +220,10 @@ memmap_state_default(headland_t *dev, uint8_t ht_romcs)
     mem_mapping_disable(&dev->mid_mapping);
 
     if (ht_romcs)
-        mem_set_mem_state(0x0e0000, 0x20000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+        mem_set_mem_state(0x0e0000, 0x10000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     else
-        mem_set_mem_state(0x0e0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+        mem_set_mem_state(0x0e0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    mem_set_mem_state(0x0f0000, 0x10000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     mem_set_mem_state(0xfe0000, 0x20000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
 
     mem_mapping_disable(&dev->shadow_mapping[0]);
