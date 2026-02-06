@@ -542,7 +542,7 @@ init_codepage(escp_t *dev, uint16_t num)
 static void
 reset_printer(escp_t *dev)
 {
-    dev->top_margin = dev->left_margin = 0.0;
+    dev->top_margin = dev->left_margin = 1.0 / 36.0;
     dev->right_margin         = dev->page_width;
     switch (dev->paper_size) {
         case PAPER_A4:
@@ -558,7 +558,7 @@ reset_printer(escp_t *dev)
         default:
             dev->page_height = LETTER_PAGE_HEIGHT;
     }
-    dev->bottom_margin = dev->page_height;
+    dev->bottom_margin = dev->page_height - 1.0 / 36.0;
     /* TODO: these should be configurable. */
     dev->color  = COLOR_BLACK;
     dev->curr_x = dev->curr_y = 0.0;
