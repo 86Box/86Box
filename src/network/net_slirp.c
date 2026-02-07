@@ -504,11 +504,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     const char *slirp_net = net_cards_conf[card->card_num].slirp_net;
     if (slirp_net[0] != '\0') {
         struct in_addr addr;
-#ifdef _WIN32
         inet_pton(AF_INET, slirp_net, &addr);
-#else
-        inet_aton(slirp_net, &addr);
-#endif
         net.s_addr = htonl(ntohl(addr.s_addr) & 0xffffff00);
         host.s_addr = htonl(ntohl(addr.s_addr) + 2);
         dhcp.s_addr = htonl(ntohl(addr.s_addr) + 15);
