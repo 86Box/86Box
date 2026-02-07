@@ -622,7 +622,7 @@ main(int argc, char *argv[])
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
-    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+    QApplication::setFont(ProgSettings::getUIFont());
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
 

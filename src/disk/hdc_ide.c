@@ -2610,8 +2610,8 @@ ide_callback(void *priv)
                 err = ABRT_ERR;
             else {
                 /* Only accept after RESET or DIAG. */
-                if (ide->params_specified) {
-                    ide->cfg_spt = ide->tf->secount;
+                if (!ide->params_specified) {
+                    ide->cfg_spt = (ide->tf->secount == 0) ? 256 : ide->tf->secount;
                     ide->cfg_hpc = ide->tf->head + 1;
 
                     ide->params_specified = 1;

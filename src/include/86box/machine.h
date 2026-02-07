@@ -749,6 +749,9 @@ extern int             machine_at_4gpv5_init(const machine_t *);
 /* Contaq 82C597 */
 extern int             machine_at_greenb_init(const machine_t *);
 
+/* OPTi 499 */
+extern int             machine_at_xenon_init(const machine_t *);
+
 /* OPTi 895 */
 #ifdef EMU_DEVICE_H
 extern const device_t  j403tg_device;

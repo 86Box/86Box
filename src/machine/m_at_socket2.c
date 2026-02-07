@@ -311,6 +311,8 @@ machine_at_dell466np_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&sis_85c461_device);
 
+    video_reset(gfxcard[0]);
+
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
     else {
@@ -353,6 +355,8 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    video_reset(gfxcard[0]);
 
     if (gfxcard[0] != VID_INTERNAL) {
         for (uint16_t i = 0; i < 32768; i++)

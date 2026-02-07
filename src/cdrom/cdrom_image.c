@@ -2965,7 +2965,7 @@ image_close(void *local)
         free(img);
 
         if (temp_file[0] != 0x00) {
-            remove(temp_file);
+            remove(nvr_path(temp_file));
             temp_file[0] = 0x00;
         }
     }

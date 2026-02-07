@@ -265,6 +265,8 @@ typedef struct escp_t {
     uint8_t ctrl;
 
     PALETTE palcol;
+
+    uint8_t auto_lf;
 } escp_t;
 
 /* Codepage table, needed for ESC t ( */
@@ -540,7 +542,7 @@ init_codepage(escp_t *dev, uint16_t num)
 static void
 reset_printer(escp_t *dev)
 {
-    dev->top_margin = dev->left_margin = 0.0;
+    dev->top_margin = dev->left_margin = 1.0 / 36.0;
     dev->right_margin         = dev->page_width;
     switch (dev->paper_size) {
         case PAPER_A4:
@@ -556,7 +558,7 @@ reset_printer(escp_t *dev)
         default:
             dev->page_height = LETTER_PAGE_HEIGHT;
     }
-    dev->bottom_margin = dev->page_height;
+    dev->bottom_margin = dev->page_height - 1.0 / 36.0;
     /* TODO: these should be configurable. */
     dev->color  = COLOR_BLACK;
     dev->curr_x = dev->curr_y = 0.0;
@@ -1749,7 +1751,7 @@ process_char(escp_t *dev, uint8_t ch)
 
         case 0x0d: /* Carriage Return (CR) */
             dev->curr_x = dev->left_margin;
-            if (!dev->autofeed)
+            if (!dev->autofeed && !dev->auto_lf)
                 return 1;
             fallthrough;
 
@@ -2214,7 +2216,9 @@ escp_init(const device_t *info)
             dev->page_height = LETTER_PAGE_HEIGHT;
     }
 
-    dev->dpi         = dev->lang >= LANG_ESCP ? 360 : 240;
+    dev->auto_lf = device_get_config_int("auto_lf");
+
+    dev->dpi           = dev->lang >= LANG_ESCP ? 360 : 240;
 
     /* Create 8-bit grayscale buffer for the page. */
     dev->page         = (psurface_t *) malloc(sizeof(psurface_t));
@@ -2326,6 +2330,17 @@ static const device_config_t lpt_prt_escp_config[] = {
             { .description = "B4 (sideways)",    .value = PAPER_B4_SIDE    },
             { .description = ""                   }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "auto_lf",
+        .description    = "Auto LF",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

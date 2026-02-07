@@ -396,6 +396,8 @@ machine_at_tuliptc38_init(const machine_t *model)
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
 
+    video_reset(gfxcard[0]);
+
     if (gfxcard[0] == VID_INTERNAL) {
         bios_load_aux_linear("roms/machines/tuliptc38/VBIOS.BIN",
                              0x000c0000, 32768, 0);

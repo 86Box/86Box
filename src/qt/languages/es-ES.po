@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-02-06 05:57+0000\n"
+"Last-Translator: Jeffrey Hope <strangercoug@hotmail.com>\n"
 "Language-Team: Spanish <https://weblate.86box.net/projects/86box/86box/es/>\n"
 "Language: es-ES\n"
 "MIME-Version: 1.0\n"
@@ -1108,7 +1108,7 @@ msgid "Not running"
 msgstr "No en ejecución"
 
 msgid "Running"
-msgstr "En ejeución"
+msgstr "En ejecución"
 
 msgid "Paused"
 msgstr "En pausa"

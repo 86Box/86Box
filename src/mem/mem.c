@@ -106,9 +106,10 @@ int cachesize = 256;
 uint32_t get_phys_virt;
 uint32_t get_phys_phys;
 
-int mem_a20_key   = 0;
-int mem_a20_alt   = 0;
-int mem_a20_state = 0;
+int mem_a20_key     = 0;
+int mem_a20_alt     = 0;
+int mem_a20_chipset = 0;
+int mem_a20_state   = 0;
 
 int mmuflush = 0;
 
@@ -3109,12 +3110,12 @@ mem_a20_recalc(void)
     if (!is286) {
         rammask = 0xfffff;
         flushmmucache();
-        mem_a20_key = mem_a20_alt = mem_a20_state = 0;
+        mem_a20_key = mem_a20_alt = mem_a20_state = mem_a20_chipset = 0;
 
         return;
     }
 
-    state = mem_a20_key | mem_a20_alt;
+    state = mem_a20_key | mem_a20_alt | mem_a20_chipset;
     if (state && !mem_a20_state) {
         rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
         if (is6117)
