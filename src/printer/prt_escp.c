@@ -151,8 +151,8 @@ enum {
 
 /* Some helper macros. */
 #define PARAM16(x) (dev->esc_parms[x + 1] * 256 + dev->esc_parms[x])
-#define PIXX       ((unsigned) floor(dev->curr_x * dev->dpi + 0.5))
-#define PIXY       ((unsigned) floor(dev->curr_y * dev->dpi + 0.5))
+#define PIXX       ((unsigned) round(dev->curr_x * dev->dpi))
+#define PIXY       ((unsigned) round(dev->curr_y * dev->dpi))
 
 typedef struct psurface_t {
     int8_t dirty; /* has the page been printed on? */
@@ -204,10 +204,11 @@ typedef struct escp_t {
     /* bit graphics data */
     uint16_t bg_h_density; /* in dpi */
     uint16_t bg_v_density; /* in dpi */
-    int8_t   bg_adjacent;  /* print adjacent pixels (ignored) */
+    int8_t   bg_adjacent;  /* print adjacent pixels */
     uint8_t  bg_bytes_per_column;
     uint16_t bg_remaining_bytes; /* #bytes left before img is complete */
     uint8_t  bg_column[6];       /* #bytes of the current and last col */
+    uint8_t  bg_previous[6];     // for non-adjacent pixels in graphics mode
     uint8_t  bg_bytes_read;      /* #bytes read so far for current col */
 
     /* handshake data */
@@ -402,13 +403,11 @@ timeout_timer(void *priv)
 static void
 fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID, escp_t *dev)
 {
-    uint8_t colormask;
+    const uint8_t colormask = colorID <<= 5;
 
-    double red   = (double) redmax / (double) 30.9;
-    double green = (double) greenmax / (double) 30.9;
-    double blue  = (double) bluemax / (double) 30.9;
-
-    colormask = colorID <<= 5;
+    const double red   = (double) redmax / (double) 30.9;
+    const double green = (double) greenmax / (double) 30.9;
+    const double blue  = (double) bluemax / (double) 30.9;
 
     for (uint8_t i = 0; i < 32; i++) {
         dev->palcol[i + colormask].r = 255 - (uint8_t) floor(red * (double) i);
@@ -777,6 +776,8 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
             escp_log("ESC/P: Unsupported bit image density %d.\n", density);
             break;
     }
+    for (uint8_t i = 0; i < dev->bg_bytes_per_column; ++i)
+        dev->bg_previous[i] = 0;
 
     dev->bg_remaining_bytes = num_columns * dev->bg_bytes_per_column;
     dev->bg_bytes_read      = 0;
@@ -1879,10 +1880,6 @@ draw_hline(escp_t *dev, unsigned from_x, unsigned to_x, unsigned y, int8_t broke
 static void
 print_bit_graph(escp_t *dev, uint8_t ch)
 {
-    uint8_t  pixel_w; /* width of the "pixel" */
-    uint8_t  pixel_h; /* height of the "pixel" */
-    double   old_y;
-
     dev->bg_column[dev->bg_bytes_read++] = ch;
     dev->bg_remaining_bytes--;
 
@@ -1890,16 +1887,18 @@ print_bit_graph(escp_t *dev, uint8_t ch)
     if (dev->bg_bytes_read < dev->bg_bytes_per_column)
         return;
 
-    old_y = dev->curr_y;
+    /* vertical density is how big the dot is
+     * (horziontal / vertical / 2) is how many middle points between two full dots are
+     * if horizontal < vertical, this means a column is printed multiple times
+     */
+    uint8_t dot_size_x;
+    const uint8_t dot_size_y = round((double) dev->dpi / (double) dev->bg_v_density);
+    if (dev->bg_h_density < dev->bg_v_density)
+        dot_size_x = round((double) dev->dpi / (double) dev->bg_h_density);
+    else
+        dot_size_x = dot_size_y;
 
-    pixel_w = 1;
-    pixel_h = 1;
-
-    if (dev->bg_adjacent) {
-        /* if page DPI is bigger than bitgraphics DPI, drawn pixels get "bigger" */
-        pixel_w = dev->dpi / dev->bg_h_density > 0 ? dev->dpi / dev->bg_h_density : 1;
-        pixel_h = dev->dpi / dev->bg_v_density > 0 ? dev->dpi / dev->bg_v_density : 1;
-    }
+    const double old_y = dev->curr_y;
 
     for (uint8_t i = 0; i < dev->bg_bytes_per_column; i++) {
         /* for each byte */
@@ -1908,11 +1907,21 @@ print_bit_graph(escp_t *dev, uint8_t ch)
                 break;
             /* for each bit */
             if (dev->bg_column[i] & j) {
-                /* draw a "pixel" */
-                for (uint8_t xx = 0; xx < pixel_w; xx++) {
-                    for (uint8_t yy = 0; yy < pixel_h; yy++) {
-                        if (((PIXX + xx) < (unsigned) dev->page->w) && ((PIXY + yy) < (unsigned) dev->page->h))
-                            *((uint8_t *) dev->page->pixels + (PIXX + xx) + (PIXY + yy) * dev->page->pitch) |= (dev->color | 0x1f);
+                if (!(dev->bg_adjacent) && (dev->bg_previous[i] & j)) {
+                    dev->bg_column[i] &= ~j;
+                    dev->curr_y += 1.0 / (double) dev->bg_v_density;
+                    continue;
+                }
+                /* draw a dot */
+                for (uint8_t xx = 0; xx < dot_size_x; ++xx) {
+                    if ((PIXX + xx) >= (unsigned) dev->page->w)
+                        break;
+
+                    for (uint8_t yy = 0; yy < dot_size_y; ++yy) {
+                        if ((PIXY + yy) >= (unsigned) dev->page->h)
+                            break;
+
+                        *((uint8_t *) dev->page->pixels + (PIXX + xx) + (PIXY + yy) * dev->page->pitch) |= (dev->color | 0x1f);
                     }
                 }
             }
@@ -1920,6 +1929,8 @@ print_bit_graph(escp_t *dev, uint8_t ch)
             dev->curr_y += 1.0 / (double) dev->bg_v_density;
         }
     }
+
+    memcpy(dev->bg_previous, dev->bg_column, dev->bg_bytes_per_column * sizeof(uint8_t));
 
     /* Mark page dirty. */
     dev->page->dirty = 1;
@@ -2229,14 +2240,13 @@ escp_init(const device_t *info)
     memset(dev->page->pixels, 0x00, (size_t) dev->page->pitch * dev->page->h);
 
     /* Initialize parameters. */
+    /* 0 = all white needed for logic 000 */
     for (uint8_t i = 0; i < 32; i++) {
         dev->palcol[i].r = 255;
         dev->palcol[i].g = 255;
         dev->palcol[i].b = 255;
     }
 
-    /* 0 = all white needed for logic 000 */
-    fill_palette(0, 0, 0, 1, dev);
     /* 1 = magenta* 001 */
     fill_palette(0, 255, 0, 1, dev);
     /* 2 = cyan*    010 */
@@ -2290,11 +2300,6 @@ escp_close(void *priv)
 }
 
 // clang-format off
-#if 0
-static const device_config_t lpt_prt_escp_config[] = {
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-#endif
 static const device_config_t lpt_prt_escp_config[] = {
     {
         .name           = "language",
