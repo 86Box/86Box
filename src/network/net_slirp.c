@@ -43,6 +43,7 @@
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
+#    include <ws2tcpip.h>
 #else
 #    include <poll.h>
 #endif
@@ -493,13 +494,30 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     slirp->pfd      = calloc(1, slirp->pfd_size);
 #endif
 
-    /* Set the IP addresses to use. */
-    struct in_addr  net        = { .s_addr = htonl(0x0a000000 | (slirp_card_num << 8)) }; /* 10.0.x.0 */
-    struct in_addr  mask       = { .s_addr = htonl(0xffffff00) };                         /* 255.255.255.0 */
-    struct in_addr  host       = { .s_addr = htonl(0x0a000002 | (slirp_card_num << 8)) }; /* 10.0.x.2 */
-    struct in_addr  dhcp       = { .s_addr = htonl(0x0a00000f | (slirp_card_num << 8)) }; /* 10.0.x.15 */
-    struct in_addr  dns        = { .s_addr = htonl(0x0a000003 | (slirp_card_num << 8)) }; /* 10.0.x.3 */
-    struct in_addr  bind       = { .s_addr = htonl(0x00000000) };                         /* 0.0.0.0 */
+    struct in_addr net;
+    struct in_addr host;
+    struct in_addr dhcp;
+    struct in_addr dns;
+
+    /* Set the IP addresses to use.
+       Use a configured address if set, otherwise 10.0.x.0 */
+    const char *slirp_net = net_cards_conf[card->card_num].slirp_net;
+    if (slirp_net[0] != '\0') {
+        struct in_addr addr;
+        inet_pton(AF_INET, slirp_net, &addr);
+        net.s_addr = htonl(ntohl(addr.s_addr) & 0xffffff00);
+        host.s_addr = htonl(ntohl(addr.s_addr) + 2);
+        dhcp.s_addr = htonl(ntohl(addr.s_addr) + 15);
+        dns.s_addr = htonl(ntohl(addr.s_addr) + 3);
+    } else {
+        net.s_addr = htonl(0x0a000000 | (slirp_card_num << 8));      /* 10.0.x.0 */
+        host.s_addr = htonl(0x0a000002 | (slirp_card_num << 8));     /* 10.0.x.2 */
+        dhcp.s_addr = htonl(0x0a00000f | (slirp_card_num << 8));     /* 10.0.x.15 */
+        dns.s_addr = htonl(0x0a000003 | (slirp_card_num << 8));      /* 10.0.x.3 */
+    }
+
+    struct in_addr  mask       = { .s_addr = htonl(0xffffff00) };    /* 255.255.255.0 */
+    struct in_addr  bind       = { .s_addr = htonl(0x00000000) };    /* 0.0.0.0 */
 
     const SlirpConfig slirp_config = {
 #if SLIRP_CHECK_VERSION(4, 9, 0)
