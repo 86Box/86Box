@@ -28,7 +28,7 @@
  */
 
 #ifdef _WIN32
-#    include <winsock.h>
+#    include <ws2tcpip.h>
 #else
 #    include <arpa/inet.h>
 #endif
@@ -896,7 +896,11 @@ load_network(void)
             p = ini_section_get_string(cat, temp, "");
             if (p && *p) {
                 struct in_addr addr;
+#ifdef _WIN32
                 if (inet_aton(p, &addr)) {
+#else
+                if (inet_pton(AF_INET, p, &addr)) {
+#endif
                     uint8_t *bytes = (uint8_t *)&addr.s_addr;
                     bytes[3] = 0;
                     sprintf(nc->slirp_net, "%d.%d.%d.0", bytes[0], bytes[1], bytes[2]);
