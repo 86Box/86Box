@@ -273,7 +273,7 @@ memmap_state_update(headland_t *dev)
         }
     }
 
-    switch (ht_cr0) {
+    switch (ht_cr0 & 0x18) {
         case 0x18:
             if ((mem_size << 10) > 0xe0000) {
                 mem_set_mem_state(0x0e0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
