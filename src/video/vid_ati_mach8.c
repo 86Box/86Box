@@ -333,7 +333,10 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
         }
     }
 
-    mach_log("cmd_type = %i, frgd_sel = %i, bkgd_sel = %i, mono_src = %i, dpconfig = %04x, cur_x = %d, cur_y = %d, cl = %d, cr = %d, ct = %d, cb = %d, accel_bpp = %d, pitch = %d, hicolbpp = %d, pattlen = %d.\n", cmd_type, frgd_sel, bkgd_sel, mono_src, mach->accel.dp_config, dev->accel.cur_x, dev->accel.cur_y, clip_l, clip_r, clip_t, clip_b, dev->accel_bpp, dev->pitch, dev->bpp, mach->accel.patt_len);
+    if (cmd_type == 1 || cmd_type == 3 || cmd_type == 4) {
+        if (mach->accel.linedraw_opt & 0x04)
+            mach_log("cmd_type = %i, frgd_sel = %i, bkgd_sel = %i, mono_src = %i, dpconfig = %04x, cur_x = %d, cur_y = %d, cl = %d, cr = %d, ct = %d, cb = %d, accel_bpp = %d, pitch = %d, hicolbpp = %d, pattlen = %d.\n", cmd_type, frgd_sel, bkgd_sel, mono_src, mach->accel.dp_config, dev->accel.cur_x, dev->accel.cur_y, clip_l, clip_r, clip_t, clip_b, dev->accel_bpp, dev->pitch, dev->bpp, mach->accel.patt_len);
+    }
 
     switch (cmd_type) {
         case 1: /*Extended Raw Linedraw from bres_count register (0x96ee)*/
@@ -437,88 +440,84 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         (dev->accel.dy >= clip_t) &&
                         (dev->accel.dy <= clip_b)) {
                         dev->subsys_stat |= INT_GE_BSY;
-                        switch (mix ? frgd_sel : bkgd_sel) {
-                            case 0:
-                                src_dat = bkgd_color;
-                                break;
-                            case 1:
-                                src_dat = frgd_color;
-                                break;
-                            case 2:
-                                src_dat = cpu_dat;
-                                break;
-                            case 3:
-                                if (mach_pixel_read(mach))
+                        if (mach_pixel_write(mach) || !cpu_input) {
+                            switch (mix ? frgd_sel : bkgd_sel) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
+                                case 1:
+                                    src_dat = frgd_color;
+                                    break;
+                                case 2:
                                     src_dat = cpu_dat;
-                                else {
+                                    break;
+                                case 3:
                                     READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, src_dat);
                                     if (mono_src == 3)
                                         src_dat = (src_dat & rd_mask) == rd_mask;
-                                }
-                                break;
-                            case 5:
-                                if (dev->bpp)
-                                    src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                                else
-                                    src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                                break;
-
-                            default:
-                                break;
-                        }
-
-                        if (mach->accel.linedraw_opt & 0x02) {
-                            READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, poly_src);
-                            poly_src = ((poly_src & rd_mask) == rd_mask);
-                            if (poly_src)
-                                mach->accel.poly_fill = !mach->accel.poly_fill;
-                        }
-
-                        if (mach->accel.poly_fill || !(mach->accel.linedraw_opt & 0x02)) {
-                            READ(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
-
-                            switch (compare_mode) {
-                                case 1:
-                                    compare = 1;
-                                    break;
-                                case 2:
-                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 3:
-                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 4:
-                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 5:
-                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 6:
-                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 7:
-                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                    if (dev->bpp)
+                                        src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                    else
+                                        src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
                                     break;
 
                                 default:
                                     break;
                             }
 
-                            if (!compare) {
-                                if (mach_pixel_write(mach)) {
+                            if (mach->accel.linedraw_opt & 0x02) {
+                                READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, poly_src);
+                                poly_src = ((poly_src & rd_mask) == rd_mask);
+                                if (poly_src)
+                                    mach->accel.poly_fill = !mach->accel.poly_fill;
+                            }
+
+                            if (mach->accel.poly_fill || !(mach->accel.linedraw_opt & 0x02)) {
+                                READ(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
+
+                                switch (compare_mode) {
+                                    case 1:
+                                        compare = 1;
+                                        break;
+                                    case 2:
+                                        compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 3:
+                                        compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 4:
+                                        compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 5:
+                                        compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 6:
+                                        compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 7:
+                                        compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                if (!compare) {
                                     old_dest_dat = dest_dat;
                                     MIX(mix, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 }
-                            }
 
-                            if (mach->accel.dp_config & 0x10) {
-                                if (mach->accel.linedraw_opt & 0x04) {
-                                    if (((mono_src != 1) && (dev->accel.sx < mach->accel.width)) || ((mono_src == 1) && count)) {
+                                if (mach->accel.dp_config & 0x10) {
+                                    if (mach->accel.linedraw_opt & 0x04) {
+                                        if (((mono_src != 1) && (dev->accel.sx < mach->accel.width)) || ((mono_src == 1) && count)) {
+                                            WRITE(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
+                                        }
+                                    } else {
                                         WRITE(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
                                     }
-                                } else {
-                                    WRITE(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
                                 }
                             }
                         }
@@ -647,89 +646,84 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         (dev->accel.dy >= clip_t) &&
                         (dev->accel.dy <= clip_b)) {
                         dev->subsys_stat |= INT_GE_BSY;
-                        switch (mix ? frgd_sel : bkgd_sel) {
-                            case 0:
-                                src_dat = bkgd_color;
-                                break;
-                            case 1:
-                                src_dat = frgd_color;
-                                break;
-                            case 2:
-                                src_dat = cpu_dat;
-                                break;
-                            case 3:
-                                if (mach_pixel_read(mach))
-                                    src_dat = cpu_dat;
-                                else {
-                                    READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, src_dat);
-                                    if (mono_src == 3) {
-                                        src_dat = (src_dat & rd_mask) == rd_mask;
-                                    }
-                                }
-                                break;
-                            case 5:
-                                if (dev->bpp)
-                                    src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                                else
-                                    src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                                break;
-
-                            default:
-                                break;
-                        }
-
-                        if (mach->accel.linedraw_opt & 0x02) {
-                            READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, poly_src);
-                            poly_src = ((poly_src & rd_mask) == rd_mask);
-                            if (poly_src)
-                                mach->accel.poly_fill = !mach->accel.poly_fill;
-                        }
-
-                        if (mach->accel.poly_fill || !(mach->accel.linedraw_opt & 0x02)) {
-                            READ(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
-
-                            switch (compare_mode) {
+                        if (mach_pixel_write(mach) || !cpu_input) {
+                            switch (mix ? frgd_sel : bkgd_sel) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
                                 case 1:
-                                    compare = 1;
+                                    src_dat = frgd_color;
                                     break;
                                 case 2:
-                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                    src_dat = cpu_dat;
                                     break;
                                 case 3:
-                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 4:
-                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                    READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, src_dat);
+                                    if (mono_src == 3)
+                                        src_dat = (src_dat & rd_mask) == rd_mask;
                                     break;
                                 case 5:
-                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 6:
-                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 7:
-                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                    if (dev->bpp)
+                                        src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                    else
+                                        src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
                                     break;
 
                                 default:
                                     break;
                             }
 
-                            if (!compare) {
-                                if (mach_pixel_write(mach)) {
+                            if (mach->accel.linedraw_opt & 0x02) {
+                                READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, poly_src);
+                                poly_src = ((poly_src & rd_mask) == rd_mask);
+                                if (poly_src)
+                                    mach->accel.poly_fill = !mach->accel.poly_fill;
+                            }
+
+                            if (mach->accel.poly_fill || !(mach->accel.linedraw_opt & 0x02)) {
+                                READ(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
+
+                                switch (compare_mode) {
+                                    case 1:
+                                        compare = 1;
+                                        break;
+                                    case 2:
+                                        compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 3:
+                                        compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 4:
+                                        compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 5:
+                                        compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 6:
+                                        compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 7:
+                                        compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                if (!compare) {
                                     old_dest_dat = dest_dat;
                                     MIX(mix, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 }
-                            }
 
-                            if (mach->accel.dp_config & 0x10) {
-                                if (mach->accel.linedraw_opt & 0x04) {
-                                    if (((mono_src != 1) && (dev->accel.sx < mach->accel.width)) || ((mono_src == 1) && count)) {
+                                if (mach->accel.dp_config & 0x10) {
+                                    if (mach->accel.linedraw_opt & 0x04) {
+                                        if (((mono_src != 1) && (dev->accel.sx < mach->accel.width)) || ((mono_src == 1) && count)) {
+                                            WRITE(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
+                                        }
+                                    } else {
                                         WRITE(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
                                     }
-                                } else {
-                                    WRITE(mach->accel.dst_ge_offset + (dev->accel.dy * mach->accel.dst_pitch) + dev->accel.dx, dest_dat);
                                 }
                             }
                         }
@@ -906,23 +900,27 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 if (mach->accel.sx_end > mach->accel.sx_start) {
                     mach->accel.src_width = (mach->accel.sx_end - mach->accel.sx_start);
                     mach->accel.src_stepx = 1;
-                    mach_log("BitBLT: Src Positive X: wh(%d,%d), srcwidth = %d, coordinates: %d,%d px, start: %d, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
+                    if (mach->accel.dp_config == 0x6011)
+                        mach_log("BitBLT: Src Positive X: wh(%d,%d), srcwidth = %d, coordinates: %d,%d px, start: %d, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d, srcpitch = %d, dstpitch = %d, dststepx = %d, dststepy = %d, dx = %d, dy = %d.\n",
                              mach->accel.width, mach->accel.height, mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_start, mach->accel.src_x_end,
-                             mach->accel.src_stepx, mach->accel.dp_config, mach->accel.src_width & 1);
+                             mach->accel.src_stepx, mach->accel.dp_config, mach->accel.src_width & 1, mach->accel.src_pitch, mach->accel.dst_pitch, mach->accel.stepx, mach->accel.stepy, dev->accel.dx, dev->accel.dy);
                 } else if (mach->accel.sx_end < mach->accel.sx_start) {
                     mach->accel.src_width = (mach->accel.sx_start - mach->accel.sx_end);
                     mach->accel.src_stepx = -1;
                     if (dev->accel.cx > 0)
                         dev->accel.cx--;
-                    mach_log("BitBLT: Src Negative X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
-                    mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config,
-                    mach->accel.src_width & 1);
+
+                    if (mach->accel.dp_config == 0x6011)
+                        mach_log("BitBLT: Src Negative X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
+                        mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx, mach->accel.dp_config,
+                        mach->accel.src_width & 1);
                 } else {
                     mach->accel.src_stepx = 1;
                     mach->accel.src_width = 0;
-                    mach_log("BitBLT: Src Indeterminate X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
-                             mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx,
-                             mach->accel.dp_config, mach->accel.src_width & 1);
+                    if (mach->accel.dp_config == 0x6011)
+                        mach_log("BitBLT: Src Indeterminate X: width = %d, coordinates: %d,%d px, end: %d px, stepx = %d, dpconfig = %04x, oddwidth = %d.\n",
+                        mach->accel.src_width, dev->accel.cx, dev->accel.cy, mach->accel.src_x_end, mach->accel.src_stepx,
+                        mach->accel.dp_config, mach->accel.src_width & 1);
                 }
                 mach->accel.sx = 0;
                 if (mach->accel.patt_data_idx < 0x10)
@@ -1075,98 +1073,94 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     (dev->accel.dy >= clip_t) &&
                     (dev->accel.dy <= clip_b)) {
                     dev->subsys_stat |= INT_GE_BSY;
-                    if (mach->accel.dp_config & 0x02) {
-                        READ(dev->accel.src + dev->accel.cx, poly_src);
-                        poly_src = ((poly_src & rd_mask) == rd_mask);
-                        if (poly_src)
-                            mach->accel.poly_fill ^= 1;
-                    }
+                    if (mach_pixel_write(mach) || !cpu_input) {
+                        if (mach->accel.dp_config & 0x02) {
+                            READ(dev->accel.src + dev->accel.cx, poly_src);
+                            poly_src = ((poly_src & rd_mask) == rd_mask);
+                            if (poly_src)
+                                mach->accel.poly_fill ^= 1;
+                        }
 
-                    if (mach->accel.poly_fill || !(mach->accel.dp_config & 0x02)) {
-                        switch (mix ? frgd_sel : bkgd_sel) {
-                            case 0:
-                                src_dat = bkgd_color;
-                                break;
-                            case 1:
-                                src_dat = frgd_color;
-                                break;
-                            case 2:
-                                src_dat = cpu_dat;
-                                break;
-                            case 3:
-                                if (mach_pixel_read(mach))
+                        if (mach->accel.poly_fill || !(mach->accel.dp_config & 0x02)) {
+                            switch (mix ? frgd_sel : bkgd_sel) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
+                                case 1:
+                                    src_dat = frgd_color;
+                                    break;
+                                case 2:
                                     src_dat = cpu_dat;
-                                else {
+                                    break;
+                                case 3:
                                     READ(dev->accel.src + dev->accel.cx, src_dat);
                                     if (mono_src == 3)
                                         src_dat = (src_dat & rd_mask) == rd_mask;
+                                    break;
+                                case 5:
+                                    if (dev->bpp)
+                                        src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                    else
+                                        src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            if ((dev->accel_bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && !mach->accel.mono_pattern_enable) {
+                                if (dev->accel.sy & 1) {
+                                    READ(dev->accel.dest + dev->accel.dx - mach->accel.dst_pitch, dest_dat);
+                                } else {
+                                    READ(dev->accel.dest + dev->accel.dx, dest_dat);
                                 }
-                                break;
-                            case 5:
-                                if (dev->bpp)
-                                    src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                                else
-                                    src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                                break;
-
-                            default:
-                                break;
-                        }
-
-                        if ((dev->accel_bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && !mach->accel.mono_pattern_enable) {
-                            if (dev->accel.sy & 1) {
-                                READ(dev->accel.dest + dev->accel.dx - mach->accel.dst_pitch, dest_dat);
                             } else {
                                 READ(dev->accel.dest + dev->accel.dx, dest_dat);
                             }
-                        } else {
-                            READ(dev->accel.dest + dev->accel.dx, dest_dat);
-                        }
 
-                        switch (compare_mode) {
-                            case 1:
-                                compare = 1;
-                                break;
-                            case 2:
-                                compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
-                                break;
-                            case 3:
-                                compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                                break;
-                            case 4:
-                                compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
-                                break;
-                            case 5:
-                                compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                                break;
-                            case 6:
-                                compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                                break;
-                            case 7:
-                                compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
-                                break;
+                            switch (compare_mode) {
+                                case 1:
+                                    compare = 1;
+                                    break;
+                                case 2:
+                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                    break;
+                                case 3:
+                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                    break;
+                                case 4:
+                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                    break;
+                                case 5:
+                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                    break;
+                                case 6:
+                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                    break;
+                                case 7:
+                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                    break;
 
-                            default:
-                                break;
-                        }
+                                default:
+                                    break;
+                            }
 
-                        if (!compare) {
-                            if (mach_pixel_write(mach)) {
+                            if (!compare) {
                                 old_dest_dat = dest_dat;
                                 MIX(mix, dest_dat, src_dat);
                                 dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                             }
-                        }
 
-                        if (mach->accel.dp_config & 0x10) {
-                            if ((dev->accel_bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && !mach->accel.mono_pattern_enable) {
-                                if (dev->accel.sy & 1) {
-                                    WRITE(dev->accel.dest + dev->accel.dx - mach->accel.dst_pitch, dest_dat);
+                            if (mach->accel.dp_config & 0x10) {
+                                if ((dev->accel_bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && !mach->accel.mono_pattern_enable) {
+                                    if (dev->accel.sy & 1) {
+                                        WRITE(dev->accel.dest + dev->accel.dx - mach->accel.dst_pitch, dest_dat);
+                                    } else {
+                                        WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                    }
                                 } else {
                                     WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
                                 }
-                            } else {
-                                WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
                             }
                         }
                     }
@@ -1186,15 +1180,29 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 if ((mono_src == 3) || (frgd_sel == 3) || (bkgd_sel == 3) || (mach->accel.dp_config & 0x02)) {
                     dev->accel.cx += mach->accel.src_stepx;
                     mach->accel.sx++;
-                    if (mach->accel.sx >= mach->accel.src_width) {
-                        mach->accel.sx = 0;
-                        if (mach->accel.src_stepx == -1)
-                            dev->accel.cx += mach->accel.src_width;
-                        else
-                            dev->accel.cx -= mach->accel.src_width;
+                    if (mach->accel.dp_config == 0x6011) {
+                        mach_log("DX=%d, DY=%d, SX=%d, SY=%d, SRCSX=%d, SRCWIDTH=%d, CX=%d, CY=%d, srcydir=%d, srcoffset=%08x.\n", dev->accel.dx, dev->accel.dy, dev->accel.sx, dev->accel.sy, mach->accel.sx - 1, mach->accel.src_width, dev->accel.cx - mach->accel.src_stepx, dev->accel.cy, mach->accel.src_y_dir, mach->accel.src_ge_offset);
+                        if (mach->accel.sx >= mach->accel.src_width) {
+                            mach->accel.sx = 0;
+                            if (mach->accel.src_stepx == -1)
+                                dev->accel.cx += mach->accel.src_width;
+                            else
+                                dev->accel.cx -= mach->accel.src_width;
 
-                        dev->accel.cy += (mach->accel.src_y_dir ? 1 : -1);
-                        dev->accel.src = mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch);
+                            dev->accel.cy += mach->accel.stepy;
+                            dev->accel.src = mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch);
+                        }
+                    } else {
+                        if (mach->accel.sx >= mach->accel.src_width) {
+                            mach->accel.sx = 0;
+                            if (mach->accel.src_stepx == -1)
+                                dev->accel.cx += mach->accel.src_width;
+                            else
+                                dev->accel.cx -= mach->accel.src_width;
+
+                            dev->accel.cy += mach->accel.src_y_dir;
+                            dev->accel.src = mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch);
+                        }
                     }
                 }
 
@@ -1211,7 +1219,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 dev->accel.dx += mach->accel.stepx;
                 dev->accel.sx++;
                 if ((dev->accel.sx >= mach->accel.width) || (dev->accel.dx >= 0x600)) {
-                    dev->accel.sx         = 0;
+                    dev->accel.sx = 0;
                     if (mach->accel.stepx == -1)
                         dev->accel.dx += mach->accel.width;
                     else
@@ -1318,71 +1326,68 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             (dev->accel.cy <= clip_b)) {
                             dev->subsys_stat |= INT_GE_BSY;
                             mach->accel.clip_overrun = 0;
-                            switch (mix ? frgd_sel : bkgd_sel) {
-                                case 0:
-                                    src_dat = bkgd_color;
-                                    break;
-                                case 1:
-                                    src_dat = frgd_color;
-                                    break;
-                                case 2:
-                                    src_dat = cpu_dat;
-                                    break;
-                                case 3:
-                                    if (mach_pixel_read(mach))
+                            if (mach_pixel_write(mach) || !cpu_input) {
+                                switch (mix ? frgd_sel : bkgd_sel) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
                                         src_dat = cpu_dat;
-                                    else
+                                        break;
+                                    case 3:
                                         src_dat = 0;
-                                    break;
-                                case 5:
-                                    if (dev->bpp)
-                                        src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                                    else
-                                        src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                                    break;
+                                        break;
+                                    case 5:
+                                        if (dev->bpp)
+                                            src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                        else
+                                            src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
 
-                            switch (compare_mode) {
-                                case 1:
-                                    compare = 1;
-                                    break;
-                                case 2:
-                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 3:
-                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 4:
-                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 5:
-                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 6:
-                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 7:
-                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
-                                    break;
+                                switch (compare_mode) {
+                                    case 1:
+                                        compare = 1;
+                                        break;
+                                    case 2:
+                                        compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 3:
+                                        compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 4:
+                                        compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 5:
+                                        compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 6:
+                                        compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 7:
+                                        compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            if (!compare) {
-                                if (mach_pixel_write(mach)) {
+                                if (!compare) {
                                     old_dest_dat = dest_dat;
                                     MIX(mix, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 }
-                            }
-                            if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
-                                WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
+                                    WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                }
                             }
                         } else
                             mach->accel.clip_overrun = ((mach->accel.clip_overrun + 1) & 0x0f);
@@ -1448,86 +1453,82 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             (dev->accel.cy <= clip_b)) {
                             dev->subsys_stat |= INT_GE_BSY;
                             mach->accel.clip_overrun = 0;
-                            if (mach->accel.linedraw_opt & 0x02) {
-                                READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, poly_src);
-                                if (poly_src)
-                                    mach->accel.poly_fill ^= 1;
-                            }
+                            if (mach_pixel_write(mach) || !cpu_input) {
+                                if (mach->accel.linedraw_opt & 0x02) {
+                                    READ(mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch) + dev->accel.cx, poly_src);
+                                    if (poly_src)
+                                        mach->accel.poly_fill ^= 1;
+                                }
 
-                            switch (mix ? frgd_sel : bkgd_sel) {
-                                case 0:
-                                    src_dat = bkgd_color;
-                                    break;
-                                case 1:
-                                    src_dat = frgd_color;
-                                    break;
-                                case 2:
-                                    src_dat = cpu_dat;
-                                    break;
-                                case 3:
-                                    if (mach_pixel_read(mach))
+                                switch (mix ? frgd_sel : bkgd_sel) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
                                         src_dat = cpu_dat;
-                                    else {
+                                        break;
+                                    case 3:
                                         src_dat = 0;
-                                    }
-                                    break;
-                                case 5:
-                                    if (dev->bpp)
-                                        src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                                    else
-                                        src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                                    break;
+                                        break;
+                                    case 5:
+                                        if (dev->bpp)
+                                            src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                        else
+                                            src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
 
-                            switch (compare_mode) {
-                                case 1:
-                                    compare = 1;
-                                    break;
-                                case 2:
-                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 3:
-                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 4:
-                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 5:
-                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 6:
-                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 7:
-                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
-                                    break;
+                                switch (compare_mode) {
+                                    case 1:
+                                        compare = 1;
+                                        break;
+                                    case 2:
+                                        compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 3:
+                                        compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 4:
+                                        compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 5:
+                                        compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 6:
+                                        compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 7:
+                                        compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            if (!compare) {
-                                if (mach_pixel_write(mach)) {
+                                if (!compare) {
                                     old_dest_dat = dest_dat;
                                     if (mach->accel.poly_fill || !(mach->accel.linedraw_opt & 0x02)) {
                                         MIX(mix, dest_dat, src_dat);
                                     }
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 }
-                            }
 
-                            if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
-                                if (mach->accel.linedraw_opt & 0x04) {
-                                    if (dev->accel.sx < mach->accel.width) {
+                                if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
+                                    if (mach->accel.linedraw_opt & 0x04) {
+                                        if (dev->accel.sx < mach->accel.width) {
+                                            WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                        }
+                                    } else {
                                         WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
                                     }
-                                } else {
-                                    WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
                                 }
                             }
                         } else
@@ -1583,73 +1584,69 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             (dev->accel.cy <= clip_b)) {
                             dev->subsys_stat |= INT_GE_BSY;
                             mach->accel.clip_overrun = 0;
-                            switch (mix ? frgd_sel : bkgd_sel) {
-                                case 0:
-                                    src_dat = bkgd_color;
-                                    break;
-                                case 1:
-                                    src_dat = frgd_color;
-                                    break;
-                                case 2:
-                                    src_dat = cpu_dat;
-                                    break;
-                                case 3:
-                                    if (mach_pixel_read(mach))
+                            if (mach_pixel_write(mach) || !cpu_input) {
+                                switch (mix ? frgd_sel : bkgd_sel) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
                                         src_dat = cpu_dat;
-                                    else {
+                                        break;
+                                    case 3:
                                         src_dat = 0;
-                                    }
-                                    break;
-                                case 5:
-                                    if (dev->bpp)
-                                        src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                                    else
-                                        src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                                    break;
+                                        break;
+                                    case 5:
+                                        if (dev->bpp)
+                                            src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                        else
+                                            src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
 
-                            switch (compare_mode) {
-                                case 1:
-                                    compare = 1;
-                                    break;
-                                case 2:
-                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 3:
-                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 4:
-                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 5:
-                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 6:
-                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 7:
-                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
-                                    break;
+                                switch (compare_mode) {
+                                    case 1:
+                                        compare = 1;
+                                        break;
+                                    case 2:
+                                        compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 3:
+                                        compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 4:
+                                        compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 5:
+                                        compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 6:
+                                        compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 7:
+                                        compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            if (!compare) {
-                                if (mach_pixel_write(mach)) {
+                                if (!compare) {
                                     old_dest_dat = dest_dat;
                                     MIX(mix, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 }
-                            }
 
-                            if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
-                                WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
+                                    WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                }
                             }
                         } else
                             mach->accel.clip_overrun = ((mach->accel.clip_overrun + 1) & 0x0f);
@@ -1715,78 +1712,74 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             (dev->accel.cy <= clip_b)) {
                             dev->subsys_stat |= INT_GE_BSY;
                             mach->accel.clip_overrun = 0;
-                            switch (mix ? frgd_sel : bkgd_sel) {
-                                case 0:
-                                    src_dat = bkgd_color;
-                                    break;
-                                case 1:
-                                    src_dat = frgd_color;
-                                    break;
-                                case 2:
-                                    src_dat = cpu_dat;
-                                    break;
-                                case 3:
-                                    if (mach_pixel_read(mach))
+                            if (mach_pixel_write(mach) || !cpu_input) {
+                                switch (mix ? frgd_sel : bkgd_sel) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
                                         src_dat = cpu_dat;
-                                    else {
+                                        break;
+                                    case 3:
                                         src_dat = 0;
-                                    }
-                                    break;
-                                case 5:
-                                    if (dev->bpp)
-                                        src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                                    else
-                                        src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                                    break;
+                                        break;
+                                    case 5:
+                                        if (dev->bpp)
+                                            src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                        else
+                                            src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                READ(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
 
-                            switch (compare_mode) {
-                                case 1:
-                                    compare = 1;
-                                    break;
-                                case 2:
-                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 3:
-                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 4:
-                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 5:
-                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 6:
-                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                                    break;
-                                case 7:
-                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
-                                    break;
+                                switch (compare_mode) {
+                                    case 1:
+                                        compare = 1;
+                                        break;
+                                    case 2:
+                                        compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 3:
+                                        compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 4:
+                                        compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 5:
+                                        compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 6:
+                                        compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                        break;
+                                    case 7:
+                                        compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                        break;
 
-                                default:
-                                    break;
-                            }
+                                    default:
+                                        break;
+                                }
 
-                            if (!compare) {
-                                if (mach_pixel_write(mach)) {
+                                if (!compare) {
                                     old_dest_dat = dest_dat;
                                     MIX(mix, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                 }
-                            }
 
-                            if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
-                                if (mach->accel.linedraw_opt & 0x04) {
-                                    if (dev->accel.sx < mach->accel.width) {
+                                if ((mach->accel.dp_config & 0x10) && (cmd_type == 3)) {
+                                    if (mach->accel.linedraw_opt & 0x04) {
+                                        if (dev->accel.sx < mach->accel.width) {
+                                            WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
+                                        }
+                                    } else {
                                         WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
                                     }
-                                } else {
-                                    WRITE(mach->accel.dst_ge_offset + (dev->accel.cy * mach->accel.dst_pitch) + dev->accel.cx, dest_dat);
                                 }
                             }
                         } else
@@ -2016,7 +2009,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                 cx--;
                         }
 
-                        cy += (mach->accel.src_y_dir ? 1 : -1);
+                        cy += mach->accel.src_y_dir;
                         dev->accel.src = mach->accel.src_ge_offset + (cy * mach->accel.src_pitch);
                     }
 
@@ -2099,75 +2092,71 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     (dev->accel.dy >= clip_t) &&
                     (dev->accel.dy <= clip_b)) {
                     dev->subsys_stat |= INT_GE_BSY;
-                    switch (mix ? frgd_sel : bkgd_sel) {
-                        case 0:
-                            src_dat = bkgd_color;
-                            break;
-                        case 1:
-                            src_dat = frgd_color;
-                            break;
-                        case 2:
-                            src_dat = cpu_dat;
-                            break;
-                        case 3:
-                            if (mach_pixel_read(mach))
+                    if (mach_pixel_write(mach) || !cpu_input) {
+                        switch (mix ? frgd_sel : bkgd_sel) {
+                            case 0:
+                                src_dat = bkgd_color;
+                                break;
+                            case 1:
+                                src_dat = frgd_color;
+                                break;
+                            case 2:
                                 src_dat = cpu_dat;
-                            else {
+                                break;
+                            case 3:
                                 READ(dev->accel.src + dev->accel.cx, src_dat);
                                 if (mono_src == 3)
                                     src_dat = (src_dat & rd_mask) == rd_mask;
-                            }
-                            break;
-                        case 5:
-                            if (dev->bpp)
-                                src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
-                            else
-                                src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
-                            break;
+                                break;
+                            case 5:
+                                if (dev->bpp)
+                                    src_dat = mach->accel.color_pattern_hicol[mach->accel.color_pattern_idx];
+                                else
+                                    src_dat = mach->accel.color_pattern[mach->accel.color_pattern_idx];
+                                break;
 
-                        default:
-                            break;
-                    }
+                            default:
+                                break;
+                        }
 
-                    READ(dev->accel.dest + dev->accel.dx, dest_dat);
+                        READ(dev->accel.dest + dev->accel.dx, dest_dat);
 
-                    switch (compare_mode) {
-                        case 1:
-                            compare = 1;
-                            break;
-                        case 2:
-                            compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
-                            break;
-                        case 3:
-                            compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
-                            break;
-                        case 4:
-                            compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
-                            break;
-                        case 5:
-                            compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
-                            break;
-                        case 6:
-                            compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
-                            break;
-                        case 7:
-                            compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
-                            break;
+                        switch (compare_mode) {
+                            case 1:
+                                compare = 1;
+                                break;
+                            case 2:
+                                compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
+                                break;
+                            case 3:
+                                compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
+                                break;
+                            case 4:
+                                compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
+                                break;
+                            case 5:
+                                compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
+                                break;
+                            case 6:
+                                compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
+                                break;
+                            case 7:
+                                compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                break;
 
-                        default:
-                            break;
-                    }
+                            default:
+                                break;
+                        }
 
-                    if (!compare) {
-                        if (mach_pixel_write(mach)) {
+                        if (!compare) {
                             old_dest_dat = dest_dat;
                             MIX(mix, dest_dat, src_dat);
                             dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                         }
-                    }
 
-                    if (mach->accel.dp_config & 0x10) {
-                        WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                        if (mach->accel.dp_config & 0x10) {
+                            WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                        }
                     }
                 }
 
@@ -2185,7 +2174,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     else
                         dev->accel.cx -= mach->accel.src_width;
 
-                    dev->accel.cy += (mach->accel.src_y_dir ? 1 : -1);
+                    dev->accel.cy += mach->accel.src_y_dir;
                     dev->accel.src = mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch);
                 }
 
@@ -3942,7 +3931,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             } else
                 dev->_8514crt = 1;
 
-            if (dev->mode != VGA_MODE)
+            if ((dev->mode != VGA_MODE) && ATI_MACH32)
                 mach_set_resolution(mach, svga);
             else
                 svga_recalctimings(svga);
@@ -4067,9 +4056,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x52ef:
             mach_log("ATI 8514/A: (0x%04x) ScratchPad0 val=%04x.\n", port, val);
             if (len == 2)
-                dev->accel.scratch0 = val;
+                mach->accel.scratch0 = val;
             else {
-                WRITE8(port, dev->accel.scratch0, val);
+                WRITE8(port, mach->accel.scratch0, val);
             }
             break;
 
@@ -4077,9 +4066,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x56ef:
             mach_log("ATI 8514/A: (0x%04x) ScratchPad1 val=%04x.\n", port, val);
             if (len == 2)
-                dev->accel.scratch1 = val;
+                mach->accel.scratch1 = val;
             else {
-                WRITE8(port, dev->accel.scratch1, val);
+                WRITE8(port, mach->accel.scratch1, val);
             }
             break;
 
@@ -4360,7 +4349,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xc2ee:
-            mach->accel.src_y_dir = val & 1;
+            mach->accel.src_y_dir = (val & 1) ? 1 : -1;
+            mach_log("Source Y Direction=%x.\n", val);
             break;
 
         case 0xc6ee:
@@ -5170,16 +5160,16 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
 
         case 0x52ee:
         case 0x52ef:
-            READ8(port, dev->accel.scratch0);
-            mach_log("ScratchPad0=%x.\n", dev->accel.scratch0);
-            if (dev->accel.scratch0 == 0x1234)
+            READ8(port, mach->accel.scratch0);
+            mach_log("ScratchPad0=%x.\n", mach->accel.scratch0);
+            if (mach->accel.scratch0 == 0x1234)
                 temp = 0x0000;
             break;
 
         case 0x56ee:
         case 0x56ef:
-            READ8(port, dev->accel.scratch1);
-            mach_log("ScratchPad1=%x.\n", dev->accel.scratch1);
+            READ8(port, mach->accel.scratch1);
+            mach_log("ScratchPad1=%x.\n", mach->accel.scratch1);
             break;
 
         case 0x5eee:
@@ -7326,34 +7316,47 @@ mach_reset(void *priv)
 }
 
 uint8_t
-ati8514_rom_readb(uint32_t addr, void *priv)
+ati8514_bios_rom_readb(uint32_t addr, void *priv)
 {
     const ibm8514_t *dev = (ibm8514_t *) priv;
     const rom_t  *rom = &dev->bios_rom;
-    uint8_t ret;
+    uint8_t ret = 0xff;
 
-    mach_log("ROM1RB=%05x, ", addr);
+    mach_log("%04X:%08X: ROM1RB=%05x, ", CS, cpu_state.pc, addr);
+    addr &= rom->mask;
 
-    addr &= 0x1fff;
     ret = rom->rom[addr];
-
-    mach_log("ReadBAddr1=%03x, ret=%02x.\n", addr, ret);
+    mach_log("BIOS: ReadBAddr1=%04x, ret=%02x.\n", addr, ret);
     return (ret);
 }
 
 uint16_t
-ati8514_rom_readw(uint32_t addr, void *priv)
+ati8514_bios_rom_readw(uint32_t addr, void *priv)
 {
     const ibm8514_t *dev = (ibm8514_t *) priv;
     const rom_t  *rom = &dev->bios_rom;
-    uint16_t ret;
+    uint16_t ret = 0xffff;
 
-    mach_log("ROM1RW=%05x, ", addr);
+    mach_log("%04X:%08X: ROM1RW=%05x, ", CS, cpu_state.pc, addr);
+    addr &= rom->mask;
 
-    addr &= 0x1fff;
     ret = (*(uint16_t *) &(rom->rom[addr]));
+    mach_log("BIOS: ReadWAddr1=%04x, ret=%04x.\n", addr, ret);
+    return (ret);
+}
 
-    mach_log("ReadWAddr1=%03x, ret=%04x.\n", addr, ret);
+uint32_t
+ati8514_bios_rom_readl(uint32_t addr, void *priv)
+{
+    const ibm8514_t *dev = (ibm8514_t *) priv;
+    const rom_t  *rom = &dev->bios_rom;
+    uint32_t ret = 0xffffffff;
+
+    mach_log("%04X:%08X: ROM1RL=%05x, ", CS, cpu_state.pc, addr);
+    addr &= rom->mask;
+
+    ret = (*(uint32_t *) &(rom->rom[addr]));
+    mach_log("BIOS: ReadLAddr1=%04x, ret=%08x.\n", addr, ret);
     return (ret);
 }
 
