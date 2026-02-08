@@ -106,19 +106,19 @@ enum {
 };
 
 /* Font styles. */
-#define STYLE_PROP               0x0001
-#define STYLE_CONDENSED          0x0002
-#define STYLE_BOLD               0x0004
-#define STYLE_DOUBLESTRIKE       0x0008
-#define STYLE_DOUBLEWIDTH        0x0010
-#define STYLE_ITALICS            0x0020
-#define STYLE_UNDERLINE          0x0040
-#define STYLE_SUPERSCRIPT        0x0080
-#define STYLE_SUBSCRIPT          0x0100
-#define STYLE_STRIKETHROUGH      0x0200
-#define STYLE_OVERSCORE          0x0400
-#define STYLE_DOUBLEWIDTHONELINE 0x0800
-#define STYLE_DOUBLEHEIGHT       0x1000
+#define STYLE_PROP               0x0002
+#define STYLE_CONDENSED          0x0004
+#define STYLE_BOLD               0x0008
+#define STYLE_DOUBLESTRIKE       0x0010
+#define STYLE_DOUBLEWIDTH        0x0020
+#define STYLE_ITALICS            0x0040
+#define STYLE_UNDERLINE          0x0080
+#define STYLE_SUPERSCRIPT        0x0100
+#define STYLE_SUBSCRIPT          0x0200
+#define STYLE_STRIKETHROUGH      0x0400
+#define STYLE_OVERSCORE          0x0800
+#define STYLE_DOUBLEWIDTHONELINE 0x1000
+#define STYLE_DOUBLEHEIGHT       0x2000
 
 /* Underlining styles. */
 #define SCORE_NONE         0x00
@@ -178,6 +178,8 @@ typedef struct escp_t {
 
     char    page_fn[260];
     uint8_t color;
+
+    uint8_t selected;
 
     /* page data (TODO: make configurable) */
     double   page_width; /* all in inches */
@@ -560,6 +562,7 @@ reset_printer(escp_t *dev)
     dev->bottom_margin = dev->page_height - 1.0 / 36.0;
     /* TODO: these should be configurable. */
     dev->color  = COLOR_BLACK;
+    dev->selected             = 1;
     dev->curr_x = dev->curr_y = 0.0;
     dev->esc_seen             = 0;
     dev->fss_seen             = 0;
@@ -1169,24 +1172,11 @@ process_char(escp_t *dev, uint8_t ch)
             case '!': /* master select */
                 dev->cpi = (dev->esc_parms[0]) & 0x01 ? 12.0 : 10.0;
 
-                /* Reset first seven bits. */
-                dev->font_style &= 0xFF80;
-                if (dev->esc_parms[0] & 0x02)
-                    dev->font_style |= STYLE_PROP;
-                if (dev->esc_parms[0] & 0x04)
-                    dev->font_style |= STYLE_CONDENSED;
-                if (dev->esc_parms[0] & 0x08)
-                    dev->font_style |= STYLE_BOLD;
-                if (dev->esc_parms[0] & 0x10)
-                    dev->font_style |= STYLE_DOUBLESTRIKE;
-                if (dev->esc_parms[0] & 0x20)
-                    dev->font_style |= STYLE_DOUBLEWIDTH;
-                if (dev->esc_parms[0] & 0x40)
-                    dev->font_style |= STYLE_ITALICS;
-                if (dev->esc_parms[0] & 0x80) {
+                /* Reset first seven style bits (starting from two as CPI had one). */
+                dev->font_style &= 0xFF01;
+                dev->font_style |= dev->esc_parms[0];
+                if (dev->esc_parms[0] & 0x80)
                     dev->font_score = SCORE_SINGLE;
-                    dev->font_style |= STYLE_UNDERLINE;
-                }
 
                 dev->hmi             = -1;
                 dev->multipoint_mode = 0;
@@ -1409,7 +1399,7 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 'T': /* cancel superscript/subscript printing */
-                dev->font_style &= 0xFFFF - STYLE_SUPERSCRIPT - STYLE_SUBSCRIPT;
+                dev->font_style &= ~(STYLE_SUPERSCRIPT | STYLE_SUBSCRIPT);
                 update_font(dev);
                 break;
 
@@ -1737,7 +1727,7 @@ process_char(escp_t *dev, uint8_t ch)
             }
 
             if (dev->font_style & STYLE_DOUBLEWIDTHONELINE) {
-                dev->font_style &= 0xFFFF - STYLE_DOUBLEWIDTHONELINE;
+                dev->font_style &= ~STYLE_DOUBLEWIDTHONELINE;
                 update_font(dev);
             }
             return 1;
@@ -1784,8 +1774,8 @@ process_char(escp_t *dev, uint8_t ch)
             return 1;
 
         case 0x11: /* select printer (DC1) */
-            /* Ignore. */
-            return 0;
+            dev->selected = 1;
+            return 1;
 
         case 0x12: /* cancel condensed printing (DC2) */
             dev->hmi = -1;
@@ -1794,7 +1784,7 @@ process_char(escp_t *dev, uint8_t ch)
             return 1;
 
         case 0x13: /* deselect printer (DC3) */
-            /* Ignore. */
+            dev->selected = 0;
             return 1;
 
         case 0x14: /* cancel double-width printing (one line) (DC4) */
@@ -1955,6 +1945,9 @@ handle_char(escp_t *dev, uint8_t ch)
     double   x_advance;
 
     if (dev->page == NULL)
+        return;
+
+    if (!(dev->selected) && ch != 0x11)
         return;
 
     /* MSB mode */
