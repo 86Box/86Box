@@ -43,7 +43,7 @@
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
-int calllevel = 0;
+
 uint8_t  use_custom_nmi_vector = 0;
 uint32_t custom_nmi_vector     = 0x00000000;
 
@@ -1959,106 +1959,6 @@ execx86(int cycs)
         }
 
         completed = 1;
-            // switch (opcode) {
-            //     case 0x9A:
-            //     case 0xE8:
-            //         pclog("[%04X:%04X] %d CALL\n", CS, cpu_state.pc, calllevel);
-            //             pclog("  AX=%04X BX=%04X CX=%04X DX=%04X ES=%04X DI=%04X DS=%04X SI=%04X SS=%04X BP=%04X\n",
-            //              AX, BX, CX, DX, ES, DI, DS, SI, SS, BP);
-            //         calllevel += 1;
-            //         if (CS == 0xfcbf && cpu_state.pc == 0x83) {
-            //             pclog("[bp+n]:");
-            //             for (int i = 0; i < 0x58; i++)
-            //                 pclog(" [%02X]%02X", i, read_mem_b((SS << 4) + BP + i));
-            //             pclog("\n");
-            //         }
-            //         break;
-            //     case 0xC3:
-            //     case 0xCB:
-            //     case 0xC2:
-            //     case 0xCA:
-            //         pclog("[%04X:%04X] %d RET\n", CS, cpu_state.pc, calllevel);
-            //         pclog("            AX=%04X BX=%04X CX=%04X DX=%04X ES=%04X DI=%04X DS=%04X SI=%04X FL=%04X\n",
-            //             cs >> 4, cpu_state.pc, AX, BX, CX, DX, ES, DI, DS, SI, cpu_state.flags);
-            //         calllevel -= 1;
-            //         break;
-            //     case 0xFB:
-            //         pclog("[%04X:%04X] STI\n", CS, cpu_state.pc);
-            //         break;
-            //     case 0xFA:
-            //         pclog("[%04X:%04X] CLI\n", CS, cpu_state.pc);
-            //         break;
-            // }
-        // if ((CS == 0xFD6E) || (CS == 0xFcbf)) {
-        // if (DI == 0x48aa)
-        //     pclog("[%04X:%04X] AX=%04X BX=%04X CX=%04X DX=%04X ES=%04X DI=%04X DS=%04X SI=%04X SS=%04X BP=%04X\n",
-        //            CS, cpu_state.pc,AX, BX, CX, DX, ES, DI, DS, SI, SS, BP);
-        // if ((CS == 0xFD6E) || (CS == 0xFcbf)) {
-        //     switch (opcode) {
-        //         case 0x3C:
-        //         case 0x80:
-        //         case 0x83:
-        //             pclog("[%04X:%04X] CMP  AX=%04X\n", CS, cpu_state.pc, AX);
-        //             // if(CS == 0xFD6E && cpu_state.pc < 0x20) {
-        //             // pclog("[bx+n]:");
-        //             // for(int i=0;i<0x12;i++)
-        //             //     pclog(" [%02X]%02X", i, read_mem_b((DS << 4) + BX + i));
-        //             // pclog("\n");
-        //             // }
-        //             break;
-        //         case 0xE2:
-        //             pclog("[%04X:%04X] LOOP CX=%02X**\n", CS, cpu_state.pc, CX>>8);
-        //             break;
-        //         case 0xF6:
-        //             pclog("[%04X:%04X] TEST AX=%04X\n", CS, cpu_state.pc, AX);
-        //             break;
-        //         case 0xEB:
-        //         case 0xE9:
-        //         case 0xEA:
-        //             pclog("[%04X:%04X] JMP\n", CS, cpu_state.pc);
-        //             break;
-        //         case 0x77:
-        //             pclog("[%04X:%04X] JA\n", CS, cpu_state.pc);
-        //             break;
-        //         case 0x73:
-        //             pclog("[%04X:%04X] JAE\n", CS, cpu_state.pc);
-        //             break;
-        //         case 0x72:
-        //             pclog("[%04X:%04X] JB\n", CS, cpu_state.pc);
-        //             if (CS == 0xFD6E && cpu_state.pc < 0x28) {
-        //                 pclog("[bx+n]:");
-        //                 for (int i = 0; i < 0x20; i++)
-        //                     pclog(" [%02X]%02X", i, read_mem_b((DS << 4) + BX + i));
-        //                 pclog("\n");
-        //             }
-        //             break;
-        //         case 0x76:
-        //             pclog("[%04X:%04X] JNA\n", CS, cpu_state.pc);
-        //             break;
-        //         case 0x74:
-        //             pclog("[%04X:%04X] JE\n", CS, cpu_state.pc);
-        //             if (CS == 0xfcbf && cpu_state.pc == 0x8A) {
-        //                 pclog("  AX=%04X BX=%04X CX=%04X DX=%04X ES=%04X DI=%04X DS=%04X SI=%04X SS=%04X BP=%04X\n",
-        //                  AX, BX, CX, DX, ES, DI, DS, SI, SS, BP);
-        //                 pclog("[bp+n]:");
-        //                 for (int i = 0; i < 0x58; i++)
-        //                     pclog(" [%02X]%02X", i, read_mem_b((SS << 4) + BP + i));
-        //                 pclog("\n");
-        //             }
-        //             break;
-        //         case 0x75:
-        //             pclog("[%04X:%04X] JNE\n", CS, cpu_state.pc);
-        //             if (CS == 0xFD6E && cpu_state.pc == 0x16E) {
-        //                 pclog("  AX=%04X BX=%04X CX=%04X DX=%04X ES=%04X DI=%04X DS=%04X SI=%04X SS=%04X BP=%04X\n",
-        //                  AX, BX, CX, DX, ES, DI, DS, SI, SS, BP);
-        //                 pclog("[bp+n]:");
-        //                 for (int i = 0; i < 0x58; i++)
-        //                     pclog(" [%02X]%02X", i, read_mem_b((SS << 4) + BP + i));
-        //                 pclog("\n");
-        //             }
-        //             break;
-        //     }
-        // }
         // pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
         if (is186) {
             switch (opcode) {
