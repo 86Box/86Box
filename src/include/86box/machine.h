@@ -1494,6 +1494,10 @@ extern int             machine_xt_iskra3104_init(const machine_t *);
 extern int             machine_xt_lxt3_init(const machine_t *);
 extern int             machine_xt_compaq_deskpro_init(const machine_t *);
 
+/* m_xt_ibm5550.c */
+
+extern int             machine_xt_ibm5550_init(const machine_t *);
+
 /* m_xt_t1000.c */
 #ifdef EMU_DEVICE_H
 extern const device_t  t1000_video_device;
