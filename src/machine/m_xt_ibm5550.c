@@ -303,7 +303,6 @@ static void
 epoch_out(uint16_t addr, uint16_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    int    oldval;
     epoch_iolog("%04X:%04X epoch Out addr %03X val %02X\n", cs >> 4, cpu_state.pc, addr, val);
     switch (addr) {
         case LC_INDEX:
@@ -612,7 +611,6 @@ getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
 {
     epoch_t   *epoch   = (epoch_t *) priv;
     uint32_t font  = 0;
-    int32_t  fline = line - 2; /* Start line of drawing character (line >= 1 AND line < 24 + 1 ) */
 	if (code < 1536) {
 		code *= 0x80;
 		font = epoch->vram[code + line * 4];
@@ -1512,8 +1510,6 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     epochkbd_t *kbd = (epochkbd_t *) priv;
-    uint8_t  bit;
-    uint8_t  set;
     uint8_t  new_clock;
     epoch_log("%04X:%04X epochkbd: Port %04X out: %02X\n", cs >> 4, cpu_state.pc, port, val);
 
@@ -2092,7 +2088,7 @@ pit_irq6_timer(int new_out, int old_out, UNUSED(void *priv))
         picintc(EPOCH_IRQ6_BIT);
 }
 
-pit_t *
+static pit_t *
 pit_ibm5550_init()
 {
     void *pit;
@@ -2139,7 +2135,7 @@ machine_xt_ibm5550_init(const machine_t *model)
     pit_ibm5550_init();
     nmi_mask = 0;
 
-    epoch_t *epoch = device_add(&epoch_device);
+    device_add(&epoch_device);
 
     device_add(&lpt_port_device);
     serial_t *uart = device_add(&ns8250_device);
