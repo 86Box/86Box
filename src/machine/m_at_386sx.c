@@ -42,6 +42,7 @@
 #include <86box/vid_cga.h>
 #include <86box/flash.h>
 #include <86box/machine.h>
+#include <86box/sound.h>
 
 /* ISA */
 /*
@@ -365,6 +366,32 @@ machine_at_ama932j_init(const machine_t *model)
     machine_at_headland_common_init(model, 2);
 
     device_add_params(&pc87310_device, (void *) (PC87310_ALI));
+
+    return ret;
+}
+
+int
+machine_at_tandy1000rsx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tandy1000rsx/tandy-1000rsx-1-10.00.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&headland_ht18c_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add(&pssj_1e0_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }

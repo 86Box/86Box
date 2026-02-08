@@ -569,6 +569,7 @@ extern int             machine_at_acer100t_init(const machine_t *);
 
 /* HT18 */
 extern int             machine_at_ama932j_init(const machine_t *);
+extern int             machine_at_tandy1000rsx_init(const machine_t *);
 
 /* Intel 82335 */
 extern int             machine_at_adi386sx_init(const machine_t *);

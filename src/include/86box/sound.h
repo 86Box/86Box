@@ -245,6 +245,7 @@ extern const device_t soundman_device;
 /* Tandy PSSJ */
 extern const device_t pssj_device;
 extern const device_t pssj_isa_device;
+extern const device_t pssj_1e0_device;
 
 /* Tandy PSG */
 extern const device_t tndy_device;
