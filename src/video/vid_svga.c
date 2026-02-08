@@ -814,6 +814,7 @@ svga_recalctimings(svga_t *svga)
                         svga->render = svga_render_2bpp_highres;
                 } else {
                     svga->map8 = svga->pallook;
+                    svga_log("Map8.\n");
                     if (svga->lowres) { /*Low res (320)*/
                         svga->render = svga_render_8bpp_lowres;
                         svga_log("8 bpp low res.\n");

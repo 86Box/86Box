@@ -28,27 +28,27 @@
 #define LEDGER_PAGE_HEIGHT  17.0
 
 /* Standard A0 */
-#define A0_PAGE_WIDTH   33.125
-#define A0_PAGE_HEIGHT  46.75
+#define A0_PAGE_WIDTH   33.110236
+#define A0_PAGE_HEIGHT  46.811023
 
 /* Standard A1 */
-#define A1_PAGE_WIDTH   23.375
-#define A1_PAGE_HEIGHT  33.125
+#define A1_PAGE_WIDTH   23.385826
+#define A1_PAGE_HEIGHT  33.110236
 
 /* Standard A2 */
-#define A2_PAGE_WIDTH   16.5
-#define A2_PAGE_HEIGHT  23.375
+#define A2_PAGE_WIDTH   16.535433
+#define A2_PAGE_HEIGHT  23.385826
 
 /* Standard A3 */
-#define A3_PAGE_WIDTH   11.75
-#define A3_PAGE_HEIGHT  16.5
+#define A3_PAGE_WIDTH   11.692913
+#define A3_PAGE_HEIGHT  16.535433
 
 /* Standard A4 */
-#define A4_PAGE_WIDTH   8.25
-#define A4_PAGE_HEIGHT  11.75
+#define A4_PAGE_WIDTH   8.267716
+#define A4_PAGE_HEIGHT  11.692913
 
 /* Standard B4 */
-#define B4_PAGE_WIDTH   9.875
-#define B4_PAGE_HEIGHT  13.875
+#define B4_PAGE_WIDTH   9.8425197
+#define B4_PAGE_HEIGHT  13.897637
 
 #endif /*EMU_PLAT_FALLTHROUGH_H*/
