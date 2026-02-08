@@ -978,10 +978,15 @@ dma_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
     addr &= 0x0f;
     dmaregs[2][addr] = val;
 
-    if (addr >= 8)
-        addr = convert[addr & 0x07] | 4;
-    else
-        addr = convert[addr & 0x07];
+    if (machines[machine].init == machine_xt_ibm5550_init) {
+        if (addr >= 4)
+            addr = 8;
+    } else {
+        if (addr >= 8)
+            addr = convert[addr & 0x07] | 4;
+        else
+            addr = convert[addr & 0x07];
+    }
 
     if (addr < 8) {
         dma[addr].page_l = val;

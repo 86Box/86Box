@@ -592,10 +592,10 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
     if (dir > 1)
         filename = QString::asprintf(R"(ioctl://%s)", arg.toUtf8().data());
     else if (dir == 1)
-        filename = QFileDialog::getExistingDirectory(parentWidget);
+        filename = QFileDialog::getExistingDirectory(parentWidget, QString(), getMediaOpenDirectory());
     else {
         filename = QFileDialog::getOpenFileName(parentWidget, QString(),
-                                                QString(),
+                                                getMediaOpenDirectory(),
                                                 tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "mds", "mdx" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     }
 
@@ -1199,10 +1199,13 @@ MediaMenu::nicUpdateMenu(int i)
 QString
 MediaMenu::getMediaOpenDirectory()
 {
-    QString openDirectory;
+    static bool firstCall = true;
+    QString     openDirectory;
 
-    if (open_dir_usr_path > 0)
+    if (open_dir_usr_path > 0 && firstCall) {
         openDirectory = QString::fromUtf8(usr_path);
+        firstCall     = false;
+    }
 
     return openDirectory;
 }

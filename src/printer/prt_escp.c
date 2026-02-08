@@ -1,63 +1,30 @@
 /*
- * VARCem   Virtual ARchaeological Computer EMulator.
- *          An emulator of (mostly) x86-based PC systems and devices,
- *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *          spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *          Implementation of the Generic ESC/P 2 Dot-Matrix printer.
+ *          This file is part of the 86Box distribution.
  *
- * Authors: Michael Drüing, <michael@drueing.de>
- *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Implementation of a generic ESC/P 2 dot-matrix printer.
  *
- *          Based on code by Frederic Weymann (originally for DosBox.)
+ * Authors: Lili Kurek, <lili@lili.lgbt>
  *
- *          Copyright 2018-2019 Michael Drüing.
- *          Copyright 2019      Fred N. van Kempen.
+ *          Based on code by Frederic Weymann (originally for DOSBox.)
  *
- *          Redistribution and  use  in source  and binary forms, with
- *          or  without modification, are permitted  provided that the
- *          following conditions are met:
- *
- *          1. Redistributions of  source  code must retain the entire
- *             above notice, this list of conditions and the following
- *             disclaimer.
- *
- *          2. Redistributions in binary form must reproduce the above
- *             copyright  notice,  this list  of  conditions  and  the
- *             following disclaimer in  the documentation and/or other
- *             materials provided with the distribution.
- *
- *          3. Neither the  name of the copyright holder nor the names
- *             of  its  contributors may be used to endorse or promote
- *             products  derived from  this  software without specific
- *             prior written permission.
- *
- * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
- * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
- * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
- * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *          Copyright 2025-2026 Lili Kurek.
  */
+
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <wchar.h>
 #include <math.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #define HAVE_STDARG_H
 #include <86box/86box.h>
-#include <86box/device.h>
 #include "cpu.h"
-#include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -80,6 +47,11 @@ enum {
 };
 
 enum {
+    QUALITY_DRAFT = 0,
+    QUALITY_LQ
+};
+
+enum {
     PAPER_LETTER = 0,
     PAPER_A4,
     PAPER_LEGAL_SIDE,
@@ -88,7 +60,7 @@ enum {
 
 /* Default page values (for now.) */
 #define COLOR_BLACK  7 << 5
-#define PAGE_CPI     10.0 /* standard310 cpi */
+#define PAGE_CPI     10.0 /* standard 10 cpi */
 #define PAGE_LPI     6.0  /* standard 6 lpi */
 
 /* FreeType library handles - global so they can be shared. */
@@ -106,19 +78,19 @@ enum {
 };
 
 /* Font styles. */
-#define STYLE_PROP               0x0001
-#define STYLE_CONDENSED          0x0002
-#define STYLE_BOLD               0x0004
-#define STYLE_DOUBLESTRIKE       0x0008
-#define STYLE_DOUBLEWIDTH        0x0010
-#define STYLE_ITALICS            0x0020
-#define STYLE_UNDERLINE          0x0040
-#define STYLE_SUPERSCRIPT        0x0080
-#define STYLE_SUBSCRIPT          0x0100
-#define STYLE_STRIKETHROUGH      0x0200
-#define STYLE_OVERSCORE          0x0400
-#define STYLE_DOUBLEWIDTHONELINE 0x0800
-#define STYLE_DOUBLEHEIGHT       0x1000
+#define STYLE_PROP               0x0002
+#define STYLE_CONDENSED          0x0004
+#define STYLE_BOLD               0x0008
+#define STYLE_DOUBLESTRIKE       0x0010
+#define STYLE_DOUBLEWIDTH        0x0020
+#define STYLE_ITALICS            0x0040
+#define STYLE_UNDERLINE          0x0080
+#define STYLE_SUPERSCRIPT        0x0100
+#define STYLE_SUBSCRIPT          0x0200
+#define STYLE_STRIKETHROUGH      0x0400
+#define STYLE_OVERSCORE          0x0800
+#define STYLE_DOUBLEWIDTHONELINE 0x1000
+#define STYLE_DOUBLEHEIGHT       0x2000
 
 /* Underlining styles. */
 #define SCORE_NONE         0x00
@@ -126,10 +98,6 @@ enum {
 #define SCORE_DOUBLE       0x02
 #define SCORE_SINGLEBROKEN 0x05
 #define SCORE_DOUBLEBROKEN 0x06
-
-/* Print quality. */
-#define QUALITY_DRAFT 0x01
-#define QUALITY_LQ    0x02
 
 /* Typefaces. */
 enum {
@@ -179,6 +147,8 @@ typedef struct escp_t {
     char    page_fn[260];
     uint8_t color;
 
+    bool dc1_selected;
+
     /* page data (TODO: make configurable) */
     double   page_width; /* all in inches */
     double   page_height;
@@ -213,16 +183,16 @@ typedef struct escp_t {
 
     /* handshake data */
     uint8_t data;
-    uint8_t ack;
-    uint8_t select;
-    uint8_t busy;
-    uint8_t int_pending;
-    uint8_t error;
-    uint8_t autofeed;
+    bool ack;
+    bool select;
+    bool busy;
+    bool int_pending;
+    bool error;
+    bool autofeed;
 
     /* ESC command data */
-    int8_t   esc_seen; /* set to 1 if an ESC char was seen */
-    int8_t   fss_seen;
+    bool     esc_seen; /* set if an ESC char was seen */
+    bool     fss_seen;
     uint16_t esc_pending; /* in which ESC command are we */
     uint8_t  esc_parms_req;
     uint8_t  esc_parms_curr;
@@ -267,7 +237,7 @@ typedef struct escp_t {
 
     PALETTE palcol;
 
-    uint8_t auto_lf;
+    bool auto_lf;
 } escp_t;
 
 /* Codepage table, needed for ESC t ( */
@@ -328,18 +298,13 @@ static const uint16_t intCharSets[15][12] = {
 };
 
 #ifdef ENABLE_ESCP_LOG
-int escp_do_log = ENABLE_ESCP_LOG;
-
 static void
 escp_log(const char *fmt, ...)
 {
     va_list ap;
-
-    if (escp_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
+    va_start(ap, fmt);
+    pclog_ex(fmt, ap);
+    va_end(ap);
 }
 #else
 #    define escp_log(fmt, ...)
@@ -382,7 +347,7 @@ pulse_timer(void *priv)
     escp_t *dev = (escp_t *) priv;
 
     if (dev->ack) {
-        dev->ack = 0;
+        dev->ack = false;
         lpt_irq(dev->lpt, 1);
     }
 
@@ -426,7 +391,7 @@ update_font(escp_t *dev)
     double      vpoints = 10.5;
 
     /* We need the FreeType library. */
-    if (ft_lib == NULL)
+    if (!ft_lib)
         return;
 
     /* Release current font if we have one. */
@@ -560,9 +525,10 @@ reset_printer(escp_t *dev)
     dev->bottom_margin = dev->page_height - 1.0 / 36.0;
     /* TODO: these should be configurable. */
     dev->color  = COLOR_BLACK;
+    dev->dc1_selected         = true;
     dev->curr_x = dev->curr_y = 0.0;
-    dev->esc_seen             = 0;
-    dev->fss_seen             = 0;
+    dev->esc_seen             = false;
+    dev->fss_seen             = false;
     dev->esc_pending          = 0;
     dev->esc_parms_req = dev->esc_parms_curr = 0;
     dev->lpi                  = PAGE_LPI;
@@ -570,7 +536,7 @@ reset_printer(escp_t *dev)
     dev->cpi                  = PAGE_CPI;
     dev->curr_char_table      = 1;
     dev->font_style           = 0;
-    dev->print_quality        = QUALITY_DRAFT;
+    dev->print_quality        = device_get_config_int("quality");
     dev->extra_intra_space    = 0.0;
     dev->print_upper_control  = 1;
     dev->bg_remaining_bytes   = 0;
@@ -600,7 +566,7 @@ reset_printer(escp_t *dev)
     dev->num_horizontal_tabs = 32;
     dev->num_vertical_tabs   = -1;
 
-    if (dev->page != NULL)
+    if (dev->page)
         dev->page->dirty = 0;
 
     escp_log("ESC/P: width=%.1fin,height=%.1fin dpi=%i cpi=%i lpi=%i\n",
@@ -611,7 +577,7 @@ reset_printer(escp_t *dev)
 static void
 reset_printer_hard(escp_t *dev)
 {
-    dev->ack = 0;
+    dev->ack = false;
     timer_disable(&dev->pulse_timer);
     timer_stop(&dev->timeout_timer);
     reset_printer(dev);
@@ -803,7 +769,7 @@ process_char(escp_t *dev, uint8_t ch)
         dev->esc_pending = ch;
         if (dev->fss_seen)
             dev->esc_pending |= 0x800;
-        dev->esc_seen = dev->fss_seen = 0;
+        dev->esc_seen = dev->fss_seen = false;
         dev->esc_parms_curr           = 0;
 
         escp_log("Command pending=%02x, font path=%s\n", dev->esc_pending, dev->fontpath);
@@ -1169,24 +1135,11 @@ process_char(escp_t *dev, uint8_t ch)
             case '!': /* master select */
                 dev->cpi = (dev->esc_parms[0]) & 0x01 ? 12.0 : 10.0;
 
-                /* Reset first seven bits. */
-                dev->font_style &= 0xFF80;
-                if (dev->esc_parms[0] & 0x02)
-                    dev->font_style |= STYLE_PROP;
-                if (dev->esc_parms[0] & 0x04)
-                    dev->font_style |= STYLE_CONDENSED;
-                if (dev->esc_parms[0] & 0x08)
-                    dev->font_style |= STYLE_BOLD;
-                if (dev->esc_parms[0] & 0x10)
-                    dev->font_style |= STYLE_DOUBLESTRIKE;
-                if (dev->esc_parms[0] & 0x20)
-                    dev->font_style |= STYLE_DOUBLEWIDTH;
-                if (dev->esc_parms[0] & 0x40)
-                    dev->font_style |= STYLE_ITALICS;
-                if (dev->esc_parms[0] & 0x80) {
+                /* Reset first seven style bits (starting from two as CPI had one). */
+                dev->font_style &= 0xFF01;
+                dev->font_style |= dev->esc_parms[0];
+                if (dev->esc_parms[0] & 0x80)
                     dev->font_score = SCORE_SINGLE;
-                    dev->font_style |= STYLE_UNDERLINE;
-                }
 
                 dev->hmi             = -1;
                 dev->multipoint_mode = 0;
@@ -1267,6 +1220,10 @@ process_char(escp_t *dev, uint8_t ch)
             case '7': /* enable upper control codes */
                 dev->print_upper_control = 0;
                 break;
+
+            case '8': // disable
+            case '9': // enable  paper-out sensor
+                // We don't have real paper, ignore.
 
             case '<': /* unidirectional mode (one line) */
                        /* We don't have a print head, so just
@@ -1409,7 +1366,7 @@ process_char(escp_t *dev, uint8_t ch)
                 break;
 
             case 'T': /* cancel superscript/subscript printing */
-                dev->font_style &= 0xFFFF - STYLE_SUPERSCRIPT - STYLE_SUBSCRIPT;
+                dev->font_style &= ~(STYLE_SUPERSCRIPT | STYLE_SUBSCRIPT);
                 update_font(dev);
                 break;
 
@@ -1737,7 +1694,7 @@ process_char(escp_t *dev, uint8_t ch)
             }
 
             if (dev->font_style & STYLE_DOUBLEWIDTHONELINE) {
-                dev->font_style &= 0xFFFF - STYLE_DOUBLEWIDTHONELINE;
+                dev->font_style &= ~STYLE_DOUBLEWIDTHONELINE;
                 update_font(dev);
             }
             return 1;
@@ -1784,8 +1741,8 @@ process_char(escp_t *dev, uint8_t ch)
             return 1;
 
         case 0x11: /* select printer (DC1) */
-            /* Ignore. */
-            return 0;
+            dev->dc1_selected = true;
+            return 1;
 
         case 0x12: /* cancel condensed printing (DC2) */
             dev->hmi = -1;
@@ -1794,7 +1751,7 @@ process_char(escp_t *dev, uint8_t ch)
             return 1;
 
         case 0x13: /* deselect printer (DC3) */
-            /* Ignore. */
+            dev->dc1_selected = false;
             return 1;
 
         case 0x14: /* cancel double-width printing (one line) (DC4) */
@@ -1807,13 +1764,13 @@ process_char(escp_t *dev, uint8_t ch)
             return 1;
 
         case 0x1b: /* ESC */
-            dev->esc_seen = 1;
+            dev->esc_seen = true;
             return 1;
 
         case 0x1c: /* FS (IBM Proprinter II)
                       TODO: Make an IBM printer. */
             if (dev->lang == LANG_ESCP2) {
-                dev->fss_seen = 1;
+                dev->fss_seen = true;
                 return 1;
             }
 
@@ -1832,7 +1789,7 @@ blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add)
     uint8_t         *dst;
 
     /* check if freetype is available */
-    if (ft_lib == NULL)
+    if (!ft_lib)
         return;
 
     for (unsigned int y = 0; y < bitmap->rows; y++) {
@@ -1954,16 +1911,18 @@ handle_char(escp_t *dev, uint8_t ch)
     uint16_t line_y;
     double   x_advance;
 
-    if (dev->page == NULL)
+    if (!(dev->page))
         return;
 
     /* MSB mode */
-    if (dev->msb != 255) {
-        if (dev->msb == 0)
-            ch &= 0x7f;
-        else if (dev->msb == 1)
-            ch |= 0x80;
-    }
+    if (dev->msb == 0)
+        ch &= 0x7f;
+    else if (dev->msb == 1)
+        ch |= 0x80;
+    // else it's neutral at 255
+
+    if (!(dev->dc1_selected) && ch != 0x11)
+        return;
 
     if (dev->bg_remaining_bytes > 0) {
         print_bit_graph(dev, ch);
@@ -1981,7 +1940,7 @@ handle_char(escp_t *dev, uint8_t ch)
     }
 
     /* We cannot print if we have no font loaded. */
-    if (dev->fontface == NULL)
+    if (!(dev->fontface))
         return;
 
     if (ch == 0x01)
@@ -2066,7 +2025,7 @@ write_data(uint8_t val, void *priv)
 {
     escp_t *dev = (escp_t *) priv;
 
-    if (dev == NULL)
+    if (!dev)
         return;
 
     dev->data = val;
@@ -2077,7 +2036,7 @@ strobe(uint8_t old, uint8_t val, void *priv)
 {
     escp_t *dev = (escp_t *) priv;
 
-    if (dev == NULL)
+    if (!dev)
         return;
 
     /* Data is strobed to the parallel printer on the falling edge of the
@@ -2094,7 +2053,7 @@ strobe(uint8_t old, uint8_t val, void *priv)
 #endif
         }
         /* ACK it, will be read on next READ STATUS. */
-        dev->ack = 1;
+        dev->ack = true;
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
 
         timer_on_auto(&dev->timeout_timer, 5000000.0);
@@ -2106,17 +2065,17 @@ write_ctrl(uint8_t val, void *priv)
 {
     escp_t *dev = (escp_t *) priv;
 
-    if (dev == NULL)
+    if (!dev)
         return;
 
     if (val & 0x08) { /* SELECT */
         /* select printer */
-        dev->select = 1;
+        dev->select = true;
     }
 
     if ((val & 0x04) && !(dev->ctrl & 0x04)) {
         /* reset printer */
-        dev->select = 0;
+        dev->select = false;
 
         reset_printer_hard(dev);
     }
@@ -2135,7 +2094,7 @@ write_ctrl(uint8_t val, void *priv)
 #endif
         }
         /* ACK it, will be read on next READ STATUS. */
-        dev->ack = 1;
+        dev->ack = true;
         timer_set_delay_u64(&dev->pulse_timer, ISACONST);
 
         timer_on_auto(&dev->timeout_timer, 5000000.0);
@@ -2174,11 +2133,11 @@ escp_init(const device_t *info)
     escp_t *dev = NULL;
 
     /* Initialize FreeType. */
-    if (ft_lib == NULL) {
+    if (!ft_lib) {
         if (FT_Init_FreeType(&ft_lib)) {
             pclog("ESC/P: FT_Init_FreeType failed\n");
             ft_lib = NULL;
-            return (NULL);
+            return(NULL);
         }
     }
 
@@ -2197,7 +2156,7 @@ escp_init(const device_t *info)
         ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_ESCP_ERROR_TITLE),
                          plat_get_string(STRING_ESCP_ERROR_DESC));
         free(dev);
-        return (NULL);
+        return(NULL);
     }
 
     /* Create the full path for the page images. */
@@ -2264,7 +2223,7 @@ escp_init(const device_t *info)
 
     dev->color    = COLOR_BLACK;
     dev->fontface = 0;
-    dev->autofeed = 0;
+    dev->autofeed = false;
 
     reset_printer(dev);
 
@@ -2282,15 +2241,15 @@ escp_close(void *priv)
 {
     escp_t *dev = (escp_t *) priv;
 
-    if (dev == NULL)
+    if (!dev)
         return;
 
-    if (dev->page != NULL) {
+    if (dev->page) {
         /* Print last page if it contains data. */
         if (dev->page->dirty)
             dump_page(dev);
 
-        if (dev->page->pixels != NULL)
+        if (dev->page->pixels)
             free(dev->page->pixels);
         free(dev->page);
     }
@@ -2333,6 +2292,21 @@ static const device_config_t lpt_prt_escp_config[] = {
             { .description = "A4",               .value = PAPER_A4         },
             { .description = "Legal (sideways)", .value = PAPER_LEGAL_SIDE },
             { .description = "B4 (sideways)",    .value = PAPER_B4_SIDE    },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "quality",
+        .description    = "Quality",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Draft",         .value = QUALITY_DRAFT },
+            { .description = "(Near) Letter", .value = QUALITY_LQ    },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
