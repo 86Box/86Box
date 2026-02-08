@@ -664,6 +664,21 @@ real_drive(fdc_t *fdc, int drive)
         return drive;
 }
 
+void
+fdc_diskchange_interrupt(fdc_t *fdc, int drive)
+{
+    /*
+    For the IBM 5550 machine to detect the disk in the drive has been changed.
+    A hardware interrupt is caused by the FDC (NEC uPD765A) when the Ready line from the drive changes its state.
+    Other PCs never use the Ready line.
+    */
+    if (fdc->flags & FDC_FLAG_5550) {
+        fdc->st0 = 0xc0 | (drive & 3);
+        fdc_int(fdc, 1);
+        fdd_changed[drive] = 0;
+    }
+}
+
 /* FDD notifies FDC when seek operation is complete */
 void
 fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
@@ -822,8 +837,47 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             case 0:
                 return;
             case 1:
+                if (fdc->flags & FDC_FLAG_5550) {
+                    val = 0;
+                    if (!(val & 0x08)) { /* Drive 2 active */
+                        val = 0x42;
+                    }
+                    if (!(val & 0x04)) { /* Drive 1 active */
+                        val &= 0xf0;
+                        val |= 0x21;
+                    }
+                    if (!(val & 0x02)) { /* Drive 0 active */
+                        val &= 0xf0;
+                        val |= 0x10;
+                    }
+                    /* Update the DOR because this emulation module depend on it */
+                    fdc->dor &= 0x0c;
+                    fdc->dor |= val;
+                    /* We can now simplify this since each motor now spins separately. */
+                    for (int i = 0; i < FDD_NUM; i++) {
+                        drive_num = real_drive(fdc, i);
+                        if ((!fdd_get_flags(drive_num)) || (drive_num >= FDD_NUM))
+                            val &= ~(0x10 << drive_num);
+                        else
+                            fdd_set_motor_enable(i, (val & (0x10 << drive_num)));
+                    }
+                    drive_num     = real_drive(fdc, val & 0x03);
+                    current_drive = drive_num;
+                    fdc->st0      = (fdc->st0 & 0xf8) | (val & 0x03) | (fdd_get_head(drive_num) ? 4 : 0);
+                    fdc_log("val:%x, dor=%x, drv=%x\n", val, fdc->dor, drive_num);
+                }
                 return;
             case 2: /*DOR*/
+                if (fdc->flags & FDC_FLAG_5550) {   /* Reset */
+                    fdd_stop(fdc->drive);
+                    for (int i = 0; i < FDD_NUM; i++)
+                        fdd_set_motor_enable(i, 0); /* Need to restart fdd timer */
+                    fdc->stat = 0x00;
+                    fdc->pnum = fdc->ptot = 0;
+                    fdc_soft_reset(fdc);
+                    fdc->dor = 0x0c;
+                    return;
+                }
                 if (fdc->flags & FDC_FLAG_PCJR) {
                     if ((fdc->dor & 0x40) && !(val & 0x40)) {
                         timer_set_delay_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
@@ -903,6 +957,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 }
                 return;
             case 4: /* DSR */
+                if (fdc->flags & FDC_FLAG_5550)
+                    picintc(1 << fdc->irq);
                 if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
                     if (!(val & 0x80)) {
                         timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
@@ -914,6 +970,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 fdc->dsr = val;
                 return;
             case 5: /*Command register*/
+                if (fdc->flags & FDC_FLAG_5550)
+                    picintc(1 << fdc->irq);
                 if (fdc->fifointest) {
                     /* Write FIFO buffer in the test mode (PS/55) */
                     fdc_log("FIFO buffer position = %X\n", ((fifo_t *) fdc->fifo_p)->end);
@@ -948,7 +1006,33 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 
                     fdc->command = val;
                     fdc->stat |= 0x10;
-                    fdc_log("Starting FDC command %02X\n", fdc->command);
+                    fdc_log("Starting FDC command %02X ", fdc->command);
+                    switch (fdc->command & 0x1f) {
+                        case 0x06:
+                            fdc_log("READ DATA\n");
+                            break;
+                        case 0x0a:
+                            fdc_log("READ ID\n");
+                            break;
+                        case 0x07:
+                            fdc_log("RECALIB\n");
+                            break;
+                        case 0x08:
+                            fdc_log("SENSE INTERRUPT\n");
+                            break;
+                        case 0x03:
+                            fdc_log("SPECIFY\n");
+                            break;
+                        case 0x04:
+                            fdc_log("SENSE DRIVE\n");
+                            break;
+                        case 0x0f:
+                            fdc_log("SEEK\n");
+                            break;
+                        default:
+                            fdc_log("\n");
+                            break;
+                    }
                     fdc->error = 0;
 
                     if (((fdc->command & 0x1f) == 0x02) || ((fdc->command & 0x1f) == 0x05) ||
@@ -1106,6 +1190,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         if (command_has_drivesel[fdc->command & 0x1F]) {
                             if (fdc->flags & FDC_FLAG_PCJR)
                                 fdc->drive = 0;
+                            else if (fdc->flags & FDC_FLAG_5550)
+                                fdc->drive = fdc->params[0] & 3;
                             else
                                 fdc->drive = fdc->dor & 3;
                             fdc->rw_drive = fdc->params[0] & 3;
@@ -1115,6 +1201,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     if (fdc->pnum == fdc->ptot) {
                         fdc_log("Got all params %02X\n", fdc->command);
+                        for (int i = 0; i < fdc->ptot; i++)
+                            fdc_log(" [%d] %02x\n", i, fdc->params[i]);
                         fifo_reset(fdc->fifo_p);
                         fdc->interrupt  = fdc->processed_cmd;
                         fdc->reset_stat = 0;
@@ -1451,6 +1539,8 @@ fdc_read(uint16_t addr, void *priv)
                     ret   = 0xc0;
                     ret  |= (fdc->dor & 0x01) << 5;    /* Drive Select 0 */
                     ret  |= (fdc->dor & 0x30) >> 4;    /* Motor Select 1, 0 */
+                } else if (fdc->flags & FDC_FLAG_5550) {
+                    ret = 0;
                 } else {
                     if (is486 || !fdc->enable_3f1)
                         ret = 0xff;
@@ -1503,9 +1593,13 @@ fdc_read(uint16_t addr, void *priv)
                     ret = (fdc->rwc[drive] << 4) | (fdc->media_id << 6);
                 break;
             case 4: /*Status*/
+                if (fdc->flags & FDC_FLAG_5550)
+                    picintc(1 << fdc->irq);
                 ret = fdc->stat;
                 break;
             case 5: /*Data*/
+                if (fdc->flags & FDC_FLAG_5550)
+                    picintc(1 << fdc->irq);
                 if (fdc->fifointest) {
                     /* Read FIFO buffer in the test mode (PS/55) */
                     ret = fifo_read(fdc->fifo_p);
@@ -1733,6 +1827,8 @@ fdc_callback(void *priv)
             }
             if (writeprot[fdc->drive])
                 fdc->res[10] |= 0x40;
+            if ((fdc->flags & FDC_FLAG_5550) && drive_empty[fdc->drive])//IBM 5550
+                fdc->res[10] &= 0xdf; /* Set Not Ready */
 
             fdc->stat       = (fdc->stat & 0xf) | 0xd0;
             fdc->paramstogo = 1;
@@ -2349,6 +2445,10 @@ fdc_set_base(fdc_t *fdc, int base)
     if (fdc->flags & FDC_FLAG_NSC) {
         io_sethandler(base + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else if (fdc->flags & FDC_FLAG_5550) {
+        io_sethandler(base, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
+        io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2383,6 +2483,10 @@ fdc_remove(fdc_t *fdc)
     if (fdc->flags & FDC_FLAG_NSC) {
         io_removehandler(fdc->base_address + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else if (fdc->flags & FDC_FLAG_5550) {
+        io_removehandler(fdc->base_address, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_removehandler(fdc->base_address + 4, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
+        io_removehandler(fdc->base_address + 5, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2534,6 +2638,8 @@ fdc_init(const device_t *info)
         fdc->irq = FDC_TERTIARY_IRQ;
     else if (fdc->flags & FDC_FLAG_QUA)
         fdc->irq = FDC_QUATERNARY_IRQ;
+    else if (fdc->flags & FDC_FLAG_5550)
+        fdc->irq = 4;
     else
         fdc->irq = FDC_PRIMARY_IRQ;
 
@@ -2677,6 +2783,20 @@ const device_t fdc_xt_umc_um8398_device = {
     .internal_name = "fdc_xt_umc_um8398",
     .flags         = 0,
     .local         = FDC_FLAG_UMC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_xt_5550_device = {
+    .name          = "IBM 5550 Floppy Drive Controller",
+    .internal_name = "fdc_xt_5550",
+    .flags         = 0,
+    .local         = FDC_FLAG_5550,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
