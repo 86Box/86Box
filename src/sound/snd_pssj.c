@@ -78,7 +78,7 @@ pssj_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 3:
             pssj->freq      = (pssj->freq & 0x0ff) | ((val & 0xf) << 8);
-            pssj->amplitude = val >> 4;
+            pssj->amplitude = (val & 0xef) >> 4;
             break;
 
         default:
