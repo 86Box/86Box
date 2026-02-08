@@ -1367,6 +1367,7 @@ static void
 epoch_misc_out(uint16_t port, uint8_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
+    pit_intf_t *pit_intf = &pit_devs[0];
 
     // dev->regs[port & 0x0007] = val;
     // epoch_log("%04X:%04X I/O Out %02X: %02X\n  AX=%04X BX=%04X CX=%04X DX=%04X ES=%04X DI=%04X DS=%04X SI=%04X\n",
@@ -1376,7 +1377,6 @@ epoch_misc_out(uint16_t port, uint8_t val, void *priv)
 
     switch (port) {
         case 0x44:
-            pit_intf_t *pit_intf = &pit_devs[0];
             for (uint8_t i = 0; i < 3; i++) {
                 pit_intf->set_gate(pit_intf->data, i, val & 1);
             }
@@ -1459,26 +1459,22 @@ kbd_epoch_poll(void *priv)
 static void
 kbd_epoch_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
 {
-    uint8_t num_lock = 0;
-    uint8_t shift_states = 0;
+    // uint8_t num_lock = 0;
+    // uint8_t shift_states = 0;
 
     if (!adddata)
         return;
 
-    keyboard_get_states(NULL, &num_lock, NULL, NULL);
-    shift_states = keyboard_get_shift() & STATE_LSHIFT;
+    // keyboard_get_states(NULL, &num_lock, NULL, NULL);
+    // shift_states = keyboard_get_shift() & STATE_LSHIFT;
 
-    /* If NumLock is on, invert the left shift state so we can always check for
-       the the same way flag being set (and with NumLock on that then means it
-       is actually *NOT* set). */
-    if (num_lock)
-        shift_states ^= STATE_LSHIFT;
+    // /* If NumLock is on, invert the left shift state so we can always check for
+    //    the the same way flag being set (and with NumLock on that then means it
+    //    is actually *NOT* set). */
+    // if (num_lock)
+    //     shift_states ^= STATE_LSHIFT;
 
-    switch (val) {
-        default:
-            adddata(val);
-            break;
-    }
+    adddata(val);
 }
 
 static void
