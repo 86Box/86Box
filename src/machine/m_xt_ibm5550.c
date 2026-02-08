@@ -530,7 +530,7 @@ epoch_outb(uint16_t addr, uint8_t val, void *priv)
     }
     epoch_out(addr, epoch->iolatch, epoch);
 }
-void
+static void
 epoch_outw(uint16_t addr, uint16_t val, void *priv)
 {
     epoch_iolog("epoch Outw addr %03X val %04X\n", addr, val);
@@ -1429,7 +1429,7 @@ static int     key_queue_start = 0;
 static int     key_queue_end   = 0;
 
 static void
-kbd_poll(void *priv)
+kbd_epoch_poll(void *priv)
 {
     epochkbd_t *kbd = (epochkbd_t *) priv;
 
@@ -1456,17 +1456,8 @@ kbd_poll(void *priv)
     }
 }
 
-void
-kbd_adddata_xt_common(uint16_t val)
-{
-    key_queue[key_queue_end] = val;
-    epoch_log("epochkbd: %02X added to key queue at %i\n",
-            val, key_queue_end);
-    key_queue_end = (key_queue_end + 1) & 0x0f;
-}
-
-void
-kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
+static void
+kbd_epoch_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
 {
     uint8_t num_lock = 0;
     uint8_t shift_states = 0;
@@ -1490,8 +1481,8 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     }
 }
 
-void
-kbd_adddata(uint16_t val)
+static void
+kbd_epoch_adddata(uint16_t val)
 {
     key_queue[key_queue_end] = val;
     epoch_log("XTkbd: %02X added to key queue at %i\n",
@@ -1503,7 +1494,7 @@ static void
 kbd_adddata_ex(uint16_t val)
 {
     if (val < 0x100)
-        kbd_adddata_process(val, kbd_adddata);
+        kbd_epoch_adddata_process(val, kbd_epoch_adddata);
 }
 
 static void
@@ -1524,7 +1515,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                     kbd->reset_step = 0;
                     /* Specific 5556 keyboards send three bytes of identification code,
                        but this simply sends AAh that can pass the IPL and DOS K3.4 init. */
-                    kbd_adddata(0xaa);
+                    kbd_epoch_adddata(0xaa);
                 } else if (!(kbd->pb & 0x08)) {
                     kbd->pa      = 0;
                     kbd->blocked = 0;
@@ -1629,7 +1620,7 @@ kbd_init(const device_t *info)
 
     key_queue_start = key_queue_end = 0;
 
-    timer_add(&kbd->send_delay_timer, kbd_poll, kbd, 1);
+    timer_add(&kbd->send_delay_timer, kbd_epoch_poll, kbd, 1);
 
     keyboard_set_table(scancode_set8a);
     keyboard_mode = 0x8a;
@@ -1656,7 +1647,7 @@ kbd_close(void *priv)
     free(kbd);
 }
 
-const device_t kbc_epoch_device = {
+static const device_t kbc_epoch_device = {
     .name          = "IBM 5550 Keyboard Controller",
     .internal_name = "kbc_epoch",
     .flags         = 0,
@@ -2063,7 +2054,7 @@ epoch_force_redraw(void *priv)
     epoch->fullchange = changeframecount;
 }
 
-const device_t epoch_device = {
+static const device_t epoch_device = {
     .name          = "IBM 5550 Video Controller (Epoch)",
     .internal_name = "ibm5550vid",
     .flags         = DEVICE_ISA,
@@ -2077,7 +2068,7 @@ const device_t epoch_device = {
     .config        = NULL
 };
 
-void
+static void
 pit_irq6_timer(int new_out, int old_out, UNUSED(void *priv))
 {
     // epoch_log("%04X:%04X IRQ6 Timer triggered.\n", cs >> 4, cpu_state.pc);
@@ -2089,7 +2080,7 @@ pit_irq6_timer(int new_out, int old_out, UNUSED(void *priv))
 }
 
 static pit_t *
-pit_ibm5550_init()
+pit_ibm5550_init(void)
 {
     void *pit;
 
