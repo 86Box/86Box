@@ -143,12 +143,12 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
     else if ((addr >= 0xfe0000) && (addr <= 0xffffff))
         return addr & 0x0fffff;
 
-    if (dev->revision == 8) {
-        shift       = (dev->cr[0] & 0x80) ? 21 : ((dev->cr[6] & 0x01) ? 23 : 19);
-        other_shift = (dev->cr[0] & 0x80) ? ((dev->cr[6] & 0x01) ? 19 : 23) : 21;
+    if ((dev->revision == 8) && ((dev->cr[6] & 0x01) == 0x01)) {
+        shift       = (dev->cr[0] & 0x80) ? 21 : ((dev->cr[1] & 0x40) ? 19 : 23);
+        other_shift = (dev->cr[0] & 0x80) ? 23 : ((dev->cr[1] & 0x40) ? 23 : 23);
     } else {
         shift       = (dev->cr[0] & 0x80) ? 21 : 19;
-        other_shift = (dev->cr[0] & 0x80) ? 21 : 19;
+        other_shift = (dev->cr[0] & 0x80) ? 19 : 21;
     }
 
     headland_log(dev->log, "Headland shift values: shift = %i, other_shift = %i\n", shift, other_shift);
@@ -158,14 +158,15 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 
     bank_base[0] = 0x00000000;
     bank_base[1] = bank_base[0] + (1 << shift);
-    bank_base[2] = bank_base[1] + (1 << shift);
 
-    if ((dev->revision > 0) && (dev->revision < 8) && (dev->cr[1] & 0x40)) {
+    if ((dev->revision > 0) && (dev->cr[1] & 0x40)) {
         bank_shift[2] = bank_shift[3] = other_shift;
+        bank_base[2]                  = bank_base[1] + (1 << other_shift);
         bank_base[3]                  = bank_base[2] + (1 << other_shift);
         /* First address after the memory is bank_base[3] + (1 << other_shift) */
     } else {
         bank_shift[2] = bank_shift[3] = shift;
+        bank_base[2]                  = bank_base[1] + (1 << shift);
         bank_base[3]                  = bank_base[2] + (1 << shift);
         /* First address after the memory is bank_base[3] + (1 << shift) */
     }
