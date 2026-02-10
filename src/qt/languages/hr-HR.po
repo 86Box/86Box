@@ -2840,8 +2840,8 @@ msgstr "Lokalni prekidač"
 msgid "Remote Switch"
 msgstr "Udaljeni prekidač"
 
-msgid "Switch:"
-msgstr "Prekidač:"
+msgid "Shared secret:"
+msgstr "Zajednička tajna:"
 
 msgid "Hub Mode"
 msgstr "Način čvorišta"

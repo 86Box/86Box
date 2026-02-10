@@ -2832,7 +2832,7 @@ msgstr ""
 msgid "Remote Switch"
 msgstr ""
 
-msgid "Switch:"
+msgid "Shared secret:"
 msgstr ""
 
 msgid "Hub Mode"

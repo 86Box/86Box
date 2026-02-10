@@ -2838,8 +2838,8 @@ msgstr "Commutatore locale"
 msgid "Remote Switch"
 msgstr "Commutatore remoto"
 
-msgid "Switch:"
-msgstr "Commutatore:"
+msgid "Shared secret:"
+msgstr "Segreto condiviso:"
 
 msgid "Hub Mode"
 msgstr "Modalità Hub"
