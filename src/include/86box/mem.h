@@ -307,6 +307,7 @@ extern int      read_type;
 
 extern int mem_a20_state;
 extern int mem_a20_alt;
+extern int mem_a20_chipset;
 extern int mem_a20_key;
 
 extern uint8_t  read_mem_b(uint32_t addr);

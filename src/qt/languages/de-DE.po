@@ -55,10 +55,10 @@ msgid "&Resizeable window"
 msgstr "G&rößenverstellbares Fenster"
 
 msgid "R&emember size && position"
-msgstr "Größe && &Position merken"
+msgstr "Größe und &Position merken"
 
 msgid "Remember size && position"
-msgstr "Größe && Position merken"
+msgstr "Größe und Position merken"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -742,10 +742,10 @@ msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video
 msgstr "Die Videokarte \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
 
 msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Das Gerät \"%hs\" ist aufgrund von fehlenden ROMs nicht verfügbar. Es wird ignoriert."
+msgstr "Die Videokarte 2 \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird deaktiviert."
 
 msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Die Videokarte 2 \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird deaktiviert."
+msgstr "Das Gerät \"%hs\" ist aufgrund von fehlenden ROMs nicht verfügbar. Es wird ignoriert."
 
 msgid "Machine"
 msgstr "System"
@@ -2848,10 +2848,10 @@ msgid "Hostname:"
 msgstr "Hostname:"
 
 msgid "ISA RAM:"
-msgstr ""
+msgstr "ISA RAM:"
 
 msgid "ISA ROM:"
-msgstr ""
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "NVRAM leeren"
@@ -2869,7 +2869,7 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "Beim Leeren des NVRAMs der virtuellen Maschine ist ein Fehler aufgetreten \"%1\""
 
 msgid "%1 VM Manager"
-msgstr ""
+msgstr "%1 VM Manager"
 
 msgid "%n disk(s)"
 msgstr "%n Festplatte(n)"

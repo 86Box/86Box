@@ -15,10 +15,11 @@ public:
     explicit ProgSettings(QWidget *parent = nullptr);
     ~ProgSettings();
 #ifdef Q_OS_WINDOWS
-    static QString getFontName(int langId);
+    static QFont getUIFont();
 #endif
     static int     languageCodeToId(QString langCode);
     static QString languageIdToCode(int id);
+    static void    getSysLang(QObject *parent = nullptr);
     static void    loadTranslators(QObject *parent = nullptr);
     static void    reloadStrings();
     class CustomTranslator : public QTranslator {

@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/port_92.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
@@ -176,6 +177,9 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0x22:
+                        mem_a20_chipset = (val & 0x02);
+                        mem_a20_recalc();
+                        fallthrough;
                     case 0x23:
                     case 0x26:
                     case 0x2d:

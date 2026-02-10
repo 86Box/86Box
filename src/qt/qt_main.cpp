@@ -400,7 +400,8 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         ret = CallNextHookEx(NULL, nCode, wParam, lParam);
 
     if (lpKdhs->scanCode == 0x00000045) {
-        if ((lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000090)) {
+        if ((lpKdhs->flags & LLKHF_EXTENDED) && ((lpKdhs->vkCode == 0x00000090) ||
+                                                 (lpKdhs->vkCode == 0x00000013))) {
             /* NumLock. */
             lpKdhs->flags &= ~LLKHF_EXTENDED;
         } else if (!(lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000013)) {
@@ -621,7 +622,7 @@ main(int argc, char *argv[])
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
-    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+    QApplication::setFont(ProgSettings::getUIFont());
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
 

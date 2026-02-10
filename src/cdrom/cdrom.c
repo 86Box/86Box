@@ -692,13 +692,13 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
     int                     num        = 0;
     int                     len        = 4;
 
-    /* Bytes 2 and 3 = Number of first and last sessions */
-    read_toc_identify_sessions((raw_track_info_t *) rti, num, b);
-
     cdrom_log(dev->log, "read_toc_raw(%016" PRIXPTR ", %016" PRIXPTR ", %02X)\n",
               (uintptr_t) dev, (uintptr_t) b, start_track);
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
+
+    /* Bytes 2 and 3 = Number of first and last sessions */
+    read_toc_identify_sessions((raw_track_info_t *) rti, num, b);
 
     if (num != 0)  for (int i = 0; i < num; i++)
         if (t[i].session >= start_track) {
@@ -1654,6 +1654,9 @@ cdrom_audio_play(cdrom_t *dev, const uint32_t pos, const uint32_t len, const int
             dev->cd_end        = len2;
             dev->cd_status     = CD_STATUS_PLAYING;
             dev->cd_buflen     = 0;
+
+            if (dev->cached_sector != dev->seek_pos)
+                dev->cached_sector = -1;
         } else {
             cdrom_log(dev->log, "LBA %08X not on an audio track\n", pos);
             cdrom_stop(dev);

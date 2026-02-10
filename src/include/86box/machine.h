@@ -569,6 +569,7 @@ extern int             machine_at_acer100t_init(const machine_t *);
 
 /* HT18 */
 extern int             machine_at_ama932j_init(const machine_t *);
+extern int             machine_at_tandy1000rsx_init(const machine_t *);
 
 /* Intel 82335 */
 extern int             machine_at_adi386sx_init(const machine_t *);
@@ -749,6 +750,9 @@ extern int             machine_at_4gpv5_init(const machine_t *);
 
 /* Contaq 82C597 */
 extern int             machine_at_greenb_init(const machine_t *);
+
+/* OPTi 499 */
+extern int             machine_at_xenon_init(const machine_t *);
 
 /* OPTi 895 */
 #ifdef EMU_DEVICE_H
@@ -1211,6 +1215,9 @@ extern int             machine_at_ma30d_init(const machine_t *);
 /* i440EX */
 extern int             machine_at_brio83xx_init(const machine_t *);
 extern int             machine_at_p6i440e2_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  como_device;
+#endif
 extern int             machine_at_como_init(const machine_t *);
 
 /* i440BX */
@@ -1505,6 +1512,10 @@ extern int             machine_xt_maz1016_init(const machine_t *);
 extern int             machine_xt_iskra3104_init(const machine_t *);
 extern int             machine_xt_lxt3_init(const machine_t *);
 extern int             machine_xt_compaq_deskpro_init(const machine_t *);
+
+/* m_xt_ibm5550.c */
+
+extern int             machine_xt_ibm5550_init(const machine_t *);
 
 /* m_xt_t1000.c */
 #ifdef EMU_DEVICE_H
