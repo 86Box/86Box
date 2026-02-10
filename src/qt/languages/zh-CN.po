@@ -2839,8 +2839,8 @@ msgstr "本地交换机"
 msgid "Remote Switch"
 msgstr "远程交换机"
 
-msgid "Switch:"
-msgstr "交换机："
+msgid "Shared secret:"
+msgstr "共享秘密："
 
 msgid "Hub Mode"
 msgstr "集线器模式"

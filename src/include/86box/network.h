@@ -60,8 +60,6 @@
 #define NET_QUEUE_COUNT    4
 #define NET_CARD_MAX       4
 #define NET_HOST_INTF_MAX  64
-#define NET_SWITCH_GRP_MIN 1
-#define NET_SWITCH_GRP_MAX 10
 
 #define NET_PERIOD_10M     0.8
 #define NET_PERIOD_100M    0.08
@@ -97,7 +95,7 @@ typedef struct netcard_conf_t {
     int      net_type;
     char     host_dev_name[128];
     uint32_t link_state;
-    uint8_t  switch_group;
+    char     secret[256];
     uint8_t  promisc_mode;
     char     slirp_net[16];
     char     nrs_hostname[128];

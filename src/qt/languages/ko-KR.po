@@ -2838,8 +2838,8 @@ msgstr "로컬 스위치"
 msgid "Remote Switch"
 msgstr "원격 스위치"
 
-msgid "Switch:"
-msgstr "스위치:"
+msgid "Shared secret:"
+msgstr "공유 비밀:"
 
 msgid "Hub Mode"
 msgstr "허브 모드"

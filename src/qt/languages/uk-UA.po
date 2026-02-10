@@ -2840,8 +2840,8 @@ msgstr "Локальний комутатор"
 msgid "Remote Switch"
 msgstr "Віддалений комутатор"
 
-msgid "Switch:"
-msgstr "Номер комутатора:"
+msgid "Shared secret:"
+msgstr "Спільний секрет:"
 
 msgid "Hub Mode"
 msgstr "Режим концентратора"
