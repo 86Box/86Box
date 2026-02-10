@@ -53,7 +53,7 @@
 
 #define SWITCH_PKT_BATCH NET_QUEUE_LEN
 
-#define SWITCH_MULTICAST_GROUP 0xefff5656 /* 239.255.86.86 */
+#define SWITCH_MULTICAST_GROUP 0xefff5056 /* 239.255.80.86 */
 #define SWITCH_MULTICAST_PORT  8086
 
 enum {
@@ -478,8 +478,6 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
 {
     netcard_conf_t *netcard = (netcard_conf_t *) priv;
 
-    netswitch_log("Network Switch: initializing with group %d...\n", netcard->switch_group);
-
     net_switch_t *netswitch = calloc(1, sizeof(net_switch_t));
     memcpy(netswitch->mac_addr, mac_addr, sizeof(netswitch->mac_addr));
     netswitch->card = (netcard_t *) card;
@@ -514,7 +512,7 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
     val = 0;
     setsockopt(netswitch->socket_rx, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &val, sizeof(val));
 
-    netswitch->port_out = htons(SWITCH_MULTICAST_PORT - NET_SWITCH_GRP_MIN + netcard->switch_group);
+    netswitch->port_out = htons(SWITCH_MULTICAST_PORT);
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
         .sin_addr = { .s_addr = htonl(INADDR_ANY) },

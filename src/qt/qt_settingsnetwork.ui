@@ -170,38 +170,18 @@
         </widget>
        </item>
        <item row="7" column="0">
-        <widget class="QLabel" name="labelSwitch1">
+        <widget class="QLabel" name="labelSecret1">
          <property name="text">
-          <string>Switch:</string>
+          <string>Shared secret:</string>
          </property>
         </widget>
        </item>
        <item row="7" column="1">
-        <layout class="QHBoxLayout" name="HLayoutSwitch1">
-         <item>
-          <widget class="QSpinBox" name="spinnerSwitch1">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>10</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacerSwitch1">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
+        <widget class="QLineEdit" name="secretSwitch1">
+         <property name="maxLength">
+          <number>256</number>
+         </property>
+        </widget>
        </item>
        <item row="8" column="0">
         <widget class="QLabel" name="labelPromisc1">
@@ -385,38 +365,18 @@
         </widget>
        </item>
        <item row="7" column="0">
-        <widget class="QLabel" name="labelSwitch2">
+        <widget class="QLabel" name="labelSecret2">
          <property name="text">
-          <string>Switch:</string>
+          <string>Shared secret:</string>
          </property>
         </widget>
        </item>
        <item row="7" column="1">
-        <layout class="QHBoxLayout" name="HLayoutSwitch2">
-         <item>
-          <widget class="QSpinBox" name="spinnerSwitch2">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>10</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacerSwitch2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
+        <widget class="QLineEdit" name="secretSwitch2">
+         <property name="maxLength">
+          <number>256</number>
+         </property>
+        </widget>
        </item>
        <item row="8" column="0">
         <widget class="QLabel" name="labelPromisc2">
@@ -600,38 +560,18 @@
         </widget>
        </item>
        <item row="7" column="0">
-        <widget class="QLabel" name="labelSwitch3">
+        <widget class="QLabel" name="labelSecret3">
          <property name="text">
-          <string>Switch:</string>
+          <string>Shared secret:</string>
          </property>
         </widget>
        </item>
        <item row="7" column="1">
-        <layout class="QHBoxLayout" name="HLayoutSwitch3">
-         <item>
-          <widget class="QSpinBox" name="spinnerSwitch3">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>10</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacerSwitch3">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
+        <widget class="QLineEdit" name="secretSwitch3">
+         <property name="maxLength">
+          <number>256</number>
+         </property>
+        </widget>
        </item>
        <item row="8" column="0">
         <widget class="QLabel" name="labelPromisc3">
@@ -815,38 +755,18 @@
         </widget>
        </item>
        <item row="7" column="0">
-        <widget class="QLabel" name="labelSwitch4">
+        <widget class="QLabel" name="labelSecret4">
          <property name="text">
-          <string>Switch:</string>
+          <string>Shared secret:</string>
          </property>
         </widget>
        </item>
        <item row="7" column="1">
-        <layout class="QHBoxLayout" name="HLayoutSwitch4">
-         <item>
-          <widget class="QSpinBox" name="spinnerSwitch4">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>10</number>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacerSwitch4">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
+        <widget class="QLineEdit" name="secretSwitch4">
+         <property name="maxLength">
+          <number>256</number>
+         </property>
+        </widget>
        </item>
        <item row="8" column="0">
         <widget class="QLabel" name="labelPromisc4">

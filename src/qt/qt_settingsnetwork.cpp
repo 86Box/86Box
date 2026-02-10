@@ -49,13 +49,9 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         auto *option_list_label = findChild<QLabel *>(QString("labelOptionList%1").arg(i + 1));
         auto *option_list_line  = findChild<QWidget *>(QString("lineOptionList%1").arg(i + 1));
 
-        // Switch group
-        auto *switch_group_label = findChild<QLabel *>(QString("labelSwitch%1").arg(i + 1));
-        // auto *switch_group_hlayout = findChild<QHBoxLayout *>(QString("HLayoutSwitch%1").arg(i + 1));
-        // auto *switch_group_hspacer = findChild<QWidget *>(QString("horizontalSpacerSwitch%1").arg(i + 1));
-        auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
-        switch_group_value->setMinimum(NET_SWITCH_GRP_MIN);
-        switch_group_value->setMaximum(NET_SWITCH_GRP_MAX);
+        // Shared secret
+        auto *secret_label = findChild<QLabel *>(QString("labelSecret%1").arg(i + 1));
+        auto *secret_value = findChild<QLineEdit *>(QString("secretSwitch%1").arg(i + 1));
 
         // Promiscuous option
         auto *promisc_label = findChild<QLabel *>(QString("labelPromisc%1").arg(i + 1));
@@ -73,10 +69,8 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         // NEW STUFF
         // Make all options invisible by default
 
-        // Switch group
-        switch_group_label->setVisible(false);
-        switch_group_value->setVisible(false);
-        // switch_group_hspacer->setVisible(false);
+        secret_label->setVisible(false);
+        secret_value->setVisible(false);
 
         // Promiscuous options
         promisc_label->setVisible(false);
@@ -142,10 +136,9 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     option_list_label->setVisible(true);
                     option_list_line->setVisible(true);
 
-                    // Switch group
-                    switch_group_label->setVisible(true);
-                    switch_group_value->setVisible(true);
-                    // switch_group_hspacer->setVisible(false);
+                    // Shared secret
+                    secret_label->setVisible(true);
+                    secret_value->setVisible(true);
 
                     // Promiscuous options
                     promisc_label->setVisible(true);
@@ -157,10 +150,9 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
                     option_list_label->setVisible(true);
                     option_list_line->setVisible(true);
 
-                    // Switch group
-                    switch_group_label->setVisible(true);
-                    switch_group_value->setVisible(true);
-                    // switch_group_hspacer->setVisible(false);
+                    // Shared secret
+                    secret_label->setVisible(true);
+                    secret_value->setVisible(true);
 
                     // Hostname
                     hostname_label->setVisible(true);
@@ -215,7 +207,7 @@ SettingsNetwork::save()
         cbox                         = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
         auto *hostname_value         = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
         auto *promisc_value          = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
-        auto *switch_group_value     = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
+        auto *secret_value           = findChild<QLineEdit *>(QString("secretSwitch%1").arg(i + 1));
         memset(net_cards_conf[i].host_dev_name, '\0', sizeof(net_cards_conf[i].host_dev_name));
         if (net_cards_conf[i].net_type == NET_TYPE_PCAP)
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
@@ -230,10 +222,12 @@ SettingsNetwork::save()
         else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             memset(net_cards_conf[i].nrs_hostname, '\0', sizeof(net_cards_conf[i].nrs_hostname));
             strncpy(net_cards_conf[i].nrs_hostname, hostname_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].nrs_hostname) - 1);
-            net_cards_conf[i].switch_group = switch_group_value->value();
+            memset(net_cards_conf[i].secret, '\0', sizeof(net_cards_conf[i].secret));
+            strncpy(net_cards_conf[i].secret, secret_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].secret) - 1);
         } else if (net_cards_conf[i].net_type == NET_TYPE_NLSWITCH) {
             net_cards_conf[i].promisc_mode = promisc_value->isChecked();
-            net_cards_conf[i].switch_group = switch_group_value->value();
+            memset(net_cards_conf[i].secret, '\0', sizeof(net_cards_conf[i].secret));
+            strncpy(net_cards_conf[i].secret, secret_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].secret) - 1);
         }
     }
 }
@@ -349,13 +343,13 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         } else if (net_cards_conf[i].net_type == NET_TYPE_NLSWITCH) {
             auto *promisc_value = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
             promisc_value->setCheckState(net_cards_conf[i].promisc_mode == 1 ? Qt::CheckState::Checked : Qt::CheckState::Unchecked);
-            auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
-            switch_group_value->setValue(net_cards_conf[i].switch_group);
+            auto *secret_value = findChild<QLineEdit *>(QString("secretSwitch%1").arg(i + 1));
+            secret_value->setText(net_cards_conf[i].secret);
         } else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             auto *hostname_value = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
             hostname_value->setText(net_cards_conf[i].nrs_hostname);
-            auto *switch_group_value = findChild<QSpinBox *>(QString("spinnerSwitch%1").arg(i + 1));
-            switch_group_value->setValue(net_cards_conf[i].switch_group);
+            auto *secret_value = findChild<QLineEdit *>(QString("secretSwitch%1").arg(i + 1));
+            secret_value->setText(net_cards_conf[i].secret);
         }
     }
 }

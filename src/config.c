@@ -910,11 +910,6 @@ load_network(void)
             nc->slirp_net[0] = '\0';
         }
 
-        sprintf(temp, "net_%02i_switch_group", c + 1);
-        nc->switch_group = ini_section_get_int(cat, temp, NET_SWITCH_GRP_MIN);
-        if (nc->switch_group < NET_SWITCH_GRP_MIN)
-            nc->switch_group = NET_SWITCH_GRP_MIN;
-
         sprintf(temp, "net_%02i_secret", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         strncpy(nc->secret, p ? p : "", sizeof(nc->secret) - 1);
@@ -3023,12 +3018,6 @@ save_network(void)
             sprintf(temp, "net_%02i_addr", c + 1);
             ini_section_delete_var(cat, temp);
         }
-
-        sprintf(temp, "net_%02i_switch_group", c + 1);
-        if (nc->switch_group == NET_SWITCH_GRP_MIN)
-            ini_section_delete_var(cat, temp);
-        else
-            ini_section_set_int(cat, temp, nc->switch_group);
 
         sprintf(temp, "net_%02i_secret", c + 1);
         if (nc->secret[0] == '\0')
