@@ -386,19 +386,14 @@ net_switch_thread(void *priv)
             if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN)) {
                 for (int i = 0; i < packets; i++) {
                     int orig_len = netswitch->pkt_tx_v[i].len;
-                    int send_len = orig_len + 32;
+                    int send_len = orig_len + sizeof(netswitch->secret_hash);
 
-                    if (send_len > NET_MAX_FRAME) {
-                        netswitch_log("Network Switch: packet too large to add header (%d bytes)\n",
-                                      orig_len);
-                        continue;
-                    }
-
-                    /* Prepend secret hash data */
-                    memmove(netswitch->pkt_tx_v[i].data + 32,
-                            netswitch->pkt_tx_v[i].data,
-                            orig_len);
-                    memcpy(netswitch->pkt_tx_v[i].data, netswitch->secret_hash, 32);
+                    /* Build header with secret hash */
+                    uint8_t augmented[sizeof(netswitch->secret_hash) + NET_MAX_FRAME];
+                    uint8_t *hdr = augmented;
+                    memcpy(hdr, netswitch->secret_hash, sizeof(netswitch->secret_hash));
+                    memcpy(augmented + sizeof(netswitch->secret_hash),
+                           netswitch->pkt_tx_v[i].data, orig_len);
 
 #define MAC_FORMAT "(%02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X)"
 #define MAC_FORMAT_ARGS(p) (p)[38], (p)[39], (p)[40], (p)[41], (p)[42], (p)[43], (p)[32], (p)[33], (p)[34], (p)[35], (p)[36], (p)[37]
@@ -407,8 +402,7 @@ net_switch_thread(void *priv)
 
                     /* Send through all known host interfaces. */
                     for (net_switch_hostaddr_t *hostaddr = netswitch->hostaddrs; hostaddr; hostaddr = hostaddr->next)
-                        sendto(hostaddr->socket_tx,
-                               (char *) netswitch->pkt_tx_v[i].data, send_len, 0,
+                        sendto(hostaddr->socket_tx, augmented, send_len, 0,
                                &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
                 }
             }
@@ -432,16 +426,21 @@ net_switch_thread(void *priv)
         }
         if (pfd[NET_EVENT_RX].revents & POLLIN) {
 #endif
-            len = recv(netswitch->socket_rx, (char *) netswitch->pkt.data, NET_MAX_FRAME, 0);
-            if (len < 44) {
+            len = recv(netswitch->socket_rx, (char *) netswitch->pkt.data, NET_MAX_FRAME + sizeof(netswitch->secret_hash), 0);
+            if (len < sizeof(netswitch->secret_hash) + 12) {
                 netswitch_log("Network Switch: recv error (%d)\n", len);
+                continue;
             }
 
-            if (memcmp(netswitch->pkt.data, netswitch->secret_hash, 32) != 0) {
+            if (memcmp(netswitch->pkt.data, netswitch->secret_hash, sizeof(netswitch->secret_hash)) != 0) {
                 /* This packet contains a different secret hash, ignore it. */
                 continue;
             } else {
-                memmove(netswitch->pkt.data, netswitch->pkt.data + 32, len - 32);
+                memmove(netswitch->pkt.data,
+                        netswitch->pkt.data + sizeof(netswitch->secret_hash),
+                        len - sizeof(netswitch->secret_hash));
+                len = len - sizeof(netswitch->secret_hash);
+                netswitch->pkt.len = len;
             }
 
             if ((AS_U64(netswitch->pkt.data[6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
