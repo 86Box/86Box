@@ -284,9 +284,11 @@ memmap_state_update(headland_t *dev)
             mem_mapping_set_exec(&dev->mid_mapping, ram + 0xA0000);
             mem_mapping_disable(&dev->mid_mapping);
             if (mem_size > 1024) {
-                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
                 mem_mapping_set_addr(&dev->high_mapping, 0x100000, (mem_size - 1024) << 10);
                 mem_mapping_set_exec(&dev->high_mapping, ram + 0x100000);
+            } else if ((mem_size > 640) && (mem_size <=1024)) {
+                mem_set_mem_state(0x100000, (mem_size - 640) << 10, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
             }
         } else {
             /* 1 MB - 1 MB + 384k: RAM pointing to A0000-FFFFF
@@ -296,9 +298,11 @@ memmap_state_update(headland_t *dev)
             mem_mapping_set_exec(&dev->mid_mapping, ram + 0xA0000);
             if (mem_size > 1024) {
                 /* We have ram above 1 MB, we need to relocate that. */
-                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 mem_mapping_set_addr(&dev->high_mapping, 0x160000, (mem_size - 1024) << 10);
                 mem_mapping_set_exec(&dev->high_mapping, ram + 0x100000);
+            } else if ((mem_size > 640) && (mem_size <=1024)) {
+                mem_set_mem_state(0x100000, (mem_size - 640) << 10, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
             }
         }
     }
