@@ -915,6 +915,11 @@ load_network(void)
         if (nc->switch_group < NET_SWITCH_GRP_MIN)
             nc->switch_group = NET_SWITCH_GRP_MIN;
 
+        sprintf(temp, "net_%02i_secret", c + 1);
+        p = ini_section_get_string(cat, temp, NULL);
+        strncpy(nc->secret, p ? p : "", sizeof(nc->secret) - 1);
+        nc->secret[sizeof(net_cards_conf[c].secret) - 1] = '\0';
+
         sprintf(temp, "net_%02i_promisc", c + 1);
         nc->promisc_mode = ini_section_get_int(cat, temp, 0);
 
@@ -3024,6 +3029,12 @@ save_network(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, nc->switch_group);
+
+        sprintf(temp, "net_%02i_secret", c + 1);
+        if (nc->secret[0] == '\0')
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, net_cards_conf[c].secret);
 
         sprintf(temp, "net_%02i_promisc", c + 1);
         if (nc->promisc_mode == 0)
