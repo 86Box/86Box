@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-23 17:57+0000\n"
+"PO-Revision-Date: 2026-02-11 06:30+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -2839,8 +2839,8 @@ msgstr "本地交换机"
 msgid "Remote Switch"
 msgstr "远程交换机"
 
-msgid "Switch:"
-msgstr "交换机："
+msgid "Shared secret:"
+msgstr "共享密钥："
 
 msgid "Hub Mode"
 msgstr "集线器模式"

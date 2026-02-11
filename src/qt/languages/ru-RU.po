@@ -2851,8 +2851,8 @@ msgstr "Локальный коммутатор"
 msgid "Remote Switch"
 msgstr "Удалённый коммутатор"
 
-msgid "Switch:"
-msgstr "Номер коммутатора:"
+msgid "Shared secret:"
+msgstr "Общий секрет:"
 
 msgid "Hub Mode"
 msgstr "Режим концентратора"

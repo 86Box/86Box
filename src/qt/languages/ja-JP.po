@@ -2839,8 +2839,8 @@ msgstr "ローカルスイッチ"
 msgid "Remote Switch"
 msgstr "リモートスイッチ"
 
-msgid "Switch:"
-msgstr "スイッチ:"
+msgid "Shared secret:"
+msgstr "共有秘密:"
 
 msgid "Hub Mode"
 msgstr "ハブモード"

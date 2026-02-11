@@ -2839,8 +2839,8 @@ msgstr "Lokal svitsj"
 msgid "Remote Switch"
 msgstr "Ekstern svitsj"
 
-msgid "Switch:"
-msgstr "Svitsj:"
+msgid "Shared secret:"
+msgstr "Delt hemmelighet:"
 
 msgid "Hub Mode"
 msgstr "Hub-modus"

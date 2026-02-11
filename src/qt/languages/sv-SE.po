@@ -2838,8 +2838,8 @@ msgstr "Lokal switch"
 msgid "Remote Switch"
 msgstr "Fjärr-switch"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Delad hemlighet:"
 
 msgid "Hub Mode"
 msgstr "Hubb-läge"
