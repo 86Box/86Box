@@ -146,6 +146,58 @@ ps2_read(uint16_t port, void *priv)
     return temp;
 }
 
+static const device_config_t ps2_m30_286_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ibmps2_m30_286",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Model 30-286 rev. 0 BIOS",
+                .internal_name = "ibmps2_m30_286_rev0",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ibmps2_m30_286/27F4092.BIN", "" }
+            },
+            {
+                .name          = "Model 30-286 rev. 2 BIOS",
+                .internal_name = "ibmps2_m30_286",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ibmps2_m30_286/33f5381a.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ps2_m30_286_device = {
+    .name          = "IBM PS/2 model 30-286",
+    .internal_name = "ps2_m30_286_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ps2_m30_286_config
+};
+
+
 static void
 ps2_isa_setup(int model, int cpu_type)
 {
@@ -205,16 +257,45 @@ ps2_isa_common_init(const machine_t *model)
     device_add(&port_6x_ps2_device);
 }
 
+uint8_t
+machine_ps2_isa_p1_handler(void)
+{
+    uint8_t mem_p1;
+
+    switch (mem_size / 1024) {
+        case 0: /*256Kx2*/
+            mem_p1 = 0xf0;
+            break;       
+        case 1: /*256Kx4*/
+            mem_p1 = 0xe0;
+            break;
+        case 2: /*1Mx2*/
+        case 3: 
+            mem_p1 = 0xd0;
+            break;
+        case 4: /*1Mx4*/
+        default:
+            mem_p1 = 0xc0;
+            break;
+    }
+
+    return mem_p1;
+}
+
 int
 machine_ps2_m30_286_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/ibmps2_m30_286/33f5381a.bin",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     ps2_isa_common_init(model);
 
