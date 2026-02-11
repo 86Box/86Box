@@ -1382,6 +1382,9 @@ extern const device_t  ps1_hdc_device;
 #endif
 
 /* m_ps2_isa.c */
+#ifdef EMU_DEVICE_H
+extern const device_t  ps2_m30_286_device;
+#endif
 extern int             machine_ps2_m30_286_init(const machine_t *);
 
 /* m_ps2_mca.c */
