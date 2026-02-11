@@ -2884,7 +2884,7 @@ msgid "Remote Switch"
 msgstr "Απομακρυσμένος Διακόπτης"
 
 msgid "Shared secret:"
-msgstr "κοινό μυστικό:"
+msgstr "Κοινό μυστικό:"
 
 msgid "Hub Mode"
 msgstr "Λειτουργία Hub"

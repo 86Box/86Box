@@ -2840,7 +2840,7 @@ msgid "Remote Switch"
 msgstr "Comutador remoto"
 
 msgid "Shared secret:"
-msgstr "Segredo compartihado:"
+msgstr "Segredo partilhado:"
 
 msgid "Hub Mode"
 msgstr "Modo de concentrador"

@@ -2840,7 +2840,7 @@ msgid "Remote Switch"
 msgstr "リモートスイッチ"
 
 msgid "Shared secret:"
-msgstr "きょうゆうひみつ:"
+msgstr "共有秘密:"
 
 msgid "Hub Mode"
 msgstr "ハブモード"

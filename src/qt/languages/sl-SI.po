@@ -2841,7 +2841,7 @@ msgid "Remote Switch"
 msgstr "Oddaljeno stikalo"
 
 msgid "Shared secret:"
-msgstr "Skupni skrivnost:"
+msgstr "Skupna skrivnost:"
 
 msgid "Hub Mode"
 msgstr "Način koncentratorja"

@@ -2833,7 +2833,7 @@ msgid "Remote Switch"
 msgstr "Switch Remoto"
 
 msgid "Shared secret:"
-msgstr "Segredo compartihado:"
+msgstr "Segredo compartilhado:"
 
 msgid "Hub Mode"
 msgstr "Modo Hub"
