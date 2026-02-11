@@ -2838,8 +2838,8 @@ msgstr "Yerel Switch"
 msgid "Remote Switch"
 msgstr "Uzak Switch"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Paylaşılan sır:"
 
 msgid "Hub Mode"
 msgstr "Hub Modu"

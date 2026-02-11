@@ -18,11 +18,17 @@
  *          Copyright 2017-2019 Miran Grca.
  *          Copyright 2017-2019 GreatPsycho.
  */
+#ifdef ENABLE_HEADLAND_LOG
+#include <stdarg.h>
+#endif
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#ifdef ENABLE_HEADLAND_LOG
+#define HAVE_STDARG_H
+#endif
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"
@@ -35,6 +41,24 @@
 #include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
+#include <86box/log.h>
+
+#ifdef ENABLE_HEADLAND_LOG
+int headland_do_log = ENABLE_HEADLAND_LOG;
+
+static void
+headland_log(void *priv, const char *fmt, ...)
+{
+    if (headland_do_log) {
+        va_list ap;
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define headland_log(fmt, ...)
+#endif
 
 enum {
     HEADLAND_GC103    = 0x00,
@@ -82,6 +106,8 @@ typedef struct headland_t {
     mem_mapping_t high_mapping;
     mem_mapping_t shadow_mapping[2];
     mem_mapping_t upper_mapping[24];
+
+    void * log; /* New logging system */
 } headland_t;
 
 /* TODO - Headland chipset's memory address mapping emulation isn't fully implemented yet,
@@ -117,27 +143,30 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
     else if ((addr >= 0xfe0000) && (addr <= 0xffffff))
         return addr & 0x0fffff;
 
-    if (dev->revision == 8) {
-        shift       = (dev->cr[0] & 0x80) ? 21 : ((dev->cr[6] & 0x01) ? 23 : 19);
-        other_shift = (dev->cr[0] & 0x80) ? ((dev->cr[6] & 0x01) ? 19 : 23) : 21;
+    if ((dev->revision == 8) && ((dev->cr[6] & 0x01) == 0x01)) {
+        shift       = (dev->cr[0] & 0x80) ? 21 : ((dev->cr[1] & 0x40) ? 19 : 23);
+        other_shift = (dev->cr[0] & 0x80) ? 23 : ((dev->cr[1] & 0x40) ? 23 : 23);
     } else {
         shift       = (dev->cr[0] & 0x80) ? 21 : 19;
-        other_shift = (dev->cr[0] & 0x80) ? 21 : 19;
+        other_shift = (dev->cr[0] & 0x80) ? 19 : 21;
     }
+
+    headland_log(dev->log, "Headland shift values: shift = %i, other_shift = %i\n", shift, other_shift);
 
     /* Bank size = 1 << (bank shift + 2) . */
     bank_shift[0] = bank_shift[1] = shift;
 
     bank_base[0] = 0x00000000;
     bank_base[1] = bank_base[0] + (1 << shift);
-    bank_base[2] = bank_base[1] + (1 << shift);
 
-    if ((dev->revision > 0) && (dev->revision < 8) && (dev->cr[1] & 0x40)) {
+    if ((dev->revision > 0) && (dev->cr[1] & 0x40)) {
         bank_shift[2] = bank_shift[3] = other_shift;
+        bank_base[2]                  = bank_base[1] + (1 << other_shift);
         bank_base[3]                  = bank_base[2] + (1 << other_shift);
         /* First address after the memory is bank_base[3] + (1 << other_shift) */
     } else {
         bank_shift[2] = bank_shift[3] = shift;
+        bank_base[2]                  = bank_base[1] + (1 << shift);
         bank_base[3]                  = bank_base[2] + (1 << shift);
         /* First address after the memory is bank_base[3] + (1 << shift) */
     }
@@ -248,15 +277,18 @@ memmap_state_update(headland_t *dev)
 
     memmap_state_default(dev, ht_romcs);
 
+    headland_log(dev->log, "Headland 384K Remap %sabled\n", ht_cr0 & 0x04 ? "Dis" : "En");
     if (mem_size > 640) {
         if (ht_cr0 & 0x04) {
             mem_mapping_set_addr(&dev->mid_mapping, 0xA0000, 0x40000);
             mem_mapping_set_exec(&dev->mid_mapping, ram + 0xA0000);
             mem_mapping_disable(&dev->mid_mapping);
             if (mem_size > 1024) {
-                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
                 mem_mapping_set_addr(&dev->high_mapping, 0x100000, (mem_size - 1024) << 10);
                 mem_mapping_set_exec(&dev->high_mapping, ram + 0x100000);
+            } else if ((mem_size > 640) && (mem_size <=1024)) {
+                mem_set_mem_state(0x100000, (mem_size - 640) << 10, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
             }
         } else {
             /* 1 MB - 1 MB + 384k: RAM pointing to A0000-FFFFF
@@ -266,14 +298,17 @@ memmap_state_update(headland_t *dev)
             mem_mapping_set_exec(&dev->mid_mapping, ram + 0xA0000);
             if (mem_size > 1024) {
                 /* We have ram above 1 MB, we need to relocate that. */
-                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+                mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 mem_mapping_set_addr(&dev->high_mapping, 0x160000, (mem_size - 1024) << 10);
                 mem_mapping_set_exec(&dev->high_mapping, ram + 0x100000);
+            } else if ((mem_size > 640) && (mem_size <=1024)) {
+                mem_set_mem_state(0x100000, (mem_size - 640) << 10, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
             }
         }
     }
 
-    switch (ht_cr0) {
+    headland_log(dev->log, "Headland shadow RAM val = %02X\n", ht_cr0 & 0x18);
+    switch (ht_cr0 & 0x18) {
         case 0x18:
             if ((mem_size << 10) > 0xe0000) {
                 mem_set_mem_state(0x0e0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
@@ -330,6 +365,8 @@ static void
 hl_write(uint16_t addr, uint8_t val, void *priv)
 {
     headland_t *dev = (headland_t *) priv;
+
+    headland_log(dev->log, "[%04X:%08X] Headland: [W] addr = %04X, val = %02X\n", CS, cpu_state.pc, addr, val);
 
     switch (addr) {
         case 0x01ec:
@@ -401,6 +438,8 @@ hl_writew(uint16_t addr, uint16_t val, void *priv)
 {
     headland_t *dev = (headland_t *) priv;
 
+    headland_log(dev->log, "[%04X:%08X] Headland: [W] addr = %04X, val = %04X\n", CS, cpu_state.pc, addr, val);
+
     switch (addr) {
         case 0x01ec:
             dev->ems_mr[dev->ems_mar & 0x3f].mr = val;
@@ -470,6 +509,8 @@ hl_read(uint16_t addr, void *priv)
             break;
     }
 
+    headland_log(dev->log, "[%04X:%08X] Headland [R] addr = %04X, val = %02X\n", CS, cpu_state.pc, addr, ret);
+
     return ret;
 }
 
@@ -489,6 +530,8 @@ hl_readw(uint16_t addr, void *priv)
         default:
             break;
     }
+
+    headland_log(dev->log, "[%04X:%08X] Headland [R] addr = %04X, val = %04X\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
 }
@@ -584,6 +627,11 @@ headland_close(void *priv)
 {
     headland_t *dev = (headland_t *) priv;
 
+    if (dev->log != NULL) {
+        log_close(dev->log);
+        dev->log = NULL;
+    }
+
     free(dev);
 }
 
@@ -620,6 +668,8 @@ headland_init(const device_t *info)
         dev->ems_mr[i].mr       = 0x00;
         dev->ems_mr[i].headland = dev;
     }
+
+    dev->log = log_open("Headland");
 
     /* Turn off mem.c mappings. */
     mem_mapping_disable(&ram_low_mapping);

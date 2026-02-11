@@ -777,6 +777,10 @@ fdd_poll(void *priv)
         if (!fdd_notfound)
             fdc_noidam(fdd_fdc);
     }
+
+    if (fdd_changed[drive]) {
+        fdc_diskchange_interrupt(fdd_fdc, drive);
+    }
 }
 
 int

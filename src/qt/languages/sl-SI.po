@@ -2840,8 +2840,8 @@ msgstr "Lokalno stikalo"
 msgid "Remote Switch"
 msgstr "Oddaljeno stikalo"
 
-msgid "Switch:"
-msgstr "Stikalo:"
+msgid "Shared secret:"
+msgstr "Skupna skrivnost:"
 
 msgid "Hub Mode"
 msgstr "Način koncentratorja"

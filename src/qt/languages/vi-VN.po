@@ -2839,8 +2839,8 @@ msgstr "Công tắc cục bộ"
 msgid "Remote Switch"
 msgstr "Công tắc từ xa"
 
-msgid "Switch:"
-msgstr "Công tắc:"
+msgid "Shared secret:"
+msgstr "Bí mật chia sẻ:"
 
 msgid "Hub Mode"
 msgstr "Chế độ hub"

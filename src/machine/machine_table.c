@@ -3033,6 +3033,49 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
+    {
+        .name              = "[8086] IBM Multistation 5550",
+        .internal_name     = "ibm5550",
+        .type              = MACHINE_TYPE_8086,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_xt_ibm5550_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8086,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD,
+        .ram       = {
+            .min  = 256,
+            .max  = 640,
+            .step = 128
+        },
+        .nvrmask                  = 15,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
 
     /* 286 AT machines */
     /* Has IBM AT KBC firmware. */
@@ -5465,6 +5508,50 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = &oti067_ama932j_device,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* Has unknown KBC firmware */
+    {
+        .name              = "[HT18] Tandy 1000 RSX",
+        .internal_name     = "tandy1000rsx",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_HT18,
+        .init              = machine_at_tandy1000rsx_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386SX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_GAMEPORT,
+        .ram       = {
+            .min  = 1024,
+            .max  = 9216,
+            .step = 512
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = &gd5402_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },

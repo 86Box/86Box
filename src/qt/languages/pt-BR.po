@@ -2832,8 +2832,8 @@ msgstr "Switch Local"
 msgid "Remote Switch"
 msgstr "Switch Remoto"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Segredo compartilhado:"
 
 msgid "Hub Mode"
 msgstr "Modo Hub"

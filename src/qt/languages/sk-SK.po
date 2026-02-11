@@ -2838,8 +2838,8 @@ msgstr "Lokálny prepínač"
 msgid "Remote Switch"
 msgstr "Vzdialený prepínač"
 
-msgid "Switch:"
-msgstr "Prepínač:"
+msgid "Shared secret:"
+msgstr "Zdieľané tajomstvo:"
 
 msgid "Hub Mode"
 msgstr "Režim hubu"

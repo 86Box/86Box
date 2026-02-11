@@ -55,8 +55,10 @@ pssj_write(uint16_t port, uint8_t val, void *priv)
             if (!pssj->enable)
                 timer_disable(&pssj->timer_count);
             sn74689_set_extra_divide(&pssj->sn76489, val & 0x40);
-            if (!(val & 8))
+            if (!(val & 8)) {
                 pssj->irq = 0;
+                picintc(1 << 7);
+            }
             pssj_update_irq(pssj);
             break;
         case 1:
@@ -78,7 +80,7 @@ pssj_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 3:
             pssj->freq      = (pssj->freq & 0x0ff) | ((val & 0xf) << 8);
-            pssj->amplitude = val >> 4;
+            pssj->amplitude = (val & 0xef) >> 4;
             break;
 
         default:
