@@ -7873,7 +7873,7 @@ const machine_t machines[] = {
     },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
-        .name              = "[VLSI 82C486] Tandy Sensation",
+        .name              = "[VLSI 82C486] Tandy Sensation! (25-1650)",
         .internal_name     = "sensation1",
         .type              = MACHINE_TYPE_486,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
@@ -7896,7 +7896,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,
         .ram       = {
             .min  = 2048,
-            .max  = 65536,
+            .max  = 32768,
             .step = 2048
         },
         .nvrmask                  = 127,
