@@ -739,6 +739,9 @@ extern int             machine_at_valuepoint433_init(const machine_t *);
 extern int             machine_at_monsoon_init(const machine_t *);
 extern int             machine_at_martin_init(const machine_t *);
 
+/* VLSI 82C486 */
+extern int             machine_at_sensation2_init(const machine_t *);
+
 /* m_at_socket3.c */
 /* ALi M1429G */
 extern int             machine_at_atc1762_init(const machine_t *);
