@@ -428,7 +428,7 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
         //     epoch->attrc[epoch->attraddr & 0x3f] = val;
         //     break;
         default:
-            epoch_iolog("epoch? Out addr %03X val %02X\n", addr, val);
+            // epoch_iolog("epoch? Out addr %03X val %02X\n", addr, val);
             break;
     }
 }
@@ -482,8 +482,8 @@ epoch_in(uint16_t addr, void *priv)
                 if(epoch->cgastat & 8)
                     temp &= 0x7f;
             }
-            temp &= 0xfe;/* equipment ? color or monochrome monitor */
-            //  temp |= 0x01;
+            temp |= 0x01; /* monitor mono or !color */
+            // temp &= 0xfe; /* color */
             break;
         }
     if (addr != 0x3DA)
@@ -1117,14 +1117,14 @@ static void
 epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    // epoch_log("epoch_vram_writeb: Write to %x, val %x\n", addr, val);
+    // epoch_log("%04X:%04X epoch_vram_writeb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
     cycles -= video_timing_write_b;
     epoch_vram_write(addr, val, epoch);
 }
 static void
 epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    // epoch_log("epoch_vram_writ   ew: Write to %x, val %x\n", addr, val);
+    // epoch_log("%04X:%04X epoch_vram_writew: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
     epoch_t *epoch = (epoch_t *) priv;
     cycles -= video_timing_write_w;
     epoch_vram_write(addr, val & 0xff, epoch);
@@ -1311,23 +1311,23 @@ xxxx xxx1: Memory or parity error?
             break;
 /*
 I/O A2h R: 
-xxxx 0x0x: Color CRT
+xxxx 0x0x: Color 16 CRT
 xxxx 1x0x: Mono 24 CRT ?
-xxxx xx1x: 16 pixel CRT
+xxxx xx1x: Mono 16 CRT
 xx1x xxxx: No hard drive
 x1xx xxxx: No floppy drive
 1xxx xxxx: No (bootable?) hard drive
 */
         case 0xA2:
             ret = 0xA8;/* Mono 24 */
-            // ret = 0xA8;/* Mono 16 */
+            // ret = 0xA2;/* Mono 16 */
             break;
 /*
 I/O A3h R: 
-xxxx x001: Main RAM 256 KB?
-xxxx x011: Main RAM 384 KB?
-xxxx x111: Main RAM 512 KB?
-xxxx x000: Main RAM 640 KB?
+xxxx x111: Main RAM 256 KB
+xxxx x110: Main RAM 384 KB
+xxxx x100: Main RAM 512 KB
+xxxx x000: Main RAM 640 KB
 xxxx 1xxx: Serial port 3f8h
 xxx1 xxxx: Serial port 2f8h
 */
@@ -1940,7 +1940,7 @@ epoch_init(UNUSED(const device_t *info))
     epoch->vram              = calloc(1, 256* 1024);
     epoch->cram              = calloc(1, 4 * 1024);
     // epoch->fontcard.rom      = calloc(1, EPOCH_FONTROM_SIZE);
-    //epoch_video_load_font("roms/machines/ibm5550/GEN1FONT.BIN", epoch);
+    // epoch_video_load_font("roms/machines/ibm5550/GEN1FONT.BIN", epoch);
 
     epoch->epochconst = (uint64_t) ((cpuclock / EPOCH_PIXELCLOCK) * (double) (1ull << 32));
 
