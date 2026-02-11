@@ -257,6 +257,31 @@ ps2_isa_common_init(const machine_t *model)
     device_add(&port_6x_ps2_device);
 }
 
+uint8_t
+machine_ps2_isa_p1_handler(void)
+{
+    uint8_t mem_p1;
+
+    switch (mem_size / 1024) {
+        case 0: /*256Kx2*/
+            mem_p1 = 0xf0;
+            break;       
+        case 1: /*256Kx4*/
+            mem_p1 = 0xe0;
+            break;
+        case 2: /*1Mx2*/
+        case 3: 
+            mem_p1 = 0xd0;
+            break;
+        case 4: /*1Mx4*/
+        default:
+            mem_p1 = 0xc0;
+            break;
+    }
+
+    return mem_p1;
+}
+
 int
 machine_ps2_m30_286_init(const machine_t *model)
 {
