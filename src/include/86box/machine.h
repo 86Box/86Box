@@ -426,6 +426,7 @@ extern uint8_t         machine_compaq_p1_handler(void);
 extern uint8_t         machine_generic_p1_handler(void);
 extern uint8_t         machine_ncr_p1_handler(void);
 extern uint8_t         machine_ps1_p1_handler(void);
+extern uint8_t         machine_ps2_isa_p1_handler(void);
 extern uint8_t         machine_t3100e_p1_handler(void);
 
 extern uint8_t         machine_get_p1_default(void);
@@ -1382,6 +1383,9 @@ extern const device_t  ps1_hdc_device;
 #endif
 
 /* m_ps2_isa.c */
+#ifdef EMU_DEVICE_H
+extern const device_t  ps2_m30_286_device;
+#endif
 extern int             machine_ps2_m30_286_init(const machine_t *);
 
 /* m_ps2_mca.c */
