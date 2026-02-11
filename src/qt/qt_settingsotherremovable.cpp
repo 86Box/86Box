@@ -23,6 +23,7 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/mo.h>
 #include <86box/rdisk.h>
+#include <86box/superdisk.h>
 }
 
 #include "qt_models_common.hpp"

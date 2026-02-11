@@ -54,6 +54,7 @@ extern "C" {
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
+#include <86box/superdisk.h>
 #include <86box/mo.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
@@ -1137,6 +1138,141 @@ MediaMenu::moReload(int index, int slot)
 }
 
 void
+MediaMenu::superdiskNewImage(int i)
+{
+    NewFloppyDialog dialog(NewFloppyDialog::MediaType::SuperDisk, parentWidget);
+    switch (dialog.exec()) {
+        default:
+            break;
+        case QDialog::Accepted:
+            QByteArray filename = dialog.fileName().toUtf8();
+            superdiskMount(i, filename, false);
+            break;
+    }
+}
+
+void
+MediaMenu::superdiskSelectImage(int i, bool wp)
+{
+    const auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("SuperDisk images") % util::DlgFilter({ "im?", "sdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
+    if (!filename.isEmpty())
+        superdiskMount(i, filename, wp);
+}
+
+void
+MediaMenu::superdiskMount(int i, const QString &filename, bool wp)
+{
+    const auto dev       = static_cast<superdisk_t *>(superdisk_drives[i].priv);
+    int        was_empty = superdisk_is_empty(i);
+
+    superdisk_disk_close(dev);
+    superdisk_drives[i].read_only = wp;
+    if (!filename.isEmpty()) {
+        QByteArray filenameBytes = filename.toUtf8();
+        superdisk_load(dev, filenameBytes.data(), 1);
+
+        /* Signal media change to the emulated machine. */
+        superdisk_insert(dev);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            superdisk_insert(dev);
+    }
+    mhm.addImageToHistory(i, ui::MediaType::SuperDisk, superdisk_drives[i].prev_image_path, superdisk_drives[i].image_path);
+
+    ui_sb_update_icon_state(SB_SUPERDISK | i, filename.isEmpty() ? 1 : 0);
+    superdiskUpdateMenu(i);
+    ui_sb_update_tip(SB_SUPERDISK | i);
+
+    config_save();
+}
+
+void
+MediaMenu::superdiskEject(int i)
+{
+    const auto dev = static_cast<superdisk_t *>(superdisk_drives[i].priv);
+
+    mhm.addImageToHistory(i, ui::MediaType::SuperDisk, superdisk_drives[i].image_path, QString());
+    superdisk_disk_close(dev);
+    superdisk_drives[i].image_path[0] = 0;
+    if (superdisk_drives[i].bus_type) {
+        /* Signal disk change to the emulated machine. */
+        superdisk_insert(dev);
+    }
+
+    ui_sb_update_icon_state(SB_SUPERDISK | i, 1);
+    superdiskUpdateMenu(i);
+    ui_sb_update_tip(SB_SUPERDISK | i);
+    config_save();
+}
+
+void
+MediaMenu::superdiskReloadPrev(int i)
+{
+    const auto dev = static_cast<superdisk_t *>(superdisk_drives[i].priv);
+
+    superdisk_disk_reload(dev);
+    if (strlen(superdisk_drives[i].image_path) == 0) {
+        ui_sb_update_icon_state(SB_SUPERDISK | i, 1);
+    } else {
+        ui_sb_update_icon_state(SB_SUPERDISK | i, 0);
+    }
+
+    superdiskUpdateMenu(i);
+    ui_sb_update_tip(SB_SUPERDISK | i);
+
+    config_save();
+}
+
+void
+MediaMenu::superdiskReload(int index, int slot)
+{
+    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::SuperDisk);
+    superdiskMount(index, filename, false);
+    superdiskUpdateMenu(index);
+    ui_sb_update_tip(SB_SUPERDISK | index);
+}
+
+void
+MediaMenu::superdiskUpdateMenu(int i)
+{
+    const QString name      = superdisk_drives[i].image_path;
+    const QString prev_name = superdisk_drives[i].prev_image_path;
+    if (!superdiskMenus.contains(i))
+        return;
+    auto *menu   = superdiskMenus[i];
+    auto  childs = menu->children();
+
+    auto *ejectMenu  = dynamic_cast<QAction *>(childs[superdiskEjectPos]);
+    ejectMenu->setEnabled(!name.isEmpty());
+
+    QString busName = tr("Unknown Bus");
+    switch (superdisk_drives[i].bus_type) {
+        default:
+            break;
+        case SUPERDISK_BUS_ATAPI:
+            busName = "ATAPI";
+            break;
+        case SUPERDISK_BUS_SCSI:
+            busName = "SCSI";
+            break;
+    }
+
+#if 0
+    menu->setTitle(tr("SuperDisk %1 %2 (%3): %4").arg((superdisk_drives[i].is_240 > 0) ? "240" : "120", QString::number(i+1), busName, name.isEmpty() ? tr("(empty)") : name));
+#endif
+    menu->setTitle(QString::asprintf(tr("SuperDisk %03i %i (%s): %ls").toUtf8().constData(), (superdisk_drives[i].is_240 > 0) ? 240 : 120, i + 1, busName.toUtf8().data(), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
+        updateImageHistory(i, slot, ui::MediaType::SuperDisk);
+}
+
+void
 MediaMenu::nicConnect(int i)
 {
     network_connect(i, 1);
@@ -1295,4 +1431,23 @@ mo_reload(uint8_t id)
 {
     MediaMenu::ptr->moReloadPrev(id);
 }
+
+void
+superdisk_eject(uint8_t id)
+{
+    MediaMenu::ptr->superdiskEject(id);
+}
+
+void
+superdisk_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->superdiskMount(id, QString(fn), wp);
+}
+
+void
+superdisk_reload(uint8_t id)
+{
+    MediaMenu::ptr->superdiskReloadPrev(id);
+}
+
 }

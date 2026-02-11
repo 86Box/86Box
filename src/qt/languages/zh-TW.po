@@ -649,6 +649,12 @@ msgstr "抽取式磁碟機:"
 msgid "ZIP 250"
 msgstr "ZIP 250"
 
+msgid "Superdrives:"
+msgstr "Superdrives:"
+
+msgid "LS-240"
+msgstr "LS-240"
+
 msgid "ISA RTC:"
 msgstr "ISA 實時時鐘:"
 

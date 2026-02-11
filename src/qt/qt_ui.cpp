@@ -49,6 +49,7 @@ extern "C" {
 #include <86box/cassette.h>
 #include <86box/cdrom.h>
 #include <86box/rdisk.h>
+#include <86box/superdisk.h>
 #include <86box/mo.h>
 #include <86box/hdd.h>
 #include <86box/thread.h>
@@ -307,6 +308,9 @@ ui_sb_update_icon_state(int tag, int state)
         case SB_RDISK:
             machine_status.rdisk[item].empty = state > 0 ? true : false;
             break;
+        case SB_SUPERDISK:
+            machine_status.superdisk[item].empty = state > 0 ? true : false;
+            break;
         case SB_MO:
             machine_status.mo[item].empty = state > 0 ? true : false;
             break;
@@ -344,6 +348,9 @@ ui_sb_update_icon(int tag, int active)
             break;
         case SB_RDISK:
             machine_status.rdisk[item].active = active > 0 ? true : false;
+            break;
+        case SB_SUPERDISK:
+            machine_status.superdisk[item].active = active > 0 ? true : false;
             break;
         case SB_MO:
             machine_status.mo[item].active = active > 0 ? true : false;

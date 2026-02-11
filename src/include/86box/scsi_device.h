@@ -46,11 +46,14 @@
 #define GPCMD_REQUEST_SENSE                           0x03
 #define GPCMD_FORMAT_UNIT                             0x04
 #define GPCMD_IOMEGA_SENSE                            0x06
+#define GPCMD_IMATION_SENSE                           0x06
 #define GPCMD_READ_6                                  0x08
 #define GPCMD_WRITE_6                                 0x0a
 #define GPCMD_SEEK_6                                  0x0b
 #define GPCMD_IOMEGA_SET_PROTECTION_MODE              0x0c
+#define GPCMD_IMATION_SET_PROTECTION_MODE             0x0c
 #define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
+#define GPCMD_IMATION_EJECT                           0x0d /* ATAPI only? */
 #define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command. */
 #define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command. */
 #define GPCMD_INQUIRY                                 0x12
@@ -160,21 +163,23 @@
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
 
 /* Mode page codes for mode sense/set */
-#define GPMODE_UNIT_ATN_PAGE         0x00
-#define GPMODE_R_W_ERROR_PAGE        0x01
+#define GPMODE_UNIT_ATN_PAGE         0x00 /* Unit Attention page */
+#define GPMODE_R_W_ERROR_PAGE        0x01 /* Read-Write Error Recovery page */
 #define GPMODE_DISCONNECT_PAGE       0x02 /* Disconnect/reconnect page */
-#define GPMODE_FORMAT_DEVICE_PAGE    0x03
+#define GPMODE_FORMAT_DEVICE_PAGE    0x03 /* Format device page */
 #define GPMODE_RIGID_DISK_PAGE       0x04 /* Rigid disk geometry page */
-#define GPMODE_FLEXIBLE_DISK_PAGE    0x05
-#define GPMODE_CACHING_PAGE          0x08
-#define GPMODE_CDROM_PAGE_SONY       0x08
-#define GPMODE_CDROM_AUDIO_PAGE_SONY 0x09
-#define GPMODE_CDROM_PAGE            0x0d
-#define GPMODE_CDROM_AUDIO_PAGE      0x0e
-#define GPMODE_CAPABILITIES_PAGE     0x2a
-#define GPMODE_IOMEGA_PAGE           0x2f
-#define GPMODE_UNK_VENDOR_PAGE       0x30
-#define GPMODE_ALL_PAGES             0x3f
+#define GPMODE_FLEXIBLE_DISK_PAGE    0x05 /* Flexible disk page */
+#define GPMODE_CACHING_PAGE          0x08 /* Caching page */
+#define GPMODE_CDROM_PAGE_SONY       0x08 /* Sony-specific CD-ROM page */
+#define GPMODE_CDROM_AUDIO_PAGE_SONY 0x09 /* Sony-specific CD-ROM audio page */
+#define GPMODE_MEDIUM_TYPES_PAGE     0x0b /* Medium types supported page */
+#define GPMODE_CDROM_PAGE            0x0d /* General CD-ROM page */
+#define GPMODE_CDROM_AUDIO_PAGE      0x0e /* General CD-ROM audio page */
+#define GPMODE_REMOVABLE_BLOCK_ACCESS_PAGE 0x1b /* Removable block access capabilities page */
+#define GPMODE_CAPABILITIES_PAGE     0x2a /* Capabilities page */
+#define GPMODE_IOMEGA_PAGE           0x2f /* Iomega-specific page */
+#define GPMODE_UNK_VENDOR_PAGE       0x30 /* Unknown vendor-specific page */
+#define GPMODE_ALL_PAGES             0x3f /* All pages supported */
 
 /* Mode page codes for presence */
 #define GPMODEP_UNIT_ATN_PAGE         0x0000000000000001LL

@@ -127,6 +127,7 @@ target_link_libraries(86Box
     game
     cdrom
     rdisk
+    superdisk
     mo
     hdd
     net

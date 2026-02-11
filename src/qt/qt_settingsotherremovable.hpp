@@ -35,6 +35,9 @@ private slots:
     void on_comboBoxRDiskBus_activated(int index);
     void on_comboBoxRDiskChannel_activated(int index);
     void on_comboBoxRDiskType_activated(int index);
+#if 0
+    void onSuperDiskRowChanged(const QModelIndex &current);
+#endif
 
 private:
     Ui::SettingsOtherRemovable *ui;

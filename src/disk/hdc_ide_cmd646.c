@@ -36,6 +36,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/rdisk.h>
+#include <86box/superdisk.h>
 #include <86box/rom.h>
 #include <86box/hdd.h>
 #include <86box/scsi_disk.h>
@@ -542,10 +543,17 @@ cmd646_reset(void *priv)
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && check_ch(dev, cdrom[i].ide_channel) && cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
+
     for (i = 0; i < RDISK_NUM; i++) {
         if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && check_ch(dev, rdisk_drives[i].ide_channel) && rdisk_drives[i].priv)
             rdisk_reset((scsi_common_t *) rdisk_drives[i].priv);
     }
+
+    for (i = 0; i < SUPERDISK_NUM; i++) {
+        if ((superdisk_drives[i].bus_type == SUPERDISK_BUS_ATAPI) && (superdisk_drives[i].ide_channel < 4) && superdisk_drives[i].priv)
+            superdisk_reset((scsi_common_t *) superdisk_drives[i].priv);
+    }
+
     for (i = 0; i < MO_NUM; i++) {
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && check_ch(dev, mo_drives[i].ide_channel) && mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);

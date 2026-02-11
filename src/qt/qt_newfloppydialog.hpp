@@ -18,11 +18,13 @@ public:
         Floppy,
         RDisk,
         Mo,
+        SuperDisk,
     };
     enum class FileType {
         Img,
         Fdi,
         Zdi,
+        Sdi,
         Mdi,
     };
     explicit NewFloppyDialog(MediaType type, QWidget *parent = nullptr);
@@ -44,6 +46,7 @@ private:
     bool createSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type);
     bool createRDiskSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar);
     bool createMoSectorImage(const QString &filename, int8_t disk_size, FileType type, QProgressDialog &pbar);
+    bool createSuperDiskSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar);
 };
 
 #endif // QT_NEWFLOPPYDIALOG_HPP
