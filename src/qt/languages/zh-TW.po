@@ -2840,7 +2840,7 @@ msgid "Remote Switch"
 msgstr "遠端交換器"
 
 msgid "Shared secret:"
-msgstr "共用秘鑰:"
+msgstr "共用密鑰:"
 
 msgid "Hub Mode"
 msgstr "集線器模式"

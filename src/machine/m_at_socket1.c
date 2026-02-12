@@ -376,6 +376,35 @@ machine_at_pcs44c_init(const machine_t *model)
 }
 
 int
+machine_at_sensation1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sensation1/P1033PCD_01.10.01_11-11-92_E687_Sensation_1_BIOS.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&vl82c486_device);
+    device_add(&vl82c113_device);
+
+    device_add(&pssj_1e0_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_nsc_dp8473_device);
+
+    /* TODO: Add onboard WD90C31 once it's implemented */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_tuliptc38_init(const machine_t *model)
 {
     int ret;

@@ -419,3 +419,28 @@ machine_at_martin_init(const machine_t *model)
 
     return ret;
 }
+
+/* VLSI 82C486 */
+int
+machine_at_sensation2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sensation2/TANDY_SENSATION_2_011004_10051993.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&vl82c486_device);
+    device_add(&vl82c113_device);
+
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
