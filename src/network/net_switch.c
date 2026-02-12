@@ -505,7 +505,7 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
 
     if (netcard->secret[0] != '\0') {
         uint8_t temp[32];
-        net_switch_secret_hash((const uint8_t *)netcard->secret, (uint8_t *) temp);
+        net_switch_secret_hash((const char *) netcard->secret, (uint8_t *) temp);
         memcpy(netswitch->secret_hash, temp, 32);
         netswitch->secret_enabled = 1;
     } else {
