@@ -52,6 +52,7 @@ add_library(snd OBJECT
     snd_ym7128.c
     snd_optimc.c
     snd_opl_esfm.c
+    snd_sensation.c
     snd_ymf701.c
     snd_ymf71x.c
     sound_util.c

@@ -136,6 +136,8 @@ vl82c113_init(UNUSED(const device_t *info))
 
     if (machines[machine].init == machine_at_martin_init)
         dev->nvr         = device_add(&martin_nvr_device);
+    else if (machines[machine].init == machine_at_sensation1_init || machines[machine].init == machine_at_sensation2_init)
+        dev->nvr         = device_add(&at_nvr_device);
     else
         dev->nvr         = device_add(&amstrad_megapc_nvr_device);
 
