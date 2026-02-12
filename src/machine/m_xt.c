@@ -1275,7 +1275,7 @@ static const device_config_t pc500_config[] = {
 };
 
 const device_t pc500_device = {
-    .name          = "Multitech PC-500",
+    .name          = "Multitech PC-500 / Franklin PC 8000",
     .internal_name = "pc500_device",
     .flags         = 0,
     .local         = 0,
@@ -1394,7 +1394,7 @@ static const device_config_t pc500plus_config[] = {
 };
 
 const device_t pc500plus_device = {
-    .name          = "Multitech PC-500 plus",
+    .name          = "Multitech PC-500+",
     .internal_name = "pc500plus_device",
     .flags         = 0,
     .local         = 0,
@@ -1472,7 +1472,7 @@ static const device_config_t pc700_config[] = {
 };
 
 const device_t pc700_device = {
-    .name           = "Multitech PC-700",
+    .name           = "Multitech PC-700 / Siemens SICOMP PC 16 05",
     .internal_name  = "pc700_device",
     .flags          = 0,
     .local          = 0,
