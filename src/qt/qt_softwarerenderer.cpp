@@ -21,6 +21,8 @@
 #include <QClipboard>
 #include <QPainter>
 #include <QResizeEvent>
+#include <QScreen>
+#include "qt_util.hpp"
 
 extern "C" {
 #include <86box/86box.h>
@@ -114,16 +116,30 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         plat_tempfile(fn, NULL, (char *) ".png");
         strcat(path, fn);
 
+        qreal win_scale = util::screenOfWidget(this)->devicePixelRatio();
+        QSize qs = RendererCommon::parentWidget->size();
         QPixmap pixmap(RendererCommon::parentWidget->size());
         RendererCommon::parentWidget->render(&pixmap);
-        QImage image = pixmap.toImage();
+        QImage image;
+        if (win_scale == 1.0)
+            image = pixmap.toImage();
+        else
+            image = pixmap.toImage().scaled(qs * win_scale, Qt::IgnoreAspectRatio,
+                                            Qt::SmoothTransformation);
         image.save(path, "png");
         monitors[r_monitor_index].mon_screenshots--;
     }
     if (monitors[r_monitor_index].mon_screenshots_clipboard) {
+        qreal win_scale = util::screenOfWidget(this)->devicePixelRatio();
+        QSize qs = RendererCommon::parentWidget->size();
         QPixmap pixmap(RendererCommon::parentWidget->size());
         RendererCommon::parentWidget->render(&pixmap);
-        QImage image = pixmap.toImage();
+        QImage image;
+        if (win_scale == 1.0)
+            image = pixmap.toImage();
+        else
+            image = pixmap.toImage().scaled(qs * win_scale, Qt::IgnoreAspectRatio,
+                                            Qt::SmoothTransformation);
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setImage(image, QClipboard::Clipboard);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
