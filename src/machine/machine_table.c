@@ -8708,7 +8708,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = &gd5428_onboard_device,
+        .vid_device               = &gd5428_vlb_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
