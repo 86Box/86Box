@@ -2838,8 +2838,8 @@ msgstr "Paikallinen kytkin"
 msgid "Remote Switch"
 msgstr "Etäkytkin"
 
-msgid "Switch:"
-msgstr "Kytkin:"
+msgid "Shared secret:"
+msgstr "Jaettu salaisuus:"
 
 msgid "Hub Mode"
 msgstr "Hubitila"

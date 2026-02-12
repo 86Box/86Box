@@ -76,7 +76,7 @@ rtg_in(uint16_t addr, void *priv)
 
         case 0x3cf:
             if (svga->gdcaddr == 0x0c)
-                return svga->gdcreg[0x0c] | 4;
+                return svga->gdcreg[0x0c] | 0x04;
             else if ((svga->gdcaddr > 8) && (svga->gdcaddr != 0x0c))
                 return svga->gdcreg[svga->gdcaddr];
             break;
@@ -89,13 +89,13 @@ rtg_in(uint16_t addr, void *priv)
                 return dev->type << 6;
             if (svga->crtcreg == 0x1e) {
                 ret = svga->crtc[0x1e];
-                ret &= ~3;
+                ret &= ~0x03;
                 if (dev->vram_size == 1024)
-                    ret = 2;
+                    ret = 0x02;
                 else if (dev->vram_size == 512)
-                    ret = 1;
+                    ret = 0x01;
                 else
-                    ret = 0;
+                    ret = 0x00;
                 return ret;
             }
             return svga->crtc[svga->crtcreg];
@@ -207,60 +207,60 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
 static void
 rtg_recalctimings(svga_t *svga)
 {
-    const rtg_t  *dev  = (rtg_t *) svga->priv;
+    const rtg_t *dev = (rtg_t *) svga->priv;
+    int clk_sel = ((svga->miscout >> 2) & 0x03) | ((svga->gdcreg[0x0c] & 0x20) >> 3);
 
     svga->memaddr_latch |= ((svga->crtc[0x19] & 0x10) << 16) | ((svga->crtc[0x19] & 0x40) << 17);
 
-    svga->interlace = (svga->crtc[0x19] & 1);
+    svga->interlace = (svga->crtc[0x19] & 0x01);
 
-    /*Clock table not available, currently a guesswork*/
-    switch (((svga->miscout >> 2) & 3) | ((svga->gdcreg[0x0c] & 0x20) >> 3)) {
-        case 0:
-        case 1:
-            break;
+    /*Source: xfree86 3.3.6 source code, rt_driver.c.*/
+    switch (clk_sel) {
         case 2:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
-            break;
-        case 3:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 65100000.0;
-            break;
-        case 4:
             svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             break;
+        case 3:
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 71600000.0;
+            break;
+        case 4:
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 73000000.0;
+            break;
         case 5:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 50000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 64000000.0;
             break;
         case 6:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 80000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 84000000.0;
             break;
         case 7:
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 79000000.0;
             break;
 
         default:
             break;
     }
 
-    switch (svga->gdcreg[0x0c] & 3) {
-        case 1:
-            svga->clock /= 1.5;
-            break;
-        case 2:
-            svga->clock /= 2;
-            break;
-        case 3:
-            svga->clock /= 4;
-            break;
+    if (clk_sel >= 2) {
+        switch (svga->gdcreg[0x0b] & 0x03) {
+            case 1:
+                svga->clock *= 1.5;
+                break;
+            case 2:
+                svga->clock *= 2.0;
+                break;
+            case 3:
+                svga->clock *= 4.0;
+                break;
 
-        default:
-            break;
+            default:
+                break;
+        }
     }
 
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             switch (svga->gdcreg[5] & 0x60) {
                 case 0x00:
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                    if (svga->seqregs[1] & 0x08) /*Low res (320)*/
                         svga->render = svga_render_4bpp_lowres;
                     else {
                         if (svga->hdisp == 1280)
@@ -270,17 +270,18 @@ rtg_recalctimings(svga_t *svga)
                     }
                     break;
                 case 0x20:                    /*4 colours*/
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                    if (svga->seqregs[1] & 0x08) /*Low res (320)*/
                         svga->render = svga_render_2bpp_lowres;
                     else
                         svga->render = svga_render_2bpp_highres;
                     break;
                 case 0x40:
                 case 0x60:
-                    if (svga->crtc[0x19] & 2) {
-                        if (svga->hdisp == 1280)
+                    if (svga->crtc[0x19] & 0x02) {
+                        if (svga->hdisp == 1280) {
                             svga->hdisp >>= 1;
-                        else if (dev->type == 2)
+                            svga->dots_per_clock >>= 1;
+                        } else if (dev->type == 2)
                             svga->rowoffset <<= 1;
 
                         svga->render = svga_render_8bpp_highres;

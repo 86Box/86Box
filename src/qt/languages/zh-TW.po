@@ -2839,8 +2839,8 @@ msgstr "本地交換器"
 msgid "Remote Switch"
 msgstr "遠端交換器"
 
-msgid "Switch:"
-msgstr "交換器:"
+msgid "Shared secret:"
+msgstr "共用秘鑰:"
 
 msgid "Hub Mode"
 msgstr "集線器模式"

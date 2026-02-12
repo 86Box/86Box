@@ -2838,8 +2838,8 @@ msgstr "Commutateur local"
 msgid "Remote Switch"
 msgstr "Commutateur distant"
 
-msgid "Switch:"
-msgstr "Commutateur :"
+msgid "Shared secret:"
+msgstr "Secret partagé:"
 
 msgid "Hub Mode"
 msgstr "Mode concentrateur"

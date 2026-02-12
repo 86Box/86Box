@@ -49,10 +49,11 @@
 #include <86box/config.h>
 #include <86box/net_event.h>
 #include <86box/bswap.h>
+#include <shathree.h>
 
 #define SWITCH_PKT_BATCH NET_QUEUE_LEN
 
-#define SWITCH_MULTICAST_GROUP 0xefff5656 /* 239.255.86.86 */
+#define SWITCH_MULTICAST_GROUP 0xefff5056 /* 239.255.80.86 */
 #define SWITCH_MULTICAST_PORT  8086
 
 enum {
@@ -80,6 +81,8 @@ typedef struct net_switch_t {
     net_switch_hostaddr_t *hostaddrs;
     uint16_t                  port_out;
 
+    uint8_t        secret_enabled;
+    uint8_t        secret_hash[32];
     uint8_t        promisc;
     union {
         uint8_t  mac_addr[6];
@@ -121,6 +124,15 @@ net_switch_in_available(void *priv)
 {
     net_switch_t *netswitch = (net_switch_t *) priv;
     net_event_set(&netswitch->tx_event);
+}
+
+static void
+net_switch_secret_hash(const char *secret, uint8_t *hash)
+{
+    SHA3Context cx;
+    SHA3Init(&cx, 256);
+    SHA3Update(&cx, (const uint8_t *)secret, strlen(secret));
+    memcpy(hash, SHA3Final(&cx), 32);
 }
 
 static unsigned int
@@ -186,10 +198,12 @@ net_switch_add_hostaddr(net_switch_t *netswitch, net_switch_sockaddr_t *addr, ne
             }
 
             /* Join IPv4 multicast group. */
-            struct ip_mreq mreq = {
-                .imr_multiaddr = { .s_addr = htonl(SWITCH_MULTICAST_GROUP) },
-                .imr_interface = { .s_addr = hostaddr->addr.sin.sin_addr.s_addr }
-            };
+            struct ip_mreq mreq = { .imr_interface = { .s_addr = hostaddr->addr.sin.sin_addr.s_addr } };
+            if (netswitch->secret_enabled)
+                mreq.imr_multiaddr.s_addr = htonl(SWITCH_MULTICAST_GROUP);
+            else
+                mreq.imr_multiaddr.s_addr = htonl(SWITCH_MULTICAST_GROUP + 0x600); // 239.255.86.86
+
             if (setsockopt(netswitch->socket_rx, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &mreq, sizeof(mreq)) < 0) {
                 netswitch_log("Network Switch: could not join multicast group on interface %s\n", buf);
                 goto broadcast;
@@ -374,16 +388,35 @@ net_switch_thread(void *priv)
             packets = network_tx_popv(netswitch->card, netswitch->pkt_tx_v, SWITCH_PKT_BATCH);
             if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN)) {
                 for (int i = 0; i < packets; i++) {
+                    int orig_len = netswitch->pkt_tx_v[i].len;
+                    int send_len = orig_len;
+                    uint8_t augmented[sizeof(netswitch->secret_hash) + NET_MAX_FRAME];
+                    if (netswitch->secret_enabled) {
+                        send_len = orig_len + sizeof(netswitch->secret_hash);
+
+                        /* Build header with secret hash */
+                        uint8_t *hdr = augmented;
+                        memcpy(hdr, netswitch->secret_hash, sizeof(netswitch->secret_hash));
+                        memcpy(augmented + sizeof(netswitch->secret_hash),
+                               netswitch->pkt_tx_v[i].data, orig_len);
+                    }
+
 #define MAC_FORMAT "(%02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X)"
-#define MAC_FORMAT_ARGS(p) (p)[6], (p)[7], (p)[8], (p)[9], (p)[10], (p)[11], (p)[0], (p)[1], (p)[2], (p)[3], (p)[4], (p)[5]
+#define MAC_FORMAT_NOSECRET_ARGS(p) (p)[6], (p)[7], (p)[8], (p)[9], (p)[10], (p)[11], (p)[0], (p)[1], (p)[2], (p)[3], (p)[4], (p)[5]
+#define MAC_FORMAT_ARGS(p) (p)[38], (p)[39], (p)[40], (p)[41], (p)[42], (p)[43], (p)[32], (p)[33], (p)[34], (p)[35], (p)[36], (p)[37]
                     netswitch_log("Network Switch: sending %d-byte packet " MAC_FORMAT "\n",
-                                  netswitch->pkt_tx_v[i].len, MAC_FORMAT_ARGS(netswitch->pkt_tx_v[i].data));
+                                  netswitch->pkt_tx_v[i].len,
+                                  netswitch->secret_enabled ? MAC_FORMAT_ARGS(netswitch->pkt_tx_v[i].data)
+                                                            : MAC_FORMAT_NOSECRET_ARGS(netswitch->pkt_tx_v[i].data));
 
                     /* Send through all known host interfaces. */
                     for (net_switch_hostaddr_t *hostaddr = netswitch->hostaddrs; hostaddr; hostaddr = hostaddr->next)
-                        sendto(hostaddr->socket_tx,
-                               (char *) netswitch->pkt_tx_v[i].data, netswitch->pkt_tx_v[i].len, 0,
-                               &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
+                        if (netswitch->secret_enabled)
+                            sendto(hostaddr->socket_tx, (char *)augmented, send_len, 0,
+                                   &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
+                        else
+                            sendto(hostaddr->socket_tx, (char *)netswitch->pkt_tx_v[i].data,
+                                   send_len, 0, &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
                 }
             }
             netswitch->during_tx = 0;
@@ -406,10 +439,32 @@ net_switch_thread(void *priv)
         }
         if (pfd[NET_EVENT_RX].revents & POLLIN) {
 #endif
-            len = recv(netswitch->socket_rx, (char *) netswitch->pkt.data, NET_MAX_FRAME, 0);
-            if (len < 12) {
-                netswitch_log("Network Switch: recv error (%d)\n", len);
-            } else if ((AS_U64(netswitch->pkt.data[6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
+            if (netswitch->secret_enabled) {
+                len = recv(netswitch->socket_rx, (char *) netswitch->pkt.data, NET_MAX_FRAME + sizeof(netswitch->secret_hash), 0);
+                if (len < sizeof(netswitch->secret_hash) + 12) {
+                    netswitch_log("Network Switch: recv error (%d)\n", len);
+                    continue;
+                }
+
+                if (memcmp(netswitch->pkt.data, netswitch->secret_hash, sizeof(netswitch->secret_hash)) != 0) {
+                    /* This packet contains a different secret hash, ignore it. */
+                    continue;
+                } else {
+                    memmove(netswitch->pkt.data,
+                            netswitch->pkt.data + sizeof(netswitch->secret_hash),
+                            len - sizeof(netswitch->secret_hash));
+                    len = len - sizeof(netswitch->secret_hash);
+                    netswitch->pkt.len = len;
+                }
+            } else {
+                len = recv(netswitch->socket_rx, (char *) netswitch->pkt.data, NET_MAX_FRAME, 0);
+                if (len < 12) {
+                    netswitch_log("Network Switch: recv error (%d)\n", len);
+                    continue;
+                }
+            }
+
+            if ((AS_U64(netswitch->pkt.data[netswitch->secret_enabled ? 38 : 6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
                 /* A packet we've sent has looped back, drop it. */
             } else if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN) && (netswitch->promisc || /* promiscuous mode? */
                        (netswitch->pkt.data[0] & 1) || /* broadcast packet? */
@@ -443,12 +498,19 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
 {
     netcard_conf_t *netcard = (netcard_conf_t *) priv;
 
-    netswitch_log("Network Switch: initializing with group %d...\n", netcard->switch_group);
-
     net_switch_t *netswitch = calloc(1, sizeof(net_switch_t));
     memcpy(netswitch->mac_addr, mac_addr, sizeof(netswitch->mac_addr));
     netswitch->card = (netcard_t *) card;
     netswitch->promisc = !!netcard->promisc_mode;
+
+    if (netcard->secret[0] != '\0') {
+        uint8_t temp[32];
+        net_switch_secret_hash((const uint8_t *)netcard->secret, (uint8_t *) temp);
+        memcpy(netswitch->secret_hash, temp, 32);
+        netswitch->secret_enabled = 1;
+    } else {
+        netswitch->secret_enabled = 0;
+    }
 
     /* Initialize receive socket. */
     netswitch->socket_rx = socket(AF_INET, SOCK_DGRAM, 0);
@@ -473,7 +535,7 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
     val = 0;
     setsockopt(netswitch->socket_rx, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &val, sizeof(val));
 
-    netswitch->port_out = htons(SWITCH_MULTICAST_PORT - NET_SWITCH_GRP_MIN + netcard->switch_group);
+    netswitch->port_out = htons(SWITCH_MULTICAST_PORT);
     struct sockaddr_in addr = {
         .sin_family = AF_INET,
         .sin_addr = { .s_addr = htonl(INADDR_ANY) },

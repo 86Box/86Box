@@ -2838,8 +2838,8 @@ msgstr "Lokale Switch"
 msgid "Remote Switch"
 msgstr "Externe Switch"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Gedeeld geheim:"
 
 msgid "Hub Mode"
 msgstr "Hub-modus"
