@@ -705,6 +705,7 @@ extern int             machine_at_d824_init(const machine_t *);
 
 /* VLSI 82C486 */
 extern int             machine_at_pcs44c_init(const machine_t *);
+extern int             machine_at_sensation1_init(const machine_t *);
 extern int             machine_at_tuliptc38_init(const machine_t *);
 
 /* ZyMOS Poach */
@@ -738,6 +739,9 @@ extern int             machine_at_valuepoint433_init(const machine_t *);
 /* VLSI 82C480 */
 extern int             machine_at_monsoon_init(const machine_t *);
 extern int             machine_at_martin_init(const machine_t *);
+
+/* VLSI 82C486 */
+extern int             machine_at_sensation2_init(const machine_t *);
 
 /* m_at_socket3.c */
 /* ALi M1429G */
