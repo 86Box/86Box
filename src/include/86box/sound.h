@@ -250,6 +250,9 @@ extern const device_t pssj_1e0_device;
 /* Tandy PSG */
 extern const device_t tndy_device;
 
+/* Tandy Sensation */
+extern const device_t sensationaud_device;
+
 /* Windows Sound System */
 extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
