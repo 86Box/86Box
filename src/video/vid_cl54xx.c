@@ -4284,6 +4284,8 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5402:
             if (info->local & 0x200)
+                romfn = NULL;
+            else if (info->local & 0x100)
                 romfn = BIOS_GD5402_ONBOARD_PATH;
             else
                 romfn = BIOS_GD5402_PATH;
@@ -5023,6 +5025,20 @@ const device_t gd5402_onboard_device = {
     .internal_name = "cl_gd5402_onboard",
     .flags         = DEVICE_ISA16,
     .local         = CIRRUS_ID_CLGD5402 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = NULL,
+};
+
+const device_t gd5402_onboard_commodore_device = {
+    .name          = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2) (On-Board) (Commodore)",
+    .internal_name = "cl_gd5402_onboard_commodore",
+    .flags         = DEVICE_ISA16,
+    .local         = CIRRUS_ID_CLGD5402 | 0x100,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,

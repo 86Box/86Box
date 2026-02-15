@@ -375,6 +375,7 @@ extern const device_t gd5401_isa_device;
 extern const device_t gd5401_onboard_device;
 extern const device_t gd5402_isa_device;
 extern const device_t gd5402_onboard_device;
+extern const device_t gd5402_onboard_commodore_device;
 extern const device_t gd5420_isa_device;
 extern const device_t gd5420_onboard_device;
 extern const device_t gd5422_isa_device;
