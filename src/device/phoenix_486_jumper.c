@@ -52,10 +52,18 @@
     Bit 0 = ????
 */
 
+/*
+    Intel Monsoon bit meanings:
+    Bit 4 = Onboard video: 1 = disabled, 0 = enabled
+    Bit 3 = CMOS Setup enable
+*/
+
 typedef struct phoenix_486_jumper_t {
     uint8_t type;
     uint8_t jumper;
 } phoenix_486_jumper_t;
+
+#define ENABLE_PHOENIX_486_JUMPER_LOG 1
 
 #ifdef ENABLE_PHOENIX_486_JUMPER_LOG
 int phoenix_486_jumper_do_log = ENABLE_PHOENIX_486_JUMPER_LOG;
@@ -84,6 +92,8 @@ phoenix_486_jumper_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
         dev->jumper = val & 0xbf;
     else if (dev->type == 2) /* PB600 */
         dev->jumper = ((val & 0xbf) | 0x02);
+    else if (dev->type == 3) /* Intel Monsoon */
+        dev->jumper = val | 0x08;
     else
         dev->jumper = val;
 }
@@ -106,7 +116,11 @@ phoenix_486_jumper_reset(void *priv)
         dev->jumper = 0x00;
     else if (dev->type == 2) /* PB600 */
         dev->jumper = 0x02;
-    else {
+    else if (dev->type == 3) { /* Intel Monsoon */
+        dev->jumper = 0xef;
+        if (gfxcard[0] != 0x01)
+            dev->jumper |= 0x10;
+    } else {
         dev->jumper = 0x9f;
         if (gfxcard[0] != 0x01)
             dev->jumper |= 0x40;
@@ -176,3 +190,18 @@ const device_t phoenix_486_jumper_pci_pb600_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+const device_t phoenix_486_jumper_monsoon_device = {
+    .name          = "Phoenix 486 Jumper Readout (Monsoon)",
+    .internal_name = "phoenix_486_jumper_monsoon",
+    .flags         = 0,
+    .local         = 3,
+    .init          = phoenix_486_jumper_init,
+    .close         = phoenix_486_jumper_close,
+    .reset         = phoenix_486_jumper_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
