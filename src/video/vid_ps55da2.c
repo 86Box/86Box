@@ -2352,12 +2352,8 @@ da2_recalctimings(da2_t *da2)
     da2->render     = da2_render_blank;
     /* determine display mode */
     // if (da2->attr_palette_enable && (da2->attrc[0x1f] & 0x08))
-    /* if output disabled or VGA passthrough */
-    if (da2->ioctl[LS_MODE] & 0x02 || !(da2->attrc[LV_COMPATIBILITY] & 0x08)) {
-        da2->render = da2_render_blank;
-        // return;
     /* 16 color graphics mode */
-    } else if (!(da2->ioctl[LS_MODE] & 0x01)) {
+    if (!(da2->ioctl[LS_MODE] & 0x01)) {
         da2->hdisp *= 16;
         da2->char_width = 13;
         if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
@@ -2383,6 +2379,9 @@ da2_recalctimings(da2_t *da2)
         da2->hdisp *= 13;
         da2->char_width = 13;
     }
+    /* if output disabled or VGA passthrough */
+    if (da2->ioctl[LS_MODE] & 0x02 || !(da2->attrc[LV_COMPATIBILITY] & 0x08)) 
+        da2->render = da2_render_blank;
 
     if (da2->vblankstart < da2->dispend)
         da2->dispend = da2->vblankstart;
