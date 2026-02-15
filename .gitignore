@@ -67,3 +67,16 @@ CMakeLists.txt.user
 
 # Jetbrains CLion
 .idea
+CLAUDE.md
+.claude/projects/-Users-anthony-projects-code-86Box-voodoo-arm64/memory/MEMORY.md
+.serena/project.yml
+.serena/.gitignore
+.serena/memories/code_style_and_conventions.md
+.serena/memories/project_overview.md
+.serena/memories/suggested_commands.md
+.serena/memories/task_completion_checklist.md
+86Box-voodoo-arm64.code-workspace
+.claude/agents/voodoo-color.md
+.claude/agents/voodoo-effects.md
+.claude/agents/voodoo-lead.md
+.claude/agents/voodoo-texture.md

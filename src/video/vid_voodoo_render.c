@@ -657,6 +657,8 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
 
 #if (defined __amd64__ || defined _M_X64)
 #    include <86box/vid_voodoo_codegen_x86-64.h>
+#elif (defined __aarch64__ || defined _M_ARM64)
+#    include <86box/vid_voodoo_codegen_arm64.h>
 #else
 int voodoo_recomp = 0;
 #endif
