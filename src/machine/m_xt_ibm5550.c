@@ -57,6 +57,7 @@
 #include <86box/plat_unused.h>
 #define EMU_DEVICE_H
 #include <86box/pit.h>
+#include <86box/mouse.h>
 
 // #define EPOCH_FONTROM_SIZE         (1024 * 1024)
 // #define EPOCH_FONTROM_MASK         0xffff
@@ -155,11 +156,12 @@ enum epoch_nvr_ADDR {
 };
 
 #ifndef RELEASE_BUILD
-// #define ENABLE_EPOCH_LOG 1
+#define ENABLE_EPOCH_LOG 1
 #endif
 
 #ifdef ENABLE_EPOCH_LOG
-// #    define ENABLE_EPOCH_DEBUGIO 1
+// #define ENABLE_EPOCH_DEBUGIO 1
+#define ENABLE_EPOCH_DEBUGKBD 1
 int epoch_do_log = ENABLE_EPOCH_LOG;
 
 static void
@@ -181,6 +183,12 @@ epoch_log(const char *fmt, ...)
 #else
 #    define epoch_iolog(fmt, ...)
 #endif
+#ifdef ENABLE_EPOCH_DEBUGKBD
+#    define epoch_kbdlog epoch_log
+#else
+#    define epoch_kbdlog(fmt, ...)
+#endif
+
 
 typedef struct epoch_t {
     mem_mapping_t cmapping;
@@ -332,7 +340,7 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
                 case LC_START_ADDRESS_HIGH:
                 case LC_CURSOR_LOC_HIGH:
                 case LC_LIGHT_PEN_HIGH:
-                    val &= 0x3F;
+                    val &= 0x3F; /* this is required for the IPL BAT test */
                     break;
             }
             epoch->crtc[epoch->crtcaddr] = val;
@@ -1417,14 +1425,22 @@ typedef struct epochkbd_t {
 
     uint8_t pa;
     uint8_t pb;
-    uint8_t clock;
+    // uint8_t clock;
+    uint8_t clk_hold;
+    // uint8_t clk_in;
+    // uint8_t clk_ff;
+    int mouse_enabled;
+    uint8_t mouse_queue[4];
+    int mouse_queue_num;
+    // int mouse_ackwaiting;
     uint8_t key_waiting;
-    uint8_t reset_step;
+    uint8_t kbd_reset_step;
+    uint8_t mouse_reset_step;
 
     pc_timer_t send_delay_timer;
 } epochkbd_t;
 
-static uint8_t key_queue[16];
+static uint8_t key_queue[16]; /* buffer in the keyboard */
 static int     key_queue_start = 0;
 static int     key_queue_end   = 0;
 
@@ -1435,25 +1451,53 @@ kbd_epoch_poll(void *priv)
 
     timer_advance_u64(&kbd->send_delay_timer, 1000 * TIMER_USEC);
 
-    if (kbd->pb & 0x04)
+    // if (kbd->clock & 0x04)
+    //     return;
+    if (kbd->pb & 0x04) /* controller is sending something to keyboard */
+        return;
+
+    if (!(kbd->pb & 0x08)) /* keyboard interrupt is disabled */
         return;
 
     if (kbd->want_irq) {
         kbd->want_irq = 0;
         kbd->pa       = kbd->key_waiting;
-        kbd->pb      &= 0xF7;
+        // kbd->clock |= 0x04;
         kbd->blocked  = 1;
         picint(EPOCH_IRQ3_BIT);
-        epoch_log("epochkbd: kbd_poll(): keyboard_xt : take IRQ\n");
+        epoch_kbdlog("epochkbd: kbd_poll(): keyboard_xt : take IRQ\n");
     }
 
-    if ((key_queue_start != key_queue_end) && !kbd->blocked) {
-        kbd->key_waiting = key_queue[key_queue_start];
-        epoch_log("epochkbd: reading %02X from the key queue at %i\n",
-                kbd->key_waiting, key_queue_start);
-        key_queue_start = (key_queue_start + 1) & 0x0f;
-        kbd->want_irq   = 1;
+    if (!kbd->blocked) {
+        // if (kbd->mouse_queue_num > 0 && kbd->mouse_ackwaiting == 0) {
+        if (kbd->mouse_queue_num > 0) {
+            kbd->mouse_queue_num--;
+            // if (kbd->mouse_queue_num & 1) {
+            //     kbd->key_waiting = 0x61;
+            // } else {
+                kbd->key_waiting = kbd->mouse_queue[kbd->mouse_queue_num];
+            // }
+            epoch_kbdlog("epochkbd: reading %02X from the mouse queue at %i\n", kbd->key_waiting, kbd->mouse_queue_num);
+            kbd->want_irq = 1;
+            // if (kbd->mouse_queue_num == 0)
+                // kbd->mouse_ackwaiting = 1;
+        }
+        else if (key_queue_start != key_queue_end) {
+            kbd->key_waiting = key_queue[key_queue_start];
+            epoch_kbdlog("epochkbd: reading %02X from the key queue at %i\n",
+                         kbd->key_waiting, key_queue_start);
+            key_queue_start = (key_queue_start + 1) & 0x0f;
+            kbd->want_irq   = 1;
+
+        }
     }
+
+    // if (kbd->clk_in > 0) {
+    //     // epoch_kbdlog("Clock awaken\n");
+    //     kbd->clk_in--;
+    //     kbd->clk_ff = 2 * 9;
+    // } else
+        // kbd->clk_ff = 0;
 }
 
 static void
@@ -1481,7 +1525,7 @@ static void
 kbd_epoch_adddata(uint16_t val)
 {
     key_queue[key_queue_end] = val;
-    epoch_log("XTkbd: %02X added to key queue at %i\n",
+    epoch_kbdlog("epochkbd: %02X added to key queue at %i\n",
             val, key_queue_end);
     key_queue_end = (key_queue_end + 1) & 0x0f;
 }
@@ -1493,35 +1537,68 @@ kbd_adddata_ex(uint16_t val)
         kbd_epoch_adddata_process(val, kbd_epoch_adddata);
 }
 
+/*
+I/O 61h W:
+xxxx xxx1: ? (used by kbd interrupt in DOS)
+xxxx xx1x: Beep
+xxxx x1xx: Hold clock line low (used to reset kbd)
+xxxx 1xxx: Enable kbd?
+xxx1 xxxx: Send data from system to kbd
+1xxx xxxx: Clear buffer?
+*/
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     epochkbd_t *kbd = (epochkbd_t *) priv;
     uint8_t  new_clock;
-    epoch_log("%04X:%04X epochkbd: Port %04X out: %02X\n", cs >> 4, cpu_state.pc, port, val);
+    epoch_kbdlog("%04X:%04X epochkbd: Port %02X out: %02X BX: %04x", cs >> 4, cpu_state.pc, port, val,BX);
+    epoch_kbdlog(" Clk: %x %x\n", kbd->blocked,kbd->clk_hold);
 
     switch (port) {
+        case 0x60:
+            if ((kbd->pb & 0x10) && (val & 0xf0) == 0xd0) {
+                kbd->mouse_enabled = 1;
+                epoch_kbdlog("epochkbd: Mouse is enabled.\n");
+            }
+            break;
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            if (val & 0x08) {
+            kbd->pb = val;
+
+            if ((val & 0x18) == 0x08) {
                 new_clock = !(val & 0x04);
-                if (kbd->clock && new_clock) {
+                /* Trigger kbd reset after the clk line is reset to a high level */
+                if (kbd->clk_hold && new_clock) {
                     key_queue_start = key_queue_end = 0;
                     kbd->want_irq                   = 0;
                     kbd->blocked                    = 0;
-                    kbd->reset_step = 0;
-                    /* Specific 5556 keyboards send three bytes of identification code,
-                       but this simply sends AAh that can pass the IPL and DOS K3.4 init. */
-                    kbd_epoch_adddata(0xaa);
-                } else if (!(kbd->pb & 0x08)) {
-                    kbd->pa      = 0;
-                    kbd->blocked = 0;
+                    kbd->kbd_reset_step                 = 0;
+                    // kbd->clock                      = 0;
+                    // kbd->clk_in                     = 0;
+                    kbd->clk_hold                   = 0;
+                    kbd->mouse_enabled              = 0;
+                    kbd->mouse_queue_num            = 0;
+                    // kbd->mouse_ackwaiting           = 0;
+                    epoch_kbdlog("epochkbd: Starting keyboard reset sequence.\n");
+                }
+                //  else if (!(kbd->pb & 0x08)) {
+                //     kbd->pa      = 0;
+                //     kbd->blocked = 0;
+                // }
+            } else if ((val & 0x18) == 0x18) {
+                new_clock = !(val & 0x04);
+                if (kbd->clk_hold && new_clock) {
+                    kbd->mouse_reset_step = 0;
+                    epoch_kbdlog("epochkbd: Starting mouse reset sequence.\n");
                 }
             }
 
-            kbd->pb = val;
             if (kbd->pb & 0x08)
-                kbd->clock = !!(kbd->pb & 0x04);
-            ppi.pb = val;
+                kbd->clk_hold = !!(kbd->pb & 0x04);
+            // else
+            //     kbd->mouse_ackwaiting = 0;
+
+            // if (kbd->clk_hold)
+            //     kbd->clock |= 0x04;
 
             timer_process();
 
@@ -1534,6 +1611,14 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 was_speaker_enable = 1;
             pit_devs[0].set_gate(pit_devs[0].data, TIMER_CTR_2, val & 2);
 
+            if (val & 0x80) {
+                /* clear buffer */
+                kbd->pa      = 0;
+                kbd->blocked = 0;
+                /* IRQ will be cleared by the software */
+                // picintc(EPOCH_IRQ3_BIT);
+            }
+
             break;
 
         default:
@@ -1541,11 +1626,17 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+/*
+I/O 61h R
+xxxx xx1x: Beep input?
+xxxx x1xx: KB -CLK?
+xxxx 1xxx: KB -DATA?
+*/
 static uint8_t
 kbd_read(uint16_t port, void *priv)
 {
     epochkbd_t *kbd = (epochkbd_t *) priv;
-    uint8_t        ret = 0xff;
+    uint8_t        ret = 0;
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
@@ -1553,36 +1644,67 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            /* Bit 3 and 2: Keyboard Data and Clk line ? */
-            if (kbd->reset_step < 18) {
+            ret = kbd->pb & 0xf0;/* reset sense bit */
+            ret |= 0x0c;         /* reset sense bit */
+            if (kbd->kbd_reset_step < 18) {
                 ret &= 0xf3;
-                if (kbd->reset_step & 1)
+                if (!!(kbd->kbd_reset_step & 1))
                     ret |= 0x04;
-                switch (kbd->reset_step) { /* AAh (1010 1010) in serial data */
-                    case 3:
-                    case 7:
-                    case 11:
-                    case 15:
-                        ret |= 0x00;
-                        break;
-                    default:
+                switch (kbd->kbd_reset_step >> 1) { /* AAh (0 1010 1010) in serial data */
+                    case 0:
+                    // case 1:
+                     case 2:
+                    // case 3:
+                     case 4:
+                    // case 5:
+                     case 6:
+                    // case 7:
+                     case 8:
+                    // case 9:
                         ret |= 0x08;
                         break;
+                    default:
+                        ret |= 0x00;
+                        break;
                 }
-                kbd->reset_step += 1;
+                epoch_kbdlog("  reset step: %d %x %x", kbd->kbd_reset_step, ret & 0x08, ret & 0x04);
+                epoch_kbdlog(" Clk: %x %x\n", kbd->blocked, kbd->clk_hold);
+                kbd->kbd_reset_step++;
+                    /* Specific 5556 keyboards send three bytes of identification code,
+                       but this simply sends AAh that can pass the IPL and DOS K3.4 init. */
+                if (kbd->kbd_reset_step == 18)
+                    // kbd->pa = 0xaa;
+                    kbd_epoch_adddata(0xaa);
+            } else if (kbd->mouse_reset_step < 20) {
+                ret &= 0xf3;
+                if (!!(kbd->mouse_reset_step & 1))
+                    ret |= 0x04;
+                epoch_kbdlog("  reset step: %d %x %x\n", kbd->mouse_reset_step, ret & 0x08, ret & 0x04);
+                kbd->mouse_reset_step++;
+            } else {
+                // if (kbd->pb & 0x04)
+                //     ret |= kbd->clk_hold & 0x04;
+                // if (kbd->clk_ff > 0 && (!(kbd->pb & 0x04))) {
+                //     // kbd->clk_in -= 1;/* invert clk bit */
+                //     // epoch_kbdlog("ff%\n", kbd->clk_ff);
+                //     if (kbd->clk_ff & 0x1) {
+                //         ret ^= 0x04;
+                //     }
+                //     kbd->clk_ff--;
+                // }
             }
             /* Bit 1: Timer 2 (Speaker) out state */
-            if (pit_devs[0].get_outlevel(pit_devs[0].data, TIMER_CTR_2) && speaker_enable) 
-                ret &= 0xfd;/* 1111 1101 */
+            if (pit_devs[0].get_outlevel(pit_devs[0].data, TIMER_CTR_2) && speaker_enable)
+                ret &= 0xfd; /* 1111 1101 */
             else
                 ret |= 0x02;
+                
+            // ret |= kbd->clock;
             break;
-
         default:
             break;
     }
-    // epoch_log("%04X:%04X epochkbd: Port %04X in : %02X BX:%04x\n", cs >> 4, cpu_state.pc, port, ret, BX);
-
+    epoch_kbdlog("%04X:%04X epochkbd: Port %02X in : %02X pb: %02x CX: %04x\n", cs >> 4, cpu_state.pc, port, ret, kbd->pb, CX);
     return ret;
 }
 
@@ -1595,11 +1717,22 @@ kbd_reset(void *priv)
     kbd->blocked       = 0;
     kbd->pa            = 0x00;
     kbd->pb            = 0x00;
+    // kbd->clock = 0;
+    // kbd->clk_hold = 0;
+    // kbd->clk_in = 0;
+    // kbd->clk_ff = 0;
+    kbd->kbd_reset_step = 0xff;
+    kbd->mouse_reset_step = 0xff;
 
     keyboard_scan   = 1;
 
     key_queue_start = 0;
     key_queue_end   = 0;
+
+    kbd->mouse_enabled = 0;
+    kbd->mouse_queue_num = 0;
+    // kbd->mouse_ackwaiting = 0;
+    kbd_epoch_adddata(0xaa);
 }
 
 static void *
@@ -1614,7 +1747,7 @@ kbd_init(const device_t *info)
     keyboard_send = kbd_adddata_ex;
     kbd_reset(kbd);
 
-    key_queue_start = key_queue_end = 0;
+    //key_queue_start = key_queue_end = 0;
 
     timer_add(&kbd->send_delay_timer, kbd_epoch_poll, kbd, 1);
 
@@ -1656,6 +1789,91 @@ static const device_t kbc_epoch_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+/*
+The IBM 5550 DOS K3.44 comes with a mouse driver
+for the M1 and P1 keyboards that have a built-in mouse adapter.
+The mouse adapter for the expansion slot was also available,
+but it may require the bundled driver. (not confirmed)
+
+IBM 5550 DOS K3.4 Mouse Driver (Int 0Bh and 33h)
+61h <- 1st kbd indata
+[si+4Ch] status <- 2nd kbd indata
+1xxx xxxx negative dX
+x1xx xxxx bit 9 of dX
+xx1x xxxx negative dY
+xxx1 xxxx bit 9 of dY
+xxxx x1xx cursor moved
+xxxx xx1x right button
+xxxx xxx1 left button
+[si+4Dh] previous button status <- [si+4Ch]
+[si+4Eh] dX <- 3rd kbd indata
+[si+50h] dY <- 4th kbd indata
+*/
+static int
+epoch_mouse_poll(void *priv)
+{
+    epochkbd_t *kbd = (epochkbd_t *) priv;
+    int         dat = mouse_get_buttons_ex();
+    int         dx, dy;
+
+    if (!kbd->mouse_enabled)
+        return 0;
+    
+    // if (kbd->blocked && !(kbd->pb & 0x10))
+    //     return 0;
+
+    // if (kbd->blocked && !(kbd->pb & 0x10))
+    //     return 0;
+
+    // kbd->clk_in = 2;
+    
+    // if (!(kbd->pb & 0x80))
+    //     return 0;
+
+    if (kbd->mouse_queue_num > 0)
+        return 0;
+
+    if (kbd->pb & 0x10)
+        return 0;
+
+    dat &= 0x03;
+    if (!mouse_moved()) {
+        // kbd_adddata_ex(0x61);
+        // kbd_adddata_ex(dat);
+        kbd->mouse_queue[1] = 0x61;
+        kbd->mouse_queue[0] = dat;
+        kbd->mouse_queue_num = 2;
+    } else {
+        dat |= 0x04;
+        mouse_subtract_x(&dx, NULL, -512, 511, 0);
+        mouse_clear_x();
+        if (dx < 0)
+            dat |= 0x20;
+        if (dx & 0x100)
+            dat |= 0x10;
+        mouse_subtract_y(&dy, NULL, -512, 511, 0, 0);
+        mouse_clear_y();
+        if (dy < 0)
+            dat |= 0x80;
+        if (dy & 0x100)
+            dat |= 0x40;
+        // dy = 0;
+        // kbd_adddata_ex(0x61);
+        // keyboard_send(dat);
+        // kbd_adddata_ex(0x61);
+        // keyboard_send(dx & 0xff);
+        // kbd_adddata_ex(0x61);
+        // keyboard_send(dy & 0xff);
+        epoch_log("Mouse moved %x %x %x\n", dat, dx, dy);
+        kbd->mouse_queue[3] = 0x61;
+        kbd->mouse_queue[2] = dat;
+        kbd->mouse_queue[1] = dx & 0xff;
+        kbd->mouse_queue[0] = dy & 0xff;
+        kbd->mouse_queue_num = 4;
+    }
+    return 0;
+}
 
 static void
 epoch_nvr_time_set(uint8_t *regs, struct tm *tm)
@@ -1963,7 +2181,7 @@ epoch_init(UNUSED(const device_t *info))
 
     io_sethandler(0x44, 0x0001,
                   epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
-    io_sethandler(0xA0, 0x0005,
+    io_sethandler(0xA0, 0x0006,
                   epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
     io_sethandler(0x310, 0x0008,
                   epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
@@ -2051,7 +2269,7 @@ epoch_force_redraw(void *priv)
 }
 
 static const device_t epoch_device = {
-    .name          = "IBM 5550 Video Controller (Epoch)",
+    .name          = "IBM 5550 (Epoch) Video Controller",
     .internal_name = "ibm5550vid",
     .flags         = DEVICE_ISA,
     .local         = 0,
@@ -2115,7 +2333,7 @@ machine_xt_ibm5550_init(const machine_t *model)
 
     device_add(&fdc_xt_5550_device);
 
-    device_add(&kbc_epoch_device);
+    epochkbd_t *kbc = device_add(&kbc_epoch_device);
     
     pic_init();
     dma_init();
@@ -2127,6 +2345,13 @@ machine_xt_ibm5550_init(const machine_t *model)
     device_add(&lpt_port_device);
     serial_t *uart = device_add(&ns8250_device);
     serial_setup(uart, 0x3f8, 1);/* Use IRQ 1 */
+
+    if (mouse_type == MOUSE_TYPE_INTERNAL) {
+        /* Tell mouse driver about our internal mouse. */
+        mouse_reset();
+        mouse_set_buttons(2);
+        mouse_set_poll(epoch_mouse_poll, kbc);
+    }
 
     return ret;
 }
