@@ -1426,12 +1426,12 @@ typedef struct epochkbd_t {
     uint8_t pa;
     uint8_t pb;
     uint8_t clk_hold;
-    int mouse_enabled;
-    uint8_t mouse_queue[4];
-    int mouse_queue_num;
     uint8_t key_waiting;
     uint8_t kbd_reset_step;
     uint8_t mouse_reset_step;
+    int mouse_enabled;
+    int mouse_queue_num;
+    uint8_t mouse_queue[4];
 
     pc_timer_t send_delay_timer;
 } epochkbd_t;
@@ -1456,8 +1456,7 @@ kbd_epoch_poll(void *priv)
     if (kbd->want_irq) {
         kbd->want_irq = 0;
         kbd->pa       = kbd->key_waiting;
-        // kbd->clock |= 0x04;
-        kbd->blocked  = 1;
+        kbd->blocked = 1;
         picint(EPOCH_IRQ3_BIT);
         epoch_kbdlog("epochkbd: kbd_poll(): keyboard_xt : take IRQ\n");
     }
@@ -1465,17 +1464,15 @@ kbd_epoch_poll(void *priv)
     if (!kbd->blocked) {
         if (kbd->mouse_queue_num > 0) {
             kbd->mouse_queue_num--;
-                kbd->key_waiting = kbd->mouse_queue[kbd->mouse_queue_num];
+            kbd->key_waiting = kbd->mouse_queue[kbd->mouse_queue_num];
             epoch_kbdlog("epochkbd: reading %02X from the mouse queue at %i\n", kbd->key_waiting, kbd->mouse_queue_num);
             kbd->want_irq = 1;
-        }
-        else if (key_queue_start != key_queue_end) {
+        } else if (key_queue_start != key_queue_end) {
             kbd->key_waiting = key_queue[key_queue_start];
             epoch_kbdlog("epochkbd: reading %02X from the key queue at %i\n",
                          kbd->key_waiting, key_queue_start);
             key_queue_start = (key_queue_start + 1) & 0x0f;
             kbd->want_irq   = 1;
-
         }
     }
 }
@@ -1530,13 +1527,13 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     epochkbd_t *kbd = (epochkbd_t *) priv;
-    uint8_t  new_clock;
-    epoch_kbdlog("%04X:%04X epochkbd: Port %02X out: %02X BX: %04x", cs >> 4, cpu_state.pc, port, val,BX);
-    epoch_kbdlog(" Clk: %x %x\n", kbd->blocked,kbd->clk_hold);
+    uint8_t     new_clock;
+    epoch_kbdlog("%04X:%04X epochkbd: Port %02X out: %02X BX: %04x", cs >> 4, cpu_state.pc, port, val, BX);
+    epoch_kbdlog(" Clk: %x %x\n", kbd->blocked, kbd->clk_hold);
 
     switch (port) {
-        case 0x60:
-            if ((kbd->pb & 0x10) && (val & 0xf0) == 0xd0) {
+        case 0x60: /* Diagnostic Output */
+            if ((kbd->pb & 0x10) && ((val & 0xf0) == 0xd0)) {
                 kbd->mouse_enabled = 1;
                 epoch_kbdlog("epochkbd: Mouse is enabled.\n");
             }
@@ -1551,7 +1548,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                     key_queue_start = key_queue_end = 0;
                     kbd->want_irq                   = 0;
                     kbd->blocked                    = 0;
-                    kbd->kbd_reset_step                 = 0;
+                    kbd->kbd_reset_step             = 0;
                     kbd->clk_hold                   = 0;
                     kbd->mouse_enabled              = 0;
                     kbd->mouse_queue_num            = 0;
@@ -1602,7 +1599,7 @@ static uint8_t
 kbd_read(uint16_t port, void *priv)
 {
     epochkbd_t *kbd = (epochkbd_t *) priv;
-    uint8_t        ret = 0;
+    uint8_t     ret = 0;
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
@@ -1610,18 +1607,18 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            ret = kbd->pb & 0xf0;/* reset sense bit */
-            ret |= 0x0c;         /* reset sense bit */
+            ret = kbd->pb & 0xf0; /* reset sense bit */
+            ret |= 0x0c;          /* reset sense bit */
             if (kbd->kbd_reset_step < 18) {
                 ret &= 0xf3;
                 if (!!(kbd->kbd_reset_step & 1))
                     ret |= 0x04;
                 switch (kbd->kbd_reset_step >> 1) { /* AAh (0 1010 1010) in serial data */
                     case 0:
-                     case 2:
-                     case 4:
-                     case 6:
-                     case 8:
+                    case 2:
+                    case 4:
+                    case 6:
+                    case 8:
                         ret |= 0x08;
                         break;
                     default:
@@ -1631,10 +1628,9 @@ kbd_read(uint16_t port, void *priv)
                 epoch_kbdlog("  reset step: %d %x %x", kbd->kbd_reset_step, ret & 0x08, ret & 0x04);
                 epoch_kbdlog(" Clk: %x %x\n", kbd->blocked, kbd->clk_hold);
                 kbd->kbd_reset_step++;
-                    /* Specific 5556 keyboards send three bytes of identification code,
-                       but this simply sends AAh that can pass the IPL and DOS K3.4 init. */
+                /* Specific 5556 keyboards send three bytes of identification code,
+                   but this simply sends AAh that can pass the IPL and DOS K3.4 init. */
                 if (kbd->kbd_reset_step == 18)
-                    // kbd->pa = 0xaa;
                     kbd_epoch_adddata(0xaa);
             } else if (kbd->mouse_reset_step < 20) {
                 ret &= 0xf3;
@@ -1643,13 +1639,13 @@ kbd_read(uint16_t port, void *priv)
                 epoch_kbdlog("  reset step: %d %x %x\n", kbd->mouse_reset_step, ret & 0x08, ret & 0x04);
                 kbd->mouse_reset_step++;
             }
-            
+
             /* Bit 1: Timer 2 (Speaker) out state */
             if (pit_devs[0].get_outlevel(pit_devs[0].data, TIMER_CTR_2) && speaker_enable)
                 ret &= 0xfd; /* 1111 1101 */
             else
                 ret |= 0x02;
-                
+
             break;
         default:
             break;
