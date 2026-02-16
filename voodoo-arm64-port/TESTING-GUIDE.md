@@ -123,33 +123,40 @@ You'll need a legal copy of Windows 98 Second Edition. The ISO can be installed 
    - **Memory**: 128 MB
    - **FPU**: Built-in
 
-### 3. Configure Video (2D Display)
+### 3. Configure Video
 
-For the primary 2D video card (Windows desktop, BIOS, etc.):
+There are two different setups depending on which Voodoo card you want to test:
 
-- Navigate to **Display → Video**
-- Choose: **S3 ViRGE/DX** or **S3 Trio64**
-- Set **Video Memory**: 4 MB
+#### Option A: Voodoo 1 or Voodoo 2 (3D-only cards)
 
-**Why not Voodoo for 2D?** Voodoo 1 and 2 are 3D-only pass-through cards. You need a separate 2D card for desktop and non-3D applications. Voodoo 3/Banshee combine 2D+3D.
+Voodoo 1 and Voodoo 2 are **3D-only add-in cards** — they have no 2D capabilities. You must configure a separate 2D card as the primary display, then add the Voodoo as a secondary 3D accelerator.
 
-### 4. Add a Voodoo Card (3D Acceleration)
+1. Navigate to **Display → Video** (primary 2D card):
+   - Choose: **S3 ViRGE/DX** or **S3 Trio64**
+   - Set **Video Memory**: 4 MB
 
-- Navigate to **Display → 3D Graphics Card**
-- Choose:
-  - **Voodoo Graphics** (original, 1 TMU)
-  - **Voodoo Graphics (2 TMUs)** (enhanced)
-  - **Voodoo 2** (most common for testing)
-  - **Voodoo Banshee** (2D+3D combined)
-  - **Voodoo 3 2000** (2D+3D combined)
+2. Navigate to **Display → 3D Graphics Card**:
+   - **Voodoo Graphics** (original, 1 TMU)
+   - **Voodoo Graphics (2 TMUs)** (enhanced)
+   - **Voodoo 2** (most common for testing)
 
-### 5. Configure Storage
+#### Option B: Voodoo Banshee or Voodoo 3 (integrated 2D+3D)
+
+These cards have built-in 2D+3D, so they are set as the **primary video card** directly.
+
+1. Navigate to **Display → Video**:
+   - **Voodoo Banshee**
+   - **Voodoo 3 2000**
+
+**Note:** You can only use one Voodoo card at a time. If you select a Banshee or Voodoo 3 here, you cannot also add a Voodoo 1 or 2.
+
+### 4. Configure Storage
 
 - **Hard disk controller**: Standard IDE
 - **Hard disk**: Create new (at least 1 GB for Windows 98 + games)
 - **CD-ROM**: Attach Windows 98 ISO
 
-### 6. Install Windows 98
+### 5. Install Windows 98
 
 Boot from the CD-ROM and follow the standard Windows 98 installation.
 
