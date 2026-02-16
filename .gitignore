@@ -88,3 +88,5 @@ voodoo-jit-bug6-test.log
 voodoo-jit-debug.log
 voodoo-jit-test.log
 voodoo-pixel-trace.log
+voodoo-arm64-port/comment-audit-v2.md
+voodoo-arm64-port/comment-audit.md
