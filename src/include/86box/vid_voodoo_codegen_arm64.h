@@ -11,10 +11,10 @@
  *          Ported from vid_voodoo_codegen_x86-64.h
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/> (original Voodoo emulation)
- *          Anthony (ARM64 port, 2026)
+ *          skiretic (ARM64 port, 2026)
  *
  *          Copyright 2008-2020 Sarah Walker.
- *          Copyright 2026 Anthony.
+ *          Copyright 2026 skiretic.
  */
 
 /*
