@@ -38,6 +38,14 @@
 #include <86box/vid_voodoo_render.h>
 #include <86box/vid_voodoo_texture.h>
 
+/* JIT execution logging -- must match VOODOO_JIT_DEBUG in vid_voodoo_codegen_arm64.h */
+#ifndef NO_CODEGEN
+#    define VOODOO_JIT_DEBUG_EXEC 1
+#    if VOODOO_JIT_DEBUG_EXEC
+static int voodoo_jit_exec_count = 0;
+#    endif
+#endif
+
 typedef struct voodoo_state_t {
     int      xstart, xend, xdir;
     uint32_t base_r, base_g, base_b, base_a, base_z;
@@ -937,6 +945,13 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
         state->x2          = x2;
 #ifndef NO_CODEGEN
         if (voodoo->use_recompiler && voodoo_draw) {
+#if VOODOO_JIT_DEBUG_EXEC
+            if (voodoo_jit_exec_count < 50) {
+                pclog("VOODOO JIT: EXECUTE #%d code=%p x=%d x2=%d real_y=%d odd_even=%d\n",
+                      voodoo_jit_exec_count, (void *) voodoo_draw, x, x2, real_y, odd_even);
+                voodoo_jit_exec_count++;
+            }
+#endif
             voodoo_draw(state, params, x, real_y);
         } else
 #endif

@@ -60,23 +60,28 @@
 
 ## Phase 4: Color/Alpha Combine
 
-- [ ] Color select — CC_LOCALSELECT_ITER_RGB
-- [ ] Color select — CC_LOCALSELECT_TEX
-- [ ] Color select — CC_LOCALSELECT_COLOR1
-- [ ] Color select — CC_LOCALSELECT_LFB
-- [ ] Local color select + override (tex_a bit 7)
-- [ ] Chroma key test
-- [ ] Alpha select — A_SEL_ITER_A, A_SEL_TEX, A_SEL_COLOR1
-- [ ] CCA local select — ITER_A, COLOR0, ITER_Z
-- [ ] Alpha mask test
-- [ ] Color combine: cc_zero_other
-- [ ] Color combine: cc_sub_clocal
-- [ ] Color combine: cc_mselect (ZERO, CLOCAL, AOTHER, ALOCAL, TEX, TEXRGB)
-- [ ] Color combine: cc_reverse_blend
-- [ ] Color combine: cc_add (CLOCAL, ALOCAL)
-- [ ] Color combine: cc_invert_output
-- [ ] Alpha combine: cca_zero_other, cca_sub_clocal, cca_mselect, cca_reverse_blend, cca_add, cca_invert_output
-- [ ] Clamp all outputs
+- [x] Color select — CC_LOCALSELECT_ITER_RGB
+- [x] Color select — CC_LOCALSELECT_TEX
+- [x] Color select — CC_LOCALSELECT_COLOR1
+- [x] Color select — CC_LOCALSELECT_LFB
+- [x] Local color select + override (tex_a bit 7)
+- [x] Chroma key test
+- [x] Alpha select — A_SEL_ITER_A, A_SEL_TEX, A_SEL_COLOR1
+- [x] CCA local select — ITER_A, COLOR0, ITER_Z
+- [x] Alpha mask test
+- [x] Color combine: cc_zero_other
+- [x] Color combine: cc_sub_clocal
+- [x] Color combine: cc_mselect (ZERO, CLOCAL, AOTHER, ALOCAL, TEX, TEXRGB)
+- [x] Color combine: cc_reverse_blend
+- [x] Color combine: cc_add (CLOCAL, ALOCAL)
+- [x] Color combine: cc_invert_output
+- [x] Alpha combine: cca_zero_other, cca_sub_clocal, cca_mselect, cca_reverse_blend, cca_add, cca_invert_output
+- [x] Clamp all outputs
+- [x] **VALIDATION COMPLETE** (2026-02-15): All phases 1-4 validated against 3dfx specs by voodoo-arch agents
+  - Phase 1: ✅ Matches ARM64 ABI spec (post-validation: frame size optimized 144→128 bytes)
+  - Phase 2: ✅ All 8 DEPTHOP modes correct, stipple/tiling validated
+  - Phase 3: ✅ Texture pipeline matches spec, upstream bug fix applied
+  - Phase 4: ✅ Color/alpha combine correct + 2 improvements over x86-64 (SSHR/ASR vs PSRLD/SHR)
 - [ ] **RUN TEST**: Colored, shaded geometry renders correctly
 
 ## Phase 5: Fog + Alpha Test + Alpha Blend

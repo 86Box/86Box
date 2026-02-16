@@ -33,7 +33,16 @@
 #endif
 
 #include <stddef.h>
+#include <stdio.h>
 #include <stdint.h>
+
+/* JIT validation logging -- set to 1 to enable diagnostic output */
+#define VOODOO_JIT_DEBUG 1
+
+#if VOODOO_JIT_DEBUG
+static int voodoo_jit_hit_count  = 0;
+static int voodoo_jit_gen_count  = 0;
+#endif
 
 #define BLOCK_NUM  8
 #define BLOCK_MASK (BLOCK_NUM - 1)
@@ -1641,8 +1650,6 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     int loop_jump_pos    = 0;
 
     (void) a_skip_pos;
-    (void) amask_skip_pos;
-    (void) chroma_skip_pos;
 
     /* Initialize NEON constants (written to static memory, loaded by prologue) */
     neon_01_w.u32[0]      = 0x00010001;
@@ -1676,12 +1683,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      *   SP-104: d8, d9    (NEON callee-saved, lower 64 bits)
      *   SP-112: d10, d11
      *   SP-128: d12, d13
-     *   SP-144: d14, d15
-     * Total: 144 bytes (16-byte aligned)
+     * Total: 128 bytes (16-byte aligned)
      */
 
-    /* STP x29, x30, [SP, #-144]! */
-    addlong(ARM64_STP_PRE_X(29, 30, 31, -144));
+    /* STP x29, x30, [SP, #-128]! */
+    addlong(ARM64_STP_PRE_X(29, 30, 31, -128));
     /* STP x19, x20, [SP, #16] */
     addlong(ARM64_STP_OFF_X(19, 20, 31, 16));
     /* STP x21, x22, [SP, #32] */
@@ -2598,7 +2604,452 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         }
     }
 
-    /* TODO: Phase 4 -- color/alpha combine */
+    /* ================================================================
+     * Phase 4: Color/Alpha Combine
+     * ================================================================
+     *
+     * x86-64 ref: lines 1689-2228
+     *
+     * At this point:
+     *   v0 = texture color (packed BGRA in low 32 bits via FMOV from w4)
+     *        -- already set by Phase 3 or left undefined if no texture
+     *   state->tex_a[0] = texture alpha (stored in Phase 3)
+     *
+     * Register plan for this phase:
+     *   v0 = cother (color other, unpacked to 4x16)
+     *   v1 = clocal (color local, unpacked to 4x16)
+     *   v2 = zero (cleared earlier)
+     *   v3 = cc_mselect factor (4x16)
+     *   v4 = saved texture RGB for CC_MSELECT_TEXRGB
+     *   w14 = a_other (scalar alpha)
+     *   w15 = a_local (scalar alpha)
+     *   w4-w7, w10-w13 = scratch
+     * ================================================================ */
+
+    /* Save texture color for CC_MSELECT_TEXRGB before it gets overwritten */
+    if (cc_mselect == CC_MSELECT_TEXRGB) {
+        /* v4 = v0 (packed BGRA texture) */
+        addlong(ARM64_MOV_V(4, 0));
+    }
+
+    /* ----------------------------------------------------------------
+     * Chroma key test
+     * ----------------------------------------------------------------
+     *
+     * x86-64 ref: lines 1696-1746
+     * Compare selected RGB source against params->chromaKey.
+     * Skip pixel if match (low 24 bits equal).
+     * ---------------------------------------------------------------- */
+    if (params->fbzMode & FBZ_CHROMAKEY) {
+        switch (_rgb_sel) {
+            case CC_LOCALSELECT_ITER_RGB:
+                /* Load ib/ig/ir/ia, shift right by 12, pack to bytes */
+                addlong(ARM64_ADD_IMM_X(16, 0, STATE_ib));
+                addlong(ARM64_LD1_V4S(16, 16));            /* v16 = {ib, ig, ir, ia} as 4xS32 */
+                addlong(ARM64_SSHR_V4S(16, 16, 12));       /* v16 >>= 12 (arithmetic) */
+                addlong(ARM64_SQXTN_4H_4S(16, 16));        /* v16.4H = saturate_narrow(v16.4S) */
+                addlong(ARM64_SQXTUN_8B_8H(16, 16));       /* v16.8B = unsigned saturate_narrow(v16.8H) */
+                addlong(ARM64_FMOV_W_S(4, 16));            /* w4 = packed BGRA */
+                break;
+            case CC_LOCALSELECT_COLOR1:
+                addlong(ARM64_LDR_W(4, 1, PARAMS_color1));
+                break;
+            case CC_LOCALSELECT_TEX:
+                addlong(ARM64_FMOV_W_S(4, 0));             /* w4 = packed texture BGRA */
+                break;
+            default:
+                /* CC_LOCALSELECT_LFB: not supported in codegen, skip */
+                addlong(ARM64_MOV_ZERO(4));
+                break;
+        }
+        /* Load chromaKey, XOR with source, mask to 24 bits, branch if zero */
+        addlong(ARM64_LDR_W(5, 1, PARAMS_chromaKey));
+        addlong(ARM64_EOR_REG(5, 5, 4));
+        addlong(ARM64_AND_BITMASK(5, 5, 0, 0, 23));   /* AND with 0x00FFFFFF */
+        chroma_skip_pos = block_pos;
+        addlong(ARM64_CBZ_W_PLACEHOLDER(5));
+    }
+
+    /* ----------------------------------------------------------------
+     * trexInit1 override (duplicated from Phase 3 for the case where
+     * texture was not enabled but we still need it for CC_MSELECT_TEXRGB)
+     * ---------------------------------------------------------------- */
+    if (voodoo->trexInit1[0] & (1 << 18)) {
+        addlong(ARM64_MOVZ_W(4, voodoo->tmuConfig & 0xFFFF));
+        if (voodoo->tmuConfig >> 16)
+            addlong(ARM64_MOVK_W_16(4, voodoo->tmuConfig >> 16));
+        addlong(ARM64_AND_BITMASK(4, 4, 0, 0, 23));
+        addlong(ARM64_FMOV_S_W(0, 4));
+    }
+
+    /* ----------------------------------------------------------------
+     * Alpha select (a_other) and alpha mask test
+     * ----------------------------------------------------------------
+     *
+     * x86-64 ref: lines 1757-1804
+     *
+     * a_other -> w14 (EBX in x86)
+     * Only needed if alpha test or alpha blend is enabled.
+     * alphaMode bit 0 = alpha test enable, bit 4 = alpha blend enable.
+     * ---------------------------------------------------------------- */
+    if (params->alphaMode & ((1 << 0) | (1 << 4))) {
+        /* a_other (EBX) -> w14 */
+        switch (a_sel) {
+            case A_SEL_ITER_A:
+                /* w14 = CLAMP(state->ia >> 12) */
+                addlong(ARM64_LDR_W(14, 0, STATE_ia));
+                addlong(ARM64_ASR_IMM(14, 14, 12));
+                /* Clamp to [0, 0xFF] */
+                addlong(ARM64_CMP_IMM(14, 0));
+                addlong(ARM64_CSEL(14, 31, 14, COND_LT));
+                addlong(ARM64_MOVZ_W(10, 0xFF));
+                addlong(ARM64_CMP_REG(14, 10));
+                addlong(ARM64_CSEL(14, 10, 14, COND_HI));
+                break;
+            case A_SEL_TEX:
+                addlong(ARM64_LDR_W(14, 0, STATE_tex_a));
+                break;
+            case A_SEL_COLOR1:
+                /* MOVZX from color1+3 (alpha byte) */
+                addlong(ARM64_LDRB_IMM(14, 1, PARAMS_color1 + 3));
+                break;
+            default:
+                addlong(ARM64_MOV_ZERO(14));
+                break;
+        }
+
+        /* Alpha mask test */
+        if (params->fbzMode & FBZ_ALPHA_MASK) {
+            /* Test bit 0 of a_other. If zero, skip pixel. */
+            amask_skip_pos = block_pos;
+            addlong(ARM64_TBZ_PLACEHOLDER(14, 0));
+        }
+
+        /* a_local (ECX) -> w15 */
+        switch (cca_localselect) {
+            case CCA_LOCALSELECT_ITER_A:
+                if (a_sel == A_SEL_ITER_A) {
+                    /* Already computed in w14, just copy */
+                    addlong(ARM64_MOV_REG(15, 14));
+                } else {
+                    /* Compute CLAMP(state->ia >> 12) */
+                    addlong(ARM64_LDR_W(15, 0, STATE_ia));
+                    addlong(ARM64_ASR_IMM(15, 15, 12));
+                    addlong(ARM64_CMP_IMM(15, 0));
+                    addlong(ARM64_CSEL(15, 31, 15, COND_LT));
+                    addlong(ARM64_MOVZ_W(10, 0xFF));
+                    addlong(ARM64_CMP_REG(15, 10));
+                    addlong(ARM64_CSEL(15, 10, 15, COND_HI));
+                }
+                break;
+            case CCA_LOCALSELECT_COLOR0:
+                /* alpha byte of color0 */
+                addlong(ARM64_LDRB_IMM(15, 1, PARAMS_color0 + 3));
+                break;
+            case CCA_LOCALSELECT_ITER_Z:
+                addlong(ARM64_LDR_W(15, 0, STATE_z));
+                /* Need w10 = 0 and w11 = 0xFF for clamping if a_sel != ITER_A */
+                if (a_sel != A_SEL_ITER_A) {
+                    addlong(ARM64_MOVZ_W(10, 0xFF));
+                }
+                addlong(ARM64_ASR_IMM(15, 15, 20));
+                addlong(ARM64_CMP_IMM(15, 0));
+                addlong(ARM64_CSEL(15, 31, 15, COND_LT));
+                if (a_sel == A_SEL_ITER_A) {
+                    addlong(ARM64_MOVZ_W(10, 0xFF));
+                }
+                addlong(ARM64_CMP_REG(15, 10));
+                addlong(ARM64_CSEL(15, 10, 15, COND_HI));
+                break;
+            default:
+                addlong(ARM64_MOVZ_W(15, 0xFF));
+                break;
+        }
+
+        /* cca_zero_other: EDX -> w12 */
+        if (cca_zero_other) {
+            addlong(ARM64_MOV_ZERO(12));
+        } else {
+            addlong(ARM64_MOV_REG(12, 14));  /* w12 = a_other */
+        }
+
+        /* cca_sub_clocal */
+        if (cca_sub_clocal) {
+            addlong(ARM64_SUB_REG(12, 12, 15));  /* w12 -= a_local */
+        }
+    }
+
+    /* ----------------------------------------------------------------
+     * Color local select (clocal -> v1 packed BGRA, then unpack)
+     * ----------------------------------------------------------------
+     *
+     * x86-64 ref: lines 1881-1949
+     * XMM1 = clocal (unpacked to 4x16)
+     *
+     * Only needed if cc_sub_clocal, cc_mselect==CLOCAL, or cc_add==1
+     * ---------------------------------------------------------------- */
+    if (cc_sub_clocal || cc_mselect == 1 || cc_add == 1) {
+        if (!cc_localselect_override) {
+            if (cc_localselect) {
+                /* clocal = params->color0 */
+                addlong(ARM64_LDR_W(4, 1, PARAMS_color0));
+                addlong(ARM64_FMOV_S_W(1, 4));
+            } else {
+                /* clocal = CLAMP(ib>>12, ig>>12, ir>>12, ia>>12)
+                 * Load ib/ig/ir/ia as 4xS32, shift right 12, pack to bytes */
+                addlong(ARM64_ADD_IMM_X(16, 0, STATE_ib));
+                addlong(ARM64_LD1_V4S(1, 16));
+                addlong(ARM64_SSHR_V4S(1, 1, 12));
+                addlong(ARM64_SQXTN_4H_4S(1, 1));
+                addlong(ARM64_SQXTUN_8B_8H(1, 1));
+            }
+        } else {
+            /* cc_localselect_override: select based on tex_a bit 7 */
+            /* TBZ state->tex_a, #7 -> use iter_rgb path */
+            addlong(ARM64_LDR_W(4, 0, STATE_tex_a));
+            int override_skip = block_pos;
+            addlong(ARM64_TBZ_PLACEHOLDER(4, 7));
+
+            /* tex_a bit 7 set: use color0 */
+            addlong(ARM64_LDR_W(4, 1, PARAMS_color0));
+            addlong(ARM64_FMOV_S_W(1, 4));
+            int override_done = block_pos;
+            addlong(ARM64_B_PLACEHOLDER);
+
+            /* tex_a bit 7 clear: use iter_rgb */
+            PATCH_FORWARD_TBxZ(override_skip);
+            addlong(ARM64_ADD_IMM_X(16, 0, STATE_ib));
+            addlong(ARM64_LD1_V4S(1, 16));
+            addlong(ARM64_SSHR_V4S(1, 1, 12));
+            addlong(ARM64_SQXTN_4H_4S(1, 1));
+            addlong(ARM64_SQXTUN_8B_8H(1, 1));
+
+            PATCH_FORWARD_B(override_done);
+        }
+        /* Unpack clocal from bytes to 4x16: UXTL v1.8H, v1.8B */
+        addlong(ARM64_UXTL_8H_8B(1, 1));
+    }
+
+    /* ----------------------------------------------------------------
+     * Color other select (cother -> v0, then unpack)
+     * ----------------------------------------------------------------
+     *
+     * x86-64 ref: lines 1950-2016
+     * ---------------------------------------------------------------- */
+    if (!cc_zero_other) {
+        if (_rgb_sel == CC_LOCALSELECT_ITER_RGB) {
+            /* cother = CLAMP(ib>>12, ig>>12, ir>>12, ia>>12) */
+            addlong(ARM64_ADD_IMM_X(16, 0, STATE_ib));
+            addlong(ARM64_LD1_V4S(0, 16));
+            addlong(ARM64_SSHR_V4S(0, 0, 12));
+            addlong(ARM64_SQXTN_4H_4S(0, 0));
+            addlong(ARM64_SQXTUN_8B_8H(0, 0));
+        } else if (_rgb_sel == CC_LOCALSELECT_TEX) {
+            /* cother = texture color, already in v0 from Phase 3 */
+            /* (v0 already has packed BGRA) */
+        } else if (_rgb_sel == CC_LOCALSELECT_COLOR1) {
+            addlong(ARM64_LDR_W(4, 1, PARAMS_color1));
+            addlong(ARM64_FMOV_S_W(0, 4));
+        } else {
+            /* CC_LOCALSELECT_LFB: unsupported, use zero */
+            addlong(ARM64_MOVI_V2D_ZERO(0));
+        }
+        /* Unpack cother from bytes to 4x16 */
+        addlong(ARM64_UXTL_8H_8B(0, 0));
+
+        /* cc_sub_clocal: v0 = cother - clocal */
+        if (cc_sub_clocal) {
+            addlong(ARM64_SUB_V4H(0, 0, 1));
+        }
+    } else {
+        /* cc_zero_other: v0 = 0 */
+        addlong(ARM64_MOVI_V2D_ZERO(0));
+        if (cc_sub_clocal) {
+            addlong(ARM64_SUB_V4H(0, 0, 1));  /* v0 = 0 - clocal */
+        }
+    }
+
+    /* ----------------------------------------------------------------
+     * Alpha combine: mselect, reverse_blend, multiply, add, clamp
+     * ----------------------------------------------------------------
+     *
+     * x86-64 ref: lines 2018-2104
+     *
+     * At this point w12 = (cca_zero_other ? 0 : a_other) - (cca_sub_clocal ? a_local : 0)
+     * w14 = a_other, w15 = a_local
+     * ---------------------------------------------------------------- */
+    if (params->alphaMode & ((1 << 0) | (1 << 4))) {
+        if (!(cca_mselect == 0 && cca_reverse_blend == 0)) {
+            /* w4 = cca blend factor */
+            switch (cca_mselect) {
+                case CCA_MSELECT_ALOCAL:
+                    addlong(ARM64_MOV_REG(4, 15));
+                    break;
+                case CCA_MSELECT_AOTHER:
+                    addlong(ARM64_MOV_REG(4, 14));
+                    break;
+                case CCA_MSELECT_ALOCAL2:
+                    addlong(ARM64_MOV_REG(4, 15));
+                    break;
+                case CCA_MSELECT_TEX:
+                    addlong(ARM64_LDRB_IMM(4, 0, STATE_tex_a));
+                    break;
+                case CCA_MSELECT_ZERO:
+                default:
+                    addlong(ARM64_MOV_ZERO(4));
+                    break;
+            }
+            if (!cca_reverse_blend) {
+                addlong(ARM64_EOR_MASK(4, 4, 8));  /* XOR with 0xFF */
+            }
+            addlong(ARM64_ADD_IMM(4, 4, 1));       /* factor + 1 */
+            addlong(ARM64_MUL(12, 12, 4));          /* w12 = (a_diff) * factor */
+            addlong(ARM64_ASR_IMM(12, 12, 8));      /* w12 >>= 8 */
+        }
+    }
+
+    /* Copy a_other to v3 for CC_MSELECT_AOTHER before it gets modified */
+    if (!(cc_mselect == 0 && cc_reverse_blend == 0) && cc_mselect == CC_MSELECT_AOTHER) {
+        if (params->alphaMode & ((1 << 0) | (1 << 4))) {
+            addlong(ARM64_FMOV_S_W(3, 12));
+            addlong(ARM64_DUP_V4H_LANE(3, 3, 0));
+        } else {
+            addlong(ARM64_MOVI_V2D_ZERO(3));
+        }
+    }
+
+    /* cca_add: add a_local to result */
+    if (cca_add && (params->alphaMode & ((1 << 0) | (1 << 4)))) {
+        addlong(ARM64_ADD_REG(12, 12, 15));
+    }
+
+    /* Clamp alpha result to [0, 0xFF] */
+    if (params->alphaMode & ((1 << 0) | (1 << 4))) {
+        addlong(ARM64_CMP_IMM(12, 0));
+        addlong(ARM64_CSEL(12, 31, 12, COND_LT));  /* if negative, 0 */
+        addlong(ARM64_MOVZ_W(10, 0xFF));
+        addlong(ARM64_CMP_IMM(12, 0xFF));
+        addlong(ARM64_CSEL(12, 10, 12, COND_GT));   /* if > 0xFF, 0xFF */
+        if (cca_invert_output) {
+            addlong(ARM64_EOR_MASK(12, 12, 8));      /* XOR with 0xFF */
+        }
+    }
+
+    /* ----------------------------------------------------------------
+     * Color combine: cc_mselect, reverse_blend, multiply
+     * ----------------------------------------------------------------
+     *
+     * x86-64 ref: lines 2106-2208
+     *
+     * v0 = (cother - clocal) or zero'd out based on cc_zero_other/cc_sub_clocal
+     * v1 = clocal (if needed)
+     * v3 = blend factor (4x16)
+     * ---------------------------------------------------------------- */
+    if (!(cc_mselect == 0 && cc_reverse_blend == 0)) {
+        switch (cc_mselect) {
+            case CC_MSELECT_ZERO:
+                addlong(ARM64_MOVI_V2D_ZERO(3));
+                break;
+            case CC_MSELECT_CLOCAL:
+                addlong(ARM64_MOV_V(3, 1));
+                break;
+            case CC_MSELECT_ALOCAL:
+                /* Broadcast a_local (w15) to all 4 lanes of v3 */
+                if (params->alphaMode & ((1 << 0) | (1 << 4))) {
+                    addlong(ARM64_FMOV_S_W(3, 15));
+                    addlong(ARM64_DUP_V4H_LANE(3, 3, 0));
+                } else {
+                    /* Need to compute a_local if not done above */
+                    switch (cca_localselect) {
+                        case CCA_LOCALSELECT_ITER_A:
+                            addlong(ARM64_LDR_W(4, 0, STATE_ia));
+                            addlong(ARM64_ASR_IMM(4, 4, 12));
+                            addlong(ARM64_CMP_IMM(4, 0));
+                            addlong(ARM64_CSEL(4, 31, 4, COND_LT));
+                            addlong(ARM64_MOVZ_W(10, 0xFF));
+                            addlong(ARM64_CMP_REG(4, 10));
+                            addlong(ARM64_CSEL(4, 10, 4, COND_HI));
+                            break;
+                        case CCA_LOCALSELECT_COLOR0:
+                            addlong(ARM64_LDRB_IMM(4, 1, PARAMS_color0 + 3));
+                            break;
+                        case CCA_LOCALSELECT_ITER_Z:
+                            addlong(ARM64_LDR_W(4, 0, STATE_z));
+                            addlong(ARM64_ASR_IMM(4, 4, 20));
+                            addlong(ARM64_CMP_IMM(4, 0));
+                            addlong(ARM64_CSEL(4, 31, 4, COND_LT));
+                            addlong(ARM64_MOVZ_W(10, 0xFF));
+                            addlong(ARM64_CMP_REG(4, 10));
+                            addlong(ARM64_CSEL(4, 10, 4, COND_HI));
+                            break;
+                        default:
+                            addlong(ARM64_MOVZ_W(4, 0xFF));
+                            break;
+                    }
+                    addlong(ARM64_FMOV_S_W(3, 4));
+                    addlong(ARM64_DUP_V4H_LANE(3, 3, 0));
+                }
+                break;
+            case CC_MSELECT_AOTHER:
+                /* Already copied to v3 above */
+                break;
+            case CC_MSELECT_TEX:
+                /* Broadcast tex_a to all lanes */
+                addlong(ARM64_LDR_W(4, 0, STATE_tex_a));
+                addlong(ARM64_FMOV_S_W(3, 4));
+                addlong(ARM64_DUP_V4H_LANE(3, 3, 0));
+                break;
+            case CC_MSELECT_TEXRGB:
+                /* v4 has saved texture packed BGRA. Unpack to 4x16. */
+                addlong(ARM64_UXTL_8H_8B(3, 4));
+                break;
+            default:
+                addlong(ARM64_MOVI_V2D_ZERO(3));
+                break;
+        }
+
+        /* Save v0 for the multiply */
+        addlong(ARM64_MOV_V(16, 0));
+
+        /* Apply reverse blend to factor */
+        if (!cc_reverse_blend) {
+            addlong(ARM64_EOR_V(3, 3, 9));     /* XOR with 0xFF (v9 = xmm_ff_w) */
+        }
+        addlong(ARM64_ADD_V4H(3, 3, 8));       /* factor += 1 (v8 = xmm_01_w) */
+
+        /* Signed multiply: v0 * v3 -> 32-bit -> >>8 -> saturating narrow
+         * SMULL v17.4S, v0.4H, v3.4H
+         * SSHR v17.4S, v17.4S, #8
+         * SQXTN v0.4H, v17.4S
+         */
+        addlong(ARM64_SMULL_4S_4H(17, 16, 3));
+        addlong(ARM64_SSHR_V4S(17, 17, 8));
+        addlong(ARM64_SQXTN_4H_4S(0, 17));
+    }
+
+    /* cc_add: add clocal back */
+    if (cc_add == 1) {
+        addlong(ARM64_ADD_V4H(0, 0, 1));
+    }
+
+    /* Pack to unsigned bytes (with saturation): SQXTUN v0.8B, v0.8H */
+    addlong(ARM64_SQXTUN_8B_8H(0, 0));
+
+    /* cc_invert_output: XOR with 0x00FFFFFF mask (v10 = xmm_ff_b) */
+    if (cc_invert_output) {
+        addlong(ARM64_EOR_V(0, 0, 10));
+    }
+
+    /* ================================================================
+     * At this point:
+     *   v0 = final combined color (packed BGRA in low 32 bits)
+     *   w12 = final combined alpha (if alphaMode enabled)
+     *
+     * Save to v13 (callee-saved) for fog stage, same as x86-64
+     * saving to XMM15.
+     * ================================================================ */
+    addlong(ARM64_MOV_V(13, 0));
+
     /* TODO: Phase 5 -- fog, alpha test, alpha blend */
     /* TODO: Phase 6 -- dithering, framebuffer write, depth write */
 
@@ -2614,9 +3065,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     if (a_skip_pos)
         PATCH_FORWARD_BCOND(a_skip_pos);
     if (chroma_skip_pos)
-        PATCH_FORWARD_BCOND(chroma_skip_pos);
+        PATCH_FORWARD_CBxZ(chroma_skip_pos);
     if (amask_skip_pos)
-        PATCH_FORWARD_BCOND(amask_skip_pos);
+        PATCH_FORWARD_TBxZ(amask_skip_pos);
     if (stipple_skip_pos) {
         if (params->fbzMode & FBZ_STIPPLE_PATT) {
             PATCH_FORWARD_BCOND(stipple_skip_pos);
@@ -2801,8 +3252,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addlong(ARM64_LDP_OFF_X(21, 22, 31, 32));
     /* LDP x19, x20, [SP, #16] */
     addlong(ARM64_LDP_OFF_X(19, 20, 31, 16));
-    /* LDP x29, x30, [SP], #144 */
-    addlong(ARM64_LDP_POST_X(29, 30, 31, 144));
+    /* LDP x29, x30, [SP], #128 */
+    addlong(ARM64_LDP_POST_X(29, 30, 31, 128));
 
     /* RET */
     addlong(ARM64_RET);
@@ -2835,6 +3286,15 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
             && (params->tLOD[1] & LOD_MASK) == data->tLOD[1]
             && ((params->col_tiled || params->aux_tiled) ? 1 : 0) == data->is_tiled) {
             last_block[odd_even] = b;
+#if VOODOO_JIT_DEBUG
+            if (voodoo_jit_hit_count < 20) {
+                pclog("VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
+                      "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
+                      voodoo_jit_hit_count, odd_even, b, data->code_block,
+                      params->fbzMode, params->fbzColorPath, params->alphaMode);
+                voodoo_jit_hit_count++;
+            }
+#endif
             return data->code_block;
         }
 
@@ -2852,6 +3312,16 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 #endif
 
     voodoo_generate(data->code_block, voodoo, params, state, depth_op);
+
+#if VOODOO_JIT_DEBUG
+    voodoo_jit_gen_count++;
+    pclog("VOODOO JIT: GENERATE #%d odd_even=%d block=%d code=%p recomp=%d "
+          "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
+          "textureMode[0]=0x%08x fogMode=0x%08x xdir=%d\n",
+          voodoo_jit_gen_count, odd_even, next_block_to_write[odd_even], data->code_block,
+          voodoo_recomp, params->fbzMode, params->fbzColorPath, params->alphaMode,
+          params->textureMode[0], params->fogMode, state->xdir);
+#endif
 
     data->xdir           = state->xdir;
     data->alphaMode      = params->alphaMode;
