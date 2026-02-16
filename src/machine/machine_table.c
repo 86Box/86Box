@@ -2710,7 +2710,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_KEYBOARD | MACHINE_MOUSE,
         .ram       = {
             .min  = 256,
             .max  = 640,
