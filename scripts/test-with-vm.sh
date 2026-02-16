@@ -2,7 +2,7 @@
 # Launch 86Box with the Windows 98 Low End test VM (configured with Voodoo card)
 set -e
 
-VM_PATH='/Users/anthony/Library/Application Support/86Box/Virtual Machines/Windows 98 Low End copy'
+VM_PATH="$HOME/Library/Application Support/86Box/Virtual Machines/Windows 98 Low End copy"
 
 if [ ! -d "$VM_PATH" ]; then
     echo "Error: VM not found at $VM_PATH"

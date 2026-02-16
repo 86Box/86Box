@@ -231,7 +231,7 @@ a5fe23515 Fix stack frame overflow: 128→144 bytes
 
 ## Test Configuration
 
-**Default VM**: `/Users/anthony/Library/Application Support/86Box/Virtual Machines/Windows 98 Low End copy`
+**Default VM**: `~/Library/Application Support/86Box/Virtual Machines/Windows 98 Low End copy`
 
 **Build Command**: `./scripts/build-and-sign.sh` or manual:
 ```bash

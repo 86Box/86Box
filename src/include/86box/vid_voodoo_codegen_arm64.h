@@ -31,6 +31,9 @@
 #if defined(__APPLE__) && defined(__aarch64__)
 #    include <pthread.h>
 #endif
+#ifdef _WIN32
+#    include <windows.h>
+#endif
 
 #include <stddef.h>
 #include <stdio.h>
@@ -4015,7 +4018,11 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     }
 #endif
 #if defined(__aarch64__) || defined(_M_ARM64)
+#    ifdef _WIN32
+    FlushInstructionCache(GetCurrentProcess(), data->code_block, BLOCK_SIZE);
+#    else
     __clear_cache((char *) data->code_block, (char *) data->code_block + BLOCK_SIZE);
+#    endif
 #endif
 
     next_block_to_write[odd_even] = (next_block_to_write[odd_even] + 1) & 7;
