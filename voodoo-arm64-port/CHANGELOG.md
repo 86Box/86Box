@@ -130,3 +130,162 @@ All changes, decisions, and progress for the ARM64 port of the Voodoo GPU pixel 
 - Validation found prologue comment claimed d14/d15 saved at SP-144, but actual code only saves d8-d13
 - Since v14/v15 are never used, removed the misleading comment and reduced frame size
 - Stack remains 16-byte aligned (128 = 8 × 16)
+
+---
+
+## Phase 5: Fog + Alpha Test + Alpha Blend
+
+### 2026-02-16 -- Phase 5 complete (merged with Phase 6)
+
+- Branch: `phase-5-6-effects`
+- Commit: 57e5c6fe1
+
+#### Implementation:
+- **Fog pipeline (`codegen_fog()`)**: Complete APPLY_FOG macro equivalent
+  - FOG_CONSTANT mode: Direct fogColor addition
+  - General fog: FOG_ADD, FOG_MULT, fog delta modes
+  - Fog alpha sources: W-depth (fog table lookup with delta interpolation), Z, iterated alpha, W
+  - Fog table lookup: `fogTable[idx].fog + (fogTable[idx].dfog * frac) >> 10`
+  - Fog blending: `(fog_rgb * fog_a) >> 8` with add/multiply modes
+  - Final output clamping to [0, 255]
+- **Alpha test (`codegen_alpha_test()`)**: Complete ALPHA_TEST macro equivalent
+  - All 8 AFUNC modes: NEVER, LESSTHAN, EQUAL, LESSTHANEQUAL, GREATERTHAN, NOTEQUAL, GREATERTHANEQUAL, ALWAYS
+  - Uses conditional branch to skip_pixel label on failure
+- **Alpha blend (`codegen_alpha_blend()`)**: Complete ALPHA_BLEND macro equivalent
+  - Destination alpha functions (dest_afunc): AZERO, ASRC_ALPHA, A_COLOR, ADST_ALPHA, AONE, AOMSRC_ALPHA, AOM_COLOR, AOMDST_ALPHA, ACOLORBEFOREFOG
+  - Source alpha functions (src_afunc): AZERO, ASRC_ALPHA, A_COLOR, ADST_ALPHA, AONE, AOMSRC_ALPHA, AOM_COLOR, AOMDST_ALPHA, ASATURATE
+  - Division by 255 optimized using `alookup[]` NEON table (multiply + shift)
+  - Result: `src_rgb = (src_rgb * src_factor + dest_rgb * dest_factor)` clamped to [0,255]
+
+---
+
+## Phase 6: Dither + Framebuffer Write + Depth Write + Per-Pixel Increments
+
+### 2026-02-16 -- Phase 6 complete (merged with Phase 5)
+
+#### Implementation:
+- **Dithering (`codegen_dither()`)**: Complete dither support
+  - 4x4 dither: 16-entry lookup table indexed by `(value*16) + (y & 3)*4 + (x & 3)`
+  - 2x2 dither: 4-entry lookup table indexed by `(value*4) + (y & 1)*2 + (x & 1)`
+  - No-dither path: Direct 8-bit to 5/6-bit truncation
+  - Per-channel dither table lookup via LDRB
+- **RGB565 packing**: R(5):G(6):B(5) bitfield assembly with ORR/LSL
+- **Framebuffer write**: STRH to `fb_mem + x*2` (16-bit color write)
+- **Alpha write**: STRH to `aux_mem + x*2` (16-bit alpha+depth aux buffer)
+- **Depth write**: STRH to `aux_mem + x*2` (conditional on depth_op != DEPTHOP_NEVER)
+- **Per-pixel color increment**: NEON LD1/ADD/ST1 for {ib, ig, ir, ia} += {dBdX, dGdX, dRdX, dAdX}
+- **Per-pixel Z increment**: GPR LDR/ADD/STR for z += dZdX
+- **Per-pixel TMU S/T increments**: NEON LD1/ADD/ST1 for {tmu_s, tmu_t} += {dSdX, dTdX} (both TMU0 and TMU1)
+- **Per-pixel TMU W increment**: GPR LDR/ADD/STR for tmu_w += dWdX (both TMU0 and TMU1)
+- **Per-pixel global W increment**: GPR LDR/ADD/STR for w += dWdX
+- **X increment and loop**: x += xdir, compare against x2, branch back to loop top
+
+---
+
+## Post-Phase 5+6 Debugging: Horizontal Striping Corruption
+
+### 2026-02-16 -- Critical encoding bug found and fixed
+
+**Symptom**: Horizontal striping and color distortion in rendered output. Consistent within scanlines, varying between scanlines. Corruption persisted across all tested configurations.
+
+#### Bugs fixed during initial debugging (no visual change):
+
+1. **Dither table pointer load** -- Was using wrong register sequence for table base address
+2. **Alpha blend shift amount** -- `LSL_IMM(6, 5, 6)` should be `LSL_IMM(6, 5, 7)` for dest/src alpha blend factor computation (both dest_aafunc==4 and src_aafunc==4 paths)
+3. **Fog alookup offset** -- `LDR_D(5, 5, 0)` should be `LDR_D(5, 5, 16)` to match x86-64's `+16` byte offset into alookup table
+4. **Stack frame size** -- Increased from 128 to 160 bytes to accommodate additional callee-saved registers
+5. **REV16 macro added** -- Added missing `ARM64_REV16(d, n)` encoding macro
+
+#### ROOT CAUSE: LD1/ST1 opcode encoding (2-register instead of 1-register)
+
+**The bug**: `ARM64_LD1_V4S` and `ARM64_ST1_V4S` macros used opcode field `1010` (2-register form) instead of `0111` (1-register form):
+
+```c
+// WRONG: bits [15:12] = 1010 = 2 registers -- loads/stores Vt AND V(t+1)
+#define ARM64_LD1_V4S(t, n) (0x4C40A800 | Rn(n) | Rt(t))
+#define ARM64_ST1_V4S(t, n) (0x4C00A800 | Rn(n) | Rt(t))
+
+// CORRECT: bits [15:12] = 0111 = 1 register -- loads/stores only Vt
+#define ARM64_LD1_V4S(t, n) (0x4C407800 | Rn(n) | Rt(t))
+#define ARM64_ST1_V4S(t, n) (0x4C007800 | Rn(n) | Rt(t))
+```
+
+**Impact**: Every LD1/ST1 loaded/stored 32 bytes (2 NEON registers) instead of 16 bytes:
+- **ST1 at per-pixel increment (line 3782)**: Stored v0 AND v1 to `&state->ib`, corrupting `state->z`, `state->new_depth`, and `state->tmu0_s` with delta values
+- **ST1 at TMU1 increment (line 3851)**: Stored v0 AND v1 to `&state->tmu1_s`, corrupting `state->tmu1_w` and `state->w`
+- **LD1 at color combine (line 2844)**: Loaded v0 AND v1, clobbering previously computed clocal value in v1
+
+**Why it caused horizontal striping**: Each pixel corrupted the next pixel's texture coordinates and depth. The error accumulated across the span (left to right), but each scanline was reset by the C caller, creating consistent per-scanline patterns that appeared as horizontal banding.
+
+**Why three audits missed it**: All audits verified logic (register allocation, data flow, branch targets) but not the raw instruction encoding constants. The 2-bit difference between `0xA8` and `0x78` in the opcode field is visually subtle.
+
+**Fix**: Two bytes changed in two macro definitions (lines 859, 862).
+
+**Independently verified** by GPT-5 cross-referencing ARM64 ISA manual and disassembly.
+
+#### Full analysis: `voodoo-arm64-port/opus-deep-analysis-2026-02-16.md`
+
+---
+
+## JIT Debug Logging Toggle
+
+### 2026-02-16 -- Runtime debug toggle added
+
+Replaced compile-time `#define VOODOO_JIT_DEBUG 1` / `VOODOO_JIT_DEBUG_EXEC 1` with a runtime UI toggle.
+
+#### Files modified:
+- `src/include/86box/vid_voodoo_common.h` -- Added `jit_debug` and `jit_debug_log` fields to `voodoo_t`
+- `src/video/vid_voodoo.c` -- Added CONFIG_BINARY entry to `voodoo_config[]`, init (fopen) in both init paths, close (fclose) in `voodoo_card_close()`
+- `src/video/vid_voodoo_banshee.c` -- Added CONFIG_BINARY entry to all 3 Banshee config arrays (`banshee_sgram_config`, `banshee_sgram_16mbonly_config`, `banshee_sdram_config`)
+- `src/include/86box/vid_voodoo_codegen_arm64.h` -- Removed `#define VOODOO_JIT_DEBUG`, replaced `#if`/`pclog()` with `if (voodoo->jit_debug)`/`fprintf()`
+- `src/video/vid_voodoo_render.c` -- Removed `#define VOODOO_JIT_DEBUG_EXEC`, replaced `#if`/`pclog()` with `if (voodoo->jit_debug)`/`fprintf()`
+
+#### Files created:
+- `voodoo-arm64-port/jit-debug-removal.md` -- Removal guide for when debug logging is no longer needed
+
+#### Key decisions:
+- Toggle is inside `#ifndef NO_CODEGEN` so it only appears when JIT is available
+- Log file: `<vm_directory>/voodoo_jit.log` (created fresh each session when ON)
+- `jit_debug` flag is purely observational -- never affects JIT-vs-interpreter control flow
+- Default OFF (no performance impact when disabled)
+
+---
+
+## Voodoo 2 Detection Fix
+
+### 2026-02-16 -- Non-perspective texture path alignment bug
+
+**Symptom**: Voodoo 2 card not detected by Windows 98 when ARM64 JIT "Dynamic Recompiler" is ON. Works with interpreter (recompiler OFF). Voodoo 3 unaffected.
+
+**Root cause**: ARM64 unsigned-offset encoding silently truncates unaligned offsets. `STR_X` (64-bit store) to `STATE_tex_s` (offset 188) encoded as offset 184 because `OFFSET12_X(188) = (188 >> 3) << 10 = 23 << 10`, and `23 * 8 = 184`, not 188.
+
+On x86-64, `MOV [mem], RAX` has no alignment restriction — stores 8 bytes to any address. On ARM64, the unsigned-offset form of `STR Xt` scales by 8 and silently drops the remainder.
+
+**Impact**: In the non-perspective texture path (textureMode bit 0 clear), `tex_s` was written to offset 184 instead of 188. When the point-sampled or bilinear code read `tex_s` from offset 188 (via `LDR_W`, which is 4-byte aligned and correct), it read the upper 32 bits of the 64-bit value — always zero. Every pixel sampled from texture column S=0, producing identical stale texel values.
+
+**Why Voodoo 2 specifically**: Voodoo 2 is a 3D-only pass-through card. The Windows driver probe renders test patterns to the framebuffer and reads them back to verify the card works. The corrupted texture output caused the probe to fail, preventing detection. Voodoo 3 (integrated 2D+3D) uses a different detection path.
+
+**Discovery method**: JIT verification mode (jit_debug=2) runs both JIT and interpreter per scanline, comparing pixel output. Caught mismatches where pixel[0] was correct but pixels 1+ all had the same stale value (0x6eb0).
+
+**Fix**: Changed `STR_X` to `STR_W` for `STATE_tex_s` and `STATE_tex_t` stores in the non-perspective texture path. The consuming reads are all 32-bit (`LDR_W`), and `STR_W` only requires 4-byte alignment (188/4 = 47 exact).
+
+**Alignment audit**: All other `STR_X`/`LDR_X` (8-byte) and `STR_Q`/`LDR_Q` (16-byte) offsets in the file verified as properly aligned. Non-aligned 128-bit accesses (STATE_ib at 472, STATE_tmu1_s at 520) already use `ADD_IMM_X` + `LD1/ST1` which have no alignment requirement.
+
+#### File modified:
+- `src/include/86box/vid_voodoo_codegen_arm64.h` -- Lines 1189, 1195: `STR_X` → `STR_W`
+
+---
+
+## Summary
+
+| Phase | Description | Status | PR |
+|-------|-------------|--------|----|
+| 1 | Scaffolding + Prologue/Epilogue | Merged | #1 |
+| 2 | Pixel Loop + Depth Test + Stipple | Merged | #2 |
+| 3 | Texture Fetch + LOD + Bilinear + TMU Combine | Merged | #3 |
+| 4 | Color/Alpha Combine + Chroma Key | Merged | #4 |
+| 5 | Fog + Alpha Test + Alpha Blend | Committed | -- |
+| 6 | Dither + FB Write + Depth Write + Increments | Committed | -- |
+| Debug | LD1/ST1 encoding fix + 5 other fixes | Committed | -- |
+| Infra | JIT debug logging runtime toggle | Committed | -- |
+| Fix | Voodoo 2 non-perspective texture alignment bug | Uncommitted | -- |

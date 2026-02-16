@@ -708,6 +708,8 @@ typedef struct voodoo_t {
     mutex_t *force_blit_mutex;
 
     int   use_recompiler;
+    int   jit_debug;
+    FILE *jit_debug_log;
     void *codegen_data;
 
     struct voodoo_set_t *set;

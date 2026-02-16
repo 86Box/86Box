@@ -36,13 +36,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-/* JIT validation logging -- set to 1 to enable diagnostic output */
-#define VOODOO_JIT_DEBUG 1
-
-#if VOODOO_JIT_DEBUG
 static int voodoo_jit_hit_count  = 0;
 static int voodoo_jit_gen_count  = 0;
-#endif
 
 #define BLOCK_NUM  8
 #define BLOCK_MASK (BLOCK_NUM - 1)
@@ -434,6 +429,9 @@ static int next_block_to_write[4] = { 0, 0 };
 
 /* CLZ Xd, Xn (64-bit) */
 #define ARM64_CLZ_X(d, n) (0xDAC01000 | Rn(n) | Rd(d))
+
+/* REV16 Wd, Wn -- reverse bytes within each 16-bit halfword (32-bit) */
+#define ARM64_REV16(d, n) (0x5AC00400 | Rn(n) | Rd(d))
 
 /* ========================================================================
  * Section 15: Conditional Select
@@ -853,10 +851,10 @@ static int next_block_to_write[4] = { 0, 0 };
 #define ARM64_LD1_H_LANE(t, lane, n) (0x0D404000 | (((lane) & 3) << 11) | ((((lane) & 4) >> 2) << 30) | Rn(n) | Rt(t))
 
 /* LD1 {Vt.4S}, [Xn] */
-#define ARM64_LD1_V4S(t, n) (0x4C40A800 | Rn(n) | Rt(t))
+#define ARM64_LD1_V4S(t, n) (0x4C407800 | Rn(n) | Rt(t))
 
 /* ST1 {Vt.4S}, [Xn] */
-#define ARM64_ST1_V4S(t, n) (0x4C00A800 | Rn(n) | Rt(t))
+#define ARM64_ST1_V4S(t, n) (0x4C007800 | Rn(n) | Rt(t))
 
 /* ========================================================================
  * Section 30: NEON GPR<->SIMD Transfer (Additional)
@@ -1187,14 +1185,16 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         /* LSR x6, x6, #28 */
         addlong(ARM64_LSR_IMM_X(6, 6, 28));
 
-        /* STR x4, [x0, #STATE_tex_s] -- note: x86 stores as 64-bit (RAX) */
-        addlong(ARM64_STR_X(4, 0, STATE_tex_s));
+        /* STR w4, [x0, #STATE_tex_s] -- store low 32 bits (sufficient for tex coords).
+         * x86-64 stores 64-bit (RAX) but consumers read 32-bit, and STATE_tex_s (188)
+         * is NOT 8-byte aligned so STR_X would silently encode offset 184. */
+        addlong(ARM64_STR_W(4, 0, STATE_tex_s));
 
         /* LSR w5, w5, #8 */
         addlong(ARM64_LSR_IMM(5, 5, 8));
 
-        /* STR x6, [x0, #STATE_tex_t] -- note: x86 stores as 64-bit (RCX) */
-        addlong(ARM64_STR_X(6, 0, STATE_tex_t));
+        /* STR w6, [x0, #STATE_tex_t] -- store low 32 bits for consistency */
+        addlong(ARM64_STR_W(6, 0, STATE_tex_t));
 
         /* STR w5, [x0, #STATE_lod] */
         addlong(ARM64_STR_W(5, 0, STATE_lod));
@@ -1649,8 +1649,6 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     int depth_jump_pos2  = 0;
     int loop_jump_pos    = 0;
 
-    (void) a_skip_pos;
-
     /* Initialize NEON constants (written to static memory, loaded by prologue) */
     neon_01_w.u32[0]      = 0x00010001;
     neon_01_w.u32[1]      = 0x00010001;
@@ -1686,8 +1684,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * Total: 128 bytes (16-byte aligned)
      */
 
-    /* STP x29, x30, [SP, #-128]! */
-    addlong(ARM64_STP_PRE_X(29, 30, 31, -128));
+    /* STP x29, x30, [SP, #-160]! */
+    addlong(ARM64_STP_PRE_X(29, 30, 31, -160));
     /* STP x19, x20, [SP, #16] */
     addlong(ARM64_STP_OFF_X(19, 20, 31, 16));
     /* STP x21, x22, [SP, #32] */
@@ -3050,8 +3048,683 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * ================================================================ */
     addlong(ARM64_MOV_V(13, 0));
 
-    /* TODO: Phase 5 -- fog, alpha test, alpha blend */
-    /* TODO: Phase 6 -- dithering, framebuffer write, depth write */
+    /* ================================================================
+     * Phase 5: Fog Application
+     * ================================================================
+     *
+     * x86-64 ref: lines 2236-2417
+     *
+     * At this point:
+     *   v0  = final combined color (packed BGRA bytes in low 32 bits)
+     *   v13 = color-before-fog copy (for ACOLORBEFOREFOG dest blend)
+     *   w12 = final combined alpha (EDX in x86-64)
+     *
+     * Fog modifies v0. The XMM15/v13 copy preserves pre-fog color.
+     *
+     * After fog:
+     *   v0 = fogged color (packed BGRA bytes)
+     *   w12 = alpha (unchanged by fog)
+     * ================================================================ */
+    if (params->fogMode & FOG_ENABLE) {
+        if (params->fogMode & FOG_CONSTANT) {
+            /* FOG_CONSTANT: simply add fogColor to color (saturating) */
+            /* FMOV s3, [params->fogColor] => LDR w4, [x1, #PARAMS_fogColor] */
+            addlong(ARM64_LDR_W(4, 1, PARAMS_fogColor));
+            addlong(ARM64_FMOV_S_W(3, 4));
+            /* UQADD v0.8B, v0.8B, v3.8B -- unsigned saturating add bytes */
+            addlong(ARM64_UQADD_V8B(0, 0, 3));
+        } else {
+            /* Non-constant fog: unpack color to 16-bit lanes for math */
+            /* UXTL v0.8H, v0.8B -- unpack bytes to halfwords */
+            addlong(ARM64_UXTL_8H_8B(0, 0));
+
+            if (!(params->fogMode & FOG_ADD)) {
+                /* Load fogColor, unpack to 16-bit: v3 = fogColor */
+                addlong(ARM64_LDR_W(4, 1, PARAMS_fogColor));
+                addlong(ARM64_FMOV_S_W(3, 4));
+                addlong(ARM64_UXTL_8H_8B(3, 3));
+            } else {
+                /* FOG_ADD: fogColor = 0 */
+                addlong(ARM64_MOVI_V2D_ZERO(3));
+            }
+
+            if (!(params->fogMode & FOG_MULT)) {
+                /* v3 = fogColor - color (i.e., fog_diff) */
+                addlong(ARM64_SUB_V4H(3, 3, 0));
+            }
+
+            /* Divide by 2 to prevent overflow on multiply */
+            /* SSHR v3.4H, v3.4H, #1 */
+            addlong(ARM64_SSHR_V4H(3, 3, 1));
+
+            /* Compute fog_a based on fog source */
+            switch (params->fogMode & (FOG_Z | FOG_ALPHA)) {
+                case 0: {
+                    /* w_depth table lookup */
+                    /* w4 = state->w_depth */
+                    addlong(ARM64_LDR_W(4, 0, STATE_w_depth));
+                    /* w5 = w4 (copy for second use) */
+                    addlong(ARM64_MOV_REG(5, 4));
+                    /* w4 = (w_depth >> 10) & 0x3f -- fog table index */
+                    addlong(ARM64_LSR_IMM(4, 4, 10));
+                    addlong(ARM64_AND_MASK(4, 4, 6));    /* AND with 0x3F */
+                    /* w5 = (w_depth >> 2) & 0xff -- interpolation fraction */
+                    addlong(ARM64_LSR_IMM(5, 5, 2));
+                    addlong(ARM64_AND_MASK(5, 5, 8));    /* AND with 0xFF */
+
+                    /* Load dfog = fogTable[fog_idx].dfog (byte at offset +1) */
+                    /* x6 = &params->fogTable */
+                    addlong(ARM64_ADD_IMM_X(6, 1, PARAMS_fogTable));
+                    /* x6 = x6 + x4*2 (index * 2 bytes per entry) */
+                    addlong(ARM64_ADD_REG_X_LSL(6, 6, 4, 1));
+                    /* w7 = dfog (byte at [x6, #1]) */
+                    addlong(ARM64_LDRB_IMM(7, 6, 1));
+                    /* w6 = fog (byte at [x6, #0]) */
+                    addlong(ARM64_LDRB_IMM(6, 6, 0));
+
+                    /* MUL w5, w5, w7 -- fraction * dfog */
+                    addlong(ARM64_MUL(5, 5, 7));
+                    /* LSR w5, w5, #10 */
+                    addlong(ARM64_LSR_IMM(5, 5, 10));
+                    /* ADD w4, w6, w5 -- fog_a = fog + (dfog * frac) >> 10 */
+                    addlong(ARM64_ADD_REG(4, 6, 5));
+                    break;
+                }
+
+                case FOG_Z:
+                    /* fog_a = (z >> 20) & 0xff */
+                    addlong(ARM64_LDR_W(4, 0, STATE_z));
+                    addlong(ARM64_LSR_IMM(4, 4, 12));
+                    addlong(ARM64_AND_MASK(4, 4, 8));
+                    break;
+
+                case FOG_ALPHA:
+                    /* fog_a = CLAMP(ia >> 12) */
+                    addlong(ARM64_LDR_W(4, 0, STATE_ia));
+                    addlong(ARM64_ASR_IMM(4, 4, 12));
+                    /* Clamp to [0, 0xFF] */
+                    addlong(ARM64_CMP_IMM(4, 0));
+                    addlong(ARM64_CSEL(4, 31, 4, COND_LT));
+                    addlong(ARM64_MOVZ_W(5, 0xFF));
+                    addlong(ARM64_CMP_REG(4, 5));
+                    addlong(ARM64_CSEL(4, 5, 4, COND_HI));
+                    break;
+
+                case FOG_W:
+                    /* fog_a = CLAMP(w >> 32) -- high 32 bits of 64-bit W */
+                    addlong(ARM64_LDR_W(4, 0, STATE_w + 4));  /* high word of w */
+                    /* Clamp to [0, 0xFF] */
+                    addlong(ARM64_CMP_IMM(4, 0));
+                    addlong(ARM64_CSEL(4, 31, 4, COND_LT));
+                    addlong(ARM64_MOVZ_W(5, 0xFF));
+                    addlong(ARM64_CMP_REG(4, 5));
+                    addlong(ARM64_CSEL(4, 5, 4, COND_HI));
+                    break;
+            }
+
+            /* fog_a *= 2 (to compensate for the >>1 above) */
+            addlong(ARM64_ADD_REG(4, 4, 4));  /* ADD w4, w4, w4 = w4 << 1 */
+
+            /* Multiply: v3 = v3 * alookup[fog_a] >> 7 */
+            /* Load alookup entry (4x16 at [x20 + w4*8]) -- x20 = alookup ptr */
+            /* w4 is fog_a*2, each alookup entry is 16 bytes but only low 8 used;
+             * x86-64 uses alookup+4[EAX*8] which is alookup[(fog_a*2) + 1]
+             * We use fog_a*2 as index: alookup[fog_a*2/2 + 1].
+             * Actually in x86-64, after ADD EAX,EAX, it accesses alookup+4[EAX*8]
+             * = &alookup[0] + 4 + EAX*8 = &alookup[0] + 4 + fog_a*2*8.
+             * Since alookup entries are 16 bytes (voodoo_neon_reg_t), this is
+             * alookup[0] + 4 + fog_a*2*8 which, with the +4 offset for the SSE
+             * register layout, accesses the second dword of alookup[fog_a].
+             * On ARM64, alookup is an array of voodoo_neon_reg_t (16 bytes each).
+             * We want alookup[fog_a] -> low 64 bits as 4xH.
+             * fog_a is in w4. Multiply by 16 to get byte offset.
+             * But w4 = fog_a*2, so multiply by 8 = LSL #3. */
+            addlong(ARM64_ADD_REG_X_LSL(5, 20, 4, 3));  /* x5 = x20 + w4*8 */
+            addlong(ARM64_LDR_D(5, 5, 16));             /* v5 = alookup[fog_a+1].low64 (matches x86 +16 offset) */
+
+            addlong(ARM64_MUL_V4H(3, 3, 5));   /* v3 *= alookup[fog_a] */
+            addlong(ARM64_SSHR_V4H(3, 3, 7));  /* v3 >>= 7 (arithmetic) */
+
+            if (params->fogMode & FOG_MULT) {
+                /* FOG_MULT: result = fog contribution only */
+                addlong(ARM64_MOV_V(0, 3));
+            } else {
+                /* Normal: result = color + fog_diff */
+                addlong(ARM64_ADD_V4H(0, 0, 3));
+            }
+            /* Pack back to unsigned bytes: SQXTUN v0.8B, v0.8H */
+            addlong(ARM64_SQXTUN_8B_8H(0, 0));
+        }
+    }
+
+    /* ================================================================
+     * Phase 5: Alpha Test
+     * ================================================================
+     *
+     * x86-64 ref: lines 2419-2467
+     *
+     * Compare alpha (w12 = EDX) against alphaMode byte 3 (alpha ref).
+     * Skip pixel if test fails (branch to skip position).
+     * ================================================================ */
+    if ((params->alphaMode & 1) && (alpha_func != AFUNC_NEVER) && (alpha_func != AFUNC_ALWAYS)) {
+        /* Load alpha reference: LDRB w4, [x1, #PARAMS_alphaMode + 3] */
+        addlong(ARM64_LDRB_IMM(4, 1, PARAMS_alphaMode + 3));
+        /* CMP w12, w4 */
+        addlong(ARM64_CMP_REG(12, 4));
+
+        /* Branch to skip if test fails. The condition is INVERTED:
+         * we skip when the test is NOT met. */
+        switch (alpha_func) {
+            case AFUNC_LESSTHAN:
+                /* Pass if alpha < ref. Skip if alpha >= ref. */
+                a_skip_pos = block_pos;
+                addlong(ARM64_BCOND_PLACEHOLDER(COND_CS));  /* Branch if carry set (unsigned >=) */
+                break;
+            case AFUNC_EQUAL:
+                /* Pass if alpha == ref. Skip if alpha != ref. */
+                a_skip_pos = block_pos;
+                addlong(ARM64_BCOND_PLACEHOLDER(COND_NE));
+                break;
+            case AFUNC_LESSTHANEQUAL:
+                /* Pass if alpha <= ref. Skip if alpha > ref. */
+                a_skip_pos = block_pos;
+                addlong(ARM64_BCOND_PLACEHOLDER(COND_HI));
+                break;
+            case AFUNC_GREATERTHAN:
+                /* Pass if alpha > ref. Skip if alpha <= ref. */
+                a_skip_pos = block_pos;
+                addlong(ARM64_BCOND_PLACEHOLDER(COND_LS));
+                break;
+            case AFUNC_NOTEQUAL:
+                /* Pass if alpha != ref. Skip if alpha == ref. */
+                a_skip_pos = block_pos;
+                addlong(ARM64_BCOND_PLACEHOLDER(COND_EQ));
+                break;
+            case AFUNC_GREATERTHANEQUAL:
+                /* Pass if alpha >= ref. Skip if alpha < ref. */
+                a_skip_pos = block_pos;
+                addlong(ARM64_BCOND_PLACEHOLDER(COND_CC));  /* Branch if carry clear (unsigned <) */
+                break;
+        }
+    } else if ((params->alphaMode & 1) && (alpha_func == AFUNC_NEVER)) {
+        /* AFUNC_NEVER: always skip -- emit RET */
+        addlong(ARM64_RET);
+    }
+
+    /* ================================================================
+     * Phase 5: Alpha Blend
+     * ================================================================
+     *
+     * x86-64 ref: lines 2469-3058
+     *
+     * Read destination pixel from framebuffer, decode via rgb565 LUT,
+     * compute blended src and dst, combine, pack result.
+     *
+     * Register plan:
+     *   w12 = src alpha (EDX in x86-64), doubled for table index
+     *   v0  = src color (unpacked 4x16 after unpack)
+     *   v4  = dst color (unpacked 4x16)
+     *   v6  = dst color copy (for src AFUNC_A_COLOR / AOM_COLOR)
+     *   w5  = dst alpha (EBX in x86-64), doubled for table index
+     *   x8  = fb_mem, x9 = aux_mem (pinned from prologue)
+     * ================================================================ */
+    if (params->alphaMode & (1 << 4)) {
+        /* Load dest alpha from aux buffer if alpha-buffer enabled */
+        if (params->fbzMode & FBZ_ALPHA_ENABLE) {
+            /* Load x coordinate for aux buffer (tiled or linear) */
+            if (params->aux_tiled)
+                addlong(ARM64_LDR_W(5, 0, STATE_x_tiled));
+            else
+                addlong(ARM64_LDR_W(5, 0, STATE_x));
+            /* LDRH w5, [x9, x5, LSL #1] -- load 16-bit aux value */
+            addlong(ARM64_LDRH_REG_LSL1(5, 9, 5));
+        } else {
+            /* No alpha buffer: dest_alpha = 0xFF */
+            addlong(ARM64_MOVZ_W(5, 0xFF));
+        }
+
+        /* Load dest RGB from framebuffer */
+        /* Load x coordinate (tiled or linear) */
+        if (params->col_tiled)
+            addlong(ARM64_LDR_W(4, 0, STATE_x_tiled));
+        else
+            addlong(ARM64_LDR_W(4, 0, STATE_x));
+
+        /* w12 *= 2, w5 *= 2 -- for table indexing (each entry is 16 bytes) */
+        addlong(ARM64_ADD_REG(12, 12, 12));  /* w12 = src_alpha * 2 */
+        addlong(ARM64_ADD_REG(5, 5, 5));     /* w5 = dst_alpha * 2 */
+
+        /* Load 16-bit RGB565 pixel from fb_mem */
+        /* LDRH w6, [x8, x4, LSL #1] */
+        addlong(ARM64_LDRH_REG_LSL1(6, 8, 4));
+
+        /* Unpack src color from bytes to 16-bit lanes */
+        addlong(ARM64_UXTL_8H_8B(0, 0));
+
+        /* Decode dest RGB565 via rgb565[] lookup table.
+         * rgb565 is an array of rgba8_t (4 bytes each).
+         * Load rgb565[pixel] (32-bit), put in v4, unpack to 4x16. */
+        /* x7 = &rgb565 */
+        addlong(ARM64_MOVZ_X(7, (uintptr_t) rgb565 & 0xFFFF));
+        addlong(ARM64_MOVK_X(7, ((uintptr_t) rgb565 >> 16) & 0xFFFF, 1));
+        addlong(ARM64_MOVK_X(7, ((uintptr_t) rgb565 >> 32) & 0xFFFF, 2));
+        addlong(ARM64_MOVK_X(7, ((uintptr_t) rgb565 >> 48) & 0xFFFF, 3));
+        /* LDR w6, [x7, w6, UXTW #2] -- rgb565[pixel] */
+        addlong(ARM64_LDR_W_UXTW2(6, 7, 6));
+        addlong(ARM64_FMOV_S_W(4, 6));
+        addlong(ARM64_UXTL_8H_8B(4, 4));
+
+        /* Save dest color in v6 for src_afunc A_COLOR/AOM_COLOR */
+        addlong(ARM64_MOV_V(6, 4));
+
+        /* ---- dest_afunc: compute dest blend factor and apply to v4 ---- */
+        switch (dest_afunc) {
+            case AFUNC_AZERO:
+                addlong(ARM64_MOVI_V2D_ZERO(4));
+                break;
+            case AFUNC_ASRC_ALPHA:
+                /* v4 = dst * alookup[src_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 20, 12, 3));  /* x7 = alookup + src_alpha*2*8 */
+                addlong(ARM64_LDR_D(5, 7, 0));               /* v5 = alookup[src_alpha] */
+                addlong(ARM64_MUL_V4H(4, 4, 5));
+                /* Round: add alookup[1], add (result>>8), shift >>8 */
+                addlong(ARM64_LDR_D(16, 20, 16));   /* v16 = alookup[1] (offset 1*16=16 bytes) */
+                addlong(ARM64_MOV_V(17, 4));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(4, 4, 16));
+                addlong(ARM64_ADD_V4H(4, 4, 17));
+                addlong(ARM64_USHR_V4H(4, 4, 8));
+                break;
+            case AFUNC_A_COLOR:
+                /* v4 = dst * src_color >> 8 */
+                addlong(ARM64_MUL_V4H(4, 4, 0));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 4));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(4, 4, 16));
+                addlong(ARM64_ADD_V4H(4, 4, 17));
+                addlong(ARM64_USHR_V4H(4, 4, 8));
+                break;
+            case AFUNC_ADST_ALPHA:
+                /* v4 = dst * alookup[dst_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 20, 5, 3));
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(4, 4, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 4));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(4, 4, 16));
+                addlong(ARM64_ADD_V4H(4, 4, 17));
+                addlong(ARM64_USHR_V4H(4, 4, 8));
+                break;
+            case AFUNC_AONE:
+                /* v4 = dst * 1 = dst (no-op) */
+                break;
+            case AFUNC_AOMSRC_ALPHA:
+                /* v4 = dst * aminuslookup[src_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 21, 12, 3));  /* x7 = aminuslookup + src_alpha*2*8 */
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(4, 4, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 4));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(4, 4, 16));
+                addlong(ARM64_ADD_V4H(4, 4, 17));
+                addlong(ARM64_USHR_V4H(4, 4, 8));
+                break;
+            case AFUNC_AOM_COLOR:
+                /* v4 = dst * (0xFF - src_color) >> 8 */
+                addlong(ARM64_MOV_V(16, 9));         /* v16 = 0xFF */
+                addlong(ARM64_SUB_V4H(16, 16, 0));   /* v16 = 0xFF - src */
+                addlong(ARM64_MUL_V4H(4, 4, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 4));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(4, 4, 16));
+                addlong(ARM64_ADD_V4H(4, 4, 17));
+                addlong(ARM64_USHR_V4H(4, 4, 8));
+                break;
+            case AFUNC_AOMDST_ALPHA:
+                /* v4 = dst * aminuslookup[dst_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 21, 5, 3));
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(4, 4, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 4));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(4, 4, 16));
+                addlong(ARM64_ADD_V4H(4, 4, 17));
+                addlong(ARM64_USHR_V4H(4, 4, 8));
+                break;
+            case AFUNC_ACOLORBEFOREFOG:
+                /* v4 = dst * color-before-fog (v13) >> 8 */
+                /* Unpack v13 to 4x16 in v16 */
+                addlong(ARM64_UXTL_8H_8B(16, 13));
+                addlong(ARM64_MUL_V4H(4, 4, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 4));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(4, 4, 16));
+                addlong(ARM64_ADD_V4H(4, 4, 17));
+                addlong(ARM64_USHR_V4H(4, 4, 8));
+                break;
+        }
+
+        /* ---- src_afunc: compute src blend factor and apply to v0 ---- */
+        switch (src_afunc) {
+            case AFUNC_AZERO:
+                addlong(ARM64_MOVI_V2D_ZERO(0));
+                break;
+            case AFUNC_ASRC_ALPHA:
+                /* v0 = src * alookup[src_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 20, 12, 3));
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(0, 0, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 0));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(0, 0, 16));
+                addlong(ARM64_ADD_V4H(0, 0, 17));
+                addlong(ARM64_USHR_V4H(0, 0, 8));
+                break;
+            case AFUNC_A_COLOR:
+                /* v0 = src * dst_color (v6) >> 8 */
+                addlong(ARM64_MUL_V4H(0, 0, 6));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 0));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(0, 0, 16));
+                addlong(ARM64_ADD_V4H(0, 0, 17));
+                addlong(ARM64_USHR_V4H(0, 0, 8));
+                break;
+            case AFUNC_ADST_ALPHA:
+                /* v0 = src * alookup[dst_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 20, 5, 3));
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(0, 0, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 0));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(0, 0, 16));
+                addlong(ARM64_ADD_V4H(0, 0, 17));
+                addlong(ARM64_USHR_V4H(0, 0, 8));
+                break;
+            case AFUNC_AONE:
+                /* v0 = src * 1 = src (no-op) */
+                break;
+            case AFUNC_AOMSRC_ALPHA:
+                /* v0 = src * aminuslookup[src_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 21, 12, 3));
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(0, 0, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 0));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(0, 0, 16));
+                addlong(ARM64_ADD_V4H(0, 0, 17));
+                addlong(ARM64_USHR_V4H(0, 0, 8));
+                break;
+            case AFUNC_AOM_COLOR:
+                /* v0 = src * (0xFF - dst_color) >> 8 */
+                addlong(ARM64_MOV_V(16, 9));          /* v16 = 0xFF */
+                addlong(ARM64_SUB_V4H(16, 16, 6));    /* v16 = 0xFF - dst */
+                addlong(ARM64_MUL_V4H(0, 0, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 0));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(0, 0, 16));
+                addlong(ARM64_ADD_V4H(0, 0, 17));
+                addlong(ARM64_USHR_V4H(0, 0, 8));
+                break;
+            case AFUNC_AOMDST_ALPHA:
+                /* v0 = src * aminuslookup[dst_alpha] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 21, 5, 3));
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(0, 0, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 0));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(0, 0, 16));
+                addlong(ARM64_ADD_V4H(0, 0, 17));
+                addlong(ARM64_USHR_V4H(0, 0, 8));
+                break;
+            case AFUNC_ASATURATE: {
+                /* sat = min(src_alpha, 0xFF - dst_alpha)
+                 * w5/2 = dst_alpha, w12/2 = src_alpha */
+                addlong(ARM64_LSR_IMM(6, 5, 1));        /* w6 = dst_alpha */
+                addlong(ARM64_EOR_MASK(6, 6, 8));       /* w6 = 0xFF ^ dst_alpha = 0xFF - dst_alpha */
+                addlong(ARM64_ADD_REG(6, 6, 6));         /* w6 *= 2 for table index */
+                addlong(ARM64_CMP_REG(12, 6));
+                addlong(ARM64_CSEL(6, 6, 12, COND_HI)); /* w6 = min(src_alpha*2, sat*2) */
+                /* v0 = src * alookup[sat] >> 8 */
+                addlong(ARM64_ADD_REG_X_LSL(7, 20, 6, 3));
+                addlong(ARM64_LDR_D(16, 7, 0));
+                addlong(ARM64_MUL_V4H(0, 0, 16));
+                addlong(ARM64_LDR_D(16, 20, 16));
+                addlong(ARM64_MOV_V(17, 0));
+                addlong(ARM64_USHR_V4H(17, 17, 8));
+                addlong(ARM64_ADD_V4H(0, 0, 16));
+                addlong(ARM64_ADD_V4H(0, 0, 17));
+                addlong(ARM64_USHR_V4H(0, 0, 8));
+                break;
+            }
+        }
+
+        /* Combine: v0 = src_blended + dst_blended */
+        addlong(ARM64_ADD_V4H(0, 0, 4));
+
+        /* Pack to unsigned bytes with saturation */
+        addlong(ARM64_SQXTUN_8B_8H(0, 0));
+
+        /* Alpha blend for alpha channel:
+         * dest_aafunc and src_aafunc compute the final alpha.
+         * x86-64 ref: lines 3034-3057
+         * w4 = 0, accumulate dest_aa and src_aa contributions. */
+        addlong(ARM64_MOV_ZERO(4));  /* w4 = 0 (accumulator for blended alpha) */
+
+        if (dest_aafunc == 4) {
+            /* dest_aafunc==4 means dest_alpha contributes: w4 += dst_alpha << 7 */
+            addlong(ARM64_LSL_IMM(6, 5, 7));   /* w6 = dst_alpha*2 << 7; >>8 later gives correct blend */
+            addlong(ARM64_ADD_REG(4, 4, 6));
+        }
+
+        if (src_aafunc == 4) {
+            /* src_aafunc==4 means src_alpha contributes: w4 += src_alpha << 7 */
+            addlong(ARM64_LSL_IMM(6, 12, 7));  /* w6 = src_alpha*2 << 7; >>8 later gives correct blend */
+            addlong(ARM64_ADD_REG(4, 4, 6));
+        }
+
+        /* ROR w4, w4, #8 (same as SHR EAX, 8 when high bits are 0) */
+        addlong(ARM64_LSR_IMM(4, 4, 8));
+        /* w12 = final blended alpha */
+        addlong(ARM64_MOV_REG(12, 4));
+    }
+
+    /* ================================================================
+     * Phase 6: Depth write (alpha-buffer path)
+     * ================================================================
+     *
+     * x86-64 ref: lines 3060-3075
+     *
+     * Write depth to aux buffer when both depth write mask and
+     * alpha-buffer are enabled. The depth value to write is w12
+     * (the alpha result, same as EDX on x86-64).
+     * ================================================================ */
+    if ((params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE)) {
+        if (params->aux_tiled)
+            addlong(ARM64_LDR_W(4, 0, STATE_x_tiled));
+        else
+            addlong(ARM64_LDR_W(4, 0, STATE_x));
+        /* STRH w12, [x9, x4, LSL #1] -- store alpha/depth to aux buffer */
+        addlong(ARM64_STRH_REG_LSL1(12, 9, 4));
+    }
+
+    /* ================================================================
+     * Phase 6: Dithering + RGB565 pack + Framebuffer write
+     * ================================================================
+     *
+     * x86-64 ref: lines 3077-3221
+     *
+     * Load x coordinate, extract MOVD from v0, then either:
+     *   - Dither path: use dither tables to convert R/G/B to 5/6/5
+     *   - No-dither path: simple shift-and-mask to pack RGB565
+     * Store result to framebuffer.
+     * ================================================================ */
+
+    /* Load x coordinate for framebuffer write */
+    if (params->col_tiled)
+        addlong(ARM64_LDR_W(14, 0, STATE_x_tiled));
+    else
+        addlong(ARM64_LDR_W(14, 0, STATE_x));
+
+    /* Extract packed BGRA from v0 to w4 */
+    addlong(ARM64_FMOV_W_S(4, 0));
+
+    if (params->fbzMode & FBZ_RGB_WMASK) {
+        if (dither) {
+            /* ---- Dither path ---- */
+            /* Load dither table base pointer into x7 */
+            {
+                uintptr_t dither_rb_addr = dither2x2 ? (uintptr_t) dither_rb2x2 : (uintptr_t) dither_rb;
+                addlong(ARM64_MOVZ_X(7, dither_rb_addr & 0xFFFF));
+                addlong(ARM64_MOVK_X(7, (dither_rb_addr >> 16) & 0xFFFF, 1));
+                addlong(ARM64_MOVK_X(7, (dither_rb_addr >> 32) & 0xFFFF, 2));
+                addlong(ARM64_MOVK_X(7, (dither_rb_addr >> 48) & 0xFFFF, 3));
+            }
+
+            /* w5 = real_y (saved in x24 by prologue) */
+            addlong(ARM64_MOV_REG(5, 24));
+
+            /* Extract R, G, B bytes from w4 (packed BGRA: B=byte0, G=byte1, R=byte2, A=byte3) */
+            /* w6 = G = (w4 >> 8) & 0xFF */
+            addlong(ARM64_UBFX(6, 4, 8, 8));
+            /* w10 = R = (w4 >> 16) & 0xFF -- but we need it for dither_rb */
+            /* Actually for dither, we need: R index, G index, B index
+             * dither_rb[value][y&mask][x&mask] for R and B
+             * dither_g[value][y&mask][x&mask] for G
+             *
+             * For 4x4: entry_size = 4*4 = 16 bytes per value
+             *   index = value*16 + (y&3)*4 + (x&3)
+             * For 2x2: entry_size = 2*2 = 4 bytes per value
+             *   index = value*4 + (y&1)*2 + (x&1)
+             */
+
+            if (dither2x2) {
+                /* 2x2 dither */
+                addlong(ARM64_AND_MASK(10, 14, 1));   /* w10 = x & 1 */
+                addlong(ARM64_AND_MASK(5, 5, 1));     /* w5 = y & 1 */
+                /* w11 = G*4 (for dither_g2x2 index) */
+                addlong(ARM64_LSL_IMM(11, 6, 2));
+                /* w13 = R (byte2) */
+                addlong(ARM64_UBFX(13, 4, 16, 8));
+                /* w6 = B (byte0) */
+                addlong(ARM64_AND_MASK(6, 4, 8));
+            } else {
+                /* 4x4 dither */
+                addlong(ARM64_AND_MASK(10, 14, 2));   /* w10 = x & 3 */
+                addlong(ARM64_AND_MASK(5, 5, 2));     /* w5 = y & 3 */
+                /* w11 = G*16 (for dither_g index) */
+                addlong(ARM64_LSL_IMM(11, 6, 4));
+                /* w13 = R (byte2) */
+                addlong(ARM64_UBFX(13, 4, 16, 8));
+                /* w6 = B (byte0) */
+                addlong(ARM64_AND_MASK(6, 4, 8));
+            }
+
+            if (dither2x2) {
+                /* dither offset = value*4 + y*2 + x */
+                addlong(ARM64_ADD_REG_LSL(5, 10, 5, 1));   /* w5 = x + y*2 */
+                addlong(ARM64_LSL_IMM(13, 13, 2));          /* R*4 */
+                addlong(ARM64_LSL_IMM(6, 6, 2));             /* B*4 */
+            } else {
+                /* dither offset = value*16 + y*4 + x */
+                addlong(ARM64_ADD_REG_LSL(5, 10, 5, 2));   /* w5 = x + y*4 */
+                addlong(ARM64_LSL_IMM(13, 13, 4));           /* R*16 */
+                addlong(ARM64_LSL_IMM(6, 6, 4));              /* B*16 */
+            }
+
+            /* w5 = dither sub-index (y*stride + x) -- add to each table base+value offset */
+            /* Add dither_rb base (x7) + sub-index (w5) */
+            addlong(ARM64_ADD_REG_X(7, 7, 5));
+
+            /* Load G from dither_g table:
+             * dither_g is at a fixed offset from dither_rb */
+            {
+                uintptr_t g_offset = dither2x2 ? ((uintptr_t) dither_g2x2 - (uintptr_t) dither_rb2x2) :
+                                                   ((uintptr_t) dither_g - (uintptr_t) dither_rb);
+                /* w11 = G value offset, add g_offset to get dither_g entry */
+                addlong(ARM64_ADD_REG_X(11, 7, 11));
+                /* x16 = g_offset */
+                addlong(ARM64_MOVZ_X(16, g_offset & 0xFFFF));
+                if ((g_offset >> 16) & 0xFFFF)
+                    addlong(ARM64_MOVK_X(16, (g_offset >> 16) & 0xFFFF, 1));
+                if ((g_offset >> 32) & 0xFFFF)
+                    addlong(ARM64_MOVK_X(16, (g_offset >> 32) & 0xFFFF, 2));
+                if ((g_offset >> 48) & 0xFFFF)
+                    addlong(ARM64_MOVK_X(16, (g_offset >> 48) & 0xFFFF, 3));
+                /* LDRB w11, [x11, x16] -- dithered G */
+                addlong(ARM64_LDRB_REG(11, 11, 16));
+            }
+            /* LDRB w13, [x7, x13] -- dithered R */
+            addlong(ARM64_LDRB_REG(13, 7, 13));
+            /* LDRB w6, [x7, x6] -- dithered B */
+            addlong(ARM64_LDRB_REG(6, 7, 6));
+
+            /* Pack RGB565: R(5) << 11 | G(6) << 5 | B(5) */
+            addlong(ARM64_LSL_IMM(13, 13, 11));
+            addlong(ARM64_LSL_IMM(11, 11, 5));
+            addlong(ARM64_ORR_REG(4, 13, 11));
+            addlong(ARM64_ORR_REG(4, 4, 6));
+        } else {
+            /* ---- No-dither path ---- */
+            /* w4 = packed BGRA (B=byte0, G=byte1, R=byte2, A=byte3)
+             * RGB565 = R[4:0] << 11 | G[5:0] << 5 | B[7:3]
+             *
+             * On x86-64:
+             *   Blue  = (byte0 >> 3) & 0x001F
+             *   Green = (byte1 << 3) & 0x07E0
+             *   Red   = (byte2 << 8) & 0xF800 -- actually (byte_val << 8) then AND
+             *
+             * Simpler on ARM64 with UBFX+LSL:
+             */
+            /* w5 = B = bits[7:3] of byte 0 = bits [7:3] -> (value >> 3) & 0x1F */
+            addlong(ARM64_UBFX(5, 4, 3, 5));
+            /* w6 = G = bits[7:2] of byte 1 = bits [15:10] -> UBFX(4, 10, 6) then << 5 */
+            addlong(ARM64_UBFX(6, 4, 10, 6));
+            addlong(ARM64_LSL_IMM(6, 6, 5));
+            /* w7 = R = bits[7:3] of byte 2 = bits [23:19] -> UBFX(4, 19, 5) then << 11 */
+            addlong(ARM64_UBFX(7, 4, 19, 5));
+            addlong(ARM64_LSL_IMM(7, 7, 11));
+            /* Combine: w4 = R | G | B */
+            addlong(ARM64_ORR_REG(4, 7, 6));
+            addlong(ARM64_ORR_REG(4, 4, 5));
+        }
+
+        /* Store RGB565 pixel to framebuffer:
+         * STRH w4, [x8, x14, LSL #1] */
+        addlong(ARM64_STRH_REG_LSL1(4, 8, 14));
+    }
+
+    /* ================================================================
+     * Phase 6: Depth write (non-alpha-buffer path)
+     * ================================================================
+     *
+     * x86-64 ref: lines 3224-3243
+     *
+     * Write new_depth to aux buffer when depth write mask and depth
+     * test are enabled but alpha-buffer is NOT enabled.
+     * ================================================================ */
+    if ((params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_DEPTH_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_DEPTH_ENABLE)
+        && !(params->fbzMode & FBZ_ALPHA_ENABLE)) {
+        if (params->aux_tiled)
+            addlong(ARM64_LDR_W(4, 0, STATE_x_tiled));
+        else
+            addlong(ARM64_LDR_W(4, 0, STATE_x));
+        /* Load new_depth */
+        addlong(ARM64_LDRH_IMM(5, 0, STATE_new_depth));
+        /* STRH w5, [x9, x4, LSL #1] */
+        addlong(ARM64_STRH_REG_LSL1(5, 9, 4));
+    }
 
     /* ================================================================
      * Patch skip positions (z_skip, a_skip, chroma_skip, stipple_skip,
@@ -3252,8 +3925,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addlong(ARM64_LDP_OFF_X(21, 22, 31, 32));
     /* LDP x19, x20, [SP, #16] */
     addlong(ARM64_LDP_OFF_X(19, 20, 31, 16));
-    /* LDP x29, x30, [SP], #128 */
-    addlong(ARM64_LDP_POST_X(29, 30, 31, 128));
+    /* LDP x29, x30, [SP], #160 */
+    addlong(ARM64_LDP_POST_X(29, 30, 31, 160));
 
     /* RET */
     addlong(ARM64_RET);
@@ -3286,15 +3959,14 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
             && (params->tLOD[1] & LOD_MASK) == data->tLOD[1]
             && ((params->col_tiled || params->aux_tiled) ? 1 : 0) == data->is_tiled) {
             last_block[odd_even] = b;
-#if VOODOO_JIT_DEBUG
-            if (voodoo_jit_hit_count < 20) {
-                pclog("VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
-                      "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
-                      voodoo_jit_hit_count, odd_even, b, data->code_block,
-                      params->fbzMode, params->fbzColorPath, params->alphaMode);
+            if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo_jit_hit_count < 20) {
+                fprintf(voodoo->jit_debug_log,
+                        "VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
+                        "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
+                        voodoo_jit_hit_count, odd_even, b, (void *) data->code_block,
+                        params->fbzMode, params->fbzColorPath, params->alphaMode);
                 voodoo_jit_hit_count++;
             }
-#endif
             return data->code_block;
         }
 
@@ -3313,15 +3985,16 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 
     voodoo_generate(data->code_block, voodoo, params, state, depth_op);
 
-#if VOODOO_JIT_DEBUG
-    voodoo_jit_gen_count++;
-    pclog("VOODOO JIT: GENERATE #%d odd_even=%d block=%d code=%p recomp=%d "
-          "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
-          "textureMode[0]=0x%08x fogMode=0x%08x xdir=%d\n",
-          voodoo_jit_gen_count, odd_even, next_block_to_write[odd_even], data->code_block,
-          voodoo_recomp, params->fbzMode, params->fbzColorPath, params->alphaMode,
-          params->textureMode[0], params->fogMode, state->xdir);
-#endif
+    if (voodoo->jit_debug && voodoo->jit_debug_log) {
+        voodoo_jit_gen_count++;
+        fprintf(voodoo->jit_debug_log,
+                "VOODOO JIT: GENERATE #%d odd_even=%d block=%d code=%p recomp=%d "
+                "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
+                "textureMode[0]=0x%08x fogMode=0x%08x xdir=%d\n",
+                voodoo_jit_gen_count, odd_even, next_block_to_write[odd_even], (void *) data->code_block,
+                voodoo_recomp, params->fbzMode, params->fbzColorPath, params->alphaMode,
+                params->textureMode[0], params->fogMode, state->xdir);
+    }
 
     data->xdir           = state->xdir;
     data->alphaMode      = params->alphaMode;

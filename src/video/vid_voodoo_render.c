@@ -38,12 +38,8 @@
 #include <86box/vid_voodoo_render.h>
 #include <86box/vid_voodoo_texture.h>
 
-/* JIT execution logging -- must match VOODOO_JIT_DEBUG in vid_voodoo_codegen_arm64.h */
 #ifndef NO_CODEGEN
-#    define VOODOO_JIT_DEBUG_EXEC 1
-#    if VOODOO_JIT_DEBUG_EXEC
 static int voodoo_jit_exec_count = 0;
-#    endif
 #endif
 
 typedef struct voodoo_state_t {
@@ -943,19 +939,97 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
         state->texel_count = 0;
         state->x           = x;
         state->x2          = x2;
+
+        /* JIT verify mode (jit_debug=2): run JIT, save pixels, restore state,
+         * then run interpreter and compare pixel-by-pixel to find mismatches */
 #ifndef NO_CODEGEN
-        if (voodoo->use_recompiler && voodoo_draw) {
-#if VOODOO_JIT_DEBUG_EXEC
-            if (voodoo_jit_exec_count < 50) {
-                pclog("VOODOO JIT: EXECUTE #%d code=%p x=%d x2=%d real_y=%d odd_even=%d\n",
-                      voodoo_jit_exec_count, (void *) voodoo_draw, x, x2, real_y, odd_even);
-                voodoo_jit_exec_count++;
+        {
+            static int jit_verify_mismatches = 0;
+            int jit_verify_active = 0;
+            int jv_start = 0, jv_count = 0;
+            uint16_t *jit_fb_save = NULL;
+            int32_t jv_ib = 0, jv_ig = 0, jv_ir = 0;
+
+            if (voodoo->use_recompiler && voodoo_draw
+                && voodoo->jit_debug >= 2 && voodoo->jit_debug_log
+                && jit_verify_mismatches < 20) {
+                jv_start = (state->xdir > 0) ? x : x2;
+                int jv_end = (state->xdir > 0) ? x2 : x;
+                jv_count = jv_end - jv_start + 1;
+                if (jv_count > 0 && jv_count <= 2048 && fb_mem) {
+                    jit_fb_save = (uint16_t *) alloca(jv_count * sizeof(uint16_t) * 2);
+                    uint16_t *saved_fb = jit_fb_save + jv_count;
+
+                    /* Save fb_mem and state before JIT */
+                    for (int vi = 0; vi < jv_count; vi++)
+                        saved_fb[vi] = fb_mem[jv_start + vi];
+                    int32_t s_ib = state->ib, s_ig = state->ig, s_ir = state->ir, s_ia = state->ia;
+                    int32_t s_z = state->z;
+                    int64_t s_t0s = state->tmu0_s, s_t0t = state->tmu0_t, s_t0w = state->tmu0_w;
+                    int64_t s_t1s = state->tmu1_s, s_t1t = state->tmu1_t, s_t1w = state->tmu1_w;
+                    int64_t s_w = state->w;
+
+                    voodoo_draw(state, params, x, real_y);
+
+                    /* Save JIT output */
+                    for (int vi = 0; vi < jv_count; vi++)
+                        jit_fb_save[vi] = fb_mem[jv_start + vi];
+                    jv_ib = state->ib; jv_ig = state->ig; jv_ir = state->ir;
+
+                    /* Restore state and fb_mem for interpreter */
+                    for (int vi = 0; vi < jv_count; vi++)
+                        fb_mem[jv_start + vi] = saved_fb[vi];
+                    state->ib = s_ib; state->ig = s_ig; state->ir = s_ir; state->ia = s_ia;
+                    state->z = s_z;
+                    state->tmu0_s = s_t0s; state->tmu0_t = s_t0t; state->tmu0_w = s_t0w;
+                    state->tmu1_s = s_t1s; state->tmu1_t = s_t1t; state->tmu1_w = s_t1w;
+                    state->w = s_w;
+                    state->pixel_count = 0; state->texel_count = 0;
+                    state->x = x; state->x2 = x2;
+                    jit_verify_active = 1;
+                }
             }
-#endif
-            voodoo_draw(state, params, x, real_y);
-        } else
+
+            if (voodoo->use_recompiler && voodoo_draw && !jit_verify_active) {
+                if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo_jit_exec_count < 50) {
+                    fprintf(voodoo->jit_debug_log,
+                            "VOODOO JIT: EXECUTE #%d code=%p x=%d x2=%d real_y=%d odd_even=%d\n",
+                            voodoo_jit_exec_count, (void *) voodoo_draw, x, x2, real_y, odd_even);
+                    voodoo_jit_exec_count++;
+                }
+                voodoo_draw(state, params, x, real_y);
+                if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo_jit_exec_count <= 50) {
+                    fprintf(voodoo->jit_debug_log,
+                            "VOODOO JIT POST: ib=%d ig=%d ir=%d ia=%d z=%08x pixel_count=%d\n",
+                            state->ib, state->ig, state->ir, state->ia, state->z, state->pixel_count);
+                    int dbg_start = (state->xdir > 0) ? x : x2;
+                    int dbg_end = (state->xdir > 0) ? x2 : x;
+                    int dbg_count = dbg_end - dbg_start + 1;
+                    if (dbg_count > 8) dbg_count = 8;
+                    if (dbg_count > 0 && fb_mem) {
+                        fprintf(voodoo->jit_debug_log,
+                                "VOODOO JIT PIXELS y=%d x=%d..%d:", real_y, dbg_start, dbg_start + dbg_count - 1);
+                        for (int pi = 0; pi < dbg_count; pi++) {
+                            uint16_t pv = fb_mem[dbg_start + pi];
+                            fprintf(voodoo->jit_debug_log, " %04x", pv);
+                        }
+                        fprintf(voodoo->jit_debug_log, "\n");
+                    }
+                }
+            } else
 #endif
             do {
+#ifndef NO_CODEGEN
+                if (voodoo->jit_debug && voodoo->jit_debug_log) {
+                    static int interp_warn = 0;
+                    if (!interp_warn) {
+                        fprintf(voodoo->jit_debug_log,
+                                "VOODOO WARNING: INTERPRETER FALLBACK! use_recomp=%d x=%d x2=%d real_y=%d\n",
+                                voodoo->use_recompiler, x, x2, real_y);
+                        interp_warn = 1;
+                    }
+                }
+#endif
                 int x_tiled = (x & 63) | ((x >> 6) * 128 * 32 / 2);
                 start_x     = x;
                 state->x    = x;
@@ -1401,6 +1475,45 @@ skip_pixel:
 
                 x += state->xdir;
             } while (start_x != x2);
+
+#ifndef NO_CODEGEN
+            /* JIT verify: compare JIT pixels vs interpreter pixels */
+            if (jit_verify_active && jit_fb_save && jv_count > 0) {
+                int mismatch = 0;
+                for (int vi = 0; vi < jv_count; vi++) {
+                    if (jit_fb_save[vi] != fb_mem[jv_start + vi]) {
+                        mismatch++;
+                    }
+                }
+                if (mismatch) {
+                    jit_verify_mismatches++;
+                    fprintf(voodoo->jit_debug_log,
+                            "VERIFY MISMATCH #%d y=%d x=%d..%d (%d/%d pixels differ) "
+                            "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
+                            "textureMode=0x%08x fogMode=0x%08x\n",
+                            jit_verify_mismatches, real_y, jv_start, jv_start + jv_count - 1,
+                            mismatch, jv_count,
+                            params->fbzMode, params->fbzColorPath, params->alphaMode,
+                            params->textureMode[0], params->fogMode);
+                    int logged = 0;
+                    for (int vi = 0; vi < jv_count && logged < 8; vi++) {
+                        if (jit_fb_save[vi] != fb_mem[jv_start + vi]) {
+                            fprintf(voodoo->jit_debug_log,
+                                    "  pixel[%d]: JIT=0x%04x INTERP=0x%04x\n",
+                                    jv_start + vi, jit_fb_save[vi], fb_mem[jv_start + vi]);
+                            logged++;
+                        }
+                    }
+                    fprintf(voodoo->jit_debug_log,
+                            "  JIT  post: ib=%d ig=%d ir=%d\n"
+                            "  INTERP post: ib=%d ig=%d ir=%d\n",
+                            jv_ib, jv_ig, jv_ir,
+                            state->ib, state->ig, state->ir);
+                    fflush(voodoo->jit_debug_log);
+                }
+            }
+        } /* end of jit_verify block */
+#endif
 
         voodoo->pixel_count[odd_even] += state->pixel_count;
         voodoo->texel_count[odd_even] += state->texel_count;

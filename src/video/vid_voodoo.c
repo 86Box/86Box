@@ -1169,6 +1169,12 @@ voodoo_card_init(void)
     voodoo->odd_even_mask     = voodoo->render_threads - 1;
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
+    voodoo->jit_debug = device_get_config_int("jit_debug");
+    if (voodoo->jit_debug) {
+        char path[1280];
+        snprintf(path, sizeof(path), "%svoodoo_jit.log", usr_path);
+        voodoo->jit_debug_log = fopen(path, "w");
+    }
 #endif
     voodoo->type = device_get_config_int("type");
     switch (voodoo->type) {
@@ -1329,6 +1335,12 @@ voodoo_2d3d_card_init(int type)
     voodoo->odd_even_mask     = voodoo->render_threads - 1;
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
+    voodoo->jit_debug = device_get_config_int("jit_debug");
+    if (voodoo->jit_debug) {
+        char path[1280];
+        snprintf(path, sizeof(path), "%svoodoo_jit.log", usr_path);
+        voodoo->jit_debug_log = fopen(path, "w");
+    }
 #endif
     voodoo->type      = type;
     voodoo->dual_tmus = (type == VOODOO_3) ? 1 : 0;
@@ -1584,6 +1596,10 @@ voodoo_card_close(voodoo_t *voodoo)
     }
 #ifndef NO_CODEGEN
     voodoo_codegen_close(voodoo);
+    if (voodoo->jit_debug_log) {
+        fclose(voodoo->jit_debug_log);
+        voodoo->jit_debug_log = NULL;
+    }
 #endif
     if (voodoo->type < VOODOO_BANSHEE && voodoo->fb_mem) {
         free(voodoo->fb_mem);
@@ -1729,6 +1745,17 @@ static const device_config_t voodoo_config[] = {
         .bios           = { { 0 } }
     },
 #endif
+    {
+        .name           = "jit_debug",
+        .description    = "JIT Debug Logging",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };

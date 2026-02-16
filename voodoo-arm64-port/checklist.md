@@ -86,28 +86,33 @@
 
 ## Phase 5: Fog + Alpha Test + Alpha Blend
 
-- [ ] Fog — FOG_CONSTANT
-- [ ] Fog — FOG_ADD / FOG_MULT modes
-- [ ] Fog — FOG source: w_depth table, Z, alpha, W
-- [ ] Alpha test — all 8 AFUNC modes
-- [ ] Alpha blend — dest_afunc (AZERO, ASRC_ALPHA, A_COLOR, ADST_ALPHA, AONE, AOMSRC_ALPHA, AOM_COLOR, AOMDST_ALPHA, ACOLORBEFOREFOG)
-- [ ] Alpha blend — src_afunc (AZERO, ASRC_ALPHA, A_COLOR, ADST_ALPHA, AONE, AOMSRC_ALPHA, AOM_COLOR, AOMDST_ALPHA, ASATURATE)
-- [ ] Dithersub (4x4 and 2x2)
-- [ ] **RUN TEST**: Transparent/fogged geometry works
+- [x] Fog — FOG_CONSTANT
+- [x] Fog — FOG_ADD / FOG_MULT modes
+- [x] Fog — FOG source: w_depth table, Z, alpha, W
+- [x] Alpha test — all 8 AFUNC modes
+- [x] Alpha blend — dest_afunc (AZERO, ASRC_ALPHA, A_COLOR, ADST_ALPHA, AONE, AOMSRC_ALPHA, AOM_COLOR, AOMDST_ALPHA, ACOLORBEFOREFOG)
+- [x] Alpha blend — src_afunc (AZERO, ASRC_ALPHA, A_COLOR, ADST_ALPHA, AONE, AOMSRC_ALPHA, AOM_COLOR, AOMDST_ALPHA, ASATURATE)
+- [x] Dithersub (4x4 and 2x2)
+- [x] **RUN TEST**: Transparent/fogged geometry works (2026-02-16)
 
 ## Phase 6: Framebuffer Write + Dithering
 
-- [ ] Dither 4x4 pattern
-- [ ] Dither 2x2 pattern
-- [ ] No-dither path (shift only)
-- [ ] RGB565 pack
-- [ ] Framebuffer write — linear
-- [ ] Framebuffer write — tiled
-- [ ] Depth write to aux buffer (linear + tiled)
-- [ ] Alpha write to aux buffer (linear + tiled)
-- [ ] Per-pixel state increments (dRdX, dGdX, dBdX, dAdX, dZdX, dSdX, dTdX, dWdX for both TMUs + W)
-- [ ] Pixel/texel counter updates
-- [ ] **RUN TEST**: Full rendering pipeline matches interpreter output
+- [x] Dither 4x4 pattern
+- [x] Dither 2x2 pattern
+- [x] No-dither path (shift only)
+- [x] RGB565 pack
+- [x] Framebuffer write — linear
+- [x] Framebuffer write — tiled
+- [x] Depth write to aux buffer (linear + tiled)
+- [x] Alpha write to aux buffer (linear + tiled)
+- [x] Per-pixel state increments (dRdX, dGdX, dBdX, dAdX, dZdX, dSdX, dTdX, dWdX for both TMUs + W)
+- [x] Pixel/texel counter updates
+- [x] **RUN TEST**: Full rendering pipeline matches interpreter output (2026-02-16)
+
+## Infrastructure
+
+- [x] JIT debug logging runtime toggle — CONFIG_BINARY in Voodoo settings UI, writes to `<vm_dir>/voodoo_jit.log` (default OFF)
+- [x] Removal guide: `voodoo-arm64-port/jit-debug-removal.md`
 
 ## Phase 7: Optimization + Validation
 

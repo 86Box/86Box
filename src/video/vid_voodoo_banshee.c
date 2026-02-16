@@ -3908,6 +3908,17 @@ static const device_config_t banshee_sgram_config[] = {
         .bios           = { { 0 } }
     },
 #endif
+    {
+        .name           = "jit_debug",
+        .description    = "JIT Debug Logging",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -3985,6 +3996,17 @@ static const device_config_t banshee_sgram_16mbonly_config[] = {
         .bios           = { { 0 } }
     },
 #endif
+    {
+        .name           = "jit_debug",
+        .description    = "JIT Debug Logging",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -4062,6 +4084,17 @@ static const device_config_t banshee_sdram_config[] = {
         .bios           = { { 0 } }
     },
 #endif
+    {
+        .name           = "jit_debug",
+        .description    = "JIT Debug Logging",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
