@@ -31,18 +31,18 @@
 
 ## Phase 2: Pixel Loop + Depth
 
-- [ ] Pixel loop structure (x iteration with xdir)
-- [ ] W-depth calculation
-- [ ] Stipple test (pattern and rotating)
-- [ ] Depth test — DEPTHOP_NEVER
-- [ ] Depth test — DEPTHOP_LESSTHAN
-- [ ] Depth test — DEPTHOP_EQUAL
-- [ ] Depth test — DEPTHOP_LESSTHANEQUAL
-- [ ] Depth test — DEPTHOP_GREATERTHAN
-- [ ] Depth test — DEPTHOP_NOTEQUAL
-- [ ] Depth test — DEPTHOP_GREATERTHANEQUAL
-- [ ] Depth test — DEPTHOP_ALWAYS
-- [ ] **RUN TEST**: Depth-only rendering works
+- [x] Pixel loop structure (x iteration with xdir)
+- [x] W-depth calculation
+- [x] Stipple test (pattern and rotating)
+- [x] Depth test — DEPTHOP_NEVER
+- [x] Depth test — DEPTHOP_LESSTHAN
+- [x] Depth test — DEPTHOP_EQUAL
+- [x] Depth test — DEPTHOP_LESSTHANEQUAL
+- [x] Depth test — DEPTHOP_GREATERTHAN
+- [x] Depth test — DEPTHOP_NOTEQUAL
+- [x] Depth test — DEPTHOP_GREATERTHANEQUAL
+- [x] Depth test — DEPTHOP_ALWAYS
+- [x] **RUN TEST**: Depth-only rendering works — verified 2026-02-15 (Quake 3: black screen, 3DMark 99: gray screen - expected without color/texture pipeline)
 
 ## Phase 3: Texture Fetch
 

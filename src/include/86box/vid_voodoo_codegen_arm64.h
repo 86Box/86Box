@@ -289,6 +289,41 @@ static int next_block_to_write[4] = { 0, 0 };
 #define ARM64_BIC_REG(d, n, m) (0x0A200000 | Rm(m) | Rn(n) | Rd(d))
 
 /* ========================================================================
+ * Section 12a: GPR Bitwise -- Bitmask Immediate
+ * ========================================================================
+ *
+ * ARM64 logical immediates use the N:immr:imms encoding.
+ * For simple low-bit masks (2^width - 1): N=0, immr=0, imms=width-1
+ * For single-bit masks and other patterns, compute N/immr/imms manually.
+ * ======================================================================== */
+
+/* AND Wd, Wn, #bitmask (32-bit, general N/immr/imms) */
+#define ARM64_AND_BITMASK(d, n, N, immr, imms) \
+    (0x12000000 | IMMN(N) | IMMR(immr) | IMMS(imms) | Rn(n) | Rd(d))
+
+/* ANDS Wd, Wn, #bitmask (32-bit, sets flags) */
+#define ARM64_ANDS_BITMASK(d, n, N, immr, imms) \
+    (0x72000000 | IMMN(N) | IMMR(immr) | IMMS(imms) | Rn(n) | Rd(d))
+
+/* ORR Wd, Wn, #bitmask (32-bit) */
+#define ARM64_ORR_BITMASK(d, n, N, immr, imms) \
+    (0x32000000 | IMMN(N) | IMMR(immr) | IMMS(imms) | Rn(n) | Rd(d))
+
+/* TST Wn, #bitmask -- alias for ANDS WZR, Wn, #bitmask */
+#define ARM64_TST_BITMASK(n, N, immr, imms) \
+    (0x72000000 | IMMN(N) | IMMR(immr) | IMMS(imms) | Rn(n) | Rd(31))
+
+/* Convenience: AND Wd, Wn, #(2^width - 1) -- mask low 'width' bits */
+/* Valid for width = 1..31 */
+#define ARM64_AND_MASK(d, n, width) ARM64_AND_BITMASK(d, n, 0, 0, (width) - 1)
+
+/* Convenience: ANDS Wd, Wn, #(2^width - 1) -- mask + set flags */
+#define ARM64_ANDS_MASK(d, n, width) ARM64_ANDS_BITMASK(d, n, 0, 0, (width) - 1)
+
+/* Convenience: TST Wn, #(2^width - 1) */
+#define ARM64_TST_MASK(n, width) ARM64_TST_BITMASK(n, 0, 0, (width) - 1)
+
+/* ========================================================================
  * Section 12: GPR Shifts -- Register
  * ======================================================================== */
 
@@ -529,6 +564,49 @@ static int next_block_to_write[4] = { 0, 0 };
 #define ARM64_TBNZ_PLACEHOLDER(t, bit)  (0x37000000 | BIT_TBxZ(bit) | Rt(t))
 #define ARM64_CBZ_W_PLACEHOLDER(t)      (0x34000000 | Rt(t))
 #define ARM64_CBNZ_W_PLACEHOLDER(t)     (0x35000000 | Rt(t))
+
+/*
+ * PATCH_FORWARD_BCOND(pos) -- patch a B.cond placeholder at 'pos' to
+ * branch to 'block_pos'. pos is the byte offset within code_block where
+ * the placeholder was emitted.
+ *
+ * B.cond uses imm19 (bits [23:5]) with 4-byte alignment.
+ */
+#define PATCH_FORWARD_BCOND(pos)                                             \
+    do {                                                                     \
+        int32_t _off = block_pos - (pos);                                    \
+        *(uint32_t *) &code_block[(pos)] |= OFFSET19(_off);                 \
+    } while (0)
+
+/*
+ * PATCH_FORWARD_B(pos) -- patch a B placeholder at 'pos' to branch to
+ * block_pos. B uses imm26 (bits [25:0]) with 4-byte alignment.
+ */
+#define PATCH_FORWARD_B(pos)                                                 \
+    do {                                                                     \
+        int32_t _off = block_pos - (pos);                                    \
+        *(uint32_t *) &code_block[(pos)] |= OFFSET26(_off);                 \
+    } while (0)
+
+/*
+ * PATCH_FORWARD_TBxZ(pos) -- patch a TBZ/TBNZ placeholder at 'pos'.
+ * Uses imm14 (bits [18:5]) with 4-byte alignment.
+ */
+#define PATCH_FORWARD_TBxZ(pos)                                              \
+    do {                                                                     \
+        int32_t _off = block_pos - (pos);                                    \
+        *(uint32_t *) &code_block[(pos)] |= OFFSET14(_off);                 \
+    } while (0)
+
+/*
+ * PATCH_FORWARD_CBxZ(pos) -- patch a CBZ/CBNZ placeholder at 'pos'.
+ * Uses imm19 (bits [23:5]) with 4-byte alignment.
+ */
+#define PATCH_FORWARD_CBxZ(pos)                                              \
+    do {                                                                     \
+        int32_t _off = block_pos - (pos);                                    \
+        *(uint32_t *) &code_block[(pos)] |= OFFSET19(_off);                 \
+    } while (0)
 
 /* ========================================================================
  * Section 21: NEON Integer Arithmetic
@@ -945,15 +1023,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     int depth_jump_pos2  = 0;
     int loop_jump_pos    = 0;
 
-    (void) voodoo;
-    (void) depthop;
-    (void) z_skip_pos;
     (void) a_skip_pos;
     (void) amask_skip_pos;
-    (void) stipple_skip_pos;
     (void) chroma_skip_pos;
-    (void) depth_jump_pos;
-    (void) depth_jump_pos2;
 
     /* Initialize NEON constants (written to static memory, loaded by prologue) */
     neon_01_w.u32[0]      = 0x00010001;
@@ -1101,22 +1173,504 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * ================================================================ */
     loop_jump_pos = block_pos;
 
-    /* TODO: Phase 2+ -- stipple, depth test, texture fetch, color combine,
-     *       fog, alpha test, alpha blend, dithering, framebuffer write,
-     *       per-pixel increments */
+    /* ================================================================
+     * Phase 2: Stipple test
+     * ================================================================
+     *
+     * x86-64 ref: lines 766-828
+     * Two modes: pattern stipple (FBZ_STIPPLE_PATT) or rotating stipple.
+     *
+     * Pattern stipple: bit = (real_y & 3) * 8 | (~x & 7)
+     *   test state->stipple with (1 << bit), skip pixel if zero
+     *
+     * Rotating stipple: ROR state->stipple by 1, test bit 31
+     * ================================================================ */
+    if (params->fbzMode & FBZ_STIPPLE) {
+        if (params->fbzMode & FBZ_STIPPLE_PATT) {
+            /* Pattern stipple.
+             * w4 = (real_y & 3) << 3
+             * w5 = ~state->x & 7
+             * w4 = w4 | w5  (bit index 0..31)
+             * w6 = 1 << w4
+             * TST state->stipple, w6
+             * BEQ -> skip pixel
+             */
+            /* AND w4, w24, #3  (real_y & 3) */
+            addlong(ARM64_AND_MASK(4, 24, 2));
+            /* LSL w4, w4, #3 */
+            addlong(ARM64_LSL_IMM(4, 4, 3));
+            /* LDR w5, [x0, #STATE_x] */
+            addlong(ARM64_LDR_W(5, 0, STATE_x));
+            /* MVN w5, w5 */
+            addlong(ARM64_MVN(5, 5));
+            /* AND w5, w5, #7 */
+            addlong(ARM64_AND_MASK(5, 5, 3));
+            /* ORR w4, w4, w5 */
+            addlong(ARM64_ORR_REG(4, 4, 5));
+            /* MOV w6, #1 */
+            addlong(ARM64_MOVZ_W(6, 1));
+            /* LSL w6, w6, w4 */
+            addlong(ARM64_LSL_REG(6, 6, 4));
+            /* LDR w7, [x0, #STATE_stipple] */
+            addlong(ARM64_LDR_W(7, 0, STATE_stipple));
+            /* TST w7, w6 */
+            addlong(ARM64_TST_REG(7, 6));
+            /* BEQ stipple_skip (forward, patch later) */
+            stipple_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_EQ));
+        } else {
+            /* Rotating stipple: ROR state->stipple by 1, test bit 31.
+             * LDR w4, [x0, #STATE_stipple]
+             * ROR w4, w4, #1
+             * STR w4, [x0, #STATE_stipple]
+             * TBZ w4, #31, skip
+             */
+            addlong(ARM64_LDR_W(4, 0, STATE_stipple));
+            addlong(ARM64_ROR_IMM(4, 4, 1));
+            addlong(ARM64_STR_W(4, 0, STATE_stipple));
+            /* TBZ w4, #31, stipple_skip (forward, patch later) */
+            stipple_skip_pos = block_pos;
+            addlong(ARM64_TBZ_PLACEHOLDER(4, 31));
+        }
+    }
 
     /* ================================================================
-     * Per-pixel state increment (x coordinate)
+     * Tiled X calculation (for tiled framebuffer modes)
+     * ================================================================
+     *
+     * x86-64 ref: lines 832-852
+     * x_tiled = (x & 63) + ((x >> 6) << 11)
+     * Tile is 128x32 pixels, 16-bit per pixel: row stride = 128*32/2 = 2048 words
+     * So tile_row * 2048 = (x >> 6) << 11
+     * ================================================================ */
+    if (params->col_tiled || params->aux_tiled) {
+        /* LDR w4, [x0, #STATE_x] */
+        addlong(ARM64_LDR_W(4, 0, STATE_x));
+        /* AND w5, w4, #63 */
+        addlong(ARM64_AND_MASK(5, 4, 6));
+        /* LSR w6, w4, #6 */
+        addlong(ARM64_LSR_IMM(6, 4, 6));
+        /* ADD w5, w5, w6, LSL #11 */
+        addlong(ARM64_ADD_REG_LSL(5, 5, 6, 11));
+        /* STR w5, [x0, #STATE_x_tiled] */
+        addlong(ARM64_STR_W(5, 0, STATE_x_tiled));
+    }
+
+    /* Zero v2 for later unpacking (PXOR XMM2, XMM2 equivalent) */
+    addlong(ARM64_MOVI_V2D_ZERO(2));
+
+    /* ================================================================
+     * Phase 2: W-depth calculation
+     * ================================================================
+     *
+     * x86-64 ref: lines 858-932
+     * If W-buffer enabled OR fog needs w_depth:
+     *   Compute depth from W using floating-point-like decomposition.
+     *
+     * W is a 48-bit fixed-point value stored in state->w (int64_t).
+     * High 16 bits (w+4) are tested first; if nonzero, depth is computed
+     * using CLZ (ARM64) instead of BSR (x86).
+     *
+     * BSR(x) = 31 - CLZ(x) on ARM64 (for nonzero input).
+     * ================================================================ */
+    if ((params->fbzMode & FBZ_W_BUFFER)
+        || (params->fogMode & (FOG_ENABLE | FOG_CONSTANT | FOG_Z | FOG_ALPHA)) == FOG_ENABLE) {
+        /* MOV w10, #0 -- new_depth = 0 (default if w high bits nonzero) */
+        addlong(ARM64_MOV_ZERO(10));
+
+        /* LDR w4, [x0, #(STATE_w + 4)] -- load high 32 bits of w */
+        addlong(ARM64_LDR_W(4, 0, STATE_w + 4));
+
+        /* UXTH w5, w4 -- test low 16 bits of w4 (== bits 32..47 of w) */
+        addlong(ARM64_UXTH(5, 4));
+
+        /* CBNZ w5, got_depth -- if high 16 bits nonzero, depth=0 */
+        depth_jump_pos = block_pos;
+        addlong(ARM64_CBNZ_W_PLACEHOLDER(5));
+
+        /* High word is zero. Now compute depth from low 32 bits.
+         * LDR w4, [x0, #STATE_w] -- load low 32 bits of w
+         */
+        addlong(ARM64_LDR_W(4, 0, STATE_w));
+
+        /* MOV w10, #0xF001 -- depth = 0xF001 (max if low word also zero-ish) */
+        addlong(ARM64_MOVZ_W(10, 0xF001));
+
+        /* MOV w5, w4 -- save low 32 bits in w5 */
+        addlong(ARM64_MOV_REG(5, 4));
+
+        /* LSR w4, w4, #16 */
+        addlong(ARM64_LSR_IMM(4, 4, 16));
+
+        /* CBZ w4, got_depth -- if top 16 of low word is zero, depth = 0xF001 */
+        depth_jump_pos2 = block_pos;
+        addlong(ARM64_CBZ_W_PLACEHOLDER(4));
+
+        /* BSR equivalent: CLZ w6, w4; then bsr_result = 31 - CLZ
+         *
+         * x86 uses: BSR EAX, EDX -> EAX = floor(log2(EDX))
+         *           EDX = 15; SUB EDX, EAX -> exp = 15 - bsr
+         *
+         * ARM64: CLZ w6, w4
+         *        w6 = 31 - w6  (= BSR result)
+         *        w7 = 15 - (31 - w6) = w6 - 16  ... but let's match x86 logic:
+         *
+         * exp = 15 - bsr_result = 15 - (31 - clz) = clz - 16
+         *
+         * So:
+         *   CLZ w6, w4
+         *   SUB w7, w6, #16    -- exp = clz - 16
+         *   MOV w11, #19
+         *   SUB w11, w11, w7   -- shift_amount = 19 - exp
+         *   MVN w5, w5         -- NOT low 32 bits
+         *   LSR w5, w5, w11    -- mant = (~w_low) >> shift_amount
+         *   AND w5, w5, #0xFFF -- mant &= 0xFFF
+         *   LSL w7, w7, #12    -- exp <<= 12
+         *   ADD w10, w7, w5    -- result = (exp << 12) + mant
+         *   ADD w10, w10, #1   -- result += 1
+         *   MOV w11, #0xFFFF
+         *   CMP w10, w11
+         *   CSEL w10, w11, w10, HI  -- clamp to 0xFFFF
+         */
+        addlong(ARM64_CLZ(6, 4));
+        addlong(ARM64_SUB_IMM(7, 6, 16));      /* exp = CLZ - 16 */
+
+        addlong(ARM64_MOVZ_W(11, 19));
+        addlong(ARM64_SUB_REG(11, 11, 7));      /* shift_amount = 19 - exp */
+
+        addlong(ARM64_MVN(5, 5));                /* NOT w_low */
+        addlong(ARM64_LSR_REG(5, 5, 11));        /* mant = (~w_low) >> shift */
+        addlong(ARM64_AND_MASK(5, 5, 12));       /* mant &= 0xFFF */
+
+        addlong(ARM64_LSL_IMM(7, 7, 12));        /* exp <<= 12 */
+        addlong(ARM64_ADD_REG(10, 7, 5));        /* result = (exp<<12) + mant */
+        addlong(ARM64_ADD_IMM(10, 10, 1));       /* result += 1 */
+
+        /* Clamp to 0xFFFF */
+        addlong(ARM64_MOVZ_W(11, 0xFFFF));
+        addlong(ARM64_CMP_REG(10, 11));
+        addlong(ARM64_CSEL(10, 11, 10, COND_HI)); /* if result > 0xFFFF, result = 0xFFFF */
+
+        /* Patch depth_jump_pos (CBNZ) and depth_jump_pos2 (CBZ) to here */
+        if (depth_jump_pos)
+            PATCH_FORWARD_CBxZ(depth_jump_pos);
+        if (depth_jump_pos2)
+            PATCH_FORWARD_CBxZ(depth_jump_pos2);
+
+        /* w10 = computed w_depth */
+
+        /* If fog needs w_depth, store it */
+        if ((params->fogMode & (FOG_ENABLE | FOG_CONSTANT | FOG_Z | FOG_ALPHA)) == FOG_ENABLE) {
+            /* STR w10, [x0, #STATE_w_depth] */
+            addlong(ARM64_STR_W(10, 0, STATE_w_depth));
+        }
+    }
+
+    /* ================================================================
+     * Z-buffer depth (when not using W-buffer)
+     * ================================================================
+     *
+     * x86-64 ref: lines 933-952
+     * depth = state->z >> 12, clamped to [0, 0xFFFF]
+     * ================================================================ */
+    if (!(params->fbzMode & FBZ_W_BUFFER)) {
+        /* LDR w10, [x0, #STATE_z] */
+        addlong(ARM64_LDR_W(10, 0, STATE_z));
+
+        /* ASR w10, w10, #12 */
+        addlong(ARM64_ASR_IMM(10, 10, 12));
+
+        /* Clamp: if negative, set to 0; if > 0xFFFF, set to 0xFFFF */
+        /* CMP w10, #0 */
+        addlong(ARM64_CMP_IMM(10, 0));
+        /* CSEL w10, wzr, w10, LT -- if negative, zero */
+        addlong(ARM64_CSEL(10, 31, 10, COND_LT));
+
+        addlong(ARM64_MOVZ_W(11, 0xFFFF));
+        addlong(ARM64_CMP_REG(10, 11));
+        /* CSEL w10, w11, w10, GT -- if > 0xFFFF, clamp */
+        addlong(ARM64_CSEL(10, 11, 10, COND_GT));
+    }
+
+    /* ================================================================
+     * Depth bias
+     * ================================================================
+     *
+     * x86-64 ref: lines 954-960
+     * new_depth = (depth + zaColor) & 0xFFFF
+     * ================================================================ */
+    if (params->fbzMode & FBZ_DEPTH_BIAS) {
+        /* LDR w4, [x1, #PARAMS_zaColor] */
+        addlong(ARM64_LDR_W(4, 1, PARAMS_zaColor));
+        /* ADD w10, w10, w4 */
+        addlong(ARM64_ADD_REG(10, 10, 4));
+        /* UXTH w10, w10  -- mask to 16 bits */
+        addlong(ARM64_UXTH(10, 10));
+    }
+
+    /* Store new_depth: STR w10, [x0, #STATE_new_depth] */
+    addlong(ARM64_STR_W(10, 0, STATE_new_depth));
+
+    /* ================================================================
+     * Phase 2: Depth test (all 8 DEPTHOP modes)
+     * ================================================================
+     *
+     * x86-64 ref: lines 966-1023
+     *
+     * If depth enabled and depthop is not ALWAYS or NEVER:
+     *   Load old depth from aux_mem[x or x_tiled]
+     *   Compare new_depth (w10) vs old_depth
+     *   Skip pixel on failure (forward branch to z_skip_pos)
+     *
+     * If DEPTHOP_NEVER: just return immediately
+     * If DEPTHOP_ALWAYS: no test needed
+     *
+     * For depth source override (FBZ_DEPTH_SOURCE), use zaColor instead.
+     * ================================================================ */
+    if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depthop != DEPTHOP_ALWAYS) && (depthop != DEPTHOP_NEVER)) {
+        /* Load x index (tiled or regular) */
+        if (params->aux_tiled) {
+            /* LDR w4, [x0, #STATE_x_tiled] */
+            addlong(ARM64_LDR_W(4, 0, STATE_x_tiled));
+        } else {
+            /* LDR w4, [x0, #STATE_x] */
+            addlong(ARM64_LDR_W(4, 0, STATE_x));
+        }
+
+        /* Load old depth: LDRH w5, [x9, x4, LSL #1]
+         * x9 = aux_mem, x4 = x index, each entry is 2 bytes */
+        addlong(ARM64_LDRH_REG_LSL1(5, 9, 4));
+
+        /* If depth source override, use zaColor instead of computed depth */
+        if (params->fbzMode & FBZ_DEPTH_SOURCE) {
+            /* LDRH w10, [x1, #PARAMS_zaColor] -- load zaColor as 16-bit */
+            addlong(ARM64_LDRH_IMM(10, 1, PARAMS_zaColor));
+        }
+
+        /* CMP w10, w5 -- compare new_depth vs old_depth */
+        addlong(ARM64_CMP_REG(10, 5));
+
+        /* Conditional branch based on depth operation.
+         *
+         * The comparison is unsigned (depth values are 0..0xFFFF).
+         *
+         * DEPTHOP_LESSTHAN:         skip if new >= old  -> skip on CS (carry set = HS)
+         * DEPTHOP_EQUAL:            skip if new != old  -> skip on NE
+         * DEPTHOP_LESSTHANEQUAL:    skip if new > old   -> skip on HI
+         * DEPTHOP_GREATERTHAN:      skip if new <= old  -> skip on LS
+         * DEPTHOP_NOTEQUAL:         skip if new == old  -> skip on EQ
+         * DEPTHOP_GREATERTHANEQUAL: skip if new < old   -> skip on CC (carry clear = LO)
+         */
+        if (depthop == DEPTHOP_LESSTHAN) {
+            z_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_CS)); /* skip if >= (unsigned) */
+        } else if (depthop == DEPTHOP_EQUAL) {
+            z_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_NE));
+        } else if (depthop == DEPTHOP_LESSTHANEQUAL) {
+            z_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_HI)); /* skip if > (unsigned) */
+        } else if (depthop == DEPTHOP_GREATERTHAN) {
+            z_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_LS)); /* skip if <= (unsigned) */
+        } else if (depthop == DEPTHOP_NOTEQUAL) {
+            z_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_EQ));
+        } else if (depthop == DEPTHOP_GREATERTHANEQUAL) {
+            z_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_CC)); /* skip if < (unsigned) */
+        } else {
+            fatal("Bad depth_op\n");
+        }
+    } else if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depthop == DEPTHOP_NEVER)) {
+        /* DEPTHOP_NEVER: bail out immediately, no pixels pass */
+        addlong(ARM64_RET);
+    }
+
+    /* ================================================================
+     * Phase 3+ placeholders: texture fetch, color combine, fog,
+     * alpha test, alpha blend, dithering, framebuffer write
+     * ================================================================ */
+
+    /* Texture fetch (Phase 3 placeholder) */
+    if (params->fbzColorPath & FBZCP_TEXTURE_ENABLED) {
+        if ((params->textureMode[0] & TEXTUREMODE_LOCAL_MASK) == TEXTUREMODE_LOCAL || !voodoo->dual_tmus) {
+            block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 0);
+        } else if ((params->textureMode[0] & TEXTUREMODE_MASK) == TEXTUREMODE_PASSTHROUGH) {
+            block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 1);
+        } else {
+            block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 1);
+            block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 0);
+        }
+    }
+
+    /* TODO: Phase 4 -- color/alpha combine */
+    /* TODO: Phase 5 -- fog, alpha test, alpha blend */
+    /* TODO: Phase 6 -- dithering, framebuffer write, depth write */
+
+    /* ================================================================
+     * Patch skip positions (z_skip, a_skip, chroma_skip, stipple_skip,
+     * amask_skip): all skip to here (after framebuffer write, before
+     * per-pixel increments).
+     *
+     * x86-64 ref: lines 3245-3254
+     * ================================================================ */
+    if (z_skip_pos)
+        PATCH_FORWARD_BCOND(z_skip_pos);
+    if (a_skip_pos)
+        PATCH_FORWARD_BCOND(a_skip_pos);
+    if (chroma_skip_pos)
+        PATCH_FORWARD_BCOND(chroma_skip_pos);
+    if (amask_skip_pos)
+        PATCH_FORWARD_BCOND(amask_skip_pos);
+    if (stipple_skip_pos) {
+        if (params->fbzMode & FBZ_STIPPLE_PATT) {
+            PATCH_FORWARD_BCOND(stipple_skip_pos);
+        } else {
+            PATCH_FORWARD_TBxZ(stipple_skip_pos);
+        }
+    }
+
+    /* ================================================================
+     * Per-pixel state increments
+     * ================================================================
+     *
+     * x86-64 ref: lines 3256-3427
+     *
+     * Update: ib/ig/ir/ia (NEON 4xS32 add/sub with dBdX..dAdX)
+     *         z += dZdX
+     *         tmu0_s/t += dSdX/dTdX (64-bit add/sub)
+     *         tmu0_w += dWdX (64-bit)
+     *         w += dWdX (64-bit global W)
+     *         tmu1 s/t/w if dual TMUs
+     *         pixel_count++
+     *         texel_count += 1 or 2
+     * ================================================================ */
+
+    /* ib/ig/ir/ia increment (4 x int32, contiguous at STATE_ib=472).
+     * 472 is not 16-byte aligned, so use ADD+LD1 instead of LDR Q. */
+    addlong(ARM64_ADD_IMM_X(16, 0, STATE_ib));    /* x16 = &state->ib */
+    addlong(ARM64_LD1_V4S(0, 16));                 /* v0 = {ib, ig, ir, ia} */
+    addlong(ARM64_ADD_IMM_X(17, 1, PARAMS_dBdX));  /* x17 = &params->dBdX */
+    addlong(ARM64_LD1_V4S(1, 17));                  /* v1 = {dBdX, dGdX, dRdX, dAdX} */
+    if (state->xdir > 0) {
+        addlong(ARM64_ADD_V4S(0, 0, 1));
+    } else {
+        addlong(ARM64_SUB_V4S(0, 0, 1));
+    }
+    addlong(ARM64_ST1_V4S(0, 16));  /* store v0 back to [x16] (= &state->ib) */
+
+    /* Z increment */
+    /* LDR w4, [x0, #STATE_z] */
+    addlong(ARM64_LDR_W(4, 0, STATE_z));
+    /* LDR w5, [x1, #PARAMS_dZdX] */
+    addlong(ARM64_LDR_W(5, 1, PARAMS_dZdX));
+    if (state->xdir > 0) {
+        addlong(ARM64_ADD_REG(4, 4, 5));
+    } else {
+        addlong(ARM64_SUB_REG(4, 4, 5));
+    }
+    addlong(ARM64_STR_W(4, 0, STATE_z));
+
+    /* TMU0 s/t increment (64-bit add/sub) */
+    /* tmu0_s and tmu0_t are contiguous 64-bit values at STATE_tmu0_s.
+     * dSdX and dTdX are contiguous 64-bit values at PARAMS_tmu0_dSdX.
+     * Use NEON 2xD (128-bit) add/sub. */
+
+    /* LDR Q0, [x0, #STATE_tmu0_s] -- loads tmu0_s (64-bit) + tmu0_t (64-bit) = 128 bits */
+    /* STATE_tmu0_s = 496, 496/16 = 31 -> aligned! */
+    addlong(ARM64_LDR_Q(0, 0, STATE_tmu0_s));
+
+    /* LDR Q1, [x1, #PARAMS_tmu0_dSdX] -- loads dSdX + dTdX */
+    /* PARAMS_tmu0_dSdX = 144, 144/16 = 9 -> aligned */
+    addlong(ARM64_LDR_Q(1, 1, PARAMS_tmu0_dSdX));
+
+    if (state->xdir > 0) {
+        addlong(ARM64_ADD_V2D(0, 0, 1));
+    } else {
+        addlong(ARM64_SUB_V2D(0, 0, 1));
+    }
+    addlong(ARM64_STR_Q(0, 0, STATE_tmu0_s));
+
+    /* TMU0 W increment (64-bit) */
+    addlong(ARM64_LDR_X(10, 0, STATE_tmu0_w));
+    addlong(ARM64_LDR_X(11, 1, PARAMS_tmu0_dWdX));
+    if (state->xdir > 0) {
+        addlong(ARM64_ADD_REG_X(10, 10, 11));
+    } else {
+        addlong(ARM64_SUB_REG_X(10, 10, 11));
+    }
+    addlong(ARM64_STR_X(10, 0, STATE_tmu0_w));
+
+    /* Global W increment (64-bit) */
+    addlong(ARM64_LDR_X(10, 0, STATE_w));
+    addlong(ARM64_LDR_X(11, 1, PARAMS_dWdX));
+    if (state->xdir > 0) {
+        addlong(ARM64_ADD_REG_X(10, 10, 11));
+    } else {
+        addlong(ARM64_SUB_REG_X(10, 10, 11));
+    }
+    addlong(ARM64_STR_X(10, 0, STATE_w));
+
+    /* TMU1 s/t/w if dual TMUs */
+    if (voodoo->dual_tmus) {
+        /* TMU1 s/t (128-bit NEON).
+         * STATE_tmu1_s = 520, not 16-byte aligned -- use ADD+LD1/ST1. */
+        addlong(ARM64_ADD_IMM_X(16, 0, STATE_tmu1_s)); /* x16 = &state->tmu1_s */
+        addlong(ARM64_LD1_V4S(0, 16));                  /* v0 = {tmu1_s_lo, tmu1_s_hi, tmu1_t_lo, tmu1_t_hi} */
+
+        /* PARAMS_tmu1_dSdX = 240, 240/16 = 15 -> Q-aligned */
+        addlong(ARM64_LDR_Q(1, 1, PARAMS_tmu1_dSdX));
+
+        if (state->xdir > 0) {
+            addlong(ARM64_ADD_V2D(0, 0, 1));
+        } else {
+            addlong(ARM64_SUB_V2D(0, 0, 1));
+        }
+        addlong(ARM64_ST1_V4S(0, 16)); /* store back via x16 = &state->tmu1_s */
+
+        /* TMU1 W (64-bit) */
+        addlong(ARM64_LDR_X(10, 0, STATE_tmu1_w));
+        addlong(ARM64_LDR_X(11, 1, PARAMS_tmu1_dWdX));
+        if (state->xdir > 0) {
+            addlong(ARM64_ADD_REG_X(10, 10, 11));
+        } else {
+            addlong(ARM64_SUB_REG_X(10, 10, 11));
+        }
+        addlong(ARM64_STR_X(10, 0, STATE_tmu1_w));
+    }
+
+    /* Pixel count increment */
+    /* LDR w4, [x0, #STATE_pixel_count] */
+    addlong(ARM64_LDR_W(4, 0, STATE_pixel_count));
+    addlong(ARM64_ADD_IMM(4, 4, 1));
+    addlong(ARM64_STR_W(4, 0, STATE_pixel_count));
+
+    /* Texel count increment */
+    if (params->fbzColorPath & FBZCP_TEXTURE_ENABLED) {
+        addlong(ARM64_LDR_W(4, 0, STATE_texel_count));
+        if ((params->textureMode[0] & TEXTUREMODE_MASK) == TEXTUREMODE_PASSTHROUGH
+            || (params->textureMode[0] & TEXTUREMODE_LOCAL_MASK) == TEXTUREMODE_LOCAL) {
+            addlong(ARM64_ADD_IMM(4, 4, 1));
+        } else {
+            addlong(ARM64_ADD_IMM(4, 4, 2));
+        }
+        addlong(ARM64_STR_W(4, 0, STATE_texel_count));
+    }
+
+    /* ================================================================
+     * X coordinate increment and loop back
+     * ================================================================
+     *
+     * x86-64 ref: lines 3448-3469
      * ================================================================ */
 
     /* LDR w4, [x0, #STATE_x] */
     addlong(ARM64_LDR_W(4, 0, STATE_x));
 
     if (state->xdir > 0) {
-        /* ADD w5, w4, #1 */
         addlong(ARM64_ADD_IMM(5, 4, 1));
     } else {
-        /* SUB w5, w4, #1 */
         addlong(ARM64_SUB_IMM(5, 4, 1));
     }
 
@@ -1124,9 +1678,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addlong(ARM64_STR_W(5, 0, STATE_x));
 
     /* CMP w4, state->x2 */
-    /* LDR w6, [x0, #STATE_x2] */
     addlong(ARM64_LDR_W(6, 0, STATE_x2));
-    /* CMP w4, w6 */
     addlong(ARM64_CMP_REG(4, 6));
 
     /* B.NE loop_jump_pos */
