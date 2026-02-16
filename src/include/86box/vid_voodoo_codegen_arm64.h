@@ -1,9 +1,29 @@
-/*Registers :
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          3DFX Voodoo emulation - ARM64 JIT codegen.
+ *
+ *          Ported from vid_voodoo_codegen_x86-64.h
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/> (original Voodoo emulation)
+ *          Anthony (ARM64 port, 2026)
+ *
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2026 Anthony.
+ */
 
-  alphaMode
-  fbzMode & 0x1f3fff
-  fbzColorPath
-*/
+/*
+ * Register assignments in generated code:
+ *
+ *   alphaMode
+ *   fbzMode & 0x1f3fff
+ *   fbzColorPath
+ */
 
 #ifndef VIDEO_VOODOO_CODEGEN_ARM64_H
 #define VIDEO_VOODOO_CODEGEN_ARM64_H
@@ -12,6 +32,7 @@
 #    include <pthread.h>
 #endif
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define BLOCK_NUM  8
@@ -323,6 +344,13 @@ static int next_block_to_write[4] = { 0, 0 };
 /* Convenience: TST Wn, #(2^width - 1) */
 #define ARM64_TST_MASK(n, width) ARM64_TST_BITMASK(n, 0, 0, (width) - 1)
 
+/* EOR Wd, Wn, #bitmask (32-bit) */
+#define ARM64_EOR_BITMASK(d, n, N, immr, imms) \
+    (0x52000000 | IMMN(N) | IMMR(immr) | IMMS(imms) | Rn(n) | Rd(d))
+
+/* Convenience: EOR Wd, Wn, #(2^width - 1) -- XOR low 'width' bits */
+#define ARM64_EOR_MASK(d, n, width) ARM64_EOR_BITMASK(d, n, 0, 0, (width) - 1)
+
 /* ========================================================================
  * Section 12: GPR Shifts -- Register
  * ======================================================================== */
@@ -332,6 +360,9 @@ static int next_block_to_write[4] = { 0, 0 };
 
 /* LSR Wd, Wn, Wm (variable logical right shift) */
 #define ARM64_LSR_REG(d, n, m) (0x1AC02400 | Rm(m) | Rn(n) | Rd(d))
+
+/* LSR Xd, Xn, Xm (variable logical right shift, 64-bit) */
+#define ARM64_LSR_REG_X(d, n, m) (0x9AC02400 | Rm(m) | Rn(n) | Rd(d))
 
 /* ASR Wd, Wn, Wm (variable arithmetic right shift) */
 #define ARM64_ASR_REG(d, n, m) (0x1AC02800 | Rm(m) | Rn(n) | Rd(d))
@@ -639,6 +670,7 @@ static int next_block_to_write[4] = { 0, 0 };
 #define ARM64_SUB_V8B(d, n, m)  (0x2E208400 | Rm(m) | Rn(n) | Rd(d))
 
 /* Pairwise */
+#define ARM64_ADDP_V4H(d, n, m) (0x0E60BC00 | Rm(m) | Rn(n) | Rd(d))
 #define ARM64_ADDP_V4S(d, n, m) (0x4EA0BC00 | Rm(m) | Rn(n) | Rd(d))
 #define ARM64_ADDP_V8H(d, n, m) (0x4E60BC00 | Rm(m) | Rn(n) | Rd(d))
 
@@ -987,16 +1019,601 @@ static voodoo_neon_reg_t neon_00_ff_w[2];
 static uint32_t          i_00_ff_w[2] = { 0, 0xff };
 
 /* ========================================================================
- * codegen_texture_fetch() -- placeholder for Phase 3
+ * codegen_texture_fetch() -- Phase 3: Texture fetch with LOD, bilinear
+ *
+ * Translates x86-64 codegen lines 78-647.
+ *
+ * Returns texel color in w4 as packed BGRA (same as x86-64 EAX).
+ *
+ * Register usage within this function:
+ *   x0 = state, x1 = params (pinned)
+ *   x4-x7, x10-x15 = scratch GPR
+ *   x19 = logtable pointer (pinned)
+ *   x25 = bilinear_lookup pointer (pinned)
+ *   v0-v7, v16-v17 = scratch NEON
+ *   v8 = xmm_01_w (pinned), v9 = xmm_ff_w (pinned)
  * ======================================================================== */
 static inline int
 codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int block_pos, int tmu)
 {
-    /* TODO: Phase 3 -- texture fetch, LOD, bilinear filter */
     (void) voodoo;
-    (void) params;
-    (void) state;
-    (void) tmu;
+
+    if (params->textureMode[tmu] & 1) {
+        /* ============================================================
+         * Perspective-correct W division path
+         * ============================================================
+         *
+         * x86-64 ref: lines 81-187
+         *
+         * Load tmu_s, tmu_t, tmu_w. Compute (1<<48) / tmu_w.
+         * Multiply S and T by the reciprocal, shift, and compute LOD.
+         * ============================================================ */
+
+        /* LDR x5, [x0, #STATE_tmu_s(tmu)] -- load S (64-bit) */
+        addlong(ARM64_LDR_X(5, 0, STATE_tmu_s(tmu)));
+
+        /* LDR x6, [x0, #STATE_tmu_t(tmu)] -- load T (64-bit) */
+        addlong(ARM64_LDR_X(6, 0, STATE_tmu_t(tmu)));
+
+        /* LDR x7, [x0, #STATE_tmu_w(tmu)] -- load W (64-bit) */
+        addlong(ARM64_LDR_X(7, 0, STATE_tmu_w(tmu)));
+
+        /* MOV x4, #(1 << 48) -- dividend for W division */
+        addlong(ARM64_MOVZ_X(4, 0));            /* low 16 bits = 0 */
+        addlong(ARM64_MOVK_X(4, 0, 1));         /* bits 16-31 = 0 */
+        addlong(ARM64_MOVK_X(4, 0, 2));         /* bits 32-47 = 0 */
+        addlong(ARM64_MOVK_X(4, 1, 3));         /* bits 48-63 = 1 */
+
+        /* If tmu_w == 0, skip division (avoid divide-by-zero) */
+        {
+            int div_skip_pos;
+            addlong(ARM64_CMP_IMM_X(7, 0));
+            div_skip_pos = block_pos;
+            addlong(ARM64_BCOND_PLACEHOLDER(COND_EQ));
+
+            /* SDIV x4, x4, x7 -- quotient = (1<<48) / tmu_w */
+            addlong(ARM64_SDIV_X(4, 4, 7));
+
+            PATCH_FORWARD_BCOND(div_skip_pos);
+        }
+
+        /* ASR x5, x5, #14 -- S >>= 14 */
+        addlong(ARM64_ASR_IMM_X(5, 5, 14));
+        /* ASR x6, x6, #14 -- T >>= 14 */
+        addlong(ARM64_ASR_IMM_X(6, 6, 14));
+
+        /* MUL x5, x5, x4 -- S *= quotient */
+        addlong(ARM64_MUL_X(5, 5, 4));
+        /* MUL x6, x6, x4 -- T *= quotient */
+        addlong(ARM64_MUL_X(6, 6, 4));
+
+        /* ASR x5, x5, #30 -- S >>= 30 (final tex_s) */
+        addlong(ARM64_ASR_IMM_X(5, 5, 30));
+        /* ASR x6, x6, #30 -- T >>= 30 (final tex_t) */
+        addlong(ARM64_ASR_IMM_X(6, 6, 30));
+
+        /* LOD calculation using the W reciprocal (x4).
+         *
+         * BSR equivalent: CLZ then invert.
+         * x86-64: BSR RDX, RAX -> bit position of MSB
+         *         Then: SHL RAX, 8; SHR RAX, CL; AND EAX, 0xFF
+         *         lookup logtable[EAX]; OR with (exp << 8)
+         *
+         * ARM64: CLZ x10, x4
+         *        w10 = 63 - w10  (= BSR result)
+         */
+        addlong(ARM64_CLZ_X(10, 4));
+        /* w11 = 63 - w10 = BSR result */
+        addlong(ARM64_MOVZ_W(11, 63));
+        addlong(ARM64_SUB_REG(11, 11, 10));
+
+        /* SHL x4, x4, #8 */
+        addlong(ARM64_LSL_IMM_X(4, 4, 8));
+
+        /* Store tex_t: STR w6, [x0, #STATE_tex_t] */
+        addlong(ARM64_STR_W(6, 0, STATE_tex_t));
+
+        /* MOV w12, w11 -- save BSR result for shift */
+        addlong(ARM64_MOV_REG(12, 11));
+
+        /* SUB w11, w11, #19 -- exp = BSR - 19 */
+        addlong(ARM64_SUB_IMM(11, 11, 19));
+
+        /* LSR x4, x4, x12 -- shift quotient by BSR amount (64-bit) */
+        addlong(ARM64_LSR_REG_X(4, 4, 12));
+
+        /* LSL w11, w11, #8 -- exp <<= 8 */
+        addlong(ARM64_LSL_IMM(11, 11, 8));
+
+        /* AND w4, w4, #0xFF -- mantissa = low 8 bits */
+        addlong(ARM64_AND_MASK(4, 4, 8));
+
+        /* Store tex_s: STR w5, [x0, #STATE_tex_s] */
+        addlong(ARM64_STR_W(5, 0, STATE_tex_s));
+
+        /* LDRB w4, [x19, x4] -- logtable[mantissa] */
+        addlong(ARM64_LDRB_REG(4, 19, 4));
+
+        /* ORR w4, w4, w11 -- combine mantissa + exp */
+        addlong(ARM64_ORR_REG(4, 4, 11));
+
+        /* ADD w4, w4, state->tmu[tmu].lod */
+        addlong(ARM64_LDR_W(10, 0, STATE_tmu_lod(tmu)));
+        addlong(ARM64_ADD_REG(4, 4, 10));
+
+        /* Clamp LOD to [lod_min, lod_max] */
+        addlong(ARM64_LDR_W(10, 0, STATE_lod_min_n(tmu)));
+        addlong(ARM64_CMP_REG(4, 10));
+        addlong(ARM64_CSEL(4, 10, 4, COND_LT));  /* if lod < min, lod = min */
+
+        addlong(ARM64_LDR_W(10, 0, STATE_lod_max_n(tmu)));
+        addlong(ARM64_CMP_REG(4, 10));
+        addlong(ARM64_CSEL(4, 10, 4, COND_GE));  /* if lod >= max, lod = max */
+
+        /* SHR w4, w4, #8 -- integer LOD */
+        addlong(ARM64_LSR_IMM(4, 4, 8));
+
+        /* Store LOD: STR w4, [x0, #STATE_lod] */
+        addlong(ARM64_STR_W(4, 0, STATE_lod));
+    } else {
+        /* ============================================================
+         * No perspective division (textureMode bit 0 clear)
+         * ============================================================
+         *
+         * x86-64 ref: lines 188-222
+         *
+         * Simple shift: tex_s = tmu_s >> 28, tex_t = tmu_t >> 28
+         * LOD = lod_min >> 8
+         * ============================================================ */
+
+        /* LDR x4, [x0, #STATE_tmu_s(tmu)] */
+        addlong(ARM64_LDR_X(4, 0, STATE_tmu_s(tmu)));
+        /* LDR x6, [x0, #STATE_tmu_t(tmu)] */
+        addlong(ARM64_LDR_X(6, 0, STATE_tmu_t(tmu)));
+
+        /* LSR x4, x4, #28 */
+        addlong(ARM64_LSR_IMM_X(4, 4, 28));
+        /* LDR w5, [x0, #STATE_lod_min_n(tmu)] */
+        addlong(ARM64_LDR_W(5, 0, STATE_lod_min_n(tmu)));
+        /* LSR x6, x6, #28 */
+        addlong(ARM64_LSR_IMM_X(6, 6, 28));
+
+        /* STR x4, [x0, #STATE_tex_s] -- note: x86 stores as 64-bit (RAX) */
+        addlong(ARM64_STR_X(4, 0, STATE_tex_s));
+
+        /* LSR w5, w5, #8 */
+        addlong(ARM64_LSR_IMM(5, 5, 8));
+
+        /* STR x6, [x0, #STATE_tex_t] -- note: x86 stores as 64-bit (RCX) */
+        addlong(ARM64_STR_X(6, 0, STATE_tex_t));
+
+        /* STR w5, [x0, #STATE_lod] */
+        addlong(ARM64_STR_W(5, 0, STATE_lod));
+    }
+
+    if (params->fbzColorPath & FBZCP_TEXTURE_ENABLED) {
+        if (voodoo->bilinear_enabled && (params->textureMode[tmu] & 6)) {
+            /* ============================================================
+             * Bilinear filtered texture lookup
+             * ============================================================
+             *
+             * x86-64 ref: lines 225-543
+             *
+             * Compute sub-texel fractions, fetch 4 texels,
+             * weight by bilinear coefficients, blend.
+             *
+             * Register plan:
+             *   w4 = tex_s, w5 = tex_t, w6 = lod, w7 = tex_shift
+             *   w10 = EBP (temp/bilinear_shift), w11 = scratch
+             *   x12 = tex_base pointer, x13/x14 = row pointers
+             * ============================================================ */
+
+            /* MOV w7, #8  (initial tex_shift) */
+            addlong(ARM64_MOVZ_W(7, 8));
+            /* LDR w6, [x0, #STATE_lod] */
+            addlong(ARM64_LDR_W(6, 0, STATE_lod));
+            /* MOV w10, #1 */
+            addlong(ARM64_MOVZ_W(10, 1));
+            /* SUB w7, w7, w6  (tex_shift = 8 - lod) */
+            addlong(ARM64_SUB_REG(7, 7, 6));
+            /* SHL w10, w10, w6  (1 << lod) */
+            addlong(ARM64_LSL_REG(10, 10, 6));
+            /* LDR w4, [x0, #STATE_tex_s] */
+            addlong(ARM64_LDR_W(4, 0, STATE_tex_s));
+            /* LSL w10, w10, #3  ((1 << lod) << 3 = 1 << (lod+3)) */
+            addlong(ARM64_LSL_IMM(10, 10, 3));
+            /* LDR w5, [x0, #STATE_tex_t] */
+            addlong(ARM64_LDR_W(5, 0, STATE_tex_t));
+
+            /* Mirror S */
+            if (params->tLOD[tmu] & LOD_TMIRROR_S) {
+                /* TST w4, #0x1000; if set, NOT w4 */
+                /* Use TBZ: if bit 12 is zero, skip the NOT */
+                int mirror_s_skip = block_pos;
+                addlong(ARM64_TBZ_PLACEHOLDER(4, 12));
+                addlong(ARM64_MVN(4, 4));
+                PATCH_FORWARD_TBxZ(mirror_s_skip);
+            }
+            /* Mirror T */
+            if (params->tLOD[tmu] & LOD_TMIRROR_T) {
+                int mirror_t_skip = block_pos;
+                addlong(ARM64_TBZ_PLACEHOLDER(5, 12));
+                addlong(ARM64_MVN(5, 5));
+                PATCH_FORWARD_TBxZ(mirror_t_skip);
+            }
+
+            /* SUB w4, w4, w10  (S -= (1 << (lod+3))) */
+            addlong(ARM64_SUB_REG(4, 4, 10));
+            /* SUB w5, w5, w10  (T -= (1 << (lod+3))) */
+            addlong(ARM64_SUB_REG(5, 5, 10));
+            /* ASR w4, w4, w6  (S >>= lod) */
+            addlong(ARM64_ASR_REG(4, 4, 6));
+            /* ASR w5, w5, w6  (T >>= lod) */
+            addlong(ARM64_ASR_REG(5, 5, 6));
+
+            /* Extract sub-texel fractions for bilinear weight lookup.
+             * frac_s = S & 0xF, frac_t = (T & 0xF) << 4
+             * bilinear_index = (frac_t << 4) | frac_s
+             * Then shift S and T to get integer texel coordinates.
+             */
+            /* MOV w10, w4 */
+            addlong(ARM64_MOV_REG(10, 4));
+            /* MOV w11, w5 */
+            addlong(ARM64_MOV_REG(11, 5));
+            /* AND w10, w10, #0xF  (frac_s) */
+            addlong(ARM64_AND_MASK(10, 10, 4));
+            /* LSL w11, w11, #4 */
+            addlong(ARM64_LSL_IMM(11, 11, 4));
+            /* SAR w4, w4, #4  (integer S) */
+            addlong(ARM64_ASR_IMM(4, 4, 4));
+            /* AND w11, w11, #0xF0  (frac_t << 4) */
+            addlong(ARM64_AND_BITMASK(11, 11, 0, 28, 3));  /* N=0 immr=28 imms=3 -> mask 0xF0 */
+            /* SAR w5, w5, #4  (integer T) */
+            addlong(ARM64_ASR_IMM(5, 5, 4));
+            /* ORR w10, w10, w11  (bilinear_index = frac_s | (frac_t << 4)) */
+            addlong(ARM64_ORR_REG(10, 10, 11));
+
+            /* LDR w6, [x0, #STATE_lod] -- reload LOD for array indexing */
+            addlong(ARM64_LDR_W(6, 0, STATE_lod));
+
+            /* LSL w10, w10, #5  (bilinear_index * 32 = offset into bilinear_lookup) */
+            addlong(ARM64_LSL_IMM(10, 10, 5));
+
+            /* x86-64: LEA RSI, [RSI+RCX*4]  -- advance params by lod*4 for mask arrays
+             * ARM64: We compute mask array base explicitly, no -0x10 hack.
+             *
+             * Save bilinear_shift in state->ebp_store for later.
+             */
+            addlong(ARM64_STR_W(10, 0, STATE_ebp_store));
+
+            /* Load texture base pointer: tex[tmu][lod]
+             * x86-64: MOV RBP, state->tex[RDI+RCX*8]
+             * ARM64: ADD x11, x0, #STATE_tex_n(tmu)
+             *        LDR x12, [x11, x6, LSL #3]  -- tex[tmu][lod]
+             */
+            addlong(ARM64_ADD_IMM_X(11, 0, STATE_tex_n(tmu)));
+            addlong(ARM64_LDR_X_REG_LSL3(12, 11, 6));
+
+            /* MOV w11, w7  (w11 = tex_shift for SHL later) */
+            addlong(ARM64_MOV_REG(11, 7));
+
+            /* w13 = T+1 (next row) */
+            addlong(ARM64_MOV_REG(13, 5));
+
+            /* Clamp or wrap S and T coordinates */
+            if (!state->clamp_s[tmu]) {
+                /* AND w4, w4, params->tex_w_mask[tmu][lod] */
+                addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_w_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 14, 6));
+                addlong(ARM64_AND_REG(4, 4, 15));
+            }
+
+            /* T1 = T + 1 */
+            addlong(ARM64_ADD_IMM(13, 13, 1));
+
+            if (state->clamp_t[tmu]) {
+                /* Clamp T1 to [0, tex_h_mask] and T0 to [0, tex_h_mask] */
+                /* Load tex_h_mask[tmu][lod] */
+                addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_h_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 14, 6));
+
+                /* Clamp T1: if negative, 0; if > mask, mask */
+                addlong(ARM64_CMP_IMM(13, 0));
+                addlong(ARM64_CSEL(13, 31, 13, COND_LT));
+                addlong(ARM64_CMP_REG(13, 15));
+                addlong(ARM64_CSEL(13, 15, 13, COND_HI));
+
+                /* Clamp T0: if negative, 0; if > mask, mask */
+                addlong(ARM64_CMP_IMM(5, 0));
+                addlong(ARM64_CSEL(5, 31, 5, COND_LT));
+                addlong(ARM64_CMP_REG(5, 15));
+                addlong(ARM64_CSEL(5, 15, 5, COND_HI));
+            } else {
+                /* AND T1 with tex_h_mask */
+                addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_h_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 14, 6));
+                addlong(ARM64_AND_REG(13, 13, 15));
+                /* AND T0 with tex_h_mask */
+                addlong(ARM64_AND_REG(5, 5, 15));
+            }
+
+            /* Compute row addresses:
+             * T0_addr = tex_base + (T0 << tex_shift) * 4
+             * T1_addr = tex_base + (T1 << tex_shift) * 4
+             *
+             * x86-64: SHL EBX, CL; SHL EDX, CL
+             *         LEA RBX, [RBP+RBX*4]; LEA RDX, [RBP+RDX*4]
+             *
+             * ARM64: LSL w5, w5, w11; LSL w13, w13, w11
+             *        ADD x13_row0, x12, x5, LSL #2
+             *        ADD x14_row1, x12, x13, LSL #2
+             */
+            addlong(ARM64_LSL_REG(5, 5, 11));
+            addlong(ARM64_LSL_REG(13, 13, 11));
+            /* x13 = row1 address, x14 = row0 address (reuse registers) */
+            addlong(ARM64_ADD_REG_X_LSL(14, 12, 5, 2));   /* x14 = tex_base + T0_offset*4 */
+            addlong(ARM64_ADD_REG_X_LSL(13, 12, 13, 2));  /* x13 = tex_base + T1_offset*4 */
+
+            /* Handle S clamping for bilinear (need S and S+1 texels) */
+            if (state->clamp_s[tmu]) {
+                /* Load tex_w_mask[tmu][lod] */
+                addlong(ARM64_ADD_IMM_X(15, 1, PARAMS_tex_w_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 15, 6));
+
+                /* Load bilinear_shift from ebp_store */
+                addlong(ARM64_LDR_W(10, 0, STATE_ebp_store));
+
+                /* Test if S is negative */
+                addlong(ARM64_CMP_IMM(4, 0));
+                /* CMOVS: if negative, S = 0 */
+                addlong(ARM64_CSEL(4, 31, 4, COND_LT));
+                /* Branch if was negative (S clamped to 0 -> both samples same) */
+                {
+                    int clamp_lo_pos = block_pos;
+                    addlong(ARM64_BCOND_PLACEHOLDER(COND_LT));
+
+                    /* CMP w4, w15 (tex_w_mask) */
+                    addlong(ARM64_CMP_REG(4, 15));
+                    /* CMOVAE: if >= mask, S = mask */
+                    addlong(ARM64_CSEL(4, 15, 4, COND_CS));
+                    /* Branch if was clamped high */
+                    {
+                        int clamp_hi_pos = block_pos;
+                        addlong(ARM64_BCOND_PLACEHOLDER(COND_CS));
+
+                        /* Normal case: S and S+1 are adjacent, load 2 texels as 64 bits */
+                        /* LSL w4, w4, #2 -- convert texel index to byte offset (4 bytes/texel) */
+                        addlong(ARM64_LSL_IMM(4, 4, 2));
+                        /* LDR d0, [x14, x4] -- row0[S] and row0[S+1] */
+                        addlong(ARM64_LDR_D_REG(0, 14, 4));
+                        /* LDR d1, [x13, x4] -- row1[S] and row1[S+1] */
+                        addlong(ARM64_LDR_D_REG(1, 13, 4));
+
+                        int normal_done = block_pos;
+                        addlong(ARM64_B_PLACEHOLDER);
+
+                        /* Clamped case: S and S+1 are the same texel (duplicate) */
+                        PATCH_FORWARD_BCOND(clamp_lo_pos);
+                        PATCH_FORWARD_BCOND(clamp_hi_pos);
+
+                        /* Load single texel, duplicate to both halves */
+                        /* LDR w11, [x14, x4, LSL #2] */
+                        addlong(ARM64_LDR_W_REG_LSL2(11, 14, 4));
+                        addlong(ARM64_FMOV_S_W(0, 11));
+                        addlong(ARM64_DUP_V2S_LANE(0, 0, 0));
+                        addlong(ARM64_LDR_W_REG_LSL2(11, 13, 4));
+                        addlong(ARM64_FMOV_S_W(1, 11));
+                        addlong(ARM64_DUP_V2S_LANE(1, 1, 0));
+
+                        PATCH_FORWARD_B(normal_done);
+                    }
+                }
+            } else {
+                /* Non-clamped: check if S wraps at texture edge */
+                addlong(ARM64_ADD_IMM_X(15, 1, PARAMS_tex_w_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 15, 6));
+
+                /* Load bilinear_shift from ebp_store */
+                addlong(ARM64_LDR_W(10, 0, STATE_ebp_store));
+
+                addlong(ARM64_CMP_REG(4, 15));
+                {
+                    int wrap_skip = block_pos;
+                    addlong(ARM64_BCOND_PLACEHOLDER(COND_EQ)); /* if at edge, wrap */
+
+                    /* Normal case: S and S+1 contiguous */
+                    /* LSL w4, w4, #2 -- convert texel index to byte offset (4 bytes/texel) */
+                    addlong(ARM64_LSL_IMM(4, 4, 2));
+                    /* LDR d0, [x14, x4] */
+                    addlong(ARM64_LDR_D_REG(0, 14, 4));
+                    addlong(ARM64_LDR_D_REG(1, 13, 4));
+
+                    int normal_done = block_pos;
+                    addlong(ARM64_B_PLACEHOLDER);
+
+                    /* Wrap case: S is at edge, S+1 wraps to 0 */
+                    PATCH_FORWARD_BCOND(wrap_skip);
+
+                    /* Load S texel, then load texel at S=0 (wrap), combine */
+                    /* row0[S] */
+                    addlong(ARM64_LDR_W_REG_LSL2(11, 14, 4));
+                    addlong(ARM64_FMOV_S_W(0, 11));
+                    /* row0[0] -- wrapped S+1 */
+                    addlong(ARM64_LDR_W(11, 14, 0));
+                    addlong(ARM64_INS_S(0, 1, 11));  /* v0.S[1] = row0[0] */
+                    /* row1[S] */
+                    addlong(ARM64_LDR_W_REG_LSL2(11, 13, 4));
+                    addlong(ARM64_FMOV_S_W(1, 11));
+                    /* row1[0] */
+                    addlong(ARM64_LDR_W(11, 13, 0));
+                    addlong(ARM64_INS_S(1, 1, 11));
+
+                    PATCH_FORWARD_B(normal_done);
+                }
+            }
+
+            /* Now v0 = {row0_s0, row0_s1} (2x BGRA32)
+             *     v1 = {row1_s0, row1_s1} (2x BGRA32)
+             *
+             * Unpack bytes to 16-bit, multiply by bilinear weights, sum.
+             */
+
+            /* UXTL v0.8H, v0.8B -- zero-extend bytes to halfwords */
+            addlong(ARM64_UXTL_8H_8B(0, 0));
+            /* UXTL v1.8H, v1.8B */
+            addlong(ARM64_UXTL_8H_8B(1, 1));
+
+            /* Load bilinear weights from lookup table.
+             * x25 = bilinear_lookup pointer (pinned)
+             * w10 = bilinear_index * 32 (stored in ebp_store, loaded above)
+             *
+             * bilinear_lookup[idx*2+0] = {d0, d0, d0, d0, d1, d1, d1, d1}
+             * bilinear_lookup[idx*2+1] = {d2, d2, d2, d2, d3, d3, d3, d3}
+             *
+             * Each entry is 16 bytes (128 bits). Total = 32 bytes per index pair.
+             */
+            /* ADD x11, x25, x10 -- base of weight pair */
+            addlong(ARM64_ADD_REG_X(11, 25, 10));
+
+            /* LDR q16, [x11, #0]  -- weights for row0: d0|d1 */
+            addlong(ARM64_LDR_Q(16, 11, 0));
+            /* LDR q17, [x11, #16] -- weights for row1: d2|d3 */
+            addlong(ARM64_LDR_Q(17, 11, 16));
+
+            /* MUL v0.8H, v0.8H, v16.8H -- row0 * weights */
+            addlong(ARM64_MUL_V8H(0, 0, 16));
+            /* MUL v1.8H, v1.8H, v17.8H -- row1 * weights */
+            addlong(ARM64_MUL_V8H(1, 1, 17));
+
+            /* ADD v0.8H, v0.8H, v1.8H -- sum rows */
+            addlong(ARM64_ADD_V8H(0, 0, 1));
+
+            /* Horizontal pairwise add to combine S0+S1 from both halves:
+             * ADDP v0.8H, v0.8H, v0.8H -- pairwise add adjacent 16-bit lanes
+             * This adds lanes [0]+[4], [1]+[5], [2]+[6], [3]+[7] etc.
+             * But we need [0..3]+[4..7] (low half + high half).
+             *
+             * x86-64 does: MOVDQA XMM1, XMM0; PSRLDQ XMM0, 8; PADDW XMM0, XMM1
+             * which adds high 64 bits to low 64 bits.
+             *
+             * ARM64: EXT v1.16B, v0.16B, v0.16B, #8  (shift high to low)
+             *        ADD v0.4H, v0.4H, v1.4H          (add halves)
+             */
+            addlong(ARM64_EXT_16B(1, 0, 0, 8));
+            addlong(ARM64_ADD_V4H(0, 0, 1));
+
+            /* USHR v0.4H, v0.4H, #8  -- normalize (divide by 256) */
+            addlong(ARM64_USHR_V4H(0, 0, 8));
+
+            /* SQXTUN v0.8B, v0.8H -- pack to unsigned bytes with saturation */
+            addlong(ARM64_SQXTUN_8B_8H(0, 0));
+
+            /* Move packed texel to GPR: FMOV w4, s0 */
+            addlong(ARM64_FMOV_W_S(4, 0));
+        } else {
+            /* ============================================================
+             * Point-sampled texture lookup
+             * ============================================================
+             *
+             * x86-64 ref: lines 544-643
+             *
+             * Simple nearest-neighbor: compute S,T indices, load single texel.
+             * ============================================================ */
+
+            /* MOV w7, #8 */
+            addlong(ARM64_MOVZ_W(7, 8));
+            /* LDR w6, [x0, #STATE_lod] */
+            addlong(ARM64_LDR_W(6, 0, STATE_lod));
+
+            /* Load texture base pointer: tex[tmu][lod] */
+            addlong(ARM64_ADD_IMM_X(11, 0, STATE_tex_n(tmu)));
+            addlong(ARM64_LDR_X_REG_LSL3(12, 11, 6));
+
+            /* SUB w7, w7, w6  (tex_shift = 8 - lod) */
+            addlong(ARM64_SUB_REG(7, 7, 6));
+            /* ADD w6, w6, #4  (lod + 4 for point-sample shift) */
+            addlong(ARM64_ADD_IMM(6, 6, 4));
+
+            /* LDR w4, [x0, #STATE_tex_s] */
+            addlong(ARM64_LDR_W(4, 0, STATE_tex_s));
+            /* LDR w5, [x0, #STATE_tex_t] */
+            addlong(ARM64_LDR_W(5, 0, STATE_tex_t));
+
+            /* Mirror S */
+            if (params->tLOD[tmu] & LOD_TMIRROR_S) {
+                int mirror_s_skip = block_pos;
+                addlong(ARM64_TBZ_PLACEHOLDER(4, 12));
+                addlong(ARM64_MVN(4, 4));
+                PATCH_FORWARD_TBxZ(mirror_s_skip);
+            }
+            /* Mirror T */
+            if (params->tLOD[tmu] & LOD_TMIRROR_T) {
+                int mirror_t_skip = block_pos;
+                addlong(ARM64_TBZ_PLACEHOLDER(5, 12));
+                addlong(ARM64_MVN(5, 5));
+                PATCH_FORWARD_TBxZ(mirror_t_skip);
+            }
+
+            /* SHR w4, w4, w6  (S >> (lod + 4)) */
+            addlong(ARM64_LSR_REG(4, 4, 6));
+            /* SHR w5, w5, w6  (T >> (lod + 4)) */
+            addlong(ARM64_LSR_REG(5, 5, 6));
+
+            /* Clamp or wrap S */
+            if (state->clamp_s[tmu]) {
+                /* Clamp S to [0, tex_w_mask[tmu][lod]]
+                 * x86-64 uses -0x10 hack with ECX*4. We compute cleanly.
+                 * Note: lod was already incremented by 4 in w6, but we need
+                 * the original LOD for array indexing. Reload it.
+                 */
+                addlong(ARM64_LDR_W(11, 0, STATE_lod));
+                addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_w_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 14, 11));
+
+                /* If S < 0, S = 0 */
+                addlong(ARM64_CMP_IMM(4, 0));
+                addlong(ARM64_CSEL(4, 31, 4, COND_LT));
+                /* If S >= mask, S = mask */
+                addlong(ARM64_CMP_REG(4, 15));
+                addlong(ARM64_CSEL(4, 15, 4, COND_CS));
+            } else {
+                /* AND S with tex_w_mask */
+                addlong(ARM64_LDR_W(11, 0, STATE_lod));
+                addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_w_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 14, 11));
+                addlong(ARM64_AND_REG(4, 4, 15));
+            }
+
+            /* Clamp or wrap T */
+            if (state->clamp_t[tmu]) {
+                addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_h_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 14, 11));
+
+                addlong(ARM64_CMP_IMM(5, 0));
+                addlong(ARM64_CSEL(5, 31, 5, COND_LT));
+                addlong(ARM64_CMP_REG(5, 15));
+                addlong(ARM64_CSEL(5, 15, 5, COND_CS));
+            } else {
+                addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_h_mask_n(tmu)));
+                addlong(ARM64_LDR_W_REG_LSL2(15, 14, 11));
+                addlong(ARM64_AND_REG(5, 5, 15));
+            }
+
+            /* Compute linear texel index: (T << tex_shift) + S
+             * then load texel: tex[tmu][lod][(T << shift) + S]
+             */
+            /* MOV w11, w7  (tex_shift) */
+            addlong(ARM64_MOV_REG(11, 7));
+            /* SHL w5, w5, w11 */
+            addlong(ARM64_LSL_REG(5, 5, 11));
+            /* ADD w5, w5, w4 */
+            addlong(ARM64_ADD_REG(5, 5, 4));
+
+            /* LDR w4, [x12, x5, LSL #2] -- load texel */
+            addlong(ARM64_LDR_W_REG_LSL2(4, 12, 5));
+        }
+    }
+
     return block_pos;
 }
 
@@ -1488,19 +2105,496 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     }
 
     /* ================================================================
-     * Phase 3+ placeholders: texture fetch, color combine, fog,
-     * alpha test, alpha blend, dithering, framebuffer write
+     * Phase 3: Texture Fetch + TMU Combine
+     * ================================================================
+     *
+     * x86-64 ref: lines 1025-1688
+     *
+     * After this section:
+     *   v0 = final texture color (packed BGRA in low 32 bits, or
+     *        unpacked 4x16 in v0.4H depending on path)
+     *   state->tex_a[0] = texture alpha value
+     *
+     * codegen_texture_fetch() returns the texel in w4 (packed BGRA32).
      * ================================================================ */
-
-    /* Texture fetch (Phase 3 placeholder) */
     if (params->fbzColorPath & FBZCP_TEXTURE_ENABLED) {
         if ((params->textureMode[0] & TEXTUREMODE_LOCAL_MASK) == TEXTUREMODE_LOCAL || !voodoo->dual_tmus) {
+            /* TMU0 only sampling local colour, or only one TMU */
             block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 0);
+
+            /* FMOV s0, w4 -- move texel to NEON v0 */
+            addlong(ARM64_FMOV_S_W(0, 4));
+            /* LSR w4, w4, #24 -- extract alpha */
+            addlong(ARM64_LSR_IMM(4, 4, 24));
+            /* STR w4, [x0, #STATE_tex_a] */
+            addlong(ARM64_STR_W(4, 0, STATE_tex_a));
         } else if ((params->textureMode[0] & TEXTUREMODE_MASK) == TEXTUREMODE_PASSTHROUGH) {
+            /* TMU0 in pass-through mode, only sample TMU1 */
             block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 1);
+
+            /* FMOV s0, w4 */
+            addlong(ARM64_FMOV_S_W(0, 4));
+            /* LSR w4, w4, #24 */
+            addlong(ARM64_LSR_IMM(4, 4, 24));
+            /* STR w4, [x0, #STATE_tex_a] */
+            addlong(ARM64_STR_W(4, 0, STATE_tex_a));
         } else {
+            /* ============================================================
+             * Dual-TMU mode: fetch TMU1 first, then TMU0, combine
+             * ============================================================
+             *
+             * x86-64 ref: lines 1059-1688
+             *
+             * TMU1 result -> v3 (unpacked to 4x16)
+             * TMU0 result -> v0 (unpacked to 4x16)
+             *
+             * Then apply tc_zero_other, tc_sub_clocal, tc_mselect,
+             * tc_reverse_blend, tc_add, tc_invert for RGB channels.
+             * And tca_* equivalents for alpha channel.
+             * ============================================================ */
             block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 1);
+
+            /* FMOV s3, w4 -- TMU1 result in v3 */
+            addlong(ARM64_FMOV_S_W(3, 4));
+
+            /* ---- TMU1 texture combine (tc_*_1 / tca_*_1 vars) ---- */
+            if ((params->textureMode[1] & TEXTUREMODE_TRILINEAR) && tc_sub_clocal_1) {
+                /* Trilinear LOD blend for TMU1 */
+                addlong(ARM64_LDR_W(4, 0, STATE_lod));
+                if (!tc_reverse_blend_1) {
+                    addlong(ARM64_MOVZ_W(5, 1));
+                } else {
+                    addlong(ARM64_MOV_ZERO(5));
+                }
+                addlong(ARM64_AND_MASK(4, 4, 1));  /* lod & 1 */
+                if (!tca_reverse_blend_1) {
+                    addlong(ARM64_MOVZ_W(6, 1));
+                } else {
+                    addlong(ARM64_MOV_ZERO(6));
+                }
+                addlong(ARM64_EOR_REG(5, 5, 4));  /* tc_reverse_blend ^= (lod & 1) */
+                addlong(ARM64_EOR_REG(6, 6, 4));  /* tca_reverse_blend ^= (lod & 1) */
+                addlong(ARM64_LSL_IMM(5, 5, 4));  /* EBX = tc_reverse_blend << 4 (offset into xmm_00_ff_w) */
+                /* w5 = tc_reverse_blend index, w6 = tca_reverse_blend */
+            }
+
+            /* Unpack TMU1 result: UXTL v3.8H, v3.8B */
+            addlong(ARM64_UXTL_8H_8B(3, 3));
+
+            if (tc_sub_clocal_1) {
+                /* tc_mselect_1: compute blend factor into v0 */
+                switch (tc_mselect_1) {
+                    case TC_MSELECT_ZERO:
+                        addlong(ARM64_MOVI_V2D_ZERO(0));
+                        break;
+                    case TC_MSELECT_CLOCAL:
+                        addlong(ARM64_MOV_V(0, 3));
+                        break;
+                    case TC_MSELECT_AOTHER:
+                        /* No other TMU in TMU1 combine, use zero */
+                        addlong(ARM64_MOVI_V2D_ZERO(0));
+                        break;
+                    case TC_MSELECT_ALOCAL:
+                        /* Broadcast alpha lane of v3 to all lanes */
+                        addlong(ARM64_DUP_V4H_LANE(0, 3, 3));
+                        break;
+                    case TC_MSELECT_DETAIL:
+                        addlong(ARM64_MOVZ_W(4, params->detail_bias[1] & 0xFFFF));
+                        if (params->detail_bias[1] >> 16)
+                            addlong(ARM64_MOVK_W_16(4, params->detail_bias[1] >> 16));
+                        addlong(ARM64_LDR_W(10, 0, STATE_lod));
+                        addlong(ARM64_SUB_REG(4, 4, 10));
+                        addlong(ARM64_MOVZ_W(11, params->detail_max[1] & 0xFFFF));
+                        if (params->detail_max[1] >> 16)
+                            addlong(ARM64_MOVK_W_16(11, params->detail_max[1] >> 16));
+                        if (params->detail_scale[1])
+                            addlong(ARM64_LSL_IMM(4, 4, params->detail_scale[1]));
+                        addlong(ARM64_CMP_REG(4, 11));
+                        addlong(ARM64_CSEL(4, 11, 4, COND_GE));
+                        addlong(ARM64_FMOV_S_W(0, 4));
+                        addlong(ARM64_DUP_V4H_LANE(0, 0, 0));
+                        break;
+                    case TC_MSELECT_LOD_FRAC:
+                        addlong(ARM64_LDR_W(4, 0, STATE_lod_frac_n(1)));
+                        addlong(ARM64_FMOV_S_W(0, 4));
+                        addlong(ARM64_DUP_V4H_LANE(0, 0, 0));
+                        break;
+                }
+
+                /* Apply reverse blend: XOR with 0xFF mask, then add 1 */
+                if (params->textureMode[1] & TEXTUREMODE_TRILINEAR) {
+                    /* XOR v0 with xmm_00_ff_w[ebx] (trilinear) */
+                    /* w5 has offset (0 or 16) into xmm_00_ff_w table */
+                    addlong(ARM64_LDR_Q_REG(16, 22, 5));  /* x22 = xmm_00_ff_w pointer */
+                    addlong(ARM64_EOR_V(0, 0, 16));
+                } else if (!tc_reverse_blend_1) {
+                    /* XOR with 0xFF (invert) */
+                    addlong(ARM64_EOR_V(0, 0, 9));  /* v9 = xmm_ff_w */
+                }
+                /* ADD v0, v0, v8  (v8 = xmm_01_w = {1,1,1,1}) */
+                addlong(ARM64_ADD_V4H(0, 0, 8));
+
+                /* Multiply: v3 * v0 -> signed 16x16->32->shift->narrow
+                 * ARM64: SMULL v16.4S, v3.4H, v0.4H
+                 *        SSHR v16.4S, v16.4S, #8
+                 *        SQXTN v16.4H, v16.4S
+                 */
+
+                /* Save v0 (blend factor) for tc_add_alocal path */
+                /* v1 = v2 (zero -- for subtraction base) */
+                addlong(ARM64_MOVI_V2D_ZERO(1));
+
+                /* The signed multiply sequence:
+                 * result = (clocal * factor) >> 8, saturated to 16-bit
+                 * Then: output = zero - result (negate)
+                 * Actually x86 does: XMM1 = XMM2(zero), then PSUBW XMM1, (multiply result)
+                 * Which is: output = 0 - (clocal * factor >> 8)
+                 *
+                 * Wait, re-reading the x86-64 more carefully:
+                 * XMM0 = factor, XMM3 = clocal (TMU1)
+                 * MOVQ XMM1, XMM2  -> XMM1 = 0
+                 * MOVQ XMM5, XMM0  -> XMM5 = factor
+                 * PMULLW XMM0, XMM3  -> XMM0 = low(factor * clocal)
+                 * PMULHW XMM5, XMM3  -> XMM5 = high(factor * clocal)
+                 * PUNPCKLWD XMM0, XMM5 -> XMM0 = 32-bit products
+                 * PSRAD XMM0, 8       -> XMM0 >>= 8
+                 * PACKSSDW XMM0, XMM0 -> XMM0 = 16-bit saturated
+                 * PSUBW XMM1, XMM0    -> XMM1 = 0 - products
+                 *
+                 * ARM64 equivalent (3 insns for multiply + 1 for negate):
+                 */
+                addlong(ARM64_SMULL_4S_4H(16, 3, 0));    /* v16.4S = v3.4H * v0.4H */
+                addlong(ARM64_SSHR_V4S(16, 16, 8));       /* v16.4S >>= 8 */
+                addlong(ARM64_SQXTN_4H_4S(0, 16));        /* v0.4H = saturate_narrow(v16.4S) */
+                addlong(ARM64_SUB_V4H(1, 1, 0));          /* v1.4H = 0 - products */
+
+                /* tc_add_clocal_1: add clocal (TMU1) back */
+                if (tc_add_clocal_1) {
+                    addlong(ARM64_ADD_V4H(1, 1, 3));
+                } else if (tc_add_alocal_1) {
+                    /* Broadcast alpha of TMU1 and add */
+                    addlong(ARM64_DUP_V4H_LANE(0, 3, 3));
+                    addlong(ARM64_ADD_V4H(1, 1, 0));
+                }
+
+                /* Pack result back to bytes (v3), then unpack again for alpha combine */
+                addlong(ARM64_SQXTUN_8B_8H(3, 1));
+
+                /* If tca_sub_clocal_1, extract alpha from packed result */
+                if (tca_sub_clocal_1) {
+                    addlong(ARM64_FMOV_W_S(5, 3));  /* w5 = packed BGRA */
+                }
+
+                /* Unpack v3 back to 16-bit for further processing */
+                addlong(ARM64_UXTL_8H_8B(3, 3));
+            }
+
+            /* ---- TCA (texture combine alpha) for TMU1 ---- */
+            if (tca_sub_clocal_1) {
+                /* w5 = packed result (from MOVD above), extract alpha */
+                addlong(ARM64_LSR_IMM(5, 5, 24));
+
+                switch (tca_mselect_1) {
+                    case TCA_MSELECT_ZERO:
+                        addlong(ARM64_MOV_ZERO(4));
+                        break;
+                    case TCA_MSELECT_CLOCAL:
+                        addlong(ARM64_MOV_REG(4, 5));
+                        break;
+                    case TCA_MSELECT_AOTHER:
+                        addlong(ARM64_MOV_ZERO(4));
+                        break;
+                    case TCA_MSELECT_ALOCAL:
+                        addlong(ARM64_MOV_REG(4, 5));
+                        break;
+                    case TCA_MSELECT_DETAIL:
+                        addlong(ARM64_MOVZ_W(4, params->detail_bias[1] & 0xFFFF));
+                        if (params->detail_bias[1] >> 16)
+                            addlong(ARM64_MOVK_W_16(4, params->detail_bias[1] >> 16));
+                        addlong(ARM64_LDR_W(10, 0, STATE_lod));
+                        addlong(ARM64_SUB_REG(4, 4, 10));
+                        addlong(ARM64_MOVZ_W(11, params->detail_max[1] & 0xFFFF));
+                        if (params->detail_max[1] >> 16)
+                            addlong(ARM64_MOVK_W_16(11, params->detail_max[1] >> 16));
+                        if (params->detail_scale[1])
+                            addlong(ARM64_LSL_IMM(4, 4, params->detail_scale[1]));
+                        addlong(ARM64_CMP_REG(4, 11));
+                        addlong(ARM64_CSEL(4, 11, 4, COND_GE));
+                        break;
+                    case TCA_MSELECT_LOD_FRAC:
+                        addlong(ARM64_LDR_W(4, 0, STATE_lod_frac_n(1)));
+                        break;
+                }
+
+                /* Apply reverse blend for alpha */
+                if (params->textureMode[1] & TEXTUREMODE_TRILINEAR) {
+                    /* XOR w4 with i_00_ff_w[w6] (w6 = tca_reverse_blend index) */
+                    addlong(ARM64_LDR_W_REG_LSL2(10, 23, 6));  /* x23 = i_00_ff_w */
+                    addlong(ARM64_EOR_REG(4, 4, 10));
+                } else if (!tca_reverse_blend_1) {  /* CORRECTED: was tc_reverse_blend_1 in x86, should be tca */
+                    addlong(ARM64_EOR_MASK(4, 4, 8)); /* XOR with 0xFF */
+                }
+
+                /* ADD w4, w4, #1 -- THIS IS THE BUG FIX (x86 line 1303 has 0x8E instead of 0x83) */
+                addlong(ARM64_ADD_IMM(4, 4, 1));
+
+                /* IMUL w4, w5 */
+                addlong(ARM64_MUL(4, 4, 5));
+                /* NEG w4, w4 */
+                addlong(ARM64_NEG(4, 4));
+                /* ASR w4, w4, #8 */
+                addlong(ARM64_ASR_IMM(4, 4, 8));
+
+                if (tca_add_clocal_1 || tca_add_alocal_1) {
+                    addlong(ARM64_ADD_REG(4, 4, 5));
+                }
+
+                /* Clamp alpha to [0, 0xFF] */
+                addlong(ARM64_MOVZ_W(10, 0xFF));
+                addlong(ARM64_CMP_REG(10, 4));
+                addlong(ARM64_CSEL(10, 4, 10, COND_HI));  /* min(0xFF, alpha) */
+
+                /* Insert alpha into v3 lane 3 */
+                addlong(ARM64_INS_H(3, 3, 10));
+            }
+
+            /* ---- Now fetch TMU0 ---- */
             block_pos = codegen_texture_fetch(code_block, voodoo, params, state, block_pos, 0);
+
+            /* FMOV s0, w4 -- TMU0 result in v0 */
+            addlong(ARM64_FMOV_S_W(0, 4));
+            /* Also save raw TMU0 result in v7 for later tca processing */
+            addlong(ARM64_FMOV_S_W(7, 4));
+
+            /* ---- TMU0 trilinear setup ---- */
+            if (params->textureMode[0] & TEXTUREMODE_TRILINEAR) {
+                addlong(ARM64_LDR_W(4, 0, STATE_lod));
+                if (!tc_reverse_blend) {
+                    addlong(ARM64_MOVZ_W(5, 1));
+                } else {
+                    addlong(ARM64_MOV_ZERO(5));
+                }
+                addlong(ARM64_AND_MASK(4, 4, 1));
+                if (!tca_reverse_blend) {
+                    addlong(ARM64_MOVZ_W(6, 1));
+                } else {
+                    addlong(ARM64_MOV_ZERO(6));
+                }
+                addlong(ARM64_EOR_REG(5, 5, 4));
+                addlong(ARM64_EOR_REG(6, 6, 4));
+                addlong(ARM64_LSL_IMM(5, 5, 4));
+                /* w5 = tc_reverse_blend (scaled), w6 = tca_reverse_blend */
+            }
+
+            /* Unpack TMU0: UXTL v0.8H, v0.8B */
+            addlong(ARM64_UXTL_8H_8B(0, 0));
+
+            /* tc_zero_other: zero the "other" TMU (TMU1 = v3) */
+            if (tc_zero_other) {
+                addlong(ARM64_MOVI_V2D_ZERO(1));
+            } else {
+                addlong(ARM64_MOV_V(1, 3));
+            }
+
+            /* tc_sub_clocal: subtract local (TMU0) from other */
+            if (tc_sub_clocal) {
+                addlong(ARM64_SUB_V4H(1, 1, 0));
+            }
+
+            /* tc_mselect: compute blend factor for TMU0 combine */
+            switch (tc_mselect) {
+                case TC_MSELECT_ZERO:
+                    addlong(ARM64_MOVI_V2D_ZERO(4));
+                    break;
+                case TC_MSELECT_CLOCAL:
+                    addlong(ARM64_MOV_V(4, 0));
+                    break;
+                case TC_MSELECT_AOTHER:
+                    /* Broadcast alpha of TMU1 (v3.H[3]) to v4 */
+                    addlong(ARM64_DUP_V4H_LANE(4, 3, 3));
+                    break;
+                case TC_MSELECT_ALOCAL:
+                    /* Broadcast alpha of TMU0 (v0.H[3]) to v4 */
+                    addlong(ARM64_DUP_V4H_LANE(4, 0, 3));
+                    break;
+                case TC_MSELECT_DETAIL:
+                    addlong(ARM64_MOVZ_W(4, params->detail_bias[0] & 0xFFFF));
+                    if (params->detail_bias[0] >> 16)
+                        addlong(ARM64_MOVK_W_16(4, params->detail_bias[0] >> 16));
+                    addlong(ARM64_LDR_W(10, 0, STATE_lod));
+                    addlong(ARM64_SUB_REG(4, 4, 10));
+                    addlong(ARM64_MOVZ_W(11, params->detail_max[0] & 0xFFFF));
+                    if (params->detail_max[0] >> 16)
+                        addlong(ARM64_MOVK_W_16(11, params->detail_max[0] >> 16));
+                    if (params->detail_scale[0])
+                        addlong(ARM64_LSL_IMM(4, 4, params->detail_scale[0]));
+                    addlong(ARM64_CMP_REG(4, 11));
+                    addlong(ARM64_CSEL(4, 11, 4, COND_GE));
+                    addlong(ARM64_FMOV_S_W(4, 4));
+                    addlong(ARM64_DUP_V4H_LANE(4, 4, 0));
+                    break;
+                case TC_MSELECT_LOD_FRAC:
+                    addlong(ARM64_LDR_W(4, 0, STATE_lod_frac_n(0)));
+                    addlong(ARM64_FMOV_S_W(4, 4));
+                    addlong(ARM64_DUP_V4H_LANE(4, 4, 0));
+                    break;
+            }
+
+            /* Apply reverse blend */
+            if (params->textureMode[0] & TEXTUREMODE_TRILINEAR) {
+                addlong(ARM64_LDR_Q_REG(16, 22, 5));
+                addlong(ARM64_EOR_V(4, 4, 16));
+            } else if (!tc_reverse_blend) {
+                addlong(ARM64_EOR_V(4, 4, 9));
+            }
+            /* PADDW v4, v4, v8 */
+            addlong(ARM64_ADD_V4H(4, 4, 8));
+
+            /* Multiply: signed 16x16 -> 32 -> >>8 -> narrow */
+            /* Save v1 (other-clocal) in v5 before multiply */
+            addlong(ARM64_MOV_V(5, 1));
+
+            if (tca_sub_clocal) {
+                /* Save raw TMU0 packed for alpha extraction */
+                addlong(ARM64_FMOV_W_S(5, 7));  /* w5 = raw TMU0 packed BGRA */
+            }
+
+            addlong(ARM64_SMULL_4S_4H(16, 1, 4));
+            addlong(ARM64_SSHR_V4S(16, 16, 8));
+            addlong(ARM64_SQXTN_4H_4S(1, 16));
+
+            if (tca_sub_clocal) {
+                /* w5 already has raw TMU0 packed */
+                addlong(ARM64_LSR_IMM(5, 5, 24));  /* extract alpha byte */
+            }
+
+            /* tc_add_clocal: add local (TMU0) back */
+            if (tc_add_clocal) {
+                addlong(ARM64_ADD_V4H(1, 1, 0));
+            } else if (tc_add_alocal) {
+                addlong(ARM64_DUP_V4H_LANE(4, 0, 3));
+                addlong(ARM64_ADD_V4H(1, 1, 4));
+            }
+
+            /* tc_invert_output */
+            if (tc_invert_output) {
+                addlong(ARM64_EOR_V(1, 1, 9));  /* XOR with 0xFF */
+            }
+
+            /* Pack v0, v3, v1 to bytes for alpha processing */
+            addlong(ARM64_SQXTUN_8B_8H(0, 0));   /* v0 = packed TMU0 */
+            addlong(ARM64_SQXTUN_8B_8H(3, 3));   /* v3 = packed TMU1 */
+            addlong(ARM64_SQXTUN_8B_8H(1, 1));   /* v1 = packed combined RGB */
+
+            /* ---- TCA (alpha combine for TMU0) ---- */
+            if (tca_zero_other) {
+                addlong(ARM64_MOV_ZERO(4));
+            } else {
+                /* Other alpha = TMU1 alpha */
+                addlong(ARM64_FMOV_W_S(4, 3));
+                addlong(ARM64_LSR_IMM(4, 4, 24));
+            }
+
+            if (tca_sub_clocal) {
+                addlong(ARM64_SUB_REG(4, 4, 5));  /* w5 = TMU0 alpha */
+            }
+
+            switch (tca_mselect) {
+                case TCA_MSELECT_ZERO:
+                    addlong(ARM64_MOV_ZERO(5));
+                    break;
+                case TCA_MSELECT_CLOCAL:
+                    addlong(ARM64_FMOV_W_S(5, 7));
+                    addlong(ARM64_LSR_IMM(5, 5, 24));
+                    break;
+                case TCA_MSELECT_AOTHER:
+                    addlong(ARM64_FMOV_W_S(5, 3));
+                    addlong(ARM64_LSR_IMM(5, 5, 24));
+                    break;
+                case TCA_MSELECT_ALOCAL:
+                    addlong(ARM64_FMOV_W_S(5, 7));
+                    addlong(ARM64_LSR_IMM(5, 5, 24));
+                    break;
+                case TCA_MSELECT_DETAIL:
+                    addlong(ARM64_MOVZ_W(5, params->detail_bias[0] & 0xFFFF));
+                    if (params->detail_bias[0] >> 16)
+                        addlong(ARM64_MOVK_W_16(5, params->detail_bias[0] >> 16));
+                    addlong(ARM64_LDR_W(10, 0, STATE_lod));
+                    addlong(ARM64_SUB_REG(5, 5, 10));
+                    addlong(ARM64_MOVZ_W(11, params->detail_max[0] & 0xFFFF));
+                    if (params->detail_max[0] >> 16)
+                        addlong(ARM64_MOVK_W_16(11, params->detail_max[0] >> 16));
+                    if (params->detail_scale[0])
+                        addlong(ARM64_LSL_IMM(5, 5, params->detail_scale[0]));
+                    addlong(ARM64_CMP_REG(5, 11));
+                    addlong(ARM64_CSEL(5, 11, 5, COND_GE));
+                    break;
+                case TCA_MSELECT_LOD_FRAC:
+                    addlong(ARM64_LDR_W(5, 0, STATE_lod_frac_n(0)));
+                    break;
+            }
+
+            /* Apply tca reverse blend */
+            if (params->textureMode[0] & TEXTUREMODE_TRILINEAR) {
+                addlong(ARM64_LDR_W_REG_LSL2(10, 23, 6));
+                addlong(ARM64_EOR_REG(5, 5, 10));
+            } else if (!tca_reverse_blend) {
+                addlong(ARM64_EOR_MASK(5, 5, 8));  /* XOR with 0xFF */
+            }
+
+            /* ADD w5, w5, #1 */
+            addlong(ARM64_ADD_IMM(5, 5, 1));
+            /* MUL w4, w4, w5 */
+            addlong(ARM64_MUL(4, 4, 5));
+            /* XOR w10, w10, w10 -- zero for CMOVS */
+            addlong(ARM64_MOV_ZERO(10));
+            /* ASR w4, w4, #8 */
+            addlong(ARM64_ASR_IMM(4, 4, 8));
+
+            if (tca_add_clocal || tca_add_alocal) {
+                addlong(ARM64_FMOV_W_S(5, 7));
+                addlong(ARM64_LSR_IMM(5, 5, 24));
+                addlong(ARM64_ADD_REG(4, 4, 5));
+            }
+
+            /* Clamp: if negative, 0; if > 0xFF, 0xFF */
+            addlong(ARM64_CMP_IMM(4, 0));
+            addlong(ARM64_CSEL(4, 10, 4, COND_LT));
+            addlong(ARM64_MOVZ_W(10, 0xFF));
+            addlong(ARM64_CMP_IMM(4, 0xFF));
+            addlong(ARM64_CSEL(4, 10, 4, COND_GT));
+
+            if (tca_invert_output) {
+                addlong(ARM64_EOR_MASK(4, 4, 8));  /* XOR with 0xFF */
+            }
+
+            /* Store tex_a: STR w4, [x0, #STATE_tex_a] */
+            addlong(ARM64_STR_W(4, 0, STATE_tex_a));
+
+            /* Move final combined RGB to v0 (v1 has the combined result) */
+            addlong(ARM64_MOV_V(0, 1));
+        }
+
+        /* ============================================================
+         * trexInit1 override path
+         * ============================================================
+         *
+         * If trexInit1 bit 18 is set, override texture output:
+         *   tex_r = tex_g = 0, tex_b = tmuConfig
+         *
+         * This is handled by the interpreter at vid_voodoo_render.c:1062-1065.
+         * On x86-64 this is done by testing the cached trexInit1 flag.
+         * We embed this as a compile-time check since trexInit1 is part of
+         * the cache key.
+         * ============================================================ */
+        if (voodoo->trexInit1[0] & (1 << 18)) {
+            /* Override: load tmuConfig as blue, zero red/green, keep alpha in tex_a */
+            addlong(ARM64_MOVZ_W(4, voodoo->tmuConfig & 0xFFFF));
+            if (voodoo->tmuConfig >> 16)
+                addlong(ARM64_MOVK_W_16(4, voodoo->tmuConfig >> 16));
+            /* Mask to 24 bits (blue channel in BGRA) */
+            addlong(ARM64_AND_BITMASK(4, 4, 0, 0, 23));  /* AND with 0x00FFFFFF */
+            addlong(ARM64_FMOV_S_W(0, 4));
         }
     }
 

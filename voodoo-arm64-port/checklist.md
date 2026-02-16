@@ -46,16 +46,16 @@
 
 ## Phase 3: Texture Fetch
 
-- [ ] `codegen_texture_fetch()` — perspective-correct W division (SDIV)
-- [ ] LOD calculation (BSR equivalent via CLZ on ARM64)
-- [ ] Point-sampled texture lookup
-- [ ] Bilinear filtered texture lookup (NEON 4-tap blend)
-- [ ] Texture mirror S / mirror T handling
-- [ ] Texture clamp S / clamp T handling
-- [ ] TMU0-only path
-- [ ] TMU1-only (passthrough) path
-- [ ] Dual-TMU fetch and combine (tc_mselect, tc_add, tc_invert)
-- [ ] trexInit1 override path
+- [x] `codegen_texture_fetch()` — perspective-correct W division (SDIV)
+- [x] LOD calculation (BSR equivalent via CLZ on ARM64)
+- [x] Point-sampled texture lookup
+- [x] Bilinear filtered texture lookup (NEON 4-tap blend)
+- [x] Texture mirror S / mirror T handling
+- [x] Texture clamp S / clamp T handling
+- [x] TMU0-only path
+- [x] TMU1-only (passthrough) path
+- [x] Dual-TMU fetch and combine (tc_mselect, tc_add, tc_invert)
+- [x] trexInit1 override path
 - [ ] **RUN TEST**: Textured triangles render correctly
 
 ## Phase 4: Color/Alpha Combine
