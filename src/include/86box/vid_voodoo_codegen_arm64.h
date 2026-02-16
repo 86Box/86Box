@@ -17,7 +17,7 @@
  *          Copyright 2026 skiretic.
  */
 
-/* See "ARM64 Register Assignments" comment block below (line ~51). */
+/* See "ARM64 Register Assignments" comment block below (line ~45). */
 
 #ifndef VIDEO_VOODOO_CODEGEN_ARM64_H
 #define VIDEO_VOODOO_CODEGEN_ARM64_H
@@ -1626,7 +1626,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 /* ========================================================================
  * voodoo_generate() -- emit ARM64 JIT code for the pixel pipeline
  *
- * Phase 1: Prologue and epilogue only.
+ * Emits ARM64 JIT code for the complete pixel pipeline (Phases 1-6).
  * The generated function signature:
  *   uint8_t (*voodoo_draw)(voodoo_state_t *state, voodoo_params_t *params,
  *                          int x, int real_y)

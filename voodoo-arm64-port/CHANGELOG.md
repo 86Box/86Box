@@ -276,6 +276,30 @@ On x86-64, `MOV [mem], RAX` has no alignment restriction — stores 8 bytes to a
 
 ---
 
+## Comment Cleanup
+
+### 2026-02-16 -- Three rounds of comment audits
+
+Audited all ~1450 comment lines in the ARM64 codegen header for accuracy.
+
+#### Round 1 -- 12 issues fixed:
+- Fixed factually wrong comments: `z >> 20` → `z >> 12`, stack frame 128 → 160 bytes, `alookup[fog_a]` → `alookup[fog_a + 1]`
+- Replaced x86 mnemonics used as primary descriptions: CMOVS/CMOVAE → CSEL, XOR → EOR, SHR → LSR, SAR → ASR
+- Consolidated contradictory W-depth comments, cleaned up rambling alookup comment
+- Removed false "v2 = zero from earlier" claim, replaced vestigial x86-64 register block with pointer
+- Fixed stale "save d12-d15" → "save d12-d13"
+
+#### Round 2 -- 9 issues fixed:
+- Replaced remaining x86 mnemonics: SHL → LSL, IMUL → MUL, PADDW → ADD v4.4H
+- Fixed x86 register names: EBX/ebx → w5, xmm_00_ff_w → neon_00_ff_w
+- Corrected alpha blend shift comments to reflect doubled input values
+
+#### Round 3 -- 2 final nits:
+- Line reference `~51` → `~45` for register assignment block
+- Stale "Phase 1: Prologue and epilogue only" → "complete pixel pipeline (Phases 1-6)"
+
+---
+
 ## Summary
 
 | Phase | Description | Status | PR |
