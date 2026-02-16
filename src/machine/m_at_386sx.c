@@ -586,7 +586,7 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
         return ret;
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5402_onboard_device);
+        device_add(&gd5402_onboard_commodore_device);
 
     machine_at_common_init_ex(model, 2);
 
