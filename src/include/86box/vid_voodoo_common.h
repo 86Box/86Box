@@ -712,6 +712,17 @@ typedef struct voodoo_t {
     FILE *jit_debug_log;
     void *codegen_data;
 
+    /* JIT cache state -- per-instance to avoid races between render threads */
+    int jit_last_block[4];
+    int jit_next_block_to_write[4];
+    int jit_recomp;
+
+    /* JIT debug counters -- per-instance */
+    int jit_hit_count;
+    int jit_gen_count;
+    int jit_exec_count;
+    int jit_verify_mismatches;
+
     struct voodoo_set_t *set;
 
     uint32_t launch_pending;

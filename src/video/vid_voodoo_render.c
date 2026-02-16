@@ -38,9 +38,7 @@
 #include <86box/vid_voodoo_render.h>
 #include <86box/vid_voodoo_texture.h>
 
-#ifndef NO_CODEGEN
-static int voodoo_jit_exec_count = 0;
-#endif
+/* JIT exec counter moved to per-instance voodoo->jit_exec_count */
 
 typedef struct voodoo_state_t {
     int      xstart, xend, xdir;
@@ -944,7 +942,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
          * then run interpreter and compare pixel-by-pixel to find mismatches */
 #ifndef NO_CODEGEN
         {
-            static int jit_verify_mismatches = 0;
+            /* jit_verify_mismatches moved to per-instance voodoo->jit_verify_mismatches */
             int jit_verify_active = 0;
             int jv_start = 0, jv_count = 0;
             uint16_t *jit_fb_save = NULL;
@@ -952,7 +950,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
 
             if (voodoo->use_recompiler && voodoo_draw
                 && voodoo->jit_debug >= 2 && voodoo->jit_debug_log
-                && jit_verify_mismatches < 20) {
+                && voodoo->jit_verify_mismatches < 20) {
                 jv_start = (state->xdir > 0) ? x : x2;
                 int jv_end = (state->xdir > 0) ? x2 : x;
                 jv_count = jv_end - jv_start + 1;
@@ -991,14 +989,14 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
             }
 
             if (voodoo->use_recompiler && voodoo_draw && !jit_verify_active) {
-                if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo_jit_exec_count < 50) {
+                if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo->jit_exec_count < 50) {
                     fprintf(voodoo->jit_debug_log,
                             "VOODOO JIT: EXECUTE #%d code=%p x=%d x2=%d real_y=%d odd_even=%d\n",
-                            voodoo_jit_exec_count, (void *) voodoo_draw, x, x2, real_y, odd_even);
-                    voodoo_jit_exec_count++;
+                            voodoo->jit_exec_count, (void *) voodoo_draw, x, x2, real_y, odd_even);
+                    voodoo->jit_exec_count++;
                 }
                 voodoo_draw(state, params, x, real_y);
-                if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo_jit_exec_count <= 50) {
+                if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo->jit_exec_count <= 50) {
                     fprintf(voodoo->jit_debug_log,
                             "VOODOO JIT POST: ib=%d ig=%d ir=%d ia=%d z=%08x pixel_count=%d\n",
                             state->ib, state->ig, state->ir, state->ia, state->z, state->pixel_count);
@@ -1486,12 +1484,12 @@ skip_pixel:
                     }
                 }
                 if (mismatch) {
-                    jit_verify_mismatches++;
+                    voodoo->jit_verify_mismatches++;
                     fprintf(voodoo->jit_debug_log,
                             "VERIFY MISMATCH #%d y=%d x=%d..%d (%d/%d pixels differ) "
                             "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
                             "textureMode=0x%08x fogMode=0x%08x\n",
-                            jit_verify_mismatches, real_y, jv_start, jv_start + jv_count - 1,
+                            voodoo->jit_verify_mismatches, real_y, jv_start, jv_start + jv_count - 1,
                             mismatch, jv_count,
                             params->fbzMode, params->fbzColorPath, params->alphaMode,
                             params->textureMode[0], params->fogMode);

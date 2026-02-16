@@ -32,9 +32,12 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
-static int voodoo_jit_hit_count  = 0;
-static int voodoo_jit_gen_count  = 0;
+/* JIT counters and cache state are now per-instance in voodoo_t:
+ *   voodoo->jit_hit_count, jit_gen_count, jit_exec_count,
+ *   voodoo->jit_last_block[4], jit_next_block_to_write[4], jit_recomp
+ */
 
 #define BLOCK_NUM  8
 #define BLOCK_MASK (BLOCK_NUM - 1)
@@ -93,14 +96,26 @@ typedef struct voodoo_arm64_data_t {
     int      is_tiled;
 } voodoo_arm64_data_t;
 
-static int last_block[4]          = { 0, 0 };
-static int next_block_to_write[4] = { 0, 0 };
+/* last_block[4] and next_block_to_write[4] moved to voodoo_t
+ * (jit_last_block, jit_next_block_to_write) for per-instance thread safety. */
 
 /* ========================================================================
  * Emission primitive -- ARM64 instructions are always 4 bytes
  * ======================================================================== */
+static inline void
+arm64_codegen_check_emit_bounds(int block_pos, int emit_size)
+{
+    int64_t end_pos = (int64_t) block_pos + (int64_t) emit_size;
+
+    if (block_pos < 0 || emit_size < 0 || end_pos > BLOCK_SIZE) {
+        fatal("ARM64 JIT: code emission overflow (block_pos=%d emit=%d limit=%d)\n",
+              block_pos, emit_size, BLOCK_SIZE);
+    }
+}
+
 #define addlong(val)                                 \
     do {                                             \
+        arm64_codegen_check_emit_bounds(block_pos, 4); \
         *(uint32_t *) &code_block[block_pos] = val;  \
         block_pos += 4;                              \
     } while (0)
@@ -600,6 +615,29 @@ static int next_block_to_write[4] = { 0, 0 };
 #define ARM64_CBZ_W_PLACEHOLDER(t)      (0x34000000 | Rt(t))
 #define ARM64_CBNZ_W_PLACEHOLDER(t)     (0x35000000 | Rt(t))
 
+static inline void
+arm64_codegen_check_patch_pos(int pos)
+{
+    if (pos < 0 || (pos + 4) > BLOCK_SIZE || (pos & 3)) {
+        fatal("ARM64 JIT: invalid patch position (pos=%d limit=%d)\n", pos, BLOCK_SIZE);
+    }
+}
+
+static inline void
+arm64_codegen_check_branch_offset(const char *kind, int32_t off, int imm_bits)
+{
+    int64_t min_off = -((int64_t) 1 << (imm_bits - 1)) * 4;
+    int64_t max_off = (((int64_t) 1 << (imm_bits - 1)) - 1) * 4;
+
+    if (off & 3) {
+        fatal("ARM64 JIT: unaligned %s branch offset (%d)\n", kind, off);
+    }
+    if (((int64_t) off < min_off) || ((int64_t) off > max_off)) {
+        fatal("ARM64 JIT: %s branch offset out of range (%d, valid=%lld..%lld)\n",
+              kind, off, (long long) min_off, (long long) max_off);
+    }
+}
+
 /*
  * PATCH_FORWARD_BCOND(pos) -- patch a B.cond placeholder at 'pos' to
  * branch to 'block_pos'. pos is the byte offset within code_block where
@@ -610,6 +648,8 @@ static int next_block_to_write[4] = { 0, 0 };
 #define PATCH_FORWARD_BCOND(pos)                                             \
     do {                                                                     \
         int32_t _off = block_pos - (pos);                                    \
+        arm64_codegen_check_patch_pos(pos);                                  \
+        arm64_codegen_check_branch_offset("B.cond", _off, 19);               \
         *(uint32_t *) &code_block[(pos)] |= OFFSET19(_off);                 \
     } while (0)
 
@@ -620,6 +660,8 @@ static int next_block_to_write[4] = { 0, 0 };
 #define PATCH_FORWARD_B(pos)                                                 \
     do {                                                                     \
         int32_t _off = block_pos - (pos);                                    \
+        arm64_codegen_check_patch_pos(pos);                                  \
+        arm64_codegen_check_branch_offset("B", _off, 26);                    \
         *(uint32_t *) &code_block[(pos)] |= OFFSET26(_off);                 \
     } while (0)
 
@@ -630,6 +672,8 @@ static int next_block_to_write[4] = { 0, 0 };
 #define PATCH_FORWARD_TBxZ(pos)                                              \
     do {                                                                     \
         int32_t _off = block_pos - (pos);                                    \
+        arm64_codegen_check_patch_pos(pos);                                  \
+        arm64_codegen_check_branch_offset("TBxZ", _off, 14);                 \
         *(uint32_t *) &code_block[(pos)] |= OFFSET14(_off);                 \
     } while (0)
 
@@ -640,6 +684,8 @@ static int next_block_to_write[4] = { 0, 0 };
 #define PATCH_FORWARD_CBxZ(pos)                                              \
     do {                                                                     \
         int32_t _off = block_pos - (pos);                                    \
+        arm64_codegen_check_patch_pos(pos);                                  \
+        arm64_codegen_check_branch_offset("CBxZ", _off, 19);                 \
         *(uint32_t *) &code_block[(pos)] |= OFFSET19(_off);                 \
     } while (0)
 
@@ -3922,6 +3968,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addlong(ARM64_RET);
 }
 
+/* Global kept to satisfy 'extern int voodoo_recomp' in vid_voodoo_render.h.
+ * Actual per-instance recomp count is in voodoo->jit_recomp. */
 int voodoo_recomp = 0;
 
 /* ========================================================================
@@ -3930,7 +3978,7 @@ int voodoo_recomp = 0;
 static inline void *
 voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int odd_even)
 {
-    int                  b                 = last_block[odd_even];
+    int                  b                 = voodoo->jit_last_block[odd_even];
     voodoo_arm64_data_t *voodoo_arm64_data = voodoo->codegen_data;
     voodoo_arm64_data_t *data;
 
@@ -3948,14 +3996,14 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
             && (params->tLOD[0] & LOD_MASK) == data->tLOD[0]
             && (params->tLOD[1] & LOD_MASK) == data->tLOD[1]
             && ((params->col_tiled || params->aux_tiled) ? 1 : 0) == data->is_tiled) {
-            last_block[odd_even] = b;
-            if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo_jit_hit_count < 20) {
+            voodoo->jit_last_block[odd_even] = b;
+            if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo->jit_hit_count < 20) {
                 fprintf(voodoo->jit_debug_log,
                         "VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
                         "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
-                        voodoo_jit_hit_count, odd_even, b, (void *) data->code_block,
+                        voodoo->jit_hit_count, odd_even, b, (void *) data->code_block,
                         params->fbzMode, params->fbzColorPath, params->alphaMode);
-                voodoo_jit_hit_count++;
+                voodoo->jit_hit_count++;
             }
             return data->code_block;
         }
@@ -3963,8 +4011,9 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
         b = (b + 1) & 7;
     }
 
+    voodoo->jit_recomp++;
     voodoo_recomp++;
-    data = &voodoo_arm64_data[odd_even + next_block_to_write[odd_even] * 4];
+    data = &voodoo_arm64_data[odd_even + voodoo->jit_next_block_to_write[odd_even] * 4];
 
     /* W^X: make writable before code generation + metadata writes */
 #if defined(__APPLE__) && defined(__aarch64__)
@@ -3976,13 +4025,14 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     voodoo_generate(data->code_block, voodoo, params, state, depth_op);
 
     if (voodoo->jit_debug && voodoo->jit_debug_log) {
-        voodoo_jit_gen_count++;
+        voodoo->jit_gen_count++;
         fprintf(voodoo->jit_debug_log,
                 "VOODOO JIT: GENERATE #%d odd_even=%d block=%d code=%p recomp=%d "
                 "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
                 "textureMode[0]=0x%08x fogMode=0x%08x xdir=%d\n",
-                voodoo_jit_gen_count, odd_even, next_block_to_write[odd_even], (void *) data->code_block,
-                voodoo_recomp, params->fbzMode, params->fbzColorPath, params->alphaMode,
+                voodoo->jit_gen_count, odd_even, voodoo->jit_next_block_to_write[odd_even],
+                (void *) data->code_block,
+                voodoo->jit_recomp, params->fbzMode, params->fbzColorPath, params->alphaMode,
                 params->textureMode[0], params->fogMode, state->xdir);
     }
 
@@ -4012,7 +4062,7 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 #    endif
 #endif
 
-    next_block_to_write[odd_even] = (next_block_to_write[odd_even] + 1) & 7;
+    voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & 7;
 
     return data->code_block;
 }
@@ -4024,6 +4074,15 @@ void
 voodoo_codegen_init(voodoo_t *voodoo)
 {
     voodoo->codegen_data = plat_mmap(sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4, 1);
+
+    /* Initialize per-instance JIT cache state */
+    memset(voodoo->jit_last_block, 0, sizeof(voodoo->jit_last_block));
+    memset(voodoo->jit_next_block_to_write, 0, sizeof(voodoo->jit_next_block_to_write));
+    voodoo->jit_recomp             = 0;
+    voodoo->jit_hit_count          = 0;
+    voodoo->jit_gen_count          = 0;
+    voodoo->jit_exec_count         = 0;
+    voodoo->jit_verify_mismatches  = 0;
 
     for (uint16_t c = 0; c < 256; c++) {
         int d[4];

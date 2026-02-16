@@ -4,6 +4,38 @@ All changes, decisions, and progress for the ARM64 port of the Voodoo GPU pixel 
 
 ---
 
+## Instance State Migration (2026-02-16)
+
+### Moved JIT cache/counter state from file-scope globals to per-instance voodoo_t
+
+**Problem:** The ARM64 JIT codegen used file-scope static variables for cache management
+(`last_block[4]`, `next_block_to_write[4]`) and counters (`voodoo_jit_hit_count`,
+`voodoo_jit_gen_count`, `voodoo_recomp`). With up to 4 render threads per Voodoo instance,
+these globals create race conditions and incorrect behavior with multiple VM instances.
+
+**Solution:** Added 7 new fields to `voodoo_t` in `vid_voodoo_common.h`:
+- `jit_last_block[4]` -- per-thread cache LRU hint (was `last_block[4]`)
+- `jit_next_block_to_write[4]` -- per-thread round-robin write index (was `next_block_to_write[4]`)
+- `jit_recomp` -- recompilation counter (was `voodoo_recomp`)
+- `jit_hit_count` -- cache hit counter (was `voodoo_jit_hit_count`)
+- `jit_gen_count` -- code generation counter (was `voodoo_jit_gen_count`)
+- `jit_exec_count` -- execution counter (was `voodoo_jit_exec_count` in render.c)
+- `jit_verify_mismatches` -- verify-mode mismatch counter (was static local in render.c)
+
+**Files modified:**
+- `src/include/86box/vid_voodoo_common.h` -- Added 7 fields after `codegen_data`
+- `src/include/86box/vid_voodoo_codegen_arm64.h` -- Removed global statics, updated
+  `voodoo_get_block()` and `voodoo_codegen_init()` to use instance state
+- `src/video/vid_voodoo_render.c` -- Updated JIT exec/verify counters to use instance state
+
+**Notes:**
+- `int voodoo_recomp = 0` global kept to satisfy `extern` in `vid_voodoo_render.h` (used by
+  x86-64 codegen); ARM64 path increments both global and per-instance
+- NEON lookup tables remain as file-scope statics (read-only after init, shared safely)
+- x86-64 codegen left unchanged (separate compilation path)
+
+---
+
 ## Phase 1: Scaffolding + Prologue/Epilogue
 
 ### 2026-02-15 -- Phase 1 started
@@ -300,6 +332,33 @@ Audited all ~1450 comment lines in the ARM64 codegen header for accuracy.
 
 ---
 
+## Hardening: Emission Safety
+
+### 2026-02-16 -- ARM64 codegen guardrails
+
+#### Implementation:
+- Added explicit `#include <string.h>` in ARM64 codegen header (for `memset`)
+- Added emission bounds guard: `arm64_codegen_check_emit_bounds()` and wired `addlong(...)` through it
+- Added forward-branch patch guards:
+  - `arm64_codegen_check_patch_pos()`
+  - `arm64_codegen_check_branch_offset()` for `imm14`/`imm19`/`imm26` range + 4-byte alignment
+  - Applied to `PATCH_FORWARD_BCOND`, `PATCH_FORWARD_B`, `PATCH_FORWARD_TBxZ`, `PATCH_FORWARD_CBxZ`
+
+#### Key decisions:
+- Guard checks are always active (not debug-only) to fail fast on silent JIT corruption paths
+- Changes are ARM64-local and do not modify x86/x86-64 backends
+
+#### File modified:
+- `src/include/86box/vid_voodoo_codegen_arm64.h`
+
+### 2026-02-16 -- 4-thread crash regression investigation
+
+**Symptom**: VM crashed immediately with `render_threads=4` during the state-locality experiment.
+
+**Outcome**: The state-locality refactor was rolled back pending a safer design. Current code keeps the previous cache bookkeeping model and retains only emission/patch guard hardening.
+
+---
+
 ## Summary
 
 | Phase | Description | Status | PR |
@@ -313,3 +372,4 @@ Audited all ~1450 comment lines in the ARM64 codegen header for accuracy.
 | Debug | LD1/ST1 encoding fix + 5 other fixes | Committed | -- |
 | Infra | JIT debug logging runtime toggle | Committed | -- |
 | Fix | Voodoo 2 non-perspective texture alignment bug | Uncommitted | -- |
+| Hardening | Emission bounds checks + branch patch validation (state-locality experiment rolled back) | Uncommitted | -- |
