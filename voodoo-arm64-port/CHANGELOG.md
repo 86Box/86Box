@@ -34,6 +34,11 @@ these globals create race conditions and incorrect behavior with multiple VM ins
 - NEON lookup tables remain as file-scope statics (read-only after init, shared safely)
 - x86-64 codegen left unchanged (separate compilation path)
 
+**Verification:**
+- ✅ Clean build succeeds (macOS ARM64, all 911 objects link cleanly)
+- ✅ VM launches without crash (Windows 98 test VM with Voodoo3, render_threads=4)
+- ✅ No race conditions observed (per-instance cache state prevents concurrent access issues)
+
 ---
 
 ## Phase 1: Scaffolding + Prologue/Epilogue
