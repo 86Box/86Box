@@ -17,13 +17,7 @@
  *          Copyright 2026 skiretic.
  */
 
-/*
- * Register assignments in generated code:
- *
- *   alphaMode
- *   fbzMode & 0x1f3fff
- *   fbzColorPath
- */
+/* See "ARM64 Register Assignments" comment block below (line ~51). */
 
 #ifndef VIDEO_VOODOO_CODEGEN_ARM64_H
 #define VIDEO_VOODOO_CODEGEN_ARM64_H
@@ -1117,7 +1111,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addlong(ARM64_MOVZ_W(11, 63));
         addlong(ARM64_SUB_REG(11, 11, 10));
 
-        /* SHL x4, x4, #8 */
+        /* LSL x4, x4, #8 */
         addlong(ARM64_LSL_IMM_X(4, 4, 8));
 
         /* Store tex_t: STR w6, [x0, #STATE_tex_t] */
@@ -1160,7 +1154,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addlong(ARM64_CMP_REG(4, 10));
         addlong(ARM64_CSEL(4, 10, 4, COND_GE));  /* if lod >= max, lod = max */
 
-        /* SHR w4, w4, #8 -- integer LOD */
+        /* LSR w4, w4, #8 -- integer LOD */
         addlong(ARM64_LSR_IMM(4, 4, 8));
 
         /* Store LOD: STR w4, [x0, #STATE_lod] */
@@ -1228,7 +1222,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             addlong(ARM64_MOVZ_W(10, 1));
             /* SUB w7, w7, w6  (tex_shift = 8 - lod) */
             addlong(ARM64_SUB_REG(7, 7, 6));
-            /* SHL w10, w10, w6  (1 << lod) */
+            /* LSL w10, w10, w6  (1 << lod) */
             addlong(ARM64_LSL_REG(10, 10, 6));
             /* LDR w4, [x0, #STATE_tex_s] */
             addlong(ARM64_LDR_W(4, 0, STATE_tex_s));
@@ -1276,11 +1270,11 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             addlong(ARM64_AND_MASK(10, 10, 4));
             /* LSL w11, w11, #4 */
             addlong(ARM64_LSL_IMM(11, 11, 4));
-            /* SAR w4, w4, #4  (integer S) */
+            /* ASR w4, w4, #4  (integer S) */
             addlong(ARM64_ASR_IMM(4, 4, 4));
             /* AND w11, w11, #0xF0  (frac_t << 4) */
             addlong(ARM64_AND_BITMASK(11, 11, 0, 28, 3));  /* N=0 immr=28 imms=3 -> mask 0xF0 */
-            /* SAR w5, w5, #4  (integer T) */
+            /* ASR w5, w5, #4  (integer T) */
             addlong(ARM64_ASR_IMM(5, 5, 4));
             /* ORR w10, w10, w11  (bilinear_index = frac_s | (frac_t << 4)) */
             addlong(ARM64_ORR_REG(10, 10, 11));
@@ -1377,7 +1371,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
                 /* Test if S is negative */
                 addlong(ARM64_CMP_IMM(4, 0));
-                /* CMOVS: if negative, S = 0 */
+                /* CSEL: if negative, S = 0 */
                 addlong(ARM64_CSEL(4, 31, 4, COND_LT));
                 /* Branch if was negative (S clamped to 0 -> both samples same) */
                 {
@@ -1386,7 +1380,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
                     /* CMP w4, w15 (tex_w_mask) */
                     addlong(ARM64_CMP_REG(4, 15));
-                    /* CMOVAE: if >= mask, S = mask */
+                    /* CSEL: if >= mask, S = mask */
                     addlong(ARM64_CSEL(4, 15, 4, COND_CS));
                     /* Branch if was clamped high */
                     {
@@ -1566,9 +1560,9 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
                 PATCH_FORWARD_TBxZ(mirror_t_skip);
             }
 
-            /* SHR w4, w4, w6  (S >> (lod + 4)) */
+            /* LSR w4, w4, w6  (S >> (lod + 4)) */
             addlong(ARM64_LSR_REG(4, 4, 6));
-            /* SHR w5, w5, w6  (T >> (lod + 4)) */
+            /* LSR w5, w5, w6  (T >> (lod + 4)) */
             addlong(ARM64_LSR_REG(5, 5, 6));
 
             /* Clamp or wrap S */
@@ -1616,7 +1610,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
              */
             /* MOV w11, w7  (tex_shift) */
             addlong(ARM64_MOV_REG(11, 7));
-            /* SHL w5, w5, w11 */
+            /* LSL w5, w5, w11 */
             addlong(ARM64_LSL_REG(5, 5, 11));
             /* ADD w5, w5, w4 */
             addlong(ARM64_ADD_REG(5, 5, 4));
@@ -1674,17 +1668,18 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * Prologue: save callee-saved registers
      * ================================================================
      *
-     * Stack layout (growing down):
-     *   SP-16:  x29 (FP), x30 (LR)
-     *   SP-32:  x19, x20
-     *   SP-48:  x21, x22
-     *   SP-64:  x23, x24
-     *   SP-80:  x25, x26
-     *   SP-96:  x27, x28
-     *   SP-104: d8, d9    (NEON callee-saved, lower 64 bits)
-     *   SP-112: d10, d11
-     *   SP-128: d12, d13
-     * Total: 128 bytes (16-byte aligned)
+     * Stack layout (offsets from new SP after pre-decrement):
+     *   [SP, #0]:   x29 (FP), x30 (LR)
+     *   [SP, #16]:  x19, x20
+     *   [SP, #32]:  x21, x22
+     *   [SP, #48]:  x23, x24
+     *   [SP, #64]:  x25, x26
+     *   [SP, #80]:  x27, x28
+     *   [SP, #96]:  d8, d9    (NEON callee-saved, lower 64 bits)
+     *   [SP, #112]: d10, d11
+     *   [SP, #128]: d12, d13
+     *   [SP, #144]: (padding to 160 bytes for 16-byte alignment)
+     * Total: 160 bytes (16-byte aligned)
      */
 
     /* STP x29, x30, [SP, #-160]! */
@@ -1703,7 +1698,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addlong(ARM64_STP_D(8, 9, 31, 96));
     /* STP d10, d11, [SP, #112] */
     addlong(ARM64_STP_D(10, 11, 31, 112));
-    /* STP d12, d13, [SP, #128] -- save d12-d15 for scratch callee-saved usage */
+    /* STP d12, d13, [SP, #128] -- save d12-d13 for scratch callee-saved usage */
     addlong(ARM64_STP_D(12, 13, 31, 128));
 
     /* Set up frame pointer (optional but helps with debugging) */
@@ -1905,10 +1900,10 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         /* LDR w4, [x0, #(STATE_w + 4)] -- load high 32 bits of w */
         addlong(ARM64_LDR_W(4, 0, STATE_w + 4));
 
-        /* UXTH w5, w4 -- test low 16 bits of w4 (== bits 32..47 of w) */
+        /* UXTH w5, w4 -- extract bits 32..47 of w; if nonzero, w is too large so depth stays 0 */
         addlong(ARM64_UXTH(5, 4));
 
-        /* CBNZ w5, got_depth -- if high 16 bits nonzero, depth=0 */
+        /* CBNZ w5, got_depth -- skip depth computation if w >> 32 has nonzero low half */
         depth_jump_pos = block_pos;
         addlong(ARM64_CBNZ_W_PLACEHOLDER(5));
 
@@ -2181,7 +2176,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 }
                 addlong(ARM64_EOR_REG(5, 5, 4));  /* tc_reverse_blend ^= (lod & 1) */
                 addlong(ARM64_EOR_REG(6, 6, 4));  /* tca_reverse_blend ^= (lod & 1) */
-                addlong(ARM64_LSL_IMM(5, 5, 4));  /* EBX = tc_reverse_blend << 4 (offset into xmm_00_ff_w) */
+                addlong(ARM64_LSL_IMM(5, 5, 4));  /* w5 = tc_reverse_blend << 4 (byte offset into neon_00_ff_w) */
                 /* w5 = tc_reverse_blend index, w6 = tca_reverse_blend */
             }
 
@@ -2230,9 +2225,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
 
                 /* Apply reverse blend: XOR with 0xFF mask, then add 1 */
                 if (params->textureMode[1] & TEXTUREMODE_TRILINEAR) {
-                    /* XOR v0 with xmm_00_ff_w[ebx] (trilinear) */
-                    /* w5 has offset (0 or 16) into xmm_00_ff_w table */
-                    addlong(ARM64_LDR_Q_REG(16, 22, 5));  /* x22 = xmm_00_ff_w pointer */
+                    /* XOR v0 with neon_00_ff_w[w5] (trilinear) */
+                    /* w5 has offset (0 or 16) into neon_00_ff_w table */
+                    addlong(ARM64_LDR_Q_REG(16, 22, 5));  /* x22 = neon_00_ff_w pointer */
                     addlong(ARM64_EOR_V(0, 0, 16));
                 } else if (!tc_reverse_blend_1) {
                     /* XOR with 0xFF (invert) */
@@ -2345,7 +2340,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 /* ADD w4, w4, #1 -- THIS IS THE BUG FIX (x86 line 1303 has 0x8E instead of 0x83) */
                 addlong(ARM64_ADD_IMM(4, 4, 1));
 
-                /* IMUL w4, w5 */
+                /* MUL w4, w4, w5 */
                 addlong(ARM64_MUL(4, 4, 5));
                 /* NEG w4, w4 */
                 addlong(ARM64_NEG(4, 4));
@@ -2454,7 +2449,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             } else if (!tc_reverse_blend) {
                 addlong(ARM64_EOR_V(4, 4, 9));
             }
-            /* PADDW v4, v4, v8 */
+            /* ADD v4.4H, v4.4H, v8.4H */
             addlong(ARM64_ADD_V4H(4, 4, 8));
 
             /* Multiply: signed 16x16 -> 32 -> >>8 -> narrow */
@@ -2553,7 +2548,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addlong(ARM64_ADD_IMM(5, 5, 1));
             /* MUL w4, w4, w5 */
             addlong(ARM64_MUL(4, 4, 5));
-            /* XOR w10, w10, w10 -- zero for CMOVS */
+            /* MOV w10, #0 -- zero for negative clamp via CSEL */
             addlong(ARM64_MOV_ZERO(10));
             /* ASR w4, w4, #8 */
             addlong(ARM64_ASR_IMM(4, 4, 8));
@@ -2619,7 +2614,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * Register plan for this phase:
      *   v0 = cother (color other, unpacked to 4x16)
      *   v1 = clocal (color local, unpacked to 4x16)
-     *   v2 = zero (cleared earlier)
+     *   v2 = zero (cleared when needed; not guaranteed from prior phases)
      *   v3 = cc_mselect factor (4x16)
      *   v4 = saved texture RGB for CC_MSELECT_TEXRGB
      *   w14 = a_other (scalar alpha)
@@ -3135,7 +3130,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 }
 
                 case FOG_Z:
-                    /* fog_a = (z >> 20) & 0xff */
+                    /* fog_a = (z >> 12) & 0xff */
                     addlong(ARM64_LDR_W(4, 0, STATE_z));
                     addlong(ARM64_LSR_IMM(4, 4, 12));
                     addlong(ARM64_AND_MASK(4, 4, 8));
@@ -3168,24 +3163,16 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             /* fog_a *= 2 (to compensate for the >>1 above) */
             addlong(ARM64_ADD_REG(4, 4, 4));  /* ADD w4, w4, w4 = w4 << 1 */
 
-            /* Multiply: v3 = v3 * alookup[fog_a] >> 7 */
-            /* Load alookup entry (4x16 at [x20 + w4*8]) -- x20 = alookup ptr */
-            /* w4 is fog_a*2, each alookup entry is 16 bytes but only low 8 used;
-             * x86-64 uses alookup+4[EAX*8] which is alookup[(fog_a*2) + 1]
-             * We use fog_a*2 as index: alookup[fog_a*2/2 + 1].
-             * Actually in x86-64, after ADD EAX,EAX, it accesses alookup+4[EAX*8]
-             * = &alookup[0] + 4 + EAX*8 = &alookup[0] + 4 + fog_a*2*8.
-             * Since alookup entries are 16 bytes (voodoo_neon_reg_t), this is
-             * alookup[0] + 4 + fog_a*2*8 which, with the +4 offset for the SSE
-             * register layout, accesses the second dword of alookup[fog_a].
-             * On ARM64, alookup is an array of voodoo_neon_reg_t (16 bytes each).
-             * We want alookup[fog_a] -> low 64 bits as 4xH.
-             * fog_a is in w4. Multiply by 16 to get byte offset.
-             * But w4 = fog_a*2, so multiply by 8 = LSL #3. */
-            addlong(ARM64_ADD_REG_X_LSL(5, 20, 4, 3));  /* x5 = x20 + w4*8 */
-            addlong(ARM64_LDR_D(5, 5, 16));             /* v5 = alookup[fog_a+1].low64 (matches x86 +16 offset) */
+            /* Multiply: v3 = v3 * alookup[fog_a + 1] >> 7
+             *
+             * alookup is a voodoo_neon_reg_t array (16 bytes per entry).
+             * w4 = fog_a * 2, so byte offset = w4 * 8 = fog_a * 16.
+             * The +16 on the LDR advances one entry, loading alookup[fog_a + 1]
+             * (matches the x86-64 "+4" SSE offset into the next element). */
+            addlong(ARM64_ADD_REG_X_LSL(5, 20, 4, 3));  /* x5 = x20 + fog_a * 16 */
+            addlong(ARM64_LDR_D(5, 5, 16));             /* v5 = alookup[fog_a + 1].low64 */
 
-            addlong(ARM64_MUL_V4H(3, 3, 5));   /* v3 *= alookup[fog_a] */
+            addlong(ARM64_MUL_V4H(3, 3, 5));   /* v3 *= alookup[fog_a + 1] */
             addlong(ARM64_SSHR_V4H(3, 3, 7));  /* v3 >>= 7 (arithmetic) */
 
             if (params->fogMode & FOG_MULT) {
@@ -3526,18 +3513,18 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         addlong(ARM64_MOV_ZERO(4));  /* w4 = 0 (accumulator for blended alpha) */
 
         if (dest_aafunc == 4) {
-            /* dest_aafunc==4 means dest_alpha contributes: w4 += dst_alpha << 7 */
-            addlong(ARM64_LSL_IMM(6, 5, 7));   /* w6 = dst_alpha*2 << 7; >>8 later gives correct blend */
+            /* dest_aafunc==4 means dest_alpha contributes: w4 += (dst_alpha*2) << 7 */
+            addlong(ARM64_LSL_IMM(6, 5, 7));   /* w6 = (dst_alpha*2) << 7; >>8 later gives correct alpha */
             addlong(ARM64_ADD_REG(4, 4, 6));
         }
 
         if (src_aafunc == 4) {
-            /* src_aafunc==4 means src_alpha contributes: w4 += src_alpha << 7 */
-            addlong(ARM64_LSL_IMM(6, 12, 7));  /* w6 = src_alpha*2 << 7; >>8 later gives correct blend */
+            /* src_aafunc==4 means src_alpha contributes: w4 += (src_alpha*2) << 7 */
+            addlong(ARM64_LSL_IMM(6, 12, 7));  /* w6 = (src_alpha*2) << 7; >>8 later gives correct alpha */
             addlong(ARM64_ADD_REG(4, 4, 6));
         }
 
-        /* ROR w4, w4, #8 (same as SHR EAX, 8 when high bits are 0) */
+        /* LSR w4, w4, #8 */
         addlong(ARM64_LSR_IMM(4, 4, 8));
         /* w12 = final blended alpha */
         addlong(ARM64_MOV_REG(12, 4));
