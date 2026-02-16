@@ -1,6 +1,8 @@
 86Box
 =====
 
+> **AI Disclosure:** This fork was developed with the assistance of AI.
+
 [![Build Status](https://ci.86box.net/job/86Box/badge/icon)](https://ci.86box.net/job/86Box/)
 [![License](https://img.shields.io/github/license/86Box/86Box)](COPYING)
 [![Latest release](https://img.shields.io/github/release/86Box/86Box.svg)](https://github.com/86Box/86Box/releases)
