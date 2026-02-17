@@ -70,6 +70,15 @@ void host_arm64_CMP_REG_LSL(codeblock_t *block, int src_n_reg, int src_m_reg, in
 void host_arm64_CSEL_CC(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_CSEL_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_CSEL_VS(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSEL_NE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSEL_LT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSEL_GE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSEL_GT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSEL_LE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSEL_HI(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSEL_LS(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSINC(codeblock_t *block, int cond, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_CSNEG(codeblock_t *block, int cond, int dst_reg, int src_n_reg, int src_m_reg);
 
 void host_arm64_DUP_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int element);
 void host_arm64_INS_D(codeblock_t *block, int dst_reg, int src_reg, int dst_index, int src_index);
@@ -249,6 +258,20 @@ void host_arm64_ZIP1_V2D(codeblock_t *block, int dst_reg, int src_n_reg, int src
 void host_arm64_ZIP2_V8B(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_ZIP2_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_ZIP2_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+
+void host_arm64_CLZ(codeblock_t *block, int dst_reg, int src_reg);
+void host_arm64_RBIT(codeblock_t *block, int dst_reg, int src_reg);
+
+void host_arm64_UDIV(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_SDIV(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+
+void host_arm64_MADD(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int src_a_reg);
+void host_arm64_MSUB(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int src_a_reg);
+
+void host_arm64_ADDS_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift);
+void host_arm64_SUBS_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift);
+void host_arm64_ADDS_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t imm_data);
+void host_arm64_SUBS_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t imm_data);
 
 void host_arm64_call(codeblock_t *block, void *dst_addr);
 void host_arm64_jump(codeblock_t *block, uintptr_t dst_addr);

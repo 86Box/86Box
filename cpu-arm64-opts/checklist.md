@@ -76,15 +76,15 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 
 ### Phase 2B: New Instruction Emitters (`codegen_backend_arm64_ops.c/.h`)
 
-- [ ] Add `host_arm64_CSEL` variants (NE, LT, GE, GT, LE, HI, LS)
-- [ ] Add `host_arm64_ADDS_REG` / `host_arm64_SUBS_REG`
-- [ ] Add `host_arm64_ADDS_IMM` / `host_arm64_SUBS_IMM`
-- [ ] Add `host_arm64_CSINC` / `host_arm64_CSNEG`
-- [ ] Add `host_arm64_CLZ`
-- [ ] Add `host_arm64_RBIT`
-- [ ] Add `host_arm64_UDIV` / `host_arm64_SDIV`
-- [ ] Add `host_arm64_MADD` / `host_arm64_MSUB`
-- [ ] Declarations in `codegen_backend_arm64_ops.h`
+- [x] Add `host_arm64_CSEL` variants (NE, LT, GE, GT, LE, HI, LS)
+- [x] Add `host_arm64_ADDS_REG` / `host_arm64_SUBS_REG`
+- [x] Add `host_arm64_ADDS_IMM` / `host_arm64_SUBS_IMM`
+- [x] Add `host_arm64_CSINC` / `host_arm64_CSNEG`
+- [x] Add `host_arm64_CLZ`
+- [x] Add `host_arm64_RBIT`
+- [x] Add `host_arm64_UDIV` / `host_arm64_SDIV`
+- [x] Add `host_arm64_MADD` / `host_arm64_MSUB`
+- [x] Declarations in `codegen_backend_arm64_ops.h`
 
 ### Phase 2C: Fused Shift-ALU (`codegen_backend_arm64_uops.c`)
 
