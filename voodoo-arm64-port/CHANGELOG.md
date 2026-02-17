@@ -41,6 +41,52 @@ these globals create race conditions and incorrect behavior with multiple VM ins
 
 ---
 
+## ARM64 Codegen Follow-up Fixes (2026-02-16)
+
+### Targeted correctness + safety fixes in `voodoo_get_block()` / emit path
+
+**1) Cache probe order bug fixed**
+- **Problem:** `voodoo_get_block()` seeded probe start from `jit_last_block[odd_even]`, but lookup indexed by loop counter `c`, so the cache hint was ignored.
+- **Change:** Probe now starts at the hinted block and wraps with `(start + c) & 7`.
+- **Why:** Restores intended locality behavior for cache hits without changing cache key semantics.
+
+**2) NEON save/restore comment corrected**
+- **Problem:** Register assignment comment claimed `v12-v15` save/restore, but prologue/epilogue only save/restore `d12-d13` (plus constant regs `d8-d11`).
+- **Change:** Comment now states `v12-v13` are the scratch callee-saved SIMD regs actually preserved by generated code; `v14-v15` are not used.
+- **Why:** Keeps documentation aligned with the real ABI behavior and avoids misleading maintenance assumptions.
+
+**3) JIT emit overflow now falls back to interpreter (no VM abort)**
+- **Problem:** `arm64_codegen_check_emit_bounds()` called `fatal()` on oversized blocks, terminating the process.
+- **Change:** Emission overflow is now tracked per-thread during codegen; when overflow is detected:
+  - emission stops before out-of-bounds write,
+  - generated slot is marked invalid,
+  - W^X is restored,
+  - `voodoo_get_block()` returns `NULL` so render path uses interpreter fallback.
+- **Why:** Preserves strict bounds safety while preventing hard process aborts on rare oversized codegen cases.
+
+**4) Counter increment race risk reduced**
+- **Problem:** `jit_hit_count`, `jit_gen_count`, `jit_recomp` were incremented non-atomically in `voodoo_get_block()`.
+- **Change:** Converted these per-instance JIT counters to `ATOMIC_INT` and switched increments/stores in ARM64 codegen path to project atomic primitives (`ATOMIC_INC`, `ATOMIC_STORE`, `ATOMIC_LOAD`).
+- **Why:** Keeps debug/recomp stats semantics close to existing behavior while reducing multithread update races.
+- **Follow-up:** Removed ARM64-side increment of legacy global `voodoo_recomp`; ARM64 now uses only per-instance `voodoo->jit_recomp`.
+
+**5) Cache slot validity tracking added**
+- **Problem:** A partially-emitted overflow block could leave stale metadata risk in the selected cache slot.
+- **Change:** Added per-slot `valid` bit in ARM64 codegen cache data; lookup requires `valid`, success path sets it, overflow path clears it.
+- **Why:** Prevents accidental reuse of invalid/partial code blocks after rejected generation.
+
+**6) MAP_JIT init crash fix (macOS)**
+- **Problem:** Zeroing the whole executable `codegen_data` mapping during `voodoo_codegen_init()` can fault if thread JIT write-protect is already enabled.
+- **Change:** Removed eager `memset` of the executable mapping in init; validity still starts cleared because anonymous mmap pages are zero-initialized.
+- **Why:** Prevents startup SIGBUS/KERN_PROTECTION_FAILURE in `voodoo_codegen_init` while preserving cache-slot validity semantics.
+
+**7) Overflow-key memoization to avoid repeated regen churn**
+- **Problem:** Repeatedly hitting the same oversized JIT key caused repeated generation attempts before interpreter fallback.
+- **Change:** Added `rejected` state in ARM64 cache entries; overflow now stores the cache key and marks slot rejected so future identical probes fast-return interpreter fallback without regenerating.
+- **Why:** Reduces avoidable JIT overhead/stutter on persistent overflow keys while keeping bounds safety strict.
+
+---
+
 ## Phase 1: Scaffolding + Prologue/Epilogue
 
 ### 2026-02-15 -- Phase 1 started

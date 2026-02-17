@@ -76,12 +76,14 @@
  *   v9      = xmm_ff_w constant {0xFF,...}     (callee-saved)
  *   v10     = xmm_ff_b constant {0xFFFFFF,0,0,0} (callee-saved)
  *   v11     = minus_254 constant {0xFF02,...}   (callee-saved)
- *   v12-v15 = scratch (callee-saved, save/restore in prologue/epilogue)
+ *   v12-v13 = scratch (callee-saved, save/restore in prologue/epilogue)
+ *   v14-v15 = not used by current generated path
  *   v16-v31 = scratch (caller-saved)
  * ======================================================================== */
 
 /* ========================================================================
- * Data structure -- mirrors voodoo_x86_data_t
+ * Data structure -- based on voodoo_x86_data_t cache key fields
+ * (plus ARM64-local validity/reject flags)
  * ======================================================================== */
 typedef struct voodoo_arm64_data_t {
     uint8_t  code_block[BLOCK_SIZE];
@@ -94,6 +96,8 @@ typedef struct voodoo_arm64_data_t {
     uint32_t tLOD[2];
     uint32_t trexInit1;
     int      is_tiled;
+    int      valid;
+    int      rejected;
 } voodoo_arm64_data_t;
 
 /* last_block[4] and next_block_to_write[4] moved to voodoo_t
@@ -103,21 +107,50 @@ typedef struct voodoo_arm64_data_t {
  * Emission primitive -- ARM64 instructions are always 4 bytes
  * ======================================================================== */
 static inline void
+arm64_codegen_begin_emit(void);
+
+#if defined(_MSC_VER)
+#    define ARM64_CODEGEN_TLS __declspec(thread)
+#else
+#    define ARM64_CODEGEN_TLS __thread
+#endif
+
+static ARM64_CODEGEN_TLS int arm64_codegen_emit_overflow = 0;
+
+static inline void
+arm64_codegen_begin_emit(void)
+{
+    arm64_codegen_emit_overflow = 0;
+}
+
+static inline int
+arm64_codegen_emit_overflowed(void)
+{
+    return arm64_codegen_emit_overflow;
+}
+
+static inline int
 arm64_codegen_check_emit_bounds(int block_pos, int emit_size)
 {
     int64_t end_pos = (int64_t) block_pos + (int64_t) emit_size;
 
     if (block_pos < 0 || emit_size < 0 || end_pos > BLOCK_SIZE) {
-        fatal("ARM64 JIT: code emission overflow (block_pos=%d emit=%d limit=%d)\n",
-              block_pos, emit_size, BLOCK_SIZE);
+        return 0;
     }
+
+    return 1;
 }
 
-#define addlong(val)                                 \
-    do {                                             \
-        arm64_codegen_check_emit_bounds(block_pos, 4); \
-        *(uint32_t *) &code_block[block_pos] = val;  \
-        block_pos += 4;                              \
+#define addlong(val)                                      \
+    do {                                                  \
+        if (!arm64_codegen_emit_overflow) {              \
+            if (!arm64_codegen_check_emit_bounds(block_pos, 4)) { \
+                arm64_codegen_emit_overflow = 1;         \
+            } else {                                      \
+                *(uint32_t *) &code_block[block_pos] = val; \
+                block_pos += 4;                           \
+            }                                             \
+        }                                                 \
     } while (0)
 
 /* ========================================================================
@@ -1691,6 +1724,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     int depth_jump_pos   = 0;
     int depth_jump_pos2  = 0;
     int loop_jump_pos    = 0;
+
+    arm64_codegen_begin_emit();
 
     /* Initialize NEON constants (written to static memory, loaded by prologue) */
     neon_01_w.u32[0]      = 0x00010001;
@@ -3968,8 +4003,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addlong(ARM64_RET);
 }
 
-/* Global kept to satisfy 'extern int voodoo_recomp' in vid_voodoo_render.h.
- * Actual per-instance recomp count is in voodoo->jit_recomp. */
+/* Global kept only to satisfy 'extern int voodoo_recomp' in vid_voodoo_render.h.
+ * ARM64 path uses per-instance recomp count in voodoo->jit_recomp. */
 int voodoo_recomp = 0;
 
 /* ========================================================================
@@ -3983,9 +4018,11 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     voodoo_arm64_data_t *data;
 
     for (uint8_t c = 0; c < 8; c++) {
-        data = &voodoo_arm64_data[odd_even + c * 4];
+        int probe = (b + c) & 7;
+        data      = &voodoo_arm64_data[odd_even + probe * 4];
 
-        if (state->xdir == data->xdir
+        if ((data->valid || data->rejected)
+            && state->xdir == data->xdir
             && params->alphaMode == data->alphaMode
             && params->fbzMode == data->fbzMode
             && params->fogMode == data->fogMode
@@ -3996,23 +4033,30 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
             && (params->tLOD[0] & LOD_MASK) == data->tLOD[0]
             && (params->tLOD[1] & LOD_MASK) == data->tLOD[1]
             && ((params->col_tiled || params->aux_tiled) ? 1 : 0) == data->is_tiled) {
-            voodoo->jit_last_block[odd_even] = b;
-            if (voodoo->jit_debug && voodoo->jit_debug_log && voodoo->jit_hit_count < 20) {
+            if (data->rejected)
+                return NULL;
+
+            int hit_count;
+
+            voodoo->jit_last_block[odd_even] = probe;
+            if (voodoo->jit_debug && voodoo->jit_debug_log) {
+                hit_count = ATOMIC_LOAD(voodoo->jit_hit_count);
+            } else {
+                hit_count = 0;
+            }
+            if (voodoo->jit_debug && voodoo->jit_debug_log && hit_count < 20) {
                 fprintf(voodoo->jit_debug_log,
                         "VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
                         "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
-                        voodoo->jit_hit_count, odd_even, b, (void *) data->code_block,
+                        hit_count, odd_even, probe, (void *) data->code_block,
                         params->fbzMode, params->fbzColorPath, params->alphaMode);
-                voodoo->jit_hit_count++;
+                ATOMIC_INC(voodoo->jit_hit_count);
             }
             return data->code_block;
         }
-
-        b = (b + 1) & 7;
     }
 
-    voodoo->jit_recomp++;
-    voodoo_recomp++;
+    ATOMIC_INC(voodoo->jit_recomp);
     data = &voodoo_arm64_data[odd_even + voodoo->jit_next_block_to_write[odd_even] * 4];
 
     /* W^X: make writable before code generation + metadata writes */
@@ -4024,15 +4068,45 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 
     voodoo_generate(data->code_block, voodoo, params, state, depth_op);
 
+    if (arm64_codegen_emit_overflowed()) {
+        data->xdir           = state->xdir;
+        data->alphaMode      = params->alphaMode;
+        data->fbzMode        = params->fbzMode;
+        data->fogMode        = params->fogMode;
+        data->fbzColorPath   = params->fbzColorPath;
+        data->trexInit1      = voodoo->trexInit1[0] & (1 << 18);
+        data->textureMode[0] = params->textureMode[0];
+        data->textureMode[1] = params->textureMode[1];
+        data->tLOD[0]        = params->tLOD[0] & LOD_MASK;
+        data->tLOD[1]        = params->tLOD[1] & LOD_MASK;
+        data->is_tiled       = (params->col_tiled || params->aux_tiled) ? 1 : 0;
+        data->valid          = 0;
+        data->rejected       = 1;
+#if defined(__APPLE__) && defined(__aarch64__)
+        if (__builtin_available(macOS 11.0, *)) {
+            pthread_jit_write_protect_np(1);
+        }
+#endif
+        if (voodoo->jit_debug && voodoo->jit_debug_log) {
+            fprintf(voodoo->jit_debug_log,
+                    "VOODOO JIT: REJECT odd_even=%d block=%d reason=emit_overflow "
+                    "(limit=%d) -> interpreter fallback\n",
+                    odd_even, voodoo->jit_next_block_to_write[odd_even], BLOCK_SIZE);
+        }
+        voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & 7;
+        return NULL;
+    }
+
     if (voodoo->jit_debug && voodoo->jit_debug_log) {
-        voodoo->jit_gen_count++;
+        int gen_count = ATOMIC_LOAD(voodoo->jit_gen_count);
+        ATOMIC_INC(voodoo->jit_gen_count);
         fprintf(voodoo->jit_debug_log,
                 "VOODOO JIT: GENERATE #%d odd_even=%d block=%d code=%p recomp=%d "
                 "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
                 "textureMode[0]=0x%08x fogMode=0x%08x xdir=%d\n",
-                voodoo->jit_gen_count, odd_even, voodoo->jit_next_block_to_write[odd_even],
+                gen_count, odd_even, voodoo->jit_next_block_to_write[odd_even],
                 (void *) data->code_block,
-                voodoo->jit_recomp, params->fbzMode, params->fbzColorPath, params->alphaMode,
+                ATOMIC_LOAD(voodoo->jit_recomp), params->fbzMode, params->fbzColorPath, params->alphaMode,
                 params->textureMode[0], params->fogMode, state->xdir);
     }
 
@@ -4047,6 +4121,8 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     data->tLOD[0]        = params->tLOD[0] & LOD_MASK;
     data->tLOD[1]        = params->tLOD[1] & LOD_MASK;
     data->is_tiled       = (params->col_tiled || params->aux_tiled) ? 1 : 0;
+    data->valid          = 1;
+    data->rejected       = 0;
 
     /* W^X: make executable, flush I-cache */
 #if defined(__APPLE__) && defined(__aarch64__)
@@ -4078,11 +4154,11 @@ voodoo_codegen_init(voodoo_t *voodoo)
     /* Initialize per-instance JIT cache state */
     memset(voodoo->jit_last_block, 0, sizeof(voodoo->jit_last_block));
     memset(voodoo->jit_next_block_to_write, 0, sizeof(voodoo->jit_next_block_to_write));
-    voodoo->jit_recomp             = 0;
-    voodoo->jit_hit_count          = 0;
-    voodoo->jit_gen_count          = 0;
-    voodoo->jit_exec_count         = 0;
-    voodoo->jit_verify_mismatches  = 0;
+    ATOMIC_STORE(voodoo->jit_recomp, 0);
+    ATOMIC_STORE(voodoo->jit_hit_count, 0);
+    ATOMIC_STORE(voodoo->jit_gen_count, 0);
+    ATOMIC_STORE(voodoo->jit_exec_count, 0);
+    ATOMIC_STORE(voodoo->jit_verify_mismatches, 0);
 
     for (uint16_t c = 0; c < 256; c++) {
         int d[4];
