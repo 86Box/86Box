@@ -88,9 +88,11 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 
 ### Phase 2C: Fused Shift-ALU (`codegen_backend_arm64_uops.c`)
 
-- [ ] Identify shift+ALU sequences that can use fused forms
-- [ ] Update uop handlers to pass shift parameter to ALU emitters
-- [ ] Verify changes are ARM64-guarded
+- [x] Identify shift+ALU sequences that can use fused forms
+- [x] Update uop handlers to pass shift parameter to ALU emitters
+- [x] Verify changes are ARM64-guarded
+
+**Note**: Already complete in existing codebase. All shift+ALU sequences already use fused forms (ADD_REG_LSR, SUB_REG_LSR, AND_REG_ASR, etc.) where ARM64 ISA permits.
 
 ### Phase 2D: ADRP+ADD Immediate Loading (`codegen_backend_arm64_ops.c`)
 
