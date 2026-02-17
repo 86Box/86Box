@@ -123,6 +123,12 @@ fetch_ea_32_long(uint32_t rmdat)
             cpu_state.eaaddr = getlong();
         }
     }
+#if defined(__aarch64__) || defined(_M_ARM64)
+    /* Prefetch TLB entry while address calculation completes */
+    if (easeg != 0xFFFFFFFF) {
+        __builtin_prefetch(&readlookup2[(easeg + cpu_state.eaaddr) >> 12], 0, 1);
+    }
+#endif
     if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
@@ -314,7 +320,7 @@ exec386_dynarec_int(void)
             x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
 #    endif
 
-        if (!cpu_state.abrt) {
+        if (LIKELY(!cpu_state.abrt)) {
             opcode = fetchdat & 0xFF;
             fetchdat >>= 8;
 
@@ -346,7 +352,7 @@ exec386_dynarec_int(void)
         }
 #    endif
 
-        if (((cs + cpu_state.pc) >> 12) != pccache)
+        if (UNLIKELY(((cs + cpu_state.pc) >> 12) != pccache))
             CPU_BLOCK_END();
 
         if (cpu_end_block_after_ins) {
@@ -358,17 +364,17 @@ exec386_dynarec_int(void)
         if (cpu_init)
             CPU_BLOCK_END();
 
-        if (cpu_state.abrt)
+        if (UNLIKELY(cpu_state.abrt))
             CPU_BLOCK_END();
-        if (smi_line)
+        if (UNLIKELY(smi_line))
             CPU_BLOCK_END();
         else if (new_ne)
             CPU_BLOCK_END();
-        else if (trap)
+        else if (UNLIKELY(trap))
             CPU_BLOCK_END();
-        else if (nmi && nmi_enable && nmi_mask)
+        else if (UNLIKELY(nmi && nmi_enable && nmi_mask))
             CPU_BLOCK_END();
-        else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+        else if (UNLIKELY((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins))
             CPU_BLOCK_END();
     }
 
@@ -404,6 +410,11 @@ exec386_dynarec_dyn(void)
 #    endif
     int valid_block = 0;
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+    /* Prefetch codeblock structure into L1 cache */
+    __builtin_prefetch(block, 0, 3);
+#endif
+
 #    ifdef USE_NEW_DYNAREC
     if (!cpu_state.abrt)
 #    else
@@ -415,7 +426,12 @@ exec386_dynarec_dyn(void)
         /* Block must match current CS, PC, code segment size,
            and physical address. The physical address check will
            also catch any page faults at this stage */
+#if defined(__aarch64__) || defined(_M_ARM64)
+        /* Branchless validation - use bitwise & instead of && to avoid branch mispredictions */
+        valid_block = (block->pc == cs + cpu_state.pc) & (block->_cs == cs) & (block->phys == phys_addr) & !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) & ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
+#else
         valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) && (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
+#endif
         if (!valid_block) {
             uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
 #    ifdef USE_NEW_DYNAREC
@@ -431,7 +447,12 @@ exec386_dynarec_dyn(void)
                 /* Walk page tree to see if we find the correct block */
                 codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
                 if (new_block) {
+#if defined(__aarch64__) || defined(_M_ARM64)
+                    /* Branchless validation - use bitwise & instead of && to avoid branch mispredictions */
+                    valid_block = (new_block->pc == cs + cpu_state.pc) & (new_block->_cs == cs) & (new_block->phys == phys_addr) & !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) & ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
+#else
                     valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
+#endif
                     if (valid_block) {
                         block = new_block;
 #    ifdef USE_NEW_DYNAREC
@@ -513,12 +534,17 @@ exec386_dynarec_dyn(void)
     }
 
 #    ifdef USE_NEW_DYNAREC
-    if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
+    if (LIKELY(valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED)))
 #    else
-    if (valid_block && block->was_recompiled)
+    if (LIKELY(valid_block && block->was_recompiled))
 #    endif
     {
         void (*code)(void) = (void *) &block->data[BLOCK_START];
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+        /* Prefetch JIT code into L1 instruction cache */
+        __builtin_prefetch(block->data, 0, 3);
+#endif
 
 #    ifndef USE_NEW_DYNAREC
         codeblock_hash[hash] = block;
@@ -546,9 +572,7 @@ exec386_dynarec_dyn(void)
         x86_was_reset = 0;
 
 #    if defined(__APPLE__) && defined(__aarch64__)
-        if (__builtin_available(macOS 11.0, *)) {
-            pthread_jit_write_protect_np(0);
-        }
+        pthread_jit_write_protect_np(0);
 #    endif
         codegen_block_start_recompile(block);
         codegen_in_recompile = 1;
@@ -637,9 +661,7 @@ exec386_dynarec_dyn(void)
 
         codegen_in_recompile = 0;
 #    if defined(__APPLE__) && defined(__aarch64__)
-        if (__builtin_available(macOS 11.0, *)) {
-            pthread_jit_write_protect_np(1);
-        }
+        pthread_jit_write_protect_np(1);
 #    endif
     } else if (!cpu_state.abrt) {
         /* Mark block but do not recompile */
