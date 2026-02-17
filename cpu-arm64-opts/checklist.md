@@ -103,11 +103,11 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 
 ### Phase 2E: Cached Lookup Table Registers (`codegen_backend_arm64.c`, `_defs.h`)
 
-- [ ] Decide which 2 callee-saved regs to dedicate (X27, X28 proposed)
-- [ ] Update `codegen_backend_arm64_defs.h` register assignments
-- [ ] Load `readlookup2`/`writelookup2` in prologue
-- [ ] Update memory load/store stubs to use cached registers
-- [ ] Reduce `CODEGEN_HOST_REGS` from 10 to 8
+- [x] Decide which 2 callee-saved regs to dedicate (X27, X28 proposed)
+- [x] Update `codegen_backend_arm64_defs.h` register assignments
+- [x] Load `readlookup2`/`writelookup2` in prologue
+- [x] Update memory load/store stubs to use cached registers
+- [x] Reduce `CODEGEN_HOST_REGS` from 10 to 8
 - [ ] Verify register pressure doesn't cause spill regressions
 
 ### Phase 2 Testing

@@ -111,7 +111,14 @@
 
 #define REG_V_TEMP           REG_V0
 
+/* Cached TLB lookup table pointers (Phase 2E optimization) */
+#if defined(__aarch64__) || defined(_M_ARM64)
+#define REG_READLOOKUP2      REG_X27
+#define REG_WRITELOOKUP2     REG_X28
+#define CODEGEN_HOST_REGS    8
+#else
 #define CODEGEN_HOST_REGS    10
+#endif
 #define CODEGEN_HOST_FP_REGS 8
 
 extern void *codegen_mem_load_byte;

@@ -55,9 +55,11 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
     { REG_X23, 0},
     { REG_X24, 0},
     { REG_X25, 0},
-    { REG_X26, 0},
-    { REG_X27, 0},
+    { REG_X26, 0}
+#if !defined(__aarch64__) && !defined(_M_ARM64)
+    ,{ REG_X27, 0},
     { REG_X28, 0}
+#endif
 };
 
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
@@ -96,11 +98,12 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     codegen_alloc(block, 80);
     host_arm64_MOV_REG_LSR(block, REG_W1, REG_W0, 12);
 #if defined(__aarch64__) || defined(_M_ARM64)
-    host_arm64_ADRP_ADD(block, REG_X2, readlookup2);
+    /* Phase 2E: Use cached readlookup2 from REG_READLOOKUP2 (X27) */
+    host_arm64_LDRX_REG_LSL3(block, REG_X1, REG_READLOOKUP2, REG_X1);
 #else
     host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) readlookup2);
-#endif
     host_arm64_LDRX_REG_LSL3(block, REG_X1, REG_X2, REG_X1);
+#endif
     if (size != 1) {
         host_arm64_TST_IMM(block, REG_W0, size - 1);
         misaligned_offset = host_arm64_BNE_(block);
@@ -168,11 +171,12 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     codegen_alloc(block, 80);
     host_arm64_MOV_REG_LSR(block, REG_W2, REG_W0, 12);
 #if defined(__aarch64__) || defined(_M_ARM64)
-    host_arm64_ADRP_ADD(block, REG_X3, writelookup2);
+    /* Phase 2E: Use cached writelookup2 from REG_WRITELOOKUP2 (X28) */
+    host_arm64_LDRX_REG_LSL3(block, REG_X2, REG_WRITELOOKUP2, REG_X2);
 #else
     host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) writelookup2);
-#endif
     host_arm64_LDRX_REG_LSL3(block, REG_X2, REG_X3, REG_X2);
+#endif
     if (size != 1) {
         host_arm64_TST_IMM(block, REG_W0, size - 1);
         misaligned_offset = host_arm64_BNE_(block);
@@ -364,6 +368,9 @@ codegen_backend_prologue(codeblock_t *block)
 
 #if defined(__aarch64__) || defined(_M_ARM64)
     host_arm64_ADRP_ADD(block, REG_CPUSTATE, &cpu_state);
+    /* Phase 2E: Cache TLB lookup table pointers in dedicated registers */
+    host_arm64_ADRP_ADD(block, REG_READLOOKUP2, readlookup2);
+    host_arm64_ADRP_ADD(block, REG_WRITELOOKUP2, writelookup2);
 #else
     host_arm64_MOVX_IMM(block, REG_CPUSTATE, (uint64_t) &cpu_state);
 #endif
