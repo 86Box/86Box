@@ -96,10 +96,10 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 
 ### Phase 2D: ADRP+ADD Immediate Loading (`codegen_backend_arm64_ops.c`)
 
-- [ ] Implement `host_arm64_ADRP_ADD()` helper
-- [ ] Verify JIT code address is available at emit time
-- [ ] Replace `MOVX_IMM` with `ADRP_ADD` for pointer loads in stubs
-- [ ] Range check: ensure ±4GB coverage is sufficient
+- [x] Implement `host_arm64_ADRP_ADD()` helper
+- [x] Verify JIT code address is available at emit time
+- [x] Replace `MOVX_IMM` with `ADRP_ADD` for pointer loads in stubs
+- [x] Range check: ensure ±4GB coverage is sufficient
 
 ### Phase 2E: Cached Lookup Table Registers (`codegen_backend_arm64.c`, `_defs.h`)
 

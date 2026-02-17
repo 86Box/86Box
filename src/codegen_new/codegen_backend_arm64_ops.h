@@ -162,6 +162,10 @@ void host_arm64_MOV_REG_ROR(codeblock_t *block, int dst_reg, int src_m_reg, int 
 void host_arm64_MOVX_IMM(codeblock_t *block, int reg, uint64_t imm_data);
 void host_arm64_MOVX_REG(codeblock_t *block, int dst_reg, int src_m_reg, int shift);
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+void host_arm64_ADRP_ADD(codeblock_t *block, int reg, void *target);
+#endif
+
 void host_arm64_MOVZ_IMM(codeblock_t *block, int reg, uint32_t imm_data);
 void host_arm64_MOVK_IMM(codeblock_t *block, int reg, uint32_t imm_data);
 

@@ -95,7 +95,11 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     */
     codegen_alloc(block, 80);
     host_arm64_MOV_REG_LSR(block, REG_W1, REG_W0, 12);
+#if defined(__aarch64__) || defined(_M_ARM64)
+    host_arm64_ADRP_ADD(block, REG_X2, readlookup2);
+#else
     host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) readlookup2);
+#endif
     host_arm64_LDRX_REG_LSL3(block, REG_X1, REG_X2, REG_X1);
     if (size != 1) {
         host_arm64_TST_IMM(block, REG_W0, size - 1);
@@ -163,7 +167,11 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     */
     codegen_alloc(block, 80);
     host_arm64_MOV_REG_LSR(block, REG_W2, REG_W0, 12);
+#if defined(__aarch64__) || defined(_M_ARM64)
+    host_arm64_ADRP_ADD(block, REG_X3, writelookup2);
+#else
     host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) writelookup2);
+#endif
     host_arm64_LDRX_REG_LSL3(block, REG_X2, REG_X3, REG_X2);
     if (size != 1) {
         host_arm64_TST_IMM(block, REG_W0, size - 1);
@@ -354,7 +362,11 @@ codegen_backend_prologue(codeblock_t *block)
     host_arm64_STP_PREIDX_X(block, REG_X21, REG_X22, REG_XSP, -16);
     host_arm64_STP_PREIDX_X(block, REG_X19, REG_X20, REG_XSP, -64);
 
+#if defined(__aarch64__) || defined(_M_ARM64)
+    host_arm64_ADRP_ADD(block, REG_CPUSTATE, &cpu_state);
+#else
     host_arm64_MOVX_IMM(block, REG_CPUSTATE, (uint64_t) &cpu_state);
+#endif
 
     if (block->flags & CODEBLOCK_HAS_FPU) {
         host_arm64_LDR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.TOP - (uintptr_t) &cpu_state);

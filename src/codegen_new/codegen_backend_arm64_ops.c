@@ -47,6 +47,7 @@
 #    define OPCODE_ADD_IMM            (0x11 << OPCODE_SHIFT)
 #    define OPCODE_ADDX_IMM           (0x91 << OPCODE_SHIFT)
 #    define OPCODE_ADR                (0x10 << OPCODE_SHIFT)
+#    define OPCODE_ADRP               (0x90 << OPCODE_SHIFT)
 #    define OPCODE_B                  (0x14 << OPCODE_SHIFT)
 #    define OPCODE_BCOND              (0x54 << OPCODE_SHIFT)
 #    define OPCODE_CBNZ               (0xb5 << OPCODE_SHIFT)
@@ -248,6 +249,7 @@
 #    define OFFSET14(offset)          (((offset >> 2) << 5) & 0x0007ffe0)
 #    define OFFSET19(offset)          (((offset >> 2) << 5) & 0x00ffffe0)
 #    define OFFSET20(offset)          (((offset & 3) << 29) | ((((offset) & 0x1fffff) >> 2) << 5))
+#    define OFFSET21_PAGE(offset)     ((((offset) & 0x3) << 29) | ((((offset) >> 2) & 0x7ffff) << 5))
 #    define OFFSET26(offset)          ((offset >> 2) & 0x03ffffff)
 
 #    define OFFSET12_B(offset)        (offset << 10)
@@ -1141,6 +1143,32 @@ host_arm64_MOVX_REG(codeblock_t *block, int dst_reg, int src_m_reg, int shift)
     if (dst_reg != src_m_reg)
         codegen_addlong(block, OPCODE_ORRX_LSL | Rd(dst_reg) | Rn(REG_XZR) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
+
+#if defined(__aarch64__) || defined(_M_ARM64)
+void
+host_arm64_ADRP_ADD(codeblock_t *block, int reg, void *target)
+{
+    uintptr_t pc = (uintptr_t)&block_write_data[block_pos];
+    uintptr_t target_addr = (uintptr_t)target;
+
+    /* Calculate page offset */
+    intptr_t page_offset = (intptr_t)(target_addr >> 12) - (intptr_t)(pc >> 12);
+
+    /* Verify ±4GB range (21-bit signed page offset) */
+    if (page_offset < -(1 << 20) || page_offset >= (1 << 20)) {
+        /* Out of range - fall back to MOVX_IMM */
+        host_arm64_MOVX_IMM(block, reg, (uint64_t)target);
+        return;
+    }
+
+    /* Emit ADRP: load page address */
+    codegen_addlong(block, OPCODE_ADRP | Rd(reg) | OFFSET21_PAGE(page_offset));
+
+    /* Emit ADD: add page offset */
+    uint32_t page_low = target_addr & 0xFFF;
+    codegen_addlong(block, OPCODE_ADDX_IMM | Rd(reg) | Rn(reg) | IMM12(page_low));
+}
+#endif
 
 void
 host_arm64_MOVZ_IMM(codeblock_t *block, int reg, uint32_t imm_data)
