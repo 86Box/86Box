@@ -1300,7 +1300,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addbyte(0x35); /*XOR EAX, 0xff*/
                 addlong(0xff);
             }
-            addbyte(0x8e); /*ADD EAX, 1*/
+            addbyte(0x83); /*ADD EAX, 1*/
             addbyte(0xc0);
             addbyte(1);
             addbyte(0x0f); /*IMUL EAX, EBX*/

@@ -59,12 +59,12 @@ machine_at_p5a_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
     pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL,          1, 2, 3, 4);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL,          3, 4, 1, 2);
     pci_register_slot(0x09, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,          4, 1, 2, 3);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x06, PCI_CARD_SOUND,           3, 4, 1, 2);
 
     device_add(&ali1541_device);
     device_add(&ali1543c_device); /* +0 */

@@ -5905,7 +5905,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = &gd5402_onboard_device,
+        .vid_device               = &gd5402_onboard_commodore_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -7893,7 +7893,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -8620,7 +8620,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = &gd5428_vlb_onboard_device,
+        .vid_device               = &gd5428_onboard_vlb_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -8670,7 +8670,7 @@ const machine_t machines[] = {
     },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
-        .name              = "[VLSI 82C486] Tandy Sensation! II (25-1651)/3100/MMPC",
+        .name              = "[VLSI 82C486] Tandy Sensation! II (25-1651)",
         .internal_name     = "sensation2",
         .type              = MACHINE_TYPE_486_S2,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
@@ -8690,7 +8690,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -8708,7 +8708,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = &gd5428_vlb_onboard_device,
+        .vid_device               = &gd5428_vlb_onboard_tandy_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },

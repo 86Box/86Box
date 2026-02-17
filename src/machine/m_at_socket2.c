@@ -389,6 +389,7 @@ machine_at_monsoon_init(const machine_t *model)
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
 
     device_add(&intel_flash_bxt_device);
+    device_add(&phoenix_486_jumper_monsoon_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
