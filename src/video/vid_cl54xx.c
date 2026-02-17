@@ -5301,7 +5301,7 @@ const device_t gd5428_onboard_device = {
     .available     = gd5428_isa_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
+    .config        = gd542x_config
 };
 
 const device_t gd5428_vlb_onboard_device = {
