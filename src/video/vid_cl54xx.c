@@ -4442,7 +4442,9 @@ gd54xx_init(const device_t *info)
         gd54xx->vram_size = vram << 10;
     } else {
         if (id <= CIRRUS_ID_CLGD5428) {
-            if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200))
+            if ((id == CIRRUS_ID_CLGD5428) && (info->local & 0x200) && (info->local & 0x1000))
+                vram = 1024;
+            else if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200))
                 vram = 1024;
             else if (id == CIRRUS_ID_CLGD5401)
                 vram = 256;
@@ -5330,6 +5332,20 @@ const device_t gd5428_onboard_vlb_device = {
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd542x_config
+};
+
+const device_t gd5428_vlb_onboard_tandy_device = {
+    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (Tandy)",
+    .internal_name = "cl_gd5428_vlb_onboard_tandy",
+    .flags         = DEVICE_VLB,
+    .local         = CIRRUS_ID_CLGD5428 | 0x200 | 0x1000,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = NULL
 };
 
 const device_t gd5429_isa_device = {
