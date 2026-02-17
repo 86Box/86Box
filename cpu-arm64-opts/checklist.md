@@ -60,10 +60,10 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 
 ### Phase 1 Testing
 
-- [ ] **BUILD**: Compiles on ARM64
-- [ ] **RUN TEST**: Boot Windows 98 VM, verify normal operation
-- [ ] **RUN TEST**: Run 3DMark 99 or similar workload
-- [ ] Create PR for Phase 1
+- [x] **BUILD**: Compiles on ARM64
+- [x] **RUN TEST**: Boot Windows 98 VM, verify normal operation
+- [x] **RUN TEST**: Run 3DMark 99 or similar workload
+- [x] Create PR for Phase 1
 
 ## Phase 2: JIT Backend Code Quality
 
@@ -108,14 +108,14 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 - [x] Load `readlookup2`/`writelookup2` in prologue
 - [x] Update memory load/store stubs to use cached registers
 - [x] Reduce `CODEGEN_HOST_REGS` from 10 to 8
-- [ ] Verify register pressure doesn't cause spill regressions
+- [x] Verify register pressure doesn't cause spill regressions
 
 ### Phase 2 Testing
 
-- [ ] **BUILD**: Compiles on ARM64
-- [ ] **RUN TEST**: Boot Windows 98 VM
-- [ ] **RUN TEST**: DOS games (heavy 16-bit byte/word ops)
-- [ ] **RUN TEST**: Windows 3.1/95 (mixed 16/32-bit)
+- [x] **BUILD**: Compiles on ARM64
+- [x] **RUN TEST**: Boot Windows 98 VM
+- [x] **RUN TEST**: DOS games (heavy 16-bit byte/word ops)
+- [x] **RUN TEST**: Windows 3.1/95 (mixed 16/32-bit)
 - [ ] Create PR for Phase 2
 
 ## Phase 3: Benchmarking
