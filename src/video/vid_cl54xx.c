@@ -5319,7 +5319,7 @@ const device_t gd5428_vlb_onboard_device = {
 };
 
 const device_t gd5428_onboard_vlb_device = {
-    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (Dell)",
+    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (1MB)",
     .internal_name = "cl_gd5428_onboard_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_CLGD5428 | 0x200,
