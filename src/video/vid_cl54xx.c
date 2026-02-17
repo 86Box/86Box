@@ -1330,7 +1330,10 @@ gd54xx_in(uint16_t addr, void *priv)
                         /* Scratch Pad 1 (Memory size for 5402/542x) */
                         ret = svga->seqregs[0x0a] & ~0x1a;
                         if (svga->crtc[0x27] == CIRRUS_ID_CLGD5402) {
-                            ret |= 0x01; /*512K of memory*/
+                            if ((gd54xx->vram_size >> 10) == 512)
+                                ret |= 0x01; /*512K of memory*/
+                            else
+                                ret &= 0xfe; /*256K of memory*/
                         } else if (svga->crtc[0x27] > CIRRUS_ID_CLGD5402) {
                             switch (gd54xx->vram_size >> 10) {
                                 case 512:
@@ -4439,12 +4442,12 @@ gd54xx_init(const device_t *info)
         gd54xx->vram_size = vram << 10;
     } else {
         if (id <= CIRRUS_ID_CLGD5428) {
-            if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200))
+            if ((id == CIRRUS_ID_CLGD5428) && (info->local & 0x200) && (info->local & 0x1000))
+                vram = 1024;
+            else if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200))
                 vram = 1024;
             else if (id == CIRRUS_ID_CLGD5401)
                 vram = 256;
-            else if (id == CIRRUS_ID_CLGD5402)
-                vram = 512;
             else
                 vram = device_get_config_int("memory");
 
@@ -4780,6 +4783,25 @@ gd54xx_force_redraw(void *priv)
 }
 
 // clang-format off
+static const device_config_t gd5402_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t gd542x_config[] = {
     {
         .name           = "memory",
@@ -5027,7 +5049,7 @@ const device_t gd5402_isa_device = {
     .available     = gd5402_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = NULL,
+    .config        = gd5402_config,
 };
 
 const device_t gd5402_onboard_device = {
@@ -5041,7 +5063,7 @@ const device_t gd5402_onboard_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = NULL,
+    .config        = gd5402_config,
 };
 
 const device_t gd5402_onboard_commodore_device = {
@@ -5055,7 +5077,7 @@ const device_t gd5402_onboard_commodore_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = NULL,
+    .config        = gd5402_config,
 };
 
 const device_t gd5420_isa_device = {
@@ -5281,7 +5303,7 @@ const device_t gd5428_onboard_device = {
     .available     = gd5428_isa_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
+    .config        = gd542x_config
 };
 
 const device_t gd5428_vlb_onboard_device = {
@@ -5299,7 +5321,7 @@ const device_t gd5428_vlb_onboard_device = {
 };
 
 const device_t gd5428_onboard_vlb_device = {
-    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (Dell)",
+    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (1MB)",
     .internal_name = "cl_gd5428_onboard_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_CLGD5428 | 0x200,
@@ -5310,6 +5332,20 @@ const device_t gd5428_onboard_vlb_device = {
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd542x_config
+};
+
+const device_t gd5428_vlb_onboard_tandy_device = {
+    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (Tandy)",
+    .internal_name = "cl_gd5428_vlb_onboard_tandy",
+    .flags         = DEVICE_VLB,
+    .local         = CIRRUS_ID_CLGD5428 | 0x200 | 0x1000,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = NULL
 };
 
 const device_t gd5429_isa_device = {
