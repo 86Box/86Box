@@ -1330,7 +1330,10 @@ gd54xx_in(uint16_t addr, void *priv)
                         /* Scratch Pad 1 (Memory size for 5402/542x) */
                         ret = svga->seqregs[0x0a] & ~0x1a;
                         if (svga->crtc[0x27] == CIRRUS_ID_CLGD5402) {
-                            ret |= 0x01; /*512K of memory*/
+                            if ((gd54xx->vram_size >> 10) == 512)
+                                ret |= 0x01; /*512K of memory*/
+                            else
+                                ret &= 0xfe; /*256K of memory*/
                         } else if (svga->crtc[0x27] > CIRRUS_ID_CLGD5402) {
                             switch (gd54xx->vram_size >> 10) {
                                 case 512:
@@ -4443,8 +4446,6 @@ gd54xx_init(const device_t *info)
                 vram = 1024;
             else if (id == CIRRUS_ID_CLGD5401)
                 vram = 256;
-            else if (id == CIRRUS_ID_CLGD5402)
-                vram = 512;
             else
                 vram = device_get_config_int("memory");
 
@@ -4780,6 +4781,25 @@ gd54xx_force_redraw(void *priv)
 }
 
 // clang-format off
+static const device_config_t gd5402_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t gd542x_config[] = {
     {
         .name           = "memory",
@@ -5027,7 +5047,7 @@ const device_t gd5402_isa_device = {
     .available     = gd5402_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = NULL,
+    .config        = gd5402_config,
 };
 
 const device_t gd5402_onboard_device = {
@@ -5041,7 +5061,7 @@ const device_t gd5402_onboard_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = NULL,
+    .config        = gd5402_config,
 };
 
 const device_t gd5402_onboard_commodore_device = {
@@ -5055,7 +5075,7 @@ const device_t gd5402_onboard_commodore_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = NULL,
+    .config        = gd5402_config,
 };
 
 const device_t gd5420_isa_device = {
