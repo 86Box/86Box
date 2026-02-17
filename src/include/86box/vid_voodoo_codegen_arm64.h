@@ -27,6 +27,8 @@
 #endif
 #ifdef _WIN32
 #    include <windows.h>
+#else
+#    include <sys/mman.h>
 #endif
 
 #include <stddef.h>
@@ -86,7 +88,7 @@
  * (plus ARM64-local validity/reject flags)
  * ======================================================================== */
 typedef struct voodoo_arm64_data_t {
-    uint8_t  code_block[BLOCK_SIZE];
+    uint8_t *code_block;
     int      xdir;
     uint32_t alphaMode;
     uint32_t fbzMode;
@@ -4007,6 +4009,62 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
  * ARM64 path uses per-instance recomp count in voodoo->jit_recomp. */
 int voodoo_recomp = 0;
 
+static inline int
+arm64_codegen_set_writable(uint8_t *code_block)
+{
+    if (!code_block) {
+        return 0;
+    }
+#if defined(__APPLE__) && defined(__aarch64__)
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(0);
+    }
+    return 1;
+#elif defined(_WIN32)
+    DWORD old_protect;
+    return (VirtualProtect(code_block, BLOCK_SIZE, PAGE_READWRITE, &old_protect) != 0);
+#else
+    return (mprotect(code_block, BLOCK_SIZE, PROT_READ | PROT_WRITE) == 0);
+#endif
+}
+
+static inline int
+arm64_codegen_set_executable(uint8_t *code_block)
+{
+    if (!code_block) {
+        return 0;
+    }
+#if defined(__APPLE__) && defined(__aarch64__)
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(1);
+    }
+    return 1;
+#elif defined(_WIN32)
+    DWORD old_protect;
+    return (VirtualProtect(code_block, BLOCK_SIZE, PAGE_EXECUTE_READ, &old_protect) != 0);
+#else
+    return (mprotect(code_block, BLOCK_SIZE, PROT_READ | PROT_EXEC) == 0);
+#endif
+}
+
+static inline void
+arm64_codegen_store_cache_key(voodoo_arm64_data_t *data, voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int valid, int rejected)
+{
+    data->xdir           = state->xdir;
+    data->alphaMode      = params->alphaMode;
+    data->fbzMode        = params->fbzMode;
+    data->fogMode        = params->fogMode;
+    data->fbzColorPath   = params->fbzColorPath;
+    data->trexInit1      = voodoo->trexInit1[0] & (1 << 18);
+    data->textureMode[0] = params->textureMode[0];
+    data->textureMode[1] = params->textureMode[1];
+    data->tLOD[0]        = params->tLOD[0] & LOD_MASK;
+    data->tLOD[1]        = params->tLOD[1] & LOD_MASK;
+    data->is_tiled       = (params->col_tiled || params->aux_tiled) ? 1 : 0;
+    data->valid          = valid;
+    data->rejected       = rejected;
+}
+
 /* ========================================================================
  * voodoo_get_block() -- cache lookup / JIT generation with W^X toggle
  * ======================================================================== */
@@ -4059,34 +4117,29 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     ATOMIC_INC(voodoo->jit_recomp);
     data = &voodoo_arm64_data[odd_even + voodoo->jit_next_block_to_write[odd_even] * 4];
 
-    /* W^X: make writable before code generation + metadata writes */
-#if defined(__APPLE__) && defined(__aarch64__)
-    if (__builtin_available(macOS 11.0, *)) {
-        pthread_jit_write_protect_np(0);
+    /* W^X: make code page writable before JIT emission. */
+    if (!arm64_codegen_set_writable(data->code_block)) {
+        arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
+        if (voodoo->jit_debug && voodoo->jit_debug_log) {
+            fprintf(voodoo->jit_debug_log,
+                    "VOODOO JIT: REJECT odd_even=%d block=%d reason=wx_write_enable_failed "
+                    "code=%p\n",
+                    odd_even, voodoo->jit_next_block_to_write[odd_even], (void *) data->code_block);
+        }
+        voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & 7;
+        return NULL;
     }
-#endif
 
     voodoo_generate(data->code_block, voodoo, params, state, depth_op);
 
     if (arm64_codegen_emit_overflowed()) {
-        data->xdir           = state->xdir;
-        data->alphaMode      = params->alphaMode;
-        data->fbzMode        = params->fbzMode;
-        data->fogMode        = params->fogMode;
-        data->fbzColorPath   = params->fbzColorPath;
-        data->trexInit1      = voodoo->trexInit1[0] & (1 << 18);
-        data->textureMode[0] = params->textureMode[0];
-        data->textureMode[1] = params->textureMode[1];
-        data->tLOD[0]        = params->tLOD[0] & LOD_MASK;
-        data->tLOD[1]        = params->tLOD[1] & LOD_MASK;
-        data->is_tiled       = (params->col_tiled || params->aux_tiled) ? 1 : 0;
-        data->valid          = 0;
-        data->rejected       = 1;
-#if defined(__APPLE__) && defined(__aarch64__)
-        if (__builtin_available(macOS 11.0, *)) {
-            pthread_jit_write_protect_np(1);
+        arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
+        if (!arm64_codegen_set_executable(data->code_block) && voodoo->jit_debug && voodoo->jit_debug_log) {
+            fprintf(voodoo->jit_debug_log,
+                    "VOODOO JIT: WARN odd_even=%d block=%d reason=wx_exec_restore_failed "
+                    "code=%p\n",
+                    odd_even, voodoo->jit_next_block_to_write[odd_even], (void *) data->code_block);
         }
-#endif
         if (voodoo->jit_debug && voodoo->jit_debug_log) {
             fprintf(voodoo->jit_debug_log,
                     "VOODOO JIT: REJECT odd_even=%d block=%d reason=emit_overflow "
@@ -4110,26 +4163,20 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
                 params->textureMode[0], params->fogMode, state->xdir);
     }
 
-    data->xdir           = state->xdir;
-    data->alphaMode      = params->alphaMode;
-    data->fbzMode        = params->fbzMode;
-    data->fogMode        = params->fogMode;
-    data->fbzColorPath   = params->fbzColorPath;
-    data->trexInit1      = voodoo->trexInit1[0] & (1 << 18);
-    data->textureMode[0] = params->textureMode[0];
-    data->textureMode[1] = params->textureMode[1];
-    data->tLOD[0]        = params->tLOD[0] & LOD_MASK;
-    data->tLOD[1]        = params->tLOD[1] & LOD_MASK;
-    data->is_tiled       = (params->col_tiled || params->aux_tiled) ? 1 : 0;
-    data->valid          = 1;
-    data->rejected       = 0;
+    arm64_codegen_store_cache_key(data, voodoo, params, state, 1, 0);
 
     /* W^X: make executable, flush I-cache */
-#if defined(__APPLE__) && defined(__aarch64__)
-    if (__builtin_available(macOS 11.0, *)) {
-        pthread_jit_write_protect_np(1);
+    if (!arm64_codegen_set_executable(data->code_block)) {
+        arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
+        if (voodoo->jit_debug && voodoo->jit_debug_log) {
+            fprintf(voodoo->jit_debug_log,
+                    "VOODOO JIT: REJECT odd_even=%d block=%d reason=wx_exec_enable_failed "
+                    "code=%p\n",
+                    odd_even, voodoo->jit_next_block_to_write[odd_even], (void *) data->code_block);
+        }
+        voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & 7;
+        return NULL;
     }
-#endif
 #if defined(__aarch64__) || defined(_M_ARM64)
 #    ifdef _WIN32
     FlushInstructionCache(GetCurrentProcess(), data->code_block, BLOCK_SIZE);
@@ -4149,7 +4196,47 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 void
 voodoo_codegen_init(voodoo_t *voodoo)
 {
-    voodoo->codegen_data = plat_mmap(sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4, 1);
+    voodoo_arm64_data_t *voodoo_arm64_data;
+    uint32_t             slot;
+
+    voodoo->codegen_data = plat_mmap(sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4, 0);
+    if (!voodoo->codegen_data) {
+        fatal("ARM64 JIT: failed to allocate codegen metadata buffer\n");
+    }
+    voodoo_arm64_data = voodoo->codegen_data;
+    memset(voodoo_arm64_data, 0, sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4);
+
+    for (slot = 0; slot < (uint32_t) (BLOCK_NUM * 4); slot++) {
+        voodoo_arm64_data[slot].code_block = plat_mmap(BLOCK_SIZE, 1);
+        if (!voodoo_arm64_data[slot].code_block) {
+            while (slot > 0) {
+                slot--;
+                if (voodoo_arm64_data[slot].code_block) {
+                    plat_munmap(voodoo_arm64_data[slot].code_block, BLOCK_SIZE);
+                    voodoo_arm64_data[slot].code_block = NULL;
+                }
+            }
+            plat_munmap(voodoo_arm64_data, sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4);
+            voodoo->codegen_data = NULL;
+            fatal("ARM64 JIT: failed to allocate executable code block\n");
+        }
+#if !defined(__APPLE__) || !defined(__aarch64__)
+        if (!arm64_codegen_set_executable(voodoo_arm64_data[slot].code_block)) {
+            plat_munmap(voodoo_arm64_data[slot].code_block, BLOCK_SIZE);
+            voodoo_arm64_data[slot].code_block = NULL;
+            while (slot > 0) {
+                slot--;
+                if (voodoo_arm64_data[slot].code_block) {
+                    plat_munmap(voodoo_arm64_data[slot].code_block, BLOCK_SIZE);
+                    voodoo_arm64_data[slot].code_block = NULL;
+                }
+            }
+            plat_munmap(voodoo_arm64_data, sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4);
+            voodoo->codegen_data = NULL;
+            fatal("ARM64 JIT: failed to set code block executable\n");
+        }
+#endif
+    }
 
     /* Initialize per-instance JIT cache state */
     memset(voodoo->jit_last_block, 0, sizeof(voodoo->jit_last_block));
@@ -4238,7 +4325,22 @@ voodoo_codegen_init(voodoo_t *voodoo)
 void
 voodoo_codegen_close(voodoo_t *voodoo)
 {
-    plat_munmap(voodoo->codegen_data, sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4);
+    voodoo_arm64_data_t *voodoo_arm64_data = voodoo->codegen_data;
+    uint32_t             slot;
+
+    if (!voodoo_arm64_data) {
+        return;
+    }
+
+    for (slot = 0; slot < (uint32_t) (BLOCK_NUM * 4); slot++) {
+        if (voodoo_arm64_data[slot].code_block) {
+            plat_munmap(voodoo_arm64_data[slot].code_block, BLOCK_SIZE);
+            voodoo_arm64_data[slot].code_block = NULL;
+        }
+    }
+
+    plat_munmap(voodoo_arm64_data, sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4);
+    voodoo->codegen_data = NULL;
 }
 
 #endif /* VIDEO_VOODOO_CODEGEN_ARM64_H */
