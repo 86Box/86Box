@@ -4317,7 +4317,10 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5426:
             if (info->local & 0x200)
-                romfn = NULL;
+                if (machines[machine].init == machine_at_vect486vl_init)
+                    romfn = BIOS_GD5428_ISA_PATH;
+                else
+                    romfn = NULL;
             else {
                 if (info->local & 0x100)
                     romfn = BIOS_GD5426_DIAMOND_A1_ISA_PATH;
@@ -4334,9 +4337,7 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5428:
             if (info->local & 0x200) {
-                if (machines[machine].init == machine_at_vect486vl_init)
-                    romfn = BIOS_GD5428_ISA_PATH;
-                else if (machines[machine].init == machine_at_d824_init)
+                if (machines[machine].init == machine_at_d824_init)
                     romfn = BIOS_GD5428_ISA_PATH;
                 else if (machines[machine].init == machine_at_acera1g_init)
                     romfn = BIOS_GD5428_ONBOARD_ACER_PATH;
@@ -4444,7 +4445,7 @@ gd54xx_init(const device_t *info)
         if (id <= CIRRUS_ID_CLGD5428) {
             if ((id == CIRRUS_ID_CLGD5428) && (info->local & 0x200) && (info->local & 0x1000))
                 vram = 1024;
-            else if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200))
+            else if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200) && (info->local & 0x1000))
                 vram = 1024;
             else if (id == CIRRUS_ID_CLGD5401)
                 vram = 256;
@@ -5193,11 +5194,25 @@ const device_t gd5426_vlb_device = {
     .config        = gd5426_config
 };
 
+const device_t gd5426_onboard_isa_device = {
+    .name          = "Cirrus Logic GD5426 (ISA) (On-Board)",
+    .internal_name = "cl_gd5426_onboard",
+    .flags         = DEVICE_ISA16,
+    .local         = CIRRUS_ID_CLGD5426 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = gd5428_isa_available,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd542x_config
+};
+
 const device_t gd5426_onboard_device = {
     .name          = "Cirrus Logic GD5426 (VLB) (On-Board)",
     .internal_name = "cl_gd5426_onboard",
     .flags         = DEVICE_VLB,
-    .local         = CIRRUS_ID_CLGD5426 | 0x200,
+    .local         = CIRRUS_ID_CLGD5426 | 0x200 | 0x1000,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,

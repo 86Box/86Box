@@ -7779,7 +7779,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL, /*Has SIO (sorta): VLSI VL82C113A SCAMP Combination I/O*/
-        .vid_device               = &gd5428_onboard_device,
+        .vid_device               = &gd5426_onboard_isa_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
