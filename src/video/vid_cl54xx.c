@@ -4335,9 +4335,9 @@ gd54xx_init(const device_t *info)
         case CIRRUS_ID_CLGD5428:
             if (info->local & 0x200) {
                 if (machines[machine].init == machine_at_vect486vl_init)
-                    romfn = BIOS_GD5428_ONBOARD_HP_PATH;
+                    romfn = BIOS_GD5428_ISA_PATH;
                 else if (machines[machine].init == machine_at_d824_init)
-                    romfn = BIOS_GD5428_ONBOARD_SNI_PATH;
+                    romfn = BIOS_GD5428_ISA_PATH;
                 else if (machines[machine].init == machine_at_acera1g_init)
                     romfn = BIOS_GD5428_ONBOARD_ACER_PATH;
                 else
