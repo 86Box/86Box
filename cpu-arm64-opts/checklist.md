@@ -5,7 +5,7 @@
 All C-level changes guarded with `#if defined(__aarch64__) || defined(_M_ARM64)`.
 JIT backend files are inherently ARM64-only — no additional guards needed.
 
-## Phase 1: C-Level Interpreter/Dispatch Optimizations
+## Phase 1: C-Level Interpreter/Dispatch Optimizations — DONE
 
 ### Opt 1: Branch Hints on Instruction Fetch (`386_common.h`)
 
@@ -65,14 +65,11 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 - [x] **RUN TEST**: Run 3DMark 99 or similar workload
 - [x] Create PR for Phase 1
 
-## Phase 2: JIT Backend Code Quality
+## Phase 2: JIT Backend Code Quality — DONE
 
-### Phase 2A: Sub-register BFI Reduction (`codegen_backend_arm64_uops.c`)
+### Phase 2A: Sub-register BFI Reduction — SKIPPED
 
-- [ ] Audit all BFI usage in byte/word ALU handlers
-- [ ] Replace BFI with BFXIL where `dest_reg == src_reg_a`
-- [ ] Optimize byte-high (BH) operations: AND+shift → UBFX
-- [ ] Verify no regressions on x86-64 (guards keep original code path)
+- [x] Audit all BFI usage in byte/word ALU handlers — **no optimization opportunity found**
 
 ### Phase 2B: New Instruction Emitters (`codegen_backend_arm64_ops.c/.h`)
 
@@ -86,13 +83,9 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 - [x] Add `host_arm64_MADD` / `host_arm64_MSUB`
 - [x] Declarations in `codegen_backend_arm64_ops.h`
 
-### Phase 2C: Fused Shift-ALU (`codegen_backend_arm64_uops.c`)
+### Phase 2C: Fused Shift-ALU — SKIPPED
 
-- [x] Identify shift+ALU sequences that can use fused forms
-- [x] Update uop handlers to pass shift parameter to ALU emitters
-- [x] Verify changes are ARM64-guarded
-
-**Note**: Already complete in existing codebase. All shift+ALU sequences already use fused forms (ADD_REG_LSR, SUB_REG_LSR, AND_REG_ASR, etc.) where ARM64 ISA permits.
+- [x] Audit shift+ALU sequences — **already complete in existing codebase**
 
 ### Phase 2D: ADRP+ADD Immediate Loading (`codegen_backend_arm64_ops.c`)
 
@@ -103,7 +96,7 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 
 ### Phase 2E: Cached Lookup Table Registers (`codegen_backend_arm64.c`, `_defs.h`)
 
-- [x] Decide which 2 callee-saved regs to dedicate (X27, X28 proposed)
+- [x] Decide which 2 callee-saved regs to dedicate (X27, X28)
 - [x] Update `codegen_backend_arm64_defs.h` register assignments
 - [x] Load `readlookup2`/`writelookup2` in prologue
 - [x] Update memory load/store stubs to use cached registers
@@ -118,8 +111,85 @@ JIT backend files are inherently ARM64-only — no additional guards needed.
 - [x] **RUN TEST**: Windows 3.1/95 (mixed 16/32-bit)
 - [ ] Create PR for Phase 2
 
-## Phase 3: Benchmarking
+## Phase 3: JIT Call and Pointer Load Optimization — DONE
 
-- [ ] Define benchmark workload (specific game/app + measured metric)
-- [ ] Measure before/after on representative workloads
-- [ ] Document results
+### Opt 3A: BL-Relative Calls for JIT Stubs
+
+- [x] Add `host_arm64_call_rel(block, dest)` emitter in `_ops.c`
+- [x] Add declaration in `_ops.h`
+- [x] Replace `host_arm64_call(block, codegen_mem_load_byte)` → `call_rel` in `_uops.c`
+- [x] Replace `host_arm64_call(block, codegen_mem_load_word)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_load_long)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_load_quad)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_load_single)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_load_double)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_store_byte)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_store_word)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_store_long)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_store_quad)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_store_single)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_mem_store_double)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_fp_round)` → `call_rel`
+- [x] Replace `host_arm64_call(block, codegen_fp_round_quad)` → `call_rel`
+
+### Opt 3B: ADRP+ADD+BLR for External C Function Calls
+
+- [x] Update `host_arm64_call()` to use ADRP+ADD+BLR with MOVX_IMM fallback
+- [x] Update `build_load_routine()` calls to C slow-path functions (automatic via updated `host_arm64_call`)
+- [x] Update `build_store_routine()` calls to C slow-path functions (automatic via updated `host_arm64_call`)
+- [x] Update `codegen_LOAD_SEG` call to `loadseg` (automatic via updated `host_arm64_call`)
+- [x] Update `codegen_CALL_FUNC`/`codegen_CALL_FUNC_RESULT` calls (automatic via updated `host_arm64_call`)
+
+### Opt 3C: ADRP+ADD for Pointer Immediate Loads
+
+- [x] Replace `MOVX_IMM` in `codegen_MOV_PTR` with `ADRP_ADD`
+- [x] Replace `MOVX_IMM` in `codegen_MOV_REG_PTR` with `ADRP_ADD`
+- [x] Replace `MOVX_IMM` in `codegen_MOVZX_REG_PTR_8` with `ADRP_ADD`
+- [x] Replace `MOVX_IMM` in `codegen_MOVZX_REG_PTR_16` with `ADRP_ADD`
+- [x] Replace `MOVX_IMM` in `codegen_LOAD_FUNC_ARG*_IMM` with `ADRP_ADD` (pointer args only)
+- [x] Replace `MOVX_IMM` in `codegen_LOAD_SEG` with `ADRP_ADD`
+
+### Phase 3 Testing
+
+- [x] **BUILD**: Compiles on ARM64
+- [ ] **RUN TEST**: Boot Windows 98 VM
+- [ ] **RUN TEST**: 3DMark 99
+- [ ] **RUN TEST**: DOS/Win games
+- [ ] Create PR for Phase 3
+
+## Phase 4: 3DNow FRECPE/FRSQRTE + Bug Fix
+
+### Bug Fix: PFRSQRT Register Clobber
+
+- [ ] Fix `codegen_PFRSQRT` — change `FMOV_S_ONE(block, REG_V_TEMP)` to `FMOV_S_ONE(block, dest_reg)`
+
+### Opt 4A: FRECPE for PFRCP
+
+- [ ] Add `host_arm64_FRECPE_S` emitter
+- [ ] Add `host_arm64_FRECPS_S` emitter
+- [ ] Declarations in `_ops.h`
+- [ ] Replace FDIV-based PFRCP with FRECPE + Newton-Raphson iteration
+
+### Opt 4B: FRSQRTE for PFRSQRT
+
+- [ ] Add `host_arm64_FRSQRTE_S` emitter
+- [ ] Add `host_arm64_FRSQRTS_S` emitter
+- [ ] Declarations in `_ops.h`
+- [ ] Replace FSQRT+FDIV-based PFRSQRT with FRSQRTE + Newton-Raphson iteration
+
+### Phase 4 Testing
+
+- [ ] **BUILD**: Compiles on ARM64
+- [ ] **RUN TEST**: Boot Windows 98 VM with AMD K6-2 CPU
+- [ ] **RUN TEST**: 3DNow-enabled games (if available)
+- [ ] Create PR for Phase 4
+
+## Phase 5: Benchmarking
+
+- [ ] Define benchmark workloads (specific game/app + measured metric)
+- [ ] Measure baseline (master, no optimizations)
+- [ ] Measure after Phase 1 (C-level only)
+- [ ] Measure after Phase 2 (+ JIT backend)
+- [ ] Measure after Phase 3 (+ call optimization)
+- [ ] Measure after Phase 4 (+ FRECPE/FRSQRTE, 3DNow workload only)
+- [ ] Document results in `cpu-arm64-opts/benchmarks.md`

@@ -49,6 +49,7 @@
 #    define OPCODE_ADR                (0x10 << OPCODE_SHIFT)
 #    define OPCODE_ADRP               (0x90 << OPCODE_SHIFT)
 #    define OPCODE_B                  (0x14 << OPCODE_SHIFT)
+#    define OPCODE_BL                 (0x94 << OPCODE_SHIFT)
 #    define OPCODE_BCOND              (0x54 << OPCODE_SHIFT)
 #    define OPCODE_CBNZ               (0xb5 << OPCODE_SHIFT)
 #    define OPCODE_CBZ                (0xb4 << OPCODE_SHIFT)
@@ -1653,8 +1654,23 @@ host_arm64_SUBS_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t imm_d
 void
 host_arm64_call(codeblock_t *block, void *dst_addr)
 {
-    host_arm64_MOVX_IMM(block, REG_X16, (uint64_t) dst_addr);
+    /* Phase 3B: Use ADRP+ADD+BLR for external calls (3 insns vs up to 5).
+       ADRP_ADD already falls back to MOVX_IMM if out of ±4GB range. */
+    host_arm64_ADRP_ADD(block, REG_X16, dst_addr);
     host_arm64_BLR(block, REG_X16);
+}
+
+void
+host_arm64_call_rel(codeblock_t *block, void *dst_addr)
+{
+    /* Phase 3A: BL-relative for intra-pool calls (1 instruction).
+       The JIT code pool is a single contiguous ~120MB mmap, so BL ±128MB
+       range is guaranteed for calls between JIT stubs and generated blocks. */
+    int offset = (uintptr_t) dst_addr - (uintptr_t) &block_write_data[block_pos];
+
+    if (!offset_is_26bit(offset))
+        fatal("host_arm64_call_rel - offset out of range %x\n", offset);
+    codegen_addlong(block, OPCODE_BL | OFFSET26(offset));
 }
 
 void

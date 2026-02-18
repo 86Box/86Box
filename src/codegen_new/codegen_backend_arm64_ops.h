@@ -278,6 +278,7 @@ void host_arm64_ADDS_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t 
 void host_arm64_SUBS_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t imm_data);
 
 void host_arm64_call(codeblock_t *block, void *dst_addr);
+void host_arm64_call_rel(codeblock_t *block, void *dst_addr);
 void host_arm64_jump(codeblock_t *block, uintptr_t dst_addr);
 void host_arm64_mov_imm(codeblock_t *block, int reg, uint32_t imm_data);
 
