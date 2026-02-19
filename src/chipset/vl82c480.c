@@ -77,6 +77,14 @@ vl82c480_recalc_shadow(vl82c480_t *dev)
         }
     }
 
+    /* Implement ROMCS# disable portion of ROMMOV behavior */
+    if ((dev->regs[0x11] == 0x00) && ((dev->regs[0x0c] & 0x20) || (dev->regs[0x0c] & 0x10)))
+        mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    if (!(dev->regs[0x0f] & 0x0f) && !(dev->regs[0x0c] & 0x20)) {
+        mem_set_mem_state(0xc0000, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    if (!(dev->regs[0x0f] & 0xf0) && !((dev->regs[0x0c] & 0x30) == 0x30)) {
+        mem_set_mem_state(0xc8000, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+
     flushmmucache();
 }
 
@@ -145,6 +153,10 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x07:
                         dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x40) | (val & 0xbf);
+                        break;
+                    case 0x0c:
+                        dev->regs[dev->idx] = val;
+                        vl82c480_recalc_shadow(dev);
                         break;
                     case 0x0d ... 0x12:
                         dev->regs[dev->idx] = val;
