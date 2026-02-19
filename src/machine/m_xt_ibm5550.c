@@ -74,6 +74,8 @@
 #define EPOCH_MASK_VRAM            0x3ffff       /* 0xFFFFF */
 // #define EPOCH_MASK_VRAMPLANE       0x1ffff       /* 0x1FFFF */
 #define EPOCH_PIXELCLOCK           40000000.0    /* 40 MHz interlaced */
+#define EPOCH_CONFIG_MONO16 0 /* Model 5551-Axx (Font 16, monochrome) */
+#define EPOCH_CONFIG_MONO24 1 /* Model 5551-Bxx (Font 24, monochrome) */
 
 #define LC_INDEX                0x3D0
 #define LC_DATA                 0x3D1
@@ -156,11 +158,11 @@ enum epoch_nvr_ADDR {
 };
 
 #ifndef RELEASE_BUILD
-// #define ENABLE_EPOCH_LOG 1
+#define ENABLE_EPOCH_LOG 1
 #endif
 
 #ifdef ENABLE_EPOCH_LOG
-// #define ENABLE_EPOCH_DEBUGIO 1
+#define ENABLE_EPOCH_DEBUGIO 1
 // #define ENABLE_EPOCH_DEBUGKBD 1
 int epoch_do_log = ENABLE_EPOCH_LOG;
 
@@ -236,6 +238,7 @@ typedef struct epoch_t {
     int      cursorvisible, cursoron, blink;
     int      scrollcache;
     int      char_width;
+    int      font24;
 
     int firstline, lastline;
     int firstline_draw, lastline_draw;
@@ -307,6 +310,30 @@ The IBM 5550 has different IRQ assignments like the 6580 Displaywriter System.
 | FC000h        | ROM                                                   | 
 */
 
+#ifdef ENABLE_EPOCH_LOG
+// #include <ctype.h>
+// static int dumpno = 0x61;
+// static void
+// epoch_dumpvram(void *priv)
+// {
+//             FILE *fp;
+//     epoch_t *epoch = (epoch_t *) priv;
+//             char str1[64] = "epoch_vramvm_";
+//             char str2[3] = {0x30, 0x30, 0};
+//             if (!isalnum(dumpno))
+//                return;
+//             str2[0] = dumpno;
+//             dumpno++;
+//             str2[1] = (epoch->crtmode & 0xf) + 0x30;
+//             strcat(str1,str2);
+//             fp = fopen(str1, "wb");
+//             if (fp != NULL) {
+//                 fwrite(epoch->vram, EPOCH_SIZE_VRAM, 1, fp);
+//                 fclose(fp);
+//             }
+// }
+#endif
+
 static void
 epoch_out(uint16_t addr, uint16_t val, void *priv)
 {
@@ -370,7 +397,11 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
             // mem_mapping_enable(&epoch->paritymap);
             break;
         case 0x3D8:
+            /* Bit 3: Font access in read, Bit 1: graphic mode, Bit 0: Font access in write */
             epoch->crtmode = val;
+#ifdef ENABLE_EPOCH_LOG
+            // epoch_dumpvram(epoch);
+#endif
             epoch_recalctimings(epoch);
             // epoch->attrff ^= 1;
             break;
@@ -613,22 +644,43 @@ epoch_inw(uint16_t addr, void *priv)
     return temp;
 }
 
-/* Get character line pattern from jfont rom or gaiji volatile memory */
+/* Get font pattern in a line from video memory */
 static uint32_t
 getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
 {
-    epoch_t   *epoch   = (epoch_t *) priv;
+    epoch_t *epoch = (epoch_t *) priv;
     uint32_t font  = 0;
-	if (code < 1536) {
-		code *= 0x80;
-		font = epoch->vram[code + line * 4];
-		font <<= 8;
-		font |= epoch->vram[code + line * 4 + 1];
-		font <<= 8;
-		font |= epoch->vram[code + line * 4 + 2];
-		font <<= 8;
-		font |= epoch->vram[code + line * 4 + 3];
-    } else 
+    if (code < 1536) {
+        code *= 0x80;
+        code += line * 4;
+        if (epoch->font24) { /* Font 24 (2 x 13 x 29) */
+            font = epoch->vram[code];
+            font <<= 8;
+            code++;
+            font |= epoch->vram[code];
+            font <<= 8;
+            code++;
+            font |= epoch->vram[code];
+            font <<= 8;
+            code++;
+            font |= epoch->vram[code];
+        } else { /* Font 16 (2 x 9 x 21) */
+            int bitnum = code & 0x7;
+            font = epoch->vram[code];
+            font <<= 8;
+            font |= (epoch->vram[(code >> 3) + 0x20000 ] << (7 - bitnum)) & 0xff; /* get 9th bit */
+            // font &= 0xffffff80;
+            // font |= epoch->vram[code + line * 4 + 1];
+            font <<= 8;
+            code++;
+            font |= epoch->vram[code];
+            font <<= 8;
+            bitnum = code & 0x7;
+            font |= (epoch->vram[(code >> 3) + 0x20000 ] << (7 - bitnum)) & 0xff; /* get 9th bit */
+            font &= 0xff80ff80;
+            // font |= epoch->vram[code + line * 4 + 3];
+        }
+    } else
         font = EPOCH_INVALIDACCESS32;
     return font;
 }
@@ -676,12 +728,13 @@ epoch_render_text(epoch_t *epoch)
         uint8_t   chr, attr;
         int       fg, bg;
         uint32_t  chr_dbcs;
+        int       underscore_y = (epoch->font24) ? 28 : 20;
         int       chr_wide = 0;
         // int       colormode = ((epoch->attrc[LV_PAS_STATUS_CNTRL] & 0x80) == 0x80);
         int       colormode = 0;
         // epoch_log("displ: %x, first: %x, epochma: %x, epochsc: %x\n", 
         //     epoch->displine , epoch->firstline_draw, epoch->memaddr, epoch->scanline);
-        for (x = 0; x < epoch->hdisp; x += 13) {
+        for (x = 0; x < epoch->hdisp; x += epoch->char_width) {
             chr  = epoch->cram[(epoch->memaddr) & EPOCH_MASK_CRAM];
             attr = epoch->cram[(epoch->memaddr + 1) & EPOCH_MASK_CRAM];
             // if(chr!=0x20) epoch_log("chr: %x, attr: %x    ", chr, attr);
@@ -713,7 +766,7 @@ epoch_render_text(epoch_t *epoch)
                 // if(chr!=0x20) epoch_log("chr: %x, %x, %x, %x, %x    ", chr, attr, fg, epoch->egapal[fg], epoch->pallook[epoch->egapal[fg]]);
             }
             /* Draw character */
-            for (uint32_t n = 0; n < 13; n++)
+            for (uint32_t n = 0; n < epoch->char_width; n++)
                 p[n] = epoch->pallook[epoch->egapal[bg]]; /* draw blank */
             /*  SBCS or DBCS left half */
             if (chr_wide == 0) {
@@ -729,23 +782,37 @@ epoch_render_text(epoch_t *epoch)
                     /* Get the font pattern */
                     uint32_t font = getfont_ps55dbcs(chr_dbcs, epoch->scanline, epoch);
                     /* Draw 13 dots */
-                    for (uint32_t n = 0; n < 13; n++) {
+                    for (uint32_t n = 0; n < epoch->char_width; n++) {
                         p[n] = epoch->pallook[epoch->egapal[(font & 0x80000000) ? fg : bg]];
                         font <<= 1;
                     }
                 } else {
                     /* the char code is SBCS (ANK) */
                     uint32_t fontbase;
+                    uint16_t font;
                     if (attr & 0x02) /* second map of SBCS font */
                         fontbase = EPOCH_VRAM_SBEX;
                     else
                         fontbase = EPOCH_VRAM_SBCS;
-                    uint16_t font = epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4]; /* w13xh29 font */
-                    font <<= 8;
-                    font |= epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 1]; /* w13xh29 font */
+                    if (epoch->font24) {
+                        font = epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 2]; /* w13xh29 font */
+                        font <<= 8;
+                        font |= epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 3];
+                    } else {
+                        int bitnum;
+                        fontbase = (fontbase & 0x1ffff) + chr * 0x80 + epoch->scanline * 4;
+                        bitnum = fontbase & 0x7;
+                        font = epoch->vram[fontbase + 2]; /* w9xh21 font */
+                        font <<= 8;
+                        // font |= epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 3];
+                        fontbase >>= 3;
+                        fontbase += 0x20000; /* real: C0000h */
+                        font |= epoch->vram[fontbase] << (8 + 7 - bitnum);
+                        // if(chr!=0x20) epoch_log("faddr: %x, scline: %x, chr: %x, font: %x    ", fontbase + chr * 0x80 + epoch->scanline * 4, epoch->scanline, chr, font);
+                    }
                     // if(chr!=0x20) epoch_log("memaddr: %x, scanline: %x, chr: %x, font: %x    ", epoch->memaddr, epoch->scanline, chr, font);
                     /* Draw 13 dots */
-                    for (uint32_t n = 0; n < 13; n++) {
+                    for (uint32_t n = 0; n < epoch->char_width; n++) {
                         p[n] = epoch->pallook[epoch->egapal[(font & 0x8000) ? fg : bg]];
                         font <<= 1;
                     }
@@ -755,15 +822,15 @@ epoch_render_text(epoch_t *epoch)
             else {
                 uint32_t font = getfont_ps55dbcs(chr_dbcs, epoch->scanline, epoch);
                 /* Draw 13 dots */
-                for (uint32_t n = 0; n < 13; n++) {
+                for (uint32_t n = 0; n < epoch->char_width; n++) {
                     p[n] = epoch->pallook[epoch->egapal[(font & 0x8000) ? fg : bg]];
                     font <<= 1;
                 }
                 chr_wide = 0;
             }
             /* Line 28 (Underscore) Note: Draw this first to display blink + vertical + underline correctly. */
-            if (epoch->scanline == 28 && attr & 0x40 && !colormode) { /* Underscore only in monochrome mode */
-                for (uint32_t n = 0; n < 13; n++)
+            if (epoch->scanline == underscore_y && attr & 0x40 && !colormode) { /* Underscore only in monochrome mode */
+                for (uint32_t n = 0; n < epoch->char_width; n++)
                     p[n] = epoch->pallook[epoch->egapal[fg]]; /* under line (white) */
             }
             /* Column 1 (Vertical Line) */
@@ -771,14 +838,14 @@ epoch_render_text(epoch_t *epoch)
                 p[0] = epoch->pallook[epoch->egapal[2]]; /* vertical line (white) */
             }
             if (epoch->scanline == 0 && attr & 0x20) { /* HGrid */
-                for (uint32_t n = 0; n < 13; n++)
+                for (uint32_t n = 0; n < epoch->char_width; n++)
                     p[n] = epoch->pallook[epoch->egapal[2]]; /* horizontal line (white) */
             }
             /* Drawing text cursor */
             drawcursor = ((epoch->memaddr == epoch->cursoraddr) && epoch->cursorvisible && epoch->cursoron);
             if (drawcursor && epoch->scanline >= epoch->crtc[LC_CURSOR_ROW_START] && epoch->scanline <= epoch->crtc[LC_CURSOR_ROW_END]) {
                 // int cursorwidth = (epoch->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
-                int cursorwidth = 13;
+                int cursorwidth = epoch->char_width;
                 int cursorcolor = 2; /* Choose color 2 if mode 8 */
                 fg              = ((attr & 0x08) ? 3 : 2);
                 bg              = 0;
@@ -793,7 +860,7 @@ epoch_render_text(epoch_t *epoch)
                         p[n] = (p[n] == epoch->pallook[epoch->egapal[bg]]) ? epoch->pallook[epoch->egapal[cursorcolor]] : p[n];
             }
             epoch->memaddr += 2;
-            p += 13;
+            p += epoch->char_width;
         }
     }
 }
@@ -905,8 +972,13 @@ epoch_recalctimings(epoch_t *epoch)
 
     /* determine display mode */
     if (epoch->crtmode & 0x02) {
-        epoch->hdisp *= 16;
-        epoch->char_width = 16;
+        if (epoch->font24) {
+            epoch->hdisp *= 16;
+            epoch->char_width = 16;
+        } else {
+            epoch->hdisp *= 11;
+            epoch->char_width = 11;
+        }
         /* PS/55 8-color */
         epoch_log("Set videomode to PS/55 4 bpp graphics.\n");
         epoch->render            = epoch_render_color_4bpp;
@@ -916,8 +988,13 @@ epoch_recalctimings(epoch_t *epoch)
         epoch_log("Set videomode to PS/55 Mode 8/E text.\n");
         epoch->render            = epoch_render_text;
         epoch->vram_display_mask = EPOCH_MASK_CRAM;
-        epoch->hdisp *= 13;
-        epoch->char_width = 13;
+        if (epoch->font24) {
+            epoch->hdisp *= 13;
+            epoch->char_width = 13;
+        } else {
+            epoch->hdisp *= 9;
+            epoch->char_width = 9;
+        }
     }
     if (epoch->crtmode & 0x08)
         epoch->render = epoch_render_blank;
@@ -1114,55 +1191,211 @@ epoch_vram_write(uint32_t addr, uint8_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
     // if ((addr & ~0xfff) != 0xE0000) return;
-    addr -= 0xA0000;
+    // epoch_log("epoch_vw: %x %x\n", addr, val);
     addr &= EPOCH_MASK_VRAM;
     epoch->vram[addr] = val;
     epoch->fullchange = changeframecount;
     // if(val == 0x66)
     //         epoch_log("66 %04X:%04X %04X:%04X>%04X:%04X\n", cs >> 4, cpu_state.pc, DS, SI,ES,DI);
 }
-static void
-epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
-{
-    epoch_t *epoch = (epoch_t *) priv;
-    // epoch_log("%04X:%04X epoch_vram_writeb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
-    cycles -= video_timing_write_b;
-    epoch_vram_write(addr, val, epoch);
-}
-static void
-epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
-{
-    // epoch_log("%04X:%04X epoch_vram_writew: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
-    epoch_t *epoch = (epoch_t *) priv;
-    cycles -= video_timing_write_w;
-    epoch_vram_write(addr, val & 0xff, epoch);
-    epoch_vram_write(addr + 1, val >> 8, epoch);
-}
-
 static uint8_t
 epoch_vram_read(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
     // if ((addr & ~epoch_MASK_CRAM) != 0xE0000)
     //     return epoch_INVALIDACCESS8;
-    addr -= 0xA0000;
     addr &= EPOCH_MASK_VRAM;
     return epoch->vram[addr];
 }
+
+static void
+epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+//    epoch_log("%04X:%04X epoch_vwb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
+    cycles -= video_timing_write_b;
+    // return;
+//    epoch_vram_write(addr, val, epoch);
+}
+static void
+epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+    // uint8_t convert[8] = {0, 2, 8, 8, 1, 3, 8, 8};/* only even chars */
+    //uint8_t convert[8] = {8, 8, 0, 2, 8, 8, 1, 3};/* only even chars */
+    // uint8_t convert[8] = {0, 1, 2, 3, 4, 5, 6, 7};/* all but alt */
+    // uint8_t convert[8] = {0, 1, 2, 3, 8, 8, 8, 8};/* even alt */
+    // uint8_t convert[8] = {8, 8, 8, 8, 0, 1, 2, 3};/* even alt */
+    // uint8_t convert[8] = {0, 4, 1, 5, 2, 6, 3, 7};/* all but pos+-1 */
+    // uint8_t convert[8] = {8, 8, 4, 6, 8, 8, 5, 7};/* only odd (0) */
+    // uint8_t convert[8] = {8, 8, 0, 2, 8, 8, 1, 3};/* only even */
+    // uint8_t convert[8] = {4, 6, 8, 8, 5, 7, 8, 8};/* only odd (0) */
+    // uint8_t convert[8] = {8, 4, 6, 8, 8, 5, 7, 8};/* none */
+    // epoch_log("%04X:%04X epoch_vww: %x, val %x DS %x SI %x ES %x DI %x %x\n", cs >> 4, cpu_state.pc, addr, val,DS,SI,ES,DI, epoch->crtc[LC_INTERLACE_AND_SKEW]);
+    epoch_log("%04X:%04X epoch_vww: %x, val %x cm %x\n", cs >> 4, cpu_state.pc, addr, val, epoch->crtmode);
+    cycles -= video_timing_write_w;
+    addr -= 0xA0000;
+    // addr &= 0xfffffffe;
+    // if (0) {
+    if (!(epoch->crtmode & 0x02) && !(epoch->font24)) {
+        uint32_t toaddr, bitnum;
+        // if (addr < 0xd0000) {
+        //     int index = (addr - 0xA0000) >> 7; /* 128 bytes per char */
+        //     addr &= 0x007f;
+        //     addr += 0xA0000 + 84 * index;
+        // epoch_log("%x %x\n", addr, index);
+        // } else if (addr >= 0xD8000) {
+        //     int index = (addr - 0xD8000) >> 7; /* 128 bytes per char */
+        //     addr &= 0x007f;
+        //     if (addr & 2) return;
+        //     addr >>= 1;
+        //     addr += 0xC0000 + 42 * index;
+        // epoch_log("%x %x\n", addr, index);
+        // } else
+        //     return;
+
+        // if (addr < 0xd0000) {
+        //     addr -= 0xA0000;
+        //     if (addr & 2)
+        //         return;
+        //     addr >>= 1;
+        //     addr += 0xA0000;
+        // } else if (addr >= 0xD8000) {
+        //     addr -= 0xD8000;
+        //     if (addr & 2)
+        //         return;
+        //     addr >>= 1;
+        //     addr += 0xD8000;
+        // } else
+        //     return;
+
+        // addr >>= 1;
+        // if(addr & 0x02)
+        //     addr--;
+        // addr ^= 0x06;
+        //addr &= 0xffffd;/* 1101 */
+        // addr >>= 1;
+        
+        // if (convert[(addr + 0) & 7] > 7)
+        //     return;  
+        // epoch_vram_write((addr & 0xffff8) + convert[(addr + 0) & 7], val & 0xff, epoch);
+        // epoch_vram_write((addr & 0xffff8) + convert[(addr + 1) & 7], val >> 8, epoch);
+
+        /* rw one word with 9 bits */
+        /* virtual: 20000h (0010b, 0011b) -> real: 00001h (0000b, 0001b) */
+        toaddr = addr;
+        if (addr & 2)
+            toaddr--;
+        if (addr & 0x20000)
+            toaddr+=2;
+        toaddr &= 0xdffff;
+
+        //addr >>= 1;
+        
+        epoch_vram_write(toaddr, val & 0xff, epoch);
+        // epoch_log("%x %x ", toaddr, val);
+        /* get 9th bit */
+        bitnum =  addr & 0x7;
+        val >>= 15;
+        val <<= bitnum;
+        addr >>= 3;
+        addr += 0x20000; /* real: C0000h */
+        val |= epoch_vram_read(addr, epoch) & ~(1 << bitnum);/* mask to update one bit */
+        epoch_vram_write(addr, val, epoch);
+        // epoch_log("%x %x\n", addr, val);
+    } else {/* is graphic mode */
+        epoch_vram_write(addr, val & 0xff, epoch);
+        epoch_vram_write(addr + 1, val >> 8, epoch);
+    }
+    // epoch_log("%x %x\n", addr, addr + 1);
+}
+
 static uint8_t
 epoch_vram_readb(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
     cycles -= video_timing_read_b;
-    return epoch_vram_read(addr, epoch);
+    // return 0xff;
+ //   epoch_log("%04X:%04X epoch_vrb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, epoch_vram_read(addr, epoch));
+    // return epoch_vram_read(addr, epoch);
 }
 
 static uint16_t
 epoch_vram_readw(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
+    // uint8_t convert[8] = {0, 2, 4, 6, 1, 3, 5, 7};/* all but pos+-1 */
+    // uint8_t convert[8] = {0, 4, 8, 8, 8, 8, 8, 8};/* all but pos+-1 */
     cycles -= video_timing_read_w;
-    return epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8);
+    addr -= 0xA0000;
+   epoch_log("%04X:%04X epoch_vrw: %x cm %x\n", 
+    cs >> 4, cpu_state.pc, addr, epoch->crtmode);
+    // addr &= 0xfffffffe;
+    //read 0->0,1 2->2,3 4->4,5 6->6,7
+    //read 0->0,2 2->1,3 4->4,6 6->5,7
+    // if (0) {
+    if (!(epoch->crtmode & 0x02) && !(epoch->font24)) {
+        uint16_t ret;
+        uint32_t bitnum;
+        uint32_t toaddr;
+        // if (addr < 0xd0000) {
+        //     int index = (addr - 0xA0000) >> 7; /* 128 bytes per char */
+        //     addr &= 0x007f;
+        //     addr += 0xA0000 + 84 * index;
+        // epoch_log("%x %x %x\n", addr, index, epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8));
+        // } else if (addr >= 0xD8000) {
+        //     int index = (addr - 0xD8000) >> 7; /* 128 bytes per char */
+        //     addr &= 0x007f;
+        //     if (addr & 2) return EPOCH_INVALIDACCESS16;
+        //     addr >>= 1;
+        //     addr += 0xC0000 + 42 * index;
+        // epoch_log("%x %x %x\n", addr, index, epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8));
+        // } else
+        //     return EPOCH_INVALIDACCESS16;
+
+        // if (addr < 0xd0000) {
+        //     addr -= 0xA0000;
+        //     if (addr & 2)
+        //         return EPOCH_INVALIDACCESS16;
+        //     addr >>= 1;
+        //     addr += 0xA0000;
+        // } else if (addr >= 0xD8000) {
+        //     addr -= 0xD8000;
+        //     if (addr & 2)
+        //         return EPOCH_INVALIDACCESS16;
+        //     addr >>= 1;
+        //     addr += 0xD8000;
+        // } else
+        //         return EPOCH_INVALIDACCESS16;
+
+        // if(addr & 0x02)
+        //     addr--;
+        // // addr ^= 0x06;
+        // addr >>= 1;
+
+        // if (convert[(addr + 0) & 7] > 7)
+        //     return 0;  
+        // return epoch_vram_read((addr & 0xffff8) + convert[addr & 7], epoch) | (epoch_vram_read((addr & 0xffff8) + convert[(addr + 1) & 7], epoch) << 8);
+        
+        /* rw one word with 9 bits */
+        /* virtual: 20000h (0010b, 0011b) -> real: 00001h (0000b, 0001b) */
+        toaddr = addr; /* 1101 */
+        if (addr & 2)
+            toaddr--;
+        if (addr & 0x20000)
+            toaddr+=2;
+        toaddr &= 0xdffff;
+        ret = epoch_vram_read(toaddr, epoch);
+        /* get 9th bit */
+        bitnum =  addr & 0x7;
+        addr >>= 3;
+        addr += 0x20000; /* real: C0000h */
+        ret |= (epoch_vram_read(addr, epoch) << (8 + 7 - bitnum)) & 0x8000;
+        return ret;
+        // return epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8);
+    } else {/* is graphic mode */
+        return epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8);
+    }
 }
 
 
@@ -1327,8 +1560,10 @@ x1xx xxxx: No floppy drive
 1xxx xxxx: No (bootable?) hard drive
 */
         case 0xA2:
-            ret = 0xA8;/* Mono 24 */
-            // ret = 0xA2;/* Mono 16 */
+            if (epoch->font24)
+                ret = 0xA8; /* Mono 24 */
+            else
+                ret = 0xA2; /* Mono 16 */
             break;
 /*
 I/O A3h R: 
@@ -1502,7 +1737,7 @@ static void
 kbd_epoch_adddata(uint16_t val)
 {
     key_queue[key_queue_end] = val;
-    epoch_kbdlog("epochkbd: %02X added to key queue at %i\n",
+    epoch_log("epochkbd: %02X added to key queue at %i\n",
             val, key_queue_end);
     key_queue_end = (key_queue_end + 1) & 0x0f;
 }
@@ -1703,6 +1938,7 @@ kbd_close(void *priv)
 
     /* Stop the timer. */
     timer_disable(&kbd->send_delay_timer);
+    mouse_close();
 
     /* Disable scanning. */
     keyboard_scan = 0;
@@ -1967,10 +2203,12 @@ epoch_reset(void *priv)
     epoch->parityenabled = 1;
     epoch->lowmemorydisabled = 1;
     epoch->crtioenabled = 0;
+    mem_mapping_disable(&epoch->cmap);
+    mem_mapping_disable(&epoch->vmap);
     // epoch->attrc[LV_CURSOR_COLOR]    = 0x0f;                   /* cursor color */
     epoch->crtc[LC_HORIZONTAL_TOTAL] = 103;    /* Horizontal Total */
     epoch->crtc[LC_VERTICAL_TOTAL]  = 26;    /* Vertical Total (These two must be set before the timer starts.) */
-    epoch->crtmode = 0x08;
+    epoch->crtmode = 0;
     epoch->vram_display_mask = EPOCH_MASK_CRAM;
     // epoch->plane_mask = 1;
     epoch->oddeven = 0;
@@ -2080,8 +2318,6 @@ epoch_init(UNUSED(const device_t *info))
 
     epoch->epochconst = (uint64_t) ((cpuclock / EPOCH_PIXELCLOCK) * (double) (1ull << 32));
 
-    epoch_reset(epoch);
-    
     mem_mapping_add(&epoch->cmap, 0xE0000, 0x1000, epoch_cram_readb, epoch_cram_readw, NULL,
         epoch_cram_writeb, epoch_cram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
     mem_mapping_add(&epoch->vmap, 0xA0000, 0x40000, epoch_vram_readb, epoch_vram_readw, NULL,
@@ -2089,8 +2325,6 @@ epoch_init(UNUSED(const device_t *info))
     // mem_mapping_add(&epoch->fontcard.map, 0xF0000, 0xC000, epoch_font_readb, NULL, NULL,
     //     epoch_font_writeb, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
 
-    mem_mapping_disable(&epoch->cmap);
-    mem_mapping_disable(&epoch->vmap);
     // mem_mapping_disable(&epoch->fontcard.map);
     mem_mapping_add(&epoch->paritymap, 0, 0xA0000, epoch_parity_readb, epoch_parity_readw, NULL,
         epoch_parity_writeb, epoch_parity_writew, NULL, NULL, MEM_MAPPING_CACHE, epoch);
@@ -2106,9 +2340,13 @@ epoch_init(UNUSED(const device_t *info))
     // io_sethandler(0x160, 0x0010,
     //               epoch_misc_in, NULL, NULL, epoch_misc_out, NULL, NULL, epoch);
 
+    epoch_reset(epoch);
+    
     timer_add(&epoch->timer, epoch_poll, epoch, 1);
 
     epoch_nvr_init(epoch, 17);
+
+    epoch->font24 = device_get_config_int("model");
 
     return epoch;
 }
@@ -2138,6 +2376,7 @@ epoch_close(void *priv)
     // }
     fp = fopen("epoch_daregs.txt", "w");
     if (fp != NULL) {
+            fprintf(fp, "3d8(crtmode) %02X\n", epoch->crtmode);
         // for (uint8_t i = 0; i < 0x10; i++)
         //     fprintf(fp, "3e1(ioctl) %02X: %4X %d\n", i, epoch->ioctl[i], epoch->ioctl[i]);
         // for (uint8_t i = 0; i < 0x20; i++)
@@ -2186,8 +2425,31 @@ epoch_force_redraw(void *priv)
     epoch->fullchange = changeframecount;
 }
 
-static const device_t epoch_device = {
-    .name          = "IBM 5550 (Epoch) Video Controller",
+static const device_config_t epoch_config[] = {
+    // clang-format off
+    {
+        .name        = "model",
+        .description = "Model",
+        .type        = CONFIG_SELECTION,
+        .default_int = EPOCH_CONFIG_MONO24,
+        .selection   = {
+            {
+                .description = "A (Font 16)",
+                .value = EPOCH_CONFIG_MONO16
+            },
+            {
+                .description = "B (Font 24)",
+                .value = EPOCH_CONFIG_MONO24
+            },
+            { .description = "" }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibm5550_vid_device = {
+    .name          = "IBM 5550 Video Adapter",
     .internal_name = "ibm5550vid",
     .flags         = DEVICE_ISA,
     .local         = 0,
@@ -2197,7 +2459,7 @@ static const device_t epoch_device = {
     .available     = NULL,
     .speed_changed = epoch_speed_changed,
     .force_redraw  = epoch_force_redraw,
-    .config        = NULL
+    .config        = epoch_config
 };
 
 static void
@@ -2258,7 +2520,7 @@ machine_xt_ibm5550_init(const machine_t *model)
     pit_ibm5550_init();
     nmi_mask = 0;
 
-    device_add(&epoch_device);
+    device_add(&ibm5550_vid_device);
 
     device_add(&lpt_port_device);
     serial_t *uart = device_add(&ns8250_device);
