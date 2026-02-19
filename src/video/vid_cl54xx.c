@@ -54,8 +54,6 @@
 #define BIOS_GD5428_ISA_PATH            "roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_MCA_PATH            "roms/video/cirruslogic/SVGA141.ROM"
 #define BIOS_GD5428_ONBOARD_ACER_PATH   "roms/machines/acera1g/4alo001.bin"
-#define BIOS_GD5428_ONBOARD_HP_PATH     "roms/machines/vect486vl/aa0500.ami"
-#define BIOS_GD5428_ONBOARD_SNI_PATH    "roms/machines/d824/fts-biosupdated824noflashbiosepromv320-320334-160.bin"
 #define BIOS_GD5428_PATH                "roms/video/cirruslogic/vlbusjapan.BIN"
 #define BIOS_GD5428_BOCA_ISA_PATH_1     "roms/video/cirruslogic/boca_gd5428_1.30b_1.bin"
 #define BIOS_GD5428_BOCA_ISA_PATH_2     "roms/video/cirruslogic/boca_gd5428_1.30b_2.bin"
@@ -4317,10 +4315,7 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5426:
             if (info->local & 0x200)
-                if (machines[machine].init == machine_at_vect486vl_init)
-                    romfn = BIOS_GD5428_ISA_PATH;
-                else
-                    romfn = NULL;
+                romfn = NULL;
             else {
                 if (info->local & 0x100)
                     romfn = BIOS_GD5426_DIAMOND_A1_ISA_PATH;
@@ -4337,9 +4332,7 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5428:
             if (info->local & 0x200) {
-                if (machines[machine].init == machine_at_d824_init)
-                    romfn = BIOS_GD5428_ISA_PATH;
-                else if (machines[machine].init == machine_at_acera1g_init)
+                if (machines[machine].init == machine_at_acera1g_init)
                     romfn = BIOS_GD5428_ONBOARD_ACER_PATH;
                 else
                     romfn            = NULL;
