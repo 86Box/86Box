@@ -937,9 +937,6 @@ do_send:
             break;
 
         case CMD_WRITE_VERIFY:
-            no_data = 1;
-            fallthrough;
-
         case CMD_WRITE_SECTORS:
             if (!drive->present) {
                 dev->ssb.not_ready = 1;
