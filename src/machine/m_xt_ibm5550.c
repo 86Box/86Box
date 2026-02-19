@@ -79,8 +79,6 @@
 
 #define LC_INDEX                0x3D0
 #define LC_DATA                 0x3D1
-#define LS_ENABLE               0x3D2
-#define LS_DISABLE              0x3D3
 #define LC_HORIZONTAL_TOTAL     0x00 /* -1 */
 #define LC_HORIZONTAL_DISPLAYED 0x01
 #define LC_H_SYNC_POSITION      0x02
@@ -99,6 +97,10 @@
 #define LC_CURSOR_LOC_LOWJ      0x0F
 #define LC_LIGHT_PEN_HIGH       0x10
 #define LC_LIGHT_PEN_LOW        0x11
+#define LS_ENABLE               0x3D2
+#define LS_DISABLE              0x3D3
+#define LS_MODE                 0x3D8
+#define LS_MONSENSE             0x3DA
 // #define LV_PORT                 0x3E8
 // #define LV_PALETTE_0            0x00
 // #define LV_MODE_CONTROL         0x10
@@ -396,8 +398,8 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
             mem_mapping_disable(&epoch->vmap);
             // mem_mapping_enable(&epoch->paritymap);
             break;
-        case 0x3D8:
-            /* Bit 3: Font access in read, Bit 1: graphic mode, Bit 0: Font access in write */
+        case LS_MODE:
+            /* Bit 3: Video output enable, Bit 1: Graphic mode (switch 16 / 9 bit word in Font 16 system) */
             epoch->crtmode = val;
 #ifdef ENABLE_EPOCH_LOG
             // epoch_dumpvram(epoch);
@@ -515,7 +517,7 @@ epoch_in(uint16_t addr, void *priv)
         //     // epoch_iolog("epoch In %04X(%02X) %04X %04X:%04X\n", addr, epoch->attraddr, temp, cs >> 4, cpu_state.pc);
         //     epoch->attrff = 0; /* reset flipflop (VGA does not reset flipflop) */
         //     break;
-        case 0x3DA:
+        case LS_MONSENSE:
             temp = 0xff;
             if (!(epoch->crtmode & 0x08)) {/* The video out is active */
                 if(epoch->cgastat & 8)
@@ -525,7 +527,7 @@ epoch_in(uint16_t addr, void *priv)
             // temp &= 0xfe; /* color */
             break;
         }
-    if (addr != 0x3DA)
+    if (addr != LS_MONSENSE)
         epoch_iolog("%04X:%04X epoch In %04X %04X\n", cs >> 4, cpu_state.pc, addr, temp);
     return temp;
 }
@@ -1208,15 +1210,15 @@ epoch_vram_read(uint32_t addr, void *priv)
     return epoch->vram[addr];
 }
 
-static void
-epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
-{
-    epoch_t *epoch = (epoch_t *) priv;
-//    epoch_log("%04X:%04X epoch_vwb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
-    cycles -= video_timing_write_b;
-    // return;
-//    epoch_vram_write(addr, val, epoch);
-}
+// static void
+// epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
+// {
+//     epoch_t *epoch = (epoch_t *) priv;
+// //    epoch_log("%04X:%04X epoch_vwb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
+//     cycles -= video_timing_write_b;
+//     // return;
+// //    epoch_vram_write(addr, val, epoch);
+// }
 static void
 epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
 {
@@ -1310,15 +1312,15 @@ epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
     // epoch_log("%x %x\n", addr, addr + 1);
 }
 
-static uint8_t
-epoch_vram_readb(uint32_t addr, void *priv)
-{
-    epoch_t *epoch = (epoch_t *) priv;
-    cycles -= video_timing_read_b;
-    // return 0xff;
- //   epoch_log("%04X:%04X epoch_vrb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, epoch_vram_read(addr, epoch));
-    // return epoch_vram_read(addr, epoch);
-}
+// static uint8_t
+// epoch_vram_readb(uint32_t addr, void *priv)
+// {
+//     epoch_t *epoch = (epoch_t *) priv;
+//     cycles -= video_timing_read_b;
+//     // return 0xff;
+//  //   epoch_log("%04X:%04X epoch_vrb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, epoch_vram_read(addr, epoch));
+//     // return epoch_vram_read(addr, epoch);
+// }
 
 static uint16_t
 epoch_vram_readw(uint32_t addr, void *priv)
@@ -2320,8 +2322,8 @@ epoch_init(UNUSED(const device_t *info))
 
     mem_mapping_add(&epoch->cmap, 0xE0000, 0x1000, epoch_cram_readb, epoch_cram_readw, NULL,
         epoch_cram_writeb, epoch_cram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
-    mem_mapping_add(&epoch->vmap, 0xA0000, 0x40000, epoch_vram_readb, epoch_vram_readw, NULL,
-        epoch_vram_writeb, epoch_vram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
+    mem_mapping_add(&epoch->vmap, 0xA0000, 0x40000, NULL, epoch_vram_readw, NULL,
+        NULL, epoch_vram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
     // mem_mapping_add(&epoch->fontcard.map, 0xF0000, 0xC000, epoch_font_readb, NULL, NULL,
     //     epoch_font_writeb, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
 
