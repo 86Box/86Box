@@ -18,7 +18,7 @@
  *          These first-gen models have 1-3 DSQD diskette drives.
  *          You need select "Type: 5.25" 720k" in the Settings dialog - Floppy & CD-ROM drives.
  * 
- *          Currently, this module only support the model B configuration without hard disk.
+ *          Currently, this module supports model A and B configurations without hard disk.
  * 
  * Authors: Akamaki.
  *
@@ -133,12 +133,12 @@
 // #define LV_OUTPUT               0x3E
 // #define LV_COMPATIBILITY        0x3F
 
-#define TIMER_CTR_0 0 //DMA
-#define TIMER_CTR_1 1 //8253 timer
-#define TIMER_CTR_2 2 //Speaker
+#define TIMER_CTR_0 0 /* DMA */
+#define TIMER_CTR_1 1 /* PIT */
+#define TIMER_CTR_2 2 /* Speaker */
 
-#define EPOCH_IRQ3_BIT (1 << 3) //Keyboard
-#define EPOCH_IRQ6_BIT (1 << 6) //Timer
+#define EPOCH_IRQ3_BIT (1 << 3) /* Keyboard */
+#define EPOCH_IRQ6_BIT (1 << 6) /* PIT */
 
 enum epoch_nvr_ADDR {
     epoch_nvr_SECOND1,
@@ -161,7 +161,7 @@ enum epoch_nvr_ADDR {
 };
 
 #ifndef RELEASE_BUILD
-#define ENABLE_EPOCH_LOG 1
+//#define ENABLE_EPOCH_LOG 1
 #endif
 
 #ifdef ENABLE_EPOCH_LOG
@@ -381,7 +381,7 @@ epoch_out(uint16_t addr, uint16_t val, void *priv)
                 case LC_MAXIMUM_SCAN_LINE:
                 case LC_START_ADDRESS_HIGH:
                 case LC_START_ADDRESS_LOW:
-                    epoch->fullchange = changeframecount;
+                    epoch->fullchange = 3;
                     epoch_recalctimings(epoch);
                     break;
                 default:
@@ -648,6 +648,7 @@ epoch_inw(uint16_t addr, void *priv)
     return temp;
 }
 
+/* Return a memory address for 9-bit word access */
 static uint32_t
 getaddr_9bitword(int32_t addr)
 {
@@ -1139,13 +1140,6 @@ epoch_poll(void *priv)
         if (epoch->vc == epoch->dispend) {
             epoch->dispon = 0;
             if (!(epoch->crtmode & 0x02)) {                /* in text mode */
-                // if (epoch->attrc[LV_CURSOR_CONTROL] & 0x01) /* cursor blinking */
-                // {
-                    // epoch->cursoron = (epoch->blink | 1) & epoch->blinkconf;
-                    // epoch->cursoron = 1;
-                // } else {
-                //     epoch->cursoron = 0;
-                // }
                 switch (epoch->crtc[LC_CURSOR_ROW_START] & 0x60) {
                     case 0x20:
                         epoch->cursoron = 0;
@@ -1161,7 +1155,7 @@ epoch_poll(void *priv)
                         break;
                 }
                 if (!(epoch->blink & (0x08 - 2))) /* force redrawing for cursor and blink attribute */
-                    epoch->fullchange = changeframecount;
+                    epoch->fullchange = 3;
             }
             epoch->blink++;
 
@@ -1227,112 +1221,44 @@ static void
 epoch_vram_write(uint32_t addr, uint8_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    // if ((addr & ~0xfff) != 0xE0000) return;
     // epoch_log("epoch_vw: %x %x\n", addr, val);
     addr &= EPOCH_MASK_VRAM;
     epoch->vram[addr] = val;
-    epoch->fullchange = changeframecount;
-    // if(val == 0x66)
-    //         epoch_log("66 %04X:%04X %04X:%04X>%04X:%04X\n", cs >> 4, cpu_state.pc, DS, SI,ES,DI);
+    epoch->fullchange = 3;
 }
 static uint8_t
 epoch_vram_read(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    // if ((addr & ~epoch_MASK_CRAM) != 0xE0000)
-    //     return epoch_INVALIDACCESS8;
     addr &= EPOCH_MASK_VRAM;
     return epoch->vram[addr];
 }
 
-// static void
-// epoch_vram_writeb(uint32_t addr, uint8_t val, void *priv)
-// {
-//     epoch_t *epoch = (epoch_t *) priv;
-// //    epoch_log("%04X:%04X epoch_vwb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, val);
-//     cycles -= video_timing_write_b;
-//     // return;
-// //    epoch_vram_write(addr, val, epoch);
-// }
 static void
 epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    // uint8_t convert[8] = {0, 2, 8, 8, 1, 3, 8, 8};/* only even chars */
-    //uint8_t convert[8] = {8, 8, 0, 2, 8, 8, 1, 3};/* only even chars */
-    // uint8_t convert[8] = {0, 1, 2, 3, 4, 5, 6, 7};/* all but alt */
-    // uint8_t convert[8] = {0, 1, 2, 3, 8, 8, 8, 8};/* even alt */
-    // uint8_t convert[8] = {8, 8, 8, 8, 0, 1, 2, 3};/* even alt */
-    // uint8_t convert[8] = {0, 4, 1, 5, 2, 6, 3, 7};/* all but pos+-1 */
-    // uint8_t convert[8] = {8, 8, 4, 6, 8, 8, 5, 7};/* only odd (0) */
-    // uint8_t convert[8] = {8, 8, 0, 2, 8, 8, 1, 3};/* only even */
-    // uint8_t convert[8] = {4, 6, 8, 8, 5, 7, 8, 8};/* only odd (0) */
-    // uint8_t convert[8] = {8, 4, 6, 8, 8, 5, 7, 8};/* none */
     // epoch_log("%04X:%04X epoch_vww: %x, val %x DS %x SI %x ES %x DI %x %x\n", cs >> 4, cpu_state.pc, addr, val,DS,SI,ES,DI, epoch->crtc[LC_INTERLACE_AND_SKEW]);
     // epoch_log("%04X:%04X epoch_vww: %x, val %x cm %x\n", cs >> 4, cpu_state.pc, addr, val, epoch->crtmode);
     cycles -= video_timing_write_w;
     addr -= 0xA0000;
-    // addr &= 0xfffffffe;
-    // if (0) {
     if (!(epoch->crtmode & 0x02) && !(epoch->font24)) {
         uint32_t toaddr, bitnum;
-        // if (addr < 0xd0000) {
-        //     int index = (addr - 0xA0000) >> 7; /* 128 bytes per char */
-        //     addr &= 0x007f;
-        //     addr += 0xA0000 + 84 * index;
-        // epoch_log("%x %x\n", addr, index);
-        // } else if (addr >= 0xD8000) {
-        //     int index = (addr - 0xD8000) >> 7; /* 128 bytes per char */
-        //     addr &= 0x007f;
-        //     if (addr & 2) return;
-        //     addr >>= 1;
-        //     addr += 0xC0000 + 42 * index;
-        // epoch_log("%x %x\n", addr, index);
-        // } else
-        //     return;
-
-        // if (addr < 0xd0000) {
-        //     addr -= 0xA0000;
-        //     if (addr & 2)
-        //         return;
-        //     addr >>= 1;
-        //     addr += 0xA0000;
-        // } else if (addr >= 0xD8000) {
-        //     addr -= 0xD8000;
-        //     if (addr & 2)
-        //         return;
-        //     addr >>= 1;
-        //     addr += 0xD8000;
-        // } else
-        //     return;
-
-        // addr >>= 1;
-        // if(addr & 0x02)
-        //     addr--;
-        // addr ^= 0x06;
-        //addr &= 0xffffd;/* 1101 */
-        // addr >>= 1;
-        
-        // if (convert[(addr + 0) & 7] > 7)
-        //     return;  
-        // epoch_vram_write((addr & 0xffff8) + convert[(addr + 0) & 7], val & 0xff, epoch);
-        // epoch_vram_write((addr & 0xffff8) + convert[(addr + 1) & 7], val >> 8, epoch);
 
         /* rw one word with 9 bits */
         /* virtual: 20000h (0010b, 0011b) -> real: 00001h (0000b, 0001b) */
-        
         toaddr = getaddr_9bitword(addr);
         bitnum   = toaddr & 7;
         epoch_vram_write(toaddr, val & 0xff, epoch);
-        // epoch_log("%x %x\n", toaddr, val);
+        
         /* get 9th bit */
         toaddr >>= 3;
         toaddr += 0x20000; /* real: C0000h */
         val >>= 15;
-        // epoch_log("%x %x ", toaddr, val);
         val <<= bitnum;
-        // epoch_log("%x ", val);
-        val |= (epoch_vram_read(toaddr, epoch) & (~(1 << bitnum)));/* mask to update one bit */
+
+        /* mask to update one bit */
+        val |= (epoch_vram_read(toaddr, epoch) & (~(1 << bitnum)));
         epoch_vram_write(toaddr, val, epoch);
         // epoch_log("%x %x\n", toaddr, val);
         // epoch_log("%x %x\n", addr, val);
@@ -1343,72 +1269,17 @@ epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
     // epoch_log("%x %x\n", addr, val);
 }
 
-// static uint8_t
-// epoch_vram_readb(uint32_t addr, void *priv)
-// {
-//     epoch_t *epoch = (epoch_t *) priv;
-//     cycles -= video_timing_read_b;
-//     // return 0xff;
-//  //   epoch_log("%04X:%04X epoch_vrb: %x, val %x\n", cs >> 4, cpu_state.pc, addr, epoch_vram_read(addr, epoch));
-//     // return epoch_vram_read(addr, epoch);
-// }
-
 static uint16_t
 epoch_vram_readw(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    // uint8_t convert[8] = {0, 2, 4, 6, 1, 3, 5, 7};/* all but pos+-1 */
-    // uint8_t convert[8] = {0, 4, 8, 8, 8, 8, 8, 8};/* all but pos+-1 */
     cycles -= video_timing_read_w;
     addr -= 0xA0000;
     // epoch_log("%04X:%04X epoch_vrw: %x cm %x\n", cs >> 4, cpu_state.pc, addr, epoch->crtmode);
-    // addr &= 0xfffffffe;
-    //read 0->0,1 2->2,3 4->4,5 6->6,7
-    //read 0->0,2 2->1,3 4->4,6 6->5,7
-    // if (0) {
     if (!(epoch->crtmode & 0x02) && !(epoch->font24)) {
         uint16_t ret;
         uint32_t bitnum;
         uint32_t toaddr;
-        // if (addr < 0xd0000) {
-        //     int index = (addr - 0xA0000) >> 7; /* 128 bytes per char */
-        //     addr &= 0x007f;
-        //     addr += 0xA0000 + 84 * index;
-        // epoch_log("%x %x %x\n", addr, index, epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8));
-        // } else if (addr >= 0xD8000) {
-        //     int index = (addr - 0xD8000) >> 7; /* 128 bytes per char */
-        //     addr &= 0x007f;
-        //     if (addr & 2) return EPOCH_INVALIDACCESS16;
-        //     addr >>= 1;
-        //     addr += 0xC0000 + 42 * index;
-        // epoch_log("%x %x %x\n", addr, index, epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8));
-        // } else
-        //     return EPOCH_INVALIDACCESS16;
-
-        // if (addr < 0xd0000) {
-        //     addr -= 0xA0000;
-        //     if (addr & 2)
-        //         return EPOCH_INVALIDACCESS16;
-        //     addr >>= 1;
-        //     addr += 0xA0000;
-        // } else if (addr >= 0xD8000) {
-        //     addr -= 0xD8000;
-        //     if (addr & 2)
-        //         return EPOCH_INVALIDACCESS16;
-        //     addr >>= 1;
-        //     addr += 0xD8000;
-        // } else
-        //         return EPOCH_INVALIDACCESS16;
-
-        // if(addr & 0x02)
-        //     addr--;
-        // // addr ^= 0x06;
-        // addr >>= 1;
-
-        // if (convert[(addr + 0) & 7] > 7)
-        //     return 0;  
-        // return epoch_vram_read((addr & 0xffff8) + convert[addr & 7], epoch) | (epoch_vram_read((addr & 0xffff8) + convert[(addr + 1) & 7], epoch) << 8);
-        
         /* rw one word with 9 bits */
         /* virtual: 20000h (0010b, 0011b) -> real: 00001h (0000b, 0001b) */
         toaddr = getaddr_9bitword(addr);
@@ -1430,10 +1301,9 @@ static void
 epoch_cram_write(uint32_t addr, uint8_t val, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    // if ((addr & ~0xfff) != 0xE0000) return;
     addr &= EPOCH_MASK_CRAM;
     epoch->cram[addr] = val;
-    epoch->fullchange = changeframecount;
+    epoch->fullchange = 3;
     // epoch_log("cw %04X:%04X %04X %02X\n", cs >> 4, cpu_state.pc, addr, val);
 }
 static void
@@ -1458,8 +1328,6 @@ static uint8_t
 epoch_cram_read(uint32_t addr, void *priv)
 {
     epoch_t *epoch = (epoch_t *) priv;
-    // if ((addr & ~epoch_MASK_CRAM) != 0xE0000)
-    //     return epoch_INVALIDACCESS8;
     addr &= EPOCH_MASK_CRAM;
     return epoch->cram[addr];
 }
@@ -1495,7 +1363,6 @@ epoch_parity_readb(uint32_t addr, void *priv)
             return EPOCH_INVALIDACCESS8;
         }
     }
-    // return EPOCH_INVALIDACCESS8;
     return mem_read_ram(addr, priv);
 }
 
@@ -1533,8 +1400,6 @@ epoch_parity_writeb(uint32_t addr, uint8_t val, void *priv)
             return;
         }
     }
-    // if (val == 0xcb)
-    //     epoch_log("CB %04X:%04X %04X:%04X>%04X:%04X\n", cs >> 4, cpu_state.pc, DS, SI, ES, DI);
     mem_write_ram(addr, val, priv);
 }
 static void
@@ -2338,7 +2203,7 @@ epoch_init(UNUSED(const device_t *info))
     epoch->dispontime        = 1000ull << 32;
     epoch->dispofftime       = 1000ull << 32;
     // epoch->changedvram       = calloc(1,  (EPOCH_MASK_VRAMPLANE + 1) >> 9); /* XX000h */
-    changeframecount = 3;
+
     if (epoch->font24)
         epoch->pixelclock = EPOCH_PIXELCLOCK24;
     else
