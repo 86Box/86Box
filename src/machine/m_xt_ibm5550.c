@@ -862,7 +862,7 @@ epoch_render_text(epoch_t *epoch)
             }
             /* Drawing text cursor */
             drawcursor = ((epoch->memaddr == epoch->cursoraddr) && epoch->cursorvisible && epoch->cursoron);
-            if (drawcursor && epoch->scanline >= epoch->crtc[LC_CURSOR_ROW_START] && epoch->scanline <= epoch->crtc[LC_CURSOR_ROW_END]) {
+            if (drawcursor) {
                 // int cursorwidth = (epoch->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
                 int cursorwidth = epoch->char_width;
                 int cursorcolor = 2; /* Choose color 2 if mode 8 */
@@ -1140,11 +1140,25 @@ epoch_poll(void *priv)
                 // if (epoch->attrc[LV_CURSOR_CONTROL] & 0x01) /* cursor blinking */
                 // {
                     // epoch->cursoron = (epoch->blink | 1) & epoch->blinkconf;
-                    epoch->cursoron = 1;
+                    // epoch->cursoron = 1;
                 // } else {
                 //     epoch->cursoron = 0;
                 // }
-                if (!(epoch->blink & (0x10 - 1))) /* force redrawing for cursor and blink attribute */
+                switch (epoch->crtc[LC_CURSOR_ROW_START] & 0x60) {
+                    case 0x20:
+                        epoch->cursoron = 0;
+                        break;
+                    case 0x60:
+                        epoch->cursoron = epoch->blink & 0x10;
+                        break;
+                    case 0x40:
+                        epoch->cursoron = epoch->blink & 0x08;
+                        break;
+                    default:
+                        epoch->cursoron = 1;
+                        break;
+                }
+                if (!(epoch->blink & (0x08 - 2))) /* force redrawing for cursor and blink attribute */
                     epoch->fullchange = changeframecount;
             }
             epoch->blink++;

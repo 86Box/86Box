@@ -2055,7 +2055,7 @@ da2_render_text(da2_t *da2)
             }
             /* Drawing text cursor */
             drawcursor = ((da2->memaddr == da2->cursoraddr) && da2->cursorvisible && da2->cursoron);
-            if (drawcursor && da2->scanline >= da2->crtc[LC_CURSOR_ROW_START] && da2->scanline <= da2->crtc[LC_CURSOR_ROW_END]) {
+            if (drawcursor) {
                 int cursorwidth = (da2->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
                 int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2; /* Choose color 2 if mode 8 */
                 fg              = (colormode) ? getPS55ForeColor(attr, da2) : ((attr & 0x08) ? 3 : 2);
