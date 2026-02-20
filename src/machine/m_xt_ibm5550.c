@@ -305,7 +305,7 @@ The IBM 5550 has different IRQ assignments like the 6580 Displaywriter System.
 | 40000h        | 128 KB Expansion RAM Card                             | 
 | 60000h        | 128 KB Expansion RAM Card                             | 
 | 80000h        | 128 KB Expansion RAM Card                             | 
-| A0000h        | 256 KB Video RAM                                      | 
+| A0000h        | Video RAM (Font 16: 144 KB, Font 24: 256 KB)          | 
 | E0000h        | 4 KB Code/Attribute Buffer                            | 
 | E8000h        | ? KB Hard Disk Control Local Memory (not implemented) | 
 | F0000h        | Kanji Font Card (not implemented)                     | 
@@ -917,13 +917,15 @@ epoch_render_color_4bpp(epoch_t *epoch)
 /*
     INT 10h video modes supported in DOS K3.44.
     Mode        Type    Colors  Text    Base Address    PELs        Render
-    2           A/N     3       80 x 25 E0000h          1040 x 725  text
-    8           A/N/K   3       80 x 25 E0000h          1040 x 725  text
+    2           A/N     3       80 x 25 E0000h          1040 x 725* text
+    8           A/N/K   3       80 x 25 E0000h          1040 x 725* text
+    9           APA     2       80 x 25 A0000h          720 x 512   color_4bpp
     Ah          APA     2       78 x 25 A0000h          1024 x 768  color_4bpp
     Bh          APA     16      40 x 25 A0000h          360 x 512   n/a
     Ch          APA     16      80 x 25 A0000h          720 x 512   n/a
     Dh          APA     16      78 x 25 A0000h          1024 x 768  n/a
-    Eh          A/N/K   16      80 x 25 E0000h          1040 x 725  n/a
+    Eh          A/N/K   16      80 x 25 E0000h          1040 x 725* n/a
+                                        (* 720 x 525 in the Font 16 system.)
 */
 static void
 epoch_recalctimings(epoch_t *epoch)
@@ -978,8 +980,8 @@ epoch_recalctimings(epoch_t *epoch)
             epoch->hdisp *= 16;
             epoch->char_width = 16;
         } else {
-            epoch->hdisp *= 11;
-            epoch->char_width = 11;
+            epoch->hdisp *= 12;
+            epoch->char_width = 12;
         }
         /* PS/55 8-color */
         epoch_log("Set videomode to PS/55 4 bpp graphics.\n");
