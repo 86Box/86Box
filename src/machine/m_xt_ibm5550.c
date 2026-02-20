@@ -73,7 +73,8 @@
 #define EPOCH_MASK_CRAM            0xfff         /* 0xFFF */
 #define EPOCH_MASK_VRAM            0x3ffff       /* 0xFFFFF */
 // #define EPOCH_MASK_VRAMPLANE       0x1ffff       /* 0x1FFFF */
-#define EPOCH_PIXELCLOCK           40000000.0    /* 40 MHz interlaced */
+#define EPOCH_PIXELCLOCK24         40000000.0    /* 40 MHz interlaced */
+#define EPOCH_PIXELCLOCK16         20000000.0    /* 20 MHz interlaced (not confirmed) */
 #define EPOCH_CONFIG_MONO16 0 /* Model 5551-Axx (Font 16, monochrome) */
 #define EPOCH_CONFIG_MONO24 1 /* Model 5551-Bxx (Font 24, monochrome) */
 
@@ -241,6 +242,7 @@ typedef struct epoch_t {
     int      scrollcache;
     int      char_width;
     int      font24;
+    double   pixelclock;
 
     int firstline, lastline;
     int firstline_draw, lastline_draw;
@@ -1088,7 +1090,7 @@ epoch_poll(void *priv)
                 video_wait_for_buffer();
             }
 
-            if((epoch->displine ^ !epoch->oddeven) & 1)
+            if ((epoch->displine ^ !epoch->oddeven) & 1)
                 epoch->render(epoch);
 
             if (epoch->lastline < epoch->displine)
@@ -1199,8 +1201,8 @@ epoch_poll(void *priv)
 
             epoch->vslines     = 0;
 
-                epoch->memaddr
-                    = epoch->memaddr_backup = epoch->memaddr_latch << 1;
+            epoch->memaddr
+                = epoch->memaddr_backup = epoch->memaddr_latch << 1;
             epoch->cursoraddr = ((epoch->crtc[LC_CURSOR_LOC_HIGH] << 8) | epoch->crtc[LC_CURSOR_LOC_LOWJ]) + epoch->ca_adj;
             epoch->cursoraddr <<= 1;
 
@@ -1431,7 +1433,7 @@ epoch_cram_write(uint32_t addr, uint8_t val, void *priv)
     // if ((addr & ~0xfff) != 0xE0000) return;
     addr &= EPOCH_MASK_CRAM;
     epoch->cram[addr] = val;
-    epoch->fullchange = changeframecount;;
+    epoch->fullchange = changeframecount;
     // epoch_log("cw %04X:%04X %04X %02X\n", cs >> 4, cpu_state.pc, addr, val);
 }
 static void
@@ -2328,6 +2330,8 @@ static void *
 epoch_init(UNUSED(const device_t *info))
 {
     epoch_t *epoch  = calloc(1, sizeof(epoch_t));
+    epoch->font24 = device_get_config_int("model");
+
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_epoch_vid);
     video_update_timing();
 
@@ -2335,6 +2339,10 @@ epoch_init(UNUSED(const device_t *info))
     epoch->dispofftime       = 1000ull << 32;
     // epoch->changedvram       = calloc(1,  (EPOCH_MASK_VRAMPLANE + 1) >> 9); /* XX000h */
     changeframecount = 3;
+    if (epoch->font24)
+        epoch->pixelclock = EPOCH_PIXELCLOCK24;
+    else
+        epoch->pixelclock = EPOCH_PIXELCLOCK16;
 
     epoch->vram              = calloc(1, 256* 1024);
     // for(int i=0;i<256*1024;i++) /* for debug */
@@ -2343,7 +2351,7 @@ epoch_init(UNUSED(const device_t *info))
     // epoch->fontcard.rom      = calloc(1, EPOCH_FONTROM_SIZE);
     // epoch_video_load_font("roms/machines/ibm5550/GEN1FONT.BIN", epoch);
 
-    epoch->epochconst = (uint64_t) ((cpuclock / EPOCH_PIXELCLOCK) * (double) (1ull << 32));
+    epoch->epochconst = (uint64_t) ((cpuclock / epoch->pixelclock) * (double) (1ull << 32));
 
     mem_mapping_add(&epoch->cmap, 0xE0000, 0x1000, epoch_cram_readb, epoch_cram_readw, NULL,
         epoch_cram_writeb, epoch_cram_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, epoch);
@@ -2372,8 +2380,6 @@ epoch_init(UNUSED(const device_t *info))
     timer_add(&epoch->timer, epoch_poll, epoch, 1);
 
     epoch_nvr_init(epoch);
-
-    epoch->font24 = device_get_config_int("model");
 
     return epoch;
 }
@@ -2441,7 +2447,7 @@ static void
 epoch_speed_changed(void *priv)
 {
     epoch_t *epoch    = (epoch_t *) priv;
-    epoch->epochconst = (uint64_t) ((cpuclock / EPOCH_PIXELCLOCK) * (double) (1ull << 32));
+    epoch->epochconst = (uint64_t) ((cpuclock / epoch->pixelclock) * (double) (1ull << 32));
     epoch_recalctimings(epoch);
 }
 
