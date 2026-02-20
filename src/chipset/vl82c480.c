@@ -12,11 +12,17 @@
  *
  *          Copyright 2020 Miran Grca.
  */
+
+#ifdef ENABLE_VL82C48X_LOG
+#include <stdarg.h>
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/timer.h>
@@ -27,11 +33,31 @@
 #include <86box/nmi.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
+#include <86box/log.h>
+
+#ifdef ENABLE_VL82C48X_LOG
+int vl82c48x_do_log = ENABLE_VL82C48X_LOG;
+
+static void
+vl82c48x_log(void *priv, const char *fmt, ...)
+{
+    if (vl82c48x_do_log) {
+        va_list ap;
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define vl82c48x_log(fmt, ...)
+#endif
 
 typedef struct vl82c480_t {
     uint8_t  idx;
     uint8_t  regs[256];
     uint32_t banks[4];
+
+    void *  log; // New logging system
 } vl82c480_t;
 
 static int
@@ -77,6 +103,14 @@ vl82c480_recalc_shadow(vl82c480_t *dev)
         }
     }
 
+    /* Implement ROMCS# disable portion of ROMMOV behavior */
+    if ((dev->regs[0x11] == 0x00) && ((dev->regs[0x0c] & 0x20) || (dev->regs[0x0c] & 0x10)))
+        mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    if (!(dev->regs[0x0f] & 0x0f) && !(dev->regs[0x0c] & 0x20))
+        mem_set_mem_state(0xc0000, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    if (!(dev->regs[0x0f] & 0xf0) && !((dev->regs[0x0c] & 0x30) == 0x30))
+        mem_set_mem_state(0xc8000, 0x8000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+
     flushmmucache();
 }
 
@@ -116,6 +150,8 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
 {
     vl82c480_t *dev = (vl82c480_t *) priv;
 
+    vl82c48x_log(dev->log, "[%04X:%08X] VL82c48x: [W] %04X = %02X\n", CS, cpu_state.pc, addr, val);
+
     switch (addr) {
         case 0xec:
             dev->idx = val;
@@ -145,6 +181,10 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x07:
                         dev->regs[dev->idx] = (dev->regs[dev->idx] & 0x40) | (val & 0xbf);
+                        break;
+                    case 0x0c:
+                        dev->regs[dev->idx] = val;
+                        vl82c480_recalc_shadow(dev);
                         break;
                     case 0x0d ... 0x12:
                         dev->regs[dev->idx] = val;
@@ -195,6 +235,8 @@ vl82c480_read(uint16_t addr, void *priv)
             break;
     }
 
+    vl82c48x_log(dev->log, "[%04X:%08X] VL82c48x: [R] %04X = %02X\n", CS, cpu_state.pc, addr, ret);
+
     return ret;
 }
 
@@ -202,6 +244,11 @@ static void
 vl82c480_close(void *priv)
 {
     vl82c480_t *dev = (vl82c480_t *) priv;
+
+    if (dev->log != NULL) {
+        log_close(dev->log);
+        dev->log = NULL;
+    }
 
     free(dev);
 }
@@ -216,6 +263,8 @@ vl82c480_init(const device_t *info)
     uint8_t     max_i    = (machines[machine].init == machine_at_monsoon_init) ? 2 : 4;
     uint8_t     min_j    = (machines[machine].init == machine_at_monsoon_init) ? 2 : 2;
     uint8_t     max_j    = (machines[machine].init == machine_at_monsoon_init) ? 7 : 7;
+
+    dev->log = log_open("VL82c48x");
 
     dev->regs[0x00] = info->local;
     dev->regs[0x01] = 0xff;
