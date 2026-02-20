@@ -646,6 +646,18 @@ epoch_inw(uint16_t addr, void *priv)
     return temp;
 }
 
+static uint32_t
+getaddr_9bitword(int32_t addr)
+{
+            int32_t bit9addr = addr;
+            if (bit9addr & 2)
+                bit9addr--;
+            if (bit9addr & 0x20000)
+                bit9addr += 2;
+            bit9addr &= 0x1ffff;
+            return bit9addr;
+}
+
 /* Get font pattern in a line from video memory */
 static uint32_t
 getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
@@ -667,19 +679,22 @@ getfont_ps55dbcs(int32_t code, int32_t line, void *priv)
             code++;
             font |= epoch->vram[code];
         } else { /* Font 16 (2 x 9 x 21) */
-            int bitnum = code & 0x7;
+            int32_t bit9addr = getaddr_9bitword(code);
+            int bitnum = bit9addr & 7;
+            bit9addr >>= 3;
+            bit9addr += 0x20000; /* real: C0000h */
             font = epoch->vram[code];
             font <<= 8;
-            font |= (epoch->vram[(code >> 3) + 0x20000 ] << (7 - bitnum)) & 0xff; /* get 9th bit */
-            // font &= 0xffffff80;
+            font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
+            // font &= 0xff80;
             // font |= epoch->vram[code + line * 4 + 1];
             font <<= 8;
             code++;
             font |= epoch->vram[code];
             font <<= 8;
             bitnum = code & 0x7;
-            font |= (epoch->vram[(code >> 3) + 0x20000 ] << (7 - bitnum)) & 0xff; /* get 9th bit */
-            font &= 0xff80ff80;
+            font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80; /* get 9th bit */
+            // font &= 0xff80ff80;
             // font |= epoch->vram[code + line * 4 + 3];
         }
     } else
@@ -801,15 +816,17 @@ epoch_render_text(epoch_t *epoch)
                         font <<= 8;
                         font |= epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 3];
                     } else {
-                        int bitnum;
-                        fontbase = (fontbase & 0x1ffff) + chr * 0x80 + epoch->scanline * 4;
-                        bitnum = fontbase & 0x7;
+                        uint32_t bitnum, bit9addr;
+                        fontbase += chr * 0x80 + epoch->scanline * 4;
+                        bit9addr = getaddr_9bitword(fontbase);
+                        bitnum   = bit9addr & 7;
+                        bit9addr >>= 3;
+                        bit9addr += 0x20000; /* real: C0000h */
+
+                        fontbase &= 0x1ffff;
                         font = epoch->vram[fontbase + 2]; /* w9xh21 font */
                         font <<= 8;
-                        // font |= epoch->vram[fontbase + chr * 0x80 + epoch->scanline * 4 + 3];
-                        fontbase >>= 3;
-                        fontbase += 0x20000; /* real: C0000h */
-                        font |= epoch->vram[fontbase] << (8 + 7 - bitnum);
+                        font |= (epoch->vram[bit9addr] << (7 - bitnum)) & 0x80;
                         // if(chr!=0x20) epoch_log("faddr: %x, scline: %x, chr: %x, font: %x    ", fontbase + chr * 0x80 + epoch->scanline * 4, epoch->scanline, chr, font);
                     }
                     // if(chr!=0x20) epoch_log("memaddr: %x, scanline: %x, chr: %x, font: %x    ", epoch->memaddr, epoch->scanline, chr, font);
@@ -1287,31 +1304,27 @@ epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
 
         /* rw one word with 9 bits */
         /* virtual: 20000h (0010b, 0011b) -> real: 00001h (0000b, 0001b) */
-        toaddr = addr;
-        if (addr & 2)
-            toaddr--;
-        if (addr & 0x20000)
-            toaddr += 2;
-        toaddr &= 0x1ffff;
-
-        //addr >>= 1;
         
+        toaddr = getaddr_9bitword(addr);
+        bitnum   = toaddr & 7;
         epoch_vram_write(toaddr, val & 0xff, epoch);
-        // epoch_log("%x %x ", toaddr, val);
+        // epoch_log("%x %x\n", toaddr, val);
         /* get 9th bit */
-        bitnum =  toaddr & 0x7;
         toaddr >>= 3;
         toaddr += 0x20000; /* real: C0000h */
         val >>= 15;
+        // epoch_log("%x %x ", toaddr, val);
         val <<= bitnum;
-        val |= epoch_vram_read(toaddr, epoch) & ~(1 << bitnum);/* mask to update one bit */
+        // epoch_log("%x ", val);
+        val |= (epoch_vram_read(toaddr, epoch) & (~(1 << bitnum)));/* mask to update one bit */
         epoch_vram_write(toaddr, val, epoch);
+        // epoch_log("%x %x\n", toaddr, val);
         // epoch_log("%x %x\n", addr, val);
     } else {/* is graphic mode */
         epoch_vram_write(addr, val & 0xff, epoch);
         epoch_vram_write(addr + 1, val >> 8, epoch);
     }
-    // epoch_log("%x %x\n", addr, addr + 1);
+    // epoch_log("%x %x\n", addr, val);
 }
 
 // static uint8_t
@@ -1382,15 +1395,10 @@ epoch_vram_readw(uint32_t addr, void *priv)
         
         /* rw one word with 9 bits */
         /* virtual: 20000h (0010b, 0011b) -> real: 00001h (0000b, 0001b) */
-        toaddr = addr; /* 1101 */
-        if (addr & 2)
-            toaddr--;
-        if (addr & 0x20000)
-            toaddr += 2;
-        toaddr &= 0x1ffff;
+        toaddr = getaddr_9bitword(addr);
+        bitnum   = toaddr & 7;
         ret = epoch_vram_read(toaddr, epoch);
         /* get 9th bit */
-        bitnum =  toaddr & 0x7;
         toaddr >>= 3;
         toaddr += 0x20000; /* real: C0000h */
         ret |= (epoch_vram_read(toaddr, epoch) << (8 + 7 - bitnum)) & 0x8000;
@@ -2148,11 +2156,11 @@ epoch_nvr_reset(nvr_t *nvr)
 }
 
 static void
-epoch_nvr_init(epoch_t *epoch, int size)
+epoch_nvr_init(epoch_t *epoch)
 {
     nvr_t* nvr = &epoch->nvr;
     /* This is machine specific. */
-    nvr->size = size;
+    nvr->size = 17;
     nvr->irq  = -1;
     /* Set up any local handlers here. */
     nvr->reset = epoch_nvr_reset;
@@ -2315,6 +2323,8 @@ epoch_init(UNUSED(const device_t *info))
     changeframecount = 3;
 
     epoch->vram              = calloc(1, 256* 1024);
+    // for(int i=0;i<256*1024;i++) /* for debug */
+    //     epoch->vram[i] = 0xff;
     epoch->cram              = calloc(1, 4 * 1024);
     // epoch->fontcard.rom      = calloc(1, EPOCH_FONTROM_SIZE);
     // epoch_video_load_font("roms/machines/ibm5550/GEN1FONT.BIN", epoch);
@@ -2347,7 +2357,7 @@ epoch_init(UNUSED(const device_t *info))
     
     timer_add(&epoch->timer, epoch_poll, epoch, 1);
 
-    epoch_nvr_init(epoch, 17);
+    epoch_nvr_init(epoch);
 
     epoch->font24 = device_get_config_int("model");
 
