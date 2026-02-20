@@ -1236,7 +1236,7 @@ epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
     // uint8_t convert[8] = {4, 6, 8, 8, 5, 7, 8, 8};/* only odd (0) */
     // uint8_t convert[8] = {8, 4, 6, 8, 8, 5, 7, 8};/* none */
     // epoch_log("%04X:%04X epoch_vww: %x, val %x DS %x SI %x ES %x DI %x %x\n", cs >> 4, cpu_state.pc, addr, val,DS,SI,ES,DI, epoch->crtc[LC_INTERLACE_AND_SKEW]);
-    epoch_log("%04X:%04X epoch_vww: %x, val %x cm %x\n", cs >> 4, cpu_state.pc, addr, val, epoch->crtmode);
+    // epoch_log("%04X:%04X epoch_vww: %x, val %x cm %x\n", cs >> 4, cpu_state.pc, addr, val, epoch->crtmode);
     cycles -= video_timing_write_w;
     addr -= 0xA0000;
     // addr &= 0xfffffffe;
@@ -1291,21 +1291,21 @@ epoch_vram_writew(uint32_t addr, uint16_t val, void *priv)
         if (addr & 2)
             toaddr--;
         if (addr & 0x20000)
-            toaddr+=2;
-        toaddr &= 0xdffff;
+            toaddr += 2;
+        toaddr &= 0x1ffff;
 
         //addr >>= 1;
         
         epoch_vram_write(toaddr, val & 0xff, epoch);
         // epoch_log("%x %x ", toaddr, val);
         /* get 9th bit */
-        bitnum =  addr & 0x7;
+        bitnum =  toaddr & 0x7;
+        toaddr >>= 3;
+        toaddr += 0x20000; /* real: C0000h */
         val >>= 15;
         val <<= bitnum;
-        addr >>= 3;
-        addr += 0x20000; /* real: C0000h */
-        val |= epoch_vram_read(addr, epoch) & ~(1 << bitnum);/* mask to update one bit */
-        epoch_vram_write(addr, val, epoch);
+        val |= epoch_vram_read(toaddr, epoch) & ~(1 << bitnum);/* mask to update one bit */
+        epoch_vram_write(toaddr, val, epoch);
         // epoch_log("%x %x\n", addr, val);
     } else {/* is graphic mode */
         epoch_vram_write(addr, val & 0xff, epoch);
@@ -1332,8 +1332,7 @@ epoch_vram_readw(uint32_t addr, void *priv)
     // uint8_t convert[8] = {0, 4, 8, 8, 8, 8, 8, 8};/* all but pos+-1 */
     cycles -= video_timing_read_w;
     addr -= 0xA0000;
-   epoch_log("%04X:%04X epoch_vrw: %x cm %x\n", 
-    cs >> 4, cpu_state.pc, addr, epoch->crtmode);
+    // epoch_log("%04X:%04X epoch_vrw: %x cm %x\n", cs >> 4, cpu_state.pc, addr, epoch->crtmode);
     // addr &= 0xfffffffe;
     //read 0->0,1 2->2,3 4->4,5 6->6,7
     //read 0->0,2 2->1,3 4->4,6 6->5,7
@@ -1387,14 +1386,14 @@ epoch_vram_readw(uint32_t addr, void *priv)
         if (addr & 2)
             toaddr--;
         if (addr & 0x20000)
-            toaddr+=2;
-        toaddr &= 0xdffff;
+            toaddr += 2;
+        toaddr &= 0x1ffff;
         ret = epoch_vram_read(toaddr, epoch);
         /* get 9th bit */
-        bitnum =  addr & 0x7;
-        addr >>= 3;
-        addr += 0x20000; /* real: C0000h */
-        ret |= (epoch_vram_read(addr, epoch) << (8 + 7 - bitnum)) & 0x8000;
+        bitnum =  toaddr & 0x7;
+        toaddr >>= 3;
+        toaddr += 0x20000; /* real: C0000h */
+        ret |= (epoch_vram_read(toaddr, epoch) << (8 + 7 - bitnum)) & 0x8000;
         return ret;
         // return epoch_vram_read(addr, epoch) | (epoch_vram_read(addr + 1, epoch) << 8);
     } else {/* is graphic mode */
@@ -1806,7 +1805,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
             timer_process();
             speaker_update();
-
+            // if(!speaker_enable && (val & 2)) epoch_log("Buz!\n");
             speaker_gated  = val & 2;
             speaker_enable = val & 2;
 
