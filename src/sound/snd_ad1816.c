@@ -819,7 +819,7 @@ ad1816_init(const device_t *info)
     ad1816->sb->opl_enabled = 1;
 
     sb_dsp_set_real_opl(&ad1816->sb->dsp, FM_YMF262);
-    sb_dsp_init(&ad1816->sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, ad1816);
+    sb_dsp_init(&ad1816->sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, ad1816);
     sb_dsp_setaddr(&ad1816->sb->dsp, ad1816->cur_sb_addr);
     sb_dsp_setirq(&ad1816->sb->dsp, ad1816->cur_irq);
     sb_dsp_setirq(&ad1816->sb->dsp, ad1816->cur_dma);
