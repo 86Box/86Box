@@ -10,6 +10,8 @@ A comprehensive technical reference for the Voodoo pixel pipeline ARM64 JIT comp
 - [Encoding Macros](#encoding-macros)
 - [Pipeline Phases](#pipeline-phases)
 - [Key Differences from x86-64](#key-differences-from-x86-64)
+- [Optimization History](#optimization-history)
+- [Accuracy Fixes (2026-02-22)](#accuracy-fixes-2026-02-22)
 - [Known Issues and Limitations](#known-issues-and-limitations)
 - [Maintenance and Extension](#maintenance-and-extension)
 
@@ -36,7 +38,7 @@ The Voodoo renderer has **hundreds of render states** (depth modes, blend modes,
 
 ### x86-64 Reference
 
-The ARM64 port is based on `src/include/86box/vid_voodoo_codegen_x86-64.h` (3561 lines of x86-64 JIT codegen). The ARM64 implementation in `src/include/86box/vid_voodoo_codegen_arm64.h` (4000 lines) follows the same structure and logic.
+The ARM64 port is based on `src/include/86box/vid_voodoo_codegen_x86-64.h` (3561 lines of x86-64 JIT codegen). The ARM64 implementation in `src/include/86box/vid_voodoo_codegen_arm64.h` (~4800 lines) follows the same structure and logic.
 
 ---
 
@@ -69,7 +71,7 @@ void *voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params,
                        voodoo_state_t *state, int odd_even)
 ```
 
-Cache lookup by render state hash. If no match, calls `voodoo_generate()` to compile a new block. The cache has 8 slots per odd/even pair (16 total).
+Cache lookup by render state hash. If no match, calls `voodoo_generate()` to compile a new block. The cache has 32 slots per odd/even pair (128 total across 4 threads), with round-robin eviction via `jit_next_block_to_write`. Total code memory: 128 * 16KB = 2MB.
 
 **Cache key:**
 - `xdir` (forward/backward X iteration)
@@ -141,7 +143,9 @@ This is the portable builtin; do NOT use `sys_icache_invalidate()` (macOS-only).
 | `x23` | `i_00_ff_w` pointer | Callee | Address of scalar `{0, 0xFF}` table |
 | `x24` | `real_y` copy | Callee | Preserved scanline Y (for dither table indexing) |
 | `x25` | `bilinear_lookup` pointer | Callee | Address of `bilinear_lookup[]` (for texture filtering) |
-| `x26-x28` | Scratch | Callee | Available for use (currently unused) |
+| `x26` | `rgb565` pointer | Callee | Pinned pointer to `rgb565[]` LUT for RGB565-to-BGRA32 decode |
+| `x27` | `STATE_x2` loop bound | Callee | Cached copy of `state->x2` (loop termination value) |
+| `x28` | `STATE_x` pixel coord | Callee | Cached copy of `state->x` (current pixel X coordinate) |
 | `x29` | FP (frame pointer) | Callee | Stack frame base |
 | `x30` | LR (link register) | Callee | Return address |
 | `x31` | SP/ZR | Special | Stack pointer (as destination) or zero register (as source) |
@@ -155,13 +159,17 @@ This is the portable builtin; do NOT use `sys_icache_invalidate()` (macOS-only).
 | `v2` | Zero | Caller | Cleared to zero for unpacking |
 | `v3` | Work | Caller | Blend factor or TMU1 result |
 | `v4` | Work | Caller | Destination color or saved texture |
-| `v5-v7` | Work | Caller | Temp |
-| `v8` | `xmm_01_w` | Callee | `{1,1,1,1,0,0,0,0}` (low 64 bits = 4x16) |
+| `v5` | Work | Caller | Temp |
+| `v6` | Iterated BGRA | Scratch | Cached iterated BGRA `{ib,ig,ir,ia}>>12` (Batch 6/H6). Note: `w6` (GPR alias) also used as LOD cache (Batch 6/H4) |
+| `v7` | Work | Caller | Temp |
+| `v8` | `xmm_01_w` | Callee | `{1,1,1,1,0,0,0,0}` (low 64 bits = 4x16). Also serves as `alookup[1]` for rounding in alpha blend (Batch 1/H7) |
 | `v9` | `xmm_ff_w` | Callee | `{0xFF,0xFF,0xFF,0xFF,0,0,0,0}` |
-| `v10` | `xmm_ff_b` | Callee | `{0x00FFFFFF,0,0,0}` (24-bit mask) |
-| `v11` | `minus_254` | Callee | `{0xFF02,0xFF02,0xFF02,0xFF02,0,0,0,0}` |
-| `v12-v13` | Work | Callee | Saved pre-fog color (v13), scratch (v12) |
-| `v14-v15` | Unused | Callee | Reserved for future use |
+| `v10` | `xmm_ff_b` | Callee | `{0x00FFFFFF,0,0,0}` (24-bit mask, used for `cc_invert_output`) |
+| `v11` | fogColor | Callee | Hoisted fog color (packed bytes); only loaded when fog enabled (Batch 7/M3) |
+| `v12` | RGBA deltas | Callee | Hoisted `{dBdX, dGdX, dRdX, dAdX}` from params (Batch 3/H1) |
+| `v13` | color-before-fog | Callee | Saved pre-fog color for fog computation |
+| `v14` | TMU1 ST deltas | Callee | Hoisted `{dSdX_1, dTdX_1}` from params (Batch 3/H1) |
+| `v15` | TMU0 ST deltas | Callee | Hoisted `{dSdX_0, dTdX_0}` from params (Batch 3/H1) |
 | `v16-v31` | Work | Caller | Temp (used for multiply results, loads, etc.) |
 
 **Note:** ARM64 requires callee-saved registers (x19-x28, v8-v15) to be preserved across function calls. The prologue saves them to the stack; the epilogue restores them.
@@ -175,12 +183,18 @@ This is the portable builtin; do NOT use `sys_icache_invalidate()` (macOS-only).
 ```c
 #define addlong(val) \
     do { \
-        *(uint32_t *) &code_block[block_pos] = val; \
-        block_pos += 4; \
+        if (!arm64_codegen_emit_overflow) { \
+            if (!arm64_codegen_check_emit_bounds(block_pos, 4)) { \
+                arm64_codegen_emit_overflow = 1; \
+            } else { \
+                *(uint32_t *) &code_block[block_pos] = val; \
+                block_pos += 4; \
+            } \
+        } \
     } while (0)
 ```
 
-All ARM64 instructions are 32 bits (4 bytes). The `addlong()` macro writes an instruction word and advances the code pointer.
+All ARM64 instructions are 32 bits (4 bytes). The `addlong()` macro writes an instruction word and advances the code pointer. It includes bounds checking: if the code block would overflow `BLOCK_SIZE` (16384 bytes), the `arm64_codegen_emit_overflow` flag is set and no further instructions are emitted. The caller checks this flag after `voodoo_generate()` returns and falls back to the interpreter if overflow occurred.
 
 ### Field Encoding Helpers
 
@@ -302,7 +316,7 @@ epilogue:
 
 **Purpose:** Save callee-saved registers, load constant pointers, initialize NEON constants.
 
-**Stack layout (160 bytes, 16-byte aligned):**
+**Stack layout (176 bytes, 16-byte aligned):**
 
 | Offset | Contents |
 |--------|----------|
@@ -315,36 +329,61 @@ epilogue:
 | SP+96 | d8, d9 |
 | SP+112 | d10, d11 |
 | SP+128 | d12, d13 |
+| SP+144 | d14, d15 |
 
 **Key operations:**
 
 1. **Save registers:**
    ```c
-   STP x29, x30, [SP, #-160]!  // Pre-index: SP = SP - 160, store FP/LR
+   STP x29, x30, [SP, #-176]!  // Pre-index: SP = SP - 176, store FP/LR
    STP x19, x20, [SP, #16]
-   // ... (save x21-x28, d8-d13)
+   // ... (save x21-x28)
+   STP d8, d9, [SP, #96]
+   STP d10, d11, [SP, #112]
+   STP d12, d13, [SP, #128]
+   STP d14, d15, [SP, #144]    // Hoisted TMU delta registers
    ```
 
 2. **Load constant pointers:**
    ```c
-   // 64-bit pointer load (4 instructions)
+   // 64-bit pointer load (2-4 instructions, skips zero halfwords)
    MOVZ x19, #(logtable_addr & 0xFFFF)
    MOVK x19, #((logtable_addr >> 16) & 0xFFFF), LSL #16
    MOVK x19, #((logtable_addr >> 32) & 0xFFFF), LSL #32
-   MOVK x19, #((logtable_addr >> 48) & 0xFFFF), LSL #48
+   // ... (x20=alookup, x21=aminuslookup, x22=neon_00_ff_w,
+   //      x23=i_00_ff_w, x25=bilinear_lookup, x26=rgb565)
+   LDR w27, [x0, #STATE_x2]   // Cache loop bound
    ```
 
 3. **Load NEON constants:**
    ```c
    LDR Q8, [x_temp]  // Load xmm_01_w into v8
    LDR Q9, [x_temp]  // Load xmm_ff_w into v9
-   // ...
+   LDR Q10, [x_temp] // Load xmm_ff_b into v10
+   // v11 = fogColor (loaded below, only if fog enabled)
    ```
 
-4. **Load framebuffer pointers:**
+4. **Hoist loop-invariant deltas:**
    ```c
-   LDR x8, [x0, #STATE_fb_mem]    // x8 = state->fb_mem
-   LDR x9, [x0, #STATE_aux_mem]   // x9 = state->aux_mem
+   // v12 = {dBdX, dGdX, dRdX, dAdX} (RGBA color deltas, 4x32)
+   ADD x16, x1, #PARAMS_dBdX
+   LD1 {v12.4S}, [x16]
+
+   // v15 = {dSdX_0, dTdX_0} (TMU0 ST deltas, 2x64)
+   LDR Q15, [x1, #PARAMS_tmu0_dSdX]
+
+   // v14 = {dSdX_1, dTdX_1} (TMU1 ST deltas, if dual TMU)
+   LDR Q14, [x1, #PARAMS_tmu1_dSdX]
+
+   // v11 = fogColor (only when fog enabled, Batch 7/M3)
+   LDR w16, [x1, #PARAMS_fogColor]
+   FMOV s11, w16
+   ```
+
+5. **Load framebuffer pointers:**
+   ```c
+   LDP x8, x9, [x0, #STATE_fb_mem]  // x8 = fb_mem, x9 = aux_mem
+   LDR w28, [x0, #STATE_x]           // Cache STATE_x in w28
    ```
 
 ### Phase 2: Stipple Test
@@ -430,10 +469,17 @@ CSEL w10, w11, w10, GT      // If > 0xFFFF, = 0xFFFF
 
 **Depth bias (when enabled):**
 
+The interpreter uses `CLAMP16(new_depth + (int16_t) params->zaColor)`, which clamps to `[0, 0xFFFF]` after a signed addition. The original x86-64 JIT (and early ARM64 code) only masked to 16 bits with `UXTH`, which was incorrect for negative results. Fixed to use a full CLAMP16 sequence:
+
 ```c
 LDR w4, [x1, #PARAMS_zaColor]
-ADD w10, w10, w4            // new_depth += zaColor
-UXTH w10, w10               // Mask to 16 bits
+SXTH w4, w4                 // Sign-extend low 16 bits (match (int16_t) cast)
+ADD w10, w10, w4             // Signed add (may go < 0 or > 0xFFFF)
+CMP w10, #0
+CSEL w10, wzr, w10, LT      // If negative, clamp to 0
+MOV w11, #0xFFFF
+CMP w10, w11
+CSEL w10, w11, w10, GT      // If > 0xFFFF, clamp to 0xFFFF
 ```
 
 **Depth comparison (8 modes):**
@@ -652,27 +698,25 @@ if (cc_invert_output) {
 
 **Purpose:** Apply distance fog (blend between pixel color and fog color based on depth).
 
-**Fog constant mode:**
+**Fog constant mode (using hoisted v11):**
+
+fogColor is hoisted into `v11` during the prologue (Batch 7/M3), so the per-pixel path requires no memory load:
 
 ```c
-LDR w4, [x1, #PARAMS_fogColor]
-FMOV s3, w4
-UQADD v0.8B, v0.8B, v3.8B   // Saturating add (no overflow)
+// v11 = hoisted fogColor (packed bytes, loaded once in prologue)
+UQADD v0.8B, v0.8B, v11.8B  // Saturating add (no overflow)
 ```
 
-**General fog mode:**
+**General fog mode (using hoisted v11):**
 
 ```c
 // Unpack color to 16-bit
 UXTL v0.8H, v0.8B
 
-// Load fog color
-LDR w4, [x1, #PARAMS_fogColor]
-FMOV s3, w4
-UXTL v3.8H, v3.8B
-
+// v11 = hoisted fogColor (packed bytes from prologue)
+// Widen to 16-bit for fog math
 if (!(FOG_ADD)) {
-    // v3 = fogColor
+    UXTL v3.8H, v11.8B       // v3 = fogColor (widened from hoisted v11)
 } else {
     MOVI v3.2D, #0            // v3 = 0
 }
@@ -753,19 +797,19 @@ switch (alpha_func) {
 
 **Purpose:** Blend pixel with framebuffer using alpha factors (for transparency).
 
-**Load destination pixel:**
+**Load destination pixel (using pinned x26):**
+
+The `rgb565[]` LUT pointer is pinned in `x26` (Batch 5/M4), eliminating a 4-instruction address load per pixel:
 
 ```c
 // Load x coordinate (tiled or linear)
-LDR w4, [x0, #STATE_x_tiled]  // or STATE_x
+LDR w4, [x0, #STATE_x_tiled]  // or MOV w4, w28 (cached STATE_x)
 
 // Load RGB565 from framebuffer
 LDRH w6, [x8, x4, LSL #1]
 
-// Decode via rgb565[] LUT
-// x7 = &rgb565
-MOV x7, #(rgb565_addr)        // 4 instructions for 64-bit load
-LDR w6, [x7, w6, UXTW #2]     // w6 = rgb565[pixel] (BGRA32)
+// Decode via rgb565[] LUT (x26 = pinned rgb565 pointer)
+LDR w6, [x26, w6, UXTW #2]   // w6 = rgb565[pixel] (BGRA32)
 FMOV s4, w6
 UXTL v4.8H, v4.8B             // Unpack to 4x16
 ```
@@ -780,13 +824,13 @@ ADD x7, x20, x12, LSL #3      // x7 = alookup + src_alpha*2*8
 LDR d5, [x7, #0]              // v5 = alookup[src_alpha]
 MUL v4.4H, v4.4H, v5.4H
 
-// Rounding: add alookup[1], add (result>>8), shift >>8
-LDR d16, [x20, #16]           // v16 = alookup[1]
-MOV v17.16B, v4.16B
-USHR v17.4H, v17.4H, #8
-ADD v4.4H, v4.4H, v16.4H
-ADD v4.4H, v4.4H, v17.4H
-USHR v4.4H, v4.4H, #8
+// Rounding (Batch 1/H7): v8 = pinned alookup[1] = {1,1,1,1}
+// The /255 rounding uses: result = (product + 1 + (product >> 8)) >> 8
+// This is the Voodoo hardware's standard alpha multiply with rounding.
+USHR v17.4H, v4.4H, #8       // v17 = product >> 8
+ADD v4.4H, v4.4H, v8.4H      // v4 += 1 (pinned in v8)
+ADD v4.4H, v4.4H, v17.4H     // v4 += product >> 8
+USHR v4.4H, v4.4H, #8        // Final >> 8
 ```
 
 **Compute src blend factor:** Similar logic for `src_afunc`.
@@ -889,18 +933,18 @@ STRH w4, [x8, x14, LSL #1]
 
 **Purpose:** Update per-pixel state for next iteration (Gouraud colors, depth, texture coordinates).
 
-**RGBA increment (NEON 4xS32):**
+**RGBA increment (NEON 4xS32, using hoisted v12):**
+
+RGBA deltas `{dBdX, dGdX, dRdX, dAdX}` are hoisted into `v12` in the prologue (Batch 3/H1), eliminating the per-pixel delta load.
 
 ```c
 ADD x16, x0, #STATE_ib        // x16 = &state->ib
 LD1 {v0.4S}, [x16]            // v0 = {ib, ig, ir, ia}
-ADD x17, x1, #PARAMS_dBdX
-LD1 {v1.4S}, [x17]            // v1 = {dBdX, dGdX, dRdX, dAdX}
 
 if (xdir > 0) {
-    ADD v0.4S, v0.4S, v1.4S
+    ADD v0.4S, v0.4S, v12.4S  // v12 = hoisted deltas
 } else {
-    SUB v0.4S, v0.4S, v1.4S
+    SUB v0.4S, v0.4S, v12.4S
 }
 
 ST1 {v0.4S}, [x16]            // Store back
@@ -919,15 +963,16 @@ if (xdir > 0) {
 STR w4, [x0, #STATE_z]
 ```
 
-**TMU0 S/T increment (NEON 2xD64):**
+**TMU0 S/T increment (NEON 2xD64, using hoisted v15):**
+
+TMU0 ST deltas `{dSdX_0, dTdX_0}` are hoisted into `v15` in the prologue (Batch 3/H1).
 
 ```c
 LDR q0, [x0, #STATE_tmu0_s]   // Load tmu0_s (64-bit) + tmu0_t (64-bit)
-LDR q1, [x1, #PARAMS_tmu0_dSdX]
 if (xdir > 0) {
-    ADD v0.2D, v0.2D, v1.2D
+    ADD v0.2D, v0.2D, v15.2D  // v15 = hoisted TMU0 ST deltas
 } else {
-    SUB v0.2D, v0.2D, v1.2D
+    SUB v0.2D, v0.2D, v15.2D
 }
 STR q0, [x0, #STATE_tmu0_s]
 ```
@@ -947,44 +992,39 @@ STR x10, [x0, #STATE_tmu0_w]
 
 **Global W increment:** Same as TMU W.
 
-**TMU1 S/T/W increment (if dual TMUs):** Same logic as TMU0.
+**TMU1 S/T/W increment (if dual TMUs):** Same logic as TMU0, using hoisted `v14` for `{dSdX_1, dTdX_1}` deltas. TMU1 state at `STATE_tmu1_s` (offset 520) is not 16-byte aligned, so uses `ADD x16, x0, #STATE_tmu1_s` + `LD1/ST1` instead of `LDR Q`.
 
-**Pixel count increment:**
+**Pixel and texel count increment (paired LDP/STP, Batch 5/M7):**
+
+When textures are enabled, `pixel_count` and `texel_count` are adjacent in the state struct and are loaded/stored as a pair using `LDP`/`STP` (2 memory ops instead of 4). The offset exceeds `imm7` range for LDP, so a base register is computed first:
 
 ```c
-LDR w4, [x0, #STATE_pixel_count]
+ADD x7, x0, #STATE_pixel_count  // Base for LDP/STP
+LDP w4, w5, [x7]                // w4 = pixel_count, w5 = texel_count
 ADD w4, w4, #1
-STR w4, [x0, #STATE_pixel_count]
+ADD w5, w5, #1                   // or #2 for dual-TMU
+STP w4, w5, [x7]
 ```
 
-**Texel count increment:**
-
-```c
-LDR w4, [x0, #STATE_texel_count]
-if (single TMU) {
-    ADD w4, w4, #1
-} else {
-    ADD w4, w4, #2
-}
-STR w4, [x0, #STATE_texel_count]
-```
+When textures are disabled, only `pixel_count` is updated (simple LDR/ADD/STR).
 
 ### X Increment and Loop
 
 **x86-64 ref:** Lines 3448-3469
 
-```c
-LDR w4, [x0, #STATE_x]
-if (xdir > 0) {
-    ADD w5, w4, #1
-} else {
-    SUB w5, w4, #1
-}
-STR w5, [x0, #STATE_x]
+Uses cached `w28` (STATE_x) and `w27` (STATE_x2) to eliminate per-pixel memory loads (Batch 2/H2+H3):
 
-LDR w6, [x0, #STATE_x2]
-CMP w4, w6
-B.NE loop_jump_pos            // Branch back to loop top if x != x2
+```c
+// w28 = cached STATE_x, w27 = cached STATE_x2 (loaded once in prologue)
+if (xdir > 0) {
+    ADD w5, w28, #1
+} else {
+    SUB w5, w28, #1
+}
+STR w5, [x0, #STATE_x]        // Write back to memory
+CMP w28, w27                   // Compare old x against loop bound
+MOV w28, w5                    // Update cached x (after CMP reads old value)
+B.NE loop_jump_pos             // Branch back to loop top if x != x2
 ```
 
 ### Epilogue
@@ -994,6 +1034,7 @@ B.NE loop_jump_pos            // Branch back to loop top if x != x2
 **Purpose:** Restore callee-saved registers, return.
 
 ```c
+LDP d14, d15, [SP, #144]
 LDP d12, d13, [SP, #128]
 LDP d10, d11, [SP, #112]
 LDP d8, d9, [SP, #96]
@@ -1002,7 +1043,7 @@ LDP x25, x26, [SP, #64]
 LDP x23, x24, [SP, #48]
 LDP x21, x22, [SP, #32]
 LDP x19, x20, [SP, #16]
-LDP x29, x30, [SP], #160      // Post-index: restore FP/LR, SP += 160
+LDP x29, x30, [SP], #176      // Post-index: restore FP/LR, SP += 176
 RET
 ```
 
@@ -1105,6 +1146,36 @@ MOVK x0, #0x0000, LSL #48
 
 ---
 
+## Optimization History
+
+Seven optimization batches were applied after the initial port was feature-complete, removing ~80-100 instructions per pixel iteration:
+
+| Batch | Description | Key Change |
+|-------|-------------|------------|
+| 1 | Alpha blend rounding (H7+H8) | `alookup[1]` pinned in `v8` for accurate `/255` rounding |
+| 2 | Cache STATE_x/x2 (H2+H3) | `x28` = STATE_x, `x27` = STATE_x2 (eliminate per-pixel loads) |
+| 3 | Hoist params deltas (H1) | `v12` = RGBA deltas, `v14`/`v15` = TMU ST deltas |
+| 4 | BIC+ASR clamp (M2) | Replace CMP/CSEL chains with `BIC reg, reg, reg, ASR #31` |
+| 5 | Pin rgb565 + pair counters (M4+M7) | `x26` = rgb565 pointer, LDP/STP for pixel/texel counters |
+| 6 | Cache LOD + iterated BGRA (H4+H6) | `w6` = LOD cache, `v6` = iterated BGRA cache |
+| 7 | Misc small wins (M1,M3,M5,M6,L1,L2) | fogColor in `v11`, LDP for fb/aux_mem, shift-to-BFI, UBFX opts |
+
+Batch D (SDIV-to-reciprocal approximation for perspective-correct texture) was evaluated but **deferred** due to accuracy risk and marginal benefit on Apple Silicon (where SDIV is fast).
+
+---
+
+## Accuracy Fixes (2026-02-22)
+
+An accuracy audit compared the ARM64 JIT against the interpreter across all pipeline paths:
+
+- **Finding 2 (TMU1 RGB negate ordering):** The ARM64 JIT (and x86-64 JIT) applied negate *after* multiply for TMU1 color combine. The interpreter applies negate *before* multiply. Fixed in the ARM64 JIT; the x86-64 JIT still has this bug.
+
+- **Finding 4 (Depth bias clamp):** The original code used `UXTH w10, w10` (truncate to 16 bits) after adding `zaColor`. The interpreter uses `CLAMP16()` which clamps to `[0, 0xFFFF]` after a *signed* addition. With sign-extended `zaColor`, the sum can go negative or exceed `0xFFFF`. Fixed with a full CLAMP16 sequence (SXTH + ADD + CMP/CSEL pair). The x86-64 JIT still has the truncation bug.
+
+After these fixes, the ARM64 JIT is **more accurate** than the x86-64 JIT on three code paths (fog alpha increment, TMU1 negate ordering, depth bias clamping).
+
+---
+
 ## Known Issues and Limitations
 
 ### 1. Bilinear Rounding Differences
@@ -1125,13 +1196,9 @@ MOVK x0, #0x0000, LSL #48
 
 **Status:** Fixed in Phase 5+6 commit.
 
-### 3. Frame Size Optimization
+### 3. Frame Size Growth
 
-**Issue (fixed):** Prologue comment claimed d14/d15 were saved at SP-144, but code only saved d8-d13. v14/v15 were never used.
-
-**Fix:** Removed misleading comment, reduced frame size from 144 to 128 bytes.
-
-**Status:** Fixed in Phase 4 post-merge.
+**History:** Originally 128 bytes (d8-d13 only). Grew to 176 bytes after d14/d15 were added to support hoisted TMU ST deltas (v14/v15, Batch 3/H1). The 48-byte increase is justified by saving ~6 memory loads per pixel iteration.
 
 ### 4. Voodoo 2 Non-Perspective Texture Bug
 
@@ -1143,7 +1210,7 @@ MOVK x0, #0x0000, LSL #48
 
 **Impact:** Caused test failures in non-perspective texture path (textureMode bit 0 clear). Voodoo 2 driver probe renders test patterns using this path; garbage input caused probe to fail.
 
-**Status:** Fixed but uncommitted (as of 2026-02-16).
+**Status:** Fixed and committed.
 
 ### 5. x86-64 Reference Quirks
 
@@ -1196,19 +1263,23 @@ Two quirks in the x86-64 reference were discovered during ARM64 port:
 
 ### Performance Optimization
 
-**Current performance:** ARM64 JIT is 7-10x faster than interpreter on Apple M2/M3.
+**Baseline performance:** ARM64 JIT is 7-10x faster than interpreter on Apple M2/M3 (measured pre-optimization).
 
-**Potential improvements:**
+**Optimization status:** 7 optimization batches completed, removing ~80-100 instructions per pixel. Post-optimization performance has not been formally re-benchmarked but should be significantly higher.
 
-1. **Reduce cache misses:** The 16-slot cache may thrash on games with many render states. Consider increasing to 32 slots.
+**Completed improvements:**
 
-2. **Optimize hot paths:** Profile with Instruments (macOS) to find bottlenecks. Common hot spots:
+1. **Cache expansion (done):** Cache increased from 8 to 32 slots per odd/even pair (128 total), greatly reducing thrash on games with many render states.
+
+2. **Hot path optimization (done):** 7 batches of peephole and hoisting optimizations applied (see Optimization History section below).
+
+**Remaining potential improvements:**
+
+1. **Profile-guided optimization:** Profile with Instruments (macOS) to find remaining bottlenecks. Known hot spots:
    - Bilinear texture fetch (many loads/multiplies)
-   - Alpha blend (division by 255 via lookup table)
+   - SDIV for perspective-correct texture (deferred Batch D: reciprocal approximation)
 
-3. **NEON intrinsics:** The current implementation uses raw instruction encoding. Consider porting to NEON intrinsics (`arm_neon.h`) for better readability and compiler optimization.
-
-4. **Lazy state updates:** Some state (e.g., `pixel_count`) is updated every pixel but rarely read. Consider batching updates.
+2. **Lazy state updates:** Some state (e.g., `pixel_count`) is updated every pixel but rarely read. Consider batching updates.
 
 ### Code Style Conventions
 
@@ -1243,8 +1314,8 @@ Before submitting codegen changes:
 
 ---
 
-**Document version:** 1.0 (2026-02-16)
+**Document version:** 2.0 (2026-02-22)
 
 **Maintainer:** ARM64 JIT port team
 
-**For questions or bug reports:** https://github.com/yourusername/86Box-voodoo-arm64/issues
+**For questions or bug reports:** https://github.com/skiretic/86Box-voodoo-arm64/issues
