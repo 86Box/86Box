@@ -294,10 +294,12 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     int ret;
 
     ret = bios_load_linear("roms/machines/vect486vl/aa0500.ami",
-                           0x000e0000, 131072, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
         return ret;
+
+    memcpy(&rom[0x00020000], rom, 131072);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -311,6 +313,15 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
 
+    video_reset(gfxcard[0]);
+
+    if (gfxcard[0] != VID_INTERNAL) {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
+
     return ret;
 }
 
@@ -321,10 +332,12 @@ machine_at_d824_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/d824/fts-biosupdated824noflashbiosepromv320-320334-160.bin",
-                           0x000e0000, 131072, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
         return ret;
+
+    memcpy(&rom[0x00020000], rom, 131072);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -341,6 +354,15 @@ machine_at_d824_init(const machine_t *model)
 
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C651);
+
+    video_reset(gfxcard[0]);
+
+    if (gfxcard[0] != VID_INTERNAL) {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
 
     return ret;
 }

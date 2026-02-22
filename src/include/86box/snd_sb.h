@@ -28,12 +28,14 @@
 
 enum {
     SADLIB  = 1,     /* No DSP */
-    SB_DSP_105,      /* DSP v1.05, Original CT1320 (Also known as CT1310) */
+    SB_DSP_103,      /* DSP v1.03, "killer card" prototype (Also known as CT1310) */
+    SB_DSP_105,      /* DSP v1.05, Original CT1320 */
     SB_DSP_200,      /* DSP v2.00 */
     SB_DSP_201,      /* DSP v2.01 - needed for high-speed DMA, Seen on CT1350B with CT1336 */
     SB_DSP_202,      /* DSP v2.02 - Seen on CT1350B with CT1336A */
     SBPRO_DSP_300,   /* DSP v3.00 */
-    SBPRO2_DSP_302,  /* DSP v3.02 + OPL3 */
+    SBPRO_DSP_301,   /* DSP v3.01 */
+    SBPRO_DSP_302,   /* DSP v3.02 */
     SB16_DSP_404,    /* DSP v4.05 + OPL3 */
     SB16_DSP_405,    /* DSP v4.05 + OPL3 */
     SB16_DSP_406,    /* DSP v4.06 + OPL3 */

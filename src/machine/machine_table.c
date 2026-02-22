@@ -2729,7 +2729,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &ibm5550_vid_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },

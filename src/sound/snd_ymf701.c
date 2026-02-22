@@ -419,7 +419,7 @@ ymf701_init(const device_t *info)
     ymf701->sb->opl_enabled = 1;
 
     sb_dsp_set_real_opl(&ymf701->sb->dsp, 1);
-    sb_dsp_init(&ymf701->sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, ymf701);
+    sb_dsp_init(&ymf701->sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, ymf701);
     sb_dsp_setaddr(&ymf701->sb->dsp, ymf701->cur_sb_addr);
     sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_sb_irq);
     sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_sb_dma);
