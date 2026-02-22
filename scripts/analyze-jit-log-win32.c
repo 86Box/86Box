@@ -1,31 +1,62 @@
-// Build: cc -O2 -o scripts/analyze-jit-log scripts/analyze-jit-log.c -lpthread
-#undef _DARWIN_C_SOURCE
-#define _DARWIN_C_SOURCE
-#define _POSIX_C_SOURCE 200809L
+// Build: cl /O2 /std:c11 analyze-jit-log-win32.c (MSVC) or gcc -O2 -o analyze-jit-log-win32.exe analyze-jit-log-win32.c (MinGW)
+//
+// Windows-native port of analyze-jit-log.c.
+// Platform shim: mmap -> CreateFileMapping, pthreads -> _beginthreadex,
+// clock_gettime -> QueryPerformanceCounter, atomics -> Interlocked*.
+
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <inttypes.h>
-#include <pthread.h>
 #include <stdarg.h>
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
 
-#define GREEN "\033[0;32m"
-#define RED "\033[0;31m"
-#define YELLOW "\033[1;33m"
-#define CYAN "\033[0;36m"
-#define BOLD "\033[1m"
-#define NC "\033[0m"
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <io.h>
+#include <process.h>
+
+/* ANSI color support — detected at runtime on Windows 10+ */
+static int colors_enabled = 0;
+
+static void init_colors(void) {
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode)) {
+        if (SetConsoleMode(hOut, mode | 0x0004 /*ENABLE_VIRTUAL_TERMINAL_PROCESSING*/)) {
+            colors_enabled = 1;
+        }
+    }
+}
+
+#define GREEN  (colors_enabled ? "\033[0;32m" : "")
+#define RED    (colors_enabled ? "\033[0;31m" : "")
+#define YELLOW (colors_enabled ? "\033[1;33m" : "")
+#define CYAN   (colors_enabled ? "\033[0;36m" : "")
+#define BOLD   (colors_enabled ? "\033[1m" : "")
+#define NC     (colors_enabled ? "\033[0m" : "")
+
+/* Win32 atomic helpers */
+static __inline LONG64 atomic_i64_load(volatile LONG64 *p) {
+    return InterlockedCompareExchange64(p, 0, 0);
+}
+static __inline LONG64 atomic_i64_add(volatile LONG64 *p, LONG64 v) {
+    return InterlockedExchangeAdd64(p, v);
+}
+static __inline LONG atomic_i32_load(volatile LONG *p) {
+    return InterlockedCompareExchange(p, 0, 0);
+}
+static __inline LONG atomic_i32_add(volatile LONG *p, LONG v) {
+    return InterlockedExchangeAdd(p, v);
+}
 
 #define PIXEL_BITSET_BYTES 8192u
 #define MAX_STORED_ERROR_LINES 20u
@@ -207,8 +238,8 @@ typedef struct {
     const char *data;
     size_t start;
     size_t end;
-    atomic_uint_fast64_t *progress_lines;
-    atomic_int *done_threads;
+    volatile LONG64 *progress_lines;
+    volatile LONG *done_threads;
     Stats stats;
 } WorkerCtx;
 
@@ -1321,7 +1352,7 @@ static void process_line(Stats *s, const char *line, size_t len, uint64_t line_n
     #undef VJ_PREFIX_LEN
 }
 
-static void *worker_main(void *argp) {
+static unsigned __stdcall worker_main(void *argp) {
     WorkerCtx *ctx = (WorkerCtx *)argp;
     const char *p = ctx->data + ctx->start;
     const char *end = ctx->data + ctx->end;
@@ -1336,7 +1367,7 @@ static void *worker_main(void *argp) {
         local_line++;
         batch++;
         if (batch >= 4096) {
-            atomic_fetch_add_explicit(ctx->progress_lines, batch, memory_order_relaxed);
+            atomic_i64_add(ctx->progress_lines, (LONG64)batch);
             batch = 0;
         }
         process_line(&ctx->stats, p, len, local_line);
@@ -1345,11 +1376,11 @@ static void *worker_main(void *argp) {
     }
 
     if (batch > 0) {
-        atomic_fetch_add_explicit(ctx->progress_lines, batch, memory_order_relaxed);
+        atomic_i64_add(ctx->progress_lines, (LONG64)batch);
     }
     ctx->stats.total_lines = local_line;
-    atomic_fetch_add_explicit(ctx->done_threads, 1, memory_order_relaxed);
-    return NULL;
+    atomic_i32_add(ctx->done_threads, 1);
+    return 0;
 }
 
 static size_t find_nearest_boundary(const char *data, size_t size, size_t prev, size_t tentative) {
@@ -2346,53 +2377,59 @@ static void print_report(const char *path, double file_mb, const Stats *s, const
     printf("\n");
 }
 
+static double qpc_elapsed(LARGE_INTEGER start, LARGE_INTEGER end, LARGE_INTEGER freq) {
+    return (double)(end.QuadPart - start.QuadPart) / (double)freq.QuadPart;
+}
+
 static void analyze(const char *path) {
-    int fd = open(path, O_RDONLY);
-    if (fd < 0) {
-        die("Error opening %s: %s", path, strerror(errno));
+    HANDLE hFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL,
+                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) {
+        die("Error opening %s (error %lu)", path, GetLastError());
     }
 
-    struct stat stbuf;
-    if (fstat(fd, &stbuf) != 0) {
-        close(fd);
-        die("Error stating %s: %s", path, strerror(errno));
+    LARGE_INTEGER li_size;
+    if (!GetFileSizeEx(hFile, &li_size)) {
+        CloseHandle(hFile);
+        die("Error getting file size for %s", path);
     }
 
-    size_t file_size = (size_t)stbuf.st_size;
+    size_t file_size = (size_t)li_size.QuadPart;
     double file_mb = (double)file_size / (1024.0 * 1024.0);
 
     const char *data = "";
+    HANDLE hMapping = NULL;
     void *map = NULL;
     if (file_size > 0) {
-        map = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        if (map == MAP_FAILED) {
-            close(fd);
-            die("mmap failed: %s", strerror(errno));
+        hMapping = CreateFileMappingA(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+        if (hMapping == NULL) {
+            CloseHandle(hFile);
+            die("CreateFileMapping failed (error %lu)", GetLastError());
         }
-        madvise(map, file_size, MADV_SEQUENTIAL);
+        map = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, 0);
+        if (map == NULL) {
+            CloseHandle(hMapping);
+            CloseHandle(hFile);
+            die("MapViewOfFile failed (error %lu)", GetLastError());
+        }
         data = (const char *)map;
     }
-    close(fd);
+    CloseHandle(hFile);
 
-    long cpu_count;
-#ifdef _SC_NPROCESSORS_ONLN
-    cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
-#elif defined(_SC_NPROCESSORS_CONF)
-    cpu_count = sysconf(_SC_NPROCESSORS_CONF);
-#else
-    cpu_count = 1;
-#endif
-    if (cpu_count < 1) {
-        cpu_count = 1;
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    size_t thread_count = (size_t)sysinfo.dwNumberOfProcessors;
+    if (thread_count < 1) {
+        thread_count = 1;
     }
-    size_t thread_count = (size_t)cpu_count;
 
     size_t *bounds = xmalloc((thread_count + 1) * sizeof(size_t));
     bounds[0] = 0;
     size_t prev = 0;
     size_t i;
     for (i = 1; i < thread_count; ++i) {
-        size_t tentative = (size_t)(((unsigned __int128)file_size * (unsigned __int128)i) / (unsigned __int128)thread_count);
+        /* Safe 64-bit division: divide first to avoid overflow */
+        size_t tentative = (size_t)((uint64_t)file_size / (uint64_t)thread_count * (uint64_t)i);
         size_t b = find_nearest_boundary(data, file_size, prev, tentative);
         if (b < prev) {
             b = prev;
@@ -2404,7 +2441,7 @@ static void analyze(const char *path) {
 
     printf("\n%sVoodoo JIT Log Analyzer%s\n", BOLD, NC);
     for (i = 0; i < 60; ++i) {
-        fputs("─", stdout);
+        fputs("-", stdout);  /* ASCII dash for Windows console compatibility */
     }
     printf("\n");
     printf("File: %s (%.1f MB)\n", path, file_mb);
@@ -2412,16 +2449,15 @@ static void analyze(const char *path) {
     printf("Scanning...");
     fflush(stdout);
 
-    struct timespec t_scan_start;
-    clock_gettime(CLOCK_MONOTONIC, &t_scan_start);
+    LARGE_INTEGER qpc_freq, t_scan_start;
+    QueryPerformanceFrequency(&qpc_freq);
+    QueryPerformanceCounter(&t_scan_start);
 
-    atomic_uint_fast64_t progress_lines;
-    atomic_init(&progress_lines, 0);
-    atomic_int done_threads;
-    atomic_init(&done_threads, 0);
+    volatile LONG64 progress_lines = 0;
+    volatile LONG done_threads = 0;
 
     WorkerCtx *workers = xcalloc(thread_count, sizeof(WorkerCtx));
-    pthread_t *threads = xmalloc(thread_count * sizeof(pthread_t));
+    HANDLE *threads = xmalloc(thread_count * sizeof(HANDLE));
 
     for (i = 0; i < thread_count; ++i) {
         workers[i].data = data;
@@ -2430,35 +2466,33 @@ static void analyze(const char *path) {
         workers[i].progress_lines = &progress_lines;
         workers[i].done_threads = &done_threads;
         stats_init(&workers[i].stats, 1u << 14u);
-        if (pthread_create(&threads[i], NULL, worker_main, &workers[i]) != 0) {
-            die("pthread_create failed");
+        threads[i] = (HANDLE)_beginthreadex(NULL, 0, worker_main, &workers[i], 0, NULL);
+        if (threads[i] == 0) {
+            die("_beginthreadex failed");
         }
     }
 
     uint64_t next_progress = 1000000;
-    while (atomic_load_explicit(&done_threads, memory_order_relaxed) < (int)thread_count) {
-        uint64_t scanned = atomic_load_explicit(&progress_lines, memory_order_relaxed);
+    while (atomic_i32_load(&done_threads) < (LONG)thread_count) {
+        uint64_t scanned = (uint64_t)atomic_i64_load(&progress_lines);
         while (scanned >= next_progress) {
             printf("\r  Scanned %" PRIu64 "M lines...", next_progress / 1000000);
             fflush(stdout);
             next_progress += 1000000;
         }
-        struct timespec ts;
-        ts.tv_sec = 0;
-        ts.tv_nsec = 50 * 1000 * 1000;
-        nanosleep(&ts, NULL);
+        Sleep(50);
     }
 
+    WaitForMultipleObjects((DWORD)thread_count, threads, TRUE, INFINITE);
     for (i = 0; i < thread_count; ++i) {
-        pthread_join(threads[i], NULL);
+        CloseHandle(threads[i]);
     }
 
-    struct timespec t_scan_end;
-    clock_gettime(CLOCK_MONOTONIC, &t_scan_end);
-    double scan_secs = (double)(t_scan_end.tv_sec - t_scan_start.tv_sec)
-                     + (double)(t_scan_end.tv_nsec - t_scan_start.tv_nsec) / 1e9;
+    LARGE_INTEGER t_scan_end;
+    QueryPerformanceCounter(&t_scan_end);
+    double scan_secs = qpc_elapsed(t_scan_start, t_scan_end, qpc_freq);
 
-    uint64_t scanned_final = atomic_load_explicit(&progress_lines, memory_order_relaxed);
+    uint64_t scanned_final = (uint64_t)atomic_i64_load(&progress_lines);
     while (scanned_final >= next_progress) {
         printf("\r  Scanned %" PRIu64 "M lines...", next_progress / 1000000);
         fflush(stdout);
@@ -2477,10 +2511,9 @@ static void analyze(const char *path) {
         stats_free(&workers[i].stats);
     }
 
-    struct timespec t_merge_end;
-    clock_gettime(CLOCK_MONOTONIC, &t_merge_end);
-    double merge_secs = (double)(t_merge_end.tv_sec - t_scan_end.tv_sec)
-                      + (double)(t_merge_end.tv_nsec - t_scan_end.tv_nsec) / 1e9;
+    LARGE_INTEGER t_merge_end;
+    QueryPerformanceCounter(&t_merge_end);
+    double merge_secs = qpc_elapsed(t_scan_end, t_merge_end, qpc_freq);
 
     char total_lines_buf[64];
     format_u64_commas(merged.total_lines, total_lines_buf, sizeof(total_lines_buf));
@@ -2496,19 +2529,24 @@ static void analyze(const char *path) {
     free(threads);
     free(bounds);
     if (map != NULL) {
-        munmap(map, file_size);
+        UnmapViewOfFile(map);
+    }
+    if (hMapping != NULL) {
+        CloseHandle(hMapping);
     }
 }
 
 int main(int argc, char **argv) {
+    init_colors();
+
     if (argc != 2) {
         printf("Usage: %s <logfile>\n", argv[0]);
         printf("  Analyzes a Voodoo JIT debug log and produces a health report.\n");
         return 1;
     }
 
-    struct stat st;
-    if (stat(argv[1], &st) != 0 || !S_ISREG(st.st_mode)) {
+    DWORD attr = GetFileAttributesA(argv[1]);
+    if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
         printf("Error: %s not found\n", argv[1]);
         return 1;
     }
