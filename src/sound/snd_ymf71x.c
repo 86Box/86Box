@@ -712,7 +712,7 @@ ymf71x_init(const device_t *info)
     ymf71x->sb->opl_enabled = 1;
 
     sb_dsp_set_real_opl(&ymf71x->sb->dsp, 1);
-    sb_dsp_init(&ymf71x->sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, ymf71x);
+    sb_dsp_init(&ymf71x->sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, ymf71x);
     sb_ct1345_mixer_reset(ymf71x->sb);
 
     ymf71x->sb->opl_mixer = ymf71x;

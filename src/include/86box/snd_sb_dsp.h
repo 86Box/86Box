@@ -11,6 +11,7 @@
 #define SB_SUBTYPE_CLONE_AZTPR16_0X09  3 /* Aztech Sound Galaxy Pro 16 Extra */
 #define SB_SUBTYPE_ESS_ES688           4 /* ESS Technology ES688 */
 #define SB_SUBTYPE_ESS_ES1688          5 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_MVD201              6 /* Mediavision MVD201, found on the thunderboard and PAS16 */
 
 /* ESS-related */
 #define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
