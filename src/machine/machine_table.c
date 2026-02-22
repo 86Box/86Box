@@ -107,6 +107,7 @@ const machine_filter_t machine_chipsets[] = {
     { "Intel 430HX",                MACHINE_CHIPSET_INTEL_430HX         },
     { "Intel 430VX",                MACHINE_CHIPSET_INTEL_430VX         },
     { "Intel 430TX",                MACHINE_CHIPSET_INTEL_430TX         },
+    { "Intel 450GX",                MACHINE_CHIPSET_INTEL_450GX         },
     { "Intel 450KX",                MACHINE_CHIPSET_INTEL_450KX         },
     { "Intel 440FX",                MACHINE_CHIPSET_INTEL_440FX         },
     { "Intel 440LX",                MACHINE_CHIPSET_INTEL_440LX         },
@@ -13395,7 +13396,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13411,50 +13412,6 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = &gd5434_onboard_pci_device,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* Has a VIA KBC chip */
-    {
-        .name              = "[VLSI SuperCore] DFI G586VPM (rev. C)",
-        .internal_name     = "g586vpmc",
-        .type              = MACHINE_TYPE_SOCKET5,
-        .chipset           = MACHINE_CHIPSET_VLSI_SUPERCORE,
-        .init              = machine_at_g586vpmc_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 50000000,
-            .max_bus     = 66666667,
-            .min_voltage = 3520,
-            .max_voltage = 3520,
-            .min_multi   = 1.5,
-            .max_multi   = 2.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
-        .ram       = {
-            .min  = 4096,
-            .max  = 262144,
-            .step = 4096
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = MACHINE_DMA_1 | MACHINE_DMA_3,
-        .default_jumpered_ecp_dma = 1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_VIA | 0x00424600, /* Guess */
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -13484,7 +13441,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13528,7 +13485,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 8192,
-            .max  = 139264,
+            .max  = 270336,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13574,7 +13531,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
-            .max  = 196608,
+            .max  = 393216,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13590,6 +13547,50 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .sio_device               = NULL,
         .vid_device               = &s3_phoenix_trio64_onboard_pci_device,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* Has a VIA KBC chip */
+    {
+        .name              = "[VLSI Wildcat] DFI G586VPM (rev. C)",
+        .internal_name     = "g586vpmc",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_VLSI_WILDCAT,
+        .init              = machine_at_g586vpmc_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram       = {
+            .min  = 4096,
+            .max  = 262144, /* Cannot utilize more than this amount due to a BIOS bug */
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600, /* Guess */
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -13817,7 +13818,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
+    /* Has an SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
         .name              = "[i430FX] HP Vectra VL 5/xxx Series 4 (Chimay)",
@@ -14226,7 +14227,7 @@ const machine_t machines[] = {
 
     /* 430HX */
     /* Has SST Flash. */
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i430HX] Acer V35N",
@@ -14405,7 +14406,7 @@ const machine_t machines[] = {
     },
 
     /* 430VX */
-    /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
+    /* Has an SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
         .name              = "[i430VX] Gateway 2000 Mailman",
@@ -14902,7 +14903,7 @@ const machine_t machines[] = {
     },
 
     /* 430HX */
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i430HX] Acer AcerPower Ultima",
@@ -15174,7 +15175,7 @@ const machine_t machines[] = {
         .snd_device               = &ymf701_device,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i430HX] Micronics M7S-Hi",
@@ -15535,7 +15536,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C932QF Super I/O chip with on-chip KBC with AMI
+    /* Has an SM(S)C FDC37C932QF Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
         .name              = "[i430VX] Compaq Presario 224x",
@@ -15580,7 +15581,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C931APM Super I/O chip with on-chip KBC with Compaq
+    /* Has an SM(S)C FDC37C931APM Super I/O chip with on-chip KBC with Compaq
        KBC firmware. */
     {
         .name              = "[i430VX] Compaq Presario 45xx",
@@ -15625,7 +15626,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
+    /* Has an SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
         .name              = "[i430VX] Dell Dimension XPS Pxxxa/Mxxxa",
@@ -15715,7 +15716,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
+    /* Has an SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
         .name              = "[i430VX] Epox P55-VA",
@@ -15760,7 +15761,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
+    /* Has an SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
         .name              = "[i430VX] Gateway 2000 Hitman",
@@ -15806,7 +15807,7 @@ const machine_t machines[] = {
         .snd_device               = &sb_vibra16c_onboard_device,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i430VX] HP Brio 80xx",
@@ -15942,7 +15943,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i430VX] Packard Bell PB810/820 (GVC/BCM FM530)",
@@ -16404,7 +16405,7 @@ const machine_t machines[] = {
        PhoenixBIOS 4.0 Rel 6.0 for 430TX, has onboard Yamaha YMF701 which
        is not emulated yet.
 
-       Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+       Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware.
      */
     {
@@ -16496,7 +16497,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C67x Super I/O chip with on-chip KBC with Phoenix or
+    /* Has an SM(S)C FDC37C67x Super I/O chip with on-chip KBC with Phoenix or
        AMI MEGAKEY '5' KBC firmware. */
     {
         .name              = "[i430TX] NEC Mate NX MA23C",
@@ -17669,58 +17670,14 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
 
-    /* Socket 8 machines */
-    /* 450KX */
+    /* Socket 8 machines */   
+    /* 450GX */
     /* This has an AMIKey-2, which is type 'H'. */
     {
-        .name              = "[i450KX] AOpen AP61",
-        .internal_name     = "ap61",
-        .type              = MACHINE_TYPE_SOCKET8,
-        .chipset           = MACHINE_CHIPSET_INTEL_450KX,
-        .init              = machine_at_ap61_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET8,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 60000000,
-            .max_bus     = 66666667,
-            .min_voltage = 2100,
-            .max_voltage = 3500,
-            .min_multi   = 1.5,
-            .max_multi   = 8.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
-        .ram       = {
-            .min  = 8192,
-            .max  = 262144,
-            .step = 8192
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
-        .default_jumpered_ecp_dma = 3,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
-        .kbc_p1                   = 0x000008f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* This has an AMIKey-2, which is type 'H'. */
-    {
-        .name              = "[i450KX] ASUS P/I-P6RP4",
+        .name              = "[i450GX] ASUS P/I-P6RP4",
         .internal_name     = "p6rp4",
         .type              = MACHINE_TYPE_SOCKET8,
-        .chipset           = MACHINE_CHIPSET_INTEL_450KX,
+        .chipset           = MACHINE_CHIPSET_INTEL_450GX,
         .init              = machine_at_p6rp4_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -17761,10 +17718,10 @@ const machine_t machines[] = {
     },
     /* This has a PC87306 with unknown keyboard controller firmware (Phoenix?). */
     {
-        .name              = "[i450KX] FIC PO-6000",
+        .name              = "[i450GX] FIC PO-6000",
         .internal_name     = "ficpo6000",
         .type              = MACHINE_TYPE_SOCKET8,
-        .chipset           = MACHINE_CHIPSET_INTEL_450KX,
+        .chipset           = MACHINE_CHIPSET_INTEL_450GX,
         .init              = machine_at_ficpo6000_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -17804,8 +17761,54 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
 
+    /* 450KX */
+    /* This has an AMIKey-2, which is type 'H'. */
+    {
+        .name              = "[i450KX] AOpen AP61",
+        .internal_name     = "ap61",
+        .type              = MACHINE_TYPE_SOCKET8,
+        .chipset           = MACHINE_CHIPSET_INTEL_450KX,
+        .init              = machine_at_ap61_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET8,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 60000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144, /* Cannot utilize more than this amount due to a BIOS bug */
+            .step = 8192
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .kbc_p1                   = 0x000008f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .sio_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+
     /* 440FX */
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i440FX] Acer V60N",
@@ -18118,7 +18121,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i440FX] Micronics M6Mi",
@@ -18256,7 +18259,7 @@ const machine_t machines[] = {
     },
 
     /* 440FX */
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i440FX] Acer V62X",
@@ -18481,7 +18484,7 @@ const machine_t machines[] = {
         .snd_device               = &cs4236b_device,
         .net_device               = NULL /* not yet emulated */
     },
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i440LX] Micronics Spitfire",
@@ -18571,7 +18574,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has a SM(S)C FDC37C67x Super I/O chip with on-chip KBC with Phoenix or
+    /* Has an SM(S)C FDC37C67x Super I/O chip with on-chip KBC with Phoenix or
        AMIKey-2 KBC firmware. */
     {
         .name              = "[i440LX] NEC Mate NX MA30D/23D",
@@ -18618,7 +18621,7 @@ const machine_t machines[] = {
     },
 
     /* 440EX */
-    /* Has a SM(S)C FDC37C675 Super I/O chip with on-chip KBC with Phoenix
+    /* Has an SM(S)C FDC37C675 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
         .name              = "[i440EX] HP Brio 83xx",
@@ -18713,7 +18716,7 @@ const machine_t machines[] = {
         .net_device               = NULL
     },
 
-    /* Has a SMC FDC37M60x Super I/O chip with on-chip KBC with AMIKey-2 KBC
+    /* Has an SMC FDC37M60x Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[i440EX] TriGem Como",
@@ -19210,7 +19213,7 @@ const machine_t machines[] = {
     },
 
     /* 440ZX */
-    /* Has a SM(S)C FDC37M60x Super I/O chip with on-chip KBC with most likely
+    /* Has an SM(S)C FDC37M60x Super I/O chip with on-chip KBC with most likely
        AMIKey-2 KBC firmware. */
     {
         .name              = "[i440ZX] MiTAC/Trigon 6110Zu",
