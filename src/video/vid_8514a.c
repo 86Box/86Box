@@ -1121,83 +1121,159 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
     if (pixcntl == 1) {
         mix_dat = 0;
-        if (and3 == 3) {
-            if (dev->accel.multifunc[8] & 0x02)
-                mix_dat |= 0x08;
-            if (dev->accel.multifunc[8] & 0x04)
-                mix_dat |= 0x10;
-            if (dev->accel.multifunc[8] & 0x08)
-                mix_dat |= 0x20;
-            if (dev->accel.multifunc[8] & 0x10)
-                mix_dat |= 0x40;
-            if (dev->accel.multifunc[9] & 0x02)
-                mix_dat |= 0x80;
-            if (dev->accel.multifunc[9] & 0x04)
-                mix_dat |= 0x01;
-            if (dev->accel.multifunc[9] & 0x08)
-                mix_dat |= 0x02;
-            if (dev->accel.multifunc[9] & 0x10)
-                mix_dat |= 0x04;
-        }
-        if (and3 == 2) {
-            if (dev->accel.multifunc[8] & 0x02)
-                mix_dat |= 0x04;
-            if (dev->accel.multifunc[8] & 0x04)
-                mix_dat |= 0x08;
-            if (dev->accel.multifunc[8] & 0x08)
-                mix_dat |= 0x10;
-            if (dev->accel.multifunc[8] & 0x10)
-                mix_dat |= 0x20;
-            if (dev->accel.multifunc[9] & 0x02)
-                mix_dat |= 0x40;
-            if (dev->accel.multifunc[9] & 0x04)
-                mix_dat |= 0x80;
-            if (dev->accel.multifunc[9] & 0x08)
-                mix_dat |= 0x01;
-            if (dev->accel.multifunc[9] & 0x10)
-                mix_dat |= 0x02;
-        }
-        if (and3 == 1) {
-            if (dev->accel.multifunc[8] & 0x02)
-                mix_dat |= 0x02;
-            if (dev->accel.multifunc[8] & 0x04)
-                mix_dat |= 0x04;
-            if (dev->accel.multifunc[8] & 0x08)
-                mix_dat |= 0x08;
-            if (dev->accel.multifunc[8] & 0x10)
-                mix_dat |= 0x10;
-            if (dev->accel.multifunc[9] & 0x02)
-                mix_dat |= 0x20;
-            if (dev->accel.multifunc[9] & 0x04)
-                mix_dat |= 0x40;
-            if (dev->accel.multifunc[9] & 0x08)
-                mix_dat |= 0x80;
-            if (dev->accel.multifunc[9] & 0x10)
-                mix_dat |= 0x01;
-        }
-        if (and3 == 0) {
-            if (dev->accel.multifunc[8] & 0x02)
-                mix_dat |= 0x01;
-            if (dev->accel.multifunc[8] & 0x04)
-                mix_dat |= 0x02;
-            if (dev->accel.multifunc[8] & 0x08)
-                mix_dat |= 0x04;
-            if (dev->accel.multifunc[8] & 0x10)
-                mix_dat |= 0x08;
-            if (dev->accel.multifunc[9] & 0x02)
-                mix_dat |= 0x10;
-            if (dev->accel.multifunc[9] & 0x04)
-                mix_dat |= 0x20;
-            if (dev->accel.multifunc[9] & 0x08)
-                mix_dat |= 0x40;
-            if (dev->accel.multifunc[9] & 0x10)
-                mix_dat |= 0x80;
+        if (cmd == 6) {
+            if (and3_blt == 3) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x04;
+            }
+            if (and3_blt == 2) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x02;
+            }
+            if (and3_blt == 1) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x01;
+            }
+            if (and3_blt == 0) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x80;
+            }
+        } else {
+            if (and3 == 3) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x04;
+            }
+            if (and3 == 2) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x02;
+            }
+            if (and3 == 1) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x01;
+            }
+            if (and3 == 0) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x80;
+            }
         }
     }
 
     old_mix_dat = mix_dat;
 
-    ibm8514_log("CMD=%d, full=%04x, pixcntl=%d, filling=%02x, ssvdraw=%02x.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06, dev->accel.ssv_draw);
+    if (!(dev->accel.cmd & 0x01))
+        ibm8514_log("CMD=%d, full=%04x, pixcntl=%d, filling=%02x, ssvdraw=%02x.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06, dev->accel.ssv_draw);
 
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
