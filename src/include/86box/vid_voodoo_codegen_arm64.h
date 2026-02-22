@@ -17,7 +17,7 @@
  *          Copyright 2026 skiretic.
  */
 
-/* See "ARM64 Register Assignments" comment block below (line ~45). */
+/* See "ARM64 Register Assignments" comment block below (line ~77). */
 
 #ifndef VIDEO_VOODOO_CODEGEN_ARM64_H
 #define VIDEO_VOODOO_CODEGEN_ARM64_H
@@ -62,7 +62,7 @@
 #include <stdint.h>
 #include <string.h>
 
-/* JIT counters and cache state are now per-instance in voodoo_t:
+/* JIT counters and cache state are per-instance in voodoo_t:
  *   voodoo->jit_hit_count, jit_gen_count, jit_exec_count,
  *   voodoo->jit_last_block[4], jit_next_block_to_write[4], jit_recomp
  */
@@ -90,7 +90,7 @@
  *   x19     = logtable pointer     (callee-saved, pinned)
  *   x20     = alookup pointer      (callee-saved, pinned)
  *   x21     = aminuslookup pointer (callee-saved, pinned)
- *   x22     = xmm_00_ff_w pointer  (callee-saved, pinned)
+ *   x22     = neon_00_ff_w pointer  (callee-saved, pinned)
  *   x23     = i_00_ff_w pointer    (callee-saved, pinned)
  *   x24     = real_y               (callee-saved copy)
  *   x25     = bilinear_lookup ptr  (callee-saved, pinned)
@@ -103,9 +103,9 @@
  * NEON (in generated code):
  *   v0-v5,v7 = scratch (caller-saved)
  *   v6      = iterated BGRA cache during color combine   (scratch, computed per-pixel)
- *   v8      = xmm_01_w constant {1,1,1,1}     (callee-saved)
- *   v9      = xmm_ff_w constant {0xFF,...}     (callee-saved)
- *   v10     = xmm_ff_b constant {0xFFFFFF,0,0,0} (callee-saved)
+ *   v8      = neon_01_w constant {1,1,1,1}     (callee-saved)
+ *   v9      = neon_ff_w constant {0xFF,...}     (callee-saved)
+ *   v10     = neon_ff_b constant {0x00FFFFFF,0,0,0} (callee-saved)
  *   v11     = hoisted fogColor (packed bytes, callee-saved; only when fog enabled)
  *   v12     = hoisted RGBA deltas {dBdX,dGdX,dRdX,dAdX} (callee-saved)
  *   v13     = scratch (callee-saved, save/restore in prologue/epilogue)
@@ -149,7 +149,7 @@ typedef struct voodoo_arm64_data_t {
     int      rejected;
 } voodoo_arm64_data_t;
 
-/* last_block[4] and next_block_to_write[4] moved to voodoo_t
+/* last_block[4] and next_block_to_write[4] are in voodoo_t
  * (jit_last_block, jit_next_block_to_write) for per-instance thread safety. */
 
 /* ========================================================================
@@ -511,7 +511,7 @@ arm64_codegen_check_emit_bounds(int block_pos, int emit_size)
 /* SBFX Wd, Wn, #lsb, #width */
 #define ARM64_SBFX(d, n, lsb, width) (0x13000000 | IMMR(lsb) | IMMS((lsb) + (width) - 1) | Rn(n) | Rd(d))
 
-/* BFI Wd, Wn, #lsb, #width -- Bit Field Insert (Batch 7/M6)
+/* BFI Wd, Wn, #lsb, #width -- Bit Field Insert
  * Alias for BFM Wd, Wn, #(-lsb mod 32), #(width-1) */
 #define ARM64_BFI(d, n, lsb, width) (0x33000000 | IMMR((-(lsb)) & 0x1F) | IMMS((width) - 1) | Rn(n) | Rd(d))
 
@@ -1169,7 +1169,7 @@ VOODOO_ASSERT_OFFSET(voodoo_params_t, tex_h_mask[0][0], PARAMS_tex_h_mask);
  *
  * neon_00_ff_w[0]   -- all zeros (for trilinear tc_reverse_blend=0 path).
  * neon_00_ff_w[1]   -- {0xFF, 0xFF, 0xFF, 0xFF} (for tc_reverse_blend=1 path).
- *                      Indexed by tc_reverse_blend << 4 bytes.
+ *                      Byte offset = tc_reverse_blend * 16 (sizeof(voodoo_neon_reg_t)).
  * ======================================================================== */
 
 typedef union {
@@ -1180,8 +1180,7 @@ typedef union {
 
 static voodoo_neon_reg_t neon_01_w;      /* {1,1,1,1, 0,0,0,0} */
 static voodoo_neon_reg_t neon_ff_w;      /* {0xFF,0xFF,0xFF,0xFF, 0,0,0,0} */
-static voodoo_neon_reg_t neon_ff_b;      /* {0,0,0,0, ...} -- 24-bit mask in u32[0] */
-/* neon_minus_254 removed -- v11 now used for hoisted fogColor (Batch 7/M3) */
+static voodoo_neon_reg_t neon_ff_b;      /* {0x00FFFFFF, 0, 0, 0} in u32 -- 24-bit RGB mask for cc_invert */
 
 static voodoo_neon_reg_t alookup[257];
 static voodoo_neon_reg_t aminuslookup[256];
@@ -1245,7 +1244,7 @@ static uint32_t          i_00_ff_w[2] = { 0, 0xff };
  *   x19 = logtable pointer (pinned)
  *   x25 = bilinear_lookup pointer (pinned)
  *   v0-v7, v16-v17 = scratch NEON
- *   v8 = xmm_01_w (pinned), v9 = xmm_ff_w (pinned)
+ *   v8 = neon_01_w (pinned), v9 = neon_ff_w (pinned)
  * ======================================================================== */
 static inline int
 codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int block_pos, int tmu)
@@ -1269,7 +1268,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
         /* Load S, T, W (64-bit each) for perspective division.
          * TMU0 offsets (496,504,512) fit LDP X signed-7 range; TMU1 (520,528,536) do not.
-         * Use LDP for S+T when offset fits, else individual LDR. (Batch 7/M1) */
+         * Use LDP for S+T when offset fits, else individual LDR. */
         if (STATE_tmu_s(tmu) / 8 <= 63) {
             /* LDP x5, x6, [x0, #STATE_tmu_s(tmu)] -- S and T paired */
             addlong(ARM64_LDP_OFF_X(5, 6, 0, STATE_tmu_s(tmu)));
@@ -1282,11 +1281,10 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addlong(ARM64_LDR_X(7, 0, STATE_tmu_w(tmu)));
 
         /* MOV x4, #(1 << 48) -- dividend for W division
-         * MOVZ with hw=3 zeros all other bits (R2-09). */
+         * MOVZ with hw=3 zeros all other bits. */
         addlong(ARM64_MOVZ_X_HW(4, 1, 3));
 
-        /* If tmu_w == 0, skip division (avoid divide-by-zero)
-         * CBZ x7 replaces CMP #0 + B.EQ (Batch 7/L1) */
+        /* If tmu_w == 0, skip division (avoid divide-by-zero) */
         {
             int div_skip_pos;
             div_skip_pos = block_pos;
@@ -1376,7 +1374,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
         /* Store LOD: STR w4, [x0, #STATE_lod] */
         addlong(ARM64_STR_W(4, 0, STATE_lod));
-        addlong(ARM64_MOV_REG(6, 4));  /* H4: keep LOD in w6 for bilinear/point-sample */
+        addlong(ARM64_MOV_REG(6, 4));  /* keep LOD in w6 for bilinear/point-sample */
     } else {
         /* ============================================================
          * No perspective division (textureMode bit 0 clear)
@@ -1389,7 +1387,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
          * ============================================================ */
 
         /* Load tmu_s and tmu_t (64-bit).
-         * TMU0 offsets fit LDP X signed-7 range; TMU1 do not. (Batch 7/M1) */
+         * TMU0 offsets fit LDP X signed-7 range; TMU1 do not. */
         if (STATE_tmu_s(tmu) / 8 <= 63) {
             addlong(ARM64_LDP_OFF_X(4, 6, 0, STATE_tmu_s(tmu)));
         } else {
@@ -1417,7 +1415,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
         /* STR w5, [x0, #STATE_lod] */
         addlong(ARM64_STR_W(5, 0, STATE_lod));
-        addlong(ARM64_MOV_REG(6, 5));  /* H4: keep LOD in w6 for bilinear/point-sample */
+        addlong(ARM64_MOV_REG(6, 5));  /* keep LOD in w6 for bilinear/point-sample */
     }
 
     if (params->fbzColorPath & FBZCP_TEXTURE_ENABLED) {
@@ -1439,14 +1437,14 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
             /* MOV w7, #8  (initial tex_shift) */
             addlong(ARM64_MOVZ_W(7, 8));
-            /* w6 = LOD, cached by H4 optimization (no reload needed) */
+            /* w6 = LOD (cached, no reload needed) */
             /* MOV w10, #1 */
             addlong(ARM64_MOVZ_W(10, 1));
             /* SUB w7, w7, w6  (tex_shift = 8 - lod) */
             addlong(ARM64_SUB_REG(7, 7, 6));
             /* LSL w10, w10, w6  (1 << lod) */
             addlong(ARM64_LSL_REG(10, 10, 6));
-            /* LDP w4, w5, [x0, #STATE_tex_s] -- load tex_s and tex_t (Batch 7/M1) */
+            /* LDP w4, w5, [x0, #STATE_tex_s] -- load tex_s and tex_t */
             addlong(ARM64_LDP_OFF_W(4, 5, 0, STATE_tex_s));
             /* LSL w10, w10, #3  ((1 << lod) << 3 = 1 << (lod+3)) */
             addlong(ARM64_LSL_IMM(10, 10, 3));
@@ -1499,7 +1497,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             /* ORR w10, w10, w11  (bilinear_index = frac_s | (frac_t << 4)) */
             addlong(ARM64_ORR_REG(10, 10, 11));
 
-            /* w6 = LOD, still cached from H4 optimization (no reload needed) */
+            /* w6 = LOD (still cached, no reload needed) */
 
             /* LSL w10, w10, #5  (bilinear_index * 32 = offset into bilinear_lookup) */
             addlong(ARM64_LSL_IMM(10, 10, 5));
@@ -1508,7 +1506,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
              * ARM64: We compute mask array base explicitly, no -0x10 hack.
              *
              * Keep bilinear_shift in w17 (IP1 scratch) to avoid memory
-             * round-trip through STATE_ebp_store (Batch 9/R2-07).
+             * round-trip through STATE_ebp_store.
              */
             addlong(ARM64_MOV_REG(17, 10));
 
@@ -1520,7 +1518,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             addlong(ARM64_ADD_IMM_X(11, 0, STATE_tex_n(tmu)));
             addlong(ARM64_LDR_X_REG_LSL3(12, 11, 6));
 
-            /* w7 holds tex_shift, used directly in LSL below (Batch 7/L2) */
+            /* w7 holds tex_shift, used directly in LSL below */
 
             /* w13 = T+1 (next row) */
             addlong(ARM64_MOV_REG(13, 5));
@@ -1569,7 +1567,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
              * x86-64: SHL EBX, CL; SHL EDX, CL
              *         LEA RBX, [RBP+RBX*4]; LEA RDX, [RBP+RDX*4]
              *
-             * ARM64: LSL w5, w5, w7; LSL w13, w13, w7  (Batch 7/L2: use w7 directly)
+             * ARM64: LSL w5, w5, w7; LSL w13, w13, w7
              *        ADD x13_row0, x12, x5, LSL #2
              *        ADD x14_row1, x12, x13, LSL #2
              */
@@ -1585,7 +1583,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
                 addlong(ARM64_ADD_IMM_X(15, 1, PARAMS_tex_w_mask_n(tmu)));
                 addlong(ARM64_LDR_W_REG_LSL2(15, 15, 6));
 
-                /* bilinear_shift is in w17 (Batch 9/R2-07) */
+                /* bilinear_shift is in w17 */
 
                 /* Test if S is negative */
                 addlong(ARM64_CMP_IMM(4, 0));
@@ -1637,7 +1635,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
                 addlong(ARM64_ADD_IMM_X(15, 1, PARAMS_tex_w_mask_n(tmu)));
                 addlong(ARM64_LDR_W_REG_LSL2(15, 15, 6));
 
-                /* bilinear_shift is in w17 (Batch 9/R2-07) */
+                /* bilinear_shift is in w17 */
 
                 addlong(ARM64_CMP_REG(4, 15));
                 {
@@ -1688,14 +1686,14 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
             /* Load bilinear weights from lookup table.
              * x25 = bilinear_lookup pointer (pinned)
-             * w17 = bilinear_index * 32 (kept in IP1 since Batch 9/R2-07)
+             * w17 = bilinear_index * 32 (kept in IP1)
              *
              * bilinear_lookup[idx*2+0] = {d0, d0, d0, d0, d1, d1, d1, d1}
              * bilinear_lookup[idx*2+1] = {d2, d2, d2, d2, d3, d3, d3, d3}
              *
              * Each entry is 16 bytes (128 bits). Total = 32 bytes per index pair.
              */
-            /* ADD x11, x25, x17 -- base of weight pair (Batch 9/R2-07) */
+            /* ADD x11, x25, x17 -- base of weight pair */
             addlong(ARM64_ADD_REG_X(11, 25, 17));
 
             /* LDR q16, [x11, #0]  -- weights for row0: d0|d1 */
@@ -1745,7 +1743,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
             /* MOV w7, #8 */
             addlong(ARM64_MOVZ_W(7, 8));
-            /* w6 = LOD, cached by H4 optimization (no reload needed) */
+            /* w6 = LOD (cached, no reload needed) */
 
             /* Load texture base pointer: tex[tmu][lod] */
             addlong(ARM64_ADD_IMM_X(11, 0, STATE_tex_n(tmu)));
@@ -1755,14 +1753,14 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             addlong(ARM64_SUB_REG(7, 7, 6));
             /* Save original LOD in w11 before we destroy w6 with +4.
              * The clamp/wrap sections need the original LOD for array indexing
-             * into tex_w_mask/tex_h_mask. Avoids LDR from STATE_lod (Batch 9/R2-08). */
+             * into tex_w_mask/tex_h_mask. */
             addlong(ARM64_MOV_REG(11, 6));
             /* ADD w6, w6, #4  -- point-sample uses a larger shift than bilinear:
              * bilinear shifts by 'lod' (integer texel step), but point-sample
              * needs to strip the 4-bit sub-texel fraction too, hence lod+4. */
             addlong(ARM64_ADD_IMM(6, 6, 4));
 
-            /* LDP w4, w5, [x0, #STATE_tex_s] -- load tex_s and tex_t (Batch 7/M1) */
+            /* LDP w4, w5, [x0, #STATE_tex_s] -- load tex_s and tex_t */
             addlong(ARM64_LDP_OFF_W(4, 5, 0, STATE_tex_s));
 
             /* Mirror S */
@@ -1789,7 +1787,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             if (state->clamp_s[tmu]) {
                 /* Clamp S to [0, tex_w_mask[tmu][lod]]
                  * x86-64 uses -0x10 hack with ECX*4. We compute cleanly.
-                 * w11 = original LOD (saved before ADD w6, w6, #4, Batch 9/R2-08)
+                 * w11 = original LOD (saved before ADD w6, w6, #4)
                  */
                 addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_w_mask_n(tmu)));
                 addlong(ARM64_LDR_W_REG_LSL2(15, 14, 11));
@@ -1802,7 +1800,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
                 addlong(ARM64_CSEL(4, 15, 4, COND_CS));
             } else {
                 /* AND S with tex_w_mask
-                 * w11 = original LOD (Batch 9/R2-08)
+                 * w11 = original LOD
                  */
                 addlong(ARM64_ADD_IMM_X(14, 1, PARAMS_tex_w_mask_n(tmu)));
                 addlong(ARM64_LDR_W_REG_LSL2(15, 14, 11));
@@ -1827,7 +1825,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             /* Compute linear texel index: (T << tex_shift) + S
              * then load texel: tex[tmu][lod][(T << shift) + S]
              */
-            /* LSL w5, w5, w7  (Batch 7/L2: use w7 directly, no MOV needed) */
+            /* LSL w5, w5, w7 */
             addlong(ARM64_LSL_REG(5, 5, 7));
             /* ADD w5, w5, w4 */
             addlong(ARM64_ADD_REG(5, 5, 4));
@@ -1920,7 +1918,6 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     neon_ff_b.u32[1]      = 0;
     neon_ff_b.u32[2]      = 0;
     neon_ff_b.u32[3]      = 0;
-    /* neon_minus_254 removed -- v11 now used for fogColor (Batch 7/M3) */
 
     /* ================================================================
      * Prologue: save callee-saved registers
@@ -1988,7 +1985,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     {
         /* Helper macro is #undef'd after use to avoid polluting the namespace.
          * See the #undef immediately after the pointer loads below. */
-/* R2-23: Skip zero halfwords -- MOVZ targets the first non-zero halfword
+/* Skip zero halfwords -- MOVZ targets the first non-zero halfword
  * (which zeros everything else), then MOVK only for remaining non-zero
  * halfwords. On macOS ARM64, hw=3 is always 0 for user pointers, saving
  * 1+ MOVK per load. Typical macOS pointer saves 1-2 instructions. */
@@ -2031,9 +2028,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * Load NEON constants into callee-saved V registers
      * ================================================================
      *
-     * v8 = xmm_01_w  {1,1,1,1}
-     * v9 = xmm_ff_w  {0xFF,0xFF,0xFF,0xFF}
-     * v10 = xmm_ff_b {0x00FFFFFF,0,0,0}
+     * v8 = neon_01_w  {1,1,1,1}
+     * v9 = neon_ff_w  {0xFF,0xFF,0xFF,0xFF}
+     * v10 = neon_ff_b {0x00FFFFFF,0,0,0}
      * v11 = fogColor (hoisted below, only when fog enabled)
      *
      * Load via a temporary register pointing to each constant.
@@ -2041,7 +2038,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     {
         uint64_t addr;
 
-/* R2-23: Same zero-halfword skip as EMIT_MOV_IMM64 for pointer into x16. */
+/* Same zero-halfword skip as EMIT_MOV_IMM64 for pointer into x16. */
 #define EMIT_LOAD_NEON_CONST(vreg, constaddr)                                        \
     do {                                                                             \
         addr = (uint64_t) (uintptr_t) (constaddr);                                  \
@@ -2065,7 +2062,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         EMIT_LOAD_NEON_CONST(8, &neon_01_w);
         EMIT_LOAD_NEON_CONST(9, &neon_ff_w);
         EMIT_LOAD_NEON_CONST(10, &neon_ff_b);
-        /* v11 no longer loaded here -- used for fogColor, hoisted below */
+        /* v11 = fogColor, loaded below when fog is enabled */
 
 #undef EMIT_LOAD_NEON_CONST
 
@@ -2084,7 +2081,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      *   v14 = {dSdX_1, dTdX_1}           (TMU1 ST deltas, 2x64, if dual TMU)
      */
 
-    /* v12 = RGBA deltas (PARAMS_dBdX=48, not 16-byte aligned) */
+    /* v12 = RGBA deltas (PARAMS_dBdX=48, loaded via ADD+LD1) */
     addlong(ARM64_ADD_IMM_X(16, 1, PARAMS_dBdX));
     addlong(ARM64_LD1_V4S(12, 16));
 
@@ -2096,10 +2093,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         addlong(ARM64_LDR_Q(14, 1, PARAMS_tmu1_dSdX));
     }
 
-    /* v11 = fogColor (packed bytes, hoisted from per-pixel fog section)
-     * Only loaded when fog is enabled. Triangle-invariant. (Batch 7/M3)
-     * FOG_CONSTANT path uses v11 as packed 8B directly.
-     * Non-constant fog path uses UXTL to widen v11 to 8H per-pixel. */
+    /* v11 = fogColor (packed bytes, triangle-invariant).
+     * FOG_CONSTANT uses v11 as packed 8B.
+     * Non-constant fog uses UXTL to widen to 8H per-pixel. */
     if (params->fogMode & FOG_ENABLE) {
         addlong(ARM64_LDR_W(16, 1, PARAMS_fogColor));
         addlong(ARM64_FMOV_S_W(11, 16));
@@ -2108,10 +2104,10 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     /* ================================================================
      * Load fb_mem and aux_mem pointers
      * ================================================================ */
-    /* LDP x8, x9, [x0, #STATE_fb_mem] -- load fb_mem and aux_mem (Batch 7/M1) */
+    /* LDP x8, x9, [x0, #STATE_fb_mem] -- load fb_mem and aux_mem */
     addlong(ARM64_LDP_OFF_X(8, 9, 0, STATE_fb_mem));
 
-    /* Load STATE_x into w28 ONCE before the loop (Batch 8/R2-24).
+    /* Load STATE_x into w28 once before the loop.
      * Subsequent iterations update w28 via MOV w28, w5 at the loop tail,
      * so the value is always current without reloading from memory. */
     addlong(ARM64_LDR_W(28, 0, STATE_x));
@@ -2161,7 +2157,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addlong(ARM64_AND_MASK(4, 24, 2));
             /* LSL w4, w4, #3 */
             addlong(ARM64_LSL_IMM(4, 4, 3));
-            /* MVN w5, w28 -- NOT(cached STATE_x) directly (Batch 8/R2-27) */
+            /* MVN w5, w28 -- NOT(cached STATE_x) directly */
             addlong(ARM64_MVN(5, 28));
             /* AND w5, w5, #7 */
             addlong(ARM64_AND_MASK(5, 5, 3));
@@ -2209,8 +2205,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      *
      * x86-64 ref: lines 832-852
      * x_tiled = (x & 63) + ((x >> 6) << 11)
-     * Tile is 64x32 pixels, 16-bit per pixel: row stride = 64*32 = 2048 words (128 bytes wide)
-     * So tile_row * 2048 = (x >> 6) << 11
+     * Tile is 64 pixels wide. x_tiled = (x & 63) + (x >> 6) * 2048.
+     * The tile row stride of 2048 half-words comes from 64 columns x 32 rows
+     * (each tile has 32 scanlines).
      * ================================================================== */
     if (params->col_tiled || params->aux_tiled) {
         /* MOV w4, w28 -- cached STATE_x */
@@ -2597,11 +2594,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                             addlong(ARM64_LSL_IMM(4, 4, params->detail_scale[1]));
                         addlong(ARM64_CMP_REG(4, 11));
                         addlong(ARM64_CSEL(4, 11, 4, COND_GE));
-                        addlong(ARM64_DUP_V4H_GPR(0, 4));  /* Batch 9/R2-12 */
+                        addlong(ARM64_DUP_V4H_GPR(0, 4));
                         break;
                     case TC_MSELECT_LOD_FRAC:
                         addlong(ARM64_LDR_W(4, 0, STATE_lod_frac_n(1)));
-                        addlong(ARM64_DUP_V4H_GPR(0, 4));  /* Batch 9/R2-12 */
+                        addlong(ARM64_DUP_V4H_GPR(0, 4));
                         break;
                 }
 
@@ -2613,9 +2610,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addlong(ARM64_EOR_V(0, 0, 16));
                 } else if (!tc_reverse_blend_1) {
                     /* XOR with 0xFF (invert) */
-                    addlong(ARM64_EOR_V(0, 0, 9));  /* v9 = xmm_ff_w */
+                    addlong(ARM64_EOR_V(0, 0, 9));  /* v9 = neon_ff_w */
                 }
-                /* ADD v0, v0, v8  (v8 = xmm_01_w = {1,1,1,1}) */
+                /* ADD v0, v0, v8  (v8 = neon_01_w = {1,1,1,1}) */
                 addlong(ARM64_ADD_V4H(0, 0, 8));
 
                 /* Multiply: v3 * v0 -> signed 16x16->32->shift->narrow
@@ -2624,8 +2621,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                  *        SQXTN v16.4H, v16.4S
                  */
 
-                /* Save v0 (blend factor) for tc_add_alocal path */
-                /* v1 = v2 (zero -- for subtraction base) */
+                /* v1 = 0 (zero -- for subtraction base) */
                 addlong(ARM64_MOVI_V2D_ZERO(1));
 
                 /* The signed multiply sequence:
@@ -2637,8 +2633,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                  * toward negative infinity). Negating after the shift
                  * loses the remainder and produces a +1 error.
                  *
-                 * x86-64 JIT does the negate last (inherited bug).
-                 * We fix it here: negate clocal first, then multiply.
+                 * The x86-64 JIT negates after the shift, which can produce a +1 error.
                  *
                  * v1 = 0 (from MOVI above), v3 = clocal, v0 = factor
                  */
@@ -2670,7 +2665,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
 
             /* ---- TCA (texture combine alpha) for TMU1 ---- */
             if (tca_sub_clocal_1) {
-                /* w5 = packed result (from MOVD above), extract alpha */
+                /* w5 = packed result (from FMOV above), extract alpha */
                 addlong(ARM64_LSR_IMM(5, 5, 24));
 
                 switch (tca_mselect_1) {
@@ -2711,9 +2706,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addlong(ARM64_LDR_W_REG_LSL2(10, 23, 6));  /* x23 = i_00_ff_w */
                     addlong(ARM64_EOR_REG(4, 4, 10));
                 } else if (!tca_reverse_blend_1) {
-                    /* NOTE: The x86-64 reference at line ~1303 tests tc_reverse_blend_1 here,
-                     * but that is a bug. The alpha combine path must use the alpha-specific
-                     * flag tca_reverse_blend_1, not the RGB flag. Intentionally diverging. */
+                    /* NOTE: x86-64 line ~1303 incorrectly uses tc_reverse_blend_1 (the RGB flag)
+                     * in this TCA (alpha) path. The correct flag is tca_reverse_blend_1, which
+                     * is what we use here, matching the interpreter. */
                     addlong(ARM64_EOR_MASK(4, 4, 8)); /* XOR with 0xFF */
                 }
 
@@ -2812,11 +2807,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                         addlong(ARM64_LSL_IMM(4, 4, params->detail_scale[0]));
                     addlong(ARM64_CMP_REG(4, 11));
                     addlong(ARM64_CSEL(4, 11, 4, COND_GE));
-                    addlong(ARM64_DUP_V4H_GPR(4, 4));  /* Batch 9/R2-12 */
+                    addlong(ARM64_DUP_V4H_GPR(4, 4));
                     break;
                 case TC_MSELECT_LOD_FRAC:
                     addlong(ARM64_LDR_W(4, 0, STATE_lod_frac_n(0)));
-                    addlong(ARM64_DUP_V4H_GPR(4, 4));  /* Batch 9/R2-12 */
+                    addlong(ARM64_DUP_V4H_GPR(4, 4));
                     break;
             }
 
@@ -2830,7 +2825,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             /* ADD v4.4H, v4.4H, v8.4H */
             addlong(ARM64_ADD_V4H(4, 4, 8));
 
-            /* Extract TMU0 alpha from v7 into w13 for reuse (Batch 7/M5).
+            /* Extract TMU0 alpha from v7 into w13 for reuse.
              * v7 holds raw TMU0 packed BGRA; alpha is byte 3 (bits [31:24]).
              * Must happen before tca_sub_clocal reads w13 below. */
             addlong(ARM64_FMOV_W_S(13, 7));
@@ -2842,7 +2837,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addlong(ARM64_SQXTN_4H_4S(1, 16));
 
             if (tca_sub_clocal) {
-                /* w5 = TMU0 alpha (from w13, Batch 7/M5) */
+                /* w5 = TMU0 alpha (from w13) */
                 addlong(ARM64_MOV_REG(5, 13));
             }
 
@@ -2859,7 +2854,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addlong(ARM64_EOR_V(1, 1, 9));  /* XOR with 0xFF */
             }
 
-            /* Pack v0, v3, v1 to bytes for alpha processing */
+            /* Narrow v0, v3, v1 from 8H to 8B in-place for alpha processing */
             addlong(ARM64_SQXTUN_8B_8H(0, 0));   /* v0 = packed TMU0 */
             addlong(ARM64_SQXTUN_8B_8H(3, 3));   /* v3 = packed TMU1 */
             addlong(ARM64_SQXTUN_8B_8H(1, 1));   /* v1 = packed combined RGB */
@@ -2884,7 +2879,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addlong(ARM64_MOV_ZERO(5));
                     break;
                 case TCA_MSELECT_CLOCAL:
-                    /* w5 = TMU0 alpha (from w13, Batch 7/M5) */
+                    /* w5 = TMU0 alpha (from w13) */
                     addlong(ARM64_MOV_REG(5, 13));
                     break;
                 case TCA_MSELECT_AOTHER:
@@ -2892,7 +2887,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addlong(ARM64_LSR_IMM(5, 5, 24));
                     break;
                 case TCA_MSELECT_ALOCAL:
-                    /* w5 = TMU0 alpha (from w13, Batch 7/M5) */
+                    /* w5 = TMU0 alpha (from w13) */
                     addlong(ARM64_MOV_REG(5, 13));
                     break;
                 case TCA_MSELECT_DETAIL:
@@ -2930,7 +2925,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addlong(ARM64_ASR_IMM(4, 4, 8));
 
             if (tca_add_clocal || tca_add_alocal) {
-                /* ADD w4, w4, w13 -- TMU0 alpha from w13 (Batch 7/M5) */
+                /* ADD w4, w4, w13 -- TMU0 alpha from w13 */
                 addlong(ARM64_ADD_REG(4, 4, 13));
             }
 
@@ -3019,14 +3014,14 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      *   w4-w7, w10-w13 = scratch
      * ================================================================== */
 
-    /* H6: Determine if any color combine path uses iterated BGRA.
-     * Chroma key (site 1), clocal (sites 2+3), and cother (site 4)
-     * all pack the same ib/ig/ir/ia values.  Cache once in v6. */
+    /* Determine if any color combine path uses iterated BGRA.
+     * Chroma key, clocal select, and cother select all need the same
+     * iterated {ib,ig,ir,ia} values.  Cache once in v6. */
     int needs_iter_bgra = (_rgb_sel == CC_LOCALSELECT_ITER_RGB) ||
         ((cc_sub_clocal || cc_mselect == CC_MSELECT_CLOCAL || cc_add == 1) &&
          (!cc_localselect || cc_localselect_override));
 
-    /* H6: Cache iterated BGRA pack in v6 (NEON scratch, free during color combine) */
+    /* Cache iterated BGRA pack in v6 (NEON scratch, free during color combine) */
     if (needs_iter_bgra) {
         addlong(ARM64_ADD_IMM_X(16, 0, STATE_ib));
         addlong(ARM64_LD1_V4S(6, 16));
@@ -3052,7 +3047,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     if (params->fbzMode & FBZ_CHROMAKEY) {
         switch (_rgb_sel) {
             case CC_LOCALSELECT_ITER_RGB:
-                /* H6: use cached iterated BGRA from v6 */
+                /* use cached iterated BGRA from v6 */
                 addlong(ARM64_FMOV_W_S(4, 6));             /* w4 = cached packed BGRA from v6 */
                 break;
             case CC_LOCALSELECT_COLOR1:
@@ -3211,7 +3206,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addlong(ARM64_LDR_W(4, 1, PARAMS_color0));
                 addlong(ARM64_FMOV_S_W(1, 4));
             } else {
-                /* H6: clocal = cached iterated BGRA from v6 */
+                /* clocal = cached iterated BGRA from v6 */
                 addlong(ARM64_MOV_V(1, 6));                /* clocal = cached iterated BGRA from v6 */
             }
         } else {
@@ -3229,7 +3224,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
 
             /* tex_a bit 7 clear: use iter_rgb */
             PATCH_FORWARD_TBxZ(override_skip);
-            /* H6: clocal = cached iterated BGRA from v6 */
+            /* clocal = cached iterated BGRA from v6 */
             addlong(ARM64_MOV_V(1, 6));                    /* clocal = cached iterated BGRA from v6 */
 
             PATCH_FORWARD_B(override_done);
@@ -3246,7 +3241,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * ---------------------------------------------------------------- */
     if (!cc_zero_other) {
         if (_rgb_sel == CC_LOCALSELECT_ITER_RGB) {
-            /* H6: cother = cached iterated BGRA from v6 */
+            /* cother = cached iterated BGRA from v6 */
             addlong(ARM64_MOV_V(0, 6));                    /* cother = cached iterated BGRA from v6 */
         } else if (_rgb_sel == CC_LOCALSELECT_TEX) {
             /* cother = texture color, already in v0 from Phase 3 */
@@ -3312,10 +3307,10 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         }
     }
 
-    /* Copy a_other to v3 for CC_MSELECT_AOTHER before it gets modified */
+    /* Broadcast alpha combine result (w12) to v3 for CC_MSELECT_AOTHER before cca_add modifies it */
     if (!(cc_mselect == 0 && cc_reverse_blend == 0) && cc_mselect == CC_MSELECT_AOTHER) {
         if (params->alphaMode & ((1 << 0) | (1 << 4))) {
-            addlong(ARM64_DUP_V4H_GPR(3, 12));  /* Batch 9/R2-12 */
+            addlong(ARM64_DUP_V4H_GPR(3, 12));
         } else {
             addlong(ARM64_MOVI_V2D_ZERO(3));
         }
@@ -3358,7 +3353,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             case CC_MSELECT_ALOCAL:
                 /* Broadcast a_local (w15) to all 4 lanes of v3 */
                 if (params->alphaMode & ((1 << 0) | (1 << 4))) {
-                    addlong(ARM64_DUP_V4H_GPR(3, 15));  /* Batch 9/R2-12 */
+                    addlong(ARM64_DUP_V4H_GPR(3, 15));
                 } else {
                     /* Need to compute a_local if not done above */
                     switch (cca_localselect) {
@@ -3385,7 +3380,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                             addlong(ARM64_MOVZ_W(4, 0xFF));
                             break;
                     }
-                    addlong(ARM64_DUP_V4H_GPR(3, 4));  /* Batch 9/R2-12 */
+                    addlong(ARM64_DUP_V4H_GPR(3, 4));
                 }
                 break;
             case CC_MSELECT_AOTHER:
@@ -3394,7 +3389,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             case CC_MSELECT_TEX:
                 /* Broadcast tex_a to all lanes */
                 addlong(ARM64_LDR_W(4, 0, STATE_tex_a));
-                addlong(ARM64_DUP_V4H_GPR(3, 4));  /* Batch 9/R2-12 */
+                addlong(ARM64_DUP_V4H_GPR(3, 4));
                 break;
             case CC_MSELECT_TEXRGB:
                 /* v4 has saved texture packed BGRA. Unpack to 4x16. */
@@ -3405,15 +3400,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 break;
         }
 
-        /* Batch 8/R2-13: removed redundant MOV v16,v0 -- the EOR/ADD below
-         * only modify v3 (blend factor), not v0, so v0 can be read directly
-         * in the SMULL. */
-
         /* Apply reverse blend to factor */
         if (!cc_reverse_blend) {
-            addlong(ARM64_EOR_V(3, 3, 9));     /* XOR with 0xFF (v9 = xmm_ff_w) */
+            addlong(ARM64_EOR_V(3, 3, 9));     /* XOR with 0xFF (v9 = neon_ff_w) */
         }
-        addlong(ARM64_ADD_V4H(3, 3, 8));       /* factor += 1 (v8 = xmm_01_w) */
+        addlong(ARM64_ADD_V4H(3, 3, 8));       /* factor += 1 (v8 = neon_01_w) */
 
         /* Signed multiply: v0 * v3 -> 32-bit -> >>8 -> saturating narrow
          * SMULL v17.4S, v0.4H, v3.4H
@@ -3433,7 +3424,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     /* Pack to unsigned bytes (with saturation): SQXTUN v0.8B, v0.8H */
     addlong(ARM64_SQXTUN_8B_8H(0, 0));
 
-    /* cc_invert_output: XOR with 0x00FFFFFF mask (v10 = xmm_ff_b) */
+    /* cc_invert_output: XOR with 0x00FFFFFF mask (v10 = neon_ff_b) */
     if (cc_invert_output) {
         addlong(ARM64_EOR_V(0, 0, 10));
     }
@@ -3485,7 +3476,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     if (params->fogMode & FOG_ENABLE) {
         if (params->fogMode & FOG_CONSTANT) {
             /* FOG_CONSTANT: simply add fogColor to color (saturating)
-             * v11 = hoisted fogColor (packed bytes from prologue, Batch 7/M3) */
+             * v11 = fogColor (packed bytes from prologue) */
             addlong(ARM64_UQADD_V8B(0, 0, 11));
         } else {
             /* Non-constant fog: unpack color to 16-bit lanes for math */
@@ -3493,7 +3484,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addlong(ARM64_UXTL_8H_8B(0, 0));
 
             if (!(params->fogMode & FOG_ADD)) {
-                /* v11 = hoisted fogColor (packed bytes, Batch 7/M3)
+                /* v11 = fogColor (packed bytes from prologue)
                  * Widen to 16-bit halfwords for fog math */
                 addlong(ARM64_UXTL_8H_8B(3, 11));
             } else {
@@ -3580,7 +3571,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
              * alookup is a voodoo_neon_reg_t array (16 bytes per entry).
              * w4 = fog_a * 2, so byte offset = w4 * 8 = fog_a * 16.
              * The +16 on the LDR advances one entry, loading alookup[fog_a + 1]
-             * (matches the x86-64 "+4" SSE offset into the next element). */
+             * (matches the x86-64 +16 byte offset into the next alookup entry). */
             addlong(ARM64_ADD_REG_X_LSL(5, 20, 4, 3));  /* x5 = x20 + fog_a * 16 */
             addlong(ARM64_LDR_D(5, 5, 16));             /* v5 = alookup[fog_a + 1].low64 */
 
@@ -3905,7 +3896,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 break;
             case AFUNC_ASATURATE: {
                 /* sat = min(src_alpha, 0xFF - dst_alpha)
-                 * w5/2 = dst_alpha, w12/2 = src_alpha */
+                 * w5 = 2*dst_alpha, w12 = 2*src_alpha */
                 addlong(ARM64_LSR_IMM(6, 5, 1));        /* w6 = dst_alpha */
                 addlong(ARM64_EOR_MASK(6, 6, 8));       /* w6 = 0xFF ^ dst_alpha = 0xFF - dst_alpha */
                 addlong(ARM64_ADD_REG(6, 6, 6));         /* w6 *= 2 for table index */
@@ -3938,15 +3929,15 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         if (dest_aafunc == 4) {
             /* dest_aafunc == AFUNC_AONE (4): factor is 1.0, so the full
              * destination alpha passes through to the blended output alpha.
-             * The (<<7 then >>8 later) pair is a divide-by-2 approximation
-             * matching the x86-64 SHL/SHR sequence (lines 3037-3042). */
+             * w5 holds dst_alpha * 2 (doubled for table indexing), so
+             * (w5 << 7) >> 8 = dst_alpha exactly. Matches x86-64 lines 3037-3042. */
             addlong(ARM64_LSL_IMM(6, 5, 7));   /* w6 = (dst_alpha*2) << 7; >>8 later gives correct alpha */
             addlong(ARM64_ADD_REG(4, 4, 6));
         }
 
         if (src_aafunc == 4) {
             /* src_aafunc == AFUNC_AONE (4): factor is 1.0, so the full
-             * source alpha passes through. Same (<<7 then >>8) pattern. */
+             * source alpha passes through. w12 = src_alpha * 2, so (w12 << 7) >> 8 = src_alpha exactly. */
             addlong(ARM64_LSL_IMM(6, 12, 7));  /* w6 = (src_alpha*2) << 7; >>8 later gives correct alpha */
             addlong(ARM64_ADD_REG(4, 4, 6));
         }
@@ -4024,7 +4015,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     if (params->fbzMode & FBZ_RGB_WMASK) {
         if (dither) {
             /* ---- Dither path ---- */
-            /* Load dither table base pointer into x7 (R2-23: skip zero halfwords) */
+            /* Load dither table base pointer into x7 (skip zero halfwords) */
             {
                 uintptr_t dither_rb_addr = dither2x2 ? (uintptr_t) dither_rb2x2 : (uintptr_t) dither_rb;
                 uint16_t _dh0 = dither_rb_addr & 0xFFFF;
@@ -4129,14 +4120,14 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         } else {
             /* ---- No-dither path ---- */
             /* w4 = packed BGRA (B=byte0, G=byte1, R=byte2, A=byte3)
-             * RGB565 = R[4:0] << 11 | G[5:0] << 5 | B[7:3]
+             * RGB565 = R[7:3] << 11 | G[7:2] << 5 | B[7:3]
              *
              * On x86-64:
              *   Blue  = (byte0 >> 3) & 0x001F
              *   Green = (byte1 << 3) & 0x07E0
              *   Red   = (byte2 << 8) & 0xF800 -- actually (byte_val << 8) then AND
              *
-             * Using UBFX+BFI for 6 insns instead of 7 (Batch 7/M6):
+             * Pack RGB565 using bitfield extract/insert:
              */
             /* w5 = B = bits[7:3] -> 5-bit blue */
             addlong(ARM64_UBFX(5, 4, 3, 5));
@@ -4226,7 +4217,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * After incrementing, X is advanced by +1 (or -1 for right-to-left spans)
      * and the loop branches back to the top if pixels remain.
      *
-     * x86-64 ref: lines 3256-3427
+     * x86-64 ref: lines 3256-3445
      * ================================================================== */
 
     /* ib/ig/ir/ia increment (4 x int32, contiguous at STATE_ib=472).
@@ -4337,8 +4328,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      * x86-64 ref: lines 3448-3469
      * ================================================================ */
 
-    /* Batch 8/R2-25: compute new x directly from w28, eliminating MOV w4,w28.
-     * CMP must read old w28 BEFORE MOV w28, w5 overwrites it. */
+    /* Compute new x from w28. CMP must read old w28 BEFORE MOV w28, w5 overwrites it. */
     if (state->xdir > 0) {
         addlong(ARM64_ADD_IMM(5, 28, 1));
     } else {
