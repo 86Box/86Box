@@ -1217,36 +1217,6 @@ machine_at_bravoms586_init(const machine_t *model)
 }
 
 int
-machine_at_g586vpmc_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/g586vpmc/Vpm_c3.bin",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x02, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x08, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0A, PCI_CARD_IDE, 0, 0, 0, 0);
-
-    device_add(&vl82c59x_device);
-    device_add(&sst_flash_29ee010_device);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
-    device_add(&ide_cmd646_device);
-    return ret;
-}
-
-int
 machine_at_m54si_init(const machine_t *model)
 {
     int ret;
@@ -1344,5 +1314,35 @@ machine_at_globalyst620_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
+    return ret;
+}
+
+int
+machine_at_g586vpmc_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/g586vpmc/Vpm_c3.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_IDE, 0, 0, 0, 0);
+
+    device_add(&vl82c59x_wildcat_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
+    device_add(&ide_cmd646_device);
     return ret;
 }

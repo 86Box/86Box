@@ -244,6 +244,7 @@ enum {
     MACHINE_CHIPSET_INTEL_430HX,
     MACHINE_CHIPSET_INTEL_430VX,
     MACHINE_CHIPSET_INTEL_430TX,
+    MACHINE_CHIPSET_INTEL_450GX,
     MACHINE_CHIPSET_INTEL_450KX,
     MACHINE_CHIPSET_INTEL_440FX,
     MACHINE_CHIPSET_INTEL_440EX,
@@ -965,12 +966,12 @@ extern int             machine_at_hot539_init(const machine_t *);
 
 /* VLSI SuperCore */
 extern int             machine_at_bravoms586_init(const machine_t *);
-extern int             machine_at_g586vpmc_init(const machine_t *);
 extern int             machine_at_m54si_init(const machine_t *);
 extern int             machine_at_pb600_init(const machine_t *);
 
 /* VLSI Wildcat */
 extern int             machine_at_globalyst620_init(const machine_t *);
+extern int             machine_at_g586vpmc_init(const machine_t *);
 
 /* m_at_socket7_3v.c */
 /* i430FX */
@@ -1175,13 +1176,15 @@ extern int             machine_at_k6bv3p_a_init(const machine_t *);
 extern int             machine_at_5sg100_init(const machine_t *);
 
 /* m_at_socket8.c */
-/* i450KX */
-extern int             machine_at_ap61_init(const machine_t *);
+/* i450GX */
+extern int             machine_at_p6rp4_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ficpo6000_device;
 #endif
-extern int             machine_at_p6rp4_init(const machine_t *);
 extern int             machine_at_ficpo6000_init(const machine_t *);
+
+/* i450KX */
+extern int             machine_at_ap61_init(const machine_t *);
 
 /* i440FX */
 extern int             machine_at_acerv60n_init(const machine_t *);
