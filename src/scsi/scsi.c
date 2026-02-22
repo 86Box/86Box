@@ -38,6 +38,7 @@
 #include <86box/scsi_ncr5380.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/scsi_pcscsi.h>
+#include <86box/scsi_qlogic.h>
 #include <86box/scsi_spock.h>
 
 int scsi_card_current[SCSI_CARD_MAX] = { 0, 0, 0, 0 };
@@ -91,6 +92,11 @@ static SCSI_CARD scsi_cards[] = {
     { &ncr53c860_pci_device,     },
     { &ncr53c875_pci_device,     },
     { &dc390_pci_device,         },
+    { &qla1040b_device,          },
+    { &qla1080_device,           },
+    { &qla1240_device,           },
+    { &qla1280_device,           },
+    { &qla12160a_device,         },
     { NULL,                      },
   // clang-format on
 };
