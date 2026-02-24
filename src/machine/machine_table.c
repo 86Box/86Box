@@ -4445,6 +4445,49 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
+    {
+        .name = "[NEAT] Nixdorf 8810 M30",
+        .internal_name = "n8810m30",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_n8810m30_init,
+        .p1_handler = machine_generic_p1_handler,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+		.jumpered_ecp_dma = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device = &kbc_at_device,
+        .kbc_params = 0x00000000,
+        .kbc_p1 = 0x000004f0,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+		.kbd_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has the VLSI 82C113 with on-chip KBC. */
     {
         .name              = "[SCAMP] Amstrad PC7286",
