@@ -438,9 +438,9 @@ voodoo_readl(uint32_t addr, void *priv)
                     int busy         = (written - voodoo->cmd_read) ||
                                (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) ||
                                voodoo->voodoo_busy ||
-                               voodoo->render_voodoo_busy[0] ||
-                               (voodoo->render_threads >= 2 && voodoo->render_voodoo_busy[1]) ||
-                               (voodoo->render_threads == 4 && (voodoo->render_voodoo_busy[2] || voodoo->render_voodoo_busy[3]));
+                               RENDER_VOODOO_BUSY(voodoo, 0) ||
+                               (voodoo->render_threads >= 2 && RENDER_VOODOO_BUSY(voodoo, 1)) ||
+                               (voodoo->render_threads == 4 && (RENDER_VOODOO_BUSY(voodoo, 2) || RENDER_VOODOO_BUSY(voodoo, 3)));
 
                     if (SLI_ENABLED && voodoo->type != VOODOO_2) {
                         voodoo_t *voodoo_other  = (voodoo == voodoo->set->voodoos[0]) ? voodoo->set->voodoos[1] : voodoo->set->voodoos[0];
@@ -453,9 +453,9 @@ voodoo_readl(uint32_t addr, void *priv)
                         if ((other_written - voodoo_other->cmd_read) ||
                             (voodoo_other->cmdfifo_depth_rd != voodoo_other->cmdfifo_depth_wr) ||
                             voodoo_other->voodoo_busy ||
-                            voodoo_other->render_voodoo_busy[0] ||
-                            (voodoo_other->render_threads >= 2 && voodoo_other->render_voodoo_busy[1]) ||
-                            (voodoo_other->render_threads == 4 && (voodoo_other->render_voodoo_busy[2] || voodoo_other->render_voodoo_busy[3])))
+                            RENDER_VOODOO_BUSY(voodoo_other, 0) ||
+                            (voodoo_other->render_threads >= 2 && RENDER_VOODOO_BUSY(voodoo_other, 1)) ||
+                            (voodoo_other->render_threads == 4 && (RENDER_VOODOO_BUSY(voodoo_other, 2) || RENDER_VOODOO_BUSY(voodoo_other, 3))))
                             busy = 1;
                         if (!voodoo_other->voodoo_busy)
                             voodoo_wake_fifo_thread(voodoo_other);

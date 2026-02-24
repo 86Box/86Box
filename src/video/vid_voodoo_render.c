@@ -20,6 +20,9 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
+#if defined(_M_ARM64) && defined(_MSC_VER)
+#    include <intrin.h>
+#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -1651,7 +1654,7 @@ voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_even)
 
 #if 0
 voodoo_render_log("voodoo_triangle %i %i %i : vA %f, %f  vB %f, %f  vC %f, %f f %i,%i %08x %08x %08x,%08x tex=%i,%i fogMode=%08x\n",
-                  odd_even, voodoo->params_read_idx[odd_even], voodoo->params_read_idx[odd_even] & PARAM_MASK, (float)params->vertexAx / 16.0, (float)params->vertexAy / 16.0,
+                  odd_even, PARAMS_READ_IDX(voodoo, odd_even), PARAMS_READ_IDX(voodoo, odd_even) & PARAM_MASK, (float)params->vertexAx / 16.0, (float)params->vertexAy / 16.0,
                   (float)params->vertexBx / 16.0, (float)params->vertexBy / 16.0,
                   (float)params->vertexCx / 16.0, (float)params->vertexCy / 16.0,
                   (params->fbzColorPath & FBZCP_TEXTURE_ENABLED) ? params->tformat[0] : 0,
@@ -1784,16 +1787,19 @@ render_thread(void *param, int odd_even)
         thread_set_event(voodoo->render_not_full_event[odd_even]);
         thread_wait_event(voodoo->wake_render_thread[odd_even], -1);
         thread_reset_event(voodoo->wake_render_thread[odd_even]);
-        voodoo->render_voodoo_busy[odd_even] = 1;
+#if (defined __aarch64__ || defined _M_ARM64)
+    process_work:
+#endif
+        RENDER_VOODOO_BUSY(voodoo, odd_even) = 1;
 
         while (!PARAM_EMPTY(odd_even)) {
             uint64_t         start_time = plat_timer_read();
             uint64_t         end_time;
-            voodoo_params_t *params = &voodoo->params_buffer[voodoo->params_read_idx[odd_even] & PARAM_MASK];
+            voodoo_params_t *params = &voodoo->params_buffer[PARAMS_READ_IDX(voodoo, odd_even) & PARAM_MASK];
 
             voodoo_triangle(voodoo, params, odd_even);
 
-            voodoo->params_read_idx[odd_even]++;
+            PARAMS_READ_IDX(voodoo, odd_even)++;
 
             if (PARAM_ENTRIES(odd_even) > (PARAM_SIZE - 10))
                 thread_set_event(voodoo->render_not_full_event[odd_even]);
@@ -1802,7 +1808,20 @@ render_thread(void *param, int odd_even)
             voodoo->render_time[odd_even] += end_time - start_time;
         }
 
-        voodoo->render_voodoo_busy[odd_even] = 0;
+        RENDER_VOODOO_BUSY(voodoo, odd_even) = 0;
+#if (defined __aarch64__ || defined _M_ARM64)
+        /* Spin briefly before sleeping to absorb burst triangle submissions
+           from the JIT without expensive context-switch overhead. */
+        for (int spins = 0; spins < 256; spins++) {
+#ifdef _MSC_VER
+            __yield();
+#else
+            __asm__ volatile("yield");
+#endif
+            if (!PARAM_EMPTY(odd_even))
+                goto process_work;
+        }
+#endif
     }
 }
 
@@ -1830,7 +1849,7 @@ voodoo_render_thread_4(void *param)
 void
 voodoo_queue_triangle(voodoo_t *voodoo, voodoo_params_t *params)
 {
-    voodoo_params_t *params_new = &voodoo->params_buffer[voodoo->params_write_idx & PARAM_MASK];
+    voodoo_params_t *params_new = &voodoo->params_buffer[PARAMS_WRITE_IDX(voodoo) & PARAM_MASK];
 
     while (PARAM_FULL(0) || (voodoo->render_threads >= 2 && PARAM_FULL(1)) || (voodoo->render_threads == 4 && (PARAM_FULL(2) || PARAM_FULL(3)))) {
         thread_reset_event(voodoo->render_not_full_event[0]);
@@ -1856,7 +1875,7 @@ voodoo_queue_triangle(voodoo_t *voodoo, voodoo_params_t *params)
 
     memcpy(params_new, params, sizeof(voodoo_params_t));
 
-    voodoo->params_write_idx++;
+    PARAMS_WRITE_IDX(voodoo)++;
 
     if (PARAM_ENTRIES(0) < 4 || (voodoo->render_threads >= 2 && PARAM_ENTRIES(1) < 4) || (voodoo->render_threads == 4 && (PARAM_ENTRIES(2) < 4 || PARAM_ENTRIES(3) < 4)))
         voodoo_wake_render_thread(voodoo);
