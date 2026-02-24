@@ -4466,7 +4466,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FLAGS_NONE, /* has SCSI chip WD33C93AJM, not yet emulated */
         .ram = {
             .min = 512,
             .max = 16384,
