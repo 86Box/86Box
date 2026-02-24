@@ -494,6 +494,33 @@ machine_at_neat_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_p3345_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/p3345/BIOS_EVEN.BIN",
+								"roms/machines/p3345/BIOS_ODD.BIN",
+								0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+
+    machine_at_common_init_ex(model, 2);
+	device_add(&amstrad_megapc_nvr_device);
+	device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add(&neat_device);
+	device_add(&ide_isa_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+	
+	
+
+    return ret;
+}
+
 /* NEATsx */
 int
 machine_at_if386sx_init(const machine_t *model)
