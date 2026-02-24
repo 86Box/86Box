@@ -205,11 +205,15 @@ For developers and bug reporters:
 
 ### Render Thread Count
 
-Experiment with different thread counts for performance testing:
+Controls how many host threads run the Voodoo pixel pipeline in parallel.
 
-- 1 thread: Single-threaded (baseline)
-- 2 threads: Dual-threaded
-- 4 threads: Quad-threaded (best on M2/M3/M4)
+- **1 thread**: Recommended for ARM64 JIT. The JIT makes each thread fast enough that a single render thread keeps up with the pixel workload, while reducing system-wide contention that impacts CPU emulation.
+- **2 threads**: May cause CPU emulation slowdowns (guest CPU speed drops below 100%). On Apple Silicon, the CPU emulation thread typically runs on E-cores, and when multiple render threads heavily load the P-cores, the E-cores suffer — likely due to shared memory bandwidth, cache pressure, and scheduler effects. Cache-line padding on shared atomics mitigates this but does not eliminate it entirely.
+- **4 threads**: Same contention issue as 2, amplified. Only useful if the GPU workload is genuinely the bottleneck (rare with JIT enabled).
+
+**TL;DR:** Use `render_threads = 1` with JIT enabled. The JIT is fast enough that one thread handles the pixel work, and reducing P-core load keeps the E-cores (where CPU emulation runs) from being starved.
+
+**Note:** This guidance assumes Apple Silicon (or Snapdragon) with heterogeneous P-core/E-core scheduling. On symmetric ARM64 platforms like Raspberry Pi 4/5 where all cores are identical, the contention dynamics are different — `render_threads = 2` may perform better since there is no core hierarchy and threads are evenly distributed across equal cores. Experiment with both settings on your platform.
 
 ---
 
