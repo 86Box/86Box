@@ -64,7 +64,8 @@
 
 /* JIT counters and cache state are per-instance in voodoo_t:
  *   voodoo->jit_hit_count, jit_gen_count, jit_exec_count,
- *   voodoo->jit_last_block[4], jit_next_block_to_write[4], jit_recomp
+ *   voodoo->jit_last_block[4], jit_recomp
+ * LRU generation counters are file-static: jit_generation[4]
  */
 
 #define BLOCK_NUM  32
@@ -108,7 +109,7 @@
  *   v10     = neon_ff_b constant {0x00FFFFFF,0,0,0} (callee-saved)
  *   v11     = hoisted fogColor (packed bytes, callee-saved; only when fog enabled)
  *   v12     = hoisted RGBA deltas {dBdX,dGdX,dRdX,dAdX} (callee-saved)
- *   v13     = scratch (callee-saved, save/restore in prologue/epilogue)
+ *   v13     = color-before-fog copy for ACOLORBEFOREFOG (callee-saved)
  *   v14     = hoisted TMU1 ST deltas {dSdX_1,dTdX_1}    (callee-saved)
  *   v15     = hoisted TMU0 ST deltas {dSdX_0,dTdX_0}    (callee-saved)
  *   v16-v31 = scratch (caller-saved)
@@ -129,6 +130,9 @@
  *   code_block  -- pointer into MAP_JIT executable memory (BLOCK_SIZE bytes)
  *   <key fields> -- the hardware register state that uniquely identifies
  *                   the compiled pipeline variant (mirrors voodoo_x86_data_t)
+ *   last_used   -- LRU timestamp (monotonic per-partition generation counter).
+ *                  On hit, set to ++jit_generation[partition].
+ *                  On reject, set to 0 so the slot is evicted first.
  *   valid       -- 1 if code_block holds valid compiled code
  *   rejected    -- 1 if this variant was rejected (emit overflow, W^X failure)
  *                  Rejected slots return NULL from voodoo_get_block() without
@@ -136,6 +140,7 @@
  */
 typedef struct voodoo_arm64_data_t {
     uint8_t *code_block;
+    uint64_t last_used;
     int      xdir;
     uint32_t alphaMode;
     uint32_t fbzMode;
@@ -149,8 +154,21 @@ typedef struct voodoo_arm64_data_t {
     int      rejected;
 } voodoo_arm64_data_t;
 
-/* last_block[4] and next_block_to_write[4] are in voodoo_t
- * (jit_last_block, jit_next_block_to_write) for per-instance thread safety. */
+/* LRU generation counter per partition (4 partitions = odd_even).
+ * File-static since all JIT code is in this single-file header.
+ * Thread-safe: each partition is touched by exactly one render thread. */
+static uint64_t jit_generation[4];
+
+/* Linux ARM64 without PROT_MPROTECT: pages are born RWX, so mprotect
+ * toggles in set_writable/set_executable are redundant syscalls that
+ * only cost TLB shootdowns.  Skip them at compile time. */
+#if !defined(__APPLE__) && !defined(_WIN32) && !defined(PROT_MPROTECT)
+static int arm64_jit_rwx = 1;  /* Linux: born RWX, skip mprotect */
+#else
+static int arm64_jit_rwx = 0;
+#endif
+
+/* jit_last_block[4] is in voodoo_t for MRU-hint fast probe. */
 
 /* ========================================================================
  * Emission primitive -- ARM64 instructions are always 4 bytes
@@ -1848,7 +1866,7 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
  *
  * On AArch64 (AAPCS64): x0=state, x1=params, x2=x, x3=real_y
  * ======================================================================== */
-static inline void
+static inline int
 voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int depthop)
 {
     /*
@@ -1882,7 +1900,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      *   - tc_*, tca_*, cc_*, cca_*: texture/color combine mode bits
      *   - a_sel, alpha_func, src_afunc, dest_afunc: alpha pipeline config
      *   - _rgb_sel, dither, dither2x2: color select and dither config
-     *   - depth_op: depth comparison function
+     *   - depthop: depth comparison function
      *   - logtable, rgb565: external lookup tables (vid_voodoo_render.c)
      *   - dither_rb, dither_g, dither_rb2x2, dither_g2x2: dither tables
      * This is the same pattern as the x86-64 codegen header.
@@ -1899,6 +1917,21 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     int loop_jump_pos    = 0;
 
     arm64_codegen_begin_emit();
+
+    /* Early-return checks: if DEPTHOP_NEVER or AFUNC_NEVER, every pixel
+     * is unconditionally rejected, so we emit a bare RET and return from
+     * voodoo_generate() before the prologue has saved any registers.
+     * This avoids the ABI violation that would occur if we emitted RET
+     * after the prologue (corrupted SP/LR/callee-saved registers).
+     * Matches the x86-64 codegen's intent at lines 678-682 (#if 0). */
+    if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depthop == DEPTHOP_NEVER)) {
+        addlong(ARM64_RET);
+        return block_pos;
+    }
+    if ((params->alphaMode & 1) && (alpha_func == AFUNC_NEVER)) {
+        addlong(ARM64_RET);
+        return block_pos;
+    }
 
     /* Re-initialize NEON constants before every emit. These constants are
      * read by the PROLOGUE's LDR Q instructions that load them into pinned
@@ -2418,7 +2451,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
      *   Compare new_depth (w10) vs old_depth
      *   Skip pixel on failure (forward branch to z_skip_pos)
      *
-     * If DEPTHOP_NEVER: just return immediately
+     * If DEPTHOP_NEVER: handled by early return before the prologue
      * If DEPTHOP_ALWAYS: no test needed
      *
      * For depth source override (FBZ_DEPTH_SOURCE), use zaColor instead.
@@ -2476,12 +2509,10 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             z_skip_pos = block_pos;
             addlong(ARM64_BCOND_PLACEHOLDER(COND_CC)); /* skip if < (unsigned) */
         } else {
-            fatal("Bad depth_op\n");
+            fatal("Bad depthop\n");
         }
-    } else if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depthop == DEPTHOP_NEVER)) {
-        /* DEPTHOP_NEVER: bail out immediately, no pixels pass */
-        addlong(ARM64_RET);
     }
+    /* DEPTHOP_NEVER is handled by early return before the prologue. */
 
     /* ================================================================
      * Phase 3: Texture Fetch + TMU Combine
@@ -3655,10 +3686,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addlong(ARM64_BCOND_PLACEHOLDER(COND_CC));  /* Branch if carry clear (unsigned <) */
                 break;
         }
-    } else if ((params->alphaMode & 1) && (alpha_func == AFUNC_NEVER)) {
-        /* AFUNC_NEVER: always skip -- emit RET */
-        addlong(ARM64_RET);
     }
+    /* AFUNC_NEVER is handled by early return before the prologue. */
 
     /* ====================================================================
      * ALPHA BLEND
@@ -4376,6 +4405,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
 
     /* RET */
     addlong(ARM64_RET);
+
+    return block_pos;
 }
 
 /* Global kept only to satisfy 'extern int voodoo_recomp' in vid_voodoo_render.h.
@@ -4387,6 +4418,9 @@ arm64_codegen_set_writable(uint8_t *code_block)
 {
     if (!code_block) {
         return 0;
+    }
+    if (arm64_jit_rwx) {
+        return 1;  /* Pages are born RWX; no mprotect needed. */
     }
 #if defined(__APPLE__) && defined(__aarch64__)
     if (__builtin_available(macOS 11.0, *)) {
@@ -4406,6 +4440,9 @@ arm64_codegen_set_executable(uint8_t *code_block)
 {
     if (!code_block) {
         return 0;
+    }
+    if (arm64_jit_rwx) {
+        return 1;  /* Pages are born RWX; no mprotect needed. */
     }
 #if defined(__APPLE__) && defined(__aarch64__)
     if (__builtin_available(macOS 11.0, *)) {
@@ -4452,43 +4489,57 @@ arm64_codegen_store_cache_key(voodoo_arm64_data_t *data, voodoo_t *voodoo, voodo
  * for the active pipeline stages. This is dramatically faster than the
  * C interpreter, which must check every option on every pixel.
  *
- * Blocks are cached in a 32-entry ring buffer per render target. When the
- * game changes rendering state (e.g., switches from opaque to transparent
- * objects), a new block is compiled for the new state. Most games use only
- * a handful of distinct pipeline configurations per frame.
+ * Blocks are cached in a 32-entry LRU cache per partition. When the game
+ * changes rendering state (e.g., switches from opaque to transparent
+ * objects), a new block is compiled for the new state. On miss, the
+ * least-recently-used slot is evicted. Most games use only a handful of
+ * distinct pipeline configurations per frame.
+ *
+ * Array layout: contiguous per-partition (partition * BLOCK_NUM + slot).
+ * This keeps all 32 slots for one partition in adjacent memory, reducing
+ * cache line footprint during the linear scan from ~125 lines (interleaved)
+ * to ~36 lines (contiguous) on a 64-byte cache line architecture.
  *
  * On macOS ARM64, the JIT must handle W^X (write-xor-execute) memory
  * protection: code pages are made writable for compilation, then switched
  * to executable before the block can be called. The I-cache is flushed
  * after each compilation to ensure the CPU sees the new instructions.
+ * The flush covers only the actual generated code size, not the full
+ * BLOCK_SIZE, to minimize unnecessary cache line invalidations.
  * ======================================================================== */
 
 /*
  * voodoo_get_block() -- find or JIT-compile a pixel pipeline block.
  *
  * Algorithm:
- *   1. Search the 32-entry ring buffer (jit_last_block[odd_even] to +31) for a
- *      cached block whose key matches the current hardware state. Return it on hit.
- *   2. On miss, evict jit_next_block_to_write[odd_even] and JIT-compile a new block:
+ *   1. Probe starting at jit_last_block[odd_even] (MRU hint), scanning all
+ *      32 slots for a cached block whose key matches the current state.
+ *   2. On hit: update LRU timestamp, update MRU hint, return code_block.
+ *   3. On miss: scan all 32 slots for the one with the smallest last_used
+ *      (LRU eviction), then JIT-compile into that slot:
  *      a. Make code page writable (W^X toggle).
  *      b. Call voodoo_generate() to emit ARM64 into data->code_block.
  *      c. Check for emit overflow (block exceeded BLOCK_SIZE).
- *      d. Make code page executable and flush I-cache.
- *   3. Return the compiled code_block pointer, or NULL to fall back to interpreter.
+ *      d. Make code page executable and flush I-cache (narrow range).
+ *   4. On reject (W^X fail or emit overflow): set last_used = 0 so the
+ *      slot is evicted first on the next miss.
+ *   5. Return the compiled code_block pointer, or NULL for interpreter fallback.
  *
- * odd_even selects which of the two per-frame buffer halves to use (0 or 1),
- * and the 4x multiplier in the slot formula accounts for 4 depth ops per half.
+ * odd_even selects the partition (0-3). Array layout is contiguous:
+ * slot index = odd_even * BLOCK_NUM + probe.
  */
 static inline void *
 voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int odd_even)
 {
     int                  b                 = voodoo->jit_last_block[odd_even];
+    int                  base              = odd_even * BLOCK_NUM;
     voodoo_arm64_data_t *voodoo_arm64_data = voodoo->codegen_data;
     voodoo_arm64_data_t *data;
 
+    /* --- Cache lookup: linear scan from MRU hint --- */
     for (uint8_t c = 0; c < BLOCK_NUM; c++) {
         int probe = (b + c) & BLOCK_MASK;
-        data      = &voodoo_arm64_data[odd_even + probe * 4];
+        data      = &voodoo_arm64_data[base + probe];
 
         if ((data->valid || data->rejected)
             && state->xdir == data->xdir
@@ -4505,59 +4556,68 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
             if (data->rejected)
                 return NULL;
 
-            int hit_count;
-
+            /* LRU: stamp this slot as most-recently-used */
+            data->last_used                  = ++jit_generation[odd_even];
             voodoo->jit_last_block[odd_even] = probe;
             if (voodoo->jit_debug && voodoo->jit_debug_log) {
-                hit_count = ATOMIC_LOAD(voodoo->jit_hit_count);
-            } else {
-                hit_count = 0;
-            }
-            if (voodoo->jit_debug && voodoo->jit_debug_log && hit_count < 20) {
-                fprintf(voodoo->jit_debug_log,
-                        "VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
-                        "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
-                        hit_count, odd_even, probe, (void *) data->code_block,
-                        params->fbzMode, params->fbzColorPath, params->alphaMode);
-                ATOMIC_INC(voodoo->jit_hit_count);
+                int hit_count = ATOMIC_LOAD(voodoo->jit_hit_count);
+                if (hit_count < 20) {
+                    fprintf(voodoo->jit_debug_log,
+                            "VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
+                            "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
+                            hit_count, odd_even, probe, (void *) data->code_block,
+                            params->fbzMode, params->fbzColorPath, params->alphaMode);
+                    ATOMIC_INC(voodoo->jit_hit_count);
+                }
             }
             return data->code_block;
         }
     }
 
+    /* --- Cache miss: find LRU victim --- */
     ATOMIC_INC(voodoo->jit_recomp);
-    data = &voodoo_arm64_data[odd_even + voodoo->jit_next_block_to_write[odd_even] * 4];
+    {
+        int      lru_slot = 0;
+        uint64_t lru_min  = voodoo_arm64_data[base].last_used;
+        for (int s = 1; s < BLOCK_NUM; s++) {
+            if (voodoo_arm64_data[base + s].last_used < lru_min) {
+                lru_min  = voodoo_arm64_data[base + s].last_used;
+                lru_slot = s;
+            }
+        }
+        data = &voodoo_arm64_data[base + lru_slot];
+    }
 
     /* W^X: make code page writable before JIT emission. */
     if (!arm64_codegen_set_writable(data->code_block)) {
         arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
+        data->last_used = 0;
         if (voodoo->jit_debug && voodoo->jit_debug_log) {
             fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: REJECT odd_even=%d block=%d reason=wx_write_enable_failed "
+                    "VOODOO JIT: REJECT odd_even=%d reason=wx_write_enable_failed "
                     "code=%p\n",
-                    odd_even, voodoo->jit_next_block_to_write[odd_even], (void *) data->code_block);
+                    odd_even, (void *) data->code_block);
         }
-        voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & BLOCK_MASK;
         return NULL;
     }
 
-    voodoo_generate(data->code_block, voodoo, params, state, depth_op);
+    int code_size = voodoo_generate(data->code_block, voodoo, params, state, depth_op);
 
     if (arm64_codegen_emit_overflowed()) {
         arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
+        data->last_used = 0;
         if (!arm64_codegen_set_executable(data->code_block) && voodoo->jit_debug && voodoo->jit_debug_log) {
             fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: WARN odd_even=%d block=%d reason=wx_exec_restore_failed "
+                    "VOODOO JIT: WARN odd_even=%d reason=wx_exec_restore_failed "
                     "code=%p\n",
-                    odd_even, voodoo->jit_next_block_to_write[odd_even], (void *) data->code_block);
+                    odd_even, (void *) data->code_block);
         }
         if (voodoo->jit_debug && voodoo->jit_debug_log) {
             fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: REJECT odd_even=%d block=%d reason=emit_overflow "
+                    "VOODOO JIT: REJECT odd_even=%d reason=emit_overflow "
                     "(limit=%d) -> interpreter fallback\n",
-                    odd_even, voodoo->jit_next_block_to_write[odd_even], BLOCK_SIZE);
+                    odd_even, BLOCK_SIZE);
         }
-        voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & BLOCK_MASK;
         return NULL;
     }
 
@@ -4565,38 +4625,38 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
         int gen_count = ATOMIC_LOAD(voodoo->jit_gen_count);
         ATOMIC_INC(voodoo->jit_gen_count);
         fprintf(voodoo->jit_debug_log,
-                "VOODOO JIT: GENERATE #%d odd_even=%d block=%d code=%p recomp=%d "
+                "VOODOO JIT: GENERATE #%d odd_even=%d code=%p code_size=%d recomp=%d "
                 "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
                 "textureMode[0]=0x%08x fogMode=0x%08x xdir=%d\n",
-                gen_count, odd_even, voodoo->jit_next_block_to_write[odd_even],
-                (void *) data->code_block,
+                gen_count, odd_even,
+                (void *) data->code_block, code_size,
                 ATOMIC_LOAD(voodoo->jit_recomp), params->fbzMode, params->fbzColorPath, params->alphaMode,
                 params->textureMode[0], params->fogMode, state->xdir);
     }
 
     arm64_codegen_store_cache_key(data, voodoo, params, state, 1, 0);
+    data->last_used                  = ++jit_generation[odd_even];
+    voodoo->jit_last_block[odd_even] = (int) (data - &voodoo_arm64_data[base]);
 
-    /* W^X: make executable, flush I-cache */
+    /* W^X: make executable, flush I-cache (narrow range = actual code size) */
     if (!arm64_codegen_set_executable(data->code_block)) {
         arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
+        data->last_used = 0;
         if (voodoo->jit_debug && voodoo->jit_debug_log) {
             fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: REJECT odd_even=%d block=%d reason=wx_exec_enable_failed "
+                    "VOODOO JIT: REJECT odd_even=%d reason=wx_exec_enable_failed "
                     "code=%p\n",
-                    odd_even, voodoo->jit_next_block_to_write[odd_even], (void *) data->code_block);
+                    odd_even, (void *) data->code_block);
         }
-        voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & BLOCK_MASK;
         return NULL;
     }
 #if defined(__aarch64__) || defined(_M_ARM64)
 #    ifdef _WIN32
-    FlushInstructionCache(GetCurrentProcess(), data->code_block, BLOCK_SIZE);
+    FlushInstructionCache(GetCurrentProcess(), data->code_block, code_size);
 #    else
-    __clear_cache((char *) data->code_block, (char *) data->code_block + BLOCK_SIZE);
+    __clear_cache((char *) data->code_block, (char *) data->code_block + code_size);
 #    endif
 #endif
-
-    voodoo->jit_next_block_to_write[odd_even] = (voodoo->jit_next_block_to_write[odd_even] + 1) & BLOCK_MASK;
 
     return data->code_block;
 }
@@ -4672,7 +4732,7 @@ voodoo_codegen_init(voodoo_t *voodoo)
 
     /* Initialize per-instance JIT cache state */
     memset(voodoo->jit_last_block, 0, sizeof(voodoo->jit_last_block));
-    memset(voodoo->jit_next_block_to_write, 0, sizeof(voodoo->jit_next_block_to_write));
+    memset(jit_generation, 0, sizeof(jit_generation));
     ATOMIC_STORE(voodoo->jit_recomp, 0);
     ATOMIC_STORE(voodoo->jit_hit_count, 0);
     ATOMIC_STORE(voodoo->jit_gen_count, 0);

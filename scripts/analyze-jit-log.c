@@ -158,7 +158,7 @@ typedef struct {
     int init_jit_debug;
 
     U64VecSet code_addrs;
-    IntVecSet block_ids;
+    IntVecSet code_sizes;
     IntVecSet odd_even_values;
     uint64_t odd_even_zero_count;
     uint64_t odd_even_one_count;
@@ -214,7 +214,7 @@ typedef struct {
 
 typedef struct {
     int odd_even;
-    int block;
+    int code_size;
     uint64_t code;
     uint64_t recomp;
     uint32_t fbz_mode;
@@ -494,7 +494,7 @@ static void stats_init(Stats *s, size_t z_hint) {
 
 static void stats_free(Stats *s) {
     free(s->code_addrs.data);
-    free(s->block_ids.data);
+    free(s->code_sizes.data);
     free(s->odd_even_values.data);
     free(s->fbz_modes.data);
     free(s->fbz_color_paths.data);
@@ -805,14 +805,14 @@ static int parse_generate_line(const char *p, const char *end, GenerateFields *o
     if (!parse_i64(&p, end, &odd_even)) return 0;
 
     skip_spaces(&p, end);
-    if (!consume_literal(&p, end, "block=")) return 0;
-    uint64_t block = 0;
-    if (!parse_u64(&p, end, &block)) return 0;
-
-    skip_spaces(&p, end);
     if (!consume_literal(&p, end, "code=")) return 0;
     uint64_t code = 0;
     if (!parse_0x_hex_u64(&p, end, &code)) return 0;
+
+    skip_spaces(&p, end);
+    if (!consume_literal(&p, end, "code_size=")) return 0;
+    uint64_t code_size = 0;
+    if (!parse_u64(&p, end, &code_size)) return 0;
 
     skip_spaces(&p, end);
     if (!consume_literal(&p, end, "recomp=")) return 0;
@@ -860,7 +860,7 @@ static int parse_generate_line(const char *p, const char *end, GenerateFields *o
     if (!parse_i64(&p, end, &xdir)) return 0;
 
     out->odd_even = (int)odd_even;
-    out->block = (int)block;
+    out->code_size = (int)code_size;
     out->code = code;
     out->recomp = recomp;
     out->fbz_mode = (uint32_t)fbz_mode;
@@ -1167,7 +1167,7 @@ static void process_line(Stats *s, const char *line, size_t len, uint64_t line_n
                 int_vec_add(&s->odd_even_values, gen.odd_even);
                 if (gen.odd_even == 0) s->odd_even_zero_count++;
                 if (gen.odd_even == 1) s->odd_even_one_count++;
-                int_vec_add(&s->block_ids, gen.block);
+                int_vec_add(&s->code_sizes, gen.code_size);
                 u64_vec_add(&s->code_addrs, gen.code);
 
                 if (!s->has_recomp_range) {
@@ -1559,7 +1559,7 @@ static void merge_stats(Stats *agg, Stats *src, uint64_t line_offset) {
 
     size_t i;
     for (i = 0; i < src->code_addrs.len; ++i) u64_vec_add(&agg->code_addrs, src->code_addrs.data[i]);
-    for (i = 0; i < src->block_ids.len; ++i) int_vec_add(&agg->block_ids, src->block_ids.data[i]);
+    for (i = 0; i < src->code_sizes.len; ++i) int_vec_add(&agg->code_sizes, src->code_sizes.data[i]);
     for (i = 0; i < src->odd_even_values.len; ++i) int_vec_add(&agg->odd_even_values, src->odd_even_values.data[i]);
 
     agg->odd_even_zero_count += src->odd_even_zero_count;
@@ -1703,29 +1703,28 @@ static void print_report(const char *path, double file_mb, const Stats *s, const
     }
 
     {
-        char *slots = xmalloc(s->block_ids.len * 24 + 1);
-        slots[0] = '\0';
-        if (s->block_ids.len > 0) {
-            int *sorted = xmalloc(s->block_ids.len * sizeof(int));
-            memcpy(sorted, s->block_ids.data, s->block_ids.len * sizeof(int));
-            qsort(sorted, s->block_ids.len, sizeof(int), cmp_int_asc);
-
-            size_t off = 0;
-            size_t i;
-            for (i = 0; i < s->block_ids.len; ++i) {
-                int n = snprintf(slots + off, s->block_ids.len * 24 + 1 - off, "%s%d",
-                                 i == 0 ? "" : ", ", sorted[i]);
-                if (n < 0) {
-                    n = 0;
-                }
-                off += (size_t)n;
-            }
-            free(sorted);
-        }
         char msg[512];
-        snprintf(msg, sizeof(msg), "Block slots used: %zu (%s)", s->block_ids.len, slots);
+        if (s->code_sizes.len > 0) {
+            int *sorted = xmalloc(s->code_sizes.len * sizeof(int));
+            memcpy(sorted, s->code_sizes.data, s->code_sizes.len * sizeof(int));
+            qsort(sorted, s->code_sizes.len, sizeof(int), cmp_int_asc);
+
+            int cs_min = sorted[0];
+            int cs_max = sorted[s->code_sizes.len - 1];
+            uint64_t cs_sum = 0;
+            size_t i;
+            for (i = 0; i < s->code_sizes.len; ++i)
+                cs_sum += (uint64_t)sorted[i];
+            int cs_avg = (int)(cs_sum / s->code_sizes.len);
+
+            snprintf(msg, sizeof(msg),
+                     "Code size stats: %zu blocks, min=%d avg=%d max=%d bytes",
+                     s->code_sizes.len, cs_min, cs_avg, cs_max);
+            free(sorted);
+        } else {
+            snprintf(msg, sizeof(msg), "Code size stats: 0 blocks");
+        }
         info_msg(msg);
-        free(slots);
     }
 
     {

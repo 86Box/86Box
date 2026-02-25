@@ -10,7 +10,7 @@ A comprehensive technical reference for the Voodoo pixel pipeline ARM64 JIT comp
 - [Encoding Macros](#encoding-macros)
 - [Pipeline Phases](#pipeline-phases)
 - [Key Differences from x86-64](#key-differences-from-x86-64)
-- [Optimization History](#optimization-history)
+- [Optimizations](#optimizations)
 - [Accuracy Fixes (2026-02-22)](#accuracy-fixes-2026-02-22)
 - [Known Issues and Limitations](#known-issues-and-limitations)
 - [Maintenance and Extension](#maintenance-and-extension)
@@ -47,11 +47,11 @@ The ARM64 port is based on `src/include/86box/vid_voodoo_codegen_x86-64.h` (3561
 ### Entry Point: `voodoo_generate()`
 
 ```c
-void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo,
-                     voodoo_params_t *params, voodoo_state_t *state, int depthop)
+int voodoo_generate(uint8_t *code_block, voodoo_t *voodoo,
+                    voodoo_params_t *params, voodoo_state_t *state, int depthop)
 ```
 
-Generates ARM64 machine code for a scanline renderer based on current render state. The generated function has the signature:
+Generates ARM64 machine code for a scanline renderer based on current render state. Returns the actual code size in bytes (used for narrow I-cache flush). The generated function has the signature:
 
 ```c
 uint8_t (*voodoo_draw)(voodoo_state_t *state, voodoo_params_t *params,
@@ -71,7 +71,7 @@ void *voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params,
                        voodoo_state_t *state, int odd_even)
 ```
 
-Cache lookup by render state hash. If no match, calls `voodoo_generate()` to compile a new block. The cache has 32 slots per odd/even pair (128 total across 4 threads), with round-robin eviction via `jit_next_block_to_write`. Total code memory: 128 * 16KB = 2MB.
+Cache lookup by render state hash. If no match, calls `voodoo_generate()` to compile a new block. The cache has 32 slots per partition (128 total across 4 partitions), with LRU eviction. Each slot carries a `last_used` timestamp from a per-partition monotonic counter; on miss, the slot with the smallest timestamp is evicted. Rejected slots (emit overflow or W^X failure) get `last_used = 0` so they are evicted first. Array layout is contiguous per-partition for cache locality. Total code memory: 128 * 16KB = 2MB.
 
 **Cache key:**
 - `xdir` (forward/backward X iteration)
@@ -80,44 +80,42 @@ Cache lookup by render state hash. If no match, calls `voodoo_generate()` to com
 - `fogMode` (fog config)
 - `fbzColorPath` (color combine config)
 - `textureMode[0]`, `textureMode[1]` (texture fetch config for TMU0/TMU1)
-- `tLOD[0]`, `tLOD[1]` (LOD and mirroring config)
+- `tLOD[0]`, `tLOD[1]` (mirroring config only — `LOD_TMIRROR_S | LOD_TMIRROR_T` mask)
 - `trexInit1` bit 18 (texture override flag)
-- `col_tiled`, `aux_tiled` (framebuffer tiling flags)
+- `is_tiled` (combined `col_tiled || aux_tiled` flag)
 
-### W^X Toggle (macOS)
+### W^X Toggle
 
-macOS enforces W^X (write-xor-execute) for security. JIT memory must toggle between writable (for code generation) and executable (for running code).
+JIT memory must toggle between writable (for code generation) and executable (for running code). The implementation is platform-specific:
+
+- **macOS:** Kernel-enforced W^X. Uses `pthread_jit_write_protect_np()` to toggle.
+- **Windows:** Uses `VirtualProtect()` to toggle `PAGE_READWRITE` / `PAGE_EXECUTE_READ`.
+- **Linux:** Pages are typically allocated RWX (`PROT_READ|PROT_WRITE|PROT_EXEC`). When pages are born RWX, the `arm64_jit_rwx` flag short-circuits both toggle functions, avoiding redundant `mprotect` syscalls and their TLB shootdown cost.
 
 **Implementation:**
 
 ```c
-#if defined(__APPLE__) && defined(__aarch64__)
-    if (__builtin_available(macOS 11.0, *)) {
-        pthread_jit_write_protect_np(0);  // Make writable
-    }
-#endif
+arm64_codegen_set_writable(data->code_block);   // Make writable (no-op on Linux RWX)
 
-voodoo_generate(data->code_block, ...);  // Generate code + write metadata
+int code_size = voodoo_generate(data->code_block, ...);  // Generate code
 
-#if defined(__APPLE__) && defined(__aarch64__)
-    if (__builtin_available(macOS 11.0, *)) {
-        pthread_jit_write_protect_np(1);  // Make executable
-        __clear_cache(data->code_block, data->code_block + block_size);
-    }
-#endif
+arm64_codegen_set_executable(data->code_block);  // Make executable (no-op on Linux RWX)
+__clear_cache(data->code_block, data->code_block + code_size);  // Narrow flush
 ```
 
 **Critical:** The W^X bracket must cover BOTH `voodoo_generate()` AND metadata writes (`data->xdir`, `data->alphaMode`, etc.) because they share the same mmap'd region.
+
+**Narrow I-cache flush:** `voodoo_generate()` returns the actual code size emitted. The I-cache flush covers only `code_size` bytes instead of the full `BLOCK_SIZE` (16KB), saving ~192 unnecessary cache line invalidations on typical 2-4 KB codegen blocks.
 
 ### I-Cache Coherency
 
 ARM64 has separate instruction and data caches. After writing machine code, the I-cache must be flushed:
 
 ```c
-__clear_cache(start, end)
+__clear_cache(start, start + code_size)  // Narrow flush: only actual code emitted
 ```
 
-This is the portable builtin; do NOT use `sys_icache_invalidate()` (macOS-only).
+The flush range is narrowed to the actual `code_size` returned by `voodoo_generate()`, not the full `BLOCK_SIZE` (16KB). This is the portable builtin; on Windows use `FlushInstructionCache()`. Do NOT use `sys_icache_invalidate()` (macOS-only).
 
 ---
 
@@ -139,7 +137,7 @@ This is the portable builtin; do NOT use `sys_icache_invalidate()` (macOS-only).
 | `x19` | `logtable` pointer | Callee | Address of `logtable[]` (for LOD calculation) |
 | `x20` | `alookup` pointer | Callee | Address of `alookup[]` (for alpha blend division by 255) |
 | `x21` | `aminuslookup` pointer | Callee | Address of `aminuslookup[]` (for `255 - alpha`) |
-| `x22` | `xmm_00_ff_w` pointer | Callee | Address of NEON constant table |
+| `x22` | `neon_00_ff_w` pointer | Callee | Address of NEON constant table |
 | `x23` | `i_00_ff_w` pointer | Callee | Address of scalar `{0, 0xFF}` table |
 | `x24` | `real_y` copy | Callee | Preserved scanline Y (for dither table indexing) |
 | `x25` | `bilinear_lookup` pointer | Callee | Address of `bilinear_lookup[]` (for texture filtering) |
@@ -160,16 +158,16 @@ This is the portable builtin; do NOT use `sys_icache_invalidate()` (macOS-only).
 | `v3` | Work | Caller | Blend factor or TMU1 result |
 | `v4` | Work | Caller | Destination color or saved texture |
 | `v5` | Work | Caller | Temp |
-| `v6` | Iterated BGRA | Scratch | Cached iterated BGRA `{ib,ig,ir,ia}>>12` (Batch 6/H6). Note: `w6` (GPR alias) also used as LOD cache (Batch 6/H4) |
+| `v6` | Iterated BGRA | Scratch | Cached iterated BGRA `{ib,ig,ir,ia}>>12`. Note: `w6` (GPR alias) also used as LOD cache |
 | `v7` | Work | Caller | Temp |
-| `v8` | `xmm_01_w` | Callee | `{1,1,1,1,0,0,0,0}` (low 64 bits = 4x16). Also serves as `alookup[1]` for rounding in alpha blend (Batch 1/H7) |
+| `v8` | `xmm_01_w` | Callee | `{1,1,1,1,0,0,0,0}` (low 64 bits = 4x16). Also serves as `alookup[1]` for rounding in alpha blend |
 | `v9` | `xmm_ff_w` | Callee | `{0xFF,0xFF,0xFF,0xFF,0,0,0,0}` |
 | `v10` | `xmm_ff_b` | Callee | `{0x00FFFFFF,0,0,0}` (24-bit mask, used for `cc_invert_output`) |
-| `v11` | fogColor | Callee | Hoisted fog color (packed bytes); only loaded when fog enabled (Batch 7/M3) |
-| `v12` | RGBA deltas | Callee | Hoisted `{dBdX, dGdX, dRdX, dAdX}` from params (Batch 3/H1) |
+| `v11` | fogColor | Callee | Hoisted fog color (packed bytes); only loaded when fog enabled |
+| `v12` | RGBA deltas | Callee | Hoisted `{dBdX, dGdX, dRdX, dAdX}` from params |
 | `v13` | color-before-fog | Callee | Saved pre-fog color for fog computation |
-| `v14` | TMU1 ST deltas | Callee | Hoisted `{dSdX_1, dTdX_1}` from params (Batch 3/H1) |
-| `v15` | TMU0 ST deltas | Callee | Hoisted `{dSdX_0, dTdX_0}` from params (Batch 3/H1) |
+| `v14` | TMU1 ST deltas | Callee | Hoisted `{dSdX_1, dTdX_1}` from params |
+| `v15` | TMU0 ST deltas | Callee | Hoisted `{dSdX_0, dTdX_0}` from params |
 | `v16-v31` | Work | Caller | Temp (used for multiply results, loads, etc.) |
 
 **Note:** ARM64 requires callee-saved registers (x19-x28, v8-v15) to be preserved across function calls. The prologue saves them to the stack; the epilogue restores them.
@@ -316,6 +314,8 @@ epilogue:
 
 **Purpose:** Save callee-saved registers, load constant pointers, initialize NEON constants.
 
+**Early return checks:** Before the prologue, `DEPTHOP_NEVER` and `AFUNC_NEVER` emit a bare `RET` and return immediately. This avoids the ABI violation that would occur if `RET` were emitted after the prologue had saved registers and decremented SP.
+
 **Stack layout (176 bytes, 16-byte aligned):**
 
 | Offset | Contents |
@@ -375,7 +375,7 @@ epilogue:
    // v14 = {dSdX_1, dTdX_1} (TMU1 ST deltas, if dual TMU)
    LDR Q14, [x1, #PARAMS_tmu1_dSdX]
 
-   // v11 = fogColor (only when fog enabled, Batch 7/M3)
+   // v11 = fogColor (only when fog enabled)
    LDR w16, [x1, #PARAMS_fogColor]
    FMOV s11, w16
    ```
@@ -486,7 +486,7 @@ CSEL w10, w11, w10, GT      // If > 0xFFFF, clamp to 0xFFFF
 
 | Mode | Condition | ARM64 Branch |
 |------|-----------|--------------|
-| `DEPTHOP_NEVER` | Always fail | `RET` (immediate return) |
+| `DEPTHOP_NEVER` | Always fail | `RET` before prologue (early return) |
 | `DEPTHOP_LESSTHAN` | `new < old` | Skip on `B.CS` (unsigned >=) |
 | `DEPTHOP_EQUAL` | `new == old` | Skip on `B.NE` |
 | `DEPTHOP_LESSTHANEQUAL` | `new <= old` | Skip on `B.HI` (unsigned >) |
@@ -700,7 +700,7 @@ if (cc_invert_output) {
 
 **Fog constant mode (using hoisted v11):**
 
-fogColor is hoisted into `v11` during the prologue (Batch 7/M3), so the per-pixel path requires no memory load:
+fogColor is hoisted into `v11` during the prologue, so the per-pixel path requires no memory load:
 
 ```c
 // v11 = hoisted fogColor (packed bytes, loaded once in prologue)
@@ -799,7 +799,7 @@ switch (alpha_func) {
 
 **Load destination pixel (using pinned x26):**
 
-The `rgb565[]` LUT pointer is pinned in `x26` (Batch 5/M4), eliminating a 4-instruction address load per pixel:
+The `rgb565[]` LUT pointer is pinned in `x26`, eliminating a 4-instruction address load per pixel:
 
 ```c
 // Load x coordinate (tiled or linear)
@@ -824,7 +824,7 @@ ADD x7, x20, x12, LSL #3      // x7 = alookup + src_alpha*2*8
 LDR d5, [x7, #0]              // v5 = alookup[src_alpha]
 MUL v4.4H, v4.4H, v5.4H
 
-// Rounding (Batch 1/H7): v8 = pinned alookup[1] = {1,1,1,1}
+// Rounding: v8 = pinned alookup[1] = {1,1,1,1}
 // The /255 rounding uses: result = (product + 1 + (product >> 8)) >> 8
 // This is the Voodoo hardware's standard alpha multiply with rounding.
 USHR v17.4H, v4.4H, #8       // v17 = product >> 8
@@ -935,7 +935,7 @@ STRH w4, [x8, x14, LSL #1]
 
 **RGBA increment (NEON 4xS32, using hoisted v12):**
 
-RGBA deltas `{dBdX, dGdX, dRdX, dAdX}` are hoisted into `v12` in the prologue (Batch 3/H1), eliminating the per-pixel delta load.
+RGBA deltas `{dBdX, dGdX, dRdX, dAdX}` are hoisted into `v12` in the prologue, eliminating the per-pixel delta load.
 
 ```c
 ADD x16, x0, #STATE_ib        // x16 = &state->ib
@@ -965,7 +965,7 @@ STR w4, [x0, #STATE_z]
 
 **TMU0 S/T increment (NEON 2xD64, using hoisted v15):**
 
-TMU0 ST deltas `{dSdX_0, dTdX_0}` are hoisted into `v15` in the prologue (Batch 3/H1).
+TMU0 ST deltas `{dSdX_0, dTdX_0}` are hoisted into `v15` in the prologue.
 
 ```c
 LDR q0, [x0, #STATE_tmu0_s]   // Load tmu0_s (64-bit) + tmu0_t (64-bit)
@@ -994,7 +994,7 @@ STR x10, [x0, #STATE_tmu0_w]
 
 **TMU1 S/T/W increment (if dual TMUs):** Same logic as TMU0, using hoisted `v14` for `{dSdX_1, dTdX_1}` deltas. TMU1 state at `STATE_tmu1_s` (offset 520) is not 16-byte aligned, so uses `ADD x16, x0, #STATE_tmu1_s` + `LD1/ST1` instead of `LDR Q`.
 
-**Pixel and texel count increment (paired LDP/STP, Batch 5/M7):**
+**Pixel and texel count increment (paired LDP/STP):**
 
 When textures are enabled, `pixel_count` and `texel_count` are adjacent in the state struct and are loaded/stored as a pair using `LDP`/`STP` (2 memory ops instead of 4). The offset exceeds `imm7` range for LDP, so a base register is computed first:
 
@@ -1012,7 +1012,7 @@ When textures are disabled, only `pixel_count` is updated (simple LDR/ADD/STR).
 
 **x86-64 ref:** Lines 3448-3469
 
-Uses cached `w28` (STATE_x) and `w27` (STATE_x2) to eliminate per-pixel memory loads (Batch 2/H2+H3):
+Uses cached `w28` (STATE_x) and `w27` (STATE_x2) to eliminate per-pixel memory loads:
 
 ```c
 // w28 = cached STATE_x, w27 = cached STATE_x2 (loaded once in prologue)
@@ -1139,28 +1139,30 @@ MOVK x0, #0x0000, LSL #48
 **x86-64:** Weak consistency. Code can be written and executed immediately without explicit cache maintenance.
 
 **ARM64:** Strong consistency. After writing code, must:
-1. Toggle W^X: `pthread_jit_write_protect_np(1)` (macOS)
-2. Flush I-cache: `__clear_cache(start, end)`
+1. Toggle W^X: `pthread_jit_write_protect_np(1)` (macOS), `VirtualProtect()` (Windows), `mprotect()` (Linux — skipped when pages are born RWX)
+2. Flush I-cache: `__clear_cache(start, start + code_size)` (narrow flush)
 
-**Impact:** Adds overhead (~14 lines per JIT invocation), but required for correctness.
+**Impact:** Adds overhead per JIT invocation, but required for correctness. On Linux RWX the W^X toggle is a no-op.
 
 ---
 
-## Optimization History
+## Optimizations
 
-Seven optimization batches were applied after the initial port was feature-complete, removing ~80-100 instructions per pixel iteration:
+After the initial port was feature-complete, multiple optimization passes were applied, removing ~80-100 instructions per pixel iteration. Key optimizations:
 
-| Batch | Description | Key Change |
-|-------|-------------|------------|
-| 1 | Alpha blend rounding (H7+H8) | `alookup[1]` pinned in `v8` for accurate `/255` rounding |
-| 2 | Cache STATE_x/x2 (H2+H3) | `x28` = STATE_x, `x27` = STATE_x2 (eliminate per-pixel loads) |
-| 3 | Hoist params deltas (H1) | `v12` = RGBA deltas, `v14`/`v15` = TMU ST deltas |
-| 4 | BIC+ASR clamp (M2) | Replace CMP/CSEL chains with `BIC reg, reg, reg, ASR #31` |
-| 5 | Pin rgb565 + pair counters (M4+M7) | `x26` = rgb565 pointer, LDP/STP for pixel/texel counters |
-| 6 | Cache LOD + iterated BGRA (H4+H6) | `w6` = LOD cache, `v6` = iterated BGRA cache |
-| 7 | Misc small wins (M1,M3,M5,M6,L1,L2) | fogColor in `v11`, LDP for fb/aux_mem, shift-to-BFI, UBFX opts |
+| Optimization | Key Change |
+|-------------|------------|
+| Alpha blend rounding | `alookup[1]` pinned in `v8` for accurate `/255` rounding |
+| Loop variable caching | `x28` = STATE_x, `x27` = STATE_x2 (eliminate per-pixel loads) |
+| Delta hoisting | `v12` = RGBA deltas, `v14`/`v15` = TMU ST deltas (loaded once in prologue) |
+| BIC+ASR clamp | Replace CMP/CSEL chains with `BIC reg, reg, reg, ASR #31` |
+| Pinned pointers + paired counters | `x26` = rgb565 pointer, LDP/STP for pixel/texel counters |
+| LOD + iterated BGRA caching | `w6` = LOD cache, `v6` = iterated BGRA cache |
+| Fog color hoisting | fogColor in `v11` (loaded once in prologue when fog enabled) |
+| LDP for fb/aux_mem | Load framebuffer + auxiliary pointers in a single instruction |
+| UBFX/BFI | Use bitfield extract/insert instead of shift+mask sequences |
 
-Batch D (SDIV-to-reciprocal approximation for perspective-correct texture) was evaluated but **deferred** due to accuracy risk and marginal benefit on Apple Silicon (where SDIV is fast).
+SDIV-to-reciprocal approximation for perspective-correct texture was evaluated but **deferred** due to accuracy risk and marginal benefit on Apple Silicon (where SDIV is fast).
 
 ---
 
@@ -1198,7 +1200,7 @@ After these fixes, the ARM64 JIT is **more accurate** than the x86-64 JIT on thr
 
 ### 3. Frame Size Growth
 
-**History:** Originally 128 bytes (d8-d13 only). Grew to 176 bytes after d14/d15 were added to support hoisted TMU ST deltas (v14/v15, Batch 3/H1). The 48-byte increase is justified by saving ~6 memory loads per pixel iteration.
+**History:** Originally 128 bytes (d8-d13 only). Grew to 176 bytes after d14/d15 were added to support hoisted TMU ST deltas (v14/v15). The 48-byte increase is justified by saving ~6 memory loads per pixel iteration.
 
 ### 4. Voodoo 2 Non-Perspective Texture Bug
 
@@ -1265,19 +1267,19 @@ Two quirks in the x86-64 reference were discovered during ARM64 port:
 
 **Baseline performance:** ARM64 JIT is 7-10x faster than interpreter on Apple M2/M3 (measured pre-optimization).
 
-**Optimization status:** 7 optimization batches completed, removing ~80-100 instructions per pixel. Post-optimization performance has not been formally re-benchmarked but should be significantly higher.
+**Optimization status:** Multiple optimization passes completed, removing ~80-100 instructions per pixel. Post-optimization performance has not been formally re-benchmarked but should be significantly higher.
 
 **Completed improvements:**
 
 1. **Cache expansion (done):** Cache increased from 8 to 32 slots per odd/even pair (128 total), greatly reducing thrash on games with many render states.
 
-2. **Hot path optimization (done):** 7 batches of peephole and hoisting optimizations applied (see Optimization History section below).
+2. **Hot path optimization (done):** Peephole and hoisting optimizations applied (see Optimizations section).
 
 **Remaining potential improvements:**
 
 1. **Profile-guided optimization:** Profile with Instruments (macOS) to find remaining bottlenecks. Known hot spots:
    - Bilinear texture fetch (many loads/multiplies)
-   - SDIV for perspective-correct texture (deferred Batch D: reciprocal approximation)
+   - SDIV for perspective-correct texture (reciprocal approximation — deferred)
 
 2. **Lazy state updates:** Some state (e.g., `pixel_count`) is updated every pixel but rarely read. Consider batching updates.
 

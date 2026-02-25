@@ -748,7 +748,6 @@ typedef struct voodoo_t {
 
     /* JIT cache state -- per-instance to avoid races between render threads */
     int jit_last_block[4];
-    int jit_next_block_to_write[4];
     ATOMIC_INT jit_recomp;
 
     /* JIT debug counters -- per-instance */

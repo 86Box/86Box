@@ -71,25 +71,6 @@ CLAUDE.md
 86Box-voodoo-arm64.code-workspace
 .serena
 .claude
-build-endianness-fix.log
-build-phase5-6.log
-NEW-SESSION-PROMPT.md
-run-endianness-fix.log
-run-phase5-6-full.log
-run-phase5-6.log
-Screenshot 2026-02-15 at 10.00.02 PM.png
-Screenshot 2026-02-15 at 10.00.04 PM.png
-Screenshot 2026-02-15 at 10.01.01 PM.png
-Screenshot 2026-02-15 at 10.01.20 PM.png
-Screenshot 2026-02-15 at 10.01.28 PM.png
-screenshot-session-2.log
-screenshot-session.log
-voodoo-jit-bug6-test.log
-voodoo-jit-debug.log
-voodoo-jit-test.log
-voodoo-pixel-trace.log
-voodoo-arm64-port/comment-audit-v2.md
-voodoo-arm64-port/comment-audit.md
-scripts/analyze-jit-log
-voodoo-arm64-port/AGENTS.md
+
 riva128-nv3-port/feasibility-study.md
+scripts/analyze-jit-log
