@@ -65,7 +65,7 @@
 /* JIT counters and cache state are per-instance in voodoo_t:
  *   voodoo->jit_hit_count, jit_gen_count, jit_exec_count,
  *   voodoo->jit_last_block[4], jit_recomp
- * LRU generation counters are file-static: jit_generation[4]
+ * LRU generation counters are per-instance: voodoo->jit_generation[4]
  */
 
 #define BLOCK_NUM  32
@@ -131,7 +131,7 @@
  *   <key fields> -- the hardware register state that uniquely identifies
  *                   the compiled pipeline variant (mirrors voodoo_x86_data_t)
  *   last_used   -- LRU timestamp (monotonic per-partition generation counter).
- *                  On hit, set to ++jit_generation[partition].
+ *                  On hit, set to ++voodoo->jit_generation[partition].
  *                  On reject, set to 0 so the slot is evicted first.
  *   valid       -- 1 if code_block holds valid compiled code
  *   rejected    -- 1 if this variant was rejected (emit overflow, W^X failure)
@@ -155,9 +155,8 @@ typedef struct voodoo_arm64_data_t {
 } voodoo_arm64_data_t;
 
 /* LRU generation counter per partition (4 partitions = odd_even).
- * File-static since all JIT code is in this single-file header.
+ * Per-instance in voodoo_t so SLI cards don't share eviction state.
  * Thread-safe: each partition is touched by exactly one render thread. */
-static uint64_t jit_generation[4];
 
 /* Linux ARM64 without PROT_MPROTECT: pages are born RWX, so mprotect
  * toggles in set_writable/set_executable are redundant syscalls that
@@ -4557,7 +4556,7 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
                 return NULL;
 
             /* LRU: stamp this slot as most-recently-used */
-            data->last_used                  = ++jit_generation[odd_even];
+            data->last_used                  = ++voodoo->jit_generation[odd_even];
             voodoo->jit_last_block[odd_even] = probe;
             if (voodoo->jit_debug && voodoo->jit_debug_log) {
                 int hit_count = ATOMIC_LOAD(voodoo->jit_hit_count);
@@ -4635,7 +4634,7 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     }
 
     arm64_codegen_store_cache_key(data, voodoo, params, state, 1, 0);
-    data->last_used                  = ++jit_generation[odd_even];
+    data->last_used                  = ++voodoo->jit_generation[odd_even];
     voodoo->jit_last_block[odd_even] = (int) (data - &voodoo_arm64_data[base]);
 
     /* W^X: make executable, flush I-cache (narrow range = actual code size) */
@@ -4732,7 +4731,7 @@ voodoo_codegen_init(voodoo_t *voodoo)
 
     /* Initialize per-instance JIT cache state */
     memset(voodoo->jit_last_block, 0, sizeof(voodoo->jit_last_block));
-    memset(jit_generation, 0, sizeof(jit_generation));
+    memset(voodoo->jit_generation, 0, sizeof(voodoo->jit_generation));
     ATOMIC_STORE(voodoo->jit_recomp, 0);
     ATOMIC_STORE(voodoo->jit_hit_count, 0);
     ATOMIC_STORE(voodoo->jit_gen_count, 0);
