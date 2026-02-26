@@ -409,8 +409,7 @@ machine_at_adi386sx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
+    machine_at_common_init(model);
 
     device_add(&intel_82335_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
@@ -494,6 +493,31 @@ machine_at_neat_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_p3345_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/p3345/BIOS_EVEN.BIN",
+                                "roms/machines/p3345/BIOS_ODD.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&neat_device);
+    device_add(&ide_isa_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 /* NEATsx */
 int
 machine_at_if386sx_init(const machine_t *model)
@@ -507,8 +531,7 @@ machine_at_if386sx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
+    machine_at_common_init(model);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -586,9 +609,9 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
         return ret;
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5402_onboard_device);
+        device_add(&gd5402_onboard_commodore_device);
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&ide_isa_device);
 
@@ -700,7 +723,7 @@ machine_at_dells333sl_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&ide_isa_device);
 
@@ -774,7 +797,7 @@ machine_at_wd76c10_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));

@@ -350,7 +350,7 @@ machine_at_pc330_6573_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
     device_add(&ide_vlb_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -458,7 +458,7 @@ machine_at_pb450_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
     device_add(&ide_vlb_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -582,8 +582,7 @@ machine_at_ninja_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -707,9 +706,8 @@ machine_at_alfredo_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
-    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
@@ -881,8 +879,7 @@ machine_at_pci400cb_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1994_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -929,7 +926,7 @@ machine_at_acerp3_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
@@ -963,7 +960,7 @@ machine_at_486sp3c_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
@@ -991,7 +988,7 @@ machine_at_ls486e_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_ls486e_device);
@@ -1018,7 +1015,7 @@ machine_at_m4li_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
@@ -1045,7 +1042,7 @@ machine_at_ms4144_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_ls486e_device);
@@ -1073,7 +1070,7 @@ machine_at_r418_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
@@ -1100,7 +1097,7 @@ machine_at_4saw2_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
@@ -1129,7 +1126,7 @@ machine_at_4dps_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
@@ -1471,11 +1468,8 @@ machine_at_hot433a_init(const machine_t *model)
     ret          = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
-    if (is_award)
-        device_add(&amstrad_megapc_nvr_device);
-    else
-        device_add(&ami_1994_nvr_device);
+    machine_at_common_init(model);
+    device_add_params(&nvr_at_device, (void *) (uintptr_t) (is_award ? (NVR_AT_ZERO_DEFAULT) : (NVR_AMI_1994)));
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

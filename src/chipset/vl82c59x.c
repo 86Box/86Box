@@ -12,7 +12,7 @@
  *          win2kgamer
  *
  *          Copyright 2020-2025 Miran Grca.
- *          Copyright 2025 win2kgamer
+ *          Copyright 2025-2026 win2kgamer
  */
 #ifdef ENABLE_VL82C59X_LOG
 #include <stdarg.h>
@@ -79,6 +79,9 @@ typedef struct vl82c59x_t {
     smram_t   *smram[4];
     port_92_t *port_92;
     nvr_t     *nvr;
+
+    uint32_t banks[4];
+    uint8_t  bankcfg[4];
 
     void *    log;  /* New logging system */
 } vl82c59x_t;
@@ -207,6 +210,52 @@ vl82c59x_set_pm_io(void *priv)
 
 }
 
+void
+vl82c59x_recalc_banks(vl82c59x_t *dev)
+{
+    uint32_t sizes[8]   = { 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144 };
+    uint8_t  shifts[4] = { 0, 4, 0, 4 };
+    uint8_t  regs[4]   = { 0x58, 0x58, 0x59, 0x59 };
+    uint32_t total      = 0;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        uint8_t shift = shifts[i];
+        uint8_t reg   = regs[i];
+        uint8_t cfg = (dev->pci_conf[reg] >> shift) & 0x03; /* Module types */
+        uint8_t dbl = ((dev->pci_conf[reg] >> shift) & 0x08) ? 1 : 0; /* Single/double sided */
+        uint8_t conf = (cfg << 1) | (dbl & 0x01);
+        uint32_t size = sizes[conf];
+
+        vl82c59x_log(dev->log, "VL82c59x DRAM recalc: bank %i, cfg = %02X, dbl = %i, conf = %02X, size = %i, RAMCTL0 = %02X\n", i, cfg, dbl, conf, size, dev->pci_conf[0x5c]);
+        vl82c59x_log(dev->log, "VL82c59x DRAM recalc: bank %i size = %i\n", i, dev->banks[i]);
+
+        /* Handle case where the BIOS programs RAMCFGx for dual-sided/ranked memory when single-sided memory is installed */
+        if (((dev->bankcfg[i] & 0x08) == 0x00) && dbl == 1) {
+            size = sizes[conf - 1];
+            vl82c59x_log(dev->log, "VL82c59x DRAM recalc: bank %i mismatch, bankcfg = %02X, reg = %02X\n", dev->bankcfg[i], dev->pci_conf[reg]);
+         }
+
+        if (!(dev->pci_conf[0x5c] & (1 << i)))
+            size = 0;
+
+        total += MIN(dev->banks[i], size);
+        vl82c59x_log(dev->log, "VL82c59x DRAM recalc: bank %i, total = %i\n", i, total);
+    }
+
+    if (total > 1024) {
+        mem_mapping_set_addr(&ram_low_mapping, 0x00000000, 0x000a0000);
+        mem_mapping_set_addr(&ram_high_mapping, 0x00100000, (total - 1024) << 10);
+    } else {
+        if (total >= 1024)
+            mem_mapping_set_addr(&ram_low_mapping, 0x00000000, 0x000a0000);
+        else
+            mem_mapping_disable(&ram_low_mapping);
+        mem_mapping_disable(&ram_high_mapping);
+    }
+
+    flushmmucache();
+}
+
 static void
 vl82c59x_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
@@ -231,12 +280,21 @@ vl82c59x_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x58:              /* RAMCFG0 */
         case 0x59:              /* RAMCFG1 */
             dev->pci_conf[addr] = val;
+            vl82c59x_log(dev->log, "VL82c59x: RAMCFGx write, RAMCFG0 = %02X, RAMCFG1 = %02X\n", dev->pci_conf[0x58], dev->pci_conf[0x59]);
+            if (machines[machine].init == machine_at_bravoms586_init)
+                vl82c59x_recalc_banks(dev);
             break;
         case 0x5a:              /* Wildcat EDO RAM control */
             if (dev->type == 0x01)
                 dev->pci_conf[addr] = val;
             break;
-        case 0x5c ... 0x5e:     /* RAMCTL0-RAMCTL2 */
+        case 0x5c:     /* RAMCTL0 */
+            vl82c59x_log(dev->log, "VL82c59x: RAMCTL0 write\n");
+            dev->pci_conf[addr] = val;
+            if (machines[machine].init == machine_at_bravoms586_init)
+                vl82c59x_recalc_banks(dev);
+            break;
+        case 0x5d ... 0x5e:     /* RAMCTL1-RAMCTL2 */
         case 0x5f ... 0x60:
         case 0x62:
             /* Apricot XEN-PC Ruby/Jade BIOS requires bit 2 to be set or */
@@ -483,6 +541,47 @@ vl82c59x_reset(void *priv)
     cpu_cache_int_enabled = 1;
     cpu_cache_ext_enabled = 1;
     cpu_update_waitstates();
+
+    /* Init DRAM bank registers */
+    uint32_t sizes[8]   = { 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144 };
+    uint8_t reg_vals[8] = { 0x00, 0x08, 0x01, 0x09, 0x02, 0x0a, 0x03, 0x0b };
+    uint32_t ms         = mem_size;
+
+    dev->pci_conf[0x58] = 0x00; /* RAMCFG0 */
+    dev->pci_conf[0x59] = 0x00; /* RAMCFG1 */
+    dev->pci_conf[0x5c] = 0x00; /* RAMCTL0 */
+
+
+    if (ms > 0) for (uint8_t i = 0; i < 4; i++ ) {
+        for (uint8_t j = 0; j < 8; j++ ) {
+            if (ms >= sizes[j] ) {
+                dev->banks[i] = sizes[j];
+                dev->bankcfg[i] = reg_vals[j];
+                dev->pci_conf[0x5c] |= (1 << i);
+            } else
+                break;
+        }
+
+        ms -= dev->banks[i];
+
+        if ((ms == 0 || dev->banks[i] == 0))
+            break;
+    }
+
+    for (uint8_t i = 0; i < 4; i++ ) {
+        if (dev->banks[0] != 0)
+            dev->pci_conf[0x58] = (dev->bankcfg[0] & 0x0f);
+        if (dev->banks[1] != 0)
+            dev->pci_conf[0x58] |= ((dev->bankcfg[1] & 0x0f) << 4);
+        if (dev->banks[2] != 0)
+            dev->pci_conf[0x59] = (dev->bankcfg[2] & 0x0f);
+        if (dev->banks[3] != 0)
+            dev->pci_conf[0x59] |= ((dev->bankcfg[3] & 0x0f) << 4);
+    }
+
+    vl82c59x_log(dev->log, "VL82c59x: DRAM bank init, RAMCFG0 = %02X, RAMCFG1 = %02X, RAMCTL0 = %02X\n", dev->pci_conf[0x58], dev->pci_conf[0x59], dev->pci_conf[0x5c]);
+    vl82c59x_log(dev->log, "VL82c59x: DRAM bank vals: %i, %i, %i, %i\n", dev->banks[0], dev->banks[1], dev->banks[2], dev->banks[3]);
+
 }
 
 static void
@@ -523,7 +622,7 @@ vl82c59x_init(UNUSED(const device_t *info))
     dev->port_92 = device_add(&port_92_device);
 
     /* NVR */
-    dev->nvr = device_add(&at_nvr_device);
+    dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT);
 
     dev->smram[0] = smram_add();
     dev->smram[1] = smram_add();

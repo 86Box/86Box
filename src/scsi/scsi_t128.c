@@ -27,7 +27,6 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
-#include "cpu.h"
 #include <86box/timer.h>
 #include <86box/dma.h>
 #include <86box/pic.h>
@@ -41,6 +40,7 @@
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr5380.h>
 #include <86box/scsi_t128.h>
+#include "cpu.h"
 
 #define T128_ROM                "roms/scsi/ncr5380/trantor_t128_bios_v1.12.bin"
 
@@ -75,7 +75,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
     if ((addr >= 0x1800) && (addr < 0x1880))
         t128->ext_ram[addr & 0x7f] = val;
     else if ((addr >= 0x1c00) && (addr < 0x1c20)) {
-        t128_log("T128 ctrl write=%02x, mode=%02x.\n", val, ncr->mode & MODE_DMA);
+        t128_log("T128 ctrl write=%02x, mode=%02x.\n", val & 0x10, ncr->mode & MODE_DMA);
         t128->ctrl = val;
     } else if ((addr >= 0x1d00) && (addr < 0x1e00))
         ncr5380_write((addr - 0x1d00) >> 5, val, ncr);
@@ -141,6 +141,7 @@ t128_read(uint32_t addr, void *priv)
                     if (ncr->mode & MODE_ENA_EOP_INT) {
                         t128_log("T128 read irq\n");
                         ncr5380_irq(ncr, 1);
+                        ncr->isr |= STATUS_INT;
                     }
                     scsi_bus->bus_out |= BUS_CD;
                     scsi_bus->tx_mode = PIO_TX_BUS;
@@ -298,6 +299,7 @@ t128_callback(void *priv)
                         if (ncr->mode & MODE_ENA_EOP_INT) {
                             t128_log("T128 write irq\n");
                             ncr5380_irq(ncr, 1);
+                            ncr->isr |= STATUS_INT;
                         }
                         scsi_bus->tx_mode = PIO_TX_BUS;
                         timer_stop(&t128->timer);
@@ -497,6 +499,7 @@ t128_init(const device_t *info)
     ncr->dma_send_ext               = t128_dma_send_ext;
     ncr->dma_initiator_receive_ext  = t128_dma_initiator_receive_ext;
     ncr->timer                      = t128_timer_on_auto;
+    ncr->irq_ena                    = NULL;
     scsi_bus->bus_device            = ncr->bus;
     scsi_bus->timer                 = ncr->timer;
     scsi_bus->priv                  = ncr->priv;
@@ -566,12 +569,13 @@ static const device_config_t t128_config[] = {
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = -1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "None",  .value = -1 },
             { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 7", .value = 7 },
             { .description = "IRQ 10", .value = 10 },

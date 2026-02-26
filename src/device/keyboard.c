@@ -216,22 +216,24 @@ key_process(uint16_t scan, int down)
     */
     if (key5576mode) {
         int i = 0;
-        if (!down) {
-            /* Do and exit the 5576-001 emulation when a key is pressed other than trigger keys. */
-            if (scan != 0x1d && scan != 0x2a && scan != 0x138)
-            {
+        if (down) {
+            while (scconv55_8a[i].sc != 0) {
+                if (scconv55_8a[i].sc == scan) {
+                    while (scconv55_8a[i].mk[c] != 0)
+                        keyboard_send(scconv55_8a[i].mk[c++]);
+                }
+                i++;
+            }
+        }
+        /* Do and exit the 5576-001 emulation when a key is pressed other than trigger keys. */
+        if (scan != 0x1d && scan != 0x2a && scan != 0x138) {
+            if (!down) {
                 key5576mode = 0;
                 kbc_at_log("5576-001 key emulation disabled.\n");
             }
-        }
-        while (scconv55_8a[i].sc != 0)
-        {
-            if (scconv55_8a[i].sc == scan) {
-                while (scconv55_8a[i].mk[c] != 0)
-                    keyboard_send(scconv55_8a[i].mk[c++]);
-                return;
-            }
-            i++;
+            /* If the key is found in the table, the scancode has been sent.
+               Or else, do nothing. */
+            return;
         }
     }
 

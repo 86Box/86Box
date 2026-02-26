@@ -55,10 +55,10 @@ msgid "&Resizeable window"
 msgstr "&Venster met aanpasbare grootte"
 
 msgid "R&emember size && position"
-msgstr "&Onthoud grootte && positie"
+msgstr "&Onthoud grootte en positie"
 
 msgid "Remember size && position"
-msgstr "Onthoud grootte && positie"
+msgstr "Onthoud grootte en positie"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -73,7 +73,7 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify &dimensions…"
-msgstr "Afmetingen opgeven…"
+msgstr "&Afmetingen opgeven…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Forceer &4:3 beeldverhouding"
@@ -154,7 +154,7 @@ msgid "VGA screen &type"
 msgstr "VGA-scherm &type"
 
 msgid "RGB &Color"
-msgstr "RGB &Kleur"
+msgstr "RGB &kleur"
 
 msgid "RGB (no brown)"
 msgstr "RGN (geen bruin)"
@@ -421,7 +421,7 @@ msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A-graphics"
 
 msgid "XGA Graphics"
-msgstr "XGA Graphics"
+msgstr "XGA-graphics"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
@@ -469,13 +469,13 @@ msgid "Sound card #4:"
 msgstr "Geluidskaart #4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Uitvoerapparaat:"
+msgstr "MIDI uitvoerapparaat:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI Invoerapparaat:"
+msgstr "MIDI invoerapparaat:"
 
 msgid "MIDI Out:"
-msgstr "Midi Uit:"
+msgstr "Midi uit:"
 
 msgid "Standalone MPU-401"
 msgstr "Standalone MPU-401"
@@ -580,7 +580,7 @@ msgid "Hard disks:"
 msgstr "Harde schijven:"
 
 msgid "Firmware Version"
-msgstr "Firmware Versie"
+msgstr "Firmware versie"
 
 msgid "&New…"
 msgstr "&Nieuw…"
@@ -673,10 +673,10 @@ msgid "Generic ISA ROM Board"
 msgstr "Generieke ISA ROM-kaart"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Generieke Dubbele ISA ROM-kaart"
+msgstr "Generieke dubbele ISA ROM-kaart"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Generieke Viervoudige ISA ROM-kaart"
+msgstr "Generieke viervoudige ISA ROM-kaart"
 
 msgid "ISABugger device"
 msgstr "ISABugger-apparaat"
@@ -1006,7 +1006,7 @@ msgid "About %1"
 msgstr "Over %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Een emulator van oude computers\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nMet eerdere bijdragen van Sarah Walker, leilei, JohnElliott, greatpsycho en anderen.\n\nUitgebracht onder de GNU General Public License versie 2 of later. Zie LICENSE voor meer informatie."
+msgstr "Een emulator van oude computers\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, en anderen.\n\nMet eerdere bijdragen van Sarah Walker, leilei, JohnElliott, greatpsycho en anderen.\n\nUitgebracht onder de GNU General Public License versie 2 of later. Zie LICENSE voor meer informatie."
 
 msgid "Hardware not available"
 msgstr "Hardware niet beschikbaar"
@@ -1312,7 +1312,7 @@ msgid "An error has occurred while checking for updates: %1"
 msgstr "Er is een fout opgetreden tijdens het controleren op updates: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr "<b> Een update van 86Box is beschikbaar!</b>"
+msgstr "<b>Een update van 86Box is beschikbaar!</b>"
 
 msgid "Warning"
 msgstr "Waarschuwing"
@@ -2065,7 +2065,7 @@ msgid "Dynamic Sample Loading"
 msgstr "Dynamische sample-lading"
 
 msgid "Reverb Output Gain"
-msgstr "Reverbuitgang Versterking"
+msgstr "Reverbuitgang versterking"
 
 msgid "Reversed stereo"
 msgstr "Omgekeerde stereo"
@@ -2362,7 +2362,7 @@ msgid "Always at selected speed"
 msgstr "Altijd op geselecteerde snelheid"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr "BIOS-instelling + Sneltoetsen (niet actief tijdens POST)"
+msgstr "BIOS-instelling + sneltoetsen (niet actief tijdens POST)"
 
 msgid "64 KB starting from F0000"
 msgstr "64 KB vanaf F0000"
@@ -2401,16 +2401,16 @@ msgid "Wheel"
 msgstr "Wiel"
 
 msgid "Five + Wheel"
-msgstr "Vijf + Wiel"
+msgstr "Vijf + wiel"
 
 msgid "Five + 2 Wheels"
-msgstr "Vijf + 2 Wielen"
+msgstr "Vijf + 2 wielen"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 Serieel / SMT3(R)V"
+msgstr "A3 - SMT2 serieel / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) Serieel"
+msgstr "Q1 - SMT3(R) serieel"
 
 msgid "8 KB"
 msgstr "8 KB"
@@ -2482,7 +2482,7 @@ msgid "Green Monochrome"
 msgstr "Groen monochroom"
 
 msgid "Amber Monochrome"
-msgstr "Amber Monochroom"
+msgstr "Amber monochroom"
 
 msgid "Gray Monochrome"
 msgstr "Grijs monochroom"
@@ -2551,7 +2551,7 @@ msgid "Color"
 msgstr "Kleur"
 
 msgid "U.S. English"
-msgstr "Amerikaans Engels"
+msgstr "Amerikaans engels"
 
 msgid "Scandinavian"
 msgstr "Scandinavisch"
@@ -2566,16 +2566,16 @@ msgid "Apply overscan deltas"
 msgstr "Overscan-delta’s toepassen"
 
 msgid "Mono Interlaced"
-msgstr "Mono Interlaced"
+msgstr "Mono interlaced"
 
 msgid "Mono Non-Interlaced"
-msgstr "Mono Niet-Interlaced"
+msgstr "Mono niet-interlaced"
 
 msgid "Color Interlaced"
-msgstr "Kleur Interlaced"
+msgstr "Kleur interlaced"
 
 msgid "Color Non-Interlaced"
-msgstr "Kleur Niet-Interlaced"
+msgstr "Kleur niet-interlaced"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo Graphics"
@@ -2635,7 +2635,7 @@ msgid "Passthrough Mode"
 msgstr "Doorgeefmodus"
 
 msgid "Host Serial Device"
-msgstr "Host Serieel Apparaat"
+msgstr "Host serieel apparaat"
 
 msgid "Name of pipe"
 msgstr "Naam van de pipe"
@@ -2650,10 +2650,10 @@ msgid "Baud Rate of Passthrough"
 msgstr "Baud-snelheid van doorvoer"
 
 msgid "Named Pipe (Server)"
-msgstr "Named Pipe (Server)"
+msgstr "Genoemd pipe (server)"
 
 msgid "Named Pipe (Client)"
-msgstr "Named Pipe (Client)"
+msgstr "Genoemd pipe (client)"
 
 msgid "Host Serial Passthrough"
 msgstr "Host seriële doorgave"
@@ -2833,10 +2833,10 @@ msgid "SoundFont files"
 msgstr "SoundFont-bestanden"
 
 msgid "Local Switch"
-msgstr "Lokale Switch"
+msgstr "Lokale-switch"
 
 msgid "Remote Switch"
-msgstr "Externe Switch"
+msgstr "Externe-switch"
 
 msgid "Shared secret:"
 msgstr "Gedeeld geheim:"
@@ -2869,16 +2869,16 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "Fout bij Wissen van NVRAM-inhoud van de virtuele machine \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "%1 VM Beheerder"
+msgstr "%1 VM-beheerder"
 
 msgid "%n disk(s)"
 msgstr "%n schijf/schijven"
 
 msgid "Unknown Status"
-msgstr "Onbekende Status"
+msgstr "Onbekende status"
 
 msgid "No Machines Found!"
-msgstr "Geen Machines Gevonden!"
+msgstr "Geen machines gevonden!"
 
 msgid "Check for updates on startup"
 msgstr "Controleer op updates bij starten"
@@ -2932,7 +2932,7 @@ msgid "Checking for updates…"
 msgstr "Controleren op updates…"
 
 msgid "86Box Update"
-msgstr "86Box Update"
+msgstr "86Box-update"
 
 msgid "Release notes:"
 msgstr "Release-opmerkingen:"

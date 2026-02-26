@@ -272,7 +272,7 @@ machine_at_spc6000a_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 1);
+    machine_at_common_init(model);
 
     device_add(&cs8230_device);
 

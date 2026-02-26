@@ -434,7 +434,8 @@ void
 SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 {
     auto currentIndex = ui->tableViewFloppy->selectionModel()->currentIndex();
-    setFloppyType(ui->tableViewFloppy->model(), currentIndex, index);
+    auto typeIndex    = currentIndex.siblingAtColumn(0);
+    setFloppyType(ui->tableViewFloppy->model(), typeIndex, index);
 
     // Trigger row changed to rebuild audio profile list
     onFloppyRowChanged(currentIndex);

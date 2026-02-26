@@ -1726,7 +1726,8 @@ OpenGLRenderer::render()
         glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
-        QImage image((uchar*)rgb, width, height, width * 3, QImage::Format_RGB888);
+        int pitch_adj = (4 - ((width * 3) & 3)) & 3;
+        QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
         image.mirrored(false, true).save(path, "png");
         monitors[r_monitor_index].mon_screenshots--;
         free(rgb);
@@ -1739,7 +1740,8 @@ OpenGLRenderer::render()
         glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
-        QImage image((uchar*)rgb, width, height, width * 3, QImage::Format_RGB888);
+        int pitch_adj = (4 - ((width * 3) & 3)) & 3;
+        QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setImage(image.mirrored(false, true), QClipboard::Clipboard);
         monitors[r_monitor_index].mon_screenshots_clipboard--;

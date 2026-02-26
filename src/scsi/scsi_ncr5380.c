@@ -62,13 +62,9 @@ void
 ncr5380_irq(ncr_t *ncr, int set_irq)
 {
     if (set_irq) {
-        ncr->irq_state = 1;
-        ncr->isr |= STATUS_INT;
         if (ncr->irq != -1)
             picint(1 << ncr->irq);
     } else {
-        ncr->irq_state = 0;
-        ncr->isr &= ~STATUS_INT;
         if (ncr->irq != 1)
             picintc(1 << ncr->irq);
     }
@@ -104,7 +100,12 @@ ncr5380_reset(ncr_t *ncr)
     scsi_bus->data = 0;
     scsi_bus->command_issued = 0;
 
-    ncr5380_irq(ncr, 0);
+    if (ncr->irq_ena)
+        ncr->irq_ena(ncr, ncr->priv, 0);
+    else
+        ncr5380_irq(ncr, 0);
+
+    ncr->isr &= ~STATUS_INT;
 }
 
 uint32_t
@@ -164,7 +165,7 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
             if ((val & 0x80) && !(ncr->icr & 0x80)) {
                 ncr5380_log("Resetting the 5380\n");
                 ncr5380_reset(ncr);
-                ncr5380_irq(ncr, 1);
+                ncr->isr |= STATUS_INT;
             }
             ncr->icr = val;
             ncr5380_log("ICR WaitData=%d, ClearReq=%d.\n", scsi_bus->wait_data, scsi_bus->clear_req);
@@ -301,7 +302,7 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
                 if (bus & BUS_MSG)
                     bus_state |= TCR_MSG;
                 if ((ncr->tcr & 7) != bus_state) {
-                    ncr5380_irq(ncr, 1);
+                    ncr->isr |= STATUS_INT;
                     ncr5380_log("IRQ issued\n");
                 }
             }
@@ -321,7 +322,12 @@ ncr5380_read(uint16_t port, ncr_t *ncr)
 
         case 7: /* reset Parity/Interrupt */
             ncr->isr &= ~(STATUS_BUSY_ERROR | 0x20);
-            ncr5380_irq(ncr, 0);
+            if (ncr->irq_ena)
+                ncr->irq_ena(ncr, ncr->priv, 0);
+            else
+                ncr5380_irq(ncr, 0);
+
+            ncr->isr &= ~STATUS_INT;
             ncr5380_log("Reset Interrupt\n");
             break;
 

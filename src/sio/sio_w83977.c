@@ -1287,7 +1287,7 @@ w83977_init(const device_t *info)
     dev->has_nvr   = !(info->local & W83977_NO_NVR);
 
     if (dev->has_nvr && (dev->id != 1)) {
-        dev->nvr = device_add(&amstrad_megapc_nvr_device);
+        dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_ZERO_DEFAULT);
 
         nvr_bank_set(0, 0, dev->nvr);
     }

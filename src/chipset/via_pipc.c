@@ -1722,7 +1722,7 @@ pipc_init(const device_t *info)
     else if (dev->local >= VIA_PIPC_596A)
         dev->smbus = device_add(&piix4_smbus_device);
 
-    dev->nvr = device_add(&via_nvr_device);
+    dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_VIA);
 
     if (dev->local >= VIA_PIPC_596A) {
         dev->acpi = device_add(&acpi_via_596b_device);

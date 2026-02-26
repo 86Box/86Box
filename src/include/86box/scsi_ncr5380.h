@@ -84,6 +84,7 @@ typedef struct ncr_t {
     int   (*dma_send_ext)(void *priv, void *ext_priv);
     int   (*dma_initiator_receive_ext)(void *priv, void *ext_priv);
     void  (*timer)(void *ext_priv, double period);
+    int   (*irq_ena)(void *priv, void *ext_priv, int state);
 
     scsi_bus_t scsibus;
 } ncr_t;

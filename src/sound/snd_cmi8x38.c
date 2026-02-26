@@ -877,7 +877,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             dev->sb->dsp.sbleftright_default = !!(val & 0x02);
 
             /* Enable or disable SB16 mode. */
-            dev->sb->dsp.sb_type = (val & 0x01) ? SBPRO2_DSP_302 : SB16_DSP_405;
+            dev->sb->dsp.sb_type = (val & 0x01) ? SBPRO_DSP_302 : SB16_DSP_405;
             break;
 
         case 0x22:
