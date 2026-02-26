@@ -44,7 +44,6 @@ typedef struct opti895_t {
 static uint8_t masks[0x10] = { 0x3f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe,
                                0xe3, 0xff, 0xe3, 0xff, 0x00, 0xff, 0xff, 0xff };
 
-#define ENABLE_OPTI895_LOG 1
 #ifdef ENABLE_OPTI895_LOG
 int opti895_do_log = ENABLE_OPTI895_LOG;
 
@@ -250,9 +249,7 @@ opti895_read(uint16_t addr, void *priv)
             if (((dev->idx >= 0x20) && (dev->idx <= 0x2f) && (dev->idx != 0x2c)) ||
                 ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
                 ret = dev->regs[dev->idx];
-                if (dev->idx == 0x21)
-                    ret |= 0x1c;
-                else if (dev->idx == 0x28)
+                if (dev->idx == 0x28)
                     ret |= 0x18;
                 else if (dev->idx == 0xe0)
                     ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;

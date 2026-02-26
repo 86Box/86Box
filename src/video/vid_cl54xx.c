@@ -1879,7 +1879,6 @@ gd54xx_recalctimings(svga_t *svga)
             svga->interlace = 0;
     }
 
-    pclog("CRTC1a=%x, interlace=%x.\n", svga->crtc[0x1a] & 0x01, svga->interlace);
     clocksel = (svga->miscout >> 2) & 3;
 
     if (!gd54xx->vclk_n[clocksel] || !gd54xx->vclk_d[clocksel])

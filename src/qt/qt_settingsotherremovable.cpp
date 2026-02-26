@@ -118,13 +118,15 @@ SettingsOtherRemovable::setRDiskType(QAbstractItemModel *model, const QModelInde
             break;
     }
 
-    auto i = idx.siblingAtColumn(1);
+    auto i = idx.siblingAtColumn(0);
+    model->setData(i, icon, Qt::DecorationRole);
+
+    i = idx.siblingAtColumn(1);
     if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() == RDISK_BUS_DISABLED)
         model->setData(i, QCoreApplication::translate("", "None"));
     else
         model->setData(i, rdiskDriveTypeName(type));
     model->setData(i, type, Qt::UserRole);
-    model->setData(i, icon, Qt::DecorationRole);
 }
 
 SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
