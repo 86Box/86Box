@@ -1835,7 +1835,7 @@ azt_init(const device_t *info)
         fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
 
     sb_dsp_set_real_opl(&azt2316a->sb->dsp, 1);
-    sb_dsp_init(&azt2316a->sb->dsp, SBPRO2_DSP_302, azt2316a->type, azt2316a);
+    sb_dsp_init(&azt2316a->sb->dsp, SBPRO_DSP_302, azt2316a->type, azt2316a);
     sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
     sb_dsp_setirq(&azt2316a->sb->dsp, azt2316a->cur_irq);
     sb_dsp_setdma8(&azt2316a->sb->dsp, azt2316a->cur_dma);

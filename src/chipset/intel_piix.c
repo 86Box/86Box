@@ -1581,11 +1581,11 @@ piix_init(const device_t *info)
 
     if (dev->type > 3) {
         if (info->local & PIIX4_NVR_AMI_1995J)
-            dev->nvr   = device_add(&piix4_ami_1995j_nvr_device);
+            dev->nvr   = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4_AMI_1995J);
         else if (info->local & PIIX4_NVR_AMI_1995)
-            dev->nvr   = device_add(&piix4_ami_1995_nvr_device);
+            dev->nvr   = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4_AMI_1995);
         else
-            dev->nvr   = device_add(&piix4_nvr_device);
+            dev->nvr   = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4);
         dev->smbus = device_add(&piix4_smbus_device);
 
         dev->acpi = device_add(&acpi_intel_device);

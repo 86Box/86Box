@@ -85,20 +85,22 @@ char     sb202_copyright[] = "COPYRIGHT(C) CREATIVE TECHNOLOGY PTE. LTD. (1991) 
 char     sb16_copyright[]  = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
 uint16_t sb_dsp_versions[] = {
     0,     /* Pad */
-    0,     /* SADLIB      - No DSP */
+    0,     /* SADLIB          - No DSP */
+    0x103, /* SB_DSP_103      - SB "killer card" prototype, DSP v1.03 */
     0x105, /* SB_DSP_105      - SB1/1.5, DSP v1.05 */
     0x200, /* SB_DSP_200      - SB1.5/2, DSP v2.00 */
     0x201, /* SB_DSP_201      - SB1.5/2, DSP v2.01 - needed for high-speed DMA */
     0x202, /* SB_DSP_202      - SB2, DSP v2.02 */
-    0x300, /* SB_PRO_DSP_300  - SB Pro, DSP v3.00 */
-    0x302, /* SBPRO2_DSP_302 - SB Pro 2, DSP v3.02 + OPL3 */
-    0x404, /* SB16_DSP_404        - DSP v4.04 + OPL3 */
-    0x405, /* SB16_405        - DSP v4.05 + OPL3 */
-    0x406, /* SB16_406        - DSP v4.06 + OPL3 */
-    0x40b, /* SB16_411        - DSP v4.11 + OPL3 */
-    0x40c, /* SBAWE32         - DSP v4.12 + OPL3 */
-    0x40d, /* SBAWE32PNP      - DSP v4.13 + OPL3 */
-    0x410  /* SBAWE64         - DSP v4.16 + OPL3 */
+    0x300, /* SBPRO_DSP_300   - SB Pro, DSP v3.00 */
+    0x301, /* SBPRO_DSP_301   - SB Pro/Pro 2, DSP v3.01 */
+    0x302, /* SBPRO_DSP_302   - SB Pro/Pro 2, DSP v3.02 */
+    0x404, /* SB16_DSP_404    - DSP v4.04 + OPL3 */
+    0x405, /* SB16_DSP_405    - DSP v4.05 + OPL3 */
+    0x406, /* SB16_DSP_406    - DSP v4.06 + OPL3 */
+    0x40b, /* SB16_DSP_411    - DSP v4.11 + OPL3 */
+    0x40c, /* SBAWE32_DSP_412 - DSP v4.12 + OPL3 */
+    0x40d, /* SBAWE32_DSP_413 - DSP v4.13 + OPL3 */
+    0x410  /* SBAWE64_DSP_416 - DSP v4.16 + OPL3 */
 };
 
 /*These tables were 'borrowed' from DOSBox*/
@@ -1614,7 +1616,7 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0xA0: /* Set input mode to mono */
         case 0xA8: /* Set input mode to stereo */
-            if ((dsp->sb_type < SBPRO_DSP_300) || (dsp->sb_type > SBPRO2_DSP_302))
+            if ((dsp->sb_type < SBPRO_DSP_300) || (dsp->sb_type > SBPRO_DSP_302))
                 break;
             /* TODO: Implement. 3.xx-only command. */
             break;
@@ -1730,6 +1732,18 @@ sb_exec_command(sb_dsp_t *dsp)
             sb_add_data(dsp, ~dsp->sb_data[0]);
             break;
         case 0xE1: /* Get DSP version */
+            if (IS_MV201(dsp)) {
+                if (dsp->sb_last_command == 0xE1) {
+                    sb_add_data(dsp, 0x01);
+                    sb_add_data(dsp, 0x30);
+                    dsp->sb_last_command = 0x00;
+				} else {
+                    sb_add_data(dsp, 0x02);
+                    sb_add_data(dsp, 0x00);
+                    dsp->sb_last_command = 0xE1;
+			    }
+                break;
+            }
             if (IS_ESS(dsp)) {
                 /*
                    0x03 0x01 (Sound Blaster Pro compatibility) confirmed by both the
@@ -1859,12 +1873,12 @@ sb_exec_command(sb_dsp_t *dsp)
              *  059h           Fetches the samples and then immediately plays them back.    SB???
              *  078h           Auto-init DMA ADPCM                                 SB2???
              *  07Ah           2.6-bit ADPCM                                       SB???
-             *  0E3h           DSP Copyright                                       SBPro2??? (SBPRO2_DSP_302)
-             *  0F0h           Sine Generator                                      SB        (SB_DSP_105, DSP20x)
-             *  0F1h           DSP Auxiliary Status (Obsolete)                     SB-Pro2   (DSP20x, SBPRO2_DSP_302)
-             *  0F2h           IRQ Request, 8-bit                                  SB        (SB_DSP_105, DSP20x)
+             *  0E3h           DSP Copyright                                       SBPro2??? (SBPRO_DSP_302)
+             *  0F0h           Sine Generator                                      SB        (SB_DSP_105, SB_DSP_20x)
+             *  0F1h           DSP Auxiliary Status (Obsolete)                     SB-Pro2   (SB_DSP_20x, SBPRO_DSP_302)
+             *  0F2h           IRQ Request, 8-bit                                  SB        (SB_DSP_105, SB_DSP_20x)
              *  0F3h           IRQ Request, 16-bit                                 SB16
-             *  0F4h           Perform ROM checksum                                SB        (SB_DSP_105, DSP20x)
+             *  0F4h           Perform ROM checksum                                SB        (SB_DSP_105, SB_DSP_20x)
              *  0FBh           DSP Status                                          SB16
              *  0FCh           DSP Auxiliary Status                                SB16
              *  0FDh           DSP Command Status                                  SB16
@@ -2236,7 +2250,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
            a set frequency command is sent. */
         recalc_sb16_filter(0, 3200 * 2);
     }
-    if (IS_ESS(dsp) || (dsp->sb_type >= SBPRO2_DSP_302)) {
+    if (IS_ESS(dsp) || (dsp->sb_type >= SBPRO_DSP_302)) {
         /* OPL3 or dual OPL2 is stereo. */
         if (dsp->sb_has_real_opl)
             recalc_opl_filter(FREQ_49716 * 2);

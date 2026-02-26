@@ -1892,7 +1892,7 @@ fdc37c93x_init(const device_t *info)
     dev->port_370  = !!(info->local & FDC37XXXX_370);
 
     if (dev->has_nvr) {
-        dev->nvr = device_add(&amstrad_megapc_nvr_device);
+        dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_ZERO_DEFAULT);
 
         nvr_bank_set(0, 0, dev->nvr);
         nvr_bank_set(1, 0xff, dev->nvr);

@@ -84,7 +84,10 @@ opti499_recalc(opti499_t *dev)
         base = 0xd0000 + (i << 14);
 
         if ((dev->regs[0x22] & ((base >= 0xe0000) ? 0x20 : 0x40)) && (dev->regs[0x23] & (1 << i))) {
-            shflags = MEM_READ_INTERNAL;
+            if (dev->regs[0x2d] & (1 << ((i >> 1) + 2)))
+                shflags = MEM_READ_EXTANY;
+            else
+                shflags = MEM_READ_INTERNAL;
             shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
         } else {
             if (dev->regs[0x2d] & (1 << ((i >> 1) + 2)))

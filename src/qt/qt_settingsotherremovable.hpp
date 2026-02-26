@@ -40,7 +40,8 @@ private:
     Ui::SettingsOtherRemovable *ui;
 
     void setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
-    void setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
+    void setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type, uint8_t channel);
+    void setRDiskType(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type);
     void enableCurrentlySelectedChannel_MO();
     void enableCurrentlySelectedChannel_RDisk();
 
@@ -48,6 +49,7 @@ private:
     QIcon mo_icon;
     QIcon rdisk_disabled_icon;
     QIcon rdisk_icon;
+    QIcon zip_icon;
 };
 
 #endif // QT_SETTINGSOTHERREMOVABLE_HPP

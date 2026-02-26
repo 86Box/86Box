@@ -238,67 +238,59 @@
 #include <86box/nvr.h>
 
 /* RTC registers and bit definitions. */
-#define RTC_SECONDS        0
-#define RTC_ALSECONDS      1
-#define AL_DONTCARE        0xc0 /* Alarm time is not set */
-#define RTC_MINUTES        2
-#define RTC_ALMINUTES      3
-#define RTC_HOURS          4
-#define RTC_AMPM           0x80 /* PM flag if 12h format in use */
-#define RTC_ALHOURS        5
-#define RTC_DOW            6
-#define RTC_DOM            7
-#define RTC_MONTH          8
-#define RTC_YEAR           9
-#define RTC_REGA           10
-#define REGA_UIP           0x80
-#define REGA_DV2           0x40
-#define REGA_DV1           0x20
-#define REGA_DV0           0x10
-#define REGA_DV            0x70
-#define REGA_RS3           0x08
-#define REGA_RS2           0x04
-#define REGA_RS1           0x02
-#define REGA_RS0           0x01
-#define REGA_RS            0x0f
-#define RTC_REGB           11
-#define REGB_SET           0x80
-#define REGB_PIE           0x40
-#define REGB_AIE           0x20
-#define REGB_UIE           0x10
-#define REGB_SQWE          0x08
-#define REGB_DM            0x04
-#define REGB_2412          0x02
-#define REGB_DSE           0x01
-#define RTC_REGC           12
-#define REGC_IRQF          0x80
-#define REGC_PF            0x40
-#define REGC_AF            0x20
-#define REGC_UF            0x10
-#define RTC_REGD           13
-#define REGD_VRT           0x80
-#define RTC_CENTURY_AT     0x32 /* century register for AT etc */
-#define RTC_CENTURY_PS     0x37 /* century register for PS/1 PS/2 */
-#define RTC_CENTURY_ELT    0x1A /* century register for Epson Equity LT */
-#define RTC_ALDAY          0x7D /* VIA VT82C586B - alarm day */
-#define RTC_ALMONTH        0x7E /* VIA VT82C586B - alarm month */
-#define RTC_CENTURY_VIA    0x7F /* century register for VIA VT82C586B */
+#define RTC_SECONDS                  0
+#define RTC_ALSECONDS                1
+/* Alarm time is not set. */
+#define AL_DONTCARE               0xc0
+#define RTC_MINUTES                  2
+#define RTC_ALMINUTES                3
+#define RTC_HOURS                    4
+/* PM flag if 12h format in use. */
+#define RTC_AMPM                  0x80
+#define RTC_ALHOURS                  5
+#define RTC_DOW                      6
+#define RTC_DOM                      7
+#define RTC_MONTH                    8
+#define RTC_YEAR                     9
+#define RTC_REGA                    10
+#define REGA_UIP                  0x80
+#define REGA_DV2                  0x40
+#define REGA_DV1                  0x20
+#define REGA_DV0                  0x10
+#define REGA_DV                   0x70
+#define REGA_RS3                  0x08
+#define REGA_RS2                  0x04
+#define REGA_RS1                  0x02
+#define REGA_RS0                  0x01
+#define REGA_RS                   0x0f
+#define RTC_REGB                    11
+#define REGB_SET                  0x80
+#define REGB_PIE                  0x40
+#define REGB_AIE                  0x20
+#define REGB_UIE                  0x10
+#define REGB_SQWE                 0x08
+#define REGB_DM                   0x04
+#define REGB_2412                 0x02
+#define REGB_DSE                  0x01
+#define RTC_REGC                    12
+#define REGC_IRQF                 0x80
+#define REGC_PF                   0x40
+#define REGC_AF                   0x20
+#define REGC_UF                   0x10
+#define RTC_REGD                    13
+#define REGD_VRT                  0x80
+/* VIA VT82C586B - alarm day. */
+#define RTC_ALDAY                 0x7d
+/* VIA VT82C586B - alarm month. */
+#define RTC_ALMONTH               0x7e
 
-#define RTC_ALDAY_SIS      0x7E /* Day of Month Alarm for SiS */
-#define RTC_ALMONT_SIS     0x7F /* Month Alarm for SiS */
+/* Day of Month Alarm for SiS. */
+#define RTC_ALDAY_SIS             0x7e
+/* Month Alarm for SiS. */
+#define RTC_ALMONTH_SIS           0x7f
 
-#define RTC_REGS           14 /* number of registers */
-
-#define FLAG_NO_NMI         0x001
-#define FLAG_AMI_1992_HACK  0x002
-#define FLAG_AMI_1994_HACK  0x004
-#define FLAG_AMI_1995_HACK  0x008
-#define FLAG_AMI_1999_HACK  0x010
-#define FLAG_AMI_1999J_HACK 0x020
-#define FLAG_P6RP4_HACK     0x040
-#define FLAG_PIIX4          0x080
-#define FLAG_MULTI_BANK     0x100
-#define FLAG_MARTIN_HACK    0x200
+/* Number of registers. */
+#define RTC_REGS                    14
 
 typedef struct local_t {
     int8_t stat;
@@ -319,6 +311,7 @@ typedef struct local_t {
     int16_t state;
 
     uint16_t  flags;
+    uint16_t  default_addr;
 
     uint16_t  addr[8];
 
@@ -482,7 +475,7 @@ timer_update(void *priv)
         /* Check for any alarms we need to handle. */
         if (check_alarm(nvr, RTC_SECONDS) && check_alarm(nvr, RTC_MINUTES) && check_alarm(nvr, RTC_HOURS) &&
             check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH) /* &&
-            check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS) */) {
+            check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH_SIS) */) {
             nvr->regs[RTC_REGC] |= REGC_AF;
             timer_update_irq(nvr);
         }
@@ -1148,108 +1141,34 @@ nvr_at_init(const device_t *info)
 
     local = (local_t *) malloc(sizeof(local_t));
     memset(local, 0x00, sizeof(local_t));
-    nvr->data = local;
+
+    nvr->data           = local;
 
     /* This is machine specific. */
-    nvr->size   = machines[machine].nvrmask + 1;
-    local->lock = (uint8_t *) malloc(nvr->size);
+    nvr->size           = (info->local & FLAG_FIXED_SIZE) ? 128 :
+                              (machines[machine].nvrmask + 1);
+    local->lock         = (uint8_t *) malloc(nvr->size);
     memset(local->lock, 0x00, nvr->size);
-    local->def   = 0xff /*0x00*/;
-    local->flags = 0x00;
-    switch (info->local & 0x0f) {
-        case 0: /* standard AT, no century register */
-            if (info->local == 32) {
-                local->flags |= FLAG_P6RP4_HACK;
-                nvr->irq    = 8;
-                local->cent = RTC_CENTURY_AT;
-            } else {
-                nvr->irq    = 8;
-                local->cent = 0xff;
-            }
-            break;
 
-        case 1: /* standard AT */
-        case 5: /* AMI WinBIOS 1994 */
-        case 6: /* AMI BIOS 1995 */
-            if ((info->local & 0x1f) == 0x11) {
-                local->flags |= FLAG_PIIX4;
-                local->def = 0x00;
-            } else {
-                local->def = 0x00;
-                if ((info->local & 0x1f) == 0x15)
-                    local->flags |= FLAG_AMI_1994_HACK;
-                else if ((info->local & 0x1f) == 0x16)
-                    local->flags |= FLAG_AMI_1995_HACK;
-                else
-                    local->def = 0xff;
-            }
-            nvr->irq    = 8;
-            local->cent = RTC_CENTURY_AT;
-            break;
+    local->flags        = info->local & 0xffff;
+    local->cent         = (info->local >> 16) & 0xff;
+    local->default_addr = (info->local >> 24) & 0xffff;
+    local->def          = (local->flags & FLAG_ZERO_DEFAULT) ? 0x00 : 0xff;
+    nvr->irq            = (info->local >> 40) & 0xff;
 
-        case 2: /* PS/1 or PS/2 */
-            nvr->irq    = 8;
-            local->cent = RTC_CENTURY_PS;
-            local->def  = 0x00;
-            if (info->local & 0x10)
-                local->flags |= FLAG_NO_NMI;
-            break;
+    if (nvr->irq == 0xff)
+        nvr->irq = -1;
+    else if (nvr->irq == 0xfe)
+        nvr->irq = device_get_config_int("irq");
 
-        case 3: /* Amstrad PC's */
-            nvr->irq    = 1;
-            local->cent = RTC_CENTURY_AT;
-            local->def  = 0xff;
-            if (info->local & 0x10)
-                local->flags |= FLAG_NO_NMI;
-            break;
+    if (local->default_addr == 0xfffe)
+        local->default_addr = device_get_config_hex16("base");
 
-        case 4: /* IBM AT */
-            if (info->local & 0x10) {
-                local->def = 0x00;
-                local->flags |= FLAG_AMI_1992_HACK;
-            } else if ((info->local == 36) || (info->local == 68)) {
-                local->def = 0x00;
-                if (info->local == 68)
-                    local->flags |= FLAG_MARTIN_HACK;
-            } else
-                local->def = 0xff;
-            nvr->irq    = 8;
-            local->cent = RTC_CENTURY_AT;
-            break;
+    if (nvr->is_new && (machines[machine].init == machine_at_spitfire_init))
+        local->flags |= FLAG_SPITFIRE_HACK;
 
-        case 7: /* VIA VT82C586B */
-            nvr->irq    = 8;
-            local->cent = RTC_CENTURY_VIA;
-            break;
-        case 8: /* Epson Equity LT */
-            nvr->irq    = -1;
-            local->cent = RTC_CENTURY_ELT;
-            break;
-        case 9: /* Intel PIIX4 + AMI 1999 hack */
-            local->flags |= (FLAG_PIIX4 | FLAG_AMI_1999_HACK);
-            local->def = 0x00;
-            nvr->irq    = 8;
-            local->cent = RTC_CENTURY_AT;
-            break;
-        case 0x0a: /* Intel PIIX4 + AMI 1999J hack */
-            local->flags |= (FLAG_PIIX4 | FLAG_AMI_1999J_HACK);
-            local->def = 0x00;
-            nvr->irq    = 8;
-            local->cent = RTC_CENTURY_AT;
-            break;
-
-        default:
-            break;
-    }
-
-    if (info->local & 0x20)
-        local->def = 0x00;
-
-    if (machines[machine].init == machine_at_monsoon_init)
-        local->def = 0xff;
-
-    if (info->local & 0x40)
-        local->flags |= FLAG_MULTI_BANK;
+    if (nvr->is_new && (machines[machine].init == machine_at_bx6_init))
+        local->flags |= FLAG_BX6_HACK;
 
     local->read_addr = 1;
 
@@ -1276,27 +1195,21 @@ nvr_at_init(const device_t *info)
         timer_load_count(nvr);
 
         /* Set up the I/O handler for this device. */
-        if (info->local == 8) {
-            io_sethandler(0x11b4, 2,
+        io_sethandler(local->default_addr, 2,
+                      nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+
+        if (local->flags & FLAG_MULTI_ADDRESS)
+            io_sethandler(local->default_addr + 2, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
-        } else {
-            io_sethandler(0x0070, 2,
-                          nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
-        }
-        if (((info->local & 0x1f) == 0x11) || ((info->local & 0x1f) == 0x17) ||
-            ((info->local & 0x1f) == 0x18)) {
-            io_sethandler(0x0072, 2,
-                          nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
-        }
 
         nvr_at_inited = 1;
     }
 
     /* This is a hack but it is required for the machine to boot properly, no idea why. */
-    if (nvr->is_new && (machines[machine].init == machine_at_spitfire_init))
+    if (nvr->is_new && (local->flags & FLAG_SPITFIRE_HACK))
         nvr->regs[0x33] = nvr->regs[0x34] = 0xff;
 
-    if (nvr->is_new && (machines[machine].init == machine_at_bx6_init))
+    if (nvr->is_new && (local->flags & FLAG_BX6_HACK))
         nvr->regs[0x39] = 0x09;
 
     return nvr;
@@ -1328,263 +1241,11 @@ nvr_at_close(void *priv)
         nvr_at_inited = 0;
 }
 
-const device_t at_nvr_old_device = {
-    .name          = "PC/AT NVRAM (No century)",
+const device_t nvr_at_device = {
+    .name          = "PC/AT NVRAM",
     .internal_name = "at_nvr_old",
     .flags         = DEVICE_ISA16,
     .local         = 0,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t at_nvr_device = {
-    .name          = "PC/AT NVRAM",
-    .internal_name = "at_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 1,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t at_mb_nvr_device = {
-    .name          = "PC/AT NVRAM",
-    .internal_name = "at_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x40 | 0x20 | 1,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ps_nvr_device = {
-    .name          = "PS/1 or PS/2 NVRAM",
-    .internal_name = "ps_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 2,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t amstrad_nvr_device = {
-    .name          = "Amstrad NVRAM",
-    .internal_name = "amstrad_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 3,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ibmat_nvr_device = {
-    .name          = "IBM AT NVRAM",
-    .internal_name = "ibmat_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 4,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t piix4_nvr_device = {
-    .name          = "Intel PIIX4 PC/AT NVRAM",
-    .internal_name = "piix4_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 1,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ps_no_nmi_nvr_device = {
-    .name          = "PS/1 or PS/2 NVRAM (No NMI)",
-    .internal_name = "ps1_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 2,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t amstrad_no_nmi_nvr_device = {
-    .name          = "Amstrad NVRAM (No NMI)",
-    .internal_name = "amstrad_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 3,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ami_1992_nvr_device = {
-    .name          = "AMI Color 1992 PC/AT NVRAM",
-    .internal_name = "ami_1992_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 4,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ami_1994_nvr_device = {
-    .name          = "AMI WinBIOS 1994 PC/AT NVRAM",
-    .internal_name = "ami_1994_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 5,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ami_1995_nvr_device = {
-    .name          = "AMI WinBIOS 1995 PC/AT NVRAM",
-    .internal_name = "ami_1995_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 6,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t via_nvr_device = {
-    .name          = "VIA PC/AT NVRAM",
-    .internal_name = "via_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 7,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t piix4_ami_1995_nvr_device = {
-    .name          = "Intel PIIX4 AMI WinBIOS 1995 PC/AT NVRAM",
-    .internal_name = "piix4_ami_1995_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 9,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t piix4_ami_1995j_nvr_device = {
-    .name          = "Intel PIIX4 AMI WinBIOS 1995J PC/AT NVRAM",
-    .internal_name = "piix4_ami_1995j_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 0x10 | 10,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t p6rp4_nvr_device = {
-    .name          = "ASUS P/I-P6RP4 PC/AT NVRAM",
-    .internal_name = "p6rp4_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 32,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t amstrad_megapc_nvr_device = {
-    .name          = "Amstrad MegaPC NVRAM",
-    .internal_name = "amstrad_megapc_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 36,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t martin_nvr_device = {
-    .name          = "Zeos Martin NVRAM",
-    .internal_name = "martin_nvr",
-    .flags         = DEVICE_ISA16,
-    .local         = 68,
-    .init          = nvr_at_init,
-    .close         = nvr_at_close,
-    .reset         = nvr_at_reset,
-    .available     = NULL,
-    .speed_changed = nvr_at_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t elt_nvr_device = {
-    .name          = "Epson Equity LT NVRAM",
-    .internal_name = "elt_nvr",
-    .flags         = DEVICE_ISA,
-    .local         = 8,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,

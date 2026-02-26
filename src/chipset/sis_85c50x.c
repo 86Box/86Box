@@ -667,7 +667,7 @@ sis_85c50x_init(UNUSED(const device_t *info))
         dev->pit_read_reg = pit_is_fast ? pitf_read_reg : pit_read_reg;
 
         /* NVR */
-        dev->nvr = device_add(&at_mb_nvr_device);
+        dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_MB);
 
         device_add(&ide_pci_2ch_device);
     }

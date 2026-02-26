@@ -3021,8 +3021,10 @@ ati8514_recalctimings(svga_t *svga)
         if (dev->ven_clock & 0x40)
             svga->clock_8514 *= 2.0;
 
-        if (dev->interlace)
+        if (dev->interlace) {
             dev->dispend >>= 1;
+            svga->clock_8514 /= 2.0;
+        }
 
         mach_log("cntl=%d, hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x, shadow=%x interlace=%d.\n",
                  dev->accel.advfunc_cntl & 0x04, dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset,
@@ -3183,8 +3185,10 @@ mach_recalctimings(svga_t *svga)
 
         mach_log("8514/A modes=%d, clocksel=%02x, clkselmode=%02x, divide reg ibm=%02x, divide reg vga=%02x, vgainterlace=%x, interlace=%x, htotal=%02x.\n", _8514_modes, mach->accel.clock_sel & 0xfe, mach->accel.clock_sel_mode & 0xfe, mach->accel.clock_sel & 0x40, mach->regs[0xb8] & 0x40, svga->interlace, dev->interlace, dev->htotal);
 
-        if (dev->interlace)
+        if (dev->interlace) {
             dev->dispend >>= 1;
+            svga->clock_8514 /= 2.0;
+        }
 
         if (ATI_MACH32) {
             switch ((mach->shadow_set >> 8) & 0x03) {

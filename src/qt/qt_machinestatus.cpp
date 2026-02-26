@@ -106,7 +106,9 @@ struct Pixmaps {
     PixmapSetEmptyActive floppy_525;
     PixmapSetEmptyActive floppy_35;
     PixmapSetEmptyActive cdrom;
+    PixmapSetEmptyActive rdisk_disabled;
     PixmapSetEmptyActive rdisk;
+    PixmapSetEmptyActive zip;
     PixmapSetEmptyActive mo;
     PixmapSetActive      hd;
     PixmapSetEmptyActive net;
@@ -327,7 +329,15 @@ struct MachineStatus::States {
         pixmaps.floppy_525.load(QIcon(":/settings/qt/icons/floppy_525.ico"));
         pixmaps.floppy_35.load(QIcon(":/settings/qt/icons/floppy_35.ico"));
         pixmaps.cdrom.load(QIcon(":/settings/qt/icons/cdrom.ico"));
+        pixmaps.rdisk_disabled.normal                  = QIcon(":/settings/qt/icons/rdisk_disabled.ico").pixmap(pixmap_size);
+        pixmaps.rdisk_disabled.active                  = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.read_write_active       = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty                   = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty_active            = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty_write_active      = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty_read_write_active = pixmaps.rdisk_disabled.normal;
         pixmaps.rdisk.load(QIcon(":/settings/qt/icons/rdisk.ico"));
+        pixmaps.zip.load(QIcon(":/settings/qt/icons/zip.ico"));
         pixmaps.mo.load(QIcon(":/settings/qt/icons/mo.ico"));
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
         pixmaps.net.load(QIcon(":/settings/qt/icons/network.ico"));
@@ -758,6 +768,14 @@ MachineStatus::refresh(QStatusBar *sbar)
     });
 
     iterateRDisk([this, sbar](int i) {
+        int t = rdisk_drives[i].type;
+        if (rdisk_drives[i].bus_type == RDISK_BUS_DISABLED) {
+            d->rdisk[i].pixmaps = &d->pixmaps.rdisk_disabled;
+        } else if ((t == RDISK_TYPE_ZIP_100) || (t == RDISK_TYPE_ZIP_250)) {
+            d->fdd[i].pixmaps = &d->pixmaps.zip;
+        } else {
+            d->fdd[i].pixmaps = &d->pixmaps.rdisk;
+        }
         d->rdisk[i].label = std::make_unique<ClickableLabel>();
         d->rdisk[i].setEmpty(QString(rdisk_drives[i].image_path).isEmpty());
         if (QString(rdisk_drives[i].image_path).isEmpty())

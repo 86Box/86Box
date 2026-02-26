@@ -72,6 +72,7 @@ typedef struct ncr53c400_t {
     int8_t  type;
     uint8_t block_count;
     uint8_t status_ctrl;
+    uint8_t irq_config;
 
     int block_count_loaded;
 
@@ -102,6 +103,23 @@ ncr53c400_log(const char *fmt, ...)
 #else
 #    define ncr53c400_log(fmt, ...)
 #endif
+
+static int
+ncr53c400_irq_enable(void *priv, void *ext_priv, int state)
+{
+    ncr53c400_t *ncr400 = (ncr53c400_t *) ext_priv;
+    ncr_t *ncr = (ncr_t *) priv;
+
+    if (ncr->irq_state != state) {
+        ncr->irq_state = state;
+        ncr400->status_ctrl &= ~0x01;
+        ncr400->status_ctrl |= (state << 0);
+        ncr53c400_log("Status Control bit 4=%02x.\n", ncr400->status_ctrl);
+        if (ncr400->status_ctrl & 0x10)
+            ncr5380_irq(ncr, state);
+    }
+    return 1;
+}
 
 static void
 ncr53c400_timer_on_auto(void *ext_priv, double period)
@@ -263,7 +281,8 @@ ncr53c400_read(uint32_t addr, void *priv)
                                 ncr->isr |= STATUS_END_OF_DMA;
                                 if (ncr->mode & MODE_ENA_EOP_INT) {
                                     ncr53c400_log("NCR read irq\n");
-                                    ncr5380_irq(ncr, 1);
+                                    ncr53c400_irq_enable(ncr, ncr400, 1);
+                                    ncr->isr |= STATUS_INT;
                                 }
                             } else if (!timer_is_enabled(&ncr400->timer)) {
                                 ncr53c400_log("Timer re-enabled.\n");
@@ -277,15 +296,16 @@ ncr53c400_read(uint32_t addr, void *priv)
             case 0x3980:
                 switch (addr) {
                     case 0x3980: /* status */
+                        if (ncr400->reset) {
+                            ncr400->reset = 0;
+                            ncr53c400_irq_enable(ncr, ncr400, 1);
+                        }
+
                         ret = ncr400->status_ctrl;
                         ncr53c400_log("NCR status ctrl read=%02x.\n", ncr400->status_ctrl & STATUS_BUFFER_NOT_READY);
                         if (!ncr400->busy)
                             ret |= STATUS_5380_ACCESSIBLE;
 
-                        if (ncr400->reset) {
-                            ncr400->reset = 0;
-                            ret |= 0x01;
-                        }
                         ncr53c400_log("NCR 53c400 status=%02x.\n", ret);
                         break;
 
@@ -295,10 +315,7 @@ ncr53c400_read(uint32_t addr, void *priv)
                         break;
 
                     case 0x3982: /* switch register read */
-                        if (ncr->irq != -1) {
-                            ret = 0xf8;
-                            ret += ncr->irq;
-                        }
+                        ret = ((ncr400->irq_config >> 5) & 7) | 0xf8;
                         ncr53c400_log("Switches read=%02x.\n", ret);
                         break;
 
@@ -519,7 +536,8 @@ ncr53c400_callback(void *priv)
                         ncr->isr |= STATUS_END_OF_DMA;
                         if (ncr->mode & MODE_ENA_EOP_INT) {
                             ncr53c400_log("NCR 53c400 write irq\n");
-                            ncr5380_irq(ncr, 1);
+                            ncr53c400_irq_enable(ncr, ncr400, 1);
+                            ncr->isr |= STATUS_INT;
                         }
                     }
                     break;
@@ -573,7 +591,8 @@ ncr53c400_callback(void *priv)
                             ncr->isr |= STATUS_END_OF_DMA;
                             if (ncr->mode & MODE_ENA_EOP_INT) {
                                 ncr53c400_log("NCR read irq\n");
-                                ncr5380_irq(ncr, 1);
+                                ncr53c400_irq_enable(ncr, ncr400, 1);
+                                ncr->isr |= STATUS_INT;
                             }
                         } else
                             timer_on_auto(&ncr400->timer, 1.0);
@@ -675,7 +694,8 @@ ncr53c400_init(const device_t *info)
     switch (ncr400->type) {
         case ROM_LCS6821N: /* Longshine LCS6821N */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
-            ncr->irq         = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
 
             rom_init(&ncr400->bios_rom, LCS6821N_ROM,
                      ncr400->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -689,7 +709,8 @@ ncr53c400_init(const device_t *info)
 
         case ROM_LS2000: /* Corel LS2000 */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
-            ncr->irq         = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
 
             rom_init(&ncr400->bios_rom, COREL_LS2000_ROM,
                      ncr400->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -702,7 +723,9 @@ ncr53c400_init(const device_t *info)
 
         case ROM_RT1000B: /* Rancho RT1000B/MC */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
-            ncr->irq         = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
+
             if (info->flags & DEVICE_MCA) {
                 rom_init(&ncr400->bios_rom, RT1000B_820R_ROM,
                          0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -729,7 +752,8 @@ ncr53c400_init(const device_t *info)
         case ROM_T130B: /* Trantor T130B */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
             ncr400->base     = device_get_config_hex16("base");
-            ncr->irq     = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
 
             if (ncr400->rom_addr > 0x00000) {
                 rom_init(&ncr400->bios_rom, T130B_ROM,
@@ -754,6 +778,7 @@ ncr53c400_init(const device_t *info)
     ncr->dma_send_ext               = NULL;
     ncr->dma_initiator_receive_ext  = NULL;
     ncr->timer                      = ncr53c400_timer_on_auto;
+    ncr->irq_ena                    = ncr53c400_irq_enable;
     scsi_bus->bus_device            = ncr->bus;
     scsi_bus->timer                 = ncr->timer;
     scsi_bus->priv                  = ncr->priv;
@@ -839,16 +864,16 @@ static const device_config_t ncr53c400_mmio_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xa0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
@@ -910,16 +935,16 @@ static const device_config_t rt1000b_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xa0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
@@ -931,16 +956,16 @@ static const device_config_t rt1000b_mc_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xa0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
@@ -987,16 +1012,16 @@ static const device_config_t t130b_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xa0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }

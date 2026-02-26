@@ -57,6 +57,76 @@
 #define TIME_SYNC_ENABLED  1
 #define TIME_SYNC_UTC      2
 
+/* Century register for the AT, etc. */
+#define RTC_CENTURY_AT            0x32
+/* Century register for the PS/1 and the PS/2. */
+#define RTC_CENTURY_PS            0x37
+/* Century register for the Epson Equity LT. */
+#define RTC_CENTURY_ELT           0x1a
+/* century register for VIA VT82C586B. */
+#define RTC_CENTURY_VIA           0x7f
+/* No century register. */
+#define RTC_CENTURY_NONE          0xff
+
+#define FLAG_ZERO_DEFAULT       0x0001
+#define FLAG_NO_NMI             0x0002
+#define FLAG_MULTI_ADDRESS      0x0004
+#define FLAG_MULTI_BANK         0x0008
+#define FLAG_PIIX4              0x0010
+#define FLAG_FIXED_SIZE         0x0020
+#define FLAG_MARTIN_HACK        0x0040
+#define FLAG_AMI_1992_HACK      0x0080
+#define FLAG_AMI_1994_HACK      0x0100
+#define FLAG_P6RP4_HACK         0x0200
+#define FLAG_AMI_1995_HACK      0x0400
+#define FLAG_AMI_1999_HACK      0x0800
+#define FLAG_AMI_1999J_HACK     0x1000
+#define FLAG_SPITFIRE_HACK      0x2000
+#define FLAG_BX6_HACK           0x4000
+
+#define NVR_CENTURY_AT          (RTC_CENTURY_AT << 16)
+#define NVR_CENTURY_PS          (RTC_CENTURY_PS << 16)
+#define NVR_CENTURY_VIA         (RTC_CENTURY_VIA << 16)
+#define NVR_CENTURY_ELT         (RTC_CENTURY_ELT << 16)
+#define NVR_CENTURY_NONE        (0xff << 16)
+
+#define NVR_ADDR_STANDARD       (0x0070ULL << 24)
+#define NVR_ADDR_ELT            (0x11b4ULL << 24)
+#define NVR_ADDR_CONFIG         (0xfffeULL << 24)
+#define NVR_ADDR_NONE           (0xffffULL << 24)
+
+#define NVR_IRQ_STANDARD        (0x0008ULL << 40)
+#define NVR_IRQ_AMSTRAD         (0x0001ULL << 40)
+#define NVR_IRQ_CONFIG          (0xfffeULL << 40)
+#define NVR_IRQ_NONE            (0xffffULL << 40)
+
+#define NVR_AT_STANDARD         NVR_IRQ_STANDARD | NVR_ADDR_STANDARD
+#define NVR_AT_STANDARD_MA      NVR_AT_STANDARD | FLAG_MULTI_ADDRESS
+#define NVR_AT_STANDARD_ZERO    NVR_AT_STANDARD | FLAG_ZERO_DEFAULT
+
+#define NVR_AT_OLD              (NVR_AT_STANDARD | NVR_CENTURY_NONE)
+#define NVR_AT                  (NVR_AT_STANDARD | NVR_CENTURY_AT)
+#define NVR_AT_ZERO_DEFAULT     (NVR_AT_STANDARD_ZERO | NVR_CENTURY_AT)
+#define NVR_AT_MA               (NVR_AT | FLAG_MULTI_ADDRESS)
+#define NVR_AT_MA_ZERO          (NVR_AT_ZERO_DEFAULT | FLAG_MULTI_ADDRESS)
+#define NVR_AT_MB               (NVR_AT_ZERO_DEFAULT | FLAG_MULTI_BANK)
+#define NVR_PS                  (NVR_AT_STANDARD_ZERO | NVR_CENTURY_PS)
+#define NVR_PS_NO_NMI           (NVR_PS | FLAG_NO_NMI)
+#define NVR_AMSTRAD             (NVR_IRQ_AMSTRAD | NVR_ADDR_STANDARD | NVR_CENTURY_AT)
+#define NVR_AMSTRAD_NO_NMI      (NVR_AMSTRAD | FLAG_NO_NMI)
+#define NVR_PIIX4               (NVR_AT_MA_ZERO | FLAG_PIIX4)
+#define NVR_AMI_1992            (NVR_AT_ZERO_DEFAULT | FLAG_AMI_1992_HACK)
+#define NVR_AMI_1994            (NVR_AT_ZERO_DEFAULT | FLAG_AMI_1994_HACK)
+#define NVR_AMI_1995            (NVR_AT_ZERO_DEFAULT | FLAG_AMI_1995_HACK)
+#define NVR_P6RP4               (NVR_AT_MA_ZERO | FLAG_P6RP4_HACK)
+#define NVR_PIIX4_AMI_1995      (NVR_PIIX4 | FLAG_AMI_1999_HACK)
+#define NVR_PIIX4_AMI_1995J     (NVR_PIIX4 | FLAG_AMI_1999J_HACK)
+#define NVR_VIA                 (NVR_AT_STANDARD_MA | NVR_CENTURY_VIA)
+#define NVR_MARTIN              (NVR_AT_MB | FLAG_MARTIN_HACK)
+#define NVR_ELT                 (NVR_IRQ_NONE | NVR_ADDR_ELT | NVR_CENTURY_ELT)
+#define NVR_RTC8088             (NVR_IRQ_CONFIG | NVR_ADDR_CONFIG | \
+                                 NVR_CENTURY_ALT | FLAG_NO_NMI | FLAG_FIXED_SIZE)
+
 #ifdef _TIMER_H_
 /* Define a generic RTC/NVRAM device. */
 typedef struct _nvr_ {
@@ -80,26 +150,9 @@ typedef struct _nvr_ {
 } nvr_t;
 
 extern int nvr_dosave;
+
 #ifdef EMU_DEVICE_H
-extern const device_t at_nvr_old_device;
-extern const device_t at_nvr_device;
-extern const device_t at_mb_nvr_device;
-extern const device_t ps_nvr_device;
-extern const device_t amstrad_nvr_device;
-extern const device_t amstrad_megapc_nvr_device;
-extern const device_t ibmat_nvr_device;
-extern const device_t piix4_nvr_device;
-extern const device_t ps_no_nmi_nvr_device;
-extern const device_t amstrad_no_nmi_nvr_device;
-extern const device_t ami_1992_nvr_device;
-extern const device_t ami_1994_nvr_device;
-extern const device_t ami_1995_nvr_device;
-extern const device_t via_nvr_device;
-extern const device_t piix4_ami_1995_nvr_device;
-extern const device_t piix4_ami_1995j_nvr_device;
-extern const device_t p6rp4_nvr_device;
-extern const device_t martin_nvr_device;
-extern const device_t elt_nvr_device;
+extern const device_t nvr_at_device;
 #endif
 
 extern void rtc_tick(void);

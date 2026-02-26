@@ -254,9 +254,8 @@ machine_at_opti560l_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
-    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
@@ -434,9 +433,8 @@ machine_at_batman_init(const machine_t *model)
     }
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
-    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_device);
 
     pci_init(PCI_CONFIG_TYPE_2);
@@ -466,9 +464,8 @@ machine_at_batman_init(const machine_t *model)
 void
 machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 {
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
-    device_add(&amstrad_megapc_nvr_device);
     device_add(&ide_pci_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | pci_switch);
@@ -669,8 +666,7 @@ machine_at_excaliburpci2_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1994_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

@@ -444,8 +444,6 @@ ps1_setup(int model)
 
         device_add(&ps1snd_device);
     }
-
-    device_add(&ps_nvr_device);
 }
 
 static void

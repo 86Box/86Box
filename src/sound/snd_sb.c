@@ -15,7 +15,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2026 Jasmine Iwanek.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -45,9 +45,10 @@
 #include <86box/plat_unused.h>
 #include <86box/snd_azt2316a.h>
 
-#define SB_1  0
-#define SB_15 1
-#define SB_2  2
+#define SB_1         0
+#define SB_15        1
+#define SB_2         2
+#define THUNDERBOARD 3
 
 #define SB_16_PNP_NOIDE 0
 #define SB_16_PNP_IDE   1
@@ -2959,6 +2960,10 @@ sb_init(UNUSED(const device_t *info))
             sb->cms_enabled = device_get_config_int("cms");
             mixer_addr      = device_get_config_int("mixaddr");
             break;
+        case THUNDERBOARD:
+            model           = SB_DSP_200;
+            sb->cms_enabled = 0;
+            break;
     }
 
     sb->opl_enabled = device_get_config_int("opl");
@@ -3006,7 +3011,7 @@ sb_init(UNUSED(const device_t *info))
                       &sb->cms);
     }
 
-    if (mixer_addr > 0x000) {
+    if (mixer_addr > 0x0000) {
         sb->mixer_enabled = 1;
         io_sethandler(mixer_addr + 4, 0x0002,
                       sb_ct1335_mixer_read, NULL, NULL,
@@ -3022,6 +3027,58 @@ sb_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    return sb;
+}
+
+void *
+thunderboard_init(UNUSED(const device_t *info))
+{
+    /* ThunderBoard port mappings, 210h to 260h in 10h steps
+       2x6, 2xA, 2xC, 2xE -> DSP chip */
+    sb_t          *sb   = calloc(1, sizeof(sb_t));
+    const uint16_t addr = device_get_config_hex16("base");
+
+    sb->opl_enabled = device_get_config_int("opl");
+    if (sb->opl_enabled)
+        fm_driver_get(FM_YM3812, &sb->opl);
+
+    sb_dsp_set_real_opl(&sb->dsp, 0);
+    sb_dsp_init(&sb->dsp, SB_DSP_200, SB_SUBTYPE_MVD201, sb);
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
+    sb_dsp_setaddr(&sb->dsp, addr);
+    sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
+    sb_dsp_setdma8(&sb->dsp, 1);
+
+    if (device_get_config_int("gameport")) {
+        sb->gameport      = gameport_add(&gameport_device);
+        sb->gameport_addr = 0x200;
+        gameport_remap(sb->gameport, sb->gameport_addr);
+    }
+
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
+    if (sb->opl_enabled) {
+        io_sethandler(addr, 0x0002,
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
+        io_sethandler(addr + 8, 0x0002,
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
+        io_sethandler(0x0388, 0x0002,
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
+    }
+
+
+    sb->cms_enabled   = 0;
+    sb->mixer_enabled = 0;
+    sound_add_handler(sb_get_buffer_sb2, sb);
+    if (sb->opl_enabled)
+        music_add_handler(sb_get_music_buffer_sb2, sb);
+    sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
     return sb;
 }
@@ -3170,7 +3227,7 @@ sb_pro_v2_init(UNUSED(const device_t *info))
         fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -3226,7 +3283,7 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -3258,7 +3315,7 @@ sb_pro_compat_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -3938,7 +3995,7 @@ ess_x688_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO_DSP_301, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setaddr(&ess->dsp, addr);
     sb_dsp_setirq(&ess->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&ess->dsp, device_get_config_int("dma"));
@@ -4050,7 +4107,7 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO_DSP_301, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
@@ -4136,7 +4193,7 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO2_DSP_302, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO_DSP_301, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
@@ -4277,6 +4334,68 @@ static const device_config_t sb_config[] = {
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t thunderboard_config[] = {
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x210", .value = 0x210 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 7,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "opl",
+        .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
@@ -5575,6 +5694,20 @@ static const device_config_t ess_1688_pnp_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
+
+const device_t thunderboard_device = {
+    .name          = "MediaVision ThunderBoard",
+    .internal_name = "thunderboard",
+    .flags         = DEVICE_ISA,
+    .local         = THUNDERBOARD,
+    .init          = thunderboard_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = thunderboard_config
+};
 
 const device_t sb_1_device = {
     .name          = "Sound Blaster v1.0",

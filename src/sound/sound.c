@@ -126,6 +126,7 @@ static const SOUND_CARD sound_cards[] = {
 #ifdef USE_LIBSERIALPORT /*The following devices required LIBSERIALPORT*/
     { &opl2board_device             },
 #endif
+    { &thunderboard_device          },
     { &pasplus_device               },
     { &sb_1_device                  },
     { &sb_15_device                 },

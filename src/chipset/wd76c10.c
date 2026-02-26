@@ -1393,7 +1393,7 @@ wd76c10_init(UNUSED(const device_t *info))
         dev->mem_pages[i] = i - 0x20;
 
     device_add(&port_92_inv_device);
-    dev->nvr = device_add(&amstrad_megapc_nvr_device);
+    dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_ZERO_DEFAULT);
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
     dev->lpt = device_add_inst(&lpt_port_device, 1);

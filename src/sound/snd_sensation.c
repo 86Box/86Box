@@ -808,6 +808,7 @@ sensation_visdac_read(uint16_t port, void *priv)
     sensation_t *visdac = (sensation_t *) priv;
 
     uint8_t ret;
+    ret = 0xff;
 
     switch (port & 0xF) {
         case 0x00:

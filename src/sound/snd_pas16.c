@@ -2327,7 +2327,7 @@ pas16_init(const device_t *info)
     pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
-    sb_dsp_init(&pas16->dsp, SB_DSP_201, SB_SUBTYPE_DEFAULT, pas16);
+    sb_dsp_init(&pas16->dsp, SB_DSP_200, SB_SUBTYPE_MVD201, pas16);
     pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);

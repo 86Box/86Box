@@ -64,7 +64,7 @@
 #define DA2_MASK_GAIJIRAM        0x3ffff       /* 0x3FFFF */
 #define DA2_MASK_VRAM            0xfffff       /* 0xFFFFF */
 #define DA2_MASK_VRAMPLANE       0x1ffff       /* 0x1FFFF */
-#define DA2_PIXELCLOCK           29000000.0    /* 58 MHz interlaced */
+#define DA2_PIXELCLOCK           58000000.0    /* 58 MHz interlaced */
 #define DA2_BLT_MEMSIZE          0x10
 #define DA2_BLT_REGSIZE          0x40
 #define DA2_DEBUG_BLTLOG_SIZE    (DA2_BLT_REGSIZE + 1)
@@ -368,6 +368,7 @@ typedef struct da2_t {
     int firstline, lastline;
     int firstline_draw, lastline_draw;
     int displine;
+    int oddeven;
 
     /* Attribute Buffer E0000-E0FFFh (4 KB) */
     uint8_t *cram;
@@ -440,6 +441,9 @@ typedef struct da2_t {
 
     int old_pos2;
 } da2_t;
+
+static video_timings_t timing_da2_mca = 
+{ .type = VIDEO_MCA, .write_b = 4, .write_w = 4, .write_l =  10, .read_b = 4, .read_w = 4, .read_l = 10 };
 
 static void     da2_recalctimings(da2_t *da2);
 static void     da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *p);
@@ -515,7 +519,7 @@ da2_WritePlaneDataWithBitmask(uint32_t destaddr, const uint16_t mask, pixel32 *s
     uint32_t writepx[8];
     destaddr &= 0xfffffffe; /* align to word address to work bit shift correctly */
     // da2_log("DA2_WPDWB addr %x mask %x rop %x shift %d\n", destaddr, mask, da2->bitblt.raster_op, da2->bitblt.bitshift_destr);
-    da2->changedvram[(DA2_MASK_VRAMPLANE & destaddr) >> 9]       = changeframecount;
+    da2->changedvram[(DA2_MASK_VRAMPLANE & destaddr) >> 9]       = 3;
     destaddr <<= 3;
     /* read destination data with big endian order */
     for (uint8_t i = 0; i < 8; i++)
@@ -1245,7 +1249,7 @@ da2_out(uint16_t addr, uint16_t val, void *priv)
         case 0x3C9: /* Data */
             // da2_iolog("DA2 Out addr %03X idx %d:%d val %02X %04X:%04X esdi %04X:%04X\n", addr, da2->dac_write, da2->dac_pos, val, cs >> 4, cpu_state.pc, ES, DI);
             da2->dac_status = 0;
-            da2->fullchange = changeframecount;
+            da2->fullchange = 3;
             switch (da2->dac_pos) {
                 case 0:
                     da2->dac_r = val;
@@ -1283,7 +1287,7 @@ da2_out(uint16_t addr, uint16_t val, void *priv)
                 if (da2->ioctladdr == LS_RESET && val & 0x01) /* Reset register */
                     da2_reset_ioctl(da2);
                 else if (da2->ioctladdr == LS_MODE && ((oldval ^ val) & 0x03)) { /* Mode register */
-                    da2->fullchange = changeframecount;
+                    da2->fullchange = 3;
                     da2_recalctimings(da2);
                     da2_updatevidselector(da2);
                 }
@@ -1372,7 +1376,7 @@ da2_out(uint16_t addr, uint16_t val, void *priv)
                 case LC_START_V_DISPLAY_ENAB:
                 case LC_VIEWPORT_SELECT:
                 case LC_VIEWPORT_PRIORITY:
-                    da2->fullchange = changeframecount;
+                    da2->fullchange = 3;
                     da2_recalctimings(da2);
                     break;
                 default:
@@ -1391,13 +1395,13 @@ da2_out(uint16_t addr, uint16_t val, void *priv)
                 // da2_iolog("set attraddr: %X\n", da2->attraddr);
             } else {
                 if ((da2->attraddr == LV_PANNING) && (da2->attrc[LV_PANNING] != val))
-                    da2->fullchange = changeframecount;
+                    da2->fullchange = 3;
                 if (da2->attrc[da2->attraddr & 0x3f] != val)
                     da2_iolog("attr changed %x: %x -> %x\n", da2->attraddr & 0x3f, da2->attrc[da2->attraddr & 0x3f], val);
                 da2->attrc[da2->attraddr & 0x3f] = val;
                 // da2_iolog("set attrc %x: %x\n", da2->attraddr & 31, val);
                 if (da2->attraddr < 16)
-                    da2->fullchange = changeframecount;
+                    da2->fullchange = 3;
                 if (da2->attraddr == LV_MODE_CONTROL || da2->attraddr < 0x10) {
                     for (uint8_t c = 0; c < 16; c++) {
                         // if (da2->attrc[LV_MODE_CONTROL] & 0x80) da2->egapal[c] = (da2->attrc[c] & 0xf) | ((da2->attrc[0x14] & 0xf) << 4);
@@ -1411,7 +1415,7 @@ da2_out(uint16_t addr, uint16_t val, void *priv)
                 switch (da2->attraddr) {
                     case LV_COLOR_PLANE_ENAB:
                         if ((val & 0xff) != da2->plane_mask)
-                            da2->fullchange = changeframecount;
+                            da2->fullchange = 3;
                         da2->plane_mask = val & 0xff;
                         break;
                     case LV_CURSOR_CONTROL:
@@ -2055,7 +2059,7 @@ da2_render_text(da2_t *da2)
             }
             /* Drawing text cursor */
             drawcursor = ((da2->memaddr == da2->cursoraddr) && da2->cursorvisible && da2->cursoron);
-            if (drawcursor && da2->scanline >= da2->crtc[LC_CURSOR_ROW_START] && da2->scanline <= da2->crtc[LC_CURSOR_ROW_END]) {
+            if (drawcursor) {
                 int cursorwidth = (da2->crtc[LC_COMPATIBILITY] & 0x20 ? 26 : 13);
                 int cursorcolor = (colormode) ? IRGBtoBGRI(da2->attrc[LV_CURSOR_COLOR]) : 2; /* Choose color 2 if mode 8 */
                 fg              = (colormode) ? getPS55ForeColor(attr, da2) : ((attr & 0x08) ? 3 : 2);
@@ -2352,12 +2356,8 @@ da2_recalctimings(da2_t *da2)
     da2->render     = da2_render_blank;
     /* determine display mode */
     // if (da2->attr_palette_enable && (da2->attrc[0x1f] & 0x08))
-    /* if output disabled or VGA passthrough */
-    if (da2->ioctl[LS_MODE] & 0x02 || !(da2->attrc[LV_COMPATIBILITY] & 0x08)) {
-        da2->render = da2_render_blank;
-        // return;
     /* 16 color graphics mode */
-    } else if (!(da2->ioctl[LS_MODE] & 0x01)) {
+    if (!(da2->ioctl[LS_MODE] & 0x01)) {
         da2->hdisp *= 16;
         da2->char_width = 13;
         if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
@@ -2383,6 +2383,9 @@ da2_recalctimings(da2_t *da2)
         da2->hdisp *= 13;
         da2->char_width = 13;
     }
+    /* if output disabled or VGA passthrough */
+    if (da2->ioctl[LS_MODE] & 0x02 || !(da2->attrc[LV_COMPATIBILITY] & 0x08)) 
+        da2->render = da2_render_blank;
 
     if (da2->vblankstart < da2->dispend)
         da2->dispend = da2->vblankstart;
@@ -2744,7 +2747,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *priv)
         //}
 #endif
         cycles -= video_timing_write_b;
-        da2->changedvram[addr >> 9] = changeframecount;/* 0x1FFFF -> 0x1F */
+        da2->changedvram[addr >> 9] = 3;/* 0x1FFFF -> 0x1F */
         addr <<= 3;
 
         for (uint8_t i = 0; i < 8; i++)
@@ -2805,7 +2808,7 @@ da2_mmio_write(uint32_t addr, uint8_t val, void *priv)
     } else { /*  mode 3h text */
         cycles -= video_timing_write_b;
         da2_vram_w(addr, val, da2);
-        da2->fullchange = 2;
+        da2->fullchange = 3;
     }
 }
 static uint16_t
@@ -2844,7 +2847,7 @@ da2_mmio_gc_writeW(uint32_t addr, uint16_t val, void *priv)
     // da2_log("da2_gcW m%d a%x d%x\n", da2->writemode, addr, val);
     // da2_log("da2_gcW %05X %02X %04X:%04X esdi %04X:%04X dssi %04X:%04X\n", addr, val, cs >> 4, cpu_state.pc, ES, DI, DS, SI);
 
-    da2->changedvram[addr >> 9]       = changeframecount;
+    da2->changedvram[addr >> 9]       = 3;
     addr <<= 3;
 
     for (uint8_t i = 0; i < 8; i++)
@@ -2943,7 +2946,7 @@ da2_code_write(uint32_t addr, uint8_t val, void *priv)
     // if ((addr & ~0xfff) != 0xE0000) return;
     addr &= DA2_MASK_CRAM;
     da2->cram[addr] = val;
-    da2->fullchange = 2;
+    da2->fullchange = 3;
 }
 static void
 da2_code_writeb(uint32_t addr, uint8_t val, void *priv)
@@ -2988,7 +2991,7 @@ da2_code_readw(uint32_t addr, void *priv)
 }
 
 static void
-da2_doblit(int y1, int y2, int wx, int wy, da2_t *da2)
+da2_doblit(int wx, int wy, da2_t *da2)
 {
     if (wx != xsize || wy != ysize) {
         xsize = wx;
@@ -3027,14 +3030,14 @@ da2_poll(void *priv)
                 video_wait_for_buffer();
             }
 
-            if (!da2->override)
+            if (!da2->override && ((da2->displine ^ !da2->oddeven) & 1))
                 da2->render(da2);
 
             if (da2->lastline < da2->displine)
                 da2->lastline = da2->displine;
         }
-
-        // da2_log("%03i %06X %06X\n", da2->displine, da2->memaddr,da2->vram_display_mask);
+        // if(da2->fullchange)
+        //     pclog("%03i %05X %d %d\n", da2->displine, da2->memaddr, ((da2->displine ^ !da2->oddeven) & 1), da2->fullchange);
         da2->displine++;
         if ((da2->cgastat & 8) && ((da2->displine & 0xf) == (da2->crtc[LC_VERTICAL_SYNC_END] & 0xf)) && da2->vslines) {
             // da2_log("Vsync off at line %i\n",displine);
@@ -3086,14 +3089,13 @@ da2_poll(void *priv)
             // if (da2->crtc[10] & 0x20) da2->cursoron = 0;
             // else da2->cursoron = da2->blink & 16;
             if (da2->ioctl[LS_MODE] & 1) {                /* in text mode */
-                if (da2->attrc[LV_CURSOR_CONTROL] & 0x01) /* cursor blinking */
-                {
+                if (da2->attrc[LV_CURSOR_CONTROL] & 0x01) {/* cursor blinking */
                     da2->cursoron = (da2->blink | 1) & da2->blinkconf;
                 } else {
                     da2->cursoron = 0;
                 }
-                if (!(da2->blink & (0x10 - 1))) /* force redrawing for cursor and blink attribute */
-                    da2->fullchange = 2;
+                if (!(da2->blink & (0x08 - 1))) /* force redrawing for cursor and blink attribute */
+                    da2->fullchange = 3;
             }
             da2->blink++;
 
@@ -3104,6 +3106,7 @@ da2_poll(void *priv)
             // memset(changedvram,0,2048);  del
             if (da2->fullchange) {
                 da2->fullchange--;
+                // pclog("fc %d %d\n",da2->fullchange,da2->oddeven);
             }
         }
         if (da2->vc == da2->vsyncstart) {
@@ -3113,10 +3116,15 @@ da2_poll(void *priv)
             da2->cgastat |= 8;
             x = da2->hdisp;
 
+            if (!da2->oddeven)
+                da2->lastline++;
+            if (da2->oddeven)
+                da2->firstline--;
+
             wx = x;
             wy = da2->lastline - da2->firstline;
 
-            da2_doblit(da2->firstline_draw, da2->lastline_draw + 1, wx, wy, da2);
+            da2_doblit(wx, wy, da2);
 
             da2->firstline = 2000;
             da2->lastline  = 0;
@@ -3124,7 +3132,8 @@ da2_poll(void *priv)
             da2->firstline_draw = 2000;
             da2->lastline_draw  = 0;
 
-            changeframecount = 2;
+            da2->oddeven ^= 1;
+
             da2->vslines     = 0;
 
             da2->memaddr
@@ -3138,7 +3147,7 @@ da2_poll(void *priv)
             // da2_log("VC vtotal\n");
             // printf("Frame over at line %i %i  %i %i\n",displine,vc,da2_vsyncstart,da2_dispend);
             da2->vc          = 0;
-            da2->scanline          = da2->crtc[LC_PRESET_ROW_SCANJ] & 0x1f;
+            da2->scanline    = da2->crtc[LC_PRESET_ROW_SCANJ] & 0x1f;
             da2->dispon      = 1;
             da2->displine    = 0;
             da2->scrollcache = da2->attrc[LV_PANNING] & 7;
@@ -3230,7 +3239,8 @@ da2_reset(void *priv)
     da2->attrc[LV_CURSOR_COLOR]    = 0x0f;                   /* cursor color */
     da2->crtc[LC_HORIZONTAL_TOTAL] = 63;                     /* Horizontal Total */
     da2->crtc[LC_VERTICAL_TOTALJ]  = 255;                    /* Vertical Total (These two must be set before the timer starts.) */
-    da2->memaddr_latch                  = 0;
+    da2->memaddr_latch             = 0;
+    da2->oddeven                   = 0;
     da2->attrc[LV_CURSOR_CONTROL]  = 0x13; /* cursor options */
     da2->attr_palette_enable       = 0;    /* disable attribute generator */
 
@@ -3279,6 +3289,7 @@ da2_init(UNUSED(const device_t *info))
 
     mca_add(da2_mca_read, da2_mca_write, da2_mca_feedb, da2_mca_reset, da2);
     da2->da2const = (uint64_t) ((cpuclock / DA2_PIXELCLOCK) * (double) (1ull << 32));
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_da2_mca);
     memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
     memset(da2->bitblt.reg, 0xfe, DA2_BLT_REGSIZE * sizeof(uint32_t)); /* clear memory */
 #ifdef ENABLE_DA2_DEBUGBLT
@@ -3433,7 +3444,7 @@ static void
 da2_force_redraw(void *priv)
 {
     da2_t *da2      = (da2_t *) priv;
-    da2->fullchange = changeframecount;
+    da2->fullchange = 3;
 }
 
 static const device_config_t da2_configuration[] = {

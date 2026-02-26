@@ -36,9 +36,8 @@
         <file>qt/icons/rewind.ico</file>
         <file>qt/icons/sound.ico</file>
         <file>qt/icons/storage_controllers.ico</file>
-        <file>qt/icons/superdisk.ico</file>
-        <file>qt/icons/superdisk_image.ico</file>
-        <file>qt/icons/superdisk_disabled.ico</file>
+        <file>qt/icons/zip.ico</file>
+        <file>qt/icons/zip_image.ico</file>
         <file>qt/icons/active.ico</file>
         <file>qt/icons/browse.ico</file>
         <file>qt/icons/eject.ico</file>
