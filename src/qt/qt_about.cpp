@@ -19,6 +19,7 @@
  *          Copyright 2022 dob205
  */
 #include "qt_about.hpp"
+#include "qt_defs.hpp"
 
 extern "C" {
 #include <86box/86box.h>
@@ -57,15 +58,7 @@ About::About(QWidget *parent)
     webSiteButton->connect(webSiteButton, &QPushButton::released, []() {
         QDesktopServices::openUrl(QUrl("https://" EMU_SITE));
     });
-#ifdef RELEASE_BUILD
-    setIconPixmap(QIcon(":/settings/qt/icons/86Box-green.ico").pixmap(32, 32));
-#elif defined ALPHA_BUILD
-    setIconPixmap(QIcon(":/settings/qt/icons/86Box-red.ico").pixmap(32, 32));
-#elif defined BETA_BUILD
-    setIconPixmap(QIcon(":/settings/qt/icons/86Box-yellow.ico").pixmap(32, 32));
-#else
-    setIconPixmap(QIcon(":/settings/qt/icons/86Box-gray.ico").pixmap(32, 32));
-#endif
+    setIconPixmap(QIcon(EMU_ICON_PATH).pixmap(32, 32));
     setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
 }
 

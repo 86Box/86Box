@@ -7744,6 +7744,40 @@ static const device_config_t mach32_pci_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+
+static const device_config_t mach32_pci_onboard_config[] = {
+    {
+        .name           = "ramdac",
+        .description    = "RAMDAC type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = ATI_68860,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "ATI 68860", .value = ATI_68860 },
+            { .description = "ATI 68875", .value = ATI_68875 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
 // clang-format on
 
 const device_t mach8_vga_isa_device = {
@@ -7827,5 +7861,5 @@ const device_t mach32_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = mach_speed_changed,
     .force_redraw  = mach_force_redraw,
-    .config        = mach32_pci_config
+    .config        = mach32_pci_onboard_config
 };
