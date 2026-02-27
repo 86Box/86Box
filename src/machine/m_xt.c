@@ -2016,7 +2016,7 @@ machine_xt_z184_init(const machine_t *model)
     /* So that serial_standalone_init() won't do anything. */
     serial_set_next_inst(SERIAL_MAX - 1);
 
-    device_add(&cga_device);
+    device_add(&v6355d_device);
 
     return ret;
 }
