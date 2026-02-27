@@ -4294,7 +4294,7 @@ const device_t tgui9660_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
-    .config        = tgui96xx_config
+    .config        = tgui9440_config
 };
 
 const device_t tgui9680_pci_device = {

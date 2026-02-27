@@ -11606,6 +11606,14 @@ s3_init(const device_t *info)
 
     if (vram)
         vram_size = vram << 20;
+    else if (info->local == S3_86C805_ONBOARD) {
+        vram_size = 1024 << 10;
+        vram = 1;
+    }
+    else if (info->local == S3_PHOENIX_TRIO32_ONBOARD) {
+        vram_size = 1024 << 10;
+        vram = 1;
+    }
     else
         vram_size = 512 << 10;
 
@@ -12651,6 +12659,36 @@ static const device_config_t s3_trio64v_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t s3_trio64v_onboard_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t s3_standard_config[] = {
     {
         .name           = "memory",
@@ -12793,7 +12831,7 @@ const device_t s3_86c805_onboard_vlb_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
+    .config        = NULL
 };
 
 const device_t s3_spea_mirage_86c805_vlb_device = {
@@ -13172,7 +13210,7 @@ const device_t s3_phoenix_trio32_onboard_vlb_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_phoenix_trio32_config
+    .config        = NULL
 };
 
 const device_t s3_phoenix_trio32_vlb_device = {
@@ -13200,7 +13238,7 @@ const device_t s3_phoenix_trio32_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_phoenix_trio32_config
+    .config        = s3_9fx_config
 };
 
 const device_t s3_phoenix_trio32_pci_device = {
@@ -13270,7 +13308,7 @@ const device_t s3_phoenix_trio64_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
+    .config        = s3_9fx_config
 };
 
 const device_t s3_phoenix_trio64_pci_device = {
@@ -13312,7 +13350,7 @@ const device_t s3_phoenix_trio64vplus_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_trio64v_config
+    .config        = s3_trio64v_onboard_config
 };
 
 const device_t s3_phoenix_trio64vplus_pci_device = {
@@ -13494,5 +13532,5 @@ const device_t s3_trio64v2_dx_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_trio64v_config
+    .config        = s3_trio64v_onboard_config
 };

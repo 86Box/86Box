@@ -772,9 +772,9 @@ MachineStatus::refresh(QStatusBar *sbar)
         if (rdisk_drives[i].bus_type == RDISK_BUS_DISABLED) {
             d->rdisk[i].pixmaps = &d->pixmaps.rdisk_disabled;
         } else if ((t == RDISK_TYPE_ZIP_100) || (t == RDISK_TYPE_ZIP_250)) {
-            d->fdd[i].pixmaps = &d->pixmaps.zip;
+            d->rdisk[i].pixmaps = &d->pixmaps.zip;
         } else {
-            d->fdd[i].pixmaps = &d->pixmaps.rdisk;
+            d->rdisk[i].pixmaps = &d->pixmaps.rdisk;
         }
         d->rdisk[i].label = std::make_unique<ClickableLabel>();
         d->rdisk[i].setEmpty(QString(rdisk_drives[i].image_path).isEmpty());

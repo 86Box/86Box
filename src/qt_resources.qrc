@@ -83,7 +83,6 @@
         <file alias="/texture_frag.spv">qt/texture_frag.spv</file>
     </qresource>
     <qresource prefix="/assets">
-        <file alias="86box.png">qt/assets/86box.png</file>
         <file alias="86box-wizard.png">qt/assets/86box-wizard.png</file>
         <file alias="addvm-logo.png">qt/assets/addvm-logo.png</file>
         <file alias="addvm-watermark.png">qt/assets/addvm-watermark.png</file>

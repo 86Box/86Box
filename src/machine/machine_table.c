@@ -11070,7 +11070,7 @@ const machine_t machines[] = {
         .device                   = &sb486pv_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &gd5436_onboard_pci_device,
+        .vid_device               = &gd5436_onboard_pci_ics_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -11213,7 +11213,7 @@ const machine_t machines[] = {
         .device                   = &pb450_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &gd5428_vlb_onboard_device,
+        .vid_device               = &gd5428_vlb_onboard_pb450_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },

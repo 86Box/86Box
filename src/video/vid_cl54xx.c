@@ -4439,6 +4439,8 @@ gd54xx_init(const device_t *info)
                 vram = 1024;
             else if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200) && (info->local & 0x1000))
                 vram = 1024;
+            else if ((id == CIRRUS_ID_CLGD5420) && (info->local & 0x200))
+                vram = 512;
             else if (id == CIRRUS_ID_CLGD5401)
                 vram = 256;
             else
@@ -4446,7 +4448,10 @@ gd54xx_init(const device_t *info)
 
             gd54xx->vram_size = vram << 10;
         } else {
-            vram              = device_get_config_int("memory");
+            if ((id == CIRRUS_ID_CLGD5436) && (info->local & 0x200) && (info->local & 0x1000))
+                vram = 1;
+            else
+                vram              = device_get_config_int("memory");
             gd54xx->vram_size = vram << 20;
         }
     }
@@ -4834,6 +4839,25 @@ static const device_config_t gd5426_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t gd5428_1mb_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t gd5429_config[] = {
     {
         .name           = "memory",
@@ -4969,13 +4993,12 @@ static const device_config_t gd5434_onboard_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 4,
+        .default_int    = 2,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
             { .description = ""                 }
         },
         .bios           = { { 0 } }
@@ -5098,7 +5121,7 @@ const device_t gd5420_onboard_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd542x_config,
+    .config        = NULL,
 };
 
 const device_t gd5422_isa_device = {
@@ -5341,6 +5364,20 @@ const device_t gd5428_onboard_vlb_device = {
     .config        = gd542x_config
 };
 
+const device_t gd5428_vlb_onboard_pb450_device = {
+    .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (PB450)",
+    .internal_name = "cl_gd5428_vlb_onboard_pb450",
+    .flags         = DEVICE_VLB,
+    .local         = CIRRUS_ID_CLGD5428 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd5428_1mb_config
+};
+
 const device_t gd5428_vlb_onboard_tandy_device = {
     .name          = "Cirrus Logic GD5428 (VLB) (On-Board) (Tandy)",
     .internal_name = "cl_gd5428_vlb_onboard_tandy",
@@ -5536,7 +5573,21 @@ const device_t gd5436_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_config
+    .config        = gd5434_onboard_config
+};
+
+const device_t gd5436_onboard_pci_ics_device = {
+    .name          = "Cirrus Logic GD5436 (PCI) (On-Board) (ICS)",
+    .internal_name = "cl_gd5436_onboard_pci_ics",
+    .flags         = DEVICE_PCI,
+    .local         = CIRRUS_ID_CLGD5436 | 0x200 | 0x1000,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = NULL,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = NULL
 };
 
 const device_t gd5436_pci_device = {

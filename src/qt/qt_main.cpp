@@ -75,6 +75,7 @@ extern "C" {
 #include <iostream>
 #include <memory>
 
+#include "qt_defs.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
 #include "qt_settings.hpp"
@@ -627,16 +628,7 @@ main(int argc, char *argv[])
 #endif
 
 #ifndef Q_OS_MACOS
-#    ifdef RELEASE_BUILD
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-green.ico"));
-#    elif defined ALPHA_BUILD
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-red.ico"));
-#    elif defined BETA_BUILD
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-yellow.ico"));
-#    else
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-gray.ico"));
-#    endif
-
+    app.setWindowIcon(QIcon(EMU_ICON_PATH));
 #    ifdef Q_OS_UNIX
     app.setDesktopFileName("net.86box.86Box");
 #    endif
