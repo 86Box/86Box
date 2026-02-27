@@ -8,6 +8,9 @@
  *
  *          Implementation of the Western Digital WD76C10 chipset.
  *
+ *          It appears that it hold separate lock/unlock states depending
+ *          on whether or not the access to port F073h was 8-bit or 16-bit.
+ *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2024 Miran Grca.
@@ -103,7 +106,7 @@ typedef struct
     uint16_t ems_page_regs[40];
     uint16_t lpt_base;
 
-    int locked;
+    int locked, lock8, lock16;
 
     uint32_t mem_top, hmwp_base;
     uint32_t fast;
@@ -1051,6 +1054,11 @@ wd76c10_outb(uint16_t port, uint8_t val, void *priv)
             if (valxor)
                 nvr_lock_set(0x38, 0x08, (val & 0x08) ? 0x03 : 0x00, dev->nvr);
             break;
+
+        case 0xf073:
+            dev->lock8 = ((val & 0x00ff) != 0x00da);
+            dev->locked = dev->lock8 && dev->lock16;
+            break;
     }
 }
 
@@ -1062,7 +1070,7 @@ wd76c10_outw(uint16_t port, uint16_t val, void *priv)
     uint8_t ems_en;
 
     if (!dev->locked || (port < 0x1072) || (port > 0xf872) ||
-        (port == 0xe072) || (port == 0xe872) || (port == 0xf073))  switch (port) {
+                        (port == 0xe072) || (port == 0xe872) || (port == 0xf073))  switch (port) {
         case 0x1072:
             dev->cpuclk = val;
             break;
@@ -1165,7 +1173,8 @@ wd76c10_outw(uint16_t port, uint16_t val, void *priv)
             break;
 
         case 0xf073:
-            dev->locked = ((val & 0x00ff) != 0x00da);
+            dev->lock16 = ((val & 0x00ff) != 0x00da);
+            dev->locked = dev->lock8 && dev->lock16;
             break;
 
         case 0xf872:
@@ -1199,7 +1208,7 @@ wd76c10_inw(uint16_t port, void *priv)
     wd76c10_log("WD76C10: R dev->regs[%04x]\n", port);
 
     if (!dev->locked || (port < 0x1072) || (port > 0xf872) ||
-        (port == 0xe072) || (port == 0xe872) || (port == 0xf073))  switch (port) {
+                        (port == 0xe072) || (port == 0xe872) || (port == 0xf073))  switch (port) {
         case 0x1072:
             ret = dev->cpuclk;
             break;
@@ -1303,6 +1312,8 @@ wd76c10_reset(void *priv)
 {
     wd76c10_t *dev = (wd76c10_t *)priv;
 
+    dev->lock8  = 1;
+    dev->lock16 = 1;
     dev->locked = 1;
     dev->toggle = 0;
 
@@ -1460,7 +1471,9 @@ wd76c10_init(UNUSED(const device_t *info))
     io_sethandler(0xe872, 1, NULL, wd76c10_inw, NULL, NULL, wd76c10_outw, NULL, dev);
 
     /* Lock/Unlock Configuration */
-    io_sethandler(0xf073, 1, NULL, NULL, NULL, NULL, wd76c10_outw, NULL, dev);
+    io_sethandler(0xf073, 1, NULL, NULL, NULL, wd76c10_outb, wd76c10_outw, NULL, dev);
+    // io_sethandler(0xf073, 1, NULL, NULL, NULL, NULL, wd76c10_outw, NULL, dev);
+    // io_sethandler(0xf073, 1, NULL, NULL, NULL, wd76c10_outb, NULL, NULL, dev);
 
     /* Cache Flush */
     io_sethandler(0xf872, 1, NULL, NULL, NULL, NULL, wd76c10_outw, NULL, dev);
