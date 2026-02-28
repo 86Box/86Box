@@ -1184,6 +1184,7 @@ hdc_read(uint16_t port, void *priv)
             break;
 
         case 4: /* ISR */
+            dev->status &= ~ASR_INT_REQ;
             ret          = dev->intstat;
             dev->intstat = 0x00;
             break;
@@ -1225,6 +1226,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                     /* We got all the data we need. */
                     dev->status &= ~ASR_DATA_REQ;
                     dev->state = STATE_IDLE;
+                    set_intr(dev, 1);
 
                     /* If we were receiving a CCB, execute it. */
                     if (dev->attn & ATT_CCB) {
@@ -1256,7 +1258,6 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                 /* Schedule command execution. */
                 timer_set_delay_u64(&dev->timer, HDC_TIME);
             }
-
             break;
 
         case 4: /* ATTN */
@@ -1295,7 +1296,6 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 
                 dev->state = STATE_RDATA;
                 dev->status |= ASR_DATA_REQ;
-                set_intr(dev, 1);
             }
             break;
 

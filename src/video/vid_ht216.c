@@ -723,7 +723,9 @@ ht216_recalctimings(svga_t *svga)
             if (clock0_override == 2)
                 svga->clock = (cpuclock * (double) (1ULL << 32)) / 38000000.0;
         }
-        pclog("HT208 Select=%d, clock0override=%d, CRTC17=%02x, MISC=%02x, A4=%02x, FC=%02x, F8=%02x, FF=%02x, reset=%02x.\n", clock_sel, clock0_override, svga->crtc[0x17], ht216->misc & 0x0c, ht216->ht_regs[0xa4], ht216->ht_regs[0xfc], ht216->ht_regs[0xf8], ht216->ht_regs[0xff], svga->seqregs[0] & 0x03);
+        ht216_log("HT208 Select=%d, clock0override=%d, CRTC17=%02x, MISC=%02x, A4=%02x, FC=%02x, F8=%02x, FF=%02x, reset=%02x.\n",
+                  clock_sel, clock0_override, svga->crtc[0x17], ht216->misc & 0x0c, ht216->ht_regs[0xa4], ht216->ht_regs[0xfc],
+                  ht216->ht_regs[0xf8], ht216->ht_regs[0xff], svga->seqregs[0] & 0x03);
     } else {
         svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(ht216->clk_sel, svga->clock_gen);
         ht216_log("ClkSel V7=%02x, regf8=%02x, rega4=%02x, miscout=%x, vidclock=%02x.\n", ht216->clk_sel, ht216->ht_regs[0xf8], ht216->ht_regs[0xa4], (svga->miscout >> 2) & 0x03, svga->vidclock);

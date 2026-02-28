@@ -791,7 +791,7 @@ jega_standalone_init(const device_t *info)
 {
     jega_t *jega = calloc(1, sizeof(jega_t));
 
-    rom_init(&jega->bios_rom, JEGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    rom_init(&jega->bios_rom, JEGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     jega_load_font(JEGA_PATH_FONTDBCS, jega);
 
@@ -805,7 +805,7 @@ jvga_standalone_init(const device_t *info)
 {
     jega_t *jega = calloc(1, sizeof(jega_t));
 
-    rom_init(&jega->bios_rom, JVGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    rom_init(&jega->bios_rom, JVGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     jega_load_font(JVGA_PATH_FONTDBCS, jega);
 
@@ -1022,7 +1022,7 @@ if386jega_init(const device_t *info)
 {
     jega_t *jega = calloc(1, sizeof(jega_t));
 
-    rom_init(&jega->bios_rom, IF386_PATH_VBIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    rom_init(&jega->bios_rom, IF386_PATH_VBIOS, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     jega_load_font(JEGA_PATH_FONTDBCS, jega);
 

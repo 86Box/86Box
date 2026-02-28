@@ -2609,13 +2609,11 @@ ide_callback(void *priv)
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
             else {
-                /* Only accept after RESET or DIAG. */
-                if (!ide->params_specified) {
-                    ide->cfg_spt = (ide->tf->secount == 0) ? 256 : ide->tf->secount;
-                    ide->cfg_hpc = ide->tf->head + 1;
+                ide->cfg_spt = (ide->tf->secount == 0) ? 256 : ide->tf->secount;
+                ide->cfg_hpc = ide->tf->head + 1;
 
-                    ide->params_specified = 1;
-                }
+                ide->params_specified = 1;
+
                 ide->command = 0x00;
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
                 ide->tf->error   = 1;

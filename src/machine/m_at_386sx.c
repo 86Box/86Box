@@ -505,12 +505,12 @@ machine_at_p3345_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_ide_init(model);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&neat_device);
-    device_add(&ide_isa_device);
+    device_add(&p82c604_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
