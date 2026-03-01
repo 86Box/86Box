@@ -20977,7 +20977,7 @@ const machine_t machines[] = {
     },
 
     /* VIA Apollo Pro+ */
-    /* Has a Winbond W83877EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[VIA Apollo Pro+] AOpen AX63",
