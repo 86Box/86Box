@@ -40,6 +40,7 @@
 #define AGP_BRIDGE_VIA_597     0x11068597
 #define AGP_BRIDGE_VIA_598     0x11068598
 #define AGP_BRIDGE_VIA_691     0x11068691
+#define AGP_BRIDGE_VIA_693     0x11068693
 #define AGP_BRIDGE_VIA_8601    0x11068601
 #define AGP_BRIDGE_SIS_5XXX    0x10390001
 
@@ -471,6 +472,7 @@ pci_bridge_reset(void *priv)
         case AGP_BRIDGE_VIA_597:
         case AGP_BRIDGE_VIA_598:
         case AGP_BRIDGE_VIA_691:
+        case AGP_BRIDGE_VIA_693:
         case AGP_BRIDGE_VIA_8601:
             dev->regs[0x04] = 0x07;
             dev->regs[0x06] = 0x20;
@@ -703,6 +705,20 @@ const device_t via_apro_agp_device = {
     .internal_name = "via_apro_agp",
     .flags         = DEVICE_PCI,
     .local         = AGP_BRIDGE_VIA_691,
+    .init          = pci_bridge_init,
+    .close         = NULL,
+    .reset         = pci_bridge_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t via_693_agp_device = {
+    .name          = "VIA Apollo Pro+ AGP Bridge",
+    .internal_name = "via_693_agp",
+    .flags         = DEVICE_PCI,
+    .local         = AGP_BRIDGE_VIA_693,
     .init          = pci_bridge_init,
     .close         = NULL,
     .reset         = pci_bridge_reset,
