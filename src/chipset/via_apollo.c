@@ -176,7 +176,7 @@ via_apollo_setup(via_apollo_t *dev)
     }
     if (dev->id >= VIA_691)
         dev->pci_conf[0x67] = 0xec; /* DRAM Timing for Banks 6, 7 */
-    if (dev->id >= VIA_693A) {
+    if (dev->id >= VIA_693) {
         if (cpu_busspeed < 95000000) { /* 66 MHz */
             cpu_set_pci_speed(cpu_busspeed / 2);
             cpu_set_agp_speed(cpu_busspeed);
@@ -188,7 +188,8 @@ via_apollo_setup(via_apollo_t *dev)
         } else { /* 133 MHz */
             cpu_set_pci_speed(cpu_busspeed / 4);
             cpu_set_agp_speed(cpu_busspeed / 2);
-            dev->pci_conf[0x68] |= (dev->id == VIA_8601) ? 0x03 : 0x02;
+            /* VIA_693 is 100MHz-only, but handle BIOS incorrectly setting 133MHz */
+            dev->pci_conf[0x68] |= (dev->id == VIA_8601) ? 0x03 : ((dev->id == VIA_693) ? 0x01 : 0x02);
         }
     } else if (dev->id >= VIA_598) {
         if (cpu_busspeed < ((dev->id >= VIA_691) ? 100000000 : 75000000)) { /* 66 MHz */
@@ -214,8 +215,8 @@ via_apollo_setup(via_apollo_t *dev)
         dev->pci_conf[0xa5] = 0x02;
         dev->pci_conf[0xa7] = 0x07;
 
-        if (dev->id == VIA_693A) {
-            dev->pci_conf[0xac] = 0x08;
+        if ((dev->id == VIA_693) || (dev->id == VIA_693A)) {
+            dev->pci_conf[0xac] = 0x02;
             dev->pci_conf[0xad] = 0x02;
         }
 
@@ -350,7 +351,7 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
             break;
 
         case 0x58:
-            if ((dev->id >= VIA_585) || (dev->id < VIA_597) || (dev->id == VIA_597) || ((dev->id >= VIA_693A) && (dev->id < VIA_8601)))
+            if ((dev->id >= VIA_585) || (dev->id < VIA_597) || (dev->id == VIA_597) || ((dev->id >= VIA_693) && (dev->id < VIA_8601)))
                 dev->pci_conf[0x58] = (dev->pci_conf[0x58] & ~0xee) | (val & 0xee);
             else
                 dev->pci_conf[0x58] = val;
@@ -502,15 +503,13 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
             }
             break;
         case 0x69:
-            if ((dev->id != VIA_585) || (dev->id != VIA_595)) {
-                if ((dev->id == VIA_693) || (dev->id == VIA_693A))
-                    dev->pci_conf[0x69] = (dev->pci_conf[0x69] & ~0xfe) | (val & 0xfe);
-                else
-                    dev->pci_conf[0x69] = val;
-            }
+            if (((dev->id == VIA_693) || (dev->id == VIA_693A)) && (dev->id < VIA_8601))
+                dev->pci_conf[0x69] = (dev->pci_conf[0x69] & ~0xfe) | (val & 0xfe);
+            else if ((dev->id != VIA_585) && (dev->id != VIA_595))
+                dev->pci_conf[0x69] = val;
             break;
         case 0x6b:
-            if ((dev->id == VIA_693) || (dev->id == VIA_693A))
+            if (((dev->id == VIA_693) || (dev->id == VIA_693A)) && (dev->id < VIA_8601))
                 dev->pci_conf[0x6b] = val;
             else if (dev->id == VIA_691)
                 dev->pci_conf[0x6b] = (dev->pci_conf[0x6b] & ~0xcf) | (val & 0xcf);
@@ -522,7 +521,7 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
                 dev->pci_conf[0x6b] = (dev->pci_conf[0x6b] & ~0xc1) | (val & 0xc1);
             break;
         case 0x6c:
-            if ((dev->id == VIA_597) || (dev->id == VIA_693) || (dev->id == VIA_693A))
+            if ((dev->id == VIA_597) || (((dev->id == VIA_693) || (dev->id == VIA_693A)) && (dev->id < VIA_8601)))
                 dev->pci_conf[0x6c] = (dev->pci_conf[0x6c] & ~0x1f) | (val & 0x1f);
             else if (dev->id == VIA_598)
                 dev->pci_conf[0x6c] = (dev->pci_conf[0x6c] & ~0x7f) | (val & 0x7f);
@@ -744,15 +743,12 @@ via_apollo_init(const device_t *info)
             device_add(&via_apro_agp_device);
             break;
 
-        case VIA_693:
-            device_add(&via_693_agp_device);
-            break;
-
         case VIA_8601:
             device_add(&via_vt8601_agp_device);
             break;
 
         case VIA_598:
+        case VIA_693:
         case VIA_693A:
         case VIA_694:
             device_add(&via_mvp3_agp_device);
