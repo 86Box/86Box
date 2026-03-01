@@ -1730,7 +1730,7 @@ machine_at_ax63_init(const machine_t *model)
     device_add(&via_vt82c596b_device);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(&winbond_flash_w29c020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 768);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
