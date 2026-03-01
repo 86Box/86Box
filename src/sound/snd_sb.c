@@ -4102,12 +4102,15 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
 {
     sb_t *ess = calloc(sizeof(sb_t), 1);
 
-    ess->pnp = 1 + (int) info->local;
+    if (info->local == 3)
+        ess->pnp = 3;
+    else
+        ess->pnp = 1 + (int) info->local;
 
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
-    sb_dsp_init(&ess->dsp, SBPRO_DSP_301, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
+    sb_dsp_init(&ess->dsp, SBPRO_DSP_301, (info->local & 1) ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
@@ -4115,7 +4118,7 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     sound_add_handler(sb_get_buffer_ess, ess);
     music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
-    if (info->local && device_get_config_int("control_pc_speaker"))
+    if ((info->local & 1) && device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(ess_filter_pc_speaker, ess);
 
     if (device_get_config_int("receive_input"))
@@ -4148,8 +4151,9 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
             break;
 
         case 2:
+        case 3:
             pnp_rom_file = PNP_ROM_ESS0968;
-            pnp_rom_len  = 135;
+            pnp_rom_len  = 127;
             break;
 
         default:
@@ -5657,6 +5661,32 @@ static const device_config_t ess_688_pnp_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t ess_688_pnp_es0968_config[] = {
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t ess_1688_pnp_config[] = {
     {
         .name           = "control_pc_speaker",
@@ -6185,11 +6215,25 @@ const device_t ess_ess0102_pnp_device = {
     .config        = ess_1688_pnp_config
 };
 
+const device_t ess_ess0968_pnp_688_device = {
+    .name          = "ESS AudioDrive ES688 (ESS0968) PnP",
+    .internal_name = "ess_ess0968_pnp_es688",
+    .flags         = DEVICE_ISA,
+    .local         = 2,
+    .init          = ess_x688_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = ess_1688_968_pnp_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = ess_688_pnp_es0968_config
+};
+
 const device_t ess_ess0968_pnp_device = {
     .name          = "ESS AudioDrive ES1688 (ESS0968) PnP",
     .internal_name = "ess_ess0968_pnp",
     .flags         = DEVICE_ISA,
-    .local         = 2,
+    .local         = 3,
     .init          = ess_x688_pnp_init,
     .close         = sb_close,
     .reset         = NULL,
