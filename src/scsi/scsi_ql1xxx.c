@@ -44,7 +44,7 @@
 
 #include "cpu.h"
 
-#define ARRAY_SIZE(x) sizeof(x)/sizeof(x[0])
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 
 /*
  * Device configuration
@@ -1277,6 +1277,8 @@ ql_rom_bar_mmio_read8(uint32_t addr, void* priv)
 {
     ql_t *dev = priv;
 
+    addr &= (dev->pci_rom_area_size - 1);
+
     return am29_mmio_read8(addr, &dev->flash_device);
 }
 
@@ -1632,7 +1634,7 @@ ql_handle_cmd_abort_command(ql_t *dev)
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
     }
 
-    /* Abort an active command on the device (PATH:TID:LUN) that match the handle */
+    /* Abort all active commands on the device (PATH:TID:LUN) that match the handle */
     handle = dev->reg_mbox_in[QL_MBOX_HNDL_LOW];
     handle |= (uint32_t)dev->reg_mbox_in[QL_MBOX_HNDL_HIGH] << 16;
     success = ql_sxp_abort_commands(dev, path_id, target_id, lun, handle, true);
@@ -3114,7 +3116,7 @@ ql_mmio_write16(uint32_t addr, uint16_t val, void* priv)
                     addr -= REG_TO_IDX(0x20);
                     ql_write_bank_dma(dev, addr, val);
                     break;
-                } else if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0xFF)) {
+                } else if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0x100)) {
                     /* RISC or SXP bank */
                     addr -= REG_TO_IDX(0x80);
                     if (dev->reg_cfg1 & BIU_PCI_CONF1_SXP) {
@@ -3125,7 +3127,7 @@ ql_mmio_write16(uint32_t addr, uint16_t val, void* priv)
                     break;
                 }
             } else {
-                if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0xFF)) {
+                if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0x100)) {
                     addr -= REG_TO_IDX(0x80);
 
                     switch (dev->reg_cfg1 & BIU_PCI1080_REG_BANK_MASK) {
@@ -3335,7 +3337,7 @@ ql_mmio_read16(uint32_t addr, void* priv)
                     bank_addr = addr - REG_TO_IDX(0x20);
                     ret = ql_read_bank_dma(dev, bank_addr);
                     break;
-                } else if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0xFF)) {
+                } else if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0x100)) {
                     /* RISC or SXP bank */
                     bank_addr = addr - REG_TO_IDX(0x80);
                     if (dev->reg_cfg1 & BIU_PCI_CONF1_SXP) {
@@ -3346,7 +3348,7 @@ ql_mmio_read16(uint32_t addr, void* priv)
                     break;
                 }
             } else {
-                if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0xFF)) {
+                if (addr >= REG_TO_IDX(0x80) && addr < REG_TO_IDX(0x100)) {
                     bank_addr = addr - REG_TO_IDX(0x80);
 
                     switch (dev->reg_cfg1 & BIU_PCI1080_REG_BANK_MASK) {
