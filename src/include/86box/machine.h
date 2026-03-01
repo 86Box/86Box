@@ -295,6 +295,7 @@ enum {
     MACHINE_CHIPSET_VIA_APOLLO_VP3,
     MACHINE_CHIPSET_VIA_APOLLO_MVP3,
     MACHINE_CHIPSET_VIA_APOLLO_PRO,
+    MACHINE_CHIPSET_VIA_APOLLO_PRO_PLUS,
     MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
     MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
     MACHINE_CHIPSET_VLSI_SCAMP,
@@ -1288,6 +1289,9 @@ extern int             machine_at_atc6310bxii_init(const machine_t *);
 
 /* VIA Apollo Pro */
 extern int             machine_at_ficka6130_init(const machine_t *);
+
+/* VIA Apollo Pro+ */
+extern int             machine_at_ax63_init(const machine_t *);
 
 /* VIA Apollo Pro 133 */
 extern int             machine_at_p3v133_init(const machine_t *);
