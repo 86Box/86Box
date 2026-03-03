@@ -1238,7 +1238,7 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
     dev->pit_read_reg = pit_is_fast ? pitf_read_reg : pit_read_reg;
 
     /* NVR */
-    dev->nvr = device_add(&at_mb_nvr_device);
+    dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_MB);
 
     switch (dev->rev) {
         case 0x00:

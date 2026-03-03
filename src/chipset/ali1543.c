@@ -1614,7 +1614,7 @@ ali1543_init(const device_t *info)
 
     /* ACPI */
     dev->acpi = device_add(&acpi_ali_device);
-    dev->nvr  = device_add(&piix4_nvr_device);
+    dev->nvr  = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4);
 
     /* DMA */
     dma_alias_set();

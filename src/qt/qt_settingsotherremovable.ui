@@ -56,6 +56,9 @@
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
      </property>
+     <property name="tabKeyNavigation">
+      <bool>false</bool>
+     </property>
      <property name="showGrid">
       <bool>false</bool>
      </property>
@@ -141,6 +144,9 @@
      </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="tabKeyNavigation">
+      <bool>false</bool>
      </property>
      <property name="showGrid">
       <bool>false</bool>

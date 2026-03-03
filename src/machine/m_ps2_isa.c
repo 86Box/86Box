@@ -229,8 +229,6 @@ ps2_isa_setup(int model, int cpu_type)
 
     mem_remap_top(384);
 
-    device_add(&ps_nvr_device);
-
     device_add(&fdc_ps2_device);
 
     /* Enable the builtin HDC. */

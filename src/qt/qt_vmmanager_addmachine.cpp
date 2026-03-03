@@ -38,11 +38,6 @@ VMManagerAddMachine::
     setPage(Page_NameAndLocation, new NameAndLocationPage);
     setPage(Page_Conclusion, new ConclusionPage);
 
-    // Need to create a better image
-    // QPixmap originalPixmap(":/assets/86box.png");
-    // QPixmap scaledPixmap = originalPixmap.scaled(150, 150, Qt::KeepAspectRatio);
-    QPixmap wizardPixmap(":/assets/86box-wizard.png");
-
 #ifndef Q_OS_MACOS
     setWizardStyle(ModernStyle);
     setPixmap(LogoPixmap, QPixmap(":assets/addvm-logo.png"));

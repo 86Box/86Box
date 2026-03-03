@@ -2971,17 +2971,6 @@ machine_amstrad_init(const machine_t *model, int type)
     ams->type     = type;
     amstrad_latch = 0x80000000;
 
-    switch (type) {
-        case AMS_PC200:
-        case AMS_PPC512:
-            device_add(&amstrad_no_nmi_nvr_device);
-            break;
-
-        default:
-            device_add(&amstrad_nvr_device);
-            break;
-    }
-
     machine_common_init(model);
 
     nmi_init();

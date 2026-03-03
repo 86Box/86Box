@@ -64,7 +64,11 @@
 #define DA2_MASK_GAIJIRAM        0x3ffff       /* 0x3FFFF */
 #define DA2_MASK_VRAM            0xfffff       /* 0xFFFFF */
 #define DA2_MASK_VRAMPLANE       0x1ffff       /* 0x1FFFF */
-#define DA2_PIXELCLOCK           58000000.0    /* 58 MHz interlaced */
+#define DA2_CLOCK_58MHZ          58000000.0    /* 58.000 MHz interlaced */
+#define DA2_CLOCK_45MHZ          45570000.0    /* 45.570 MHz interlaced */
+/* The DA-3 and later have the capability of monitor ID detection and 45.57/47.424 MHz OSCs.
+   They must be used for IBM 8515 monitor, but I don't know which OSC is used (or both). */
+
 #define DA2_BLT_MEMSIZE          0x10
 #define DA2_BLT_REGSIZE          0x40
 #define DA2_DEBUG_BLTLOG_SIZE    (DA2_BLT_REGSIZE + 1)
@@ -77,9 +81,9 @@
 /* These ROMs are currently not found.
    At least, IBM-J released a Korean and PRC version of PS/55 for each market. */
 #define DA2_DCONFIG_CHARSET_HANT  3 /* for Code page 938 Traditional Chinese */
-#define DA2_DCONFIG_MONTYPE_COLOR 0x0A
-#define DA2_DCONFIG_MONTYPE_8515  0x0B
-#define DA2_DCONFIG_MONTYPE_MONO  0x09
+#define DA2_DCONFIG_MONTYPE_COLOR 0x0A /* 1010: IBM 8514 */
+#define DA2_DCONFIG_MONTYPE_8515  0x0B /* 1011: IBM 8515 */
+#define DA2_DCONFIG_MONTYPE_MONO  0x09 /* 1001: IBM 8604 */
 
 #define DA2_BLT_CIDLE             0
 #define DA2_BLT_CFILLRECT         1
@@ -263,8 +267,8 @@
 #endif
 
 #ifdef ENABLE_DA2_LOG
-#    define ENABLE_DA2_DEBUGIO 1
-#    define ENABLE_DA2_DEBUGBLT 1
+// #    define ENABLE_DA2_DEBUGIO 1
+// #    define ENABLE_DA2_DEBUGBLT 1
 // #    define ENABLE_DA2_DEBUGVRAM 1
 // #    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
@@ -347,7 +351,7 @@ typedef struct da2_t {
     int      hdisp, htotal, hdisp_time, rowoffset;
     int      lowres;
     int      rowcount;
-    double   clock;
+    double   clock, pixelclock;
     uint32_t memaddr_latch, ca_adj;
 
     uint64_t   dispontime, dispofftime;
@@ -681,7 +685,7 @@ static uint8_t
 pixel1tohex(uint32_t addr, int index, da2_t *da2)
 {
     uint8_t pixeldata = 0;
-    for (uint8_t i = 0; i < 8; j++) {
+    for (uint8_t i = 0; i < 8; i++) {
         if (da2_vram_r(((addr << 3) | i) & (1 << (7 - index)), da2))
             pixeldata++;
     }
@@ -1375,7 +1379,7 @@ da2_out(uint16_t addr, uint16_t val, void *priv)
                 case LC_START_H_DISPLAY_ENAB:
                 case LC_START_V_DISPLAY_ENAB:
                 case LC_VIEWPORT_SELECT:
-                case LC_VIEWPORT_PRIORITY:
+                case LC_COMMAND:
                     da2->fullchange = 3;
                     da2_recalctimings(da2);
                     break;
@@ -2330,14 +2334,18 @@ da2_recalctimings(da2_t *da2)
     /* In the video mode 3, you'll see a blank below the screen. It's NOT a bug. */
     da2->hdisp -= da2->crtc[LC_START_H_DISPLAY_ENAB];
     da2->dispend -= da2->crtc[LC_START_V_DISPLAY_ENAB];
-    da2->dispend += 1;
 
     da2->htotal = da2->crtc[LC_HORIZONTAL_TOTAL];
-    da2->htotal += 1;
+    da2->htotal += 2;
 
     da2->rowoffset = da2->crtc[LC_OFFSET]; /* number of bytes in a scanline */
 
-    da2->clock = da2->da2const;
+    if (da2->crtc[LC_END_HSYNC_PULSE] & 0x8000)
+        da2->pixelclock = DA2_CLOCK_45MHZ;
+    else
+        da2->pixelclock = DA2_CLOCK_58MHZ;
+    da2->da2const = (uint64_t) ((cpuclock / da2->pixelclock) * (double) (1ull << 32));
+    da2->clock = (double)da2->da2const;
 
     if (da2->vtotal == 0)
         da2->vtotal = da2->vsyncstart = da2->vblankstart = 256;
@@ -2360,7 +2368,8 @@ da2_recalctimings(da2_t *da2)
     if (!(da2->ioctl[LS_MODE] & 0x01)) {
         da2->hdisp *= 16;
         da2->char_width = 13;
-        if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
+        // if (da2->crtc[LC_VIEWPORT_PRIORITY] & 0x80) {
+        if (da2->crtc[LC_COMMAND] & 0x40) {
             da2_log("Set videomode to PS/55 8 bpp graphics.\n");
             da2->render            = da2_render_color_8bpp;
             da2->vram_display_mask = DA2_MASK_A000;
@@ -2407,9 +2416,11 @@ da2_recalctimings(da2_t *da2)
         da2->dispontime = TIMER_USEC;
     if (da2->dispofftime < TIMER_USEC)
         da2->dispofftime = TIMER_USEC;
-    da2_log("da2 horiz total %i display end %i vidclock %f\n", da2->crtc[0], da2->crtc[1], da2->clock);
+    da2_log("da2 horiz total %i display end %i vidclock %f\n", da2->htotal, da2->hdisp, da2->clock);
     da2_log("da2 vert total %i display end %i max row %i vsync %i\n",da2->vtotal,da2->dispend,(da2->crtc[9]&31)+1,da2->vsyncstart);
-    da2_log("da2 dispon %lu dispoff %lu on(us) %f off(us) %f\n",da2->dispontime, da2->dispofftime, (double)da2->dispontime / (double)cpuclock /  (double) (1ULL << 32) * 1000000.0, (double)da2->dispofftime / (double)cpuclock /  (double) (1ULL << 32) * 1000000.0);
+    da2_log("da2 dispon %lu dispoff %lu on(us) %f off(us) %f\n",da2->dispontime, da2->dispofftime, 
+        (double)da2->dispontime / (double)cpuclock /  (double) (1ULL << 32) * 1000000.0, 
+        (double)da2->dispofftime / (double)cpuclock /  (double) (1ULL << 32) * 1000000.0);
     da2_log("da2 linecompare %d\n", da2->split);
 }
 
@@ -3217,6 +3228,13 @@ da2_reset_ioctl(da2_t *da2)
     da2->ioctl[LS_RESET] = 0x00;     /* Bit 0: Reset sequencer */
     da2_outw(LS_INDEX, 0x0302, da2); /* Index 02, Bit 1: VGA passthrough, Bit 0: Character Mode */
     da2_outw(LS_INDEX, 0x0008, da2); /* Index 08, Bit 0: Enable MMIO */
+    /* Set default color palette (Windows 3.1 display driver won't reset palette regs) */
+    for (uint16_t i = 0; i < 256; i++) {
+        da2->vgapal[i].r = ps55_palette_color[i & 0x3F][0];
+        da2->vgapal[i].g = ps55_palette_color[i & 0x3F][1];
+        da2->vgapal[i].b = ps55_palette_color[i & 0x3F][2];
+        da2->pallook[i]  = makecol32((da2->vgapal[i].r & 0x3f) * 4, (da2->vgapal[i].g & 0x3f) * 4, (da2->vgapal[i].b & 0x3f) * 4);
+    }
 }
 
 static void
@@ -3231,7 +3249,7 @@ da2_reset(void *priv)
     da2->pos_regs[0]       = DA2_POSID_L;                    /* Adapter Identification Byte (Low byte) */
     da2->pos_regs[1]       = DA2_POSID_H;                    /* Adapter Identification Byte (High byte) */
     da2->pos_regs[2]       = 0x40;                           /* Bit 7-5: 010=Mono, 100=Color, Bit 0 : Card Enable (set by reference diskette) */
-    da2->ioctl[LS_CONFIG1] = OldLSI | Page_Two;              /* Configuration 1 : DA-II, 1024 KB */
+    da2->ioctl[LS_CONFIG1] = Page_Two;                       /* Configuration 1 : DA-III, 1024 KB */
     da2->ioctl[LS_CONFIG1] |= ((da2->monitorid & 0x8) << 1); /* Configuration 1 : Monitor ID 3 */
     da2->ioctl[LS_CONFIG2]         = (da2->monitorid & 0x7); /* Configuration 2: Monitor ID 0-2 */
     da2->fctl[0]                   = 0x2b;                   /* 3E3h:0 */
@@ -3244,13 +3262,6 @@ da2_reset(void *priv)
     da2->attrc[LV_CURSOR_CONTROL]  = 0x13; /* cursor options */
     da2->attr_palette_enable       = 0;    /* disable attribute generator */
 
-    /* Set default color palette (Windows 3.1 display driver won't reset palette) */
-    for (uint16_t i = 0; i < 256; i++) {
-        da2->vgapal[i].r = ps55_palette_color[i & 0x3F][0];
-        da2->vgapal[i].g = ps55_palette_color[i & 0x3F][1];
-        da2->vgapal[i].b = ps55_palette_color[i & 0x3F][2];
-        da2->pallook[i]  = makecol32((da2->vgapal[i].r & 0x3f) * 4, (da2->vgapal[i].g & 0x3f) * 4, (da2->vgapal[i].b & 0x3f) * 4);
-    }
     da2_log("da2_reset done.\n");
 }
 
@@ -3270,7 +3281,7 @@ da2_init(UNUSED(const device_t *info))
     da2->vram              = calloc(1, DA2_SIZE_VRAM);
     da2->cram              = calloc(1, DA2_SIZE_CRAM);
     da2->vram_display_mask = DA2_MASK_CRAM;
-    da2->monitorid         = device_get_config_int("montype");       
+    da2->monitorid         = device_get_config_int("montype");
     da2->changedvram       = calloc(1,  (DA2_MASK_VRAMPLANE + 1) >> 9); /* XX000h */
 
     da2->mmio.charset = device_get_config_int("charset");
@@ -3288,7 +3299,8 @@ da2_init(UNUSED(const device_t *info))
     }
 
     mca_add(da2_mca_read, da2_mca_write, da2_mca_feedb, da2_mca_reset, da2);
-    da2->da2const = (uint64_t) ((cpuclock / DA2_PIXELCLOCK) * (double) (1ull << 32));
+    da2->pixelclock = DA2_CLOCK_58MHZ;
+    da2->da2const = (uint64_t) ((cpuclock / DA2_CLOCK_58MHZ) * (double) (1ull << 32));
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_da2_mca);
     memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
     memset(da2->bitblt.reg, 0xfe, DA2_BLT_REGSIZE * sizeof(uint32_t)); /* clear memory */
@@ -3436,7 +3448,7 @@ static void
 da2_speed_changed(void *priv)
 {
     da2_t *da2    = (da2_t *) priv;
-    da2->da2const = (uint64_t) ((cpuclock / DA2_PIXELCLOCK) * (double) (1ull << 32));
+    da2->da2const = (uint64_t) ((cpuclock / da2->pixelclock) * (double) (1ull << 32));
     da2_recalctimings(da2);
 }
 

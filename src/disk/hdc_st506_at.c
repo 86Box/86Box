@@ -690,18 +690,13 @@ write_error:
              *
              * We SHOULD check that here!! --FvK
              */
-            if (drive->cfg_spt == 0) {
-                /* Only accept after RESET or DIAG. */
-                drive->cfg_spt = mfm->secount;
-                drive->cfg_hpc = mfm->head + 1;
-                st506_at_log("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
-                             mfm->drvsel, drive->tracks,
-                             drive->cfg_spt, drive->cfg_hpc);
-            } else {
-                st506_at_log("WD1003(%d) parameters: tracks=%d,spt=%i,hpc=%i (IGNORED)\n",
-                             mfm->drvsel, drive->tracks,
-                             drive->cfg_spt, drive->cfg_hpc);
-            }
+            drive->cfg_spt = mfm->secount;
+            drive->cfg_hpc = mfm->head + 1;
+
+            st506_at_log("WD1003(%d) parameters: tracks=%d, spt=%i, hpc=%i\n",
+                         mfm->drvsel, drive->tracks,
+                         drive->cfg_spt, drive->cfg_hpc);
+
             mfm->command = 0x00;
             mfm->status  = STAT_READY | STAT_DSC;
             mfm->error   = 1;

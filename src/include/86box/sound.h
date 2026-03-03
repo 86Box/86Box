@@ -196,6 +196,7 @@ extern const device_t cs4238b_device;
 /* ESS Technology */
 extern const device_t ess_688_device;
 extern const device_t ess_ess0100_pnp_device;
+extern const device_t ess_ess0968_pnp_688_device;
 extern const device_t ess_1688_device;
 extern const device_t ess_ess0102_pnp_device;
 extern const device_t ess_ess0968_pnp_device;
@@ -227,6 +228,9 @@ extern const device_t entertainer_device;
 
 /* Mindscape Music Board */
 extern const device_t mmb_device;
+
+/* MediaVision ThunderBoard */
+extern const device_t thunderboard_device;
 
 /* OPTi 82c93x */
 extern const device_t acermagic_s20_device;

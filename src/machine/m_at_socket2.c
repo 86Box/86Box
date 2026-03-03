@@ -61,7 +61,7 @@ machine_at_pb410a_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_ibm_common_ide_init(model);
+    machine_at_common_ide_init(model);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -199,8 +199,7 @@ machine_at_g486ip_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1992_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -380,7 +379,7 @@ machine_at_monsoon_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c480_device);
     device_add(&vl82c113_device);
@@ -408,7 +407,7 @@ machine_at_martin_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c480_device);
     device_add(&vl82c113_device);

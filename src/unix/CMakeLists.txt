@@ -47,8 +47,12 @@ add_library(ui OBJECT
     unix_sdl.c
     unix_osd.c
     unix_cdrom.c
-    dummy_cdrom_ioctl.c
 )
+if(APPLE)
+    target_sources(ui PRIVATE dummy_cdrom_ioctl.c)
+else()
+    target_sources(ui PRIVATE linux_cdrom_ioctl.c)
+endif()
 target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
 target_link_libraries(ui ${CMAKE_DL_LIBS})
 

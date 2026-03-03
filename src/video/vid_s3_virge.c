@@ -5336,6 +5336,10 @@ s3_virge_init(const device_t *info)
     virge->dithering_enabled = device_get_config_int("dithering");
     if (virge->type >= S3_VIRGE_GX2)
         virge->memory_size = 4;
+    else if (virge->type == S3_VIRGE_325 && info->local & 0x100)
+        virge->memory_size = 2;
+    else if (virge->type == S3_VIRGE_DX && info->local & 0x100)
+        virge->memory_size = 2;
     else
         virge->memory_size = device_get_config_int("memory");
 
@@ -5749,6 +5753,43 @@ static const device_config_t s3_virge_config[] = {
     // clang-format on
 };
 
+static const device_config_t s3_virge_onboard_config[] = {
+    // clang-format off
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
 static const device_config_t s3_virge_stb_config[] = {
     // clang-format off
     {
@@ -5933,7 +5974,7 @@ const device_t s3_virge_325_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
+    .config        = s3_virge_onboard_config
 };
 
 const device_t s3_diamond_stealth_2000_pci_device = {
@@ -6017,7 +6058,7 @@ const device_t s3_virge_375_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
+    .config        = s3_virge_onboard_config
 };
 
 const device_t s3_diamond_stealth_2000pro_pci_device = {

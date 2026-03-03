@@ -36,9 +36,8 @@
         <file>qt/icons/rewind.ico</file>
         <file>qt/icons/sound.ico</file>
         <file>qt/icons/storage_controllers.ico</file>
-        <file>qt/icons/superdisk.ico</file>
-        <file>qt/icons/superdisk_image.ico</file>
-        <file>qt/icons/superdisk_disabled.ico</file>
+        <file>qt/icons/zip.ico</file>
+        <file>qt/icons/zip_image.ico</file>
         <file>qt/icons/active.ico</file>
         <file>qt/icons/browse.ico</file>
         <file>qt/icons/eject.ico</file>
@@ -84,11 +83,6 @@
         <file alias="/texture_frag.spv">qt/texture_frag.spv</file>
     </qresource>
     <qresource prefix="/assets">
-        <file alias="86Box-green.png">qt/assets/86Box-green.png</file>
-        <file alias="86box-rb.png">qt/assets/86box-rb.png</file>
-        <file alias="86box-red.png">qt/assets/86box-red.png</file>
-        <file alias="86box-yellow.png">qt/assets/86box-yellow.png</file>
-        <file alias="86box.png">qt/assets/86box.png</file>
         <file alias="86box-wizard.png">qt/assets/86box-wizard.png</file>
         <file alias="addvm-logo.png">qt/assets/addvm-logo.png</file>
         <file alias="addvm-watermark.png">qt/assets/addvm-watermark.png</file>

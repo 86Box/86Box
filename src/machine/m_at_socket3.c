@@ -105,15 +105,14 @@ machine_at_ap4100aa_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
-    device_add(&ami_1994_nvr_device);
     device_add(&ali1429g_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&ide_vlb_device);
-    device_add_params(&um866x_device, (void *) UM8663BF);
+    device_add_params(&um866x_device, (void *) (uintptr_t) UM8663BF);
 
     return ret;
 }
@@ -265,11 +264,8 @@ machine_at_403tg_init(const machine_t *model)
     fn           = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret          = bios_load_linear(fn, 0x000f0000, 65536, 0);
 
-    if (nvr_hack) {
-        machine_at_common_init_ex(model, 2);
-        device_add(&ami_1994_nvr_device);
-    } else
-        machine_at_common_init(model);
+    machine_at_common_init(model);
+    device_add_params(&nvr_at_device, (void *) (uintptr_t) (nvr_hack ? (NVR_AMI_1994) : (NVR_AT)));
 
     device_add(&opti895_device);
 
@@ -482,8 +478,7 @@ machine_at_tg486g_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device);
+    machine_at_common_init(model);
     device_add(&sis_85c471_device);
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));

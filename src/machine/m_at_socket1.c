@@ -304,7 +304,7 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c480_device);
 
@@ -342,7 +342,7 @@ machine_at_d824_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c480_device);
 
@@ -379,7 +379,7 @@ machine_at_pcs44c_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c486_device);
     device_add(&tulip_jumper_device);
@@ -437,7 +437,7 @@ machine_at_tuliptc38_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c486_device);
     device_add(&tulip_jumper_device);

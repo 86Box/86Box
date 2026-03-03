@@ -245,6 +245,7 @@ enum {
     MACHINE_CHIPSET_INTEL_430VX,
     MACHINE_CHIPSET_INTEL_430TX,
     MACHINE_CHIPSET_INTEL_450KX,
+    MACHINE_CHIPSET_INTEL_450GX,
     MACHINE_CHIPSET_INTEL_440FX,
     MACHINE_CHIPSET_INTEL_440EX,
     MACHINE_CHIPSET_INTEL_440LX,
@@ -353,6 +354,18 @@ typedef struct _machine_ {
     void                  *kbc_device;
 #endif /* EMU_DEVICE_H */
     uintptr_t              kbc_params;
+#ifdef EMU_DEVICE_H
+    const device_t        *nvr_device;
+#else
+    void                  *nvr_device;
+#endif /* EMU_DEVICE_H */
+    uintptr_t              nvr_params;
+#ifdef EMU_DEVICE_H
+    const device_t        *sio_device;
+#else
+    void                  *sio_device;
+#endif /* EMU_DEVICE_H */
+    uintptr_t              sio_params;
     /* Bits 23-16: XOR mask, bits 15-8: OR mask, bits 7-0: AND mask. */
     uint32_t               kbc_p1;
     uint32_t               gpio;
@@ -361,7 +374,6 @@ typedef struct _machine_ {
     const device_t        *device;
     const device_t        *kbd_device;
     const device_t        *fdc_device;
-    const device_t        *sio_device;
     const device_t        *vid_device;
     const device_t        *snd_device;
     const device_t        *net_device;
@@ -369,7 +381,6 @@ typedef struct _machine_ {
     void                  *device;
     void                  *kbd_device;
     void                  *fdc_device;
-    void                  *sio_device;
     void                  *vid_device;
     void                  *snd_device;
     void                  *net_device;
@@ -394,9 +405,10 @@ extern int             machine_get_machine_from_internal_name(const char *s);
 extern void            machine_init(void);
 #ifdef EMU_DEVICE_H
 extern const device_t *machine_get_kbc_device(int m);
+extern const device_t *machine_get_nvr_device(int m);
+extern const device_t *machine_get_sio_device(int m);
 extern const device_t *machine_get_device(int m);
 extern const device_t *machine_get_fdc_device(int m);
-extern const device_t *machine_get_sio_device(int m);
 extern const device_t *machine_get_vid_device(int m);
 extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
@@ -528,6 +540,7 @@ extern int             machine_at_px286_init(const machine_t *);
 extern int             machine_at_ataripc4_init(const machine_t *);
 extern int             machine_at_neat_ami_init(const machine_t *);
 extern int             machine_at_3302_init(const machine_t *);
+extern int             machine_at_n8810m30_init(const machine_t *);
 
 /* SCAMP */
 extern int             machine_at_pc7286_init(const machine_t *);
@@ -579,6 +592,7 @@ extern int             machine_at_shuttle386sx_init(const machine_t *);
 /* NEAT */
 extern int             machine_at_cmdsl386sx16_init(const machine_t *);
 extern int             machine_at_neat_init(const machine_t *);
+extern int             machine_at_p3345_init(const machine_t *);
 
 /* NEATsx */
 extern int             machine_at_if386sx_init(const machine_t *);
@@ -659,12 +673,10 @@ extern const device_t  opti495_ami_device;
 extern int             machine_at_opti495_ami_init(const machine_t *);
 
 /* m_at_common.c */
-extern void            machine_at_common_init_ex(const machine_t *, int type);
 extern void            machine_at_common_init(const machine_t *);
 extern void            machine_at_init(const machine_t *);
 extern void            machine_at_ps2_init(const machine_t *);
 extern void            machine_at_common_ide_init(const machine_t *);
-extern void            machine_at_ibm_common_ide_init(const machine_t *);
 extern void            machine_at_ide_init(const machine_t *);
 extern void            machine_at_ps2_ide_init(const machine_t *);
 
@@ -965,12 +977,12 @@ extern int             machine_at_hot539_init(const machine_t *);
 
 /* VLSI SuperCore */
 extern int             machine_at_bravoms586_init(const machine_t *);
-extern int             machine_at_g586vpmc_init(const machine_t *);
 extern int             machine_at_m54si_init(const machine_t *);
 extern int             machine_at_pb600_init(const machine_t *);
 
 /* VLSI Wildcat */
 extern int             machine_at_globalyst620_init(const machine_t *);
+extern int             machine_at_g586vpmc_init(const machine_t *);
 
 /* m_at_socket7_3v.c */
 /* i430FX */
@@ -986,6 +998,7 @@ extern const device_t vectra52_device;
 extern int             machine_at_vectra52_init(const machine_t *);
 extern int             machine_at_vectra500mt_init(const machine_t *);
 extern int             machine_at_vectra54_init(const machine_t *);
+extern int             machine_at_atlantis_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  thor_device;
 #endif
@@ -994,7 +1007,6 @@ extern uint32_t        machine_at_monaco_gpio_handler(uint8_t write, uint32_t va
 extern int             machine_at_monaco_init(const machine_t *);
 extern uint32_t        machine_at_endeavor_gpio_handler(uint8_t write, uint32_t val);
 extern int             machine_at_endeavor_init(const machine_t *);
-extern int             machine_at_atlantis_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  monaco_device;
 #endif
@@ -1177,6 +1189,8 @@ extern int             machine_at_5sg100_init(const machine_t *);
 /* m_at_socket8.c */
 /* i450KX */
 extern int             machine_at_ap61_init(const machine_t *);
+
+/* i450GX */
 #ifdef EMU_DEVICE_H
 extern const device_t  ficpo6000_device;
 #endif
@@ -1522,7 +1536,7 @@ extern int             machine_xt_compaq_deskpro_init(const machine_t *);
 
 /* m_xt_ibm5550.c */
 #ifdef EMU_DEVICE_H
-extern const device_t  ibm5550_vid_device;
+extern const device_t  ibm5550_device;
 #endif
 extern int             machine_xt_ibm5550_init(const machine_t *);
 

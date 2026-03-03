@@ -1732,6 +1732,18 @@ sb_exec_command(sb_dsp_t *dsp)
             sb_add_data(dsp, ~dsp->sb_data[0]);
             break;
         case 0xE1: /* Get DSP version */
+            if (IS_MV201(dsp)) {
+                if (dsp->sb_last_command == 0xE1) {
+                    sb_add_data(dsp, 0x01);
+                    sb_add_data(dsp, 0x30);
+                    dsp->sb_last_command = 0x00;
+				} else {
+                    sb_add_data(dsp, 0x02);
+                    sb_add_data(dsp, 0x00);
+                    dsp->sb_last_command = 0xE1;
+			    }
+                break;
+            }
             if (IS_ESS(dsp)) {
                 /*
                    0x03 0x01 (Sound Blaster Pro compatibility) confirmed by both the
