@@ -9,16 +9,17 @@
 #define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /* Aztech Sound Galaxy Nova 16 Extra /
                                             Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone */
 #define SB_SUBTYPE_CLONE_AZTPR16_0X09  3 /* Aztech Sound Galaxy Pro 16 Extra */
-#define SB_SUBTYPE_MVD201              4 /* Mediavision MVD201, found on the thunderboard and PAS16 */
-#define SB_SUBTYPE_ESS_ES688           5 /* ESS Technology ES688 */
-#define SB_SUBTYPE_ESS_ES1688          6 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_CLONE_AZT2316R_0X12 4 /* Aztech Sound Galaxy Pro 16 II */
+#define SB_SUBTYPE_MVD201              5 /* Mediavision MVD201, found on the thunderboard and PAS16 */
+#define SB_SUBTYPE_ESS_ES688           6 /* ESS Technology ES688 */
+#define SB_SUBTYPE_ESS_ES1688          7 /* ESS Technology ES1688 */
 
 /* ESS-related */
 #define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
 #define IS_NOT_ESS(dsp) ((dsp)->sb_subtype < SB_SUBTYPE_ESS_ES688) /* Check for future ESS cards here */
 
 /* aztech-related */
-#define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) /* check for future AZT cards here */
+#define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) /* check for future AZT cards here */
 #define AZTECH_EEPROM_SIZE 36
 
 /* MediaVision related */

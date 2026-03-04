@@ -1291,6 +1291,8 @@ sb_exec_command(sb_dsp_t *dsp)
                     sb_add_data(dsp, 0x0C); /* AZTECH get type, CLINTON - according to devkit. E.g.: The one in the Packard Bell Legend 100CD */
                 else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09)
                     sb_add_data(dsp, 0x09); /* AZTECH get type, AZTPR16 */
+                else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12)
+                    sb_add_data(dsp, 0x12); /* AZTECH get type, AZT2316R */
                 else if (dsp->sb_data[0] == 0x08) {
                     /* EEPROM address to write followed by byte */
                     if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
@@ -1334,6 +1336,8 @@ sb_exec_command(sb_dsp_t *dsp)
                 } else if ((dsp->sb_data[0] == 0x0f) && (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09)) {
                     sb_dsp_log("AZTPR16: Mode switch command, params = %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
                     aztpr16_wss_mode(dsp->sb_data[1], dsp->parent);
+                } else if (((dsp->sb_data[0] == 0x02) || (dsp->sb_data[0] == 0x04)) && (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12)) {
+                    sb_dsp_log("AZT2316R MPU control command, params = %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
                 } else
                     sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
             }
@@ -1754,7 +1758,7 @@ sb_exec_command(sb_dsp_t *dsp)
                 break;
             }
             if (IS_AZTECH(dsp)) {
-                if (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
+                if (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12) {
                     sb_add_data(dsp, 0x3);
                     sb_add_data(dsp, 0x1);
                 } else if (dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
@@ -1976,6 +1980,8 @@ sb_write(uint16_t addr, uint8_t val, void *priv)
                     else if (dsp->sb_command == 0x08 && dsp->sb_data_stat == 1 && (dsp->sb_data[0] == 0x07 || dsp->sb_data[0] == 0x0f))
                         sb_commands[dsp->sb_command] = 2;
                     else if (dsp->sb_command == 0x09 && dsp->sb_data_stat == 1 && dsp->sb_data[0] == 0x0f)
+                        sb_commands[dsp->sb_command] = 2;
+                    else if (dsp->sb_command == 0x09 && dsp->sb_data_stat == 1 && (dsp->sb_data[0] == 0x02 || dsp->sb_data[0] == 0x04) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12)
                         sb_commands[dsp->sb_command] = 2;
                 }
             }
