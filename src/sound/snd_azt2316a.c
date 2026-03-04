@@ -1863,7 +1863,12 @@ azt_init(const device_t *info)
             music_add_handler(sb_get_music_buffer_sbpro, azt2316a->sb);
         }
     }
-    sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
+
+    sound_set_cd_audio_filter(NULL, NULL);
+    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C)
+        sound_set_cd_audio_filter(ad1848_filter_cd_audio, &azt2316a->ad1848);
+    else
+        sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
 
     if (azt2316a->cur_mpu401_enabled) {
         azt2316a->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
