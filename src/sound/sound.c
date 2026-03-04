@@ -147,6 +147,7 @@ static const SOUND_CARD sound_cards[] = {
     /* ISA16 */
     { &acermagic_s20_device         },
     { &ad1816_device                },
+    { &azt2320_device               },
     { &azt2316r_device              },
     { &azt2316a_device              },
     { &azt1605_device               },

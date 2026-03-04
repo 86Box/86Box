@@ -1047,6 +1047,12 @@ sb_ct1345_mixer_read(uint16_t addr, void *priv)
         case 0x38:
             return mixer->regs[mixer->index];
 
+        case 0x62:
+        /* Aztech AZT2320 */
+            if (sb->dsp.sb_subtype == SB_SUBTYPE_CLONE_AZT2320_0X13)
+                return 0x13;
+            break;
+
         /* Aztech AZTPR16 mixer */
         case 0x84:
         case 0x86:
