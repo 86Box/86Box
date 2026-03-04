@@ -253,6 +253,28 @@ aztpr16_update_mixer(void *priv)
 
 }
 
+void
+azt1605_update_mixer(void *priv)
+{
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
+
+    aztech_log(azt2316a->log, "Aztech AZT1605 mixer update\n");
+
+    /* Sync CD audio volume on SB mixer write */
+    static int azt1605_mixvals[16] = { 0x9f, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10, 0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09 };
+    int cd_l_vol = azt1605_mixvals[((azt2316a->sb->mixer_sbpro.regs[0x28] >> 4) & 0x0f)];
+    int cd_r_vol = azt1605_mixvals[(azt2316a->sb->mixer_sbpro.regs[0x28] & 0x0f)];
+
+    aztech_log(azt2316a->log, "CD volumes = %02X, %02X\n", cd_l_vol, cd_r_vol);
+
+    azt2316a->ad1848.regs[2]  = cd_l_vol;
+    azt2316a->ad1848.cd_vol_l = aztpr16_vols_5bits[azt2316a->ad1848.regs[2] & 0x1f];
+    azt2316a->ad1848.regs[3]  = cd_r_vol;
+    azt2316a->ad1848.cd_vol_r = aztpr16_vols_5bits[azt2316a->ad1848.regs[3] & 0x1f];
+
+    aztech_log(azt2316a->log, "CD vols = %f, %f\n", azt2316a->ad1848.cd_vol_l, azt2316a->ad1848.cd_vol_r);
+}
+
 static void
 azt1605_filter_opl(void *priv, double *out_l, double *out_r)
 {
@@ -1903,6 +1925,28 @@ azt_init(const device_t *info)
         azt2316a->ad1848.regs[18] = read_eeprom[8];  /* CS4231 LINE/SB Voice L */
         azt2316a->ad1848.regs[19] = read_eeprom[9];  /* CS4231 LINE/SB Voice R */
         azt2316a->ad1848.regs[26] = read_eeprom[10]; /* CS4231 Mic */
+
+        /* Set up CD volume table */
+        uint8_t c;
+        double  attenuation;
+
+        for (c = 0; c < 32; c++) {
+            attenuation = 12.0;
+            if (c & 0x01)
+                attenuation -= 1.5;
+            if (c & 0x02)
+                attenuation -= 3.0;
+            if (c & 0x04)
+                attenuation -= 6.0;
+            if (c & 0x08)
+                attenuation -= 12.0;
+            if (c & 0x10)
+                attenuation -= 24.0;
+
+            attenuation = pow(10, attenuation / 10);
+
+            aztpr16_vols_5bits[c] = (attenuation * 65536);
+        }
     }
     /* Restore mixer settings from EEPROM on AZTPR16 cards */
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZTPR16_0X09) {
