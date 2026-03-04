@@ -987,6 +987,11 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv)
         mixer->line_l   = sb_att_4dbstep_3bits[(mixer->regs[0x2e] >> 5) & 0x7] / 32768.0;
         mixer->line_r   = sb_att_4dbstep_3bits[(mixer->regs[0x2e] >> 1) & 0x7] / 32768.0;
 
+        if (sb->dsp.sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) {
+            mixer->master_l = sb_att_2dbstep_5bits[((mixer->regs[0x84] >> 1) & 0x1f)] / 32768.0;
+            mixer->master_r = sb_att_2dbstep_5bits[((mixer->regs[0x86] >> 1) & 0x1f)] / 32768.0;
+        }
+
         if (sb->dsp.sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)
             azt1605_update_mixer(sb->dsp.parent);
 
