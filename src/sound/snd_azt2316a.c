@@ -2022,6 +2022,15 @@ azt_init(const device_t *info)
     azt2316a->gameport = gameport_add(&gameport_pnp_device);
     gameport_remap(azt2316a->gameport, (azt2316a->gameport_enabled) ? 0x200: 0x00);
 
+    if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12) || (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11)) {
+        /* Card possibly inits the CS4231 WSS codec in MODE2 at power-on */
+        /* Windows 98 and 2000 WDM drivers expect to be able to write to MODE2 registers without setting I12 bit 6 */
+        if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12) || ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) && (device_get_config_int("codec") == AD1848_TYPE_CS4231)))
+            azt2316a->ad1848.regs[12] |= 0x40;
+        /* WDM drivers also expect reading port WSSBase+1 without writing an index value to return 0xFF */
+        azt2316a->ad1848.regs[0] = 0xff;
+    }
+
     return azt2316a;
 }
 
