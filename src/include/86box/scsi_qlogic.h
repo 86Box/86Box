@@ -4,7 +4,7 @@
  *          PC systems and compatibles from 1981 through fairly recent
  *          system designs based on the PCI bus.
  *
- *          Emulation of QLogic QLA1x40/QLA1x80/QLA1x160 SCSI HBA.
+ *          Emulation of QLogic ISP1020/ISP1x40/ISP1x80/ISP1x160 SCSI HBA.
  *
  * Authors: Dmitry Borisov, <di.sean@protonmail.com>
  *
@@ -12,6 +12,7 @@
  */
 #pragma once
 
+extern const device_t isp1020_device;
 extern const device_t qla1040b_device;
 extern const device_t qla1080_device;
 extern const device_t qla1240_device;

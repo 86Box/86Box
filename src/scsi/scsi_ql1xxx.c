@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          QLogic QLA1x40/QLA1x80/QLA1x160 SCSI HBA emulation.
+ *          QLogic ISP1020/ISP1x40/ISP1x80/ISP1x160 SCSI HBA emulation.
  *
  *          Register definitions are derived from the Matthew Jacob's
  *          multiplatform driver for ISP chipsets.
@@ -55,29 +55,26 @@
 /*
  * Device info->local definitions
  */
-#define QL_DEV_CHIP_TYPE_MASK        0x000000FF
-#define QL_DEV_CHIP_REV_MASK         0x00000F00
-#define QL_DEV_FLASH_TYPE_MASK       0x0000F000
-#define QL_DEV_CHIP_REV_SHIFT        8
-#define QL_DEV_FLASH_TYPE_SHIFT      12
+#define QL_DEV_CHIP_TYPE_MASK        0x0000000F
+#define QL_DEV_CHIP_REV_MASK         0x000000F0
+#define QL_DEV_FLASH_TYPE_MASK       0x00000F00
+#define QL_DEV_CHIP_REV_SHIFT        4
+#define QL_DEV_FLASH_TYPE_SHIFT      8
 
-#define QL_ISP1040                   0x00000000
+#define QL_ISP1040                   0x00000000 // Used for the 1020/1040 ISP chips
 #define QL_ISP1080                   0x00000001
 #define QL_ISP1240                   0x00000002
 #define QL_ISP1280                   0x00000003
 #define QL_ISP12160                  0x00000004
-#define QL_REV_ISP1080               0x00000100
 #define QL_REV_ISP1020               0x00000000
-#define QL_REV_ISP1020A              0x00000100
-#define QL_REV_ISP1040               0x00000200
-#define QL_REV_ISP1040A              0x00000300
-#define QL_REV_ISP1040B              0x00000400
-#define QL_REV_ISP1040C              0x00000500
+#define QL_REV_ISP1020A              0x00000010
+#define QL_REV_ISP1040               0x00000020
+#define QL_REV_ISP1040A              0x00000030
+#define QL_REV_ISP1040B              0x00000040
+#define QL_REV_ISP1040C              0x00000050
+#define QL_REV_ISP1080               0x00000010
 #define QL_FLASH_AM29F010            0x00000000
 #define QL_FLASH_AM29LV010B          0x00000100
-
-/* ISP firmware version extracted from the BIOS */
-#define ISP_FW_VER(Major, Minor, Micro)     (((Major) << 16) | ((Minor) << 8) | (Micro))
 
 /* Address of the IOCB handler in firmware for the 1040 ISP chips */
 #define QL_IOCB_FW_BASE     0x0700
@@ -320,7 +317,6 @@
 #define QL_MBOX_STATUS_TEST_FAILED          0x4003
 #define QL_MBOX_STATUS_CMD_ERROR            0x4005
 #define QL_MBOX_STATUS_CMD_PARAM_ERROR      0x4006
-#define QL_MBOX_STATUS_PENDING              0xFFFF // Invalid, for internal use only
 
 /*
  * Mailbox asynchronous event status codes
@@ -726,8 +722,6 @@ typedef struct ql_t {
     ql_fw_target_params fw_tid_params[2][QL_MAX_TID];
     /* Firmware retry count and delay settings */
     uint16_t fw_retry_params[4];
-    /* Firmware version */
-    uint32_t fw_version;
     /* Size of the SCSI payload data */
     uint32_t scsi_data_size;
     /* Current offset in the SCSI payload data */
@@ -1302,9 +1296,15 @@ ql_reset_asic(ql_t *dev)
     ql_log("QL: Reset ASIC\n");
 
     dev->reg_id_low = 0x1077;
-    dev->reg_id_high = 0x1240;
+    if (dev->isp_type == QL_ISP1040) {
+        dev->reg_id_high = 0x1020;
+        dev->reg_cfg1 = BIU_BURST_ENABLE | BIU_PCI_CONF1_FIFO_32;
+    } else {
+        /* For some reason QLA1080 reports the 1240 identifier */
+        dev->reg_id_high = 0x1240;
+        dev->reg_cfg1 = BIU_BURST_ENABLE | BIU_PCI_CONF1_FIFO_128;
+    }
     dev->reg_cfg0 = dev->isp_rev;
-    dev->reg_cfg1 = BIU_BURST_ENABLE | BIU_PCI_CONF1_FIFO_128;
     dev->reg_intr_ctrl = 0;
     dev->reg_intr_status = 0;
     dev->reg_semaphore = 0;
@@ -1563,13 +1563,60 @@ ql_handle_cmd_exec_firmware(ql_t *dev)
     return QL_MBOX_STATUS_COMPLETE;
 }
 
+static uint32_t
+ql_hex2int(int8_t byte)
+{
+    if (byte >= '0' && byte <= '9')
+        byte -= '0';
+    else if (byte >= 'A' && byte <= 'F')
+        byte -= 'A' + 10;
+    else if (byte >= 'a' && byte <= 'f')
+        byte -= 'a' + 10;
+
+    return byte & 0xF;
+}
+
 static uint16_t
 ql_handle_cmd_about_firmware(ql_t *dev)
 {
+    static const uint8_t ver_pattern[] = "Firmware  Version ";
+    uint8_t hdr[0x80];
+    uint8_t *h;
+    uint8_t major_rev = 0, minor_rev = 0, micro_rev = 0;
+
+    /* Read the firmware header */
+    h = hdr;
+    for (uint32_t i = 0; i < sizeof(hdr) / sizeof(uint16_t); i++) {
+        uint16_t word = dev->cpu_mem[0x1000 + i];
+
+        *h++ = (word >> 8) & 0xFF;
+        *h++ = word & 0xFF;
+    }
+
+    /* Search for firmware version */
+    h = hdr;
+    for (uint32_t i = sizeof(hdr); i >= sizeof(ver_pattern) - 1; i--) {
+        if (memcmp(h, ver_pattern, sizeof(ver_pattern) - 1)) {
+            h++;
+            continue;
+        }
+
+        h += sizeof(ver_pattern) - 1;
+
+        /* Firmware version string '99.99' takes 5 bytes */
+        if ((h - hdr) > (sizeof(hdr) - 5)) {
+            break;
+        }
+
+        major_rev = ql_hex2int(h[0]) * 10 + ql_hex2int(h[1]);
+        minor_rev = ql_hex2int(h[3]) * 10 + ql_hex2int(h[4]);
+        break;
+    }
+
     dev->mbox_out_mask |= QL_BIT(1) | QL_BIT(2) | QL_BIT(3);
-    dev->mbox_data[1] = (dev->fw_version >> 16) & 0xFF; // Major revision
-    dev->mbox_data[2] = (dev->fw_version >> 8) & 0xFF; // Minor revision
-    dev->mbox_data[3] = (dev->fw_version >> 0) & 0xFF; // Micro revision
+    dev->mbox_data[1] = major_rev;
+    dev->mbox_data[2] = minor_rev;
+    dev->mbox_data[3] = micro_rev;
     return QL_MBOX_STATUS_COMPLETE;
 }
 
@@ -2020,7 +2067,7 @@ ql_handle_exec_bios_iocb(ql_t *dev)
     }
 
     dev->sxp_flags |= SXP_FLAG_BIOS_IOCB;
-    return QL_MBOX_STATUS_PENDING;
+    return QL_MBOX_STATUS_COMPLETE;
 }
 
 static uint16_t
@@ -2031,7 +2078,7 @@ ql_handle_exec_mbox_iocb(ql_t *dev, bool is_64bit_addr)
     }
 
     dev->sxp_flags |= SXP_FLAG_MBOX_IOCB;
-    return QL_MBOX_STATUS_PENDING;
+    return QL_MBOX_STATUS_COMPLETE;
 }
 
 static uint16_t
@@ -2445,6 +2492,7 @@ ql_sxp_handle_state_send_cdb_sgl(ql_t *dev, scsi_device_t *sd)
                 pkt_address = dev->rqst_ring_base + pkt_entry_idx * QENTRY_LEN;
 
                 ql_pkt_get_entry_type(pkt_address, &entry_type);
+                bytes_xfered += sizeof(isp_hdr_t);
                 if (entry_type == RQSTYPE_DATASEG) {
                     max_seg_count = 7;
                 } else if (entry_type == RQSTYPE_A64_CONT) {
@@ -2540,13 +2588,11 @@ ql_sxp_state_machine(ql_t *dev)
                 dev->mbox_data[QL_MBOX_STATUS] = ql_process_mailbox(dev);
 
                 /* Check for mailbox commands that do not need to go through the command processor */
-                if (dev->mbox_data[QL_MBOX_STATUS] != QL_MBOX_STATUS_PENDING) {
+                if (!(dev->sxp_flags & (SXP_FLAG_BIOS_IOCB | SXP_FLAG_MBOX_IOCB))) {
                     dev->timer_period = QL_MBOX_GENERIC_TIME_US;
                     dev->sxp_state = SXP_STATE_SCHEDULE_MBOX_INTERRUPT;
                     break;
                 }
-
-                assert(dev->sxp_flags & (SXP_FLAG_BIOS_IOCB | SXP_FLAG_MBOX_IOCB));
 
                 if (dev->sxp_flags & SXP_FLAG_BIOS_IOCB) {
                     uint8_t lun = dev->cpu_mem[QL_IOCB_FW_BASE + 48] & 0x0F;
@@ -2660,7 +2706,7 @@ ql_sxp_state_machine(ql_t *dev)
                 break;
             }
 
-            ql_log("QL: Selected target %u:%u\n", dev->curr_path_id, dev->curr_target_id);
+            ql_log("QL: Selected target %u:%u:%u\n", dev->curr_path_id, dev->curr_target_id, pkt->lun);
             dev->sxp_state = SXP_STATE_SEND_CDB;
             break;
         }
@@ -2762,7 +2808,7 @@ ql_sxp_state_machine(ql_t *dev)
                            (resp->scsi_status == SCSI_STATUS_OK) &&
                            (resp->comp_status == RQCS_COMPLETE)) {
                     /* Fast posting avoids having to deal with response queue for successful commands */
-                    dev->mbox_out_mask = (1 << QL_MBOX_STATUS) | (1 << QL_MBOX_HNDL_LOW) | 1 << (QL_MBOX_HNDL_HIGH);
+                    dev->mbox_out_mask = (1 << QL_MBOX_STATUS) | (1 << QL_MBOX_HNDL_LOW) | (1 << QL_MBOX_HNDL_HIGH);
                     dev->mbox_data[QL_MBOX_STATUS] = QL_ASYNC_STATUS_SCSI_CMD_COMPLETE;
                     dev->mbox_data[QL_MBOX_HNDL_LOW] = pkt->handle & 0xFFFF;
                     dev->mbox_data[QL_MBOX_HNDL_HIGH] = (pkt->handle >> 16) & 0xFFFF;
@@ -3707,8 +3753,13 @@ ql_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 static void ql_init_scsi(ql_t *dev) {
     switch (dev->isp_type) {
         case QL_ISP1040:
-            /* Ultra SCSI, 40 MB/s */
-            dev->xfer_rate_bps = 40 * 1000000.0;
+            if (dev->isp_rev < QL_REV_ISP1040) {
+                /* Fast Wide SCSI, 20 MB/s */
+                dev->xfer_rate_bps = 20 * 1000000.0;
+            } else {
+                /* Ultra SCSI, 40 MB/s */
+                dev->xfer_rate_bps = 40 * 1000000.0;
+            }
             dev->max_bus_count = 1;
             break;
         case QL_ISP1080:
@@ -3760,18 +3811,77 @@ ql_get_eeprom_checksum(const uint8_t* buffer, size_t size)
 }
 
 static void
+ql_create_eeprom_image_1020(uint8_t* nvr)
+{
+    /* NVRAM version */
+    nvr[0x04] = 4;
+
+    /* ISP config */
+    nvr[0x05] = 0x7A;
+
+    /* Bus reset delay */
+    nvr[0x06] = 5;
+    /* Bus retry count */
+    nvr[0x07] = 0;
+    /* Bus retry delay */
+    nvr[0x08] = 0;
+
+    /* Bus config */
+    nvr[0x09] = 0xF6;
+    /* Tag age limit */
+    nvr[0x0A] = 8;
+    /* Bus flags */
+    nvr[0x0B] = 0x03;
+    /* Bus selection timeout */
+    nvr[0x0C] = 250;
+    nvr[0x0D] = 0;
+    /* Bus max queue depth */
+    nvr[0x0E] = 0x00;
+    nvr[0x0F] = 0x01;
+
+    /* Board type */
+    nvr[0x10] = 0x03;
+
+    /* System Vendor */
+    nvr[0x14] = 0x00;
+    nvr[0x15] = 0x00;
+    /* System ID */
+    nvr[0x12] = 0x00;
+    nvr[0x13] = 0x00;
+
+    /* ISP paramrter */
+    nvr[0x16] = 0x00;
+    nvr[0x17] = 0x00;
+
+    /* FW features */
+    nvr[0x18] = 0x00;
+
+    /* Target settings */
+    for (uint32_t target_id = 0; target_id < QL_MAX_TID; target_id++) {
+        const uint32_t tid_offset = 28 + target_id * 6;
+
+        /* Config */
+        nvr[tid_offset + 0] = 0xE5;
+        /* Execution throttle */
+        nvr[tid_offset + 1] = 16;
+        /* Sync period */
+        nvr[tid_offset + 2] = 25;
+        /* Flags */
+        nvr[tid_offset + 3] = 0x18;
+    }
+
+    /* System ID offset in words */
+    nvr[0x7E] = 0x09;
+}
+
+static void
 ql_create_eeprom_image_1040(uint8_t* nvr)
 {
-    /* ID header */
-    nvr[0x00] = 'I';
-    nvr[0x01] = 'S';
-    nvr[0x02] = 'P';
-    nvr[0x03] = ' ';
     /* NVRAM version */
     nvr[0x04] = 7;
 
     /* ISP config */
-    nvr[0x05] = 0x7A;
+    nvr[0x05] = 0x7B;
 
     /* Bus reset delay */
     nvr[0x06] = 5;
@@ -3800,7 +3910,7 @@ ql_create_eeprom_image_1040(uint8_t* nvr)
     nvr[0x14] = 0x77;
     nvr[0x15] = 0x10;
     /* System ID */
-    nvr[0x12] = 0x01;
+    nvr[0x12] = 0x00;
     nvr[0x13] = 0x00;
 
     /* ISP paramrter */
@@ -3831,11 +3941,6 @@ ql_create_eeprom_image_1040(uint8_t* nvr)
 static void
 ql_create_eeprom_image_1080(ql_t *dev, uint8_t* nvr)
 {
-    /* ID header */
-    nvr[0x00] = 'I';
-    nvr[0x01] = 'S';
-    nvr[0x02] = 'P';
-    nvr[0x03] = ' ';
     /* NVRAM version */
     nvr[0x04] = 1;
 
@@ -3931,13 +4036,20 @@ ql_register_eeprom_device(const device_t *info, ql_t *dev)
     }
 
     uint8_t* nvr = calloc(1, nvram_size);
-
+    /* ID header */
+    nvr[0x00] = 'I';
+    nvr[0x01] = 'S';
+    nvr[0x02] = 'P';
+    nvr[0x03] = ' ';
     if (dev->isp_type == QL_ISP1040) {
-        ql_create_eeprom_image_1040(nvr);
+        if (dev->isp_rev < QL_REV_ISP1040) {
+            ql_create_eeprom_image_1020(nvr);
+        } else {
+            ql_create_eeprom_image_1040(nvr);
+        }
     } else {
         ql_create_eeprom_image_1080(dev, nvr);
     }
-
     /* Checksum */
     nvr[nvram_size - 1] = ql_get_eeprom_checksum(nvr, nvram_size);
 
@@ -4088,12 +4200,12 @@ ql_init_pci_config(ql_t *dev)
     dev->pci_cfg[PCI_REG_STATUS_L] = PCI_STATUS_L_FAST_B2B | PCI_STATUS_L_CAPAB;
     dev->pci_cfg[PCI_REG_STATUS_H] = PCI_DEVSEL_MEDIUM;
 
-    /* QLA1xxx */
+    /* ISP1xxx */
     switch (dev->isp_type) {
         case QL_ISP1040:
             dev->pci_cfg[PCI_REG_DEVICE_ID_L] = 0x20;
             dev->pci_cfg[PCI_REG_DEVICE_ID_H] = 0x10;
-            dev->pci_cfg[PCI_REG_REVISION] = 0x05;
+            dev->pci_cfg[PCI_REG_REVISION] = dev->isp_rev;
             break;
         case QL_ISP1080:
             dev->pci_cfg[PCI_REG_DEVICE_ID_L] = 0x80;
@@ -4123,7 +4235,7 @@ ql_init_pci_config(ql_t *dev)
             break;
     }
 
-    /* Actual system ID comes from NVRAM. The ISP1040 system ID words are in swapped order */
+    /* Actual system ID comes from NVRAM. The 1020/1040 system ID words are in swapped order */
     if (dev->isp_type == QL_ISP1040) {
         dev->pci_cfg[PCI_REG_SUBVEN_ID_L] = eeprom_data[0x14];
         dev->pci_cfg[PCI_REG_SUBVEN_ID_H] = eeprom_data[0x15];
@@ -4209,7 +4321,6 @@ ql_init(const device_t *info)
     dev->isp_type = info->local & QL_DEV_CHIP_TYPE_MASK;
     dev->isp_rev = (info->local & QL_DEV_CHIP_REV_MASK) >> QL_DEV_CHIP_REV_SHIFT;
 
-    dev->fw_version = device_get_bios_local(device_context_get_device(), device_get_config_bios(QL_CFG_BIOS_REVISION));
     dev->has_pci_caps = (dev->isp_type != QL_ISP1040);
 
     /*
@@ -4230,7 +4341,7 @@ ql_init(const device_t *info)
         uint32_t length = dev->pci_rom_area_size;
         uint32_t ln2size = 0;
 
-        while (length != 1) {
+        while ((length & 1) == 0) {
             ln2size++;
             length >>= 1;
         }
@@ -4239,8 +4350,8 @@ ql_init(const device_t *info)
         dev->rom_bar_mask |= 1; // Expansion ROM enable bit
     }
 
-    ql_init_scsi(dev);
     am29_init(info, &dev->flash_device);
+    ql_init_scsi(dev);
     ql_register_eeprom_device(info, dev);
     ql_init_pci_config(dev);
     ql_reset_asic(dev);
@@ -4293,6 +4404,42 @@ ql_close(void *priv)
 }
 
 // clang-format off
+static const device_config_t isp1020_config[] = {
+    {
+        .name           = QL_CFG_BIOS_REVISION,
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v5_09",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Version 5.09",
+                .internal_name = "v5_09",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 0x10000,
+                .files         = { "roms/scsi/qlogic/isp1020_v5_09.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = QL_CFG_BIOS_ENABLE,
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t qla1040b_config[] = {
     {
         .name           = QL_CFG_BIOS_REVISION,
@@ -4308,7 +4455,7 @@ static const device_config_t qla1040b_config[] = {
                 .internal_name = "v6_20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(4, 53, 0),
+                .local         = 0,
                 .size          = 0x10000,
                 .files         = { "roms/scsi/qlogic/qla1040_v6_20.bin", "" }
             },
@@ -4317,7 +4464,7 @@ static const device_config_t qla1040b_config[] = {
                 .internal_name = "v6_26",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(4, 55, 0),
+                .local         = 0,
                 .size          = 0x10000,
                 .files         = { "roms/scsi/qlogic/qla1040_v6_26.bin", "" }
             },
@@ -4353,7 +4500,7 @@ static const device_config_t qla1080_config[] = {
                 .internal_name = "v1_11",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(2, 13, 0),
+                .local         = 0,
                 .size          = 0x10000,
                 .files         = { "roms/scsi/qlogic/qla1080_v1_11.bin", "" }
             },
@@ -4362,7 +4509,7 @@ static const device_config_t qla1080_config[] = {
                 .internal_name = "v1_16",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(8, 3, 0),
+                .local         = 0,
                 .size          = 0x20000,
                 .files         = { "roms/scsi/qlogic/qla1080_v1_16.bin", "" }
             },
@@ -4371,7 +4518,7 @@ static const device_config_t qla1080_config[] = {
                 .internal_name = "v1_19",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(8, 9, 0),
+                .local         = 0,
                 .size          = 0x20000,
                 .files         = { "roms/scsi/qlogic/qla1080_v1_19.bin", "" }
             },
@@ -4407,7 +4554,7 @@ static const device_config_t qla1240_config[] = {
                 .internal_name = "v1_26",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(2, 13, 0),
+                .local         = 0,
                 .size          = 0x10000,
                 .files         = { "roms/scsi/qlogic/qla1240_v1_26.bin", "" }
             },
@@ -4443,7 +4590,7 @@ static const device_config_t qla1280_config[] = {
                 .internal_name = "v1_30",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(8, 15, 0),
+                .local         = 0,
                 .size          = 0x20000,
                 .files         = { "roms/scsi/qlogic/qla1280_v1_30.bin", "" }
             },
@@ -4479,7 +4626,7 @@ static const device_config_t qla12160a_config[] = {
                 .internal_name = "v1_34",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(10, 4, 0),
+                .local         = 0,
                 .size          = 0x20000,
                 .files         = { "roms/scsi/qlogic/qla12160_v1_34.bin", "" }
             },
@@ -4488,7 +4635,7 @@ static const device_config_t qla12160a_config[] = {
                 .internal_name = "v1_37",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = ISP_FW_VER(10, 4, 0),
+                .local         = 0,
                 .size          = 0x20000,
                 .files         = { "roms/scsi/qlogic/qla12160_v1_37.bin", "" }
             },
@@ -4510,8 +4657,22 @@ static const device_config_t qla12160a_config[] = {
 };
 // clang-format on
 
+const device_t isp1020_device = {
+    .name          = "QLogic ISP1020",
+    .internal_name = "isp1020",
+    .flags         = DEVICE_PCI,
+    .local         = QL_ISP1040 | QL_REV_ISP1020 | QL_FLASH_AM29F010,
+    .init          = ql_init,
+    .close         = ql_close,
+    .reset         = ql_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = isp1020_config,
+};
+
 const device_t qla1040b_device = {
-    .name          = "QLogic QLA1040B",
+    .name          = "QLogic ISP1040B",
     .internal_name = "qla1040b",
     .flags         = DEVICE_PCI,
     .local         = QL_ISP1040 | QL_REV_ISP1040B | QL_FLASH_AM29F010,
@@ -4525,7 +4686,7 @@ const device_t qla1040b_device = {
 };
 
 const device_t qla1080_device = {
-    .name          = "QLogic QLA1080",
+    .name          = "QLogic ISP1080",
     .internal_name = "qla1080",
     .flags         = DEVICE_PCI,
     .local         = QL_ISP1080 | QL_REV_ISP1080 | QL_FLASH_AM29F010,
@@ -4539,7 +4700,7 @@ const device_t qla1080_device = {
 };
 
 const device_t qla1240_device = {
-    .name          = "QLogic QLA1240",
+    .name          = "QLogic ISP1240",
     .internal_name = "qla1240",
     .flags         = DEVICE_PCI,
     .local         = QL_ISP1240 | QL_REV_ISP1080 | QL_FLASH_AM29LV010B,
@@ -4553,7 +4714,7 @@ const device_t qla1240_device = {
 };
 
 const device_t qla1280_device = {
-    .name          = "QLogic QLA1280",
+    .name          = "QLogic ISP1280",
     .internal_name = "qla1280",
     .flags         = DEVICE_PCI,
     .local         = QL_ISP1280 | QL_REV_ISP1080 | QL_FLASH_AM29LV010B,
@@ -4567,7 +4728,7 @@ const device_t qla1280_device = {
 };
 
 const device_t qla12160a_device = {
-    .name          = "QLogic QLA12160A",
+    .name          = "QLogic ISP12160A",
     .internal_name = "qla12160a",
     .flags         = DEVICE_PCI,
     .local         = QL_ISP12160 | QL_REV_ISP1080 | QL_FLASH_AM29LV010B,
