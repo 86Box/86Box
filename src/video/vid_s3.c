@@ -12792,7 +12792,7 @@ const device_t s3_ami_86c924_isa_device = {
 };
 
 const device_t s3_spea_mirage_86c801_isa_device = {
-    .name          = "S3 86c801 ISA (SPEA Mirage ISA)",
+    .name          = "S3 86c801 ISA (SPEA V7-Mirage ISA)",
     .internal_name = "px_s3_v7_801_isa",
     .flags         = DEVICE_ISA16,
     .local         = S3_SPEA_MIRAGE_86C801,
@@ -12834,7 +12834,7 @@ const device_t s3_86c805_onboard_vlb_device = {
 };
 
 const device_t s3_spea_mirage_86c805_vlb_device = {
-    .name          = "S3 86c805 VLB (SPEA Mirage VL)",
+    .name          = "S3 86c805 VLB (SPEA V7-Mirage VL)",
     .internal_name = "px_s3_v7_805_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_SPEA_MIRAGE_86C805,
@@ -12975,7 +12975,7 @@ const device_t s3_elsa_winner1000_86c928_pci_device = {
 
 
 const device_t s3_spea_mercury_lite_86c928_pci_device = {
-    .name          = "S3 86c928 PCI (SPEA Mercury Lite)",
+    .name          = "S3 86c928 PCI (SPEA V7-Mercury Lite)",
     .internal_name = "spea_mercurylite_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_SPEA_MERCURY_LITE_PCI,
@@ -13157,7 +13157,7 @@ const device_t s3_mirovideo_40sv_ergo_968_pci_device = {
 };
 
 const device_t s3_spea_mercury_p64v_pci_device = {
-    .name          = "S3 Vision968 PCI (SPEA Mercury P64V)",
+    .name          = "S3 Vision968 PCI (SPEA V7-Mercury P64V)",
     .internal_name = "spea_mercury64p_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_SPEA_MERCURY_P64V,
@@ -13465,7 +13465,7 @@ const device_t s3_diamond_stealth64_pci_device = {
 };
 
 const device_t s3_spea_mirage_p64_vlb_device = {
-    .name          = "S3 Trio64 VLB (SPEA Mirage P64)",
+    .name          = "S3 Trio64 VLB (SPEA V7-Mirage P64)",
     .internal_name = "spea_miragep64_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_SPEA_MIRAGE_P64,
