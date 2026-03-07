@@ -320,7 +320,9 @@ mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
     } 
     else if (dev->soh) {
         if (data != '\r') {
-            dev->cmd[dev->cmd_pos++] = data;
+            if (dev->cmd_pos < sizeof(dev->cmd) - 2) {
+                dev->cmd[dev->cmd_pos++] = data;
+            }
         } else {
             dev->soh = 0;
             
