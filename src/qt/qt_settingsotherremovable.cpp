@@ -204,6 +204,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
         Harddrives::busTrackClass->device_track(1, DEV_MO, mo_drives[i].bus_type, mo_drives[i].bus_type == MO_BUS_ATAPI ? mo_drives[i].ide_channel : mo_drives[i].scsi_device_id);
     }
     ui->tableViewMO->resizeColumnsToContents();
+    ui->tableViewMO->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
     connect(ui->tableViewMO->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onMORowChanged);
     ui->tableViewMO->setCurrentIndex(model->index(0, 0));
@@ -232,6 +233,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
         Harddrives::busTrackClass->device_track(1, DEV_MO, rdisk_drives[i].bus_type, rdisk_drives[i].bus_type == RDISK_BUS_ATAPI ? rdisk_drives[i].ide_channel : rdisk_drives[i].scsi_device_id);
     }
     ui->tableViewRDisk->resizeColumnsToContents();
+    ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
     connect(ui->tableViewRDisk->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onRDiskRowChanged);
     ui->tableViewRDisk->setCurrentIndex(model->index(0, 0));
@@ -266,6 +268,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
         Harddrives::busTrackClass->device_track(1, DEV_TAPE, tape_drives[i].bus_type, tape_drives[i].scsi_device_id);
     }
     ui->tableViewTape->resizeColumnsToContents();
+    ui->tableViewTape->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
     connect(ui->tableViewTape->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onTapeRowChanged);
     ui->tableViewTape->setCurrentIndex(model->index(0, 0));

@@ -14,8 +14,21 @@
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
  */
+#include <cstdint>
+
+extern "C" {
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/hdd.h>
+}
+
 #include "qt_settings.hpp"
 #include "ui_qt_settings.h"
+
+#include <QStandardItemModel>
+
+#include "qt_harddiskdialog.hpp"
 
 #include "qt_settingsmachine.hpp"
 #include "qt_settingsdisplay.hpp"
@@ -34,10 +47,6 @@
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_defs.hpp"
-
-extern "C" {
-#include <86box/86box.h>
-}
 
 #include <QDebug>
 #include <QMessageBox>

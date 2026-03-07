@@ -14,9 +14,6 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsfloppycdrom.hpp"
-#include "ui_qt_settingsfloppycdrom.h"
-
 extern "C" {
 #include <inttypes.h>
 #include <stdarg.h>
@@ -33,10 +30,15 @@ extern "C" {
 #include <86box/fdd_audio.h>
 }
 
+#include "qt_settingsfloppycdrom.hpp"
+#include "ui_qt_settingsfloppycdrom.h"
+
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_progsettings.hpp"
+
+uint64_t               ifa[FDD_NUM] = { 0 };
 
 void
 SettingsFloppyCDROM::setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type)
@@ -128,12 +130,11 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         ++i;
     }
 
-    model = new QStandardItemModel(0, 4, this);
+    model = new QStandardItemModel(0, 3, this);
     ui->tableViewFloppy->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Type"));
     model->setHeaderData(1, Qt::Horizontal, tr("Turbo"));
     model->setHeaderData(2, Qt::Horizontal, tr("Check BPB"));
-    model->setHeaderData(3, Qt::Horizontal, tr("Audio"));
 
     model->insertRows(0, FDD_NUM);
     /* Floppy drives category */
@@ -144,24 +145,11 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         model->setData(idx.siblingAtColumn(1), fdd_get_turbo(i) > 0 ? tr("On") : tr("Off"));
         model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(i) > 0 ? tr("On") : tr("Off"));
 
-        int     prof = fdd_get_audio_profile(i);
-        QString profName;
-
 #ifndef DISABLE_FDD_AUDIO
-        // Get the profile name from the configuration system
-        const char *name = fdd_audio_get_profile_name(prof);
-        if (name) {
-            profName = QString(name);
-        } else {
-            profName = tr("None");
-        }
+        ifa[i] = fdd_get_audio_profile(i);
 #else
-        profName = tr("None");
+        ifa[i] = 0;
 #endif
-
-        auto audioIdx = model->index(i, 3);
-        model->setData(audioIdx, profName);
-        model->setData(audioIdx, prof, Qt::UserRole);
     }
 
     ui->tableViewFloppy->resizeColumnsToContents();
@@ -223,6 +211,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, 0);
     }
     ui->tableViewCDROM->resizeColumnsToContents();
+    ui->tableViewCDROM->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
 
     connect(ui->tableViewCDROM->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onCDROMRowChanged);
@@ -267,7 +256,7 @@ SettingsFloppyCDROM::save()
         fdd_set_turbo(i, model->index(i, 1).data() == tr("On") ? 1 : 0);
         fdd_set_check_bpb(i, model->index(i, 2).data() == tr("On") ? 1 : 0);
 #ifndef DISABLE_FDD_AUDIO
-        fdd_set_audio_profile(i, model->index(i, 3).data(Qt::UserRole).toInt());
+        fdd_set_audio_profile(i, ifa[i]);
 #endif
     }
 
@@ -302,7 +291,7 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     ui->checkBoxTurboTimings->setChecked(current.siblingAtColumn(1).data() == tr("On"));
     ui->checkBoxCheckBPB->setChecked(current.siblingAtColumn(2).data() == tr("On"));
 
-    int prof = current.siblingAtColumn(3).data(Qt::UserRole).toInt();
+    int prof = ifa[current.row()];
 
 #ifndef DISABLE_FDD_AUDIO
     // Rebuild audio profile combo box based on drive type
@@ -314,9 +303,7 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
         ui->comboBoxFloppyAudio->setEnabled(false);
 
         // Update the model to reflect "None" profile
-        auto audioIdx = current.siblingAtColumn(3);
-        ui->tableViewFloppy->model()->setData(audioIdx, tr("None"));
-        ui->tableViewFloppy->model()->setData(audioIdx, 0, Qt::UserRole);
+        ifa[current.row()] = 0;
         return;
     }
 
@@ -352,10 +339,7 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     // If current profile is not compatible, select "None" (profile 0)
     if (currentProfileIndex == -1) {
         currentProfileIndex = ui->comboBoxFloppyAudio->findData(0);
-        // Update the model to reflect "None" profile
-        auto audioIdx = current.siblingAtColumn(3);
-        ui->tableViewFloppy->model()->setData(audioIdx, tr("None"));
-        ui->tableViewFloppy->model()->setData(audioIdx, 0, Qt::UserRole);
+        ifa[current.row()] = 0;
     }
 
     ui->comboBoxFloppyAudio->setCurrentIndex(currentProfileIndex);
@@ -445,26 +429,12 @@ SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 {
     auto    idx  = ui->tableViewFloppy->selectionModel()->currentIndex();
     int     prof = ui->comboBoxFloppyAudio->currentData().toInt();
-    QString profName;
 
 #ifndef DISABLE_FDD_AUDIO
-    // Get the profile name from the configuration system
-    const char *name = fdd_audio_get_profile_name(prof);
-    if (name) {
-        profName = name;
-    } else {
-        profName = tr("None");
-    }
-    if (prof > 0) {
-        load_profile_samples(prof);
-    }
+    ifa[idx.row()] = prof;
 #else
-    profName = tr("None");
+    ifa[i] = 0;
 #endif
-
-    auto audioIdx = idx.siblingAtColumn(3);
-    ui->tableViewFloppy->model()->setData(audioIdx, profName);
-    ui->tableViewFloppy->model()->setData(audioIdx, prof, Qt::UserRole);
 }
 
 void

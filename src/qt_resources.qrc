@@ -24,8 +24,11 @@
         <file>qt/icons/general_display.ico</file>
         <file>qt/icons/general_sound.ico</file>
         <file>qt/icons/general_storage_controllers.ico</file>
+        <file>qt/icons/general_other_peripherals.ico</file>
         <file>qt/icons/hard_disk.ico</file>
         <file>qt/icons/input_devices.ico</file>
+        <file>qt/icons/isa_memory.ico</file>
+        <file>qt/icons/isa_rom.ico</file>
         <file>qt/icons/key_bindings.ico</file>
         <file>qt/icons/machine.ico</file>
         <file>qt/icons/machine_tab.ico</file>

@@ -52,6 +52,8 @@ extern "C" {
 #include <86box/mo.h>
 #ifdef TAPE
 #include <86box/scsi_tape.h>
+#else
+#define TAPE_NUM 1
 #endif
 #include <86box/hdd.h>
 #include <86box/thread.h>
