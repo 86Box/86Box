@@ -12848,7 +12848,7 @@ const device_t s3_spea_mirage_86c805_vlb_device = {
 };
 
 const device_t s3_mirocrystal_8s_805_vlb_device = {
-    .name          = "S3 86c805 VLB (MiroCRYSTAL 8S)",
+    .name          = "S3 86c805 VLB (miroCRYSTAL 8S)",
     .internal_name = "mirocrystal8s_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_MIROCRYSTAL8S_805,
@@ -12862,7 +12862,7 @@ const device_t s3_mirocrystal_8s_805_vlb_device = {
 };
 
 const device_t s3_mirocrystal_10sd_805_vlb_device = {
-    .name          = "S3 86c805 VLB (MiroCRYSTAL 10SD)",
+    .name          = "S3 86c805 VLB (miroCRYSTAL 10SD)",
     .internal_name = "mirocrystal10sd_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_MIROCRYSTAL10SD_805,
@@ -12989,7 +12989,7 @@ const device_t s3_spea_mercury_lite_86c928_pci_device = {
 };
 
 const device_t s3_mirocrystal_20sd_864_vlb_device = {
-    .name          = "S3 Vision864 VLB (MiroCRYSTAL 20SD)",
+    .name          = "S3 Vision864 VLB (miroCRYSTAL 20SD)",
     .internal_name = "mirocrystal20sd_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_MIROCRYSTAL20SD_864,
@@ -13031,7 +13031,7 @@ const device_t s3_bahamas64_pci_device = {
 };
 
 const device_t s3_mirocrystal_20sv_964_vlb_device = {
-    .name          = "S3 Vision964 VLB (MiroCRYSTAL 20SV)",
+    .name          = "S3 Vision964 VLB (miroCRYSTAL 20SV)",
     .internal_name = "mirocrystal20sv_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_MIROCRYSTAL20SV_964,
@@ -13045,7 +13045,7 @@ const device_t s3_mirocrystal_20sv_964_vlb_device = {
 };
 
 const device_t s3_mirocrystal_20sv_964_pci_device = {
-    .name          = "S3 Vision964 PCI (MiroCRYSTAL 20SV)",
+    .name          = "S3 Vision964 PCI (miroCRYSTAL 20SV)",
     .internal_name = "mirocrystal20sv_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_MIROCRYSTAL20SV_964,
@@ -13143,7 +13143,7 @@ const device_t s3_phoenix_vision968_pci_device = {
 };
 
 const device_t s3_mirovideo_40sv_ergo_968_pci_device = {
-    .name          = "S3 Vision968 PCI (MiroVIDEO 40SV Ergo)",
+    .name          = "S3 Vision968 PCI (miroVIDEO 40SV Ergo)",
     .internal_name = "mirovideo40sv_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_MIROVIDEO40SV_ERGO_968,
