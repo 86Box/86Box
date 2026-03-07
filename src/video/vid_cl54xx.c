@@ -5457,7 +5457,7 @@ const device_t gd5430_vlb_device = {
 };
 
 const device_t gd5430_onboard_vlb_device = {
-    .name          = "Cirrus Logic GD5430 (On-Board)",
+    .name          = "Cirrus Logic GD5430 (VLB) (On-Board)",
     .internal_name = "cl_gd5430_onboard_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_CLGD5430 | 0x200,
