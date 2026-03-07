@@ -12607,7 +12607,6 @@ static const device_config_t s3_phoenix_trio32_v_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "512 KB", .value = 0 },
             { .description = "1 MB",   .value = 1 },
             { .description = "2 MB",   .value = 2 },
             { .description = ""                   }
@@ -13088,7 +13087,7 @@ const device_t s3_diamond_stealth64_964_pci_device = {
 };
 
 const device_t s3_diamond_stealth64_968_vlb_device = {
-    .name          = "S3 Vision968 VLB (Diamond Stealth64 Video VRAM)",
+    .name          = "S3 Vision968 VLB (Diamond Stealth64 Video 3000)",
     .internal_name = "stealth64vv_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_DIAMOND_STEALTH64_968,
@@ -13102,7 +13101,7 @@ const device_t s3_diamond_stealth64_968_vlb_device = {
 };
 
 const device_t s3_diamond_stealth64_968_pci_device = {
-    .name          = "S3 Vision968 PCI (Diamond Stealth64 Video VRAM)",
+    .name          = "S3 Vision968 PCI (Diamond Stealth64 Video 3000 Ver. 2)",
     .internal_name = "stealth64vv_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_DIAMOND_STEALTH64_968,
@@ -13116,7 +13115,7 @@ const device_t s3_diamond_stealth64_968_pci_device = {
 };
 
 const device_t s3_9fx_771_pci_device = {
-    .name          = "S3 Vision968 PCI (Number 9 9FX 771)",
+    .name          = "S3 Vision968 PCI (Number Nine 9FX Motion 771)",
     .internal_name = "n9_9fx_771_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_NUMBER9_9FX_771,
@@ -13172,7 +13171,7 @@ const device_t s3_spea_mercury_p64v_pci_device = {
 };
 
 const device_t s3_9fx_vlb_device = {
-    .name          = "S3 Trio64 VLB (Number 9 9FX 330)",
+    .name          = "S3 Trio64 VLB (Number Nine 9FX Motion 330)",
     .internal_name = "n9_9fx_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_NUMBER9_9FX,
@@ -13186,7 +13185,7 @@ const device_t s3_9fx_vlb_device = {
 };
 
 const device_t s3_9fx_pci_device = {
-    .name          = "S3 Trio64 PCI (Number 9 9FX 330)",
+    .name          = "S3 Trio64 PCI (Number Nine 9FX Motion 330)",
     .internal_name = "n9_9fx_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_NUMBER9_9FX,
@@ -13326,7 +13325,7 @@ const device_t s3_phoenix_trio64_pci_device = {
 };
 
 const device_t s3_stb_powergraph_64_video_vlb_device = {
-    .name          = "S3 Trio64V+ (STB PowerGraph 64 Video) VLB",
+    .name          = "S3 Trio64V+ VLB (STB PowerGraph 64 Video)",
     .internal_name = "stb_trio64vplus_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_STB_POWERGRAPH_64_VIDEO,
@@ -13410,7 +13409,7 @@ const device_t s3_phoenix_vision864_pci_device = {
 };
 
 const device_t s3_9fx_531_pci_device = {
-    .name          = "S3 Vision868 PCI (Number 9 9FX 531)",
+    .name          = "S3 Vision868 PCI (Number Nine 9FX Motion 531)",
     .internal_name = "n9_9fx_531_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_NUMBER9_9FX_531,
@@ -13438,7 +13437,7 @@ const device_t s3_phoenix_vision868_pci_device = {
 };
 
 const device_t s3_diamond_stealth64_vlb_device = {
-    .name          = "S3 Trio64 VLB (Diamond Stealth64 DRAM)",
+    .name          = "S3 Trio64 VLB (Diamond Stealth64 Graphics 2000)",
     .internal_name = "stealth64d_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_DIAMOND_STEALTH64_764,
@@ -13452,7 +13451,7 @@ const device_t s3_diamond_stealth64_vlb_device = {
 };
 
 const device_t s3_diamond_stealth64_pci_device = {
-    .name          = "S3 Trio64 PCI (Diamond Stealth64 DRAM)",
+    .name          = "S3 Trio64 PCI (Diamond Stealth64 Graphics 2000)",
     .internal_name = "stealth64d_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_DIAMOND_STEALTH64_764,
