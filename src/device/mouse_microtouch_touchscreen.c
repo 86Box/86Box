@@ -456,11 +456,8 @@ mtouch_poll(void *priv)
     dev->but = mouse_get_buttons_ex();
     mouse_get_abs_coords(&dev->abs_x, &dev->abs_y);
     
-    if (enable_overscan) {
+    if (enable_overscan && mouse_tablet_in_proximity > 0) {
         int index = mouse_tablet_in_proximity - 1;
-        if (mouse_tablet_in_proximity == -1) {
-            mouse_tablet_in_proximity = 0;
-        }
         
         dev->abs_x *= monitors[index].mon_unscaled_size_x - 1;
         dev->abs_y *= monitors[index].mon_efscrnsz_y - 1;
