@@ -12778,7 +12778,7 @@ const device_t s3_diamond_stealth_vram_isa_device = {
 };
 
 const device_t s3_ami_86c924_isa_device = {
-    .name          = "S3 86c924 ISA (AMI)",
+    .name          = "S3 86c924 ISA (AMI Graphics Accelerator 215X)",
     .internal_name = "ami_s3_924",
     .flags         = DEVICE_ISA16,
     .local         = S3_AMI_86C924,
@@ -13171,7 +13171,7 @@ const device_t s3_spea_mercury_p64v_pci_device = {
 };
 
 const device_t s3_9fx_vlb_device = {
-    .name          = "S3 Trio64 VLB (Number Nine 9FX Motion 330)",
+    .name          = "S3 Trio64 VLB (Number Nine 9FX Vision 330)",
     .internal_name = "n9_9fx_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_NUMBER9_9FX,
@@ -13185,7 +13185,7 @@ const device_t s3_9fx_vlb_device = {
 };
 
 const device_t s3_9fx_pci_device = {
-    .name          = "S3 Trio64 PCI (Number Nine 9FX Motion 330)",
+    .name          = "S3 Trio64 PCI (Number Nine 9FX Vision 330)",
     .internal_name = "n9_9fx_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_NUMBER9_9FX,
