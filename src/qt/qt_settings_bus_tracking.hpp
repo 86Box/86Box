@@ -10,6 +10,7 @@
 #define DEV_CDROM    0x02
 #define DEV_RDISK    0x04
 #define DEV_MO       0x08
+#define DEV_TAPE     0x10
 
 #define BUS_MFM      0
 #define BUS_ESDI     1

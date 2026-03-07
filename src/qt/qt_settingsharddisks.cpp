@@ -140,7 +140,6 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
         ui->pushButtonExisting->setEnabled(false);
     }
     ui->tableView->resizeColumnsToContents();
-    ui->tableView->horizontalHeader()->setSectionResizeMode(ColumnFilename, QHeaderView::Stretch);
 
     auto *tableSelectionModel = ui->tableView->selectionModel();
     connect(tableSelectionModel, &QItemSelectionModel::currentRowChanged, this, &SettingsHarddisks::onTableRowChanged);

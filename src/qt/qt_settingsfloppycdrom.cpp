@@ -223,7 +223,6 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, 0);
     }
     ui->tableViewCDROM->resizeColumnsToContents();
-    ui->tableViewCDROM->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
     connect(ui->tableViewCDROM->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onCDROMRowChanged);
