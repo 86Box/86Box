@@ -324,7 +324,7 @@
         <normaloff>:/settings/qt/icons/scsi_controllers.ico</normaloff>:/settings/qt/icons/scsi_controllers.ico</iconset>
       </attribute>
       <attribute name="title">
-       <string>Accelerators</string>
+       <string>SCSI controllers</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayoutSCSIControllers">
 
@@ -447,7 +447,7 @@
        </item>
 
        <item row="2" column="1">
-        <spacer name="verticalSpacerAccelerators">
+        <spacer name="verticalSpacerSCSIControllers">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
