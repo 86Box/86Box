@@ -277,7 +277,7 @@ mtouch_process_commands(mouse_microtouch_t *dev)
         dev->cal_cntr = 0;
         dev->pen_mode = 3;
         
-        if (dev->cmd[0] == 'D') { /* Restore Defaults */
+        if (dev->cmd[1] == 'D') { /* Restore Defaults */
             dev->mode = MODE_STREAM;
             dev->mode_status = false;
             
