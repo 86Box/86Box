@@ -54,7 +54,7 @@ enum mtouch_modes {
     MODE_STREAM   = 4,
 };
 
-static const char * mtouch_identity[] = {
+static const char *mtouch_identity[] = {
     "A30100", /* SMT2 Serial / SMT3(R)V */
     "A40100", /* SMT2 PCBus */
     "P50100", /* TouchPen 4(+) */
@@ -69,7 +69,7 @@ typedef struct mouse_microtouch_t {
     int          baud_rate, cmd_pos;
     uint8_t      format, mode;
     uint8_t      id, cal_cntr, pen_mode;
-    bool         mode_status, cal_ex, soh;   
+    bool         mode_status, cal_ex, soh;
     bool         in_reset, reset;
     uint8_t     *nvr;
     char         nvr_path[64];
@@ -158,7 +158,7 @@ mtouch_calibrate_timer(void *priv)
         return;
     }
     
-    dev->cal_cntr--;    
+    dev->cal_cntr--;
     fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x31\x0D", 3); /* <SOH>1<CR> */
     
     if (dev->cal_ex) {
@@ -184,7 +184,7 @@ mtouch_calibrate_timer(void *priv)
         }
         dev->abs_x_old = dev->abs_x;
         dev->abs_y_old = dev->abs_y;
-    }    
+    }
 }
 
 static void
@@ -338,7 +338,7 @@ mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
 }
 
 static int
-mtouch_prepare_transmit(void *priv)    
+mtouch_prepare_transmit(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
