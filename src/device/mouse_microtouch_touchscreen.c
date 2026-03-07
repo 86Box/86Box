@@ -539,7 +539,10 @@ mtouch_close(void *priv)
     if (dev && dev->serial && dev->serial->sd) {
         memset(dev->serial->sd, 0, sizeof(serial_device_t));
     }
-    
+
+    if (dev->nvr != NULL)
+        free(dev->nvr);
+
     free(dev);
     mtouch_inst = NULL;
 }
