@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/settings">
+        <file>qt/icons/accelerators.ico</file>
         <file>qt/icons/cartridge.ico</file>
         <file>qt/icons/cartridge_image.ico</file>
         <file>qt/icons/cassette_image.ico</file>
@@ -19,19 +20,35 @@
         <file>qt/icons/floppy_525_image.ico</file>
         <file>qt/icons/floppy_and_cdrom_drives.ico</file>
         <file>qt/icons/floppy_disabled.ico</file>
+        <file>qt/icons/floppy_tab.ico</file>
+        <file>qt/icons/general_display.ico</file>
+        <file>qt/icons/general_sound.ico</file>
+        <file>qt/icons/general_storage_controllers.ico</file>
         <file>qt/icons/hard_disk.ico</file>
         <file>qt/icons/input_devices.ico</file>
+        <file>qt/icons/key_bindings.ico</file>
         <file>qt/icons/machine.ico</file>
+        <file>qt/icons/machine_tab.ico</file>
+        <file>qt/icons/midi.ico</file>
         <file>qt/icons/mo.ico</file>
         <file>qt/icons/mo_image.ico</file>
         <file>qt/icons/mo_disabled.ico</file>
         <file>qt/icons/network.ico</file>
         <file>qt/icons/other_peripherals.ico</file>
         <file>qt/icons/other_removable_devices.ico</file>
+        <file>qt/icons/parallel_ports.ico</file>
+        <file>qt/icons/performance.ico</file>
         <file>qt/icons/ports.ico</file>
+        <file>qt/icons/processor.ico</file>
+        <file>qt/icons/scsi_controllers.ico</file>
+        <file>qt/icons/serial_ports.ico</file>
         <file>qt/icons/rdisk.ico</file>
         <file>qt/icons/rdisk_image.ico</file>
         <file>qt/icons/rdisk_disabled.ico</file>
+        <file>qt/icons/rdisk_tab.ico</file>
+        <file>qt/icons/tape.ico</file>
+        <file>qt/icons/tape_image.ico</file>
+        <file>qt/icons/tape_disabled.ico</file>
         <file>qt/icons/record.ico</file>
         <file>qt/icons/rewind.ico</file>
         <file>qt/icons/sound.ico</file>
