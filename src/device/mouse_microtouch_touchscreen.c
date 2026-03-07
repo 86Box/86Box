@@ -54,7 +54,7 @@ enum mtouch_modes {
     MODE_STREAM   = 4,
 };
 
-const char* mtouch_identity[] = {
+static const char * mtouch_identity[] = {
     "A30100", /* SMT2 Serial / SMT3(R)V */
     "A40100", /* SMT2 PCBus */
     "P50100", /* TouchPen 4(+) */
@@ -316,7 +316,7 @@ mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
     if (data == '\x1') {
-        dev->soh = 1;
+        dev->soh = true;
     }
     else if (dev->soh) {
         if (data != '\r') {
@@ -324,7 +324,7 @@ mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
                 dev->cmd[dev->cmd_pos++] = data;
             }
         } else {
-            dev->soh = 0;
+            dev->soh = false;
             
             if (!dev->cmd_pos) {
                 return;
@@ -510,7 +510,7 @@ mtouch_init(UNUSED(const device_t *info))
     dev->pen_mode    = 3;
     dev->mode        = MODE_STREAM;
     
-    sprintf(dev->nvr_path, "mtouch_%s.nvr", mtouch_identity[dev->id]);
+    snprintf(dev->nvr_path, sizeof(dev->nvr_path), "mtouch_%s.nvr", mtouch_identity[dev->id]);
     mtouch_initnvr(dev);
     mtouch_readnvr(dev);
     
