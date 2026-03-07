@@ -262,11 +262,11 @@ mtouch_process_commands(mouse_microtouch_t *dev)
             else if (dev->cmd[1] == 'O') dev->pen_mode = 2; /* Pen Only */
         } 
         else if (strlen(dev->cmd) == 5) { /* Serial Options */
-            if      (dev->cmd[4] == 1) dev->baud_rate = 19200;
-            else if (dev->cmd[4] == 2) dev->baud_rate = 9600;
-            else if (dev->cmd[4] == 3) dev->baud_rate = 4600;
-            else if (dev->cmd[4] == 4) dev->baud_rate = 2400;
-            else if (dev->cmd[4] == 5) dev->baud_rate = 1200;
+            if      (dev->cmd[4] == '1') dev->baud_rate = 19200;
+            else if (dev->cmd[4] == '2') dev->baud_rate = 9600;
+            else if (dev->cmd[4] == '3') dev->baud_rate = 4600;
+            else if (dev->cmd[4] == '4') dev->baud_rate = 2400;
+            else if (dev->cmd[4] == '5') dev->baud_rate = 1200;
             
             timer_stop(&dev->host_to_serial_timer);
             timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10);
