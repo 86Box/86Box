@@ -72,7 +72,7 @@ typedef struct mouse_microtouch_t {
     bool         mode_status, cal_ex, soh;   
     bool         in_reset, reset;
     uint8_t     *nvr;
-    char         nvr_path[64];    
+    char         nvr_path[64];
     serial_t    *serial;
     Fifo8        resp;
     pc_timer_t   host_to_serial_timer;
@@ -145,7 +145,7 @@ mtouch_reset_complete(void *priv)
     
     dev->reset = true;
     dev->in_reset = false;
-    fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR>  */
+    fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x30\x0D", 3); /* <SOH>0<CR> */
 }
 
 static void
@@ -153,13 +153,13 @@ mtouch_calibrate_timer(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
-    if ((dev->cal_cntr == 2 && (dev->abs_x > 0.25 || dev->abs_y < 0.75)) || \
+    if ((dev->cal_cntr == 2 && (dev->abs_x > 0.25 || dev->abs_y < 0.75)) || 
         (dev->cal_cntr == 1 && (dev->abs_x < 0.75 || dev->abs_y > 0.25))) {
         return;
     }
     
     dev->cal_cntr--;    
-    fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x31\x0D", 3); /* <SOH>1<CR>  */
+    fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x31\x0D", 3); /* <SOH>1<CR> */
     
     if (dev->cal_ex) {
         if (!dev->cal_cntr) {
@@ -317,7 +317,7 @@ mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
     
     if (data == '\x1') {
         dev->soh = 1;
-    } 
+    }
     else if (dev->soh) {
         if (data != '\r') {
             if (dev->cmd_pos < sizeof(dev->cmd) - 2) {
@@ -336,7 +336,7 @@ mtouch_write(UNUSED(serial_t *serial), void *priv, uint8_t data)
         }
     }
 }
-    
+
 static int
 mtouch_prepare_transmit(void *priv)    
 {
@@ -371,7 +371,7 @@ mtouch_prepare_transmit(void *priv)
             fifo8_push(&dev->resp, 0b10000000 | ((dev->pen_mode == 2) ? ((1 << 5)) : 0));
             fifo8_push(&dev->resp, (uint16_t)(16383 * dev->abs_x_old) & 0b1111111);
             fifo8_push(&dev->resp, ((uint16_t)(16383 * dev->abs_x_old) >> 7) & 0b1111111);
-            fifo8_push(&dev->resp, (uint16_t)(16383 * (1 - dev->abs_y_old))& 0b1111111);
+            fifo8_push(&dev->resp, (uint16_t)(16383 * (1 - dev->abs_y_old)) & 0b1111111);
             fifo8_push(&dev->resp, ((uint16_t)(16383 * (1 - dev->abs_y_old)) >> 7) & 0b1111111);
         }
     }
@@ -380,30 +380,30 @@ mtouch_prepare_transmit(void *priv)
         if (but) {
             if (!dev->but_old) { /* Touchdown (MS, MP, MDU) */
                 fifo8_push(&dev->resp, (dev->mode_status) ? 0x19 : 0x01);
-                if (dev->format == FORMAT_DEC){
+                if (dev->format == FORMAT_DEC) {
                     snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * abs_x), (uint16_t)(999 * (1 - abs_y)));
-                } 
-                else if (dev->format == FORMAT_HEX) {
-                    snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * abs_x), (uint16_t)(1023 * (1 - abs_y)));
                 }
-                fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
-            } 
-            else if (dev->mode == MODE_STREAM){ /* Touch Continuation (MS) */
-                fifo8_push(&dev->resp, (dev->mode_status) ? 0x1c : 0x01);
-                if (dev->format == FORMAT_DEC){
-                    snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * abs_x), (uint16_t)(999 * (1 - abs_y)));
-                } 
                 else if (dev->format == FORMAT_HEX) {
                     snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * abs_x), (uint16_t)(1023 * (1 - abs_y)));
                 }
                 fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
             }
-        } 
+            else if (dev->mode == MODE_STREAM) { /* Touch Continuation (MS) */
+                fifo8_push(&dev->resp, (dev->mode_status) ? 0x1c : 0x01);
+                if (dev->format == FORMAT_DEC) {
+                    snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * abs_x), (uint16_t)(999 * (1 - abs_y)));
+                }
+                else if (dev->format == FORMAT_HEX) {
+                    snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * abs_x), (uint16_t)(1023 * (1 - abs_y)));
+                }
+                fifo8_push_all(&dev->resp, (uint8_t *)buffer, strlen(buffer));
+            }
+        }
         else if (dev->but_old && dev->mode != MODE_POINT) { /* Touch Liftoff (MS, MDU) */
             fifo8_push(&dev->resp, (dev->mode_status) ? 0x18 : 0x01);
             if (dev->format == FORMAT_DEC) {
                 snprintf(buffer, sizeof(buffer), "%03d,%03d\r", (uint16_t)(999 * dev->abs_x_old), (uint16_t)(999 * (1 - dev->abs_y_old)));
-            } 
+            }
             else if (dev->format == FORMAT_HEX) {
                 snprintf(buffer, sizeof(buffer), "%03X,%03X\r", (uint16_t)(1023 * dev->abs_x_old), (uint16_t)(1023 * (1 - dev->abs_y_old)));
             }
@@ -411,7 +411,7 @@ mtouch_prepare_transmit(void *priv)
         }
     }
     
-    /* Save old states*/
+    /* Save old states */
     dev->abs_x_old = abs_x;
     dev->abs_y_old = abs_y;
     dev->but_old = but;
@@ -533,16 +533,16 @@ void
 mtouch_close(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
-
+    
     fifo8_destroy(&dev->resp);
     /* Detach serial port from the mouse. */
     if (dev && dev->serial && dev->serial->sd) {
         memset(dev->serial->sd, 0, sizeof(serial_device_t));
     }
-
+    
     if (dev->nvr != NULL)
         free(dev->nvr);
-
+    
     free(dev);
     mtouch_inst = NULL;
 }
