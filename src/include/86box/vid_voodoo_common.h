@@ -97,9 +97,21 @@ enum {
 #define PARAM_MASK       (PARAM_SIZE - 1)
 #define PARAM_ENTRY_SIZE (1 << 31)
 
-#define PARAM_ENTRIES(x) (voodoo->params_write_idx - voodoo->params_read_idx[x])
-#define PARAM_FULL(x)    ((voodoo->params_write_idx - voodoo->params_read_idx[x]) >= PARAM_SIZE)
-#define PARAM_EMPTY(x)   (voodoo->params_read_idx[x] == voodoo->params_write_idx)
+/* On ARM64, params/busy fields are cache-line padded to prevent false sharing
+   between render threads. These accessors hide the .value indirection. */
+#if (defined __aarch64__ || defined _M_ARM64)
+#define PARAMS_READ_IDX(v, x)       ((v)->params_read_idx[x].value)
+#define PARAMS_WRITE_IDX(v)         ((v)->params_write_idx.value)
+#define RENDER_VOODOO_BUSY(v, x)    ((v)->render_voodoo_busy[x].value)
+#else
+#define PARAMS_READ_IDX(v, x)       ((v)->params_read_idx[x])
+#define PARAMS_WRITE_IDX(v)         ((v)->params_write_idx)
+#define RENDER_VOODOO_BUSY(v, x)    ((v)->render_voodoo_busy[x])
+#endif
+
+#define PARAM_ENTRIES(x) (PARAMS_WRITE_IDX(voodoo) - PARAMS_READ_IDX(voodoo, x))
+#define PARAM_FULL(x)    ((PARAMS_WRITE_IDX(voodoo) - PARAMS_READ_IDX(voodoo, x)) >= PARAM_SIZE)
+#define PARAM_EMPTY(x)   (PARAMS_READ_IDX(voodoo, x) == PARAMS_WRITE_IDX(voodoo))
 
 typedef struct
 {
@@ -371,7 +383,16 @@ typedef struct voodoo_t {
     event_t  *wake_render_thread[4];
 
     int voodoo_busy;
+#if (defined __aarch64__ || defined _M_ARM64)
+    /* Each render_voodoo_busy entry is on its own 128-byte cache line to
+       prevent false sharing between render threads on Apple Silicon. */
+    struct {
+        int value;
+        char pad[128 - sizeof(int)];
+    } render_voodoo_busy[4];
+#else
     int render_voodoo_busy[4];
+#endif
 
     int render_threads;
     int odd_even_mask;
@@ -414,8 +435,21 @@ typedef struct voodoo_t {
     ATOMIC_INT   pending_draw_cmds_buf[VOODOO_BUF_COUNT];
 
     voodoo_params_t params_buffer[PARAM_SIZE];
+#if (defined __aarch64__ || defined _M_ARM64)
+    /* Each params index is on its own 128-byte cache line to prevent false
+       sharing between render threads and the FIFO/CPU thread. */
+    struct {
+        ATOMIC_INT value;
+        char       pad[128 - sizeof(ATOMIC_INT)];
+    } params_read_idx[4];
+    struct {
+        ATOMIC_INT value;
+        char       pad[128 - sizeof(ATOMIC_INT)];
+    } params_write_idx;
+#else
     ATOMIC_INT      params_read_idx[4];
     ATOMIC_INT      params_write_idx;
+#endif
 
     uint32_t   cmdfifo_base;
     uint32_t   cmdfifo_end;
@@ -710,6 +744,9 @@ typedef struct voodoo_t {
     int   use_recompiler;
     void *codegen_data;
 
+    /* JIT cache state -- per-instance to avoid races between render threads */
+    int jit_last_block[4];
+    uint64_t jit_generation[4];
     struct voodoo_set_t *set;
 
     uint32_t launch_pending;
