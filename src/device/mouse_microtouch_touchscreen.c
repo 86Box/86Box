@@ -19,6 +19,8 @@
     - Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
     - Add additional SMT2/3 formats as we currently only support Tablet, Hex and Dec.
     - Mode Polled.
+    - Calibrate Raw/Interactive.
+    - UV/NM.
 */
 #include <ctype.h>
 #include <stdint.h>
@@ -224,7 +226,7 @@ mtouch_process_commands(mouse_microtouch_t *dev)
         dev->format = FORMAT_TABLET;
     }
     else if (dev->cmd[0] == 'G' && dev->cmd[1] == 'P' && dev->cmd[2] == '1') { /* Get Parameter Block 1 */
-        fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x41\x0D", 3); /* <SOH>A<CR>  */
+        fifo8_push_all(&dev->resp, (uint8_t *) "\x01\x41\x0D", 3); /* <SOH>A<CR> */
         fifo8_push_all(&dev->resp, (uint8_t *) "0000000000000000000000000\r", 26);
     }
     else if (dev->cmd[0] == 'M' && dev->cmd[1] == 'D' && dev->cmd[2] == 'U') { /* Mode Down/Up */
@@ -264,7 +266,7 @@ mtouch_process_commands(mouse_microtouch_t *dev)
         else if (strlen(dev->cmd) == 5) { /* Serial Options */
             if      (dev->cmd[4] == '1') dev->baud_rate = 19200;
             else if (dev->cmd[4] == '2') dev->baud_rate = 9600;
-            else if (dev->cmd[4] == '3') dev->baud_rate = 4600;
+            else if (dev->cmd[4] == '3') dev->baud_rate = 4800;
             else if (dev->cmd[4] == '4') dev->baud_rate = 2400;
             else if (dev->cmd[4] == '5') dev->baud_rate = 1200;
             
