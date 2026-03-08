@@ -1,0 +1,32 @@
+name: Sync fork and rebase patches
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Runs daily at 6am UTC
+  workflow_dispatch:       # Allows manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: no-vmm
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/ORIGINAL_OWNER/ORIGINAL_REPO.git
+          git fetch upstream
+
+      - name: Rebase no-vmm onto upstream/main
+        run: git rebase upstream/main
+
+      - name: Push rebased branch
+        run: git push origin no-vmm --force-with-lease
