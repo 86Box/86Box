@@ -538,14 +538,12 @@ VMManagerSystem::setupVars()
             while (cpu_families[i].cpus[j].cpu_type != 0) {
                 if (cpu_families[i].cpus[j].rspeed == machine_config["cpu_speed"].toUInt()) {
                     auto cpu_speed = QString(cpu_families[i].cpus[j].name).split("/").at(0).split(" (").at(0);
-                    cpu_name.append(cpu_speed.prepend(" / "));
-                    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
+                    cpu_name.append(QCoreApplication::translate("", "%1 MHz").arg(cpu_speed).prepend(" / "));
                     if (machine_config.contains("fpu_type") && (machine_config["fpu_type"] != QString("none")) && (machine_config["fpu_type"] != QString("internal"))) {
                         int k = 0;
                         while (cpu_families[i].cpus[j].fpus[k].internal_name != nullptr) {
                             if (QString(cpu_families[i].cpus[j].fpus[k].internal_name) == machine_config["fpu_type"]) {
-                                cpu_name.append(QString(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
-                                cpu_name.append(QCoreApplication::translate("", "FPU").prepend(' '));
+                                cpu_name.append(QCoreApplication::translate("", "%1 FPU").arg(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
                                 break;
                             }
                             k++;

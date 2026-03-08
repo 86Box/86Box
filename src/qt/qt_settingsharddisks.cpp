@@ -108,7 +108,7 @@ SettingsHarddisks::addRow(QAbstractItemModel *model, void *priv)
     ih[row] = hd->hpc;
     is[row] = hd->spt;
     ia[row] = hd->audio_profile;
-    QString strGeometry = QString("%1, %2, %3 (%4 MiB)").arg(hd->tracks).arg(hd->hpc).arg(hd->spt).arg((hd->tracks * hd->hpc * hd->spt) >> 11);
+    QString strGeometry = QString("%1, %2, %3 (%4 %5)").arg(hd->tracks).arg(hd->hpc).arg(hd->spt).arg((hd->tracks * hd->hpc * hd->spt) >> 11).arg(tr("MiB"));
     model->setData(model->index(row, ColumnGeometry), strGeometry);
     auto speedIndex = model->index(row, ColumnSpeed);
     model->setData(speedIndex, QObject::tr(hdd_preset_getname(hd->speed_preset)));
@@ -307,7 +307,7 @@ SettingsHarddisks::populateAudioProfiles()
         
         /* Include profile if it has no RPM set (0) or matches target RPM */
         if (name && (profile_rpm == 0 || profile_rpm == target_rpm)) {
-            ui->comboBoxAudio->addItem(name, i);
+            ui->comboBoxAudio->addItem(tr(name), i);
         }
     }
 }

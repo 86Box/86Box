@@ -164,7 +164,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     for (int i = 0; i < profile_count; i++) {
         const char *name = fdd_audio_get_profile_name(i);
         if (name) {
-            ui->comboBoxFloppyAudio->addItem(name, i);
+            ui->comboBoxFloppyAudio->addItem(tr(name), i);
         }
     }
     ui->comboBoxFloppyAudio->setSizeAdjustPolicy(QComboBox::AdjustToContents);
@@ -326,7 +326,7 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
                 if (profile->total_tracks == 0 || 
                     (is_40_track && profile->total_tracks == 40) || 
                     (!is_40_track && profile->total_tracks == 80)) {
-                    ui->comboBoxFloppyAudio->addItem(name, i);
+                    ui->comboBoxFloppyAudio->addItem(tr(name), i);
                     if (i == prof) {
                         currentProfileIndex = comboIndex;
                     }
