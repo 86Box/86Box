@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-28 08:57+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-03-08 16:28+0000\n"
+"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
 "MIME-Version: 1.0\n"
@@ -3016,10 +3016,10 @@ msgid "&Allow recompilation"
 msgstr "&Salli uudelleenkääntäminen"
 
 msgid "&Fast forward"
-msgstr "&Nopea eteneminen"
+msgstr "&Pikakelaus"
 
 msgid "Fast forward"
-msgstr "Nopea eteneminen"
+msgstr "Pikakelaus"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Järjestelmähakemiston muuttamiseksi pysäytä kaikki käynnissä olevat koneet."
