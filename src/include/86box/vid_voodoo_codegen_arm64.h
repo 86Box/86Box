@@ -58,15 +58,8 @@
 #endif
 
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-
-/* JIT counters and cache state are per-instance in voodoo_t:
- *   voodoo->jit_hit_count, jit_gen_count, jit_exec_count,
- *   voodoo->jit_last_block[4], jit_recomp
- * LRU generation counters are per-instance: voodoo->jit_generation[4]
- */
 
 #define BLOCK_NUM  32
 #define BLOCK_MASK (BLOCK_NUM - 1)
@@ -4408,8 +4401,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     return block_pos;
 }
 
-/* Global kept only to satisfy 'extern int voodoo_recomp' in vid_voodoo_render.h.
- * ARM64 path uses per-instance recomp count in voodoo->jit_recomp. */
+/* Global kept only to satisfy 'extern int voodoo_recomp' in vid_voodoo_render.h. */
 int voodoo_recomp = 0;
 
 static inline int
@@ -4558,23 +4550,11 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
             /* LRU: stamp this slot as most-recently-used */
             data->last_used                  = ++voodoo->jit_generation[odd_even];
             voodoo->jit_last_block[odd_even] = probe;
-            if (voodoo->jit_debug && voodoo->jit_debug_log) {
-                int hit_count = ATOMIC_LOAD(voodoo->jit_hit_count);
-                if (hit_count < 20) {
-                    fprintf(voodoo->jit_debug_log,
-                            "VOODOO JIT: cache HIT #%d odd_even=%d block=%d code=%p "
-                            "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x\n",
-                            hit_count, odd_even, probe, (void *) data->code_block,
-                            params->fbzMode, params->fbzColorPath, params->alphaMode);
-                    ATOMIC_INC(voodoo->jit_hit_count);
-                }
-            }
             return data->code_block;
         }
     }
 
     /* --- Cache miss: find LRU victim --- */
-    ATOMIC_INC(voodoo->jit_recomp);
     {
         int      lru_slot = 0;
         uint64_t lru_min  = voodoo_arm64_data[base].last_used;
@@ -4591,12 +4571,6 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     if (!arm64_codegen_set_writable(data->code_block)) {
         arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
         data->last_used = 0;
-        if (voodoo->jit_debug && voodoo->jit_debug_log) {
-            fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: REJECT odd_even=%d reason=wx_write_enable_failed "
-                    "code=%p\n",
-                    odd_even, (void *) data->code_block);
-        }
         return NULL;
     }
 
@@ -4605,32 +4579,8 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     if (arm64_codegen_emit_overflowed()) {
         arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
         data->last_used = 0;
-        if (!arm64_codegen_set_executable(data->code_block) && voodoo->jit_debug && voodoo->jit_debug_log) {
-            fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: WARN odd_even=%d reason=wx_exec_restore_failed "
-                    "code=%p\n",
-                    odd_even, (void *) data->code_block);
-        }
-        if (voodoo->jit_debug && voodoo->jit_debug_log) {
-            fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: REJECT odd_even=%d reason=emit_overflow "
-                    "(limit=%d) -> interpreter fallback\n",
-                    odd_even, BLOCK_SIZE);
-        }
+        arm64_codegen_set_executable(data->code_block);
         return NULL;
-    }
-
-    if (voodoo->jit_debug && voodoo->jit_debug_log) {
-        int gen_count = ATOMIC_LOAD(voodoo->jit_gen_count);
-        ATOMIC_INC(voodoo->jit_gen_count);
-        fprintf(voodoo->jit_debug_log,
-                "VOODOO JIT: GENERATE #%d odd_even=%d code=%p code_size=%d recomp=%d "
-                "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
-                "textureMode[0]=0x%08x fogMode=0x%08x xdir=%d\n",
-                gen_count, odd_even,
-                (void *) data->code_block, code_size,
-                ATOMIC_LOAD(voodoo->jit_recomp), params->fbzMode, params->fbzColorPath, params->alphaMode,
-                params->textureMode[0], params->fogMode, state->xdir);
     }
 
     arm64_codegen_store_cache_key(data, voodoo, params, state, 1, 0);
@@ -4641,12 +4591,6 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     if (!arm64_codegen_set_executable(data->code_block)) {
         arm64_codegen_store_cache_key(data, voodoo, params, state, 0, 1);
         data->last_used = 0;
-        if (voodoo->jit_debug && voodoo->jit_debug_log) {
-            fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: REJECT odd_even=%d reason=wx_exec_enable_failed "
-                    "code=%p\n",
-                    odd_even, (void *) data->code_block);
-        }
         return NULL;
     }
 #if defined(__aarch64__) || defined(_M_ARM64)
@@ -4732,11 +4676,6 @@ voodoo_codegen_init(voodoo_t *voodoo)
     /* Initialize per-instance JIT cache state */
     memset(voodoo->jit_last_block, 0, sizeof(voodoo->jit_last_block));
     memset(voodoo->jit_generation, 0, sizeof(voodoo->jit_generation));
-    ATOMIC_STORE(voodoo->jit_recomp, 0);
-    ATOMIC_STORE(voodoo->jit_hit_count, 0);
-    ATOMIC_STORE(voodoo->jit_gen_count, 0);
-    ATOMIC_STORE(voodoo->jit_exec_count, 0);
-    ATOMIC_STORE(voodoo->jit_verify_mismatches, 0);
 
     for (uint16_t c = 0; c < 256; c++) {
         int d[4];

@@ -742,22 +742,11 @@ typedef struct voodoo_t {
     mutex_t *force_blit_mutex;
 
     int   use_recompiler;
-    int   jit_debug;
-    FILE *jit_debug_log;
     void *codegen_data;
 
     /* JIT cache state -- per-instance to avoid races between render threads */
     int jit_last_block[4];
     uint64_t jit_generation[4];
-    ATOMIC_INT jit_recomp;
-
-    /* JIT debug counters -- per-instance */
-    ATOMIC_INT jit_hit_count;
-    ATOMIC_INT jit_gen_count;
-    ATOMIC_INT jit_exec_count;
-    ATOMIC_INT jit_interp_count;
-    ATOMIC_INT jit_verify_mismatches;
-
     struct voodoo_set_t *set;
 
     uint32_t launch_pending;
