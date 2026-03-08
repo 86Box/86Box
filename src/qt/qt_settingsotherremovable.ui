@@ -259,7 +259,7 @@
 
       </layout>
      </widget>
-     <!-- <widget class="QWidget" name="tabTape">
+     <widget class="QWidget" name="tabTape">
       <attribute name="icon">
        <iconset resource="../qt_resources.qrc">
         <normaloff>:/settings/qt/icons/tape.ico</normaloff>:/settings/qt/icons/tape.ico</iconset>
@@ -341,7 +341,7 @@
        </item>
 
       </layout>
-     </widget> -->
+     </widget>
     </widget>
    </item>
 
@@ -356,10 +356,10 @@
   <tabstop>comboBoxRDiskBus</tabstop>
   <tabstop>comboBoxRDiskChannel</tabstop>
   <tabstop>comboBoxRDiskType</tabstop>
-  <!-- <tabstop>tableViewTape</tabstop>
+  <tabstop>tableViewTape</tabstop>
   <tabstop>comboBoxTapeBus</tabstop>
   <tabstop>comboBoxTapeChannel</tabstop>
-  <tabstop>comboBoxTapeType</tabstop> -->
+  <tabstop>comboBoxTapeType</tabstop>
  </tabstops>
  <resources/>
  <connections/>

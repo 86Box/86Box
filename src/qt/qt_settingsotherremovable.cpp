@@ -23,9 +23,7 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/mo.h>
 #include <86box/rdisk.h>
-#ifdef TAPE
 #include <86box/scsi_tape.h>
-#endif
 }
 
 #include "qt_models_common.hpp"
@@ -45,13 +43,11 @@ rdiskDriveTypeName(int i)
     return QString("%1 %2 %3").arg(rdisk_drive_types[i].vendor, rdisk_drive_types[i].model, rdisk_drive_types[i].revision);
 }
 
-#ifdef TAPE
 static QString
 tapeDriveTypeName(int i)
 {
     return QString("%1 %2 %3").arg(tape_drive_types[i].vendor, tape_drive_types[i].model, tape_drive_types[i].revision);
 }
-#endif
 
 void
 SettingsOtherRemovable::setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
@@ -101,7 +97,6 @@ SettingsOtherRemovable::setRDiskBus(QAbstractItemModel *model, const QModelIndex
     model->setData(i, icon, Qt::DecorationRole);
 }
 
-#ifdef TAPE
 void
 SettingsOtherRemovable::setTapeBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
 {
@@ -135,7 +130,6 @@ setTapeType(QAbstractItemModel *model, const QModelIndex &idx, uint32_t type)
         model->setData(i, tapeDriveTypeName(type));
     model->setData(i, type, Qt::UserRole);
 }
-#endif
 
 static void
 setMOType(QAbstractItemModel *model, const QModelIndex &idx, uint32_t type)
@@ -238,8 +232,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     connect(ui->tableViewRDisk->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onRDiskRowChanged);
     ui->tableViewRDisk->setCurrentIndex(model->index(0, 0));
 
-#ifdef TAPE
-    tape_disabled_icon = QIcon(":/settings/qt/icons/tape.ico");
+    tape_disabled_icon = QIcon(":/settings/qt/icons/tape_disabled.ico");
     tape_icon          = QIcon(":/settings/qt/icons/tape.ico");
 
     /* Tape drives are SCSI-only, so just Disabled and SCSI options */
@@ -272,7 +265,6 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 
     connect(ui->tableViewTape->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onTapeRowChanged);
     ui->tableViewTape->setCurrentIndex(model->index(0, 0));
-#endif
 }
 
 SettingsOtherRemovable::~SettingsOtherRemovable()
@@ -301,7 +293,6 @@ SettingsOtherRemovable::save()
         rdisk_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt();
     }
 
-#ifdef TAPE
     model = ui->tableViewTape->model();
     for (uint8_t i = 0; i < TAPE_NUM; i++) {
         tape_drives[i].fp       = NULL;
@@ -310,7 +301,6 @@ SettingsOtherRemovable::save()
         tape_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
         tape_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt();
     }
-#endif
 }
 
 void
@@ -509,7 +499,6 @@ SettingsOtherRemovable::on_comboBoxRDiskType_activated(int)
     ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 }
 
-#ifdef TAPE
 void
 SettingsOtherRemovable::onTapeRowChanged(const QModelIndex &current)
 {
@@ -605,4 +594,3 @@ SettingsOtherRemovable::on_comboBoxTapeType_activated(int)
     ui->tableViewTape->resizeColumnsToContents();
     ui->tableViewTape->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 }
-#endif
