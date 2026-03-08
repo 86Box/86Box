@@ -79,6 +79,12 @@
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="0" column="2">
@@ -93,6 +99,12 @@
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="1" column="0">
@@ -106,6 +118,12 @@
            <widget class="QComboBox" name="comboBoxMOType">
             <property name="maxVisibleItems">
              <number>30</number>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
@@ -162,6 +180,12 @@
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="0" column="2">
@@ -176,6 +200,12 @@
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="1" column="0">
@@ -189,6 +219,12 @@
            <widget class="QComboBox" name="comboBoxRDiskType">
             <property name="maxVisibleItems">
              <number>30</number>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
@@ -245,6 +281,12 @@
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="0" column="2">
@@ -259,6 +301,12 @@
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
            </widget>
           </item>
           <item row="1" column="0">
@@ -272,6 +320,12 @@
            <widget class="QComboBox" name="comboBoxTapeType">
             <property name="maxVisibleItems">
              <number>30</number>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
            </widget>
           </item>
