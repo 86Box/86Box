@@ -24,7 +24,7 @@
 #define AZTECH_EEPROM_SIZE 36
 
 /* MediaVision related */
-#define IS_MV201(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_MVD201)
+#define IS_MV201(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_MVD201)
 
 typedef struct sb_dsp_t {
     int   sb_type;

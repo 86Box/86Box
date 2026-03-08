@@ -56,9 +56,7 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
-#ifdef TAPE
 #include <86box/scsi_tape.h>
-#endif
 #include <86box/sound.h>
 #include <86box/ui.h>
 #include <86box/thread.h>
@@ -236,7 +234,6 @@ MediaMenu::refresh(QMenu *parentMenu)
         moUpdateMenu(i);
     });
 
-#ifdef TAPE
     tapeMenus.clear();
     MachineStatus::iterateTape([this, parentMenu](int i) {
         auto *menu     = parentMenu->addMenu("");
@@ -254,7 +251,6 @@ MediaMenu::refresh(QMenu *parentMenu)
         tapeMenus[i] = menu;
         tapeUpdateMenu(i);
     });
-#endif
 
     netMenus.clear();
     MachineStatus::iterateNIC([this, parentMenu](int i) {
@@ -794,7 +790,6 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
                 imageHistoryUpdatePos->setIcon(menu_icon);
             }
             break;
-#ifdef TAPE
         case ui::MediaType::Tape:
             if (!tapeMenus.contains(index))
                 return;
@@ -814,7 +809,6 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
                 imageHistoryUpdatePos->setIcon(menu_icon);
             }
             break;
-#endif
     }
 
 #ifndef Q_OS_MACOS
@@ -1190,7 +1184,6 @@ MediaMenu::moReload(int index, int slot)
     ui_sb_update_tip(SB_MO | index);
 }
 
-#ifdef TAPE
 void
 MediaMenu::tapeSelectImage(int i, bool wp)
 {
@@ -1306,7 +1299,6 @@ MediaMenu::tapeUpdateMenu(int i)
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
         updateImageHistory(i, slot, ui::MediaType::Tape);
 }
-#endif
 
 void
 MediaMenu::nicConnect(int i)
@@ -1468,7 +1460,6 @@ mo_reload(uint8_t id)
     MediaMenu::ptr->moReloadPrev(id);
 }
 
-#ifdef TAPE
 void
 tape_eject(uint8_t id)
 {
@@ -1486,20 +1477,4 @@ tape_reload(uint8_t id)
 {
     MediaMenu::ptr->tapeReloadPrev(id);
 }
-#else
-void
-tape_eject(uint8_t id)
-{
-}
-
-void
-tape_mount(uint8_t id, char *fn, uint8_t wp)
-{
-}
-
-void
-tape_reload(uint8_t id)
-{
-}
-#endif
 }

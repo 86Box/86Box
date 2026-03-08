@@ -67,14 +67,12 @@ public:
     void moReload(int index, int slot);
     void moUpdateMenu(int i);
 
-#ifdef TAPE
     void tapeSelectImage(int i, bool wp);
     void tapeMount(int i, const QString &filename, bool wp);
     void tapeEject(int i);
     void tapeReloadPrev(int i);
     void tapeReload(int index, int slot);
     void tapeUpdateMenu(int i);
-#endif
 
     void nicConnect(int i);
     void nicDisconnect(int i);
@@ -95,9 +93,7 @@ private:
     QMap<int, QMenu *> cdromMenus;
     QMap<int, QMenu *> rdiskMenus;
     QMap<int, QMenu *> moMenus;
-#ifdef TAPE
     QMap<int, QMenu *> tapeMenus;
-#endif
     QMap<int, QMenu *> netMenus;
 
     QString                 getMediaOpenDirectory();
@@ -129,10 +125,8 @@ private:
     int moEjectPos;
     int moImageHistoryPos[MAX_PREV_IMAGES];
 
-#ifdef TAPE
     int tapeEjectPos;
     int tapeImageHistoryPos[MAX_PREV_IMAGES];
-#endif
 
     int netDisconnPos;
 

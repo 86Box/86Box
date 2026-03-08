@@ -734,7 +734,8 @@ read_error_start:
                         dev->buff_cnt += 4;
                     dev->status = STAT_BSY | STAT_IO | STAT_REQ;
                     if (dev->irq_dma & DMA_ENA) {
-                        timer_advance_u64(&dev->timer, ST506_TIME);
+                        double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], (uint32_t) addr, HDD_OP_READ, 0, 0.0);
+                        timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
                         dma_set_drq(dev->dma, 1);
                     }
                     dev->state = STATE_SEND_DATA;
@@ -786,7 +787,8 @@ read_error_sent:
                     dev->buff_cnt = SECTOR_SIZE;
                     dev->status   = STAT_BSY | STAT_IO | STAT_REQ;
                     if (dev->irq_dma & DMA_ENA) {
-                        timer_advance_u64(&dev->timer, ST506_TIME);
+                        double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], (uint32_t) addr, HDD_OP_READ, 1, 0.0);
+                        timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
                         dma_set_drq(dev->dma, 1);
                     }
                     dev->state = STATE_SEND_DATA;
@@ -835,7 +837,8 @@ read_error_sent:
                         dev->buff_cnt += 4;
                     dev->status = STAT_BSY | STAT_REQ;
                     if (dev->irq_dma & DMA_ENA) {
-                        timer_advance_u64(&dev->timer, ST506_TIME);
+                        double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], (uint32_t) addr, HDD_OP_WRITE, 0, 0.0);
+                        timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
                         dma_set_drq(dev->dma, 1);
                     }
                     dev->state = STATE_RECEIVE_DATA;
@@ -889,7 +892,8 @@ write_error:
                     dev->buff_cnt = SECTOR_SIZE;
                     dev->status   = STAT_BSY | STAT_REQ;
                     if (dev->irq_dma & DMA_ENA) {
-                        timer_advance_u64(&dev->timer, ST506_TIME);
+                        double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], (uint32_t) addr, HDD_OP_WRITE, 1, 0.0);
+                        timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
                         dma_set_drq(dev->dma, 1);
                     }
                     dev->state = STATE_RECEIVE_DATA;
