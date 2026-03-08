@@ -149,6 +149,9 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     Harddrives::populateBuses(ui->comboBoxBus->model());
     
     on_comboBoxBus_currentIndexChanged(0);
+
+    if (model->rowCount() > 0)
+        ui->tableView->selectRow(0);
 }
 
 SettingsHarddisks::~SettingsHarddisks()
