@@ -18,9 +18,12 @@
 /* TODO:
     - Properly implement GP/SP commands (formats are not documented at all, like anywhere; no dumps yet).
     - Add additional SMT2/3 formats as we currently only support Tablet, Hex and Dec.
-    - Mode Polled.
-    - Calibrate Raw/Interactive.
-    - UV/NM.
+    - Add Mode Polled.
+    - Add UV/NM.
+    - Add Calibrate Raw/Interactive.
+    - Finish Calibrate New implementation.
+    - Figure out if Mode Point and Mode DU apply to format Tablet.
+    - Refactor mtouch_prepare_transmit tree to remove duplicate code.
 */
 #include <ctype.h>
 #include <stdint.h>
