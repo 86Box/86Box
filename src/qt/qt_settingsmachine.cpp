@@ -157,6 +157,8 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         QTimer::singleShot(0, ui->lineEditSearch, &QLineEdit::clear);
     });
 
+    ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
+
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
     ui->checkBoxDynamicRecompiler->setVisible(false);
@@ -171,13 +173,14 @@ SettingsMachine::~SettingsMachine()
 void
 SettingsMachine::save()
 {
-    machine         = ui->comboBoxMachine->currentData().toInt();
-    cpu_f           = const_cast<cpu_family_t *>(&cpu_families[ui->comboBoxCPU->currentData().toInt()]);
-    cpu             = ui->comboBoxSpeed->currentData().toInt();
-    fpu_type        = ui->comboBoxFPU->currentData().toInt();
-    cpu_use_dynarec = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
-    fpu_softfloat   = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
-    force_10ms      = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
+    machine                  = ui->comboBoxMachine->currentData().toInt();
+    cpu_f                    = const_cast<cpu_family_t *>(&cpu_families[ui->comboBoxCPU->currentData().toInt()]);
+    cpu                      = ui->comboBoxSpeed->currentData().toInt();
+    fpu_type                 = ui->comboBoxFPU->currentData().toInt();
+    cpu_override_interpreter = ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0;
+    cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
+    fpu_softfloat            = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
+    force_10ms               = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
 
     int64_t temp_mem_size;
     if (machine_get_ram_granularity(machine) < 1024)

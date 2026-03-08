@@ -31,11 +31,17 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#ifdef TAPE
+#include <86box/scsi_tape.h>
+#endif
 #include <86box/plat.h>
 #include <86box/machine.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/ui.h>
+#ifndef TAPE
+#define TAPE_NUM 1
+#endif
 #include <86box/machine_status.h>
 #include <86box/config.h>
 
@@ -110,6 +116,9 @@ struct Pixmaps {
     PixmapSetEmptyActive rdisk;
     PixmapSetEmptyActive zip;
     PixmapSetEmptyActive mo;
+#ifdef TAPE
+    PixmapSetEmptyActive tape;
+#endif
     PixmapSetActive      hd;
     PixmapSetEmptyActive net;
     PixmapSetDisabled    sound;
@@ -339,6 +348,9 @@ struct MachineStatus::States {
         pixmaps.rdisk.load(QIcon(":/settings/qt/icons/rdisk.ico"));
         pixmaps.zip.load(QIcon(":/settings/qt/icons/zip.ico"));
         pixmaps.mo.load(QIcon(":/settings/qt/icons/mo.ico"));
+#ifdef TAPE
+        pixmaps.tape.load(QIcon(":/settings/qt/icons/tape.ico"));
+#endif
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
         pixmaps.net.load(QIcon(":/settings/qt/icons/network.ico"));
         pixmaps.sound.load(QIcon(":/settings/qt/icons/sound.ico"));
@@ -358,6 +370,11 @@ struct MachineStatus::States {
         for (auto &m : mo) {
             m.pixmaps = &pixmaps.mo;
         }
+#ifdef TAPE
+        for (auto &t : tape) {
+            t.pixmaps = &pixmaps.tape;
+        }
+#endif
         for (auto &h : hdds) {
             h.pixmaps = &pixmaps.hd;
         }
@@ -372,6 +389,9 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, CDROM_NUM>    cdrom;
     std::array<StateEmptyActive, RDISK_NUM>    rdisk;
     std::array<StateEmptyActive, MO_NUM>       mo;
+#ifdef TAPE
+    std::array<StateEmptyActive, TAPE_NUM>     tape;
+#endif
     std::array<StateActive, HDD_BUS_USB>       hdds;
     std::array<StateEmptyActive, NET_CARD_MAX> net;
     std::unique_ptr<ClickableLabel>            sound;
@@ -492,6 +512,22 @@ MachineStatus::iterateMO(const std::function<void(int)> &cb)
     }
 }
 
+#ifdef TAPE
+void
+MachineStatus::iterateTape(const std::function<void(int)> &cb)
+{
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasSCSI() &&
+            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        if (tape_drives[i].bus_type != 0) {
+            cb(i);
+        }
+    }
+}
+#endif
+
 void
 MachineStatus::iterateNIC(const std::function<void(int)> &cb)
 {
@@ -537,6 +573,12 @@ MachineStatus::refreshEmptyIcons()
         d->mo[i].setEmpty(machine_status.mo[i].empty);
         d->mo[i].setWriteProtected(machine_status.mo[i].write_prot);
     }
+#ifdef TAPE
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        d->tape[i].setEmpty(machine_status.tape[i].empty);
+        d->tape[i].setWriteProtected(machine_status.tape[i].write_prot);
+    }
+#endif
 
     d->cassette.setEmpty(machine_status.cassette.empty);
     d->cassette.setWriteProtected(machine_status.cassette.write_prot);
@@ -598,6 +640,16 @@ MachineStatus::refreshIcons()
         if (machine_status.mo[i].write_active)
             ui_sb_update_icon_write(SB_MO | i, 0);
     }
+#ifdef TAPE
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        d->tape[i].setActive(machine_status.tape[i].active);
+        d->tape[i].setWriteActive(machine_status.tape[i].write_active);
+        if (machine_status.tape[i].active)
+            ui_sb_update_icon(SB_TAPE | i, 0);
+        if (machine_status.tape[i].write_active)
+            ui_sb_update_icon_write(SB_TAPE | i, 0);
+    }
+#endif
 
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
@@ -633,6 +685,12 @@ MachineStatus::clearActivity()
         mo.setActive(false);
         mo.setWriteActive(false);
     }
+#ifdef TAPE
+    for (auto &tape : d->tape) {
+        tape.setActive(false);
+        tape.setWriteActive(false);
+    }
+#endif
     for (auto &hdd : d->hdds) {
         hdd.setActive(false);
         hdd.setWriteActive(false);
@@ -821,6 +879,29 @@ MachineStatus::refresh(QStatusBar *sbar)
         sbar->addWidget(d->mo[i].label.get());
     });
 
+#ifdef TAPE
+    iterateTape([this, sbar](int i) {
+        d->tape[i].label = std::make_unique<ClickableLabel>();
+        d->tape[i].setEmpty(QString(tape_drives[i].image_path).isEmpty());
+        if (QString(tape_drives[i].image_path).isEmpty())
+            d->tape[i].setWriteProtected(false);
+        else
+            d->tape[i].setWriteProtected(tape_drives[i].read_only);
+        d->tape[i].setActive(false);
+        d->tape[i].setWriteActive(false);
+        d->tape[i].refresh();
+        connect((ClickableLabel *) d->tape[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
+            MediaMenu::ptr->tapeMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->tapeMenus[i]->sizeHint().height()));
+        });
+        connect((ClickableLabel *) d->tape[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->tapeMount(i, str, false);
+        });
+        d->tape[i].label->setToolTip(MediaMenu::ptr->tapeMenus[i]->toolTip());
+        d->tape[i].label->setAcceptDrops(true);
+        sbar->addWidget(d->tape[i].label.get());
+    });
+#endif
+
     iterateNIC([this, sbar](int i) {
         d->net[i].label = std::make_unique<ClickableLabel>();
         d->net[i].setEmpty(!network_is_connected(i));
@@ -1007,6 +1088,12 @@ MachineStatus::updateTip(int tag)
             if (d->mo[item].label && MediaMenu::ptr->moMenus[item])
                 d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->toolTip());
             break;
+#ifdef TAPE
+        case SB_TAPE:
+            if (d->tape[item].label && MediaMenu::ptr->tapeMenus[item])
+                d->tape[item].label->setToolTip(MediaMenu::ptr->tapeMenus[item]->toolTip());
+            break;
+#endif
         case SB_HDD:
             break;
         case SB_NETWORK:

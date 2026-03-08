@@ -23,6 +23,9 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/mo.h>
 #include <86box/rdisk.h>
+#ifdef TAPE
+#include <86box/scsi_tape.h>
+#endif
 }
 
 #include "qt_models_common.hpp"
@@ -41,6 +44,14 @@ rdiskDriveTypeName(int i)
 {
     return QString("%1 %2 %3").arg(rdisk_drive_types[i].vendor, rdisk_drive_types[i].model, rdisk_drive_types[i].revision);
 }
+
+#ifdef TAPE
+static QString
+tapeDriveTypeName(int i)
+{
+    return QString("%1 %2 %3").arg(tape_drive_types[i].vendor, tape_drive_types[i].model, tape_drive_types[i].revision);
+}
+#endif
 
 void
 SettingsOtherRemovable::setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
@@ -89,6 +100,42 @@ SettingsOtherRemovable::setRDiskBus(QAbstractItemModel *model, const QModelIndex
     model->setData(i, channel, Qt::UserRole + 1);
     model->setData(i, icon, Qt::DecorationRole);
 }
+
+#ifdef TAPE
+void
+SettingsOtherRemovable::setTapeBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
+{
+    QIcon icon;
+    switch (bus) {
+        case TAPE_BUS_DISABLED:
+            icon = tape_disabled_icon;
+            break;
+        case TAPE_BUS_SCSI:
+            icon = tape_icon;
+            break;
+
+        default:
+            break;
+    }
+
+    auto i = idx.siblingAtColumn(0);
+    model->setData(i, Harddrives::BusChannelName(bus, channel));
+    model->setData(i, bus, Qt::UserRole);
+    model->setData(i, channel, Qt::UserRole + 1);
+    model->setData(i, icon, Qt::DecorationRole);
+}
+
+static void
+setTapeType(QAbstractItemModel *model, const QModelIndex &idx, uint32_t type)
+{
+    auto i = idx.siblingAtColumn(1);
+    if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() == TAPE_BUS_DISABLED)
+        model->setData(i, QCoreApplication::translate("", "None"));
+    else
+        model->setData(i, tapeDriveTypeName(type));
+    model->setData(i, type, Qt::UserRole);
+}
+#endif
 
 static void
 setMOType(QAbstractItemModel *model, const QModelIndex &idx, uint32_t type)
@@ -157,7 +204,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
         Harddrives::busTrackClass->device_track(1, DEV_MO, mo_drives[i].bus_type, mo_drives[i].bus_type == MO_BUS_ATAPI ? mo_drives[i].ide_channel : mo_drives[i].scsi_device_id);
     }
     ui->tableViewMO->resizeColumnsToContents();
-    ui->tableViewMO->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    ui->tableViewMO->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
     connect(ui->tableViewMO->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onMORowChanged);
     ui->tableViewMO->setCurrentIndex(model->index(0, 0));
@@ -186,10 +233,46 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
         Harddrives::busTrackClass->device_track(1, DEV_MO, rdisk_drives[i].bus_type, rdisk_drives[i].bus_type == RDISK_BUS_ATAPI ? rdisk_drives[i].ide_channel : rdisk_drives[i].scsi_device_id);
     }
     ui->tableViewRDisk->resizeColumnsToContents();
-    ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
 
     connect(ui->tableViewRDisk->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onRDiskRowChanged);
     ui->tableViewRDisk->setCurrentIndex(model->index(0, 0));
+
+#ifdef TAPE
+    tape_disabled_icon = QIcon(":/settings/qt/icons/tape.ico");
+    tape_icon          = QIcon(":/settings/qt/icons/tape.ico");
+
+    /* Tape drives are SCSI-only, so just Disabled and SCSI options */
+    auto *tapeBusModel = ui->comboBoxTapeBus->model();
+    tapeBusModel->removeRows(0, tapeBusModel->rowCount());
+    tapeBusModel->insertRows(0, 2);
+    tapeBusModel->setData(tapeBusModel->index(0, 0), tr("Disabled"));
+    tapeBusModel->setData(tapeBusModel->index(1, 0), "SCSI");
+    tapeBusModel->setData(tapeBusModel->index(0, 0), TAPE_BUS_DISABLED, Qt::UserRole);
+    tapeBusModel->setData(tapeBusModel->index(1, 0), TAPE_BUS_SCSI, Qt::UserRole);
+
+    model = ui->comboBoxTapeType->model();
+    for (uint32_t i = 0; i < KNOWN_TAPE_DRIVE_TYPES; i++) {
+        Models::AddEntry(model, tapeDriveTypeName(i), i);
+    }
+
+    model = new QStandardItemModel(0, 2, this);
+    ui->tableViewTape->setModel(model);
+    model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
+    model->setHeaderData(1, Qt::Horizontal, tr("Type"));
+    model->insertRows(0, TAPE_NUM);
+    for (int i = 0; i < TAPE_NUM; i++) {
+        auto idx = model->index(i, 0);
+        setTapeBus(model, idx, tape_drives[i].bus_type, tape_drives[i].res);
+        setTapeType(model, idx.siblingAtColumn(1), tape_drives[i].type);
+        Harddrives::busTrackClass->device_track(1, DEV_TAPE, tape_drives[i].bus_type, tape_drives[i].scsi_device_id);
+    }
+    ui->tableViewTape->resizeColumnsToContents();
+    ui->tableViewTape->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+
+    connect(ui->tableViewTape->selectionModel(), &QItemSelectionModel::currentRowChanged, this, &SettingsOtherRemovable::onTapeRowChanged);
+    ui->tableViewTape->setCurrentIndex(model->index(0, 0));
+#endif
 }
 
 SettingsOtherRemovable::~SettingsOtherRemovable()
@@ -217,6 +300,17 @@ SettingsOtherRemovable::save()
         rdisk_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
         rdisk_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt();
     }
+
+#ifdef TAPE
+    model = ui->tableViewTape->model();
+    for (uint8_t i = 0; i < TAPE_NUM; i++) {
+        tape_drives[i].fp       = NULL;
+        tape_drives[i].priv     = NULL;
+        tape_drives[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
+        tape_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
+        tape_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt();
+    }
+#endif
 }
 
 void
@@ -414,3 +508,101 @@ SettingsOtherRemovable::on_comboBoxRDiskType_activated(int)
     ui->tableViewRDisk->resizeColumnsToContents();
     ui->tableViewRDisk->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 }
+
+#ifdef TAPE
+void
+SettingsOtherRemovable::onTapeRowChanged(const QModelIndex &current)
+{
+    uint8_t bus     = current.siblingAtColumn(0).data(Qt::UserRole).toUInt();
+    uint8_t channel = current.siblingAtColumn(0).data(Qt::UserRole + 1).toUInt();
+    uint8_t type    = current.siblingAtColumn(1).data(Qt::UserRole).toUInt();
+
+    ui->comboBoxTapeBus->setCurrentIndex(-1);
+    const auto *model = ui->comboBoxTapeBus->model();
+    auto        match = model->match(model->index(0, 0), Qt::UserRole, bus);
+    if (!match.isEmpty())
+        ui->comboBoxTapeBus->setCurrentIndex(match.first().row());
+
+    model = ui->comboBoxTapeChannel->model();
+    match = model->match(model->index(0, 0), Qt::UserRole, channel);
+    if (!match.isEmpty())
+        ui->comboBoxTapeChannel->setCurrentIndex(match.first().row());
+    ui->comboBoxTapeType->setCurrentIndex(type);
+    enableCurrentlySelectedChannel_Tape();
+}
+
+void
+SettingsOtherRemovable::reloadBusChannels_Tape()
+{
+    auto selected = ui->comboBoxTapeChannel->currentIndex();
+    Harddrives::populateBusChannels(ui->comboBoxTapeChannel->model(),
+                                    ui->comboBoxTapeBus->currentData().toInt(), Harddrives::busTrackClass);
+    ui->comboBoxTapeChannel->setCurrentIndex(selected);
+    enableCurrentlySelectedChannel_Tape();
+}
+
+void
+SettingsOtherRemovable::on_comboBoxTapeBus_currentIndexChanged(int index)
+{
+    if (index >= 0) {
+        int  bus     = ui->comboBoxTapeBus->currentData().toInt();
+        bool enabled = (bus != TAPE_BUS_DISABLED);
+        ui->comboBoxTapeChannel->setEnabled(enabled);
+        ui->comboBoxTapeType->setEnabled(enabled);
+        Harddrives::populateBusChannels(ui->comboBoxTapeChannel->model(), bus, Harddrives::busTrackClass);
+    }
+}
+
+void
+SettingsOtherRemovable::on_comboBoxTapeBus_activated(int)
+{
+    auto i = ui->tableViewTape->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_TAPE, ui->tableViewTape->model()->data(i, Qt::UserRole).toInt(), ui->tableViewTape->model()->data(i, Qt::UserRole + 1).toInt());
+    ui->comboBoxTapeChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_scsi_id());
+    ui->tableViewTape->model()->data(i, Qt::UserRole + 1);
+    setTapeBus(ui->tableViewTape->model(),
+               ui->tableViewTape->selectionModel()->currentIndex(),
+               ui->comboBoxTapeBus->currentData().toUInt(),
+               ui->comboBoxTapeChannel->currentData().toUInt());
+    setTapeType(ui->tableViewTape->model(),
+                ui->tableViewTape->selectionModel()->currentIndex(),
+                ui->comboBoxTapeType->currentData().toUInt());
+    ui->tableViewTape->resizeColumnsToContents();
+    ui->tableViewTape->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    Harddrives::busTrackClass->device_track(1, DEV_TAPE, ui->tableViewTape->model()->data(i, Qt::UserRole).toInt(), ui->tableViewTape->model()->data(i, Qt::UserRole + 1).toInt());
+    emit tapeChannelChanged();
+}
+
+void
+SettingsOtherRemovable::enableCurrentlySelectedChannel_Tape()
+{
+    const auto *item_model = qobject_cast<QStandardItemModel *>(ui->comboBoxTapeChannel->model());
+    const auto  index      = ui->comboBoxTapeChannel->currentIndex();
+    auto       *item       = item_model->item(index);
+    if (item)
+        item->setEnabled(true);
+}
+
+void
+SettingsOtherRemovable::on_comboBoxTapeChannel_activated(int)
+{
+    auto i = ui->tableViewTape->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_TAPE, ui->tableViewTape->model()->data(i, Qt::UserRole).toInt(), ui->tableViewTape->model()->data(i, Qt::UserRole + 1).toInt());
+    setTapeBus(ui->tableViewTape->model(),
+               ui->tableViewTape->selectionModel()->currentIndex(),
+               ui->comboBoxTapeBus->currentData().toUInt(),
+               ui->comboBoxTapeChannel->currentData().toUInt());
+    Harddrives::busTrackClass->device_track(1, DEV_TAPE, ui->tableViewTape->model()->data(i, Qt::UserRole).toInt(), ui->tableViewTape->model()->data(i, Qt::UserRole + 1).toInt());
+    emit tapeChannelChanged();
+}
+
+void
+SettingsOtherRemovable::on_comboBoxTapeType_activated(int)
+{
+    setTapeType(ui->tableViewTape->model(),
+                ui->tableViewTape->selectionModel()->currentIndex(),
+                ui->comboBoxTapeType->currentData().toUInt());
+    ui->tableViewTape->resizeColumnsToContents();
+    ui->tableViewTape->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+}
+#endif

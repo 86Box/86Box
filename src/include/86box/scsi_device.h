@@ -232,18 +232,6 @@
 #define ASCQ_AUDIO_PLAY_OPERATION_PAUSED       0x12
 #define ASCQ_AUDIO_PLAY_OPERATION_COMPLETED    0x13
 
-/* Some generally useful CD-ROM information */
-#ifdef CONSERVATIVE_MAXIMUM
-#define CD_MINS        90   /* max. minutes per CD */
-#else
-#define CD_MINS        100  /* max. minutes per CD - yes, 100-minute CD's in fact existed */
-#endif
-#define CD_SECS        60   /* seconds per minute */
-#define CD_FRAMES      75   /* frames per second */
-#define CD_FRAMESIZE   2048 /* bytes per frame, "cooked" mode */
-#define CD_MAX_BYTES   (CD_MINS * CD_SECS * CD_FRAMES * CD_FRAMESIZE)
-#define CD_MAX_SECTORS (CD_MAX_BYTES / 2048)
-
 /* Event notification classes for GET EVENT STATUS NOTIFICATION */
 #define GESN_NO_EVENTS          0
 #define GESN_OPERATIONAL_CHANGE 1

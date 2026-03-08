@@ -14,12 +14,27 @@
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
  */
+#include <cstdint>
+#include <cstdio>
+
+extern "C" {
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/hdd.h>
+}
+
 #include "qt_settings.hpp"
 #include "ui_qt_settings.h"
+
+#include <QStandardItemModel>
+
+#include "qt_harddiskdialog.hpp"
 
 #include "qt_settingsmachine.hpp"
 #include "qt_settingsdisplay.hpp"
 #include "qt_settingsinput.hpp"
+#include "qt_settingskeybindings.hpp"
 #include "qt_settingssound.hpp"
 #include "qt_settingsnetwork.hpp"
 #include "qt_settingsports.hpp"
@@ -33,10 +48,6 @@
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_defs.hpp"
-
-extern "C" {
-#include <86box/86box.h>
-}
 
 #include <QDebug>
 #include <QMessageBox>
@@ -67,6 +78,7 @@ private:
         "Machine",
         "Display",
         "Input devices",
+        "Key bindings",
         "Sound",
         "Network",
         "Ports (COM & LPT)",
@@ -80,6 +92,7 @@ private:
         "machine",
         "display",
         "input_devices",
+        "key_bindings",
         "sound",
         "network",
         "ports",
@@ -130,6 +143,7 @@ Settings::Settings(QWidget *parent)
     machine                   = new SettingsMachine(this);
     display                   = new SettingsDisplay(this);
     input                     = new SettingsInput(this);
+    key_bindings              = new SettingsKeyBindings(this);
     sound                     = new SettingsSound(this);
     network                   = new SettingsNetwork(this);
     ports                     = new SettingsPorts(this);
@@ -142,6 +156,7 @@ Settings::Settings(QWidget *parent)
     ui->stackedWidget->addWidget(machine);
     ui->stackedWidget->addWidget(display);
     ui->stackedWidget->addWidget(input);
+    ui->stackedWidget->addWidget(key_bindings);
     ui->stackedWidget->addWidget(sound);
     ui->stackedWidget->addWidget(network);
     ui->stackedWidget->addWidget(ports);
@@ -155,6 +170,8 @@ Settings::Settings(QWidget *parent)
             &SettingsDisplay::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, input,
             &SettingsInput::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, key_bindings,
+            &SettingsKeyBindings::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, sound,
             &SettingsSound::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, network,
@@ -189,6 +206,22 @@ Settings::Settings(QWidget *parent)
             &SettingsFloppyCDROM::reloadBusChannels);
     connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
             &SettingsOtherRemovable::reloadBusChannels_MO);
+#ifdef TAPE
+    connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_Tape);
+    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, harddisks,
+            &SettingsHarddisks::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, floppyCdrom,
+            &SettingsFloppyCDROM::reloadBusChannels);
+    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_MO);
+    connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_RDisk);
+    connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_Tape);
+    connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
+            &SettingsOtherRemovable::reloadBusChannels_Tape);
+#endif
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex &current, const QModelIndex &previous) { ui->stackedWidget->setCurrentIndex(current.row()); });
@@ -212,6 +245,7 @@ Settings::save()
     machine->save();
     display->save();
     input->save();
+    key_bindings->save();
     sound->save();
     network->save();
     ports->save();

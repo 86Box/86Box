@@ -194,9 +194,27 @@ ati18800_recalctimings(svga_t *svga)
         svga->ati_4color = 0;
 
 
-    if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
-         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-            svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
+    if (!svga->scrblank && svga->attr_palette_enable) {
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
+
+        switch ((ati18800->regs[0xb8] >> 6) & 0x03) {
+            case 0x01:
+                svga->clock *= 2.0;
+                break;
+            case 0x02:
+                svga->clock *= 3.0;
+                break;
+            case 0x03:
+                svga->clock *= 4.0;
+                break;
+            default:
+                break;
+        }
+
+        if (svga->interlace)
+            svga->clock /= 2.0;
+
+        if ((svga->gdcreg[6] & 0x01) || (svga->attrregs[0x10] & 0x01)) {
             switch (svga->gdcreg[5] & 0x60) {
                 case 0x00:
                     if (svga->seqregs[1] & 8) /*Low res (320)*/
@@ -234,6 +252,8 @@ ati18800_recalctimings(svga_t *svga)
             }
         }
     }
+
+    svga->hoverride = 1;
 }
 
 static void *

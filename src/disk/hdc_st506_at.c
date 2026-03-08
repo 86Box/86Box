@@ -300,7 +300,14 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
                     if (val & 2)
                         fatal("WD1003: READ with ECC\n");
                     mfm->status = STAT_BUSY;
-                    timer_set_delay_u64(&mfm->callback_timer, 200 * MFM_TIME);
+                    {
+                        /* Calculate seek time based on CHS position */
+                        off64_t seek_addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt) + (mfm->sector - 1);
+                        double  seek_us   = hdd_seek_get_time(&hdd[drive->hdd_num], (uint32_t) seek_addr, HDD_OP_READ, 0, 0.0);
+                        uint64_t delay    = (seek_us > (200.0 * MFM_TIME / (double) TIMER_USEC))
+                                            ? (uint64_t)(seek_us * TIMER_USEC) : 200 * MFM_TIME;
+                        timer_set_delay_u64(&mfm->callback_timer, delay);
+                    }
                     break;
 
                 case CMD_WRITE:
@@ -363,7 +370,14 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
         if (mfm->pos >= 512) {
             mfm->pos    = 0;
             mfm->status = STAT_BUSY;
-            timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
+            {
+                drive_t *wr_drive = &mfm->drives[mfm->drvsel];
+                off64_t  wr_addr  = ((((off64_t) mfm->cylinder * wr_drive->cfg_hpc) + mfm->head) * wr_drive->cfg_spt) + (mfm->sector - 1);
+                double   seek_us  = hdd_seek_get_time(&hdd[wr_drive->hdd_num], (uint32_t) wr_addr, HDD_OP_WRITE, 1, 0.0);
+                uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
+                                    ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
+                timer_set_delay_u64(&mfm->callback_timer, delay);
+            }
         }
     }
 }
@@ -459,7 +473,14 @@ mfm_readw(uint16_t port, void *priv)
                 if (mfm->secount) {
                     next_sector(mfm);
                     mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
-                    timer_set_delay_u64(&mfm->callback_timer, SECTOR_TIME);
+                    {
+                        drive_t *rd_drive = &mfm->drives[mfm->drvsel];
+                        off64_t  rd_addr  = ((((off64_t) mfm->cylinder * rd_drive->cfg_hpc) + mfm->head) * rd_drive->cfg_spt) + (mfm->sector - 1);
+                        double   seek_us  = hdd_seek_get_time(&hdd[rd_drive->hdd_num], (uint32_t) rd_addr, HDD_OP_READ, 1, 0.0);
+                        uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
+                                            ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
+                        timer_set_delay_u64(&mfm->callback_timer, delay);
+                    }
                 } else
                     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
             }
