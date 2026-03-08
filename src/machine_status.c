@@ -19,6 +19,7 @@
 #include <86box/rdisk.h>
 #include <86box/superdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 #include <86box/hdd.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -52,6 +53,11 @@ machine_status_init(void)
     for (size_t i = 0; i < MO_NUM; i++) {
         machine_status.mo[i].empty  = (strlen(mo_drives[i].image_path) == 0);
         machine_status.mo[i].active = false;
+    }
+
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        machine_status.tape[i].empty  = (strlen(tape_drives[i].image_path) == 0);
+        machine_status.tape[i].active = false;
     }
 
     for (size_t i = 0; i < 2; i++)

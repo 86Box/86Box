@@ -75,9 +75,7 @@ public:
     static void iterateRDisk(const std::function<void(int i)> &cb);
     static void iterateSuperdisk(const std::function<void(int i)> &cb);
     static void iterateMO(const std::function<void(int i)> &cb);
-#ifdef TAPE
     static void iterateTape(const std::function<void(int i)> &cb);
-#endif
     static void iterateNIC(const std::function<void(int i)> &cb);
 
     QString getMessage();

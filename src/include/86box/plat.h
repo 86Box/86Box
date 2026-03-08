@@ -186,6 +186,9 @@ extern void mo_reload(uint8_t id);
 extern void superdisk_eject(uint8_t id);
 extern void superdisk_mount(uint8_t id, char *fn, uint8_t wp);
 extern void superdisk_reload(uint8_t id);
+extern void tape_eject(uint8_t id);
+extern void tape_mount(uint8_t id, char *fn, uint8_t wp);
+extern void tape_reload(uint8_t id);
 
 /* Other stuff. */
 extern void startblit(void);

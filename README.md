@@ -1,11 +1,28 @@
-86Box
-=====
+86Box — Voodoo ARM64 JIT Fork
+=============================
 
-[![Build Status](https://ci.86box.net/job/86Box/badge/icon)](https://ci.86box.net/job/86Box/)
+## ⚠️ AI Disclosure
+**This fork was developed with the assistance of AI.**
+
+---
+
+This fork adds a **JIT compiler for the 3dfx Voodoo GPU pixel pipeline on ARM64 (AArch64)**. The upstream 86Box Voodoo emulation uses an x86-64 JIT that generates native machine code for the pixel pipeline at runtime. On ARM64 hosts (Apple Silicon, Raspberry Pi 5, Snapdragon), that JIT is unavailable and the emulator falls back to a C interpreter, which is significantly slower.
+
+This fork ports the Voodoo JIT to ARM64, generating native AArch64 instructions for each pixel pipeline configuration — depth test, texture fetch, color/alpha combine, fog, alpha blend, dithering, and framebuffer write. The result is the same runtime code generation approach as x86-64, targeting ARMv8.0-A baseline (compatible with all 64-bit ARM devices).
+
+### What's included
+
+- **Full Voodoo pixel pipeline JIT** — all 6 phases ported from x86-64 to ARM64
+- **macOS Apple Silicon support** — W^X handling via `pthread_jit_write_protect_np`, JIT entitlements
+- **JIT debug/verify mode** — optional runtime toggle to compare JIT output against the C interpreter pixel-by-pixel
+
+### Upstream
+
+This is a fork of [86Box](https://github.com/86Box/86Box).
+
+---
+
 [![License](https://img.shields.io/github/license/86Box/86Box)](COPYING)
-[![Latest release](https://img.shields.io/github/release/86Box/86Box.svg)](https://github.com/86Box/86Box/releases)
-[![Downloads](https://img.shields.io/github/downloads/86Box/86Box/total.svg)](https://github.com/86Box/86Box/releases)
-[![Translation status](https://weblate.86box.net/widget/86box/86box/language-badge.svg)](https://weblate.86box.net/engage/86box/)
 
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 

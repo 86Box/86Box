@@ -45,11 +45,14 @@
 #define GPCMD_REZERO_UNIT                             0x01
 #define GPCMD_REQUEST_SENSE                           0x03
 #define GPCMD_FORMAT_UNIT                             0x04
+#define GPCMD_READ_BLOCK_LIMITS                       0x05
 #define GPCMD_IOMEGA_SENSE                            0x06
 #define GPCMD_IMATION_SENSE                           0x06
 #define GPCMD_READ_6                                  0x08
 #define GPCMD_WRITE_6                                 0x0a
 #define GPCMD_SEEK_6                                  0x0b
+#define GPCMD_WRITE_FILEMARKS_6                       0x10
+#define GPCMD_SPACE_6                                 0x11
 #define GPCMD_IOMEGA_SET_PROTECTION_MODE              0x0c
 #define GPCMD_IMATION_SET_PROTECTION_MODE             0x0c
 #define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
@@ -63,6 +66,7 @@
 #define GPCMD_SCSI_RELEASE                            0x17
 #define GPCMD_MODE_SENSE_6                            0x1a
 #define GPCMD_START_STOP_UNIT                         0x1b
+#define GPCMD_ERASE_6                                 0x19
 #define GPCMD_SEND_DIAGNOSTIC                         0x1d
 #define GPCMD_PREVENT_REMOVAL                         0x1e
 #define GPCMD_READ_FORMAT_CAPACITIES                  0x23
@@ -75,6 +79,7 @@
 #define GPCMD_ERASE_10                                0x2c
 #define GPCMD_WRITE_AND_VERIFY_10                     0x2e
 #define GPCMD_VERIFY_10                               0x2f
+#define GPCMD_READ_POSITION                           0x34
 #define GPCMD_READ_BUFFER                             0x3c
 #define GPCMD_WRITE_SAME_10                           0x41
 #define GPCMD_READ_SUBCHANNEL                         0x42
@@ -175,6 +180,9 @@
 #define GPMODE_MEDIUM_TYPES_PAGE     0x0b /* Medium types supported page */
 #define GPMODE_CDROM_PAGE            0x0d /* General CD-ROM page */
 #define GPMODE_CDROM_AUDIO_PAGE      0x0e /* General CD-ROM audio page */
+#define GPMODE_DATA_COMPRESS_PAGE    0x0f
+#define GPMODE_DEVICE_CONFIG_PAGE    0x10
+#define GPMODE_MEDIUM_PARTITION_PAGE 0x11
 #define GPMODE_REMOVABLE_BLOCK_ACCESS_PAGE 0x1b /* Removable block access capabilities page */
 #define GPMODE_CAPABILITIES_PAGE     0x2a /* Capabilities page */
 #define GPMODE_IOMEGA_PAGE           0x2f /* Iomega-specific page */
@@ -193,6 +201,9 @@
 #define GPMODEP_CDROM_AUDIO_PAGE_SONY 0x0000000000000200LL
 #define GPMODEP_CDROM_PAGE            0x0000000000002000LL
 #define GPMODEP_CDROM_AUDIO_PAGE      0x0000000000004000LL
+#define GPMODEP_DATA_COMPRESS_PAGE    0x0000000000008000LL
+#define GPMODEP_DEVICE_CONFIG_PAGE    0x0000000000010000LL
+#define GPMODEP_MEDIUM_PARTITION_PAGE 0x0000000000020000LL
 #define GPMODEP_CAPABILITIES_PAGE     0x0000040000000000LL
 #define GPMODEP_IOMEGA_PAGE           0x0000800000000000LL
 #define GPMODEP_UNK_VENDOR_PAGE       0x0001000000000000LL
@@ -208,6 +219,8 @@
 #define SENSE_MEDIUM_ERROR    3
 #define SENSE_ILLEGAL_REQUEST 5
 #define SENSE_UNIT_ATTENTION  6
+#define SENSE_DATA_PROTECT    7
+#define SENSE_BLANK_CHECK     8
 
 /* SCSI Additional Sense Codes */
 #define ASC_NONE                               0x00
@@ -236,6 +249,10 @@
 #define ASCQ_AUDIO_PLAY_OPERATION_IN_PROGRESS  0x11
 #define ASCQ_AUDIO_PLAY_OPERATION_PAUSED       0x12
 #define ASCQ_AUDIO_PLAY_OPERATION_COMPLETED    0x13
+#define ASCQ_FILEMARK_DETECTED                 0x01
+#define ASCQ_EOM_DETECTED                      0x02
+#define ASCQ_BOP_DETECTED                      0x04
+#define ASCQ_EOD_DETECTED                      0x05
 
 /* Event notification classes for GET EVENT STATUS NOTIFICATION */
 #define GESN_NO_EVENTS          0
@@ -477,6 +494,7 @@ typedef struct scsi_bus_t {
 #define SCSI_FIXED_DISK      0x0000
 #define SCSI_REMOVABLE_DISK  0x8000
 #define SCSI_REMOVABLE_CDROM 0x8005
+#define SCSI_REMOVABLE_TAPE  0x8001
 
 #ifdef EMU_SCSI_H
 extern scsi_device_t scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
