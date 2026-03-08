@@ -77,6 +77,7 @@
 #define GPCMD_WRITE_AND_VERIFY_10                     0x2e
 #define GPCMD_VERIFY_10                               0x2f
 #define GPCMD_READ_POSITION                           0x34
+#define GPCMD_SYNCHRONIZE_CACHE                       0x35
 #define GPCMD_READ_BUFFER                             0x3c
 #define GPCMD_WRITE_SAME_10                           0x41
 #define GPCMD_READ_SUBCHANNEL                         0x42
@@ -94,6 +95,9 @@
 #define GPCMD_READ_TRACK_INFORMATION                  0x52
 #define GPCMD_MODE_SELECT_10                          0x55
 #define GPCMD_MODE_SENSE_10                           0x5a
+#define GPCMD_CLOSE_TRACK_SESSION                     0x5b
+#define GPCMD_READ_BUFFER_CAPACITY                    0x5c
+#define GPCMD_SEND_CUE_SHEET                          0x5d
 #define GPCMD_PLAY_AUDIO_12                           0xa5
 #define GPCMD_READ_12                                 0xa8
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12            0xa9
@@ -165,24 +169,25 @@
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
 
 /* Mode page codes for mode sense/set */
-#define GPMODE_UNIT_ATN_PAGE         0x00
-#define GPMODE_R_W_ERROR_PAGE        0x01
-#define GPMODE_DISCONNECT_PAGE       0x02 /* Disconnect/reconnect page */
-#define GPMODE_FORMAT_DEVICE_PAGE    0x03
-#define GPMODE_RIGID_DISK_PAGE       0x04 /* Rigid disk geometry page */
-#define GPMODE_FLEXIBLE_DISK_PAGE    0x05
-#define GPMODE_CACHING_PAGE          0x08
-#define GPMODE_CDROM_PAGE_SONY       0x08
-#define GPMODE_CDROM_AUDIO_PAGE_SONY 0x09
-#define GPMODE_CDROM_PAGE            0x0d
-#define GPMODE_CDROM_AUDIO_PAGE      0x0e
-#define GPMODE_DATA_COMPRESS_PAGE    0x0f
-#define GPMODE_DEVICE_CONFIG_PAGE    0x10
-#define GPMODE_MEDIUM_PARTITION_PAGE 0x11
-#define GPMODE_CAPABILITIES_PAGE     0x2a
-#define GPMODE_IOMEGA_PAGE           0x2f
-#define GPMODE_UNK_VENDOR_PAGE       0x30
-#define GPMODE_ALL_PAGES             0x3f
+#define GPMODE_UNIT_ATN_PAGE               0x00
+#define GPMODE_R_W_ERROR_PAGE              0x01
+#define GPMODE_DISCONNECT_PAGE             0x02 /* Disconnect/reconnect page */
+#define GPMODE_FORMAT_DEVICE_PAGE          0x03
+#define GPMODE_RIGID_DISK_PAGE             0x04 /* Rigid disk geometry page */
+#define GPMODE_FLEXIBLE_DISK_PAGE          0x05
+#define GPMODE_CDROM_WRITE_PARAMETERS_PAGE 0x05
+#define GPMODE_CACHING_PAGE                0x08
+#define GPMODE_CDROM_PAGE_SONY             0x08
+#define GPMODE_CDROM_AUDIO_PAGE_SONY       0x09
+#define GPMODE_CDROM_PAGE                  0x0d
+#define GPMODE_CDROM_AUDIO_PAGE            0x0e
+#define GPMODE_DATA_COMPRESS_PAGE          0x0f
+#define GPMODE_DEVICE_CONFIG_PAGE          0x10
+#define GPMODE_MEDIUM_PARTITION_PAGE       0x11
+#define GPMODE_CAPABILITIES_PAGE           0x2a
+#define GPMODE_IOMEGA_PAGE                 0x2f
+#define GPMODE_UNK_VENDOR_PAGE             0x30
+#define GPMODE_ALL_PAGES                   0x3f
 
 /* Mode page codes for presence */
 #define GPMODEP_UNIT_ATN_PAGE         0x0000000000000001LL
