@@ -1128,7 +1128,7 @@ banshee_status(banshee_t *banshee)
     int           fifo_entries = FIFO_ENTRIES;
     int           swap_count   = voodoo->swap_count;
     int           written      = voodoo->cmd_written + voodoo->cmd_written_fifo;
-    int           busy         = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || (voodoo->cmdfifo_depth_rd_2 != voodoo->cmdfifo_depth_wr_2) || RENDER_VOODOO_BUSY(voodoo, 0) || RENDER_VOODOO_BUSY(voodoo, 1) || RENDER_VOODOO_BUSY(voodoo, 2) || RENDER_VOODOO_BUSY(voodoo, 3) || voodoo->voodoo_busy;
+    int           busy         = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || (voodoo->cmdfifo_depth_rd_2 != voodoo->cmdfifo_depth_wr_2) || voodoo->render_voodoo_busy[0] || voodoo->render_voodoo_busy[1] || voodoo->render_voodoo_busy[2] || voodoo->render_voodoo_busy[3] || voodoo->voodoo_busy;
     uint32_t      ret          = 0;
 
     if (fifo_entries < 0x20)
@@ -3908,17 +3908,6 @@ static const device_config_t banshee_sgram_config[] = {
         .bios           = { { 0 } }
     },
 #endif
-    {
-        .name           = "jit_debug",
-        .description    = "JIT Debug Logging",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -3996,17 +3985,6 @@ static const device_config_t banshee_sgram_16mbonly_config[] = {
         .bios           = { { 0 } }
     },
 #endif
-    {
-        .name           = "jit_debug",
-        .description    = "JIT Debug Logging",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -4084,17 +4062,6 @@ static const device_config_t banshee_sdram_config[] = {
         .bios           = { { 0 } }
     },
 #endif
-    {
-        .name           = "jit_debug",
-        .description    = "JIT Debug Logging",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on

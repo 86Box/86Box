@@ -438,9 +438,9 @@ voodoo_readl(uint32_t addr, void *priv)
                     int busy         = (written - voodoo->cmd_read) ||
                                (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) ||
                                voodoo->voodoo_busy ||
-                               RENDER_VOODOO_BUSY(voodoo, 0) ||
-                               (voodoo->render_threads >= 2 && RENDER_VOODOO_BUSY(voodoo, 1)) ||
-                               (voodoo->render_threads == 4 && (RENDER_VOODOO_BUSY(voodoo, 2) || RENDER_VOODOO_BUSY(voodoo, 3)));
+                               voodoo->render_voodoo_busy[0] ||
+                               (voodoo->render_threads >= 2 && voodoo->render_voodoo_busy[1]) ||
+                               (voodoo->render_threads == 4 && (voodoo->render_voodoo_busy[2] || voodoo->render_voodoo_busy[3]));
 
                     if (SLI_ENABLED && voodoo->type != VOODOO_2) {
                         voodoo_t *voodoo_other  = (voodoo == voodoo->set->voodoos[0]) ? voodoo->set->voodoos[1] : voodoo->set->voodoos[0];
@@ -453,9 +453,9 @@ voodoo_readl(uint32_t addr, void *priv)
                         if ((other_written - voodoo_other->cmd_read) ||
                             (voodoo_other->cmdfifo_depth_rd != voodoo_other->cmdfifo_depth_wr) ||
                             voodoo_other->voodoo_busy ||
-                            RENDER_VOODOO_BUSY(voodoo_other, 0) ||
-                            (voodoo_other->render_threads >= 2 && RENDER_VOODOO_BUSY(voodoo_other, 1)) ||
-                            (voodoo_other->render_threads == 4 && (RENDER_VOODOO_BUSY(voodoo_other, 2) || RENDER_VOODOO_BUSY(voodoo_other, 3))))
+                            voodoo_other->render_voodoo_busy[0] ||
+                            (voodoo_other->render_threads >= 2 && voodoo_other->render_voodoo_busy[1]) ||
+                            (voodoo_other->render_threads == 4 && (voodoo_other->render_voodoo_busy[2] || voodoo_other->render_voodoo_busy[3])))
                             busy = 1;
                         if (!voodoo_other->voodoo_busy)
                             voodoo_wake_fifo_thread(voodoo_other);
@@ -1169,18 +1169,6 @@ voodoo_card_init(void)
     voodoo->odd_even_mask     = voodoo->render_threads - 1;
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
-    voodoo->jit_debug = device_get_config_int("jit_debug");
-    if (voodoo->jit_debug) {
-        char path[1280];
-        snprintf(path, sizeof(path), "%svoodoo_jit.log", usr_path);
-        voodoo->jit_debug_log = fopen(path, "w");
-#if defined(__aarch64__) || defined(_M_ARM64)
-        if (voodoo->jit_debug_log)
-            fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: INIT render_threads=%d use_recompiler=%d jit_debug=%d\n",
-                    voodoo->render_threads, voodoo->use_recompiler, voodoo->jit_debug);
-#endif
-    }
 #endif
     voodoo->type = device_get_config_int("type");
     switch (voodoo->type) {
@@ -1341,18 +1329,6 @@ voodoo_2d3d_card_init(int type)
     voodoo->odd_even_mask     = voodoo->render_threads - 1;
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
-    voodoo->jit_debug = device_get_config_int("jit_debug");
-    if (voodoo->jit_debug) {
-        char path[1280];
-        snprintf(path, sizeof(path), "%svoodoo_jit.log", usr_path);
-        voodoo->jit_debug_log = fopen(path, "w");
-#if defined(__aarch64__) || defined(_M_ARM64)
-        if (voodoo->jit_debug_log)
-            fprintf(voodoo->jit_debug_log,
-                    "VOODOO JIT: INIT render_threads=%d use_recompiler=%d jit_debug=%d\n",
-                    voodoo->render_threads, voodoo->use_recompiler, voodoo->jit_debug);
-#endif
-    }
 #endif
     voodoo->type      = type;
     voodoo->dual_tmus = (type == VOODOO_3) ? 1 : 0;
@@ -1608,13 +1584,6 @@ voodoo_card_close(voodoo_t *voodoo)
     }
 #ifndef NO_CODEGEN
     voodoo_codegen_close(voodoo);
-    if (voodoo->jit_debug_log) {
-        fprintf(voodoo->jit_debug_log,
-                "VOODOO JIT SUMMARY: jit_exec=%d interp_exec=%d gen=%d\n",
-                voodoo->jit_exec_count, voodoo->jit_interp_count, voodoo->jit_gen_count);
-        fclose(voodoo->jit_debug_log);
-        voodoo->jit_debug_log = NULL;
-    }
 #endif
     if (voodoo->type < VOODOO_BANSHEE && voodoo->fb_mem) {
         free(voodoo->fb_mem);
@@ -1760,17 +1729,6 @@ static const device_config_t voodoo_config[] = {
         .bios           = { { 0 } }
     },
 #endif
-    {
-        .name           = "jit_debug",
-        .description    = "JIT Debug Logging",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };

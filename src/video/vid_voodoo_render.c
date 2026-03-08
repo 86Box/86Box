@@ -20,9 +20,6 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
-#if defined(_M_ARM64) && defined(_MSC_VER)
-#    include <intrin.h>
-#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -40,8 +37,6 @@
 #include <86box/vid_voodoo_regs.h>
 #include <86box/vid_voodoo_render.h>
 #include <86box/vid_voodoo_texture.h>
-
-/* JIT exec counter moved to per-instance voodoo->jit_exec_count */
 
 typedef struct voodoo_state_t {
     int      xstart, xend, xdir;
@@ -662,8 +657,6 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
 
 #if (defined __amd64__ || defined _M_X64)
 #    include <86box/vid_voodoo_codegen_x86-64.h>
-#elif (defined __aarch64__ || defined _M_ARM64)
-#    include <86box/vid_voodoo_codegen_arm64.h>
 #else
 int voodoo_recomp = 0;
 #endif
@@ -940,141 +933,12 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
         state->texel_count = 0;
         state->x           = x;
         state->x2          = x2;
-
-        /* JIT verify mode (jit_debug=2): run JIT, save pixels, restore state,
-         * then run interpreter and compare pixel-by-pixel to find mismatches */
 #ifndef NO_CODEGEN
-        {
-            /* jit_verify_mismatches moved to per-instance voodoo->jit_verify_mismatches */
-            int jit_verify_active = 0;
-            int jv_start = 0, jv_count = 0;
-            uint16_t *jit_fb_save = NULL;
-            uint16_t *jit_aux_save = NULL;
-            int32_t jv_ib = 0, jv_ig = 0, jv_ir = 0;
-            int32_t s_ib = 0, s_ig = 0, s_ir = 0, s_ia = 0;
-            int32_t s_z = 0;
-            int64_t s_t0s = 0, s_t0t = 0, s_t0w = 0;
-            int64_t s_w = 0;
-
-            if (voodoo->use_recompiler && voodoo_draw
-                && voodoo->jit_debug >= 2 && voodoo->jit_debug_log
-                && voodoo->jit_verify_mismatches < INT32_MAX) {
-                jv_start = (state->xdir > 0) ? x : x2;
-                int jv_end = (state->xdir > 0) ? x2 : x;
-                jv_count = jv_end - jv_start + 1;
-                if (jv_count > 0 && jv_count <= 2048 && fb_mem) {
-                    jit_fb_save = (uint16_t *) malloc(jv_count * sizeof(uint16_t) * 2);
-                    uint16_t *saved_fb = jit_fb_save + jv_count;
-                    uint16_t *saved_aux = aux_mem ? (uint16_t *) malloc(jv_count * sizeof(uint16_t)) : NULL;
-                    jit_aux_save = aux_mem ? (uint16_t *) malloc(jv_count * sizeof(uint16_t)) : NULL;
-
-                    /* Save fb_mem, aux_mem (depth buffer), and state before JIT */
-                    for (int vi = 0; vi < jv_count; vi++)
-                        saved_fb[vi] = fb_mem[jv_start + vi];
-                    if (saved_aux) {
-                        for (int vi = 0; vi < jv_count; vi++)
-                            saved_aux[vi] = aux_mem[jv_start + vi];
-                    }
-                    int64_t s_t1s, s_t1t, s_t1w;
-                    s_ib = state->ib; s_ig = state->ig; s_ir = state->ir; s_ia = state->ia;
-                    s_z = state->z;
-                    s_t0s = state->tmu0_s; s_t0t = state->tmu0_t; s_t0w = state->tmu0_w;
-                    s_t1s = state->tmu1_s; s_t1t = state->tmu1_t; s_t1w = state->tmu1_w;
-                    s_w = state->w;
-
-                    voodoo_draw(state, params, x, real_y);
-
-                    /* Log execution in verify mode (same as normal JIT path) */
-                    if (voodoo->jit_debug_log) {
-                        fprintf(voodoo->jit_debug_log,
-                                "VOODOO JIT: EXECUTE #%d code=%p x=%d x2=%d real_y=%d odd_even=%d\n",
-                                voodoo->jit_exec_count, (void *) voodoo_draw, x, x2, real_y, odd_even);
-                        voodoo->jit_exec_count++;
-                        fprintf(voodoo->jit_debug_log,
-                                "VOODOO JIT POST: ib=%d ig=%d ir=%d ia=%d z=%08x pixel_count=%d\n",
-                                state->ib, state->ig, state->ir, state->ia, state->z, state->pixel_count);
-                        int dbg_start = (state->xdir > 0) ? x : x2;
-                        int dbg_end = (state->xdir > 0) ? x2 : x;
-                        int dbg_count = dbg_end - dbg_start + 1;
-                        if (dbg_count > 8) dbg_count = 8;
-                        if (dbg_count > 0 && fb_mem) {
-                            fprintf(voodoo->jit_debug_log,
-                                    "VOODOO JIT PIXELS y=%d x=%d..%d:", real_y, dbg_start, dbg_start + dbg_count - 1);
-                            for (int pi = 0; pi < dbg_count; pi++) {
-                                uint16_t pv = fb_mem[dbg_start + pi];
-                                fprintf(voodoo->jit_debug_log, " %04x", pv);
-                            }
-                            fprintf(voodoo->jit_debug_log, "\n");
-                        }
-                    }
-
-                    /* Save JIT output (color + depth) */
-                    for (int vi = 0; vi < jv_count; vi++)
-                        jit_fb_save[vi] = fb_mem[jv_start + vi];
-                    if (jit_aux_save && aux_mem) {
-                        for (int vi = 0; vi < jv_count; vi++)
-                            jit_aux_save[vi] = aux_mem[jv_start + vi];
-                    }
-                    jv_ib = state->ib; jv_ig = state->ig; jv_ir = state->ir;
-
-                    /* Restore state, fb_mem, and aux_mem for interpreter */
-                    for (int vi = 0; vi < jv_count; vi++)
-                        fb_mem[jv_start + vi] = saved_fb[vi];
-                    if (saved_aux) {
-                        for (int vi = 0; vi < jv_count; vi++)
-                            aux_mem[jv_start + vi] = saved_aux[vi];
-                        free(saved_aux);
-                    }
-                    state->ib = s_ib; state->ig = s_ig; state->ir = s_ir; state->ia = s_ia;
-                    state->z = s_z;
-                    state->tmu0_s = s_t0s; state->tmu0_t = s_t0t; state->tmu0_w = s_t0w;
-                    state->tmu1_s = s_t1s; state->tmu1_t = s_t1t; state->tmu1_w = s_t1w;
-                    state->w = s_w;
-                    state->pixel_count = 0; state->texel_count = 0;
-                    state->x = x; state->x2 = x2;
-                    jit_verify_active = 1;
-                }
-            }
-
-            if (voodoo->use_recompiler && voodoo_draw && !jit_verify_active) {
-                if (voodoo->jit_debug && voodoo->jit_debug_log) {
-                    fprintf(voodoo->jit_debug_log,
-                            "VOODOO JIT: EXECUTE #%d code=%p x=%d x2=%d real_y=%d odd_even=%d\n",
-                            voodoo->jit_exec_count, (void *) voodoo_draw, x, x2, real_y, odd_even);
-                    voodoo->jit_exec_count++;
-                }
-                voodoo_draw(state, params, x, real_y);
-                if (voodoo->jit_debug && voodoo->jit_debug_log) {
-                    fprintf(voodoo->jit_debug_log,
-                            "VOODOO JIT POST: ib=%d ig=%d ir=%d ia=%d z=%08x pixel_count=%d\n",
-                            state->ib, state->ig, state->ir, state->ia, state->z, state->pixel_count);
-                    int dbg_start = (state->xdir > 0) ? x : x2;
-                    int dbg_end = (state->xdir > 0) ? x2 : x;
-                    int dbg_count = dbg_end - dbg_start + 1;
-                    if (dbg_count > 8) dbg_count = 8;
-                    if (dbg_count > 0 && fb_mem) {
-                        fprintf(voodoo->jit_debug_log,
-                                "VOODOO JIT PIXELS y=%d x=%d..%d:", real_y, dbg_start, dbg_start + dbg_count - 1);
-                        for (int pi = 0; pi < dbg_count; pi++) {
-                            uint16_t pv = fb_mem[dbg_start + pi];
-                            fprintf(voodoo->jit_debug_log, " %04x", pv);
-                        }
-                        fprintf(voodoo->jit_debug_log, "\n");
-                    }
-                }
-            } else
+        if (voodoo->use_recompiler && voodoo_draw) {
+            voodoo_draw(state, params, x, real_y);
+        } else
 #endif
             do {
-#ifndef NO_CODEGEN
-                if (voodoo->jit_debug && voodoo->jit_debug_log) {
-                    voodoo->jit_interp_count++;
-                    if (voodoo->jit_interp_count <= 50) {
-                        fprintf(voodoo->jit_debug_log,
-                                "VOODOO WARNING: INTERPRETER FALLBACK #%d! use_recomp=%d x=%d x2=%d real_y=%d\n",
-                                voodoo->jit_interp_count, voodoo->use_recompiler, x, x2, real_y);
-                    }
-                }
-#endif
                 int x_tiled = (x & 63) | ((x >> 6) * 128 * 32 / 2);
                 start_x     = x;
                 state->x    = x;
@@ -1521,65 +1385,6 @@ skip_pixel:
                 x += state->xdir;
             } while (start_x != x2);
 
-#ifndef NO_CODEGEN
-            /* JIT verify: compare JIT pixels vs interpreter pixels */
-            if (jit_verify_active && jit_fb_save && jv_count > 0) {
-                int mismatch = 0;
-                for (int vi = 0; vi < jv_count; vi++) {
-                    if (jit_fb_save[vi] != fb_mem[jv_start + vi]) {
-                        mismatch++;
-                    }
-                }
-                if (mismatch) {
-                    voodoo->jit_verify_mismatches++;
-                    fprintf(voodoo->jit_debug_log,
-                            "VERIFY MISMATCH #%d y=%d x=%d..%d (%d/%d pixels differ) "
-                            "fbzMode=0x%08x fbzColorPath=0x%08x alphaMode=0x%08x "
-                            "textureMode=0x%08x fogMode=0x%08x\n",
-                            voodoo->jit_verify_mismatches, real_y, jv_start, jv_start + jv_count - 1,
-                            mismatch, jv_count,
-                            params->fbzMode, params->fbzColorPath, params->alphaMode,
-                            params->textureMode[0], params->fogMode);
-                    /* Dump initial state for this scanline */
-                    fprintf(voodoo->jit_debug_log,
-                            "  init: w=0x%012llx z=0x%08x ib=%d ig=%d ir=%d ia=%d\n"
-                            "  init: tmu0_s=0x%012llx tmu0_t=0x%012llx tmu0_w=0x%012llx\n",
-                            (unsigned long long) s_w, (unsigned) s_z, s_ib, s_ig, s_ir, s_ia,
-                            (unsigned long long) s_t0s, (unsigned long long) s_t0t, (unsigned long long) s_t0w);
-                    int logged = 0;
-                    for (int vi = 0; vi < jv_count && logged < 8; vi++) {
-                        if (jit_fb_save[vi] != fb_mem[jv_start + vi]) {
-                            uint16_t jv = jit_fb_save[vi];
-                            uint16_t iv = fb_mem[jv_start + vi];
-                            /* Decode RGB565: R[15:11] G[10:5] B[4:0] */
-                            int jr = (jv >> 11) & 0x1f, jg = (jv >> 5) & 0x3f, jb = jv & 0x1f;
-                            int ir2 = (iv >> 11) & 0x1f, ig2 = (iv >> 5) & 0x3f, ib2 = iv & 0x1f;
-                            fprintf(voodoo->jit_debug_log,
-                                    "  pixel[%d]: JIT=0x%04x(R%d,G%d,B%d) INTERP=0x%04x(R%d,G%d,B%d) dR=%+d dG=%+d dB=%+d",
-                                    jv_start + vi, jv, jr, jg, jb, iv, ir2, ig2, ib2,
-                                    jr - ir2, jg - ig2, jb - ib2);
-                            /* Show depth buffer diff if available */
-                            if (jit_aux_save && aux_mem)
-                                fprintf(voodoo->jit_debug_log,
-                                        " depth: JIT=0x%04x INTERP=0x%04x",
-                                        jit_aux_save[vi], aux_mem[jv_start + vi]);
-                            fprintf(voodoo->jit_debug_log, "\n");
-                            logged++;
-                        }
-                    }
-                    fprintf(voodoo->jit_debug_log,
-                            "  JIT  post: ib=%d ig=%d ir=%d\n"
-                            "  INTERP post: ib=%d ig=%d ir=%d\n",
-                            jv_ib, jv_ig, jv_ir,
-                            state->ib, state->ig, state->ir);
-                    fflush(voodoo->jit_debug_log);
-                }
-            }
-            free(jit_fb_save);
-            free(jit_aux_save);
-        } /* end of jit_verify block */
-#endif
-
         voodoo->pixel_count[odd_even] += state->pixel_count;
         voodoo->texel_count[odd_even] += state->texel_count;
         voodoo->fbiPixelsIn += state->pixel_count;
@@ -1654,7 +1459,7 @@ voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_even)
 
 #if 0
 voodoo_render_log("voodoo_triangle %i %i %i : vA %f, %f  vB %f, %f  vC %f, %f f %i,%i %08x %08x %08x,%08x tex=%i,%i fogMode=%08x\n",
-                  odd_even, PARAMS_READ_IDX(voodoo, odd_even), PARAMS_READ_IDX(voodoo, odd_even) & PARAM_MASK, (float)params->vertexAx / 16.0, (float)params->vertexAy / 16.0,
+                  odd_even, voodoo->params_read_idx[odd_even], voodoo->params_read_idx[odd_even] & PARAM_MASK, (float)params->vertexAx / 16.0, (float)params->vertexAy / 16.0,
                   (float)params->vertexBx / 16.0, (float)params->vertexBy / 16.0,
                   (float)params->vertexCx / 16.0, (float)params->vertexCy / 16.0,
                   (params->fbzColorPath & FBZCP_TEXTURE_ENABLED) ? params->tformat[0] : 0,
@@ -1787,19 +1592,16 @@ render_thread(void *param, int odd_even)
         thread_set_event(voodoo->render_not_full_event[odd_even]);
         thread_wait_event(voodoo->wake_render_thread[odd_even], -1);
         thread_reset_event(voodoo->wake_render_thread[odd_even]);
-#if (defined __aarch64__ || defined _M_ARM64)
-    process_work:
-#endif
-        RENDER_VOODOO_BUSY(voodoo, odd_even) = 1;
+        voodoo->render_voodoo_busy[odd_even] = 1;
 
         while (!PARAM_EMPTY(odd_even)) {
             uint64_t         start_time = plat_timer_read();
             uint64_t         end_time;
-            voodoo_params_t *params = &voodoo->params_buffer[PARAMS_READ_IDX(voodoo, odd_even) & PARAM_MASK];
+            voodoo_params_t *params = &voodoo->params_buffer[voodoo->params_read_idx[odd_even] & PARAM_MASK];
 
             voodoo_triangle(voodoo, params, odd_even);
 
-            PARAMS_READ_IDX(voodoo, odd_even)++;
+            voodoo->params_read_idx[odd_even]++;
 
             if (PARAM_ENTRIES(odd_even) > (PARAM_SIZE - 10))
                 thread_set_event(voodoo->render_not_full_event[odd_even]);
@@ -1808,20 +1610,7 @@ render_thread(void *param, int odd_even)
             voodoo->render_time[odd_even] += end_time - start_time;
         }
 
-        RENDER_VOODOO_BUSY(voodoo, odd_even) = 0;
-#if (defined __aarch64__ || defined _M_ARM64)
-        /* Spin briefly before sleeping to absorb burst triangle submissions
-           from the JIT without expensive context-switch overhead. */
-        for (int spins = 0; spins < 256; spins++) {
-#ifdef _MSC_VER
-            __yield();
-#else
-            __asm__ volatile("yield");
-#endif
-            if (!PARAM_EMPTY(odd_even))
-                goto process_work;
-        }
-#endif
+        voodoo->render_voodoo_busy[odd_even] = 0;
     }
 }
 
@@ -1849,7 +1638,7 @@ voodoo_render_thread_4(void *param)
 void
 voodoo_queue_triangle(voodoo_t *voodoo, voodoo_params_t *params)
 {
-    voodoo_params_t *params_new = &voodoo->params_buffer[PARAMS_WRITE_IDX(voodoo) & PARAM_MASK];
+    voodoo_params_t *params_new = &voodoo->params_buffer[voodoo->params_write_idx & PARAM_MASK];
 
     while (PARAM_FULL(0) || (voodoo->render_threads >= 2 && PARAM_FULL(1)) || (voodoo->render_threads == 4 && (PARAM_FULL(2) || PARAM_FULL(3)))) {
         thread_reset_event(voodoo->render_not_full_event[0]);
@@ -1875,7 +1664,7 @@ voodoo_queue_triangle(voodoo_t *voodoo, voodoo_params_t *params)
 
     memcpy(params_new, params, sizeof(voodoo_params_t));
 
-    PARAMS_WRITE_IDX(voodoo)++;
+    voodoo->params_write_idx++;
 
     if (PARAM_ENTRIES(0) < 4 || (voodoo->render_threads >= 2 && PARAM_ENTRIES(1) < 4) || (voodoo->render_threads == 4 && (PARAM_ENTRIES(2) < 4 || PARAM_ENTRIES(3) < 4)))
         voodoo_wake_render_thread(voodoo);
