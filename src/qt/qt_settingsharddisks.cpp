@@ -301,15 +301,18 @@ SettingsHarddisks::populateAudioProfiles()
     
     /* Populate audio profile combobox with matching RPM profiles */
     int profile_count = hdd_audio_get_profile_count();
-    for (int i = 0; i < profile_count; i++) {
-        const char *name = hdd_audio_get_profile_name(i);
-        uint32_t profile_rpm = hdd_audio_get_profile_rpm(i);
-        
-        /* Include profile if it has no RPM set (0) or matches target RPM */
-        if (name && (profile_rpm == 0 || profile_rpm == target_rpm)) {
-            ui->comboBoxAudio->addItem(tr(name), i);
+    if (!profile_count) {
+        /* If no profiles found, add "None" and disable the combobox */
+        ui->comboBoxAudio->addItem(tr("None"), 0);
+        ui->comboBoxAudio->setEnabled(false);
+    } else
+        for (int i = 0; i < profile_count; i++) {
+            const char *name = hdd_audio_get_profile_name(i);
+            uint32_t profile_rpm = hdd_audio_get_profile_rpm(i);
+            /* Include profile if it has no RPM set (0) or matches target RPM */
+            if (name && (profile_rpm == 0 || profile_rpm == target_rpm))
+                ui->comboBoxAudio->addItem(tr(name), i);
         }
-    }
 }
 
 void
