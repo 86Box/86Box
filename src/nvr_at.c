@@ -1156,9 +1156,9 @@ nvr_at_init(const device_t *info)
     local->def          = (local->flags & FLAG_ZERO_DEFAULT) ? 0x00 : 0xff;
     nvr->irq            = (info->local >> 40) & 0xff;
 
-    if (nvr->irq == 0xff)
+    if (nvr->irq == 0x7f)
         nvr->irq = -1;
-    else if (nvr->irq == 0xfe)
+    else if (nvr->irq == 0x7e)
         nvr->irq = device_get_config_int("irq");
 
     if (local->default_addr == 0xfffe)

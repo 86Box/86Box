@@ -60,6 +60,7 @@
 #define BIOS_GD5429_PATH                "roms/video/cirruslogic/5429.vbi"
 #define BIOS_GD5430_DIAMOND_A8_VLB_PATH "roms/video/cirruslogic/diamondvlbus.bin"
 #define BIOS_GD5430_ORCHID_VLB_PATH     "roms/video/cirruslogic/orchidvlbus.bin"
+#define BIOS_GD5434_ORCHID_VLB_PATH     "roms/video/cirruslogic/CL5434_Kelvin.BIN"
 #define BIOS_GD5430_PATH                "roms/video/cirruslogic/pci.bin"
 #define BIOS_GD5434_DIAMOND_A3_ISA_PATH "roms/video/cirruslogic/Diamond Multimedia SpeedStar 64 v2.02 EPROM Backup from ST M27C256B-12F1.BIN"
 #define BIOS_GD5434_PATH                "roms/video/cirruslogic/gd5434.BIN"
@@ -4370,7 +4371,7 @@ gd54xx_init(const device_t *info)
                 romfn            = NULL;
                 gd54xx->has_bios = 0;
             } else if (gd54xx->vlb) {
-                romfn = BIOS_GD5430_ORCHID_VLB_PATH;
+                romfn = BIOS_GD5434_ORCHID_VLB_PATH;
             } else {
                 if (info->local & 0x100)
                     romfn = BIOS_GD5434_DIAMOND_A3_ISA_PATH;
@@ -4711,6 +4712,12 @@ static int
 gd5430_orchid_vlb_available(void)
 {
     return rom_present(BIOS_GD5430_ORCHID_VLB_PATH);
+}
+
+static int
+gd5434_orchid_vlb_available(void)
+{
+    return rom_present(BIOS_GD5434_ORCHID_VLB_PATH);
 }
 
 static int
@@ -5436,7 +5443,7 @@ const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device = {
 };
 
 const device_t gd5430_vlb_device = {
-    .name          = "Cirrus Logic GD5430",
+    .name          = "Cirrus Logic GD5430 (VLB) (Orchid KELVIN EZ)",
     .internal_name = "cl_gd5430_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_CLGD5430 | 0x100,
@@ -5450,7 +5457,7 @@ const device_t gd5430_vlb_device = {
 };
 
 const device_t gd5430_onboard_vlb_device = {
-    .name          = "Cirrus Logic GD5430 (On-Board)",
+    .name          = "Cirrus Logic GD5430 (VLB) (On-Board)",
     .internal_name = "cl_gd5430_onboard_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_CLGD5430 | 0x200,
@@ -5535,14 +5542,14 @@ const device_t gd5434_onboard_pci_device = {
 };
 
 const device_t gd5434_vlb_device = {
-    .name          = "Cirrus Logic GD5434 (VLB)",
+    .name          = "Cirrus Logic GD5434 (VLB) (Orchid KELVIN 64)",
     .internal_name = "cl_gd5434_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_CLGD5434,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5430_orchid_vlb_available,
+    .available     = gd5434_orchid_vlb_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd5434_vlb_config

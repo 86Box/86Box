@@ -126,6 +126,9 @@ add_library(ui STATIC
     qt_settingsinput.cpp
     qt_settingsinput.hpp
     qt_settingsinput.ui
+    qt_settingskeybindings.cpp
+    qt_settingskeybindings.hpp
+    qt_settingskeybindings.ui
     qt_settingssound.cpp
     qt_settingssound.hpp
     qt_settingssound.ui

@@ -133,6 +133,8 @@ extern const device_t ad1816_device;
 extern const device_t azt2316a_device;
 extern const device_t azt1605_device;
 extern const device_t aztpr16_device;
+extern const device_t azt2316r_device;
+extern const device_t azt2320_device;
 
 /* C-Media CMI8x38 */
 extern const device_t cmi8338_device;

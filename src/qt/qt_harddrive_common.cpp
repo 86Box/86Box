@@ -99,6 +99,8 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, int bus)
     int num_preset;
 
     switch (bus) {
+        case HDD_BUS_MFM:
+        case HDD_BUS_XTA:
         case HDD_BUS_ESDI:
         case HDD_BUS_IDE:
         case HDD_BUS_ATAPI:

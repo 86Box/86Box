@@ -51,6 +51,11 @@ extern "C" {
 #include <86box/rdisk.h>
 #include <86box/superdisk.h>
 #include <86box/mo.h>
+#ifdef TAPE
+#include <86box/scsi_tape.h>
+#else
+#define TAPE_NUM 1
+#endif
 #include <86box/hdd.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -277,6 +282,11 @@ ui_sb_update_icon_wp(int tag, int state)
         case SB_MO:
             machine_status.mo[item].write_prot = state > 0 ? true : false;
             break;
+#ifdef TAPE
+        case SB_TAPE:
+            machine_status.tape[item].write_prot = state > 0 ? true : false;
+            break;
+#endif
     }
 
     if (main_window != nullptr)
@@ -314,6 +324,11 @@ ui_sb_update_icon_state(int tag, int state)
         case SB_MO:
             machine_status.mo[item].empty = state > 0 ? true : false;
             break;
+#ifdef TAPE
+        case SB_TAPE:
+            machine_status.tape[item].empty = state > 0 ? true : false;
+            break;
+#endif
         case SB_HDD:
             break;
         case SB_NETWORK:
@@ -355,6 +370,11 @@ ui_sb_update_icon(int tag, int active)
         case SB_MO:
             machine_status.mo[item].active = active > 0 ? true : false;
             break;
+#ifdef TAPE
+        case SB_TAPE:
+            machine_status.tape[item].active = active > 0 ? true : false;
+            break;
+#endif
         case SB_HDD:
             machine_status.hdd[item].active = active > 0 ? true : false;
             break;
@@ -391,6 +411,11 @@ ui_sb_update_icon_write(int tag, int write)
         case SB_MO:
             machine_status.mo[item].write_active = write > 0 ? true : false;
             break;
+#ifdef TAPE
+        case SB_TAPE:
+            machine_status.tape[item].write_active = write > 0 ? true : false;
+            break;
+#endif
         case SB_HDD:
             machine_status.hdd[item].write_active = write > 0 ? true : false;
             break;

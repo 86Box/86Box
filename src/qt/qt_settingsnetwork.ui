@@ -26,12 +26,76 @@
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <item>
+   <item row="0" column="0">
+    <layout class="QVBoxLayout" name="verticalLayoutInner">
+     <property name="bottomMargin">
+      <number>0</number>
+     </property>
+     <item row="0" column="0">
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QLabel" name="iconPorts">
+         <property name="pixmap">
+          <pixmap resource="../qt_resources.qrc">:/settings/qt/icons/network.ico</pixmap>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="labelPorts">
+         <property name="text">
+          <string>Network</string>
+         </property>
+         <property name="styleSheet">
+          <string>font-weight: bold</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+     <item row="1">
+      <widget class="Line" name="line">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="0">
     <widget class="QTabWidget" name="tabWidgetNet">
      <property name="currentIndex">
       <number>0</number>
      </property>
      <widget class="QWidget" name="tabNet1">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
+      </attribute>
       <attribute name="title">
        <string>Network Card #1</string>
       </attribute>
@@ -227,6 +291,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabNet2">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
+      </attribute>
       <attribute name="title">
        <string>Network Card #2</string>
       </attribute>
@@ -422,6 +490,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabNet3">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
+      </attribute>
       <attribute name="title">
        <string>Network Card #3</string>
       </attribute>
@@ -617,6 +689,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabNet4">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
+      </attribute>
       <attribute name="title">
        <string>Network Card #4</string>
       </attribute>

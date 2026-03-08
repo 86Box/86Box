@@ -35,6 +35,7 @@ add_library(snd OBJECT
     snd_ad1848.c
     snd_audiopci.c
     snd_azt2316a.c
+    snd_azt2320.c
     snd_cms.c
     snd_cmi8x38.c
     snd_covox.c

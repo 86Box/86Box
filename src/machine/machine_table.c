@@ -6205,7 +6205,6 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL

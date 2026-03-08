@@ -95,10 +95,10 @@
 #define NVR_ADDR_CONFIG         (0xfffeULL << 24)
 #define NVR_ADDR_NONE           (0xffffULL << 24)
 
-#define NVR_IRQ_STANDARD        (0x0008ULL << 40)
-#define NVR_IRQ_AMSTRAD         (0x0001ULL << 40)
-#define NVR_IRQ_CONFIG          (0xfffeULL << 40)
-#define NVR_IRQ_NONE            (0xffffULL << 40)
+#define NVR_IRQ_STANDARD        (0x08ULL << 40)
+#define NVR_IRQ_AMSTRAD         (0x01ULL << 40)
+#define NVR_IRQ_CONFIG          (0x7eULL << 40)
+#define NVR_IRQ_NONE            (0x7fULL << 40)
 
 #define NVR_AT_STANDARD         NVR_IRQ_STANDARD | NVR_ADDR_STANDARD
 #define NVR_AT_STANDARD_MA      NVR_AT_STANDARD | FLAG_MULTI_ADDRESS

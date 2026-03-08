@@ -36,6 +36,8 @@ private:
     Ui::SettingsHarddisks *ui;
     void                   enableCurrentlySelectedChannel();
     void                   populateAudioProfiles();
+    void                   addRow(QAbstractItemModel *model, void *priv);
+    void                   addDriveFromDialog(Ui::SettingsHarddisks *ui, const HarddiskDialog &dlg);
     bool                   buschangeinprogress = false;
 };
 

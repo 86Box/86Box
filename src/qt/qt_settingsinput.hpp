@@ -38,12 +38,6 @@ private slots:
     void on_pushButtonJoystick03_clicked();
     void on_pushButtonJoystick04_clicked();
 
-    void on_tableKeys_cellDoubleClicked(int row, int col);
-    void on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn);
-
-    void on_pushButtonClearBind_clicked();
-    void on_pushButtonBind_clicked();
-
 private:
     Ui::SettingsInput *ui;
     int                machineId = 0;

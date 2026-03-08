@@ -75,6 +75,15 @@ public:
     void superdiskReload(int index, int slot);
     void superdiskUpdateMenu(int i);
 
+#ifdef TAPE
+    void tapeSelectImage(int i, bool wp);
+    void tapeMount(int i, const QString &filename, bool wp);
+    void tapeEject(int i);
+    void tapeReloadPrev(int i);
+    void tapeReload(int index, int slot);
+    void tapeUpdateMenu(int i);
+#endif
+
     void nicConnect(int i);
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
@@ -95,6 +104,9 @@ private:
     QMap<int, QMenu *> rdiskMenus;
     QMap<int, QMenu *> moMenus;
     QMap<int, QMenu *> superdiskMenus;
+#ifdef TAPE
+    QMap<int, QMenu *> tapeMenus;
+#endif
     QMap<int, QMenu *> netMenus;
 
     QString                 getMediaOpenDirectory();
@@ -128,6 +140,10 @@ private:
 
     int superdiskEjectPos;
     int superdiskReloadPos;
+#ifdef TAPE
+    int tapeEjectPos;
+    int tapeImageHistoryPos[MAX_PREV_IMAGES];
+#endif
 
     int netDisconnPos;
 
