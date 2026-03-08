@@ -3537,8 +3537,9 @@ save_hard_disks(void)
 
         sprintf(temp, "hdd_%02i_speed", c + 1);
         if (!hdd_is_valid(c) ||
-            ((hdd[c].bus_type != HDD_BUS_ESDI) && (hdd[c].bus_type != HDD_BUS_IDE) &&
-            (hdd[c].bus_type != HDD_BUS_SCSI) && (hdd[c].bus_type != HDD_BUS_ATAPI)))
+            ((hdd[c].bus_type != HDD_BUS_MFM) && (hdd[c].bus_type != HDD_BUS_ESDI) &&
+            (hdd[c].bus_type != HDD_BUS_IDE) && (hdd[c].bus_type != HDD_BUS_SCSI) &&
+            (hdd[c].bus_type != HDD_BUS_ATAPI)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
