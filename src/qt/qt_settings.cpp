@@ -206,7 +206,6 @@ Settings::Settings(QWidget *parent)
             &SettingsFloppyCDROM::reloadBusChannels);
     connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
             &SettingsOtherRemovable::reloadBusChannels_MO);
-#ifdef TAPE
     connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
             &SettingsOtherRemovable::reloadBusChannels_Tape);
     connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, harddisks,
@@ -221,7 +220,6 @@ Settings::Settings(QWidget *parent)
             &SettingsOtherRemovable::reloadBusChannels_Tape);
     connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
             &SettingsOtherRemovable::reloadBusChannels_Tape);
-#endif
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex &current, const QModelIndex &previous) { ui->stackedWidget->setCurrentIndex(current.row()); });

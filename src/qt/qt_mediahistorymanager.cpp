@@ -32,9 +32,7 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
-#ifdef TAPE
 #include <86box/scsi_tape.h>
-#endif
 #include <86box/path.h>
 }
 
@@ -122,10 +120,8 @@ MediaHistoryManager::maxDevicesSupported(ui::MediaType type)
             return 1;
         case ui::MediaType::Cartridge:
             return 2;
-#ifdef TAPE
         case ui::MediaType::Tape:
             return TAPE_NUM;
-#endif
     }
 }
 
@@ -210,11 +206,9 @@ MediaHistoryManager::initialDeduplication()
                 case ui::MediaType::Mo:
                     current_image = mo_drives[device_index].image_path;
                     break;
-#ifdef TAPE
                 case ui::MediaType::Tape:
                     current_image = tape_drives[device_index].image_path;
                     break;
-#endif
             }
             deduplicateList(device_history, QVector<QString>(1, current_image));
             device_history = removeMissingImages(device_history);
@@ -250,10 +244,8 @@ MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
             return &rdisk_drives[index].image_history[0];
         case ui::MediaType::Mo:
             return &mo_drives[index].image_history[0];
-#ifdef TAPE
         case ui::MediaType::Tape:
             return &tape_drives[index].image_history[0];
-#endif
     }
 }
 

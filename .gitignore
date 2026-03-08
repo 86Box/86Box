@@ -67,3 +67,10 @@ CMakeLists.txt.user
 
 # Jetbrains CLion
 .idea
+CLAUDE.md
+86Box-voodoo-arm64.code-workspace
+.serena
+.claude
+
+riva128-nv3-port/feasibility-study.md
+scripts/analyze-jit-log

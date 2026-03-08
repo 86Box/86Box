@@ -92,6 +92,7 @@
 #include <86box/cdrom_interface.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 #include <86box/scsi_disk.h>
 #include <86box/cdrom_image.h>
 #include <86box/thread.h>
@@ -1294,6 +1295,7 @@ usage:
         cdrom_global_init();
         rdisk_global_init();
         mo_global_init();
+        tape_global_init();
 
         /* Initialize the keyboard accelerator list with default values */
         for (int x = 0; x < NUM_ACCELS; x++) {
@@ -1654,6 +1656,8 @@ pc_reset_hard_close(void)
 
     mo_close();
 
+    tape_close();
+
     scsi_disk_close();
 
     closeal();
@@ -1766,6 +1770,8 @@ pc_reset_hard_init(void)
     cdrom_interface_reset();
 
     mo_hard_reset();
+
+    tape_hard_reset();
 
     rdisk_hard_reset();
 
@@ -1961,6 +1967,8 @@ pc_close(UNUSED(thread_t *ptr))
     rdisk_close();
 
     mo_close();
+
+    tape_close();
 
     scsi_disk_close();
 
