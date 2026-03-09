@@ -51,9 +51,10 @@
 #define GPCMD_READ_6                                  0x08
 #define GPCMD_WRITE_6                                 0x0a
 #define GPCMD_SEEK_6                                  0x0b
+#define GPCMD_IOMEGA_SET_PROTECTION_MODE              0x0c
+#define GPCMD_SEEK_BLOCK                              0x0c
 #define GPCMD_WRITE_FILEMARKS_6                       0x10
 #define GPCMD_SPACE_6                                 0x11
-#define GPCMD_IOMEGA_SET_PROTECTION_MODE              0x0c
 #define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
 #define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command. */
 #define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command. */
