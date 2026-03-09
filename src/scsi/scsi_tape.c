@@ -57,6 +57,7 @@ tape_drive_t tape_drives[TAPE_NUM];
 const uint8_t tape_command_flags[0x100] = {
     [0x00]          = IMPLEMENTED | CHECK_READY,             /* TEST UNIT READY */
     [0x01]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY, /* REWIND */
+    [0x02]          = IMPLEMENTED | CHECK_READY,             /* REQUEST BLOCK ADDRESS */
     [0x03]          = IMPLEMENTED | ALLOW_UA,                /* REQUEST SENSE */
     [0x05]          = IMPLEMENTED | CHECK_READY,             /* READ BLOCK LIMITS */
     [0x08]          = IMPLEMENTED | CHECK_READY,             /* READ(6) */
@@ -1221,6 +1222,26 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             dev->rec_remaining    = 0;
             tape_set_phase(dev, SCSI_PHASE_STATUS);
             tape_command_complete(dev);
+            break;
+
+        case GPCMD_REQUEST_BLOCK_ADDRESS:
+            tape_set_phase(dev, SCSI_PHASE_DATA_IN);
+
+            max_len = MIN(3, cdb[4]);
+
+            tape_buf_alloc(dev, 65536);
+
+            dev->buffer[0] = (dev->num_blocks >> 16) & 0xff;
+            dev->buffer[1] = (dev->num_blocks >> 8) & 0xff;
+            dev->buffer[2] = dev->num_blocks & 0xff;
+
+            dev->buffer[size_idx] = max_len;
+            len                   = max_len;
+
+            len = MIN(len, max_len);
+            tape_set_buf_len(dev, BufLen, &len);
+
+            tape_data_command_finish(dev, len, len, max_len, 0);
             break;
 
         case GPCMD_READ_BLOCK_LIMITS:
