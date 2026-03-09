@@ -841,12 +841,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     iterateMO([this, sbar](int i) {
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
-        if (QString(rdisk_drives[i].image_path).isEmpty())
+        if (QString(mo_drives[i].image_path).isEmpty())
             d->mo[i].setWriteProtected(false);
-        else if (QString(rdisk_drives[i].image_path).left(5) == "wp://")
+        else if (QString(mo_drives[i].image_path).left(5) == "wp://")
             d->mo[i].setWriteProtected(true);
         else
-            d->mo[i].setWriteProtected(rdisk_drives[i].read_only);
+            d->mo[i].setWriteProtected(mo_drives[i].read_only);
         d->mo[i].setActive(false);
         d->mo[i].setWriteActive(false);
         d->mo[i].refresh();
