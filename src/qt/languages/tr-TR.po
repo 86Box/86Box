@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-22 09:57+0000\n"
+"PO-Revision-Date: 2026-03-10 09:50+0000\n"
 "Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "Bu boyuta kilitle"
 
 msgid "General"
-msgstr ""
+msgstr "Genel"
 
 msgid "Processor"
-msgstr ""
+msgstr "İşlemci"
 
 msgid "Performance"
-msgstr ""
+msgstr "Performans"
 
 msgid "Machine type:"
 msgstr "Anakart türü:"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Dahili"
 
 msgid "Wait states:"
 msgstr "Bekleme süreleri:"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Etkin (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "286 ve 386 işlemcileri için 486 yorumlayıcısı kullanılsın"
 
 msgid "Dynamic Recompiler"
 msgstr "Dinamik Derleyici"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "İkincil ekran kartı:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Hızlandırıcılar"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 veya 2 Grafikleri"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "Çıkarılabilir diskler:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Teyp sürücüleri"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Teyp sürücüleri:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -730,13 +730,13 @@ msgid "Removable disk images"
 msgstr "Çıkarılabilir disk görüntüleri"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Teyp %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Teyp %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Teyp görüntüleri"
 
 msgid "Image %1"
 msgstr "Görüntü %1"
@@ -856,7 +856,7 @@ msgid "File"
 msgstr "Dosya"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Disk yapısı"
 
 msgid "KB"
 msgstr "KB"
@@ -1618,7 +1618,7 @@ msgid "2% below perfect RPM"
 msgstr "Mükemmel RPM değerinin 2% altı"
 
 msgid "Creating image…"
-msgstr ""
+msgstr "Görüntü oluşturuluyor…"
 
 msgid "(System Default)"
 msgstr "(Sistem Varsayılanı)"
