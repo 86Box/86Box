@@ -710,6 +710,9 @@ MachineStatus::refresh(QStatusBar *sbar)
     for (size_t i = 0; i < MO_NUM; i++) {
         sbar->removeWidget(d->mo[i].label.get());
     }
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        sbar->removeWidget(d->tape[i].label.get());
+    }
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         sbar->removeWidget(d->hdds[i].label.get());
     }
