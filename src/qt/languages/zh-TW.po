@@ -353,13 +353,13 @@ msgid "Lock to this size"
 msgstr "鎖定此大小"
 
 msgid "General"
-msgstr ""
+msgstr "一般"
 
 msgid "Processor"
-msgstr ""
+msgstr "處理器"
 
 msgid "Performance"
-msgstr ""
+msgstr "效能"
 
 msgid "Machine type:"
 msgstr "機器類型:"
@@ -389,7 +389,7 @@ msgid "FPU:"
 msgstr "浮點運算器 (FPU):"
 
 msgid "Internal"
-msgstr ""
+msgstr "內建"
 
 msgid "Wait states:"
 msgstr "等待狀態 (WS):"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "啟用 (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "為 286 及 386 處理器使用 486 直譯器"
 
 msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
@@ -434,7 +434,7 @@ msgid "Video #2:"
 msgstr "顯示卡 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "加速卡"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 圖形"
@@ -668,10 +668,10 @@ msgid "Removable disks:"
 msgstr "抽取式磁碟:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "磁帶機"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "磁帶機:"
 
 msgid "ISA RTC:"
 msgstr "ISA 實時時鐘:"
@@ -731,13 +731,13 @@ msgid "Removable disk images"
 msgstr "抽取式磁碟影像"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "磁帶機 %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "(&T)磁帶機 %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "磁帶影像"
 
 msgid "Image %1"
 msgstr "影像 %1"
@@ -857,7 +857,7 @@ msgid "File"
 msgstr "檔案"
 
 msgid "Geometry"
-msgstr ""
+msgstr "磁碟參數"
 
 msgid "KB"
 msgstr "KB"
