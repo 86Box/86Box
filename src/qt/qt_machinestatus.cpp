@@ -866,6 +866,8 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->tape[i].setEmpty(QString(tape_drives[i].image_path).isEmpty());
         if (QString(tape_drives[i].image_path).isEmpty())
             d->tape[i].setWriteProtected(false);
+        else if (QString(tape_drives[i].image_path).left(5) == "wp://")
+            d->tape[i].setWriteProtected(true);
         else
             d->tape[i].setWriteProtected(tape_drives[i].read_only);
         d->tape[i].setActive(false);
