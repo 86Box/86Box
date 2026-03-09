@@ -813,7 +813,7 @@ pic_irq_ack_read(pic_t *dev, int phase)
     uint8_t intr  = dev->interrupt & 0x47;
     uint8_t slave = intr & 0x40;
     intr &= 0x07;
-    pic_log("    pic_irq_ack_read(%08X, %i)\n", dev, phase);
+    //pclog("    pic_irq_ack_read(%08X, %i)\n", dev, phase);
 
     if (dev != NULL) {
         if (phase == 0) {

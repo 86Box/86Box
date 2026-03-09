@@ -42,6 +42,7 @@
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/pci.h>
+#include <86box/wangtek_qic.h>
 
 /* i430HX */
 int
@@ -1276,6 +1277,9 @@ machine_at_i430vx_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&um8669f_device, (void *) 0);
     device_add(&intel_flash_bxt_device);
+
+    /* TEMPORARY */
+    device_add(&wangtek_qic_device);
 
     return ret;
 }

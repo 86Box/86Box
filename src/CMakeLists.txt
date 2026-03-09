@@ -14,6 +14,7 @@
 #          Copyright 2020-2022 David Hrdlička.
 #          Copyright 2021      dob205.
 #          Copyright 2024      Jasmine Iwanek.
+#          Copyright 2025      seal331.
 #
 
 if(NOT CMAKE_TOP_LEVEL_PROCESSED)
@@ -140,6 +141,7 @@ target_link_libraries(86Box
     voodoo
     plat
     ui
+    qic
 )
 
 if(HAIKU)
@@ -269,6 +271,7 @@ add_subdirectory(machine)
 add_subdirectory(mem)
 add_subdirectory(network)
 add_subdirectory(printer)
+add_subdirectory(qic)
 add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
