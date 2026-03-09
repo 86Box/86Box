@@ -353,6 +353,15 @@ msgstr "Visina:"
 msgid "Lock to this size"
 msgstr "Zaključajte na ovu veličinu"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Tip sistema:"
 
@@ -374,8 +383,14 @@ msgstr "Brzina:"
 msgid "Frequency:"
 msgstr "Frekvencija:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU uređaj:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Stanja čekanja:"
@@ -398,6 +413,9 @@ msgstr "Uključeno (lokalno vrijeme)"
 msgid "Enabled (UTC)"
 msgstr "Uključeno (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Dinamički rekompilator"
 
@@ -415,6 +433,9 @@ msgstr "Video:"
 
 msgid "Video #2:"
 msgstr "Video 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 ili 2 grafika"
@@ -485,8 +506,8 @@ msgstr "Samostalni MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Koristi FLOAT32 za zvuk"
 
-msgid "FM synth driver"
-msgstr "Drajver za FM sintisajzer"
+msgid "FM synth driver:"
+msgstr "Drajver za FM sintisajzer:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (precizniji)"
@@ -623,8 +644,8 @@ msgstr "Format slike:"
 msgid "Block Size:"
 msgstr "Veličina slike:"
 
-msgid "Floppy drives:"
-msgstr "Disketni pogoni:"
+msgid "Floppy drives"
+msgstr "Disketni pogoni"
 
 msgid "Turbo timings"
 msgstr "Turbo vrijemena"
@@ -632,23 +653,26 @@ msgstr "Turbo vrijemena"
 msgid "Check BPB"
 msgstr "Provjeraj BPB"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROM pogoni:"
+msgid "CD-ROM drives"
+msgstr "CD-ROM pogoni"
 
-msgid "MO drives:"
-msgstr "MO pogoni:"
+msgid "MO drives"
+msgstr "MO pogoni"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Pogoni izmjenjivih diskova"
+
 msgid "Removable disks:"
 msgstr "Izmjenjivi diskovi:"
 
-msgid "Removable disk drives:"
-msgstr "Pogoni izmjenjivih diskova:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "Sat stvarnog vremena (RTC):"
@@ -706,6 +730,15 @@ msgstr "&Izmjenjivi disk %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Slike izmjenjivih diskova"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Slika %1"
@@ -770,8 +803,14 @@ msgstr "Vrata (COM & LPT)"
 msgid "Ports"
 msgstr "Vrata"
 
+msgid "Serial ports"
+msgstr "Serijska vrata"
+
 msgid "Serial ports:"
 msgstr "Serijska vrata:"
+
+msgid "Parallel ports"
+msgstr "Paralelna vrata"
 
 msgid "Parallel ports:"
 msgstr "Paralelna vrata:"
@@ -818,14 +857,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "Datoteka"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2675,6 +2708,12 @@ msgstr "Visoki učinak na brzinu izvršavanja"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Generični] Disk RAM (najviša brzina)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Generični] 1983 MFM (3600 okr./min)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Generični] 1983 RLL (3600 okr./min)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generični] 1989 (3500 okr./min)"
 
@@ -2777,8 +2816,8 @@ msgstr "Pomakni dolje"
 msgid "Could not load file %1"
 msgstr "Nije moguće učitati datoteku %1"
 
-msgid "Key Bindings:"
-msgstr "Veze tipki:"
+msgid "Key bindings"
+msgstr "Veze tipki"
 
 msgid "Action"
 msgstr "Akcija"

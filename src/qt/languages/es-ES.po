@@ -351,6 +351,15 @@ msgstr "Alto:"
 msgid "Lock to this size"
 msgstr "Bloquear a este tamaño"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Tipo de máquina:"
 
@@ -372,8 +381,14 @@ msgstr "Velocidad:"
 msgid "Frequency:"
 msgstr "Frecuencia:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Estados en espera:"
@@ -396,6 +411,9 @@ msgstr "Habilitado (hora local)"
 msgid "Enabled (UTC)"
 msgstr "Habilitado (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinámico"
 
@@ -413,6 +431,9 @@ msgstr "Vídeo:"
 
 msgid "Video #2:"
 msgstr "Vídeo 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gráficos Voodoo 1 o 2"
@@ -483,8 +504,8 @@ msgstr "MPU-401 independiente"
 msgid "Use FLOAT32 sound"
 msgstr "Usar sonido FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Controlador de sintet. FM"
+msgid "FM synth driver:"
+msgstr "Controlador de sintet. FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (más preciso)"
@@ -621,8 +642,8 @@ msgstr "Formato de imagen:"
 msgid "Block Size:"
 msgstr "Tamaño de bloque:"
 
-msgid "Floppy drives:"
-msgstr "Unidades de disquete:"
+msgid "Floppy drives"
+msgstr "Unidades de disquete"
 
 msgid "Turbo timings"
 msgstr "Temporizaciones turbo"
@@ -630,23 +651,26 @@ msgstr "Temporizaciones turbo"
 msgid "Check BPB"
 msgstr "Chequear BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Unidades de CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Unidades de CD-ROM"
 
-msgid "MO drives:"
-msgstr "Unidades MO:"
+msgid "MO drives"
+msgstr "Unidades MO"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Unidades de disco removible"
+
 msgid "Removable disks:"
 msgstr "Discos removibles:"
 
-msgid "Removable disk drives:"
-msgstr "Unidades de disco removible:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -704,6 +728,15 @@ msgstr "&Disco removible %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Imágenes de disco removible"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Imagen %1"
@@ -768,8 +801,14 @@ msgstr "Puertos (COM y LPT)"
 msgid "Ports"
 msgstr "Puertos"
 
+msgid "Serial ports"
+msgstr "Puertos serie"
+
 msgid "Serial ports:"
 msgstr "Puertos serie:"
+
+msgid "Parallel ports"
+msgstr "Puertos paralelos"
 
 msgid "Parallel ports:"
 msgstr "Puertos paralelos:"
@@ -816,14 +855,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "Archivo"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2673,6 +2706,12 @@ msgstr "Alto impact en el rendimiento"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Genérico] Disco RAM (velocidad máxima)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Genérico] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Genérico] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Genérico] 1989 (3500 RPM)"
 
@@ -2775,8 +2814,8 @@ msgstr "Mover para abajo"
 msgid "Could not load file %1"
 msgstr "Error al cargar el archivo %1"
 
-msgid "Key Bindings:"
-msgstr "Atajos de teclado:"
+msgid "Key bindings"
+msgstr "Atajos de teclado"
 
 msgid "Action"
 msgstr "Acción"
