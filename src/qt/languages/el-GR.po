@@ -1630,6 +1630,9 @@ msgstr "1.5% κάτω απο το ιδανικό RPM"
 msgid "2% below perfect RPM"
 msgstr "2% κάτω απο το ιδανικό RPM"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(Προεπιλογή Συστήματος)"
 

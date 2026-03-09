@@ -1619,6 +1619,9 @@ msgstr "1.5% pod popolnimi obrati"
 msgid "2% below perfect RPM"
 msgstr "2% pod popolnimi obrati"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(Sistemsko privzeto)"
 

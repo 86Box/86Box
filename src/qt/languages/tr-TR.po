@@ -1617,6 +1617,9 @@ msgstr "Mükemmel RPM değerinin 1.5% altı"
 msgid "2% below perfect RPM"
 msgstr "Mükemmel RPM değerinin 2% altı"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(Sistem Varsayılanı)"
 

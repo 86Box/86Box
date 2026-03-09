@@ -1617,6 +1617,9 @@ msgstr "1,5% onder perfecte RPM"
 msgid "2% below perfect RPM"
 msgstr "2% onder perfecte RPM"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(Systeemstandaard)"
 

@@ -1618,6 +1618,9 @@ msgstr "低於標準轉速的 1.5%"
 msgid "2% below perfect RPM"
 msgstr "低於標準轉速的 2%"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(系統預設)"
 

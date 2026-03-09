@@ -1618,6 +1618,9 @@ msgstr "1.5% poniżej idealnych obrotów"
 msgid "2% below perfect RPM"
 msgstr "2% poniżej idealnych obrotów"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(Domyślne ustawienie systemowe)"
 

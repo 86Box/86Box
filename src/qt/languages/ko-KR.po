@@ -1617,6 +1617,9 @@ msgstr "1.5% 낮은 회전수"
 msgid "2% below perfect RPM"
 msgstr "2% 낮은 회전수"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(시스템 기본값)"
 

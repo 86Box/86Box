@@ -1618,6 +1618,9 @@ msgstr "1.5% thấp hơn số RPM hoàn thiện"
 msgid "2% below perfect RPM"
 msgstr "2% thấp hơn số RPM hoàn thiện"
 
+msgid "Creating image…"
+msgstr ""
+
 msgid "(System Default)"
 msgstr "(Mặc định hệ thống)"
 
