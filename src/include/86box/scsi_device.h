@@ -43,6 +43,7 @@
 /* SCSI commands. */
 #define GPCMD_TEST_UNIT_READY                         0x00
 #define GPCMD_REZERO_UNIT                             0x01
+#define GPCMD_REQUEST_BLOCK_ADDRESS                   0x02
 #define GPCMD_REQUEST_SENSE                           0x03
 #define GPCMD_FORMAT_UNIT                             0x04
 #define GPCMD_READ_BLOCK_LIMITS                       0x05

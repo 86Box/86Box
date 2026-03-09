@@ -108,7 +108,7 @@ SettingsHarddisks::addRow(QAbstractItemModel *model, void *priv)
     ih[row] = hd->hpc;
     is[row] = hd->spt;
     ia[row] = hd->audio_profile;
-    QString strGeometry = QString("%1, %2, %3 (%4 MiB)").arg(hd->tracks).arg(hd->hpc).arg(hd->spt).arg((hd->tracks * hd->hpc * hd->spt) >> 11);
+    QString strGeometry = QString("%1, %2, %3 (%4 %5)").arg(hd->tracks).arg(hd->hpc).arg(hd->spt).arg((hd->tracks * hd->hpc * hd->spt) >> 11).arg(tr("MiB"));
     model->setData(model->index(row, ColumnGeometry), strGeometry);
     auto speedIndex = model->index(row, ColumnSpeed);
     model->setData(speedIndex, QObject::tr(hdd_preset_getname(hd->speed_preset)));
@@ -149,6 +149,9 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     Harddrives::populateBuses(ui->comboBoxBus->model());
     
     on_comboBoxBus_currentIndexChanged(0);
+
+    if (model->rowCount() > 0)
+        ui->tableView->selectRow(0);
 }
 
 SettingsHarddisks::~SettingsHarddisks()
@@ -298,15 +301,18 @@ SettingsHarddisks::populateAudioProfiles()
     
     /* Populate audio profile combobox with matching RPM profiles */
     int profile_count = hdd_audio_get_profile_count();
-    for (int i = 0; i < profile_count; i++) {
-        const char *name = hdd_audio_get_profile_name(i);
-        uint32_t profile_rpm = hdd_audio_get_profile_rpm(i);
-        
-        /* Include profile if it has no RPM set (0) or matches target RPM */
-        if (name && (profile_rpm == 0 || profile_rpm == target_rpm)) {
-            ui->comboBoxAudio->addItem(name, i);
+    if (!profile_count) {
+        /* If no profiles found, add "None" and disable the combobox */
+        ui->comboBoxAudio->addItem(tr("None"), 0);
+        ui->comboBoxAudio->setEnabled(false);
+    } else
+        for (int i = 0; i < profile_count; i++) {
+            const char *name = hdd_audio_get_profile_name(i);
+            uint32_t profile_rpm = hdd_audio_get_profile_rpm(i);
+            /* Include profile if it has no RPM set (0) or matches target RPM */
+            if (name && (profile_rpm == 0 || profile_rpm == target_rpm))
+                ui->comboBoxAudio->addItem(tr(name), i);
         }
-    }
 }
 
 void

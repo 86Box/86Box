@@ -1,8 +1,12 @@
 msgid ""
 msgstr ""
+"Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/"
+"86box/86box/pt_BR/>\n"
+"Language: pt-BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Language: pt_BR\n"
 "X-Source-Language: en_US\n"
 
@@ -345,6 +349,15 @@ msgstr "Altura:"
 msgid "Lock to this size"
 msgstr "Travar nesse tamanho"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Tipo de máquina:"
 
@@ -366,8 +379,14 @@ msgstr "Velocidade:"
 msgid "Frequency:"
 msgstr "Frequência:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Estados de espera:"
@@ -390,6 +409,9 @@ msgstr "Ativar (hora local)"
 msgid "Enabled (UTC)"
 msgstr "Ativar (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
@@ -407,6 +429,9 @@ msgstr "Vídeo:"
 
 msgid "Video #2:"
 msgstr "Vídeo nº 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gráficos Voodoo 1 ou 2"
@@ -477,8 +502,8 @@ msgstr "MPU-401 autônomo"
 msgid "Use FLOAT32 sound"
 msgstr "Usar som FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Driver de sintetizador FM"
+msgid "FM synth driver:"
+msgstr "Driver de sintetizador FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (mais preciso)"
@@ -615,8 +640,8 @@ msgstr "Formato:"
 msgid "Block Size:"
 msgstr "Blocos:"
 
-msgid "Floppy drives:"
-msgstr "Unidades de disquete:"
+msgid "Floppy drives"
+msgstr "Unidades de disquete"
 
 msgid "Turbo timings"
 msgstr "Turbo"
@@ -624,23 +649,26 @@ msgstr "Turbo"
 msgid "Check BPB"
 msgstr "Verificar BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Unidades de CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Unidades de CD-ROM"
 
-msgid "MO drives:"
-msgstr "Unidades magneto-ópticas:"
+msgid "MO drives"
+msgstr "Unidades magneto-ópticas"
 
 msgid "MO:"
 msgstr "Magneto-ópticas:"
 
+msgid "Removable disk drives"
+msgstr "Unidades de disco removível"
+
 msgid "Removable disks:"
 msgstr "Discos removíveis:"
 
-msgid "Removable disk drives:"
-msgstr "Unidades de disco removível:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "Superdrives:"
 msgstr "Superdrives:"
@@ -705,6 +733,15 @@ msgstr "Disco &removível %1 (%2): %3"
 msgid "Removable disk images"
 msgstr "Imagens de disco removível"
 
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
+
 msgid "Image %1"
 msgstr "Imagem %1"
 
@@ -768,8 +805,14 @@ msgstr "Portas (COM & LPT)"
 msgid "Ports"
 msgstr "Portas"
 
+msgid "Serial ports"
+msgstr "Portas seriais"
+
 msgid "Serial ports:"
 msgstr "Portas seriais:"
+
+msgid "Parallel ports"
+msgstr "Portas Paralelas"
 
 msgid "Parallel ports:"
 msgstr "Portas Paralelas:"
@@ -816,14 +859,8 @@ msgstr "Barramento"
 msgid "File"
 msgstr "Arquivo"
 
-msgid "C"
-msgstr "CI"
-
-msgid "H"
-msgstr "CA"
-
-msgid "S"
-msgstr "SE"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2673,6 +2710,12 @@ msgstr "Alto impacto no desempenho"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Genérico] Disco RAM (velocidade máx.)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Genérico] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Genérico] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Genérico] 1989 (3500 RPM)"
 
@@ -2775,8 +2818,8 @@ msgstr "Mover para baixo"
 msgid "Could not load file %1"
 msgstr "Não foi possível carregar o arquivo %1"
 
-msgid "Key Bindings:"
-msgstr "Atalhos:"
+msgid "Key bindings"
+msgstr "Atalhos"
 
 msgid "Action"
 msgstr "Ação"

@@ -581,6 +581,7 @@ main(int argc, char *argv[])
     }
 #endif
 
+    app.setApplicationName(EMU_NAME);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
 

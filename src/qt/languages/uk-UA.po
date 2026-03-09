@@ -353,6 +353,15 @@ msgstr "Висота:"
 msgid "Lock to this size"
 msgstr "Зафіксувати розмір"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Тип машини:"
 
@@ -374,8 +383,14 @@ msgstr "Швидкість:"
 msgid "Frequency:"
 msgstr "Частота:"
 
+msgid "%1 MHz"
+msgstr "%1 МГц"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Цикли очікування:"
@@ -398,6 +413,9 @@ msgstr "Увімкнути (місцеве)"
 msgid "Enabled (UTC)"
 msgstr "Увімкнути (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Динамічний рекомпілятор"
 
@@ -415,6 +433,9 @@ msgstr "Відеокарта:"
 
 msgid "Video #2:"
 msgstr "Відеокарта 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Прискорювач Voodoo 1 або 2"
@@ -485,8 +506,8 @@ msgstr "Окремий MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 звук"
 
-msgid "FM synth driver"
-msgstr "Драйвер FM-синтезатора"
+msgid "FM synth driver:"
+msgstr "Драйвер FM-синтезатора:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (більш точний)"
@@ -623,8 +644,8 @@ msgstr "Тип образу:"
 msgid "Block Size:"
 msgstr "Розмір блоку:"
 
-msgid "Floppy drives:"
-msgstr "Гнучкі диски:"
+msgid "Floppy drives"
+msgstr "Гнучкі диски"
 
 msgid "Turbo timings"
 msgstr "Турбо таймінги"
@@ -632,23 +653,26 @@ msgstr "Турбо таймінги"
 msgid "Check BPB"
 msgstr "Перевіряти BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Дисководи CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Дисководи CD-ROM"
 
-msgid "MO drives:"
-msgstr "Магнітооптичні дисководи:"
+msgid "MO drives"
+msgstr "Магнітооптичні дисководи"
 
 msgid "MO:"
 msgstr "Дисководи MO:"
 
+msgid "Removable disk drives"
+msgstr "Дисководи знімних дисків"
+
 msgid "Removable disks:"
 msgstr "Знімні диски:"
 
-msgid "Removable disk drives:"
-msgstr "Дисководи знімних дисків:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "Superdrives:"
 msgstr "Superdrives:"
@@ -713,6 +737,15 @@ msgstr "&Знімний диск %1 (%2): %3"
 msgid "Removable disk images"
 msgstr "Образи знімних дисків"
 
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
+
 msgid "Image %1"
 msgstr "Образ %1"
 
@@ -776,8 +809,14 @@ msgstr "Порти (COM и LPT)"
 msgid "Ports"
 msgstr "Порти"
 
+msgid "Serial ports"
+msgstr "Послідовні порти"
+
 msgid "Serial ports:"
 msgstr "Послідовні порти:"
+
+msgid "Parallel ports"
+msgstr "Паралельні порти"
 
 msgid "Parallel ports:"
 msgstr "Паралельні порти:"
@@ -824,14 +863,8 @@ msgstr "Шина"
 msgid "File"
 msgstr "Файл"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "КБ"
@@ -2681,6 +2714,12 @@ msgstr "Високий вплив на продуктивність"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Стандартний] Диск оперативної пам'яті (макс. швидкість)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Стандартний] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Стандартний] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Стандартний] 1989 (3500 RPM)"
 
@@ -2783,8 +2822,8 @@ msgstr "Вниз"
 msgid "Could not load file %1"
 msgstr "Не вдалося завантажити файл %1"
 
-msgid "Key Bindings:"
-msgstr "Прив'язки клавіш:"
+msgid "Key bindings"
+msgstr "Прив'язки клавіш"
 
 msgid "Action"
 msgstr "Дія"

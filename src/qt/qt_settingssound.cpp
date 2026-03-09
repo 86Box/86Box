@@ -52,6 +52,8 @@ SettingsSound::save()
         sound_card_current[i] = cbox->currentData().toInt();
     }
 
+    fm_driver = ui->comboBoxFM->currentData().toInt();
+
     midi_output_device_current = ui->comboBoxMidiOut->currentData().toInt();
 
     midi_input_device_current = ui->comboBoxMidiIn->currentData().toInt();
@@ -59,11 +61,6 @@ SettingsSound::save()
     mpu401_standalone_enable = ui->checkBoxMPU401->isChecked() ? 1 : 0;
 
     sound_is_float = ui->checkBoxFloat32->isChecked() ? 1 : 0;
-
-    if (ui->radioButtonYMFM->isChecked())
-        fm_driver = FM_DRV_YMFM;
-    else
-        fm_driver = FM_DRV_NUKED;
 }
 
 void
@@ -121,6 +118,24 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
         cbox[i]->setCurrentIndex(selectedRows[i]);
     }
 
+    // FM
+    c                  = 0;
+    auto *modelFM      = ui->comboBoxFM->model();
+    auto  removeRowsFM = modelFM->rowCount();
+    selectedRow        = 0;
+
+    int rowFM = Models::AddEntry(modelFM, tr("Nuked (more accurate)"), 0);
+    if (fm_driver != FM_DRV_YMFM)
+        selectedRow = rowFM - removeRowsFM;
+    rowFM = Models::AddEntry(modelFM, tr("YMFM (faster)"), 1);
+    if (fm_driver == FM_DRV_YMFM)
+        selectedRow = rowFM - removeRowsFM;
+
+    modelFM->removeRows(0, removeRowsFM);
+    ui->comboBoxFM->setEnabled(modelFM->rowCount() > 0);
+    ui->comboBoxFM->setCurrentIndex(-1);
+    ui->comboBoxFM->setCurrentIndex(selectedRow);
+
     // Midi Out
     c                = 0;
     auto *model      = ui->comboBoxMidiOut->model();
@@ -176,17 +191,6 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
     // Float32 Sound
     ui->checkBoxFloat32->setChecked(sound_is_float > 0);
-
-    // FM Driver
-    switch (fm_driver) {
-        case FM_DRV_YMFM:
-            ui->radioButtonYMFM->setChecked(true);
-            break;
-        case FM_DRV_NUKED:
-        default:
-            ui->radioButtonNuked->setChecked(true);
-            break;
-    }
 }
 
 static bool

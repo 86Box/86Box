@@ -352,6 +352,15 @@ msgstr "Высота:"
 msgid "Lock to this size"
 msgstr "Зафиксировать размер"
 
+msgid "General"
+msgstr "Общие"
+
+msgid "Processor"
+msgstr "Процессор"
+
+msgid "Performance"
+msgstr "Производительность"
+
 msgid "Machine type:"
 msgstr "Тип машины:"
 
@@ -373,8 +382,14 @@ msgstr "Скорость:"
 msgid "Frequency:"
 msgstr "Частота:"
 
+msgid "%1 MHz"
+msgstr "%1 МГц"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "Встроенный"
 
 msgid "Wait states:"
 msgstr "Циклы ожидания:"
@@ -397,6 +412,9 @@ msgstr "Включено (местное)"
 msgid "Enabled (UTC)"
 msgstr "Включено (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Использовать интерпретатор 486 для процессоров 286 и 386"
+
 msgid "Dynamic Recompiler"
 msgstr "Динамический рекомпилятор"
 
@@ -414,6 +432,9 @@ msgstr "Видеокарта 1:"
 
 msgid "Video #2:"
 msgstr "Видеокарта 2:"
+
+msgid "Accelerators"
+msgstr "Ускорители"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Ускоритель Voodoo 1 или 2"
@@ -484,8 +505,8 @@ msgstr "Отдельный MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 звук"
 
-msgid "FM synth driver"
-msgstr "Драйвер FM-синтезатора"
+msgid "FM synth driver:"
+msgstr "Драйвер FM-синтезатора:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (более точный)"
@@ -622,8 +643,8 @@ msgstr "Тип образа:"
 msgid "Block Size:"
 msgstr "Размер блока:"
 
-msgid "Floppy drives:"
-msgstr "Гибкие диски:"
+msgid "Floppy drives"
+msgstr "Дисководы гибких дисков"
 
 msgid "Turbo timings"
 msgstr "Турбо тайминги"
@@ -631,23 +652,26 @@ msgstr "Турбо тайминги"
 msgid "Check BPB"
 msgstr "Проверять BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Дисководы CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Дисководы CD-ROM"
 
-msgid "MO drives:"
-msgstr "Магнитооптические дисководы:"
+msgid "MO drives"
+msgstr "Магнитооптические дисководы"
 
 msgid "MO:"
 msgstr "Дисководы MO:"
 
+msgid "Removable disk drives"
+msgstr "Дисководы съёмных дисков"
+
 msgid "Removable disks:"
 msgstr "Cъёмные диски:"
 
-msgid "Removable disk drives:"
-msgstr "Дисководы съёмных дисков:"
+msgid "Tape drives"
+msgstr "Стримеры"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Стримеры:"
 
 msgid "Superdrives:"
 msgstr "Superdrives:"
@@ -712,6 +736,15 @@ msgstr "&Съёмный диск %1 (%2): %3"
 msgid "Removable disk images"
 msgstr "Образы съёмных дисков"
 
+msgid "Tape %1 (%2): %3"
+msgstr "Стример %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "С&тример %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Образы магнитной ленты"
+
 msgid "Image %1"
 msgstr "Образ %1"
 
@@ -775,8 +808,14 @@ msgstr "Порты (COM и LPT)"
 msgid "Ports"
 msgstr "Порты"
 
+msgid "Serial ports"
+msgstr "Последовательные порты"
+
 msgid "Serial ports:"
 msgstr "Последовательные порты:"
+
+msgid "Parallel ports"
+msgstr "Параллельные порты"
 
 msgid "Parallel ports:"
 msgstr "Параллельные порты:"
@@ -823,14 +862,8 @@ msgstr "Шина"
 msgid "File"
 msgstr "Файл"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Геометрия"
 
 msgid "KB"
 msgstr "КБ"
@@ -2692,6 +2725,12 @@ msgstr "Сильное влияние на производительность"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Стандартный] RAM-диск (макс. скорость)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Стандартный] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Стандартный] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Стандартный] 1989 (3500 RPM)"
 
@@ -2794,8 +2833,8 @@ msgstr "Вниз"
 msgid "Could not load file %1"
 msgstr "Не удалось загрузить файл %1"
 
-msgid "Key Bindings:"
-msgstr "Привязки клавиш:"
+msgid "Key bindings"
+msgstr "Привязки клавиш"
 
 msgid "Action"
 msgstr "Действие"
