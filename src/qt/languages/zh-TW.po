@@ -352,6 +352,15 @@ msgstr "高度:"
 msgid "Lock to this size"
 msgstr "鎖定此大小"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "機器類型:"
 
@@ -373,8 +382,14 @@ msgstr "速度:"
 msgid "Frequency:"
 msgstr "頻率:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "浮點運算器 (FPU):"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "等待狀態 (WS):"
@@ -397,6 +412,9 @@ msgstr "啟用 (本地時間)"
 msgid "Enabled (UTC)"
 msgstr "啟用 (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
 
@@ -414,6 +432,9 @@ msgstr "顯示卡:"
 
 msgid "Video #2:"
 msgstr "顯示卡 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 圖形"
@@ -484,8 +505,8 @@ msgstr "獨立 MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "使用單精度浮點 (FLOAT32) 音訊"
 
-msgid "FM synth driver"
-msgstr "FM 合成驅動器"
+msgid "FM synth driver:"
+msgstr "FM 合成驅動器:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (更準確)"
@@ -622,8 +643,8 @@ msgstr "影像格式:"
 msgid "Block Size:"
 msgstr "區塊大小:"
 
-msgid "Floppy drives:"
-msgstr "軟碟機:"
+msgid "Floppy drives"
+msgstr "軟碟機"
 
 msgid "Turbo timings"
 msgstr "加速時序"
@@ -631,23 +652,26 @@ msgstr "加速時序"
 msgid "Check BPB"
 msgstr "檢查 BPB"
 
-msgid "CD-ROM drives:"
-msgstr "光碟機:"
+msgid "CD-ROM drives"
+msgstr "光碟機"
 
-msgid "MO drives:"
-msgstr "磁光碟機:"
+msgid "MO drives"
+msgstr "磁光碟機"
 
 msgid "MO:"
 msgstr "磁光碟:"
 
+msgid "Removable disk drives"
+msgstr "抽取式磁碟機"
+
 msgid "Removable disks:"
 msgstr "抽取式磁碟:"
 
-msgid "Removable disk drives:"
-msgstr "抽取式磁碟機:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA 實時時鐘:"
@@ -705,6 +729,15 @@ msgstr "抽取式磁碟(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "抽取式磁碟影像"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "影像 %1"
@@ -769,8 +802,14 @@ msgstr "連接埠 (COM 和 LPT)"
 msgid "Ports"
 msgstr "連接埠"
 
+msgid "Serial ports"
+msgstr "序列埠"
+
 msgid "Serial ports:"
 msgstr "序列埠:"
+
+msgid "Parallel ports"
+msgstr "並列埠"
 
 msgid "Parallel ports:"
 msgstr "並列埠:"
@@ -817,14 +856,8 @@ msgstr "匯流排"
 msgid "File"
 msgstr "檔案"
 
-msgid "C"
-msgstr "磁柱"
-
-msgid "H"
-msgstr "磁頭"
-
-msgid "S"
-msgstr "磁區"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2674,6 +2707,12 @@ msgstr "對效能影響高"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[通用] RAM 磁碟 (最大速度)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[通用] 1983 MFM (3600 轉速)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[通用] 1983 RLL (3600 轉速)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[通用] 1989 (3500 轉速)"
 
@@ -2776,8 +2815,8 @@ msgstr "下移"
 msgid "Could not load file %1"
 msgstr "無法載入檔案 %1"
 
-msgid "Key Bindings:"
-msgstr "按鍵組合:"
+msgid "Key bindings"
+msgstr "按鍵組合"
 
 msgid "Action"
 msgstr "動作"

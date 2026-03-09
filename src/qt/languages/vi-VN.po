@@ -352,6 +352,15 @@ msgstr "Chiều cao:"
 msgid "Lock to this size"
 msgstr "Cố định kích thước hình hiện tại"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Loại máy:"
 
@@ -373,8 +382,14 @@ msgstr "Tốc độ:"
 msgid "Frequency:"
 msgstr "Tần số xung:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Trạng thái chờ:"
@@ -397,6 +412,9 @@ msgstr "Bật (giờ địa phương)"
 msgid "Enabled (UTC)"
 msgstr "Bật (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Bộ tái biên dịch động (Dynamic Recompiler)"
 
@@ -414,6 +432,9 @@ msgstr "Video:"
 
 msgid "Video #2:"
 msgstr "Video 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Đồ họa Voodoo 1 hoặc 2"
@@ -484,8 +505,8 @@ msgstr "MPU-401 độc lập"
 msgid "Use FLOAT32 sound"
 msgstr "Dùng âm FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Driver bộ tổng hợp âm FM"
+msgid "FM synth driver:"
+msgstr "Driver bộ tổng hợp âm FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (chính xác hơn)"
@@ -622,8 +643,8 @@ msgstr "Định dạng ảnh đĩa:"
 msgid "Block Size:"
 msgstr "Kích thước bloc:"
 
-msgid "Floppy drives:"
-msgstr "Ổ đĩa mềm:"
+msgid "Floppy drives"
+msgstr "Ổ đĩa mềm"
 
 msgid "Turbo timings"
 msgstr "Thời gian turbo"
@@ -631,23 +652,26 @@ msgstr "Thời gian turbo"
 msgid "Check BPB"
 msgstr "Kiểm tra BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Ổ đĩa CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Ổ đĩa CD-ROM"
 
-msgid "MO drives:"
-msgstr "Ổ đĩa MO:"
+msgid "MO drives"
+msgstr "Ổ đĩa MO"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Ổ đĩa tháo rời được"
+
 msgid "Removable disks:"
 msgstr "Đĩa tháo rời được:"
 
-msgid "Removable disk drives:"
-msgstr "Ổ đĩa tháo rời được:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -705,6 +729,15 @@ msgstr "Đĩa tháo rời được %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Ảnh đĩa tháo rời được"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Ảnh %1"
@@ -769,8 +802,14 @@ msgstr "Cổng (COM và LPT)"
 msgid "Ports"
 msgstr "Cổng"
 
+msgid "Serial ports"
+msgstr "Cổng serial"
+
 msgid "Serial ports:"
 msgstr "Cổng serial:"
+
+msgid "Parallel ports"
+msgstr "Cổng parallel"
 
 msgid "Parallel ports:"
 msgstr "Cổng parallel:"
@@ -817,14 +856,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "File"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2674,6 +2707,12 @@ msgstr "Ảnh hưởng lớn đến hiệu suất"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Generic] Đĩa RAM (tốc độ tối đa)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Generic] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Generic] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generic] 1989 (3500 RPM)"
 
@@ -2702,10 +2741,10 @@ msgid "Vendor"
 msgstr "Nhà sản xuất"
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr ""
+msgstr "30 Hz (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr ""
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Mở rộng bộ nhớ chung qua PC/XT"
@@ -2776,8 +2815,8 @@ msgstr "Chuyển xuống"
 msgid "Could not load file %1"
 msgstr "Không thể nạp tập tin %1"
 
-msgid "Key Bindings:"
-msgstr "Phím nóng:"
+msgid "Key bindings"
+msgstr "Phím nóng"
 
 msgid "Action"
 msgstr "Thực hiện"
