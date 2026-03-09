@@ -1235,10 +1235,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             dev->buffer[1] = (dev->num_blocks >> 8) & 0xff;
             dev->buffer[2] = dev->num_blocks & 0xff;
 
-            dev->buffer[size_idx] = max_len;
-            len                   = max_len;
-
-            len = MIN(len, max_len);
+            len            = MIN(len, max_len);
             tape_set_buf_len(dev, BufLen, &len);
 
             tape_data_command_finish(dev, len, len, max_len, 0);
