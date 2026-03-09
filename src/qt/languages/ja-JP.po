@@ -352,6 +352,15 @@ msgstr "高さ:"
 msgid "Lock to this size"
 msgstr "サイズを固定"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "マシンタイプ:"
 
@@ -373,8 +382,14 @@ msgstr "速度:"
 msgid "Frequency:"
 msgstr "頻度:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "ウェイトステート:"
@@ -397,6 +412,9 @@ msgstr "有効(現地時間)"
 msgid "Enabled (UTC)"
 msgstr "有効(UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "動的再コンパイル"
 
@@ -414,6 +432,9 @@ msgstr "ビデオカード:"
 
 msgid "Video #2:"
 msgstr "ビデオカード2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo1または2グラフィック"
@@ -484,8 +505,8 @@ msgstr "独立型MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32サウンドを使用する"
 
-msgid "FM synth driver"
-msgstr "FMシンセドライバー"
+msgid "FM synth driver:"
+msgstr "FMシンセドライバー:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked(高精度化)"
@@ -622,8 +643,8 @@ msgstr "イメージ形式:"
 msgid "Block Size:"
 msgstr "ブロックサイズ:"
 
-msgid "Floppy drives:"
-msgstr "フロッピードライブ:"
+msgid "Floppy drives"
+msgstr "フロッピードライブ"
 
 msgid "Turbo timings"
 msgstr "高速タイミング"
@@ -631,23 +652,26 @@ msgstr "高速タイミング"
 msgid "Check BPB"
 msgstr "BPBチェック"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROMドライブ:"
+msgid "CD-ROM drives"
+msgstr "CD-ROMドライブ"
 
-msgid "MO drives:"
-msgstr "光磁気ドライブ:"
+msgid "MO drives"
+msgstr "光磁気ドライブ"
 
 msgid "MO:"
 msgstr "光磁気:"
 
+msgid "Removable disk drives"
+msgstr "取り外し可能なディスクドライブ"
+
 msgid "Removable disks:"
 msgstr "取り外し可能なディスク:"
 
-msgid "Removable disk drives:"
-msgstr "取り外し可能なディスクドライブ:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA RTCカード:"
@@ -705,6 +729,15 @@ msgstr "取り外し可能なディスク(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "取り外し可能なディスクイメージ"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "イメージ %1"
@@ -769,8 +802,14 @@ msgstr "ポート (COM/LPT)"
 msgid "Ports"
 msgstr "ポート"
 
+msgid "Serial ports"
+msgstr "シリアルポート"
+
 msgid "Serial ports:"
 msgstr "シリアルポート:"
+
+msgid "Parallel ports"
+msgstr "パラレルポート"
 
 msgid "Parallel ports:"
 msgstr "パラレルポート:"
@@ -817,14 +856,8 @@ msgstr "バス"
 msgid "File"
 msgstr "ファイル"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2674,6 +2707,12 @@ msgstr "パフォーマンスへの影響が大きい"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[汎用] RAMディスク（最高速度）"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[汎用] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[汎用] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[汎用] 1989 (3500 RPM)"
 
@@ -2776,8 +2815,8 @@ msgstr "下に移動する"
 msgid "Could not load file %1"
 msgstr "ファイル %1 をロードできませんでした"
 
-msgid "Key Bindings:"
-msgstr "キーバインド:"
+msgid "Key bindings"
+msgstr "キーバインド"
 
 msgid "Action"
 msgstr "アクション"

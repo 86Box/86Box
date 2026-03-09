@@ -351,6 +351,15 @@ msgstr "Výška:"
 msgid "Lock to this size"
 msgstr "Uzamknout na tyto rozměry"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Typ počítače:"
 
@@ -372,8 +381,14 @@ msgstr "Rychlost:"
 msgid "Frequency:"
 msgstr "Frekvence:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "Koprocesor:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Čekací stavy:"
@@ -396,6 +411,9 @@ msgstr "Zapnuta (místní čas)"
 msgid "Enabled (UTC)"
 msgstr "Zapnuta (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Dynamický překladač"
 
@@ -413,6 +431,9 @@ msgstr "Grafika:"
 
 msgid "Video #2:"
 msgstr "Grafika 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Použít grafický akcelerátor Voodoo 1 nebo 2"
@@ -483,8 +504,8 @@ msgstr "Samostatný MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Použít zvuk FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Ovladač syntezátoru FM"
+msgid "FM synth driver:"
+msgstr "Ovladač syntezátoru FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (přesnější)"
@@ -621,8 +642,8 @@ msgstr "Formát obrazu:"
 msgid "Block Size:"
 msgstr "Velikost bloků:"
 
-msgid "Floppy drives:"
-msgstr "Disketové mechaniky:"
+msgid "Floppy drives"
+msgstr "Disketové mechaniky"
 
 msgid "Turbo timings"
 msgstr "Turbo časování"
@@ -630,23 +651,26 @@ msgstr "Turbo časování"
 msgid "Check BPB"
 msgstr "Kontrola BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Mechaniky CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Mechaniky CD-ROM"
 
-msgid "MO drives:"
-msgstr "Magnetooptické mechaniky:"
+msgid "MO drives"
+msgstr "Magnetooptické mechaniky"
 
 msgid "MO:"
 msgstr "Magnetooptické jednotky:"
 
+msgid "Removable disk drives"
+msgstr "Mechaniky vyměnitelných disků"
+
 msgid "Removable disks:"
 msgstr "Vyměnitelné disky:"
 
-msgid "Removable disk drives:"
-msgstr "Mechaniky vyměnitelných disků:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA hodiny:"
@@ -704,6 +728,15 @@ msgstr "&Vyměnitelný disk %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Obrazy vyměnitelných disků"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Obraz %1"
@@ -768,8 +801,14 @@ msgstr "COM a LPT porty"
 msgid "Ports"
 msgstr "Porty"
 
+msgid "Serial ports"
+msgstr "Sériové porty"
+
 msgid "Serial ports:"
 msgstr "Sériové porty:"
+
+msgid "Parallel ports"
+msgstr "Paralelní porty"
 
 msgid "Parallel ports:"
 msgstr "Paralelní porty:"
@@ -816,14 +855,8 @@ msgstr "Sběrnice"
 msgid "File"
 msgstr "Soubor"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2673,6 +2706,12 @@ msgstr "Vysoký dopad na výkon"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Obecný] Disk RAM (max. rychlost)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Obecný] 1983 RLL (3600 ot./m)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Obecný] 1983 RLL (3600 ot./m)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Obecný] 1989 (3500 ot./m)"
 
@@ -2775,8 +2814,8 @@ msgstr "Posunout níž"
 msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
-msgid "Key Bindings:"
-msgstr "Nastavení kláves:"
+msgid "Key bindings"
+msgstr "Nastavení kláves"
 
 msgid "Action"
 msgstr "Akce"

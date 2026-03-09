@@ -351,6 +351,15 @@ msgstr "Hoogte:"
 msgid "Lock to this size"
 msgstr "Vergrendel deze grootte"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Machinetype:"
 
@@ -372,8 +381,14 @@ msgstr "Snelheid:"
 msgid "Frequency:"
 msgstr "Frequentie:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Wachttoestanden:"
@@ -396,6 +411,9 @@ msgstr "Ingeschakeld (lokale tijd)"
 msgid "Enabled (UTC)"
 msgstr "Ingeschakeld (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Dynamische Recompiler"
 
@@ -413,6 +431,9 @@ msgstr "Video:"
 
 msgid "Video #2:"
 msgstr "Video #2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 of 2 graphics"
@@ -483,8 +504,8 @@ msgstr "Standalone MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Gebruik FLOAT32-geluid"
 
-msgid "FM synth driver"
-msgstr "FM-synthesizer"
+msgid "FM synth driver:"
+msgstr "FM-synthesizer:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (nauwkeuriger)"
@@ -621,8 +642,8 @@ msgstr "Imageformaat:"
 msgid "Block Size:"
 msgstr "Blokgrootte:"
 
-msgid "Floppy drives:"
-msgstr "Floppy-schijfstations:"
+msgid "Floppy drives"
+msgstr "Floppy-schijfstations"
 
 msgid "Turbo timings"
 msgstr "Turbo timings"
@@ -630,23 +651,26 @@ msgstr "Turbo timings"
 msgid "Check BPB"
 msgstr "Controleer BPB"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROM-stations:"
+msgid "CD-ROM drives"
+msgstr "CD-ROM-stations"
 
-msgid "MO drives:"
-msgstr "MO-schijven:"
+msgid "MO drives"
+msgstr "MO-schijven"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Verwisselbare schijfstations"
+
 msgid "Removable disks:"
 msgstr "Verwisselbare schijven:"
 
-msgid "Removable disk drives:"
-msgstr "Verwisselbare schijfstations:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -704,6 +728,15 @@ msgstr "&Verwijderbare schijf %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Verwijderbaar schijfimagebestand"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Image %1"
@@ -768,8 +801,14 @@ msgstr "Poorten (COM & LPT)"
 msgid "Ports"
 msgstr "Poorten"
 
+msgid "Serial ports"
+msgstr "Seriële poorten"
+
 msgid "Serial ports:"
 msgstr "Seriële poorten:"
+
+msgid "Parallel ports"
+msgstr "Parallelle poorten"
 
 msgid "Parallel ports:"
 msgstr "Parallelle poorten:"
@@ -816,14 +855,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "Bestand"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2673,6 +2706,12 @@ msgstr "Hoge prestatie-impact"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Generiek] RAM-schijf (max. snelheid)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Generiek] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Generiek] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generiek] 1989 (3500 RPM)"
 
@@ -2775,8 +2814,8 @@ msgstr "Omlaag verplaatsen"
 msgid "Could not load file %1"
 msgstr "Kon bestand %1 niet laden"
 
-msgid "Key Bindings:"
-msgstr "Toetskoppelingen:"
+msgid "Key bindings"
+msgstr "Toetskoppelingen"
 
 msgid "Action"
 msgstr "Actie"

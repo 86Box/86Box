@@ -351,6 +351,15 @@ msgstr "Alçada:"
 msgid "Lock to this size"
 msgstr "Fixa a aquesta grandària"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Tipus de màquina:"
 
@@ -372,8 +381,14 @@ msgstr "Velocitat:"
 msgid "Frequency:"
 msgstr "Freqüència:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Estats de espera:"
@@ -396,6 +411,9 @@ msgstr "Activat (hora local)"
 msgid "Enabled (UTC)"
 msgstr "Activat (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinàmic"
 
@@ -413,6 +431,9 @@ msgstr "Vídeo:"
 
 msgid "Video #2:"
 msgstr "Vídeo 2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gràfics Voodoo 1 o 2"
@@ -483,8 +504,8 @@ msgstr "MPU-401 independent"
 msgid "Use FLOAT32 sound"
 msgstr "Utilitza so FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Manejador de síntesi FM"
+msgid "FM synth driver:"
+msgstr "Manejador de síntesi FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (més precís)"
@@ -621,8 +642,8 @@ msgstr "Format d'imatge:"
 msgid "Block Size:"
 msgstr "Mida de bloc:"
 
-msgid "Floppy drives:"
-msgstr "Unitats de disquet:"
+msgid "Floppy drives"
+msgstr "Unitats de disquet"
 
 msgid "Turbo timings"
 msgstr "Velocitat turbo"
@@ -630,23 +651,26 @@ msgstr "Velocitat turbo"
 msgid "Check BPB"
 msgstr "Verificar BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Unitats de CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Unitats de CD-ROM"
 
-msgid "MO drives:"
-msgstr "Unitats MO:"
+msgid "MO drives"
+msgstr "Unitats MO"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Unitats de disc extraïble"
+
 msgid "Removable disks:"
 msgstr "Discs extraïbles:"
 
-msgid "Removable disk drives:"
-msgstr "Unitats de disc extraïble:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -704,6 +728,15 @@ msgstr "&Disc extraïble %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Imatges de disc extraïble"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Imatge %1"
@@ -768,8 +801,14 @@ msgstr "Ports (COM i LPT)"
 msgid "Ports"
 msgstr "Ports"
 
+msgid "Serial ports"
+msgstr "Ports sèrie"
+
 msgid "Serial ports:"
 msgstr "Ports sèrie:"
+
+msgid "Parallel ports"
+msgstr "Puerts paralels"
 
 msgid "Parallel ports:"
 msgstr "Puerts paralels:"
@@ -816,14 +855,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "Fitxer"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2673,6 +2706,12 @@ msgstr "Alt impacte en el rendiment"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Genèric] Disc RAM (velocitat màxima)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Genèric] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Genèric] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Genèric] 1989 (3500 RPM)"
 
@@ -2775,8 +2814,8 @@ msgstr "Moure cap avall"
 msgid "Could not load file %1"
 msgstr "Error en carregar el fitxer %1"
 
-msgid "Key Bindings:"
-msgstr "Dreceres de teclat:"
+msgid "Key bindings"
+msgstr "Dreceres de teclat"
 
 msgid "Action"
 msgstr "Acció"

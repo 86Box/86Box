@@ -352,6 +352,15 @@ msgstr "Høyde:"
 msgid "Lock to this size"
 msgstr "Lås til denne størrelsen"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Maskintype:"
 
@@ -373,8 +382,14 @@ msgstr "Hastighet:"
 msgid "Frequency:"
 msgstr "Frekvens:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Ventetilstander:"
@@ -397,6 +412,9 @@ msgstr "Aktivert (lokal tid)"
 msgid "Enabled (UTC)"
 msgstr "Aktivert (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Dynamisk recompilator"
 
@@ -414,6 +432,9 @@ msgstr "Video:"
 
 msgid "Video #2:"
 msgstr "Video #2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1- eller 2-grafikk"
@@ -484,8 +505,8 @@ msgstr "Selvstendig MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Bruk FLOAT32-lyd"
 
-msgid "FM synth driver"
-msgstr "FM-synth-driver"
+msgid "FM synth driver:"
+msgstr "FM-synth-driver:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (mer nøyaktig)"
@@ -622,8 +643,8 @@ msgstr "Image-format:"
 msgid "Block Size:"
 msgstr "Blokkstørrelse:"
 
-msgid "Floppy drives:"
-msgstr "Diskettstasjoner:"
+msgid "Floppy drives"
+msgstr "Diskettstasjoner"
 
 msgid "Turbo timings"
 msgstr "Turbo-timing"
@@ -631,23 +652,26 @@ msgstr "Turbo-timing"
 msgid "Check BPB"
 msgstr "Sjekk BPB"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROM-stasjoner:"
+msgid "CD-ROM drives"
+msgstr "CD-ROM-stasjoner"
 
-msgid "MO drives:"
-msgstr "MO-stasjoner:"
+msgid "MO drives"
+msgstr "MO-stasjoner"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Flyttbare stasjoner"
+
 msgid "Removable disks:"
 msgstr "Flyttbare disker:"
 
-msgid "Removable disk drives:"
-msgstr "Flyttbare stasjoner:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -705,6 +729,15 @@ msgstr "&Flyttbar disk %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Flyttbare diskfiler"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Diskfil %1"
@@ -769,8 +802,14 @@ msgstr "Porter (COM & LPT)"
 msgid "Ports"
 msgstr "Porter"
 
+msgid "Serial ports"
+msgstr "Seriellporter"
+
 msgid "Serial ports:"
 msgstr "Seriellporter:"
+
+msgid "Parallel ports"
+msgstr "Parallellporter"
 
 msgid "Parallel ports:"
 msgstr "Parallellporter:"
@@ -817,14 +856,8 @@ msgstr "Buss"
 msgid "File"
 msgstr "Fil"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2674,6 +2707,12 @@ msgstr "Høy ytelsespåvirkning"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Generisk] RAM-disk (maks hastighet)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Generisk] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Generisk] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generisk] 1989 (3500 RPM)"
 
@@ -2776,8 +2815,8 @@ msgstr "Flytt ned"
 msgid "Could not load file %1"
 msgstr "Kunne ikke laste fil %1"
 
-msgid "Key Bindings:"
-msgstr "Tastebindinger:"
+msgid "Key bindings"
+msgstr "Tastebindinger"
 
 msgid "Action"
 msgstr "Handling"
