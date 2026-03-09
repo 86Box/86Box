@@ -14,8 +14,6 @@
  *          Copyright 2025-2026 Plamen Ivanov.
  */
 #define _GNU_SOURCE
-#define ENABLE_TAPE_LOG 1
-#define TAPE_FILE_LOG   1
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -1309,8 +1307,9 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_log(dev->log, "READ BLOCK LIMITS\n");
             tape_set_phase(dev, SCSI_PHASE_DATA_IN);
 
-            tape_buf_alloc(dev, 6);
-            memset(dev->buffer, 0, 6);
+            len = 6;
+            tape_buf_alloc(dev, len);
+            memset(dev->buffer, 0, len);
 
             /* Byte 0: reserved */
             /* Bytes 1-3: maximum block length (32KB = 0x008000) */
@@ -1321,8 +1320,10 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             dev->buffer[4] = 0x02;
             dev->buffer[5] = 0x00;
 
+            tape_set_buf_len(dev, BufLen, &len);
+
             tape_log(dev->log, "Block limits: min=512, max=32768\n");
-            tape_data_command_finish(dev, 6, 6, 6, 0);
+            tape_data_command_finish(dev, len, len, len, 0);
             break;
 
         case GPCMD_REQUEST_SENSE:
@@ -1488,6 +1489,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                         tape_log(dev->log, "  filemark after %u blocks, "
                                  "deferring filemark to next read\n", blocks_read);
                         dev->filemark_pending = 1;
+                        tape_set_buf_len(dev, BufLen, (int32_t *) &total_bytes);
                         tape_data_command_finish(dev, bytes_read, dev->block_size,
                                                  bytes_read, 0);
                         ui_sb_update_icon(SB_TAPE | dev->id, 1);
@@ -1503,6 +1505,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                         tape_log(dev->log, "  EOD after %u blocks, "
                                  "deferring EOD to next read\n", blocks_read);
                         dev->eot = 1;
+                        tape_set_buf_len(dev, BufLen, (int32_t *) &total_bytes);
                         tape_data_command_finish(dev, bytes_read, dev->block_size,
                                                  bytes_read, 0);
                         ui_sb_update_icon(SB_TAPE | dev->id, 1);

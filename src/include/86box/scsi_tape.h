@@ -37,7 +37,7 @@ typedef struct tape_type_t {
 
 #define KNOWN_TAPE_TYPES 3
 static const tape_type_t tape_types[KNOWN_TAPE_TYPES] = {
-    { "QIC-150",  157286400, 512, 0x0F },
+    { "QIC-150",  157286400, 512, 0x10 },
     { "QIC-525",  549978112, 512, 0x11 },
     { "QIC-1000", 1073741824, 512, 0x12 },
 };
@@ -52,8 +52,8 @@ typedef struct tape_drive_type_t {
 
 #define KNOWN_TAPE_DRIVE_TYPES 2
 static const tape_drive_type_t tape_drive_types[KNOWN_TAPE_DRIVE_TYPES] = {
-    { "86BOX",   "SCSI TAPE",  "1.00", { 1, 1, 1 } },
-    { "ARCHIVE", "VIPER 150",  "2.10", { 1, 0, 0 } },
+    { "86BOX",   "SCSI TAPE",        "1.00", { 1, 1, 1 } },
+    { "ARCHIVE", "VIPER 150 21247",  "2.10", { 1, 0, 0 } },
 };
 
 enum {
