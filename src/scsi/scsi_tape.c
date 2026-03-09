@@ -1229,7 +1229,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
 
             max_len = MIN(3, cdb[4]);
 
-            tape_buf_alloc(dev, 65536);
+            tape_buf_alloc(dev, 3);
+            memset(dev->buffer, 0, 3);
 
             dev->buffer[0] = (dev->num_blocks >> 16) & 0xff;
             dev->buffer[1] = (dev->num_blocks >> 8) & 0xff;
