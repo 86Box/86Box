@@ -345,6 +345,15 @@ msgstr ""
 msgid "Lock to this size"
 msgstr ""
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr ""
 
@@ -366,7 +375,13 @@ msgstr ""
 msgid "Frequency:"
 msgstr ""
 
+msgid "%1 MHz"
+msgstr ""
+
 msgid "FPU:"
+msgstr ""
+
+msgid "Internal"
 msgstr ""
 
 msgid "Wait states:"
@@ -390,6 +405,9 @@ msgstr ""
 msgid "Enabled (UTC)"
 msgstr ""
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr ""
 
@@ -406,6 +424,9 @@ msgid "Video:"
 msgstr ""
 
 msgid "Video #2:"
+msgstr ""
+
+msgid "Accelerators"
 msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
@@ -477,7 +498,7 @@ msgstr ""
 msgid "Use FLOAT32 sound"
 msgstr ""
 
-msgid "FM synth driver"
+msgid "FM synth driver:"
 msgstr ""
 
 msgid "Nuked (more accurate)"
@@ -615,7 +636,7 @@ msgstr ""
 msgid "Block Size:"
 msgstr ""
 
-msgid "Floppy drives:"
+msgid "Floppy drives"
 msgstr ""
 
 msgid "Turbo timings"
@@ -624,22 +645,25 @@ msgstr ""
 msgid "Check BPB"
 msgstr ""
 
-msgid "CD-ROM drives:"
+msgid "CD-ROM drives"
 msgstr ""
 
-msgid "MO drives:"
+msgid "MO drives"
 msgstr ""
 
 msgid "MO:"
 msgstr ""
 
+msgid "Removable disk drives"
+msgstr ""
+
 msgid "Removable disks:"
 msgstr ""
 
-msgid "Removable disk drives:"
+msgid "Tape drives"
 msgstr ""
 
-msgid "ZIP 250"
+msgid "Tape drives:"
 msgstr ""
 
 msgid "ISA RTC:"
@@ -697,6 +721,15 @@ msgid "&Removable disk %1 (%2): %3"
 msgstr ""
 
 msgid "Removable disk images"
+msgstr ""
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
 msgstr ""
 
 msgid "Image %1"
@@ -762,7 +795,13 @@ msgstr ""
 msgid "Ports"
 msgstr ""
 
+msgid "Serial ports"
+msgstr ""
+
 msgid "Serial ports:"
+msgstr ""
+
+msgid "Parallel ports"
 msgstr ""
 
 msgid "Parallel ports:"
@@ -810,13 +849,7 @@ msgstr ""
 msgid "File"
 msgstr ""
 
-msgid "C"
-msgstr ""
-
-msgid "H"
-msgstr ""
-
-msgid "S"
+msgid "Geometry"
 msgstr ""
 
 msgid "KB"
@@ -2667,6 +2700,12 @@ msgstr ""
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr ""
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr ""
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr ""
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr ""
 
@@ -2769,7 +2808,7 @@ msgstr ""
 msgid "Could not load file %1"
 msgstr ""
 
-msgid "Key Bindings:"
+msgid "Key bindings"
 msgstr ""
 
 msgid "Action"

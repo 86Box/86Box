@@ -341,6 +341,13 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         }
 #endif
 
+        if ((cpuType < CPU_286) || (cpuType == CPU_IBM486SLC) || (cpuType == CPU_IBM486BL) ||
+            !strcmp(cpuFamily->manufacturer, "Cyrix") || !strcmp(cpuFamily->manufacturer, "ST") ||
+            (cpuType > CPU_486DLC))
+            ui->checkBoxOverrideInterpreter->setEnabled(false);
+        else
+            ui->checkBoxOverrideInterpreter->setEnabled(true);
+
         // win_settings_machine_recalc_fpu
         auto *modelFpu   = ui->comboBoxFPU->model();
         int   removeRows = modelFpu->rowCount();

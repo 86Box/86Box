@@ -222,7 +222,11 @@ Settings::Settings(QWidget *parent)
             &SettingsOtherRemovable::reloadBusChannels_Tape);
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
-            [this](const QModelIndex &current, const QModelIndex &previous) { ui->stackedWidget->setCurrentIndex(current.row()); });
+            [this](const QModelIndex &current, const QModelIndex &previous) {
+                ui->stackedWidget->setCurrentIndex(current.row());
+                ui->headerIcon->setPixmap(qvariant_cast<QIcon>(ui->listView->model()->data(current, Qt::DecorationRole)).pixmap(QSize(16, 16)));
+                ui->headerLabel->setText(ui->listView->model()->data(current, Qt::DisplayRole).toString());
+            });
 
     ui->listView->setCurrentIndex(model->index(0, 0));
 

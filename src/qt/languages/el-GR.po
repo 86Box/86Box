@@ -351,6 +351,15 @@ msgstr "Ύψος:"
 msgid "Lock to this size"
 msgstr "Κλείδωμα σε αυτό το μέγεθος"
 
+msgid "General"
+msgstr ""
+
+msgid "Processor"
+msgstr ""
+
+msgid "Performance"
+msgstr ""
+
 msgid "Machine type:"
 msgstr "Τύπος συστήματος:"
 
@@ -372,8 +381,14 @@ msgstr "Ταχύτητα:"
 msgid "Frequency:"
 msgstr "Συχνότητα:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr ""
 
 msgid "Wait states:"
 msgstr "Καταστάσεις αναμονής:"
@@ -396,6 +411,9 @@ msgstr "Ενεργό (τοπική ώρα)"
 msgid "Enabled (UTC)"
 msgstr "Ενεργό (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr ""
+
 msgid "Dynamic Recompiler"
 msgstr "Δυναμικός Αναμεταγλωττιστής"
 
@@ -413,6 +431,9 @@ msgstr "Κάρτα γραφικών:"
 
 msgid "Video #2:"
 msgstr "Κάρτα γραφικών #2:"
+
+msgid "Accelerators"
+msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Γραφικά Voodoo 1 ή 2"
@@ -483,8 +504,8 @@ msgstr "Ξέχωρο MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Χρήση ήχου FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Οδηγός FM synth"
+msgid "FM synth driver:"
+msgstr "Οδηγός FM synth:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (πιο ακριβές)"
@@ -621,8 +642,8 @@ msgstr "Τύπος Εικόνας:"
 msgid "Block Size:"
 msgstr "Μέγεθος Block:"
 
-msgid "Floppy drives:"
-msgstr "Οδηγοί δισκέτας:"
+msgid "Floppy drives"
+msgstr "Οδηγοί δισκέτας"
 
 msgid "Turbo timings"
 msgstr "Χρονισμοί Turbo"
@@ -630,23 +651,26 @@ msgstr "Χρονισμοί Turbo"
 msgid "Check BPB"
 msgstr "Έλεγχος BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Οδηγοί CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Οδηγοί CD-ROM"
 
-msgid "MO drives:"
-msgstr "Οδηγοί MO:"
+msgid "MO drives"
+msgstr "Οδηγοί MO"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Οδηγοί αφαιρούμενων δίσκων"
+
 msgid "Removable disks:"
 msgstr "Αφαιρούμενοι δίσκοι:"
 
-msgid "Removable disk drives:"
-msgstr "Οδηγοί αφαιρούμενων δίσκων:"
+msgid "Tape drives"
+msgstr ""
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr ""
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -704,6 +728,15 @@ msgstr "&Αφαιρούμενος δίσκος %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Εικόνες αφαιρούμενων δίσκων"
+
+msgid "Tape %1 (%2): %3"
+msgstr ""
+
+msgid "&Tape %1 (%2): %3"
+msgstr ""
+
+msgid "Tape images"
+msgstr ""
 
 msgid "Image %1"
 msgstr "Εικόνα %1"
@@ -768,8 +801,14 @@ msgstr "Θύρες (COM & LPT)"
 msgid "Ports"
 msgstr "Θύρες"
 
+msgid "Serial ports"
+msgstr "Σειριακές θύρες"
+
 msgid "Serial ports:"
 msgstr "Σειριακές θύρες:"
+
+msgid "Parallel ports"
+msgstr "Παράλληλες θύρες"
 
 msgid "Parallel ports:"
 msgstr "Παράλληλες θύρες:"
@@ -816,14 +855,8 @@ msgstr "Δίαυλος"
 msgid "File"
 msgstr "Αρχείο"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr ""
 
 msgid "KB"
 msgstr "KB"
@@ -2710,6 +2743,12 @@ msgstr "Μεγάλη επίπτωση στην απόδοση"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Γενικό] RAM Disk (τέρμα ταχύτητα)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Γενικό] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Γενικό] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Γενικό] 1989 (3500 RPM)"
 
@@ -2820,8 +2859,8 @@ msgstr "Μετακίνηση κάτω"
 msgid "Could not load file %1"
 msgstr "Αδυναμία φόρτωσης αρχείου %1"
 
-msgid "Key Bindings:"
-msgstr "Αντιστοιχίσεις Πλήκτρων:"
+msgid "Key bindings"
+msgstr "Αντιστοιχίσεις πλήκτρων"
 
 msgid "Action"
 msgstr "Ενέργεια"

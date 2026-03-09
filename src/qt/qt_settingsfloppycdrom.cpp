@@ -161,14 +161,19 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 #ifndef DISABLE_FDD_AUDIO
     ui->comboBoxFloppyAudio->setVisible(true);
     int profile_count = fdd_audio_get_profile_count();
-    for (int i = 0; i < profile_count; i++) {
-        const char *name = fdd_audio_get_profile_name(i);
-        if (name) {
-            ui->comboBoxFloppyAudio->addItem(name, i);
+    if (!profile_count) {
+        /* If no profiles found, add "None" and disable the combobox */
+        ui->comboBoxFloppyAudio->addItem(tr("None"), 0);
+        ui->comboBoxFloppyAudio->setEnabled(false);
+    } else
+        for (int i = 0; i < profile_count; i++) {
+            const char *name = fdd_audio_get_profile_name(i);
+            if (name)
+                ui->comboBoxFloppyAudio->addItem(tr(name), i);
         }
-    }
     ui->comboBoxFloppyAudio->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 #else
+    ui->comboBoxFloppyAudio->setEnabled(false);
     ui->comboBoxFloppyAudio->setVisible(false);
 #endif
 
@@ -297,7 +302,8 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     // Rebuild audio profile combo box based on drive type
     ui->comboBoxFloppyAudio->clear();
 
-    if (type == 0) {
+    int profile_count = fdd_audio_get_profile_count();
+    if ((!profile_count) || (type == 0)) {
         ui->comboBoxFloppyAudio->addItem(tr("None"), 0);
         ui->comboBoxFloppyAudio->setCurrentIndex(0);
         ui->comboBoxFloppyAudio->setEnabled(false);
@@ -313,7 +319,6 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
     int  drive_max_tracks = fdd_get_type_max_track(type);
     bool is_40_track      = (drive_max_tracks <= 43);
 
-    int profile_count       = fdd_audio_get_profile_count();
     int currentProfileIndex = -1;
     int comboIndex          = 0;
 
@@ -326,7 +331,7 @@ SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current)
                 if (profile->total_tracks == 0 || 
                     (is_40_track && profile->total_tracks == 40) || 
                     (!is_40_track && profile->total_tracks == 80)) {
-                    ui->comboBoxFloppyAudio->addItem(name, i);
+                    ui->comboBoxFloppyAudio->addItem(tr(name), i);
                     if (i == prof) {
                         currentProfileIndex = comboIndex;
                     }

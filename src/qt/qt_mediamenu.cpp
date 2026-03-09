@@ -1293,8 +1293,17 @@ MediaMenu::tapeUpdateMenu(int i)
     ejectMenu->setEnabled(!name.isEmpty());
     ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
 
-    menu->setTitle(tr("&Tape %1 (SCSI): %2").arg(QString::number(i + 1), name.isEmpty() ? tr("(empty)") : name));
-    menu->setToolTip(tr("Tape %1 (SCSI): %2").arg(QString::number(i + 1), name.isEmpty() ? tr("(empty)") : name));
+    QString busName = tr("Unknown Bus");
+    switch (tape_drives[i].bus_type) {
+        default:
+            break;
+        case TAPE_BUS_SCSI:
+            busName = "SCSI";
+            break;
+    }
+
+    menu->setTitle(tr("&Tape %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
+    menu->setToolTip(tr("Tape %1 (%2): %3").arg(QString::number(i + 1), busName, name.isEmpty() ? tr("(empty)") : name));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
         updateImageHistory(i, slot, ui::MediaType::Tape);
