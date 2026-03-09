@@ -301,9 +301,9 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         Models::AddEntry(model, "TAP", NET_TYPE_TAP);
 #endif
 
-        Models::AddEntry(model, "Local Switch", NET_TYPE_NLSWITCH);
+        Models::AddEntry(model, tr("Local Switch"), NET_TYPE_NLSWITCH);
 #ifdef ENABLE_NET_NRSWITCH
-        Models::AddEntry(model, "Remote Switch", NET_TYPE_NRSWITCH);
+        Models::AddEntry(model, tr("Remote Switch"), NET_TYPE_NRSWITCH);
 #endif /* ENABLE_NET_NRSWITCH */
 
         model->removeRows(0, removeRows);
