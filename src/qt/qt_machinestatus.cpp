@@ -710,6 +710,9 @@ MachineStatus::refresh(QStatusBar *sbar)
     for (size_t i = 0; i < MO_NUM; i++) {
         sbar->removeWidget(d->mo[i].label.get());
     }
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        sbar->removeWidget(d->tape[i].label.get());
+    }
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         sbar->removeWidget(d->hdds[i].label.get());
     }
@@ -838,12 +841,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     iterateMO([this, sbar](int i) {
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
-        if (QString(rdisk_drives[i].image_path).isEmpty())
+        if (QString(mo_drives[i].image_path).isEmpty())
             d->mo[i].setWriteProtected(false);
-        else if (QString(rdisk_drives[i].image_path).left(5) == "wp://")
+        else if (QString(mo_drives[i].image_path).left(5) == "wp://")
             d->mo[i].setWriteProtected(true);
         else
-            d->mo[i].setWriteProtected(rdisk_drives[i].read_only);
+            d->mo[i].setWriteProtected(mo_drives[i].read_only);
         d->mo[i].setActive(false);
         d->mo[i].setWriteActive(false);
         d->mo[i].refresh();
@@ -863,6 +866,8 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->tape[i].setEmpty(QString(tape_drives[i].image_path).isEmpty());
         if (QString(tape_drives[i].image_path).isEmpty())
             d->tape[i].setWriteProtected(false);
+        else if (QString(tape_drives[i].image_path).left(5) == "wp://")
+            d->tape[i].setWriteProtected(true);
         else
             d->tape[i].setWriteProtected(tape_drives[i].read_only);
         d->tape[i].setActive(false);
