@@ -994,50 +994,28 @@ static void
 tape_seek(tape_t *dev, uint32_t lba)
 {
     if (lba > dev->num_blocks) {
-        int      count       = lba - dev->num_blocks;
-        uint32_t leading_len;
-
-        for (int i = 0; i < count; i++) {
-            if (tape_read_marker(dev, &leading_len) < 0)
-                return;
-
-            if (leading_len == TAPE_SIMH_EOD || leading_len == TAPE_SIMH_GAP)
-                return;
-
-            if (leading_len == TAPE_SIMH_FILEMARK)
-                /* File mark - no data, skip trailing length. */
-                dev->tape_pos += 4;
-            else {
-                /* Data record. */
-                fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
-                dev->tape_pos += 4 + leading_len + 4;
-            }
-
-            dev->num_blocks++;
-        }
-    } else if (dev->num_blocks > lba) {
-        int      count       = dev->num_blocks - lba;
-        uint32_t trailing_len;
-
-        /* Read the trailing length of the previous record. */
-        fseeko64(dev->drv->fp, (int64_t)(dev->tape_pos - 4), SEEK_SET);
-
-        for (int i = 0; i < count; i++) {
-            if (tape_read_marker(dev, &trailing_len) < 0)
-                return;
-
-            if (trailing_len == TAPE_SIMH_FILEMARK)
-                /* File mark - no data, skip leading length. */
-                dev->tape_pos -= 4;
-            else {
-                /* Data record. */
-                fseeko64(dev->drv->fp, (int64_t)(trailing_len + 4), SEEK_CUR);
-                dev->tape_pos -= 4 + trailing_len + 4;
-            }
-
-            dev->num_blocks++;
-        }
-    }
+        int32_t count  = lba - dev->num_blocks;
+        int32_t result = tape_space_blocks_forward(dev, count);
+        if (result < 0) {
+            if (dev->filemark_pending) {
+                dev->filemark_pending = 0;
+                tape_filemark_detected(dev, (uint32_t) (-result));
+            } else
+                tape_blank_check(dev, (uint32_t) (-result));
+            return;
+         }
+     } else if (lba < dev->num_blocks) {
+         int32_t count  = dev->num_blocks - lba;
+         int32_t result = tape_space_blocks_backward(dev, -count);
+         if (result < 0) {
+             if (dev->filemark_pending) {
+                 dev->filemark_pending = 0;
+                 tape_filemark_detected(dev, (uint32_t) (-result));
+             } else
+                 tape_bop_detected(dev, (uint32_t) (-result));
+             return;
+         }
+     }
 }
 
 /*
