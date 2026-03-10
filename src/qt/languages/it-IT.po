@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it-IT\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "Blocca su questa dimensione"
 
 msgid "General"
-msgstr ""
+msgstr "Generale"
 
 msgid "Processor"
-msgstr ""
+msgstr "Processore"
 
 msgid "Performance"
-msgstr ""
+msgstr "Prestazioni"
 
 msgid "Machine type:"
 msgstr "Tipo di macchina:"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Integrato"
 
 msgid "Wait states:"
 msgstr "Stati di attesa:"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Abilitato (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Utilizza l'interpretatore 486 per i processori 286 e 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Ricompilatore dinamico"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "Video #2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Acceleratori"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Scheda grafica Voodoo 1 o 2"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "Dischi rimovibili:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Unità nastro"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Unità nastro:"
 
 msgid "ISA RTC:"
 msgstr "RTC ISA:"
@@ -730,13 +730,13 @@ msgid "Removable disk images"
 msgstr "Immagini dischi rimovibili"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Nastro %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Nastro %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Immagini di nastro"
 
 msgid "Image %1"
 msgstr "Immagine %1"
@@ -856,7 +856,7 @@ msgid "File"
 msgstr "File"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -1618,7 +1618,7 @@ msgid "2% below perfect RPM"
 msgstr "2% al di sotto di RPM ideale"
 
 msgid "Creating image…"
-msgstr ""
+msgstr "Creazione dell'immagine in corso…"
 
 msgid "(System Default)"
 msgstr "(Predefinito del sistema)"
