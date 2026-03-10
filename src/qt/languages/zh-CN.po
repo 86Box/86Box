@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 09:50+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-03-10 09:51+0000\n"
+"Last-Translator: GttzRapero219 <GttzRapero219@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -2717,7 +2717,7 @@ msgid "[Generic] 1983 RLL (3600 RPM)"
 msgstr "[Generic] 1983 RLL (3600转)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr "[Generic] 1989 (3500转)"
+msgstr "[通用] 1989 (3500转)"
 
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Generic] 1992 (3600转)"
