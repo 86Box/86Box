@@ -38,7 +38,7 @@ msgid "Pause"
 msgstr "暫停"
 
 msgid "Re&sume"
-msgstr "恢復"
+msgstr "恢復(&S)"
 
 msgid "E&xit"
 msgstr "退出(&X)"
@@ -287,7 +287,7 @@ msgid "&Image…"
 msgstr "影像(&I)…"
 
 msgid "E&xport to 86F…"
-msgstr "匯出為 86F 格式(&x)…"
+msgstr "匯出為 86F 格式(&X)…"
 
 msgid "&Mute"
 msgstr "靜音(&M)"
@@ -1682,10 +1682,10 @@ msgid "&Tablet tool"
 msgstr "平板工具(&T)"
 
 msgid "About &Qt"
-msgstr "關於 &Qt"
+msgstr "關於 Qt(&Q)"
 
 msgid "&MCA devices…"
-msgstr "&MCA 裝置…"
+msgstr "MCA 裝置(&M)…"
 
 msgid "Show non-&primary monitors"
 msgstr "顯示非主要監視器(&P)"
