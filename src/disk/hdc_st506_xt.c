@@ -522,16 +522,14 @@ st506_callback(void *priv)
                     if (!drive->present) {
                         st506_error(dev, dev->nr_err);
                         st506_complete(dev);
-                        break;
+                    } else {
+                        double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], 0, HDD_OP_SEEK, 0, 0.0);
+                        timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
+
+                        dev->cylinder   = dev->cyl_off;
+                        drive->cylinder = dev->cylinder;
+                        dev->state      = STATE_DONE;
                     }
-
-                    /* Wait 20msec. */
-                    timer_advance_u64(&dev->timer, ST506_TIME_MS * 20);
-
-                    dev->cylinder   = dev->cyl_off;
-                    drive->cylinder = dev->cylinder;
-                    dev->state      = STATE_DONE;
-
                     break;
 
                 case STATE_DONE:
@@ -905,6 +903,41 @@ write_error:
             break;
 
         case CMD_SEEK:
+            switch (dev->state) {
+                case STATE_START_COMMAND:
+                    st506_xt_log("ST506: RECALIBRATE(%i) [%i]\n",
+                                 dev->drive_sel, drive->present);
+                    if (!drive->present) {
+                        st506_error(dev, dev->nr_err);
+                        st506_complete(dev);
+                    } else {
+                        val = get_chs(dev, drive);
+
+                        if (val) {
+                            if (get_sector(dev, drive, &addr)) {
+                                double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], addr, HDD_OP_SEEK, 0, 0.0);
+                                timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
+
+                                dev->state      = STATE_DONE;
+                            } else {
+                                st506_error(dev, ERR_BAD_PARAMETER);
+                                st506_complete(dev);
+                            }
+                        } else {
+                            st506_error(dev, ERR_SEEK_ERROR);
+                            st506_complete(dev);
+                        }
+                    }
+                    break;
+
+                case STATE_DONE:
+                    st506_complete(dev);
+                    break;
+
+                default:
+                    break;
+            }
+
             if (drive->present) {
                 val = get_chs(dev, drive);
                 st506_xt_log("ST506: SEEK(%i, %i) [%i]\n",
