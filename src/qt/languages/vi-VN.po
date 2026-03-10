@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -353,13 +353,13 @@ msgid "Lock to this size"
 msgstr "Cố định kích thước hình hiện tại"
 
 msgid "General"
-msgstr ""
+msgstr "Tổng quát"
 
 msgid "Processor"
-msgstr ""
+msgstr "Bộ xử lý"
 
 msgid "Performance"
-msgstr ""
+msgstr "Hiệu suất"
 
 msgid "Machine type:"
 msgstr "Loại máy:"
@@ -389,7 +389,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Tích hợp"
 
 msgid "Wait states:"
 msgstr "Trạng thái chờ:"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "Bật (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Sử dụng trình thông dịch 486 cho các bộ xử lý 286 và 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Bộ tái biên dịch động (Dynamic Recompiler)"
@@ -434,7 +434,7 @@ msgid "Video #2:"
 msgstr "Video 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Bộ tăng tốc"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Đồ họa Voodoo 1 hoặc 2"
@@ -668,10 +668,10 @@ msgid "Removable disks:"
 msgstr "Đĩa tháo rời được:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Ổ đĩa băng"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Ổ đĩa băng:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -731,13 +731,13 @@ msgid "Removable disk images"
 msgstr "Ảnh đĩa tháo rời được"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Băng %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Băng %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Ảnh băng"
 
 msgid "Image %1"
 msgstr "Ảnh %1"
@@ -857,7 +857,7 @@ msgid "File"
 msgstr "File"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Hình học"
 
 msgid "KB"
 msgstr "KB"
@@ -1619,7 +1619,7 @@ msgid "2% below perfect RPM"
 msgstr "2% thấp hơn số RPM hoàn thiện"
 
 msgid "Creating image…"
-msgstr ""
+msgstr "Đang tạo hình ảnh…"
 
 msgid "(System Default)"
 msgstr "(Mặc định hệ thống)"

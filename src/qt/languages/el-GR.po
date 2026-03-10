@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-02-04 18:32+0000\n"
-"Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
 "MIME-Version: 1.0\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "Κλείδωμα σε αυτό το μέγεθος"
 
 msgid "General"
-msgstr ""
+msgstr "Γενικά"
 
 msgid "Processor"
-msgstr ""
+msgstr "Επεξεργαστής"
 
 msgid "Performance"
-msgstr ""
+msgstr "Απόδοση"
 
 msgid "Machine type:"
 msgstr "Τύπος συστήματος:"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Ενσωματωμένο"
 
 msgid "Wait states:"
 msgstr "Καταστάσεις αναμονής:"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Ενεργό (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Χρησιμοποιήστε τον διερμηνέα 486 για επεξεργαστές 286 και 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Δυναμικός Αναμεταγλωττιστής"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "Κάρτα γραφικών #2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Επιταχυντές"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Γραφικά Voodoo 1 ή 2"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "Αφαιρούμενοι δίσκοι:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Οδηγοί ταινίας"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Οδηγοί ταινίας:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -730,13 +730,13 @@ msgid "Removable disk images"
 msgstr "Εικόνες αφαιρούμενων δίσκων"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Ταινία %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Ταινία %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Εικόνες ταινίας"
 
 msgid "Image %1"
 msgstr "Εικόνα %1"
@@ -856,7 +856,7 @@ msgid "File"
 msgstr "Αρχείο"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Γεωμετρία"
 
 msgid "KB"
 msgstr "KB"
@@ -1631,7 +1631,7 @@ msgid "2% below perfect RPM"
 msgstr "2% κάτω απο το ιδανικό RPM"
 
 msgid "Creating image…"
-msgstr ""
+msgstr "Δημιουργία εικόνας…"
 
 msgid "(System Default)"
 msgstr "(Προεπιλογή Συστήματος)"

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -354,13 +354,13 @@ msgid "Lock to this size"
 msgstr "Зафіксувати розмір"
 
 msgid "General"
-msgstr ""
+msgstr "Загальне"
 
 msgid "Processor"
-msgstr ""
+msgstr "Процесор"
 
 msgid "Performance"
-msgstr ""
+msgstr "Продуктивність"
 
 msgid "Machine type:"
 msgstr "Тип машини:"
@@ -390,7 +390,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Вбудований"
 
 msgid "Wait states:"
 msgstr "Цикли очікування:"
@@ -414,7 +414,7 @@ msgid "Enabled (UTC)"
 msgstr "Увімкнути (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Використовувати інтерпретатор 486 для процесорів 286 і 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Динамічний рекомпілятор"
@@ -435,7 +435,7 @@ msgid "Video #2:"
 msgstr "Відеокарта 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Прискорювачі"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Прискорювач Voodoo 1 або 2"
@@ -669,10 +669,10 @@ msgid "Removable disks:"
 msgstr "Знімні диски:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Стрімери"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Стрімери:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -732,13 +732,13 @@ msgid "Removable disk images"
 msgstr "Образи знімних дисків"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Стрімер %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "С&трімер %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Образи магнітної стрічки"
 
 msgid "Image %1"
 msgstr "Образ %1"
@@ -858,7 +858,7 @@ msgid "File"
 msgstr "Файл"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Геометрія"
 
 msgid "KB"
 msgstr "КБ"
@@ -1620,7 +1620,7 @@ msgid "2% below perfect RPM"
 msgstr "На 2% повільніше точного RPM"
 
 msgid "Creating image…"
-msgstr ""
+msgstr "Створення образу…"
 
 msgid "(System Default)"
 msgstr "(Системний)"
