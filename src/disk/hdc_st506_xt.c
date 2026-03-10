@@ -937,16 +937,6 @@ write_error:
                 default:
                     break;
             }
-
-            if (drive->present) {
-                val = get_chs(dev, drive);
-                st506_xt_log("ST506: SEEK(%i, %i) [%i]\n",
-                             dev->drive_sel, drive->cylinder, val);
-                if (!val)
-                    st506_error(dev, ERR_SEEK_ERROR);
-            } else
-                st506_error(dev, dev->nr_err);
-            st506_complete(dev);
             break;
 
         case CMD_SPECIFY:
