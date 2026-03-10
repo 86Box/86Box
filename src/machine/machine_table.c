@@ -21492,7 +21492,7 @@ const machine_t machines[] = {
             .min_bus     = 66666667,
             .max_bus     = 83333333,
             .min_voltage = 1800,
-            .max_voltage = 2000,
+            .max_voltage = 3500,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED,
         },
@@ -21689,7 +21689,7 @@ const machine_t machines[] = {
             .min_bus     = 66666667,
             .max_bus     = 100000000,
             .min_voltage = 1800,
-            .max_voltage = 2000,
+            .max_voltage = 3500,
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
@@ -21739,7 +21739,7 @@ const machine_t machines[] = {
             .min_bus     = 60000000,
             .max_bus     = 100000000,
             .min_voltage = 1800,
-            .max_voltage = 2000,
+            .max_voltage = 3500,
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
