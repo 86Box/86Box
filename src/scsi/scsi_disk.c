@@ -1258,6 +1258,9 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
                     scsi_disk_lba_out_of_range(dev);
                 else {
                     if (dev->sector_len) {
+                        dev->drv->seek_pos = dev->sector_pos;
+                        dev->drv->seek_len = dev->sector_len;
+
                         scsi_disk_buf_alloc(dev, alloc_length);
                         scsi_disk_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
 

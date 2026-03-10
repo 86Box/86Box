@@ -495,8 +495,8 @@ typedef struct scsi_bus_t {
 #define SCSI_NONE            0x0060
 #define SCSI_FIXED_DISK      0x0000
 #define SCSI_REMOVABLE_DISK  0x8000
-#define SCSI_REMOVABLE_CDROM 0x8005
 #define SCSI_REMOVABLE_TAPE  0x8001
+#define SCSI_REMOVABLE_CDROM 0x8005
 
 #ifdef EMU_SCSI_H
 extern scsi_device_t scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
