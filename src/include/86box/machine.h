@@ -976,6 +976,9 @@ extern int             machine_at_torino_init(const machine_t *);
 extern int             machine_at_hot539_init(const machine_t *);
 
 /* VLSI SuperCore */
+#ifdef EMU_DEVICE_H
+extern const device_t  bravoms586_device;
+#endif
 extern int             machine_at_bravoms586_init(const machine_t *);
 extern int             machine_at_m54si_init(const machine_t *);
 extern int             machine_at_pb600_init(const machine_t *);
