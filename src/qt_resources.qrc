@@ -22,6 +22,7 @@
         <file>qt/icons/floppy_disabled.ico</file>
         <file>qt/icons/floppy_tab.ico</file>
         <file>qt/icons/general_display.ico</file>
+        <file>qt/icons/general_sound.ico</file>
         <file>qt/icons/general_storage_controllers.ico</file>
         <file>qt/icons/general_other_peripherals.ico</file>
         <file>qt/icons/hard_disk.ico</file>
@@ -31,6 +32,7 @@
         <file>qt/icons/key_bindings.ico</file>
         <file>qt/icons/machine.ico</file>
         <file>qt/icons/machine_tab.ico</file>
+        <file>qt/icons/midi.ico</file>
         <file>qt/icons/mo.ico</file>
         <file>qt/icons/mo_image.ico</file>
         <file>qt/icons/mo_disabled.ico</file>

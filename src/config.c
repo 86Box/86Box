@@ -2207,7 +2207,18 @@ go_to_mo:
         /* Default values, needed for proper operation of the Settings dialog. */
         tape_drives[c].scsi_device_id = c + 4;
 
-        if (tape_drives[c].bus_type == TAPE_BUS_SCSI) {
+        if (tape_drives[c].bus_type == TAPE_BUS_ATAPI) {
+            sprintf(temp, "tape_%02i_ide_channel", c + 1);
+            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            p = ini_section_get_string(cat, temp, tmp2);
+            sscanf(p, "%01u:%01u", &board, &dev);
+            board &= 3;
+            dev &= 1;
+            tape_drives[c].ide_channel = (board << 1) + dev;
+
+            if (tape_drives[c].ide_channel > 7)
+                tape_drives[c].ide_channel = 7;
+        } else if (tape_drives[c].bus_type == TAPE_BUS_SCSI) {
             sprintf(temp, "tape_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 4);
             p = ini_section_get_string(cat, temp, tmp2);
@@ -2224,6 +2235,11 @@ go_to_mo:
                 dev &= 15;
                 tape_drives[c].scsi_device_id = (board << 4) + dev;
             }
+        }
+
+        if (tape_drives[c].bus_type != TAPE_BUS_ATAPI) {
+            sprintf(temp, "tape_%02i_ide_channel", c + 1);
+            ini_section_delete_var(cat, temp);
         }
 
         if (tape_drives[c].bus_type != TAPE_BUS_SCSI) {
@@ -4064,6 +4080,15 @@ save_other_removable_devices(void)
         } else {
             sprintf(tmp2, "%u, %s", tape_drives[c].type,
                     hdd_bus_to_string(tape_drives[c].bus_type, 1));
+            ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "tape_%02i_ide_channel", c + 1);
+        if (tape_drives[c].bus_type != TAPE_BUS_ATAPI)
+            ini_section_delete_var(cat, temp);
+        else {
+            sprintf(tmp2, "%01u:%01u", tape_drives[c].ide_channel >> 1,
+                    tape_drives[c].ide_channel & 1);
             ini_section_set_string(cat, temp, tmp2);
         }
 

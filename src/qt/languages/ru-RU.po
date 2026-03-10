@@ -1636,6 +1636,9 @@ msgstr "На 1,5% медленнее точного RPM"
 msgid "2% below perfect RPM"
 msgstr "На 2% медленнее точного RPM"
 
+msgid "Creating image…"
+msgstr "Создание образа…"
+
 msgid "(System Default)"
 msgstr "(Системный)"
 

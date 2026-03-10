@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "Lås till denna storlek"
 
 msgid "General"
-msgstr ""
+msgstr "Allmänt"
 
 msgid "Processor"
-msgstr ""
+msgstr "Processor"
 
 msgid "Performance"
-msgstr ""
+msgstr "Prestanda"
 
 msgid "Machine type:"
 msgstr "Maskintyp:"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "Flyttalsprocessor:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Integrerad"
 
 msgid "Wait states:"
 msgstr "Väntcykler:"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Aktiverad (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Använd 486-tolken för 286- och 386-processorer"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamisk omkompilering"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "Bildskärmskort #2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Acceleratorer"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 eller 2-grafik"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "Flyttbara diskar:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Bandenhet"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Bandenhet:"
 
 msgid "ISA RTC:"
 msgstr "ISA realtidsklocka:"
@@ -730,13 +730,13 @@ msgid "Removable disk images"
 msgstr "Flyttbara disk-avbildningar"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Band %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Band %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Band-avbildningar"
 
 msgid "Image %1"
 msgstr "Avbildning %1"
@@ -856,7 +856,7 @@ msgid "File"
 msgstr "Fil"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometri"
 
 msgid "KB"
 msgstr "KB"
@@ -1616,6 +1616,9 @@ msgstr "1.5% under perfekt varv/min"
 
 msgid "2% below perfect RPM"
 msgstr "2& under perfekt varm/min"
+
+msgid "Creating image…"
+msgstr "Skapar avbildning…"
 
 msgid "(System Default)"
 msgstr "(Systemstandard)"

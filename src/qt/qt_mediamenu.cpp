@@ -1298,6 +1298,9 @@ MediaMenu::tapeUpdateMenu(int i)
     switch (tape_drives[i].bus_type) {
         default:
             break;
+        case TAPE_BUS_ATAPI:
+            busName = "ATAPI";
+            break;
         case TAPE_BUS_SCSI:
             busName = "SCSI";
             break;

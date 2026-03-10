@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "크기 고정"
 
 msgid "General"
-msgstr ""
+msgstr "일반"
 
 msgid "Processor"
-msgstr ""
+msgstr "프로세서"
 
 msgid "Performance"
-msgstr ""
+msgstr "성능"
 
 msgid "Machine type:"
 msgstr "머신 종류:"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "통합된"
 
 msgid "Wait states:"
 msgstr "대기 상태:"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "사용 (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "286 및 386 프로세서용 486 인터프리터를 사용하십시오"
 
 msgid "Dynamic Recompiler"
 msgstr "동적 재컴파일"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "비디오 카드 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "가속기"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 또는 2 그래픽"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "제거 가능한 디스크:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "테이프 드라이브"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "테이프 드라이브:"
 
 msgid "Superdrives:"
 msgstr "Superdrives:"
@@ -736,13 +736,13 @@ msgid "Removable disk images"
 msgstr "제거 가능한 디스크 이미지"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "테이프 %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "테이프(&T) %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "테이프 이미지"
 
 msgid "Image %1"
 msgstr "이미지 %1"
@@ -862,7 +862,7 @@ msgid "File"
 msgstr "파일"
 
 msgid "Geometry"
-msgstr ""
+msgstr "기하학"
 
 msgid "KB"
 msgstr "KB"
@@ -1622,6 +1622,9 @@ msgstr "1.5% 낮은 회전수"
 
 msgid "2% below perfect RPM"
 msgstr "2% 낮은 회전수"
+
+msgid "Creating image…"
+msgstr "이미지 생성 중…"
 
 msgid "(System Default)"
 msgstr "(시스템 기본값)"

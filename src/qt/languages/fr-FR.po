@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-04 18:56+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "Verrouiller à cette taille"
 
 msgid "General"
-msgstr ""
+msgstr "Général"
 
 msgid "Processor"
-msgstr ""
+msgstr "Processeur"
 
 msgid "Performance"
-msgstr ""
+msgstr "Performance"
 
 msgid "Machine type:"
 msgstr "Type de machine :"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "FPU :"
 
 msgid "Internal"
-msgstr ""
+msgstr "Integré"
 
 msgid "Wait states:"
 msgstr "États d'attente :"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Activé (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Employer l'interprète 486 pur les processeurs 286 et 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Recompilateur dynamique"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "Vidéo 2 :"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Accélérateurs"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Graphique Voodoo 1 ou 2"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "Disques amovibles :"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Lecteurs de bandes"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Lecteurs de bandes :"
 
 msgid "Superdrives:"
 msgstr "Superdrives:"
@@ -736,13 +736,13 @@ msgid "Removable disk images"
 msgstr "Images de disque amovible"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Bande %1 (%2) : %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Bande %1 (%2) : %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Images de bande"
 
 msgid "Image %1"
 msgstr "Image %1"
@@ -862,7 +862,7 @@ msgid "File"
 msgstr "Fichier"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Géométrie"
 
 msgid "KB"
 msgstr "Ko"
@@ -1622,6 +1622,9 @@ msgstr "Précision RPM de moins 1.5%"
 
 msgid "2% below perfect RPM"
 msgstr "Précision RPM de moins 2%"
+
+msgid "Creating image…"
+msgstr "Création d'image…"
 
 msgid "(System Default)"
 msgstr "(Défaut du système)"
@@ -2884,7 +2887,7 @@ msgid "Remote Switch"
 msgstr "Commutateur distant"
 
 msgid "Shared secret:"
-msgstr "Secret partagé:"
+msgstr "Secret partagé :"
 
 msgid "Hub Mode"
 msgstr "Mode concentrateur"

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-02-11 06:30+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -353,13 +353,13 @@ msgid "Lock to this size"
 msgstr "锁定此大小"
 
 msgid "General"
-msgstr ""
+msgstr "通用"
 
 msgid "Processor"
-msgstr ""
+msgstr "处理器"
 
 msgid "Performance"
-msgstr ""
+msgstr "性能"
 
 msgid "Machine type:"
 msgstr "机器类型:"
@@ -389,7 +389,7 @@ msgid "FPU:"
 msgstr "浮点处理器 (FPU):"
 
 msgid "Internal"
-msgstr ""
+msgstr "内置"
 
 msgid "Wait states:"
 msgstr "等待状态 (WS):"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "启用 (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "为286及386处理器应用486解释器"
 
 msgid "Dynamic Recompiler"
 msgstr "动态重编译器"
@@ -434,7 +434,7 @@ msgid "Video #2:"
 msgstr "显卡 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "图形加速器"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 图形"
@@ -662,16 +662,16 @@ msgid "MO:"
 msgstr "磁光盘:"
 
 msgid "Removable disk drives"
-msgstr "可移动磁盘 驱动器"
+msgstr "可移动磁盘（ZIP）驱动器"
 
 msgid "Removable disks:"
 msgstr "可移动磁盘:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "磁带驱动器"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "磁带驱动器："
 
 msgid "Superdrives:"
 msgstr "Superdrives:"
@@ -737,13 +737,13 @@ msgid "Removable disk images"
 msgstr "可移动磁盘 (ZIP) 映像"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "磁带%1 (%2)：%3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "磁带(&T) %1 (%2)：%3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "磁带镜像"
 
 msgid "Image %1"
 msgstr "映像 %1"
@@ -863,7 +863,7 @@ msgid "File"
 msgstr "文件"
 
 msgid "Geometry"
-msgstr ""
+msgstr "几何结构"
 
 msgid "KB"
 msgstr "KB"
@@ -1623,6 +1623,9 @@ msgstr "低于标准转速的 1.5%"
 
 msgid "2% below perfect RPM"
 msgstr "低于标准转速的 2%"
+
+msgid "Creating image…"
+msgstr "正在创建镜像…"
 
 msgid "(System Default)"
 msgstr "(系统默认)"
@@ -2693,7 +2696,7 @@ msgid "Named Pipe (Server)"
 msgstr "命名管道（服务器）"
 
 msgid "Named Pipe (Client)"
-msgstr "命名管道 (客户端)"
+msgstr "命名管道（客户端）"
 
 msgid "Host Serial Passthrough"
 msgstr "主机串口直通"
@@ -2711,34 +2714,34 @@ msgid "High performance impact"
 msgstr "重大性能影响"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] RAM 磁盘 (最大速度)"
+msgstr "[通用] 内存盘 (最大速度)"
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
-msgstr "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[通用] 1983 MFM (3600转)"
 
 msgid "[Generic] 1983 RLL (3600 RPM)"
-msgstr "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[通用] 1983 RLL (3600转)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr "[Generic] 1989 (3500 RPM)"
+msgstr "[通用] 1989 (3500转)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr "[Generic] 1992 (3600 RPM)"
+msgstr "[通用] 1992 (3600转)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr "[Generic] 1994 (4500 RPM)"
+msgstr "[通用] 1994 (4500转)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr "[Generic] 1996 (5400 RPM)"
+msgstr "[通用] 1996 (5400转)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr "[Generic] 1997 (5400 RPM)"
+msgstr "[通用] 1997 (5400转)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr "[Generic] 1998 (5400 RPM)"
+msgstr "[通用] 1998 (5400转)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr "[Generic] 2000 (7200 RPM)"
+msgstr "[通用] 2000 (7200转)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"
