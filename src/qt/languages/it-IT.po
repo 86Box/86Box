@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-03-10 13:36+0100\n"
+"PO-Revision-Date: 2026-03-10 17:38+0100\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it_IT\n"
@@ -210,28 +210,28 @@ msgid "&Update status bar icons"
 msgstr "&Aggiorna icone della barra di stato"
 
 msgid "Take s&creenshot"
-msgstr "&Cattura schermata"
+msgstr "&Cattura istantanea schermo"
 
 msgid "Take screenshot"
-msgstr "Cattura schermata"
+msgstr "Cattura istantanea schermo"
 
 msgid "Take &raw screenshot"
-msgstr "Cattura &grezza della schermata"
+msgstr "Cattura istantanea schermo &senza elaborazione"
 
 msgid "Take raw screenshot"
-msgstr "Cattura grezza della schermata"
+msgstr "Cattura istantanea schermo senza elaborazione"
 
 msgid "C&opy screenshot"
-msgstr "C&opia cattura della schermata"
+msgstr "C&opia istantanea schermo"
 
 msgid "Copy screenshot"
-msgstr "Copia cattura della schermata"
+msgstr "Copia istantanea schermo"
 
 msgid "Copy r&aw screenshot"
-msgstr "Copia cattura g&rezza della schermata"
+msgstr "Copia istantanea schermo &senza elaborazione"
 
 msgid "Copy raw screenshot"
-msgstr "Copia cattura grezza della schermata"
+msgstr "Copia istantanea schermo senza elaborazione"
 
 msgid "S&ound"
 msgstr "A&udio"
@@ -2946,7 +2946,7 @@ msgid "Toggle fullscreen"
 msgstr "Attiva/disattiva schermo intero"
 
 msgid "Toggle UI in fullscreen"
-msgstr "Attivare/disattivare interfaccia utente in modalità a schermo intero"
+msgstr "Attiva/disattiva interfaccia in modalità a schermo intero"
 
 msgid "Release mouse pointer"
 msgstr "Rilascia il puntatore del mouse"
