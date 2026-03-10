@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -662,7 +662,7 @@ msgid "MO:"
 msgstr "磁光盘:"
 
 msgid "Removable disk drives"
-msgstr "可移动磁盘 驱动器"
+msgstr "可移动磁盘（ZIP）驱动器"
 
 msgid "Removable disks:"
 msgstr "可移动磁盘:"
