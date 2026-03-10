@@ -10424,7 +10424,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM, /* Has onboard video: C&T F65545 */
+        .flags     = MACHINE_SUPER_IO | MACHINE_IDE, /* Has onboard video: C&T F65545 */
         .ram       = {
             .min  = 8192,
             .max  = 73728,
@@ -10855,7 +10855,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_SUPER_IO | MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -10905,7 +10905,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_IDE | MACHINE_SCSI | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_SCSI,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -10952,7 +10952,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -11048,7 +11048,7 @@ const machine_t machines[] = {
         },
         /* Has PCI but no user-facing slots. */
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM | MACHINE_PCI_INTERNAL,
+        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_VIDEO | MACHINE_PCI_INTERNAL,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
