@@ -1502,6 +1502,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_set_phase(dev, SCSI_PHASE_DATA_IN);
 
             max_len = MIN(3, cdb[4]);
+            if (!max_len)
+                max_len = 3;
 
             tape_buf_alloc(dev, 3);
             memset(dev->buffer, 0, 3);
@@ -2601,10 +2603,10 @@ tape_close(void)
 
                 if (dev->rec_buf)
                     free(dev->rec_buf);
-    
+
                 if (dev->tf)
                     free(dev->tf);
-    
+
                 if (dev->log != NULL) {
                     tape_log(dev->log, "Log closed\n");
                     log_close(dev->log);
