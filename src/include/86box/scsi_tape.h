@@ -58,6 +58,7 @@ static const tape_drive_type_t tape_drive_types[KNOWN_TAPE_DRIVE_TYPES] = {
 
 enum {
     TAPE_BUS_DISABLED = 0,
+    TAPE_BUS_ATAPI    = 8,
     TAPE_BUS_SCSI     = 9
 };
 
@@ -66,8 +67,10 @@ typedef struct tape_drive_t {
 
     union {
         uint8_t            res;
+        /* Reserved for other ID's. */
         uint8_t            res0;
         uint8_t            res1;
+        uint8_t            ide_channel;
         uint8_t            scsi_device_id;
     };
 

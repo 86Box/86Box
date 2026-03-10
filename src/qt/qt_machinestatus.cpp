@@ -502,7 +502,14 @@ MachineStatus::iterateMO(const std::function<void(int)> &cb)
 void
 MachineStatus::iterateTape(const std::function<void(int)> &cb)
 {
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     for (size_t i = 0; i < TAPE_NUM; i++) {
+        /* Could be Internal or External IDE.. */
+        if ((tape_drives[i].bus_type == TAPE_BUS_ATAPI) && !hasIDE() &&
+            (hdc_name.left(3) != QStringLiteral("ide")) &&
+            (hdc_name.left(5) != QStringLiteral("xtide")) &&
+            (hdc_name.left(5) != QStringLiteral("mcide")))
+            continue;
         if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
             (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
