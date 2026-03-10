@@ -15,7 +15,7 @@
  */
 #define _GNU_SOURCE
 #include <inttypes.h>
-#ifdef ENABLE_SCSI_DISK_LOG
+#ifdef ENABLE_TAPE_LOG
 #include <stdarg.h>
 #endif
 #include <stdint.h>
@@ -1015,7 +1015,7 @@ tape_simh_write_filemark(tape_t *dev)
 static void
 tape_seek_blocks_forward(tape_t *dev, int32_t count)
 {
-    for (int32_t i = 0; i < count; i++) {
+    while (1) {
         uint32_t leading_len;
 
         if (tape_read_marker(dev, &leading_len) < 0) {
@@ -1035,10 +1035,18 @@ tape_seek_blocks_forward(tape_t *dev, int32_t count)
         }
 
         /* Skip over the data and trailing length. */
-        fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
-        dev->tape_pos += 4 + leading_len + 4;
-        dev->num_blocks++;
         dev->bot = 0;
+        if (dev->num_blocks == count) {
+            /* Seek back to just after the filemark (before the EOD marker). */
+            fseeko64(dev->drv->fp, -4, SEEK_CUR);
+            tape_log(dev->log, "First data block after %i blocks, seek back\n", dev->num_blocks);
+            break;
+        } else {
+            fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
+            dev->tape_pos += 4 + leading_len + 4;
+            tape_log(dev->log, "Found %i blocks, increasing to %i\n", dev->num_blocks, dev->num_blocks + 1);
+            dev->num_blocks++;
+       }
     }
 
     return;
@@ -1074,10 +1082,10 @@ tape_space_blocks_forward(tape_t *dev, int32_t count)
         }
 
         /* Skip over the data and trailing length. */
+        dev->bot = 0;
         fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
         dev->tape_pos += 4 + leading_len + 4;
         dev->num_blocks++;
-        dev->bot = 0;
         spaced++;
     }
 
