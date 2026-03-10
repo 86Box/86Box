@@ -13251,7 +13251,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -14404,7 +14404,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -14453,7 +14453,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -14501,7 +14501,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 8192,
-            .max  = 139264,
+            .max  = 270336,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -14551,7 +14551,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
-            .max  = 196608,
+            .max  = 393216,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -14599,6 +14599,9 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 4096,
+            /* The user manual says up to 512 MB of RAM can be installed. However, in practice,
+            the BIOS only recognizes up to 256 MB. Since AOpen AP61 also does this same behavior,
+            I suspect it to be an early AwardBIOS v4.5x limitation. */
             .max  = 262144,
             .step = 4096
         },
@@ -17099,7 +17102,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430VX] Packard Bell Orlando/2D/3D/MMX (PB680/PB682/PB683/PB685)",
+        .name              = "[i430VX] Packard Bell Orlando/2D/3D/MMX (PB68x)",
         .internal_name     = "pb680",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -17148,7 +17151,7 @@ const machine_t machines[] = {
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
-        .name              = "[i430VX] Packard Bell PB810/820 (GVC/BCM FM530)",
+        .name              = "[i430VX] Packard Bell PB810/820 (BCM FM530)",
         .internal_name     = "pb810",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -19014,6 +19017,8 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 8192,
+            /* As also noted in the DFI G586VPM entry, the BIOS unusually only recognizes up
+            to 256 MB of RAM. This is likely a limitation of early AwardBIOS v4.5x instances. */
             .max  = 262144,
             .step = 8192
         },
@@ -21483,11 +21488,11 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET370,
-            .block       = CPU_BLOCK_NONE,
+            .block       = CPU_BLOCK(CPU_CYRIX3S),
             .min_bus     = 66666667,
-            .max_bus     = 100000000,
+            .max_bus     = 83333333,
             .min_voltage = 1800,
-            .max_voltage = 3500,
+            .max_voltage = 2000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED,
         },
@@ -21680,11 +21685,11 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET370,
-            .block       = CPU_BLOCK_NONE,
+            .block       = CPU_BLOCK(CPU_CYRIX3S),
             .min_bus     = 66666667,
             .max_bus     = 100000000,
             .min_voltage = 1800,
-            .max_voltage = 3500,
+            .max_voltage = 2000,
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
@@ -21734,7 +21739,7 @@ const machine_t machines[] = {
             .min_bus     = 60000000,
             .max_bus     = 100000000,
             .min_voltage = 1800,
-            .max_voltage = 3500,
+            .max_voltage = 2000,
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
