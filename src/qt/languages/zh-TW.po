@@ -38,7 +38,7 @@ msgid "Pause"
 msgstr "暫停"
 
 msgid "Re&sume"
-msgstr "恢復"
+msgstr "恢復(&S)"
 
 msgid "E&xit"
 msgstr "退出(&X)"
@@ -287,7 +287,7 @@ msgid "&Image…"
 msgstr "影像(&I)…"
 
 msgid "E&xport to 86F…"
-msgstr "匯出為 86F 格式(&x)…"
+msgstr "匯出為 86F 格式(&X)…"
 
 msgid "&Mute"
 msgstr "靜音(&M)"
@@ -353,13 +353,13 @@ msgid "Lock to this size"
 msgstr "鎖定此大小"
 
 msgid "General"
-msgstr ""
+msgstr "一般"
 
 msgid "Processor"
-msgstr ""
+msgstr "處理器"
 
 msgid "Performance"
-msgstr ""
+msgstr "效能"
 
 msgid "Machine type:"
 msgstr "機器類型:"
@@ -389,7 +389,7 @@ msgid "FPU:"
 msgstr "浮點運算器 (FPU):"
 
 msgid "Internal"
-msgstr ""
+msgstr "內建"
 
 msgid "Wait states:"
 msgstr "等待狀態 (WS):"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "啟用 (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "啓用 486 直譯器於 286 及 386 處理器"
 
 msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
@@ -434,7 +434,7 @@ msgid "Video #2:"
 msgstr "顯示卡 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "加速卡"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 圖形"
@@ -596,7 +596,7 @@ msgid "Controller 4:"
 msgstr "控制器 4:"
 
 msgid "Cassette"
-msgstr "磁帶"
+msgstr "卡帶"
 
 msgid "Hard disks:"
 msgstr "硬碟:"
@@ -668,10 +668,10 @@ msgid "Removable disks:"
 msgstr "抽取式磁碟:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "磁帶機"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "磁帶機:"
 
 msgid "ISA RTC:"
 msgstr "ISA 實時時鐘:"
@@ -725,19 +725,19 @@ msgid "Removable disk %1 (%2): %3"
 msgstr "抽取式磁碟 %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "抽取式磁碟(&R) %1 (%2): %3"
+msgstr "抽取式磁碟 %1 (%2): %3(&R)"
 
 msgid "Removable disk images"
 msgstr "抽取式磁碟影像"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "磁帶機 %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "磁帶機 %1 (%2): %3(&T)"
 
 msgid "Tape images"
-msgstr ""
+msgstr "磁帶影像"
 
 msgid "Image %1"
 msgstr "影像 %1"
@@ -857,7 +857,7 @@ msgid "File"
 msgstr "檔案"
 
 msgid "Geometry"
-msgstr ""
+msgstr "磁碟參數"
 
 msgid "KB"
 msgstr "KB"
@@ -1040,7 +1040,7 @@ msgid "About %1"
 msgstr "關於 %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n之前的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公眾授權條款第二版或更新版本發佈。詳情見 LICENSE 檔案。"
+msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\n早期的核心貢獻來自 Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公眾授權條款第二版或更新版本發佈。詳情見 LICENSE 檔案。"
 
 msgid "Hardware not available"
 msgstr "硬體不可用"
@@ -1091,22 +1091,22 @@ msgid "Continue"
 msgstr "繼續"
 
 msgid "Cassette: %1"
-msgstr "磁帶: %1"
+msgstr "卡帶: %1"
 
 msgid "C&assette: %1"
-msgstr "磁帶: %1(&A)"
+msgstr "卡帶: %1(&A)"
 
 msgid "Cassette images"
-msgstr "磁帶影像"
+msgstr "卡帶影像"
 
 msgid "Cartridge %1: %2"
-msgstr "卡帶 %1: %2"
+msgstr "卡匣 %1: %2"
 
 msgid "Car&tridge %1: %2"
-msgstr "卡帶 %1: %2(&A)"
+msgstr "卡匣 %1: %2(&T)"
 
 msgid "Cartridge images"
-msgstr "卡帶影像"
+msgstr "卡匣影像"
 
 msgid "Resume execution"
 msgstr "恢復執行"
@@ -1355,7 +1355,7 @@ msgid "&Kill"
 msgstr "強制終止(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "強制終止虛擬機器可能會導致資料遺失。只有在 86Box 過程卡住時才執行此操作。\n\n您真的希望強制終止虛擬機器 \"%1\"？"
+msgstr "強制終止虛擬機器可能會導致資料遺失。只有在 86Box 行程卡住時才執行此操作。\n\n您真的希望強制終止虛擬機器 \"%1\"？"
 
 msgid "&Delete"
 msgstr "刪除(&D)"
@@ -1618,6 +1618,9 @@ msgstr "低於標準轉速的 1.5%"
 msgid "2% below perfect RPM"
 msgstr "低於標準轉速的 2%"
 
+msgid "Creating image…"
+msgstr "新建影像…"
+
 msgid "(System Default)"
 msgstr "(系統預設)"
 
@@ -1652,7 +1655,7 @@ msgid "WinBox is no longer supported"
 msgstr "不再支援 WinBox"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "WinBox 於 2022 年因缺乏維護者而停止發展。由於我們傾注全力於將 86Box 做的更好，我們決定不再支援將 WinBox 做為前端管理程式。\n\n在 WinBox 未提供更新前，搭配新版本的 86Box 使用將導致不正確的行為。任何由 WinBox 引起的錯誤回報將以無效結案。\n\n請造訪 86box.net 網站以取得其他可用的前端管理程式列表。"
+msgstr "WinBox 於 2022 年因缺乏維護者而停止發展。由於我們傾注全力於將 86Box 做的更好，我們決定不再支援將 WinBox 做為前端管理程式。\n\n在 WinBox 未提供更新前，搭配新版本的 86Box 使用將導致不正確的行為。任何由 WinBox 引起的錯誤回報將標記為無效而結案。\n\n請造訪 86box.net 網站以取得其他可用的前端管理程式列表。"
 
 msgid "Generate"
 msgstr "產生"
@@ -1679,10 +1682,10 @@ msgid "&Tablet tool"
 msgstr "平板工具(&T)"
 
 msgid "About &Qt"
-msgstr "關於 &Qt"
+msgstr "關於 Qt(&Q)"
 
 msgid "&MCA devices…"
-msgstr "&MCA 裝置…"
+msgstr "MCA 裝置(&M)…"
 
 msgid "Show non-&primary monitors"
 msgstr "顯示非主要監視器(&P)"
@@ -1700,7 +1703,7 @@ msgid "&Pen"
 msgstr "筆(&P)"
 
 msgid "&Host CD/DVD Drive (%1:)"
-msgstr "主機 CD/DVD 光碟機 (%1:) (&H)"
+msgstr "主機 CD/DVD 光碟機 (%1:)(&H)"
 
 msgid "&Connected"
 msgstr "已連線(&C)"
@@ -1994,7 +1997,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 擴充單元"
 
 msgid "IBM Cassette Basic"
-msgstr "IBM 磁帶式 BASIC"
+msgstr "IBM 卡帶式 BASIC"
 
 msgid "Translate 26 -> 17"
 msgstr "轉換 26 -> 17"
@@ -2894,7 +2897,7 @@ msgid "ISA ROM:"
 msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
-msgstr "清除(&W) NVRAM"
+msgstr "清除 NVRAM(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
 msgstr "這將刪除位於 (\"nvr\" 子目錄中的) 虛擬機器的所有 NVRAM (和相關) 檔案。如果套用的話，您必須重新設定 BIOS (可能還有虛擬機器內的其他裝置) 設定。\n\n您確定要清除虛擬機 \"%1\" 的所有 NVRAM 內容嗎？"

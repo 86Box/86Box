@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-30 18:56+0000\n"
+"PO-Revision-Date: 2026-03-10 16:31+0000\n"
 "Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -353,13 +353,13 @@ msgid "Lock to this size"
 msgstr "Stały rozmiar"
 
 msgid "General"
-msgstr ""
+msgstr "Ogólne"
 
 msgid "Processor"
-msgstr ""
+msgstr "Procesor"
 
 msgid "Performance"
-msgstr ""
+msgstr "Wydajność"
 
 msgid "Machine type:"
 msgstr "Rodzaj maszyny:"
@@ -389,7 +389,7 @@ msgid "FPU:"
 msgstr "Jednostka FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Zintegrowany"
 
 msgid "Wait states:"
 msgstr "Stany oczekiwania:"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "Włączona (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Użyj interpretera 486 dla procesorów 286 i 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamiczny rekompilator"
@@ -434,7 +434,7 @@ msgid "Video #2:"
 msgstr "Wideo 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Akceleratory"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Grafika Voodoo 1 lub 2"
@@ -668,10 +668,10 @@ msgid "Removable disks:"
 msgstr "Dyski wymienne:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Napędy taśmowe"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Napędy taśmowe:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -731,13 +731,13 @@ msgid "Removable disk images"
 msgstr "Obrazy dysków wymiennych"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Taśma %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Taśma %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Obrazy taśmowe"
 
 msgid "Image %1"
 msgstr "Obraz %1"
@@ -857,7 +857,7 @@ msgid "File"
 msgstr "Plik"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -1617,6 +1617,9 @@ msgstr "1.5% poniżej idealnych obrotów"
 
 msgid "2% below perfect RPM"
 msgstr "2% poniżej idealnych obrotów"
+
+msgid "Creating image…"
+msgstr "Tworzenie obrazu…"
 
 msgid "(System Default)"
 msgstr "(Domyślne ustawienie systemowe)"

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://weblate.86box.net/projects/"
 "86box/86box/pt_PT/>\n"
@@ -1617,6 +1617,9 @@ msgstr "RPM 1.5% abaixo do RPM perfeito"
 
 msgid "2% below perfect RPM"
 msgstr "RPM 2% abaixo do RPM perfeito"
+
+msgid "Creating image…"
+msgstr "A criar imagem…"
 
 msgid "(System Default)"
 msgstr "(Padrão do sistema)"

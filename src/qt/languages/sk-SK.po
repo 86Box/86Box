@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovak <https://weblate.86box.net/projects/86box/86box/sk/>\n"
 "Language: sk-SK\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "Uzamknúť na tieto rozmery"
 
 msgid "General"
-msgstr ""
+msgstr "Všeobecné"
 
 msgid "Processor"
-msgstr ""
+msgstr "Procesor"
 
 msgid "Performance"
-msgstr ""
+msgstr "Výkon"
 
 msgid "Machine type:"
 msgstr "Typ počítača:"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "Koprocesor:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Integrovaný"
 
 msgid "Wait states:"
 msgstr "Čakacie stavy:"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Zapnutá (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Použi interpret 486 pre procesory 286 a 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamický prekladač"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "Grafika 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Akcelerátory"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Grafický akcelerátor Voodoo 1 alebo 2"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "Vymeniteľné disky:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Páskové mechaniky"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Páskové mechaniky:"
 
 msgid "ISA RTC:"
 msgstr "ISA hodiny:"
@@ -730,13 +730,13 @@ msgid "Removable disk images"
 msgstr "Obrazy vymeniteľných diskov"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Páska %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Páska %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Páskové obrazy"
 
 msgid "Image %1"
 msgstr "Obraz %1"
@@ -856,7 +856,7 @@ msgid "File"
 msgstr "Súbor"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -1616,6 +1616,9 @@ msgstr "1.5% pod dokonalými ot./m"
 
 msgid "2% below perfect RPM"
 msgstr "2% pod dokonalými ot./m"
+
+msgid "Creating image…"
+msgstr "Vytváranie obrázu…"
 
 msgid "(System Default)"
 msgstr "(Predvolené nastavenie systému)"

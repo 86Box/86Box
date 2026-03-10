@@ -250,8 +250,6 @@ static void
 hb4_smram(hb4_t *dev)
 {
     smram_disable_all();
-    if (dev->smram_base != 0x00000000)
-        umc_smram_recalc(dev->smram_base >> 12, 0);
 
     dev->smram_base = ((uint32_t) dev->pci_conf[0x5c]) << 20;
     dev->smram_base |= ((uint32_t) (dev->pci_conf[0x5d] & 0x0f)) << 28;
@@ -268,8 +266,6 @@ hb4_smram(hb4_t *dev)
             mem_set_mem_state_smram_ex(0, dev->smram_base, 0x20000, 0x02);
         mem_set_mem_state_smram_ex(1, dev->smram_base, 0x20000, 0x02);
     }
-
-    umc_smram_recalc(dev->smram_base >> 12, 1);
 
     flushmmucache();
 }
