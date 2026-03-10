@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 09:51+0000\n"
-"Last-Translator: GttzRapero219 <GttzRapero219@gmail.com>\n"
+"PO-Revision-Date: 2026-03-10 09:52+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -2708,25 +2708,25 @@ msgid "High performance impact"
 msgstr "重大性能影响"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] 内存盘 (最大速度)"
+msgstr "[通用] 内存盘 (最大速度)"
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
-msgstr "[Generic] 1983 MFM (3600转)"
+msgstr "[通用] 1983 MFM (3600转)"
 
 msgid "[Generic] 1983 RLL (3600 RPM)"
-msgstr "[Generic] 1983 RLL (3600转)"
+msgstr "[通用] 1983 RLL (3600转)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[通用] 1989 (3500转)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr "[Generic] 1992 (3600转)"
+msgstr "[通用] 1992 (3600转)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr "[Generic] 1994 (4500转)"
+msgstr "[通用] 1994 (4500转)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr "[Generic] 1996 (5400转)"
+msgstr "[通用] 1996 (5400转)"
 
 msgid "[Generic] 1997 (5400 RPM)"
 msgstr "[Generic] 1997 (5400转)"
