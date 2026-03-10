@@ -2901,37 +2901,6 @@ mem_init(void)
 }
 
 static void
-umc_page_recalc(uint32_t c, uint32_t phys, int set)
-{
-    uint32_t target = set ? phys : c;
-
-    if (set) {
-        pages[c].mem = &ram[(target & 0xff) << 12];
-        pages[c].write_b = mem_write_ramb_page;
-        pages[c].write_w = mem_write_ramw_page;
-        pages[c].write_l = mem_write_raml_page;
-    } else {
-        pages[c].mem = page_ff;
-        pages[c].write_b = NULL;
-        pages[c].write_w = NULL;
-        pages[c].write_l = NULL;
-    }
-
-#ifdef USE_NEW_DYNAREC
-    pages[c].evict_prev             = EVICT_NOT_IN_LIST;
-    pages[c].byte_dirty_mask        = &byte_dirty_mask[(target & 0xff) * 64];
-    pages[c].byte_code_present_mask = &byte_code_present_mask[(target & 0xff) * 64];
-#endif
-}
-
-void
-umc_smram_recalc(uint32_t start, int set)
-{
-    for (uint32_t c = start; c < (start + 0x0020); c++)
-        umc_page_recalc(c, c - start + 0x000a0000, set);
-}
-
-static void
 mem_remap_top_ex_common(int kb, uint32_t start, int mid)
 {
     uint32_t   c;
