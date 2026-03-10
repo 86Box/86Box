@@ -7901,7 +7901,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -7948,7 +7948,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -7995,7 +7995,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -8043,7 +8043,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8090,7 +8090,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8138,7 +8138,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8185,7 +8185,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8279,7 +8279,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -8330,7 +8330,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 64512,
@@ -8377,7 +8377,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -8425,7 +8425,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -8473,7 +8473,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 20480,
@@ -8617,7 +8617,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -8664,7 +8664,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -8761,7 +8761,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM | MACHINE_GAMEPORT,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 4096,
             .max  = 36864,
@@ -8903,7 +8903,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -9044,7 +9044,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_APM | MACHINE_VIDEO | MACHINE_IDE_DUAL,
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -9091,7 +9091,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM, /* Machine has IDE with controller: Appian ADI/2 */
+        .flags     = MACHINE_FLAGS_NONE, /* Machine has IDE with controller: Appian ADI/2 */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -9185,7 +9185,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -9233,7 +9233,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -9280,7 +9280,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -9328,7 +9328,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -9616,7 +9616,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -9663,7 +9663,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -9759,7 +9759,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal SCSI: Adaptec AIC-6360 */
+        .flags     = MACHINE_IDE, /* Machine has internal SCSI: Adaptec AIC-6360 */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
