@@ -2044,7 +2044,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                 switch (cdb[2]) {
                     case 0x00:
                         dev->buffer[idx++] = 0x00;
-                        dev->buffer[idx++] = 0x83;
+                        dev->buffer[idx++] = 0x80;
                         break;
                     case 0x80:
                         dev->buffer[idx++] = strlen("VCM!10") + 1;
