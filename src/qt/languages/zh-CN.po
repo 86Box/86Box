@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 09:52+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -2729,13 +2729,13 @@ msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[通用] 1996 (5400转)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr "[Generic] 1997 (5400转)"
+msgstr "[通用] 1997 (5400转)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr "[Generic] 1998 (5400转)"
+msgstr "[通用] 1998 (5400转)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr "[Generic] 2000 (7200转)"
+msgstr "[通用] 2000 (7200转)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"
