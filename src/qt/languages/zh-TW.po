@@ -596,7 +596,7 @@ msgid "Controller 4:"
 msgstr "控制器 4:"
 
 msgid "Cassette"
-msgstr "磁帶"
+msgstr "卡帶"
 
 msgid "Hard disks:"
 msgstr "硬碟:"
@@ -1091,22 +1091,22 @@ msgid "Continue"
 msgstr "繼續"
 
 msgid "Cassette: %1"
-msgstr "磁帶: %1"
+msgstr "卡帶: %1"
 
 msgid "C&assette: %1"
-msgstr "磁帶: %1(&A)"
+msgstr "卡帶: %1(&A)"
 
 msgid "Cassette images"
-msgstr "磁帶影像"
+msgstr "卡帶影像"
 
 msgid "Cartridge %1: %2"
-msgstr "卡帶 %1: %2"
+msgstr "卡匣 %1: %2"
 
 msgid "Car&tridge %1: %2"
-msgstr "卡帶 %1: %2(&A)"
+msgstr "卡匣 %1: %2(&T)"
 
 msgid "Cartridge images"
-msgstr "卡帶影像"
+msgstr "卡匣影像"
 
 msgid "Resume execution"
 msgstr "恢復執行"
@@ -1997,7 +1997,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 擴充單元"
 
 msgid "IBM Cassette Basic"
-msgstr "IBM 磁帶式 BASIC"
+msgstr "IBM 卡帶式 BASIC"
 
 msgid "Translate 26 -> 17"
 msgstr "轉換 26 -> 17"
