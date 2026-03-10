@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-03-10 16:31+0000\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "Włączona (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "Używać interpretera 486 dla procesorów 286 i 386"
+msgstr "Użyj interpretera 486 dla procesorów 286 i 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamiczny rekompilator"
@@ -1619,7 +1619,7 @@ msgid "2% below perfect RPM"
 msgstr "2% poniżej idealnych obrotów"
 
 msgid "Creating image…"
-msgstr "Trwa tworzenie obrazu…"
+msgstr "Tworzenie obrazu…"
 
 msgid "(System Default)"
 msgstr "(Domyślne ustawienie systemowe)"
