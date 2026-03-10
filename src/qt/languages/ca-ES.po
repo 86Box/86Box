@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.86box.net/projects/86box/86box/ca/>\n"
 "Language: ca-ES\n"
@@ -352,13 +352,13 @@ msgid "Lock to this size"
 msgstr "Fixa a aquesta grandària"
 
 msgid "General"
-msgstr ""
+msgstr "General"
 
 msgid "Processor"
-msgstr ""
+msgstr "Processador"
 
 msgid "Performance"
-msgstr ""
+msgstr "Rendiment"
 
 msgid "Machine type:"
 msgstr "Tipus de màquina:"
@@ -388,7 +388,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Integrat"
 
 msgid "Wait states:"
 msgstr "Estats de espera:"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Activat (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Utilitzeu l'intèrpret 486 per a processadors 286 i 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinàmic"
@@ -433,7 +433,7 @@ msgid "Video #2:"
 msgstr "Vídeo 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Acceleradors"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gràfics Voodoo 1 o 2"
@@ -667,10 +667,10 @@ msgid "Removable disks:"
 msgstr "Discs extraïbles:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Unitats de cinta"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Unitats de cinta:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -730,13 +730,13 @@ msgid "Removable disk images"
 msgstr "Imatges de disc extraïble"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Cinta %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Cinta %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Imatges de cinta"
 
 msgid "Image %1"
 msgstr "Imatge %1"
@@ -856,7 +856,7 @@ msgid "File"
 msgstr "Fitxer"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -1616,6 +1616,9 @@ msgstr "1.5% per sota dels RPM perfectes"
 
 msgid "2% below perfect RPM"
 msgstr "2% per sota dels RPM perfectes"
+
+msgid "Creating image…"
+msgstr "Creant imatge…"
 
 msgid "(System Default)"
 msgstr "(Per defecte del sistema)"

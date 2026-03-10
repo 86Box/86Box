@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
@@ -353,13 +353,13 @@ msgid "Lock to this size"
 msgstr "サイズを固定"
 
 msgid "General"
-msgstr ""
+msgstr "一般"
 
 msgid "Processor"
-msgstr ""
+msgstr "プロセッサ"
 
 msgid "Performance"
-msgstr ""
+msgstr "パフォーマンス"
 
 msgid "Machine type:"
 msgstr "マシンタイプ:"
@@ -389,7 +389,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "内部"
 
 msgid "Wait states:"
 msgstr "ウェイトステート:"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "有効(UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "286および386プロセッサには486インタプリタを使用する"
 
 msgid "Dynamic Recompiler"
 msgstr "動的再コンパイル"
@@ -434,7 +434,7 @@ msgid "Video #2:"
 msgstr "ビデオカード2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "加速器"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo1または2グラフィック"
@@ -668,10 +668,10 @@ msgid "Removable disks:"
 msgstr "取り外し可能なディスク:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "テープドライブ"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "テープドライブ:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTCカード:"
@@ -731,13 +731,13 @@ msgid "Removable disk images"
 msgstr "取り外し可能なディスクイメージ"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "テープ %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "テープ(&T) %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "テープイメージ"
 
 msgid "Image %1"
 msgstr "イメージ %1"
@@ -857,7 +857,7 @@ msgid "File"
 msgstr "ファイル"
 
 msgid "Geometry"
-msgstr ""
+msgstr "ジオメトリ"
 
 msgid "KB"
 msgstr "KB"
@@ -1617,6 +1617,9 @@ msgstr "1.5%低いRPM"
 
 msgid "2% below perfect RPM"
 msgstr "2%低いRPM"
+
+msgid "Creating image…"
+msgstr "画像を作成中…"
 
 msgid "(System Default)"
 msgstr "(システム既定値)"

@@ -470,8 +470,6 @@ extern void mem_remap_top_ex_nomid(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
 extern void mem_remap_top_nomid(int kb);
 
-extern void umc_smram_recalc(uint32_t start, int set);
-
 extern void pcjr_waitstates(void *);
 
 extern mem_mapping_t *read_mapping[MEM_MAPPINGS_NO];

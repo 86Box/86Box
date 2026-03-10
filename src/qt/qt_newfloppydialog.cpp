@@ -200,7 +200,7 @@ NewFloppyDialog::onCreate()
     ui->fileField->setFileName(filename);
     FileType fileType;
 
-    QProgressDialog progress("Creating floppy image", QString(), 0, 100, this);
+    QProgressDialog progress(tr("Creating image…"), QString(), 0, 100, this);
     connect(this, &NewFloppyDialog::fileProgress, &progress, &QProgressDialog::setValue);
     connect(this, &NewFloppyDialog::fileProgress, [] { QApplication::processEvents(); });
     switch (mediaType_) {

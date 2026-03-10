@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-28 08:57+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://weblate.86box.net/projects/86box/"
 "86box/nb_NO/>\n"
@@ -353,13 +353,13 @@ msgid "Lock to this size"
 msgstr "Lås til denne størrelsen"
 
 msgid "General"
-msgstr ""
+msgstr "Generelt"
 
 msgid "Processor"
-msgstr ""
+msgstr "Prosessor"
 
 msgid "Performance"
-msgstr ""
+msgstr "Ytelse"
 
 msgid "Machine type:"
 msgstr "Maskintype:"
@@ -389,7 +389,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Integrert"
 
 msgid "Wait states:"
 msgstr "Ventetilstander:"
@@ -413,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "Aktivert (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Bruk 486-tolken for 286- og 386-prosessorer"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamisk recompilator"
@@ -434,7 +434,7 @@ msgid "Video #2:"
 msgstr "Video #2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Akseleratorer"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1- eller 2-grafikk"
@@ -668,10 +668,10 @@ msgid "Removable disks:"
 msgstr "Flyttbare disker:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Båndstasjoner"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Båndstasjoner:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -731,13 +731,13 @@ msgid "Removable disk images"
 msgstr "Flyttbare diskfiler"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Bånd %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Bånd %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Båndfiler"
 
 msgid "Image %1"
 msgstr "Diskfil %1"
@@ -857,7 +857,7 @@ msgid "File"
 msgstr "Fil"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometri"
 
 msgid "KB"
 msgstr "KB"
@@ -1617,6 +1617,9 @@ msgstr "1,5 % under perfekt RPM"
 
 msgid "2% below perfect RPM"
 msgstr "2 % under perfekt RPM"
+
+msgid "Creating image…"
+msgstr "Fil opprettes…"
 
 msgid "(System Default)"
 msgstr "(Systemstandard)"

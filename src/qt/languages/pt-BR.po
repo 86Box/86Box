@@ -1,12 +1,15 @@
 msgid ""
 msgstr ""
-"Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/"
-"86box/86box/pt_BR/>\n"
+"PO-Revision-Date: 2026-03-10 09:50+0000\n"
+"Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
+"Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
+"86box/pt_BR/>\n"
 "Language: pt-BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: pt_BR\n"
 "X-Source-Language: en_US\n"
 
@@ -350,13 +353,13 @@ msgid "Lock to this size"
 msgstr "Travar nesse tamanho"
 
 msgid "General"
-msgstr ""
+msgstr "Geral"
 
 msgid "Processor"
-msgstr ""
+msgstr "Processador"
 
 msgid "Performance"
-msgstr ""
+msgstr "Performance"
 
 msgid "Machine type:"
 msgstr "Tipo de máquina:"
@@ -386,7 +389,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Interno"
 
 msgid "Wait states:"
 msgstr "Estados de espera:"
@@ -410,7 +413,7 @@ msgid "Enabled (UTC)"
 msgstr "Ativar (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Usar o interpretador 486 para processadores 286 e 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
@@ -431,7 +434,7 @@ msgid "Video #2:"
 msgstr "Vídeo nº 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Aceleradores"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gráficos Voodoo 1 ou 2"
@@ -665,10 +668,10 @@ msgid "Removable disks:"
 msgstr "Discos removíveis:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Drives de Fita"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Drives de fita:"
 
 msgid "ISA RTC:"
 msgstr "RTC ISA:"
@@ -728,13 +731,13 @@ msgid "Removable disk images"
 msgstr "Imagens de disco removível"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Fita %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Fita %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Imagens de fita"
 
 msgid "Image %1"
 msgstr "Imagem %1"
@@ -854,7 +857,7 @@ msgid "File"
 msgstr "Arquivo"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -1614,6 +1617,9 @@ msgstr "1.5% abaixo da rotação ideal"
 
 msgid "2% below perfect RPM"
 msgstr "2% abaixo da rotação ideal"
+
+msgid "Creating image…"
+msgstr "Criando imagem…"
 
 msgid "(System Default)"
 msgstr "(Padrão do sistema)"

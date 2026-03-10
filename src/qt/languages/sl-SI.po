@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
@@ -354,13 +354,13 @@ msgid "Lock to this size"
 msgstr "Zakleni na to velikost"
 
 msgid "General"
-msgstr ""
+msgstr "Splošno"
 
 msgid "Processor"
-msgstr ""
+msgstr "Procesor"
 
 msgid "Performance"
-msgstr ""
+msgstr "Učinkovitost"
 
 msgid "Machine type:"
 msgstr "Vrsta sistema:"
@@ -390,7 +390,7 @@ msgid "FPU:"
 msgstr "Procesor plavajoče vejice:"
 
 msgid "Internal"
-msgstr ""
+msgstr "Vgrajen"
 
 msgid "Wait states:"
 msgstr "Čakalna stanja:"
@@ -414,7 +414,7 @@ msgid "Enabled (UTC)"
 msgstr "Omogočeno (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr ""
+msgstr "Uporabi interpreter za 486 tudi za procesorje 286 in 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Dinamični prevajalnik"
@@ -435,7 +435,7 @@ msgid "Video #2:"
 msgstr "Video 2:"
 
 msgid "Accelerators"
-msgstr ""
+msgstr "Pospeševalniki"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Grafika Voodoo 1 ali 2"
@@ -669,10 +669,10 @@ msgid "Removable disks:"
 msgstr "Odstranljivi diski:"
 
 msgid "Tape drives"
-msgstr ""
+msgstr "Tračne enote"
 
 msgid "Tape drives:"
-msgstr ""
+msgstr "Tračne enote:"
 
 msgid "ISA RTC:"
 msgstr "Ura realnega časa ISA:"
@@ -732,13 +732,13 @@ msgid "Removable disk images"
 msgstr "Slike odstranljivih diskov"
 
 msgid "Tape %1 (%2): %3"
-msgstr ""
+msgstr "Trak %1 (%2): %3"
 
 msgid "&Tape %1 (%2): %3"
-msgstr ""
+msgstr "&Trak %1 (%2): %3"
 
 msgid "Tape images"
-msgstr ""
+msgstr "Tračne slike"
 
 msgid "Image %1"
 msgstr "Slika %1"
@@ -858,7 +858,7 @@ msgid "File"
 msgstr "Datoteka"
 
 msgid "Geometry"
-msgstr ""
+msgstr "Geometrija"
 
 msgid "KB"
 msgstr "KB"
@@ -1618,6 +1618,9 @@ msgstr "1.5% pod popolnimi obrati"
 
 msgid "2% below perfect RPM"
 msgstr "2% pod popolnimi obrati"
+
+msgid "Creating image…"
+msgstr "Slika se ustvarja…"
 
 msgid "(System Default)"
 msgstr "(Sistemsko privzeto)"
