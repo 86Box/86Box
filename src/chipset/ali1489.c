@@ -308,7 +308,7 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
                                     break;
                             }
                             dev->regs[0x35] |= 0x0e;
-                        } else if (!(val & 0x10))
+                        } else if (!(val & 0x10) && !(val & 0x08))
                             dev->regs[0x35] &= ~0x0f;
                         break;
 
