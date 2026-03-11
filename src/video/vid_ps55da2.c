@@ -261,13 +261,13 @@
 #define LG_SET_RESET_2          0x10
 
 #ifndef RELEASE_BUILD
-#define ENABLE_DA2_LOG 1
+// #define ENABLE_DA2_LOG 1
 #endif
 
 #ifdef ENABLE_DA2_LOG
 // #    define ENABLE_DA2_DEBUGIO 1
 #    define ENABLE_DA2_DEBUGBLT 1
-// #    define ENABLE_DA2_DEBUGVRAM 1
+#    define ENABLE_DA2_DEBUGVRAM 1
 #    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
 int da2_do_log = ENABLE_DA2_LOG;
@@ -943,11 +943,8 @@ da2_bitblt_load(da2_t *da2)
     da2->bitblt.destpitch      = da2->bitblt.reg[0x21];
     da2->bitblt.srcpitch       = da2->bitblt.reg[0x22];
     da2->bitblt.cmd1       = da2->bitblt.reg[0x30];
-    if (da2->bitblt.cmd1 > 0xffff) {
-        da2->bitblt.cmd2 = da2->bitblt.cmd1 >> 16;
-        da2->bitblt.cmd1 &= 0xffff;
-    } else
-        da2->bitblt.cmd2 = 0;
+    da2->bitblt.cmd2 = da2->bitblt.cmd1 & 0xffffu;
+    da2->bitblt.cmd1 >>= 16;
     /*
         DOS/V Extension 1040x725 some DBCS uses 0xB0 others 0x90
     */
@@ -981,7 +978,7 @@ da2_bitblt_load(da2_t *da2)
     //     da2->gdcreg[i] = da2->bitblt.reg[i];
     // }
     /* Put DBCS char used by OS/2 and DOS/V Extension */
-    if (da2->bitblt.cmd1 == 0x0202) {
+    if (da2->bitblt.cmd2 == 0x0202) {
         da2->bitblt.exec    = DA2_BLT_CPUTCHAR;
         // if (da2->bitblt.destoption != 0xb0) // debug
         //     da2->bitblt.exec   = DA2_BLT_CDONE;
@@ -1012,7 +1009,7 @@ da2_bitblt_load(da2_t *da2)
 #endif
 
     /* Draw a line */
-    } else if (da2->bitblt.cmd1 == 0x128b) {
+    } else if (da2->bitblt.cmd1 == 0x128b || da2->bitblt.cmd2 == 0x128b) {
         da2->bitblt.exec           = DA2_BLT_CLINE;
         da2->bitblt.dest_x         = (da2->bitblt.reg[0x32] & 0xffff);
         da2->bitblt.dest_y         = (da2->bitblt.reg[0x34] & 0xffff);
