@@ -70,8 +70,10 @@ const uint8_t tape_command_flags[0x100] = {
     [0x11]          = IMPLEMENTED | CHECK_READY,             /* SPACE(6) */
     [0x12]          = IMPLEMENTED | ALLOW_UA,                /* INQUIRY */
     [0x15]          = IMPLEMENTED,                           /* MODE SELECT(6) */
-    [0x16]          = IMPLEMENTED | SCSI_ONLY,               /* RESERVE */
-    [0x17]          = IMPLEMENTED | SCSI_ONLY,               /* RELEASE */
+    [0x16]          = IMPLEMENTED,                           /* RESERVE */
+    // [0x16]          = IMPLEMENTED | SCSI_ONLY,               /* RESERVE */
+    [0x17]          = IMPLEMENTED,                           /* RELEASE */
+    // [0x17]          = IMPLEMENTED | SCSI_ONLY,               /* RELEASE */
     [0x19]          = IMPLEMENTED | CHECK_READY,             /* ERASE(6) */
     [0x1a]          = IMPLEMENTED,                           /* MODE SENSE(6) */
     [0x1b]          = IMPLEMENTED | CHECK_READY,             /* LOAD/UNLOAD */
@@ -83,6 +85,7 @@ const uint8_t tape_command_flags[0x100] = {
 };
 
 static uint64_t tape_mode_sense_page_flags =
+    GPMODEP_UNIT_ATN_PAGE |
     GPMODEP_R_W_ERROR_PAGE |
     GPMODEP_DISCONNECT_PAGE |
     GPMODEP_DATA_COMPRESS_PAGE |
@@ -91,6 +94,10 @@ static uint64_t tape_mode_sense_page_flags =
 
 static const mode_sense_pages_t tape_mode_sense_pages_default_scsi = {
     .pages = {
+        [0x00] = {
+            GPMODE_UNIT_ATN_PAGE, 0x06,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        },     /* Guesswork */
         [GPMODE_R_W_ERROR_PAGE] = {
             GPMODE_R_W_ERROR_PAGE, 0x0A,
             0x00, 0x03, 0x00, 0x00, 0x00, 0x00,
@@ -128,6 +135,10 @@ static const mode_sense_pages_t tape_mode_sense_pages_default_scsi = {
 
 static const mode_sense_pages_t tape_mode_sense_pages_changeable = {
     .pages = {
+        [0x00] = {
+            GPMODE_UNIT_ATN_PAGE, 0x06,
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+        },    /* Guesswork */
         [GPMODE_R_W_ERROR_PAGE] = {
             GPMODE_R_W_ERROR_PAGE, 0x0A,
             0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
@@ -496,7 +507,7 @@ tape_update_request_length(tape_t *dev, int len, const int block_len)
         case 0xa8:
         case 0xaa:
             /* Round it to the nearest 2048 bytes. */
-            dev->max_transfer_len = (dev->max_transfer_len >> 9) << 9;
+            dev->max_transfer_len = (dev->max_transfer_len / dev->block_size) * dev->block_size;
 
             /* Make sure total length is not bigger than sum of the lengths of
                all the requested blocks. */
@@ -1584,6 +1595,21 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                 tape_invalid_field_pl(dev, 0x00000000);
             break;
 
+        /* LOCATE on tapes. */
+        case GPCMD_SEEK_10:
+            count = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+
+            if (count > 0) {
+                tape_rewind(dev);
+
+                tape_seek_blocks_forward(dev, count);
+
+                tape_set_phase(dev, SCSI_PHASE_STATUS);
+                tape_command_complete(dev);
+            } else
+                tape_invalid_field_pl(dev, 0x00000000);
+            break;
+
         case GPCMD_READ_6: {
             /* Tape READ(6):
                CDB byte 1 bit 0: Fixed = 1 (fixed block), 0 (variable block)
@@ -1748,7 +1774,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                     return;
                 }
 
-                dev->packet_len = total_bytes;
+                dev->packet_len       = total_bytes;
+                dev->requested_blocks = xfer_len;
                 tape_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
                 tape_data_command_finish(dev, total_bytes, dev->block_size, total_bytes, 0);
 
@@ -1779,7 +1806,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                 if (actual_len > (int32_t) xfer_len)
                     actual_len = (int32_t) xfer_len;
 
-                dev->packet_len = actual_len;
+                dev->packet_len       = actual_len;
+                dev->requested_blocks = 1;
                 tape_set_buf_len(dev, BufLen, &actual_len);
                 tape_data_command_finish(dev, actual_len, actual_len, xfer_len, 0);
 
@@ -2019,6 +2047,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                 tape_log(dev->log, "LOAD\n");
                 if (dev->drv->fp == NULL)
                     tape_reload(dev->id);
+                tape_rewind(dev);
                 /* Host explicitly loaded the tape, clear any pending
                    media change notification. */
                 dev->unit_attention = 0;
@@ -2078,8 +2107,10 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->buffer[0] = 0x01;    /* Sequential access */
                 dev->buffer[1] = 0x80;        /* Removable */
                 /* SCSI-2 compliant */
-                dev->buffer[2] = (dev->drv->bus_type == TAPE_BUS_SCSI) ? 0x02 : 0x00;
-                dev->buffer[3] = (dev->drv->bus_type == TAPE_BUS_SCSI) ? 0x02 : 0x21;
+                // dev->buffer[2] = (dev->drv->bus_type == TAPE_BUS_SCSI) ? 0x02 : 0x00;
+                // dev->buffer[3] = (dev->drv->bus_type == TAPE_BUS_SCSI) ? 0x02 : 0x21;
+                dev->buffer[2] = 0x02;
+                dev->buffer[3] = 0x02;
 #if 0
                 dev->buffer[4] = 31;
 #endif
@@ -2126,10 +2157,10 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_MODE_SENSE_10:
             tape_set_phase(dev, SCSI_PHASE_DATA_IN);
 
-            if (dev->drv->bus_type == TAPE_BUS_SCSI)
+            // if (dev->drv->bus_type == TAPE_BUS_SCSI)
                 block_desc = ((cdb[1] >> 3) & 1) ? 0 : 1;
-            else
-                block_desc = 0;
+            // else
+                // block_desc = 0;
 
             if (cdb[0] == GPCMD_MODE_SENSE_6) {
                 len = cdb[4];
@@ -2309,7 +2340,7 @@ tape_phase_data_out(scsi_common_t *sc)
                 param_list_len = dev->current_cdb[4];
             }
 
-            if (dev->drv->bus_type == TAPE_BUS_SCSI) {
+            // if (dev->drv->bus_type == TAPE_BUS_SCSI) {
                 if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
                     block_desc_len = dev->buffer[2];
                     block_desc_len <<= 8;
@@ -2319,8 +2350,8 @@ tape_phase_data_out(scsi_common_t *sc)
                     block_desc_len <<= 8;
                     block_desc_len |= dev->buffer[7];
                 }
-            } else
-                block_desc_len = 0;
+            // } else
+                // block_desc_len = 0;
 
             /* If there's a block descriptor, parse the block size from it. */
             if (block_desc_len >= 8) {
@@ -2509,6 +2540,9 @@ tape_drive_reset(const int c)
         sd->phase_data_out = tape_phase_data_out;
         sd->command_stop   = tape_command_stop;
         sd->type           = SCSI_REMOVABLE_TAPE;
+
+        tape_log(dev->log, "SCSI Tape drive %i attached to SCSI ID %i\n",
+                 c, tape_drives[c].scsi_device_id);
     } else if (tape_drives[c].bus_type == TAPE_BUS_ATAPI) {
         /* ATAPI tape, attach to the IDE bus. */
         ide_t *id = ide_get_drive(tape_drives[c].ide_channel);
@@ -2586,9 +2620,6 @@ tape_hard_reset(void)
         dev->transition     = 0;
 
         tape_mode_sense_load(dev);
-
-        tape_log(dev->log, "SCSI Tape drive %i attached to SCSI ID %i\n",
-                 c, tape_drives[c].scsi_device_id);
     }
 }
 
