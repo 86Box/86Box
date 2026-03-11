@@ -1179,7 +1179,7 @@ static const device_config_t bravoms586_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "bravoms586v202",
+        .default_string = "bravoms586",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1187,7 +1187,7 @@ static const device_config_t bravoms586_config[] = {
         .bios           = {
             {
                 .name          = "AST BIOS version 1.03 (November 1994)",
-                .internal_name = "bravoms586",
+                .internal_name = "bravoms586_103",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1196,7 +1196,7 @@ static const device_config_t bravoms586_config[] = {
             },
             {
                 .name          = "AST BIOS version 2.02 (December 1995)",
-                .internal_name = "bravoms586v202",
+                .internal_name = "bravoms586",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
