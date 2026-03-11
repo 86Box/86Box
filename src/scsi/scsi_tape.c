@@ -2474,17 +2474,26 @@ static void
 tape_identify(const ide_t *ide, const int ide_has_dma)
 {
     const tape_t *dev                = (tape_t *) ide->sc;
-    char          device_identify[9] = { '8', '6', 'B', '_', 'T', 'P', '0', '0', 0 };
+    char          model[40];
 
-    device_identify[7] = dev->id + 0x30;
-    tape_log(dev->log, "ATAPI Identify: %s\n", device_identify);
+    memset(model, 0, 40);
 
     /* ATAPI device, sequential access device, removable media, accelerated DRQ */
     ide->buffer[0] = 0x8000 | (1 << 8) | 0x80 | (2 << 5);
     ide_padstr((char *) (ide->buffer + 10), "", 20);               /* Serial Number */
 
-    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);    /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), device_identify, 40);     /* Model */
+    if (tape_drives[dev->id].type > 0) {
+        snprintf(model, 40, "%s %s", tape_drive_types[tape_drives[dev->id].type].vendor,
+                 tape_drive_types[tape_drives[dev->id].type].model);
+        /* Firmware */
+        ide_padstr((char *) (ide->buffer + 23),
+                   tape_drive_types[tape_drives[dev->id].type].revision, 8);
+        ide_padstr((char *) (ide->buffer + 27), model, 40);                                          /* Model */
+    } else {
+        snprintf(model, 40, "%s %s%02i", EMU_NAME, "86B_TP", dev->id);
+        ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);    /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), model, 40);               /* Model */
+    }
 
     ide->buffer[49]  = 0x200;                                            /* LBA supported */
     /* Interpret zero byte count limit as maximum length. */
