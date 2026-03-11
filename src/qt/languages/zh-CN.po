@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-03-11 16:31+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -662,7 +662,7 @@ msgid "MO:"
 msgstr "磁光盘:"
 
 msgid "Removable disk drives"
-msgstr "可移动磁盘（ZIP）驱动器"
+msgstr "可移动磁盘驱动器"
 
 msgid "Removable disks:"
 msgstr "可移动磁盘:"
@@ -722,13 +722,13 @@ msgid "Speed"
 msgstr "速度"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "可移动磁盘 (ZIP) %1 (%2): %3"
+msgstr "可移动磁盘 %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "可移动磁盘(&R) (ZIP) %1 (%2): %3"
+msgstr "可移动磁盘(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "可移动磁盘 (ZIP) 映像"
+msgstr "可移动磁盘映像"
 
 msgid "Tape %1 (%2): %3"
 msgstr "磁带%1 (%2)：%3"
