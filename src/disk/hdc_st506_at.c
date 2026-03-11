@@ -810,7 +810,7 @@ mfm_close(void *priv)
 }
 
 const device_t st506_at_wd1003_device = {
-    .name          = "WD1003 AT MFM/RLL Controller",
+    .name          = "WD1003 AT (MFM/RLL)",
     .internal_name = "st506_at",
     .flags         = DEVICE_ISA16,
     .local         = 0,
