@@ -7690,7 +7690,7 @@ const machine_t machines[] = {
     /* Has AMIKey 'F' or MR BIOS 'M' KBC firmware, we give it the latter
        for the sake of keyboard controller diversity. */
     {
-        .name              = "[OPTi 495SX] DataExpert SX495",
+        .name              = "[OPTi 495SX] DataExpert OPTI-495SX",
         .internal_name     = "ami495",
         .type              = MACHINE_TYPE_386DX_486,
         .chipset           = MACHINE_CHIPSET_OPTI_495SX,
