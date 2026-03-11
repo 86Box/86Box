@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-03-12 16:30+0000\n"
+"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
@@ -1768,7 +1768,9 @@ msgid "Error initializing OpenGL"
 msgstr "Chyba při inicializaci OpenGL"
 
 msgid "\nFalling back to software rendering."
-msgstr "\nNávrat k softwarovému vykreslování."
+msgstr ""
+"\n"
+"Obnoví se softwarové vykreslování."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Při výběru obrazů médií (CD-ROM, disketa atd.) se otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému MacOS.</p></body></html>"
@@ -1972,7 +1974,7 @@ msgid "Address"
 msgstr "Adresa"
 
 msgid "IRQ"
-msgstr "IRQ"
+msgstr "Přerušení"
 
 msgid "Serial port IRQ"
 msgstr "Přerušení sériového portu"
@@ -1996,7 +1998,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "Rozšiřující jednotka IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "Kazetový Basic IBM"
+msgstr "Kazetový IBM Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Překládat 26 -> 17"
@@ -2209,13 +2211,13 @@ msgid "Use EEPROM setting"
 msgstr "Použít nastavení EEPROM"
 
 msgid "WSS IRQ"
-msgstr "IRQ WSS"
+msgstr "Přerušení WSS"
 
 msgid "WSS DMA"
 msgstr "DMA kanál WSS"
 
 msgid "RTC IRQ"
-msgstr "IRQ hodin reálného času"
+msgstr "Přerušení pro hodiny reálného času"
 
 msgid "RTC Port Address"
 msgstr "Adresa portu hodin reálného času"
@@ -2230,7 +2232,7 @@ msgid "Enable OPL"
 msgstr "Povolit OPL"
 
 msgid "Receive MIDI input (MPU-401)"
-msgstr "Příjem vstupu MIDI (MPU-401)"
+msgstr "Přijímat vstup MIDI (MPU-401)"
 
 msgid "SB low DMA"
 msgstr "Nízký DMA kanál SB"
@@ -2317,7 +2319,7 @@ msgid "Dithering"
 msgstr "Dithering"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "Povolit NMI pro emulace CGA"
+msgstr "Povolit NMI pro emulaci CGA"
 
 msgid "Voodoo type"
 msgstr "Typ karty Voodoo"
@@ -2404,7 +2406,8 @@ msgid "64 KB starting from F0000"
 msgstr "64 KB od F0000"
 
 msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
-msgstr "128 KB od E0000 (invertovaný MSB adresy, nejprve posledních 64 KB)"
+msgstr ""
+"128 KB od E0000 (invertovaný nejvyšší bit adresy, nejprve posledních 64 KB)"
 
 msgid "Sine"
 msgstr "Sinusový"
@@ -2710,7 +2713,7 @@ msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Obecný] Disk RAM (max. rychlost)"
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
-msgstr "[Obecný] 1983 RLL (3600 ot./m)"
+msgstr "[Obecný] 1983 MFM (3600 ot./m)"
 
 msgid "[Generic] 1983 RLL (3600 RPM)"
 msgstr "[Obecný] 1983 RLL (3600 ot./m)"
