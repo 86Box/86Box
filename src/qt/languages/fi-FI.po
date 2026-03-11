@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-08 16:28+0000\n"
-"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
+"PO-Revision-Date: 2026-03-11 16:31+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
 "MIME-Version: 1.0\n"
@@ -1114,7 +1114,7 @@ msgid "Pause execution"
 msgstr "Pysäytä suoritus"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Paina Ctrl+Alt+Del"
@@ -1996,7 +1996,7 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161-laajennusyksikkö"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Cassette Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Muunna 26 -> 17"
@@ -2617,7 +2617,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "3dfx Voodoo-grafiikkasuoritin"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU:ta)"
@@ -2743,10 +2743,10 @@ msgid "Vendor"
 msgstr "Valmistaja"
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr ""
+msgstr "30 Hz (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr ""
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Yleinen PC/XT-muistilaajennus"
@@ -2938,7 +2938,7 @@ msgid "stable"
 msgstr "vakaa"
 
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Sinulla on käytössä uusin %1-versio 86Boxista: %2"
