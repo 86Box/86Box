@@ -300,7 +300,7 @@ static const device_config_t laserxt_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "laserxt_126",
+        .default_string = "laserxt",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -317,7 +317,7 @@ static const device_config_t laserxt_config[] = {
             },
             {
                 .name          = "1.26",
-                .internal_name = "laserxt_126",
+                .internal_name = "laserxt",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
