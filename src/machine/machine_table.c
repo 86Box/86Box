@@ -8833,6 +8833,54 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
+    /* Has JetKey V5.0 KBC Firmware which clones an AMI 'H'.
+       The board was also seen 2003 with a -F string. */
+    {
+        .name              = "[ALi M1429] Olystar LIL1429",
+        .internal_name     = "ali1429",
+        .type              = MACHINE_TYPE_486_S2,
+        .chipset           = MACHINE_CHIPSET_ALI_M1429,
+        .init              = machine_at_ali1429_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 32768,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
     /* Uses an ACER/NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware (V4.01H). */
     {
         .name              = "[ALi M1429G] Acer A1G",
@@ -8903,54 +8951,6 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_VLB,
         .flags     = MACHINE_APM,
-        .ram       = {
-            .min  = 1024,
-            .max  = 32768,
-            .step = 1024
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* Has JetKey V5.0 KBC Firmware which clones an AMI 'H'.
-       The board was also seen 2003 with a -F string. */
-    {
-        .name              = "[ALi M1429] Olystar LIL1429",
-        .internal_name     = "ali1429",
-        .type              = MACHINE_TYPE_486_S2,
-        .chipset           = MACHINE_CHIPSET_ALI_M1429,
-        .init              = machine_at_ali1429_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
-            .max_bus     = 50000000,
-            .min_voltage = 5000,
-            .max_voltage = 5000,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -9405,53 +9405,6 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has AMIKey-2 'H' KBC firmware. */
-    {
-        .name              = "[OPTi 499] Alaris Cobalt LPX",
-        .internal_name     = "cobalt",
-        .type              = MACHINE_TYPE_486_S3,
-        .chipset           = MACHINE_CHIPSET_OPTI_499,
-        .init              = machine_at_cobalt_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3 | CPU_PKG_486BL,
-            .block       = CPU_BLOCK(CPU_P24T),
-            .min_bus     = 25000000,
-            .max_bus     = 50000000,
-            .min_voltage = 5000,
-            .max_voltage = 5000,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL,
-        .ram       = {
-            .min  = 1024,
-            .max  = 65536,
-            .step = 1024
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = &gd5428_vlb_onboard_device,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[ALi M1429G] ECS AL486",
@@ -9685,6 +9638,53 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* Has AMIKey-2 'H' KBC firmware. */
+    {
+        .name              = "[OPTi 499] Alaris Cobalt LPX",
+        .internal_name     = "cobalt",
+        .type              = MACHINE_TYPE_486_S3,
+        .chipset           = MACHINE_CHIPSET_OPTI_499,
+        .init              = machine_at_cobalt_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3 | CPU_PKG_486BL,
+            .block       = CPU_BLOCK(CPU_P24T),
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &gd5428_vlb_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL
     },
@@ -10449,57 +10449,6 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
-       KBC.
-       The BIOS string always ends in -U, but the BIOS will send AMIKey commands 0xCA
-       and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges, so I'm
-       going to give it an AMI 'U' KBC. */
-    {
-        .name              = "[ALi M1489] Unknown PCI486 V1-HJ3",
-        .internal_name     = "win486pci",
-        .type              = MACHINE_TYPE_486_S3_PCI,
-        .chipset           = MACHINE_CHIPSET_ALI_M1489,
-        .init              = machine_at_win486pci_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 20000000,
-            .max_bus     = 50000000,
-            .min_voltage = 3300,
-            .max_voltage = 5000,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
-        .ram       = {
-            .min  = 1024,
-            .max  = 65536,
-            .step = 1024
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
-        .default_jumpered_ecp_dma = 3,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00005500,
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
     /* Has an ALi M5042 keyboard controller with Phoenix MultiKey/42 v1.40 firmware. */
     {
         .name              = "[ALi M1489] ESA TF-486",
@@ -10584,6 +10533,57 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ALI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
+       KBC.
+       The BIOS string always ends in -U, but the BIOS will send AMIKey commands 0xCA
+       and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges, so I'm
+       going to give it an AMI 'U' KBC. */
+    {
+        .name              = "[ALi M1489] Unknown PCI486 V1-HJ3",
+        .internal_name     = "win486pci",
+        .type              = MACHINE_TYPE_486_S3_PCI,
+        .chipset           = MACHINE_CHIPSET_ALI_M1489,
+        .init              = machine_at_win486pci_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00005500,
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
@@ -10739,53 +10739,6 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
-    /* This has the Phoenix MultiKey KBC firmware. */
-    {
-        .name              = "[i420EX] Intel Classic/PCI ED (Ninja)",
-        .internal_name     = "ninja",
-        .type              = MACHINE_TYPE_486_S3_PCI,
-        .chipset           = MACHINE_CHIPSET_INTEL_420EX,
-        .init              = machine_at_ninja_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
-            .max_bus     = 33333333,
-            .min_voltage = 3300,
-            .max_voltage = 5000,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
-        .ram       = {
-            .min  = 1024,
-            .max  = 131072,
-            .step = 1024
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED,
-        .default_jumpered_ecp_dma = 4,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT_ZERO_DEFAULT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
     /* absolutely no KBC info */
     {
         .name              = "[i420EX] ICS SB486P",
@@ -10821,6 +10774,53 @@ const machine_t machines[] = {
         .kbc_params               = KBC_VEN_AMI | 0x00005200, /* Guess. */
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* This has the Phoenix MultiKey KBC firmware. */
+    {
+        .name              = "[i420EX] Intel Classic/PCI ED (Ninja)",
+        .internal_name     = "ninja",
+        .type              = MACHINE_TYPE_486_S3_PCI,
+        .chipset           = MACHINE_CHIPSET_INTEL_420EX,
+        .init              = machine_at_ninja_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
+        .ram       = {
+            .min  = 1024,
+            .max  = 131072,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED,
+        .default_jumpered_ecp_dma = 4,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
