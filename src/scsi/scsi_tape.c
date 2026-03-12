@@ -1192,23 +1192,31 @@ tape_space_filemarks_backward(tape_t *dev, int32_t count)
 {
     int32_t found = 0;
 
-    /* Read the trailing length of the previous record. */
-    fseeko64(dev->drv->fp, (int64_t)(dev->tape_pos - 4), SEEK_SET);
-
     while (found < count) {
+        if (dev->tape_pos == 0) {
+            dev->bot = 1;
+            return -(ABS(count) - found);
+        }
+
+        /* Read the trailing length of the previous record. */
+        fseeko64(dev->drv->fp, (int64_t)(dev->tape_pos - 4), SEEK_SET);
+
         uint32_t trailing_len;
 
         if (tape_read_marker(dev, &trailing_len) < 0)
-            return -(count - found);
+            return -(ABS(count) - found);
 
         if (trailing_len == TAPE_SIMH_FILEMARK) {
             dev->tape_pos -= 4;
+            fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
             found++;
         } else {
             /* Skip data record. */
-            fseeko64(dev->drv->fp, (int64_t)(-trailing_len - 4), SEEK_CUR);
-            dev->tape_pos -= 4 + trailing_len + 4;
-            dev->num_blocks--;
+            /* Back up over: trailing_len(4) + data(trailing_len) + leading_len(4). */
+            dev->tape_pos -= (4 + trailing_len + 4);
+            fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
+            if (dev->num_blocks > 0)
+                dev->num_blocks--;
         }
 
         dev->bot = 0;
