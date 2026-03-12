@@ -77,6 +77,38 @@ machine_at_pb410a_init(const machine_t *model)
 }
 
 /* ALi M1429G */
+static void
+machine_at_ali1429_common_init(const machine_t *model, int is_green)
+{
+    machine_at_common_init(model);
+
+    if (is_green)
+        device_add(&ali1429g_device);
+    else
+        device_add(&ali1429_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+}
+
+int
+machine_at_ali1429_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ali1429/ami486.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ali1429_common_init(model, 0);
+
+    return ret;
+}
+
 int
 machine_at_acera1g_init(const machine_t *model)
 {
@@ -102,22 +134,6 @@ machine_at_acera1g_init(const machine_t *model)
     return ret;
 }
 
-static void
-machine_at_ali1429_common_init(const machine_t *model, int is_green)
-{
-    machine_at_common_init(model);
-
-    if (is_green)
-        device_add(&ali1429g_device);
-    else
-        device_add(&ali1429_device);
-
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-}
-
 int
 machine_at_winbios1429_init(const machine_t *model)
 {
@@ -130,22 +146,6 @@ machine_at_winbios1429_init(const machine_t *model)
         return ret;
 
     machine_at_ali1429_common_init(model, 1);
-
-    return ret;
-}
-
-int
-machine_at_ali1429_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/ali1429/ami486.BIN",
-                           0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_ali1429_common_init(model, 0);
 
     return ret;
 }
@@ -218,32 +218,6 @@ machine_at_g486ip_init(const machine_t *model)
 }
 
 /* OPTi 499 */
-int
-machine_at_cobalt_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/cobalt/Cobalt_2.3.BIN",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&opti499_device);
-    device_add(&ide_opti611_vlb_device);
-    device_add(&ide_isa_sec_device);
-    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(machine_get_vid_device(machine));
-
-    return ret;
-}
-
 int
 machine_at_cougar_init(const machine_t *model)
 {

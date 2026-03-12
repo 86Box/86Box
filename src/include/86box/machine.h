@@ -729,9 +729,9 @@ extern int             machine_at_genoa486_init(const machine_t *);
 extern int             machine_at_pb410a_init(const machine_t *);
 
 /* ALi M1429G */
+extern int             machine_at_ali1429_init(const machine_t *);
 extern int             machine_at_acera1g_init(const machine_t *);
 extern int             machine_at_winbios1429_init(const machine_t *);
-extern int             machine_at_ali1429_init(const machine_t *);
 
 /* i420TX */
 extern int             machine_at_pci400ca_init(const machine_t *);
@@ -740,7 +740,6 @@ extern int             machine_at_pci400ca_init(const machine_t *);
 extern int             machine_at_g486ip_init(const machine_t *);
 
 /* OPTi 499 */
-extern int             machine_at_cobalt_init(const machine_t *);
 extern int             machine_at_cougar_init(const machine_t *);
 
 /* SiS 461 */
@@ -769,6 +768,7 @@ extern int             machine_at_greenb_init(const machine_t *);
 
 /* OPTi 499 */
 extern int             machine_at_xenon_init(const machine_t *);
+extern int             machine_at_cobalt_init(const machine_t *);
 
 /* OPTi 895 */
 #ifdef EMU_DEVICE_H
@@ -801,9 +801,9 @@ extern int             machine_at_tg486gp_init(const machine_t *);
 extern int             machine_at_sbc490_init(const machine_t *);
 extern int             machine_at_abpb4_init(const machine_t *);
 extern int             machine_at_arb1476_init(const machine_t *);
-extern int             machine_at_win486pci_init(const machine_t *);
 extern int             machine_at_tf486_init(const machine_t *);
 extern int             machine_at_ms4145_init(const machine_t *);
+extern int             machine_at_win486pci_init(const machine_t *);
 
 /* OPTi 802G */
 #ifdef EMU_DEVICE_H
@@ -821,8 +821,8 @@ extern int             machine_at_pb450_init(const machine_t *);
 extern int             machine_at_486pi_init(const machine_t *);
 extern int             machine_at_bat4ip3e_init(const machine_t *);
 extern int             machine_at_486ap4_init(const machine_t *);
-extern int             machine_at_ninja_init(const machine_t *);
 extern int             machine_at_sb486p_init(const machine_t *);
+extern int             machine_at_ninja_init(const machine_t *);
 
 /* i420TX */
 extern int             machine_at_amis76_init(const machine_t *);
