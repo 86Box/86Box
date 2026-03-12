@@ -433,10 +433,8 @@ machine_at_ms6117_init(const machine_t *model)
 
     device_context(model->device);
     fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
-    if (!strcmp(fn, "roms/machines/ms6117/W617MS32.BIN") || !strcmp(fn, "roms/machines/ms6117/611732x_patched.BIN") || !strcmp(fn, "roms/machines/ms6117/BIOS.BIN"))
-        ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
-    else
-        ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    int size = device_get_bios_file_size(machine_get_device(machine), device_get_config_bios("bios"));
+    ret = bios_load_linear(fn, 0x00100000 - size, size, 0);
     device_context_restore();
 
     if (bios_only || !ret)
@@ -457,12 +455,8 @@ machine_at_ms6117_init(const machine_t *model)
     device_add(&i440lx_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
+    device_add((size > 131072) ? &winbond_flash_w29c020_device /* assumed */ : &winbond_flash_w29c011a_device);
 
-    if (!strcmp(fn, "roms/machines/ms6117/W617MS32.BIN") || !strcmp(fn, "roms/machines/ms6117/611732x_patched.BIN") || !strcmp(fn, "roms/machines/ms6117/BIOS.BIN"))
-        device_add(&winbond_flash_w29c020_device); /* assumed */
-    else
-        device_add(&winbond_flash_w29c011a_device);
-    
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
     return ret;

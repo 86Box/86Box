@@ -3297,19 +3297,20 @@ save_image_file(char *cat, char *var, char *src)
     }
 
     if (strstr(src, "ioctl://") == src)
-        sprintf(temp, "%s", src);
+        snprintf(temp, 2048, "%s", src);
     else if (!strnicmp(src, usr_path, strlen(usr_path)))
-        sprintf(temp, "%s%s", prefix, &src[strlen(usr_path)]);
+        snprintf(temp, 2048, "%s%s", prefix, &src[strlen(usr_path)]);
     /* Do not relativize to root. */
     else if ((above2 != NULL) && (above3 != NULL) && !strnicmp(src, above2, strlen(above2)))
-        sprintf(temp, "../../%s%s", prefix, &src[strlen(above2)]);
+        snprintf(temp, 2048, "%s../../%s", prefix, &src[strlen(above2)]);
     /* Do not relativize to root. */
     else if ((above != NULL) && (above2 != NULL) && !strnicmp(src, above, strlen(above)))
-        sprintf(temp, "../%s%s", prefix, &src[strlen(above)]);
+        snprintf(temp, 2048, "%s../%s", prefix, &src[strlen(above)]);
     else if (!strnicmp(src, exe_path, strlen(exe_path)))
-        sprintf(temp, "<exe_path>/%s%s", prefix, &src[strlen(exe_path)]);
+        snprintf(temp, 2048, "%s<exe_path>/%s", prefix, &src[strlen(exe_path)]);
     else
-        sprintf(temp, "%s%s", prefix, src);
+        snprintf(temp, 2048, "%s%s", prefix, src);
+    temp[2047] = 0x00;
 
     ini_section_set_string(cat, var, temp);
 
