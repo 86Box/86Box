@@ -3311,8 +3311,6 @@ save_image_file(char *cat, char *var, char *src)
     else
         sprintf(temp, "%s%s", prefix, src);
 
-    fprintf(stderr, "temp: %s\n", temp);
-
     ini_section_set_string(cat, var, temp);
 
     if (above3 != NULL)
