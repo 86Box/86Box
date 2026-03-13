@@ -102,6 +102,7 @@ typedef struct {
 extern const char_device_t *char_get(const char *internal_name);
 extern void                 char_init(char_port_t *port, const char *init_string, int instance);
 
+extern const char_device_t hostfile_device;
 extern const char_device_t hostser_device;
 extern const char_device_t stdio_device;
 

@@ -170,17 +170,14 @@ stdio_write(uint8_t *buf, ssize_t len, void *priv)
 }
 
 static void
-stdio_port_config(void *priv)
-{
-    stdio_t *dev = (stdio_t *) priv;
-    (void) dev;
-}
-
-static void
 stdio_control(uint32_t flags, void *priv)
 {
     stdio_t *dev = (stdio_t *) priv;
-    (void) dev;
+    
+    if (flags & CHAR_COM_BREAK) {
+        uint8_t brk = 0;
+        stdio_write(&brk, sizeof(brk), dev);
+    }
 }
 
 static uint32_t
@@ -201,8 +198,7 @@ stdio_status(void *priv)
     if (dev->fd_out != -1)
 #endif
         ret |= CHAR_COM_CTS;
-    if (ret)
-        ret |= CHAR_COM_DSR;
+    ret |= ret ? CHAR_COM_DSR : CHAR_DISCONNECTED;
     return ret;
 }
 
@@ -353,7 +349,7 @@ const char_device_t stdio_device = {
     .flags       = 0,
     .read        = stdio_read,
     .write       = stdio_write,
-    .port_config = stdio_port_config,
+    .port_config = NULL,
     .control     = stdio_control,
     .status      = stdio_status
 };

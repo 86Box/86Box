@@ -29,6 +29,7 @@ static const struct {
     const char_device_t *chardev;
 } char_devices[] = {
     // clang-format off
+    { &hostfile_device },
     { &hostser_device },
     { &stdio_device },
     { 0 }
