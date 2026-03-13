@@ -59,7 +59,7 @@ tape_drive_t tape_drives[TAPE_NUM];
  */
 const uint8_t tape_command_flags[0x100] = {
     [0x00]          = IMPLEMENTED | CHECK_READY,             /* TEST UNIT READY */
-    [0x01]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY, /* REWIND */
+    [0x01]          = IMPLEMENTED | CHECK_READY,             /* REWIND */
     [0x02]          = IMPLEMENTED | CHECK_READY,             /* REQUEST BLOCK ADDRESS */
     [0x03]          = IMPLEMENTED | ALLOW_UA,                /* REQUEST SENSE */
     [0x05]          = IMPLEMENTED | CHECK_READY,             /* READ BLOCK LIMITS */
@@ -71,9 +71,7 @@ const uint8_t tape_command_flags[0x100] = {
     [0x12]          = IMPLEMENTED | ALLOW_UA,                /* INQUIRY */
     [0x15]          = IMPLEMENTED,                           /* MODE SELECT(6) */
     [0x16]          = IMPLEMENTED,                           /* RESERVE */
-    // [0x16]          = IMPLEMENTED | SCSI_ONLY,               /* RESERVE */
     [0x17]          = IMPLEMENTED,                           /* RELEASE */
-    // [0x17]          = IMPLEMENTED | SCSI_ONLY,               /* RELEASE */
     [0x19]          = IMPLEMENTED | CHECK_READY,             /* ERASE(6) */
     [0x1a]          = IMPLEMENTED,                           /* MODE SENSE(6) */
     [0x1b]          = IMPLEMENTED | CHECK_READY,             /* LOAD/UNLOAD */
