@@ -1791,7 +1791,7 @@ st506_init(const device_t *info)
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
-        case ST506_XT_TYPE_VICTOR_V86P: /* Victor V86P (RLL) */
+        case ST506_XT_TYPE_VICTOR_V86P: /* Victor V86P Fixed Disk Adapter (RLL) */
             fn = VICTOR_V86P_BIOS_FILE;
             break;
 
@@ -2450,7 +2450,7 @@ const device_t st506_xt_wd1004a_27x_device = {
 };
 
 const device_t st506_xt_victor_v86p_device = {
-    .name          = "Victor V86P (RLL)",
+    .name          = "Victor V86P Fixed Disk Adapter (RLL)",
     .internal_name = "st506_xt_victor_v86p",
     .flags         = DEVICE_ISA,
     .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_VICTOR_V86P,
