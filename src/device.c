@@ -232,6 +232,14 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         void *      old_sec    = config_find_section("ST-50X Fixed Disk Controller (PC5086)");
         if ((sec == NULL) && (old_sec != NULL))
             config_rename_section(old_sec, ctx->name);
+    } else if (!strcmp(dev->name, "Acculogic sIDE-1/16 (IDE)")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old "Acculogic XT IDE" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("Acculogic XT IDE");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
     } else
         sprintf(ctx->name, "%s", dev->name);
 }
