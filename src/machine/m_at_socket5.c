@@ -1186,7 +1186,7 @@ static const device_config_t bravoms586_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AST BIOS version 1.03 (November 1994)",
+                .name          = "Award AST BIOS - Revision 1.03 (November 1994)",
                 .internal_name = "bravoms586_103",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1195,7 +1195,7 @@ static const device_config_t bravoms586_config[] = {
                 .files         = { "roms/machines/bravoms586/asttest.bin", "" }
             },
             {
-                .name          = "AST BIOS version 2.02 (December 1995)",
+                .name          = "Award AST BIOS - Revision 2.02 (December 1995)",
                 .internal_name = "bravoms586",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
