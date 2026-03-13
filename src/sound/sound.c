@@ -14,7 +14,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2025 Miran Grca.
- *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2026 Jasmine Iwanek.
  */
 #include <math.h>
 #include <stdarg.h>

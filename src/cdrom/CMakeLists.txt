@@ -12,7 +12,7 @@
 #          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
-#          Copyright 2024      Jasmine Iwanek.
+#          Copyright 2024-2026 Jasmine Iwanek.
 #
 
 find_package(PkgConfig REQUIRED)
