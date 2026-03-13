@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-03-12 16:30+0000\n"
+"Last-Translator: toggo9 <johann2000@outlook.at>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -412,7 +412,7 @@ msgid "Enabled (UTC)"
 msgstr "Eingeschaltet (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "Verwenden den 486-Interpreter für 286- und 386-Prozessoren"
+msgstr "Verwende den 486-Interpreter für 286- und 386-Prozessoren"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamischer Recompiler"
