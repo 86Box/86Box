@@ -97,7 +97,8 @@
 #include <86box/ui.h>
 #include <86box/machine.h>
 
-#define HDC_TIME      (250 * TIMER_USEC)
+#define HDC_TIME         (10 * TIMER_USEC)
+#define HDC_SECTOR_TIME  (250 * TIMER_USEC)
 #define HDC_TYPE_USER 47 /* user drive type */
 
 enum {
@@ -718,7 +719,6 @@ hdc_callback(void *priv)
     ccb_t   *ccb = &dev->ccb;
     drive_t *drive;
     off64_t  addr;
-    int      no_data = 0;
     int      val;
 #ifdef ENABLE_PS1_HDC_LOG
     uint8_t  cmd = ccb->cmd & 0x0f;
@@ -754,7 +754,7 @@ hdc_callback(void *priv)
 
     switch (ccb->cmd) {
         case CMD_READ_VERIFY:
-            no_data = 1;
+            ccb->no_data = 1;
             fallthrough;
 
         case CMD_READ_SECTORS:
@@ -764,7 +764,7 @@ hdc_callback(void *priv)
                 return;
             }
 
-            if (!(dev->ready | no_data)) {
+            if (!(dev->ready | ccb->no_data)) {
                 /* Delay a bit, transfer not ready. */
                 timer_advance_u64(&dev->timer, HDC_TIME);
                 return;
@@ -809,8 +809,9 @@ do_send:
 
                     /* Ready to transfer the data out. */
                     dev->state   = STATE_SDATA;
+                    dev->status |= ASR_TX_EN;
                     dev->buf_idx = 0;
-                    if (no_data) {
+                    if (ccb->no_data) {
                         /* Delay a bit, no actual transfer. */
                         timer_advance_u64(&dev->timer, HDC_TIME);
                     } else {
@@ -832,7 +833,7 @@ do_send:
                     break;
 
                 case STATE_SDATA:
-                    if (!no_data) {
+                    if (!ccb->no_data) {
                         /* Perform DMA. */
                         while (dev->buf_idx < dev->buf_len) {
                             val = dma_channel_write(dev->dma,
@@ -852,7 +853,7 @@ do_send:
                         }
                     }
                     dev->state = STATE_SDONE;
-                    timer_advance_u64(&dev->timer, HDC_TIME);
+                    timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                     break;
 
                 case STATE_SDONE:
@@ -960,7 +961,7 @@ do_send:
                 return;
             }
 
-            if (!(dev->ready | no_data)) {
+            if (!(dev->ready | ccb->no_data)) {
                 /* Delay a bit, transfer not ready. */
                 timer_advance_u64(&dev->timer, HDC_TIME);
                 return;
@@ -992,8 +993,9 @@ do_send:
 do_recv:
                     /* Ready to transfer the data in. */
                     dev->state   = STATE_RDATA;
+                    dev->status |= ASR_TX_EN;
                     dev->buf_idx = 0;
-                    if (no_data) {
+                    if (ccb->no_data) {
                         /* Delay a bit, no actual transfer. */
                         timer_advance_u64(&dev->timer, HDC_TIME);
                     } else {
@@ -1010,7 +1012,7 @@ do_recv:
                     break;
 
                 case STATE_RDATA:
-                    if (!no_data) {
+                    if (!ccb->no_data) {
                         /* Perform DMA. */
                         while (dev->buf_idx < dev->buf_len) {
                             val = dma_channel_read(dev->dma);
@@ -1030,7 +1032,7 @@ do_recv:
                         }
                     }
                     dev->state = STATE_RDONE;
-                    timer_advance_u64(&dev->timer, HDC_TIME);
+                    timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                     break;
 
                 case STATE_RDONE:
@@ -1241,7 +1243,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                             dev->status |= ASR_BUSY;
 
                         /* Schedule command execution. */
-                        timer_set_delay_u64(&dev->timer, HDC_TIME);
+                        timer_set_delay_u64(&dev->timer, HDC_SECTOR_TIME);
                     }
                 }
             }
