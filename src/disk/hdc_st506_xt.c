@@ -84,6 +84,7 @@
 #include <86box/pic.h>
 #include <86box/hdc.h>
 #include <86box/hdd.h>
+#include <86box/hdd_audio.h>
 
 #define ST506_XT_TYPE_XEBEC              0
 #define ST506_XT_TYPE_WDXT_GEN           1
@@ -526,6 +527,9 @@ st506_callback(void *priv)
                         double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], 0, HDD_OP_SEEK, 0, 0.0);
                         timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
 
+                        hdd_audio_seek(&hdd[drive->hdd_num], 0);
+                        hdd[drive->hdd_num].cur_cylinder = 0;
+
                         dev->cylinder   = dev->cyl_off;
                         drive->cylinder = dev->cylinder;
                         dev->state      = STATE_DONE;
@@ -917,6 +921,10 @@ write_error:
                             if (get_sector(dev, drive, &addr)) {
                                 double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], addr, HDD_OP_SEEK, 0, 0.0);
                                 timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
+
+                                uint16_t new_cylinder = (uint16_t) dev->cylinder;
+                                hdd_audio_seek(&hdd[drive->hdd_num], new_cylinder);
+                                hdd[drive->hdd_num].cur_cylinder = new_cylinder;
 
                                 dev->state      = STATE_DONE;
                             } else {
