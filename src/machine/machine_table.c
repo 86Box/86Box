@@ -14381,7 +14381,7 @@ const machine_t machines[] = {
     /* This has AST KBC firmware, likely a Phoenix variant since the BIOS */
     /* calls KBC command D5h to read the KBC revision. */
     {
-        .name              = "[VLSI SuperCore] AST Bravo MS P/90",
+        .name              = "[VLSI SuperCore] AST Bravo MS/MS-T/MS-L (Rattler)",
         .internal_name     = "bravoms586",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_VLSI_SUPERCORE,
