@@ -14,12 +14,12 @@
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2025 Miran Grca.
- *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2026 Jasmine Iwanek.
  */
 #ifndef EMU_SOUND_H
 #define EMU_SOUND_H
 
-#define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalome MPU401 */
+#define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
 extern int sound_gain;
 
