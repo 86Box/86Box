@@ -98,7 +98,101 @@ machine_at_acerv62x_init(const machine_t *model)
     device_add(&piix3_device);
     device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_APM));
     device_add(&sst_flash_29ee020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 128);
+
+    return ret;
+}
+
+static const device_config_t p6kdi_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "p6kdi",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 3.0",
+                .internal_name = "p6kdi",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p6kdi/P6KDI_~2.BIN", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 2.0Y",
+                .internal_name = "p6kdi20y",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p6kdi/p6kdi20y.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.0Y",
+                .internal_name = "p6kdi10y",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p6kdi/p6kdi10y.rom", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t p6kdi_device = {
+    .name          = "Advanced Integration Research (AIR) P6KDI",
+    .internal_name = "p6kdi_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = p6kdi_config
+};
+
+int
+machine_at_p6kdi_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    pci_register_slot(0x08, PCI_CARD_SCSI,        4, 0, 0, 0); /* assumed */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -149,6 +243,41 @@ machine_at_kn97_init(const machine_t *model)
     device_add(&lm78_device); /* fans: Chassis, CPU, Power; temperature: MB */
     for (uint8_t i = 0; i < 3; i++)
         hwm_values.fans[i] *= 2; /* BIOS reports fans with the wrong divisor for some reason */
+
+    return ret;
+}
+
+int
+machine_at_fickn6010_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/fickn6010/626hb13.rom",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
+
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    /* This actually has the W83977AF, which seems to be same as
+       the W83977F but with IrDA FIR (Fast Infrared) support */
+    device_add_params(&w83977_device, (void *) (W83977F | W83977_AMI));
+    /* From the very blurry picture, it looks like an SST flash chip.
+       And indeed, the Micro House schema lists a jumper that selects
+       Intel or SST flash, which specifically mentions the 29EE010 */
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }

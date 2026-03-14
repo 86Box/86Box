@@ -19669,6 +19669,54 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL
     },
+    /* Has an SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
+       MegaKey (revision '5') KBC firmware. */
+    {
+        .name              = "[i440FX] Advanced Integration Research (AIR) P6KDI",
+        .internal_name     = "p6kdi",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440FX,
+        .init              = machine_at_p6kdi_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 60000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 4.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec unknown (possibly AIC-7880) */
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &p6kdi_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
     /* The base board has a Holtek HT6542B KBC which emulates the AMIKEY-2 'H' KBC firmware. */
     {
         .name              = "[i440FX] ASUS P/I-P65UP5 (C-PKND)",
@@ -19751,6 +19799,54 @@ const machine_t machines[] = {
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL
+    },
+    /* Has a Winbond W83977AF Super I/O chip, which the on-chip KBC of should have the
+       AMIKey-2 KBC firmware. */
+    {
+        .name              = "[i440FX] FIC KN-6010",
+        .internal_name     = "fickn6010",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440FX,
+        .init              = machine_at_fickn6010_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 5.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 786432,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
