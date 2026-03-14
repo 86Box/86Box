@@ -78,7 +78,7 @@ typedef union {
         do {                                            \
             if (((double) src2) == 0.0) {               \
                 cpu_state.npxs |= FPU_SW_Zero_Div;      \
-                if (cpu_state.npxc & FPU_SW_Zero_Div)   \
+                if ((cpu_state.npxc & FPU_SW_Zero_Div) || (cpu_state.npxc & 0x80)) \
                     dst = src1 / (double) src2;         \
                 else {                                  \
                     fpu_log("FPU : divide by zero\n");  \
@@ -100,7 +100,7 @@ typedef union {
                     dst = src1 / (double) src2;         \
                 else {                                  \
                     fpu_log("FPU : divide by zero\n");  \
-                    if (cr0 & 0x20)                     \
+                    if (is486 && (cr0 & 0x20))          \
                         new_ne = 1;                     \
                     else                                \
                         picint(1 << 13);                \
