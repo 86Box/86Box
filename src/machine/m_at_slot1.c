@@ -179,7 +179,7 @@ machine_at_fickn6010_init(const machine_t *model)
     device_add(&piix3_device);
     /* This actually has the W83977AF, which seems to be same as
        the W83977F but with IrDA FIR (Fast Infrared) support */
-    device_add_params(&w83977_device, (void *) (W83977F | W83977_370 | W83977_AMI | W83977_NO_NVR));
+    device_add_params(&w83977_device, (void *) (W83977F | W83977_AMI | W83977_NO_NVR));
     /* From the very blurry picture, it looks like an SST flash chip.
        And indeed, the Micro House schema lists a jumper that selects
        Intel or SST flash, which specifically mentions the 29EE010 */
