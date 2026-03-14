@@ -1059,14 +1059,9 @@ msgstr "%1 krävs för automatisk omvandling av PCL-filer till PDF.\n\nAlla doku
 msgid "Don't show this message again"
 msgstr "Visa inte detta meddelande igen"
 
-msgid "Don't exit"
-msgstr "Avsluta inte"
-
+#, fuzzy
 msgid "Reset"
 msgstr "Starta om"
-
-msgid "Don't reset"
-msgstr "Starta inte om"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM-avbildningar"
@@ -1571,9 +1566,6 @@ msgstr "DMF (kluster 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"

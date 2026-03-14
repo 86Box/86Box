@@ -1060,14 +1060,9 @@ msgstr "%1 jest wymagany do automatycznej konwersji plików PCL do PDF.\n\nDokum
 msgid "Don't show this message again"
 msgstr "Nie pokazuj więcej tego komunikatu"
 
-msgid "Don't exit"
-msgstr "Nie kończ"
-
+#, fuzzy
 msgid "Reset"
 msgstr "Resetuj"
-
-msgid "Don't reset"
-msgstr "Nie resetuj"
 
 msgid "CD-ROM images"
 msgstr "Obrazy CD-ROM"
@@ -1572,9 +1567,6 @@ msgstr "DMF (klaster 2048)"
 
 msgid "2.88 MB"
 msgstr "2,88 MB"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"

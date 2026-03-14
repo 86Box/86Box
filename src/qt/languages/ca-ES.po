@@ -1059,14 +1059,9 @@ msgstr "%1 és imprescindible per la conversió automàtica de fitxers PCL a PDF
 msgid "Don't show this message again"
 msgstr "No tornis a mostrar aquest missatge"
 
-msgid "Don't exit"
-msgstr "No sortir"
-
+#, fuzzy
 msgid "Reset"
 msgstr "Reinicialitza"
-
-msgid "Don't reset"
-msgstr "No reinicialitzis"
 
 msgid "CD-ROM images"
 msgstr "Imatges de CD-ROM"
@@ -1571,9 +1566,6 @@ msgstr "DMF (clúster 2048)"
 
 msgid "2.88 MB"
 msgstr "2,88 MB"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3,5\" 128 MB (ISO 10090)"

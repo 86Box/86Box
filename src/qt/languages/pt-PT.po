@@ -1060,14 +1060,8 @@ msgstr "%1 é requerido para a conversão automática de ficheiros PCL para fich
 msgid "Don't show this message again"
 msgstr "Não mostrar mais esta mensagem"
 
-msgid "Don't exit"
-msgstr "Não sair"
-
 msgid "Reset"
-msgstr "Reiniciar"
-
-msgid "Don't reset"
-msgstr "Não reiniciar"
+msgstr "Repor"
 
 msgid "CD-ROM images"
 msgstr "Imagens CD-ROM"
@@ -1572,9 +1566,6 @@ msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
