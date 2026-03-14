@@ -1059,14 +1059,9 @@ msgstr "%1 je potřeba pro automatický převod PCL dokumentů do PDF.\n\nJakék
 msgid "Don't show this message again"
 msgstr "Nezobrazovat dále tuto zprávu"
 
-msgid "Don't exit"
-msgstr "Neukončovat"
-
+#, fuzzy
 msgid "Reset"
 msgstr "Resetovat"
-
-msgid "Don't reset"
-msgstr "Neresetovat"
 
 msgid "CD-ROM images"
 msgstr "Obraz CD-ROM disku"
@@ -1571,9 +1566,6 @@ msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"

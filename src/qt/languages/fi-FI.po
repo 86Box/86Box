@@ -1059,14 +1059,9 @@ msgstr "%1 vaaditaan PCL-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiks
 msgid "Don't show this message again"
 msgstr "Älä näytä tätä viestiä uudelleen"
 
-msgid "Don't exit"
-msgstr "Älä poistu"
-
+#, fuzzy
 msgid "Reset"
 msgstr "Käynnistä uudelleen"
-
-msgid "Don't reset"
-msgstr "Älä käynnistä uudelleen"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM-levykuvat"
@@ -1571,9 +1566,6 @@ msgstr "DMF (lohko 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 Mt"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 Mt (ISO 10090)"

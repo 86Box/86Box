@@ -1061,14 +1061,9 @@ msgstr "%1 потрібно для автоматичного перетворе
 msgid "Don't show this message again"
 msgstr "Більше не показувати це повідомлення"
 
-msgid "Don't exit"
-msgstr "Не виходити"
-
+#, fuzzy
 msgid "Reset"
 msgstr "Перезавантажити"
-
-msgid "Don't reset"
-msgstr "Не перезавантажувати"
 
 msgid "CD-ROM images"
 msgstr "Образи CD-ROM"
@@ -1573,9 +1568,6 @@ msgstr "DMF (кластер 2048)"
 
 msgid "2.88 MB"
 msgstr "2,88 МБ"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3,5\" 128 МБ (ISO 10090)"

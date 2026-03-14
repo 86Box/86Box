@@ -1053,13 +1053,7 @@ msgstr ""
 msgid "Don't show this message again"
 msgstr ""
 
-msgid "Don't exit"
-msgstr ""
-
 msgid "Reset"
-msgstr ""
-
-msgid "Don't reset"
 msgstr ""
 
 msgid "CD-ROM images"
@@ -1564,9 +1558,6 @@ msgid "DMF (cluster 2048)"
 msgstr ""
 
 msgid "2.88 MB"
-msgstr ""
-
-msgid "ZIP 100"
 msgstr ""
 
 msgid "3.5\" 128 MB (ISO 10090)"

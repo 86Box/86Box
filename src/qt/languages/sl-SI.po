@@ -1061,14 +1061,9 @@ msgstr "%1 je potreben za samodejno pretvorbo datotek PCL v PDF.\n\nVsi dokument
 msgid "Don't show this message again"
 msgstr "Ne pokaži več tega sporočila"
 
-msgid "Don't exit"
-msgstr "Prekliči izhod"
-
+#, fuzzy
 msgid "Reset"
 msgstr "Znova zaženi"
-
-msgid "Don't reset"
-msgstr "Ne zaženi znova"
 
 msgid "CD-ROM images"
 msgstr "Slike CD-ROM"
@@ -1573,9 +1568,6 @@ msgstr "DMF (gruča 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
-
-msgid "ZIP 100"
-msgstr "ZIP 100"
 
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
