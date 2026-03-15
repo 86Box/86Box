@@ -1,6 +1,12 @@
 #ifndef QT_DEFS_HPP
 #define QT_DEFS_HPP
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#    define IMG_FLIPPED flipped(Qt::Vertical)
+#else
+#    define IMG_FLIPPED mirrored(false, true)
+#endif
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 #    define CHECK_STATE_CHANGED checkStateChanged
 #else
