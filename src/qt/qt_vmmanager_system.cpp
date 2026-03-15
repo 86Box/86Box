@@ -195,7 +195,8 @@ VMManagerSystem::generateTemporaryFilename()
     QTemporaryFile tempFile;
     // File will be closed once the QTemporaryFile object goes out of scope
     tempFile.setAutoRemove(true);
-    tempFile.open();
+    if (tempFile.open() == false)
+        qDebug() << "Error opening temporary file";
     return tempFile.fileName();
 }
 
