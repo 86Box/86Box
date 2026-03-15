@@ -4303,6 +4303,11 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5422:
+            if (info->local & 0x100) {
+                romfn1 = BIOS_GD5428_BOCA_ISA_PATH_1; 
+                romfn2 = BIOS_GD5428_BOCA_ISA_PATH_2;
+            }
+            else
             romfn = BIOS_GD5422_PATH;
             break;
 
@@ -4338,12 +4343,7 @@ gd54xx_init(const device_t *info)
                     romfn            = NULL;
                 gd54xx->has_bios = 0;
             } else if (info->local & 0x100)
-                if (gd54xx->vlb)
                     romfn = BIOS_GD5428_DIAMOND_B1_VLB_PATH;
-                else {
-                    romfn1 = BIOS_GD5428_BOCA_ISA_PATH_1;
-                    romfn2 = BIOS_GD5428_BOCA_ISA_PATH_2;
-                }
             else {
                 if (gd54xx->vlb)
                     romfn = BIOS_GD5428_PATH;
@@ -5143,6 +5143,20 @@ const device_t gd5422_isa_device = {
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd542x_config,
+	
+const device_t gd5422_boca_isa_device = {
+    .name          = "Cirrus Logic GD5422 (ISA) (BOCA Research BRI4610)",
+    .internal_name = "cl_gd5422_boca_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = CIRRUS_ID_CLGD5422 | 0x100,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    .available     = gd5428_boca_isa_available,
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd542x_config
+};
 };
 
 const device_t gd5424_vlb_device = {
@@ -5282,20 +5296,6 @@ const device_t gd5428_diamond_speedstar_pro_b1_vlb_device = {
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
     .available     = gd5428_diamond_b1_available,
-    .speed_changed = gd54xx_speed_changed,
-    .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
-};
-
-const device_t gd5428_boca_isa_device = {
-    .name          = "Cirrus Logic GD5428 (ISA) (BOCA Research 4610)",
-    .internal_name = "cl_gd5428_boca_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = CIRRUS_ID_CLGD5428 | 0x100,
-    .init          = gd54xx_init,
-    .close         = gd54xx_close,
-    .reset         = gd54xx_reset,
-    .available     = gd5428_boca_isa_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd5426_config
