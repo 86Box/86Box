@@ -80,7 +80,8 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     connect(ui->horizontalSliderSharpness, &QSlider::valueChanged, this, [this] { updateDisplay(); });
 
     bool enable_comp_option = false;
-    for (int i = 0; i < MONITORS_NUM; i++) {
+
+    if (!settings_only)  for (int i = 0; i < MONITORS_NUM; i++) {
         if (monitors[i].mon_composite) {
             enable_comp_option = true;
             break;
