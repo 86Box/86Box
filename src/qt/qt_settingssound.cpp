@@ -31,17 +31,59 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_defs.hpp"
+
 SettingsSound::SettingsSound(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsSound)
 {
     ui->setupUi(this);
+
+    for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i)
+         sound_card_cfg_changed[i] = 0;
+
+    mpu401_cfg_changed             = 0;
+
+    midi_output_device_cfg_changed = 0;
+    midi_input_device_cfg_changed  = 0;
+
     onCurrentMachineChanged(machine);
 }
 
 SettingsSound::~SettingsSound()
 {
     delete ui;
+}
+
+int
+SettingsSound::changed()
+{
+    int has_changed  = 0;
+    int soft_changed = 0;
+
+    for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
+        QComboBox *cbox  = findChild<QComboBox *>(QString("comboBoxSoundCard%1").arg(i + 1));
+        has_changed     |= (sound_card_current[i]      != cbox->currentData().toInt());
+        has_changed     |= sound_card_cfg_changed[i];
+    }
+
+    has_changed  |= (fm_driver                  != ui->comboBoxFM->currentData().toInt());
+    has_changed  |= (mpu401_standalone_enable   != (ui->checkBoxMPU401->isChecked() ? 1 : 0));
+    has_changed  |= mpu401_cfg_changed;
+    has_changed  |= (sound_is_float             != (ui->checkBoxFloat32->isChecked() ? 1 : 0));
+
+    soft_changed |= (midi_output_device_current != ui->comboBoxMidiOut->currentData().toInt());
+    soft_changed |= midi_output_device_cfg_changed;
+    soft_changed |= (midi_input_device_current  != ui->comboBoxMidiIn->currentData().toInt());
+    soft_changed |= midi_input_device_cfg_changed;
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
+                         (soft_changed ? SETTINGS_CHANGED : 0);
+}
+
+void
+SettingsSound::restore()
+{
 }
 
 void
@@ -230,7 +272,7 @@ SettingsSound::on_pushButtonConfigureSoundCard1_clicked()
 
     if (sndCard == SOUND_INTERNAL)
         device = machine_get_snd_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 1);
+    sound_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -249,7 +291,7 @@ SettingsSound::on_pushButtonConfigureSoundCard2_clicked()
 {
     int             sndCard = ui->comboBoxSoundCard2->currentData().toInt();
     const device_t *device  = sound_card_getdevice(sndCard);
-    DeviceConfig::ConfigureDevice(device, 2);
+    sound_card_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
@@ -269,7 +311,7 @@ SettingsSound::on_pushButtonConfigureSoundCard3_clicked()
     int             sndCard = ui->comboBoxSoundCard3->currentData().toInt();
     const device_t *device  = sound_card_getdevice(sndCard);
 
-    DeviceConfig::ConfigureDevice(device, 3);
+    sound_card_cfg_changed[2] |= DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
@@ -289,7 +331,7 @@ SettingsSound::on_pushButtonConfigureSoundCard4_clicked()
     int             sndCard = ui->comboBoxSoundCard4->currentData().toInt();
     const device_t *device  = sound_card_getdevice(sndCard);
 
-    DeviceConfig::ConfigureDevice(device, 4);
+    sound_card_cfg_changed[3] |= DeviceConfig::ConfigureDevice(device, 4);
 }
 
 void
@@ -306,7 +348,7 @@ SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureMidiOut_clicked()
 {
-    DeviceConfig::ConfigureDevice(midi_out_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()));
+    midi_output_device_cfg_changed |= DeviceConfig::ConfigureDevice(midi_out_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()));
 }
 
 void
@@ -323,7 +365,7 @@ SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureMidiIn_clicked()
 {
-    DeviceConfig::ConfigureDevice(midi_in_device_getdevice(ui->comboBoxMidiIn->currentData().toInt()));
+    midi_input_device_cfg_changed |= DeviceConfig::ConfigureDevice(midi_in_device_getdevice(ui->comboBoxMidiIn->currentData().toInt()));
 }
 
 void
@@ -336,7 +378,7 @@ void
 SettingsSound::on_pushButtonConfigureMPU401_clicked()
 {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0)
-        DeviceConfig::ConfigureDevice(&mpu401_mca_device);
+        mpu401_cfg_changed |= DeviceConfig::ConfigureDevice(&mpu401_mca_device);
     else
-        DeviceConfig::ConfigureDevice(&mpu401_device);
+        mpu401_cfg_changed |= DeviceConfig::ConfigureDevice(&mpu401_device);
 }

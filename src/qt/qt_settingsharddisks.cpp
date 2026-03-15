@@ -32,7 +32,8 @@ extern "C" {
 
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
+#include "qt_defs.hpp"
 
 const int ColumnBus       = 0;
 const int ColumnFilename  = 1;
@@ -114,6 +115,7 @@ SettingsHarddisks::addRow(QAbstractItemModel *model, void *priv)
     model->setData(speedIndex, QObject::tr(hdd_preset_getname(hd->speed_preset)));
     model->setData(speedIndex, hd->speed_preset, Qt::UserRole);
    
+    ui->tableView->setRowHeight(row, 25);
 }
 
 SettingsHarddisks::SettingsHarddisks(QWidget *parent)
@@ -131,9 +133,12 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     model->setHeaderData(ColumnSpeed, Qt::Horizontal, tr("Model"));
     ui->tableView->setModel(model);
 
+    org_rows = 0;
     for (int i = 0; i < HDD_NUM; i++) {
-        if (hdd[i].bus_type > 0)
+        if (hdd[i].bus_type > 0) {
             addRow(model, &hdd[i]);
+            org_rows++;
+        }
     }
     if (model->rowCount() == HDD_NUM) {
         ui->pushButtonNew->setEnabled(false);
@@ -157,6 +162,38 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
 SettingsHarddisks::~SettingsHarddisks()
 {
     delete ui;
+}
+
+int
+SettingsHarddisks::changed()
+{
+    int has_changed = 0;
+
+    auto *model = ui->tableView->model();
+    int   rows  = model->rowCount();
+
+    has_changed |= (rows != org_rows);
+
+    for (int i = 0; i < rows; ++i) {
+        auto idx             = model->index(i, ColumnBus);
+        has_changed |= (hdd[i].bus_type      != idx.data(DataBus).toUInt());
+        has_changed |= (hdd[i].channel       != idx.data(DataBusChannel).toUInt());
+        has_changed |= (hdd[i].tracks        != ic[i]);
+        has_changed |= (hdd[i].hpc           != ih[i]);
+        has_changed |= (hdd[i].spt           != is[i]);
+        has_changed |= (hdd[i].speed_preset  != idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt());
+        has_changed |= (hdd[i].audio_profile != ia[i]);
+
+        QByteArray fileName  = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
+        has_changed |= memcmp(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn));
+    }
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsHarddisks::restore()
+{
 }
 
 void

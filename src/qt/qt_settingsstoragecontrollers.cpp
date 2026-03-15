@@ -32,11 +32,22 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_defs.hpp"
+
 SettingsStorageControllers::SettingsStorageControllers(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsStorageControllers)
 {
     ui->setupUi(this);
+
+    for (uint8_t i = 0; i < HDC_MAX; ++i)
+        hdc_cfg_changed[i] = 0;
+
+    for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i)
+        scsi_card_cfg_changed[i] = 0;
+
+    fdc_cfg_changed             = 0;
+    cdrom_interface_cfg_changed = 0;
 
     onCurrentMachineChanged(machine);
 }
@@ -44,6 +55,37 @@ SettingsStorageControllers::SettingsStorageControllers(QWidget *parent)
 SettingsStorageControllers::~SettingsStorageControllers()
 {
     delete ui;
+}
+
+int
+SettingsStorageControllers::changed()
+{
+    int has_changed = 0;
+
+    for (uint8_t i = 0; i < HDC_MAX; ++i) {
+        QComboBox *cbox = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));
+        has_changed |= (hdc_current[i]          != cbox->currentData().toInt());
+        has_changed |= hdc_cfg_changed[i];
+    }
+
+    for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
+        QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
+        has_changed |= (scsi_card_current[i]    != cbox->currentData().toInt());
+        has_changed |= scsi_card_cfg_changed[i];
+    }
+
+    has_changed |= (fdc_current[0]          != ui->comboBoxFD->currentData().toInt());
+    has_changed |= fdc_cfg_changed;
+    has_changed |= (cdrom_interface_current != ui->comboBoxCDInterface->currentData().toInt());
+    has_changed |= cdrom_interface_cfg_changed;
+    has_changed |= (cassette_enable         != (ui->checkBoxCassette->isChecked() ? 1 : 0));
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsStorageControllers::restore()
+{
 }
 
 void
@@ -54,10 +96,12 @@ SettingsStorageControllers::save()
         QComboBox *cbox = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));
         hdc_current[i]  = cbox->currentData().toInt();
     }
+
     for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
         QComboBox *cbox      = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
+
     fdc_current[0]          = ui->comboBoxFD->currentData().toInt();
     cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
     cassette_enable         = ui->checkBoxCassette->isChecked() ? 1 : 0;

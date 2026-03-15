@@ -16,6 +16,9 @@ public:
     explicit SettingsDisplay(QWidget *parent = nullptr);
     ~SettingsDisplay();
 
+    int  changed();
+
+    void restore();
     void save();
 
 public slots:
@@ -48,8 +51,19 @@ private slots:
 
 private:
     Ui::SettingsDisplay *ui;
+
+    int                  gfxcard_cfg_changed[VIDEOCARD_MAX] = { 0, 0 };
+    int                  voodoo_cfg_changed                 = 0;
+    int                  ibm8514_cfg_changed                = 0;
+    int                  xga_cfg_changed                    = 0;
+    int                  ps55da2_cfg_changed                = 0;
+
     int                  machineId                = 0;
     int                  videoCard[VIDEOCARD_MAX] = { 0, 0 };
+
+    void updateDisplay();
+
+    int cga_hue, cga_saturation, cga_sharpness, cga_brightness, cga_contrast;
 };
 
 #endif // QT_SETTINGSDISPLAY_HPP

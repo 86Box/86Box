@@ -17,4 +17,7 @@
 #    define EMU_ICON_PATH ":/settings/qt/icons/86Box-gray.ico"
 #endif
 
+#define SETTINGS_CHANGED            1
+#define SETTINGS_REQUIRE_HARD_RESET 2
+
 #endif // QT_DEFS_HPP

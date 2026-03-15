@@ -18,6 +18,9 @@ public:
     void reloadBusChannels_RDisk();
     void reloadBusChannels_Tape();
 
+    int  changed();
+
+    void restore();
     void save();
 
 signals:

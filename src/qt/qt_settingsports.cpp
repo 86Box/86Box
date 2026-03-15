@@ -31,17 +31,61 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_defs.hpp"
+
 SettingsPorts::SettingsPorts(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsPorts)
 {
     ui->setupUi(this);
+
+    for (int i = 0; i < PARALLEL_MAX; i++)
+        lpt_device_cfg_changed[i] = 0;
+
+    for (int i = 0; i < (SERIAL_MAX - 1); i++)
+        serial_passthrough_cfg_changed[i] = 0;
+
     onCurrentMachineChanged(machine);
 }
 
 SettingsPorts::~SettingsPorts()
 {
     delete ui;
+}
+
+int
+SettingsPorts::changed()
+{
+    int has_changed = 0;
+
+    has_changed |= (jumpered_internal_ecp_dma != ui->comboBoxLptECPDMA->currentData().toInt());
+
+    for (int i = 0; i < PARALLEL_MAX; i++) {
+        auto *cbox     = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+        auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
+        if (cbox != NULL)
+            has_changed |= (lpt_ports[i].device           != cbox->currentData().toInt());
+        if (checkBox != NULL)
+            has_changed |= (lpt_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
+        has_changed |= lpt_device_cfg_changed[i];
+    }
+
+    for (int i = 0; i < (SERIAL_MAX - 1); i++) {
+        auto *checkBox     = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
+        auto *checkBoxPass = findChild<QCheckBox *>(QString("checkBoxSerialPassThru%1").arg(i + 1));
+        if (checkBox != NULL)
+            has_changed |= (com_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
+        if (checkBoxPass != NULL)
+            has_changed |= (serial_passthrough_enabled[i] != checkBoxPass->isChecked());
+        has_changed |= serial_passthrough_cfg_changed[i];
+    }
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsPorts::restore()
+{
 }
 
 void
@@ -202,7 +246,7 @@ SettingsPorts::on_pushButtonConfigureLpt1_clicked()
     int   lptDevice = ui->comboBoxLpt1->currentData().toInt();
     auto *device    = lpt_device_getdevice(lptDevice);
 
-    DeviceConfig::ConfigureDevice(device, 1);
+    lpt_device_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -222,7 +266,7 @@ SettingsPorts::on_pushButtonConfigureLpt2_clicked()
     int   lptDevice = ui->comboBoxLpt2->currentData().toInt();
     auto *device    = lpt_device_getdevice(lptDevice);
 
-    DeviceConfig::ConfigureDevice(device, 1);
+    lpt_device_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -242,7 +286,7 @@ SettingsPorts::on_pushButtonConfigureLpt3_clicked()
     int   lptDevice = ui->comboBoxLpt3->currentData().toInt();
     auto *device    = lpt_device_getdevice(lptDevice);
 
-    DeviceConfig::ConfigureDevice(device, 1);
+    lpt_device_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -262,7 +306,7 @@ SettingsPorts::on_pushButtonConfigureLpt4_clicked()
     int   lptDevice = ui->comboBoxLpt4->currentData().toInt();
     auto *device    = lpt_device_getdevice(lptDevice);
 
-    DeviceConfig::ConfigureDevice(device, 1);
+    lpt_device_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -387,43 +431,43 @@ SettingsPorts::on_checkBoxSerialPassThru7_stateChanged(int state)
 void
 SettingsPorts::on_pushButtonSerialPassThru1_clicked()
 {
-    DeviceConfig::ConfigureDevice(&serial_passthrough_device, 1);
+    serial_passthrough_cfg_changed[0] = DeviceConfig::ConfigureDevice(&serial_passthrough_device, 1);
 }
 
 void
 SettingsPorts::on_pushButtonSerialPassThru2_clicked()
 {
-    DeviceConfig::ConfigureDevice(&serial_passthrough_device, 2);
+    serial_passthrough_cfg_changed[1] = DeviceConfig::ConfigureDevice(&serial_passthrough_device, 2);
 }
 
 void
 SettingsPorts::on_pushButtonSerialPassThru3_clicked()
 {
-    DeviceConfig::ConfigureDevice(&serial_passthrough_device, 3);
+    serial_passthrough_cfg_changed[2] = DeviceConfig::ConfigureDevice(&serial_passthrough_device, 3);
 }
 
 void
 SettingsPorts::on_pushButtonSerialPassThru4_clicked()
 {
-    DeviceConfig::ConfigureDevice(&serial_passthrough_device, 4);
+    serial_passthrough_cfg_changed[3] = DeviceConfig::ConfigureDevice(&serial_passthrough_device, 4);
 }
 
 #if 0
 void
 SettingsPorts::on_pushButtonSerialPassThru5_clicked()
 {
-    DeviceConfig::ConfigureDevice(&serial_passthrough_device, 5);
+    serial_passthrough_cfg_changed[4] = DeviceConfig::ConfigureDevice(&serial_passthrough_device, 5);
 }
 
 void
 SettingsPorts::on_pushButtonSerialPassThru6_clicked()
 {
-    DeviceConfig::ConfigureDevice(&serial_passthrough_device, 6);
+    serial_passthrough_cfg_changed[5] = DeviceConfig::ConfigureDevice(&serial_passthrough_device, 6);
 }
 
 void
 SettingsPorts::on_pushButtonSerialPassThru7_clicked()
 {
-    DeviceConfig::ConfigureDevice(&serial_passthrough_device, 7);
+    serial_passthrough_cfg_changed[6] = DeviceConfig::ConfigureDevice(&serial_passthrough_device, 7);
 }
 #endif

@@ -16,7 +16,7 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  */
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_machinestatus.hpp"
 
 #include <QMenu>

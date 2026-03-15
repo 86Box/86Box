@@ -14,6 +14,9 @@ public:
     explicit SettingsStorageControllers(QWidget *parent = nullptr);
     ~SettingsStorageControllers();
 
+    int  changed();
+
+    void restore();
     void save();
 
 public slots:
@@ -47,6 +50,11 @@ private slots:
 private:
     Ui::SettingsStorageControllers *ui;
     int                             machineId = 0;
+
+    int                             hdc_cfg_changed[4]          = { 0, 0, 0, 0 };
+    int                             scsi_card_cfg_changed[4]    = { 0, 0, 0, 0 };
+    int                             fdc_cfg_changed             = 0;
+    int                             cdrom_interface_cfg_changed = 0;
 };
 
 #endif // QT_SETTINGSSTORAGECONTROLLERS_HPP

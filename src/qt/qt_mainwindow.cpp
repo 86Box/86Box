@@ -25,7 +25,7 @@
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
 
 #include "qt_rendererstack.hpp"
@@ -1259,6 +1259,12 @@ MainWindow::on_actionExit_triggered()
 }
 
 void
+MainWindow::emitVmmSignal()
+{
+    emit vmmConfigurationChanged();
+}
+
+void
 MainWindow::on_actionSettings_triggered()
 {
     const int currentPause = dopause;
@@ -1277,7 +1283,6 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
-            updateShortcuts();
             emit vmmConfigurationChanged();
             pc_reset_hard();
             break;
@@ -2382,9 +2387,25 @@ MainWindow::updateStatusEmptyIcons()
 void
 MainWindow::on_actionPreferences_triggered()
 {
-    ProgSettings progsettings(this);
-    if (progsettings.exec() == QDialog::Accepted) {
-        emit vmmGlobalConfigurationChanged();
+    Preferences preferences(this);
+    preferences.setModal(true);
+    preferences.setWindowModality(Qt::WindowModal);
+    preferences.setWindowFlag(Qt::CustomizeWindowHint, true);
+    preferences.setWindowFlag(Qt::WindowTitleHint, true);
+    preferences.setWindowFlag(Qt::WindowSystemMenuHint, false);
+    preferences.exec();
+
+    switch (preferences.result()) {
+        default:
+            break;
+        case QDialog::Accepted:
+            preferences.save();
+            updateShortcuts();
+            config_changed = 2;
+            emit vmmGlobalConfigurationChanged();
+            break;
+        case QDialog::Rejected:
+            break;
     }
 }
 
@@ -2429,7 +2450,7 @@ MainWindow::changeEvent(QEvent *event)
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
         auto size = this->centralWidget()->size();
-        QApplication::setFont(ProgSettings::getUIFont());
+        QApplication::setFont(Preferences::getUIFont());
         QApplication::processEvents();
         main_window->centralWidget()->setFixedSize(size);
         QApplication::processEvents();

@@ -31,11 +31,25 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_defs.hpp"
+
 SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsOtherPeripherals)
 {
     ui->setupUi(this);
+
+    for (uint8_t i = 0; i < ISAMEM_MAX; ++i)
+        isamem_cfg_changed[i] = 0;
+
+    for (uint8_t i = 0; i < ISAROM_MAX; ++i)
+        isarom_cfg_changed[i] = 0;
+
+    isartc_cfg_changed         = 0;
+
+    unittester_cfg_changed     = 0;
+    novell_keycard_cfg_changed = 0;
+
     onCurrentMachineChanged(machine);
 }
 
@@ -176,6 +190,42 @@ SettingsOtherPeripherals::~SettingsOtherPeripherals()
     delete ui;
 }
 
+int
+SettingsOtherPeripherals::changed()
+{
+    int has_changed = 0;
+
+    has_changed |= (isartc_type            != ui->comboBoxRTC->currentData().toInt());
+    has_changed |= isartc_cfg_changed;
+    has_changed |= (bugger_enabled         != (ui->checkBoxISABugger->isChecked() ? 1 : 0));
+    has_changed |= (postcard_enabled       != (ui->checkBoxPOSTCard->isChecked() ? 1 : 0));
+    has_changed |= (unittester_enabled     != (ui->checkBoxUnitTester->isChecked() ? 1 : 0));
+    has_changed |= unittester_cfg_changed;
+    has_changed |= (novell_keycard_enabled != (ui->checkBoxKeyCard->isChecked() ? 1 : 0));
+    has_changed |= novell_keycard_cfg_changed;
+
+    /* ISA memory boards. */
+    for (int i = 0; i < ISAMEM_MAX; i++) {
+        auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
+        has_changed |= (isamem_type[i]         != cbox->currentData().toInt());
+        has_changed |= isamem_cfg_changed[i];
+    }
+
+    /* ISA ROM boards. */
+    for (int i = 0; i < ISAROM_MAX; i++) {
+        auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaRomCard%1").arg(i + 1));
+        has_changed |= (isarom_type[i]         != cbox->currentData().toInt());
+        has_changed |= isarom_cfg_changed[i];
+    }
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsOtherPeripherals::restore()
+{
+}
+
 void
 SettingsOtherPeripherals::save()
 {
@@ -211,7 +261,7 @@ SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureRTC_clicked()
 {
-    DeviceConfig::ConfigureDevice(isartc_get_device(ui->comboBoxRTC->currentData().toInt()));
+    isartc_cfg_changed |= DeviceConfig::ConfigureDevice(isartc_get_device(ui->comboBoxRTC->currentData().toInt()));
 }
 
 void
@@ -226,7 +276,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard1_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard1_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard1->currentData().toInt()), 1);
+    isamem_cfg_changed[0] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard1->currentData().toInt()), 1);
 }
 
 void
@@ -241,7 +291,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard2_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard2_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard2->currentData().toInt()), 2);
+    isamem_cfg_changed[1] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard2->currentData().toInt()), 2);
 }
 
 void
@@ -256,7 +306,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard3_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard3_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard3->currentData().toInt()), 3);
+    isamem_cfg_changed[2] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard3->currentData().toInt()), 3);
 }
 
 void
@@ -271,7 +321,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard4_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard4_clicked()
 {
-    DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard4->currentData().toInt()), 4);
+    isamem_cfg_changed[3] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard4->currentData().toInt()), 4);
 }
 
 void
@@ -286,7 +336,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard1_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard1_clicked()
 {
-    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard1->currentData().toInt()), 1);
+    isarom_cfg_changed[0] |= DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard1->currentData().toInt()), 1);
 }
 
 void
@@ -301,7 +351,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard2_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard2_clicked()
 {
-    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard2->currentData().toInt()), 2);
+    isarom_cfg_changed[1] |= DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard2->currentData().toInt()), 2);
 }
 
 void
@@ -316,7 +366,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard3_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard3_clicked()
 {
-    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard3->currentData().toInt()), 3);
+    isarom_cfg_changed[2] |= DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard3->currentData().toInt()), 3);
 }
 
 void
@@ -331,7 +381,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard4_currentIndexChanged(int index)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureIsaRomCard4_clicked()
 {
-    DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard4->currentData().toInt()), 4);
+    isarom_cfg_changed[3] |= DeviceConfig::ConfigureDevice(isarom_get_device(ui->comboBoxIsaRomCard4->currentData().toInt()), 4);
 }
 
 void
@@ -343,7 +393,7 @@ SettingsOtherPeripherals::on_checkBoxUnitTester_stateChanged(int arg1)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
 {
-    DeviceConfig::ConfigureDevice(&unittester_device);
+    unittester_cfg_changed |= DeviceConfig::ConfigureDevice(&unittester_device);
 }
 
 void
@@ -355,5 +405,5 @@ SettingsOtherPeripherals::on_checkBoxKeyCard_stateChanged(int arg1)
 void
 SettingsOtherPeripherals::on_pushButtonConfigureKeyCard_clicked()
 {
-    DeviceConfig::ConfigureDevice(&novell_keycard_device);
+    novell_keycard_cfg_changed |= DeviceConfig::ConfigureDevice(&novell_keycard_device);
 }

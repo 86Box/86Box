@@ -22,10 +22,13 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/hdd.h>
+#include <86box/midi.h>
 }
 
 #include "qt_settings.hpp"
 #include "ui_qt_settings.h"
+#include "qt_mainwindow.hpp"
+#include "ui_qt_mainwindow.h"
 
 #include <QStandardItemModel>
 
@@ -34,7 +37,6 @@ extern "C" {
 #include "qt_settingsmachine.hpp"
 #include "qt_settingsdisplay.hpp"
 #include "qt_settingsinput.hpp"
-#include "qt_settingskeybindings.hpp"
 #include "qt_settingssound.hpp"
 #include "qt_settingsnetwork.hpp"
 #include "qt_settingsports.hpp"
@@ -44,7 +46,7 @@ extern "C" {
 #include "qt_settingsotherremovable.hpp"
 #include "qt_settingsotherperipherals.hpp"
 
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_defs.hpp"
@@ -57,6 +59,8 @@ extern "C" {
 
 #include <dirent.h>
 #include <unistd.h>
+
+extern MainWindow *main_window;
 
 class SettingsModel : public QAbstractListModel {
 public:
@@ -78,7 +82,6 @@ private:
         "Machine",
         "Display",
         "Input devices",
-        "Key bindings",
         "Sound",
         "Network",
         "Ports (COM & LPT)",
@@ -92,7 +95,6 @@ private:
         "machine",
         "display",
         "input_devices",
-        "key_bindings",
         "sound",
         "network",
         "ports",
@@ -140,23 +142,33 @@ Settings::Settings(QWidget *parent)
     ui->listView->setModel(model);
 
     Harddrives::busTrackClass = new SettingsBusTracking;
+    pclog("Bus tracking loaded\n");   
     machine                   = new SettingsMachine(this);
+    pclog("Machine loaded\n");   
     display                   = new SettingsDisplay(this);
+    pclog("Display loaded\n");   
     input                     = new SettingsInput(this);
-    key_bindings              = new SettingsKeyBindings(this);
+    pclog("Input devices loaded\n");   
     sound                     = new SettingsSound(this);
+    pclog("Sound loaded\n");   
     network                   = new SettingsNetwork(this);
+    pclog("Network loaded\n");   
     ports                     = new SettingsPorts(this);
+    pclog("Ports (COM & LPT) loaded\n");   
     storageControllers        = new SettingsStorageControllers(this);
+    pclog("Storage controllers loaded\n");   
     harddisks                 = new SettingsHarddisks(this);
+    pclog("Hard disks loaded\n");   
     floppyCdrom               = new SettingsFloppyCDROM(this);
+    pclog("Floppy & CD-ROM drives loaded\n");   
     otherRemovable            = new SettingsOtherRemovable(this);
+    pclog("Other removable devices\n");   
     otherPeripherals          = new SettingsOtherPeripherals(this);
+    pclog("Other peripehrals loaded\n");   
 
     ui->stackedWidget->addWidget(machine);
     ui->stackedWidget->addWidget(display);
     ui->stackedWidget->addWidget(input);
-    ui->stackedWidget->addWidget(key_bindings);
     ui->stackedWidget->addWidget(sound);
     ui->stackedWidget->addWidget(network);
     ui->stackedWidget->addWidget(ports);
@@ -170,8 +182,6 @@ Settings::Settings(QWidget *parent)
             &SettingsDisplay::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, input,
             &SettingsInput::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, key_bindings,
-            &SettingsKeyBindings::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, sound,
             &SettingsSound::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, network,
@@ -247,7 +257,6 @@ Settings::save()
     machine->save();
     display->save();
     input->save();
-    key_bindings->save();
     sound->save();
     network->save();
     ports->save();
@@ -261,7 +270,21 @@ Settings::save()
 void
 Settings::accept()
 {
-    if (confirm_save && !settings_only) {
+    int changed = 0;
+
+    changed |= machine->changed();
+    changed |= display->changed();
+    changed |= input->changed();
+    changed |= sound->changed();
+    changed |= network->changed();
+    changed |= ports->changed();
+    changed |= storageControllers->changed();
+    changed |= harddisks->changed();
+    changed |= floppyCdrom->changed();
+    changed |= otherRemovable->changed();
+    changed |= otherPeripherals->changed();
+
+    if ((changed & SETTINGS_REQUIRE_HARD_RESET) && confirm_save && !settings_only) {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box",
                                 QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")),
                                 QMessageBox::Save | QMessageBox::Cancel, this);
@@ -274,6 +297,14 @@ Settings::accept()
             confirm_save = true;
             return;
         }
+    } else if (changed && !(changed & SETTINGS_REQUIRE_HARD_RESET) && !settings_only) {
+        save();
+        config_changed = 2;
+        main_window->emitVmmSignal();
+        midi_config_changed();
+
+        /* Reject so the main window does nothing. */
+        QDialog::reject();
     }
 
     QDialog::accept();
@@ -305,6 +336,8 @@ Settings::reject()
 {
     if (plat_path_is_empty(usr_path))
         rmdir(usr_path);
+
+    display->restore();
 
     QDialog::reject();
 }

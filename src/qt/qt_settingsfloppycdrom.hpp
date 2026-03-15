@@ -16,6 +16,9 @@ public:
     ~SettingsFloppyCDROM();
     void reloadBusChannels();
 
+    int  changed();
+
+    void restore();
     void save();
 
 signals:

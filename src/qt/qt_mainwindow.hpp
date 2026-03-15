@@ -72,6 +72,7 @@ signals:
     void vmmConfigurationChanged();
     void vmmGlobalConfigurationChanged();
 public slots:
+    void emitVmmSignal();
     void showSettings();
     void hardReset();
     void togglePause();
@@ -208,7 +209,8 @@ private:
     bool mouse_was_captured = false;
 
     friend class SpecifyDimensions;
-    friend class ProgSettings;
+    friend class Preferences;
+    friend class PreferencesEmulator;
     friend class RendererCommon;
     friend class RendererStack;         // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.

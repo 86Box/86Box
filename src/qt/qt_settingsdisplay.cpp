@@ -28,6 +28,8 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/video.h>
+#include <86box/plat.h>
+#include <86box/vid_cga_comp.h>
 #include <86box/vid_8514a_device.h>
 #include <86box/vid_xga_device.h>
 #include <86box/vid_ps55da2.h>
@@ -37,6 +39,8 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_defs.hpp"
+
 SettingsDisplay::SettingsDisplay(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsDisplay)
@@ -44,9 +48,36 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     ui->setupUi(this);
 
     for (uint8_t i = 0; i < GFXCARD_MAX; i++)
+        gfxcard_cfg_changed[i]         = 0;
+    voodoo_cfg_changed             = 0;
+    ibm8514_cfg_changed            = 0;
+    xga_cfg_changed                = 0;
+    ps55da2_cfg_changed            = 0;
+
+    for (uint8_t i = 0; i < GFXCARD_MAX; i++)
         videoCard[i] = gfxcard[i];
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
+    ui->horizontalSliderHue->setValue(vid_cga_comp_hue);
+    ui->horizontalSliderSaturation->setValue(vid_cga_comp_saturation);
+    ui->horizontalSliderBrightness->setValue(vid_cga_comp_brightness);
+    ui->horizontalSliderContrast->setValue(vid_cga_comp_contrast);
+    ui->horizontalSliderSharpness->setValue(vid_cga_comp_sharpness);
+
+    connect(ui->pushButtonReset, &QPushButton::clicked, this, [this] {
+        ui->horizontalSliderHue->setValue(0);
+        ui->horizontalSliderSaturation->setValue(100);
+        ui->horizontalSliderBrightness->setValue(0);
+        ui->horizontalSliderContrast->setValue(100);
+        ui->horizontalSliderSharpness->setValue(0);
+    });
+
+    connect(ui->horizontalSliderHue, &QSlider::valueChanged, this, [this] { updateDisplay(); });
+    connect(ui->horizontalSliderSaturation, &QSlider::valueChanged, this, [this] { updateDisplay(); });
+    connect(ui->horizontalSliderBrightness, &QSlider::valueChanged, this, [this] { updateDisplay(); });
+    connect(ui->horizontalSliderContrast, &QSlider::valueChanged, this, [this] { updateDisplay(); });
+    connect(ui->horizontalSliderSharpness, &QSlider::valueChanged, this, [this] { updateDisplay(); });
 
     onCurrentMachineChanged(machine);
 }
@@ -54,6 +85,57 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 SettingsDisplay::~SettingsDisplay()
 {
     delete ui;
+}
+
+void
+SettingsDisplay::updateDisplay()
+{
+    auto temp_cga_comp_hue        = ui->horizontalSliderHue->value();
+    auto temp_cga_comp_saturation = ui->horizontalSliderSaturation->value();
+    auto temp_cga_comp_brightness = ui->horizontalSliderBrightness->value();
+    auto temp_cga_comp_contrast   = ui->horizontalSliderContrast->value();
+    auto temp_cga_comp_sharpness  = ui->horizontalSliderSharpness->value();
+    cga_comp_reload(temp_cga_comp_brightness, temp_cga_comp_saturation, temp_cga_comp_sharpness, temp_cga_comp_hue, temp_cga_comp_contrast);
+}
+
+int
+SettingsDisplay::changed()
+{
+    int has_changed  = 0;
+    int soft_changed = 0;
+
+    has_changed  |= (gfxcard[0]                 != ui->comboBoxVideo->currentData().toInt());
+    for (uint8_t i = 1; i < GFXCARD_MAX; i++)
+        has_changed  |= (gfxcard[1]                 != ui->comboBoxVideoSecondary->currentData().toInt());
+
+    has_changed  |= (voodoo_enabled             != (ui->checkBoxVoodoo->isChecked() ? 1 : 0));
+    has_changed  |= (ibm8514_standalone_enabled != (ui->checkBox8514->isChecked() ? 1 : 0));
+    has_changed  |= (xga_standalone_enabled     != (ui->checkBoxXga->isChecked() ? 1 : 0));
+    has_changed  |= (da2_standalone_enabled     != (ui->checkBoxDa2->isChecked() ? 1 : 0));
+    has_changed  |= (monitor_edid               != (ui->radioButtonCustom->isChecked() ? 1 : 0));
+
+    has_changed  |= memcmp(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
+
+    soft_changed |= (vid_cga_comp_hue               != ui->horizontalSliderHue->value());
+    soft_changed |= (vid_cga_comp_saturation        != ui->horizontalSliderSaturation->value());
+    soft_changed |= (vid_cga_comp_brightness        != ui->horizontalSliderBrightness->value());
+    soft_changed |= (vid_cga_comp_contrast          != ui->horizontalSliderContrast->value());
+    soft_changed |= (vid_cga_comp_sharpness         != ui->horizontalSliderSharpness->value());
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
+                         (soft_changed ? SETTINGS_CHANGED : 0);
+}
+
+void
+SettingsDisplay::restore()
+{
+    vid_cga_comp_hue        = cga_hue;
+    vid_cga_comp_saturation = cga_saturation;
+    vid_cga_comp_brightness = cga_brightness;
+    vid_cga_comp_contrast   = cga_contrast;
+    vid_cga_comp_sharpness  = cga_sharpness;
+
+    cga_comp_reload(vid_cga_comp_brightness, vid_cga_comp_saturation, vid_cga_comp_sharpness, vid_cga_comp_hue, vid_cga_comp_contrast);
 }
 
 void
@@ -78,6 +160,13 @@ SettingsDisplay::save()
     monitor_edid               = ui->radioButtonCustom->isChecked() ? 1 : 0;
 
     strncpy(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
+
+    vid_cga_comp_hue        = ui->horizontalSliderHue->value();
+    vid_cga_comp_saturation = ui->horizontalSliderSaturation->value();
+    vid_cga_comp_brightness = ui->horizontalSliderBrightness->value();
+    vid_cga_comp_contrast   = ui->horizontalSliderContrast->value();
+    vid_cga_comp_sharpness  = ui->horizontalSliderSharpness->value();
+    cga_comp_reload(vid_cga_comp_brightness, vid_cga_comp_saturation, vid_cga_comp_sharpness, vid_cga_comp_hue, vid_cga_comp_contrast);
 }
 
 void
@@ -149,22 +238,22 @@ SettingsDisplay::on_pushButtonConfigureVideo_clicked()
     auto *device    = video_card_getdevice(videoCard);
     if (videoCard == VID_INTERNAL)
         device = machine_get_vid_device(machineId);
-    DeviceConfig::ConfigureDevice(device);
+    gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
 }
 
 void
 SettingsDisplay::on_pushButtonConfigureVoodoo_clicked()
 {
-    DeviceConfig::ConfigureDevice(&voodoo_device);
+    voodoo_cfg_changed |= DeviceConfig::ConfigureDevice(&voodoo_device);
 }
 
 void
 SettingsDisplay::on_pushButtonConfigure8514_clicked()
 {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
-        DeviceConfig::ConfigureDevice(&ibm8514_mca_device);
+        ibm8514_cfg_changed |= DeviceConfig::ConfigureDevice(&ibm8514_mca_device);
     } else {
-        DeviceConfig::ConfigureDevice(&gen8514_isa_device);
+        ibm8514_cfg_changed |= DeviceConfig::ConfigureDevice(&gen8514_isa_device);
     }
 }
 
@@ -172,13 +261,13 @@ void
 SettingsDisplay::on_pushButtonConfigureXga_clicked()
 {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0)
-        DeviceConfig::ConfigureDevice(&xga_device);
+        xga_cfg_changed |= DeviceConfig::ConfigureDevice(&xga_device);
 }
 
 void
 SettingsDisplay::on_pushButtonConfigureDa2_clicked()
 {
-    DeviceConfig::ConfigureDevice(&ps55da2_device);
+    ps55da2_cfg_changed |= DeviceConfig::ConfigureDevice(&ps55da2_device);
 }
 
 void
@@ -321,7 +410,7 @@ void
 SettingsDisplay::on_pushButtonConfigureVideoSecondary_clicked()
 {
     auto *device = video_card_getdevice(ui->comboBoxVideoSecondary->currentData().toInt());
-    DeviceConfig::ConfigureDevice(device);
+    gfxcard_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device);
 }
 
 void

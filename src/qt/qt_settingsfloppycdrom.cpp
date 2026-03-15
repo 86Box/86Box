@@ -36,7 +36,8 @@ extern "C" {
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
+#include "qt_defs.hpp"
 
 uint64_t               ifa[FDD_NUM] = { 0 };
 
@@ -139,6 +140,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     model->insertRows(0, FDD_NUM);
     /* Floppy drives category */
     for (int i = 0; i < FDD_NUM; i++) {
+        ui->tableViewFloppy->setRowHeight(i, 25);
         auto idx  = model->index(i, 0);
         int  type = fdd_get_type(i);
         setFloppyType(model, idx, type);
@@ -197,6 +199,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     model->setHeaderData(2, Qt::Horizontal, tr("Type"));
     model->insertRows(0, CDROM_NUM);
     for (int i = 0; i < CDROM_NUM; i++) {
+        ui->tableViewCDROM->setRowHeight(i, 25);
         auto idx  = model->index(i, 0);
         int  type = cdrom_get_type(i);
         setCDROMBus(model, idx, cdrom[i].bus_type, cdrom[i].res);
@@ -250,6 +253,38 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 SettingsFloppyCDROM::~SettingsFloppyCDROM()
 {
     delete ui;
+}
+
+int
+SettingsFloppyCDROM::changed()
+{
+    int has_changed = 0;
+
+    auto *model = ui->tableViewFloppy->model();
+    for (int i = 0; i < FDD_NUM; i++) {
+        has_changed |= (fdd_get_type(i)          != model->index(i, 0).data(Qt::UserRole).toInt());
+        has_changed |= (fdd_get_turbo(i)         != (model->index(i, 1).data() == tr("On") ? 1 : 0));
+        has_changed |= (fdd_get_check_bpb(i)     != (model->index(i, 2).data() == tr("On") ? 1 : 0));
+#ifndef DISABLE_FDD_AUDIO
+        has_changed |= (fdd_get_audio_profile(i) != (int) (uint32_t) ifa[i]);
+#endif
+    }
+
+    /* Removable devices category */
+    model = ui->tableViewCDROM->model();
+    for (int i = 0; i < CDROM_NUM; i++) {
+        has_changed |= (cdrom[i].bus_type        != model->index(i, 0).data(Qt::UserRole).toUInt());
+        has_changed |= (cdrom[i].res             != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
+        has_changed |= (cdrom[i].speed           != model->index(i, 1).data(Qt::UserRole).toUInt());
+        has_changed |= (cdrom_get_type(i)        != model->index(i, 2).data(Qt::UserRole).toInt());
+    }
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsFloppyCDROM::restore()
+{
 }
 
 void

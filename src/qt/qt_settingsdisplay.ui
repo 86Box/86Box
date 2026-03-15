@@ -212,6 +212,162 @@
          </property>
         </spacer>
        </item>
+
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabCGADisplay">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/cga_display.ico</normaloff>:/settings/qt/icons/cga_display.ico</iconset>
+      </attribute>
+      <attribute name="title">
+       <string>CGA display</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutCGADisplay">
+
+       <item>
+        <widget class="QWidget" name="widget_2" native="true">
+         <layout class="QGridLayout" name="gridLayout_2">
+
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+
+          <item row="0" column="0" colspan="2">
+           <widget class="QLabel" name="labelHue">
+            <property name="text">
+             <string>Hue</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QSlider" name="horizontalSliderHue">
+            <property name="minimum">
+             <number>-360</number>
+            </property>
+            <property name="maximum">
+             <number>360</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+           <item row="1" column="0">
+           <widget class="QLabel" name="labelSaturation">
+            <property name="text">
+             <string>Saturation</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="2">
+           <widget class="QSlider" name="horizontalSliderSaturation">
+            <property name="maximum">
+             <number>360</number>
+            </property>
+            <property name="value">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelBrightness">
+            <property name="text">
+             <string>Brightness</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1" colspan="2">
+           <widget class="QSlider" name="horizontalSliderBrightness">
+            <property name="minimum">
+             <number>-100</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelContrast">
+            <property name="text">
+             <string>Contrast</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1" colspan="2">
+           <widget class="QSlider" name="horizontalSliderContrast">
+            <property name="maximum">
+             <number>360</number>
+            </property>
+            <property name="value">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="labelSharpness">
+            <property name="text">
+             <string>Sharpness</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1" colspan="2">
+           <widget class="QSlider" name="horizontalSliderSharpness">
+            <property name="minimum">
+             <number>-50</number>
+            </property>
+            <property name="maximum">
+             <number>50</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0" colspan="2">
+           <widget class="QPushButton" name="pushButtonReset">
+            <property name="text">
+             <string>Reset</string>
+            </property>
+           </widget>
+          </item>
+
+         </layout>
+        </widget>
+       </item>
+
+       <item row="2" column="1">
+        <spacer name="verticalSpacerCGADisplay">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+
       </layout>
      </widget>
      <widget class="QWidget" name="tabAccelerators">
@@ -225,8 +381,8 @@
       <layout class="QVBoxLayout" name="verticalLayoutAccelerators">
 
        <item>
-        <widget class="QWidget" name="widget_2" native="true">
-         <layout class="QGridLayout" name="gridLayout_2" columnstretch="2,0,0">
+        <widget class="QWidget" name="widget_3" native="true">
+         <layout class="QGridLayout" name="gridLayout_3" columnstretch="2,0,0">
 
           <property name="leftMargin">
            <number>0</number>
@@ -302,7 +458,7 @@
         </widget>
        </item>
 
-      <item row="2" column="1">
+       <item row="2" column="1">
         <spacer name="verticalSpacerAccelerators">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -315,7 +471,8 @@
          </property>
         </spacer>
        </item>
-      </layout>
+ 
+     </layout>
      </widget>
     </widget>
    </item>

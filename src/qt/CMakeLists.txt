@@ -113,6 +113,20 @@ add_library(ui STATIC
     qt_about.cpp
     qt_about.hpp
 
+    qt_preferences.cpp
+    qt_preferences.hpp
+    qt_preferences.ui
+
+    qt_preferencesemulator.cpp
+    qt_preferencesemulator.hpp
+    qt_preferencesemulator.ui
+    qt_preferencesinput.cpp
+    qt_preferencesinput.hpp
+    qt_preferencesinput.ui
+    qt_preferenceskeybindings.cpp
+    qt_preferenceskeybindings.hpp
+    qt_preferenceskeybindings.ui
+
     qt_settings.cpp
     qt_settings.hpp
     qt_settings.ui
@@ -126,9 +140,6 @@ add_library(ui STATIC
     qt_settingsinput.cpp
     qt_settingsinput.hpp
     qt_settingsinput.ui
-    qt_settingskeybindings.cpp
-    qt_settingskeybindings.hpp
-    qt_settingskeybindings.ui
     qt_settingssound.cpp
     qt_settingssound.hpp
     qt_settingssound.ui
@@ -192,9 +203,6 @@ add_library(ui STATIC
 
     qt_styleoverride.cpp
     qt_styleoverride.hpp
-    qt_progsettings.hpp
-    qt_progsettings.cpp
-    qt_progsettings.ui
     qt_util.hpp
     qt_util.cpp
 

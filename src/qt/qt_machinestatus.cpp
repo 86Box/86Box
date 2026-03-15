@@ -54,7 +54,7 @@ extern volatile int fdcinited;
 #include "qt_mediamenu.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_soundgain.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_iconindicators.hpp"
 
 #include <array>

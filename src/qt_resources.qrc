@@ -5,6 +5,7 @@
         <file>qt/icons/cartridge_image.ico</file>
         <file>qt/icons/cassette_image.ico</file>
         <file>qt/icons/cassette.ico</file>
+        <file>qt/icons/cga_display.ico</file>
         <file>qt/icons/cdrom.ico</file>
         <file>qt/icons/cdrom_disabled.ico</file>
         <file>qt/icons/cdrom_mute.ico</file>
@@ -30,6 +31,7 @@
         <file>qt/icons/isa_memory.ico</file>
         <file>qt/icons/isa_rom.ico</file>
         <file>qt/icons/key_bindings.ico</file>
+        <file>qt/icons/emulator.ico</file>
         <file>qt/icons/machine.ico</file>
         <file>qt/icons/machine_tab.ico</file>
         <file>qt/icons/midi.ico</file>

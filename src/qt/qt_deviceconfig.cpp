@@ -375,9 +375,13 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
     }
 }
 
-void
+int
 DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *settings)
 {
+    const QString blank          = "";
+
+    int has_changed = 0;
+
     DeviceConfig dc(settings);
     dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
 
@@ -399,17 +403,47 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
 
     if (dc.exec() == QDialog::Accepted) {
         if (config == NULL)
-            return;
+            return 0;
 
         config = device->config;
         while (config->type != CONFIG_END) {
+            const int config_type       = config->type & CONFIG_TYPE_MASK;
+            const int config_major_type = (config_type >> CONFIG_SHIFT) << CONFIG_SHIFT;
+
+            int  value    = 0;
+            auto selected = blank;
+
+            switch (config_major_type) {
+                default:
+                    break;
+                case CONFIG_TYPE_INT:
+                    value = config_get_int(device_context.name, const_cast<char *>(config->name),
+                                           config->default_int);
+                    break;
+                case CONFIG_TYPE_HEX16:
+                    value = config_get_hex16(device_context.name, const_cast<char *>(config->name),
+                                             config->default_int);
+                    break;
+                case CONFIG_TYPE_HEX20:
+                    value = config_get_hex20(device_context.name, const_cast<char *>(config->name),
+                                             config->default_int);
+                    break;
+                case CONFIG_TYPE_STRING:
+                    selected = config_get_string(device_context.name, const_cast<char *>(config->name),
+                                                 const_cast<char *>(config->default_string));
+                    break;
+            }
+
             switch (config->type) {
                 default:
                     break;
                 case CONFIG_BINARY:
                     {
                         const auto *cbox = dc.findChild<QCheckBox *>(config->name);
-                        config_set_int(device_context.name, const_cast<char *>(config->name), cbox->isChecked() ? 1 : 0);
+                        if (value != (cbox->isChecked() ? 1 : 0)) {
+                            config_set_int(device_context.name, const_cast<char *>(config->name), cbox->isChecked() ? 1 : 0);
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_MIDI_OUT:
@@ -418,14 +452,22 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 case CONFIG_SELECTION:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
-                        config_set_int(device_context.name, const_cast<char *>(config->name), cbox->currentData().toInt());
+                        value = config_get_int(device_context.name, const_cast<char *>(config->name),
+                                               config->default_int);
+                        if (value != cbox->currentData().toInt()) {
+                            config_set_int(device_context.name, const_cast<char *>(config->name), cbox->currentData().toInt());
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_BIOS:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
                         int   idx  = cbox->currentData().toInt();
-                        config_set_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->bios[idx].internal_name));
+                        if (strcmp(selected.toUtf8(), const_cast<char *>(config->bios[idx].internal_name))) {
+                            config_set_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->bios[idx].internal_name));
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_SERPORT:
@@ -434,52 +476,83 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         auto  path = cbox->currentText().toUtf8();
                         if (cbox->currentData().toInt() == -1)
                             path = "";
-                        config_set_string(device_context.name, const_cast<char *>(config->name), path);
+                        if (strcmp(selected.toUtf8(), path)) {
+                            config_set_string(device_context.name, const_cast<char *>(config->name), path);
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_STRING:
                     {
                         auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
-                        config_set_string(device_context.name, const_cast<char *>(config->name), lineEdit->text().toUtf8());
+                        if (strcmp(selected.toUtf8(), lineEdit->text().toUtf8())) {
+                            config_set_string(device_context.name, const_cast<char *>(config->name), lineEdit->text().toUtf8());
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_HEX16:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
-                        config_set_hex16(device_context.name, const_cast<char *>(config->name), cbox->currentData().toInt());
+                        if (value != cbox->currentData().toInt()) {
+                            config_set_hex16(device_context.name, const_cast<char *>(config->name), cbox->currentData().toInt());
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_HEX20:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
-                        config_set_hex20(device_context.name, const_cast<char *>(config->name), cbox->currentData().toInt());
+                        if (value != cbox->currentData().toInt()) {
+                            config_set_hex20(device_context.name, const_cast<char *>(config->name), cbox->currentData().toInt());
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_FNAME:
                     {
                         auto *fbox     = dc.findChild<FileField *>(config->name);
                         auto  fileName = fbox->fileName().toUtf8();
-                        config_set_string(device_context.name, const_cast<char *>(config->name), fileName.data());
+                        if (strcmp(selected.toUtf8().data(), fileName.data())) {
+                            config_set_string(device_context.name, const_cast<char *>(config->name), fileName.data());
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_SPINNER:
                     {
                         auto *spinBox = dc.findChild<QSpinBox *>(config->name);
-                        config_set_int(device_context.name, const_cast<char *>(config->name), spinBox->value());
+                        if (value != spinBox->value()) {
+                            config_set_int(device_context.name, const_cast<char *>(config->name), spinBox->value());
+                            has_changed |= 1;
+                        }
                         break;
                     }
                 case CONFIG_MAC:
                     {
                         const auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
                         // Store the mac address as lowercase
-                        auto macText = lineEdit->displayText().toLower();
-                        config_set_string(device_context.name, config->name, macText.toUtf8().constData());
+                        auto macText     = lineEdit->displayText().toLower();
+                        int  mac_changed = 0;
+                        if (config_get_mac(device_context.name, config->name,
+                                           config->default_int) & 0xFF000000)
+                            mac_changed |= 1;
+                        else
+                            mac_changed |= stricmp(config_get_string(device_context.name, config->name,
+                                                                     const_cast<char *>(config->default_string)),
+                                                   macText.toUtf8().constData());
+                        if (mac_changed) {
+                            config_set_string(device_context.name, config->name, macText.toUtf8().constData());
+                            has_changed |= 1;
+                        }
                         break;
                     }
             }
             config++;
         }
     }
+
+    return has_changed;
 }
 
 QString

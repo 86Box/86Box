@@ -40,11 +40,15 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_defs.hpp"
+
 SettingsMachine::SettingsMachine(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsMachine)
 {
     ui->setupUi(this);
+
+    machine_cfg_changed            = 0;
 
     switch (time_sync) {
         case TIME_SYNC_ENABLED:
@@ -168,6 +172,58 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 SettingsMachine::~SettingsMachine()
 {
     delete ui;
+}
+
+int
+SettingsMachine::changed()
+{
+    int has_changed = 0;
+    int temp;
+
+    has_changed |= (machine                    != ui->comboBoxMachine->currentData().toInt());
+    has_changed |= machine_cfg_changed;
+    has_changed |= (cpu_f                      != const_cast<cpu_family_t *>(&cpu_families[ui->comboBoxCPU->currentData().toInt()]));
+    has_changed |= (cpu                        != ui->comboBoxSpeed->currentData().toInt());
+    has_changed |= (fpu_type                   != ui->comboBoxFPU->currentData().toInt());
+    has_changed |= (cpu_override_interpreter   != (ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0));
+    has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
+    has_changed |= (fpu_softfloat              != (ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0));
+    has_changed |= (force_10ms                 != (ui->radioButtonLargerFrames->isChecked() ? 1 : 0));
+
+    int64_t temp_mem_size;
+    if (machine_get_ram_granularity(machine) < 1024)
+        temp_mem_size = ui->spinBoxRAM->value();
+    else
+        temp_mem_size = ui->spinBoxRAM->value() * 1024;
+
+    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    if (temp_mem_size < machine_get_min_ram(machine))
+        temp_mem_size = machine_get_min_ram(machine);
+    else if (temp_mem_size > machine_get_max_ram(machine))
+        temp_mem_size = machine_get_max_ram(machine);
+    has_changed |= (mem_size                   != static_cast<uint32_t>(temp_mem_size));
+
+    if (ui->comboBoxWaitStates->isEnabled())
+        temp = ui->comboBoxWaitStates->currentData().toInt();
+    else
+        temp = 0;
+    has_changed |= (cpu_waitstates             != temp);
+
+    has_changed |= (pit_mode                   !=  ui->comboBoxPitMode->currentData().toInt());
+
+    temp = 0;
+    if (ui->radioButtonLocalTime->isChecked())
+        temp = TIME_SYNC_ENABLED;
+    if (ui->radioButtonUTC->isChecked())
+        temp = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
+    has_changed |= (time_sync                  != temp);
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsMachine::restore()
+{
 }
 
 void
@@ -394,7 +450,7 @@ SettingsMachine::on_pushButtonConfigure_clicked()
     // deviceconfig_inst_open
     int         machineId = ui->comboBoxMachine->currentData().toInt();
     const auto *device    = machine_get_device(machineId);
-    DeviceConfig::ConfigureDevice(device);
+    machine_cfg_changed |= DeviceConfig::ConfigureDevice(device);
 }
 
 void

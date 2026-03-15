@@ -15,7 +15,7 @@
 #include "qt_settingsinput.hpp"
 #include "ui_qt_settingsinput.h"
 #include "qt_mainwindow.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 
 #include <QDebug>
 #include <QKeySequence>
@@ -35,9 +35,11 @@ extern "C" {
 #include "qt_models_common.hpp"
 #include "qt_deviceconfig.hpp"
 #include "qt_joystickconfiguration.hpp"
-#include "qt_keybind.hpp"
+#include "qt_defs.hpp"
 
 extern MainWindow *main_window;
+
+joystick_state_t      org_joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 
 SettingsInput::SettingsInput(QWidget *parent)
     : QWidget(parent)
@@ -45,12 +47,71 @@ SettingsInput::SettingsInput(QWidget *parent)
 {
     ui->setupUi(this);
 
+    kbd_config_changed   = 0;
+    mouse_config_changed = 0;
+
+    for (int i = 0; i < GAMEPORT_MAX; i++) {
+        for (int j = 0; j < MAX_JOYSTICKS; j++)
+             memcpy(&(org_joystick_state[i][j]), &(joystick_state[i][j]), sizeof(joystick_state_t));
+    }
+
     onCurrentMachineChanged(machine);
 }
 
 SettingsInput::~SettingsInput()
 {
     delete ui;
+}
+
+static int
+has_joystick_state_changed(int gameport_nr, int joystick_nr)
+{
+    int has_changed = 0;
+
+    has_changed |= (joystick_state[gameport_nr][joystick_nr].plat_joystick_nr !=
+                    org_joystick_state[gameport_nr][joystick_nr].plat_joystick_nr);
+
+    for (int axis_nr = 0; axis_nr < MAX_JOY_AXES; axis_nr++) {
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr] !=
+                        org_joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr]);
+    }
+
+    for (int button_nr = 0; button_nr < MAX_JOY_BUTTONS; button_nr++) {
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].button_mapping[button_nr] !=
+                        org_joystick_state[gameport_nr][joystick_nr].button_mapping[button_nr]);
+    }
+
+    for (int pov_nr = 0; pov_nr < MAX_JOY_POVS; pov_nr++) {
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0] !=
+                        org_joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0]);
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1] !=
+                        org_joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1]);
+    }
+
+    return has_changed;
+}
+
+int
+SettingsInput::changed()
+{
+    int has_changed = 0;
+
+    has_changed |= (keyboard_type != ui->comboBoxKeyboard->currentData().toInt());
+    has_changed |= kbd_config_changed;
+    has_changed |= (mouse_type    != ui->comboBoxMouse->currentData().toInt());
+    has_changed |= mouse_config_changed;
+
+    has_changed |= (joystick_type[0] != ui->comboBoxJoystick0->currentData().toInt());
+
+    for (int i = 0; i < 4; i++)
+        has_changed |= has_joystick_state_changed(0, i);
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsInput::restore()
+{
 }
 
 void
@@ -187,14 +248,14 @@ void
 SettingsInput::on_pushButtonConfigureKeyboard_clicked()
 {
     int keyboardId = ui->comboBoxKeyboard->currentData().toInt();
-    DeviceConfig::ConfigureDevice(keyboard_get_device(keyboardId));
+    kbd_config_changed |= DeviceConfig::ConfigureDevice(keyboard_get_device(keyboardId));
 }
 
 void
 SettingsInput::on_pushButtonConfigureMouse_clicked()
 {
     int mouseId = ui->comboBoxMouse->currentData().toInt();
-    DeviceConfig::ConfigureDevice(mouse_get_device(mouseId));
+    mouse_config_changed |= DeviceConfig::ConfigureDevice(mouse_get_device(mouseId));
 }
 
 static int

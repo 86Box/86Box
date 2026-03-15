@@ -14,6 +14,9 @@ public:
     explicit SettingsMachine(QWidget *parent = nullptr);
     ~SettingsMachine();
 
+    int  changed();
+
+    void restore();
     void save();
 
 signals:
@@ -34,6 +37,8 @@ private slots:
 
 private:
     Ui::SettingsMachine *ui;
+
+    int                  machine_cfg_changed;
 };
 
 #endif // QT_SETTINGSMACHINE_HPP
