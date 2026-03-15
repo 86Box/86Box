@@ -538,9 +538,9 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                                            config->default_int) & 0xFF000000)
                             mac_changed |= 1;
                         else
-                            mac_changed |= stricmp(config_get_string(device_context.name, config->name,
-                                                                     const_cast<char *>(config->default_string)),
-                                                   macText.toUtf8().constData());
+                            mac_changed |= strcasecmp(config_get_string(device_context.name, config->name,
+                                                                        const_cast<char *>(config->default_string)),
+                                                                        macText.toUtf8().constData());
                         if (mac_changed) {
                             config_set_string(device_context.name, config->name, macText.toUtf8().constData());
                             has_changed |= 1;
