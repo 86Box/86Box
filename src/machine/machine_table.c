@@ -14329,6 +14329,54 @@ const machine_t machines[] = {
     },
 
     /* UMC 889x */
+    /* Compaq Presario 7100 Series, using MiTAC/Trigon PL5600D (586). */
+    /* Has a VIA VT82C42N KBC. */
+    {
+        .name              = "[UMC 889x] Compaq Presario 7100 Series 586",
+        .internal_name     = "pl5600d",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_UMC_UM8890BF,
+        .init              = machine_at_pl5600d_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 40000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3600,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM,
+        .ram       = {
+            .min  = 8192,
+            .max  = 131072,
+            .step = 8192
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &s3_phoenix_trio64_onboard_pci_device,
+        .snd_device               = &ess_1688_device, /* Onboard variant not yet emulated */
+        .net_device               = NULL
+    },
     /* This has an AMIKey-2, which is type 'H'. */
     {
         .name              = "[UMC 889x] Shuttle HOT-539",
