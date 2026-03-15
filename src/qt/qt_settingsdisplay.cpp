@@ -79,6 +79,19 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     connect(ui->horizontalSliderContrast, &QSlider::valueChanged, this, [this] { updateDisplay(); });
     connect(ui->horizontalSliderSharpness, &QSlider::valueChanged, this, [this] { updateDisplay(); });
 
+    bool enable_comp_option = false;
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        if (monitors[i].mon_composite) {
+            enable_comp_option = true;
+            break;
+        }
+    }
+
+    ui->tabCGADisplay->setEnabled(enable_comp_option);
+
+    if (!enable_comp_option)
+        ui->tabWidgetDisplay->removeTab(2);
+
     onCurrentMachineChanged(machine);
 }
 

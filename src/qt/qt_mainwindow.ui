@@ -241,7 +241,6 @@
     <addaction name="actionFullscreen"/>
     <addaction name="menuFullscreen_stretch_mode"/>
     <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
-    <addaction name="actionCGA_composite_settings"/>
     <addaction name="menuEGA_S_VGA_settings"/>
     <addaction name="separator"/>
     <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
@@ -948,11 +947,6 @@
    </property>
    <property name="text">
     <string>&amp;Pen</string>
-   </property>
-  </action>
-  <action name="actionCGA_composite_settings">
-   <property name="text">
-    <string>&amp;CGA composite settings…</string>
    </property>
   </action>
   <action name="action_Full_screen_stretch_gl">
