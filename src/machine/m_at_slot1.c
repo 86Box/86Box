@@ -115,13 +115,13 @@ static const device_config_t p6kdi_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 3.0",
-                .internal_name = "p6kdi",
+                .name          = "AMIBIOS 6 (071595) - Revision 1.0Y",
+                .internal_name = "p6kdi10y",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 262144,
-                .files         = { "roms/machines/p6kdi/P6KDI_~2.BIN", "" }
+                .files         = { "roms/machines/p6kdi/p6kdi10y.rom", "" }
             },
             {
                 .name          = "AMIBIOS 6 (071595) - Revision 2.0Y",
@@ -133,13 +133,13 @@ static const device_config_t p6kdi_config[] = {
                 .files         = { "roms/machines/p6kdi/p6kdi20y.rom", "" }
             },
             {
-                .name          = "AMIBIOS 6 (071595) - Revision 1.0Y",
-                .internal_name = "p6kdi10y",
+                .name          = "AMIBIOS 6 (071595) - Revision 3.0",
+                .internal_name = "p6kdi",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 262144,
-                .files         = { "roms/machines/p6kdi/p6kdi10y.rom", "" }
+                .files         = { "roms/machines/p6kdi/P6KDI_~2.BIN", "" }
             },
             { .files_no = 0 }
         },

@@ -8212,7 +8212,7 @@ const machine_t machines[] = {
     },
     /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[SiS 461] DEC DECpc LPV",
+        .name              = "[SiS 461] DEC DECpc LPV+",
         .internal_name     = "decpclpv",
         .type              = MACHINE_TYPE_486,
         .chipset           = MACHINE_CHIPSET_SIS_461,
@@ -8235,7 +8235,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 32768,
+            .max  = 65536,
             .step = 1024
         },
         .nvrmask                  = 127,
