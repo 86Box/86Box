@@ -1141,6 +1141,41 @@ machine_at_torino_init(const machine_t *model)
 
 /* UMC 889x */
 int
+machine_at_pl5600d_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pl5600d/586_B1.140",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x13, PCI_CARD_VIDEO,       0, 0, 0, 0);
+
+    device_add(&umc_8890_device);
+    device_add(&umc_8886af_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&um866x_device, (void *) UM8663AF);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_hot539_init(const machine_t *model)
 {
     int ret;

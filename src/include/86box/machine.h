@@ -973,6 +973,7 @@ extern int             machine_at_ms5109_init(const machine_t *);
 extern int             machine_at_torino_init(const machine_t *);
 
 /* UMC 889x */
+extern int             machine_at_pl5600d_init(const machine_t *);
 extern int             machine_at_hot539_init(const machine_t *);
 
 /* VLSI SuperCore */
