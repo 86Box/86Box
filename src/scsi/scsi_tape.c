@@ -1731,6 +1731,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                     blocks_read++;
                 }
 
+#ifdef ENABLE_TAPE_LOG
                 /* Log data checksum for debugging. */
                 {
                     uint32_t cksum = 0;
@@ -1742,6 +1743,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                              blocks_read, xfer_len, hit_filemark, hit_eod,
                              bytes_total, cksum, dev->rec_remaining);
                 }
+#endif
 
                 if (hit_filemark) {
                     if (blocks_read > 0) {
