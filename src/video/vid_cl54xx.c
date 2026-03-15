@@ -5143,7 +5143,8 @@ const device_t gd5422_isa_device = {
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd542x_config,
-	
+};
+
 const device_t gd5422_boca_isa_device = {
     .name          = "Cirrus Logic GD5422 (ISA) (BOCA Research BRI4610)",
     .internal_name = "cl_gd5422_boca_isa",
@@ -5155,8 +5156,7 @@ const device_t gd5422_boca_isa_device = {
     .available     = gd5428_boca_isa_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd542x_config
-};
+    .config        = gd542x_config,
 };
 
 const device_t gd5424_vlb_device = {
