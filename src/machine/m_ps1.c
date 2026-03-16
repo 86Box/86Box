@@ -356,6 +356,7 @@ const device_t ps1_2011_device = {
     .config        = ps1_2011_config
 };
 
+extern const device_t ps1midi_device;
 static void
 ps1_setup(int model)
 {
@@ -411,6 +412,7 @@ ps1_setup(int model)
         lpt_set_next_inst(255);
 
         device_add(&ps1snd_device);
+        device_add(&ps1midi_device);
 
         /* Enable the builtin HDC. */
         if (hdc_current[0] == HDC_INTERNAL) {
@@ -443,6 +445,7 @@ ps1_setup(int model)
         device_add(&ide_isa_device);
 
         device_add(&ps1snd_device);
+        device_add(&ps1midi_device);
     }
 }
 
