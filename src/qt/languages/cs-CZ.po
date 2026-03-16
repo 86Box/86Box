@@ -1693,8 +1693,8 @@ msgstr "&Kurzor/Puk"
 msgid "&Pen"
 msgstr "&Pero"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Jednotka CD/DVD hostitele (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Jednotka CD/DVD hostitele (%1)"
 
 msgid "&Connected"
 msgstr "&Připojeno"

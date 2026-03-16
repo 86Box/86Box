@@ -1686,7 +1686,7 @@ msgstr ""
 msgid "&Pen"
 msgstr ""
 
-msgid "&Host CD/DVD Drive (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
 msgstr ""
 
 msgid "&Connected"

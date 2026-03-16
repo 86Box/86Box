@@ -1693,8 +1693,8 @@ msgstr "&Curseur/Palette"
 msgid "&Pen"
 msgstr "&Stylo"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Lecteur CD/DVD hôte (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Lecteur CD/DVD hôte (%1)"
 
 msgid "&Connected"
 msgstr "&Connecté"

@@ -1694,8 +1694,8 @@ msgstr "&Markør/pekeplate"
 msgid "&Pen"
 msgstr "&Penn"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Vert CD/DVD-stasjon (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Vert CD/DVD-stasjon (%1)"
 
 msgid "&Connected"
 msgstr "&Koblet til"

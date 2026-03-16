@@ -1693,8 +1693,8 @@ msgstr "&İmleç/Puck"
 msgid "&Pen"
 msgstr "&Kalem"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Ana Sistemin CD/DVD Sürücüsü (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Ana Sistemin CD/DVD Sürücüsü (%1)"
 
 msgid "&Connected"
 msgstr "&Bağlı"

@@ -1693,8 +1693,8 @@ msgstr "커서/퍽(&P)"
 msgid "&Pen"
 msgstr "펜(&P)"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "호스트 CD/DVD 드라이브(%1:) (&H)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "호스트 CD/DVD 드라이브 (%1) (&H)"
 
 msgid "&Connected"
 msgstr "&커넥티드"

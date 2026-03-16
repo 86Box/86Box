@@ -1719,8 +1719,8 @@ msgstr "&Cursor/Puck"
 msgid "&Pen"
 msgstr "&Γραφίδα"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Host CD/DVD Drive (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Host CD/DVD Drive (%1)"
 
 msgid "&Connected"
 msgstr "&Συνδεδεμένο"

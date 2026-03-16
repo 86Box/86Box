@@ -1693,8 +1693,8 @@ msgstr "&Cursor/Disco"
 msgid "&Pen"
 msgstr "C&aneta"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unidade de CD/DVD do anfitrião (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Unidade de CD/DVD do anfitrião (%1)"
 
 msgid "&Connected"
 msgstr "&Conectado"
