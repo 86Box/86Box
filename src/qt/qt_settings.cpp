@@ -25,6 +25,9 @@ extern "C" {
 #include <86box/midi.h>
 }
 
+#include <QApplication>
+
+#include "qt_defs.hpp"
 #include "qt_settings.hpp"
 #include "ui_qt_settings.h"
 #include "qt_mainwindow.hpp"
@@ -47,14 +50,13 @@ extern "C" {
 #include "qt_settingsotherperipherals.hpp"
 
 #include "qt_preferences.hpp"
+
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
-#include "qt_defs.hpp"
 
 #include <QDebug>
 #include <QMessageBox>
 #include <QCheckBox>
-#include <QApplication>
 #include <QStyle>
 
 #include <dirent.h>

@@ -26,4 +26,10 @@
 #define SETTINGS_CHANGED            1
 #define SETTINGS_REQUIRE_HARD_RESET 2
 
+#ifdef Q_OS_WINDOWS
+#define SETTINGS_HEIGHT 472
+#else
+#define SETTINGS_HEIGHT 502
+#endif
+
 #endif // QT_DEFS_HPP
