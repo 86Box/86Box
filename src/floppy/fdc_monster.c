@@ -211,7 +211,7 @@ static const device_config_t monster_fdc_config[] = {
 };
 
 const device_t fdc_monster_device = {
-    .name          = "Monster FDC Floppy Drive Controller",
+    .name          = "Monster FDC",
     .internal_name = "monster_fdc",
     .flags         = DEVICE_ISA,
     .local         = 0,

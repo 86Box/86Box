@@ -127,7 +127,18 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         if (machine_available(j)) {
             QStandardItem *item = new QStandardItem(machines[j].name);
             item->setData(machine_types[machine_get_type(j)].id);
+            item->setData(machines[j].name, Qt::UserRole + 2);
             machineListModel->appendRow(item);
+
+            int k = 0;
+            while (machines[j].aliases[k][0] != 0x00) {
+                QString stored_alias = QString("%1 (%2)").arg(machines[j].name).arg(machines[j].aliases[k]);
+                QStandardItem *item = new QStandardItem(stored_alias);
+                item->setData(machine_types[machine_get_type(j)].id);
+                item->setData(machines[j].name, Qt::UserRole + 2);
+                machineListModel->appendRow(item);
+                k++;
+            };
 
             cur_j++;
         }
@@ -144,12 +155,14 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     connect(machineListCompleter, QOverload<const QModelIndex &>::of(&QCompleter::activated), this, [this](const QModelIndex &idx) {
         ui->lineEditSearch->setText("");
         int  machineIdType = idx.model()->data(idx, Qt::UserRole + 1).toInt();
-        auto name          = idx.model()->data(idx, Qt::DisplayRole).toString();
+        auto name          = idx.model()->data(idx, Qt::UserRole + 2).toString();
         for (int i = 0; i < ui->comboBoxMachineType->model()->rowCount(); i++) {
             if (ui->comboBoxMachineType->model()->data(ui->comboBoxMachineType->model()->index(i, 0), Qt::UserRole).toInt() == machineIdType) {
                 ui->comboBoxMachineType->setCurrentIndex(i);
 
                 for (int j = 0; j < ui->comboBoxMachine->model()->rowCount(); j++) {
+                    int q = ui->comboBoxMachine->model()->data(ui->comboBoxMachine->model()->index(j, 0), Qt::UserRole).toInt();
+                    pclog("Machine %i = \"%s\" (\"%s\")\n", q, machine_getname(q), name.toUtf8().data());
                     if (ui->comboBoxMachine->model()->data(ui->comboBoxMachine->model()->index(j, 0), Qt::DisplayRole).toString() == name) {
                         ui->comboBoxMachine->setCurrentIndex(j);
                         break;

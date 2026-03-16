@@ -385,6 +385,7 @@ typedef struct _machine_ {
     void                  *snd_device;
     void                  *net_device;
 #endif
+    const char            *aliases[16];
 } machine_t;
 
 /* Global variables. */

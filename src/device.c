@@ -240,8 +240,49 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         void *      old_sec    = config_find_section("Acculogic XT IDE");
         if ((sec == NULL) && (old_sec != NULL))
             config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "DTK PII-151B (MiniMicro) FDC")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old "DTK PII-151B (MiniMicro) Floppy Drive Controller" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("DTK PII-151B (MiniMicro) Floppy Drive Controller");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "DTK PII-158B (MiniMicro4) FDC")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old "DTK PII-158B (MiniMicro4) Floppy Drive Controller" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("DTK PII-158B (MiniMicro4) Floppy Drive Controller");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "Monster FDC")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old "Monster FDC Floppy Drive Controller" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("Monster FDC Floppy Drive Controller");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "MKE/Panasonic interface (Creative)")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old "Panasonic/MKE CD-ROM interface (Creative)" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("Panasonic/MKE CD-ROM interface (Creative)");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "Panasonic/MKE interface")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old "MKE/Panasonic CD-ROM interface" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("Panasonic/MKE CD-ROM interface");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
     } else
         sprintf(ctx->name, "%s", dev->name);
+
 }
 
 static void
