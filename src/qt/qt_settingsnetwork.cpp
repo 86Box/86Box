@@ -226,11 +226,11 @@ SettingsNetwork::changed()
             strncpy(temp_host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(temp_host_dev_name) - 1);
 #ifdef HAS_VDE
         else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
-            strncpy(temp_host_dev_name, socket_line->text().toUtf8().constData(), sizeof(temp_host_dev_name));
+            strncpy(temp_host_dev_name, socket_line->text().toUtf8().constData(), sizeof(temp_host_dev_name) - 1);
 #endif
 #if defined(__unix__) || defined(__APPLE__)
         else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
-            strncpy(temp_host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(temp_host_dev_name));
+            strncpy(temp_host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(temp_host_dev_name) - 1);
 #endif
         else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             memset(temp_nrs_hostname, '\0', sizeof(temp_nrs_hostname));
@@ -281,11 +281,11 @@ SettingsNetwork::save()
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
 #ifdef HAS_VDE
         else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
-            strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+            strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name) - 1);
 #endif
 #if defined(__unix__) || defined(__APPLE__)
         else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
-            strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+            strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name) - 1);
 #endif
         else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             memset(net_cards_conf[i].nrs_hostname, '\0', sizeof(net_cards_conf[i].nrs_hostname));
