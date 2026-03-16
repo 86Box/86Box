@@ -173,12 +173,18 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
 #ifdef Q_OS_WINDOWS
         /* Go through all active drive letters. */
-        for (const auto &fi : QDir::drives()) {
-            auto letter = fi.filePath().at(0);
-            auto drive = QString("%1:\\").arg(letter);
-            /* Check if the letter is a CD-ROM drive. */
-            if (GetDriveTypeA(drive.toUtf8().constData()) == DRIVE_CDROM)
-                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1)").arg(QString(letter).append(':')), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
+        uint32_t drives = GetLogicalDrives();
+        int letterIdx = 0;
+        while (drives) {
+            if (drives & 1) {
+                auto letter = driveLetters.at(letterIdx);
+                auto drive = QString("%1:\\").arg(letter);
+                /* Check if the letter is a CD-ROM drive. */
+                if (GetDriveTypeA(drive.toUtf8().constData()) == DRIVE_CDROM)
+                    menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1)").arg(QString(letter).append(':')), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
+            }
+            drives >>= 1;
+            letterIdx++;
         }
         menu->addSeparator();
 #elif defined(Q_OS_LINUX)
