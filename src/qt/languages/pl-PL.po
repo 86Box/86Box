@@ -1694,8 +1694,8 @@ msgstr "&Kursor/krążek"
 msgid "&Pen"
 msgstr "P&ióro"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Napęd CD/DVD hosta (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Napęd CD/DVD hosta (%1)"
 
 msgid "&Connected"
 msgstr "&Podłączone"

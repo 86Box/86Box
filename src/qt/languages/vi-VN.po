@@ -1694,8 +1694,8 @@ msgstr "&Con trỏ/puck"
 msgid "&Pen"
 msgstr "&Bút"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Máy chủ CD/DVD ổ đĩa (%1 :)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Máy chủ CD/DVD ổ đĩa (%1)"
 
 msgid "&Connected"
 msgstr "&Đã kết nối"

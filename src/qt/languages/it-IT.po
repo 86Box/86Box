@@ -1763,8 +1763,8 @@ msgstr "&Cursore/Puck"
 msgid "&Pen"
 msgstr "&Penna"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unità CD/DVD host (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Unità CD/DVD host (%1)"
 
 msgid "&Connected"
 msgstr "&Connesso"

@@ -1694,8 +1694,8 @@ msgstr "カーソル/パック(&C)"
 msgid "&Pen"
 msgstr "ペン(&P)"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "ホスト CD/DVD ドライブ (%1:) (&H)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "ホスト CD/DVD ドライブ (%1) (&H)"
 
 msgid "&Connected"
 msgstr "コネクテッド"

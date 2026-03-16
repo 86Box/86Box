@@ -1693,8 +1693,8 @@ msgstr "&Cursor/Puck"
 msgid "&Pen"
 msgstr "&Llapis"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unitat de CD/DVD de l'amfitrió (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Unitat de CD/DVD de l'amfitrió (%1)"
 
 msgid "&Connected"
 msgstr "&Connectat"
