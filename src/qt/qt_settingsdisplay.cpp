@@ -88,7 +88,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
         }
     }
 
-    ui->tabCGADisplay->setEnabled(enable_comp_option);
+    ui->tabCompositeCGA->setEnabled(enable_comp_option);
 
     if (!enable_comp_option)
         ui->tabWidgetDisplay->removeTab(2);
