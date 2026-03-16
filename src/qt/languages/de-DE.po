@@ -1693,8 +1693,8 @@ msgstr "&Mauszeiger/Puck"
 msgid "&Pen"
 msgstr "&Stift"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Host-CD/DVD-Laufwerk (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Host-CD/DVD-Laufwerk (%1)"
 
 msgid "&Connected"
 msgstr "&Verbunden"

@@ -26,6 +26,8 @@
 #include <QStringBuilder>
 #include <QApplication>
 #include <QStyle>
+#include <QDirIterator>
+#include <QTextStream>
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
@@ -170,20 +172,32 @@ MediaMenu::refresh(QMenu *parentMenu)
         }
         menu->addSeparator();
 #ifdef Q_OS_WINDOWS
-        /* Loop through each Windows drive letter and test to see if
-           it's a CDROM */
-        for (const auto &letter : driveLetters) {
+        /* Go through all active drive letters. */
+        for (const auto &fi : QDir::drives()) {
+            auto letter = fi.filePath().at(0);
             auto drive = QString("%1:\\").arg(letter);
+            /* Check if the letter is a CD-ROM drive. */
             if (GetDriveTypeA(drive.toUtf8().constData()) == DRIVE_CDROM)
-                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
+                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1)").arg(QString(letter).append(':')), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
         }
         menu->addSeparator();
 #elif defined(Q_OS_LINUX)
-        /* Enumerate Linux CD/DVD drives (/dev/sr0 .. /dev/sr15). */
-        for (int sr = 0; sr < 16; sr++) {
-            QString devPath = QString("/dev/sr%1").arg(sr);
-            if (QFile::exists(devPath))
-                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1)").arg(devPath), [this, i, devPath] { cdromMount(i, 2, devPath); })->setCheckable(false);
+        /* Go through all active block devices. */
+        QDirIterator it("/sys/class/block", QDir::Dirs | QDir::NoDotAndDotDot);
+        while (it.hasNext()) {
+            auto dev = it.next();
+            /* Check if the device is a CD-ROM drive. */
+            QFile file(QString("%1/device/type").arg(dev));
+            if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QTextStream textStream(&file);
+                if (textStream.readLine() == "5") {
+                    auto devName = it.fileName();
+                    auto devPath = QString("/dev/%1").arg(devName);
+                    if (QFile::exists(devPath))
+                        menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1)").arg(devName), [this, i, devPath] { cdromMount(i, 2, devPath); })->setCheckable(false);
+                }
+                file.close();
+            }
         }
         menu->addSeparator();
 #endif

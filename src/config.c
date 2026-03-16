@@ -355,7 +355,7 @@ load_machine(void)
         /* Migrate renamed machines. */
         for (i = 0; machine_migrations[i].old; i++) {
             if (!strcmp(p, machine_migrations[i].old)) {
-                machine      = machine_get_machine_from_internal_name(machine_migrations[i].new);
+                machine = machine_get_machine_from_internal_name(machine_migrations[i].new);
                 if (machine != -1) {
                     migrate_from = p;
                     if (machine_migrations[i].new_bios) {
@@ -533,6 +533,10 @@ load_video(void)
         } else if (!strcmp(p, "c&t_69000")) {
             p = (char *) malloc((strlen("chips_69000") + 1) * sizeof(char));
             strcpy(p, "chips_69000");
+            free_p = 1;
+        } else if (!strcmp(p, "cl_gd5428_boca_isa")) {
+            p = (char *) malloc((strlen("cl_gd5422_boca_isa") + 1) * sizeof(char));
+            strcpy(p, "cl_gd5422_boca_isa");
             free_p = 1;
         }
         gfxcard[0] = video_get_video_from_internal_name(p);

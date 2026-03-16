@@ -1695,8 +1695,8 @@ msgstr "&Kazalec/ključ"
 msgid "&Pen"
 msgstr "&Pisalo"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Gostiteljski pogon CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Gostiteljski pogon CD/DVD (%1)"
 
 msgid "&Connected"
 msgstr "&Povezan"

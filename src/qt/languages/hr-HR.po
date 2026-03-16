@@ -1695,8 +1695,8 @@ msgstr "&Kursor/Pak"
 msgid "&Pen"
 msgstr "&Olovka"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD pogon &nositelja (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "CD/DVD pogon &nositelja (%1)"
 
 msgid "&Connected"
 msgstr "&Povezan"

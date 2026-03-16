@@ -99,8 +99,6 @@ private:
     QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;
 
-    const QByteArray driveLetters = QByteArrayLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-
     int cassetteRecordPos;
     int cassettePlayPos;
     int cassetteRewindPos;

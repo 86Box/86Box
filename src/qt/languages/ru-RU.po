@@ -1705,8 +1705,8 @@ msgstr "&Курсор/шайба"
 msgid "&Pen"
 msgstr "&Ручка"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD привод &хоста (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "CD/DVD привод &хоста (%1)"
 
 msgid "&Connected"
 msgstr "&Кабель подключен"

@@ -1694,8 +1694,8 @@ msgstr "數位板標定器(&C)"
 msgid "&Pen"
 msgstr "筆(&P)"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "主機 CD/DVD 光碟機 (%1:)(&H)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "主機 CD/DVD 光碟機 (%1)(&H)"
 
 msgid "&Connected"
 msgstr "已連線(&C)"
