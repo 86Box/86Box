@@ -242,10 +242,12 @@ SettingsNetwork::changed()
             memset(temp_secret, '\0', sizeof(temp_secret));
             strncpy(temp_secret, secret_value->text().toUtf8().constData(), sizeof(temp_secret) - 1);
         }
+        if (temp_host_dev_name[0] == 0x00)
+            strncpy(temp_host_dev_name, "none", 5);
         temp_host_dev_name[sizeof(temp_host_dev_name) - 1] = 0x00;
-        has_changed |= memcmp(temp_host_dev_name, net_cards_conf[i].host_dev_name, 128);
-        has_changed |= memcmp(temp_secret,        net_cards_conf[i].secret, 128);
-        has_changed |= memcmp(temp_nrs_hostname,  net_cards_conf[i].nrs_hostname, 128);
+        has_changed |= strcmp(temp_host_dev_name, net_cards_conf[i].host_dev_name);
+        has_changed |= strcmp(temp_secret,        net_cards_conf[i].secret);
+        has_changed |= strcmp(temp_nrs_hostname,  net_cards_conf[i].nrs_hostname);
     }
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
@@ -295,6 +297,9 @@ SettingsNetwork::save()
             memset(net_cards_conf[i].secret, '\0', sizeof(net_cards_conf[i].secret));
             strncpy(net_cards_conf[i].secret, secret_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].secret) - 1);
         }
+
+        if (net_cards_conf[i].host_dev_name[0] == 0x00)
+            strncpy(net_cards_conf[i].host_dev_name, "none", 5);
 
         net_cards_conf[i].host_dev_name[sizeof(net_cards_conf[i].host_dev_name) - 1] = 0x00;
     }

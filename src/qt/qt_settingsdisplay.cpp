@@ -128,7 +128,7 @@ SettingsDisplay::changed()
     has_changed  |= (da2_standalone_enabled     != (ui->checkBoxDa2->isChecked() ? 1 : 0));
     has_changed  |= (monitor_edid               != (ui->radioButtonCustom->isChecked() ? 1 : 0));
 
-    has_changed  |= memcmp(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
+    has_changed  |= strcmp(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data());
 
     soft_changed |= (vid_cga_comp_hue               != ui->horizontalSliderHue->value());
     soft_changed |= (vid_cga_comp_saturation        != ui->horizontalSliderSaturation->value());

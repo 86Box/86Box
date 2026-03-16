@@ -142,29 +142,17 @@ Settings::Settings(QWidget *parent)
     ui->listView->setModel(model);
 
     Harddrives::busTrackClass = new SettingsBusTracking;
-    pclog("Bus tracking loaded\n");   
     machine                   = new SettingsMachine(this);
-    pclog("Machine loaded\n");   
     display                   = new SettingsDisplay(this);
-    pclog("Display loaded\n");   
     input                     = new SettingsInput(this);
-    pclog("Input devices loaded\n");   
     sound                     = new SettingsSound(this);
-    pclog("Sound loaded\n");   
     network                   = new SettingsNetwork(this);
-    pclog("Network loaded\n");   
     ports                     = new SettingsPorts(this);
-    pclog("Ports (COM & LPT) loaded\n");   
     storageControllers        = new SettingsStorageControllers(this);
-    pclog("Storage controllers loaded\n");   
     harddisks                 = new SettingsHarddisks(this);
-    pclog("Hard disks loaded\n");   
     floppyCdrom               = new SettingsFloppyCDROM(this);
-    pclog("Floppy & CD-ROM drives loaded\n");   
     otherRemovable            = new SettingsOtherRemovable(this);
-    pclog("Other removable devices\n");   
     otherPeripherals          = new SettingsOtherPeripherals(this);
-    pclog("Other peripehrals loaded\n");   
 
     ui->stackedWidget->addWidget(machine);
     ui->stackedWidget->addWidget(display);
@@ -305,6 +293,10 @@ Settings::accept()
 
         /* Reject so the main window does nothing. */
         QDialog::reject();
+        return;
+    } else if (!changed && !settings_only) {
+        QDialog::reject();
+        return;
     }
 
     QDialog::accept();

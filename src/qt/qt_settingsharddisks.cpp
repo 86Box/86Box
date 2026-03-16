@@ -185,7 +185,7 @@ SettingsHarddisks::changed()
         has_changed |= (hdd[i].audio_profile != ia[i]);
 
         QByteArray fileName  = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
-        has_changed |= memcmp(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn));
+        has_changed |= strcmp(hdd[i].fn, fileName.data());
     }
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;

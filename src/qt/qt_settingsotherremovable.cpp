@@ -292,9 +292,9 @@ SettingsOtherRemovable::changed()
 
     model = ui->tableViewTape->model();
     for (uint8_t i = 0; i < TAPE_NUM; i++) {
-        has_changed |= (tape_drives[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt());
-        has_changed |= (tape_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt());
-        has_changed |= (tape_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt());
+        has_changed |= (tape_drives[i].bus_type != model->index(i, 0).data(Qt::UserRole).toUInt());
+        has_changed |= (tape_drives[i].res      != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
+        has_changed |= (tape_drives[i].type     != model->index(i, 1).data(Qt::UserRole).toUInt());
     }
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
