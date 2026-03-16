@@ -83,7 +83,7 @@ if(ISAMEM_BRAT)
     target_compile_definitions(dev PRIVATE USE_ISAMEM_BRAT)
 endif()
 
-if(VFIO_AVAILABLE)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND VFIO AND VFIO_AVAILABLE)
     add_compile_definitions(USE_VFIO)
     target_sources(dev PRIVATE vfio.c)
 endif()
