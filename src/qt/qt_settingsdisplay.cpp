@@ -59,6 +59,12 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
+    cga_hue        = vid_cga_comp_hue;
+    cga_saturation = vid_cga_comp_saturation;
+    cga_brightness = vid_cga_comp_brightness;
+    cga_contrast   = vid_cga_comp_contrast;
+    cga_sharpness  = vid_cga_comp_sharpness;
+
     ui->horizontalSliderHue->setValue(vid_cga_comp_hue);
     ui->horizontalSliderSaturation->setValue(vid_cga_comp_saturation);
     ui->horizontalSliderBrightness->setValue(vid_cga_comp_brightness);
