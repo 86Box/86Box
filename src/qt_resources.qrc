@@ -5,7 +5,6 @@
         <file>qt/icons/cartridge_image.ico</file>
         <file>qt/icons/cassette_image.ico</file>
         <file>qt/icons/cassette.ico</file>
-        <file>qt/icons/cga_display.ico</file>
         <file>qt/icons/cdrom.ico</file>
         <file>qt/icons/cdrom_disabled.ico</file>
         <file>qt/icons/cdrom_mute.ico</file>
@@ -13,6 +12,7 @@
         <file>qt/icons/cdrom_image.ico</file>
         <file>qt/icons/cdrom_folder.ico</file>
         <file>qt/icons/cdrom_host.ico</file>
+        <file>qt/icons/composite_cga.ico</file>
         <file>qt/icons/display.ico</file>
         <file>qt/icons/fast_forward.ico</file>
         <file>qt/icons/floppy_35.ico</file>
