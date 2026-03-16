@@ -2234,14 +2234,14 @@ vfio_irq_enable(vfio_device_t *dev, int type)
     }
 
     /* Prepare structure for enabling the interrupt type. */
-    struct vfio_irq_set irq_set = {
-        .argsz = sizeof(irq_set) + (sizeof(int32_t) * dev->irq.vector_count),
-        .flags = VFIO_IRQ_SET_DATA_EVENTFD | VFIO_IRQ_SET_ACTION_TRIGGER,
-        .index = type,
-        .start = 0,
-        .count = dev->irq.vector_count
-    };
-    int32_t           *fd_list = (int32_t *) &irq_set.data;
+    size_t irq_set_size = sizeof(struct vfio_irq_set) + (dev->irq.vector_count * sizeof(int32_t));
+    struct vfio_irq_set *irq_set = (struct vfio_irq_set *) malloc(irq_set_size);
+    irq_set->argsz = irq_set_size;
+    irq_set->flags = VFIO_IRQ_SET_DATA_EVENTFD | VFIO_IRQ_SET_ACTION_TRIGGER;
+    irq_set->index = type;
+    irq_set->start = 0;
+    irq_set->count = dev->irq.vector_count;
+    int32_t           *fd_list = (int32_t *) &irq_set->data;
     struct epoll_event event   = { .events = EPOLLIN };
 
     /* Create interrupt vectors with their respective eventfds. */
@@ -2262,9 +2262,10 @@ vfio_irq_enable(vfio_device_t *dev, int type)
     }
 
     /* Enable interrupt type on VFIO. */
-    if (ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, &irq_set))
+    if (ioctl(dev->fd, VFIO_DEVICE_SET_IRQS, irq_set))
         pclog("VFIO %s: SET_IRQS(%d, %d) failed (%d)\n", dev->name,
               type, dev->irq.vector_count, errno);
+    free(irq_set);
     dev->irq.type = type;
 }
 
