@@ -474,8 +474,9 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
     if ((dev->type == 4) && (func == 1) && (addr == 0xff))
         func = 2;
 
-    if ((func == 1) || (addr == 0xf8) || (addr == 0xf9))
+    if ((func == 1) || (addr == 0xf8) || (addr == 0xf9)) {
         piix_log("[W] %02X:%02X = %02X\n", func, addr, val);
+    }
 
     /* Return on unsupported function. */
     if (dev->max_func > 0) {
@@ -1292,8 +1293,6 @@ piix_reset_hard(piix_t *dev)
     fregs[0x69]                                           = 0x02;
     if ((dev->type == 1) && (dev->rev != 2))
         fregs[0x6a] = 0x04;
-    else if (dev->type == 3)
-        fregs[0x6a] = 0x10;
     fregs[0x70] = (dev->type < 4) ? 0x80 : 0x00;
     fregs[0x71] = (dev->type < 3) ? 0x80 : 0x00;
     if (dev->type <= 4) {
@@ -1381,8 +1380,10 @@ piix_reset_hard(piix_t *dev)
             fregs[0x6a] = (dev->type == 3) ? 0x01 : 0x00;
             fregs[0xc1] = 0x20;
             fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
-        } else
-        dev->max_func = 2; /* It starts with USB disabled, then enables it. */
+        }
+        /* PIIX3 starts with USB disabled, then enables it. */
+        if (dev->type > 3)
+            dev->max_func = 2;
     }
 
     /* Function 3: Power Management */
