@@ -81,7 +81,7 @@ ps1midi_read(uint16_t addr, void *priv)
         case 2:
             return !!ps1midi->irq_pend;
         case 5:
-            return !fifo8_is_empty(&ps1midi->fifo) | (1 << 5);
+            return (!fifo8_is_empty(&ps1midi->fifo)) | (1 << 5);
     }
     return 0xFF;
 }
