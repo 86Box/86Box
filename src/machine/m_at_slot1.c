@@ -192,7 +192,7 @@ machine_at_p6kdi_init(const machine_t *model)
     device_add(&i440fx_device);
     device_add(&piix3_device);
     device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
-    device_add(&intel_flash_bxt_device);
+    device_add(&winbond_flash_w29c020_device);
 
     return ret;
 }
