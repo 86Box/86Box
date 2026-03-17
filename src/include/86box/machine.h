@@ -1229,7 +1229,6 @@ extern const device_t  p6kdi_device;
 extern int             machine_at_p6kdi_init(const machine_t *);
 extern int             machine_at_p65up5_cpknd_init(const machine_t *);
 extern int             machine_at_kn97_init(const machine_t *);
-extern int             machine_at_fickn6010_init(const machine_t *);
 
 /* i440LX */
 #ifdef EMU_DEVICE_H
