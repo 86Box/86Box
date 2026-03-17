@@ -39,6 +39,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr5380.h>
+#include "cpu.h"
 
 #ifdef ENABLE_NCR5380_LOG
 int ncr5380_do_log = ENABLE_NCR5380_LOG;
@@ -76,7 +77,7 @@ ncr5380_set_irq(ncr_t *ncr, int irq)
     ncr->irq = irq;
 }
 
-static void
+void
 ncr5380_reset(ncr_t *ncr)
 {
     scsi_bus_t *scsi_bus = &ncr->scsibus;
@@ -165,6 +166,11 @@ ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr)
             if ((val & 0x80) && !(ncr->icr & 0x80)) {
                 ncr5380_log("Resetting the 5380\n");
                 ncr5380_reset(ncr);
+                if (ncr->irq_ena)
+                    ncr->irq_ena(ncr, ncr->priv, 1);
+                else
+                    ncr5380_irq(ncr, 1);
+
                 ncr->isr |= STATUS_INT;
             }
             ncr->icr = val;
