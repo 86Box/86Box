@@ -1135,53 +1135,6 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Pravetz-16ES",
-        .internal_name     = "mxl7t",
-        .type              = MACHINE_TYPE_8088,
-        .chipset           = MACHINE_CHIPSET_DISCRETE,
-        .init              = machine_xt_micoms_xl7turbo_init,
-        .p1_handler        = NULL,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_8088,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FLAGS_NONE,
-        .ram       = {
-            .min  = 64,
-            .max  = 640,
-            .step = 64
-        },
-        .nvrmask                  = 0,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_xt_device,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0xff,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = &keyboard_pc_xt_device,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "Micoms XL-7 Turbo", "" }
-    },
-    {
         .name              = "[8088] Multitech PC-500",
         .internal_name     = "pc500",
         .type              = MACHINE_TYPE_8088,
@@ -1603,6 +1556,53 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "IMKO-4", "" }
+    },
+    {
+        .name              = "[8088] Pravetz-16ES",
+        .internal_name     = "mxl7t",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_xt_mxl7t_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8088,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 64,
+            .max  = 640,
+            .step = 64
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_xt_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = &keyboard_pc_xt_device,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Micoms XL-7 Turbo", "" }
     },
     {
         .name              = "[8088] Pravetz 16S",
@@ -3397,7 +3397,7 @@ const machine_t machines[] = {
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
-        .name              = "[ISA] IBM PS/1 Model 2011",
+        .name              = "[ISA] IBM PS/1 model 2011",
         .internal_name     = "ibmps1es",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
@@ -3445,7 +3445,7 @@ const machine_t machines[] = {
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
-        .name              = "[ISA] IBM PS/2 Model 30-286",
+        .name              = "[ISA] IBM PS/2 model 30-286",
         .internal_name     = "ibmps2_m30_286",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
@@ -3489,11 +3489,11 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "IBM PS/2 Model 25-386", "" }
+        .aliases                  = { "IBM PS/2 model 25-386", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[ISA] IBM XT Model 286",
+        .name              = "[ISA] IBM XT model 286",
         .internal_name     = "ibmxt286",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -14240,7 +14240,7 @@ const machine_t machines[] = {
     /* OPTi 596/597 */
     /* Has unknown KBC firmware. */
     {
-        .name              = "[OPTi 597] Northgate Computer Systems Elegance Pentium 90",
+        .name              = "[OPTi 597] NCS Elegance Pentium 90",
         .internal_name     = "ncselp90",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_OPTI_547_597,
@@ -14284,7 +14284,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Northgate Computer Systems Elegance Pentium 90", "" }
     },
     /* Has unknown KBC firmware. */
     {
@@ -20305,7 +20305,7 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
-        .kbc_params               = 0x00004800,
+        .kbc_params               = 0x00000000,
         .nvr_device               = NULL,
         .nvr_params               = 0x00000000,
         .sio_device               = NULL,
