@@ -39,7 +39,7 @@ extern int sound_gain;
 #define CD_BUFLEN   (CD_FREQ / 10)
 
 #define WT_FREQ     FREQ_44100
-#define WTBUFLEN    (MUSIC_FREQ / 45)
+#define WTBUFLEN    (WT_FREQ / 45)
 
 enum {
     SOUND_NONE = 0,
