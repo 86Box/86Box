@@ -2030,9 +2030,6 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     PCRYPTO_INFO ci;
     decode1(data1, NULL, &ci);
     image_log(img->log, "data1: %02X %02X %02X %02X\n", data1[0], data1[1], data1[2], data1[3]);
-    FILE *d1f = fopen("data1.tmp", "wb");
-    fwrite(data1, 1, 0x200, d1f);
-    fclose(d1f);
     image_log(img->log, "mds_decrypt_track_data(): Decoded the first data buffer\n");
 
     /* Compressed size at 0x150? */
@@ -2153,7 +2150,6 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     *fp = plat_fopen64(nvr_path(temp_file), "wb");
     fwrite(mdxHeader, 1, decSize + 0x12, *fp);
-    fclose(*fp);
 
     fclose(*fp);
     *fp = NULL;
