@@ -808,7 +808,7 @@ stpc_setup(stpc_t *dev)
                   stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
 
     /* Northbridge */
-    if (dev->local & STPC_CLIENT) {
+    if (dev->local == STPC_CLIENT) {
         dev->pci_conf[0][0x00] = 0x0e;
         dev->pci_conf[0][0x01] = 0x10;
         dev->pci_conf[0][0x02] = 0x64;
