@@ -41,6 +41,16 @@ opSVDC_a16(uint32_t fetchdat)
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    if (cpu_s->cpu_type == CPU_STPC) {
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    }
+
+    pclog("Cyrix opSVDC\n");
+
     if (ins_check) {
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -58,6 +68,16 @@ opSVDC_a32(uint32_t fetchdat)
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    if (cpu_s->cpu_type == CPU_STPC) {
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    }
+
+    pclog("Cyrix opSVDC\n");
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -106,6 +126,16 @@ opRSDC_a16(uint32_t fetchdat)
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    if (cpu_s->cpu_type == CPU_STPC) {
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    }
+
+    pclog("Cyrix opRSDC\n");
+
     if (ins_check) {
         fetch_ea_16(fetchdat);
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -123,6 +153,16 @@ opRSDC_a32(uint32_t fetchdat)
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    if (cpu_s->cpu_type == CPU_STPC) {
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    }
+
+    pclog("Cyrix opRSDC\n");
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -143,6 +183,8 @@ opSVLDT_a16(uint32_t fetchdat)
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    pclog("Cyrix opSVLDT\n");
+
     if (ins_check) {
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -161,6 +203,8 @@ opSVLDT_a32(uint32_t fetchdat)
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    pclog("Cyrix opSVLDT\n");
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -182,6 +226,8 @@ opRSLDT_a16(uint32_t fetchdat)
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    pclog("Cyrix opRSLDT\n");
+
     if (ins_check) {
         fetch_ea_16(fetchdat);
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -199,6 +245,8 @@ opRSLDT_a32(uint32_t fetchdat)
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    pclog("Cyrix opRSLDT\n");
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -219,6 +267,8 @@ opSVTS_a16(uint32_t fetchdat)
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    pclog("Cyrix opSVTS\n");
+
     if (ins_check) {
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -237,6 +287,8 @@ opSVTS_a32(uint32_t fetchdat)
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    pclog("Cyrix opSVTS\n");
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -258,6 +310,8 @@ opRSTS_a16(uint32_t fetchdat)
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    pclog("Cyrix opRSTS\n");
+
     if (ins_check) {
         fetch_ea_16(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -277,6 +331,8 @@ opRSTS_a32(uint32_t fetchdat)
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    pclog("Cyrix opRSTS\n");
+
     if (ins_check) {
         fetch_ea_32(fetchdat);
         SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -294,6 +350,8 @@ opSMINT(UNUSED(uint32_t fetchdat))
     uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
                           (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) &&
                           (cyrix.arr[3].size > 0);
+
+    pclog("Cyrix opSMINT\n");
 
     if (in_smm)
         fatal("opSMINT\n");
@@ -313,6 +371,8 @@ opRDSHR_a16(UNUSED(uint32_t fetchdat))
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    pclog("Cyrix opRDSHR\n");
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -341,6 +401,8 @@ opRDSHR_a32(UNUSED(uint32_t fetchdat))
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
 
+    pclog("Cyrix opRDSHR\n");
+
     if (ins_check) {
         fetch_ea_32(fetchdat);
         if (cpu_mod == 3) {
@@ -368,6 +430,8 @@ opWRSHR_a16(uint32_t fetchdat)
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    pclog("Cyrix opWRSHR\n");
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -400,6 +464,8 @@ opWRSHR_a32(uint32_t fetchdat)
                         ((ccr1 & CCR1_SMAC) || in_smm) &&
                         (cyrix.arr[3].size > 0) &&
                         (CPL == 0);
+
+    pclog("Cyrix opWRSHR\n");
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
