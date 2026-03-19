@@ -36,6 +36,8 @@
 #include <86box/serial.h>
 #include <86box/lpt.h>
 #include <86box/chipset.h>
+#include <86box/machine.h>
+#include "cpu.h"
 
 #define STPC_CONSUMER2 0x104a020b
 #define STPC_ATLAS     0x104a0210
@@ -85,6 +87,8 @@ typedef struct stpc_lpt_t {
 
     lpt_t   *lpt;
 } stpc_lpt_t;
+
+#define ENABLE_STPC_LOG 1
 
 #ifdef ENABLE_STPC_LOG
 int stpc_do_log = ENABLE_STPC_LOG;
@@ -736,6 +740,19 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
                 stpc_serial_handlers(val);
                 break;
 
+            case 0x71:
+                if (val & 0x02) {
+                    stpc_log("STPC: Software SMI\n");
+                    dev->regs[0x74] = 0x80;
+                    val &= 0xfd;
+                    //if ((!(machines[machine].init == machine_at_arb1423c_init) && !(machines[machine].init == machine_at_arb1479_init)) || (val & 0x40) || (val & 0x80))
+                        smi_raise();
+                }
+                break;
+
+            case 0x73 ... 0x79:
+                val &= ~val;
+                break;
             default:
                 break;
         }
