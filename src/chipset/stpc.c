@@ -745,8 +745,7 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
                     stpc_log("STPC: Software SMI\n");
                     dev->regs[0x74] = 0x80;
                     val &= 0xfd;
-                    //if ((!(machines[machine].init == machine_at_arb1423c_init) && !(machines[machine].init == machine_at_arb1479_init)) || (val & 0x40) || (val & 0x80))
-                        smi_raise();
+                    smi_raise();
                 }
                 break;
 
