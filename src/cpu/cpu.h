@@ -606,6 +606,7 @@ extern uint8_t ccr4;
 extern uint8_t ccr5;
 extern uint8_t ccr6;
 extern uint8_t ccr7;
+extern uint8_t cxpmr;
 
 /*Segments -
   _cs,_ds,_es,_ss are the segment structures

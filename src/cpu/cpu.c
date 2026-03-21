@@ -283,6 +283,7 @@ uint8_t ccr4;
 uint8_t ccr5;
 uint8_t ccr6;
 uint8_t ccr7;
+uint8_t cxpmr;
 
 uint8_t reg_30 = 0x00;
 uint8_t arr[24] = { 0 };
@@ -4363,6 +4364,10 @@ cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
         case 0xeb: /* CCR7 */
             ccr7 = val & 5;
             break;
+        case 0xf0: /* PMR (Cx5x86) */
+            if (cpu_s->cpu_type == CPU_Cx5x86)
+                cxpmr = val;
+            break;
     }
 }
 
@@ -4428,6 +4433,9 @@ cpu_read(uint16_t addr, UNUSED(void *priv))
             break;
         case 0xeb:
             ret = ccr7;
+            break;
+        case 0xf0: /* PMR (Cx5x86) */
+            ret = cxpmr;
             break;
         case 0xfe:
             ret = cpu_s->cyrix_id & 0xff;
