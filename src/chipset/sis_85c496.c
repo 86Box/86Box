@@ -54,6 +54,9 @@ typedef struct sis_85c496_t {
 #endif
     uint8_t    regs[127];
     uint8_t    pci_conf[256];
+
+    uint16_t  trapio;
+    uint8_t   trapio_set;
     smram_t   *smram;
     pc_timer_t rmsmiblk_timer;
     port_92_t *port_92;
@@ -77,6 +80,41 @@ sis_85c496_log(const char *fmt, ...)
 #else
 #    define sis_85c496_log(fmt, ...)
 #endif
+
+static void
+sis_85c497_trap_write(uint16_t port, uint8_t val, void *priv)
+{
+    sis_85c496_t *dev = (sis_85c496_t *) priv;
+
+    sis_85c496_log("[%04X:%08X] I/O Trap Write %02X to   %04X!\n", CS, cpu_state.pc, val, port);
+    if (dev->pci_conf[0xA2] & 0x04) {
+        dev->pci_conf[0xA0] |= 0x04;
+        smi_raise();
+    }
+}
+
+static void
+sis_85c497_set_trap_io(void *priv)
+{
+    sis_85c496_t *dev = (sis_85c496_t *) priv;
+    uint8_t highbyte = dev->pci_conf[0x5d];
+    uint8_t lowbyte  = dev->pci_conf[0x5c];
+    uint8_t enable   = dev->pci_conf[0x5b] & 0x01;
+
+    /* Check for existing I/O trap and remove it */
+    if (dev->trapio_set == 1) {
+        sis_85c496_log("SiS496: Removing SMI I/O trap at %04X\n", dev->trapio);
+        io_removehandler(dev->trapio, 0x0001, NULL, NULL, NULL, sis_85c497_trap_write, NULL, NULL, dev);
+        dev->trapio_set = 0;
+    }
+
+    if (enable && ((highbyte != 0x00) | (lowbyte != 0x00))) {
+        dev->trapio = ((highbyte << 8) + lowbyte);
+        sis_85c496_log("SiS496: Adding SMI I/O trap at %04X\n", dev->trapio);
+        io_sethandler(dev->trapio, 0x0001, NULL, NULL, NULL, sis_85c497_trap_write, NULL, NULL, dev);
+        dev->trapio_set = 1;
+    }
+}
 
 static void
 sis_85c497_isa_write(uint16_t port, uint8_t val, void *priv)
@@ -371,8 +409,11 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, v
         case 0x5b: /* Programmable I/O Traps Configure */
         case 0x5c:
         case 0x5d: /* Programmable I/O Trap 0 Base */
+            dev->pci_conf[addr] = val;
+            sis_85c497_set_trap_io(dev);
+            break;
         case 0x5e:
-        case 0x5f: /* Programmable I/O Trap 0 Base */
+        case 0x5f: /* Programmable I/O Trap 1 Base */
         case 0x60:
         case 0x61: /* IDE Controller Channel 0 Configuration */
         case 0x62:
@@ -514,7 +555,7 @@ sis_85c49x_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 
     switch (addr) {
         case 0xa0:
-            ret &= 0x10;
+            ret &= 0x14;
             break;
         case 0xa1:
             ret = 0x00;
