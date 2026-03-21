@@ -36,7 +36,6 @@
 #include <86box/serial.h>
 #include <86box/lpt.h>
 #include <86box/chipset.h>
-#include <86box/machine.h>
 #include "cpu.h"
 
 #define STPC_CONSUMER2 0x104a020b
@@ -87,8 +86,6 @@ typedef struct stpc_lpt_t {
 
     lpt_t   *lpt;
 } stpc_lpt_t;
-
-#define ENABLE_STPC_LOG 1
 
 #ifdef ENABLE_STPC_LOG
 int stpc_do_log = ENABLE_STPC_LOG;

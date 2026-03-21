@@ -437,8 +437,6 @@ enum SMMRAM_Fields_AMD_K {
     SMRAM_FIELD_AMD_K_LAST
 };
 
-#define ENABLE_386_COMMON_LOG 1
-
 #ifdef ENABLE_386_COMMON_LOG
 int x386_common_do_log = ENABLE_386_COMMON_LOG;
 
@@ -1599,8 +1597,6 @@ leave_smm(void)
     x386_common_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
                     EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
     x386_common_log("leave_smm()\n");
-
-    pclog("SMI lower: is_cxsmm = %02X, arr3 base = %08X, arr3 size = %08X\n", is_cxsmm, cyrix.arr[3].base, cyrix.arr[3].size);
 }
 
 void
@@ -2222,8 +2218,6 @@ smi_raise(void)
     else
         ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC)) ==
                       (CCR1_USE_SMI)) && (cyrix.arr[3].size > 0);
-
-    pclog("SMI raise: is_cxsmm = %02X, ccr1_check = %02X, arr3 base = %08X, arr3 size = %08X\n", is_cxsmm, ccr1_check, cyrix.arr[3].base, cyrix.arr[3].size);
 
     if (is_cxsmm && !ccr1_check)
         return;
