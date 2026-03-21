@@ -544,7 +544,7 @@ load_video(void)
             gfxcard[0] = video_get_video_from_internal_name(p);
         else {
             device_video_config_migrate(gfx_dev, p, 0);
-            gfxcard[0] = video_get_video_from_internal_name(gfx_dev->internal_name);
+            gfxcard[0] = video_get_video_from_internal_name((char *) gfx_dev->internal_name);
         }
         if (free_p) {
             free(p);
@@ -581,7 +581,7 @@ load_video(void)
             gfxcard[i] = video_get_video_from_internal_name(p);
         else {
             device_video_config_migrate(gfx_dev, p, 0);
-            gfxcard[i] = video_get_video_from_internal_name(gfx_dev->internal_name);
+            gfxcard[i] = video_get_video_from_internal_name((char *) gfx_dev->internal_name);
         }
     }
 

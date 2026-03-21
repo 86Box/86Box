@@ -176,7 +176,6 @@ SettingsMachine::SettingsMachine(QWidget *parent)
                 ui->comboBoxMachineType->setCurrentIndex(i);
 
                 for (int j = 0; j < ui->comboBoxMachine->model()->rowCount(); j++) {
-                    int q = ui->comboBoxMachine->model()->data(ui->comboBoxMachine->model()->index(j, 0), Qt::UserRole).toInt();
                     if (ui->comboBoxMachine->model()->data(ui->comboBoxMachine->model()->index(j, 0), Qt::DisplayRole).toString() == name) {
                         ui->comboBoxMachine->setCurrentIndex(j);
                         break;
