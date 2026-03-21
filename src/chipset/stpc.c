@@ -36,6 +36,7 @@
 #include <86box/serial.h>
 #include <86box/lpt.h>
 #include <86box/chipset.h>
+#include "cpu.h"
 
 #define STPC_CONSUMER2 0x104a020b
 #define STPC_ATLAS     0x104a0210
@@ -736,6 +737,18 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
                 stpc_serial_handlers(val);
                 break;
 
+            case 0x71:
+                if (val & 0x02) {
+                    stpc_log("STPC: Software SMI\n");
+                    dev->regs[0x74] = 0x80;
+                    val &= 0xfd;
+                    smi_raise();
+                }
+                break;
+
+            case 0x73 ... 0x79:
+                val &= ~val;
+                break;
             default:
                 break;
         }
@@ -791,7 +804,7 @@ stpc_setup(stpc_t *dev)
                   stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
 
     /* Northbridge */
-    if (dev->local & STPC_CLIENT) {
+    if (dev->local == STPC_CLIENT) {
         dev->pci_conf[0][0x00] = 0x0e;
         dev->pci_conf[0][0x01] = 0x10;
         dev->pci_conf[0][0x02] = 0x64;
