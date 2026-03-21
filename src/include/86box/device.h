@@ -121,6 +121,9 @@ enum {
 #define BIOS_INTERLEAVED_INVERT          8
 #define BIOS_HIGH_BIT_INVERT             16
 
+#define BIOS_LIMIT_MIN_MEMORY            0x0100000000000000
+#define BIOS_LIMIT_MAX_MEMORY            0x0200000000000000
+
 typedef struct device_config_selection_t {
     const char *description;
     int         value;
@@ -139,6 +142,7 @@ typedef struct device_config_bios_t {
     uint8_t     files_no;
     uint32_t    local;
     uint32_t    size;
+    uint64_t    flags;
     void       *dev[2];
     const char *files[9];
 } device_config_bios_t;
@@ -185,6 +189,7 @@ extern "C" {
 #endif
 
 extern void  device_init(void);
+extern void  device_video_config_migrate(const device_t *device, const char *old_internal_name, int inst);
 extern void  device_set_context(device_context_t *ctx, const device_t *dev, int inst);
 extern void  device_context(const device_t *dev);
 extern void  device_context_inst(const device_t *dev, int inst);
@@ -210,10 +215,12 @@ extern const char *device_get_bus_name(const device_t *dev);
 extern void  device_get_name(const device_t *dev, int bus, char *name);
 extern int   device_has_config(const device_t *dev);
 
+extern const char *device_get_bios_name(const device_t *dev, const char *internal_name);
 extern uint8_t     device_get_bios_type(const device_t *dev, const char *internal_name);
 extern uint8_t     device_get_bios_num_files(const device_t *dev, const char *internal_name);
 extern uint32_t    device_get_bios_local(const device_t *dev, const char *internal_name);
 extern uint32_t    device_get_bios_file_size(const device_t *dev, const char *internal_name);
+extern uint64_t    device_get_bios_flags(const device_t *dev, const char *internal_name);
 extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, unsigned int file_no);
 
 extern int device_is_valid(const device_t *, int mch);

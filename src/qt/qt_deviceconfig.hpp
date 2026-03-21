@@ -31,6 +31,9 @@ private:
     int               machine_cfg_changed;
 
     void              ProcessConfig(void *dc, const void *c, bool is_dep);
+
+private slots:
+    void on_comboIndexChanged(int index);
 };
 
 #endif // QT_DEVICECONFIG_HPP

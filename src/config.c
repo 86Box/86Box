@@ -539,7 +539,13 @@ load_video(void)
             strcpy(p, "cl_gd5422_boca_isa");
             free_p = 1;
         }
-        gfxcard[0] = video_get_video_from_internal_name(p);
+        const device_t *gfx_dev = video_get_video_from_old_internal_name(p);
+        if (gfx_dev == NULL)
+            gfxcard[0] = video_get_video_from_internal_name(p);
+        else {
+            device_video_config_migrate(gfx_dev, p, 0);
+            gfxcard[0] = video_get_video_from_internal_name(gfx_dev->internal_name);
+        }
         if (free_p) {
             free(p);
             p = NULL;
@@ -570,7 +576,13 @@ load_video(void)
         p = ini_section_get_string(cat, "gfxcard_2", NULL);
         if (!p)
             p = "none";
-        gfxcard[i] = video_get_video_from_internal_name(p);
+        const device_t *gfx_dev = video_get_video_from_old_internal_name(p);
+        if (gfx_dev == NULL)
+            gfxcard[i] = video_get_video_from_internal_name(p);
+        else {
+            device_video_config_migrate(gfx_dev, p, 0);
+            gfxcard[i] = video_get_video_from_internal_name(gfx_dev->internal_name);
+        }
     }
 
     monitor_edid = ini_section_get_int(cat, "monitor_edid", 0);

@@ -90,6 +90,25 @@ device_init(void)
 }
 
 void
+device_video_config_migrate(const device_t *dev, const char *old_internal_name, int inst)
+{
+    /* Migrate the old section (new bios internal name = old gfxcard internal name) */
+    const void *sec            = config_find_section(dev->name);
+    const char *bios           = device_get_bios_name(dev, old_internal_name);
+    char        old_name[2048] = { 0 };
+
+    snprintf(old_name, 2047, "%s (%s)", dev->name, bios);
+
+    void *      old_sec  = config_find_section(old_name);
+    if ((sec == NULL) && (old_sec != NULL)) {
+        config_rename_section(old_sec, dev->name);
+        /* Do not set BIOS variable for on-board devices. */
+        if (strstr(dev->name, "oard") == NULL)
+            config_set_string(dev->name, "bios", old_internal_name);
+    }
+}
+
+void
 device_set_context(device_context_t *ctx, const device_t *dev, int inst)
 {
     memset(ctx, 0, sizeof(device_context_t));
@@ -272,12 +291,44 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         void *      old_sec    = config_find_section("Panasonic/MKE CD-ROM interface (Creative)");
         if ((sec == NULL) && (old_sec != NULL))
             config_rename_section(old_sec, ctx->name);    
-    } else if (!strcmp(dev->name, "Panasonic/MKE interface")) {
+    } else if (!strcmp(dev->name, "MKE/Panasonic interface")) {
         sprintf(ctx->name, "%s", dev->name);
 
-        /* Migrate the old "MKE/Panasonic CD-ROM interface" section */
+        /* Migrate the old "Panasonic/MKE CD-ROM interface" section */
         const void *sec        = config_find_section(ctx->name);
         void *      old_sec    = config_find_section("Panasonic/MKE CD-ROM interface");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "S3 Trio32 VLB On-Board")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old S3 Trio32 VLB On-Board (Phoenix)" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("S3 Trio32 VLB On-Board (Phoenix)");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "S3 Trio32 PCI On-Board")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old S3 Trio32 PCI On-Board (Phoenix)" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("S3 Trio32 PCI On-Board (Phoenix)");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "S3 Trio64 PCI On-Board")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old S3 Trio64 PCI On-Board (Phoenix)" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("S3 Trio64 PCI On-Board (Phoenix)");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);    
+    } else if (!strcmp(dev->name, "S3 Trio64V+ PCI On-Board")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old S3 Trio64V+ PCI On-Board (Phoenix)" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("S3 Trio64V+ PCI On-Board (Phoenix)");
         if ((sec == NULL) && (old_sec != NULL))
             config_rename_section(old_sec, ctx->name);    
     } else
@@ -587,6 +638,13 @@ device_get_bios(const device_t *dev, const char *internal_name)
     return NULL;
 }
 
+const char *
+device_get_bios_name(const device_t *dev, const char *internal_name)
+{
+    const device_config_bios_t *bios = device_get_bios(dev, internal_name);
+    return bios ? bios->name : 0;
+}
+
 uint8_t
 device_get_bios_type(const device_t *dev, const char *internal_name)
 {
@@ -613,6 +671,13 @@ device_get_bios_file_size(const device_t *dev, const char *internal_name)
 {
     const device_config_bios_t *bios = device_get_bios(dev, internal_name);
     return bios ? bios->size : 0;
+}
+
+uint64_t
+device_get_bios_flags(const device_t *dev, const char *internal_name)
+{
+    const device_config_bios_t *bios = device_get_bios(dev, internal_name);
+    return bios ? bios->flags : 0;
 }
 
 const char *

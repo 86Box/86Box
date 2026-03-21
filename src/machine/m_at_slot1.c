@@ -651,7 +651,7 @@ machine_at_brio83xx_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_VIDEO,       1, 2, 3, 4); /* Onboard */
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_trio64v2_dx_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&i440ex_device);
     device_add(&piix4_device);

@@ -53,6 +53,8 @@ extern "C" {
 #    include <windows.h>
 #endif
 
+device_t *cfg_dev = NULL;
+
 DeviceConfig::DeviceConfig(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::DeviceConfig)
@@ -112,12 +114,19 @@ EnumerateSerialDevices()
     return serialDevices;
 }
 
+QComboBox *cbox_memory = nullptr;
+QComboBox *cbox_bios   = nullptr;
+
+const _device_config_ *cfg_memory = nullptr;
+const _device_config_ *cfg_bios   = nullptr;
+
 void
 DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 {
     auto         *device_context = static_cast<device_context_t *>(dc);
     const auto   *config         = static_cast<const _device_config_ *>(c);
     const QString blank          = "";
+    int           bios           = -1;
     int           p;
     int           q;
 
@@ -232,6 +241,10 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     }
                     this->ui->formLayout->addRow(tr(config->description), cbox);
                     cbox->setCurrentIndex(currentIndex);
+                    if (!strcmp(config->name, "memory")) {
+                        cbox_memory = cbox;
+                        cfg_memory  = config;
+                    }    
                     break;
                 }
             case CONFIG_BIOS:
@@ -241,6 +254,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
                     int   currentIndex = -1;
+                    int   rows         = 0;
 
                     q = 0;
                     for (auto *bios = config->bios; (bios != nullptr) &&
@@ -256,11 +270,20 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                             const int row = Models::AddEntry(model, tr(bios->name), q);
                             if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
                                 currentIndex = row;
+
+                            rows++;
                         }
                         q++;
                     }
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+
+                    if (rows > 1)
+                        this->ui->formLayout->addRow(tr(config->description), cbox);
+
+                    bios = currentIndex;
                     cbox->setCurrentIndex(currentIndex);
+
+                    cbox_bios = cbox;
+                    cfg_bios  = config;
                     break;
                 }
             case CONFIG_SPINNER:
@@ -373,6 +396,11 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
         }
         ++config;
     }
+
+    if ((cfg_memory != nullptr) && (cfg_bios != nullptr) && (bios != -1))
+        connect(cbox_bios, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &DeviceConfig::on_comboIndexChanged);
+
+    on_comboIndexChanged(bios);
 }
 
 int
@@ -381,6 +409,8 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     const QString blank          = "";
 
     int has_changed = 0;
+
+    cfg_dev = (device_t *) device;
 
     DeviceConfig dc(settings);
     dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
@@ -578,5 +608,48 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
             device_get_name(device, bus, temp);
             return tr((const char *) temp);
         }
+    }
+}
+
+void
+DeviceConfig::on_comboIndexChanged(int index)
+{
+    if ((cbox_memory != nullptr) && (cbox_bios != nullptr) &&
+        (cfg_memory != nullptr)  && (cfg_bios != nullptr)) {
+        int      idx        = index; /* cbox_bios->currentData().toInt(); */
+        int      mem        = cbox_memory->currentData().toInt();
+        char *   bios_name  = const_cast<char *>(cfg_bios->bios[idx].internal_name);
+        uint64_t bios_flags = device_get_bios_flags(cfg_dev, bios_name);
+        uint16_t min_mem    = 0;
+        uint16_t max_mem    = 65535;
+
+        if (bios_flags & BIOS_LIMIT_MIN_MEMORY)
+            min_mem = (bios_flags & 0xffff);
+
+        if (bios_flags & BIOS_LIMIT_MAX_MEMORY)
+            max_mem = ((bios_flags >> 16) & 0xffff);
+
+        mem = MAX(mem, min_mem);    /* No less than minimum memory. */
+        mem = MIN(mem, max_mem);    /* No more than maximum memory. */
+
+        auto *model        = cbox_memory->model();
+        int   removeRows   = model->rowCount();
+        int   currentIndex = -1;
+
+        cbox_memory->setCurrentIndex(-1);
+
+        for (auto *sel = cfg_memory->selection; (sel != nullptr) && (sel->description != nullptr) &&
+                                                (strlen(sel->description) > 0); ++sel) {
+            if ((sel->value >= min_mem) && (sel->value <= max_mem)) {
+                int row = Models::AddEntry(model, tr(sel->description), sel->value);
+
+                if (sel->value == mem)
+                    currentIndex = row - removeRows;
+            }
+        }
+
+        model->removeRows(0, removeRows);
+
+        cbox_memory->setCurrentIndex(currentIndex);
     }
 }
