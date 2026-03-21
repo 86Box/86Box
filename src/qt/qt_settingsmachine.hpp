@@ -39,6 +39,8 @@ private:
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;
+
+    bool                 eventFilter(QObject *watched, QEvent *event);
 };
 
 #endif // QT_SETTINGSMACHINE_HPP
