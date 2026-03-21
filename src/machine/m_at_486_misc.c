@@ -152,7 +152,7 @@ machine_at_iach488_init(const machine_t *model)
 
     device_add_params(&w83977_device, (void *) (W83977F | W83977_AMI));
     device_add(&stpc_consumer2_device);
-    device_add(&sst_flash_29ee020_device);
+    device_add(&winbond_flash_w29c020_device);
 
     return ret;
 }
