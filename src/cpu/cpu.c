@@ -4270,7 +4270,7 @@ cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
         cyrix_addr = val;
     else if (addr < 0xf1)  switch (cyrix_addr) {
         default:
-            if ((cyrix_addr >= 0xc0) && (cyrix_addr != 0xff))
+            if ((cyrix_addr >= 0xc0) && (cyrix_addr != 0xff) && (cyrix_addr != 0xf2))
                 fatal("Writing unimplemented Cyrix register %02X\n", cyrix_addr);
             break;
 
