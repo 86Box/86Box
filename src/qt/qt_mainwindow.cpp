@@ -363,8 +363,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::setTitle, this, [this](const QString &title) {
         if (hide_tool_bar)
             return;
-        if (dopause)
-            toolbar_text += tr(" - PAUSED");
         else
             toolbar_text = title;
         toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
