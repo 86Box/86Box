@@ -217,6 +217,7 @@ int is_k5;
 int is_k6;
 int is_p6;
 int is_cxsmm;
+int is_cx6x86;
 int hasfpu;
 
 int timing_rr;
@@ -547,8 +548,9 @@ cpu_set(void)
     is_k5      = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_ENH_Am486DX) && (cpu_s->cpu_type < CPU_K6);
     is_k6      = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */
-    is_p6    = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
-    is_cxsmm = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
+    is_p6     = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
+    is_cxsmm  = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
+    is_cx6x86 = (cpu_s->cpu_type >= CPU_Cx6x86) && (cpu_s->cpu_type <= CPU_Cx6x86L);
 
     cpu_isintel = cpu_isintel || !strcmp(cpu_f->manufacturer, "AMD");
 

@@ -527,6 +527,7 @@ extern int is_k5;
 extern int is_k6;
 extern int is_p6;
 extern int is_cxsmm;
+extern int is_cx6x86;
 extern int hascache;
 extern int isibm486;
 extern int is_mazovia;

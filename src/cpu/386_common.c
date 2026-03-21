@@ -1451,13 +1451,14 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
-    uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
-                          (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
+    uint8_t ccr1_check;
 
-    if (cpu_s->cpu_type == CPU_STPC) {
+    if (is_cx6x86)
+        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
+                      (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
+    else
         ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC)) ==
                       (CCR1_USE_SMI)) && (cyrix.arr[3].size > 0);
-    }
 
     if (smi_line) {
         if (!is_cxsmm || ccr1_check)  switch (in_smm) {
@@ -2213,13 +2214,14 @@ cpu_fast_off_reset(void)
 void
 smi_raise(void)
 {
-    uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
-                          (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
+    uint8_t ccr1_check;
 
-    if (cpu_s->cpu_type == CPU_STPC) {
+    if (is_cx6x86)
+        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
+                      (CCR1_USE_SMI | CCR1_SM3)) && (cyrix.arr[3].size > 0);
+    else
         ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC)) ==
                       (CCR1_USE_SMI)) && (cyrix.arr[3].size > 0);
-    }
 
     pclog("SMI raise: is_cxsmm = %02X, ccr1_check = %02X, arr3 base = %08X, arr3 size = %08X\n", is_cxsmm, ccr1_check, cyrix.arr[3].base, cyrix.arr[3].size);
 
