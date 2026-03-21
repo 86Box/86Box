@@ -74,10 +74,8 @@ wchar_t *
 ui_window_title(wchar_t *str)
 {
     if (str == nullptr) {
-        static wchar_t title[512] = { 0 };
-
-        main_window->getTitle(title);
-        str = title;
+        QString title = main_window->getTitle();
+        title.toWCharArray(str);
     } else
         emit main_window->setTitle(QString::fromWCharArray(str));
 

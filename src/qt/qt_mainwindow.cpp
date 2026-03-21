@@ -369,7 +369,6 @@ MainWindow::MainWindow(QWidget *parent)
             toolbar_text = title;
         toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
     });
-    connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::updateMenuResizeOptions, [this]() {
         ui->actionResizable_window->setEnabled(vid_resize != 2);
@@ -1500,20 +1499,10 @@ MainWindow::on_actionFullscreen_triggered()
     ui->stackedWidget->onResize(ui->stackedWidget->width(), ui->stackedWidget->height());
 }
 
-void
-MainWindow::getTitle_(wchar_t *title)
+QString
+MainWindow::getTitle()
 {
-    this->windowTitle().toWCharArray(title);
-}
-
-void
-MainWindow::getTitle(wchar_t *title)
-{
-    if (QThread::currentThread() == this->thread()) {
-        getTitle_(title);
-    } else {
-        emit getTitleForNonQtThread(title);
-    }
+    return toolbar_label->text();
 }
 
 // Helper to find an accelerator key and return it's sequence
