@@ -50,13 +50,70 @@
 #include <86box/sound.h>
 
 /* ACC 2168 */
+static const device_config_t pb410a_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pb410a_101e",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS A486 - Revision 1.01.E",
+                .internal_name = "pb410a_101e",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pb410a/pb410a.080337.4abf.u25.bin", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.05 - Revision P4HS10 (by Micro Firmware)",
+                .internal_name = "pb410a_p4hs10",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pb410a/p4hs10.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pb410a_device = {
+    .name          = "Packard Bell PB410/PB410A/PB420/PB420T",
+    .internal_name = "pb410a_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pb410a_config
+};
 int
 machine_at_pb410a_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/pb410a/pb410a.080337.4abf.u25.bin",
-                           0x000e0000, 131072, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
