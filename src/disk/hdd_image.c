@@ -24,8 +24,12 @@
 #include <time.h>
 #include <wchar.h>
 #include <errno.h>
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
+#endif
+#ifdef _WIN32
+#include <io.h>
+#define fsync(fd) _commit(fd)
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -49,6 +53,7 @@ typedef struct hdd_image_t {
     uint32_t  last_sector;
     uint8_t   type; /* HDD_IMAGE_RAW, HDD_IMAGE_HDI, HDD_IMAGE_HDX, or HDD_IMAGE_VHD */
     uint8_t   loaded;
+    uint8_t   is_block_device; /* 1 if this is a raw block device (e.g., /dev/disk4s1) */
 } hdd_image_t;
 
 hdd_image_t hdd_images[HDD_NUM];
@@ -187,6 +192,13 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     if (!hdd_images[id].file)
         return -1;
 
+    /* Skip file creation/expansion for block devices */
+    if (hdd_images[id].is_block_device) {
+        hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
+        hdd_images[id].loaded = 1;
+        return 1;
+    }
+
     uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
 
 #ifndef __unix__
@@ -271,6 +283,7 @@ hdd_image_load(int id)
     }
 
     hdd_images[id].base = 0;
+    hdd_images[id].is_block_device = 0;
 
     if (hdd_images[id].loaded) {
         if (hdd_images[id].file) {
@@ -281,6 +294,44 @@ hdd_image_load(int id)
             hdd_images[id].vhd = NULL;
         }
         hdd_images[id].loaded = 0;
+    }
+
+    if (hdd[id].raw_device || plat_is_block_device(fn)) {
+        int64_t dev_size = plat_get_block_device_size(fn);
+        if (dev_size <= 0) {
+            hdd_image_log("Block device: Unable to get size\n");
+            /* Don't clear hdd[id].fn - preserve config even if device is unavailable */
+            goto fail_raw;
+        }
+
+        hdd_images[id].file = plat_fopen(fn, hdd[id].wp ? "rb" : "rb+");
+        if (hdd_images[id].file == NULL) {
+            hdd_image_log("Block device: Unable to open\n");
+            /* Don't clear hdd[id].fn - preserve config even if device is unavailable */
+            goto fail_raw;
+        }
+
+        hdd_images[id].is_block_device = 1;
+        hdd_images[id].type = HDD_IMAGE_RAW;
+        hdd_images[id].base = 0;
+        hdd_images[id].pos = 0;
+
+        /* Use provided geometry, or calculate from device size */
+        if (hdd[id].spt && hdd[id].hpc && hdd[id].tracks) {
+            full_size = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
+        } else {
+            full_size = (uint64_t) dev_size;
+            /* Calculate geometry from size */
+            hdd_image_calc_chs(&hdd[id].tracks, &hdd[id].hpc, &hdd[id].spt, (uint32_t)(full_size >> 20));
+            full_size = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
+        }
+
+        hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
+        hdd_images[id].loaded = 1;
+
+        hdd_image_log("Block device: %s, size=%llu, C=%u H=%u S=%u\n",
+                      fn, (unsigned long long)full_size, hdd[id].tracks, hdd[id].hpc, hdd[id].spt);
+        return 1;
     }
 
     is_hdx[0] = image_is_hdx(fn, 0);
@@ -726,4 +777,25 @@ hdd_image_close(uint8_t id)
 
     memset(&hdd_images[id], 0, sizeof(hdd_image_t));
     hdd_images[id].loaded = 0;
+}
+
+void
+hdd_image_sync(uint8_t id)
+{
+    if (!hdd_images[id].loaded)
+        return;
+
+    if (hdd_images[id].file != NULL) {
+        fflush(hdd_images[id].file);
+    }
+}
+
+void
+hdd_image_sync_all(void)
+{
+    hdd_image_log("hdd_image_sync_all: syncing all disk images\n");
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
+        if (hdd_images[i].loaded)
+            hdd_image_sync(i);
+    }
 }

@@ -1467,6 +1467,10 @@ load_hard_disks(void)
         p = ini_section_get_string(cat, temp, "");
         strncpy(hdd[c].vhd_parent, p, sizeof(hdd[c].vhd_parent) - 1);
 
+        /* Raw device flag - when set, path is treated as block device */
+        sprintf(temp, "hdd_%02i_raw_device", c + 1);
+        hdd[c].raw_device = ini_section_get_int(cat, temp, 0) ? 1 : 0;
+
         /* If disk is empty or invalid, mark it for deletion. */
         if (!hdd_is_valid(c)) {
             sprintf(temp, "hdd_%02i_parameters", c + 1);
@@ -3640,6 +3644,12 @@ save_hard_disks(void)
             path_normalize(hdd[c].vhd_parent);
             ini_section_set_string(cat, temp, hdd[c].vhd_parent);
         } else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "hdd_%02i_raw_device", c + 1);
+        if (hdd_is_valid(c) && hdd[c].raw_device)
+            ini_section_set_int(cat, temp, 1);
+        else
             ini_section_delete_var(cat, temp);
 
         sprintf(temp, "hdd_%02i_speed", c + 1);
