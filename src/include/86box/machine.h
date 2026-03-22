@@ -726,6 +726,9 @@ extern int             machine_at_genoa486_init(const machine_t *);
 
 /* m_at_socket2.c */
 /* ACC 2168 */
+#ifdef EMU_DEVICE_H
+extern const device_t  pb410a_device;
+#endif
 extern int             machine_at_pb410a_init(const machine_t *);
 
 /* ALi M1429G */
