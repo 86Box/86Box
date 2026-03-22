@@ -13,7 +13,7 @@
 #
 #          Copyright 2020-2021 David Hrdlička.
 #          Copyright 2021      Andreas J. Reichel.
-#          Copyright 2021-2025 Jasmine Iwanek.
+#          Copyright 2021-2026 Jasmine Iwanek.
 #
 
 add_library(dev OBJECT
@@ -45,6 +45,7 @@ add_library(dev OBJECT
     keyboard_at.c
     keyboard_xt.c
     lpt.c
+    lpt_loopback.c
     mouse.c
     mouse_bus.c
     mouse_microtouch_touchscreen.c

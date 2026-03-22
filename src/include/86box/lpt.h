@@ -94,6 +94,8 @@ extern const device_t      dss_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
+extern const device_t      lpt_loopback_device;
+
 extern int                 lpt_device_available(int id);
 #ifdef EMU_DEVICE_H
 extern const device_t     *lpt_device_getdevice(const int id);
