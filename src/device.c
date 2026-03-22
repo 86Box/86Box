@@ -55,6 +55,7 @@
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/video.h>
 
 #define DEVICE_MAX 256 /* max # of devices */
 
@@ -93,18 +94,25 @@ void
 device_video_config_migrate(const device_t *dev, const char *old_internal_name, int inst)
 {
     /* Migrate the old section (new bios internal name = old gfxcard internal name) */
-    const void *sec            = config_find_section(dev->name);
-    const char *bios           = device_get_bios_name(dev, old_internal_name);
-    char        old_name[2048] = { 0 };
+    const void *    sec            = config_find_section(dev->name);
+    const char *    bios           = device_get_bios_name(dev, old_internal_name);
+    const device_t *old            = video_get_video_from_old_internal_name((char *) old_internal_name);
+    char            old_name[2048] = { 0 };
 
-    snprintf(old_name, 2047, "%s (%s)", dev->name, bios);
+    if (old != NULL) {
+        snprintf(old_name, 2047, "%s (%s)", dev->name, bios);
 
-    void *      old_sec  = config_find_section(old_name);
-    if ((sec == NULL) && (old_sec != NULL)) {
-        config_rename_section(old_sec, dev->name);
-        /* Do not set BIOS variable for on-board devices. */
-        if (strstr(dev->name, "oard") == NULL)
-            config_set_string(dev->name, "bios", old_internal_name);
+        void *      old_sec  = config_find_section(old_name);
+        if ((sec == NULL) && (old_sec != NULL)) {
+            config_rename_section(old_sec, dev->name);
+            /* Do not set BIOS variable for on-board devices. */
+            if (strstr(dev->name, "oard") == NULL)
+                config_set_string(dev->name, "bios", old_internal_name);
+        } else if (sec != NULL) {
+            /* The section was already there, just add the BIOS. */
+            if (strstr(dev->name, "oard") == NULL)
+                config_set_string(dev->name, "bios", old_internal_name);
+        }
     }
 }
 
