@@ -412,6 +412,12 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
 
     cfg_dev = (device_t *) device;
 
+    cbox_memory = nullptr;
+    cbox_bios   = nullptr;
+
+    cfg_memory  = nullptr;
+    cfg_bios    = nullptr;
+
     DeviceConfig dc(settings);
     dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
 
