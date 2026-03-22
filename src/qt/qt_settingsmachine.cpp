@@ -62,19 +62,6 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
     machine_cfg_changed            = 0;
 
-    switch (time_sync) {
-        case TIME_SYNC_ENABLED:
-            ui->radioButtonLocalTime->setChecked(true);
-            break;
-        case TIME_SYNC_ENABLED | TIME_SYNC_UTC:
-            ui->radioButtonUTC->setChecked(true);
-            break;
-        case TIME_SYNC_DISABLED:
-        default:
-            ui->radioButtonDisabled->setChecked(true);
-            break;
-    }
-
     ui->comboBoxMachine->setEditable(true);
     auto machineListCompleter = new QCompleter(ui->comboBoxMachine->lineEdit());
     auto machineListModel     = new QStandardItemModel(machineListCompleter);
@@ -104,21 +91,6 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         waitStatesModel->setData(idx, tr("%1 Wait state(s)").arg(i), Qt::DisplayRole);
         waitStatesModel->setData(idx, i + 1, Qt::UserRole);
     }
-
-    auto *pitModeModel = ui->comboBoxPitMode->model();
-    pitModeModel->insertRows(0, 3);
-    idx = pitModeModel->index(0, 0);
-    pitModeModel->setData(idx, tr("Auto"), Qt::DisplayRole);
-    pitModeModel->setData(idx, -1, Qt::UserRole);
-    idx = pitModeModel->index(1, 0);
-    pitModeModel->setData(idx, tr("Slow"), Qt::DisplayRole);
-    pitModeModel->setData(idx, 0, Qt::UserRole);
-    idx = pitModeModel->index(2, 0);
-    pitModeModel->setData(idx, tr("Fast"), Qt::DisplayRole);
-    pitModeModel->setData(idx, 1, Qt::UserRole);
-
-    ui->comboBoxPitMode->setCurrentIndex(-1);
-    ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
 
     int         selectedMachineType = 0;
     auto       *machineTypesModel   = ui->comboBoxMachineType->model();
@@ -162,12 +134,6 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         j++;
     } while (miname != nullptr);
 
-    ui->comboBoxMachineType->setCurrentIndex(-1);
-    ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
-
-    ui->radioButtonLargerFrames->setChecked(force_10ms);
-    ui->radioButtonSmallerFrames->setChecked(!force_10ms);
-
     connect(machineListCompleter, QOverload<const QModelIndex &>::of(&QCompleter::activated), this, [this](const QModelIndex &idx) {
         int  machineIdType = idx.model()->data(idx, Qt::UserRole + 1).toInt();
         auto name          = idx.model()->data(idx, Qt::UserRole + 2).toString();
@@ -185,6 +151,40 @@ SettingsMachine::SettingsMachine(QWidget *parent)
             }
         }
     });
+
+    auto *pitModeModel = ui->comboBoxPitMode->model();
+    pitModeModel->insertRows(0, 3);
+    idx = pitModeModel->index(0, 0);
+    pitModeModel->setData(idx, tr("Auto"), Qt::DisplayRole);
+    pitModeModel->setData(idx, -1, Qt::UserRole);
+    idx = pitModeModel->index(1, 0);
+    pitModeModel->setData(idx, tr("Slow"), Qt::DisplayRole);
+    pitModeModel->setData(idx, 0, Qt::UserRole);
+    idx = pitModeModel->index(2, 0);
+    pitModeModel->setData(idx, tr("Fast"), Qt::DisplayRole);
+    pitModeModel->setData(idx, 1, Qt::UserRole);
+
+    ui->comboBoxPitMode->setCurrentIndex(-1);
+    ui->comboBoxPitMode->setCurrentIndex(pit_mode + 1);
+
+    switch (time_sync) {
+        case TIME_SYNC_ENABLED:
+            ui->radioButtonLocalTime->setChecked(true);
+            break;
+        case TIME_SYNC_ENABLED | TIME_SYNC_UTC:
+            ui->radioButtonUTC->setChecked(true);
+            break;
+        case TIME_SYNC_DISABLED:
+        default:
+            ui->radioButtonDisabled->setChecked(true);
+            break;
+    }
+
+    ui->comboBoxMachineType->setCurrentIndex(-1);
+    ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
+
+    ui->radioButtonLargerFrames->setChecked(force_10ms);
+    ui->radioButtonSmallerFrames->setChecked(!force_10ms);
 
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
 
