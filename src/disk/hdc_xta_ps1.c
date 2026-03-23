@@ -96,6 +96,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/machine.h>
+#include "cpu.h"
 
 #define HDC_TIME         (100 * TIMER_USEC)
 #define HDC_SECTOR_TIME  (250 * TIMER_USEC)
@@ -201,7 +202,7 @@ typedef struct ssb_t {
     uint8_t last_def_sect : 1; /* DS           */
     uint8_t last_sect;         /* Sect[8]      */
 
-    uint8_t sect_size; /* Size[8] = 02        */
+    uint8_t sect_size; /* Size[8] = 02         */
 
     /* Current position. */
     uint8_t curr_cyl_high : 2; /* Cyl_High_[2] */
@@ -247,11 +248,11 @@ typedef struct ssb_t {
      * 4.  When the transfer is complete, the low nibble equals hex 4
      *     and the high nibble is unchanged.
      */
-    uint8_t cmd_syndrome; /* command syndrome    */
+    uint8_t cmd_syndrome; /* command syndrome */
 
-    uint8_t drive_type; /* drive type        */
+    uint8_t drive_type; /* drive type */
 
-    uint8_t rsvd; /* reserved byte    */
+    uint8_t rsvd; /* reserved byte */
 } ssb_t;
 #pragma pack(pop)
 
@@ -301,7 +302,7 @@ typedef struct fcb_t {
     uint8_t sector; /* sector number */
 
     uint8_t mbz2 : 1; /* 0      */
-    uint8_t mbo  : 1; /* 1      */
+    uint8_t mbo1 : 1; /* 1      */
     uint8_t mbz3 : 6; /* 000000 */
 
     uint8_t fill; /* filler byte */
@@ -317,25 +318,25 @@ typedef struct fcb_t {
  */
 #pragma pack(push, 1)
 typedef struct ccb_t{
-    uint8_t ec_p      : 1; /* EC/P (ecc/park)    */
-    uint8_t mbz1      : 1; /* 0            */
-    uint8_t auto_seek : 1; /* AS (auto-seek)    */
-    uint8_t no_data   : 1; /* ND (no data)        */
-    uint8_t cmd       : 4; /* command code[4]    */
+    uint8_t ec_p      : 1; /* EC/P (ecc/park) */
+    uint8_t mbz1      : 1; /* 0               */
+    uint8_t auto_seek : 1; /* AS (auto-seek)  */
+    uint8_t no_data   : 1; /* ND (no data)    */
+    uint8_t cmd       : 4; /* command code[4] */
 
-    uint8_t cyl_high : 2; /* cylinder [9:8] bits    */
-    uint8_t mbz2     : 2; /* 00            */
-    uint8_t head     : 4; /* head number        */
+    uint8_t cyl_high : 2; /* cylinder [9:8] bits */
+    uint8_t mbz2     : 2; /* 00                  */
+    uint8_t head     : 4; /* head number         */
 
-    uint8_t cyl_low; /* cylinder [7:0] bits    */
+    uint8_t cyl_low; /* cylinder [7:0] bits */
 
-    uint8_t sector; /* sector number    */
+    uint8_t sector; /* sector number */
 
-    uint8_t mbz3 : 1; /* 0            */
-    uint8_t mbo1 : 1; /* 1            */
-    uint8_t mbz4 : 6; /* 000000        */
+    uint8_t mbz3 : 1; /* 0      */
+    uint8_t mbo1 : 1; /* 1      */
+    uint8_t mbz4 : 6; /* 000000 */
 
-    uint8_t count; /* blk count/interleave    */
+    uint8_t count; /* blk count/interleave */
 } ccb_t;
 #pragma pack(pop)
 
@@ -881,7 +882,7 @@ do_send:
                         return;
                     }
 
-                    /* Addvance to next sector. */
+                    /* Advance to next sector. */
                     next_sector(dev, drive);
 
                     /* This saves us a LOT of code. */
