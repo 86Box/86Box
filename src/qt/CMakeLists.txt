@@ -358,7 +358,7 @@ endif()
 
 if(WIN32)
     target_sources(plat PRIVATE win_cdrom_ioctl.c)
-elseif(UNIX AND NOT APPLE)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(plat PRIVATE ../unix/linux_cdrom_ioctl.c)
 else()
     target_sources(plat PRIVATE dummy_cdrom_ioctl.c)
