@@ -29,11 +29,12 @@
 
 #ifdef _WIN32
 #    include <ws2tcpip.h>
+#else
+#    include <arpa/inet.h>
 #endif
 #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #    include <sys/types.h>
 #    include <sys/socket.h>
-#    include <arpa/inet.h>
 #endif
 #include <inttypes.h>
 #ifdef ENABLE_CONFIG_LOG
