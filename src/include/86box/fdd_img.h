@@ -22,6 +22,7 @@
 
 extern void img_init(void);
 extern void img_load(int drive, char *fn);
+extern void img_load_raw_device(int drive, const char *device_path, int64_t size);
 extern void img_close(int drive);
 
 #endif /*EMU_FLOPPY_IMG_H*/

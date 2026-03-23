@@ -54,6 +54,7 @@ extern "C" {
 #include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
+#include <86box/plat_floppy_ioctl.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
@@ -148,6 +149,13 @@ MediaMenu::refresh(QMenu *parentMenu)
             menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { floppyMenuSelect(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
+        const char *hostDevice = fdd_get_host_device(i);
+        if (hostDevice && hostDevice[0] != '\0') {
+            menu->addAction(img_icon, tr("&Use Host Floppy Drive"), [this, i, hostDevice] { 
+                floppyMount(i, QString("ioctl://%1").arg(QString::fromUtf8(hostDevice)), false); 
+            })->setCheckable(false);
+            menu->addSeparator();
+        }
         floppyExportPos = menu->children().count();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Export), tr("E&xport to 86F…"), [this, i]() { floppyExportTo86f(i); });
         menu->addSeparator();

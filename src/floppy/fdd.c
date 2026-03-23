@@ -42,6 +42,7 @@
 #include <86box/fdd_td0.h>
 #include <86box/fdc.h>
 #include <86box/fdd_audio.h>
+#include <86box/plat_floppy_ioctl.h>
 
 /* Flags:
    Bit  0:  300 rpm supported;
@@ -669,6 +670,36 @@ fdd_load(int drive, char *fn)
         ui_writeprot[drive] = 1;
     }
     fn += offs;
+
+    /* Check for physical floppy device (ioctl://) prefix */
+    if (strstr(fn, "ioctl://") == fn) {
+        const char *device_path = fn + 8;
+        int64_t dev_size;
+        
+        dev_size = floppy_ioctl_get_device_size(device_path);
+        
+        if (dev_size <= 0) {
+            drive_empty[drive] = 1;
+            fdd_set_head(drive, 0);
+            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+            ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+            return;
+        }
+        
+        if (floppyfns[drive] != (fn - offs))
+            strcpy(floppyfns[drive], fn - offs);
+        
+        d86f_setup(drive);
+        
+        img_load_raw_device(drive, device_path, dev_size);
+        drive_empty[drive] = 0;
+        
+        fdd_forced_seek(drive, 0);
+        fdd_changed[drive] = 1;
+        ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
+        return;
+    }
+
     p = path_get_extension(fn);
     if (!p)
         return;
@@ -704,11 +735,7 @@ void
 fdd_close(int drive)
 {
     d86f_stop(drive); /* Call this first of all to make sure the 86F poll is back to idle state. */
-    if (loaders[driveloaders[drive]].close)
-        loaders[driveloaders[drive]].close(drive);
-    drive_empty[drive] = 1;
-    fdd_set_head(drive, 0);
-    floppyfns[drive][0]         = 0;
+
     drives[drive].hole          = NULL;
     drives[drive].poll          = NULL;
     drives[drive].seek          = NULL;
@@ -720,6 +747,16 @@ fdd_close(int drive)
     drives[drive].byteperiod    = NULL;
     drives[drive].stop          = NULL;
     fdd_seek_in_progress[drive] = 0;
+
+    if (strstr(floppyfns[drive], "ioctl://") != NULL) {
+        floppy_ioctl_close(drive);
+        img_close(drive);
+    } else if (loaders[driveloaders[drive]].close)
+        loaders[driveloaders[drive]].close(drive);
+
+    drive_empty[drive] = 1;
+    fdd_set_head(drive, 0);
+    floppyfns[drive][0] = 0;
     d86f_destroy(drive);
     ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
 }

@@ -27,6 +27,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
@@ -491,7 +494,7 @@ img_seek(int drive, int track)
 {
     img_t   *dev = img[drive];
     int      side;
-    int      current_xdft = dev->xdf_type - 1;
+    int      current_xdft;
     int      read_bytes   = 0;
     uint8_t  id[4]        = { 0, 0, 0, 0 };
     int      is_t0;
@@ -504,8 +507,14 @@ img_seek(int drive, int track)
     int      array_sector;
     int      buf_side;
     int      buf_pos;
-    int      ssize   = 128 << ((int) dev->sector_size);
+    int      ssize;
     uint32_t cur_pos = 0;
+
+    if (dev == NULL)
+        return;
+
+    current_xdft = dev->xdf_type - 1;
+    ssize = 128 << ((int) dev->sector_size);
 
     if (dev->fp == NULL)
         return;
@@ -1285,4 +1294,134 @@ void
 img_set_fdc(void *fdc)
 {
     img_fdc = (fdc_t *) fdc;
+}
+
+/* Load a raw floppy device (support for ioctl:// path) */
+void
+img_load_raw_device(int drive, const char *device_path, int64_t size)
+{
+    img_t *dev;
+    FILE *fp;
+    int temp_rate = 0;
+
+    d86f_unregister(drive);
+    writeprot[drive] = 0;
+
+    fp = fopen(device_path, "rb+");
+    if (fp == NULL) {
+        fp = fopen(device_path, "rb");
+        if (fp == NULL) {
+            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+            return;
+        }
+        writeprot[drive] = 1;
+    }
+
+    dev = (img_t *) calloc(1, sizeof(img_t));
+    if (dev == NULL) {
+        fclose(fp);
+        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        return;
+    }
+
+    static const struct {
+        int64_t size;
+        int     tracks;
+        int     sides;
+        int     sectors;
+        int     rate;
+    } floppy_formats[] = {
+        { 2949120, 80, 2, 36, 3 },  /* 2.88 MB ED */
+        { 1474560, 80, 2, 18, 0 },  /* 1.44 MB HD */
+        { 1228800, 80, 2, 15, 0 },  /* 1.2 MB HD 5.25" */
+        {  737280, 80, 2,  9, 2 },  /* 720 KB DD */
+        {  368640, 40, 2,  9, 1 },  /* 360 KB DD 5.25" */
+        {  327680, 40, 2,  8, 1 },  /* 320 KB DD */
+        {  184320, 40, 1,  9, 1 },  /* 180 KB SD 5.25" */
+        {  163840, 40, 1,  8, 1 },  /* 160 KB SD */
+    };
+
+    dev->fp = fp;
+    dev->base = 0;
+    dev->interleave = 0;
+    dev->skew = 0;
+    dev->sector_size = 2;  /* 512 bytes */
+    dev->xdf_type = 0;
+    dev->dmf = 0;
+    dev->disk_at_once = 0;
+    dev->is_cqm = 0;
+
+    int found = 0;
+    for (size_t i = 0; i < sizeof(floppy_formats) / sizeof(floppy_formats[0]); i++) {
+        if (size == floppy_formats[i].size) {
+            dev->tracks = floppy_formats[i].tracks;
+            dev->sides = floppy_formats[i].sides;
+            dev->sectors = floppy_formats[i].sectors;
+            temp_rate = floppy_formats[i].rate;
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        img_log("img_load_raw_device(): Unknown disk size %lld bytes, ejecting\n", (long long)size);
+        fclose(fp);
+        free(dev);
+        memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+        return;
+    }
+
+    if (ui_writeprot[drive])
+        writeprot[drive] = 1;
+    fwriteprot[drive] = writeprot[drive];
+
+    /* Find the correct disk flags */
+    dev->disk_flags = 0;
+    dev->sector_size = 2;  /* 512 bytes */
+    for (uint8_t i = 0; i < 6; i++) {
+        if (dev->sectors <= maximum_sectors[dev->sector_size][i]) {
+            dev->disk_flags = holes[i] << 1;  /* Set hole type in bits 1-2 */
+            temp_rate = rates[i];
+            break;
+        }
+    }
+    if (dev->sides == 2)  /* Double-sided */
+        dev->disk_flags |= 8;
+
+    /* Set track width */
+    dev->track_width = 0;
+    if (dev->tracks > 43)
+        dev->track_width = 1;  /* 96 tpi (thin tracks) */
+
+    /* Set gap sizes */
+    dev->gap2_size = (temp_rate == 3) ? 41 : 22;
+    dev->gap3_size = gap3_sizes[temp_rate][dev->sector_size][dev->sectors];
+
+    /* Set track flags */
+    dev->track_flags = 0x08;           /* MFM encoded */
+    dev->track_flags |= temp_rate & 3; /* Data rate */
+    if (temp_rate & 4)
+        dev->track_flags |= 0x20;      /* RPM */
+
+    /* Set up the drive unit */
+    img[drive] = dev;
+
+    d86f_handler[drive].disk_flags        = disk_flags;
+    d86f_handler[drive].side_flags        = side_flags;
+    d86f_handler[drive].writeback         = write_back;
+    d86f_handler[drive].set_sector        = set_sector;
+    d86f_handler[drive].read_data         = poll_read_data;
+    d86f_handler[drive].write_data        = poll_write_data;
+    d86f_handler[drive].format_conditions = format_conditions;
+    d86f_handler[drive].extra_bit_cells   = null_extra_bit_cells;
+    d86f_handler[drive].encoded_data      = common_encoded_data;
+    d86f_handler[drive].read_revolution   = common_read_revolution;
+    d86f_handler[drive].index_hole_pos    = null_index_hole_pos;
+    d86f_handler[drive].get_raw_size      = common_get_raw_size;
+    d86f_handler[drive].check_crc         = 1;
+    d86f_set_version(drive, 0x0063);
+
+    drives[drive].seek = img_seek;
+
+    d86f_common_handlers(drive);
 }
