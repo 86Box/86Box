@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/plat_floppy_ioctl.h>
 
