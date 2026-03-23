@@ -1110,8 +1110,6 @@ do_recv:
 static void
 hdc_send_ssb(mfm_t *dev)
 {
-    const drive_t *drive;
-
     if (!dev->ssb.valid) {
         /* Create a valid SSB. */
         memset(&dev->ssb, 0x00, sizeof(dev->ssb));
@@ -1505,7 +1503,6 @@ mfm_init(UNUSED(const device_t *info))
 {
     drive_t *drive;
     mfm_t   *dev;
-    int      c;
 
     /* Allocate and initialize device block. */
     dev = calloc(1, sizeof(mfm_t));
