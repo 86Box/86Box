@@ -57,7 +57,7 @@ endif()
 
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
-if(APPLE AND USE_QT6)
+if(APPLE AND USE_QT6 AND VCPKG_TOOLCHAIN)
     find_package(Qt6Gui/Qt6QCocoaIntegrationPlugin REQUIRED)
     find_package(Qt6Widgets/Qt6QMacStylePlugin REQUIRED)
     find_package(Qt6Gui/Qt6QICOPlugin REQUIRED)
