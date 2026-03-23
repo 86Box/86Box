@@ -81,6 +81,9 @@ CLAMP(int16_t in, int16_t min, int16_t max)
     return in;
 }
 
+#define SATURATE_B(val)     (((val) < 0) ? 0 : (((val) > 0xff) ? 0xff : (val)))
+#define SATURATE_W(val)     (((val) < 0) ? 0 : (((val) > 0xffff) ? 0xffff : (val)))
+
 #define WRITE8(addr, var, val)                   \
     switch ((addr) & 1) {                        \
         case 0:                                  \
@@ -151,15 +154,12 @@ CLAMP(int16_t in, int16_t min, int16_t max)
                 dest_dat = ~(src_dat & dest_dat);                                                     \
                 break;                                                                                \
             case 0x09:                                                                                \
-            case 0x11:                                                                                \
                 dest_dat = ~src_dat | dest_dat;                                                       \
                 break;                                                                                \
             case 0x0a:                                                                                \
-            case 0x12:                                                                                \
                 dest_dat = src_dat | ~dest_dat;                                                       \
                 break;                                                                                \
             case 0x0b:                                                                                \
-            case 0x13:                                                                                \
                 dest_dat = src_dat | dest_dat;                                                        \
                 break;                                                                                \
             case 0x0c:                                                                                \
@@ -176,6 +176,24 @@ CLAMP(int16_t in, int16_t min, int16_t max)
                 break;                                                                                \
             case 0x10:                                                                                \
                 dest_dat = MIN(src_dat, dest_dat);                                                    \
+                break;                                                                                \
+            case 0x11: \
+                if (dev->bpp) \
+                    dest_dat = SATURATE_W(dest_dat - src_dat); \
+                else \
+                    dest_dat = SATURATE_B(dest_dat - src_dat); \
+                break; \
+            case 0x12: \
+                if (dev->bpp) \
+                    dest_dat = SATURATE_W(src_dat - dest_dat); \
+                else \
+                    dest_dat = SATURATE_B(src_dat - dest_dat); \
+                break; \
+            case 0x13: \
+                if (dev->bpp) \
+                    dest_dat = SATURATE_W(dest_dat + src_dat); \
+                else \
+                    dest_dat = SATURATE_B(dest_dat + src_dat); \
                 break;                                                                                \
             case 0x14:                                                                                \
                 dest_dat = MAX(src_dat, dest_dat);                                                    \
@@ -555,6 +573,8 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                 dev->data_available  = 0;
                 dev->data_available2 = 0;
                 dev->accel.cmd       = val;
+
+                dev->fifo_idx = 0;
                 dev->accel.cmd_back  = 1;
                 if (dev->accel.cmd & 0x100)
                     dev->accel.cmd_back = 0;
@@ -641,13 +661,13 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
         case 0xb6e8:
             dev->accel.bkgd_mix = val & 0x1f;
             dev->accel.bkgd_sel = (val >> 5) & 3;
-            ibm8514_log("Background Mix reg=%02x.\n", val);
+            ibm8514_log("Standard Background MIX=%02x.\n", val & 0x1f);
             break;
 
         case 0xbae8:
             dev->accel.frgd_mix = val & 0x1f;
             dev->accel.frgd_sel = (val >> 5) & 3;
-            ibm8514_log("Foreground Mix reg=%02x.\n", val);
+            ibm8514_log("Standard Foreground MIX=%02x.\n", val & 0x1f);
             break;
 
         case 0xbee8:
@@ -821,14 +841,12 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
 
         case 0x9ae8:
             if (len == 2) {
-                if (dev->fifo_idx <= 8) {
-                    for (int i = 1; i <= dev->fifo_idx; i++)
-                        temp |= (1 << (7 - (i - 1)));
-                } else
+                if (dev->fifo_idx <= 7)
+                    temp |= (((1 << dev->fifo_idx) - 1) << (8 - dev->fifo_idx));
+                else
                     temp = 0x00ff;
 
-                if (dev->fifo_idx > 0)
-                    dev->fifo_idx--;
+                dev->fifo_idx = 0;
 
                 if (dev->force_busy) {
                     temp |= 0x0200; /*Hardware busy*/
@@ -1272,8 +1290,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
     old_mix_dat = mix_dat;
 
-    if (!(dev->accel.cmd & 0x01))
-        ibm8514_log("CMD=%d, full=%04x, pixcntl=%d, filling=%02x, ssvdraw=%02x.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06, dev->accel.ssv_draw);
+    ibm8514_log("CMD=%d, full=%04x, pixcntl=%d, filling=%02x, ssvdraw=%02x.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06, dev->accel.ssv_draw);
 
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
@@ -1446,8 +1463,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         if (cpu_input) {
                             dev->force_busy = 0;
                             dev->force_busy2 = 0;
+                            dev->fifo_idx = 0;
                         }
-                        dev->fifo_idx = 0;
                         dev->accel.cmd_back = 1;
                         break;
                     }
@@ -1745,8 +1762,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             if (cpu_input) {
                                 dev->force_busy = 0;
                                 dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
                             }
-                            dev->fifo_idx = 0;
                             dev->accel.cmd_back = 1;
                             if (!cpu_input) {
                                 dev->accel.cur_x = dev->accel.cx;
@@ -1794,9 +1811,10 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 break;
                         }
 
-                        if (dev->accel.cmd & 0x02)
-                            mix_dat >>= 1;
-                        else {
+                        if (dev->accel.cmd & 0x02) {
+                            if (pixcntl != 0)
+                                mix_dat >>= 1;
+                        } else {
                             mix_dat <<= 1;
                             mix_dat |= 1;
                         }
@@ -1869,8 +1887,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             if (cpu_input) {
                                 dev->force_busy = 0;
                                 dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
                             }
-                            dev->fifo_idx = 0;
                             dev->accel.cmd_back = 1;
                             break;
                         }
@@ -1961,8 +1979,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             if (cpu_input) {
                                 dev->force_busy = 0;
                                 dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
                             }
-                            dev->fifo_idx = 0;
                             dev->accel.cmd_back = 1;
                             if (!cpu_input) {
                                 dev->accel.cur_x = dev->accel.cx;
@@ -2642,7 +2660,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                                 if (dev->accel.sy < 0) {
                                     ibm8514_log(".\n");
-                                    dev->fifo_idx = 0;
                                     dev->accel.cur_x = dev->accel.cx;
                                     dev->accel.cur_y = dev->accel.cy;
                                     dev->accel.cmd_back = 1;
@@ -2725,7 +2742,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                         dev->accel.cur_x = dev->accel.cx;
                                         dev->accel.cur_y = dev->accel.cy;
                                     }
-                                    dev->fifo_idx = 0;
                                     dev->accel.cmd_back = 1;
                                     return;
                                 }
@@ -2835,8 +2851,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         if (cpu_input) {
                             dev->force_busy = 0;
                             dev->force_busy2 = 0;
+                            dev->fifo_idx = 0;
                         }
-                        dev->fifo_idx = 0;
                         dev->accel.cmd_back = 1;
                         break;
                     }
@@ -2944,8 +2960,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         if (cpu_input) {
                             dev->force_busy = 0;
                             dev->force_busy2 = 0;
+                            dev->fifo_idx = 0;
                         }
-                        dev->fifo_idx = 0;
                         dev->accel.cmd_back = 1;
                         break;
                     }
@@ -3262,10 +3278,9 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                                 dev->accel.sy--;
 
-                                if (dev->accel.sy < 0) {
+                                if (dev->accel.sy < 0)
                                     dev->accel.cmd_back = 1;
-                                    dev->fifo_idx = 0;
-                                }
+
                                 return;
                             }
                         }
@@ -3353,7 +3368,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 if (dev->accel.sy < 0) {
                                     dev->accel.destx = dev->accel.dx;
                                     dev->accel.desty = dev->accel.dy;
-                                    dev->fifo_idx = 0;
                                     dev->accel.cmd_back = 1;
                                     return;
                                 }
@@ -3389,7 +3403,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
                             dev->accel.sx--;
                             if (dev->accel.sx < 0) {
-                                dev->fifo_idx = 0;
                                 dev->accel.cmd_back = 1;
                                 return;
                             }
@@ -3449,8 +3462,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                     MIX(mix_dat & mix_mask, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                     WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
-                                    if ((dev->accel.cmd == 0xc073) && (dev->accel.frgd_mix == 0x05) && (frgd_mix == 3))
-                                        ibm8514_log("BitBLT CX=%d, CY=%d, DX=%d, DY=%d, data=%02x, old=%02x, src=%02x, frmix=%02x, bkmix=%02x, pixcntl=%d.\n", dev->accel.cx, dev->accel.cy, dev->accel.dx, dev->accel.dy, dest_dat, old_dest_dat, src_dat, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, pixcntl);
+                                    if ((dev->accel.cmd == 0xc0f1) && ((dev->accel.frgd_mix & 0x1f) == 0x13))
+                                        ibm8514_log("%04X:%08X: 8514A ON=%x, BitBLT CX=%d, CY=%d, DX=%d, DY=%d, data=%02x, old=%02x, src=%02x, frmix=%02x, bkmix=%02x, pixcntl=%d.\n", CS, cpu_state.pc, dev->on, dev->accel.cx, dev->accel.cy, dev->accel.dx, dev->accel.dy, dest_dat, old_dest_dat, src_dat, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, pixcntl);
                                 }
                             }
 
@@ -3494,7 +3507,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                 if (dev->accel.sy < 0) {
                                     dev->accel.destx = dev->accel.dx;
                                     dev->accel.desty = dev->accel.dy;
-                                    dev->fifo_idx = 0;
                                     dev->accel.cmd_back = 1;
                                     return;
                                 }
@@ -4099,6 +4111,7 @@ ibm8514_vblank_start(void *priv)
 static void *
 ibm8514_init(const device_t *info)
 {
+    FILE *fp = NULL;
     uint16_t bios_rom_eeprom = 0x0000;
     uint32_t bios_addr;
 
@@ -4135,16 +4148,23 @@ ibm8514_init(const device_t *info)
             if (rom_present(BIOS_MACH8_ROM_PATH)) {
                 mach_t * mach = (mach_t *) calloc(1, sizeof(mach_t));
                 svga->ext8514 = mach;
-                bios_addr = dev->bios_addr;
+                bios_addr = dev->bios_addr & 0x0800;
 
-                dev->bios_rom.rom = malloc(0x2000);
-                memset(dev->bios_rom.rom, 0xff, 0x2000);
+                dev->bios_rom.rom = (uint8_t *)calloc(1, 0x2000);
 
-                (void) rom_load_linear(BIOS_MACH8_ROM_PATH, bios_addr, 0x2000, 0x0000, dev->bios_rom.rom + (bios_addr & 0x0800));
+                fp = rom_fopen(BIOS_MACH8_ROM_PATH, "rb");
+
+                if (fseek(fp, 0x0800, SEEK_SET) == -1)
+                    fatal("ibm8514_init(): Error seeking to the beginning of the file\n");
+                if (fread(dev->bios_rom.rom + bios_addr, 1, 0x2000, fp) > 0x2000)
+                    fatal("ibm8514_init(): Error reading data\n");
+
+                (void) fclose(fp);
+
                 dev->bios_rom.sz = 0x2000;
                 dev->bios_rom.mask = 0x1fff;
 
-                mem_mapping_add(&dev->bios_rom.mapping, bios_addr, dev->bios_rom.sz,
+                mem_mapping_add(&dev->bios_rom.mapping, dev->bios_addr, dev->bios_rom.sz,
                                 ati8514_bios_rom_readb, ati8514_bios_rom_readw, ati8514_bios_rom_readl,
                                 NULL, NULL, NULL,
                                 dev->bios_rom.rom, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM_WS, dev);
