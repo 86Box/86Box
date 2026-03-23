@@ -78,6 +78,10 @@
 #endif
 
 #ifdef Q_OS_WINDOWS
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
 #    include <winioctl.h>
 #endif
 
@@ -125,10 +129,6 @@ private:
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
-#    ifndef NOMINMAX
-#        define NOMINMAX
-#    endif
-#    include <windows.h>
 #    include <86box/win.h>
 #else
 #    include <strings.h>
