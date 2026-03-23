@@ -97,7 +97,7 @@
 #include <86box/ui.h>
 #include <86box/machine.h>
 
-#define HDC_TIME         (10 * TIMER_USEC)
+#define HDC_TIME         (100 * TIMER_USEC)
 #define HDC_SECTOR_TIME  (250 * TIMER_USEC)
 #define HDC_TYPE_USER 47 /* user drive type */
 
@@ -146,6 +146,7 @@ enum {
 #define ISR_TERMINATION 0x80 /* termination error */
 
 /* Attention register (4W) values (IBM PS/1 2011.) */
+#define ATT_ABRT 0x01 /* abort command */
 #define ATT_DATA 0x10 /* data request */
 #define ATT_SSB  0x20 /* sense summary block */
 #define ATT_CSB  0x40 /* command specify block */
@@ -383,6 +384,7 @@ typedef struct hdc_t {
     int8_t     state; /* controller state */
     int8_t     reset; /* reset state counter */
     int8_t     ready; /* ready state counter */
+    int8_t     abort; /* abort state counter */
 
     /* Data transfer. */
     int16_t buf_idx; /* buffer index and pointer */
@@ -733,6 +735,14 @@ hdc_callback(void *priv)
         return;
     }
 
+    /* Abort last command if requested. */
+    if (dev->abort) {
+        ps1_hdc_log("XTA command abort.\n");
+        dev->abort = 0;
+        do_finish(dev);
+        return;
+    }
+
     /* Clear the SSB error bits. */
     dev->ssb.track_0        = 0;
     dev->ssb.cylinder_err   = 0;
@@ -755,6 +765,7 @@ hdc_callback(void *priv)
     switch (ccb->cmd) {
         case CMD_READ_VERIFY:
             ccb->no_data = 1;
+            ccb->count = 1;
             fallthrough;
 
         case CMD_READ_SECTORS:
@@ -818,7 +829,7 @@ do_send:
                         if (dev->ctrl & ACR_DMA_EN) {
                             /* DMA enabled. */
                             dev->buf_ptr = dev->sector_buf;
-                            timer_advance_u64(&dev->timer, HDC_TIME);
+                            timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                         } else {
                             /* No DMA, do PIO. */
                             dev->status |= (ASR_DATA_REQ | ASR_DIR);
@@ -837,7 +848,7 @@ do_send:
                         /* Perform DMA. */
                         while (dev->buf_idx < dev->buf_len) {
                             val = dma_channel_write(dev->dma,
-                                                    *dev->buf_ptr++);
+                                                    dev->buf_ptr[dev->buf_idx]);
                             if (val == DMA_NODATA) {
                                 ps1_hdc_log("HDC: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
 
@@ -853,7 +864,7 @@ do_send:
                         }
                     }
                     dev->state = STATE_SDONE;
-                    timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
+                    timer_advance_u64(&dev->timer, HDC_TIME);
                     break;
 
                 case STATE_SDONE:
@@ -865,6 +876,7 @@ do_send:
                         if (!(dev->ctrl & ACR_DMA_EN))
                             dev->status &= ~(ASR_DATA_REQ | ASR_DIR);
                         dev->ssb.cmd_syndrome = 0xD4;
+                        dev->ssb.seek_end = 1;
                         do_finish(dev);
                         return;
                     }
@@ -923,6 +935,7 @@ do_send:
                     if (!(dev->ctrl & ACR_DMA_EN))
                         dev->status &= ~(ASR_DATA_REQ | ASR_DIR);
                     dev->ssb.cmd_syndrome = 0x14;
+                    dev->ssb.seek_end = 1;
                     do_finish(dev);
                     break;
 
@@ -1002,7 +1015,7 @@ do_recv:
                         if (dev->ctrl & ACR_DMA_EN) {
                             /* DMA enabled. */
                             dev->buf_ptr = dev->sector_buf;
-                            timer_advance_u64(&dev->timer, HDC_TIME);
+                            timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                         } else {
                             /* No DMA, do PIO. */
                             dev->buf_ptr = dev->data;
@@ -1032,7 +1045,7 @@ do_recv:
                         }
                     }
                     dev->state = STATE_RDONE;
-                    timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
+                    timer_advance_u64(&dev->timer, HDC_TIME);
                     break;
 
                 case STATE_RDONE:
@@ -1063,6 +1076,7 @@ do_recv:
                         if (!(dev->ctrl & ACR_DMA_EN))
                             dev->status &= ~ASR_DATA_REQ;
                         dev->ssb.cmd_syndrome = 0xD4;
+                        dev->ssb.seek_end = 1;
                         do_finish(dev);
                         return;
                     }
@@ -1167,16 +1181,18 @@ hdc_read(uint16_t port, void *priv)
                     ps1_hdc_log("HDC: read with empty buffer!\n");
                     dev->state = STATE_IDLE;
                     dev->intstat |= ISR_INVALID_CMD;
-                    dev->status &= (ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
+                    dev->status &= ~(ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
                     set_intr(dev, 1);
                     break;
                 }
 
+                /* Read the data from the buffer. */
                 ret = dev->buf_ptr[dev->buf_idx];
                 if (++dev->buf_idx == dev->buf_len) {
                     /* Data block sent OK. */
                     dev->status &= ~(ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
                     dev->state = STATE_IDLE;
+                    set_intr(dev, 1);
                 }
             }
             break;
@@ -1215,8 +1231,8 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
             if (dev->state == STATE_RDATA) {
                 if (dev->buf_idx >= dev->buf_len) {
                     ps1_hdc_log("HDC: write with full buffer!\n");
+                    dev->status &= ~(ASR_TX_EN | ASR_DATA_REQ);
                     dev->intstat |= ISR_INVALID_CMD;
-                    dev->status &= ~ASR_DATA_REQ;
                     set_intr(dev, 1);
                     break;
                 }
@@ -1226,7 +1242,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                 ps1_hdc_log("dev->buf_ptr[%02X] = %02X\n", dev->buf_idx, val);
                 if (++dev->buf_idx == dev->buf_len) {
                     /* We got all the data we need. */
-                    dev->status &= ~ASR_DATA_REQ;
+                    dev->status &= ~(ASR_TX_EN | ASR_DATA_REQ);
                     dev->state = STATE_IDLE;
                     set_intr(dev, 1);
 
@@ -1264,6 +1280,14 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 
         case 4: /* ATTN */
             dev->status &= ~ASR_INT_REQ;
+
+            if (val & ATT_ABRT) {
+                dev->abort = 1;
+                dev->status &= ~ASR_BUSY;
+                /* Schedule command execution. */
+                timer_set_delay_u64(&dev->timer, HDC_TIME);
+            }
+
             if (val & ATT_DATA)
                 dev->ready = 1;
             else
@@ -1285,10 +1309,14 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 
                 dev->state = STATE_SDATA;
                 dev->status |= (ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
-                set_intr(dev, 1);
             }
 
             if (val & ATT_CCB) {
+                if (dev->attn & ATT_CCB)
+                    /* Hey now, we're still busy for you! */
+                    break;
+
+                /* OK, prepare for receiving a CCB. */
                 dev->attn |= ATT_CCB;
 
                 /* Set up the transfer buffer for a CCB. */
@@ -1297,7 +1325,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                 dev->buf_ptr = (uint8_t *) &dev->ccb;
 
                 dev->state = STATE_RDATA;
-                dev->status |= ASR_DATA_REQ;
+                dev->status |= (ASR_TX_EN | ASR_DATA_REQ);
             }
             break;
 
