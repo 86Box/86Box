@@ -346,8 +346,8 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 
     c = 0;
     while (true) {
-        const QString name = DeviceConfig::DeviceName(network_card_getdevice(c),
-                                                      network_card_get_internal_name(c), 1);
+        QString name = DeviceConfig::DeviceName(network_card_getdevice(c),
+                                                network_card_get_internal_name(c), 1);
 
         if (name.isEmpty())
             break;
@@ -356,6 +356,9 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             if (device_is_valid(network_card_getdevice(c), machineId)) {
                 for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
                     if ((c != 1) || ((i == 0) && m_has_net)) {
+                        if (i == 0 && c == 1 && m_has_net && machine_get_net_device(machineId)) {
+                            name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_net_device(machineId), machine_get_net_device(machineId)->internal_name, 0));
+                        }
                         int row = Models::AddEntry(models[i], name, c);
                         sc[i]->addDevice(network_card_getdevice(c), name);
 
