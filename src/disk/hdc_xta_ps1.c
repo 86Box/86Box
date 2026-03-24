@@ -135,7 +135,7 @@ enum {
 #define ASR_DATA_REQ 0x10 /* data request */
 
 /* Attachment Control register (2W) values (IBM PS/1 2011.) */
-#define ACR_DMA_EN 0x01 /* DMA enable */
+#define ACR_DMA_EN 0x01 /* DMA transfer enable */
 #define ACR_INT_EN 0x02 /* interrupt enable */
 #define ACR_RESET  0x80 /* reset */
 
@@ -727,15 +727,6 @@ hdc_callback(void *priv)
     uint8_t  cmd = ccb->cmd & 0x0f;
 #endif
 
-    /* If we are returning from a RESET, handle this first. */
-    if (dev->reset) {
-        ps1_hdc_log("XTA reset.\n");
-        dev->status &= ~ASR_BUSY;
-        dev->reset = 0;
-        do_finish(dev);
-        return;
-    }
-
     /* Abort last command if requested. */
     if (dev->abort) {
         ps1_hdc_log("XTA command abort.\n");
@@ -761,6 +752,16 @@ hdc_callback(void *priv)
     /* We really only support one drive, but ohwell. */
     drive = &dev->drives[0];
 
+    /* If we are returning from a RESET, handle this first. */
+    if (dev->reset) {
+        ps1_hdc_log("XTA reset.\n");
+        dev->status &= ~ASR_BUSY;
+        dev->ssb.valid = 0;
+        dev->reset = 0;
+        do_finish(dev);
+        return;
+    }
+
     ps1_hdc_log("hdc_callback(): %02X\n", cmd);
 
     switch (ccb->cmd) {
@@ -778,7 +779,7 @@ hdc_callback(void *priv)
 
             if (!(dev->ready | ccb->no_data)) {
                 /* Delay a bit, transfer not ready. */
-                timer_advance_u64(&dev->timer, HDC_TIME);
+                timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                 return;
             }
 
@@ -959,6 +960,7 @@ do_send:
         case CMD_RECALIBRATE: /* RECALIBRATE */
             if (drive->present) {
                 dev->track = drive->cur_cyl = 0;
+                dev->ssb.seek_end = 1;
             } else {
                 dev->ssb.not_ready = 1;
                 dev->intstat |= ISR_TERMINATION;
@@ -977,7 +979,7 @@ do_send:
 
             if (!(dev->ready | ccb->no_data)) {
                 /* Delay a bit, transfer not ready. */
-                timer_advance_u64(&dev->timer, HDC_TIME);
+                timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                 return;
             }
 

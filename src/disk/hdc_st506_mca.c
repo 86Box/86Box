@@ -109,7 +109,7 @@
 #include "cpu.h"
 
 #define MFM_TIME         (10 * TIMER_USEC)
-#define MFM_SECTOR_TIME  (250 * TIMER_USEC)
+#define MFM_SECTOR_TIME  (500 * TIMER_USEC)
 
 enum {
     STATE_IDLE = 0,
@@ -705,15 +705,6 @@ hdc_callback(void *priv)
     uint8_t  cmd = ccb->cmd & 0x0f;
 #endif
 
-    /* If we are returning from a RESET, handle this first. */
-    if (dev->reset) {
-        st506_mca_log("ST506 reset.\n");
-        dev->status &= ~ASR_BUSY;
-        dev->reset = 0;
-        do_finish(dev);
-        return;
-    }
-
     /* Abort last command if requested. */
     if (dev->abort) {
         st506_mca_log("ST506 command abort.\n");
@@ -741,6 +732,16 @@ hdc_callback(void *priv)
     dev->ssb.ecc_crc_err    = 0;
     dev->ssb.ecc_crc_field  = 0;
     dev->ssb.valid          = 1;
+
+    /* If we are returning from a RESET, handle this first. */
+    if (dev->reset) {
+        st506_mca_log("ST506 reset.\n");
+        dev->status &= ~ASR_BUSY;
+        dev->ssb.valid = 0;
+        dev->reset = 0;
+        do_finish(dev);
+        return;
+    }
 
     st506_mca_log("hdc_callback(): %02X\n", cmd);
 
@@ -940,6 +941,7 @@ do_send:
         case CMD_RECALIBRATE: /* RECALIBRATE */
             if (drive->present) {
                 dev->track = drive->cur_cyl = 0;
+                dev->ssb.seek_end = 1;
             } else {
                 dev->ssb.not_ready = 1;
                 dev->intstat |= ISR_TERMINATION;
@@ -958,7 +960,7 @@ do_send:
 
             if (!(dev->ready | ccb->no_data)) {
                 /* Delay a bit, transfer not ready. */
-                timer_advance_u64(&dev->timer, MFM_TIME);
+                timer_advance_u64(&dev->timer, MFM_SECTOR_TIME);
                 return;
             }
 
@@ -1307,6 +1309,13 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
             }
 
             if (val & ATT_CSB) {
+                if (dev->attn & ATT_CCB) {
+                    /* Hey now, we're still busy for you! */
+                    dev->intstat |= ISR_INVALID_CMD;
+                    set_intr(dev, 1);
+                    break;
+                }
+
                 /* OK, prepare for receiving a CSB. */
                 dev->attn |= ATT_CSB;
 
@@ -1408,7 +1417,8 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
                             dev->status |= ASR_BUSY;
 
                         /* Schedule command execution. */
-                        timer_set_delay_u64(&dev->timer, MFM_TIME);
+                        timer_set_delay_u64(&dev->timer, 
+                            (dev->ccb.cmd == 0x02 | dev->ccb.cmd == 0x08) ? MFM_TIME : MFM_SECTOR_TIME);
                     }
                 }
             }
@@ -1513,6 +1523,7 @@ mfm_init(UNUSED(const device_t *info))
     dev->dma  = 3;
 
     /* Load any disks for this device class. */
+    c = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
         if (hdd[i].bus_type == HDD_BUS_MFM) {
             drive = &dev->drives[hdd[i].mfm_channel];
@@ -1521,7 +1532,7 @@ mfm_init(UNUSED(const device_t *info))
                 drive->present = 0;
                 continue;
             }
-            drive->id = i;
+            drive->id = c;
 
             /* These are the "hardware" parameters (from the image.) */
             drive->cfg_spt    = (uint8_t) (hdd[i].spt & 0xff);
@@ -1542,6 +1553,9 @@ mfm_init(UNUSED(const device_t *info))
 
             st506_mca_log("ST506: drive%d: cyl=%d,hd=%d,spt=%d, disk %d\n",
                            hdd[i].mfm_channel, drive->tracks, drive->hpc, drive->spt, i);
+            
+            if (++c > 1)
+                break;
         }
     }
 
