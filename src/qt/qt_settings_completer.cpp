@@ -40,8 +40,11 @@ bool
 SettingsCompleter::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == comboBoxMain) {
-        if (event->type() == QEvent::FocusOut)
-            comboBoxMain->lineEdit()->setText(machine_getname(comboBoxMain->currentData().toInt()));
+        if (event->type() == QEvent::FocusOut) {
+            int     i    = comboBoxMain->currentIndex();
+            QString name = comboBoxMain->model()->data(comboBoxMain->model()->index(i, 0), Qt::DisplayRole).toString();
+            comboBoxMain->lineEdit()->setText(name);
+        }
     }
 
     return false;
@@ -69,8 +72,8 @@ SettingsCompleter::SettingsCompleter(QComboBox *cb, QComboBox *cbSort)
     connect(completer, QOverload<const QModelIndex &>::of(&QCompleter::activated), this, [this](const QModelIndex &idx) {
         int  sort_id = idx.model()->data(idx, Qt::UserRole + 1).toInt();
         auto name    = idx.model()->data(idx, Qt::UserRole + 2).toString();
-        for (int i = 0; i < comboBoxSort->model()->rowCount(); i++) {
-            if ((sort_id == -1) || (comboBoxSort->model()->data(comboBoxSort->model()->index(i, 0), Qt::UserRole).toInt() == sort_id)) {
+        if ((sort_id != -1) && (comboBoxSort != nullptr))  for (int i = 0; i < comboBoxSort->model()->rowCount(); i++) {
+            if (comboBoxSort->model()->data(comboBoxSort->model()->index(i, 0), Qt::UserRole).toInt() == sort_id) {
                 comboBoxSort->setCurrentIndex(i);
 
                 for (int j = 0; j < comboBoxMain->model()->rowCount(); j++) {
@@ -81,25 +84,80 @@ SettingsCompleter::SettingsCompleter(QComboBox *cb, QComboBox *cbSort)
                 }
                 break;
             }
+        } else  for (int i = 0; i < comboBoxMain->model()->rowCount(); i++) {
+            if (comboBoxMain->model()->data(comboBoxMain->model()->index(i, 0), Qt::DisplayRole).toString() == name) {
+                comboBoxMain->setCurrentIndex(i);
+                break;
+            }
         }
     });
+
+    rows = 0;
+}
+
+void
+SettingsCompleter::addRow(QString name, QString alias, int id)
+{
+    QString stored_alias;
+    if (name == alias)
+        stored_alias = QString(name);
+    else
+        stored_alias = QString("%1 (%2)").arg(name).arg(alias);
+
+    QStandardItem *item = new QStandardItem(stored_alias);
+    item->setData(id);
+    item->setData(name, Qt::UserRole + 2);
+    model->appendRow(item);
+
+    rows++;
 }
 
 void
 SettingsCompleter::addMachine(int i, int j)
 {
-    QStandardItem *item = new QStandardItem(machines[j].name);
-    item->setData(machine_types[machine_get_type(j)].id);
-    item->setData(machines[j].name, Qt::UserRole + 2);
-    model->appendRow(item);
+    addRow(machines[j].name, machines[j].name, machine_types[machine_get_type(j)].id);
 
     int k = 0;
     while (machines[j].aliases[k][0] != 0x00) {
-        QString stored_alias = QString("%1 (%2)").arg(machines[j].name).arg(machines[j].aliases[k]);
-        QStandardItem *item = new QStandardItem(stored_alias);
-        item->setData(machine_types[machine_get_type(j)].id);
-        item->setData(machines[j].name, Qt::UserRole + 2);
-        model->appendRow(item);
+        addRow(machines[j].name, machines[j].aliases[k], machine_types[machine_get_type(j)].id);
         k++;
     };
+}
+
+void
+SettingsCompleter::addDevice(const void *device, QString name)
+{
+    addRow(name, name, -1);
+
+    const device_t *dev = (const device_t *) device;
+    if (dev != nullptr) {
+        const device_config_t *config = dev->config;
+        while (config && (config->type != CONFIG_END)) {
+            if (config->type == CONFIG_BIOS) {
+                const device_config_bios_t *bios = (const device_config_bios_t *) config->bios;
+
+                /* Go through the ROMs in the device configuration. */
+                while ((bios != nullptr) &&
+                       (bios->name != nullptr) &&
+                       (bios->internal_name != nullptr) &&
+                       (bios->files_no != 0)) {
+                    addRow(name, bios->name, -1);
+                    bios++;
+                }
+            }
+            config++;
+        }
+    }
+}
+
+void
+SettingsCompleter::removeRows()
+{
+    if (rows > 0) {
+        auto removeRows = model->rowCount();
+
+        model->removeRows(0, removeRows);
+
+        rows = 0;
+    }
 }

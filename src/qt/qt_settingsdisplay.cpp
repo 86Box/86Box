@@ -12,14 +12,10 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsdisplay.hpp"
-#include "ui_qt_settingsdisplay.h"
-
-#include "qt_util.hpp"
-
 #include <QDebug>
 #include <QFileDialog>
 #include <QStringBuilder>
+#include <QLineEdit>
 
 #include <cstdint>
 
@@ -39,6 +35,10 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_settings_completer.hpp"
+#include "qt_settingsdisplay.hpp"
+#include "ui_qt_settingsdisplay.h"
+#include "qt_util.hpp"
 #include "qt_defs.hpp"
 
 SettingsDisplay::SettingsDisplay(QWidget *parent)
@@ -46,6 +46,9 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
     , ui(new Ui::SettingsDisplay)
 {
     ui->setupUi(this);
+
+    sc                              = new SettingsCompleter(ui->comboBoxVideo, nullptr);
+    scSecondary                     = new SettingsCompleter(ui->comboBoxVideoSecondary, nullptr);
 
     for (uint8_t i = 0; i < GFXCARD_MAX; i++)
         gfxcard_cfg_changed[i]         = 0;
@@ -196,6 +199,8 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     this->machineId   = machineId;
     auto curVideoCard = videoCard[0];
 
+    sc->removeRows();
+
     auto *model      = ui->comboBoxVideo->model();
     auto  removeRows = model->rowCount();
 
@@ -219,9 +224,9 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
                 name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_vid_device(machineId), machine_get_vid_device(machineId)->internal_name, 0));
             }
             int row = Models::AddEntry(model, name, c);
-            if (c == curVideoCard) {
+            sc->addDevice(video_dev, name);
+            if (c == curVideoCard)
                 selectedRow = row - removeRows;
-            }
         }
 
         c++;
@@ -332,8 +337,11 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
     int c = 2;
 
+    scSecondary->removeRows();
+
     ui->comboBoxVideoSecondary->clear();
     ui->comboBoxVideoSecondary->addItem(QObject::tr("None"), 0);
+    sc->addDevice(NULL, "None");
 
     ui->comboBoxVideoSecondary->setCurrentIndex(0);
     // TODO: Implement support for selecting non-MDA secondary cards properly when MDA cards are the primary ones.
@@ -356,6 +364,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
             && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
             && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SECONDARY) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
             ui->comboBoxVideoSecondary->addItem(name, c);
+            scSecondary->addDevice(video_dev, name);
             if (c == curVideoCard_2)
                 ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
         }

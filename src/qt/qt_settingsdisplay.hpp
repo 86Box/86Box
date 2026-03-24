@@ -9,6 +9,8 @@ namespace Ui {
 class SettingsDisplay;
 }
 
+class SettingsCompleter;
+
 class SettingsDisplay : public QWidget {
     Q_OBJECT
 
@@ -64,6 +66,9 @@ private:
     void updateDisplay();
 
     int cga_hue, cga_saturation, cga_sharpness, cga_brightness, cga_contrast;
+
+    SettingsCompleter   *sc;
+    SettingsCompleter   *scSecondary;
 };
 
 #endif // QT_SETTINGSDISPLAY_HPP

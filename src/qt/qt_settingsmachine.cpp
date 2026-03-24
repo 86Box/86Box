@@ -12,9 +12,6 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsmachine.hpp"
-#include "ui_qt_settingsmachine.h"
-
 #include <QDebug>
 #include <QDialog>
 #include <QFrame>
@@ -42,7 +39,8 @@ extern "C" {
 #include "qt_models_common.hpp"
 
 #include "qt_settings_completer.hpp"
-
+#include "qt_settingsmachine.hpp"
+#include "ui_qt_settingsmachine.h"
 #include "qt_defs.hpp"
 
 SettingsMachine::SettingsMachine(QWidget *parent)
@@ -53,7 +51,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
     machine_cfg_changed             = 0;
 
-    SettingsCompleter  *sc          = new SettingsCompleter(ui->comboBoxMachine, ui->comboBoxMachineType);
+    sc                              = new SettingsCompleter(ui->comboBoxMachine, ui->comboBoxMachineType);
 
     int         selectedMachineType = 0;
     auto       *machineTypesModel   = ui->comboBoxMachineType->model();

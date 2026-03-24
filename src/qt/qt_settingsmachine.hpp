@@ -7,6 +7,8 @@ namespace Ui {
 class SettingsMachine;
 }
 
+class SettingsCompleter;
+
 class SettingsMachine : public QWidget {
     Q_OBJECT
 
@@ -39,6 +41,8 @@ private:
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;
+
+    SettingsCompleter *  sc;
 };
 
 #endif // QT_SETTINGSMACHINE_HPP
