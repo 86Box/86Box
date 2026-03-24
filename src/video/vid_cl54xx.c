@@ -48,6 +48,8 @@
 #define BIOS_GD5402_ONBOARD_PATH        "roms/machines/cmdsl386sx25/c000.rom"
 #define BIOS_GD5420_PATH                "roms/video/cirruslogic/5420.vbi"
 #define BIOS_GD5422_PATH                "roms/video/cirruslogic/cl5422.bin"
+#define BIOS_GD5422_BOCA_ISA_PATH_1     "roms/video/cirruslogic/boca_gd5428_1.30b_1.bin"
+#define BIOS_GD5422_BOCA_ISA_PATH_2     "roms/video/cirruslogic/boca_gd5428_1.30b_2.bin"
 #define BIOS_GD5426_DIAMOND_A1_ISA_PATH "roms/video/cirruslogic/diamond5426.vbi"
 #define BIOS_GD5426_MCA_PATH            "roms/video/cirruslogic/Reply.BIN"
 #define BIOS_GD5428_DIAMOND_B1_VLB_PATH "roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
@@ -55,8 +57,6 @@
 #define BIOS_GD5428_MCA_PATH            "roms/video/cirruslogic/SVGA141.ROM"
 #define BIOS_GD5428_ONBOARD_ACER_PATH   "roms/machines/acera1g/4alo001.bin"
 #define BIOS_GD5428_PATH                "roms/video/cirruslogic/vlbusjapan.BIN"
-#define BIOS_GD5428_BOCA_ISA_PATH_1     "roms/video/cirruslogic/boca_gd5428_1.30b_1.bin"
-#define BIOS_GD5428_BOCA_ISA_PATH_2     "roms/video/cirruslogic/boca_gd5428_1.30b_2.bin"
 #define BIOS_GD5429_PATH                "roms/video/cirruslogic/5429.vbi"
 #define BIOS_GD5430_DIAMOND_A8_VLB_PATH "roms/video/cirruslogic/diamondvlbus.bin"
 #define BIOS_GD5430_ORCHID_VLB_PATH     "roms/video/cirruslogic/orchidvlbus.bin"
@@ -86,6 +86,8 @@
 #define CIRRUS_ID_CLGD5440              0xa0 /* Yes, the 5440 has the same ID as the 5430. */
 #define CIRRUS_ID_CLGD5446              0xb8
 #define CIRRUS_ID_CLGD5480              0xbc
+
+#define CIRRUS_ID_USE_CONFIG_BIOS       0xff
 
 /* sequencer 0x07 */
 #define CIRRUS_SR7_BPP_VGA           0x00
@@ -4256,7 +4258,10 @@ gd54xx_init(const device_t *info)
 {
     gd54xx_t   *gd54xx = calloc(1, sizeof(gd54xx_t));
     svga_t     *svga   = &gd54xx->svga;
-    int         id     = info->local & 0xff;
+    uint32_t    local  = info->local;
+    if (local == CIRRUS_ID_USE_CONFIG_BIOS)
+        local = device_get_bios_local(info, device_get_config_bios("bios"));
+    int         id     = local & 0xff;
     int         vram;
     const char *romfn  = NULL;
     const char *romfn1 = NULL;
@@ -4280,49 +4285,49 @@ gd54xx_init(const device_t *info)
 
     switch (id) {
         case CIRRUS_ID_CLGD5401:
-        if (info->local & 0x100)
+        if (local & 0x100)
                 romfn = BIOS_GD5401_ONBOARD_PATH;
             else
 				romfn = BIOS_GD5401_PATH;
 			break;
 
         case CIRRUS_ID_CLGD5402:
-            if (info->local & 0x200)
+            if (local & 0x200)
                 romfn = NULL;
-            else if (info->local & 0x100)
+            else if (local & 0x100)
                 romfn = BIOS_GD5402_ONBOARD_PATH;
             else
                 romfn = BIOS_GD5402_PATH;
             break;
 
         case CIRRUS_ID_CLGD5420:
-            if (info->local & 0x200)
+            if (local & 0x200)
                 romfn = NULL;
             else
                 romfn = BIOS_GD5420_PATH;
             break;
 
         case CIRRUS_ID_CLGD5422:
-            if (info->local & 0x100) {
-                romfn1 = BIOS_GD5428_BOCA_ISA_PATH_1; 
-                romfn2 = BIOS_GD5428_BOCA_ISA_PATH_2;
+            if (local & 0x100) {
+                romfn1 = BIOS_GD5422_BOCA_ISA_PATH_1; 
+                romfn2 = BIOS_GD5422_BOCA_ISA_PATH_2;
             }
             else
             romfn = BIOS_GD5422_PATH;
             break;
 
         case CIRRUS_ID_CLGD5424:
-            if (info->local & 0x200)
+            if (local & 0x200)
                 romfn = /*NULL*/ "roms/machines/advantage40xxd/AST101.09A";
             else
                 romfn = BIOS_GD5422_PATH;
             break;
 
         case CIRRUS_ID_CLGD5426:
-            if (info->local & 0x200)
+            if (local & 0x200)
                 romfn = NULL;
             else {
-                if (info->local & 0x100)
+                if (local & 0x100)
                     romfn = BIOS_GD5426_DIAMOND_A1_ISA_PATH;
                 else {
                     if (gd54xx->vlb)
@@ -4336,14 +4341,14 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5428:
-            if (info->local & 0x200) {
+            if (local & 0x200) {
                 if (machines[machine].init == machine_at_acera1g_init)
                     romfn = BIOS_GD5428_ONBOARD_ACER_PATH;
                 else
                     romfn            = NULL;
                 gd54xx->has_bios = 0;
-            } else if (info->local & 0x100)
-                    romfn = BIOS_GD5428_DIAMOND_B1_VLB_PATH;
+            } else if (local & 0x100)
+                romfn = BIOS_GD5428_DIAMOND_B1_VLB_PATH;
             else {
                 if (gd54xx->vlb)
                     romfn = BIOS_GD5428_PATH;
@@ -4360,20 +4365,20 @@ gd54xx_init(const device_t *info)
 
         case CIRRUS_ID_CLGD5432:
         case CIRRUS_ID_CLGD5434_4:
-            if (info->local & 0x200) {
+            if (local & 0x200) {
                 romfn            = NULL;
                 gd54xx->has_bios = 0;
             }
             break;
 
         case CIRRUS_ID_CLGD5434:
-            if (info->local & 0x200) {
+            if (local & 0x200) {
                 romfn            = NULL;
                 gd54xx->has_bios = 0;
             } else if (gd54xx->vlb) {
                 romfn = BIOS_GD5434_ORCHID_VLB_PATH;
             } else {
-                if (info->local & 0x100)
+                if (local & 0x100)
                     romfn = BIOS_GD5434_DIAMOND_A3_ISA_PATH;
                 else
                     romfn = BIOS_GD5434_PATH;
@@ -4381,7 +4386,7 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5436:
-            if ((info->local & 0x200) &&
+            if ((local & 0x200) &&
                 (machines[machine].init != machine_at_sb486pv_init)) {
                 romfn            = NULL;
                 gd54xx->has_bios = 0;
@@ -4390,22 +4395,22 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5430:
-            if (info->local & 0x400) {
+            if (local & 0x400) {
                 /* CL-GD 5440 */
                 gd54xx->rev = 0x47;
-                if (info->local & 0x200) {
+                if (local & 0x200) {
                     romfn            = NULL;
                     gd54xx->has_bios = 0;
                 } else
                     romfn = BIOS_GD5440_PATH;
             } else {
                 /* CL-GD 5430 */
-                if (info->local & 0x200) {
+                if (local & 0x200) {
                     romfn            = NULL;
                     gd54xx->has_bios = 0;
                 } else if (gd54xx->pci)
                     romfn = BIOS_GD5430_PATH;
-                else if ((gd54xx->vlb) && (info->local & 0x100))
+                else if ((gd54xx->vlb) && (local & 0x100))
                     romfn = BIOS_GD5430_ORCHID_VLB_PATH;
                 else
                     romfn = BIOS_GD5430_DIAMOND_A8_VLB_PATH;
@@ -4413,7 +4418,7 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5446:
-            if (info->local & 0x100)
+            if (local & 0x100)
                 romfn = BIOS_GD5446_STB_PATH;
             else
                 romfn = BIOS_GD5446_PATH;
@@ -4436,11 +4441,11 @@ gd54xx_init(const device_t *info)
         gd54xx->vram_size = vram << 10;
     } else {
         if (id <= CIRRUS_ID_CLGD5428) {
-            if ((id == CIRRUS_ID_CLGD5428) && (info->local & 0x200) && (info->local & 0x1000))
+            if ((id == CIRRUS_ID_CLGD5428) && (local & 0x200) && (local & 0x1000))
                 vram = 1024;
-            else if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200) && (info->local & 0x1000))
+            else if ((id == CIRRUS_ID_CLGD5426) && (local & 0x200) && (local & 0x1000))
                 vram = 1024;
-            else if ((id == CIRRUS_ID_CLGD5420) && (info->local & 0x200))
+            else if ((id == CIRRUS_ID_CLGD5420) && (local & 0x200))
                 vram = 512;
             else if (id == CIRRUS_ID_CLGD5401)
                 vram = 256;
@@ -4449,7 +4454,7 @@ gd54xx_init(const device_t *info)
 
             gd54xx->vram_size = vram << 10;
         } else {
-            if ((id == CIRRUS_ID_CLGD5436) && (info->local & 0x200) && (info->local & 0x1000))
+            if ((id == CIRRUS_ID_CLGD5436) && (local & 0x200) && (local & 0x1000))
                 vram = 1;
             else
                 vram              = device_get_config_int("memory");
@@ -4461,7 +4466,7 @@ gd54xx_init(const device_t *info)
     if (romfn)
         rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     else if (romfn1 && romfn2)
-        rom_init_interleaved(&gd54xx->bios_rom, BIOS_GD5428_BOCA_ISA_PATH_1, BIOS_GD5428_BOCA_ISA_PATH_2, 0xc0000,
+        rom_init_interleaved(&gd54xx->bios_rom, BIOS_GD5422_BOCA_ISA_PATH_1, BIOS_GD5422_BOCA_ISA_PATH_2, 0xc0000,
                              0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     if ((info->flags & DEVICE_ISA) || (info->flags & DEVICE_ISA16))
@@ -4535,7 +4540,7 @@ gd54xx_init(const device_t *info)
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
     if (gd54xx->pci && (id >= CIRRUS_ID_CLGD5430)) {
-        if (info->local & 0x200)
+        if (local & 0x200)
             pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx, &gd54xx->pci_slot);
         else
             pci_add_card(PCI_ADD_NORMAL, cl_pci_read, cl_pci_write, gd54xx, &gd54xx->pci_slot);
@@ -4631,33 +4636,15 @@ gd5420_available(void)
 }
 
 static int
-gd5422_available(void)
+gd5424_available(void)
 {
     return rom_present(BIOS_GD5422_PATH);
-}
-
-static int
-gd5426_diamond_a1_available(void)
-{
-    return rom_present(BIOS_GD5426_DIAMOND_A1_ISA_PATH);
 }
 
 static int
 gd5428_available(void)
 {
     return rom_present(BIOS_GD5428_PATH);
-}
-
-static int
-gd5428_diamond_b1_available(void)
-{
-    return rom_present(BIOS_GD5428_DIAMOND_B1_VLB_PATH);
-}
-
-static int
-gd5428_boca_isa_available(void)
-{
-    return rom_present(BIOS_GD5428_BOCA_ISA_PATH_1) && rom_present(BIOS_GD5428_BOCA_ISA_PATH_2);
 }
 
 static int
@@ -4685,12 +4672,6 @@ gd5429_available(void)
 }
 
 static int
-gd5430_diamond_a8_available(void)
-{
-    return rom_present(BIOS_GD5430_DIAMOND_A8_VLB_PATH);
-}
-
-static int
 gd5430_available(void)
 {
     return rom_present(BIOS_GD5430_PATH);
@@ -4703,27 +4684,9 @@ gd5434_available(void)
 }
 
 static int
-gd5434_isa_available(void)
-{
-    return rom_present(BIOS_GD5434_PATH);
-}
-
-static int
-gd5430_orchid_vlb_available(void)
-{
-    return rom_present(BIOS_GD5430_ORCHID_VLB_PATH);
-}
-
-static int
 gd5434_orchid_vlb_available(void)
 {
     return rom_present(BIOS_GD5434_ORCHID_VLB_PATH);
-}
-
-static int
-gd5434_diamond_a3_available(void)
-{
-    return rom_present(BIOS_GD5434_DIAMOND_A3_ISA_PATH);
 }
 
 static int
@@ -4736,18 +4699,6 @@ static int
 gd5440_available(void)
 {
     return rom_present(BIOS_GD5440_PATH);
-}
-
-static int
-gd5446_available(void)
-{
-    return rom_present(BIOS_GD5446_PATH);
-}
-
-static int
-gd5446_stb_available(void)
-{
-    return rom_present(BIOS_GD5446_STB_PATH);
 }
 
 static int
@@ -4826,7 +4777,164 @@ static const device_config_t gd542x_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t gd5422_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "cl_gd5422_isa",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "BOCA Research BRI4610",
+                .internal_name = "cl_gd5422_boca_isa",
+                .bios_type     = BIOS_INTERLEAVED,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5422 | 0x100,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5422_BOCA_ISA_PATH_1, BIOS_GD5422_BOCA_ISA_PATH_2, "" }
+            },
+            {
+                .name          = "Generic",
+                .internal_name = "cl_gd5422_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5422,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5422_PATH, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t gd5426_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gd5426_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "cl_gd5426_isa",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            /* According to a Diamond bios file listing and vgamuseum. */
+            {
+                .name          = "Diamond SpeedStar Pro Rev. A1",
+                .internal_name = "cl_gd5426_diamond_a1_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5426 | 0x100,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5426_DIAMOND_A1_ISA_PATH, "" }
+            },
+            {
+                .name          = "Generic",
+                .internal_name = "cl_gd5426_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5426,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5428_ISA_PATH, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = "2 MB",   .value = 2048 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gd5428_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "cl_gd5428_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            /* According to a Diamond bios file listing and vgamuseum. */
+            {
+                .name          = "Diamond SpeedStar Pro Rev. B1",
+                .internal_name = "cl_gd5428_diamond_b1_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5428 | 0x100,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5428_DIAMOND_B1_VLB_PATH, "" }
+            },
+            {
+                .name          = "Generic",
+                .internal_name = "cl_gd5428_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5428,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5428_PATH, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
     {
         .name           = "memory",
         .description    = "Memory size",
@@ -4885,6 +4993,74 @@ static const device_config_t gd5429_config[] = {
 };
 
 static const device_config_t gd5430_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "cl_gd5430_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            /* According to a Diamond bios file listing and vgamuseum. */
+            {
+                .name          = "Diamond SpeedStar Pro SE Rev. A8",
+                .internal_name = "cl_gd5430_vlb_diamond",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5430,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5430_DIAMOND_A8_VLB_PATH, "" }
+            },
+            {
+                .name          = "Orchid KELVIN EZ",
+                .internal_name = "cl_gd5430_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5430 | 0x100,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5430_ORCHID_VLB_PATH, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "lfb_base",
+        .description    = "Linear framebuffer base",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2048,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "32 MB", .value = 32 },
+            { .description = "64 MB", .value = 64 },
+            { .description = "2048 MB", .value = 2048 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gd5430_onboard_vlb_config[] = {
     {
         .name           = "memory",
         .description    = "Memory size",
@@ -4958,6 +5134,59 @@ static const device_config_t gd5434_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t gd5434_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "cl_gd5434_isa",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            /* According to a Diamond bios file listing and vgamuseum. */
+            {
+                .name          = "Diamond SpeedStar 64 Rev. A3",
+                .internal_name = "cl_gd5434_diamond_a3_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5434 | 0x100,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { BIOS_GD5434_DIAMOND_A3_ISA_PATH, "" }
+            },
+            {
+                .name          = "Generic",
+                .internal_name = "cl_gd5434_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5434,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5434_PATH, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t gd5434_vlb_config[] = {
     {
         .name           = "memory",
@@ -5006,6 +5235,58 @@ static const device_config_t gd5434_onboard_config[] = {
         .selection      = {
             { .description = "1 MB", .value = 1 },
             { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gd5446_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "cl_gd5446_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Generic",
+                .internal_name = "cl_gd5446_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5446,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5446_PATH, "" }
+            },
+            {
+                .name          = "STB Nitro 64V",
+                .internal_name = "cl_gd5446_stb_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = CIRRUS_ID_CLGD5446 | 0x100,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_GD5446_STB_PATH, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
             { .description = ""                 }
         },
         .bios           = { { 0 } }
@@ -5135,28 +5416,14 @@ const device_t gd5422_isa_device = {
     .name          = "Cirrus Logic GD5422 (ISA)",
     .internal_name = "cl_gd5422_isa",
     .flags         = DEVICE_ISA16,
-    .local         = CIRRUS_ID_CLGD5422,
+    .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5422_available, /* Common BIOS between 5422 and 5424 */
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd542x_config,
-};
-
-const device_t gd5422_boca_isa_device = {
-    .name          = "Cirrus Logic GD5422 (ISA) (BOCA Research BRI4610)",
-    .internal_name = "cl_gd5422_boca_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = CIRRUS_ID_CLGD5422 | 0x100,
-    .init          = gd54xx_init,
-    .close         = gd54xx_close,
-    .reset         = gd54xx_reset,
-    .available     = gd5428_boca_isa_available,
-    .speed_changed = gd54xx_speed_changed,
-    .force_redraw  = gd54xx_force_redraw,
-    .config        = gd542x_config,
+    .config        = gd5422_isa_config,
 };
 
 const device_t gd5424_vlb_device = {
@@ -5167,7 +5434,7 @@ const device_t gd5424_vlb_device = {
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5422_available, /* Common BIOS between 5422 and 5424 */
+    .available     = gd5424_available,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd542x_config,
@@ -5191,29 +5458,14 @@ const device_t gd5426_isa_device = {
     .name          = "Cirrus Logic GD5426 (ISA)",
     .internal_name = "cl_gd5426_isa",
     .flags         = DEVICE_ISA16,
-    .local         = CIRRUS_ID_CLGD5426,
+    .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5428_isa_available,
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
-};
-
-/*According to a Diamond bios file listing and vgamuseum*/
-const device_t gd5426_diamond_speedstar_pro_a1_isa_device = {
-    .name          = "Cirrus Logic GD5426 (ISA) (Diamond SpeedStar Pro Rev. A1)",
-    .internal_name = "cl_gd5426_diamond_a1_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = CIRRUS_ID_CLGD5426 | 0x100,
-    .init          = gd54xx_init,
-    .close         = gd54xx_close,
-    .reset         = gd54xx_reset,
-    .available     = gd5426_diamond_a1_available,
-    .speed_changed = gd54xx_speed_changed,
-    .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
+    .config        = gd5426_isa_config
 };
 
 const device_t gd5426_vlb_device = {
@@ -5276,29 +5528,14 @@ const device_t gd5428_vlb_device = {
     .name          = "Cirrus Logic GD5428 (VLB)",
     .internal_name = "cl_gd5428_vlb",
     .flags         = DEVICE_VLB,
-    .local         = CIRRUS_ID_CLGD5428,
+    .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5428_available,
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
-};
-
-/*According to a Diamond bios file listing and vgamuseum*/
-const device_t gd5428_diamond_speedstar_pro_b1_vlb_device = {
-    .name          = "Cirrus Logic GD5428 (VLB) (Diamond SpeedStar Pro Rev. B1)",
-    .internal_name = "cl_gd5428_diamond_b1_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = CIRRUS_ID_CLGD5428 | 0x100,
-    .init          = gd54xx_init,
-    .close         = gd54xx_close,
-    .reset         = gd54xx_reset,
-    .available     = gd5428_diamond_b1_available,
-    .speed_changed = gd54xx_speed_changed,
-    .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5426_config
+    .config        = gd5428_vlb_config
 };
 
 const device_t gd5428_mca_device = {
@@ -5427,30 +5664,15 @@ const device_t gd5429_vlb_device = {
     .config        = gd5429_config
 };
 
-/*According to a Diamond bios file listing and vgamuseum*/
-const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device = {
-    .name          = "Cirrus Logic GD5430 (VLB) (Diamond SpeedStar Pro SE Rev. A8)",
-    .internal_name = "cl_gd5430_vlb_diamond",
-    .flags         = DEVICE_VLB,
-    .local         = CIRRUS_ID_CLGD5430,
-    .init          = gd54xx_init,
-    .close         = gd54xx_close,
-    .reset         = gd54xx_reset,
-    .available     = gd5430_diamond_a8_available,
-    .speed_changed = gd54xx_speed_changed,
-    .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5430_vlb_config
-};
-
 const device_t gd5430_vlb_device = {
-    .name          = "Cirrus Logic GD5430 (VLB) (Orchid KELVIN EZ)",
+    .name          = "Cirrus Logic GD5430 (VLB)",
     .internal_name = "cl_gd5430_vlb",
     .flags         = DEVICE_VLB,
-    .local         = CIRRUS_ID_CLGD5430 | 0x100,
+    .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5430_orchid_vlb_available,
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd5430_vlb_config
@@ -5467,7 +5689,7 @@ const device_t gd5430_onboard_vlb_device = {
     .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5430_vlb_config
+    .config        = gd5430_onboard_vlb_config
 };
 
 const device_t gd5430_pci_device = {
@@ -5502,29 +5724,14 @@ const device_t gd5434_isa_device = {
     .name          = "Cirrus Logic GD5434 (ISA)",
     .internal_name = "cl_gd5434_isa",
     .flags         = DEVICE_ISA16,
-    .local         = CIRRUS_ID_CLGD5434,
+    .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5434_isa_available,
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_config
-};
-
-/*According to a Diamond bios file listing and vgamuseum*/
-const device_t gd5434_diamond_speedstar_64_a3_isa_device = {
-    .name          = "Cirrus Logic GD5434 (ISA) (Diamond SpeedStar 64 Rev. A3)",
-    .internal_name = "cl_gd5434_diamond_a3_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = CIRRUS_ID_CLGD5434 | 0x100,
-    .init          = gd54xx_init,
-    .close         = gd54xx_close,
-    .reset         = gd54xx_reset,
-    .available     = gd5434_diamond_a3_available,
-    .speed_changed = gd54xx_speed_changed,
-    .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5429_config
+    .config        = gd5434_isa_config
 };
 
 const device_t gd5434_onboard_pci_device = {
@@ -5643,28 +5850,14 @@ const device_t gd5446_pci_device = {
     .name          = "Cirrus Logic GD5446 (PCI)",
     .internal_name = "cl_gd5446_pci",
     .flags         = DEVICE_PCI,
-    .local         = CIRRUS_ID_CLGD5446,
+    .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    .available     = gd5446_available,
+    .available     = NULL,
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_config
-};
-
-const device_t gd5446_stb_pci_device = {
-    .name          = "Cirrus Logic GD5446 (PCI) (STB Nitro 64V)",
-    .internal_name = "cl_gd5446_stb_pci",
-    .flags         = DEVICE_PCI,
-    .local         = CIRRUS_ID_CLGD5446 | 0x100,
-    .init          = gd54xx_init,
-    .close         = gd54xx_close,
-    .reset         = gd54xx_reset,
-    .available     = gd5446_stb_available,
-    .speed_changed = gd54xx_speed_changed,
-    .force_redraw  = gd54xx_force_redraw,
-    .config        = gd5434_config
+    .config        = gd5446_pci_config
 };
 
 const device_t gd5480_pci_device = {
