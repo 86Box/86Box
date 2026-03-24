@@ -1418,7 +1418,7 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
 
                         /* Schedule command execution. */
                         timer_set_delay_u64(&dev->timer, 
-                            (dev->ccb.cmd == 0x02 | dev->ccb.cmd == 0x08) ? MFM_TIME : MFM_SECTOR_TIME);
+                            ((dev->ccb.cmd == 0x02) || (dev->ccb.cmd == 0x08)) ? MFM_TIME : MFM_SECTOR_TIME);
                     }
                 }
             }
@@ -1523,7 +1523,7 @@ mfm_init(UNUSED(const device_t *info))
     dev->dma  = 3;
 
     /* Load any disks for this device class. */
-    c = 0;
+    int c     = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
         if (hdd[i].bus_type == HDD_BUS_MFM) {
             drive = &dev->drives[hdd[i].mfm_channel];
