@@ -23,36 +23,19 @@
 #include <86box/fdd.h>
 #include <86box/plat_floppy_ioctl.h>
 
-/* Host device path storage */
-char fdd_host_device[FDD_NUM][256];
-
 void
 fdd_set_host_device(int drive, const char *path)
 {
-    if (drive < 0 || drive >= FDD_NUM)
-        return;
-    if (path)
-        strncpy(fdd_host_device[drive], path, sizeof(fdd_host_device[drive]) - 1);
-    else
-        fdd_host_device[drive][0] = '\0';
 }
 
 const char *
 fdd_get_host_device(int drive)
 {
-    if (drive < 0 || drive >= FDD_NUM)
-        return "";
-    return fdd_host_device[drive];
-}
-
-int64_t
-floppy_ioctl_get_device_size(const char *path)
-{
-    return -1;
+    return "";
 }
 
 int
-floppy_ioctl_open(int drive)
+floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, int *out_rate)
 {
     return 0;
 }
@@ -63,12 +46,6 @@ floppy_ioctl_close(int drive)
 }
 
 int
-floppy_ioctl_media_present(int drive)
-{
-    return 0;
-}
-
-int
 floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *buffer)
 {
     return 0;
@@ -76,12 +53,6 @@ floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *bu
 
 int
 floppy_ioctl_write_sector(int drive, int track, int side, int sector, const uint8_t *buffer)
-{
-    return 0;
-}
-
-int
-floppy_ioctl_get_geometry(int drive, int *tracks, int *sides, int *sectors)
 {
     return 0;
 }

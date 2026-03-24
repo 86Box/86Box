@@ -445,7 +445,7 @@ fdd_seek(int drive, int track_diff)
             seek_time_us = DEFAULT_SEEK_TIME_MS * 1000;
         }
 
-        fdd_log("Seek timing for drive %d: %.2f µs (%s)\n", 
+        fdd_log("Seek timing for drive %d: %.2f µs (%s)\n",
                 drive, seek_time_us, is_seek_down ? "DOWN" : "UP");
         uint64_t seek_delay_us = seek_time_us * TIMER_USEC;
         timer_set_delay_u64(&fdd_seek_timer[drive], seek_delay_us);
@@ -674,28 +674,25 @@ fdd_load(int drive, char *fn)
     /* Check for physical floppy device (ioctl://) prefix */
     if (strstr(fn, "ioctl://") == fn) {
         const char *device_path = fn + 8;
-        int64_t dev_size;
-        
-        dev_size = floppy_ioctl_get_device_size(device_path);
-        
-        if (dev_size <= 0) {
-            drive_empty[drive] = 1;
-            fdd_set_head(drive, 0);
-            memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-            ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
-            return;
-        }
-        
+
         if (floppyfns[drive] != (fn - offs)) {
             strncpy(floppyfns[drive], fn - offs, sizeof(floppyfns[drive]) - 1);
             floppyfns[drive][sizeof(floppyfns[drive]) - 1] = '\0';
         }
-        
+
         d86f_setup(drive);
-        
-        img_load_raw_device(drive, device_path, dev_size);
+
+        img_load_raw_device(drive, device_path);
+
+        if (floppyfns[drive][0] == '\0') {
+            drive_empty[drive] = 1;
+            fdd_set_head(drive, 0);
+            ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+            return;
+        }
+
         drive_empty[drive] = 0;
-        
+
         fdd_forced_seek(drive, 0);
         fdd_changed[drive] = 1;
         ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);

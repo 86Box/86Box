@@ -21,19 +21,14 @@
 extern "C" {
 #endif
 
-extern char fdd_host_device[FDD_NUM][256];
-
 extern void fdd_set_host_device(int drive, const char *path);
 extern const char *fdd_get_host_device(int drive);
 extern void floppy_ioctl_set_buffering(int enabled);
 extern int floppy_ioctl_get_buffering(void);
-extern int64_t floppy_ioctl_get_device_size(const char *path);
-extern int floppy_ioctl_open(int drive);
+extern int floppy_ioctl_open(int drive, int *out_tracks, int *out_sides, int *out_sectors, int *out_rate);
 extern void floppy_ioctl_close(int drive);
-extern int floppy_ioctl_media_present(int drive);
 extern int floppy_ioctl_read_sector(int drive, int track, int side, int sector, uint8_t *buffer);
 extern int floppy_ioctl_write_sector(int drive, int track, int side, int sector, const uint8_t *buffer);
-extern int floppy_ioctl_get_geometry(int drive, int *tracks, int *sides, int *sectors);
 
 #ifdef __cplusplus
 }

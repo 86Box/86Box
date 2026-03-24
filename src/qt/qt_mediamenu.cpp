@@ -54,7 +54,6 @@ extern "C" {
 #include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
-#include <86box/plat_floppy_ioctl.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
@@ -64,6 +63,7 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/plat_floppy_ioctl.h>
 };
 
 #include "qt_newfloppydialog.hpp"
@@ -151,8 +151,8 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         const char *hostDevice = fdd_get_host_device(i);
         if (hostDevice && hostDevice[0] != '\0') {
-            menu->addAction(img_icon, tr("&Use Host Floppy Drive"), [this, i, hostDevice] { 
-                floppyMount(i, QString("ioctl://%1").arg(QString::fromUtf8(hostDevice)), false); 
+            menu->addAction(img_icon, tr("&Use Host Floppy Drive"), [this, i, hostDevice] {
+                floppyMount(i, QString("ioctl://%1").arg(QString::fromUtf8(hostDevice)), false);
             })->setCheckable(false);
             menu->addSeparator();
         }

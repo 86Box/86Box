@@ -66,7 +66,6 @@
 #include <86box/fdd.h>
 #include <86box/fdd_audio.h>
 #include <86box/fdc_ext.h>
-#include <86box/plat_floppy_ioctl.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
 #include <86box/serial_passthrough.h>
@@ -91,6 +90,7 @@
 #include <86box/ui.h>
 #include <86box/snd_opl.h>
 #include <86box/version.h>
+#include <86box/plat_floppy_ioctl.h>
 
 #ifndef USE_SDL_UI
 /* Deliberate to not make the 86box.h header kitchen-sink. */
