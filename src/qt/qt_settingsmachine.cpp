@@ -41,18 +41,9 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
+#include "qt_settings_completer.hpp"
+
 #include "qt_defs.hpp"
-
-bool
-SettingsMachine::eventFilter(QObject *watched, QEvent *event)
-{
-    if (watched == ui->comboBoxMachine) {
-        if (event->type() == QEvent::FocusOut)
-            ui->comboBoxMachine->lineEdit()->setText(machine_getname(ui->comboBoxMachine->currentData().toInt()));
-    }
-
-    return false;
-}
 
 SettingsMachine::SettingsMachine(QWidget *parent)
     : QWidget(parent)
@@ -60,37 +51,9 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 {
     ui->setupUi(this);
 
-    machine_cfg_changed            = 0;
+    machine_cfg_changed             = 0;
 
-    ui->comboBoxMachine->setEditable(true);
-    auto machineListCompleter = new QCompleter(ui->comboBoxMachine->lineEdit());
-    auto machineListModel     = new QStandardItemModel(machineListCompleter);
-    machineListCompleter->setModel(machineListModel);
-    ui->comboBoxMachine->lineEdit()->setCompleter(machineListCompleter);
-    machineListCompleter->setCompletionMode(QCompleter::PopupCompletion);
-    machineListCompleter->setFilterMode(Qt::MatchContains);
-    machineListCompleter->setCompletionRole(Qt::DisplayRole);
-    machineListCompleter->setCaseSensitivity(Qt::CaseInsensitive);
-    machineListCompleter->setMaxVisibleItems(30);
-    ui->comboBoxMachine->lineEdit()->setClearButtonEnabled(true);
-    ui->comboBoxMachine->setFocusPolicy(Qt::StrongFocus);
-    ui->comboBoxMachine->installEventFilter(this);
-
-    auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
-    ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
-    ui->softFloatWarningIcon->setVisible(false);
-    ui->softFloatWarningText->setVisible(false);
-
-    auto *waitStatesModel = ui->comboBoxWaitStates->model();
-    waitStatesModel->insertRows(0, 9);
-    auto idx = waitStatesModel->index(0, 0);
-    waitStatesModel->setData(idx, tr("Default"), Qt::DisplayRole);
-    waitStatesModel->setData(idx, 0, Qt::UserRole);
-    for (int i = 0; i < 8; ++i) {
-        idx = waitStatesModel->index(i + 1, 0);
-        waitStatesModel->setData(idx, tr("%1 Wait state(s)").arg(i), Qt::DisplayRole);
-        waitStatesModel->setData(idx, i + 1, Qt::UserRole);
-    }
+    SettingsCompleter  *sc          = new SettingsCompleter(ui->comboBoxMachine, ui->comboBoxMachineType);
 
     int         selectedMachineType = 0;
     auto       *machineTypesModel   = ui->comboBoxMachineType->model();
@@ -113,20 +76,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         }
 
         if (machine_available(j)) {
-            QStandardItem *item = new QStandardItem(machines[j].name);
-            item->setData(machine_types[machine_get_type(j)].id);
-            item->setData(machines[j].name, Qt::UserRole + 2);
-            machineListModel->appendRow(item);
-
-            int k = 0;
-            while (machines[j].aliases[k][0] != 0x00) {
-                QString stored_alias = QString("%1 (%2)").arg(machines[j].name).arg(machines[j].aliases[k]);
-                QStandardItem *item = new QStandardItem(stored_alias);
-                item->setData(machine_types[machine_get_type(j)].id);
-                item->setData(machines[j].name, Qt::UserRole + 2);
-                machineListModel->appendRow(item);
-                k++;
-            };
+            sc->addMachine(i, j);
 
             cur_j++;
         }
@@ -134,23 +84,21 @@ SettingsMachine::SettingsMachine(QWidget *parent)
         j++;
     } while (miname != nullptr);
 
-    connect(machineListCompleter, QOverload<const QModelIndex &>::of(&QCompleter::activated), this, [this](const QModelIndex &idx) {
-        int  machineIdType = idx.model()->data(idx, Qt::UserRole + 1).toInt();
-        auto name          = idx.model()->data(idx, Qt::UserRole + 2).toString();
-        for (int i = 0; i < ui->comboBoxMachineType->model()->rowCount(); i++) {
-            if (ui->comboBoxMachineType->model()->data(ui->comboBoxMachineType->model()->index(i, 0), Qt::UserRole).toInt() == machineIdType) {
-                ui->comboBoxMachineType->setCurrentIndex(i);
+    auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
+    ui->softFloatWarningIcon->setPixmap(warning_icon.pixmap(warning_icon.actualSize(QSize(16, 16))));
+    ui->softFloatWarningIcon->setVisible(false);
+    ui->softFloatWarningText->setVisible(false);
 
-                for (int j = 0; j < ui->comboBoxMachine->model()->rowCount(); j++) {
-                    if (ui->comboBoxMachine->model()->data(ui->comboBoxMachine->model()->index(j, 0), Qt::DisplayRole).toString() == name) {
-                        ui->comboBoxMachine->setCurrentIndex(j);
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-    });
+    auto *waitStatesModel = ui->comboBoxWaitStates->model();
+    waitStatesModel->insertRows(0, 9);
+    auto idx = waitStatesModel->index(0, 0);
+    waitStatesModel->setData(idx, tr("Default"), Qt::DisplayRole);
+    waitStatesModel->setData(idx, 0, Qt::UserRole);
+    for (int i = 0; i < 8; ++i) {
+        idx = waitStatesModel->index(i + 1, 0);
+        waitStatesModel->setData(idx, tr("%1 Wait state(s)").arg(i), Qt::DisplayRole);
+        waitStatesModel->setData(idx, i + 1, Qt::UserRole);
+    }
 
     auto *pitModeModel = ui->comboBoxPitMode->model();
     pitModeModel->insertRows(0, 3);

@@ -166,6 +166,8 @@ add_library(ui STATIC
     qt_settingsotherperipherals.ui
     qt_settings_bus_tracking.cpp
     qt_settings_bus_tracking.hpp
+    qt_settings_completer.cpp
+    qt_settings_completer.hpp
 
     qt_deviceconfig.cpp
     qt_deviceconfig.hpp
