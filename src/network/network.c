@@ -105,8 +105,8 @@ static const NETWORK_CARD net_cards[] = {
     { &rtl8019as_pnp_device       },
     /* MCA */
     { &ethernext_mc_device        },
-    { &wd8003eta_device           },
     { &wd8003ea_device            },
+    { &wd8003eta_device           },
     { &wd8013epa_device           },
     /* VLB */
     { &pcnet_am79c960_vlb_device  },
