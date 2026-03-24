@@ -769,17 +769,17 @@ msgstr "Podstawowe obrazy sektorów"
 msgid "Surface images"
 msgstr "Obrazy powierzchni"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Maszyna „%hs” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/machines. Przełączanie na dostępną maszynę."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Maszyna „%s” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/machines. Przełączanie na dostępną maszynę."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Karta wideo „%hs” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Przełączanie na dostępną kartę graficzną."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Karta wideo „%s” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Przełączanie na dostępną kartę graficzną."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Karta wideo 2 „%hs” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Wyłączenie drugiej karty graficznej."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Karta wideo 2 „%s” nie jest dostępna, ponieważ brakuje ROM-ów w katalogu roms/video. Wyłączenie drugiej karty graficznej."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Urządzenie „%hs” nie jest dostępne, ponieważ brakuje ROM-ów. Ignorowanie urządzenia."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Urządzenie „%s” nie jest dostępne, ponieważ brakuje ROM-ów. Ignorowanie urządzenia."
 
 msgid "Machine"
 msgstr "Maszyna"
@@ -3020,8 +3020,8 @@ msgstr "Eksportuj…"
 msgid "Export EDID"
 msgstr "Eksportuj EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Plik EDID „%ls” jest zbyt duży."
+msgid "EDID file \"%s\" is too large."
+msgstr "Plik EDID „%s” jest zbyt duży."
 
 msgid "OpenGL input scale"
 msgstr "Skala wejścia OpenGL"

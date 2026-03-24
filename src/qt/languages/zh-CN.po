@@ -769,17 +769,17 @@ msgstr "基本扇区映像"
 msgid "Surface images"
 msgstr "表面映像"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%hs\" 不可用。将切换到其他可用机型。"
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%s\" 不可用。将切换到其他可用机型。"
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 \"%hs\" 不可用。将切换到其他可用显卡。"
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 \"%s\" 不可用。将切换到其他可用显卡。"
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 2 \"%hs\" 不可用。禁用第二块显卡。"
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 2 \"%s\" 不可用。禁用第二块显卡。"
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "由于缺少合适的 ROM，设备 \"%hs\" 不可用。忽略设备。"
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "由于缺少合适的 ROM，设备 \"%s\" 不可用。忽略设备。"
 
 msgid "Machine"
 msgstr "机型"
@@ -3019,8 +3019,8 @@ msgstr "导出…"
 msgid "Export EDID"
 msgstr "导出EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "EDID文件 \"%ls\" 过大。"
+msgid "EDID file \"%s\" is too large."
+msgstr "EDID文件 \"%s\" 过大。"
 
 msgid "OpenGL input scale"
 msgstr "OpenGL的输入比例"

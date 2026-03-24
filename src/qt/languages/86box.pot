@@ -768,16 +768,16 @@ msgstr ""
 msgid "Surface images"
 msgstr ""
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr ""
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr ""
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 msgstr ""
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr ""
 
 msgid "Machine"
@@ -3018,7 +3018,7 @@ msgstr ""
 msgid "Export EDID"
 msgstr ""
 
-msgid "EDID file \"%ls\" is too large."
+msgid "EDID file \"%s\" is too large."
 msgstr ""
 
 msgid "OpenGL input scale"

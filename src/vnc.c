@@ -304,7 +304,7 @@ vnc_pause(void)
 }
 
 void
-vnc_take_screenshot(UNUSED(wchar_t *fn))
+vnc_take_screenshot(UNUSED(char *fn))
 {
     vnc_log("VNC: take_screenshot\n");
 }

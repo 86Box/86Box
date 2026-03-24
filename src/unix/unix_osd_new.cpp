@@ -42,7 +42,7 @@
 extern "C" {
 extern SDL_Window  *sdl_win;
 extern SDL_Renderer *sdl_render;
-extern wchar_t      sdl_win_title[512];
+extern char         sdl_win_title[512];
 extern void         unix_executeLine(char *line);
 }
 
@@ -81,8 +81,6 @@ static bool      mouse_was_captured = false;
 
 static char      files[OSD_FILE_CAPACITY][OSD_PATH_CAPACITY];
 static int       file_count     = 0;
-
-static char      sdl_win_title_mb[512] = "";
 
 /* ------------------------------------------------------------------ */
 /*  Log ring buffer                                                    */
@@ -633,8 +631,6 @@ static bool draw_menu(void)
     const bool enter = ImGui::IsKeyPressed(ImGuiKey_Enter,       false)
                     || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
 
-    wcstombs(sdl_win_title_mb, sdl_win_title, sizeof(sdl_win_title_mb) - 1);
-
     menu_normalize_selection();
 
     bool close_osd = false;
@@ -662,8 +658,8 @@ static bool draw_menu(void)
                  ImGuiWindowFlags_NoNav);
 
     /* Show window title (machine info) */
-    if (sdl_win_title_mb[0]) {
-        ImGui::TextDisabled("%s", sdl_win_title_mb);
+    if (sdl_win_title[0]) {
+        ImGui::TextDisabled("%s", sdl_win_title);
         ImGui::Separator();
     }
 

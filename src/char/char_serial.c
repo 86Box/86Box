@@ -331,7 +331,7 @@ char_serial_connect(char_serial_t *dev, int startup)
 errmsg:
     char_serial_disconnect(dev);
     if (startup)
-        ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+        ui_msgbox(MBX_ERROR, msg);
     else
         char_serial_log(dev->log, "%s\n", msg);
     return 0;

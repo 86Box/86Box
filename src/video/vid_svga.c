@@ -1226,11 +1226,11 @@ svga_recalctimings(svga_t *svga)
             video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
             video_wait_for_buffer_monitor(svga->monitor_index);
             svga->dpms_ui = 1;
-            ui_sb_set_text_w(plat_get_string(STRING_MONITOR_SLEEP));
+            ui_sb_set_text(plat_get_string(STRING_MONITOR_SLEEP));
         }
     } else if (svga->dpms_ui) {
         svga->dpms_ui = 0;
-        ui_sb_set_text_w(NULL);
+        ui_sb_set_text(NULL);
     }
 
     if (enable_overscan && (svga->monitor->mon_overscan_x != old_monitor_overscan_x || svga->monitor->mon_overscan_y != old_monitor_overscan_y))
@@ -1780,7 +1780,7 @@ svga_close(svga_t *svga)
     free(svga->vram);
 
     if (svga->dpms_ui)
-        ui_sb_set_text_w(NULL);
+        ui_sb_set_text(NULL);
 
     svga_pri = NULL;
 }
