@@ -46,6 +46,8 @@ PreferencesInput::PreferencesInput(QWidget *parent)
 {
     ui->setupUi(this);
 
+    mouseSensitivity = mouse_sensitivity;
+
     ui->horizontalSlider->setValue(mouse_sensitivity * 100.);
     ui->checkBoxMultimediaKeys->setChecked(inhibit_multimedia_keys);
 
