@@ -1513,6 +1513,7 @@ mfm_init(UNUSED(const device_t *info))
 {
     drive_t *drive;
     mfm_t   *dev;
+    int      c;
 
     /* Allocate and initialize device block. */
     dev = calloc(1, sizeof(mfm_t));
@@ -1523,7 +1524,7 @@ mfm_init(UNUSED(const device_t *info))
     dev->dma  = 3;
 
     /* Load any disks for this device class. */
-    int c     = 0;
+    c = 0;
     for (uint8_t i = 0; i < HDD_NUM; i++) {
         if (hdd[i].bus_type == HDD_BUS_MFM) {
             drive = &dev->drives[hdd[i].mfm_channel];
