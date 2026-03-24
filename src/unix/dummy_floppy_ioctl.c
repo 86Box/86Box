@@ -85,3 +85,14 @@ floppy_ioctl_get_geometry(int drive, int *tracks, int *sides, int *sectors)
 {
     return 0;
 }
+
+void
+floppy_ioctl_set_buffering(int enabled)
+{
+}
+
+int
+floppy_ioctl_get_buffering(void)
+{
+    return 0;
+}
