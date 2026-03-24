@@ -239,7 +239,15 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         const void *sec        = config_find_section(ctx->name);
         void *      old_sec    = config_find_section("Acculogic XT IDE");
         if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);    
+            config_rename_section(old_sec, ctx->name);
+    } else if (!strcmp(dev->name, "Packard Bell PB300/PB320")) {
+        sprintf(ctx->name, "%s", dev->name);
+
+        /* Migrate the old "Packard Bell Legend 300SX" section */
+        const void *sec        = config_find_section(ctx->name);
+        void *      old_sec    = config_find_section("Packard Bell Legend 300SX");
+        if ((sec == NULL) && (old_sec != NULL))
+            config_rename_section(old_sec, ctx->name);
     } else
         sprintf(ctx->name, "%s", dev->name);
 }
