@@ -572,15 +572,31 @@ VMManagerSystem::setupVars()
     display_table[VMManager::Display::Name::Memory] = mem_display;
 
     // Video card
-    int             video_int                      = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data());
-    const device_t *video_dev                      = video_card_getdevice(video_int);
-    display_table[VMManager::Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_get_internal_name(video_int), 1);
+    const device_t *video_dev = video_get_video_from_old_internal_name(video_config["gfxcard"].toUtf8().data()); // Check for migrations first
+    const char *video_internal_name;
+    int         video_int;
+    if (video_dev == nullptr) {
+        video_int           = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data()); 
+        video_dev           = video_card_getdevice(video_int);
+        video_internal_name = video_get_internal_name(video_int);
+    } else
+        video_internal_name = video_dev->internal_name;
+
+    display_table[VMManager::Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_internal_name, 1);
 
     // Secondary video
     if (video_config.contains("gfxcard_2")) {
-        int             video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
-        const device_t *video2_dev = video_card_getdevice(video2_int);
-        display_table[VMManager::Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video_get_internal_name(video2_int), 1).prepend(VMManagerDetailSection::sectionSeparator));
+        const device_t *video2_dev = video_get_video_from_old_internal_name(video_config["gfxcard_2"].toUtf8().data()); // Check for migrations first
+        const char *video2_internal_name;
+        int         video2_int;
+        if (video2_dev == nullptr) {
+            video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
+            video2_dev = video_card_getdevice(video2_int);
+            video2_internal_name = video_get_internal_name(video2_int);
+        } else
+            video2_internal_name = video2_dev->internal_name;
+
+        display_table[VMManager::Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video2_internal_name, 1).prepend(VMManagerDetailSection::sectionSeparator));
     }
 
     // Add-on video that's not Voodoo
