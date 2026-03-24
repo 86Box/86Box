@@ -686,8 +686,10 @@ fdd_load(int drive, char *fn)
             return;
         }
         
-        if (floppyfns[drive] != (fn - offs))
-            strcpy(floppyfns[drive], fn - offs);
+        if (floppyfns[drive] != (fn - offs)) {
+            strncpy(floppyfns[drive], fn - offs, sizeof(floppyfns[drive]) - 1);
+            floppyfns[drive][sizeof(floppyfns[drive]) - 1] = '\0';
+        }
         
         d86f_setup(drive);
         
@@ -712,8 +714,10 @@ fdd_load(int drive, char *fn)
         while (loaders[c].ext) {
             if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
                 driveloaders[drive] = c;
-                if (floppyfns[drive] != (fn - offs))
-                    strcpy(floppyfns[drive], fn - offs);
+                if (floppyfns[drive] != (fn - offs)) {
+                    strncpy(floppyfns[drive], fn - offs, sizeof(floppyfns[drive]) - 1);
+                    floppyfns[drive][sizeof(floppyfns[drive]) - 1] = '\0';
+                }
                 d86f_setup(drive);
                 loaders[c].load(drive, floppyfns[drive] + offs);
                 drive_empty[drive] = 0;
