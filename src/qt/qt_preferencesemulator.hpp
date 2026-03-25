@@ -28,6 +28,8 @@ private slots:
 private:
     Ui::PreferencesEmulator *ui;
 
+    SettingsCompleter       *scLanguage;
+
     friend class MainWindow;
 };
 

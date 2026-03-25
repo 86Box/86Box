@@ -27,6 +27,7 @@ extern "C" {
 #include <86box/hdd.h>
 }
 
+#include "qt_settings_completer.hpp"
 #include "qt_preferences.hpp"
 #include "ui_qt_preferences.h"
 #include "qt_mainwindow.hpp"

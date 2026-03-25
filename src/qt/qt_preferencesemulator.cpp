@@ -12,6 +12,7 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
+#include "qt_settings_completer.hpp"
 #include "qt_preferences.hpp"
 #include "qt_preferencesemulator.hpp"
 #include "ui_qt_preferencesemulator.h"
@@ -50,9 +51,12 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
 {
     ui->setupUi(this);
 
+    scLanguage = new SettingsCompleter(ui->comboBoxLanguage, nullptr);
+
     ui->comboBoxLanguage->setItemData(0, 0);
     for (int i = 1; i < Preferences::languages.length(); i++) {
         ui->comboBoxLanguage->addItem(Preferences::languages[i].second, i);
+        scLanguage->addDevice(nullptr, Preferences::languages[i].second);
 
         if (i == lang_id)
             ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i));
@@ -75,6 +79,8 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
 
 PreferencesEmulator::~PreferencesEmulator()
 {
+    delete scLanguage;
+
     delete ui;
 }
 
