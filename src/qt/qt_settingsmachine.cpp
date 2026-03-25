@@ -142,6 +142,8 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
 SettingsMachine::~SettingsMachine()
 {
+    delete sc;
+
     delete ui;
 }
 

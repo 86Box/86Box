@@ -36,6 +36,9 @@ private:
     int                  machineId = 0;
 
     int                  net_card_cfg_changed[4] = { 0, 0, 0, 0 };
+
+    SettingsCompleter   *sc[4];
+    SettingsCompleter   *scDevice[4];
 };
 
 #endif // QT_SETTINGSNETWORK_HPP

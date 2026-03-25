@@ -44,6 +44,8 @@ private:
     bool                   buschangeinprogress = false;
 
     int                    org_rows = 0;
+
+    SettingsCompleter     *scSpeed;
 };
 
 #endif // QT_SETTINGSHARDDISKS_HPP

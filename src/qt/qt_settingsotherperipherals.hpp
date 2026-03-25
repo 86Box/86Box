@@ -59,6 +59,11 @@ private:
     int                           isartc_cfg_changed         = 0;
     int                           unittester_cfg_changed     = 0;
     int                           novell_keycard_cfg_changed = 0;
+
+    SettingsCompleter            *scRTC;
+
+    SettingsCompleter            *scIsaMemCard[4];
+    SettingsCompleter            *scIsaRomCard[4];
 };
 
 #endif // QT_SETTINGSOTHERPERIPHERALS_HPP

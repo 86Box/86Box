@@ -25,6 +25,8 @@ extern "C" {
 
 #include <QStandardItemModel>
 
+#include "qt_settings_completer.hpp"
+
 #include "qt_harddiskdialog.hpp"
 
 #include "qt_settingsharddisks.hpp"
@@ -124,6 +126,8 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
 {
     ui->setupUi(this);
 
+    scSpeed = new SettingsCompleter(ui->comboBoxSpeed, nullptr);
+
     hard_disk_icon = QIcon(":/settings/qt/icons/hard_disk.ico");
 
     QAbstractItemModel *model = new QStandardItemModel(0, 4, this);
@@ -161,6 +165,8 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
 
 SettingsHarddisks::~SettingsHarddisks()
 {
+    delete scSpeed;
+
     delete ui;
 }
 
@@ -246,7 +252,7 @@ SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
     }
 
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
-    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), ui->comboBoxBus->currentData().toInt());
+    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), scSpeed, ui->comboBoxBus->currentData().toInt());
     int chanIdx = 0;
 
     switch (ui->comboBoxBus->currentData().toInt()) {

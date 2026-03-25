@@ -12,8 +12,8 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsnetwork.hpp"
-#include "ui_qt_settingsnetwork.h"
+
+#include <cstdint>
 
 extern "C" {
 #include <86box/86box.h>
@@ -28,6 +28,11 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 
 #include "qt_defs.hpp"
+
+#include "qt_settings_completer.hpp"
+
+#include "qt_settingsnetwork.hpp"
+#include "ui_qt_settingsnetwork.h"
 
 void
 SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
@@ -177,6 +182,11 @@ SettingsNetwork::SettingsNetwork(QWidget *parent)
 {
     ui->setupUi(this);
 
+    for (int i = 0; i < NET_CARD_MAX; i++) {
+        sc[i]                           = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1)), nullptr);
+        scDevice[i]                     = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1)), nullptr);
+    }
+
     onCurrentMachineChanged(machine);
     enableElements(ui);
     for (int i = 0; i < NET_CARD_MAX; i++) {
@@ -191,6 +201,11 @@ SettingsNetwork::SettingsNetwork(QWidget *parent)
 
 SettingsNetwork::~SettingsNetwork()
 {
+    for (int i = 0; i < NET_CARD_MAX; i++) {
+        delete sc[i];
+        delete scDevice[i];
+    }
+
     delete ui;
 }
 
@@ -321,6 +336,8 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
     int                 m_has_net                  = machine_has_flags(machineId, MACHINE_NIC);
 
     for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        sc[i]->removeRows();
+        scDevice[i]->removeRows();
         cbox_[i]       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         models[i]      = cbox_[i]->model();
         removeRows_[i] = models[i]->rowCount();
@@ -339,6 +356,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
                 for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
                     if ((c != 1) || ((i == 0) && m_has_net)) {
                         int row = Models::AddEntry(models[i], name, c);
+                        sc[i]->addDevice(nullptr, name);
 
                         if (c == net_cards_conf[i].device_num)
                             selectedRows[i] = row - removeRows_[i];
@@ -391,6 +409,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             removeRows                = model->rowCount();
             for (int c = 0; c < network_ndev; c++) {
                 Models::AddEntry(model, tr(network_devs[c].description), c);
+                scDevice[i]->addDevice(nullptr, tr(network_devs[c].description));
                 if (QString(network_devs[c].device) == currentPcapDevice) {
                     selectedRow = c;
                 }

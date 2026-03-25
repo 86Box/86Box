@@ -55,6 +55,11 @@ private:
     int                             scsi_card_cfg_changed[4]    = { 0, 0, 0, 0 };
     int                             fdc_cfg_changed             = 0;
     int                             cdrom_interface_cfg_changed = 0;
+
+    SettingsCompleter *scFD;
+    SettingsCompleter *scHD[4];
+    SettingsCompleter *scCDInterface;
+    SettingsCompleter *scSCSI[4];
 };
 
 #endif // QT_SETTINGSSTORAGECONTROLLERS_HPP

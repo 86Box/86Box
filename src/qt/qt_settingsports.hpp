@@ -75,6 +75,8 @@ private:
 
     int                lpt_device_cfg_changed[4] = { 0, 0, 0, 0 };
     int                serial_passthrough_cfg_changed[7] = { 0, 0, 0, 0, 0, 0, 0 };
+
+    SettingsCompleter *scLpt[4];
 };
 
 #endif // QT_SETTINGSPORTS_HPP

@@ -12,11 +12,6 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsinput.hpp"
-#include "ui_qt_settingsinput.h"
-#include "qt_mainwindow.hpp"
-#include "qt_preferences.hpp"
-
 #include <QDebug>
 #include <QKeySequence>
 #include <QMessageBox>
@@ -31,6 +26,12 @@ extern "C" {
 #include <86box/gameport.h>
 #include <86box/ui.h>
 }
+
+#include "qt_settings_completer.hpp"
+#include "qt_settingsinput.hpp"
+#include "ui_qt_settingsinput.h"
+#include "qt_mainwindow.hpp"
+#include "qt_preferences.hpp"
 
 #include "qt_models_common.hpp"
 #include "qt_deviceconfig.hpp"
@@ -47,6 +48,11 @@ SettingsInput::SettingsInput(QWidget *parent)
 {
     ui->setupUi(this);
 
+    scKeyboard                      = new SettingsCompleter(ui->comboBoxKeyboard, nullptr);
+    scMouse                         = new SettingsCompleter(ui->comboBoxMouse, nullptr);
+
+    scJoystick0                     = new SettingsCompleter(ui->comboBoxJoystick0, nullptr);
+
     kbd_config_changed   = 0;
     mouse_config_changed = 0;
 
@@ -60,6 +66,11 @@ SettingsInput::SettingsInput(QWidget *parent)
 
 SettingsInput::~SettingsInput()
 {
+    delete scJoystick0;
+
+    delete scMouse;
+    delete scKeyboard;
+
     delete ui;
 }
 
@@ -129,6 +140,11 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
 
+    scKeyboard->removeRows();
+    scMouse->removeRows();
+
+    scJoystick0->removeRows();
+
     auto *keyboardModel = ui->comboBoxKeyboard->model();
     auto  removeRows    = keyboardModel->rowCount();
 
@@ -153,6 +169,8 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
         keyboardModel->setData(idx, name, Qt::DisplayRole);
         keyboardModel->setData(idx, i, Qt::UserRole);
+
+        scKeyboard->addDevice(nullptr, name);
 
         if (i == keyboard_type)
             selectedRow = row - removeRows;
@@ -188,6 +206,8 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         mouseModel->setData(idx, name, Qt::DisplayRole);
         mouseModel->setData(idx, i, Qt::UserRole);
 
+        scMouse->addDevice(nullptr, name);
+
         if (i == mouse_type)
             selectedRow = row - removeRows;
     }
@@ -203,6 +223,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     selectedRow               = 0;
     while (joyName) {
         int row = Models::AddEntry(joystickModel, tr(joyName).toUtf8().data(), i);
+        scJoystick0->addDevice(nullptr, tr(joyName));
         if (i == joystick_type[0])
             selectedRow = row - removeRows;
 

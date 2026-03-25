@@ -14,8 +14,7 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsotherremovable.hpp"
-#include "ui_qt_settingsotherremovable.h"
+#include <cstdint>
 
 extern "C" {
 #include <86box/86box.h>
@@ -25,6 +24,11 @@ extern "C" {
 #include <86box/rdisk.h>
 #include <86box/scsi_tape.h>
 }
+
+#include "qt_settings_completer.hpp"
+
+#include "qt_settingsotherremovable.hpp"
+#include "ui_qt_settingsotherremovable.h"
 
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
@@ -178,6 +182,11 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 {
     ui->setupUi(this);
 
+    scMOType                        = new SettingsCompleter(ui->comboBoxMOType, nullptr);
+    scRDiskType                     = new SettingsCompleter(ui->comboBoxRDiskType, nullptr);
+
+    scTapeType                      = new SettingsCompleter(ui->comboBoxTapeType, nullptr);
+
     mo_disabled_icon = QIcon(":/settings/qt/icons/mo_disabled.ico");
     mo_icon          = QIcon(":/settings/qt/icons/mo.ico");
 
@@ -186,6 +195,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     auto *model = ui->comboBoxMOType->model();
     for (uint32_t i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
         Models::AddEntry(model, moDriveTypeName(i), i);
+        scMOType->addDevice(nullptr, moDriveTypeName(i));
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -216,6 +226,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model = ui->comboBoxRDiskType->model();
     for (uint32_t i = 0; i < KNOWN_RDISK_DRIVE_TYPES; i++) {
         Models::AddEntry(model, rdiskDriveTypeName(i), i);
+        scRDiskType->addDevice(nullptr, rdiskDriveTypeName(i));
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -245,6 +256,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model = ui->comboBoxTapeType->model();
     for (uint32_t i = 0; i < KNOWN_TAPE_DRIVE_TYPES; i++) {
         Models::AddEntry(model, tapeDriveTypeName(i), i);
+        scTapeType->addDevice(nullptr, tapeDriveTypeName(i));
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -268,6 +280,11 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 
 SettingsOtherRemovable::~SettingsOtherRemovable()
 {
+    delete scTapeType;
+
+    delete scMOType;
+    delete scRDiskType;
+
     delete ui;
 }
 

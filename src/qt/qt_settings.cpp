@@ -35,6 +35,8 @@ extern "C" {
 
 #include <QStandardItemModel>
 
+#include "qt_settings_completer.hpp"
+
 #include "qt_harddiskdialog.hpp"
 
 #include "qt_settingsmachine.hpp"

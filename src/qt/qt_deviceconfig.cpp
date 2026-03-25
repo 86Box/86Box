@@ -14,6 +14,8 @@
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2022 Cacodemon345
  */
+#include "qt_settings_completer.hpp"
+
 #include "qt_deviceconfig.hpp"
 #include "ui_qt_deviceconfig.h"
 #include "qt_settings.hpp"
@@ -64,6 +66,9 @@ DeviceConfig::DeviceConfig(QWidget *parent)
 
 DeviceConfig::~DeviceConfig()
 {
+    delete scMidiOut;
+    delete scMidiIn;
+
     delete ui;
 }
 
@@ -184,7 +189,10 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 #ifdef USE_RTMIDI
             case CONFIG_MIDI_OUT:
                 {
-                    auto *cbox = new QComboBox();
+                    auto *cbox   = new QComboBox();
+                    int   add_sc = (scMidiOut == nullptr);
+                    if (add_sc)
+                        scMidiOut = new SettingsCompleter(cbox, nullptr);
                     cbox->setObjectName(config->name);
                     cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
@@ -194,6 +202,8 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         rtmidi_out_get_dev_name(i, midiName);
 
                         Models::AddEntry(model, midiName, i);
+                        if (add_sc)
+                            scMidiOut->addDevice(nullptr, midiName);
                         if (i == value)
                             currentIndex = i;
                     }
@@ -203,7 +213,10 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                 }
             case CONFIG_MIDI_IN:
                 {
-                    auto *cbox = new QComboBox();
+                    auto *cbox   = new QComboBox();
+                    int   add_sc = (scMidiIn == nullptr);
+                    if (add_sc)
+                        scMidiIn = new SettingsCompleter(cbox, nullptr);
                     cbox->setObjectName(config->name);
                     cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
@@ -213,6 +226,8 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         rtmidi_in_get_dev_name(i, midiName);
 
                         Models::AddEntry(model, midiName, i);
+                        if (add_sc)
+                            scMidiIn->addDevice(nullptr, midiName);
                         if (i == value)
                             currentIndex = i;
                     }

@@ -4,6 +4,7 @@
 #include <QDialog>
 
 #include "qt_settings.hpp"
+#include "qt_settings_completer.hpp"
 
 extern "C" {
 struct _device_;
@@ -27,10 +28,13 @@ public:
     static QString DeviceName(const _device_ *device, const char *internalName, int bus);
 
 private:
-    Ui::DeviceConfig *ui;
-    int               machine_cfg_changed;
+    Ui::DeviceConfig * ui;
+    int                machine_cfg_changed;
 
-    void              ProcessConfig(void *dc, const void *c, bool is_dep);
+    void               ProcessConfig(void *dc, const void *c, bool is_dep);
+
+    SettingsCompleter *scMidiOut;
+    SettingsCompleter *scMidiIn;
 
 private slots:
     void on_comboIndexChanged(int index);

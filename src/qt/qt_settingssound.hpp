@@ -52,6 +52,11 @@ private:
     int                mpu401_cfg_changed             = 0;
     int                midi_output_device_cfg_changed = 0;
     int                midi_input_device_cfg_changed  = 0;
+
+    SettingsCompleter   *scSound[4];
+
+    SettingsCompleter   *scMidiOut;
+    SettingsCompleter   *scMidiIn;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

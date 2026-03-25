@@ -49,6 +49,9 @@ private:
     QIcon floppy_35_icon;
     QIcon cdrom_disabled_icon;
     QIcon cdrom_icon;
+
+    SettingsCompleter *scFloppyType;
+    SettingsCompleter *scCDROMType;
 };
 
 #endif // QT_SETTINGSFLOPPYCDROM_HPP

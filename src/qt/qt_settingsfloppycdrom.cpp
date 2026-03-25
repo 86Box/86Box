@@ -14,6 +14,8 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021 Joakim L. Gilje
  */
+#include <cstdint>
+
 extern "C" {
 #include <inttypes.h>
 #include <stdarg.h>
@@ -29,6 +31,8 @@ extern "C" {
 #include <86box/cdrom.h>
 #include <86box/fdd_audio.h>
 }
+
+#include "qt_settings_completer.hpp"
 
 #include "qt_settingsfloppycdrom.hpp"
 #include "ui_qt_settingsfloppycdrom.h"
@@ -116,6 +120,9 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 {
     ui->setupUi(this);
 
+    scFloppyType                    = new SettingsCompleter(ui->comboBoxFloppyType, nullptr);
+    scCDROMType                     = new SettingsCompleter(ui->comboBoxCDROMType, nullptr);
+
     floppy_disabled_icon = QIcon(":/settings/qt/icons/floppy_disabled.ico");
     floppy_525_icon      = QIcon(":/settings/qt/icons/floppy_525.ico");
     floppy_35_icon       = QIcon(":/settings/qt/icons/floppy_35.ico");
@@ -128,6 +135,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
             break;
 
         Models::AddEntry(model, name, i);
+        scFloppyType->addDevice(nullptr, name);
         ++i;
     }
 
@@ -170,7 +178,6 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     } else
         for (int i = 0; i < profile_count; i++) {
             const char *name = fdd_audio_get_profile_name(i);
-            if (name)
                 ui->comboBoxFloppyAudio->addItem(tr(name), i);
         }
     ui->comboBoxFloppyAudio->setSizeAdjustPolicy(QComboBox::AdjustToContents);
@@ -238,6 +245,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         if (((bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI)) && ((cdrom_drive_types[j].bus_type == bus_type) || ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
+            scCDROMType->addDevice(nullptr, name);
             if (cdrom[cdromIdx].type == j)
                 selectedTypeRow = eligibleRows;
             ++eligibleRows;
@@ -252,6 +260,9 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
 SettingsFloppyCDROM::~SettingsFloppyCDROM()
 {
+    delete scCDROMType;
+    delete scFloppyType;
+
     delete ui;
 }
 
@@ -421,10 +432,12 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
     uint32_t j               = 0;
     int      selectedTypeRow = 0;
     int      eligibleRows    = 0;
+    scCDROMType->removeRows();
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
         if (((bus == CDROM_BUS_MKE) || (bus == CDROM_BUS_ATAPI) || (bus == CDROM_BUS_SCSI)) && ((cdrom_drive_types[j].bus_type == bus) || ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus != BUS_TYPE_MKE)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
+            scCDROMType->addDevice(nullptr, name);
             if (type == j)
                 selectedTypeRow = eligibleRows;
             ++eligibleRows;
@@ -536,10 +549,12 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     uint32_t j               = 0;
     int      selectedTypeRow = 0;
     int      eligibleRows    = 0;
+    scCDROMType->removeRows();
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
         if (((bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI)) && ((cdrom_drive_types[j].bus_type == bus_type) || ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE)))) {
             QString name = CDROMName(j);
             Models::AddEntry(modelType, name, j);
+            scCDROMType->addDevice(nullptr, name);
             if (cdrom[cdromIdx].type == j)
                 selectedTypeRow = eligibleRows;
             ++eligibleRows;

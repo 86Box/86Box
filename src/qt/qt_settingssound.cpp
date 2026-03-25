@@ -14,8 +14,7 @@
  *          Copyright 2021      Joakim L. Gilje
  *          Copyright 2022-2025 Jasmine Iwanek
  */
-#include "qt_settingssound.hpp"
-#include "ui_qt_settingssound.h"
+#include <cstdint>
 
 extern "C" {
 #include <86box/86box.h>
@@ -33,25 +32,41 @@ extern "C" {
 
 #include "qt_defs.hpp"
 
+#include "qt_settings_completer.hpp"
+
+#include "qt_settingssound.hpp"
+#include "ui_qt_settingssound.h"
+
 SettingsSound::SettingsSound(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsSound)
 {
     ui->setupUi(this);
 
-    for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i)
-         sound_card_cfg_changed[i] = 0;
+    for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
+        sound_card_cfg_changed[i] = 0;
+        scSound[i]                = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxSoundCard%1").arg(i + 1)), nullptr);
+    }
 
     mpu401_cfg_changed             = 0;
 
     midi_output_device_cfg_changed = 0;
     midi_input_device_cfg_changed  = 0;
 
+    scMidiOut              = new SettingsCompleter(ui->comboBoxMidiOut, nullptr);
+    scMidiIn               = new SettingsCompleter(ui->comboBoxMidiIn, nullptr);
+
     onCurrentMachineChanged(machine);
 }
 
 SettingsSound::~SettingsSound()
 {
+    delete scMidiIn;
+    delete scMidiOut;
+
+    for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i)
+        delete scSound[i];
+
     delete ui;
 }
 
@@ -121,10 +136,14 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
     int                 m_has_snd                    = machine_has_flags(machineId, MACHINE_SOUND);
 
     for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
+        scSound[i]->removeRows();
         cbox[i]        = findChild<QComboBox *>(QString("comboBoxSoundCard%1").arg(i + 1));
         models[i]      = cbox[i]->model();
         removeRows_[i] = models[i]->rowCount();
     }
+
+    scMidiOut->removeRows();
+    scMidiIn->removeRows();
 
     c = 0;
     while (true) {
@@ -142,6 +161,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
                             name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_snd_device(machineId), machine_get_snd_device(machineId)->internal_name, 0));
                         }
                         int row = Models::AddEntry(models[i], name, c);
+                        scSound[i]->addDevice(nullptr, name);
 
                         if (c == sound_card_current[i])
                             selectedRows[i] = row - removeRows_[i];
@@ -191,6 +211,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
         if (midi_out_device_available(c)) {
             int row = Models::AddEntry(model, name, c);
+            scMidiOut->addDevice(nullptr, name);
             if (c == midi_output_device_current)
                 selectedRow = row - removeRows;
         }
@@ -216,6 +237,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
         if (midi_in_device_available(c)) {
             int row = Models::AddEntry(model, name, c);
+            scMidiIn->addDevice(nullptr, name);
             if (c == midi_input_device_current)
                 selectedRow = row - removeRows;
         }

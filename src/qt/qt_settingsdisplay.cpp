@@ -107,6 +107,9 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
 SettingsDisplay::~SettingsDisplay()
 {
+    delete scSecondary;
+    delete sc;
+
     delete ui;
 }
 

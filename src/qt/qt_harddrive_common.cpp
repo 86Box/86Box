@@ -12,9 +12,10 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_harddrive_common.hpp"
-
 #include <cstdint>
+
+#include "qt_settings_completer.hpp"
+#include "qt_harddrive_common.hpp"
 
 extern "C" {
 #include <86box/86box.h>
@@ -94,9 +95,11 @@ Harddrives::populateRemovableBuses(QAbstractItemModel *model)
 }
 
 void
-Harddrives::populateSpeeds(QAbstractItemModel *model, int bus)
+Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int bus)
 {
     int num_preset;
+
+    sc->removeRows();
 
     switch (bus) {
         case HDD_BUS_MFM:
@@ -118,6 +121,8 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, int bus)
     for (int i = 0; i < num_preset; i++) {
         model->setData(model->index(i, 0), QObject::tr(hdd_preset_getname(i)));
         model->setData(model->index(i, 0), i, Qt::UserRole);
+
+        sc->addDevice(nullptr, QObject::tr(hdd_preset_getname(i)));
     }
 }
 

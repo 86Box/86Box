@@ -15,8 +15,7 @@
  *          Copyright 2022 Jasmine Iwanek
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsports.hpp"
-#include "ui_qt_settingsports.h"
+#include <cstdint>
 
 extern "C" {
 #include <86box/86box.h>
@@ -33,14 +32,21 @@ extern "C" {
 
 #include "qt_defs.hpp"
 
+#include "qt_settings_completer.hpp"
+
+#include "qt_settingsports.hpp"
+#include "ui_qt_settingsports.h"
+
 SettingsPorts::SettingsPorts(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsPorts)
 {
     ui->setupUi(this);
 
-    for (int i = 0; i < PARALLEL_MAX; i++)
+    for (int i = 0; i < PARALLEL_MAX; i++) {
+        scLpt[i]                  = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1)), nullptr);
         lpt_device_cfg_changed[i] = 0;
+    }
 
     for (int i = 0; i < (SERIAL_MAX - 1); i++)
         serial_passthrough_cfg_changed[i] = 0;
@@ -50,6 +56,9 @@ SettingsPorts::SettingsPorts(QWidget *parent)
 
 SettingsPorts::~SettingsPorts()
 {
+    for (int i = 0; i < PARALLEL_MAX; i++)
+        delete scLpt[i];
+
     delete ui;
 }
 
@@ -171,6 +180,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     int                 selectedRows[PARALLEL_MAX] = { 0 };
 
     for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
+        scLpt[i]->removeRows();
         cbox[i]        = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
         models[i]      = cbox[i]->model();
         removeRows_[i] = models[i]->rowCount();
@@ -187,6 +197,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
 
             for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
                 int row = Models::AddEntry(models[i], name, c);
+                scLpt[i]->addDevice(nullptr, name);
 
                 if (c == lpt_ports[i].device)
                     selectedRows[i] = row - removeRows_[i];
