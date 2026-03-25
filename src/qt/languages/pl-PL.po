@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-17 02:29+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-03-26 19:00+0000\n"
+"Last-Translator: JanuSzaj <testowe07@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -2501,7 +2501,7 @@ msgid "Old"
 msgstr "Stary"
 
 msgid "New"
-msgstr "Nowość"
+msgstr "Nowy"
 
 msgid "Color (generic)"
 msgstr "Kolorowy (generyczny)"
