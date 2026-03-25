@@ -65,7 +65,8 @@ SettingsPorts::~SettingsPorts()
 int
 SettingsPorts::changed()
 {
-    int has_changed = 0;
+    int has_changed  = 0;
+    int soft_changed = 0;
 
     has_changed |= (jumpered_internal_ecp_dma != ui->comboBoxLptECPDMA->currentData().toInt());
 
@@ -73,23 +74,24 @@ SettingsPorts::changed()
         auto *cbox     = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
         if (cbox != NULL)
-            has_changed |= (lpt_ports[i].device           != cbox->currentData().toInt());
+            soft_changed |= (lpt_ports[i].device           != cbox->currentData().toInt());
         if (checkBox != NULL)
-            has_changed |= (lpt_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
-        has_changed |= lpt_device_cfg_changed[i];
+            has_changed  |= (lpt_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
+        soft_changed  |= lpt_device_cfg_changed[i];
     }
 
     for (int i = 0; i < (SERIAL_MAX - 1); i++) {
         auto *checkBox     = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         auto *checkBoxPass = findChild<QCheckBox *>(QString("checkBoxSerialPassThru%1").arg(i + 1));
         if (checkBox != NULL)
-            has_changed |= (com_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
+            has_changed  |= (com_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
         if (checkBoxPass != NULL)
-            has_changed |= (serial_passthrough_enabled[i] != checkBoxPass->isChecked());
-        has_changed |= serial_passthrough_cfg_changed[i];
+            has_changed  |= (serial_passthrough_enabled[i] != checkBoxPass->isChecked());
+        has_changed  |= serial_passthrough_cfg_changed[i];
     }
 
-    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
+                         (soft_changed ? SETTINGS_CHANGED : 0);
 }
 
 void

@@ -143,6 +143,7 @@ extern void *              lpt_attach(void    (*write_data)(uint8_t val, void *p
                                       void    (*epp_request_read)(uint8_t is_addr, void *priv),
                                       void    *priv);
 extern void                lpt_devices_close(void);
+extern void                lpt_devices_reset(void);
 
 extern void                lpt_set_next_inst(int ni);
 extern void                lpt_set_3bc_used(int is_3bc_used);

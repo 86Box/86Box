@@ -403,6 +403,23 @@ device_close_all(void)
 }
 
 void
+device_close_by_flags(uint32_t match_flags)
+{
+    for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
+        if ((devices[c] != NULL) && (devices[c]->flags & match_flags)) {
+#ifdef ENABLE_DEVICE_LOG
+            if (devices[c]->name)
+                device_log("Closing device: \"%s\"...\n", devices[c]->name);
+#endif
+            if (devices[c]->close != NULL)
+                devices[c]->close(device_priv[c]);
+            devices[c]     = NULL;
+            device_priv[c] = NULL;
+        }
+    }
+}
+
+void
 device_reset_all(uint32_t match_flags)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {

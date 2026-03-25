@@ -179,6 +179,16 @@ lpt_devices_close(void)
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 }
 
+void
+lpt_devices_reset(void)
+{
+    device_close_by_flags(DEVICE_LPT);
+
+    lpt_devices_close();
+
+    lpt_devices_init();
+}
+
 static uint8_t
 lpt_get_ctrl_raw(const lpt_t *dev)
 {

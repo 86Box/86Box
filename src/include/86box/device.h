@@ -205,6 +205,7 @@ extern void  device_add_inst_ex(const device_t *dev, void *priv, int inst);
 extern void  device_add_inst_ex_params(const device_t *dev, void *priv, int inst, void *params);
 extern void *device_get_common_priv(void);
 extern void  device_close_all(void);
+extern void  device_close_by_flags(uint32_t match_flags);
 extern void  device_reset_all(uint32_t match_flags);
 extern void *device_find_first_priv(uint32_t match_flags);
 extern void *device_get_priv(const device_t *dev);
