@@ -56,7 +56,7 @@ static const device_config_t pb410a_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "pb410a_101e",
+        .default_string = "pb410a",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -64,7 +64,7 @@ static const device_config_t pb410a_config[] = {
         .bios           = {
             {
                 .name          = "PhoenixBIOS A486 - Revision 1.01.E",
-                .internal_name = "pb410a_101e",
+                .internal_name = "pb410a",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -89,7 +89,7 @@ static const device_config_t pb410a_config[] = {
 
 const device_t pb410a_device = {
     .name          = "Packard Bell PB410/PB410A/PB420/PB420T",
-    .internal_name = "pb410a_device",
+    .internal_name = "pb410a",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

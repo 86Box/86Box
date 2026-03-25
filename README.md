@@ -26,7 +26,7 @@ Minimum system requirements and recommendations
 * Intel Core 2 or AMD Athlon 64 processor or newer
 * Windows version: Windows 7 Service Pack 1 or later
 * Linux version: Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
-* macOS version: macOS High Sierra 10.13 or newer
+* macOS version: macOS 10.14 Mojave or newer
 * 4 GB of RAM or higher
 
 Performance may vary depending on host and guest configuration. Most emulation logic is executed in a single thread. Therefore, systems with greater IPC (instructions per clock) capacity should be able to emulate higher clock speeds.
