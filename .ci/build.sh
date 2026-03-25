@@ -36,16 +36,9 @@
 #       build_arch x86_64 (or arm64)
 #       universal_archs (blank)
 #       ui_interactive no
-#       macosx_deployment_target 10.13 (for x86_64, 10.14 for Qt Vulkan, or 11.0 for arm64)
+#       macosx_deployment_target 10.14 (for x86_64, or 11.0 for arm64)
 #   - For universal building on Apple Silicon hardware, install native MacPorts on the default
 #     /opt/local and Intel MacPorts on /opt/intel, then tell build.sh to build for "x86_64+arm64"
-#   - Qt Vulkan support through MoltenVK requires 10.14 while we target 10.13. We deal with that
-#     (at least for now) by abusing the x86_64h universal slice to branch Haswell and newer Macs
-#     into a Vulkan-enabled but 10.14+ binary, with older ones opting for a 10.13-compatible,
-#     non-Vulkan binary. With this approach, the only machines that miss out on Vulkan despite
-#     supporting Metal are Ivy Bridge ones as well as GPU-upgraded Mac Pros. For building that
-#     Vulkan binary, install another Intel MacPorts on /opt/x86_64h, then use the "x86_64h"
-#     architecture when invoking build.sh (either standalone or as part of an universal build)
 #   - port and sed are called through sudo to manage dependencies; make sure those are configured
 #     as NOPASSWD in /etc/sudoers if you're doing unattended builds
 #   - Binaries are ad-hoc signed by default; specify a keychain name in ~/86box-keychain-name.txt
@@ -325,7 +318,7 @@ echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 toolchain_prefix=flags-gcc
 is_mac && toolchain_prefix=llvm-macos
 case $arch in
-	64 | x86_64*)	toolchain="$toolchain_prefix-x86_64";;
+	64 | x86_64)	toolchain="$toolchain_prefix-x86_64";;
 	ARM64 | arm64)	toolchain="$toolchain_prefix-aarch64";;
 	*)		toolchain="$toolchain_prefix-$arch";;
 esac
@@ -569,8 +562,8 @@ then
 
 	# Switch into the correct architecture if required.
 	case $arch in
-		x86_64*) arch_mac="i386"; arch_cmd="x86_64";;
-		*)	 arch_mac="$arch"; arch_cmd="$arch";;
+		x86_64) arch_mac="i386"; arch_cmd="x86_64";;
+		*)	arch_mac="$arch"; arch_cmd="$arch";;
 	esac
 	if [ "$(arch)" != "$arch" -a "$(arch)" != "$arch_mac" ]
 	then
@@ -591,14 +584,8 @@ then
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
 	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt5/bin:$PATH"
 
-	# Enable MoltenVK on x86_64h and arm64, but not on x86_64.
-	# The rationale behind that is explained on the big comment up top.
-	moltenvk=0
-	if [ "$arch" != "x86_64" ]
-	then
-		moltenvk=1
-		cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
-	fi
+	# Enable MoltenVK.
+	cmake_flags_extra="$cmake_flags_extra -D MOLTENVK=ON -D \"MOLTENVK_INCLUDE_DIR=$macports\""
 
 	# Enable libserialport.
 	cmake_flags_extra="$cmake_flags_extra -D \"LIBSERIALPORT_ROOT=$macports\""
@@ -609,23 +596,14 @@ then
 		# Install dependencies.
 		echo [-] Installing dependencies through MacPorts
 		sudo "$macports/bin/port" selfupdate
-		if [ $moltenvk -ne 0 ]
-		then
-			# Patch Qt to enable Vulkan support where supported.
-			qt5_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/aqua/qt5/Portfile"
-			sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
-			sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
-		fi
 
-		# Patch openal-soft to use 1.23.1 on all targets instead of 1.24.2 on >=10.13 only,
-		# to prevent a symlink mismatch from having different versions on x86_64 and arm64.
-		# See: https://github.com/macports/macports-ports/commit/9b4903fc9c76769d476079e404c9a3b8a225f8aa
-		#      https://github.com/macports/macports-ports/commit/788deb64dc0695e8d04afb32ed904947f2a7591b
-		openal_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/audio/openal-soft/Portfile"
-		sudo sed -i -e 's/if {${os.platform} ne "darwin" ||/if {0 \&\&/g' "$openal_portfile"
+		# Patch Qt to enable Vulkan support.
+		qt5_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/aqua/qt5/Portfile"
+		sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
+		sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
 
 		# Patch wget to remove libproxy support, as it depends on shared-mime-info which
-		# fails to build for a 10.13 target, which we have to do despite wget only being
+		# fails to build for older targets, which we have to do despite wget only being
 		# a host dependency. MacPorts issue 69406 strongly implies this will not be fixed.
 		wget_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/net/wget/Portfile"
 		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
@@ -787,7 +765,7 @@ rm -rf build
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
-	64 | x86_64*)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
+	64 | x86_64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
 	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64 -D NEW_DYNAREC=ON";;
 	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
@@ -867,7 +845,7 @@ fi
 # Determine Discord Game SDK architecture.
 case $arch in
 	32)		arch_discord="x86";;
-	64 | x86_64*)	arch_discord="x86_64";;
+	64 | x86_64)	arch_discord="x86_64";;
 	arm64 | ARM64)	arch_discord="aarch64";;
 	*)		arch_discord="$arch";;
 esac
@@ -967,50 +945,6 @@ then
 
 		# Archive mdsx library.
 		mv "archive_tmp/mdsx.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
-
-		# Hack to convert x86_64 binaries to x86_64h when building that architecture.
-		if [ "$arch" = "x86_64h" ]
-		then
-			find archive_tmp -type f | while IFS= read line
-			do
-				# Parse and patch a fat header (0xCAFEBABE, big endian) first.
-				macho_offset=0
-				if [ "$(dd if="$line" bs=1 count=4 status=none)" = "$(printf '\xCA\xFE\xBA\xBE')" ]
-				then
-					# Get the number of fat architectures.
-					fat_archs=$(($(dd if="$line" bs=1 skip=4 count=4 status=none | rev | tr -d '\n' | od -An -vtu4)))
-
-					# Go through fat architectures.
-					fat_offset=8
-					for fat_arch in $(seq 1 $fat_archs)
-					do
-						# Check CPU type.
-						if [ "$(dd if="$line" bs=1 skip=$fat_offset count=4 status=none)" = "$(printf '\x01\x00\x00\x07')" ]
-						then
-							# Change CPU subtype in the fat header from ALL (0x00000003) to H (0x00000008).
-							printf '\x00\x00\x00\x08' | dd of="$line" bs=1 seek=$((fat_offset + 4)) count=4 conv=notrunc status=none
-
-							# Save offset for this architecture's Mach-O header.
-							macho_offset=$(($(dd if="$line" bs=1 skip=$((fat_offset + 8)) count=4 status=none | rev | tr -d '\n' | od -An -vtu4)))
-
-							# Stop looking for the x86_64 slice.
-							break
-						fi
-
-						# Move on to the next architecture.
-						fat_offset=$((fat_offset + 20))
-					done
-				fi
-
-				# Now patch a 64-bit Mach-O header (0xFEEDFACF, little endian), either at
-				# the beginning or as a sub-header within a fat binary as parsed above.
-				if [ "$(dd if="$line" bs=1 skip=$macho_offset count=8 status=none)" = "$(printf '\xCF\xFA\xED\xFE\x07\x00\x00\x01')" ]
-				then
-					# Change CPU subtype in the Mach-O header from ALL (0x00000003) to H (0x00000008).
-					printf '\x08\x00\x00\x00' | dd of="$line" bs=1 seek=$((macho_offset + 8)) count=4 conv=notrunc status=none
-				fi
-			done
-		fi
 
 		# Archive assets.
 		if [ -d archive_tmp/assets ]
