@@ -37,6 +37,7 @@ private slots:
     void on_comboBoxChannel_activated(int index);
     void on_comboBoxSpeed_activated(int index);
     void on_comboBoxCDROMType_activated(int index);
+    void on_checkBoxErrorCheck_stateChanged(int arg1);
 
 private:
     Ui::SettingsFloppyCDROM *ui;
