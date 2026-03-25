@@ -16,6 +16,7 @@
  *          Copyright 2021 Joakim L. Gilje
  */
 #include <cstdint>
+#include <cstdio>
 
 extern "C" {
 #include <86box/86box.h>
