@@ -283,9 +283,16 @@ pipeline {
 																}
 															}
 
-															if (ret == 0) {
+															if (ret == 0 || ret == 50) {
 																/* Archive resulting artifacts. */
 																archiveArtifacts artifacts: "**/$packageName*", defaultExcludes: false
+
+																/* Notify about macOS notarization failures. */
+																if (ret == 50) {
+																	catchError(message: 'macOS notarization failed', buildResult: currentBuild.currentResult, stageResult: 'UNSTABLE') {
+																		def x = 1 / 0
+																	}
+																}
 															} else {
 																/* Fail this stage. */
 																failStage()
