@@ -63,6 +63,7 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/plat_floppy_ioctl.h>
 };
 
 #include "qt_newfloppydialog.hpp"
@@ -148,6 +149,13 @@ MediaMenu::refresh(QMenu *parentMenu)
             menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { floppyMenuSelect(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
+        const char *hostDevice = fdd_get_host_device(i);
+        if (hostDevice && hostDevice[0] != '\0') {
+            menu->addAction(img_icon, tr("&Use Host Floppy Drive"), [this, i, hostDevice] {
+                floppyMount(i, QString("ioctl://%1").arg(QString::fromUtf8(hostDevice)), false);
+            })->setCheckable(false);
+            menu->addSeparator();
+        }
         floppyExportPos = menu->children().count();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Export), tr("E&xport to 86F…"), [this, i]() { floppyExportTo86f(i); });
         menu->addSeparator();
