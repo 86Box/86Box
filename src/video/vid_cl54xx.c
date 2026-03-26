@@ -5414,7 +5414,12 @@ const device_t gd5420_onboard_device = {
 
 const device_t gd5422_isa_device = {
     .name          = "Cirrus Logic GD5422 (ISA)",
-    .internal_name = "cl_gd5422_isa",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Generic variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "cl_gd5422_migrated_isa",
     .flags         = DEVICE_ISA16,
     .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
@@ -5456,7 +5461,12 @@ const device_t gd5424_onboard_device = {
 
 const device_t gd5426_isa_device = {
     .name          = "Cirrus Logic GD5426 (ISA)",
-    .internal_name = "cl_gd5426_isa",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Generic variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "cl_gd5426_migrated_isa",
     .flags         = DEVICE_ISA16,
     .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
@@ -5526,7 +5536,12 @@ const device_t gd5428_isa_device = {
 
 const device_t gd5428_vlb_device = {
     .name          = "Cirrus Logic GD5428 (VLB)",
-    .internal_name = "cl_gd5428_vlb",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Generic variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "cl_gd5428_migrated_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
@@ -5666,7 +5681,12 @@ const device_t gd5429_vlb_device = {
 
 const device_t gd5430_vlb_device = {
     .name          = "Cirrus Logic GD5430 (VLB)",
-    .internal_name = "cl_gd5430_vlb",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Orchid variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "cl_gd5430_migrated_vlb",
     .flags         = DEVICE_VLB,
     .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
@@ -5722,7 +5742,12 @@ const device_t gd5430_onboard_pci_device = {
 
 const device_t gd5434_isa_device = {
     .name          = "Cirrus Logic GD5434 (ISA)",
-    .internal_name = "cl_gd5434_isa",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Generic variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "cl_gd5434_migrated_isa",
     .flags         = DEVICE_ISA16,
     .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,
@@ -5848,7 +5873,12 @@ const device_t gd5440_pci_device = {
 
 const device_t gd5446_pci_device = {
     .name          = "Cirrus Logic GD5446 (PCI)",
-    .internal_name = "cl_gd5446_pci",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Generic variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "cl_gd5446_migrated_pci",
     .flags         = DEVICE_PCI,
     .local         = CIRRUS_ID_USE_CONFIG_BIOS,
     .init          = gd54xx_init,

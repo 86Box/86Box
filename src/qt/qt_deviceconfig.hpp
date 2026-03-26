@@ -33,8 +33,10 @@ private:
 
     void               ProcessConfig(void *dc, const void *c, bool is_dep);
 
-    SettingsCompleter *scMidiOut;
-    SettingsCompleter *scMidiIn;
+    SettingsCompleter *scMidiOut = nullptr;
+    SettingsCompleter *scMidiIn  = nullptr;
+
+    SettingsCompleter *scBIOS    = nullptr;
 
 private slots:
     void on_comboIndexChanged(int index);

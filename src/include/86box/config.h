@@ -56,6 +56,7 @@ extern void *config_get_ini(void);
 #define config_set_wstring(head, name, val) ini_set_wstring(config_get_ini(), head, name, val)
 
 #define config_find_section(name)           ini_find_section(config_get_ini(), name)
+#define config_create_section(name)         ini_find_or_create_section(config_get_ini(), name)
 #define config_rename_section               ini_rename_section
 
 #ifdef __cplusplus

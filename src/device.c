@@ -93,15 +93,44 @@ void
 device_video_config_migrate(const device_t *dev, const char *old_internal_name, int inst)
 {
     /* Migrate the old section (new bios internal name = old gfxcard internal name) */
-    const void *sec            = config_find_section(dev->name);
-    const char *bios           = device_get_bios_name(dev, old_internal_name);
-    char        old_name[2048] = { 0 };
+    const void *sec             = config_find_section(dev->name);
+    const char *bios            = device_get_bios_name(dev, old_internal_name);
+    uint32_t    rev             = ((uint32_t) device_get_bios_local(dev, old_internal_name)) >> 24;
+    char        old_name[2048]  = { 0 };
+    char        bios_name[2048] = { 0 };
+    char        old_name2[2048] = { 0 };
 
-    snprintf(old_name, 2047, "%s (%s)", dev->name, bios);
+    snprintf(old_name,  2047, "%s (%s)", dev->name, bios);
+    if (strlen(bios) >= 9) {
+        snprintf(bios_name, 2047, "%s", &(bios[8]));
+        /* Layout is "Rev. X (Name)" */
+        bios_name[strlen(bios_name) - 1] = 0x00;
+        if (!strcmp(bios_name, "Generic"))
+            snprintf(old_name2, 2047, "%s Rev. %c", dev->name, rev);
+        else
+            snprintf(old_name2, 2047, "%s Rev. %c (%s)", dev->name, rev, bios_name);
+    }
 
     void *      old_sec  = config_find_section(old_name);
-    if ((sec == NULL) && (old_sec != NULL)) {
-        config_rename_section(old_sec, dev->name);
+    void *      old_sec2 = NULL;
+
+    if (old_name2[0] != 0x00)
+        old_sec2 = config_find_section(old_name2);
+
+    if ((old_name2[0] != 0x00) && (rev >= 'B') && (rev <= 'D') && (sec == NULL)) {
+        /* Tseng ET4000/W32p Migration. */
+        if (old_sec2 != NULL)
+            config_rename_section(old_sec2, dev->name);
+        else
+            config_create_section(dev->name);
+        /* Do not set BIOS variable for on-board devices. */
+        if (strstr(dev->name, "oard") == NULL)
+            config_set_string(dev->name, "bios", old_internal_name);
+    } if ((sec == NULL)) {
+        if (old_sec != NULL)
+            config_rename_section(old_sec, dev->name);
+        else
+            config_create_section(dev->name);
         /* Do not set BIOS variable for on-board devices. */
         if (strstr(dev->name, "oard") == NULL)
             config_set_string(dev->name, "bios", old_internal_name);
@@ -150,6 +179,10 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "S3 Trio32 PCI On-Board (Phoenix)", .new = "S3 Trio32 PCI On-Board" },
         { .old = "S3 Trio64 PCI On-Board (Phoenix)", .new = "S3 Trio64 PCI On-Board" },
         { .old = "S3 Trio64V+ PCI On-Board (Phoenix)", .new = "S3 Trio64V+ PCI On-Board" },
+        { .old = "Tseng Labs ET4000/w32 ISA (MachSpeed VGA GUI 2400S)", .new = "Tseng Labs ET4000/w32 ISA" },
+        { .old = "Tseng Labs ET4000/w32 VLB (MachSpeed VGA GUI 2400S)", .new = "Tseng Labs ET4000/w32 VLB" },
+        { .old = "Tseng Labs ET4000/w32i Rev. B ISA (Axis MicroDevice)", .new = "Tseng Labs ET4000/w32i ISA" },
+        { .old = "Tseng Labs ET4000/w32i Rev. B VLB (Hercules Dynamite Pro)", .new = "Tseng Labs ET4000/w32i VLB" },
         { 0 }
     };
 

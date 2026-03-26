@@ -60,14 +60,15 @@ typedef enum {
 } et4000w32_chip_type;
 
 enum {
-    MACHSPEED_VGA_GUI_2400S = 0,
+    MACHSPEED_VGA_GUI_2400S   = 0,
     AXIS_MICRODEVICE_ET4W32_5,
     HERCULES_DYNAMITE_PRO_VLB,
     VIDEOMAGIC_ETW32PVS,
     CARDEX_REVC,
     GENERIC_REVD,
     CARDEX_REVD,
-    DIAMOND_STEALTH_32
+    DIAMOND_STEALTH_32,
+    USE_CONFIG_BIOS           = 0xff
 };
 
 typedef enum {
@@ -151,17 +152,17 @@ static video_timings_t timing_et4000w32_vlb = { .type = VIDEO_BUS, .write_b = 4,
 static video_timings_t timing_et4000w32_pci = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
 static video_timings_t timing_et4000w32_isa = { .type = VIDEO_ISA, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
 
-void et4000w32p_recalcmapping(et4000w32p_t *et4000);
+static void    et4000w32p_recalcmapping(et4000w32p_t *et4000);
 
 static uint8_t et4000w32p_mmu_read(uint32_t addr, void *priv);
 static void    et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *priv);
 
-static void et4000w32_blit_start(et4000w32p_t *et4000);
-static void et4000w32p_blit_start(et4000w32p_t *et4000);
-static void et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32_t mix_dat, et4000w32p_t *et4000);
-static void et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32p_t *et4000);
-void        et4000w32p_out(uint16_t addr, uint8_t val, void *priv);
-uint8_t     et4000w32p_in(uint16_t addr, void *priv);
+static void    et4000w32_blit_start(et4000w32p_t *et4000);
+static void    et4000w32p_blit_start(et4000w32p_t *et4000);
+static void    et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32_t mix_dat, et4000w32p_t *et4000);
+static void    et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32p_t *et4000);
+static void    et4000w32p_out(uint16_t addr, uint8_t val, void *priv);
+static uint8_t et4000w32p_in(uint16_t addr, void *priv);
 
 #ifdef ENABLE_ET4000W32_LOG
 int et4000w32_do_log = ENABLE_ET4000W32_LOG;
@@ -181,7 +182,7 @@ et4000w32_log(const char *fmt, ...)
 #    define et4000w32_log(fmt, ...)
 #endif
 
-void
+static void
 et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
@@ -371,7 +372,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
     svga_out(addr, val, svga);
 }
 
-uint8_t
+static uint8_t
 et4000w32p_in(uint16_t addr, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
@@ -505,7 +506,7 @@ et4000w32p_in(uint16_t addr, void *priv)
     return svga_in(addr, svga);
 }
 
-void
+static void
 et4000w32p_recalctimings(svga_t *svga)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
@@ -663,7 +664,7 @@ et4000w32p_recalctimings(svga_t *svga)
         svga->render = svga_render_4bpp_tseng_highres;
 }
 
-void
+static void
 et4000w32p_recalcmapping(et4000w32p_t *et4000)
 {
     svga_t *svga = &et4000->svga;
@@ -1197,7 +1198,7 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
     return 0xff;
 }
 
-void
+static void
 et4000w32_blit_start(et4000w32p_t *et4000)
 {
     et4000->acl.x_count = et4000->acl.internal.count_x;
@@ -1322,7 +1323,7 @@ et4000w32p_blit_start(et4000w32p_t *et4000)
     et4000->acl.pix_pos = 0;
 }
 
-void
+static void
 et4000w32_incx(int c, et4000w32p_t *et4000)
 {
     et4000->acl.dest_addr += c;
@@ -1335,7 +1336,7 @@ et4000w32_incx(int c, et4000w32p_t *et4000)
         et4000->acl.source_x -= et4000w32_max_x[et4000->acl.internal.source_wrap & 7];
 }
 
-void
+static void
 et4000w32_decx(int c, et4000w32p_t *et4000)
 {
     et4000->acl.dest_addr -= c;
@@ -1348,7 +1349,7 @@ et4000w32_decx(int c, et4000w32p_t *et4000)
         et4000->acl.source_x += et4000w32_max_x[et4000->acl.internal.source_wrap & 7];
 }
 
-void
+static void
 et4000w32_incy(et4000w32p_t *et4000)
 {
     et4000->acl.pattern_addr += et4000->acl.internal.pattern_off + 1;
@@ -1367,7 +1368,7 @@ et4000w32_incy(et4000w32p_t *et4000)
     }
 }
 
-void
+static void
 et4000w32_decy(et4000w32p_t *et4000)
 {
     et4000->acl.pattern_addr -= et4000->acl.internal.pattern_off + 1;
@@ -2539,7 +2540,7 @@ et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32
     }
 }
 
-void
+static void
 et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 {
     const et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
@@ -2651,7 +2652,7 @@ et4000w32p_io_set(et4000w32p_t *et4000)
     io_sethandler(0x217a, 0x0002, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
 }
 
-uint8_t
+static uint8_t
 et4000w32p_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const et4000w32p_t *et4000 = (et4000w32p_t *) priv;
@@ -2708,7 +2709,7 @@ et4000w32p_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
     return 0;
 }
 
-void
+static void
 et4000w32p_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
@@ -2755,7 +2756,7 @@ et4000w32p_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, v
     }
 }
 
-void *
+static void *
 et4000w32p_init(const device_t *info)
 {
     et4000w32p_t *et4000 = malloc(sizeof(et4000w32p_t));
@@ -2764,8 +2765,12 @@ et4000w32p_init(const device_t *info)
     et4000->pci = (info->flags & DEVICE_PCI) ? 0x80 : 0x00;
     et4000->vlb = (info->flags & DEVICE_VLB) ? 0x40 : 0x00;
 
-    et4000->card_type = info->local & 0xff;
-    et4000->onboard_vid = (info->local >> 8) & 0xff;
+    uint32_t local = info->local;
+    if (local == USE_CONFIG_BIOS)
+        local = device_get_bios_local(info, device_get_config_bios("bios"));
+
+    et4000->card_type = local & 0xff;
+    et4000->onboard_vid = (local >> 8) & 0xff;
 
     et4000->vram_size = device_get_config_int("memory");
 
@@ -2950,55 +2955,25 @@ et4000w32p_init(const device_t *info)
     return et4000;
 }
 
-int
-et4000w32_machspeed_vga_gui_2400s_available(void)
+static int
+et4000w32_available(void)
 {
     return rom_present(BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S);
 }
 
-int
-et4000w32i_axis_microdevice_available(void)
+static int
+et4000w32i_isa_available(void)
 {
     return rom_present(BIOS_ROM_PATH_W32I_REVB_AXIS_MICRODEVICE);
 }
 
-int
-et4000w32i_hercules_dynamite_pro_vlb_available(void)
+static int
+et4000w32i_vlb_available(void)
 {
     return rom_present(BIOS_ROM_PATH_W32I_REVB_HERCULES_DYNAMITE_VLB_PRO);
 }
 
-int
-et4000w32p_videomagic_revb_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_REVB_VIDEOMAGIC);
-}
-
-int
-et4000w32p_cardex_revc_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_REVC_CARDEX);
-}
-
-int
-et4000w32p_diamond_revd_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_REVD_DIAMOND);
-}
-
-int
-et4000w32p_cardex_revd_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_REVD_CARDEX);
-}
-
-int
-et4000w32p_generic_revd_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_W32P_REVD);
-}
-
-void
+static void
 et4000w32p_close(void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
@@ -3008,7 +2983,7 @@ et4000w32p_close(void *priv)
     free(et4000);
 }
 
-void
+static void
 et4000w32p_speed_changed(void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
@@ -3016,7 +2991,7 @@ et4000w32p_speed_changed(void *priv)
     svga_recalctimings(&et4000->svga);
 }
 
-void
+static void
 et4000w32p_force_redraw(void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
@@ -3024,7 +2999,7 @@ et4000w32p_force_redraw(void *priv)
     et4000->svga.fullchange = changeframecount;
 }
 
-static const device_config_t et4000w32p_config[] = {
+static const device_config_t et4000w32_config[] = {
   // clang-format off
     {
         .name           = "memory",
@@ -3045,32 +3020,188 @@ static const device_config_t et4000w32p_config[] = {
   // clang-format on
 };
 
-const device_t et4000w32_machspeed_vga_gui_2400s_isa_device = {
-    .name          = "Tseng Labs ET4000/w32 ISA (MachSpeed VGA GUI 2400S)",
+static const device_config_t et4000w32p_vlb_config[] = {
+  // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio64vplus_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Rev. B (VideoMagic ETW32PVS)",
+                .internal_name = "et4000w32p_videomagic_revb_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('B' << 24) | VIDEOMAGIC_ETW32PVS,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVB_VIDEOMAGIC, "" }
+            },
+            {
+                .name          = "Rev. C (Cardex)",
+                .internal_name = "et4000w32p_revc_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('C' << 24) | CARDEX_REVC,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVC_CARDEX, "" }
+            },
+            {
+                .name          = "Rev. D (Cardex)",
+                .internal_name = "et4000w32p_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('D' << 24) | CARDEX_REVD,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVD_CARDEX, "" }
+            },
+            {
+                .name          = "Rev. D (Diamond Stealth32)",
+                .internal_name = "stealth32_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('D' << 24) | DIAMOND_STEALTH_32,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVD_DIAMOND, "" }
+            },
+            {
+                .name          = "Rev. D (Generic)",
+                .internal_name = "et4000w32p_nc_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('D' << 24) | GENERIC_REVD,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVD, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_config_t et4000w32p_pci_config[] = {
+  // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio64vplus_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Rev. C (Cardex)",
+                .internal_name = "et4000w32p_revc_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('C' << 24) | CARDEX_REVC,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVC_CARDEX, "" }
+            },
+            {
+                .name          = "Rev. D (Cardex)",
+                .internal_name = "et4000w32p_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('D' << 24) | CARDEX_REVD,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVD_CARDEX, "" }
+            },
+            {
+                .name          = "Rev. D (Diamond Stealth32)",
+                .internal_name = "stealth32_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('D' << 24) | DIAMOND_STEALTH_32,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVD_DIAMOND, "" }
+            },
+            {
+                .name          = "Rev. D (Generic)",
+                .internal_name = "et4000w32p_nc_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('D' << 24) | GENERIC_REVD,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVD, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+const device_t et4000w32_isa_device = {
+    .name          = "Tseng Labs ET4000/w32 ISA",
     .internal_name = "et4000w32",
     .flags         = DEVICE_ISA16,
     .local         = MACHSPEED_VGA_GUI_2400S,
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    .available     = et4000w32_machspeed_vga_gui_2400s_available,
+    .available     = et4000w32_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
+    .config        = et4000w32_config
 };
 
-const device_t et4000w32_machspeed_vga_gui_2400s_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32 VLB (MachSpeed VGA GUI 2400S)",
+const device_t et4000w32_vlb_device = {
+    .name          = "Tseng Labs ET4000/w32 VLB",
     .internal_name = "et4000w32_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACHSPEED_VGA_GUI_2400S,
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    .available     = et4000w32_machspeed_vga_gui_2400s_available,
+    .available     = et4000w32_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
+    .config        = et4000w32_config
 };
 
 const device_t et4000w32_onboard_device = {
@@ -3084,159 +3215,71 @@ const device_t et4000w32_onboard_device = {
     .available     = NULL,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
+    .config        = et4000w32_config
 };
 
-const device_t et4000w32i_axis_microdevice_isa_device = {
-    .name          = "Tseng Labs ET4000/w32i Rev. B ISA (Axis MicroDevice)",
+const device_t et4000w32i_isa_device = {
+    .name          = "Tseng Labs ET4000/w32i ISA",
     .internal_name = "et4000w32i",
     .flags         = DEVICE_ISA16,
     .local         = AXIS_MICRODEVICE_ET4W32_5,
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    .available     = et4000w32i_axis_microdevice_available,
+    .available     = et4000w32i_isa_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
+    .config        = et4000w32_config
 };
 
-const device_t et4000w32i_hercules_dynamite_pro_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32i Rev. B VLB (Hercules Dynamite Pro)",
+const device_t et4000w32i_vlb_device = {
+    .name          = "Tseng Labs ET4000/w32i VLB",
     .internal_name = "et4000w32i_vlb",
     .flags         = DEVICE_VLB,
     .local         = HERCULES_DYNAMITE_PRO_VLB,
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    .available     = et4000w32i_hercules_dynamite_pro_vlb_available,
+    .available     = et4000w32i_vlb_available,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
+    .config        = et4000w32_config
 };
 
-const device_t et4000w32p_videomagic_revb_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. B VLB (VideoMagic ETW32PVS)",
-    .internal_name = "et4000w32p_videomagic_revb_vlb",
+const device_t et4000w32p_vlb_device = {
+    .name          = "Tseng Labs ET4000/w32p VLB",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Cardex Rev. D variant uses the internal name without _migrated that
+       would be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "et4000w32p_migrated_vlb",
     .flags         = DEVICE_VLB,
-    .local         = VIDEOMAGIC_ETW32PVS,
+    .local         = USE_CONFIG_BIOS,
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    .available     = et4000w32p_videomagic_revb_available,
+    .available     = NULL,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
+    .config        = et4000w32p_vlb_config
 };
 
-const device_t et4000w32p_cardex_revc_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. C VLB (Cardex)",
-    .internal_name = "et4000w32p_revc_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = CARDEX_REVC,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_cardex_revc_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_cardex_revc_pci_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. C PCI (Cardex)",
-    .internal_name = "et4000w32p_revc_vlb",
+const device_t et4000w32p_pci_device = {
+    .name          = "Tseng Labs ET4000/w32p PCI",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Cardex Rev. D variant uses the internal name without _migrated that
+       would be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "et4000w32p_migrated_pci",
     .flags         = DEVICE_PCI,
-    .local         = CARDEX_REVC,
+    .local         = USE_CONFIG_BIOS,
     .init          = et4000w32p_init,
     .close         = et4000w32p_close,
     .reset         = NULL,
-    .available     = et4000w32p_cardex_revc_available,
+    .available     = NULL,
     .speed_changed = et4000w32p_speed_changed,
     .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_cardex_revd_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. D VLB (Cardex)",
-    .internal_name = "et4000w32p_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = CARDEX_REVD,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_cardex_revd_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_cardex_revd_pci_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. D PCI (Cardex)",
-    .internal_name = "et4000w32p_pci",
-    .flags         = DEVICE_PCI,
-    .local         = CARDEX_REVD,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_cardex_revd_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_diamond_revd_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. D VLB (Diamond Stealth32)",
-    .internal_name = "stealth32_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = DIAMOND_STEALTH_32,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_diamond_revd_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_diamond_revd_pci_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. D PCI (Diamond Stealth32)",
-    .internal_name = "stealth32_pci",
-    .flags         = DEVICE_PCI,
-    .local         = DIAMOND_STEALTH_32,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_diamond_revd_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_generic_revd_vlb_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. D VLB",
-    .internal_name = "et4000w32p_nc_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = GENERIC_REVD,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_generic_revd_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
-};
-
-const device_t et4000w32p_generic_revd_pci_device = {
-    .name          = "Tseng Labs ET4000/w32p Rev. D PCI",
-    .internal_name = "et4000w32p_nc_pci",
-    .flags         = DEVICE_PCI,
-    .local         = GENERIC_REVD,
-    .init          = et4000w32p_init,
-    .close         = et4000w32p_close,
-    .reset         = NULL,
-    .available     = et4000w32p_generic_revd_available,
-    .speed_changed = et4000w32p_speed_changed,
-    .force_redraw  = et4000w32p_force_redraw,
-    .config        = et4000w32p_config
+    .config        = et4000w32p_pci_config
 };
