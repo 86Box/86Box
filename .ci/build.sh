@@ -48,6 +48,7 @@
 #     credentials, you must find the keychain's file path, run notarytool store-credentials with
 #     --keychain pointed at that path, and specify the profile name you passed to notarytool in
 #     ~/86box-keychain-notarytool.txt
+#   - The script returns exit code 50 if notarization fails or is not configured
 #
 
 # Define common functions.
@@ -1248,8 +1249,12 @@ then
 fi
 
 # Notarize the compressed app bundle if we're on macOS.
-is_mac && mac_notarize "$zip_name"
+status=0
+if is_mac
+then
+	mac_notarize "$zip_name" || status=50
+fi
 
 # All good.
 echo [-] Build of [$package_name] for [$arch] with flags [$cmake_flags] successful
-exit 0
+exit $status
