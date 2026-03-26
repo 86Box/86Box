@@ -115,7 +115,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Acculogic XT IDE", .new = "Acculogic sIDE-1/16 (IDE)" },
         { .old = "Multitech PC-500", .new = "Multitech PC-500 / Franklin PC 8000" },
         { .old = "Multitech PC-500 plus", .new = "Multitech PC-500+" },
-        { .old = "Multitech PC-700", .new = "Packard Bell PB300/PB320" },
+        { .old = "Multitech PC-700", .new = "Multitech PC-700 / Siemens SICOMP PC 16 05" },
         { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300/PB320" },
         { .old = "AST Bravo MS P/90", .new = "AST Bravo MS/MS-T/MS-L (Rattler)" },
         { 0 }
