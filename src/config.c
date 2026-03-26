@@ -90,6 +90,7 @@
 #include <86box/ui.h>
 #include <86box/snd_opl.h>
 #include <86box/version.h>
+#include <86box/plat_floppy_ioctl.h>
 
 #ifndef USE_SDL_UI
 /* Deliberate to not make the 86box.h header kitchen-sink. */
@@ -1603,6 +1604,10 @@ load_floppy_and_cdrom_drives(void)
         fdd_set_audio_profile(c, 0);
 #endif
 
+        sprintf(temp, "fdd_%02i_host_device", c + 1);
+        p = ini_section_get_string(cat, temp, "");
+        fdd_set_host_device(c, p);
+
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             fdd_image_history[c][i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
@@ -1614,6 +1619,8 @@ load_floppy_and_cdrom_drives(void)
             }
         }
     }
+
+    floppy_ioctl_set_buffering(ini_section_get_int(cat, "fdd_host_buffering", 1));
 
     memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < CDROM_NUM; c++) {
@@ -3710,7 +3717,8 @@ save_floppy_and_cdrom_drives(void)
                                    fdd_get_internal_name(fdd_get_type(c)));
 
         sprintf(temp, "fdd_%02i_fn", c + 1);
-        if (strlen(floppyfns[c]) == 0) {
+        /* Don't save ioctl:// paths */
+        if (strlen(floppyfns[c]) == 0 || strstr(floppyfns[c], "ioctl://") != NULL) {
             ini_section_delete_var(cat, temp);
 
             ui_writeprot[c] = 0;
@@ -3755,7 +3763,19 @@ save_floppy_and_cdrom_drives(void)
 #else
         ini_section_delete_var(cat, temp);
 #endif
+
+        sprintf(temp, "fdd_%02i_host_device", c + 1);
+        const char *host_dev = fdd_get_host_device(c);
+        if (host_dev && host_dev[0] != '\0')
+            ini_section_set_string(cat, temp, host_dev);
+        else
+            ini_section_delete_var(cat, temp);
     }
+
+    if (floppy_ioctl_get_buffering())
+        ini_section_set_int(cat, "fdd_host_buffering", 1);
+    else
+        ini_section_delete_var(cat, "fdd_host_buffering");
 
     for (c = 0; c < CDROM_NUM; c++) {
         sprintf(temp, "cdrom_%02i_host_drive", c + 1);
