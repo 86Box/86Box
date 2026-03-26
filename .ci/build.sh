@@ -39,11 +39,11 @@
 #       macosx_deployment_target 10.14 (for x86_64, or 11.0 for arm64)
 #   - For universal building on Apple Silicon hardware, install native MacPorts on the default
 #     /opt/local and Intel MacPorts on /opt/intel, then tell build.sh to build for "x86_64+arm64"
-#   - port and sed are called through sudo to manage dependencies; make sure those are configured
-#     as NOPASSWD in /etc/sudoers if you're doing unattended builds
+#   - port, sed and ln are called through sudo to manage dependencies; make sure those are
+#     configured as NOPASSWD in /etc/sudoers if you're doing unattended builds
 #   - Binaries are ad-hoc signed by default; specify a keychain name in ~/86box-keychain-name.txt
 #     and password in ~/86box-keychain-password.txt to sign binaries with the first developer
-#     certificate found inside that keychain.
+#     certificate found inside that keychain
 #   - Notarization uses credentials stored in the same keychain used for signing. To save these
 #     credentials, you must find the keychain's file path, run notarytool store-credentials with
 #     --keychain pointed at that path, and specify the profile name you passed to notarytool in
@@ -607,6 +607,13 @@ then
 		wget_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/net/wget/Portfile"
 		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
 		sudo sed -i -e 's/port:libproxy//g' "$wget_portfile"
+
+		# Work around assimp failing to build with newer zlib. Upstream issue as of writing.
+		sudo "$macports/bin/port" install zlib
+		for header in "$macports/include/minizip/"*.h
+		do
+			sudo ln -s "$header" "$macports/include/" 2>/dev/null
+		done
 
 		while :
 		do
