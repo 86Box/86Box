@@ -529,7 +529,9 @@ et4000w32p_recalctimings(svga_t *svga)
     if (svga->crtc[0x3F] & 0x80)
         svga->rowoffset |= 0x100;
     if ((svga->crtc[0x3F] & 0x01) && ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)))
-        svga->htotal |= 0x100;
+        svga->htotal = ((svga->crtc[0] | 0x100) + 5) | 0x8000;
+    if ((svga->crtc[0x3F] & 0x04) && ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)))
+        svga->hblankstart = svga->crtc[2] | 0x100;
     if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
         svga->dots_per_clock <<= 1;
