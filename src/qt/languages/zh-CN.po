@@ -1060,10 +1060,6 @@ msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
 
-#, fuzzy
-msgid "Reset"
-msgstr "重置"
-
 msgid "CD-ROM images"
 msgstr "光盘映像"
 

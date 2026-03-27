@@ -1061,10 +1061,6 @@ msgstr "%1 je potreben za samodejno pretvorbo datotek PCL v PDF.\n\nVsi dokument
 msgid "Don't show this message again"
 msgstr "Ne pokaži več tega sporočila"
 
-#, fuzzy
-msgid "Reset"
-msgstr "Znova zaženi"
-
 msgid "CD-ROM images"
 msgstr "Slike CD-ROM"
 

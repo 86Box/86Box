@@ -1059,9 +1059,6 @@ msgstr "%1 is vereist voor automatische conversie van PCL-bestanden naar PDF.\n\
 msgid "Don't show this message again"
 msgstr "Dit bericht niet meer tonen"
 
-msgid "Reset"
-msgstr "Reset"
-
 msgid "CD-ROM images"
 msgstr "CD-ROM-images"
 

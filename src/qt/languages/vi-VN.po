@@ -1060,10 +1060,6 @@ msgstr "Cần có %1 để tự động chuyển đổi file PCL qua PDF.\n\nM�
 msgid "Don't show this message again"
 msgstr "Không hiện thông báo này nữa"
 
-#, fuzzy
-msgid "Reset"
-msgstr "Khởi động lại"
-
 msgid "CD-ROM images"
 msgstr "Ảnh đĩa CD-ROM"
 

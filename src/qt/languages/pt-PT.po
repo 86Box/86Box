@@ -1060,9 +1060,6 @@ msgstr "%1 é requerido para a conversão automática de ficheiros PCL para fich
 msgid "Don't show this message again"
 msgstr "Não mostrar mais esta mensagem"
 
-msgid "Reset"
-msgstr "Repor"
-
 msgid "CD-ROM images"
 msgstr "Imagens CD-ROM"
 

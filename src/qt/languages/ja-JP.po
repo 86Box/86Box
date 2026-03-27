@@ -1060,10 +1060,6 @@ msgstr "PCLファイルをPDFに自動変換するには%1が必要です。\n\n
 msgid "Don't show this message again"
 msgstr "今後、このメッセージを表示しない"
 
-#, fuzzy
-msgid "Reset"
-msgstr "リセット"
-
 msgid "CD-ROM images"
 msgstr "CD-ROMイメージ"
 

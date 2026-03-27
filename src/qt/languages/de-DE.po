@@ -1059,10 +1059,6 @@ msgstr "%1 wird zur automatischen Konvertierung von PCL-Dateien ins PDF-Format b
 msgid "Don't show this message again"
 msgstr "Diese Nachricht nicht mehr anzeigen"
 
-#, fuzzy
-msgid "Reset"
-msgstr "Zurücksetzen"
-
 msgid "CD-ROM images"
 msgstr "CD-ROM-Abbilder"
 

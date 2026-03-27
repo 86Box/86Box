@@ -1059,9 +1059,6 @@ msgstr "%1 je potřeba pro automatický převod PCL dokumentů do PDF.\n\nJakék
 msgid "Don't show this message again"
 msgstr "Nezobrazovat dále tuto zprávu"
 
-msgid "Reset"
-msgstr "Resetovat"
-
 msgid "CD-ROM images"
 msgstr "Obraz CD-ROM disku"
 

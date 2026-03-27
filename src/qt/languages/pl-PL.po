@@ -1060,9 +1060,6 @@ msgstr "%1 jest wymagany do automatycznej konwersji plików PCL do PDF.\n\nDokum
 msgid "Don't show this message again"
 msgstr "Nie pokazuj więcej tego komunikatu"
 
-msgid "Reset"
-msgstr "Resetuj"
-
 msgid "CD-ROM images"
 msgstr "Obrazy CD-ROM"
 

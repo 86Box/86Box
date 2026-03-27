@@ -1061,10 +1061,6 @@ msgstr "%1 потрібно для автоматичного перетворе
 msgid "Don't show this message again"
 msgstr "Більше не показувати це повідомлення"
 
-#, fuzzy
-msgid "Reset"
-msgstr "Перезавантажити"
-
 msgid "CD-ROM images"
 msgstr "Образи CD-ROM"
 

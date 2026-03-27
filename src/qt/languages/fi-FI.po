@@ -1059,10 +1059,6 @@ msgstr "%1 vaaditaan PCL-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiks
 msgid "Don't show this message again"
 msgstr "Älä näytä tätä viestiä uudelleen"
 
-#, fuzzy
-msgid "Reset"
-msgstr "Käynnistä uudelleen"
-
 msgid "CD-ROM images"
 msgstr "CD-ROM-levykuvat"
 

@@ -1053,9 +1053,6 @@ msgstr ""
 msgid "Don't show this message again"
 msgstr ""
 
-msgid "Reset"
-msgstr ""
-
 msgid "CD-ROM images"
 msgstr ""
 

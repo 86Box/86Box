@@ -1060,10 +1060,6 @@ msgstr "%1 kreves for automatisk konvertering av PCL-filer til PDF.\n\nDokumente
 msgid "Don't show this message again"
 msgstr "Ikke vis denne meldingen igjen"
 
-#, fuzzy
-msgid "Reset"
-msgstr "Nullstill"
-
 msgid "CD-ROM images"
 msgstr "CD-ROM-filer"
 
