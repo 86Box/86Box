@@ -96,11 +96,13 @@ SettingsCompleter::SettingsCompleter(QComboBox *cb, QComboBox *cbSort)
 }
 
 void
-SettingsCompleter::addRow(QString name, QString alias, int id)
+SettingsCompleter::addRow(QString name, QString alias, int special, int id)
 {
     QString stored_alias;
     if (name == alias)
         stored_alias = QString(name);
+    else if (special)
+        stored_alias = alias;
     else
         stored_alias = QString("%1 (%2)").arg(name).arg(alias);
 
@@ -115,11 +117,11 @@ SettingsCompleter::addRow(QString name, QString alias, int id)
 void
 SettingsCompleter::addMachine(int i, int j)
 {
-    addRow(machines[j].name, machines[j].name, machine_types[machine_get_type(j)].id);
+    addRow(machines[j].name, machines[j].name, 0, machine_types[machine_get_type(j)].id);
 
     int k = 0;
     while (machines[j].aliases[k][0] != 0x00) {
-        addRow(machines[j].name, machines[j].aliases[k], machine_types[machine_get_type(j)].id);
+        addRow(machines[j].name, machines[j].aliases[k], 0, machine_types[machine_get_type(j)].id);
         k++;
     };
 }
@@ -127,7 +129,7 @@ SettingsCompleter::addMachine(int i, int j)
 void
 SettingsCompleter::addDevice(const void *device, QString name)
 {
-    addRow(name, name, -1);
+    addRow(name, name, 0, -1);
 
     const device_t *dev = (const device_t *) device;
     if (dev != nullptr) {
@@ -141,7 +143,7 @@ SettingsCompleter::addDevice(const void *device, QString name)
                        (bios->name != nullptr) &&
                        (bios->internal_name != nullptr) &&
                        (bios->files_no != 0)) {
-                    addRow(name, bios->name, -1);
+                    addRow(name, bios->name, dev->flags & DEVICE_BIOS_ALIAS, -1);
                     bios++;
                 }
             }

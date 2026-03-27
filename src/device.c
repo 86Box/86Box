@@ -113,6 +113,7 @@ device_video_config_migrate(const device_t *dev, const char *old_internal_name, 
 
     void *      old_sec  = config_find_section(old_name);
     void *      old_sec2 = NULL;
+    void *      bios_sec = config_find_section(bios);
 
     if (old_name2[0] != 0x00)
         old_sec2 = config_find_section(old_name2);
@@ -126,15 +127,17 @@ device_video_config_migrate(const device_t *dev, const char *old_internal_name, 
         /* Do not set BIOS variable for on-board devices. */
         if (strstr(dev->name, "oard") == NULL)
             config_set_string(dev->name, "bios", old_internal_name);
-    } if ((sec == NULL)) {
-        if (old_sec != NULL)
+    } if (sec == NULL) {
+        if (bios_sec != NULL)
+            config_rename_section(bios_sec, dev->name);
+        else if (old_sec != NULL)
             config_rename_section(old_sec, dev->name);
         else
             config_create_section(dev->name);
         /* Do not set BIOS variable for on-board devices. */
         if (strstr(dev->name, "oard") == NULL)
             config_set_string(dev->name, "bios", old_internal_name);
-    } else if (sec != NULL) {
+    } else {
         /* The section was already there, just add the BIOS. */
         if (strstr(dev->name, "oard") == NULL)
             config_set_string(dev->name, "bios", old_internal_name);

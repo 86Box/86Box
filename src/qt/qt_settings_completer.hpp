@@ -32,7 +32,7 @@ private:
     int                 rows         = 0;
 
     bool                eventFilter(QObject *watched, QEvent *event);
-    void                addRow(QString name, QString alias, int id);
+    void                addRow(QString name, QString alias, int special, int id);
 };
 
 #endif // QT_SETTINGS_COMPLETER

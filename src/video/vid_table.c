@@ -165,7 +165,7 @@ video_cards[] = {
     { .device = &et4000w32i_vlb_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32p_vlb_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
     /* PCI */
-    { .device = &voodoo_banshee_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &voodoo_banshee_pci_device,                     .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_1000_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_2000_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_3000_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -182,12 +182,10 @@ video_cards[] = {
     { .device = &gd5440_pci_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5446_pci_device,                             .flags = VIDEO_FLAG_TYPE_SECONDARY },
     { .device = &gd5480_pci_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &creative_voodoo_banshee_device,                .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &millennium_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &millennium_ii_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mystique_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mystique_220_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &quantum3d_raven_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c928_pci_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_vision864_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio32_pci_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -217,11 +215,7 @@ video_cards[] = {
     { .device = &voodoo_3_1000_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_2000_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &voodoo_3_3000_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &voodoo_3_3500_agp_ntsc_device,                 .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &voodoo_3_3500_agp_pal_device,                  .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &voodoo_3_3500_si_agp_device,                   .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &compaq_voodoo_3_3500_agp_device,               .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &voodoo_3_3500_se_agp_device,                   .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &voodoo_3_3500_agp_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
 #ifdef USE_G100
     { .device = &productiva_g100_device,                        .flags = VIDEO_FLAG_TYPE_SPECIAL   },
 #endif /*USE_G100 */
@@ -327,15 +321,26 @@ video_cards_migrate[] = {
     { .device = &s3_trio64v2dx_pci_device,                      .old_internal_name = "trio64v2dx_pci"                 },
     /* ET4000/w32p VLB */
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_videomagic_revb_vlb" },
-    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_revc_vlb",           },
-    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_vlb",                },
-    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "stealth32_vlb",                 },
-    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_nc_vlb",             },
+    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_revc_vlb"            },
+    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_vlb"                 },
+    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "stealth32_vlb"                  },
+    { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_nc_vlb"              },
     /* ET4000/w32p PCI */
-    { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_revc_pci",           },
-    { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_pci",                },
-    { .device = &et4000w32p_pci_device,                         .old_internal_name = "stealth32_pci",                 },
-    { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_nc_pci",             },
+    { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_revc_pci"            },
+    { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_pci"                 },
+    { .device = &et4000w32p_pci_device,                         .old_internal_name = "stealth32_pci"                  },
+    { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_nc_pci"              },
+    /* Voodoo Banshee PCI */
+    { .device = &voodoo_banshee_pci_device,                     .old_internal_name = "voodoo_banshee_pci"             },
+    { .device = &voodoo_banshee_pci_device,                     .old_internal_name = "ctl3d_banshee_pci"              },
+    { .device = &voodoo_banshee_pci_device,                     .old_internal_name = "q3d_raven_pci"                  },
+    /* Voodoo 3 3500 AGP */
+    { .device = &voodoo_3_3500_agp_device,                      .old_internal_name = "voodoo3_3500_agp_ntsc"          },
+    { .device = &voodoo_3_3500_agp_device,                      .old_internal_name = "voodoo3_3500_agp_pal"           },
+    { .device = &voodoo_3_3500_agp_device,                      .old_internal_name = "compaq_voodoo3_3500_agp"        },
+    { .device = &voodoo_3_3500_agp_device,                      .old_internal_name = "voodoo3_3500_se_agp"            },
+    { .device = &voodoo_3_3500_agp_device,                      .old_internal_name = "voodoo3_3500_si_agp"            },
+    /* End of table */
     { .device = NULL,                                           .old_internal_name = ""                               }
   // clang-format on
 };

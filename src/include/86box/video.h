@@ -592,9 +592,7 @@ extern const device_t ps1vga_mca_device;
 
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
-extern const device_t voodoo_banshee_device;
-extern const device_t creative_voodoo_banshee_device;
-extern const device_t quantum3d_raven_device;
+extern const device_t voodoo_banshee_pci_device;
 extern const device_t voodoo_3_1000_device;
 extern const device_t voodoo_3_1000_agp_device;
 extern const device_t voodoo_3_2000_device;
@@ -602,11 +600,7 @@ extern const device_t voodoo_3_2000_agp_device;
 extern const device_t voodoo_3_2000_agp_onboard_8m_device;
 extern const device_t voodoo_3_3000_device;
 extern const device_t voodoo_3_3000_agp_device;
-extern const device_t voodoo_3_3500_agp_ntsc_device;
-extern const device_t voodoo_3_3500_agp_pal_device;
-extern const device_t compaq_voodoo_3_3500_agp_device;
-extern const device_t voodoo_3_3500_se_agp_device;
-extern const device_t voodoo_3_3500_si_agp_device;
+extern const device_t voodoo_3_3500_agp_device;
 extern const device_t velocity_100_agp_device;
 extern const device_t velocity_200_agp_device;
 
