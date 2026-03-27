@@ -100,7 +100,13 @@ device_video_config_migrate(const device_t *dev, const char *old_internal_name, 
     char        bios_name[2048] = { 0 };
     char        old_name2[2048] = { 0 };
 
-    snprintf(old_name,  2047, "%s (%s)", dev->name, bios);
+    if (!strcmp(bios_name, "Generic") && (strstr(dev->name, "ViRGE") || strstr(dev->name, "Trio3D"))) {
+        uint32_t chip_id = ((uint32_t) device_get_bios_local(dev, old_internal_name)) >> 16;
+        strcpy(old_name, dev->name);
+        sprintf(old_name + strlen(dev->name) - 3, "(%3i)", chip_id);
+        strcpy(old_name + strlen(old_name), dev->name + strlen(dev->name) - 4);
+    } else
+        snprintf(old_name,  2047, "%s (%s)", dev->name, bios);
     if (strlen(bios) >= 9) {
         snprintf(bios_name, 2047, "%s", &(bios[8]));
         /* Layout is "Rev. X (Name)" */
@@ -186,6 +192,8 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Tseng Labs ET4000/w32 VLB (MachSpeed VGA GUI 2400S)", .new = "Tseng Labs ET4000/w32 VLB" },
         { .old = "Tseng Labs ET4000/w32i Rev. B ISA (Axis MicroDevice)", .new = "Tseng Labs ET4000/w32i ISA" },
         { .old = "Tseng Labs ET4000/w32i Rev. B VLB (Hercules Dynamite Pro)", .new = "Tseng Labs ET4000/w32i VLB" },
+        { .old = "S3 ViRGE/GX (385) PCI", .new = "S3 ViRGE/GX PCI" },
+        { .old = "S3 ViRGE/GX2 (357) PCI", .new = "S3 ViRGE/GX2 PCI" },
         { 0 }
     };
 

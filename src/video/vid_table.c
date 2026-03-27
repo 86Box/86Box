@@ -153,12 +153,12 @@ video_cards[] = {
     { .device = &ht216_32_standalone_device,                    .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c928_vlb_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c805_vlb_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_vision864_vlb_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio32_vlb_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_vision964_vlb_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio64_vlb_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_vision968_vlb_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio64vplus_vlb_device,                     .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_vision864_vlb_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_vision964_vlb_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_vision968_vlb_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &tgui9400cxi_device,                            .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &tgui9440_vlb_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32_vlb_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -187,24 +187,20 @@ video_cards[] = {
     { .device = &mystique_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mystique_220_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_86c928_pci_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_vision864_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio32_pci_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_vision964_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_trio3d2x_pci_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio64_pci_device,                          .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_vision868_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_vision968_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio64vplus_pci_device,                     .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio64v2dx_pci_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_virge_325_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_diamond_stealth_2000_pci_device,            .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_mirocrystal_3d_pci_device,                  .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_diamond_stealth_3000_pci_device,            .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_stb_velocity_3d_pci_device,                 .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_virge_375_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_diamond_stealth_2000pro_pci_device,         .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_virge_385_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_virge_357_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_trio3d2x_pci_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_virge_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_virge_dx_pci_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_virge_gx_pci_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_virge_gx2_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_virge_vx_pci_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_vision864_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_vision964_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_vision868_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_vision968_pci_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &tgui9440_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &tgui9660_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &tgui9680_pci_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -219,9 +215,8 @@ video_cards[] = {
 #ifdef USE_G100
     { .device = &productiva_g100_device,                        .flags = VIDEO_FLAG_TYPE_SPECIAL   },
 #endif /*USE_G100 */
-    { .device = &s3_virge_357_agp_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &s3_diamond_stealth_4000_agp_device,            .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &s3_trio3d2x_agp_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &s3_virge_gx2_agp_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = NULL,                                           .flags = VIDEO_FLAG_TYPE_NONE      }
   // clang-format on
 };
@@ -229,103 +224,116 @@ video_cards[] = {
 static const video_card_migrate_t
 video_cards_migrate[] = {
   // clang-format off
-    /* 5422 ISA */
+    /* CL-GD 5422 ISA */
     { .device = &gd5422_isa_device,                             .old_internal_name = "cl_gd5422_boca_isa"             },
     { .device = &gd5422_isa_device,                             .old_internal_name = "cl_gd5422_isa"                  },
-    /* 5426 ISA */
+    /* CL-GD 5426 ISA */
     { .device = &gd5426_isa_device,                             .old_internal_name = "cl_gd5426_diamond_a1_isa"       },
     { .device = &gd5426_isa_device,                             .old_internal_name = "cl_gd5426_isa"                  },
-    /* 5428 VLB */
+    /* CL-GD 5428 VLB */
     { .device = &gd5428_vlb_device,                             .old_internal_name = "cl_gd5428_diamond_b1_vlb"       },
     { .device = &gd5428_vlb_device,                             .old_internal_name = "cl_gd5428_vlb"                  },
-    /* 5430 VLB */
+    /* CL-GD 5430 VLB */
     { .device = &gd5430_vlb_device,                             .old_internal_name = "cl_gd5430_vlb_diamond"          },
     { .device = &gd5430_vlb_device,                             .old_internal_name = "cl_gd5430_vlb"                  },
-    /* 5434 ISA */
+    /* CL-GD 5434 ISA */
     { .device = &gd5434_isa_device,                             .old_internal_name = "cl_gd5434_diamond_a3_isa"       },
     { .device = &gd5434_isa_device,                             .old_internal_name = "cl_gd5434_isa"                  },
-    /* 5446 PCI */
+    /* CL-GD 5446 PCI */
     { .device = &gd5446_pci_device,                             .old_internal_name = "cl_gd5446_pci"                  },
     { .device = &gd5446_pci_device,                             .old_internal_name = "cl_gd5446_stb_pci"              },
-    /* 911 ISA */
+    /* S3 86c911 ISA */
     { .device = &s3_86c911_isa_device,                          .old_internal_name = "stealthvram_isa"                },
     { .device = &s3_86c911_isa_device,                          .old_internal_name = "orchid_s3_911"                  },
-    /* 924 ISA */
+    /* S3 86c924 ISA */
     { .device = &s3_86c924_isa_device,                          .old_internal_name = "ami_s3_924"                     },
-    /* 928 ISA */
+    /* S3 86c928 ISA */
     { .device = &s3_86c928_isa_device,                          .old_internal_name = "elsawin2k928_isa"               },
     { .device = &s3_86c928_isa_device,                          .old_internal_name = "metheus928_isa"                 },
-    /* 928 VLB */
+    /* S3 86c928 VLB */
     { .device = &s3_86c928_vlb_device,                          .old_internal_name = "elsawin1k928_vlb"               },
     { .device = &s3_86c928_vlb_device,                          .old_internal_name = "metheus928_vlb"                 },
-    /* 928 PCI */
+    /* S3 86c928 PCI */
     { .device = &s3_86c928_pci_device,                          .old_internal_name = "elsawin1k928_pci"               },
     { .device = &s3_86c928_pci_device,                          .old_internal_name = "spea_mercurylite_pci"           },
-    /* 801 ISA */
+    /* S3 86c801 ISA */
     { .device = &s3_86c801_isa_device,                          .old_internal_name = "px_86c801_isa"                  },
     { .device = &s3_86c801_isa_device,                          .old_internal_name = "px_s3_v7_801_isa"               },
-    /* 805 ISA */
+    /* S3 86c805 ISA */
     { .device = &s3_86c805_isa_device,                          .old_internal_name = "winner1000_805_isa"             },
-    /* 805 VLB */
+    /* S3 86c805 VLB */
     { .device = &s3_86c805_vlb_device,                          .old_internal_name = "mirocrystal8s_vlb"              },
     { .device = &s3_86c805_vlb_device,                          .old_internal_name = "mirocrystal10sd_vlb"            },
     { .device = &s3_86c805_vlb_device,                          .old_internal_name = "px_86c805_vlb"                  },
     { .device = &s3_86c805_vlb_device,                          .old_internal_name = "px_s3_v7_805_vlb"               },
-    /* Vision864 VLB */
+    /* S3 Vision864 VLB */
     { .device = &s3_vision864_vlb_device,                       .old_internal_name = "mirocrystal20sd_vlb"            },
     { .device = &s3_vision864_vlb_device,                       .old_internal_name = "bahamas64_vlb"                  },
     { .device = &s3_vision864_vlb_device,                       .old_internal_name = "px_vision864_vlb"               },
-    /* Vision864 PCI */
+    /* S3 Vision864 PCI */
     { .device = &s3_vision864_pci_device,                       .old_internal_name = "bahamas64_pci"                  },
     { .device = &s3_vision864_pci_device,                       .old_internal_name = "px_vision864_pci"               },
-    /* Trio32 VLB */
+    /* S3 Trio32 VLB */
     { .device = &s3_trio32_vlb_device,                          .old_internal_name = "stealthse_vlb"                  },
     { .device = &s3_trio32_vlb_device,                          .old_internal_name = "px_trio32_vlb"                  },
-    /* Trio32 PCI */
+    /* S3 Trio32 PCI */
     { .device = &s3_trio32_pci_device,                          .old_internal_name = "stealthse_pci"                  },
     { .device = &s3_trio32_pci_device,                          .old_internal_name = "px_trio32_pci"                  },
-    /* Vision964 VLB */
+    /* S3 Vision964 VLB */
     { .device = &s3_vision964_vlb_device,                       .old_internal_name = "stealth64v_vlb"                 },
     { .device = &s3_vision964_vlb_device,                       .old_internal_name = "mirocrystal20sv_vlb"            },
-    /* Vision964 PCI */
+    /* S3 Vision964 PCI */
     { .device = &s3_vision964_pci_device,                       .old_internal_name = "stealth64v_pci"                 },
     { .device = &s3_vision964_pci_device,                       .old_internal_name = "elsawin2kprox_964_pci"          },
     { .device = &s3_vision964_pci_device,                       .old_internal_name = "mirocrystal20sv_pci"            },
-    /* Trio64 VLB */
+    /* S3 Trio64 VLB */
     { .device = &s3_trio64_vlb_device,                          .old_internal_name = "stealth64d_vlb"                 },
     { .device = &s3_trio64_vlb_device,                          .old_internal_name = "n9_9fx_vlb"                     },
     { .device = &s3_trio64_vlb_device,                          .old_internal_name = "px_trio64_vlb"                  },
     { .device = &s3_trio64_vlb_device,                          .old_internal_name = "spea_miragep64_vlb"             },
-    /* Trio64 PCI */
+    /* S3 Trio64 PCI */
     { .device = &s3_trio64_pci_device,                          .old_internal_name = "stealth64d_pci"                 },
     { .device = &s3_trio64_pci_device,                          .old_internal_name = "n9_9fx_pci"                     },
     { .device = &s3_trio64_pci_device,                          .old_internal_name = "px_trio64_pci"                  },
-    /* Vision868 PCI */
+    /* S3 Vision868 PCI */
     { .device = &s3_vision868_pci_device,                       .old_internal_name = "n9_9fx_531_pci"                 },
     { .device = &s3_vision868_pci_device,                       .old_internal_name = "px_vision868_pci"               },
-    /* Vision968 VLB */
+    /* S3 Vision968 VLB */
     { .device = &s3_vision968_vlb_device,                       .old_internal_name = "stealth64vv_vlb"                },
-    /* Vision968 PCI */
+    /* S3 Vision968 PCI */
     { .device = &s3_vision968_pci_device,                       .old_internal_name = "stealth64vv_pci"                },
     { .device = &s3_vision968_pci_device,                       .old_internal_name = "elsawin2kprox_pci"              },
     { .device = &s3_vision968_pci_device,                       .old_internal_name = "mirovideo40sv_pci"              },
     { .device = &s3_vision968_pci_device,                       .old_internal_name = "n9_9fx_771_pci"                 },
     { .device = &s3_vision968_pci_device,                       .old_internal_name = "px_vision968_pci"               },
     { .device = &s3_vision968_pci_device,                       .old_internal_name = "spea_mercury64p_pci"            },
-    /* Trio64V+ VLB */
+    /* S3 Trio64V+ VLB */
     { .device = &s3_trio64vplus_vlb_device,                     .old_internal_name = "stb_trio64vplus_vlb"            },
-    /* Trio64V+ PCI */
+    /* S3 Trio64V+ PCI */
     { .device = &s3_trio64vplus_pci_device,                     .old_internal_name = "cardex_trio64vplus_pci"         },
     { .device = &s3_trio64vplus_pci_device,                     .old_internal_name = "px_trio64vplus_pci"             },
-    /* Trio64V2/DX PCI */
+    /* S3 Trio64V2/DX PCI */
     { .device = &s3_trio64v2dx_pci_device,                      .old_internal_name = "trio64v2dx_pci"                 },
-    /* ET4000/w32p VLB */
+    /* S3 ViRGE PCI */
+    { .device = &s3_virge_pci_device,                           .old_internal_name = "stealth3d_2000_pci"             },
+    { .device = &s3_virge_pci_device,                           .old_internal_name = "virge325_pci"                   },
+    { .device = &s3_virge_pci_device,                           .old_internal_name = "mirocrystal_3d_pci"             },
+    /* S3 ViRGE/VX PCI */
+    { .device = &s3_virge_vx_pci_device,                        .old_internal_name = "stealth3d_3000_pci"             },
+    { .device = &s3_virge_vx_pci_device,                        .old_internal_name = "stb_velocity3d_pci"             },
+    /* S3 ViRGE/DX PCI */
+    { .device = &s3_virge_dx_pci_device,                        .old_internal_name = "stealth3d_2000pro_pci"          },
+    { .device = &s3_virge_dx_pci_device,                        .old_internal_name = "virge375_pci"                   },
+    /* S3 ViRGE/GX2 AGP */
+    { .device = &s3_virge_gx2_agp_device,                       .old_internal_name = "stealth3d_4000_agp"             },
+    { .device = &s3_virge_gx2_agp_device,                       .old_internal_name = "virge357_agp"                   },
+    /* Tseng ET4000/w32p VLB */
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_videomagic_revb_vlb" },
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_revc_vlb"            },
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_vlb"                 },
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "stealth32_vlb"                  },
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_nc_vlb"              },
-    /* ET4000/w32p PCI */
+    /* Tseng ET4000/w32p PCI */
     { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_revc_pci"            },
     { .device = &et4000w32p_pci_device,                         .old_internal_name = "et4000w32p_pci"                 },
     { .device = &et4000w32p_pci_device,                         .old_internal_name = "stealth32_pci"                  },
