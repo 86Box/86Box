@@ -470,6 +470,8 @@ void
 path_normalize(char *path)
 {
 #ifdef Q_OS_WINDOWS
+    if (plat_is_block_device(path))
+        return;
     if (strstr(path, "ioctl://") != path) {
         while (*path++ != 0) {
             if (*path == '\\')
