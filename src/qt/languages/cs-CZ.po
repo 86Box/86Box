@@ -144,53 +144,45 @@ msgstr "&Celočíselné škálování"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Celočíselné škálování"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Nastavení pro EGA a (S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Převrátit barvy"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Převrátit barvy"
+msgid "VGA screen type:"
+msgstr "Typ VGA monitoru:"
 
-msgid "VGA screen &type"
-msgstr "&Typ VGA monitoru"
-
-msgid "RGB &Color"
-msgstr "RGB &barevný"
+msgid "RGB Color"
+msgstr "RGB barevný"
 
 msgid "RGB (no brown)"
 msgstr "RGB (bez hnědé)"
 
-msgid "&RGB Grayscale"
-msgstr "&Odstíny šedi"
+msgid "RGB Grayscale"
+msgstr "Odstíny šedi"
 
 msgid "Generic RGBI color monitor"
 msgstr "Obecný RGBI barevný monitor"
 
-msgid "&Amber monitor"
-msgstr "&Jantarový monitor"
+msgid "Amber monitor"
+msgstr "Jantarový monitor"
 
-msgid "&Green monitor"
-msgstr "&Zelený monitor"
+msgid "Green monitor"
+msgstr "Zelený monitor"
 
-msgid "&White monitor"
-msgstr "&Bílý monitor"
+msgid "White monitor"
+msgstr "Bílý monitor"
 
-msgid "Grayscale &conversion type"
-msgstr "Převod na &odstíny šedi"
+msgid "Grayscale conversion type:"
+msgstr "Převod na odstíny šedi:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Průměr"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+#, fuzzy
+msgid "Overscan"
+msgstr "Přesah obrazu"
 
-msgid "&Average"
-msgstr "&Průměr"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Přesah obrazu CGA/PCjr/Tandy/E&GA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "&Upravit kontrast černobílé obrazovky"
+msgid "Change contrast for monochrome display"
+msgstr "Upravit kontrast černobílé obrazovky"
 
 msgid "&Media"
 msgstr "&Média"
@@ -432,8 +424,8 @@ msgstr "Grafika:"
 msgid "Video #2:"
 msgstr "Grafika 2:"
 
-msgid "Accelerators"
-msgstr "Akcelerátory"
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Použít grafický akcelerátor Voodoo 1 nebo 2"
@@ -513,30 +505,6 @@ msgstr "Nuked (přesnější)"
 msgid "YMFM (faster)"
 msgstr "YMFM (rychlejší)"
 
-msgid "COM1 Device:"
-msgstr "Zařízení na COM1:"
-
-msgid "COM2 Device:"
-msgstr "Zařízení na COM2:"
-
-msgid "COM3 Device:"
-msgstr "Zařízení na COM3:"
-
-msgid "COM4 Device:"
-msgstr "Zařízení na COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Zařízení na LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Zařízení na LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Zařízení na LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Zařízení na LPT4:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA kanál ECP interního LPT portu:"
 
@@ -552,23 +520,20 @@ msgstr "Povolit port COM3"
 msgid "Serial port 4"
 msgstr "Povolit port COM4"
 
-msgid "Parallel port 1"
-msgstr "Povolit port LPT1"
-
-msgid "Parallel port 2"
-msgstr "Povolit port LPT2"
-
-msgid "Parallel port 3"
-msgstr "Povolit port LPT3"
-
-msgid "Parallel port 4"
-msgstr "Povolit port LPT4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketový řadič:"
 
 msgid "CD-ROM controller:"
 msgstr "Řadič CD-ROM:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "Řadič IDE"
@@ -2012,6 +1977,9 @@ msgstr "Verze BIOS"
 msgid "BIOS Language"
 msgstr "Jazyk BIOS"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "Rozšiřující jednotka IBM 5161"
 
@@ -2835,6 +2803,12 @@ msgstr "Posunout níž"
 msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "Nastavení kláves"
 
@@ -3012,6 +2986,9 @@ msgstr "Systém nebude přidán."
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovat myš při každém CPU rámci"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Odstín"
 
@@ -3027,11 +3004,8 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrost"
 
-msgid "&CGA composite settings…"
-msgstr "Nastavení kompozitního výstupu &CGA…"
-
-msgid "CGA composite settings"
-msgstr "Nastavení kompozitního výstupu CGA"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "EDID monitoru"
@@ -3060,9 +3034,6 @@ msgstr "Světlé"
 msgid "Dark"
 msgstr "Tmavé"
 
-msgid "Search:"
-msgstr "Hledat:"
-
 msgid "Force interpretation"
 msgstr "Vynutit interpretaci"
 
@@ -3086,3 +3057,6 @@ msgstr "Před změnou systémového adresáře nejprve zastavte všechny běží
 
 msgid "Raw"
 msgstr "Surový"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

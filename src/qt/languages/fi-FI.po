@@ -144,53 +144,45 @@ msgstr "&Kokonaislukuskaalaus"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Kokonaislukuskaalaus"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "&EGA/(S)VGA-asetukset"
+msgid "Inverted VGA monitor"
+msgstr "VGA-näyttö käänteisillä väreillä"
 
-msgid "&Inverted VGA monitor"
-msgstr "&VGA-näyttö käänteisillä väreillä"
+msgid "VGA screen type:"
+msgstr "VGA-näytön tyyppi:"
 
-msgid "VGA screen &type"
-msgstr "VGA-näytön &tyyppi"
-
-msgid "RGB &Color"
-msgstr "RGB, &värit"
+msgid "RGB Color"
+msgstr "RGB, värit"
 
 msgid "RGB (no brown)"
 msgstr "RGB (ei ruskeaa)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB, harmaasävy"
+msgid "RGB Grayscale"
+msgstr "RGB, harmaasävy"
 
 msgid "Generic RGBI color monitor"
 msgstr "Yleinen RGBI-värinäyttö"
 
-msgid "&Amber monitor"
-msgstr "&Meripihkanvärinen"
+msgid "Amber monitor"
+msgstr "Meripihkanvärinen"
 
-msgid "&Green monitor"
-msgstr "V&ihreä"
+msgid "Green monitor"
+msgstr "Vihreä"
 
-msgid "&White monitor"
-msgstr "V&alkoinen"
+msgid "White monitor"
+msgstr "Valkoinen"
 
-msgid "Grayscale &conversion type"
-msgstr "&Harmaasävymuunnoksen tyyppi"
+msgid "Grayscale conversion type:"
+msgstr "Harmaasävymuunnoksen tyyppi:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Keskiarvo"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+#, fuzzy
+msgid "Overscan"
+msgstr "Yliskannaus"
 
-msgid "&Average"
-msgstr "&Keskiarvo"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-&yliskannaus"
-
-msgid "Change contrast for &monochrome display"
-msgstr "&Muuta harmaavärinäytön kontrastia"
+msgid "Change contrast for monochrome display"
+msgstr "Muuta harmaavärinäytön kontrastia"
 
 msgid "&Media"
 msgstr "&Media"
@@ -432,8 +424,8 @@ msgstr "Näytönohjain:"
 msgid "Video #2:"
 msgstr "Toinen näytönohjain:"
 
-msgid "Accelerators"
-msgstr "Kiihdyttimet"
+msgid "Monitor"
+msgstr "Näyttö"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 tai 2-grafiikkasuoritin"
@@ -513,30 +505,6 @@ msgstr "Nuked (tarkempi)"
 msgid "YMFM (faster)"
 msgstr "YMFM (nopeampi)"
 
-msgid "COM1 Device:"
-msgstr "COM1-laite:"
-
-msgid "COM2 Device:"
-msgstr "COM2-laite:"
-
-msgid "COM3 Device:"
-msgstr "COM3-laite:"
-
-msgid "COM4 Device:"
-msgstr "COM4-laite:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1-laite:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2-laite:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3-laite:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4-laite:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "Sisäisen LPT:n ECP DMA:"
 
@@ -552,23 +520,20 @@ msgstr "Sarjaportti 3"
 msgid "Serial port 4"
 msgstr "Sarjaportti 4"
 
-msgid "Parallel port 1"
-msgstr "Rinnakkaisportti 1"
-
-msgid "Parallel port 2"
-msgstr "Rinnakkaisportti 2"
-
-msgid "Parallel port 3"
-msgstr "Rinnakkaisportti 3"
-
-msgid "Parallel port 4"
-msgstr "Rinnakkaisportti 4"
-
 msgid "Floppy disk controller:"
 msgstr "Levykeohjain:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE-ohjain"
@@ -2010,6 +1975,9 @@ msgstr "BIOS-versio"
 msgid "BIOS Language"
 msgstr "BIOS-kieli"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161-laajennusyksikkö"
 
@@ -2832,6 +2800,12 @@ msgstr "Siirrä alas"
 msgid "Could not load file %1"
 msgstr "Tiedostoa %1 ei voitu ladata"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "Pikanäppäimet"
 
@@ -3009,6 +2983,9 @@ msgstr "Konetta ei lisätä."
 msgid "&Update mouse every CPU frame"
 msgstr "&Päivitä hiiri jokaisen CPU framen yhteydessä"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Sävy"
 
@@ -3024,11 +3001,8 @@ msgstr "Kirkkaus"
 msgid "Sharpness"
 msgstr "Terävyys"
 
-msgid "&CGA composite settings…"
-msgstr "&CGA:n komposiittiasetukset…"
-
-msgid "CGA composite settings"
-msgstr "CGA:n komposiittiasetukset"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "Näytön EDID"
@@ -3057,9 +3031,6 @@ msgstr "Vaalea"
 msgid "Dark"
 msgstr "Tumma"
 
-msgid "Search:"
-msgstr "Hae:"
-
 msgid "Force interpretation"
 msgstr "Pakota tulkinta"
 
@@ -3083,3 +3054,6 @@ msgstr "Järjestelmähakemiston muuttamiseksi pysäytä kaikki käynnissä oleva
 
 msgid "Raw"
 msgstr "Raaka"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

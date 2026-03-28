@@ -144,53 +144,44 @@ msgstr "Éch&elle entière"
 msgid "4:&3 Integer scale"
 msgstr "Échelle entière 4:&3"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Réglages EGA/(S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Moniteur VGA inversé"
 
-msgid "&Inverted VGA monitor"
-msgstr "Moniteur VGA &inversé"
+msgid "VGA screen type:"
+msgstr "Type d'écran VGA :"
 
-msgid "VGA screen &type"
-msgstr "&Type d'écran VGA"
-
-msgid "RGB &Color"
-msgstr "&Couleurs RVB"
+msgid "RGB Color"
+msgstr "Couleurs RVB"
 
 msgid "RGB (no brown)"
 msgstr "RVB (sans brun)"
 
-msgid "&RGB Grayscale"
-msgstr "Niveau de gris &RVB"
+msgid "RGB Grayscale"
+msgstr "Niveau de gris RVB"
 
 msgid "Generic RGBI color monitor"
 msgstr "Moniteur couleur RVB générique"
 
-msgid "&Amber monitor"
-msgstr "Moniteur &ambre"
+msgid "Amber monitor"
+msgstr "Moniteur ambre"
 
-msgid "&Green monitor"
-msgstr "Moniteur &vert"
+msgid "Green monitor"
+msgstr "Moniteur vert"
 
-msgid "&White monitor"
-msgstr "Moniteur &blanc"
+msgid "White monitor"
+msgstr "Moniteur blanc"
 
-msgid "Grayscale &conversion type"
-msgstr "Type de &conversion du niveau de gris"
+msgid "Grayscale conversion type:"
+msgstr "Type de conversion du niveau de gris :"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Moyen"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Moyen"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Modifier le contraste de l'affichage &monochrome"
+msgid "Change contrast for monochrome display"
+msgstr "Modifier le contraste de l'affichage monochrome"
 
 msgid "&Media"
 msgstr "&Média"
@@ -432,8 +423,8 @@ msgstr "Vidéo :"
 msgid "Video #2:"
 msgstr "Vidéo 2 :"
 
-msgid "Accelerators"
-msgstr "Accélérateurs"
+msgid "Monitor"
+msgstr "Moniteur"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Graphique Voodoo 1 ou 2"
@@ -513,30 +504,6 @@ msgstr "Nuked (plus précis)"
 msgid "YMFM (faster)"
 msgstr "YMFM (plus rapide)"
 
-msgid "COM1 Device:"
-msgstr "Dispositif COM1 :"
-
-msgid "COM2 Device:"
-msgstr "Dispositif COM2 :"
-
-msgid "COM3 Device:"
-msgstr "Dispositif COM3 :"
-
-msgid "COM4 Device:"
-msgstr "Dispositif COM4 :"
-
-msgid "LPT1 Device:"
-msgstr "Dispositif LPT1 :"
-
-msgid "LPT2 Device:"
-msgstr "Dispositif LPT2 :"
-
-msgid "LPT3 Device:"
-msgstr "Dispositif LPT3 :"
-
-msgid "LPT4 Device:"
-msgstr "Dispositif LPT4 :"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA de l'ECP du LPT interne :"
 
@@ -552,23 +519,20 @@ msgstr "Port série 3"
 msgid "Serial port 4"
 msgstr "Port série 4"
 
-msgid "Parallel port 1"
-msgstr "Port parallèle 1"
-
-msgid "Parallel port 2"
-msgstr "Port parallèle 2"
-
-msgid "Parallel port 3"
-msgstr "Port parallèle 3"
-
-msgid "Parallel port 4"
-msgstr "Port parallèle 4"
-
 msgid "Floppy disk controller:"
 msgstr "Contrôleur de disquette :"
 
 msgid "CD-ROM controller:"
 msgstr "Contrôleur CD-ROM :"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "Contrôleur IDE"
@@ -2010,6 +1974,9 @@ msgstr "Version du BIOS"
 msgid "BIOS Language"
 msgstr "Langue du BIOS"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unité d'extension IBM 5161"
 
@@ -2832,6 +2799,12 @@ msgstr "Descendre"
 msgid "Could not load file %1"
 msgstr "Impossible de charger le fichier %1"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "Raccourcis clavier"
 
@@ -3009,6 +2982,9 @@ msgstr "Le système ne sera pas ajouté."
 msgid "&Update mouse every CPU frame"
 msgstr "&Mettre à jour le statut souris à chaque frame CPU"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Teinte"
 
@@ -3024,11 +3000,8 @@ msgstr "Luminosité"
 msgid "Sharpness"
 msgstr "Netteté"
 
-msgid "&CGA composite settings…"
-msgstr "Réglages du mode composite &CGA…"
-
-msgid "CGA composite settings"
-msgstr "Réglages du mode composite CGA"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "Écran EDID"
@@ -3057,9 +3030,6 @@ msgstr "Lumière"
 msgid "Dark"
 msgstr "Sombre"
 
-msgid "Search:"
-msgstr "Rechercher :"
-
 msgid "Force interpretation"
 msgstr "Forcer l'interprétation"
 
@@ -3083,3 +3053,6 @@ msgstr "Pour modifier le répertoire système, arrêtez toutes les machines en c
 
 msgid "Raw"
 msgstr "Brut"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

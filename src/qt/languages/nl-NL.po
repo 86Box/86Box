@@ -144,53 +144,44 @@ msgstr "&Integerschaal"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 integerschaal"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGA-instellingen"
+msgid "Inverted VGA monitor"
+msgstr "Geïnverteerde VGA-monitor"
 
-msgid "&Inverted VGA monitor"
-msgstr "Ge&ïnverteerde VGA-monitor"
+msgid "VGA screen type:"
+msgstr "VGA-scherm type:"
 
-msgid "VGA screen &type"
-msgstr "VGA-scherm &type"
-
-msgid "RGB &Color"
-msgstr "RGB &kleur"
+msgid "RGB Color"
+msgstr "RGB kleur"
 
 msgid "RGB (no brown)"
 msgstr "RGN (geen bruin)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB grijstinten"
+msgid "RGB Grayscale"
+msgstr "RGB grijstinten"
 
 msgid "Generic RGBI color monitor"
 msgstr "Generieke RGBI kleuren monitor"
 
-msgid "&Amber monitor"
-msgstr "&Amber monitor"
+msgid "Amber monitor"
+msgstr "Amber monitor"
 
-msgid "&Green monitor"
-msgstr "&Groene monitor"
+msgid "Green monitor"
+msgstr "Groene monitor"
 
-msgid "&White monitor"
-msgstr "&Witte monitor"
+msgid "White monitor"
+msgstr "Witte monitor"
 
-msgid "Grayscale &conversion type"
-msgstr "Grijstinten &conversietype"
+msgid "Grayscale conversion type:"
+msgstr "Grijstinten conversietype:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Gemiddelde"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Gemiddelde"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Contrast wijzigen voor &monochroom beeldscherm"
+msgid "Change contrast for monochrome display"
+msgstr "Contrast wijzigen voor monochroom beeldscherm"
 
 msgid "&Media"
 msgstr "&Media"
@@ -432,8 +423,8 @@ msgstr "Video:"
 msgid "Video #2:"
 msgstr "Video #2:"
 
-msgid "Accelerators"
-msgstr "Versnellers"
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 of 2 graphics"
@@ -513,30 +504,6 @@ msgstr "Nuked (nauwkeuriger)"
 msgid "YMFM (faster)"
 msgstr "YMFM (sneller)"
 
-msgid "COM1 Device:"
-msgstr "COM1-apparaat:"
-
-msgid "COM2 Device:"
-msgstr "COM2-apparaat:"
-
-msgid "COM3 Device:"
-msgstr "COM3-apparaat:"
-
-msgid "COM4 Device:"
-msgstr "COM4-apparaat:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1-apparaat:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2-apparaat:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3-apparaat:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4-apparaat:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "Interne LPT ECP DMA:"
 
@@ -552,23 +519,20 @@ msgstr "Seriële poort 3"
 msgid "Serial port 4"
 msgstr "Seriële poort 4"
 
-msgid "Parallel port 1"
-msgstr "Parallelle poort 1"
-
-msgid "Parallel port 2"
-msgstr "Parallelle poort 2"
-
-msgid "Parallel port 3"
-msgstr "Parallelle poort 3"
-
-msgid "Parallel port 4"
-msgstr "Parallelle poort 4"
-
 msgid "Floppy disk controller:"
 msgstr "Floppy disk controller:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM controller:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE-controller"
@@ -2010,6 +1974,9 @@ msgstr "BIOS-versie"
 msgid "BIOS Language"
 msgstr "BIOS-taal"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Uitbreidingseenheid"
 
@@ -2832,6 +2799,12 @@ msgstr "Omlaag verplaatsen"
 msgid "Could not load file %1"
 msgstr "Kon bestand %1 niet laden"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "Toetskoppelingen"
 
@@ -3009,6 +2982,9 @@ msgstr "Het systeem wordt niet toegevoegd."
 msgid "&Update mouse every CPU frame"
 msgstr "&Muis bijwerken bij elk CPU-frame"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Kleurtoon"
 
@@ -3024,11 +3000,8 @@ msgstr "Helderheid"
 msgid "Sharpness"
 msgstr "Scherpte"
 
-msgid "&CGA composite settings…"
-msgstr "Instellingen van de &CGA-compositemodus…"
-
-msgid "CGA composite settings"
-msgstr "Instellingen van de CGA-compositemodus"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "EDID-monitor"
@@ -3057,9 +3030,6 @@ msgstr "Licht"
 msgid "Dark"
 msgstr "Donker"
 
-msgid "Search:"
-msgstr "Zoeken:"
-
 msgid "Force interpretation"
 msgstr "Interpretatie afdwingen"
 
@@ -3083,3 +3053,6 @@ msgstr "Om de systeemmap te wijzigen, moet u alle actieve machines stoppen."
 
 msgid "Raw"
 msgstr "Ruw"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

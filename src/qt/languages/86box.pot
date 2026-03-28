@@ -138,52 +138,43 @@ msgstr ""
 msgid "4:&3 Integer scale"
 msgstr ""
 
-msgid "EGA/(S)&VGA settings"
+msgid "Inverted VGA monitor"
 msgstr ""
 
-msgid "&Inverted VGA monitor"
+msgid "VGA screen type:"
 msgstr ""
 
-msgid "VGA screen &type"
-msgstr ""
-
-msgid "RGB &Color"
+msgid "RGB Color"
 msgstr ""
 
 msgid "RGB (no brown)"
 msgstr ""
 
-msgid "&RGB Grayscale"
+msgid "RGB Grayscale"
 msgstr ""
 
 msgid "Generic RGBI color monitor"
 msgstr ""
 
-msgid "&Amber monitor"
+msgid "Amber monitor"
 msgstr ""
 
-msgid "&Green monitor"
+msgid "Green monitor"
 msgstr ""
 
-msgid "&White monitor"
+msgid "White monitor"
 msgstr ""
 
-msgid "Grayscale &conversion type"
+msgid "Grayscale conversion type:"
 msgstr ""
 
-msgid "BT&601 (NTSC/PAL)"
+msgid "Average"
 msgstr ""
 
-msgid "BT&709 (HDTV)"
+msgid "Overscan"
 msgstr ""
 
-msgid "&Average"
-msgstr ""
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr ""
-
-msgid "Change contrast for &monochrome display"
+msgid "Change contrast for monochrome display"
 msgstr ""
 
 msgid "&Media"
@@ -426,7 +417,7 @@ msgstr ""
 msgid "Video #2:"
 msgstr ""
 
-msgid "Accelerators"
+msgid "Monitor"
 msgstr ""
 
 msgid "Voodoo 1 or 2 Graphics"
@@ -507,30 +498,6 @@ msgstr ""
 msgid "YMFM (faster)"
 msgstr ""
 
-msgid "COM1 Device:"
-msgstr ""
-
-msgid "COM2 Device:"
-msgstr ""
-
-msgid "COM3 Device:"
-msgstr ""
-
-msgid "COM4 Device:"
-msgstr ""
-
-msgid "LPT1 Device:"
-msgstr ""
-
-msgid "LPT2 Device:"
-msgstr ""
-
-msgid "LPT3 Device:"
-msgstr ""
-
-msgid "LPT4 Device:"
-msgstr ""
-
 msgid "Internal LPT ECP DMA:"
 msgstr ""
 
@@ -546,22 +513,19 @@ msgstr ""
 msgid "Serial port 4"
 msgstr ""
 
-msgid "Parallel port 1"
-msgstr ""
-
-msgid "Parallel port 2"
-msgstr ""
-
-msgid "Parallel port 3"
-msgstr ""
-
-msgid "Parallel port 4"
-msgstr ""
-
 msgid "Floppy disk controller:"
 msgstr ""
 
 msgid "CD-ROM controller:"
+msgstr ""
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
 msgstr ""
 
 msgid "IDE Controller"
@@ -2004,6 +1968,9 @@ msgstr ""
 msgid "BIOS Language"
 msgstr ""
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr ""
 
@@ -2826,6 +2793,12 @@ msgstr ""
 msgid "Could not load file %1"
 msgstr ""
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr ""
 
@@ -3003,6 +2976,9 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr ""
 
@@ -3018,10 +2994,7 @@ msgstr ""
 msgid "Sharpness"
 msgstr ""
 
-msgid "&CGA composite settings…"
-msgstr ""
-
-msgid "CGA composite settings"
+msgid "Reset"
 msgstr ""
 
 msgid "Monitor EDID"
@@ -3051,9 +3024,6 @@ msgstr ""
 msgid "Dark"
 msgstr ""
 
-msgid "Search:"
-msgstr ""
-
 msgid "Force interpretation"
 msgstr ""
 
@@ -3076,4 +3046,7 @@ msgid "To change the system directory, stop all running machines."
 msgstr ""
 
 msgid "Raw"
+msgstr ""
+
+msgid "Use EDC/ECC emulation"
 msgstr ""

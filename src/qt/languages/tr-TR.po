@@ -144,53 +144,44 @@ msgstr "Tam &sayı ölçeklemesi"
 msgid "4:&3 Integer scale"
 msgstr "Tam sayı ölçeklemesi (4:&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/&(S)VGA ayarları"
+msgid "Inverted VGA monitor"
+msgstr "Ters renkli VGA monitör"
 
-msgid "&Inverted VGA monitor"
-msgstr "Ters &renkli VGA monitör"
+msgid "VGA screen type:"
+msgstr "VGA ekran tipi:"
 
-msgid "VGA screen &type"
-msgstr "VGA ekran &tipi"
-
-msgid "RGB &Color"
-msgstr "RGB (&Çok renkli)"
+msgid "RGB Color"
+msgstr "RGB (Çok renkli)"
 
 msgid "RGB (no brown)"
 msgstr "RGB (kahverengi yok)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB (&Gri tonlu)"
+msgid "RGB Grayscale"
+msgstr "RGB (Gri tonlu)"
 
 msgid "Generic RGBI color monitor"
 msgstr "Genel RGBI renkli monitör"
 
-msgid "&Amber monitor"
-msgstr "&Kehribar monitör"
+msgid "Amber monitor"
+msgstr "Kehribar monitör"
 
-msgid "&Green monitor"
-msgstr "&Yeşil monitör"
+msgid "Green monitor"
+msgstr "Yeşil monitör"
 
-msgid "&White monitor"
-msgstr "&Beyaz monitör"
+msgid "White monitor"
+msgstr "Beyaz monitör"
 
-msgid "Grayscale &conversion type"
-msgstr "&Gri tonlu dönüşüm türü"
+msgid "Grayscale conversion type:"
+msgstr "Gri tonlu dönüşüm türü:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Ortalama"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Aşırı taraması"
 
-msgid "&Average"
-msgstr "&Ortalama"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA aşırı taraması"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Gri to&nlu görüntü için kontrastı değiştir"
+msgid "Change contrast for monochrome display"
+msgstr "Gri tonlu görüntü için kontrastı değiştir"
 
 msgid "&Media"
 msgstr "&Ortam"
@@ -432,8 +423,8 @@ msgstr "Ekran kartı:"
 msgid "Video #2:"
 msgstr "İkincil ekran kartı:"
 
-msgid "Accelerators"
-msgstr "Hızlandırıcılar"
+msgid "Monitor"
+msgstr "Monitör"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 veya 2 Grafikleri"
@@ -513,30 +504,6 @@ msgstr "Nuked (daha hassas)"
 msgid "YMFM (faster)"
 msgstr "YMFM (daha hızlı)"
 
-msgid "COM1 Device:"
-msgstr "COM1 Cihazı:"
-
-msgid "COM2 Device:"
-msgstr "COM2 Cihazı:"
-
-msgid "COM3 Device:"
-msgstr "COM3 Cihazı:"
-
-msgid "COM4 Device:"
-msgstr "COM4 Cihazı:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1 Cihazı:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2 Cihazı:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3 Cihazı:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4 Cihazı:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "Dahili LPT ECP DMA'sı:"
 
@@ -552,23 +519,20 @@ msgstr "3. Seri bağlantı noktası"
 msgid "Serial port 4"
 msgstr "4. Seri bağlantı noktası"
 
-msgid "Parallel port 1"
-msgstr "1. Paralel bağlantı noktası"
-
-msgid "Parallel port 2"
-msgstr "2. Paralel bağlantı noktası"
-
-msgid "Parallel port 3"
-msgstr "3. Paralel bağlantı noktası"
-
-msgid "Parallel port 4"
-msgstr "4. Paralel bağlantı noktası"
-
 msgid "Floppy disk controller:"
 msgstr "Disket denetleyicisi:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM denetleyicisi:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE Denetleyicisi"
@@ -2029,6 +1993,9 @@ msgstr "BIOS Sürümü"
 msgid "BIOS Language"
 msgstr "BIOS Dili"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Genişletme Ünitesi"
 
@@ -2851,6 +2818,12 @@ msgstr "Aşağı taşı"
 msgid "Could not load file %1"
 msgstr "%1 dosyası yüklenemedi"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "Tuş atamaları"
 
@@ -3034,6 +3007,9 @@ msgstr "Sistem eklenmeyecek."
 msgid "&Update mouse every CPU frame"
 msgstr "Her CPU karesi ile fareyi güncelle"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Renk tonu"
 
@@ -3049,11 +3025,8 @@ msgstr "Parlaklık"
 msgid "Sharpness"
 msgstr "Keskinlik"
 
-msgid "&CGA composite settings…"
-msgstr "&CGA kompozit modunun ayarları…"
-
-msgid "CGA composite settings"
-msgstr "CGA kompozit modunun ayarları"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "Monitörün EDID'si"
@@ -3082,9 +3055,6 @@ msgstr "Işık"
 msgid "Dark"
 msgstr "Karanlık"
 
-msgid "Search:"
-msgstr "Ara:"
-
 msgid "Force interpretation"
 msgstr "Yorumlanmasını zorla"
 
@@ -3108,3 +3078,6 @@ msgstr "Sistem dizinini değiştirmek için tüm çalışan makineleri durdurun.
 
 msgid "Raw"
 msgstr "Ham"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

@@ -145,53 +145,44 @@ msgstr "整数比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数比例(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)VGA 设置(&V)"
+msgid "Inverted VGA monitor"
+msgstr "VGA 显示器反色显示"
 
-msgid "&Inverted VGA monitor"
-msgstr "VGA 显示器反色显示(&I)"
+msgid "VGA screen type:"
+msgstr "VGA 屏幕类型:"
 
-msgid "VGA screen &type"
-msgstr "VGA 屏幕类型(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB 彩色(&C)"
+msgid "RGB Color"
+msgstr "RGB 彩色"
 
 msgid "RGB (no brown)"
 msgstr "RGB (无棕色)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB 灰度(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB 灰度"
 
 msgid "Generic RGBI color monitor"
 msgstr "通用 RGBI 彩色显示器"
 
-msgid "&Amber monitor"
-msgstr "琥珀色单色显示器(&A)"
+msgid "Amber monitor"
+msgstr "琥珀色单色显示器"
 
-msgid "&Green monitor"
-msgstr "绿色单色显示器(&G)"
+msgid "Green monitor"
+msgstr "绿色单色显示器"
 
-msgid "&White monitor"
-msgstr "白色单色显示器(&W)"
+msgid "White monitor"
+msgstr "白色单色显示器"
 
-msgid "Grayscale &conversion type"
-msgstr "灰度转换类型(&C)"
+msgid "Grayscale conversion type:"
+msgstr "灰度转换类型:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "平均"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "过扫描"
 
-msgid "&Average"
-msgstr "平均(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGA 过扫描(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "更改单色显示对比度(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "更改单色显示对比度"
 
 msgid "&Media"
 msgstr "介质(&M)"
@@ -433,8 +424,8 @@ msgstr "显卡:"
 msgid "Video #2:"
 msgstr "显卡 2:"
 
-msgid "Accelerators"
-msgstr "图形加速器"
+msgid "Monitor"
+msgstr "显示器"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 图形"
@@ -514,30 +505,6 @@ msgstr "Nuked (更准确)"
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
-msgid "COM1 Device:"
-msgstr "COM1 设备:"
-
-msgid "COM2 Device:"
-msgstr "COM2 设备:"
-
-msgid "COM3 Device:"
-msgstr "COM3 设备:"
-
-msgid "COM4 Device:"
-msgstr "COM4 设备:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1 设备:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2 设备:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3 设备:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4 设备:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "内部 LPT 的 ECP DMA:"
 
@@ -553,23 +520,20 @@ msgstr "串口 3"
 msgid "Serial port 4"
 msgstr "串口 4"
 
-msgid "Parallel port 1"
-msgstr "并口 1"
-
-msgid "Parallel port 2"
-msgstr "并口 2"
-
-msgid "Parallel port 3"
-msgstr "并口 3"
-
-msgid "Parallel port 4"
-msgstr "并口 4"
-
 msgid "Floppy disk controller:"
 msgstr "软盘控制器:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE 控制器"
@@ -2011,6 +1975,9 @@ msgstr "BIOS 版本"
 msgid "BIOS Language"
 msgstr "BIOS 语言"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 扩展单元"
 
@@ -2833,6 +2800,12 @@ msgstr "下移"
 msgid "Could not load file %1"
 msgstr "无法加载文件 %1"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "按键绑定"
 
@@ -3010,6 +2983,9 @@ msgstr "系统将不会被添加。"
 msgid "&Update mouse every CPU frame"
 msgstr "逐 CPU 帧更新鼠标(&U)"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "色调"
 
@@ -3025,11 +3001,8 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "锐度"
 
-msgid "&CGA composite settings…"
-msgstr "CGA 复合模式设置(&C)…"
-
-msgid "CGA composite settings"
-msgstr "CGA 复合模式设置"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "显示器的EDID"
@@ -3058,9 +3031,6 @@ msgstr "亮色"
 msgid "Dark"
 msgstr "暗色"
 
-msgid "Search:"
-msgstr "搜索:"
-
 msgid "Force interpretation"
 msgstr "强制解释执行"
 
@@ -3084,3 +3054,6 @@ msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"
 
 msgid "Raw"
 msgstr "原始"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

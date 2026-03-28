@@ -145,53 +145,44 @@ msgstr "整数倍(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数倍(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGAの設定"
+msgid "Inverted VGA monitor"
+msgstr "色反転"
 
-msgid "&Inverted VGA monitor"
-msgstr "色反転(&I)"
+msgid "VGA screen type:"
+msgstr "画面タイプ:"
 
-msgid "VGA screen &type"
-msgstr "画面タイプ(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB(カラー)(&C)"
+msgid "RGB Color"
+msgstr "RGB(カラー)"
 
 msgid "RGB (no brown)"
 msgstr "RGB(茶色なし)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB(グレースケール)(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB(グレースケール)"
 
 msgid "Generic RGBI color monitor"
 msgstr "汎用RGBIカラーモニター"
 
-msgid "&Amber monitor"
-msgstr "モニター(黄色)(&A)"
+msgid "Amber monitor"
+msgstr "モニター(黄色)"
 
-msgid "&Green monitor"
-msgstr "モニター(緑色)(&G)"
+msgid "Green monitor"
+msgstr "モニター(緑色)"
 
-msgid "&White monitor"
-msgstr "モニター(白色)(&W)"
+msgid "White monitor"
+msgstr "モニター(白色)"
 
-msgid "Grayscale &conversion type"
-msgstr "グレースケール変換タイプ(&C)"
+msgid "Grayscale conversion type:"
+msgstr "グレースケール変換タイプ:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "平均"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "オーバースキャン"
 
-msgid "&Average"
-msgstr "平均(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGAオーバースキャン(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "単色モニター用コントラストを変更(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "単色モニター用コントラストを変更"
 
 msgid "&Media"
 msgstr "メディア(&M)"
@@ -433,8 +424,8 @@ msgstr "ビデオカード:"
 msgid "Video #2:"
 msgstr "ビデオカード2:"
 
-msgid "Accelerators"
-msgstr "加速器"
+msgid "Monitor"
+msgstr "モニター"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo1または2グラフィック"
@@ -514,30 +505,6 @@ msgstr "Nuked(高精度化)"
 msgid "YMFM (faster)"
 msgstr "YMFM(より速く)"
 
-msgid "COM1 Device:"
-msgstr "COM1デバイス:"
-
-msgid "COM2 Device:"
-msgstr "COM2デバイス:"
-
-msgid "COM3 Device:"
-msgstr "COM3デバイス:"
-
-msgid "COM4 Device:"
-msgstr "COM4デバイス:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1デバイス:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2デバイス:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3デバイス:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4デバイス:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "内部LPTのECPのDMA:"
 
@@ -553,23 +520,20 @@ msgstr "シリアルポート3"
 msgid "Serial port 4"
 msgstr "シリアルポート4"
 
-msgid "Parallel port 1"
-msgstr "パラレルポート1"
-
-msgid "Parallel port 2"
-msgstr "パラレルポート2"
-
-msgid "Parallel port 3"
-msgstr "パラレルポート3"
-
-msgid "Parallel port 4"
-msgstr "パラレルポート4"
-
 msgid "Floppy disk controller:"
 msgstr "FDDコントローラー:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDEコントローラ"
@@ -2011,6 +1975,9 @@ msgstr "BIOSバージョン"
 msgid "BIOS Language"
 msgstr "BIOS言語"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161拡張ユニット"
 
@@ -2833,6 +2800,12 @@ msgstr "下に移動する"
 msgid "Could not load file %1"
 msgstr "ファイル %1 をロードできませんでした"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "キーバインド"
 
@@ -3010,6 +2983,9 @@ msgstr "システムは追加されません。"
 msgid "&Update mouse every CPU frame"
 msgstr "マウスをCPUフレームごとに更新(&U)"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "色相"
 
@@ -3025,11 +3001,8 @@ msgstr "明るさ"
 msgid "Sharpness"
 msgstr "シャープネス"
 
-msgid "&CGA composite settings…"
-msgstr "CGA複合モードの設定(&C)…"
-
-msgid "CGA composite settings"
-msgstr "CGA複合モードの設定"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "モニターのEDID"
@@ -3058,9 +3031,6 @@ msgstr "光"
 msgid "Dark"
 msgstr "暗闇"
 
-msgid "Search:"
-msgstr "検索:"
-
 msgid "Force interpretation"
 msgstr "解釈を強制する"
 
@@ -3084,3 +3054,6 @@ msgstr "システムディレクトリを変更するには、稼働中のマシ
 
 msgid "Raw"
 msgstr "生"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

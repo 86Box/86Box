@@ -145,53 +145,44 @@ msgstr "Heltallsskala"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Heltallsskala"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGA-innstillinger"
+msgid "Inverted VGA monitor"
+msgstr "Invertert VGA-skjerm"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Invertert VGA-skjerm"
+msgid "VGA screen type:"
+msgstr "VGA-skjermtype:"
 
-msgid "VGA screen &type"
-msgstr "VGA-skjerm&type"
-
-msgid "RGB &Color"
-msgstr "RGB-&farger"
+msgid "RGB Color"
+msgstr "RGB-farger"
 
 msgid "RGB (no brown)"
 msgstr "RGB (uten brun)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB-gråskala"
+msgid "RGB Grayscale"
+msgstr "RGB-gråskala"
 
 msgid "Generic RGBI color monitor"
 msgstr "Generisk RGBI-fargeskjerm"
 
-msgid "&Amber monitor"
-msgstr "&Amber-skjerm"
+msgid "Amber monitor"
+msgstr "Amber-skjerm"
 
-msgid "&Green monitor"
-msgstr "&Grønn-skjerm"
+msgid "Green monitor"
+msgstr "Grønn-skjerm"
 
-msgid "&White monitor"
-msgstr "&Hvit-skjerm"
+msgid "White monitor"
+msgstr "Hvit-skjerm"
 
-msgid "Grayscale &conversion type"
-msgstr "Gråskala-&konverteringsmetode"
+msgid "Grayscale conversion type:"
+msgstr "Gråskala-konverteringsmetode:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Gjennomsnitt"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Gjennomsnitt"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-overscan"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Endre kontrast for &monokrom skjerm"
+msgid "Change contrast for monochrome display"
+msgstr "Endre kontrast for monokrom skjerm"
 
 msgid "&Media"
 msgstr "&Medie"
@@ -433,8 +424,8 @@ msgstr "Video:"
 msgid "Video #2:"
 msgstr "Video #2:"
 
-msgid "Accelerators"
-msgstr "Akseleratorer"
+msgid "Monitor"
+msgstr "Skjerm"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1- eller 2-grafikk"
@@ -514,30 +505,6 @@ msgstr "Nuked (mer nøyaktig)"
 msgid "YMFM (faster)"
 msgstr "YMFM (raskere)"
 
-msgid "COM1 Device:"
-msgstr "COM1-enhet:"
-
-msgid "COM2 Device:"
-msgstr "COM2-enhet:"
-
-msgid "COM3 Device:"
-msgstr "COM3-enhet:"
-
-msgid "COM4 Device:"
-msgstr "COM4-enhet:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1-enhet:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2-enhet:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3-enhet:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4-enhet:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "Intern LPT ECP DMA:"
 
@@ -553,23 +520,20 @@ msgstr "Seriell port 3"
 msgid "Serial port 4"
 msgstr "Seriell port 4"
 
-msgid "Parallel port 1"
-msgstr "Parallellport 1"
-
-msgid "Parallel port 2"
-msgstr "Parallellport 2"
-
-msgid "Parallel port 3"
-msgstr "Parallellport 3"
-
-msgid "Parallel port 4"
-msgstr "Parallellport 4"
-
 msgid "Floppy disk controller:"
 msgstr "Diskettkontroller:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM-kontroller:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE-kontroller"
@@ -2011,6 +1975,9 @@ msgstr "BIOS-versjon"
 msgid "BIOS Language"
 msgstr "BIOS-språk"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161-utvidelsesenhet"
 
@@ -2833,6 +2800,12 @@ msgstr "Flytt ned"
 msgid "Could not load file %1"
 msgstr "Kunne ikke laste fil %1"
 
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
 msgid "Key bindings"
 msgstr "Tastebindinger"
 
@@ -3010,6 +2983,9 @@ msgstr "Systemet vil ikke bli lagt til."
 msgid "&Update mouse every CPU frame"
 msgstr "&Oppdater musen for hver CPU-ramme"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Fargetone"
 
@@ -3025,11 +3001,8 @@ msgstr "Lysstyrke"
 msgid "Sharpness"
 msgstr "Skarphet"
 
-msgid "&CGA composite settings…"
-msgstr "&CGA-komposittinnstillinger…"
-
-msgid "CGA composite settings"
-msgstr "CGA-komposittinnstillinger"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "EDID for skjerm"
@@ -3058,9 +3031,6 @@ msgstr "Lys"
 msgid "Dark"
 msgstr "Mørk"
 
-msgid "Search:"
-msgstr "Søk:"
-
 msgid "Force interpretation"
 msgstr "Tving tolkning"
 
@@ -3084,3 +3054,6 @@ msgstr "For å endre systemkatalogen, stopp alle maskiner som er kjører."
 
 msgid "Raw"
 msgstr "Rå"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

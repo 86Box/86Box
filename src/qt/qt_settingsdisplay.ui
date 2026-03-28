@@ -388,7 +388,7 @@
           <item row="5" column="0" colspan="3">
            <widget class="QCheckBox" name="checkBoxContrast">
             <property name="text">
-             <string>Change contrast for &amp;monochrome display</string>
+             <string>Change contrast for monochrome display</string>
             </property>
            </widget>
           </item>
