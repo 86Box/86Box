@@ -91,7 +91,6 @@ video_cards[] = {
     { .device = &iskra_ega_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &jega_device,                                   .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &nga_device,                                    .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &nec_sv9000_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &ogc_device,                                    .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &oti037c_device,                                .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &oti067_device,                                 .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -104,9 +103,7 @@ video_cards[] = {
     { .device = &realtek_rtg3105_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &realtek_rtg3106_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &sigma_device,                                  .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &tvga8900b_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &tvga8900d_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &tvga8900dr_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &tvga8900_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &tvga9000b_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et2000_device,                                 .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et3000_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -324,6 +321,13 @@ video_cards_migrate[] = {
     /* S3 ViRGE/GX2 AGP */
     { .device = &s3_virge_gx2_agp_device,                       .old_internal_name = "stealth3d_4000_agp"             },
     { .device = &s3_virge_gx2_agp_device,                       .old_internal_name = "virge357_agp"                   },
+    /* Trident TVGA 8900 */
+    { .device = &tvga8900_device,                               .old_internal_name = "tvga8900b"                      },
+    { .device = &tvga8900_device,                               .old_internal_name = "tvga8900d"                      },
+    { .device = &tvga8900_device,                               .old_internal_name = "tvga8900dr"                     },
+    /* Trident TVGA 9000B */
+    { .device = &tvga9000b_device,                              .old_internal_name = "tvga9000b"                      },
+    { .device = &tvga9000b_device,                              .old_internal_name = "nec_sv9000"                     },
     /* Tseng ET4000/w32p VLB */
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_videomagic_revb_vlb" },
     { .device = &et4000w32p_vlb_device,                         .old_internal_name = "et4000w32p_revc_vlb"            },
