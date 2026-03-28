@@ -15,6 +15,7 @@
  *          Copyright 2025 Jasmine Iwanek
  */
 #include <cstdint>
+#include <cstdio>
 
 extern "C" {
 #include <86box/86box.h>
