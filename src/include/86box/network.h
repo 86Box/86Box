@@ -253,7 +253,6 @@ extern const device_t rtl8139c_plus_device;
 /* DEC Tulip */
 extern const device_t dec_tulip_device;
 extern const device_t dec_tulip_21140_device;
-extern const device_t dec_tulip_21140_vpc_device;
 extern const device_t dec_tulip_21040_device;
 
 /* WD 80x3 */

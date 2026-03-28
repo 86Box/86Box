@@ -133,6 +133,10 @@ SettingsCompleter::addDevice(const void *device, QString name)
 
     const device_t *dev = (const device_t *) device;
     if (dev != nullptr) {
+        const char *alias = device_get_alias(dev);
+        if (strlen(alias) > 0)
+            addRow(name, alias, dev->flags & DEVICE_BIOS_ALIAS, -1);
+
         const device_config_t *config = dev->config;
         while (config && (config->type != CONFIG_END)) {
             if (config->type == CONFIG_BIOS) {

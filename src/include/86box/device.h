@@ -178,6 +178,7 @@ typedef struct _device_ {
     void (*speed_changed)(void *priv);
     void (*force_redraw)(void *priv);
 
+    const char *alias;
     const device_config_t *config;
 } device_t;
 
@@ -245,6 +246,7 @@ extern int         device_get_instance(void);
 #define device_get_config_bios device_get_config_string
 
 extern const char *device_get_internal_name(const device_t *dev);
+extern const char *device_get_alias(const device_t *dev);
 
 extern int         machine_get_config_int(char *str);
 extern const char *machine_get_config_string(char *str);

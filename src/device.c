@@ -196,6 +196,9 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Tseng Labs ET4000/w32i Rev. B VLB (Hercules Dynamite Pro)", .new = "Tseng Labs ET4000/w32i VLB" },
         { .old = "S3 ViRGE/GX (385) PCI", .new = "S3 ViRGE/GX PCI" },
         { .old = "S3 ViRGE/GX2 (357) PCI", .new = "S3 ViRGE/GX2 PCI" },
+        { .old = "DEC DE-500A Fast Ethernet (DECchip 21143 \"Tulip\")", .new = "DECchip 21143 \"Tulip\"" },
+        { .old = "DEC DE-435 EtherWorks Turbo (DECchip 21040 \"Tulip\")", .new = "DECchip 21040 \"Tulip\"" },
+        { .old = "SMC EtherPower II 9432 (SMC 83C170 \"EPIC/100\")", .new = "SMC 83C170 \"EPIC/100\"" },
         { 0 }
     };
 
@@ -366,6 +369,15 @@ device_get_internal_name(const device_t *dev)
         return "";
 
     return dev->internal_name;
+}
+
+const char *
+device_get_alias(const device_t *dev)
+{
+    if (dev == NULL)
+        return "";
+
+    return dev->alias;
 }
 
 void *

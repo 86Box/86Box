@@ -118,13 +118,12 @@ static const NETWORK_CARD net_cards[] = {
     /* PCI */
     { &pcnet_am79c973_device      },
     { &pcnet_am79c970a_device     },
-    { &dec_tulip_21140_device     },
     { &dec_tulip_21040_device     },
+    { &dec_tulip_21140_device     },
     { &dec_tulip_device           },
-    { &dec_tulip_21140_vpc_device },
-    { &smc_epic100_device         },
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
+    { &smc_epic100_device         },
     { NULL                        }
     // clang-format on
 };
@@ -132,6 +131,9 @@ static const NETWORK_CARD net_cards[] = {
 static const net_card_migrate_t
 net_cards_migrate[] = {
   // clang-format off
+    /* DECchip 21140 "Tulip FasterNet" */
+    { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip"                },
+    { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip_vpc"            },
     /* End of table */
     { .device = NULL,                                           .old_internal_name = ""                               }
   // clang-format on

@@ -2719,7 +2719,7 @@ const device_t ncr53c815_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config
 };
 
 const device_t ncr53c820_pci_device = {
