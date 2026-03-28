@@ -108,8 +108,9 @@
 #include <86box/machine.h>
 #include "cpu.h"
 
-#define MFM_TIME         (10 * TIMER_USEC)
-#define MFM_SECTOR_TIME  (500 * TIMER_USEC)
+#define MFM_TIME          (10 * TIMER_USEC)
+#define MFM_SECTOR_TIME   (500 * TIMER_USEC)
+#define MFM_TYPE_USER 255 /* user drive type */
 
 enum {
     STATE_IDLE = 0,
@@ -265,6 +266,7 @@ typedef struct ssb_t {
     uint8_t cmd_syndrome; /* command syndrome */
 
     uint8_t rsvd1; /* reserved byte */
+
     uint8_t rsvd2; /* reserved byte */
 } ssb_t;
 #pragma pack(pop)
@@ -328,22 +330,18 @@ typedef struct fcb_t {
  * The system specifies the operation by sending the 6-byte
  * command control block to the controller. It can be sent
  * through a DMA or PIO operation.
- *
- * NOTE: Based on Adaptec ACB-2600 OEM Manual, the real IBM
- * ST506 MFM Adapter should support 2048 cylinders maximum,
- * so cylinder masks should be 11 bits instead of 10.
  */
 #pragma pack(push, 1)
-typedef struct ccb_t{
+typedef struct ccb_t {
     uint8_t ec_p      : 1; /* EC/P (ecc/park) */
     uint8_t mbz1      : 1; /* 0               */
     uint8_t auto_seek : 1; /* AS (auto-seek)  */
     uint8_t no_data   : 1; /* ND (no data)    */
     uint8_t cmd       : 4; /* command code[4] */
 
-    uint8_t cyl_high : 3; /* cylinder [10:8] bits */
-    uint8_t mbz2     : 1; /* 00                   */
-    uint8_t head     : 4; /* head number          */
+    uint8_t cyl_high : 2; /* cylinder [9:8] bits */
+    uint8_t mbz2     : 2; /* 00                  */
+    uint8_t head     : 4; /* head number         */
 
     uint8_t cyl_low; /* cylinder [7:0] bits */
 
@@ -369,7 +367,7 @@ typedef struct ccb_t{
  * for PS/1 Computer (P/N 57F1970), Section 8. Drives.
  */
 #pragma pack(push, 1)
-typedef struct csb_t{
+typedef struct csb_t {
     uint8_t ecc     : 1; /* En (ECC enable) */
     uint8_t mbz1    : 3; /* 0               */
     uint8_t retries : 4; /* retries         */
@@ -458,6 +456,54 @@ typedef struct mfm_t {
     uint8_t pos_regs[8]; /* POS registers */
 } mfm_t;
 
+/*
+ * IBM hard drive types 1-33.
+ *
+ * We need these to translate the selected disk's
+ * geometry back to a valid type in the log file.
+ *
+ *     Cyl.   Head    Sect.       Write   Land
+ *                                p-comp  Zone
+ */
+static const geom_t ibm_type_table[] = {
+  // clang-format off
+    {    0,     0,       0,          0,      0    },    /*  0    (none)   */
+    {  306,     4,      17,        128,    305    },    /*  1    10 MB    */
+    {  615,     4,      17,        300,    615    },    /*  2    20 MB    */
+    {  615,     6,      17,        300,    615    },    /*  3    31 MB    */
+    {  940,     8,      17,        512,    940    },    /*  4    62 MB    */
+    {  940,     6,      17,        512,    940    },    /*  5    47 MB    */
+    {  615,     4,      17,         -1,    615    },    /*  6    20 MB    */
+    {  462,     8,      17,        256,    511    },    /*  7    31 MB    */
+    {  733,     5,      17,         -1,    733    },    /*  8    30 MB    */
+    {  900,    15,      17,         -1,    901    },    /*  9    112 MB   */
+    {  820,     3,      17,         -1,    820    },    /* 10    20 MB    */
+    {  855,     5,      17,         -1,    855    },    /* 11    35 MB    */
+    {  855,     7,      17,         -1,    855    },    /* 12    50 MB    */
+    {  306,     8,      17,        128,    319    },    /* 13    20 MB    */
+    {  733,     7,      17,         -1,    733    },    /* 14    43 MB    */
+    {    0,     0,       0,          0,      0    },    /* 15    (rsvd)   */
+    {  612,     4,      17,          0,    663    },    /* 16    20 MB    */
+    {  977,     5,      17,        300,    977    },    /* 17    41 MB    */
+    {  977,     7,      17,         -1,    977    },    /* 18    57 MB    */
+    { 1024,     7,      17,        512,   1023    },    /* 19    59 MB    */
+    {  733,     5,      17,        300,    732    },    /* 20    30 MB    */
+    {  733,     7,      17,        300,    732    },    /* 21    43 MB    */
+    {  733,     5,      17,        300,    733    },    /* 22    30 MB    */
+    {  306,     4,      17,          0,    336    },    /* 23    10 MB    */
+    {  612,     4,      17,        305,    663    },    /* 24    20 MB    */
+    {  306,     4,      17,         -1,    340    },    /* 25    10 MB    */
+    {  612,     4,      17,         -1,    670    },    /* 26    20 MB    */
+    {  698,     7,      17,        300,    732    },    /* 27    41 MB    */
+    {  976,     5,      17,        488,    977    },    /* 28    40 MB    */
+    {  306,     4,      17,          0,    340    },    /* 29    10 MB    */
+    {  611,     4,      17,        306,    663    },    /* 30    20 MB    */
+    {  732,     7,      17,        300,    732    },    /* 31    43 MB    */
+    { 1023,     5,      17,         -1,   1023    },    /* 32    42 MB    */
+    {  614,     4,      25,         -1,    663    }     /* 33    30 MB    */
+  // clang-format on
+};
+
 #ifdef ENABLE_ST506_MCA_LOG
 int st506_mca_do_log = ENABLE_ST506_MCA_LOG;
 
@@ -475,6 +521,21 @@ st506_mca_log(const char *fmt, ...)
 #else
 #    define st506_mca_log(fmt, ...)
 #endif
+
+/* FIXME: we should use the disk/hdd_table.c code with custom tables! */
+static int
+ibm_drive_type(drive_t *drive)
+{
+    const geom_t *ptr;
+
+    for (uint16_t i = 0; i < (sizeof(ibm_type_table) / sizeof(geom_t)); i++) {
+        ptr = &ibm_type_table[i];
+        if ((drive->tracks == ptr->cyl) && (drive->hpc == ptr->hpc) && (drive->spt == ptr->spt))
+            return i;
+    }
+
+    return MFM_TYPE_USER;
+}
 
 static void
 set_intr(mfm_t *dev, int raise)
@@ -694,7 +755,7 @@ do_fmt:
 
 /* Execute the CCB we just received. */
 static void
-hdc_callback(void *priv)
+st506_callback(void *priv)
 {
     mfm_t   *dev = (mfm_t *) priv;
     ccb_t   *ccb = &dev->ccb;
@@ -743,7 +804,7 @@ hdc_callback(void *priv)
         return;
     }
 
-    st506_mca_log("hdc_callback(): %02X\n", cmd);
+    st506_mca_log("st506_callback(%d): %02X\n", dev->drive, cmd);
 
     switch (ccb->cmd) {
         case CMD_READ_VERIFY:
@@ -1110,7 +1171,7 @@ do_recv:
 
 /* Prepare to send the SSB block. */
 static void
-hdc_send_ssb(mfm_t *dev)
+st506_send_ssb(mfm_t *dev)
 {
     if (!dev->ssb.valid) {
         /* Create a valid SSB. */
@@ -1268,11 +1329,6 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
             else
                 dev->ready = 0;
 
-            if (val & ATT_CHAN)
-                dev->drive = 1;
-            else
-                dev->drive = 0;
-
             if (val & ATT_SSB) {
                 if (dev->attn & ATT_CCB) {
                     /* Hey now, we're still busy for you! */
@@ -1285,27 +1341,10 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
                 dev->attn |= ATT_SSB;
 
                 /* Grab or initialize an SSB to send. */
-                hdc_send_ssb(dev);
+                st506_send_ssb(dev);
 
                 dev->state = STATE_SDATA;
                 dev->status |= (ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
-            }
-
-            if (val & ATT_CCB) {
-                if (dev->attn & ATT_CCB)
-                    /* Hey now, we're still busy for you! */
-                    break;
-
-                /* OK, prepare for receiving a CCB. */
-                dev->attn |= ATT_CCB;
-
-                /* Set up the transfer buffer for a CCB. */
-                dev->buf_idx = 0;
-                dev->buf_len = sizeof(dev->ccb);
-                dev->buf_ptr = (uint8_t *) &dev->ccb;
-
-                dev->state = STATE_RDATA;
-                dev->status |= (ASR_TX_EN | ASR_DATA_REQ);
             }
 
             if (val & ATT_CSB) {
@@ -1323,6 +1362,29 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
                 dev->buf_idx = 0;
                 dev->buf_len = sizeof(dev->csb);
                 dev->buf_ptr = (uint8_t *) &dev->csb;
+
+                dev->state = STATE_RDATA;
+                dev->status |= (ASR_TX_EN | ASR_DATA_REQ);
+            }
+
+            if (val & ATT_CCB) {
+                if (dev->attn & ATT_CCB)
+                    /* Hey now, we're still busy for you! */
+                    break;
+
+                /* OK, prepare for receiving a CCB. */
+                dev->attn |= ATT_CCB;
+
+                /* Select fixed disk channel. */
+                if (val & ATT_CHAN)
+                    dev->drive = 1;
+                else
+                    dev->drive = 0;
+
+                /* Set up the transfer buffer for a CCB. */
+                dev->buf_idx = 0;
+                dev->buf_len = sizeof(dev->ccb);
+                dev->buf_ptr = (uint8_t *) &dev->ccb;
 
                 dev->state = STATE_RDATA;
                 dev->status |= (ASR_TX_EN | ASR_DATA_REQ);
@@ -1545,6 +1607,7 @@ mfm_init(UNUSED(const device_t *info))
             drive->hpc    = drive->cfg_hpc;
             drive->tracks = drive->cfg_tracks;
 
+            drive->type    = ibm_drive_type(drive);
             drive->hdd_num = i;
             drive->present = 1;
 
@@ -1552,8 +1615,9 @@ mfm_init(UNUSED(const device_t *info))
             memset(&dev->ssb, 0x00, sizeof(dev->ssb));
             dev->ssb.sect_size = 0x02; /* 512 bytes */
 
-            st506_mca_log("ST506: drive%d: cyl=%d,hd=%d,spt=%d, disk %d\n",
-                           hdd[i].mfm_channel, drive->tracks, drive->hpc, drive->spt, i);
+            st506_mca_log("ST506: drive%d (type %d: cyl=%d,hd=%d,spt=%d), disk %d\n",
+                          hdd[i].mfm_channel, drive->type,
+                          drive->tracks, drive->hpc, drive->spt, i);
             
             if (++c > 1)
                 break;
@@ -1575,7 +1639,7 @@ mfm_init(UNUSED(const device_t *info))
         mca_add(mfm_mca_read, mfm_mca_write, mfm_mca_feedb, NULL, dev);
 
     /* Create a timer for command delays. */
-    timer_add(&dev->timer, hdc_callback, dev, 0);
+    timer_add(&dev->timer, st506_callback, dev, 0);
 
     return dev;
 }
