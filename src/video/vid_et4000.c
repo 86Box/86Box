@@ -956,7 +956,7 @@ et4000_available(void)
 static const device_config_t et4000_bios_config[] = {
   // clang-format off
     {
-        .name           = "bios_ver",
+        .name           = "bios",
         .description    = "BIOS Revision",
         .type           = CONFIG_BIOS,
         .default_string = "v8_01",
