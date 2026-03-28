@@ -545,9 +545,45 @@ load_video(void)
             free_p = 1;
         }
         const device_t *gfx_dev = video_get_video_from_old_internal_name(p);
-        if (gfx_dev == NULL)
-            gfxcard[0] = video_get_video_from_internal_name(p);
-        else {
+        if (gfx_dev == NULL) {
+            if (!strcmp(p, "et4000ax_tc6058af")) {
+                gfxcard[0] = video_get_video_from_internal_name("et4000ax");
+                ini_section_t old  = ini_find_section(config, "Tseng Labs ET4000AX (TC6058AF) (ISA)");
+                ini_section_t new  = ini_find_section(config, "Tseng Labs ET4000AX (ISA)");
+                char *        bios = ini_section_get_string(old, "bios_ver", "v1_10");
+                int           mem  = ini_section_get_int(old, "memory", 512);
+                if (new == NULL)
+                    new = ini_find_or_create_section(config, "Tseng Labs ET4000AX (ISA)");
+                ini_section_set_string(new, "bios_ver", bios);
+                ini_section_set_int(new, "memory", mem);
+                if (old != NULL) {
+                    ini_section_delete_var(old, "bios_ver");
+                    ini_section_delete_var(old, "memory");
+                    ini_delete_section_if_empty(config, "Tseng Labs ET4000AX (TC6058AF) (ISA)");
+                }
+            } else if (!strcmp(p, "tgkorvga") || !strcmp(p, "et4000k_tg286_isa") || !strcmp(p, "kasan16vga")) {
+                gfxcard[0] = video_get_video_from_internal_name("et4000ax");
+                char *        on   = NULL;
+                if (!strcmp(p, "tgkorvga"))
+                    on = "TriGem Korean VGA (Tseng Labs ET4000AX Korean)";
+                else if (!strcmp(p, "et4000k_tg286_isa"))
+                    on = "TriGem Korean VGA (TriGem 286M)";
+                else
+                    on = "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)";
+                ini_section_t old  = ini_find_section(config, on);
+                ini_section_t new  = ini_find_section(config, "Tseng Labs ET4000AX (ISA)");
+                int           mem  = ini_section_get_int(old, "memory", 512);
+                if (new == NULL)
+                    new = ini_find_or_create_section(config, "Tseng Labs ET4000AX (ISA)");
+                ini_section_set_string(new, "bios_ver", p);
+                ini_section_set_int(new, "memory", mem);
+                if (old != NULL) {
+                    ini_section_delete_var(old, "memory");
+                    ini_delete_section_if_empty(config, on);
+                }
+            } else
+                gfxcard[0] = video_get_video_from_internal_name(p);
+        } else {
             device_video_config_migrate(gfx_dev, p, 0);
             gfxcard[0] = video_get_video_from_internal_name((char *) gfx_dev->internal_name);
         }

@@ -801,6 +801,9 @@ et4000_init(const device_t *info)
     dev->type = info->local;
     fn        = BIOS_ROM_PATH;
 
+    if (dev->type == 0x00000000)
+        dev->type = device_get_bios_local(info, device_get_config_bios("bios"));
+
     switch (dev->type) {
         case ET4000_TYPE_TC6058AF: /* ISA ET4000AX (TC6058AF) */
         case ET4000_TYPE_ISA: /* ISA ET4000AX */
@@ -950,71 +953,6 @@ et4000_available(void)
     return rom_present(BIOS_ROM_PATH);
 }
 
-static int
-et4000k_available(void)
-{
-    return rom_present(KOREAN_BIOS_ROM_PATH) && rom_present(KOREAN_FONT_ROM_PATH);
-}
-
-static int
-et4000_kasan_available(void)
-{
-    return rom_present(KASAN_BIOS_ROM_PATH) && rom_present(KASAN_FONT_ROM_PATH);
-}
-
-static const device_config_t et4000_tc6058af_config[] = {
-  // clang-format off
-    {
-        .name           = "bios_ver",
-        .description    = "BIOS Revision",
-        .type           = CONFIG_BIOS,
-        .default_string = "v1_10",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = {
-            {
-                .name          = "Version 1.10",
-                .internal_name = "v1_10",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { TC6058AF_BIOS_ROM_PATH, "" }
-            },
-            {
-                .name          = "Version 1.21",
-                .internal_name = "v1_21",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { V1_21_BIOS_ROM_PATH, "" }
-            },
-            { .files_no = 0 }
-        }
-    },
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 512,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "256 KB", .value =  256 },
-            { .description = "512 KB", .value =  512 },
-            { .description = "1 MB",   .value = 1024 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
-};
-
 static const device_config_t et4000_bios_config[] = {
   // clang-format off
     {
@@ -1028,11 +966,56 @@ static const device_config_t et4000_bios_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "Version 1.10 (TC6058AF)",
+                .internal_name = "v1_10",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ET4000_TYPE_TC6058AF,
+                .size          = 32768,
+                .files         = { TC6058AF_BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "Version 1.21 (TC6058AF)",
+                .internal_name = "v1_21",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ET4000_TYPE_TC6058AF,
+                .size          = 32768,
+                .files         = { V1_21_BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "Korean (Kasan Hangulmadang-16 VGA)",
+                .internal_name = "kasan16vga",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ET4000_TYPE_KASAN,
+                .size          = 32768,
+                .files         = { KASAN_BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "Korean (TriGem)",
+                .internal_name = "tgkorvga",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ET4000_TYPE_KOREAN,
+                .size          = 32768,
+                .files         = { KOREAN_BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "Korean (TriGem 286M)",
+                .internal_name = "et4000k_tg286_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ET4000_TYPE_TRIGEM,
+                .size          = 32768,
+                .files         = { KOREAN_BIOS_ROM_PATH, "" }
+            },
+            {
                 .name          = "Version 8.01",
                 .internal_name = "v8_01",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = ET4000_TYPE_ISA,
                 .size          = 32768,
                 .files         = { BIOS_ROM_PATH, "" }
             },
@@ -1041,7 +1024,7 @@ static const device_config_t et4000_bios_config[] = {
                 .internal_name = "v8_06",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = ET4000_TYPE_ISA,
                 .size          = 32768,
                 .files         = { V8_06_BIOS_ROM_PATH, "" }
             },
@@ -1090,25 +1073,11 @@ static const device_config_t et4000_config[] = {
   // clang-format on
 };
 
-const device_t et4000_tc6058af_isa_device = {
-    .name          = "Tseng Labs ET4000AX (TC6058AF) (ISA)",
-    .internal_name = "et4000ax_tc6058af",
-    .flags         = DEVICE_ISA,
-    .local         = ET4000_TYPE_TC6058AF,
-    .init          = et4000_init,
-    .close         = et4000_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = et4000_speed_changed,
-    .force_redraw  = et4000_force_redraw,
-    .config        = et4000_tc6058af_config
-};
-
 const device_t et4000_isa_device = {
     .name          = "Tseng Labs ET4000AX (ISA)",
     .internal_name = "et4000ax",
     .flags         = DEVICE_ISA,
-    .local         = ET4000_TYPE_ISA,
+    .local         = 0,
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,
@@ -1127,48 +1096,6 @@ const device_t et4000_mca_device = {
     .close         = et4000_close,
     .reset         = NULL,
     .available     = et4000_available,
-    .speed_changed = et4000_speed_changed,
-    .force_redraw  = et4000_force_redraw,
-    .config        = et4000_config
-};
-
-const device_t et4000k_isa_device = {
-    .name          = "TriGem Korean VGA (Tseng Labs ET4000AX Korean)",
-    .internal_name = "tgkorvga",
-    .flags         = DEVICE_ISA,
-    .local         = ET4000_TYPE_KOREAN,
-    .init          = et4000_init,
-    .close         = et4000_close,
-    .reset         = NULL,
-    .available     = et4000k_available,
-    .speed_changed = et4000_speed_changed,
-    .force_redraw  = et4000_force_redraw,
-    .config        = et4000_config
-};
-
-const device_t et4000k_tg286_isa_device = {
-    .name          = "TriGem Korean VGA (TriGem 286M)",
-    .internal_name = "et4000k_tg286_isa",
-    .flags         = DEVICE_ISA,
-    .local         = ET4000_TYPE_TRIGEM,
-    .init          = et4000_init,
-    .close         = et4000_close,
-    .reset         = NULL,
-    .available     = et4000k_available,
-    .speed_changed = et4000_speed_changed,
-    .force_redraw  = et4000_force_redraw,
-    .config        = et4000_config
-};
-
-const device_t et4000_kasan_isa_device = {
-    .name          = "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)",
-    .internal_name = "kasan16vga",
-    .flags         = DEVICE_ISA,
-    .local         = ET4000_TYPE_KASAN,
-    .init          = et4000_init,
-    .close         = et4000_close,
-    .reset         = NULL,
-    .available     = et4000_kasan_available,
     .speed_changed = et4000_speed_changed,
     .force_redraw  = et4000_force_redraw,
     .config        = et4000_config

@@ -100,7 +100,9 @@ device_video_config_migrate(const device_t *dev, const char *old_internal_name, 
     char        bios_name[2048] = { 0 };
     char        old_name2[2048] = { 0 };
 
-    if (!strcmp(bios_name, "Generic") && (strstr(dev->name, "ViRGE") || strstr(dev->name, "Trio3D"))) {
+    if (strstr(dev->name, "DEC") || strstr(dev->name, "SMC"))
+        snprintf(old_name,  2047, "%s (%s)", bios, dev->name);
+    else if (!strcmp(bios_name, "Generic") && (strstr(dev->name, "ViRGE") || strstr(dev->name, "Trio3D"))) {
         uint32_t chip_id = ((uint32_t) device_get_bios_local(dev, old_internal_name)) >> 16;
         strcpy(old_name, dev->name);
         sprintf(old_name + strlen(dev->name) - 3, "(%3i)", chip_id);
