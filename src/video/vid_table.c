@@ -62,8 +62,7 @@ video_cards[] = {
 #ifdef USE_XL24
     { .device = &ati28800_wonderxl24_device,                    .flags = VIDEO_FLAG_TYPE_NONE      },
 #endif /* USE_XL24 */
-    { .device = &ati28800_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &compaq_ati28800_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &ati28800_5_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &ati28800_wonder1024d_xl_plus_device,           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &atiega800p_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mach8_vga_isa_device,                          .flags = VIDEO_FLAG_TYPE_8514      },
@@ -218,6 +217,9 @@ video_cards[] = {
 static const video_card_migrate_t
 video_cards_migrate[] = {
   // clang-format off
+    /* ATi 28800-5 */
+    { .device = &ati28800_5_device,                             .old_internal_name = "ati28800"                       },
+    { .device = &ati28800_5_device,                             .old_internal_name = "compaq_ati28800"                },
     /* CL-GD 5422 ISA */
     { .device = &gd5422_isa_device,                             .old_internal_name = "cl_gd5422_boca_isa"             },
     { .device = &gd5422_isa_device,                             .old_internal_name = "cl_gd5422_isa"                  },
