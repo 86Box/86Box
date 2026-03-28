@@ -78,6 +78,11 @@ typedef struct {
     const device_t *device;
 } NETWORK_CARD;
 
+typedef struct net_card_migrate_t {
+    const device_t *device;
+    const char     *old_internal_name;
+} net_card_migrate_t;
+
 static const NETWORK_CARD net_cards[] = {
     // clang-format off
     { &device_none                },
@@ -122,6 +127,14 @@ static const NETWORK_CARD net_cards[] = {
     { &rtl8139c_plus_device       },
     { NULL                        }
     // clang-format on
+};
+
+static const net_card_migrate_t
+net_cards_migrate[] = {
+  // clang-format off
+    /* End of table */
+    { .device = NULL,                                           .old_internal_name = ""                               }
+  // clang-format on
 };
 
 netcard_conf_t net_cards_conf[NET_CARD_MAX];
@@ -819,4 +832,18 @@ network_card_get_from_internal_name(char *s)
     }
 
     return 0;
+}
+
+const device_t *
+network_card_get_from_old_internal_name(char *s)
+{
+    int c = 0;
+
+    while (net_cards_migrate[c].device != NULL) {
+        if (!strcmp(net_cards_migrate[c].old_internal_name, s))
+            return net_cards_migrate[c].device;
+        c++;
+    }
+
+    return NULL;
 }

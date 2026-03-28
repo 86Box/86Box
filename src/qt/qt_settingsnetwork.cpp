@@ -357,7 +357,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
                 for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
                     if ((c != 1) || ((i == 0) && m_has_net)) {
                         int row = Models::AddEntry(models[i], name, c);
-                        sc[i]->addDevice(nullptr, name);
+                        sc[i]->addDevice(network_card_getdevice(c), name);
 
                         if (c == net_cards_conf[i].device_num)
                             selectedRows[i] = row - removeRows_[i];

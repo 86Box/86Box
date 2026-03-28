@@ -203,6 +203,7 @@ extern int             network_type_has_config(int);
 extern const char     *network_card_get_internal_name(int);
 extern int             network_card_get_from_internal_name(char *);
 #ifdef EMU_DEVICE_H
+extern const device_t *network_card_get_from_old_internal_name(char *s);
 extern const device_t *network_card_getdevice(int);
 #endif
 

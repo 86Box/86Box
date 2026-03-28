@@ -61,6 +61,7 @@
 #define CONFIG_FNAME        (1 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_SERPORT      (2 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_BIOS         (3 | CONFIG_TYPE_STRING)     /* config_get_string() */
+#define CONFIG_VARIANT      CONFIG_BIOS
 
 #define CONFIG_HEX16        (0 | CONFIG_TYPE_HEX16)      /* config_get_hex16() */
 

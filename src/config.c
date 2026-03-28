@@ -868,7 +868,13 @@ load_network(void)
     /* Handle legacy configuration which supported only one NIC */
     p = ini_section_get_string(cat, "net_card", NULL);
     if (p != NULL) {
-        nc->device_num = network_card_get_from_internal_name(p);
+        const device_t *nc_dev = network_card_get_from_old_internal_name(p);
+        if (nc_dev == NULL)
+            nc->device_num = network_card_get_from_internal_name(p);
+        else {
+            device_video_config_migrate(nc_dev, p, 0);
+            nc->device_num = network_card_get_from_internal_name((char *) nc_dev->internal_name);
+        }
 
         p = ini_section_get_string(cat, "net_type", NULL);
         if (p != NULL) {
