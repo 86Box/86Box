@@ -570,6 +570,36 @@ msgstr "플로피 디스크 컨트롤러:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 컨트롤러:"
 
+msgid "IDE Controller"
+msgstr "IDE 컨트롤러"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "제3의 IDE 컨트롤러"
 
@@ -2243,9 +2273,6 @@ msgstr "메모리 크기"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 주소"
-
-msgid "IDE Controller"
-msgstr "IDE 컨트롤러"
 
 msgid "Codec"
 msgstr "코덱"

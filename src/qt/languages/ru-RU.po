@@ -571,6 +571,36 @@ msgstr "Контроллер гибких дисков:"
 msgid "CD-ROM controller:"
 msgstr "Контроллер CD-ROM:"
 
+msgid "IDE Controller"
+msgstr "Контроллер IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "Контроллер IDE (двухканальный)"
+
+msgid "PC/AT IDE Controller"
+msgstr "Контроллер IDE PC/AT"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "Контроллер IDE PC/AT (двухканальный)"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "PC/AT XTIDE (только первичный канал)"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "PS/2 AT XTIDE (1.1.5) (только первичный канал)"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646 (третичный и четвертичный)"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648 (третичный и четвертичный)"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649 (третичный и четвертичный)"
+
+msgid "McIDE Controller"
+msgstr "Контроллер McIDE"
+
 msgid "Tertiary IDE Controller"
 msgstr "Третичный контроллер IDE"
 
@@ -2256,9 +2286,6 @@ msgstr "Размер памяти"
 
 msgid "EMU8000 Address"
 msgstr "Адрес EMU8000"
-
-msgid "IDE Controller"
-msgstr "Контроллер IDE"
 
 msgid "Codec"
 msgstr "Кодек"

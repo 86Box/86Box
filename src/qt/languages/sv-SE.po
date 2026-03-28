@@ -570,6 +570,36 @@ msgstr "Styrenhet för diskett:"
 msgid "CD-ROM controller:"
 msgstr "Styrenhet för CD-ROM:"
 
+msgid "IDE Controller"
+msgstr "IDE-styrenhet"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Tertiär IDE-kontroller"
 
@@ -2243,9 +2273,6 @@ msgstr "Minnesstorlek"
 
 msgid "EMU8000 Address"
 msgstr "Adress till EMU8000"
-
-msgid "IDE Controller"
-msgstr "IDE-styrenhet"
 
 msgid "Codec"
 msgstr "Kodek"
