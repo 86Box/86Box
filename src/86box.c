@@ -1528,6 +1528,8 @@ pc_init_modules(void)
 void
 pc_send_ca(uint16_t sc)
 {
+    keyboard_toggle_override();
+
     if (keyboard_mode >= 0x81) {
         /* Use R-Alt because PS/55 DOS and OS/2 assign L-Alt Kanji */
         keyboard_input(1, 0x1D);  /*  Ctrl key pressed */
@@ -1574,6 +1576,8 @@ pc_send_ca(uint16_t sc)
         if (keyboard_get_in_reset())
             return;
     }
+
+    keyboard_toggle_override();
 }
 
 /* Send the machine a Control-Alt-DEL sequence. */

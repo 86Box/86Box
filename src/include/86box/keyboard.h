@@ -209,6 +209,7 @@ extern const device_t keyboard_ps55_device;
 extern const device_t keyboard_at_generic_device;
 #endif /*EMU_DEVICE_H*/
 
+extern void     keyboard_toggle_override(void);
 extern void     keyboard_init(void);
 extern void     keyboard_close(void);
 extern void     keyboard_set_table(const scancode *ptr);
