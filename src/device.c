@@ -98,7 +98,7 @@ device_video_config_migrate(const device_t *dev, const char *old_internal_name, 
     uint32_t    rev             = ((uint32_t) device_get_bios_local(dev, old_internal_name)) >> 24;
     char        old_name[2048]  = { 0 };
     char        bios_name[2048] = { 0 };
-    char        old_name2[2048] = { 0 };
+    char        old_name2[2560] = { 0 };
 
     if (!strcmp(bios_name, "Generic") && (strstr(dev->name, "Trio3D") || strstr(dev->name, "ViRGE"))) {
         uint32_t chip_id = ((uint32_t) device_get_bios_local(dev, old_internal_name)) >> 16;
@@ -114,9 +114,9 @@ device_video_config_migrate(const device_t *dev, const char *old_internal_name, 
         /* Layout is "Rev. X (Name)" */
         bios_name[strlen(bios_name) - 1] = 0x00;
         if (!strcmp(bios_name, "Generic"))
-            snprintf(old_name2, 2047, "%s Rev. %c", dev->name, rev);
+            snprintf(old_name2, 2559, "%s Rev. %c", dev->name, rev);
         else
-            snprintf(old_name2, 2047, "%s Rev. %c (%s)", dev->name, rev, bios_name);
+            snprintf(old_name2, 2559, "%s Rev. %c (%s)", dev->name, rev, bios_name);
     }
 
     void *      old_sec  = config_find_section(old_name);
