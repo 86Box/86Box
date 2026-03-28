@@ -570,6 +570,36 @@ msgstr "Contrôleur de disquette :"
 msgid "CD-ROM controller:"
 msgstr "Contrôleur CD-ROM :"
 
+msgid "IDE Controller"
+msgstr "Contrôleur IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Troisième contrôleur IDE"
 
@@ -1058,10 +1088,6 @@ msgstr "%1 est nécessaire pour la conversion automatique des fichiers PCL en PD
 
 msgid "Don't show this message again"
 msgstr "Ne pas montrer ce message à nouveau"
-
-#, fuzzy
-msgid "Reset"
-msgstr "Réinitialiser"
 
 msgid "CD-ROM images"
 msgstr "Images CD-ROM"
@@ -2247,9 +2273,6 @@ msgstr "Taille mémoire"
 
 msgid "EMU8000 Address"
 msgstr "Adresse EMU8000"
-
-msgid "IDE Controller"
-msgstr "Contrôleur IDE"
 
 msgid "Codec"
 msgstr "Codec"

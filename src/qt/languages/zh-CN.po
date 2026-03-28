@@ -571,6 +571,36 @@ msgstr "软盘控制器:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
+msgid "IDE Controller"
+msgstr "IDE 控制器"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
 
@@ -1059,10 +1089,6 @@ msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL
 
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
-
-#, fuzzy
-msgid "Reset"
-msgstr "重置"
 
 msgid "CD-ROM images"
 msgstr "光盘映像"
@@ -2248,9 +2274,6 @@ msgstr "内存大小"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 地址"
-
-msgid "IDE Controller"
-msgstr "IDE 控制器"
 
 msgid "Codec"
 msgstr "编解码器"
