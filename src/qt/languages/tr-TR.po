@@ -570,6 +570,36 @@ msgstr "Disket denetleyicisi:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM denetleyicisi:"
 
+msgid "IDE Controller"
+msgstr "IDE Denetleyicisi"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
 msgid "Tertiary IDE Controller"
 msgstr "Üçüncül IDE denetleyicisi"
 
@@ -1058,10 +1088,6 @@ msgstr "%1 PCL dosyalarının otomatik olarak PDF dosyasına çevirilmesi için 
 
 msgid "Don't show this message again"
 msgstr "Bu mesajı bir daha gösterme"
-
-#, fuzzy
-msgid "Reset"
-msgstr "Evet"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM görüntüleri"
@@ -2247,9 +2273,6 @@ msgstr "Bellek boyutu"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 adresi"
-
-msgid "IDE Controller"
-msgstr "IDE Denetleyicisi"
 
 msgid "Codec"
 msgstr "Codec"
