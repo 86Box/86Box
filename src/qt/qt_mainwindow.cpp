@@ -764,12 +764,6 @@ MainWindow::MainWindow(QWidget *parent)
     if (force_43 > 0) {
         ui->actionForce_4_3_display_ratio->setChecked(true);
     }
-    if (enable_overscan > 0) {
-        ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan->setChecked(true);
-    }
-    if (vid_cga_contrast > 0) {
-        ui->actionChange_contrast_for_monochrome_display->setChecked(true);
-    }
     if (do_auto_pause > 0) {
         ui->actionAuto_pause->setChecked(true);
     }
@@ -1273,6 +1267,14 @@ MainWindow::on_actionSettings_triggered()
             config_changed = 2;
             emit vmmConfigurationChanged();
             pc_reset_hard();
+            video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+            config_save();
+            reset_screen_size();
+            device_force_redraw();
+            for (int i = 0; i < MONITORS_NUM; i++) {
+                if (monitors[i].target_buffer)
+                    video_force_resize_set_monitor(1, i);
+            }
             break;
         case QDialog::Rejected:
             break;
@@ -1827,12 +1829,6 @@ video_toggle_option(QAction *action, int *val)
 }
 
 void
-MainWindow::on_actionInverted_VGA_monitor_triggered()
-{
-    video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
-}
-
-void
 MainWindow::on_actionForce_interpretation_triggered()
 {
     cpu_force_interpreter ^= 1;
@@ -2099,24 +2095,6 @@ void
 MainWindow::on_actionDocumentation_triggered()
 {
     QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
-}
-
-void
-MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered()
-{
-    update_overscan = 1;
-    video_toggle_option(ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan, &enable_overscan);
-}
-
-void
-MainWindow::on_actionChange_contrast_for_monochrome_display_triggered()
-{
-    startblit();
-    vid_cga_contrast ^= 1;
-    for (int i = 0; i < MONITORS_NUM; i++)
-        cgapal_rebuild_monitor(i);
-    config_save();
-    endblit();
 }
 
 void

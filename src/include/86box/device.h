@@ -142,7 +142,7 @@ typedef struct device_config_bios_t {
     const char *name;
     const char *internal_name;
     uint8_t     bios_type;
-    uint8_t     files_no;
+    int8_t      files_no;
     uint32_t    local;
     uint32_t    size;
     uint64_t    flags;

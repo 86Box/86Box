@@ -286,11 +286,13 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                                                     (bios->internal_name != nullptr) &&
                                                     (strlen(bios->name) > 0) &&
                                                     (strlen(bios->internal_name) > 0) &&
-                                                    (bios->files_no > 0); ++bios) {
+                                                    (bios->files_no != 0); ++bios) {
                         p = 0;
-                        for (int d = 0; d < bios->files_no; d++)
-                            p += !!rom_present(const_cast<char *>(bios->files[d]));
-                        if (p == bios->files_no) {
+                        if (bios->files_no > 0) {
+                            for (int d = 0; d < bios->files_no; d++)
+                                p += !!rom_present(const_cast<char *>(bios->files[d]));
+                        }
+                        if ((bios->files_no == -1) || (p == bios->files_no)) {
                             const int row = Models::AddEntry(model, tr(bios->name), q);
                             if (add_sc)
                                 scBIOS->addDevice(nullptr, tr(bios->name));

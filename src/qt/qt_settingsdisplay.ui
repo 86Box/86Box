@@ -72,7 +72,7 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0" colspan="2">
+          <item row="0" column="1">
            <widget class="QComboBox" name="comboBoxVideo">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -80,12 +80,15 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
+          <item row="0" column="2">
            <widget class="QPushButton" name="pushButtonConfigureVideo">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -98,7 +101,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
+          <item row="1" column="0">
            <widget class="QLabel" name="labelVideoSecondary">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -111,7 +114,7 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0" colspan="2">
+          <item row="1" column="1">
            <widget class="QComboBox" name="comboBoxVideoSecondary">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -119,19 +122,28 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
            </widget>
           </item>
-          <item row="3" column="2">
+          <item row="1" column="2">
            <widget class="QPushButton" name="pushButtonConfigureVideoSecondary">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="text">
              <string>Configure</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="0" colspan="3">
+          <item row="2" column="0" colspan="3">
            <widget class="QGroupBox" name="groupBoxEDID">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -192,6 +204,34 @@
               </layout>
              </item>
             </layout>
+           </widget>
+          </item>
+
+          <item row="3" column="0">
+           <widget class="QCheckBox" name="checkBoxOverscan">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           <property name="text">
+             <string>Overscan</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1" colspan="2">
+           <widget class="QCheckBox" name="checkBoxInverted">
+            <property name="text">
+             <string>Inverted VGA monitor</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxContrast">
+            <property name="text">
+             <string>Change contrast for &amp;monochrome display</string>
+            </property>
            </widget>
           </item>
 

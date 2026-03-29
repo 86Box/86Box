@@ -94,7 +94,6 @@ private slots:
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
     void on_actionResizable_window_triggered(bool checked);
-    void on_actionInverted_VGA_monitor_triggered();
     void on_action0_5x_triggered();
     void on_action1x_triggered();
     void on_action1_5x_triggered();
@@ -124,8 +123,6 @@ private slots:
     void on_actionAbout_86Box_triggered();
     void on_actionAbout_Qt_triggered();
     void on_actionForce_4_3_display_ratio_triggered();
-    void on_actionChange_contrast_for_monochrome_display_triggered();
-    void on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered();
     void on_actionRemember_size_and_position_triggered();
     void on_actionSpecify_dimensions_triggered();
     void on_actionHiDPI_scaling_triggered();

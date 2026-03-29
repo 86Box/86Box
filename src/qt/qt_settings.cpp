@@ -17,16 +17,6 @@
 #include <cstdint>
 #include <cstdio>
 
-extern "C" {
-#include <86box/86box.h>
-#include <86box/device.h>
-#include <86box/timer.h>
-#include <86box/fdd.h>
-#include <86box/hdd.h>
-#include <86box/lpt.h>
-#include <86box/midi.h>
-}
-
 #include <QApplication>
 
 #include "qt_defs.hpp"
@@ -34,6 +24,21 @@ extern "C" {
 #include "ui_qt_settings.h"
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
+
+extern "C" {
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/keyboard.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/device.h>
+#include <86box/video.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/hdd.h>
+#include <86box/lpt.h>
+#include <86box/midi.h>
+}
 
 #include <QStandardItemModel>
 
@@ -297,6 +302,15 @@ Settings::accept()
         main_window->emitVmmSignal();
         lpt_devices_reset();
         midi_config_changed();
+
+        video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+        config_save();
+        reset_screen_size();
+        device_force_redraw();
+        for (int i = 0; i < MONITORS_NUM; i++) {
+            if (monitors[i].target_buffer)
+                video_force_resize_set_monitor(1, i);
+        }
 
         /* Reject so the main window does nothing. */
         QDialog::reject();

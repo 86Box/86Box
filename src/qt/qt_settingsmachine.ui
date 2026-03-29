@@ -99,7 +99,7 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
-             </property>
+            </property>
             <property name="text">
              <string>Configure</string>
             </property>

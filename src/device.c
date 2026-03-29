@@ -196,9 +196,15 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Tseng Labs ET4000/w32i Rev. B VLB (Hercules Dynamite Pro)", .new = "Tseng Labs ET4000/w32i VLB" },
         { .old = "S3 ViRGE/GX (385) PCI", .new = "S3 ViRGE/GX PCI" },
         { .old = "S3 ViRGE/GX2 (357) PCI", .new = "S3 ViRGE/GX2 PCI" },
+        { .old = "ATI 28800-6 (ATI VGA Wonder 1024D XL Plus)", .new = "ATI 28800-6" },
         { .old = "DEC DE-500A Fast Ethernet (DECchip 21143 \"Tulip\")", .new = "DECchip 21143 \"Tulip\"" },
         { .old = "DEC DE-435 EtherWorks Turbo (DECchip 21040 \"Tulip\")", .new = "DECchip 21040 \"Tulip\"" },
         { .old = "SMC EtherPower II 9432 (SMC 83C170 \"EPIC/100\")", .new = "SMC 83C170 \"EPIC/100\"" },
+        { .old = "Aztech Sound Galaxy Pro 16 II (AZT2316R)", .new = "Aztech Sound Galaxy Pro 16 II" },
+        { .old = "Aztech Sound Galaxy Pro 16 AB (Washington)", .new = "Aztech Sound Galaxy Pro 16 AB" },
+        { .old = "Aztech Sound Galaxy Nova 16 Extra (Clinton)", .new = "Aztech Sound Galaxy Nova 16 Extra" },
+        { .old = "Aztech Sound Galaxy Pro 16 (AZTPR16)", .new = "Aztech Sound Galaxy Pro 16" },
+        { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A (AZT2320)" },
         { 0 }
     };
 
@@ -1051,9 +1057,11 @@ machine_device_available(const device_t *dev)
                    (bios->internal_name != NULL) &&
                    (bios->files_no != 0)) {
                 int i = 0;
-                for (uint8_t bf = 0; bf < bios->files_no; bf++)
-                    i += !!rom_present(bios->files[bf]);
-                if (i == bios->files_no)
+                if (bios->files_no > 0) {
+                    for (uint8_t bf = 0; bf < bios->files_no; bf++)
+                        i += !!rom_present(bios->files[bf]);
+                }
+                if ((bios->files_no == -1) || (i == bios->files_no))
                     roms_present++;
                 bios++;
             }

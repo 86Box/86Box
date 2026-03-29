@@ -78,8 +78,9 @@
     <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
-    <addaction name="actionFast_forward"/>
+    <addaction name="actionFullscreen"/>
     <addaction name="separator"/>
+    <addaction name="actionFast_forward"/>
     <addaction name="actionForce_interpretation"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
@@ -191,7 +192,6 @@
       <addaction name="actionBT709_HDTV"/>
       <addaction name="actionAverage"/>
      </widget>
-     <addaction name="actionInverted_VGA_monitor"/>
      <addaction name="menuVGA_screen_type"/>
      <addaction name="menuGrayscale_conversion_type"/>
     </widget>
@@ -222,29 +222,27 @@
     </widget>
     <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
-    <addaction name="separator"/>
     <addaction name="actionShow_non_primary_monitors"/>
+    <addaction name="separator"/>
     <addaction name="actionResizable_window"/>
     <addaction name="actionRemember_size_and_position"/>
+    <addaction name="actionSpecify_dimensions"/>
+    <addaction name="actionForce_4_3_display_ratio"/>
+    <addaction name="separator"/>
+    <addaction name="menuFullscreen_stretch_mode"/>
+    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
+    <addaction name="separator"/>
+    <addaction name="menuWindow_scale_factor"/>
+    <addaction name="actionHiDPI_scaling"/>
+    <addaction name="separator"/>
+    <addaction name="menuFilter_method"/>
     <addaction name="separator"/>
     <addaction name="menuRenderer"/>
     <addaction name="actionRenderer_options"/>
     <addaction name="menuOpenGL_input_stretch_mode"/>
     <addaction name="menuOpenGL_input_scale"/>
     <addaction name="separator"/>
-    <addaction name="actionSpecify_dimensions"/>
-    <addaction name="actionForce_4_3_display_ratio"/>
-    <addaction name="menuWindow_scale_factor"/>
-    <addaction name="menuFilter_method"/>
-    <addaction name="actionHiDPI_scaling"/>
-    <addaction name="separator"/>
-    <addaction name="actionFullscreen"/>
-    <addaction name="menuFullscreen_stretch_mode"/>
-    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
     <addaction name="menuEGA_S_VGA_settings"/>
-    <addaction name="separator"/>
-    <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
-    <addaction name="actionChange_contrast_for_monochrome_display"/>
    </widget>
    <widget class="QMenu" name="menuMedia">
     <property name="title">
@@ -483,22 +481,6 @@
     <string>Hi&amp;DPI scaling</string>
    </property>
   </action>
-  <action name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>CGA/PCjr/Tandy/E&amp;GA/(S)VGA overscan</string>
-   </property>
-  </action>
-  <action name="actionChange_contrast_for_monochrome_display">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Change contrast for &amp;monochrome display</string>
-   </property>
-  </action>
   <action name="action0_5x">
    <property name="checkable">
     <bool>true</bool>
@@ -633,14 +615,6 @@
    </property>
    <property name="text">
     <string>4:&amp;3 Integer scale</string>
-   </property>
-  </action>
-  <action name="actionInverted_VGA_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Inverted VGA monitor</string>
    </property>
   </action>
   <action name="actionRGB_Color">

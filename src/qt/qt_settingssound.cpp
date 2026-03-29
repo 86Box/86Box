@@ -161,7 +161,7 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
                             name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_snd_device(machineId), machine_get_snd_device(machineId)->internal_name, 0));
                         }
                         int row = Models::AddEntry(models[i], name, c);
-                        scSound[i]->addDevice(nullptr, name);
+                        scSound[i]->addDevice(sound_card_getdevice(c), name);
 
                         if (c == sound_card_current[i])
                             selectedRows[i] = row - removeRows_[i];

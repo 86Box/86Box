@@ -906,7 +906,7 @@ const device_t ati28800k_spc6033p_device = {
 };
 
 const device_t ati28800_wonder1024d_xl_plus_device = {
-    .name          = "ATI 28800-6 (ATI VGA Wonder 1024D XL Plus)",
+    .name          = "ATI 28800-6",
     .internal_name = "ati28800_wonder1024d_xl_plus",
     .flags         = DEVICE_ISA,
     .local         = VGAWONDERXLPLUS,
@@ -916,6 +916,7 @@ const device_t ati28800_wonder1024d_xl_plus_device = {
     .available     = ati28800_wonder1024d_xl_plus_available,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
+    .alias         = "ATI VGA Wonder 1024D XL Plus",
     .config        = NULL
 };
 

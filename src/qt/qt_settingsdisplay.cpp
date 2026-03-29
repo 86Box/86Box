@@ -26,6 +26,7 @@ extern "C" {
 #include <86box/video.h>
 #include <86box/plat.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/vid_ega.h>
 #include <86box/vid_8514a_device.h>
 #include <86box/vid_xga_device.h>
 #include <86box/vid_ps55da2.h>
@@ -97,6 +98,11 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
         }
     }
 
+    ui->checkBoxOverscan->setChecked(enable_overscan);
+    ui->checkBoxContrast->setChecked(vid_cga_contrast);
+
+    ui->checkBoxInverted->setChecked(invert_display);
+
     ui->tabCompositeCGA->setEnabled(enable_comp_option);
 
     if (!enable_comp_option)
@@ -148,6 +154,11 @@ SettingsDisplay::changed()
     soft_changed |= (vid_cga_comp_contrast          != ui->horizontalSliderContrast->value());
     soft_changed |= (vid_cga_comp_sharpness         != ui->horizontalSliderSharpness->value());
 
+    soft_changed |= (enable_overscan                != (ui->checkBoxOverscan->isChecked() ? 1 : 0));
+    soft_changed |= (vid_cga_contrast               != (ui->checkBoxContrast->isChecked() ? 1 : 0));
+
+    soft_changed |= (invert_display                 != (ui->checkBoxInverted->isChecked() ? 1 : 0));
+
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
                          (soft_changed ? SETTINGS_CHANGED : 0);
 }
@@ -193,6 +204,16 @@ SettingsDisplay::save()
     vid_cga_comp_contrast   = ui->horizontalSliderContrast->value();
     vid_cga_comp_sharpness  = ui->horizontalSliderSharpness->value();
     cga_comp_reload(vid_cga_comp_brightness, vid_cga_comp_saturation, vid_cga_comp_sharpness, vid_cga_comp_hue, vid_cga_comp_contrast);
+
+    update_overscan = 1;
+
+    enable_overscan         = ui->checkBoxOverscan->isChecked() ? 1 : 0;
+    vid_cga_contrast        = ui->checkBoxContrast->isChecked() ? 1 : 0;
+
+    invert_display          = ui->checkBoxInverted->isChecked() ? 1 : 0;
+
+    for (int i = 0; i < MONITORS_NUM; i++)
+        cgapal_rebuild_monitor(i);
 }
 
 void
