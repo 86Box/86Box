@@ -1417,11 +1417,6 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             pas16->stereo_lr = 0;
             pas16->dma8_ff = 0;
 
-            if ((val & 0x20) && !(pas16->audiofilt & 0x20)) {
-                pas16_log("Reset.\n");
-                pas16_reset_regs(pas16);
-            }
-
             pas16->audiofilt = val;
 
             if (val & 0x1f) {
