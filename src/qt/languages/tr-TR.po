@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 09:50+0000\n"
-"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
+"PO-Revision-Date: 2026-03-29 17:00+0000\n"
+"Last-Translator: Reine <185547947+kotochi98@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -214,22 +214,22 @@ msgid "Take screenshot"
 msgstr "Ekran görüntüsü al"
 
 msgid "Take &raw screenshot"
-msgstr "Ekran &ham görüntüsü al"
+msgstr "&Ham ekran görüntüsü al"
 
 msgid "Take raw screenshot"
-msgstr "Ekran ham görüntüsü al"
+msgstr "Ham ekran görüntüsü al"
 
 msgid "C&opy screenshot"
-msgstr "Ekran görüntüsü k&opyala"
+msgstr "Ekran görüntüsünü k&opyala"
 
 msgid "Copy screenshot"
-msgstr "Ekran görüntüsü kopyala"
+msgstr "Ekran görüntüsünü kopyala"
 
 msgid "Copy r&aw screenshot"
-msgstr "Ekran h&am görüntüsü kopyala"
+msgstr "H&am ekran görüntüsünü kopyala"
 
 msgid "Copy raw screenshot"
-msgstr "Ekran ham görüntüsü kopyala"
+msgstr "Ham ekran görüntüsünü kopyala"
 
 msgid "S&ound"
 msgstr "&Ses"
@@ -259,13 +259,13 @@ msgid "&About 86Box…"
 msgstr "&86Box hakkında…"
 
 msgid "&New image…"
-msgstr "&Yeni görüntü oluştur…"
+msgstr "&Yeni imaj oluştur…"
 
 msgid "&Existing image…"
-msgstr "&Görüntü seç…"
+msgstr "&İmaj seç…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "Görüntü &seç (Yazma korumalı)…"
+msgstr "İmaj &seç (Yazma korumalı)…"
 
 msgid "&Record"
 msgstr "&Kaydet"
@@ -283,7 +283,7 @@ msgid "E&ject"
 msgstr "&Çıkar"
 
 msgid "&Image…"
-msgstr "&Görüntü seç…"
+msgstr "&İmaj…"
 
 msgid "E&xport to 86F…"
 msgstr "&86F olarak kaydet…"
@@ -295,7 +295,7 @@ msgid "E&mpty"
 msgstr "Görüntüyü &çıkar"
 
 msgid "Reload previous image"
-msgstr "Önceki görüntüyü yeniden seç"
+msgstr "Önceki imajı yeniden seç"
 
 msgid "&Folder…"
 msgstr "&Klasör seç…"
@@ -307,7 +307,7 @@ msgid "Sound Gain"
 msgstr "Ses Artışı"
 
 msgid "New Image"
-msgstr "Yeni görüntü"
+msgstr "Yeni İmaj"
 
 msgid "Settings"
 msgstr "Ayarlar"
@@ -502,7 +502,7 @@ msgid "Standalone MPU-401"
 msgstr "Bağımsız MPU-401"
 
 msgid "Use FLOAT32 sound"
-msgstr "FLOAT32 sesi kullan"
+msgstr "FLOAT32 ses kullan"
 
 msgid "FM synth driver:"
 msgstr "FM sentez sürücüsü:"
@@ -574,31 +574,31 @@ msgid "IDE Controller"
 msgstr "IDE Denetleyicisi"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE Denetleyicisi (Çift Kanallı)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE Denetleyicisi"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE Denetleyicisi (Çift Kanallı)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (Sadece Birincil)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (Sadece Birincil)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (Üçüncül ve Dördüncül)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (Üçüncül ve Dördüncül)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (Üçüncül ve Dördüncül)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE Denetleyici"
 
 msgid "Tertiary IDE Controller"
 msgstr "Üçüncül IDE denetleyicisi"
@@ -667,7 +667,7 @@ msgid "Type:"
 msgstr "Tür:"
 
 msgid "Image Format:"
-msgstr "Görüntü Biçimi:"
+msgstr "İmaj Biçimi:"
 
 msgid "Block Size:"
 msgstr "Blok boyutu:"
@@ -757,7 +757,7 @@ msgid "&Removable disk %1 (%2): %3"
 msgstr "&Çıkarılabilir disk %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "Çıkarılabilir disk görüntüleri"
+msgstr "Çıkarılabilir disk imajları"
 
 msgid "Tape %1 (%2): %3"
 msgstr "Teyp %1 (%2): %3"
@@ -766,10 +766,10 @@ msgid "&Tape %1 (%2): %3"
 msgstr "&Teyp %1 (%2): %3"
 
 msgid "Tape images"
-msgstr "Teyp görüntüleri"
+msgstr "Teyp imajları"
 
 msgid "Image %1"
-msgstr "Görüntü %1"
+msgstr "%1 İmajı"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box kullanılabilir hiçbir ROM dosyası bulamadı.\n\nLütfen bir ROM seti <a href=\"https://github.com/86Box/roms/releases/latest\">indirip</a> \"roms\" klasörüne çıkarın."
@@ -790,13 +790,13 @@ msgid "Off"
 msgstr "Kapalı"
 
 msgid "All images"
-msgstr "Tüm görüntüler"
+msgstr "Tüm imajlar"
 
 msgid "Basic sector images"
-msgstr "Basit sektör görüntüleri"
+msgstr "Basit sektör imajları"
 
 msgid "Surface images"
-msgstr "Yüzey görüntüleri"
+msgstr "Yüzey imajları"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "\"%hs\" anakartı roms/machines klasöründe gerekli ROM dosyalarının mevcut olmaması nedeniyle kullanılamıyor. Kullanılabilen başka bir anakarta geçiş yapılacaktır."
@@ -1003,10 +1003,10 @@ msgid "&Floppy %1 (%2): %3"
 msgstr "&Disket %1 (%2): %3"
 
 msgid "Advanced sector images"
-msgstr "Gelişmiş sektör görüntüleri"
+msgstr "Gelişmiş sektör imajları"
 
 msgid "Flux images"
-msgstr "Flux görüntüleri"
+msgstr "Flux imajları"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "Makineyi yeniden başlamaya zorlamak istediğinizden emin misiniz?"
@@ -1027,7 +1027,7 @@ msgid "&MO %1 (%2): %3"
 msgstr "&MO %1 (%2): %3"
 
 msgid "MO images"
-msgstr "MO görüntüleri"
+msgstr "MO imajları"
 
 msgid "Welcome to 86Box!"
 msgstr "86Box'a hoşgeldiniz!"
@@ -1090,7 +1090,7 @@ msgid "Don't show this message again"
 msgstr "Bu mesajı bir daha gösterme"
 
 msgid "CD-ROM images"
-msgstr "CD-ROM görüntüleri"
+msgstr "CD-ROM imajları"
 
 msgid "%1 Device Configuration"
 msgstr "%1 Cihaz Yapılandırması"
@@ -1117,7 +1117,7 @@ msgid "C&assette: %1"
 msgstr "K&aset: %1"
 
 msgid "Cassette images"
-msgstr "Kaset görüntüleri"
+msgstr "Kaset imajları"
 
 msgid "Cartridge %1: %2"
 msgstr "Kartuş %1: %2"
@@ -1126,7 +1126,7 @@ msgid "Car&tridge %1: %2"
 msgstr "Kar&tuş %1: %2"
 
 msgid "Cartridge images"
-msgstr "Kartuş görüntüleri"
+msgstr "Kartuş imajları"
 
 msgid "Resume execution"
 msgstr "Çalıştırmayı sürdür"
@@ -1186,7 +1186,7 @@ msgid "%1 total"
 msgstr "Toplam %1"
 
 msgid "VMs: %1"
-msgstr "VM sayısı: %1"
+msgstr "Sanal makine sayısı: %1"
 
 msgid "System Directory:"
 msgstr "Sistem Dizini:"
@@ -1210,7 +1210,9 @@ msgid "Use regular expressions in search box"
 msgstr "Arama kutusunda düzenli ifadeler kullan"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n makine şu anda aktif. Yine de VM yöneticisinden çıkmak istediğinize emin misiniz?"
+msgstr ""
+"%n makine şu anda aktif. Yine de sanal makine yöneticisinden çıkmak "
+"istediğinize emin misiniz?"
 
 msgid "Add new system wizard"
 msgstr "Yeni sistem ekleme sihirbazı"
@@ -1321,10 +1323,10 @@ msgid "Clone"
 msgstr "Klonla"
 
 msgid "Failed to create directory for cloned VM"
-msgstr "Klonlanmış VM için dizin oluşturulamadı"
+msgstr "Klonlanan sanal makine için dizin oluşturulamadı"
 
 msgid "Failed to clone VM."
-msgstr "VM klonlanamadı."
+msgstr "Sanal makine klonlanamadı."
 
 msgid "Directory in use"
 msgstr "Dizin kullanımda"
@@ -1375,13 +1377,19 @@ msgid "&Kill"
 msgstr "Durmaya &zorla"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Bir sanal makineyi durmaya zorlamak veri kaybına yol açabilir. Bunu sadece 86Box işlemi takılı kalırsa uygulayın.\n\nGerçekten \"%1\" adlı sanal makineyi durmaya zorlamak istiyor musunuz?"
+msgstr ""
+"Bir sanal makineyi durmaya zorlamak veri kaybına yol açabilir. Bunu sadece "
+"86Box işlemi takılı kalırsa uygulayın.\n"
+"\n"
+"Gerçekten \"%1\" sanal makinesini durmaya zorlamak istiyor musunuz?"
 
 msgid "&Delete"
 msgstr "&Sil"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Gerçekten \"%1\" adlı sanal makineyi tüm dosyalarıyla birlikte silmek istiyor musunuz? Bu eylem geri alınamaz!"
+msgstr ""
+"Gerçekten \"%1\" sanal makinesini tüm dosyalarıyla birlikte silmek istiyor "
+"musunuz? Bu işlem geri alınamaz!"
 
 msgid "Show &config file"
 msgstr "Yap&ılandırma dosyasını göster"
@@ -1393,7 +1401,7 @@ msgid "Search"
 msgstr "Ara"
 
 msgid "Searching for VMs…"
-msgstr "VM'ler aranıyor…"
+msgstr "Sanal makineler aranıyor…"
 
 msgid "Found %1"
 msgstr "%1 bulundu"
@@ -1435,19 +1443,19 @@ msgid "Custom (large)…"
 msgstr "Diğer (büyük)…"
 
 msgid "Add New Hard Disk"
-msgstr "Yeni Sabit Disk Görüntüsü Oluştur"
+msgstr "Yeni Sabit Disk Ekle"
 
 msgid "Add Existing Hard Disk"
-msgstr "Var Olan Sabit Disk Görüntüsü Ekleme"
+msgstr "Var Olan Bir Sabit Diski Ekle"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI görüntüleri 4 GB boyutundan daha büyük olamaz."
+msgstr "HDI imajları 4 GB boyutundan daha büyük olamaz."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Disk görüntüleri 127 GB boyutundan daha büyük olamaz."
+msgstr "Disk imajları 127 GB boyutundan daha büyük olamaz."
 
 msgid "Hard disk images"
-msgstr "Sabit disk görüntüleri"
+msgstr "Sabit disk imajları"
 
 msgid "Unable to read file"
 msgstr "Dosya okunamıyor"
@@ -1456,16 +1464,16 @@ msgid "Unable to write file"
 msgstr "Dosyanın üzerine yazılamıyor"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "512 dışında sektör boyutu olan HDI ve HDX görüntüleri desteklenmemektedir."
+msgstr "512 dışında sektör boyutu olan HDI ve HDX imajları desteklenmemektedir."
 
 msgid "Disk image file already exists"
-msgstr "Bu görüntü dosyası zaten mevcuttur"
+msgstr "Disk imajı dosyası zaten mevcut"
 
 msgid "Please specify a valid file name."
 msgstr "Lütfen geçerli bir dosya ismi belirleyin."
 
 msgid "Disk image created"
-msgstr "Disk görüntüsü oluşturuldu"
+msgstr "Disk imajı oluşturuldu"
 
 msgid "Make sure the file exists and is readable."
 msgstr "Dosyanın var olduğuna ve okunabildiğine emin olun."
@@ -1474,7 +1482,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "Dosyanın erişilebilir bir klasöre kaydedildiğinden emin olun."
 
 msgid "Disk image too large"
-msgstr "Disk görüntüsü çok büyük"
+msgstr "Disk imajı çok büyük"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "Yeni oluşturulan diskte bölümler oluşturmayı ve bu bölümleri biçimlendirmeyi unutmayın."
@@ -1483,7 +1491,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "Seçili dosyanın üzerine yazılacaktır. Bu dosyayı kullanmak istediğinizden emin misiniz?"
 
 msgid "Unsupported disk image"
-msgstr "Desteklenmeyen disk görüntüsü"
+msgstr "Desteklenmeyen disk imajı"
 
 msgid "Overwrite"
 msgstr "Üzerine yaz"
@@ -1495,10 +1503,10 @@ msgid "Raw image"
 msgstr "Ham görüntü"
 
 msgid "HDI image"
-msgstr "HDI görüntüsü"
+msgstr "HDI imajı"
 
 msgid "HDX image"
-msgstr "HDX görüntüsü"
+msgstr "HDX imajı"
 
 msgid "Fixed-size VHD"
 msgstr "Sabit boyutlu VHD"
@@ -1516,10 +1524,10 @@ msgid "Raw image (.img)"
 msgstr "Ham görüntü (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI görüntüsü (.hdi)"
+msgstr "HDI imajı (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX görüntüsü (.hdx)"
+msgstr "HDX imajı (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "Sabit boyutlu VHD (.vhd)"
@@ -1543,7 +1551,15 @@ msgid "Select the parent VHD"
 msgstr "Ana VHD dosyasını seçin"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Bu, farklandırmış görüntü dosyası oluşturulduktan sonra ana görüntü dosyasında bir değişiklik yapıldığı anlamına geliyor olabilir.\n\nBu durum ayrıca görüntü dosyalarının kopyalanmasından, yerlerinin değiştirilmesinden veya dosyaları oluşturan programdaki bir hatadan dolayı da meydana gelmiş olabilir.\n\nZaman damgalarını düzeltmek ister misiniz?"
+msgstr ""
+"Bu, farklandırmış imaj dosyası oluşturulduktan sonra ana imaj dosyasında bir "
+"değişiklik yapıldığı anlamına geliyor olabilir.\n"
+"\n"
+"Bu durum ayrıca imaj dosyalarının kopyalanmasından, yerlerinin "
+"değiştirilmesinden veya dosyaları oluşturan programdaki bir hatadan dolayı "
+"da meydana gelmiş olabilir.\n"
+"\n"
+"Zaman damgalarını düzeltmek ister misiniz?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Ana ve ek disklerin zaman damgaları uyuşmuyor"
@@ -1636,7 +1652,7 @@ msgid "2% below perfect RPM"
 msgstr "Mükemmel RPM değerinin 2% altı"
 
 msgid "Creating image…"
-msgstr "Görüntü oluşturuluyor…"
+msgstr "İmaj oluşturuluyor…"
 
 msgid "(System Default)"
 msgstr "(Sistem Varsayılanı)"
@@ -1645,13 +1661,13 @@ msgid "Failed to initialize network driver"
 msgstr "Ağ sürücüsü başlatılamadı"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "Ağ yapılandırması null sürücüye geçirilecektir"
+msgstr "Ağ yapılandırması boş sürücüye geçirilecektir"
 
 msgid "Mouse sensitivity:"
 msgstr "Fare hassasiyeti:"
 
 msgid "Select media images from program working directory"
-msgstr "Medya görüntülerini programın çalışma dizininden seç"
+msgstr "Medya imajlarını programın çalışma dizininden seç"
 
 msgid "PIT mode:"
 msgstr "PIT modu:"
@@ -1726,7 +1742,7 @@ msgid "&Connected"
 msgstr "&Bağlı"
 
 msgid "Clear image &history"
-msgstr "Görüntü geçmişini temizle"
+msgstr "İmaj geçmişini temizle"
 
 msgid "Create…"
 msgstr "Oluştur…"
@@ -1738,7 +1754,7 @@ msgid "Unknown Bus"
 msgstr "Bilinmeyen veri yolu"
 
 msgid "Null Driver"
-msgstr "Null sürücü"
+msgstr "Boş sürücü"
 
 msgid "NIC:"
 msgstr "NIC:"
@@ -1789,7 +1805,10 @@ msgid "\nFalling back to software rendering."
 msgstr "\nYazılım derleyicisine geri dönülüyor."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>Medya görüntüsü (CD-ROM, disket, vb.) seçme diyaloğu 86Box yapılandırma dosyasının bulunduğu dizinde başlayacaktır. Bu ayar muhtemelen sadece macOS üzerinde bir değişiklik meydana getirecektir.</p></body></html>"
+msgstr ""
+"<html><head/><body><p>Medya imajı (CD-ROM, disket, vb.) seçme diyaloğu 86Box "
+"yapılandırma dosyasının bulunduğu dizinde başlayacaktır. Bu ayar muhtemelen "
+"sadece macOS üzerinde bir değişiklik meydana getirecektir.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Bu makine taşınmış veya kopyalanmış olabilir."
@@ -2710,7 +2729,7 @@ msgid "Host Serial Passthrough"
 msgstr "Ana Sistem Seri Geçişi"
 
 msgid "E&ject %1"
-msgstr "%1 görüntüsünü &çıkar"
+msgstr "%1 imajını &çıkar"
 
 msgid "&Unmute"
 msgstr "&Sesi aç"
@@ -2833,7 +2852,7 @@ msgid "Could not load file %1"
 msgstr "%1 dosyası yüklenemedi"
 
 msgid "Key bindings"
-msgstr "Tuş bağlamaları"
+msgstr "Tuş atamaları"
 
 msgid "Action"
 msgstr "Eylem"
@@ -2842,7 +2861,7 @@ msgid "Keybind"
 msgstr "Tuş bağlaması"
 
 msgid "Clear binding"
-msgstr "Bağlamayı sil"
+msgstr "Atamayı sil"
 
 msgid "Bind"
 msgstr "Bağla"
@@ -2869,7 +2888,7 @@ msgid "Toggle fullscreen"
 msgstr "Tam ekran modunu ayarla"
 
 msgid "Toggle UI in fullscreen"
-msgstr "Arayüzü tam ekranda ayarla"
+msgstr "Tam ekranda arayüzü ayarla"
 
 msgid "Release mouse pointer"
 msgstr "Fare imlecini serbest bırak"
@@ -2914,7 +2933,13 @@ msgid "&Wipe NVRAM"
 msgstr "NVRAM'i te&mizle"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Bu işlem, sanal makinenin \"nvr\" altdizininde bulunan tüm NVRAM (ve ilişkili) dosyalarını silecektir. Eğer uygulanabilir ise, Anakartın BIOS'unu (ve muhtemelen VM içindeki diğer cihazları) yeniden yapılandırmanız gerekecektir.\n\nSanal makinenin tüm NVRAM içeriğini silmek istediğinizden emin misiniz?"
+msgstr ""
+"Bu işlem, sanal makinenin \"nvr\" altdizininde bulunan tüm NVRAM (ve "
+"ilişkili) dosyalarını silecektir. Eğer uygulanabilir ise, Anakartın BIOS'unu "
+"(ve muhtemelen sanal makine içindeki diğer cihazları) yeniden "
+"yapılandırmanız gerekecektir.\n"
+"\n"
+"Sanal makinenin tüm NVRAM içeriğini silmek istediğinizden emin misiniz?"
 
 msgid "Success"
 msgstr "İşlem başarılı"
@@ -2926,7 +2951,7 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "\"%1\" adlı sanal makinenin NVRAM içeriği silinmeye çalışırken hata oluştu"
 
 msgid "%1 VM Manager"
-msgstr "%1 VM Yöneticisi"
+msgstr "%1 Sanal Makine Yöneticisi"
 
 msgid "%n disk(s)"
 msgstr "%n disk"
