@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-03-29 17:00+0000\n"
+"Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
 "MIME-Version: 1.0\n"
@@ -1746,7 +1746,7 @@ msgid "&Pen"
 msgstr "&Γραφίδα"
 
 msgid "&Host CD/DVD Drive (%1)"
-msgstr "&Host CD/DVD Drive (%1)"
+msgstr "&Οδηγός CD/DVD οικοδεσπότη (%1)"
 
 msgid "&Connected"
 msgstr "&Συνδεδεμένο"
