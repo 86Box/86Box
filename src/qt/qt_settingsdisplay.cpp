@@ -98,6 +98,18 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
         }
     }
 
+    ui->comboBoxScreenType->addItem(tr("RGB Color"), 0);
+    ui->comboBoxScreenType->addItem(tr("RGB Grayscale"), 1);
+    ui->comboBoxScreenType->addItem(tr("Amber monitor"), 2);
+    ui->comboBoxScreenType->addItem(tr("Green monitor"), 3);
+    ui->comboBoxScreenType->addItem(tr("White monitor"), 4);
+    ui->comboBoxScreenType->setCurrentIndex(video_grayscale);
+
+    ui->comboBoxConversionType->addItem(tr("BT601 (NTSC/PAL)"), 0);
+    ui->comboBoxConversionType->addItem(tr("BT709 (HDTV)"), 1);
+    ui->comboBoxConversionType->addItem(tr("Average"), 2);
+    ui->comboBoxConversionType->setCurrentIndex(video_graytype);
+
     ui->checkBoxOverscan->setChecked(enable_overscan);
     ui->checkBoxContrast->setChecked(vid_cga_contrast);
 
@@ -154,6 +166,9 @@ SettingsDisplay::changed()
     soft_changed |= (vid_cga_comp_contrast          != ui->horizontalSliderContrast->value());
     soft_changed |= (vid_cga_comp_sharpness         != ui->horizontalSliderSharpness->value());
 
+    soft_changed |= (video_grayscale                != ui->comboBoxScreenType->currentData().toInt());
+    soft_changed |= (video_graytype                 != ui->comboBoxConversionType->currentData().toInt());
+
     soft_changed |= (enable_overscan                != (ui->checkBoxOverscan->isChecked() ? 1 : 0));
     soft_changed |= (vid_cga_contrast               != (ui->checkBoxContrast->isChecked() ? 1 : 0));
 
@@ -205,7 +220,10 @@ SettingsDisplay::save()
     vid_cga_comp_sharpness  = ui->horizontalSliderSharpness->value();
     cga_comp_reload(vid_cga_comp_brightness, vid_cga_comp_saturation, vid_cga_comp_sharpness, vid_cga_comp_hue, vid_cga_comp_contrast);
 
-    update_overscan = 1;
+    video_grayscale         = ui->comboBoxScreenType->currentData().toInt();
+    video_graytype          = ui->comboBoxConversionType->currentData().toInt();
+
+    update_overscan         = 1;
 
     enable_overscan         = ui->checkBoxOverscan->isChecked() ? 1 : 0;
     vid_cga_contrast        = ui->checkBoxContrast->isChecked() ? 1 : 0;

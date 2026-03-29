@@ -111,14 +111,6 @@ private slots:
     void on_actionFullScreen_keepRatio_triggered();
     void on_actionFullScreen_43_triggered();
     void on_actionFullScreen_stretch_triggered();
-    void on_actionWhite_monitor_triggered();
-    void on_actionGreen_monitor_triggered();
-    void on_actionAmber_monitor_triggered();
-    void on_actionRGB_Grayscale_triggered();
-    void on_actionRGB_Color_triggered();
-    void on_actionAverage_triggered();
-    void on_actionBT709_HDTV_triggered();
-    void on_actionBT601_NTSC_PAL_triggered();
     void on_actionDocumentation_triggered();
     void on_actionAbout_86Box_triggered();
     void on_actionAbout_Qt_triggered();

@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/settings">
-        <file>qt/icons/accelerators.ico</file>
         <file>qt/icons/cartridge.ico</file>
         <file>qt/icons/cartridge_image.ico</file>
         <file>qt/icons/cassette_image.ico</file>
@@ -38,6 +37,7 @@
         <file>qt/icons/mo.ico</file>
         <file>qt/icons/mo_image.ico</file>
         <file>qt/icons/mo_disabled.ico</file>
+        <file>qt/icons/monitor.ico</file>
         <file>qt/icons/network.ico</file>
         <file>qt/icons/other_peripherals.ico</file>
         <file>qt/icons/other_removable_devices.ico</file>

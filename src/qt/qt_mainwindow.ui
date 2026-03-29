@@ -170,31 +170,6 @@
      <addaction name="actionFullScreen_int"/>
      <addaction name="actionFullScreen_int43"/>
     </widget>
-    <widget class="QMenu" name="menuEGA_S_VGA_settings">
-     <property name="title">
-      <string>EGA/(S)&amp;VGA settings</string>
-     </property>
-     <widget class="QMenu" name="menuVGA_screen_type">
-      <property name="title">
-       <string>VGA screen &amp;type</string>
-      </property>
-      <addaction name="actionRGB_Color"/>
-      <addaction name="actionRGB_Grayscale"/>
-      <addaction name="actionAmber_monitor"/>
-      <addaction name="actionGreen_monitor"/>
-      <addaction name="actionWhite_monitor"/>
-     </widget>
-     <widget class="QMenu" name="menuGrayscale_conversion_type">
-      <property name="title">
-       <string>Grayscale &amp;conversion type</string>
-      </property>
-      <addaction name="actionBT601_NTSC_PAL"/>
-      <addaction name="actionBT709_HDTV"/>
-      <addaction name="actionAverage"/>
-     </widget>
-     <addaction name="menuVGA_screen_type"/>
-     <addaction name="menuGrayscale_conversion_type"/>
-    </widget>
     <widget class="QMenu" name="menuOpenGL_input_stretch_mode">
      <property name="title">
       <string>OpenGL input stretch mode</string>
@@ -241,8 +216,6 @@
     <addaction name="actionRenderer_options"/>
     <addaction name="menuOpenGL_input_stretch_mode"/>
     <addaction name="menuOpenGL_input_scale"/>
-    <addaction name="separator"/>
-    <addaction name="menuEGA_S_VGA_settings"/>
    </widget>
    <widget class="QMenu" name="menuMedia">
     <property name="title">
@@ -615,70 +588,6 @@
    </property>
    <property name="text">
     <string>4:&amp;3 Integer scale</string>
-   </property>
-  </action>
-  <action name="actionRGB_Color">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>RGB &amp;Color</string>
-   </property>
-  </action>
-  <action name="actionRGB_Grayscale">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;RGB Grayscale</string>
-   </property>
-  </action>
-  <action name="actionAmber_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Amber monitor</string>
-   </property>
-  </action>
-  <action name="actionGreen_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Green monitor</string>
-   </property>
-  </action>
-  <action name="actionWhite_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;White monitor</string>
-   </property>
-  </action>
-  <action name="actionBT601_NTSC_PAL">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>BT&amp;601 (NTSC/PAL)</string>
-   </property>
-  </action>
-  <action name="actionBT709_HDTV">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>BT&amp;709 (HDTV)</string>
-   </property>
-  </action>
-  <action name="actionAverage">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Average</string>
    </property>
   </action>
   <action name="actionAbout_Qt">
