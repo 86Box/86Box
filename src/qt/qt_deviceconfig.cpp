@@ -66,15 +66,6 @@ DeviceConfig::DeviceConfig(QWidget *parent)
 
 DeviceConfig::~DeviceConfig()
 {
-    delete scBIOS;
-    scBIOS    = nullptr;
-
-    delete scMidiOut;
-    scMidiOut = nullptr;
-
-    delete scMidiIn;
-    scMidiIn  = nullptr;
-
     delete ui;
 }
 
@@ -196,9 +187,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
             case CONFIG_MIDI_OUT:
                 {
                     auto *cbox   = new QComboBox();
-                    int   add_sc = (scMidiOut == nullptr);
-                    if (add_sc)
-                        scMidiOut = new SettingsCompleter(cbox, nullptr);
                     cbox->setObjectName(config->name);
                     cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
@@ -208,8 +196,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         rtmidi_out_get_dev_name(i, midiName);
 
                         Models::AddEntry(model, midiName, i);
-                        if (add_sc)
-                            scMidiOut->addDevice(nullptr, midiName);
                         if (i == value)
                             currentIndex = i;
                     }
@@ -220,9 +206,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
             case CONFIG_MIDI_IN:
                 {
                     auto *cbox   = new QComboBox();
-                    int   add_sc = (scMidiIn == nullptr);
-                    if (add_sc)
-                        scMidiIn = new SettingsCompleter(cbox, nullptr);
                     cbox->setObjectName(config->name);
                     cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
@@ -232,8 +215,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         rtmidi_in_get_dev_name(i, midiName);
 
                         Models::AddEntry(model, midiName, i);
-                        if (add_sc)
-                            scMidiIn->addDevice(nullptr, midiName);
                         if (i == value)
                             currentIndex = i;
                     }
@@ -271,9 +252,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
             case CONFIG_BIOS:
                 {
                     auto *cbox   = new QComboBox();
-                    int   add_sc = (scBIOS == nullptr);
-                    if (add_sc)
-                        scBIOS = new SettingsCompleter(cbox, nullptr);
                     cbox->setObjectName(config->name);
                     cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
@@ -294,8 +272,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         }
                         if ((bios->files_no == -1) || (p == bios->files_no)) {
                             const int row = Models::AddEntry(model, tr(bios->name), q);
-                            if (add_sc)
-                                scBIOS->addDevice(nullptr, tr(bios->name));
                             if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
                                 currentIndex = row;
 
@@ -448,11 +424,6 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
 
     DeviceConfig dc(settings);
     dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
-
-    dc.scMidiIn  = nullptr;
-    dc.scMidiOut = nullptr;
-
-    dc.scBIOS    = nullptr;
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
