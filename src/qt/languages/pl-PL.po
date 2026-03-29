@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-03-29 18:07+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"Last-Translator: JanuSzaj <testowe07@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -575,13 +575,13 @@ msgid "IDE Controller"
 msgstr "Kontroler IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Kontroler IDE (podwójny)"
 
 msgid "PC/AT IDE Controller"
 msgstr "Kontroler IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Kontroler IDE PC/AT (podwójny)"
 
 msgid "PC/AT XTIDE (Primary Only)"
 msgstr "PC/AT XTIDE (tylko podstawowy)"
