@@ -2012,8 +2012,8 @@ pasplus_get_music_buffer(int32_t *buffer, int len, void *priv)
     double             bass_treble;
 
     for (int c = 0; c < len * 2; c += 2) {
-        double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
-        double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+        double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 7.7171630859375;
+        double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 7.7171630859375;
 
         /* TODO: recording CD, Mic with AGC or line in. Note: mic volume does not affect recording. */
         out_l *= mixer->master_l;
@@ -2137,11 +2137,11 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
 
         if (pas16->filter) {
             /* We divide by 3 to get the volume down to normal. */
-            out_l += (low_fir_pas16(0, (double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l) / 3.0;
-            out_r += (low_fir_pas16(1, (double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r) / 3.0;
+            out_l += (low_fir_pas16(0, (double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l);
+            out_r += (low_fir_pas16(1, (double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r);
         } else {
-            out_l += (((double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l) / 3.0;
-            out_r += (((double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r) / 3.0;
+            out_l += (((double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l);
+            out_r += (((double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r);
         }
 
         out_l *= mixer->master_l;
