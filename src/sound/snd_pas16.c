@@ -1752,7 +1752,7 @@ static uint16_t
 pas16_readdmaw_stereo(pas16_t *pas16)
 {
     uint16_t ret;
-    uint16_t ticks = (pas16->sys_conf_1 & 0x02) ? (1 + (pas16->dma < 5)) : 1;
+    uint16_t ticks = (1 + (pas16->dma < 5));
 
     ret = pas16_dma_readw(pas16, ticks);
 
