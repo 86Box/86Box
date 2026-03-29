@@ -355,6 +355,21 @@ msgstr "Производительность"
 msgid "Machine type:"
 msgstr "Тип машины:"
 
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486 (Socket 168 и 1)"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486 (разное)"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7 (без двойного питания)"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1995] Socket 7 (двойное питание)"
+
+msgid "Miscellaneous"
+msgstr "Разное"
+
 msgid "Machine:"
 msgstr "Системная плата:"
 

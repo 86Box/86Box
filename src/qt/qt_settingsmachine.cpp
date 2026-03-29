@@ -64,7 +64,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
         if ((miname == nullptr) || (machine_get_type(j) != i)) {
             if ((i != -1) && (cur_j != 0)) {
-                int row = Models::AddEntry(machineTypesModel, machine_types[i].name, machine_types[i].id);
+                int row = Models::AddEntry(machineTypesModel, tr(machine_types[i].name), machine_types[i].id);
                 if (machine_types[i].id == machine_get_type(machine))
                     selectedMachineType = row;
             }
