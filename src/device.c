@@ -719,7 +719,7 @@ device_get_name(const device_t *dev, int bus, char *name)
 
         if (sbus != NULL) {
             /* First concatenate [<Bus>] before the device's name. */
-            if (bus > 0) {
+            if ((bus > 0) && strcmp(sbus, "LPT")) {
                 strcat(name, "[");
                 strcat(name, sbus);
                 strcat(name, "] ");

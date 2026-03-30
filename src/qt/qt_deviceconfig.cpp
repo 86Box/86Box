@@ -610,7 +610,7 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
         if (bus == 1) {
             device_get_name(device, -1, temp);
             tempbus = device_get_bus_name(device);
-            if (tempbus != nullptr)
+            if ((tempbus != nullptr) && strcmp(tempbus, "LPT"))
                 return QString("[%1] %2").arg(tr(tempbus), tr((const char *) temp));
             else
                 return tr((const char *) temp);
