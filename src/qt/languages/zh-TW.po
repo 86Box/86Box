@@ -575,31 +575,31 @@ msgid "IDE Controller"
 msgstr "IDE 控制器"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE 控制器 (雙通道)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE 控制器"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE 控制器 (雙通道)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (僅主通道)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (1.1.5) (僅主通道)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (第三及第四)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (第三及第四)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (第三及第四)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE 控制器"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
