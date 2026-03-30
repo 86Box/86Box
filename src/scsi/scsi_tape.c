@@ -77,6 +77,7 @@ const uint8_t tape_command_flags[0x100] = {
     [0x1b]          = IMPLEMENTED | CHECK_READY,             /* LOAD/UNLOAD */
     [0x1d]          = IMPLEMENTED,                           /* SEND DIAGNOSTIC */
     [0x1e]          = IMPLEMENTED | CHECK_READY,             /* PREVENT/ALLOW MEDIUM REMOVAL */
+    [0x2b]          = IMPLEMENTED | CHECK_READY,             /* LOCATE(10) */
     [0x34]          = IMPLEMENTED | CHECK_READY,             /* READ POSITION */
     [0x55]          = IMPLEMENTED,                           /* MODE SELECT(10) */
     [0x5a]          = IMPLEMENTED,                           /* MODE SENSE(10) */
@@ -1590,7 +1591,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_SEEK_BLOCK:
             count = ((cdb[2] << 16) | (cdb[3] << 8) | cdb[4]) - 1;
 
-            if (count > 0) {
+            if (count >= 0) {
                 tape_rewind(dev);
 
                 tape_seek_blocks_forward(dev, count);
@@ -1605,7 +1606,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_SEEK_10:
             count = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
-            if (count > 0) {
+            if (count >= 0) {
                 tape_rewind(dev);
 
                 tape_seek_blocks_forward(dev, count);
