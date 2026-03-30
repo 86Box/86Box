@@ -1028,8 +1028,10 @@ VMManagerSystem::setupVars()
             if (ports_config.contains(lpt_device_key)) {
                 auto lpt_internal_name = QString(ports_config[lpt_device_key]);
                 auto lpt_id            = lpt_device_get_from_internal_name(lpt_internal_name.toUtf8().data());
-                lpt_device_name        = " (" + tr(lpt_device_get_name(lpt_id)) + ")";
-                hasLptDevices          = true;
+                if (lpt_id) {
+                    lpt_device_name = " (" + DeviceConfig::DeviceName(lpt_device_getdevice(lpt_id), lpt_device_get_internal_name(lpt_id), -1) + ")";
+                    hasLptDevices   = true;
+                }
             }
             lptFinal.append(QString("LPT%1%2").arg(portIndex + 1).arg(lpt_device_name));
         }

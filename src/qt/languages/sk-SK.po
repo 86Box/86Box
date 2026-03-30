@@ -2641,6 +2641,9 @@ msgstr "Štandard"
 msgid "High-Speed"
 msgstr "Vysokorýchlostný"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereofónny prevodník LPT DAC"
 
@@ -2653,14 +2656,17 @@ msgstr "Generická ihličková tlačiareň ESC/P 2"
 msgid "Generic PostScript Printer"
 msgstr "Generická tlačiareň PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Generická tlačiareň PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Generická tlačiareň PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Internetový protokol paralelnej linky"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Ochranný kľúč pre Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Zariadenie priechodu sériového portu"

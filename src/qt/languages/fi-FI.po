@@ -2641,6 +2641,9 @@ msgstr "Vakio"
 msgid "High-Speed"
 msgstr "Nopea"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT-DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo-LPT-DAC"
 
@@ -2653,14 +2656,17 @@ msgstr "Yleinen ESC/P 2 pistematriisitulostin"
 msgid "Generic PostScript Printer"
 msgstr "Yleinen PostScript-tulostin"
 
-msgid "Generic PCL5e Printer"
-msgstr "Yleinen PCL5e-tulostin"
+msgid "Generic PCL Printer"
+msgstr "Yleinen PCL-tulostin"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Rinnakkaislinjan Internet-protokolla"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Questin suojausdongle"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Sarjaportin läpivientilaite"

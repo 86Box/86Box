@@ -2659,6 +2659,9 @@ msgstr "Standart"
 msgid "High-Speed"
 msgstr "Yüksek Hızlı"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo LPT DAC"
 
@@ -2671,14 +2674,17 @@ msgstr "Genel ESC/P 2 Dot-Matrix Yazıcı"
 msgid "Generic PostScript Printer"
 msgstr "Genel PostScript Yazıcı"
 
-msgid "Generic PCL5e Printer"
-msgstr "Genel PCL5e Yazıcı"
+msgid "Generic PCL Printer"
+msgstr "Genel PCL Yazıcı"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Paralel Hat İnternet Protokolü"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest için Koruma Kilidi"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Seri Geçiş Cihazı"

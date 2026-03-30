@@ -2678,6 +2678,9 @@ msgstr "Κανονικό"
 msgid "High-Speed"
 msgstr "Υψηλής-Ταχύτητας"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Στέρεο LPT DAC"
 
@@ -2690,14 +2693,17 @@ msgstr "Γενικός Εκτυπωτής ESC/P 2 Dot-Matrix"
 msgid "Generic PostScript Printer"
 msgstr "Γενικός Εκτυπωτής PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Γενικός Εκτυπωτής PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Γενικός Εκτυπωτής PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Πρωτόκολλο Παράλληλης Γραμμής Internet"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle προστασίας για το Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Συσκευή Σειριακής Διέλευσης"

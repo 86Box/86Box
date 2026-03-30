@@ -2653,8 +2653,11 @@ msgstr "Стандартный"
 msgid "High-Speed"
 msgstr "Высокоскоростной"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT-ЦАП / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
-msgstr "Стереофонический ЦАП LPT"
+msgstr "Стереофонический LPT-ЦАП"
 
 msgid "Generic Text Printer"
 msgstr "Стандартный текстовый принтер"
@@ -2665,14 +2668,17 @@ msgstr "Стандартный матричный принтер ESC/P 2"
 msgid "Generic PostScript Printer"
 msgstr "Стандартный принтер PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Стандартный принтер PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Стандартный принтер PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Защитный донгл для Savage Quest"
+
+msgid "Loopback Plug"
+msgstr "Loopback-кабель"
 
 msgid "Serial Passthrough Device"
 msgstr "Устройство проброса через последовательный порт"

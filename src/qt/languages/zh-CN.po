@@ -2641,6 +2641,9 @@ msgstr "标准"
 msgid "High-Speed"
 msgstr "高速"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "立体声 LPT DAC"
 
@@ -2653,14 +2656,17 @@ msgstr "通用 ESC/P 2 点阵打印机"
 msgid "Generic PostScript Printer"
 msgstr "通用 PostScript 打印机"
 
-msgid "Generic PCL5e Printer"
-msgstr "通用 PCL5e 打印机"
+msgid "Generic PCL Printer"
+msgstr "通用 PCL 打印机"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest 保护加密狗"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "串口直通设备"

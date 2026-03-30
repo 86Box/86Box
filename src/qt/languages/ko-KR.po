@@ -2640,6 +2640,9 @@ msgstr "표준"
 msgid "High-Speed"
 msgstr "고속"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "스테레오 LPT DAC"
 
@@ -2652,14 +2655,17 @@ msgstr "일반 ESC/P 2 도트 매트릭스 프린터"
 msgid "Generic PostScript Printer"
 msgstr "일반 포스트스크립트 프린터"
 
-msgid "Generic PCL5e Printer"
-msgstr "일반 PCL5e 프린터"
+msgid "Generic PCL Printer"
+msgstr "일반 PCL 프린터"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "병렬 인터넷 프로토콜"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "새비지 퀘스트용 보호 동글"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "직렬 포트 패스스루 장치"

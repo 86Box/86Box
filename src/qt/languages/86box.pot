@@ -2634,6 +2634,9 @@ msgstr ""
 msgid "High-Speed"
 msgstr ""
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr ""
+
 msgid "Stereo LPT DAC"
 msgstr ""
 
@@ -2646,13 +2649,16 @@ msgstr ""
 msgid "Generic PostScript Printer"
 msgstr ""
 
-msgid "Generic PCL5e Printer"
+msgid "Generic PCL Printer"
 msgstr ""
 
 msgid "Parallel Line Internet Protocol"
 msgstr ""
 
 msgid "Protection Dongle for Savage Quest"
+msgstr ""
+
+msgid "Loopback Plug"
 msgstr ""
 
 msgid "Serial Passthrough Device"

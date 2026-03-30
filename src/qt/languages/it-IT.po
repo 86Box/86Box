@@ -2721,6 +2721,9 @@ msgstr "Standard"
 msgid "High-Speed"
 msgstr "Alta velocità"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "DAC LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "DAC LPT stereo"
 
@@ -2733,14 +2736,17 @@ msgstr "Stampante a matrice di punti ESC/P 2 generica"
 msgid "Generic PostScript Printer"
 msgstr "Stampante PostScript generica"
 
-msgid "Generic PCL5e Printer"
-msgstr "Stampante PCL5e generica"
+msgid "Generic PCL Printer"
+msgstr "Stampante PCL generica"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Protocollo Internet a linea parallela"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Supporto di protezione per Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Dispositivo passaggio porta seriale"

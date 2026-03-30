@@ -2643,6 +2643,9 @@ msgstr "Standardna"
 msgid "High-Speed"
 msgstr "Visoka brzina"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "DAC za LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo DAC za LPT"
 
@@ -2655,14 +2658,17 @@ msgstr "Generični matrični pisač ESC/P 2"
 msgid "Generic PostScript Printer"
 msgstr "Generični pisač PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Generični pisač PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Generični pisač PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Internet protokol za paralelnu liniju"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Zaštitni uređaj za Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Uređaj prolaza serijskih vrata"
