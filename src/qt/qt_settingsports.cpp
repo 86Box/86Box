@@ -190,20 +190,24 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     }
 
     while (true) {
-        const char *lptName = lpt_device_get_name(c);
+        const QString name = DeviceConfig::DeviceName(lpt_device_getdevice(c),
+                                                      lpt_device_get_internal_name(c), 0);
 
-        if (lptName == nullptr)
+        if (name.isEmpty())
             break;
 
         if (lpt_device_available(c)) {
-            const QString name = tr(lptName);
+            if (name.isEmpty())
+                break;
 
-            for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
-                int row = Models::AddEntry(models[i], name, c);
-                scLpt[i]->addDevice(nullptr, name);
+            if (device_is_valid(lpt_device_getdevice(c), machineId)) {
+                for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
+                    int row = Models::AddEntry(models[i], name, c);
+                    scLpt[i]->addDevice(nullptr, name);
 
-                if (c == lpt_ports[i].device)
-                    selectedRows[i] = row - removeRows_[i];
+                    if (c == lpt_ports[i].device)
+                        selectedRows[i] = row - removeRows_[i];
+                }
             }
         }
 
