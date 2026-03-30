@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-29 22:55+0000\n"
-"Last-Translator: JanuSzaj <testowe07@gmail.com>\n"
+"PO-Revision-Date: 2026-03-31 08:00+0000\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -584,10 +584,10 @@ msgid "PC/AT IDE Controller (Dual-Channel)"
 msgstr "Kontroler IDE PC/AT (podwójny)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr "PC/AT XTIDE (tylko nadrzędny)"
+msgstr "PC/AT XTIDE (podstawowy)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr "PS/2 AT XTIDE (1.1.5) (tylko nadrzędny)"
+msgstr "PS/2 AT XTIDE (1.1.5) (podstawowy)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
 msgstr "CMD PCI-0646 (trzeciorzędny i czwartorzędny)"
