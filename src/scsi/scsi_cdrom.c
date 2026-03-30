@@ -1160,6 +1160,10 @@ scsi_cdrom_insert(void *priv)
     if ((dev == NULL) || (dev->drv == NULL))
         return;
 
+    /* Make sure all cached sectors are cleared. */
+    dev->drv->cached_sector = -1;
+    dev->toc_cached         = 0;
+
     if (dev->drv->ops == NULL) {
         dev->unit_attention = 0;
         dev->drv->cd_status = CD_STATUS_EMPTY;
