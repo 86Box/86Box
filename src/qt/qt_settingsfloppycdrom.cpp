@@ -63,7 +63,7 @@ SettingsFloppyCDROM::setFloppyType(QAbstractItemModel *model, const QModelIndex 
 }
 
 void
-SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel)
+SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type, uint8_t channel)
 {
     QIcon icon;
 
@@ -75,7 +75,7 @@ SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &i
         case CDROM_BUS_SCSI:
         case CDROM_BUS_MITSUMI:
         case CDROM_BUS_MKE:
-            icon = cdrom_icon;
+            icon = cdrom_is_dvd(type) ? dvdrom_icon : cdrom_icon;
             break;
     }
 
@@ -194,6 +194,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
     cdrom_disabled_icon = QIcon(":/settings/qt/icons/cdrom_disabled.ico");
     cdrom_icon          = QIcon(":/settings/qt/icons/cdrom.ico");
+    dvdrom_icon         = QIcon(":/settings/qt/icons/dvdrom.ico");
 
     Harddrives::populateCDROMBuses(ui->comboBoxBus->model());
     model = ui->comboBoxSpeed->model();
@@ -210,7 +211,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
         ui->tableViewCDROM->setRowHeight(i, 25);
         auto idx  = model->index(i, 0);
         int  type = cdrom_get_type(i);
-        setCDROMBus(model, idx, cdrom[i].bus_type, cdrom[i].res);
+        setCDROMBus(model, idx, cdrom[i].bus_type, type, cdrom[i].res);
         setCDROMType(model, idx.siblingAtColumn(2), type);
         int speed = cdrom_get_speed(type);
         if (speed == -1)
@@ -557,7 +558,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
 
     setCDROMBus(ui->tableViewCDROM->model(),
                 ui->tableViewCDROM->selectionModel()->currentIndex(),
-                bus_type,
+                bus_type, cdrom[cdromIdx].type,
                 ui->comboBoxChannel->currentData().toUInt());
     Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
 
@@ -619,10 +620,11 @@ void
 SettingsFloppyCDROM::on_comboBoxChannel_activated(int)
 {
     auto i = ui->tableViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
+    int type = ui->comboBoxCDROMType->currentData().toUInt();
     Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
     setCDROMBus(ui->tableViewCDROM->model(),
                 ui->tableViewCDROM->selectionModel()->currentIndex(),
-                ui->comboBoxBus->currentData().toUInt(),
+                ui->comboBoxBus->currentData().toUInt(), type,
                 ui->comboBoxChannel->currentData().toUInt());
     Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
     emit cdromChannelChanged();

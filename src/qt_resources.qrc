@@ -13,6 +13,11 @@
         <file>qt/icons/cdrom_host.ico</file>
         <file>qt/icons/composite_cga.ico</file>
         <file>qt/icons/display.ico</file>
+        <file>qt/icons/dvdrom.ico</file>
+        <file>qt/icons/dvdrom_unmute.ico</file>
+        <file>qt/icons/dvdrom_image.ico</file>
+        <file>qt/icons/dvdrom_folder.ico</file>
+        <file>qt/icons/dvdrom_host.ico</file>
         <file>qt/icons/fast_forward.ico</file>
         <file>qt/icons/floppy_35.ico</file>
         <file>qt/icons/floppy_35_image.ico</file>

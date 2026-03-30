@@ -42,7 +42,7 @@ private slots:
 private:
     Ui::SettingsFloppyCDROM *ui;
     void                     setFloppyType(QAbstractItemModel *model, const QModelIndex &idx, int type);
-    void                     setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
+    void                     setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type, uint8_t channel);
     void                     enableCurrentlySelectedChannel();
 
     QIcon floppy_disabled_icon;
@@ -50,6 +50,7 @@ private:
     QIcon floppy_35_icon;
     QIcon cdrom_disabled_icon;
     QIcon cdrom_icon;
+    QIcon dvdrom_icon;
 
     SettingsCompleter *scFloppyType;
     SettingsCompleter *scCDROMType;
