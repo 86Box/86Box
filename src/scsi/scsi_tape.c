@@ -1591,7 +1591,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_SEEK_BLOCK:
             count = ((cdb[2] << 16) | (cdb[3] << 8) | cdb[4]) - 1;
 
-            if (count > 0) {
+            if (count >= 0) {
                 tape_rewind(dev);
 
                 tape_seek_blocks_forward(dev, count);
@@ -1606,12 +1606,15 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_SEEK_10:
             count = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
-            tape_rewind(dev);
+            if (count >= 0) {
+                tape_rewind(dev);
 
-            tape_seek_blocks_forward(dev, count + 1);
+                tape_seek_blocks_forward(dev, count);
 
-            tape_set_phase(dev, SCSI_PHASE_STATUS);
-            tape_command_complete(dev);
+                tape_set_phase(dev, SCSI_PHASE_STATUS);
+                tape_command_complete(dev);
+            } else
+                tape_invalid_field_pl(dev, 0x00000000);
             break;
 
         case GPCMD_READ_6: {
