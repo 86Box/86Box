@@ -728,7 +728,7 @@ device_get_name(const device_t *dev, int bus, char *name)
             /* Then change string from ISA16 to ISA if applicable. */
             if (!strcmp(sbus, "ISA16"))
                 sbus = "ISA";
-            else if (!strcmp(sbus, "COM") || !strcmp(sbus, "LPT")) {
+            else if (!strcmp(sbus, "COM")) {
                 sbus = NULL;
                 strcat(name, dev->name);
                 return;
