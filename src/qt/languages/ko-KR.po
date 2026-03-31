@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-03-31 13:58+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
 "MIME-Version: 1.0\n"
@@ -48,6 +48,7 @@ msgstr "표시(&V)"
 msgid "&Hide status bar"
 msgstr "상태 바 숨기기(&H)"
 
+#, fuzzy
 msgid "Hide &toolbar"
 msgstr "Hide &toolbar"
 
@@ -2424,6 +2425,7 @@ msgstr "타이머 없음(원본)"
 msgid "45 Hz (JMP2 not populated)"
 msgstr "45Hz(JMP2에서 점퍼 없음)"
 
+#, fuzzy
 msgid "Two"
 msgstr "Two"
 
@@ -2571,6 +2573,7 @@ msgstr "향상된 색상 - 향상된 모드(5154/ECD)"
 msgid "Green"
 msgstr "녹색"
 
+#, fuzzy
 msgid "Amber"
 msgstr "Amber"
 
