@@ -565,10 +565,10 @@ msgid "PC/AT IDE Controller (Dual-Channel)"
 msgstr "Krmilnik IDE PC/AT (dvokanalni)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE PC/AT (samo primarni)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "XTIDE AT PS/2 (1.1.5) (samo primarni)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
 msgstr ""
