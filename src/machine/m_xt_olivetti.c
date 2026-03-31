@@ -2024,7 +2024,7 @@ m19_vid_init(m19_vid_t *vid)
     vid->ogc.cga.revision     = device_get_config_int("composite_type");
     vid->ogc.cga.snow_enabled = device_get_config_int("snow_enabled");
 
-    vid->ogc.cga.vram = malloc(0x8000);
+    vid->ogc.cga.vram = calloc(1, 0x8000);
 
 #if 0
     cga_comp_init(vid->ogc.cga.revision);
@@ -2051,7 +2051,7 @@ m19_vid_init(m19_vid_t *vid)
     vid->colorplus.cga.snow_enabled = device_get_config_int("snow_enabled");
 #endif
 
-    vid->colorplus.cga.vram = malloc(0x8000);
+    vid->colorplus.cga.vram = calloc(1, 0x8000);
 
 #if 0
     vid->colorplus.cga.cgamode = 0x1;

@@ -561,7 +561,6 @@ nga_init(UNUSED(const device_t *info))
     uint8_t charset;
     nga_t  *nga = (nga_t *) calloc(1, sizeof(nga_t));
 
-    memset(nga, 0x00, sizeof(nga_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_nga);
 
     charset = device_get_config_int("charset");

@@ -531,8 +531,7 @@ hercules_init(UNUSED(const device_t *info))
 {
     hercules_t *dev;
 
-    dev = (hercules_t *) malloc(sizeof(hercules_t));
-    memset(dev, 0x00, sizeof(hercules_t));
+    dev = (hercules_t *) calloc(1, sizeof(hercules_t));
     dev->monitor_index = monitor_index_global;
 
     overscan_x = 16;

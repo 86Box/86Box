@@ -3407,8 +3407,7 @@ static void *
 banshee_init_common(const device_t *info, const char *fn, int has_sgram, int type, int voodoo_type, int agp)
 {
     int        mem_size;
-    banshee_t *banshee = malloc(sizeof(banshee_t));
-    memset(banshee, 0, sizeof(banshee_t));
+    banshee_t *banshee = calloc(1, sizeof(banshee_t));
 
     banshee->type     = type;
     banshee->agp      = agp;

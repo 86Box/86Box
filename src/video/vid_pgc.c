@@ -2722,7 +2722,6 @@ pgc_standalone_init(const device_t *info)
     pgc_t *dev;
 
     dev = (pgc_t *) calloc(1, sizeof(pgc_t));
-    memset(dev, 0x00, sizeof(pgc_t));
     dev->type = info->local;
 
     /* Framebuffer and screen are both 640x480. */

@@ -145,8 +145,7 @@ ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, int is_8514, void *priv, svg
 static void *
 ati68875_ramdac_init(UNUSED(const device_t *info))
 {
-    ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) malloc(sizeof(ati68875_ramdac_t));
-    memset(ramdac, 0, sizeof(ati68875_ramdac_t));
+    ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) calloc(1, sizeof(ati68875_ramdac_t));
 
     ramdac->mux_cntl = 0x2d;
 

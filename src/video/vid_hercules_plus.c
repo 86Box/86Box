@@ -623,8 +623,7 @@ herculesplus_init(UNUSED(const device_t *info))
 {
     herculesplus_t *dev;
 
-    dev = (herculesplus_t *) malloc(sizeof(herculesplus_t));
-    memset(dev, 0, sizeof(herculesplus_t));
+    dev = (herculesplus_t *) calloc(1, sizeof(herculesplus_t));
 
     dev->vram          = (uint8_t *) calloc(1, 0x10000); /* 64k VRAM */
     dev->monitor_index = monitor_index_global;

@@ -575,7 +575,6 @@ f82c425_init(UNUSED(const device_t *info))
 {
     f82c425_t *f82c425 = calloc(1, sizeof(f82c425_t));
 
-    memset(f82c425, 0, sizeof(f82c425_t));
     cga_init(&f82c425->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_f82c425);
 

@@ -663,7 +663,7 @@ delete_nvr_file(uint8_t flash)
 
     /* Set up the NVR file's name. */
     c       = strlen(machine_get_nvr_name()) + 5;
-    fn      = (char *) malloc(c + 1);
+    fn      = (char *) calloc(1, c + 1);
 
     if (fn == NULL)
         fatal("Error allocating memory for the removal of the %s file\n",

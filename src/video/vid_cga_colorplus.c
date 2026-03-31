@@ -336,8 +336,7 @@ colorplus_standalone_init(UNUSED(const device_t *info))
 {
     int display_type;
 
-    colorplus_t *colorplus = malloc(sizeof(colorplus_t));
-    memset(colorplus, 0, sizeof(colorplus_t));
+    colorplus_t *colorplus = calloc(1, sizeof(colorplus_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_colorplus);
 
@@ -348,7 +347,7 @@ colorplus_standalone_init(UNUSED(const device_t *info))
     colorplus->cga.revision     = device_get_config_int("composite_type");
     colorplus->cga.snow_enabled = device_get_config_int("snow_enabled");
 
-    colorplus->cga.vram = malloc(0x8000);
+    colorplus->cga.vram = calloc(1, 0x8000);
 
     cga_comp_init(colorplus->cga.revision);
     timer_add(&colorplus->cga.timer, colorplus_poll, colorplus, 1);

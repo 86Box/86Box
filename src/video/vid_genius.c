@@ -738,8 +738,6 @@ genius_init(UNUSED(const device_t *info))
 {
     genius_t *genius = calloc(1, sizeof(genius_t));
 
-    memset(genius, 0, sizeof(genius_t));
-
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_genius);
 
     /* 160k video RAM */

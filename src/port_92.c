@@ -205,8 +205,7 @@ port_92_close(void *priv)
 void *
 port_92_init(const device_t *info)
 {
-    port_92_t *dev = (port_92_t *) malloc(sizeof(port_92_t));
-    memset(dev, 0, sizeof(port_92_t));
+    port_92_t *dev = (port_92_t *) calloc(1, sizeof(port_92_t));
 
     dev->flags = info->local & 0xff;
 

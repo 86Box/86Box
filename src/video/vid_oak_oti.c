@@ -465,10 +465,9 @@ oti_recalctimings(svga_t *svga)
 static void *
 oti_init(const device_t *info)
 {
-    oti_t      *oti   = malloc(sizeof(oti_t));
+    oti_t      *oti   = calloc(1, sizeof(oti_t));
     const char *romfn = NULL;
 
-    memset(oti, 0x00, sizeof(oti_t));
     oti->chip_id = info->local;
 
     oti->dipswitch_val = 0x18;

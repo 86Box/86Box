@@ -949,7 +949,7 @@ pit_close(void *priv)
 static void *
 pit_init(const device_t *info)
 {
-    pit_t *dev = (pit_t *) malloc(sizeof(pit_t));
+    pit_t *dev = (pit_t *) calloc(1, sizeof(pit_t));
 
     pit_reset(dev);
 

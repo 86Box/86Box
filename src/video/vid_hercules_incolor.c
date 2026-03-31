@@ -987,8 +987,7 @@ incolor_init(UNUSED(const device_t *info))
     incolor_t *dev;
     int        c;
 
-    dev = (incolor_t *) malloc(sizeof(incolor_t));
-    memset(dev, 0x00, sizeof(incolor_t));
+    dev = (incolor_t *) calloc(1, sizeof(incolor_t));
 
     dev->vram = (uint8_t *) calloc(1, 0x40000); /* 4 planes of 64k */
 

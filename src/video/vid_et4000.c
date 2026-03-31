@@ -795,8 +795,7 @@ et4000_init(const device_t *info)
     et4000_t   *dev;
     int         i;
 
-    dev = (et4000_t *) malloc(sizeof(et4000_t));
-    memset(dev, 0x00, sizeof(et4000_t));
+    dev = (et4000_t *) calloc(1, sizeof(et4000_t));
     dev->name = info->name;
     dev->type = info->local;
     fn        = BIOS_ROM_PATH;

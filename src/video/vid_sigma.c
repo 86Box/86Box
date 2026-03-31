@@ -786,8 +786,6 @@ sigma_init(UNUSED(const device_t *info))
     int      bios_addr;
     sigma_t *sigma = calloc(1, sizeof(sigma_t));
 
-    memset(sigma, 0, sizeof(sigma_t));
-
     bios_addr = device_get_config_hex20("bios_addr");
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_sigma);
