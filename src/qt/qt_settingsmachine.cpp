@@ -12,6 +12,11 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
+#include "qt_settings_completer.hpp"
+
+#include "qt_settingsmachine.hpp"
+#include "ui_qt_settingsmachine.h"
+
 #include <QDebug>
 #include <QDialog>
 #include <QFrame>
@@ -21,7 +26,6 @@
 #include <QStandardItemModel>
 #include <QCompleter>
 #include <QTimer>
-#include <QLineEdit>
 
 #include <algorithm>
 
@@ -38,9 +42,6 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
-#include "qt_settings_completer.hpp"
-#include "qt_settingsmachine.hpp"
-#include "ui_qt_settingsmachine.h"
 #include "qt_defs.hpp"
 
 SettingsMachine::SettingsMachine(QWidget *parent)
