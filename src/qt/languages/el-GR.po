@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-29 17:00+0000\n"
+"PO-Revision-Date: 2026-03-31 20:10+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -554,31 +554,31 @@ msgid "IDE Controller"
 msgstr "Ελεγκτής IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Ελεγκτής IDE (Διπλό-Κανάλι)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Ελεγκτής PC/AT IDE"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Ελεγκτής PC/AT IDE (Διπλό-Κανάλι)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (Μόνο Πρωτεύον)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (Μόνο Πρωτεύον)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (Τριαδικός και Τετραδικός)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (Τριαδικός και Τετραδικός)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (Τριαδικός και Τετραδικός)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Ελεγκτής McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Τριτογενής Ελεγκτής IDE"
