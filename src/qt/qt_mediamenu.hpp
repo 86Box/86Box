@@ -45,7 +45,6 @@ public:
     void cdromMute(int i);
     void cdromMount(int i, int dir, const QString &arg);
     void cdromMount(int i, const QString &filename);
-    void cdromInsertBlank(int i);
     void cdromEject(int i);
     void cdromReload(int index, int slot);
     void updateImageHistory(int index, int slot, ui::MediaType type);

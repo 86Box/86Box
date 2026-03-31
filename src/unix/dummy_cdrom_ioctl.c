@@ -213,9 +213,6 @@ static const cdrom_ops_t ioctl_ops = {
     ioctl_is_dvd,
     ioctl_has_audio,
     ioctl_is_empty,
-    NULL,
-    NULL,
-    NULL,
     ioctl_close,
     ioctl_load
 };
