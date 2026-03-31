@@ -11,7 +11,13 @@
         <file>qt/icons/cdrom_image.ico</file>
         <file>qt/icons/cdrom_folder.ico</file>
         <file>qt/icons/cdrom_host.ico</file>
+        <file>qt/icons/composite_cga.ico</file>
         <file>qt/icons/display.ico</file>
+        <file>qt/icons/dvdrom.ico</file>
+        <file>qt/icons/dvdrom_unmute.ico</file>
+        <file>qt/icons/dvdrom_image.ico</file>
+        <file>qt/icons/dvdrom_folder.ico</file>
+        <file>qt/icons/dvdrom_host.ico</file>
         <file>qt/icons/fast_forward.ico</file>
         <file>qt/icons/floppy_35.ico</file>
         <file>qt/icons/floppy_35_image.ico</file>
@@ -19,26 +25,46 @@
         <file>qt/icons/floppy_525_image.ico</file>
         <file>qt/icons/floppy_and_cdrom_drives.ico</file>
         <file>qt/icons/floppy_disabled.ico</file>
+        <file>qt/icons/floppy_tab.ico</file>
+        <file>qt/icons/general_display.ico</file>
+        <file>qt/icons/general_sound.ico</file>
+        <file>qt/icons/general_storage_controllers.ico</file>
+        <file>qt/icons/general_other_peripherals.ico</file>
         <file>qt/icons/hard_disk.ico</file>
         <file>qt/icons/input_devices.ico</file>
+        <file>qt/icons/isa_memory.ico</file>
+        <file>qt/icons/isa_rom.ico</file>
+        <file>qt/icons/key_bindings.ico</file>
+        <file>qt/icons/emulator.ico</file>
         <file>qt/icons/machine.ico</file>
+        <file>qt/icons/machine_tab.ico</file>
+        <file>qt/icons/midi.ico</file>
         <file>qt/icons/mo.ico</file>
         <file>qt/icons/mo_image.ico</file>
         <file>qt/icons/mo_disabled.ico</file>
+        <file>qt/icons/monitor.ico</file>
         <file>qt/icons/network.ico</file>
         <file>qt/icons/other_peripherals.ico</file>
         <file>qt/icons/other_removable_devices.ico</file>
+        <file>qt/icons/parallel_ports.ico</file>
+        <file>qt/icons/performance.ico</file>
         <file>qt/icons/ports.ico</file>
+        <file>qt/icons/processor.ico</file>
+        <file>qt/icons/scsi_controllers.ico</file>
+        <file>qt/icons/serial_ports.ico</file>
         <file>qt/icons/rdisk.ico</file>
         <file>qt/icons/rdisk_image.ico</file>
         <file>qt/icons/rdisk_disabled.ico</file>
+        <file>qt/icons/rdisk_tab.ico</file>
+        <file>qt/icons/tape.ico</file>
+        <file>qt/icons/tape_image.ico</file>
+        <file>qt/icons/tape_disabled.ico</file>
         <file>qt/icons/record.ico</file>
         <file>qt/icons/rewind.ico</file>
         <file>qt/icons/sound.ico</file>
         <file>qt/icons/storage_controllers.ico</file>
-        <file>qt/icons/superdisk.ico</file>
-        <file>qt/icons/superdisk_image.ico</file>
-        <file>qt/icons/superdisk_disabled.ico</file>
+        <file>qt/icons/zip.ico</file>
+        <file>qt/icons/zip_image.ico</file>
         <file>qt/icons/active.ico</file>
         <file>qt/icons/browse.ico</file>
         <file>qt/icons/eject.ico</file>
@@ -84,11 +110,6 @@
         <file alias="/texture_frag.spv">qt/texture_frag.spv</file>
     </qresource>
     <qresource prefix="/assets">
-        <file alias="86Box-green.png">qt/assets/86Box-green.png</file>
-        <file alias="86box-rb.png">qt/assets/86box-rb.png</file>
-        <file alias="86box-red.png">qt/assets/86box-red.png</file>
-        <file alias="86box-yellow.png">qt/assets/86box-yellow.png</file>
-        <file alias="86box.png">qt/assets/86box.png</file>
         <file alias="86box-wizard.png">qt/assets/86box-wizard.png</file>
         <file alias="addvm-logo.png">qt/assets/addvm-logo.png</file>
         <file alias="addvm-watermark.png">qt/assets/addvm-watermark.png</file>

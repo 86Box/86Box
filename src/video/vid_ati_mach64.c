@@ -5129,7 +5129,7 @@ mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
 }
 
 uint8_t
-mach64_pci_read(UNUSED(int func), int addr, void *priv)
+mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const mach64_t *mach64 = (mach64_t *) priv;
 
@@ -5214,7 +5214,7 @@ mach64_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 void
-mach64_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
 
@@ -5356,8 +5356,7 @@ static void *
 mach64_common_init(const device_t *info)
 {
     svga_t   *svga;
-    mach64_t *mach64 = malloc(sizeof(mach64_t));
-    memset(mach64, 0, sizeof(mach64_t));
+    mach64_t *mach64 = calloc(1, sizeof(mach64_t));
     reset_state[monitor_index_global] = calloc(1, sizeof(mach64_t));
 
     svga = &mach64->svga;

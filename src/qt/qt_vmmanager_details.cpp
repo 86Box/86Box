@@ -20,7 +20,7 @@ extern "C" {
 #include <86box/86box.h>
 }
 
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "ui_qt_vmmanager_details.h"
@@ -165,7 +165,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     connect(this, &VMManagerDetails::styleUpdated, portsSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, otherSection, &VMManagerDetailSection::updateStyle);
 
-    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+    QApplication::setFont(Preferences::getUIFont());
 #endif
 
     sysconfig = new VMManagerSystem();
@@ -328,6 +328,7 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig)
     storageSection->addSection("CD-ROM", passed_sysconfig->getDisplayValue(VMManager::Display::Name::CD));
     storageSection->addSection("Removable disks", passed_sysconfig->getDisplayValue(VMManager::Display::Name::RDisk));
     storageSection->addSection("MO", passed_sysconfig->getDisplayValue(VMManager::Display::Name::MO));
+    storageSection->addSection("Tape drives", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Tape));
     storageSection->addSection("SCSI", passed_sysconfig->getDisplayValue(VMManager::Display::Name::SCSIController));
     storageSection->addSection("Controllers", passed_sysconfig->getDisplayValue(VMManager::Display::Name::StorageController));
 

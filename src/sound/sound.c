@@ -14,7 +14,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2025 Miran Grca.
- *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2026 Jasmine Iwanek.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -116,12 +116,8 @@ static const SOUND_CARD sound_cards[] = {
     /* ISA */
     { &adgold_device                },
     { &cms_device                   },
-    { &ess_688_device               },
-    { &ess_ess0100_pnp_device       },
-    { &ess_1688_device              },
-    { &ess_ess0102_pnp_device       },
-    { &ess_ess0968_pnp_device       },
     { &ssi2001_device               },
+    { &thunderboard_device          },
     { &mmb_device                   },
 #ifdef USE_LIBSERIALPORT /*The following devices required LIBSERIALPORT*/
     { &opl2board_device             },
@@ -145,13 +141,21 @@ static const SOUND_CARD sound_cards[] = {
     /* ISA16 */
     { &acermagic_s20_device         },
     { &ad1816_device                },
-    { &azt2316a_device              },
-    { &azt1605_device               },
     { &aztpr16_device               },
+    { &azt1605_device               },
+    { &azt2316a_device              },
+    { &azt2316r_device              },
+    { &azt2320_device               },
     { &sb_goldfinch_device          },
     { &cs4232_device                },
     { &cs4235_device                },
     { &cs4236b_device               },
+    { &ess_688_device               },
+    { &ess_ess0100_pnp_device       },
+    { &ess_ess0968_pnp_688_device   },
+    { &ess_1688_device              },
+    { &ess_ess0102_pnp_device       },
+    { &ess_ess0968_pnp_device       },
     { &gus_device                   },
     { &gus_v37_device               },
     { &gus_max_device               },

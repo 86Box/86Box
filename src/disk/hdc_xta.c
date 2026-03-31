@@ -1457,7 +1457,7 @@ static const device_config_t st50x_config[] = {
 };
 
 const device_t xta_wdxt150_device = {
-    .name          = "WDXT-150 XTA Fixed Disk Controller",
+    .name          = "WDXT-150 (XTA)",
     .internal_name = "xta_wdxt150",
     .flags         = DEVICE_ISA,
     .local         = 0,
@@ -1471,7 +1471,7 @@ const device_t xta_wdxt150_device = {
 };
 
 const device_t xta_wdxt150_pc3086_device = {
-    .name          = "WDXT-150 XTA Fixed Disk Controller (PC3086)",
+    .name          = "WDXT-150 (XTA) (PC3086)",
     .internal_name = "xta_wdxt150",
     .flags         = DEVICE_ISA,
     .local         = 1,
@@ -1499,7 +1499,7 @@ const device_t xta_hd20_device = {
 };
 
 const device_t xta_st50x_device = {
-    .name          = "ST-50X Fixed Disk Controller",
+    .name          = "ST-50X (XTA)",
     .internal_name = "xta_st50x",
     .flags         = DEVICE_ISA,
     .local         = 3,
@@ -1513,7 +1513,7 @@ const device_t xta_st50x_device = {
 };
 
 const device_t xta_st50x_pc5086_device = {
-    .name          = "ST-50X Fixed Disk Controller (PC5086)",
+    .name          = "ST-50X (XTA) (PC5086)",
     .internal_name = "xta_st50x_pc5086",
     .flags         = DEVICE_ISA,
     .local         = 5,

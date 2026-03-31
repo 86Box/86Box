@@ -50,7 +50,7 @@ machine_at_s370slm_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -85,7 +85,7 @@ machine_at_awo671r_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -120,7 +120,7 @@ machine_at_ambx133_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -156,7 +156,7 @@ machine_at_cubx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -194,7 +194,7 @@ machine_at_63a1_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -227,7 +227,7 @@ machine_at_7sbb_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -256,7 +256,7 @@ machine_at_atc7020bxii_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -288,7 +288,7 @@ machine_at_m773_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -329,7 +329,7 @@ machine_at_apas3_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -361,7 +361,7 @@ machine_at_p6bap_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -397,7 +397,7 @@ machine_at_6via90ap_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -435,7 +435,7 @@ machine_at_cuv4xls_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -494,25 +494,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/w6318vms.120", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 7.1B5E (Elonex OEM)",
-                .internal_name = "ms6318_715",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ms6318/w6318ve1.715", "" }
-            },
-            {
-                .name          = "Award Modular BIOS v6.00PG - Revision 1.0B9 (Fujitsu-Siemens OEM)",
-                .internal_name = "ms6318_109",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ms6318/ms-6318-ver5.bin", "" }
-            },
-            {
-                .name          = "Award Modular BIOS v6.00PG - Revision 1.8 (HP OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.8 (HP Pavilion A7xx)",
                 .internal_name = "ms6318_180",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -521,7 +503,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/med2000v2.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 1.9 (HP OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.9 (HP Pavilion A8xx)",
                 .internal_name = "ms6318_190",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -530,7 +512,7 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/med2000.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 2.02 (HP OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 2.02 (HP Medion 2000A)",
                 .internal_name = "ms6318_202",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -539,22 +521,13 @@ static const device_config_t ms6318_config[] = {
                 .files         = { "roms/machines/ms6318/ms6318hp.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 1.3 (Medion OEM)",
+                .name          = "Award Modular BIOS v6.00PG - Revision 1.3 (Medion MED 2000)",
                 .internal_name = "ms6318_130",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 262144,
                 .files         = { "roms/machines/ms6318/ms6318.bin", "" }
-            },
-            {
-                .name          = "Award Modular BIOS v6.00PG - Revision 7.51 (Medion OEM)",
-                .internal_name = "ms6318_751",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/ms6318/bios.rom", "" }
             },
             { .files_no = 0 }
         }
@@ -592,7 +565,7 @@ machine_at_ms6318_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -629,7 +602,7 @@ machine_at_cairo5_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

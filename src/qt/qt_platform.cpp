@@ -52,7 +52,7 @@
 
 #include "qt_rendererstack.hpp"
 #include "qt_mainwindow.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_util.hpp"
 
 #ifndef Q_OS_WINDOWS
@@ -62,6 +62,27 @@
 #ifdef Q_OS_UNIX
 #    include <pthread.h>
 #    include <sys/mman.h>
+#    include <fcntl.h>
+#    include <unistd.h>
+#    include <sys/ioctl.h>
+#    ifdef Q_OS_LINUX
+#        include <linux/fs.h>
+#    endif
+#    ifdef Q_OS_MACOS
+#        include <sys/disk.h>
+#    endif
+#    if defined(Q_OS_FREEBSD) || defined(Q_OS_OPENBSD) || defined(Q_OS_NETBSD)
+#        include <sys/disk.h>
+#        include <sys/disklabel.h>
+#    endif
+#endif
+
+#ifdef Q_OS_WINDOWS
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
+#    include <winioctl.h>
 #endif
 
 #include <sys/stat.h>
@@ -108,10 +129,6 @@ private:
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
-#    ifndef NOMINMAX
-#        define NOMINMAX
-#    endif
-#    include <windows.h>
 #    include <86box/win.h>
 #else
 #    include <strings.h>
@@ -126,6 +143,7 @@ extern "C" {
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/config.h>
+#include <86box/hdd.h>
 #include <86box/ui.h>
 #ifdef DISCORD
 #    include <86box/discord.h>
@@ -268,6 +286,110 @@ plat_file_check(const char *path)
 }
 
 int
+plat_is_block_device(const char *path)
+{
+#ifdef Q_OS_WINDOWS
+    /* On Windows, check if path looks like a physical disk (e.g., \\.\PhysicalDrive0) */
+    if (path == nullptr)
+        return 0;
+    QString p = QString::fromUtf8(path);
+    if (p.startsWith("\\\\.\\PhysicalDrive", Qt::CaseInsensitive) ||
+        p.startsWith("\\\\.\\Harddisk", Qt::CaseInsensitive) ||
+        p.startsWith("\\\\?\\", Qt::CaseInsensitive))
+        return 1;
+    return 0;
+#else
+    struct stat stats;
+    if (stat(path, &stats) < 0)
+        return 0;
+#if defined(Q_OS_FREEBSD) || defined(Q_OS_OPENBSD) || defined(Q_OS_NETBSD)
+    /* BSD systems use character devices for disk access, not block devices */
+    return S_ISCHR(stats.st_mode) ? 1 : 0;
+#else
+    return S_ISBLK(stats.st_mode) ? 1 : 0;
+#endif
+#endif
+}
+
+int64_t
+plat_get_block_device_size(const char *path)
+{
+#ifdef Q_OS_WINDOWS
+    HANDLE hDevice;
+    DWORD  bytesReturned;
+    GET_LENGTH_INFORMATION lengthInfo;
+
+    auto widePath = QString::fromUtf8(path).toStdWString();
+    hDevice = CreateFileW(widePath.c_str(), GENERIC_READ,
+                          FILE_SHARE_READ | FILE_SHARE_WRITE,
+                          NULL, OPEN_EXISTING, 0, NULL);
+    if (hDevice == INVALID_HANDLE_VALUE)
+        return -1;
+
+    if (!DeviceIoControl(hDevice, IOCTL_DISK_GET_LENGTH_INFO,
+                         NULL, 0, &lengthInfo, sizeof(lengthInfo),
+                         &bytesReturned, NULL)) {
+        CloseHandle(hDevice);
+        return -1;
+    }
+
+    CloseHandle(hDevice);
+    return (int64_t) lengthInfo.Length.QuadPart;
+
+#elif defined(Q_OS_LINUX)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t size = 0;
+    if (ioctl(fd, BLKGETSIZE64, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#elif defined(Q_OS_MACOS)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t block_count = 0;
+    uint32_t block_size = 0;
+
+    if (ioctl(fd, DKIOCGETBLOCKCOUNT, &block_count) < 0) {
+        close(fd);
+        return -1;
+    }
+    if (ioctl(fd, DKIOCGETBLOCKSIZE, &block_size) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return (int64_t)(block_count * block_size);
+
+#elif defined(Q_OS_FREEBSD) || defined(Q_OS_OPENBSD) || defined(Q_OS_NETBSD)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    off_t size = 0;
+    if (ioctl(fd, DIOCGMEDIASIZE, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#else
+    /* Unsupported platform */
+    (void) path;
+    return -1;
+#endif
+}
+
+int
 plat_getcwd(char *bufp, int max)
 {
 #ifdef __APPLE__
@@ -348,6 +470,8 @@ void
 path_normalize(char *path)
 {
 #ifdef Q_OS_WINDOWS
+    if (plat_is_block_device(path))
+        return;
     if (strstr(path, "ioctl://") != path) {
         while (*path++ != 0) {
             if (*path == '\\')
@@ -575,6 +699,7 @@ plat_power_off(void)
 {
     plat_mouse_capture(0);
     confirm_exit_cmdl = 0;
+    hdd_image_sync_all();
     nvr_save();
     config_save();
 
@@ -590,14 +715,14 @@ plat_power_off(void)
 int
 plat_language_code(char *langcode)
 {
-    return ProgSettings::languageCodeToId(QString(langcode));
+    return Preferences::languageCodeToId(QString(langcode));
 }
 
 /* Converts the numeric language ID to a language code string */
 void
 plat_language_code_r(int id, char *outbuf, int len)
 {
-    qstrncpy(outbuf, ProgSettings::languageIdToCode(id).toUtf8().constData(), len);
+    qstrncpy(outbuf, Preferences::languageIdToCode(id).toUtf8().constData(), len);
     return;
 }
 
@@ -707,10 +832,10 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #    define LIB_NAME_PCAP "libpcap"
 #endif
 
-QMap<int, std::wstring> ProgSettings::translatedstrings;
+QMap<int, std::wstring> Preferences::translatedstrings;
 
 void
-ProgSettings::reloadStrings()
+Preferences::reloadStrings()
 {
     translatedstrings.clear();
     translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
@@ -741,9 +866,9 @@ ProgSettings::reloadStrings()
 wchar_t *
 plat_get_string(int i)
 {
-    if (ProgSettings::translatedstrings.empty())
-        ProgSettings::reloadStrings();
-    return ProgSettings::translatedstrings[i].data();
+    if (Preferences::translatedstrings.empty())
+        Preferences::reloadStrings();
+    return Preferences::translatedstrings[i].data();
 }
 
 int

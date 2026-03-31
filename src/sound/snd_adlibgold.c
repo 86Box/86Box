@@ -777,7 +777,7 @@ static void
 adgold_get_buffer(int32_t *buffer, int len, void *priv)
 {
     adgold_t *adgold        = (adgold_t *) priv;
-    int16_t  *adgold_buffer = malloc(sizeof(int16_t) * len * 2);
+    int16_t  *adgold_buffer = calloc(len * 2, sizeof(int16_t));
     if (adgold_buffer == NULL)
         fatal("adgold_buffer = NULL");
 

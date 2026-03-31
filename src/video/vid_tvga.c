@@ -35,6 +35,7 @@
 
 #define ROM_TVGA_8900B            "roms/video/tvga/tvga8900b.vbi"
 #define ROM_TVGA_8900CLD          "roms/video/tvga/trident.bin"
+#define ROM_TVGA_8900D_ONBOARD    "roms/machines/flytech386/FLYTECHV.VBI"
 #define ROM_TVGA_8900DR           "roms/video/tvga/8900DR.VBI"
 #define ROM_TVGA_9000B            "roms/video/tvga/tvga9000b.bin"
 #define ROM_TVGA_9000B_NEC_SV9000 "roms/video/tvga/SV9000.VBI"
@@ -408,16 +409,19 @@ static void *
 tvga_init(const device_t *info)
 {
     const char *bios_fn;
-    tvga_t     *tvga = malloc(sizeof(tvga_t));
-    memset(tvga, 0, sizeof(tvga_t));
+    tvga_t     *tvga    = calloc(1, sizeof(tvga_t));
 
-    tvga->card_id = info->local & 0xFF;
+    uint32_t    local   = info->local;
+    if (local == 0x00000000)
+        local   = device_get_bios_local(info, device_get_config_bios("bios"));
+
+    tvga->card_id = local & 0xff;
 
     if (tvga->card_id == TVGA9000B_ID) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
         tvga->vram_size = 512 << 10;
     } else {
-        if (info->local & 0x0100)
+        if (local & 0x0100)
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900dr);
         else
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
@@ -431,13 +435,15 @@ tvga_init(const device_t *info)
             bios_fn = ROM_TVGA_8900B;
             break;
         case TVGA8900CLD_ID:
-            if (info->local & 0x0100)
+            if (local & 0x0200)
+                bios_fn = ROM_TVGA_8900D_ONBOARD;
+            if (local & 0x0100)
                 bios_fn = ROM_TVGA_8900DR;
             else
                 bios_fn = ROM_TVGA_8900CLD;
             break;
         case TVGA9000B_ID:
-            bios_fn = (info->local & 0x100) ? ROM_TVGA_9000B_NEC_SV9000 : ROM_TVGA_9000B;
+            bios_fn = (local & 0x100) ? ROM_TVGA_9000B_NEC_SV9000 : ROM_TVGA_9000B;
             break;
         default:
             free(tvga);
@@ -458,36 +464,6 @@ tvga_init(const device_t *info)
     io_sethandler(0x03c0, 0x0020, tvga_in, NULL, NULL, tvga_out, NULL, NULL, tvga);
 
     return tvga;
-}
-
-static int
-tvga8900b_available(void)
-{
-    return rom_present(ROM_TVGA_8900B);
-}
-
-static int
-tvga8900d_available(void)
-{
-    return rom_present(ROM_TVGA_8900CLD);
-}
-
-static int
-tvga8900dr_available(void)
-{
-    return rom_present(ROM_TVGA_8900DR);
-}
-
-static int
-tvga9000b_available(void)
-{
-    return rom_present(ROM_TVGA_9000B);
-}
-
-static int
-tvga9000b_nec_sv9000_available(void)
-{
-    return rom_present(ROM_TVGA_9000B_NEC_SV9000);
 }
 
 void
@@ -516,6 +492,71 @@ tvga_force_redraw(void *priv)
     tvga->svga.fullchange = changeframecount;
 }
 
+static const device_config_t tvga8900_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "tvga8900dr",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Trident TVGA 8900B",
+                .internal_name = "tvga8900b",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TVGA8900B_ID,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_TVGA_8900B, "" }
+            },
+            {
+                .name          = "Trident TVGA 8900D",
+                .internal_name = "tvga8900d",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TVGA8900CLD_ID,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_TVGA_8900CLD, "" }
+            },
+            {
+                .name          = "Trident TVGA 8900D-R",
+                .internal_name = "tvga8900dr",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TVGA8900CLD_ID | 0x0100,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_TVGA_8900DR, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            /*Chip supports 2mb, but drivers are buggy*/
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
+};
+
 static const device_config_t tvga_config[] = {
     // clang-format off
     {
@@ -539,43 +580,67 @@ static const device_config_t tvga_config[] = {
 // clang-format off
 };
 
-const device_t tvga8900b_device = {
-    .name          = "Trident TVGA 8900B",
-    .internal_name = "tvga8900b",
-    .flags         = DEVICE_ISA,
-    .local         = TVGA8900B_ID,
-    .init          = tvga_init,
-    .close         = tvga_close,
-    .reset         = NULL,
-    .available     = tvga8900b_available,
-    .speed_changed = tvga_speed_changed,
-    .force_redraw  = tvga_force_redraw,
-    .config        = tvga_config
+static const device_config_t tvga9000b_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "tvga9000b",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Generic",
+                .internal_name = "tvga9000b",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TVGA9000B_ID,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_TVGA_9000B, "" }
+            },
+            {
+                .name          = "NEC SV9000",
+                .internal_name = "nec_sv9000",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TVGA9000B_ID | 0x100,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_TVGA_9000B_NEC_SV9000, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
 };
 
-const device_t tvga8900d_device = {
-    .name          = "Trident TVGA 8900D",
-    .internal_name = "tvga8900d",
-    .flags         = DEVICE_ISA,
-    .local         = TVGA8900CLD_ID,
+const device_t tvga8900_device = {
+    .name          = "Trident TVGA 8900",
+    .internal_name = "tvga8900_onboard",
+    .flags         = DEVICE_ISA | DEVICE_BIOS_ALIAS,
+    .local         = 0,
     .init          = tvga_init,
     .close         = tvga_close,
     .reset         = NULL,
-    .available     = tvga8900d_available,
+    .available     = NULL,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
-    .config        = tvga_config
+    .config        = tvga8900_config
 };
 
-const device_t tvga8900dr_device = {
-    .name          = "Trident TVGA 8900D-R",
-    .internal_name = "tvga8900dr",
-    .flags         = DEVICE_ISA,
-    .local         = TVGA8900CLD_ID | 0x0100,
+const device_t tvga8900d_onboard_device = {
+    .name          = "Trident TVGA 8900D (On-Board)",
+    .internal_name = "tvga8900d_onboard",
+    .flags         = DEVICE_ISA | DEVICE_BIOS_ALIAS,
+    .local         = TVGA8900CLD_ID | 0x0200,
     .init          = tvga_init,
     .close         = tvga_close,
     .reset         = NULL,
-    .available     = tvga8900dr_available,
+    .available     = NULL,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
     .config        = tvga_config
@@ -583,28 +648,19 @@ const device_t tvga8900dr_device = {
 
 const device_t tvga9000b_device = {
     .name          = "Trident TVGA 9000B",
-    .internal_name = "tvga9000b",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Generic variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "tvga9000b_migrated",
     .flags         = DEVICE_ISA,
     .local         = TVGA9000B_ID,
     .init          = tvga_init,
     .close         = tvga_close,
     .reset         = NULL,
-    .available     = tvga9000b_available,
+    .available     = NULL,
     .speed_changed = tvga_speed_changed,
     .force_redraw  = tvga_force_redraw,
-    .config        = NULL
-};
-
-const device_t nec_sv9000_device = {
-    .name          = "NEC SV9000 (Trident TVGA 9000B)",
-    .internal_name = "nec_sv9000",
-    .flags         = DEVICE_ISA,
-    .local         = TVGA9000B_ID | 0x100,
-    .init          = tvga_init,
-    .close         = tvga_close,
-    .reset         = NULL,
-    .available     = tvga9000b_nec_sv9000_available,
-    .speed_changed = tvga_speed_changed,
-    .force_redraw  = tvga_force_redraw,
-    .config        = NULL
+    .config        = tvga9000b_config
 };

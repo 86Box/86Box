@@ -316,7 +316,10 @@ MPU401_Reset(mpu_t *mpu)
             mpu->ch_toref[i]                        = 4; /* Dummy reftable. */
     }
 
-    MPU401_ClrQueue(mpu);
+    /* SB 16 only? */
+    if (!mpu->intelligent)
+        MPU401_ClrQueue(mpu);
+
     mpu->state.data_onoff                           = -1;
 
     mpu->state.req_mask                             = 0;

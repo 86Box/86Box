@@ -1417,11 +1417,6 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
             pas16->stereo_lr = 0;
             pas16->dma8_ff = 0;
 
-            if ((val & 0x20) && !(pas16->audiofilt & 0x20)) {
-                pas16_log("Reset.\n");
-                pas16_reset_regs(pas16);
-            }
-
             pas16->audiofilt = val;
 
             if (val & 0x1f) {
@@ -1752,7 +1747,7 @@ static uint16_t
 pas16_readdmaw_stereo(pas16_t *pas16)
 {
     uint16_t ret;
-    uint16_t ticks = (pas16->sys_conf_1 & 0x02) ? (1 + (pas16->dma < 5)) : 1;
+    uint16_t ticks = (1 + (pas16->dma < 5));
 
     ret = pas16_dma_readw(pas16, ticks);
 
@@ -2017,8 +2012,8 @@ pasplus_get_music_buffer(int32_t *buffer, int len, void *priv)
     double             bass_treble;
 
     for (int c = 0; c < len * 2; c += 2) {
-        double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
-        double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+        double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 7.7171630859375;
+        double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 7.7171630859375;
 
         /* TODO: recording CD, Mic with AGC or line in. Note: mic volume does not affect recording. */
         out_l *= mixer->master_l;
@@ -2142,11 +2137,11 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
 
         if (pas16->filter) {
             /* We divide by 3 to get the volume down to normal. */
-            out_l += (low_fir_pas16(0, (double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l) / 3.0;
-            out_r += (low_fir_pas16(1, (double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r) / 3.0;
+            out_l += (low_fir_pas16(0, (double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l);
+            out_r += (low_fir_pas16(1, (double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r);
         } else {
-            out_l += (((double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l) / 3.0;
-            out_r += (((double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r) / 3.0;
+            out_l += (((double) pas16->pcm_buffer[0][c >> 1]) * mixer->pcm_l);
+            out_r += (((double) pas16->pcm_buffer[1][c >> 1]) * mixer->pcm_r);
         }
 
         out_l *= mixer->master_l;
@@ -2327,7 +2322,7 @@ pas16_init(const device_t *info)
     pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
     fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
-    sb_dsp_init(&pas16->dsp, SB_DSP_201, SB_SUBTYPE_DEFAULT, pas16);
+    sb_dsp_init(&pas16->dsp, SB_DSP_200, SB_SUBTYPE_MVD201, pas16);
     pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(pas16->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&pas16->dsp, pas16->mpu);

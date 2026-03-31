@@ -177,7 +177,7 @@ ali1541_mask_bar(ali1541_t *dev)
 }
 
 static void
-ali1541_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+ali1541_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ali1541_t *dev = (ali1541_t *) priv;
 
@@ -562,7 +562,7 @@ ali1541_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ali1541_read(UNUSED(int func), int addr, void *priv)
+ali1541_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const ali1541_t *dev = (ali1541_t *) priv;
     uint8_t          ret = 0xff;
@@ -613,20 +613,20 @@ ali1541_reset(void *priv)
     dev->pci_conf[0xe0] = 0x01;
 
     cpu_cache_int_enabled = 1;
-    ali1541_write(0, 0x42, 0x00, dev);
+    ali1541_write(0, 0x42, 1, 0x00, dev);
 
-    ali1541_write(0, 0x54, 0x00, dev);
-    ali1541_write(0, 0x55, 0x00, dev);
+    ali1541_write(0, 0x54, 1, 0x00, dev);
+    ali1541_write(0, 0x55, 1, 0x00, dev);
 
     for (uint8_t i = 0; i < 4; i++)
-        ali1541_write(0, 0x56 + i, 0x00, dev);
+        ali1541_write(0, 0x56 + i, 1, 0x00, dev);
 
-    ali1541_write(0, 0x60, 0x07, dev);
-    ali1541_write(0, 0x61, 0x40, dev);
+    ali1541_write(0, 0x60, 1, 0x07, dev);
+    ali1541_write(0, 0x61, 1, 0x40, dev);
 
     for (uint8_t i = 0; i < 14; i += 2) {
-        ali1541_write(0, 0x62 + i, 0x00, dev);
-        ali1541_write(0, 0x63 + i, 0x00, dev);
+        ali1541_write(0, 0x62 + i, 1, 0x00, dev);
+        ali1541_write(0, 0x63 + i, 1, 0x00, dev);
     }
 }
 

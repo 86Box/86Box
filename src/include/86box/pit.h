@@ -90,6 +90,8 @@ typedef struct pit_intf_t {
     void (*write)(uint16_t addr, uint8_t val, void *priv);
     /* Gets a counter's count. */
     uint16_t (*get_count)(void *data, int counter_id);
+    /* Gets a counter's out. */
+    int  (*get_outlevel)(void *data, int counter_id);
     /* Sets a counter's GATE input. */
     void (*set_gate)(void *data, int counter_id, int gate);
     /* Sets if a counter's CLOCK input is from the timer or not - used by PCjr. */

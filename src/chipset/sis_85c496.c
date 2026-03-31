@@ -41,6 +41,12 @@
 #include <86box/row.h>
 #endif
 
+typedef struct sis_497_io_trap_t {
+    void          *priv;
+    void          *trap;
+    uint16_t       addr;
+} sis_497_io_trap_t;
+
 typedef struct sis_85c496_t {
     uint8_t    cur_reg;
     uint8_t    rmsmiblk_count;
@@ -54,6 +60,8 @@ typedef struct sis_85c496_t {
 #endif
     uint8_t    regs[127];
     uint8_t    pci_conf[256];
+
+    sis_497_io_trap_t io_traps[2];
     smram_t   *smram;
     pc_timer_t rmsmiblk_timer;
     port_92_t *port_92;
@@ -77,6 +85,18 @@ sis_85c496_log(const char *fmt, ...)
 #else
 #    define sis_85c496_log(fmt, ...)
 #endif
+
+static void sis_497_trap_io(UNUSED(int size), uint16_t addr, UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
+{
+    sis_497_io_trap_t *trap = (sis_497_io_trap_t *) priv;
+    sis_85c496_t *dev = (sis_85c496_t *) trap->priv;
+
+    sis_85c496_log("[%04X:%08X] I/O Trap Write %02X to   %04X!\n", CS, cpu_state.pc, val, addr);
+    if (dev->pci_conf[0xA2] & 0x04) {
+        dev->pci_conf[0xA0] |= 0x04;
+        smi_raise();
+    }
+}
 
 static void
 sis_85c497_isa_write(uint16_t port, uint8_t val, void *priv)
@@ -213,10 +233,105 @@ sis_85c496_drb_recalc(sis_85c496_t *dev)
 }
 #endif
 
+static void
+sis_497_trap_update_trap(uint8_t trap_id, uint8_t enable, uint16_t addr, uint16_t size, void *priv)
+{
+    sis_85c496_t *dev = (sis_85c496_t *) priv;
+    sis_497_io_trap_t *trap = &dev->io_traps[trap_id];
+
+    if (enable && !trap->trap) {
+        trap->priv = (void *) dev;
+        trap->addr = addr;
+        trap->trap = io_trap_add(sis_497_trap_io, trap);
+    }
+
+    io_trap_remap(trap->trap, enable, addr, size);
+}
+
+static void
+sis_497_trap_update(void *priv)
+{
+    sis_85c496_t *dev = (sis_85c496_t *) priv;
+
+    uint8_t trap_id  = 0;
+    uint8_t enable   = 0;
+    uint16_t addr    = 0x0;
+    uint16_t size    = 0;
+    uint8_t highbyte = 0x0;
+    uint8_t lowbyte  = 0x0;
+
+    /* Set up I/O Trap 0 */
+    enable = dev->pci_conf[0x5b] & 0x01;
+    switch ((dev->pci_conf[0x5b] >> 1) & 0x07) {
+        case 0x00: /* 1 byte */
+            size = 1;
+            break;
+        case 0x01: /* 2 bytes */
+            size = 2;
+            break;
+        case 0x02: /* 4 bytes */
+            size = 4;
+            break;
+        case 0x03: /* 8 bytes */
+            size = 8;
+            break;
+        case 0x04: /* 16 bytes */
+            size = 16;
+            break;
+        case 0x05: /* 32 bytes */
+            size = 32;
+            break;
+        case 0x06: /* 64 bytes */
+            size = 64;
+            break;
+        case 0x07: /* 128 bytes */
+            size = 128;
+            break;
+    }
+    highbyte = dev->pci_conf[0x5d];
+    lowbyte  = dev->pci_conf[0x5c];
+    addr = ((highbyte << 8) + lowbyte);
+    sis_85c496_log("Trap 0 setup: enable = %i, addr = %04X, size = %i\n", enable, addr, size);
+    sis_497_trap_update_trap(trap_id, enable, addr, size, dev);
+    /* Set up I/O Trap 1 */
+    trap_id = 1;
+    enable = dev->pci_conf[0x5b] & 0x10;
+    switch ((dev->pci_conf[0x5b] >> 5) & 0x07) {
+        case 0x00: /* 1 byte */
+            size = 1;
+            break;
+        case 0x01: /* 2 bytes */
+            size = 2;
+            break;
+        case 0x02: /* 4 bytes */
+            size = 4;
+            break;
+        case 0x03: /* 8 bytes */
+            size = 8;
+            break;
+        case 0x04: /* 16 bytes */
+            size = 16;
+            break;
+        case 0x05: /* 32 bytes */
+            size = 32;
+            break;
+        case 0x06: /* 64 bytes */
+            size = 64;
+            break;
+        case 0x07: /* 128 bytes */
+            size = 128;
+            break;
+    }
+    highbyte = dev->pci_conf[0x5f];
+    lowbyte  = dev->pci_conf[0x5e];
+    addr = ((highbyte << 8) + lowbyte);
+    sis_85c496_log("Trap 1 setup: enable = %i, addr = %04X, size = %i\n", enable, addr, size);
+    sis_497_trap_update_trap(trap_id, enable, addr, size, dev);
+}
 
 /* 00 - 3F = PCI Configuration, 40 - 7F = 85C496, 80 - FF = 85C497 */
 static void
-sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+sis_85c49x_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
     uint8_t       old;
@@ -372,7 +487,10 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x5c:
         case 0x5d: /* Programmable I/O Trap 0 Base */
         case 0x5e:
-        case 0x5f: /* Programmable I/O Trap 0 Base */
+        case 0x5f: /* Programmable I/O Trap 1 Base */
+            dev->pci_conf[addr] = val;
+            sis_497_trap_update(dev);
+            break;
         case 0x60:
         case 0x61: /* IDE Controller Channel 0 Configuration */
         case 0x62:
@@ -507,14 +625,14 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_85c49x_pci_read(UNUSED(int func), int addr, void *priv)
+sis_85c49x_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const sis_85c496_t *dev = (sis_85c496_t *) priv;
     uint8_t             ret = dev->pci_conf[addr];
 
     switch (addr) {
         case 0xa0:
-            ret &= 0x10;
+            ret &= 0x14;
             break;
         case 0xa1:
             ret = 0x00;
@@ -577,35 +695,35 @@ sis_85c496_reset(void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
 
-    sis_85c49x_pci_write(0, 0x44, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x45, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x58, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x59, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x5a, 0x00, dev);
-    // sis_85c49x_pci_write(0, 0x5a, 0x06, dev);
+    sis_85c49x_pci_write(0, 0x44, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x45, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x58, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x59, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x5a, 1, 0x00, dev);
+    // sis_85c49x_pci_write(0, 0x5a, 1, 0x06, dev);
 
     for (uint8_t i = 0; i < 8; i++)
         dev->pci_conf[0x48 + i] = 0x02;
 
-    sis_85c49x_pci_write(0, 0x80, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x81, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x9e, 0x00, dev);
-    sis_85c49x_pci_write(0, 0x8d, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xa0, 0xff, dev);
-    sis_85c49x_pci_write(0, 0xa1, 0xff, dev);
-    sis_85c49x_pci_write(0, 0xc0, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc1, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc2, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc3, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc8, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xc9, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xca, 0x00, dev);
-    sis_85c49x_pci_write(0, 0xcb, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x80, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x81, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x9e, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0x8d, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xa0, 1, 0xff, dev);
+    sis_85c49x_pci_write(0, 0xa1, 1, 0xff, dev);
+    sis_85c49x_pci_write(0, 0xc0, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc1, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc2, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc3, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc8, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xc9, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xca, 1, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xcb, 1, 0x00, dev);
 
-    sis_85c49x_pci_write(0, 0xd0, 0x79, dev);
-    sis_85c49x_pci_write(0, 0xd1, 0xff, dev);
-    sis_85c49x_pci_write(0, 0xd0, 0x78, dev);
-    sis_85c49x_pci_write(0, 0xd4, 0x00, dev);
+    sis_85c49x_pci_write(0, 0xd0, 1, 0x79, dev);
+    sis_85c49x_pci_write(0, 0xd1, 1, 0xff, dev);
+    sis_85c49x_pci_write(0, 0xd0, 1, 0x78, dev);
+    sis_85c49x_pci_write(0, 0xd4, 1, 0x00, dev);
 
     dev->pci_conf[0x67] = 0x00;
     dev->pci_conf[0xc6] = 0x00;
@@ -673,9 +791,9 @@ static void
     ide_sec_disable();
 
     if (info->local)
-        dev->nvr = device_add(&ami_1994_nvr_device);
+        dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AMI_1994);
     else
-        dev->nvr = device_add(&at_nvr_device);
+        dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT);
 
     dma_high_page_init();
 

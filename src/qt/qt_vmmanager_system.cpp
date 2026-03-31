@@ -51,6 +51,7 @@ extern "C" {
 #include <86box/scsi_device.h> // required for rdisk.h and mo.h
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 #include <86box/fdd.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
@@ -194,7 +195,8 @@ VMManagerSystem::generateTemporaryFilename()
     QTemporaryFile tempFile;
     // File will be closed once the QTemporaryFile object goes out of scope
     tempFile.setAutoRemove(true);
-    tempFile.open();
+    if (tempFile.open() == false)
+        qDebug() << "Error opening temporary file";
     return tempFile.fileName();
 }
 
@@ -506,7 +508,7 @@ VMManagerSystem::setupVars()
     auto network_config      = getCategory("Network");
     auto input_config        = getCategory("Input devices");
     auto floppy_cdrom_config = getCategory("Floppy and CD-ROM drives");
-    auto rdisk_mo_config     = getCategory("Other removable devices");
+    auto removable_config     = getCategory("Other removable devices");
     auto storage_config      = getCategory("Storage controllers");
     auto ports_config        = getCategory("Ports (COM & LPT)");
     auto other_config        = getCategory("Other peripherals");
@@ -538,14 +540,12 @@ VMManagerSystem::setupVars()
             while (cpu_families[i].cpus[j].cpu_type != 0) {
                 if (cpu_families[i].cpus[j].rspeed == machine_config["cpu_speed"].toUInt()) {
                     auto cpu_speed = QString(cpu_families[i].cpus[j].name).split("/").at(0).split(" (").at(0);
-                    cpu_name.append(cpu_speed.prepend(" / "));
-                    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
+                    cpu_name.append(QCoreApplication::translate("", "%1 MHz").arg(cpu_speed).prepend(" / "));
                     if (machine_config.contains("fpu_type") && (machine_config["fpu_type"] != QString("none")) && (machine_config["fpu_type"] != QString("internal"))) {
                         int k = 0;
                         while (cpu_families[i].cpus[j].fpus[k].internal_name != nullptr) {
                             if (QString(cpu_families[i].cpus[j].fpus[k].internal_name) == machine_config["fpu_type"]) {
-                                cpu_name.append(QString(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
-                                cpu_name.append(QCoreApplication::translate("", "FPU").prepend(' '));
+                                cpu_name.append(QCoreApplication::translate("", "%1 FPU").arg(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
                                 break;
                             }
                             k++;
@@ -572,15 +572,37 @@ VMManagerSystem::setupVars()
     display_table[VMManager::Display::Name::Memory] = mem_display;
 
     // Video card
-    int             video_int                      = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data());
-    const device_t *video_dev                      = video_card_getdevice(video_int);
-    display_table[VMManager::Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_get_internal_name(video_int), 1);
+    const device_t *video_dev = video_get_video_from_old_internal_name(video_config["gfxcard"].toUtf8().data()); // Check for migrations first
+    const char *video_internal_name;
+    int         video_int;
+    if (video_dev == nullptr) {
+        video_int           = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data()); 
+        video_dev           = video_card_getdevice(video_int);
+        video_internal_name = video_get_internal_name(video_int);
+    } else
+        video_internal_name = video_dev->internal_name;
+
+    display_table[VMManager::Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_internal_name, 1);
+
+    if (QString(video_internal_name) == "internal") {
+        auto internal_device = machine_get_vid_device(ci);
+        if (internal_device)
+            display_table[VMManager::Display::Name::Video].append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+    }
 
     // Secondary video
     if (video_config.contains("gfxcard_2")) {
-        int             video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
-        const device_t *video2_dev = video_card_getdevice(video2_int);
-        display_table[VMManager::Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video_get_internal_name(video2_int), 1).prepend(VMManagerDetailSection::sectionSeparator));
+        const device_t *video2_dev = video_get_video_from_old_internal_name(video_config["gfxcard_2"].toUtf8().data()); // Check for migrations first
+        const char *video2_internal_name;
+        int         video2_int;
+        if (video2_dev == nullptr) {
+            video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
+            video2_dev = video_card_getdevice(video2_int);
+            video2_internal_name = video_get_internal_name(video2_int);
+        } else
+            video2_internal_name = video2_dev->internal_name;
+
+        display_table[VMManager::Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video2_internal_name, 1).prepend(VMManagerDetailSection::sectionSeparator));
     }
 
     // Add-on video that's not Voodoo
@@ -724,16 +746,18 @@ VMManagerSystem::setupVars()
     display_table[VMManager::Display::Name::Floppy] = floppyDevices.join(VMManagerDetailSection::sectionSeparator);
     display_table[VMManager::Display::Name::CD]     = cdromDevices.join(VMManagerDetailSection::sectionSeparator);
 
-    // Removable disks & MO
+    // Other removable devices
     QStringList rdiskDevices;
     QStringList moDevices;
+    QStringList tapeDevices;
     static auto rdisk_match = QRegularExpression("rdisk_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
     static auto zip_match   = QRegularExpression("zip_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption); // Legacy ZIP drive entries
     static auto mo_match    = QRegularExpression("mo_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
-    for (const auto &key : rdisk_mo_config.keys()) {
+    static auto tape_match  = QRegularExpression("tape_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
+    for (const auto &key : removable_config.keys()) {
         if (key.contains(rdisk_match) || key.contains(zip_match)) {
             auto device_number    = key.split("_").at(1);
-            auto rdisk_parameters = QString(rdisk_mo_config[key]);
+            auto rdisk_parameters = QString(removable_config[key]);
             auto rdisk_type       = rdisk_parameters.split(",").at(0).toInt();
             if (key.contains(zip_match))
                 rdisk_type++;
@@ -747,7 +771,7 @@ VMManagerSystem::setupVars()
         }
         if (key.contains(mo_match)) {
             auto device_number = key.split("_").at(1);
-            auto mo_parameters = QString(rdisk_mo_config[key]);
+            auto mo_parameters = QString(removable_config[key]);
             auto mo_type       = mo_parameters.split(",").at(0).toInt();
             auto mo_bus        = mo_parameters.split(",").at(1).trimmed().toUpper();
 
@@ -757,10 +781,23 @@ VMManagerSystem::setupVars()
                 moDevices.append(QString("%1 %2%3").arg(mo_drive_types[mo_type].vendor, mo_drive_types[mo_type].model, mo_bus));
             }
         }
+        if (key.contains(tape_match)) {
+            auto device_number = key.split("_").at(1);
+            auto tape_parameters = QString(removable_config[key]);
+            auto tape_type       = tape_parameters.split(",").at(0).toInt();
+            auto tape_bus        = tape_parameters.split(",").at(1).trimmed().toUpper();
+
+            if ((tape_type >= 0) && (tape_type < KNOWN_TAPE_DRIVE_TYPES)) {
+                if (!tape_bus.isEmpty())
+                    tape_bus = QString(" (%1)").arg(tape_bus);
+                tapeDevices.append(QString("%1 %2%3").arg(tape_drive_types[tape_type].vendor, tape_drive_types[tape_type].model, tape_bus));
+            }
+        }
     }
 
     display_table[VMManager::Display::Name::RDisk] = rdiskDevices.join(VMManagerDetailSection::sectionSeparator);
     display_table[VMManager::Display::Name::MO]    = moDevices.join(VMManagerDetailSection::sectionSeparator);
+    display_table[VMManager::Display::Name::Tape]  = tapeDevices.join(VMManagerDetailSection::sectionSeparator);
 
     // SCSI controllers
     QStringList scsiControllers;
@@ -848,6 +885,11 @@ VMManagerSystem::setupVars()
             auto audio_id            = sound_card_get_from_internal_name(audio_internal_name.toUtf8().data());
             auto audio_device        = sound_card_getdevice(audio_id);
             auto audio_name          = DeviceConfig::DeviceName(audio_device, sound_card_get_internal_name(audio_id), 1);
+            if (QString(audio_internal_name) == "internal") {
+                auto internal_device = machine_get_snd_device(ci);
+                if (internal_device)
+                    audio_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+            }
             if (!audio_name.isEmpty())
                 sndCards.append(audio_name);
         }
@@ -885,6 +927,11 @@ VMManagerSystem::setupVars()
             auto nic_id            = network_card_get_from_internal_name(nic_internal_name.toUtf8().data());
             auto nic               = network_card_getdevice(nic_id);
             auto nic_name          = DeviceConfig::DeviceName(nic, network_card_get_internal_name(nic_id), 1);
+            if (QString(nic_internal_name) == "internal") {
+                auto internal_device = machine_get_net_device(ci);
+                if (internal_device)
+                    nic_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+            }
             auto net_type_key      = QString("net_%1_net_type").arg(device_number);
             auto net_type          = network_config[net_type_key];
             if (!net_type.isEmpty()) {
@@ -981,8 +1028,10 @@ VMManagerSystem::setupVars()
             if (ports_config.contains(lpt_device_key)) {
                 auto lpt_internal_name = QString(ports_config[lpt_device_key]);
                 auto lpt_id            = lpt_device_get_from_internal_name(lpt_internal_name.toUtf8().data());
-                lpt_device_name        = " (" + tr(lpt_device_get_name(lpt_id)) + ")";
-                hasLptDevices          = true;
+                if (lpt_id) {
+                    lpt_device_name = " (" + DeviceConfig::DeviceName(lpt_device_getdevice(lpt_id), lpt_device_get_internal_name(lpt_id), -1) + ")";
+                    hasLptDevices   = true;
+                }
             }
             lptFinal.append(QString("LPT%1%2").arg(portIndex + 1).arg(lpt_device_name));
         }

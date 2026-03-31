@@ -170,6 +170,7 @@ extern void kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val));
 extern void kbd_adddata_process_10x(uint16_t val, void (*adddata)(uint16_t val));
 
 extern const scancode scancode_xt[512];
+extern const scancode scancode_set8a[512];
 
 extern uint8_t keyboard_set3_flags[512];
 extern uint8_t keyboard_set3_all_repeat;
@@ -208,6 +209,7 @@ extern const device_t keyboard_ps55_device;
 extern const device_t keyboard_at_generic_device;
 #endif /*EMU_DEVICE_H*/
 
+extern void     keyboard_toggle_override(void);
 extern void     keyboard_init(void);
 extern void     keyboard_close(void);
 extern void     keyboard_set_table(const scancode *ptr);

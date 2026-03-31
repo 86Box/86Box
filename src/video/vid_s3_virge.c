@@ -5024,7 +5024,7 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
 }
 
 static uint8_t
-s3_virge_pci_read(UNUSED(int func), int addr, void *priv)
+s3_virge_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const virge_t *virge = (virge_t *) priv;
     const svga_t  *svga  = &virge->svga;
@@ -5189,7 +5189,7 @@ s3_virge_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+s3_virge_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;
@@ -5329,18 +5329,26 @@ s3_virge_init(const device_t *info)
     const char *bios_fn = NULL;
     virge_t    *virge   = (virge_t *) calloc(1, sizeof(virge_t));
     reset_state         = calloc(1, sizeof(virge_t));
+    uint32_t    local   = info->local;
 
-    virge->type = (info->local & 0xff);
+    if (local == 0x00000000)
+        local = device_get_bios_local(info, device_get_config_bios("bios"));
+
+    virge->type = (local & 0xff);
 
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
     if (virge->type >= S3_VIRGE_GX2)
         virge->memory_size = 4;
+    else if (virge->type == S3_VIRGE_325 && local & 0x100)
+        virge->memory_size = 2;
+    else if (virge->type == S3_VIRGE_DX && local & 0x100)
+        virge->memory_size = 2;
     else
         virge->memory_size = device_get_config_int("memory");
 
     virge->color_key_enabled = !!device_get_config_int("colorkey");
-    virge->onboard = !!(info->local & 0x100);
+    virge->onboard = !!(local & 0x100);
 
     if (!virge->onboard)
         switch (virge->type) {
@@ -5580,7 +5588,7 @@ s3_virge_init(const device_t *info)
 
     timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 1);
 
-    virge->local = info->local;
+    virge->local = local;
 
     *reset_state = *virge;
 
@@ -5617,48 +5625,6 @@ s3_virge_close(void *priv)
 }
 
 static int
-s3_virge_325_diamond_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH3D_2000);
-}
-
-static int
-s3_virge_325_available(void)
-{
-    return rom_present(ROM_VIRGE_325);
-}
-
-static int
-s3_mirocrystal_3d_available(void)
-{
-    return rom_present(ROM_MIROCRYSTAL_3D);
-}
-
-static int
-s3_virge_988_diamond_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH3D_3000);
-}
-
-static int
-s3_virge_988_stb_available(void)
-{
-    return rom_present(ROM_STB_VELOCITY_3D);
-}
-
-static int
-s3_virge_375_available(void)
-{
-    return rom_present(ROM_VIRGE_DX);
-}
-
-static int
-s3_virge_375_diamond_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH3D_2000PRO);
-}
-
-static int
 s3_virge_385_available(void)
 {
     return rom_present(ROM_VIRGE_GX);
@@ -5668,12 +5634,6 @@ static int
 s3_virge_357_available(void)
 {
     return rom_present(ROM_VIRGE_GX2);
-}
-
-static int
-s3_virge_357_diamond_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH3D_4000);
 }
 
 static int
@@ -5749,8 +5709,170 @@ static const device_config_t s3_virge_config[] = {
     // clang-format on
 };
 
-static const device_config_t s3_virge_stb_config[] = {
+static const device_config_t s3_virge_pci_config[] = {
     // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "virge325_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth 3D 2000",
+                .internal_name = "stealth3d_2000_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH3D_2000 | (325 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH3D_2000, "" }
+            },
+            {
+                .name          = "Generic",
+                .internal_name = "virge325_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_VIRGE_325 | (325 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VIRGE_325, "" }
+            },
+            {
+                .name          = "miroCRYSTAL 3D",
+                .internal_name = "mirocrystal_3d_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROCRYSTAL_3D | (325 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_MIROCRYSTAL_3D, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static const device_config_t s3_virge_onboard_config[] = {
+    // clang-format off
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static const device_config_t s3_virge_vx_pci_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "stealth3d_3000_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth 3D 3000",
+                .internal_name = "stealth3d_3000_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH3D_3000 | (988 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH3D_3000, "" }
+            },
+            {
+                .name          = "(STB Velocity 3D",
+                .internal_name = "stb_velocity3d_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_STB_VELOCITY_3D | (988 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_STB_VELOCITY_3D, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
     {
         .name           = "memory",
         .description    = "Memory size",
@@ -5801,7 +5923,90 @@ static const device_config_t s3_virge_stb_config[] = {
     // clang-format on
 };
 
-static const device_config_t s3_virge_357_config[] = {
+static const device_config_t s3_virge_dx_pci_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "virge375_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth 3D 2000 Pro",
+                .internal_name = "stealth3d_2000pro_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH3D_2000PRO | (375 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH3D_2000PRO, "" }
+            },
+            {
+                .name          = "Generic",
+                .internal_name = "virge375_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_VIRGE_DX | (375 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VIRGE_DX, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static const device_config_t s3_virge_gx2_pci_config[] = {
     // clang-format off
     {
         .name           = "memory",
@@ -5818,8 +6023,91 @@ static const device_config_t s3_virge_357_config[] = {
         },
         .bios           = { { 0 } }
     },
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithering",
+        .description    = "Dithering",
+        .type           = CONFIG_BINARY,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
 
-   {
+static const device_config_t s3_virge_gx2_agp_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "virge357_agp",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth 3D 4000",
+                .internal_name = "stealth3d_4000_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH3D_4000 | (357 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH3D_4000, "" }
+            },
+            {
+                .name          = "Generic",
+                .internal_name = "virge357_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_VIRGE_GX2 | (357 << 16),
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VIRGE_GX2, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
         .type           = CONFIG_BINARY,
@@ -5908,18 +6196,18 @@ static const device_config_t s3_trio3d2x_config[] = {
     // clang-format on
 };
 
-const device_t s3_virge_325_pci_device = {
-    .name          = "S3 ViRGE (325) PCI",
-    .internal_name = "virge325_pci",
+const device_t s3_virge_pci_device = {
+    .name          = "S3 ViRGE PCI",
+    .internal_name = "virge_pci",
     .flags         = DEVICE_PCI,
-    .local         = S3_VIRGE_325,
+    .local         = 0,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    .available     = s3_virge_325_available,
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
+    .config        = s3_virge_pci_config
 };
 
 const device_t s3_virge_325_onboard_pci_device = {
@@ -5933,77 +6221,35 @@ const device_t s3_virge_325_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
+    .config        = s3_virge_onboard_config
 };
 
-const device_t s3_diamond_stealth_2000_pci_device = {
-    .name          = "S3 ViRGE (Diamond Stealth 3D 2000) PCI",
-    .internal_name = "stealth3d_2000_pci",
+const device_t s3_virge_vx_pci_device = {
+    .name          = "S3 ViRGE/VX PCI",
+    .internal_name = "virge_vx_pci",
     .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH3D_2000,
+    .local         = 0,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    .available     = s3_virge_325_diamond_available,
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
+    .config        = s3_virge_vx_pci_config
 };
 
-const device_t s3_mirocrystal_3d_pci_device = {
-    .name          = "S3 ViRGE (miroCRYSTAL 3D) PCI",
-    .internal_name = "mirocrystal_3d_pci",
+const device_t s3_virge_dx_pci_device = {
+    .name          = "S3 ViRGE/DX PCI",
+    .internal_name = "virge_dx_pci",
     .flags         = DEVICE_PCI,
-    .local         = S3_MIROCRYSTAL_3D,
+    .local         = 0,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    .available     = s3_mirocrystal_3d_available,
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
-};
-
-const device_t s3_diamond_stealth_3000_pci_device = {
-    .name          = "S3 ViRGE/VX (Diamond Stealth 3D 3000) PCI",
-    .internal_name = "stealth3d_3000_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH3D_3000,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    .available     = s3_virge_988_diamond_available,
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_stb_config
-};
-
-const device_t s3_stb_velocity_3d_pci_device = {
-    .name          = "S3 ViRGE/VX (STB Velocity 3D) PCI",
-    .internal_name = "stb_velocity3d_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_STB_VELOCITY_3D,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    .available     = s3_virge_988_stb_available,
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_stb_config
-};
-
-const device_t s3_virge_375_pci_device = {
-    .name          = "S3 ViRGE/DX (375) PCI",
-    .internal_name = "virge375_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_VIRGE_DX,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    .available     = s3_virge_375_available,
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
+    .config        = s3_virge_dx_pci_config
 };
 
 const device_t s3_virge_375_onboard_pci_device = {
@@ -6017,25 +6263,11 @@ const device_t s3_virge_375_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
+    .config        = s3_virge_onboard_config
 };
 
-const device_t s3_diamond_stealth_2000pro_pci_device = {
-    .name          = "S3 ViRGE/DX (Diamond Stealth 3D 2000 Pro) PCI",
-    .internal_name = "stealth3d_2000pro_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH3D_2000PRO,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    .available     = s3_virge_375_diamond_available,
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_config
-};
-
-const device_t s3_virge_385_pci_device = {
-    .name          = "S3 ViRGE/GX (385) PCI",
+const device_t s3_virge_gx_pci_device = {
+    .name          = "S3 ViRGE/GX PCI",
     .internal_name = "virge385_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_VIRGE_GX,
@@ -6048,8 +6280,8 @@ const device_t s3_virge_385_pci_device = {
     .config        = s3_virge_config
 };
 
-const device_t s3_virge_357_pci_device = {
-    .name          = "S3 ViRGE/GX2 (357) PCI",
+const device_t s3_virge_gx2_pci_device = {
+    .name          = "S3 ViRGE/GX2 PCI",
     .internal_name = "virge357_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_VIRGE_GX2,
@@ -6059,35 +6291,21 @@ const device_t s3_virge_357_pci_device = {
     .available     = s3_virge_357_available,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_357_config
+    .config        = s3_virge_gx2_pci_config
 };
 
-const device_t s3_virge_357_agp_device = {
-    .name          = "S3 ViRGE/GX2 (357) AGP",
-    .internal_name = "virge357_agp",
+const device_t s3_virge_gx2_agp_device = {
+    .name          = "S3 ViRGE/GX2 AGP",
+    .internal_name = "virge_gx2_agp",
     .flags         = DEVICE_AGP,
-    .local         = S3_VIRGE_GX2,
+    .local         = 0,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
-    .available     = s3_virge_357_available,
+    .available     = NULL,
     .speed_changed = s3_virge_speed_changed,
     .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_357_config
-};
-
-const device_t s3_diamond_stealth_4000_agp_device = {
-    .name          = "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) AGP",
-    .internal_name = "stealth3d_4000_agp",
-    .flags         = DEVICE_AGP,
-    .local         = S3_DIAMOND_STEALTH3D_4000,
-    .init          = s3_virge_init,
-    .close         = s3_virge_close,
-    .reset         = s3_virge_reset,
-    .available     = s3_virge_357_diamond_available,
-    .speed_changed = s3_virge_speed_changed,
-    .force_redraw  = s3_virge_force_redraw,
-    .config        = s3_virge_357_config
+    .config        = s3_virge_gx2_agp_config
 };
 
 const device_t s3_trio3d2x_pci_device = {

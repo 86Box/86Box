@@ -65,6 +65,7 @@ typedef union {
 
 typedef struct ibm8514_t {
     rom_t bios_rom;
+    rom_t bios_rom2;
     uint8_t *rom1;
     uint8_t *rom2;
     hwcursor8514_t hwcursor;
@@ -164,8 +165,11 @@ typedef struct ibm8514_t {
         int      y_count;
         int      input;
         int      input2;
+        int      input3;
         int      output;
         int      output2;
+        int      output3;
+        int      init_cx;
 
         int      ssv_len;
         int      ssv_len_back;
@@ -184,6 +188,7 @@ typedef struct ibm8514_t {
         uint32_t dst_ge_offset;
         uint16_t src_pitch;
         uint16_t dst_pitch;
+        uint16_t read_pixel;
         int64_t cur_x_24bpp;
         int64_t cur_y_24bpp;
         int64_t dest_x_24bpp;

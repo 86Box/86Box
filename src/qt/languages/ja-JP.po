@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
@@ -145,53 +145,44 @@ msgstr "整数倍(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数倍(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGAの設定"
+msgid "Inverted VGA monitor"
+msgstr "色反転"
 
-msgid "&Inverted VGA monitor"
-msgstr "色反転(&I)"
+msgid "VGA screen type:"
+msgstr "画面タイプ:"
 
-msgid "VGA screen &type"
-msgstr "画面タイプ(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB(カラー)(&C)"
+msgid "RGB Color"
+msgstr "RGB(カラー)"
 
 msgid "RGB (no brown)"
 msgstr "RGB(茶色なし)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB(グレースケール)(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB(グレースケール)"
 
 msgid "Generic RGBI color monitor"
 msgstr "汎用RGBIカラーモニター"
 
-msgid "&Amber monitor"
-msgstr "モニター(黄色)(&A)"
+msgid "Amber monitor"
+msgstr "モニター(黄色)"
 
-msgid "&Green monitor"
-msgstr "モニター(緑色)(&G)"
+msgid "Green monitor"
+msgstr "モニター(緑色)"
 
-msgid "&White monitor"
-msgstr "モニター(白色)(&W)"
+msgid "White monitor"
+msgstr "モニター(白色)"
 
-msgid "Grayscale &conversion type"
-msgstr "グレースケール変換タイプ(&C)"
+msgid "Grayscale conversion type:"
+msgstr "グレースケール変換タイプ:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "平均"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "オーバースキャン"
 
-msgid "&Average"
-msgstr "平均(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGAオーバースキャン(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "単色モニター用コントラストを変更(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "単色モニター用コントラストを変更"
 
 msgid "&Media"
 msgstr "メディア(&M)"
@@ -352,8 +343,32 @@ msgstr "高さ:"
 msgid "Lock to this size"
 msgstr "サイズを固定"
 
+msgid "General"
+msgstr "一般"
+
+msgid "Processor"
+msgstr "プロセッサ"
+
+msgid "Performance"
+msgstr "パフォーマンス"
+
 msgid "Machine type:"
 msgstr "マシンタイプ:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
 
 msgid "Machine:"
 msgstr "マシン:"
@@ -373,8 +388,14 @@ msgstr "速度:"
 msgid "Frequency:"
 msgstr "頻度:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "内部"
 
 msgid "Wait states:"
 msgstr "ウェイトステート:"
@@ -397,6 +418,9 @@ msgstr "有効(現地時間)"
 msgid "Enabled (UTC)"
 msgstr "有効(UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "286および386プロセッサには486インタプリタを使用する"
+
 msgid "Dynamic Recompiler"
 msgstr "動的再コンパイル"
 
@@ -414,6 +438,9 @@ msgstr "ビデオカード:"
 
 msgid "Video #2:"
 msgstr "ビデオカード2:"
+
+msgid "Monitor"
+msgstr "モニター"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo1または2グラフィック"
@@ -484,38 +511,14 @@ msgstr "独立型MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32サウンドを使用する"
 
-msgid "FM synth driver"
-msgstr "FMシンセドライバー"
+msgid "FM synth driver:"
+msgstr "FMシンセドライバー:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked(高精度化)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM(より速く)"
-
-msgid "COM1 Device:"
-msgstr "COM1デバイス:"
-
-msgid "COM2 Device:"
-msgstr "COM2デバイス:"
-
-msgid "COM3 Device:"
-msgstr "COM3デバイス:"
-
-msgid "COM4 Device:"
-msgstr "COM4デバイス:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1デバイス:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2デバイス:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3デバイス:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4デバイス:"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "内部LPTのECPのDMA:"
@@ -532,23 +535,50 @@ msgstr "シリアルポート3"
 msgid "Serial port 4"
 msgstr "シリアルポート4"
 
-msgid "Parallel port 1"
-msgstr "パラレルポート1"
-
-msgid "Parallel port 2"
-msgstr "パラレルポート2"
-
-msgid "Parallel port 3"
-msgstr "パラレルポート3"
-
-msgid "Parallel port 4"
-msgstr "パラレルポート4"
-
 msgid "Floppy disk controller:"
 msgstr "FDDコントローラー:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "IDEコントローラ"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "第三IDEコントローラー"
@@ -622,8 +652,8 @@ msgstr "イメージ形式:"
 msgid "Block Size:"
 msgstr "ブロックサイズ:"
 
-msgid "Floppy drives:"
-msgstr "フロッピードライブ:"
+msgid "Floppy drives"
+msgstr "フロッピードライブ"
 
 msgid "Turbo timings"
 msgstr "高速タイミング"
@@ -631,23 +661,26 @@ msgstr "高速タイミング"
 msgid "Check BPB"
 msgstr "BPBチェック"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROMドライブ:"
+msgid "CD-ROM drives"
+msgstr "CD-ROMドライブ"
 
-msgid "MO drives:"
-msgstr "光磁気ドライブ:"
+msgid "MO drives"
+msgstr "光磁気ドライブ"
 
 msgid "MO:"
 msgstr "光磁気:"
 
+msgid "Removable disk drives"
+msgstr "取り外し可能なディスクドライブ"
+
 msgid "Removable disks:"
 msgstr "取り外し可能なディスク:"
 
-msgid "Removable disk drives:"
-msgstr "取り外し可能なディスクドライブ:"
+msgid "Tape drives"
+msgstr "テープドライブ"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "テープドライブ:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTCカード:"
@@ -705,6 +738,15 @@ msgstr "取り外し可能なディスク(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "取り外し可能なディスクイメージ"
+
+msgid "Tape %1 (%2): %3"
+msgstr "テープ %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "テープ(&T) %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "テープイメージ"
 
 msgid "Image %1"
 msgstr "イメージ %1"
@@ -769,8 +811,14 @@ msgstr "ポート (COM/LPT)"
 msgid "Ports"
 msgstr "ポート"
 
+msgid "Serial ports"
+msgstr "シリアルポート"
+
 msgid "Serial ports:"
 msgstr "シリアルポート:"
+
+msgid "Parallel ports"
+msgstr "パラレルポート"
 
 msgid "Parallel ports:"
 msgstr "パラレルポート:"
@@ -817,14 +865,8 @@ msgstr "バス"
 msgid "File"
 msgstr "ファイル"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "ジオメトリ"
 
 msgid "KB"
 msgstr "KB"
@@ -1026,15 +1068,6 @@ msgstr "PCLファイルをPDFに自動変換するには%1が必要です。\n\n
 
 msgid "Don't show this message again"
 msgstr "今後、このメッセージを表示しない"
-
-msgid "Don't exit"
-msgstr "終了しない"
-
-msgid "Reset"
-msgstr "リセット"
-
-msgid "Don't reset"
-msgstr "リセットしない"
 
 msgid "CD-ROM images"
 msgstr "CD-ROMイメージ"
@@ -1540,9 +1573,6 @@ msgstr "DMF (クラスター2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1584,6 +1614,9 @@ msgstr "1.5%低いRPM"
 
 msgid "2% below perfect RPM"
 msgstr "2%低いRPM"
+
+msgid "Creating image…"
+msgstr "画像を作成中…"
 
 msgid "(System Default)"
 msgstr "(システム既定値)"
@@ -1666,8 +1699,8 @@ msgstr "カーソル/パック(&C)"
 msgid "&Pen"
 msgstr "ペン(&P)"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "ホスト CD/DVD ドライブ (%1:) (&H)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "ホスト CD/DVD ドライブ (%1) (&H)"
 
 msgid "&Connected"
 msgstr "コネクテッド"
@@ -1957,6 +1990,9 @@ msgstr "BIOSバージョン"
 msgid "BIOS Language"
 msgstr "BIOS言語"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161拡張ユニット"
 
@@ -2220,9 +2256,6 @@ msgstr "メモリーサイズ"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 アドレス"
-
-msgid "IDE Controller"
-msgstr "IDEコントローラ"
 
 msgid "Codec"
 msgstr "コーデック"
@@ -2608,6 +2641,9 @@ msgstr "スタンダード"
 msgid "High-Speed"
 msgstr "高速"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "ステレオLPT DAC"
 
@@ -2620,14 +2656,17 @@ msgstr "汎用ESC/P 2ドットマトリクスプリンタ"
 msgid "Generic PostScript Printer"
 msgstr "汎用ポストスクリプトプリンタ"
 
-msgid "Generic PCL5e Printer"
-msgstr "汎用PCL5eプリンタ"
+msgid "Generic PCL Printer"
+msgstr "汎用PCLプリンタ"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "パラレルラインインターネットプロトコル"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "サベージクエスト用プロテクションドングル"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "シリアルポートパススルーデバイス"
@@ -2674,6 +2713,12 @@ msgstr "パフォーマンスへの影響が大きい"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[汎用] RAMディスク（最高速度）"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[汎用] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[汎用] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[汎用] 1989 (3500 RPM)"
 
@@ -2712,6 +2757,12 @@ msgstr "汎用PC/XTメモリ拡張カード"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "汎用PC/ATメモリ拡張カード"
+
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "ドットマトリクスフォントが見つかりません"
@@ -2776,8 +2827,14 @@ msgstr "下に移動する"
 msgid "Could not load file %1"
 msgstr "ファイル %1 をロードできませんでした"
 
-msgid "Key Bindings:"
-msgstr "キーバインド:"
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Key bindings"
+msgstr "キーバインド"
 
 msgid "Action"
 msgstr "アクション"
@@ -2839,8 +2896,8 @@ msgstr "ローカルスイッチ"
 msgid "Remote Switch"
 msgstr "リモートスイッチ"
 
-msgid "Switch:"
-msgstr "スイッチ:"
+msgid "Shared secret:"
+msgstr "共有秘密:"
 
 msgid "Hub Mode"
 msgstr "ハブモード"
@@ -2953,6 +3010,9 @@ msgstr "システムは追加されません。"
 msgid "&Update mouse every CPU frame"
 msgstr "マウスをCPUフレームごとに更新(&U)"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "色相"
 
@@ -2968,11 +3028,8 @@ msgstr "明るさ"
 msgid "Sharpness"
 msgstr "シャープネス"
 
-msgid "&CGA composite settings…"
-msgstr "CGA複合モードの設定(&C)…"
-
-msgid "CGA composite settings"
-msgstr "CGA複合モードの設定"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "モニターのEDID"
@@ -3001,9 +3058,6 @@ msgstr "光"
 msgid "Dark"
 msgstr "暗闇"
 
-msgid "Search:"
-msgstr "検索:"
-
 msgid "Force interpretation"
 msgstr "解釈を強制する"
 
@@ -3017,10 +3071,16 @@ msgid "&Allow recompilation"
 msgstr "再コンパイルを許可する(&A)"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "早送り(&F)"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "早送り"
 
 msgid "To change the system directory, stop all running machines."
+msgstr "システムディレクトリを変更するには、稼働中のマシンをすべて停止してください。"
+
+msgid "Raw"
+msgstr "生"
+
+msgid "Use EDC/ECC emulation"
 msgstr ""

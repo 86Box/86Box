@@ -203,7 +203,7 @@ opti602_init(UNUSED(const device_t *info))
     io_sethandler(0x0022, 0x0001, opti602_read, NULL, NULL, opti602_write, NULL, NULL, dev);
     io_sethandler(0x0024, 0x0001, opti602_read, NULL, NULL, opti602_write, NULL, NULL, dev);
 
-    dev->nvr   = device_add(&at_mb_nvr_device);
+    dev->nvr   = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_MB);
 
     opti602_reset(dev);
 

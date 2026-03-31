@@ -72,6 +72,7 @@ typedef struct ncr53c400_t {
     int8_t  type;
     uint8_t block_count;
     uint8_t status_ctrl;
+    uint8_t irq_config;
 
     int block_count_loaded;
 
@@ -103,6 +104,24 @@ ncr53c400_log(const char *fmt, ...)
 #    define ncr53c400_log(fmt, ...)
 #endif
 
+static int
+ncr53c400_irq_enable(void *priv, void *ext_priv, int state)
+{
+    ncr53c400_t *ncr400 = (ncr53c400_t *) ext_priv;
+    ncr_t *ncr = (ncr_t *) priv;
+
+    if (ncr->irq_state != state) {
+        ncr->irq_state = state;
+        ncr400->status_ctrl &= ~0x01;
+        ncr400->status_ctrl |= (state << 0);
+        ncr53c400_log("Status Control bit 4=%02x.\n", ncr400->status_ctrl);
+
+        if (ncr400->status_ctrl & 0x10)
+            ncr5380_irq(ncr, state);
+    }
+    return 1;
+}
+
 static void
 ncr53c400_timer_on_auto(void *ext_priv, double period)
 {
@@ -123,15 +142,20 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
     ncr_t               *ncr        = &ncr400->ncr;
     scsi_bus_t          *scsi_bus   = &ncr->scsibus;
     scsi_device_t       *dev        = &scsi_devices[ncr->bus][scsi_bus->target_id];
+    int                  ncr400_offs = 0;
+    uint8_t              old_ctrl   = 0;
 
     addr &= 0x3fff;
 
-    if (addr >= 0x3880)
-        ncr53c400_log("%04X:%08X: memio_write(%04x)=%02x\n", CS, cpu_state.pc, addr, val);
-
     if (addr >= 0x3a00)
         ncr400->ext_ram[addr - 0x3a00] = val;
-    else {
+    else
+        ncr400_offs = 1;
+
+    if (addr >= 0x3880)
+        ncr53c400_log("%04X:%08X: memio_write(%04x)=%02x, offs_ena=%d.\n", CS, cpu_state.pc, addr, val, ncr400_offs);
+
+    if (ncr400_offs) {
         switch (addr & 0x3f80) {
             case 0x3800:
                 ncr400->int_ram[addr & 0x3f] = val;
@@ -153,8 +177,10 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         if (ncr400->type != ROM_T130B)
                             timer_on_auto(&ncr400->timer, 1.0);
                     }
-                } else
+                } else {
                     ncr53c400_log("No Write.\n");
+                    timer_stop(&ncr400->timer);
+                }
                 break;
 
             case 0x3980:
@@ -173,7 +199,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                             }
                         }
 
-                        ncr53c400_log("NCR 53c400 control=%02x, mode=%02x.\n", val, ncr->mode);
+                        ncr53c400_log("NCR 53c400 control=%02x, control before=%02x, mode=%02x.\n", val, ncr400->status_ctrl, ncr->mode);
                         if ((val & CTRL_DATA_DIR) && !(ncr400->status_ctrl & CTRL_DATA_DIR)) {
                             ncr400->buffer_host_pos = MIN(128, dev->buffer_length);
                             ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
@@ -181,11 +207,21 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                             ncr400->buffer_host_pos = 0;
                             ncr400->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
                         }
+                        old_ctrl = ncr400->status_ctrl;
                         ncr400->status_ctrl = (ncr400->status_ctrl & 0x87) | (val & 0x78);
+
+                        if (!ncr400->reset) {
+                            if ((val & 0x10) && !(old_ctrl & 0x10))
+                                ncr53c400_irq_enable(ncr, ncr400, 1);
+                            else if (!(val & 0x10) && (old_ctrl & 0x10))
+                                ncr53c400_irq_enable(ncr, ncr400, 0);
+                        }
+
+                        ncr53c400_log("Actual control status bit=%02x, reset=%d.\n", ncr400->status_ctrl, ncr400->reset);
                         break;
 
                     case 0x3981: /* block counter register */
-                        ncr53c400_log("Write block counter register: val=%d, dma mode=%x, period=%lf.\n", val, scsi_bus->tx_mode, scsi_bus->period);
+                        ncr53c400_log("Write block counter register: val=%d, dma mode=%x, period=%lf, len=%d, id=%d.\n", val, scsi_bus->tx_mode, scsi_bus->period, dev->buffer_length, scsi_bus->target_id);
                         ncr400->block_count        = val;
                         ncr400->block_count_loaded = 1;
 
@@ -203,6 +239,15 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                                   ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, scsi_bus->wait_data, scsi_bus->wait_complete, scsi_bus->clear_req, scsi_bus->period, timer_is_enabled(&ncr400->timer));
                         } else
                             ncr53c400_log("No Timer.\n");
+                        break;
+
+                    case 0x3982: /* resume transfer register */
+                        if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
+                            timer_on_auto(&ncr400->timer, 10.0);
+                            ncr53c400_log("DMA Resume timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, p=%lf enabled=%d.\n",
+                                  ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, scsi_bus->wait_data, scsi_bus->wait_complete, scsi_bus->clear_req, scsi_bus->period, timer_is_enabled(&ncr400->timer));
+                        } else
+                            ncr53c400_log("No Resume Timer.\n");
                         break;
 
                     default:
@@ -225,6 +270,7 @@ ncr53c400_read(uint32_t addr, void *priv)
     scsi_bus_t          *scsi_bus   = &ncr->scsibus;
     scsi_device_t       *dev        = &scsi_devices[ncr->bus][scsi_bus->target_id];
     uint8_t              ret        = 0xff;
+    int                  ncr400_offs = 0;
 
     addr &= 0x3fff;
 
@@ -234,7 +280,10 @@ ncr53c400_read(uint32_t addr, void *priv)
         ret = 0xff;
     else if (addr >= 0x3a00)
         ret = ncr400->ext_ram[addr - 0x3a00];
-    else {
+    else
+        ncr400_offs = 1;
+
+    if (ncr400_offs) {
         switch (addr & 0x3f80) {
             case 0x3800:
                 ncr53c400_log("Read intRAM %02x %02x.\n", addr & 0x3f, ncr400->int_ram[addr & 0x3f]);
@@ -242,14 +291,14 @@ ncr53c400_read(uint32_t addr, void *priv)
                 break;
 
             case 0x3880:
-                ncr53c400_log("Read 5380 %04x.\n", addr);
                 ret = ncr5380_read(addr, ncr);
                 break;
 
             case 0x3900:
                 if ((ncr400->buffer_host_pos >= MIN(128, dev->buffer_length)) || (!(ncr400->status_ctrl & CTRL_DATA_DIR))) {
                     ret = 0xff;
-                    ncr53c400_log("No Read.\n");
+                    ncr53c400_log("No Read, buflen=%d.\n", dev->buffer_length);
+                    timer_stop(&ncr400->timer);
                 } else {
                     ret = ncr400->buffer[ncr400->buffer_host_pos++];
                     ncr53c400_log("Read host pos=%i, ret=%02x.\n", ncr400->buffer_host_pos, ret);
@@ -263,7 +312,8 @@ ncr53c400_read(uint32_t addr, void *priv)
                                 ncr->isr |= STATUS_END_OF_DMA;
                                 if (ncr->mode & MODE_ENA_EOP_INT) {
                                     ncr53c400_log("NCR read irq\n");
-                                    ncr5380_irq(ncr, 1);
+                                    ncr53c400_irq_enable(ncr, ncr400, 1);
+                                    ncr->isr |= STATUS_INT;
                                 }
                             } else if (!timer_is_enabled(&ncr400->timer)) {
                                 ncr53c400_log("Timer re-enabled.\n");
@@ -277,15 +327,16 @@ ncr53c400_read(uint32_t addr, void *priv)
             case 0x3980:
                 switch (addr) {
                     case 0x3980: /* status */
+                        if (ncr400->reset) {
+                            ncr400->reset = 0;
+                            ncr53c400_irq_enable(ncr, ncr400, 1);
+                        }
+
                         ret = ncr400->status_ctrl;
                         ncr53c400_log("NCR status ctrl read=%02x.\n", ncr400->status_ctrl & STATUS_BUFFER_NOT_READY);
                         if (!ncr400->busy)
                             ret |= STATUS_5380_ACCESSIBLE;
 
-                        if (ncr400->reset) {
-                            ncr400->reset = 0;
-                            ret |= 0x01;
-                        }
                         ncr53c400_log("NCR 53c400 status=%02x.\n", ret);
                         break;
 
@@ -295,10 +346,7 @@ ncr53c400_read(uint32_t addr, void *priv)
                         break;
 
                     case 0x3982: /* switch register read */
-                        if (ncr->irq != -1) {
-                            ret = 0xf8;
-                            ret += ncr->irq;
-                        }
+                        ret = ((ncr400->irq_config >> 5) & 7) | 0xf8;
                         ncr53c400_log("Switches read=%02x.\n", ret);
                         break;
 
@@ -313,7 +361,7 @@ ncr53c400_read(uint32_t addr, void *priv)
     }
 
     if (addr >= 0x3880)
-        ncr53c400_log("%04X:%08X: memio_read(%04x)=%02x\n", CS, cpu_state.pc, addr, ret);
+        ncr53c400_log("%04X:%08X: memio_read(%04x)=%02x, offs_ena=%d.\n", CS, cpu_state.pc, addr, ret, ncr400_offs);
 
     return ret;
 }
@@ -326,7 +374,7 @@ t130b_write(uint32_t addr, uint8_t val, void *priv)
     ncr53c400_t *ncr400 = (ncr53c400_t *) priv;
 
     addr &= 0x3fff;
-    ncr53c400_log("MEM: Writing %02X to %08X\n", val, addr);
+    //ncr53c400_log("MEM: Writing %02X to %08X\n", val, addr);
     if (addr >= 0x1800 && addr < 0x1880)
         ncr400->ext_ram[addr & 0x7f] = val;
 }
@@ -344,7 +392,7 @@ t130b_read(uint32_t addr, void *priv)
     else if (addr >= 0x1800 && addr < 0x1880)
         ret = ncr400->ext_ram[addr & 0x7f];
 
-    ncr53c400_log("MEM: Reading %02X from %08X\n", ret, addr);
+    //ncr53c400_log("MEM: Reading %02X from %08X\n", ret, addr);
     return ret;
 }
 
@@ -354,7 +402,7 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
     ncr53c400_t *ncr400 = (ncr53c400_t *) priv;
     ncr_t       *ncr    = &ncr400->ncr;
 
-    ncr53c400_log("I/O: Writing %02X to %04X\n", val, port);
+    ncr53c400_log("%04X:%08X: I/O: Writing %02X to %04X\n", CS, cpu_state.pc, val, port);
 
     switch (port & 0x0f) {
         case 0x00:
@@ -420,7 +468,7 @@ t130b_in(uint16_t port, void *priv)
             break;
     }
 
-    ncr53c400_log("I/O: Reading %02X from %04X\n", ret, port);
+    ncr53c400_log("%04X:%08X: I/O: Reading %02X from %04X\n", CS, cpu_state.pc, ret, port);
     return ret;
 }
 
@@ -519,7 +567,8 @@ ncr53c400_callback(void *priv)
                         ncr->isr |= STATUS_END_OF_DMA;
                         if (ncr->mode & MODE_ENA_EOP_INT) {
                             ncr53c400_log("NCR 53c400 write irq\n");
-                            ncr5380_irq(ncr, 1);
+                            ncr53c400_irq_enable(ncr, ncr400, 1);
+                            ncr->isr |= STATUS_INT;
                         }
                     }
                     break;
@@ -573,7 +622,8 @@ ncr53c400_callback(void *priv)
                             ncr->isr |= STATUS_END_OF_DMA;
                             if (ncr->mode & MODE_ENA_EOP_INT) {
                                 ncr53c400_log("NCR read irq\n");
-                                ncr5380_irq(ncr, 1);
+                                ncr53c400_irq_enable(ncr, ncr400, 1);
+                                ncr->isr |= STATUS_INT;
                             }
                         } else
                             timer_on_auto(&ncr400->timer, 1.0);
@@ -675,7 +725,8 @@ ncr53c400_init(const device_t *info)
     switch (ncr400->type) {
         case ROM_LCS6821N: /* Longshine LCS6821N */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
-            ncr->irq         = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
 
             rom_init(&ncr400->bios_rom, LCS6821N_ROM,
                      ncr400->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -689,7 +740,8 @@ ncr53c400_init(const device_t *info)
 
         case ROM_LS2000: /* Corel LS2000 */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
-            ncr->irq         = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
 
             rom_init(&ncr400->bios_rom, COREL_LS2000_ROM,
                      ncr400->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -702,7 +754,9 @@ ncr53c400_init(const device_t *info)
 
         case ROM_RT1000B: /* Rancho RT1000B/MC */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
-            ncr->irq         = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
+
             if (info->flags & DEVICE_MCA) {
                 rom_init(&ncr400->bios_rom, RT1000B_820R_ROM,
                          0xd8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -729,7 +783,8 @@ ncr53c400_init(const device_t *info)
         case ROM_T130B: /* Trantor T130B */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
             ncr400->base     = device_get_config_hex16("base");
-            ncr->irq     = device_get_config_int("irq");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
 
             if (ncr400->rom_addr > 0x00000) {
                 rom_init(&ncr400->bios_rom, T130B_ROM,
@@ -754,6 +809,7 @@ ncr53c400_init(const device_t *info)
     ncr->dma_send_ext               = NULL;
     ncr->dma_initiator_receive_ext  = NULL;
     ncr->timer                      = ncr53c400_timer_on_auto;
+    ncr->irq_ena                    = ncr53c400_irq_enable;
     scsi_bus->bus_device            = ncr->bus;
     scsi_bus->timer                 = ncr->timer;
     scsi_bus->priv                  = ncr->priv;
@@ -839,16 +895,16 @@ static const device_config_t ncr53c400_mmio_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xe0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
@@ -910,16 +966,16 @@ static const device_config_t rt1000b_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xe0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
@@ -931,16 +987,16 @@ static const device_config_t rt1000b_mc_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xe0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
@@ -987,16 +1043,16 @@ static const device_config_t t130b_config[] = {
     {
         .name           = "irq",
         .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
+        .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 0xe0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None",  .value = -1 },
-            { .description = "IRQ 3", .value =  3 },
-            { .description = "IRQ 5", .value =  5 },
-            { .description = "IRQ 7", .value =  7 },
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }

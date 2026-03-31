@@ -3,7 +3,7 @@ In order for everyone to enjoy their time contributing to 86Box or otherwise bei
 
 ## 1. No illegal activity or GitHub ToS violations
 - 1.1. Do not distribute malware for non-research purposes. Post samples in a clearly named encrypted archive.
-- 1.2. Posting old software is allowed if at least 10 years old and out of support.
+- 1.2. Disclosure of copyrighted materials is permitted only if they are demo/trial versions, shareware, freeware, or open-source software, or if they are disclosed by the copyright holder or on the copyright holder’s behalf. If such materials need to be disclosed for testing or bug-fixing purposes, any available private channels should be used. Developers undertake to remove any materials obtained for such purposes as soon as they are no longer needed.
 - 1.3. Do not post NSFW content (defined at the staff's discretion).
 - 1.4. Do not do anything forbidden by the law or the Discord or GitHub Terms of Service.
 

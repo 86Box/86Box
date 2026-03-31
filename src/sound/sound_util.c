@@ -42,7 +42,7 @@ sound_load_wav(const char *filename, int *sample_count)
     }
 
     int      input_samples = hdr.data_size / 2;
-    int16_t *input_data    = malloc(hdr.data_size);
+    int16_t *input_data    = calloc(1, hdr.data_size);
     if (!input_data) {
         fclose(f);
         return NULL;
@@ -61,7 +61,7 @@ sound_load_wav(const char *filename, int *sample_count)
     if (hdr.num_channels == 1) {
         /* Convert mono to stereo */
         output_samples = input_samples;
-        output_data    = malloc(input_samples * 2 * sizeof(int16_t));
+        output_data    = calloc(input_samples * 2, sizeof(int16_t));
         if (!output_data) {
             free(input_data);
             return NULL;

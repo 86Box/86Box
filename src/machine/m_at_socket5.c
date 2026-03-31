@@ -371,8 +371,7 @@ machine_at_apollo_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1995_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -402,8 +401,7 @@ machine_at_optiplexgxl_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
@@ -423,6 +421,91 @@ machine_at_optiplexgxl_init(const machine_t *model)
     device_add(&piix_device);
     device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_02E));
     device_add(&dell_jumper_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+static const device_config_t pt2000_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pt2000",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Award Modular BIOS v4.50GP - Revision T1.01",
+                .internal_name = "pt2000",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ficpt2000/PT2000_v1.01.BIN", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision 3.072C806",
+                .internal_name = "pt2000_451pg",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ficpt2000/3072c806.bin", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pt2000_device = {
+    .name          = "FIC PT-2000",
+    .internal_name = "pt2000_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pt2000_config
+};
+
+int
+machine_at_pt2000_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -476,7 +559,7 @@ machine_at_morrison32_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
     machine_at_morrison32_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -571,7 +654,7 @@ machine_at_pc330_65x6_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
     
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
     machine_at_morrison64_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -623,91 +706,6 @@ machine_at_zappa_gpio_init(void)
         gpio |= 0xffff00ff;
 
     machine_set_gpio_default(gpio);
-}
-
-static const device_config_t pt2000_config[] = {
-    // clang-format off
-    {
-        .name           = "bios",
-        .description    = "BIOS Version",
-        .type           = CONFIG_BIOS,
-        .default_string = "pt2000",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = {
-            {
-                .name          = "Award Modular BIOS v4.50GP - Revision T1.01",
-                .internal_name = "pt2000",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 131072,
-                .files         = { "roms/machines/ficpt2000/PT2000_v1.01.BIN", "" }
-            },
-            {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.072C806",
-                .internal_name = "pt2000_451pg",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 131072,
-                .files         = { "roms/machines/ficpt2000/3072c806.bin", "" }
-            },
-            { .files_no = 0 }
-        },
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
-};
-
-const device_t pt2000_device = {
-    .name          = "FIC PT-2000",
-    .internal_name = "pt2000_device",
-    .flags         = 0,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = pt2000_config
-};
-
-int
-machine_at_pt2000_init(const machine_t *model)
-{
-    int         ret = 0;
-    const char *fn;
-
-    /* No ROMs available */
-    if (!device_available(model->device))
-        return ret;
-
-    device_context(model->device);
-    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
-    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
-    device_context_restore();
-
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&i430fx_device);
-    device_add(&piix_device);
-    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
-    device_add(&intel_flash_bxt_device);
-
-    return ret;
 }
 
 static const device_config_t zappa_config[] = {
@@ -778,7 +776,7 @@ machine_at_zappa_init(const machine_t *model)
     ret = bios_load_linear_combined(fn, fn2, 0x20000, 128);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
     machine_at_zappa_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -894,8 +892,7 @@ machine_at_hawk_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1994_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1088,8 +1085,7 @@ machine_at_ms5109_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1994_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1121,8 +1117,7 @@ machine_at_torino_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&ami_1994_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1145,6 +1140,41 @@ machine_at_torino_init(const machine_t *model)
 }
 
 /* UMC 889x */
+int
+machine_at_pl5600d_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pl5600d/586_B1.140",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x13, PCI_CARD_VIDEO,       0, 0, 0, 0);
+
+    device_add(&umc_8890_device);
+    device_add(&umc_8886af_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&um866x_device, (void *) UM8663AF);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
 int
 machine_at_hot539_init(const machine_t *model)
 {
@@ -1178,18 +1208,73 @@ machine_at_hot539_init(const machine_t *model)
 }
 
 /* VLSI SuperCore */
+static const device_config_t bravoms586_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "bravoms586",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Award AST BIOS - Revision 1.03 (November 1994)",
+                .internal_name = "bravoms586_103",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bravoms586/asttest.bin", "" }
+            },
+            {
+                .name          = "Award AST BIOS - Revision 2.02 (December 1995)",
+                .internal_name = "bravoms586",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/bravoms586/bravoms586-v202.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t bravoms586_device = {
+    .name          = "AST Bravo MS/MS-T/MS-L (Rattler)",
+    .internal_name = "bravoms586_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = bravoms586_config
+};
+
 int
 machine_at_bravoms586_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/bravoms586/asttest.bin",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1217,36 +1302,6 @@ machine_at_bravoms586_init(const machine_t *model)
 }
 
 int
-machine_at_g586vpmc_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/g586vpmc/Vpm_c3.bin",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x02, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x08, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0A, PCI_CARD_IDE, 0, 0, 0, 0);
-
-    device_add(&vl82c59x_device);
-    device_add(&sst_flash_29ee010_device);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
-    device_add(&ide_cmd646_device);
-    return ret;
-}
-
-int
 machine_at_m54si_init(const machine_t *model)
 {
     int ret;
@@ -1257,7 +1312,7 @@ machine_at_m54si_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1288,7 +1343,7 @@ machine_at_pb600_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1324,7 +1379,7 @@ machine_at_globalyst620_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1344,5 +1399,35 @@ machine_at_globalyst620_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
+    return ret;
+}
+
+int
+machine_at_g586vpmc_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/g586vpmc/Vpm_c3.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_IDE, 0, 0, 0, 0);
+
+    device_add(&vl82c59x_wildcat_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
+    device_add(&ide_cmd646_device);
     return ret;
 }

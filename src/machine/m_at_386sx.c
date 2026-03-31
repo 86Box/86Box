@@ -42,6 +42,7 @@
 #include <86box/vid_cga.h>
 #include <86box/flash.h>
 #include <86box/machine.h>
+#include <86box/sound.h>
 
 /* ISA */
 /*
@@ -133,7 +134,7 @@ static const device_config_t pbl300sx_config[] = {
 };
 
 const device_t pbl300sx_device = {
-    .name          = "Packard Bell Legend 300SX",
+    .name          = "Packard Bell PB300/PB320",
     .internal_name = "pbl300sx_device",
     .flags         = 0,
     .local         = 0,
@@ -239,7 +240,7 @@ machine_at_flytech386_init(const machine_t *model)
     device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89 | W83XX7_IDE_PRI | W837X7_IDE_START));
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&tvga8900d_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -369,6 +370,32 @@ machine_at_ama932j_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_tandy1000rsx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tandy1000rsx/tandy-1000rsx-1-10.00.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&headland_ht18c_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add(&pssj_1e0_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+
 /* Intel 82335 */
 int
 machine_at_adi386sx_init(const machine_t *model)
@@ -382,8 +409,7 @@ machine_at_adi386sx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
+    machine_at_common_init(model);
 
     device_add(&intel_82335_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
@@ -467,6 +493,31 @@ machine_at_neat_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_p3345_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/p3345/BIOS_EVEN.BIN",
+                                "roms/machines/p3345/BIOS_ODD.BIN",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&neat_device);
+    device_add(&p82c604_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 /* NEATsx */
 int
 machine_at_if386sx_init(const machine_t *model)
@@ -480,8 +531,7 @@ machine_at_if386sx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
+    machine_at_common_init(model);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -559,9 +609,9 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
         return ret;
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5402_onboard_device);
+        device_add(&gd5402_onboard_commodore_device);
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&ide_isa_device);
 
@@ -673,7 +723,7 @@ machine_at_dells333sl_init(const machine_t *model)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&ide_isa_device);
 
@@ -747,7 +797,7 @@ machine_at_wd76c10_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));

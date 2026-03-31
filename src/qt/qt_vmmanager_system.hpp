@@ -46,6 +46,7 @@ namespace Display {
         CD,
         RDisk,
         MO,
+        Tape,
         SCSIController,
         StorageController,
         MidiOut,

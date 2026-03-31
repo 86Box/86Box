@@ -21,7 +21,7 @@
 #    include "qt_updatecheckdialog.hpp"
 #endif
 #include "qt_about.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_util.hpp"
 
 #include <QCloseEvent>
@@ -249,8 +249,8 @@ VMManagerMainWindow::saveSettings() const
 void
 VMManagerMainWindow::updateLanguage()
 {
-    ProgSettings::loadTranslators(QCoreApplication::instance());
-    ProgSettings::reloadStrings();
+    Preferences::loadTranslators(QCoreApplication::instance());
+    Preferences::reloadStrings();
     ui->retranslateUi(this);
     setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     emit languageUpdated();
@@ -269,7 +269,7 @@ VMManagerMainWindow::changeEvent(QEvent *event)
 {
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
-        QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+        QApplication::setFont(QFont(Preferences::getUIFont()));
     }
 #endif
     QWidget::changeEvent(event);

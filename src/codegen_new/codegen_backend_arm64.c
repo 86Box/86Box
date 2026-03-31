@@ -285,11 +285,8 @@ codegen_backend_init(void)
 {
     codeblock_t *block;
 
-    codeblock      = malloc(BLOCK_SIZE * sizeof(codeblock_t));
-    codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
-
-    memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
-    memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
+    codeblock      = calloc(BLOCK_SIZE, sizeof(codeblock_t));
+    codeblock_hash = calloc(HASH_SIZE, sizeof(codeblock_t *));
 
     for (int c = 0; c < BLOCK_SIZE; c++) {
         codeblock[c].pc = BLOCK_PC_INVALID;

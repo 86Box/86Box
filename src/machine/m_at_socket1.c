@@ -294,15 +294,17 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
     int ret;
 
     ret = bios_load_linear("roms/machines/vect486vl/aa0500.ami",
-                           0x000e0000, 131072, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
         return ret;
 
+    memcpy(&rom[0x00020000], rom, 131072);
+
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c480_device);
 
@@ -310,6 +312,15 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
 
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
+
+    video_reset(gfxcard[0]);
+
+    if (gfxcard[0] != VID_INTERNAL) {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
 
     return ret;
 }
@@ -321,15 +332,17 @@ machine_at_d824_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/d824/fts-biosupdated824noflashbiosepromv320-320334-160.bin",
-                           0x000e0000, 131072, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
         return ret;
 
+    memcpy(&rom[0x00020000], rom, 131072);
+
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c480_device);
 
@@ -341,6 +354,15 @@ machine_at_d824_init(const machine_t *model)
 
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C651);
+
+    video_reset(gfxcard[0]);
+
+    if (gfxcard[0] != VID_INTERNAL) {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
 
     return ret;
 }
@@ -357,7 +379,7 @@ machine_at_pcs44c_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c486_device);
     device_add(&tulip_jumper_device);
@@ -376,6 +398,35 @@ machine_at_pcs44c_init(const machine_t *model)
 }
 
 int
+machine_at_sensation1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sensation1/P1033PCD_01.10.01_11-11-92_E687_Sensation_1_BIOS.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&vl82c486_device);
+    device_add(&vl82c113_device);
+
+    device_add(&pssj_1e0_device);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_nsc_dp8473_device);
+
+    /* TODO: Add onboard WD90C31 once it's implemented */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
 machine_at_tuliptc38_init(const machine_t *model)
 {
     int ret;
@@ -386,7 +437,7 @@ machine_at_tuliptc38_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     device_add(&vl82c486_device);
     device_add(&tulip_jumper_device);
@@ -395,6 +446,8 @@ machine_at_tuliptc38_init(const machine_t *model)
 
     device_add(&ide_isa_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
+
+    video_reset(gfxcard[0]);
 
     if (gfxcard[0] == VID_INTERNAL) {
         bios_load_aux_linear("roms/machines/tuliptc38/VBIOS.BIN",

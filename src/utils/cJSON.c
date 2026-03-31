@@ -164,7 +164,7 @@ typedef struct internal_hooks
 /* work around MSVC error C2322: '...' address of dllimport '...' is not static */
 static void * CJSON_CDECL internal_malloc(size_t size)
 {
-    return malloc(size);
+    return calloc(1, size);
 }
 static void CJSON_CDECL internal_free(void *pointer)
 {

@@ -172,10 +172,9 @@ ddma_init(UNUSED(const device_t *info))
 {
     ddma_t *dev;
 
-    dev = (ddma_t *) malloc(sizeof(ddma_t));
+    dev = (ddma_t *) calloc(1, sizeof(ddma_t));
     if (dev == NULL)
         return (NULL);
-    memset(dev, 0x00, sizeof(ddma_t));
 
     for (uint8_t i = 0; i < 8; i++)
         dev->channels[i].channel = i;

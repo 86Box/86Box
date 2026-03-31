@@ -177,16 +177,16 @@ catalyst_flash_add_mappings(flash_t *dev)
     mem_mapping_add(&dev->mapping, 0xe0000, 0x20000,
                     flash_read, flash_readw, flash_readl,
                     flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
 
     mem_mapping_add(&(dev->mapping_h[0]), 0xfffc0000, 0x20000,
                     flash_read, flash_readw, flash_readl,
                     flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
     mem_mapping_add(&(dev->mapping_h[1]), 0xfffe0000, 0x20000,
                     flash_read, flash_readw, flash_readl,
                     flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, (void *) dev);
+                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
 }
 
 static void
@@ -210,7 +210,7 @@ catalyst_flash_init(UNUSED(const device_t *info))
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
 
-    dev->array = (uint8_t *) malloc(0x20000);
+    dev->array = (uint8_t *) calloc(1, 0x20000);
     memset(dev->array, 0xff, 0x20000);
 
     catalyst_flash_add_mappings(dev);

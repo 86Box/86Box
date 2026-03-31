@@ -16,7 +16,7 @@
 #include <QStyle>
 #include <cstring>
 
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_vmmanager_preferences.hpp"
 #include "qt_vmmanager_config.hpp"
 #include "ui_qt_vmmanager_preferences.h"
@@ -59,8 +59,8 @@ VMManagerPreferences::
     }
 
     ui->comboBoxLanguage->setItemData(0, 0);
-    for (int i = 1; i < ProgSettings::languages.length(); i++) {
-        ui->comboBoxLanguage->addItem(ProgSettings::languages[i].second, i);
+    for (int i = 1; i < Preferences::languages.length(); i++) {
+        ui->comboBoxLanguage->addItem(Preferences::languages[i].second, i);
         if (i == lang_id) {
             ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i));
         }

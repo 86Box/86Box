@@ -486,7 +486,7 @@ pc87306_init(UNUSED(const device_t *info))
     dev->lpt = device_add_inst(&lpt_port_device, 1);
     lpt_set_cnfga_readout(dev->lpt, 0x10);
 
-    dev->nvr = device_add(&at_mb_nvr_device);
+    dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_MB);
 
     switch (dev->kbc_type) {
         case PCX730X_AMI:

@@ -49,6 +49,8 @@ extern MainWindow *main_window;
 #include "qt_openglrenderer.hpp"
 #include "qt_openglshadermanagerdialog.hpp"
 
+#include "qt_defs.hpp"
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -1726,8 +1728,9 @@ OpenGLRenderer::render()
         glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
-        QImage image((uchar*)rgb, width, height, width * 3, QImage::Format_RGB888);
-        image.mirrored(false, true).save(path, "png");
+        int pitch_adj = (4 - ((width * 3) & 3)) & 3;
+        QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
+        image.IMG_FLIPPED.save(path, "png");
         monitors[r_monitor_index].mon_screenshots--;
         free(rgb);
     }
@@ -1739,9 +1742,10 @@ OpenGLRenderer::render()
         glw.glFinish();
         glw.glReadPixels(window_rect.x, window_rect.y, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb);
 
-        QImage image((uchar*)rgb, width, height, width * 3, QImage::Format_RGB888);
+        int pitch_adj = (4 - ((width * 3) & 3)) & 3;
+        QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
         QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setImage(image.mirrored(false, true), QClipboard::Clipboard);
+        clipboard->setImage(image.IMG_FLIPPED, QClipboard::Clipboard);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
         free(rgb);
     }

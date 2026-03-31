@@ -21,6 +21,9 @@
 #ifdef Q_OS_WINDOWS
 #    include <windows.h>
 #endif
+#if defined(Q_OS_MACOS) || defined(Q_OS_FREEBSD)
+#    include <sys/stat.h>
+#endif
 
 extern "C" {
 #include <86box/timer.h>
@@ -32,6 +35,7 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 #include <86box/path.h>
 }
 
@@ -119,6 +123,8 @@ MediaHistoryManager::maxDevicesSupported(ui::MediaType type)
             return 1;
         case ui::MediaType::Cartridge:
             return 2;
+        case ui::MediaType::Tape:
+            return TAPE_NUM;
     }
 }
 
@@ -203,6 +209,9 @@ MediaHistoryManager::initialDeduplication()
                 case ui::MediaType::Mo:
                     current_image = mo_drives[device_index].image_path;
                     break;
+                case ui::MediaType::Tape:
+                    current_image = tape_drives[device_index].image_path;
+                    break;
             }
             deduplicateList(device_history, QVector<QString>(1, current_image));
             device_history = removeMissingImages(device_history);
@@ -238,6 +247,8 @@ MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int index)
             return &rdisk_drives[index].image_history[0];
         case ui::MediaType::Mo:
             return &mo_drives[index].image_history[0];
+        case ui::MediaType::Tape:
+            return &tape_drives[index].image_history[0];
     }
 }
 
@@ -379,6 +390,13 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
 #ifdef Q_OS_WINDOWS
         if (new_fi.filePath().left(8) == "ioctl://")
             file_exists = (GetDriveTypeA(new_fi.filePath().right(2).toUtf8().data()) == DRIVE_CDROM);
+#endif
+#if defined(Q_OS_MACOS) || defined(Q_OS_FREEBSD)
+        if (new_fi.filePath().left(8) == "ioctl://") {
+            QString device_path = new_fi.filePath().mid(8);
+            struct stat st;
+            file_exists = (stat(device_path.toUtf8().data(), &st) == 0);
+        }
 #endif
 
         if (!file_exists) {

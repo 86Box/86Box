@@ -12,11 +12,6 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsinput.hpp"
-#include "ui_qt_settingsinput.h"
-#include "qt_mainwindow.hpp"
-#include "qt_progsettings.hpp"
-
 #include <QDebug>
 #include <QKeySequence>
 #include <QMessageBox>
@@ -32,15 +27,20 @@ extern "C" {
 #include <86box/ui.h>
 }
 
+#include "qt_settings_completer.hpp"
+#include "qt_settingsinput.hpp"
+#include "ui_qt_settingsinput.h"
+#include "qt_mainwindow.hpp"
+#include "qt_preferences.hpp"
+
 #include "qt_models_common.hpp"
 #include "qt_deviceconfig.hpp"
 #include "qt_joystickconfiguration.hpp"
-#include "qt_keybind.hpp"
+#include "qt_defs.hpp"
 
 extern MainWindow *main_window;
 
-// Temporary working copy of key list
-accelKey acc_keys_t[NUM_ACCELS];
+joystick_state_t      org_joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
 
 SettingsInput::SettingsInput(QWidget *parent)
     : QWidget(parent)
@@ -48,43 +48,81 @@ SettingsInput::SettingsInput(QWidget *parent)
 {
     ui->setupUi(this);
 
-    QStringList horizontalHeader;
-    QStringList verticalHeader;
+    scKeyboard                      = new SettingsCompleter(ui->comboBoxKeyboard, nullptr);
+    scMouse                         = new SettingsCompleter(ui->comboBoxMouse, nullptr);
 
-    horizontalHeader.append(tr("Action"));
-    horizontalHeader.append(tr("Keybind"));
+    scJoystick0                     = new SettingsCompleter(ui->comboBoxJoystick0, nullptr);
 
-    QTableWidget *keyTable = ui->tableKeys;
-    keyTable->setRowCount(NUM_ACCELS);
-    keyTable->setColumnCount(3);
-    keyTable->setColumnHidden(2, true);
-    keyTable->setColumnWidth(0, 200);
-    keyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    QStringList headers;
-    // headers << "Action" << "Bound key";
-    keyTable->setHorizontalHeaderLabels(horizontalHeader);
-    keyTable->verticalHeader()->setVisible(false);
-    keyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    keyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    keyTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    keyTable->setShowGrid(true);
+    kbd_config_changed   = 0;
+    mouse_config_changed = 0;
 
-    // Make a working copy of acc_keys so we can check for dupes later without getting
-    // confused
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        strcpy(acc_keys_t[x].name, acc_keys[x].name);
-        strcpy(acc_keys_t[x].desc, acc_keys[x].desc);
-        strcpy(acc_keys_t[x].seq, acc_keys[x].seq);
+    for (int i = 0; i < GAMEPORT_MAX; i++) {
+        for (int j = 0; j < MAX_JOYSTICKS; j++)
+             memcpy(&(org_joystick_state[i][j]), &(joystick_state[i][j]), sizeof(joystick_state_t));
     }
-
-    refreshInputList();
 
     onCurrentMachineChanged(machine);
 }
 
 SettingsInput::~SettingsInput()
 {
+    delete scJoystick0;
+
+    delete scMouse;
+    delete scKeyboard;
+
     delete ui;
+}
+
+static int
+has_joystick_state_changed(int gameport_nr, int joystick_nr)
+{
+    int has_changed = 0;
+
+    has_changed |= (joystick_state[gameport_nr][joystick_nr].plat_joystick_nr !=
+                    org_joystick_state[gameport_nr][joystick_nr].plat_joystick_nr);
+
+    for (int axis_nr = 0; axis_nr < MAX_JOY_AXES; axis_nr++) {
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr] !=
+                        org_joystick_state[gameport_nr][joystick_nr].axis_mapping[axis_nr]);
+    }
+
+    for (int button_nr = 0; button_nr < MAX_JOY_BUTTONS; button_nr++) {
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].button_mapping[button_nr] !=
+                        org_joystick_state[gameport_nr][joystick_nr].button_mapping[button_nr]);
+    }
+
+    for (int pov_nr = 0; pov_nr < MAX_JOY_POVS; pov_nr++) {
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0] !=
+                        org_joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][0]);
+        has_changed |= (joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1] !=
+                        org_joystick_state[gameport_nr][joystick_nr].pov_mapping[pov_nr][1]);
+    }
+
+    return has_changed;
+}
+
+int
+SettingsInput::changed()
+{
+    int has_changed = 0;
+
+    has_changed |= (keyboard_type != ui->comboBoxKeyboard->currentData().toInt());
+    has_changed |= kbd_config_changed;
+    has_changed |= (mouse_type    != ui->comboBoxMouse->currentData().toInt());
+    has_changed |= mouse_config_changed;
+
+    has_changed |= (joystick_type[0] != ui->comboBoxJoystick0->currentData().toInt());
+
+    for (int i = 0; i < 4; i++)
+        has_changed |= has_joystick_state_changed(0, i);
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsInput::restore()
+{
 }
 
 void
@@ -94,14 +132,6 @@ SettingsInput::save()
     mouse_type    = ui->comboBoxMouse->currentData().toInt();
 
     joystick_type[0] = ui->comboBoxJoystick0->currentData().toInt();
-
-    // Copy accelerators from working set to global set
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        strcpy(acc_keys[x].name, acc_keys_t[x].name);
-        strcpy(acc_keys[x].desc, acc_keys_t[x].desc);
-        strcpy(acc_keys[x].seq, acc_keys_t[x].seq);
-    }
-    ProgSettings::reloadStrings();
 }
 
 void
@@ -109,6 +139,11 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 {
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
+
+    scKeyboard->removeRows();
+    scMouse->removeRows();
+
+    scJoystick0->removeRows();
 
     auto *keyboardModel = ui->comboBoxKeyboard->model();
     auto  removeRows    = keyboardModel->rowCount();
@@ -134,6 +169,8 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
         keyboardModel->setData(idx, name, Qt::DisplayRole);
         keyboardModel->setData(idx, i, Qt::UserRole);
+
+        scKeyboard->addDevice(nullptr, name);
 
         if (i == keyboard_type)
             selectedRow = row - removeRows;
@@ -169,6 +206,8 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         mouseModel->setData(idx, name, Qt::DisplayRole);
         mouseModel->setData(idx, i, Qt::UserRole);
 
+        scMouse->addDevice(nullptr, name);
+
         if (i == mouse_type)
             selectedRow = row - removeRows;
     }
@@ -184,6 +223,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     selectedRow               = 0;
     while (joyName) {
         int row = Models::AddEntry(joystickModel, tr(joyName).toUtf8().data(), i);
+        scJoystick0->addDevice(nullptr, tr(joyName));
         if (i == joystick_type[0])
             selectedRow = row - removeRows;
 
@@ -192,100 +232,6 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     }
     joystickModel->removeRows(0, removeRows);
     ui->comboBoxJoystick0->setCurrentIndex(selectedRow);
-}
-
-void
-SettingsInput::refreshInputList()
-{
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        ui->tableKeys->setItem(x, 0, new QTableWidgetItem(tr(acc_keys_t[x].desc)));
-        ui->tableKeys->setItem(x, 1, new QTableWidgetItem(QKeySequence(acc_keys_t[x].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)));
-        ui->tableKeys->setItem(x, 2, new QTableWidgetItem(acc_keys_t[x].name));
-    }
-}
-
-void
-SettingsInput::on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
-{
-    // Enable/disable bind/clear buttons if user clicked valid row
-    QTableWidgetItem *cell = ui->tableKeys->item(currentRow, 1);
-    if (!cell) {
-        ui->pushButtonBind->setEnabled(false);
-        ui->pushButtonClearBind->setEnabled(false);
-    } else {
-        ui->pushButtonBind->setEnabled(true);
-        ui->pushButtonClearBind->setEnabled(true);
-    }
-}
-
-void
-SettingsInput::on_tableKeys_cellDoubleClicked(int row, int col)
-{
-    // Edit bind
-    QTableWidgetItem *cell = ui->tableKeys->item(row, 1);
-    if (!cell)
-        return;
-
-    QKeySequence keyseq = KeyBinder::BindKey(this, cell->text());
-    if (keyseq != false) {
-        // If no change was made, don't change anything.
-        if (keyseq.toString(QKeySequence::NativeText) == cell->text())
-            return;
-
-        // Otherwise, check for conflicts.
-        // Check against the *working* copy - NOT the one in use by the app,
-        // so we don't test against shortcuts the user already changed.
-        for (int x = 0; x < NUM_ACCELS; x++) {
-            if (QString::fromStdString(acc_keys_t[x].seq) == keyseq.toString(QKeySequence::PortableText)) {
-                // That key is already in use
-                QMessageBox::warning(this, tr("Bind conflict"), tr("This key combo is already in use."), QMessageBox::StandardButton::Ok);
-                return;
-            }
-        }
-        // If we made it here, there were no conflicts.
-        // Go ahead and apply the bind.
-
-        // Find the correct accelerator key entry
-        int accKeyID = FindAccelerator(ui->tableKeys->item(row, 2)->text().toUtf8().constData());
-        if (accKeyID < 0)
-            return; // this should never happen
-
-        // Make the change
-        cell->setText(keyseq.toString(QKeySequence::NativeText));
-        strcpy(acc_keys_t[accKeyID].seq, keyseq.toString(QKeySequence::PortableText).toUtf8().constData());
-
-        refreshInputList();
-    }
-}
-
-void
-SettingsInput::on_pushButtonBind_clicked()
-{
-    // Edit bind
-    QTableWidgetItem *cell = ui->tableKeys->currentItem();
-    if (!cell)
-        return;
-
-    on_tableKeys_cellDoubleClicked(cell->row(), cell->column());
-}
-
-void
-SettingsInput::on_pushButtonClearBind_clicked()
-{
-    // Wipe bind
-    QTableWidgetItem *cell = ui->tableKeys->item(ui->tableKeys->currentRow(), 1);
-    if (!cell)
-        return;
-
-    cell->setText("");
-    // Find the correct accelerator key entry
-    int accKeyID = FindAccelerator(ui->tableKeys->item(cell->row(), 2)->text().toUtf8().constData());
-    if (accKeyID < 0)
-        return; // this should never happen
-
-    // Make the change
-    cell->setText("");
-    strcpy(acc_keys_t[accKeyID].seq, "");
 }
 
 void
@@ -323,14 +269,14 @@ void
 SettingsInput::on_pushButtonConfigureKeyboard_clicked()
 {
     int keyboardId = ui->comboBoxKeyboard->currentData().toInt();
-    DeviceConfig::ConfigureDevice(keyboard_get_device(keyboardId));
+    kbd_config_changed |= DeviceConfig::ConfigureDevice(keyboard_get_device(keyboardId));
 }
 
 void
 SettingsInput::on_pushButtonConfigureMouse_clicked()
 {
     int mouseId = ui->comboBoxMouse->currentData().toInt();
-    DeviceConfig::ConfigureDevice(mouse_get_device(mouseId));
+    mouse_config_changed |= DeviceConfig::ConfigureDevice(mouse_get_device(mouseId));
 }
 
 static int

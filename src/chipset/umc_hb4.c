@@ -250,8 +250,6 @@ static void
 hb4_smram(hb4_t *dev)
 {
     smram_disable_all();
-    if (dev->smram_base != 0x00000000)
-        umc_smram_recalc(dev->smram_base >> 12, 0);
 
     dev->smram_base = ((uint32_t) dev->pci_conf[0x5c]) << 20;
     dev->smram_base |= ((uint32_t) (dev->pci_conf[0x5d] & 0x0f)) << 28;
@@ -269,13 +267,11 @@ hb4_smram(hb4_t *dev)
         mem_set_mem_state_smram_ex(1, dev->smram_base, 0x20000, 0x02);
     }
 
-    umc_smram_recalc(dev->smram_base >> 12, 1);
-
     flushmmucache();
 }
 
 static void
-hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+hb4_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     hb4_t *dev = (hb4_t *) priv;
 
@@ -336,7 +332,7 @@ hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-hb4_read(int func, int addr, void *priv)
+hb4_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const hb4_t  *dev = (hb4_t *) priv;
     uint8_t       ret = 0xff;

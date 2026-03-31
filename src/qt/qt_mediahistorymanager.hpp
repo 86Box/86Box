@@ -45,7 +45,8 @@ enum class MediaType {
     RDisk,
     Mo,
     Cassette,
-    Cartridge
+    Cartridge,
+    Tape
 };
 // This macro allows us to do a reverse lookup of the enum with `QMetaEnum`
 Q_ENUM_NS(MediaType)
@@ -62,7 +63,8 @@ static const MediaType AllSupportedMediaHistoryTypes[] = {
     MediaType::RDisk,
     MediaType::Mo,
     MediaType::Cassette,
-    MediaType::Cartridge
+    MediaType::Cartridge,
+    MediaType::Tape
 };
 
 class MediaHistoryManager {

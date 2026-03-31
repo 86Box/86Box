@@ -16,6 +16,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -23,6 +25,18 @@
 #include <wchar.h>
 #include <pwd.h>
 #include <stdatomic.h>
+
+/* Block device ioctl headers */
+#ifdef __linux__
+#    include <linux/fs.h>
+#endif
+#ifdef __APPLE__
+#    include <sys/disk.h>
+#endif
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#    include <sys/disk.h>
+#    include <sys/disklabel.h>
+#endif
 
 #ifdef __APPLE__
 #    include "macOSXGlue.h"
@@ -34,6 +48,7 @@
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/config.h>
+#include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
@@ -426,6 +441,76 @@ plat_file_check(const char *path)
 }
 
 int
+plat_is_block_device(const char *path)
+{
+    struct stat stats;
+    if (stat(path, &stats) < 0)
+        return 0;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+    /* BSD systems use character devices for disk access, not block devices */
+    return S_ISCHR(stats.st_mode) ? 1 : 0;
+#else
+    return S_ISBLK(stats.st_mode) ? 1 : 0;
+#endif
+}
+
+int64_t
+plat_get_block_device_size(const char *path)
+{
+#ifdef __linux__
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t size = 0;
+    if (ioctl(fd, BLKGETSIZE64, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#elif defined(__APPLE__)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t block_count = 0;
+    uint32_t block_size = 0;
+
+    if (ioctl(fd, DKIOCGETBLOCKCOUNT, &block_count) < 0) {
+        close(fd);
+        return -1;
+    }
+    if (ioctl(fd, DKIOCGETBLOCKSIZE, &block_size) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return (int64_t)(block_count * block_size);
+
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    off_t size = 0;
+    if (ioctl(fd, DIOCGMEDIASIZE, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#else
+    /* Unsupported platform */
+    (void) path;
+    return -1;
+#endif
+}
+
+int
 plat_dir_create(char *path)
 {
     return mkdir(path, S_IRWXU);
@@ -741,6 +826,7 @@ void
 plat_power_off(void)
 {
     confirm_exit_cmdl = 0;
+    hdd_image_sync_all();
     nvr_save();
     config_save();
 
@@ -1098,11 +1184,13 @@ unix_executeLine(char *line)
                 "rdiskload <id> <filename> <wp> - Load removable disk image into removable disk drive <id>.\n"
                 "cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
                 "moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
+                "tapeload <id> <filename> <wp> - Load tape image into tape drive <id>.\n\n"
                 "fddeject <id> - eject disk from floppy drive <id>.\n"
                 "cdeject <id> - eject disc from CD-ROM drive <id>.\n"
                 "rdiskeject <id> - eject removable disk image from removable disk drive <id>.\n"
                 "carteject <id> - eject cartridge from drive <id>.\n"
                 "moeject <id> - eject image from MO drive <id>.\n\n"
+                "tapeeject <id> - eject image from tape drive <id>.\n\n"
                 "hardreset - hard reset the emulated system.\n"
                 "pause - pause the the emulated system.\n"
                 "fastfwd - toggle fast forward.\n"
@@ -1206,14 +1294,16 @@ unix_executeLine(char *line)
             }
         } else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 2) {
             floppy_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 2) {
+        } else if (strncasecmp(xargv[0], "cdeject", 7) == 0 && cmdargc >= 2) {
             cdrom_mount(atoi(xargv[1]), "");
-        } else if (strncasecmp(xargv[0], "moeject", 8) == 0 && cmdargc >= 2) {
+        } else if (strncasecmp(xargv[0], "moeject", 7) == 0 && cmdargc >= 2) {
             mo_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2) {
+        } else if (strncasecmp(xargv[0], "carteject", 9) == 0 && cmdargc >= 2) {
             cartridge_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "rdiskeject", 8) == 0 && cmdargc >= 2) {
+        } else if (strncasecmp(xargv[0], "rdiskeject", 10) == 0 && cmdargc >= 2) {
             rdisk_eject(atoi(xargv[1]));
+        } else if (strncasecmp(xargv[0], "tapeeject", 9) == 0 && cmdargc >= 2) {
+            tape_eject(atoi(xargv[1]));
         } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
             uint8_t id;
             uint8_t wp;
@@ -1234,7 +1324,7 @@ unix_executeLine(char *line)
                 printf("Inserting disk into floppy drive %c: %s\n", id + 'A', fn);
                 floppy_mount(id, fn, wp);
             }
-        } else if (strncasecmp(xargv[0], "moload", 7) == 0 && cmdargc >= 4) {
+        } else if (strncasecmp(xargv[0], "moload", 6) == 0 && cmdargc >= 4) {
             uint8_t id;
             uint8_t wp;
             bool    err = false;
@@ -1254,7 +1344,7 @@ unix_executeLine(char *line)
                 printf("Inserting into mo drive %hhu: %s\n", id, fn);
                 mo_mount(id, fn, wp);
             }
-        } else if (strncasecmp(xargv[0], "cartload", 7) == 0 && cmdargc >= 4) {
+        } else if (strncasecmp(xargv[0], "cartload", 8) == 0 && cmdargc >= 4) {
             uint8_t id;
             uint8_t wp;
             bool    err = false;
@@ -1274,7 +1364,7 @@ unix_executeLine(char *line)
                 printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
                 cartridge_mount(id, fn, wp);
             }
-        } else if (strncasecmp(xargv[0], "rdiskload", 7) == 0 && cmdargc >= 4) {
+        } else if (strncasecmp(xargv[0], "rdiskload", 9) == 0 && cmdargc >= 4) {
             uint8_t id;
             uint8_t wp;
             bool    err = false;
@@ -1293,6 +1383,26 @@ unix_executeLine(char *line)
                     fn[strlen(fn) - 1] = '\0';
                 printf("Inserting disk into removable disk drive %c: %s\n", id + 'A', fn);
                 rdisk_mount(id, fn, wp);
+            }
+        } else if (strncasecmp(xargv[0], "tapeload", 8) == 0 && cmdargc >= 4) {
+            uint8_t id;
+            uint8_t wp;
+            bool    err = false;
+            char    fn[PATH_MAX];
+
+            memset(fn, 0, sizeof(fn));
+
+            if (!xargv[2] || !xargv[1]) {
+                free(linecpy);
+                return;
+            }
+            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
+            if (!err) {
+                if (fn[strlen(fn) - 1] == '\''
+                    || fn[strlen(fn) - 1] == '"')
+                    fn[strlen(fn) - 1] = '\0';
+                printf("Inserting disk into tape drive %c: %s\n", id + 'A', fn);
+                tape_mount(id, fn, wp);
             }
         }
         free(linecpy);

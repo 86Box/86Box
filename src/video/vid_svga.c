@@ -814,6 +814,7 @@ svga_recalctimings(svga_t *svga)
                         svga->render = svga_render_2bpp_highres;
                 } else {
                     svga->map8 = svga->pallook;
+                    svga_log("Map8.\n");
                     if (svga->lowres) { /*Low res (320)*/
                         svga->render = svga_render_8bpp_lowres;
                         svga_log("8 bpp low res.\n");
@@ -930,7 +931,12 @@ svga_recalctimings(svga_t *svga)
 
         svga->y_add = (svga->monitor->mon_overscan_y >> 1);
         svga->left_overscan = svga->x_add = (svga->monitor->mon_overscan_x >> 1);
+
+        svga->htotal &= 0x7fff;
     } else {
+        uint32_t hadj    = (svga->htotal & 0x8000) ? 0x100 : 0;
+        svga->htotal &= 0x7fff;
+
         uint32_t dot = svga->hblankstart;
         uint32_t adj_dot = svga->hblankstart;
         /* Verified with both the Voodoo 3 and the S3 cards: compare 7 bits if bit 7 is set,
@@ -964,7 +970,7 @@ svga_recalctimings(svga_t *svga)
         uint32_t hd = svga->hdisp;
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
 
-        svga->left_overscan = svga->x_add = (svga->htotal - adj_dot - 1) * svga->dots_per_clock;
+        svga->left_overscan = svga->x_add = (svga->htotal - adj_dot - hadj - 1) * svga->dots_per_clock;
         svga->monitor->mon_overscan_x = svga->x_add + (svga->hblankstart * svga->dots_per_clock) - hd + svga->dots_per_clock;
         /* Compensate for the HDISP code above. */
         if (svga->crtc[1] & 1)

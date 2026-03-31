@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-03-10 14:03+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.86box.net/projects/86box/86box/ca/>\n"
 "Language: ca-ES\n"
@@ -144,53 +144,44 @@ msgstr "&Escalat de valor enter"
 msgid "4:&3 Integer scale"
 msgstr "Escalat de valor enter 4:&3"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Configuració EGA/(S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Monitor VGA invertit"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Monitor VGA invertit"
+msgid "VGA screen type:"
+msgstr "Tipus de pantalla VGA:"
 
-msgid "VGA screen &type"
-msgstr "&Tipus de pantalla VGA"
-
-msgid "RGB &Color"
-msgstr "&Colors RGB"
+msgid "RGB Color"
+msgstr "Colors RGB"
 
 msgid "RGB (no brown)"
 msgstr "RGB (sense marró)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB en escala de grisos"
+msgid "RGB Grayscale"
+msgstr "RGB en escala de grisos"
 
 msgid "Generic RGBI color monitor"
 msgstr "Monitor RGBI genèric a color"
 
-msgid "&Amber monitor"
-msgstr "Monitor ambr&e"
+msgid "Amber monitor"
+msgstr "Monitor ambre"
 
-msgid "&Green monitor"
-msgstr "Monitor &verd"
+msgid "Green monitor"
+msgstr "Monitor verd"
 
-msgid "&White monitor"
-msgstr "Monitor &blanc"
+msgid "White monitor"
+msgstr "Monitor blanc"
 
-msgid "Grayscale &conversion type"
-msgstr "Tipus de &conversió a l'escala de grisos"
+msgid "Grayscale conversion type:"
+msgstr "Tipus de conversió a l'escala de grisos:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Mitja"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Mitja"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Overscan de CGA/PCjr/Tandy/E&GA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Canvia contrast per a la pantalla &monocromàtica"
+msgid "Change contrast for monochrome display"
+msgstr "Canvia contrast per a la pantalla monocromàtica"
 
 msgid "&Media"
 msgstr "&Mitjans"
@@ -351,8 +342,32 @@ msgstr "Alçada:"
 msgid "Lock to this size"
 msgstr "Fixa a aquesta grandària"
 
+msgid "General"
+msgstr "General"
+
+msgid "Processor"
+msgstr "Processador"
+
+msgid "Performance"
+msgstr "Rendiment"
+
 msgid "Machine type:"
 msgstr "Tipus de màquina:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
 
 msgid "Machine:"
 msgstr "Màquina:"
@@ -372,8 +387,14 @@ msgstr "Velocitat:"
 msgid "Frequency:"
 msgstr "Freqüència:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "Integrat"
 
 msgid "Wait states:"
 msgstr "Estats de espera:"
@@ -396,6 +417,9 @@ msgstr "Activat (hora local)"
 msgid "Enabled (UTC)"
 msgstr "Activat (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Utilitzeu l'intèrpret 486 per a processadors 286 i 386"
+
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinàmic"
 
@@ -413,6 +437,9 @@ msgstr "Vídeo:"
 
 msgid "Video #2:"
 msgstr "Vídeo 2:"
+
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gràfics Voodoo 1 o 2"
@@ -483,38 +510,14 @@ msgstr "MPU-401 independent"
 msgid "Use FLOAT32 sound"
 msgstr "Utilitza so FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Manejador de síntesi FM"
+msgid "FM synth driver:"
+msgstr "Manejador de síntesi FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (més precís)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (més ràpid)"
-
-msgid "COM1 Device:"
-msgstr "Dispositiu COM1:"
-
-msgid "COM2 Device:"
-msgstr "Dispositiu COM2:"
-
-msgid "COM3 Device:"
-msgstr "Dispositiu COM3:"
-
-msgid "COM4 Device:"
-msgstr "Dispositiu COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Dispositiu LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Dispositiu LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Dispositiu LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Dispositiu LPT4:"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA de ECP de l'LPT intern:"
@@ -531,23 +534,50 @@ msgstr "Port sèrie 3"
 msgid "Serial port 4"
 msgstr "Port sèrie 4"
 
-msgid "Parallel port 1"
-msgstr "Port paralel 1"
-
-msgid "Parallel port 2"
-msgstr "Port paralel 2"
-
-msgid "Parallel port 3"
-msgstr "Port paralel 3"
-
-msgid "Parallel port 4"
-msgstr "Port paralel 4"
-
 msgid "Floppy disk controller:"
 msgstr "Controladora de disquets:"
 
 msgid "CD-ROM controller:"
 msgstr "Controladora de CD-ROM:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "Controladora IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciari"
@@ -621,8 +651,8 @@ msgstr "Format d'imatge:"
 msgid "Block Size:"
 msgstr "Mida de bloc:"
 
-msgid "Floppy drives:"
-msgstr "Unitats de disquet:"
+msgid "Floppy drives"
+msgstr "Unitats de disquet"
 
 msgid "Turbo timings"
 msgstr "Velocitat turbo"
@@ -630,23 +660,26 @@ msgstr "Velocitat turbo"
 msgid "Check BPB"
 msgstr "Verificar BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Unitats de CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Unitats de CD-ROM"
 
-msgid "MO drives:"
-msgstr "Unitats MO:"
+msgid "MO drives"
+msgstr "Unitats MO"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Unitats de disc extraïble"
+
 msgid "Removable disks:"
 msgstr "Discs extraïbles:"
 
-msgid "Removable disk drives:"
-msgstr "Unitats de disc extraïble:"
+msgid "Tape drives"
+msgstr "Unitats de cinta"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Unitats de cinta:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -704,6 +737,15 @@ msgstr "&Disc extraïble %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Imatges de disc extraïble"
+
+msgid "Tape %1 (%2): %3"
+msgstr "Cinta %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Cinta %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Imatges de cinta"
 
 msgid "Image %1"
 msgstr "Imatge %1"
@@ -768,8 +810,14 @@ msgstr "Ports (COM i LPT)"
 msgid "Ports"
 msgstr "Ports"
 
+msgid "Serial ports"
+msgstr "Ports sèrie"
+
 msgid "Serial ports:"
 msgstr "Ports sèrie:"
+
+msgid "Parallel ports"
+msgstr "Puerts paralels"
 
 msgid "Parallel ports:"
 msgstr "Puerts paralels:"
@@ -816,14 +864,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "Fitxer"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -1025,15 +1067,6 @@ msgstr "%1 és imprescindible per la conversió automàtica de fitxers PCL a PDF
 
 msgid "Don't show this message again"
 msgstr "No tornis a mostrar aquest missatge"
-
-msgid "Don't exit"
-msgstr "No sortir"
-
-msgid "Reset"
-msgstr "Reinicialitza"
-
-msgid "Don't reset"
-msgstr "No reinicialitzis"
 
 msgid "CD-ROM images"
 msgstr "Imatges de CD-ROM"
@@ -1539,9 +1572,6 @@ msgstr "DMF (clúster 2048)"
 msgid "2.88 MB"
 msgstr "2,88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3,5\" 128 MB (ISO 10090)"
 
@@ -1583,6 +1613,9 @@ msgstr "1.5% per sota dels RPM perfectes"
 
 msgid "2% below perfect RPM"
 msgstr "2% per sota dels RPM perfectes"
+
+msgid "Creating image…"
+msgstr "Creant imatge…"
 
 msgid "(System Default)"
 msgstr "(Per defecte del sistema)"
@@ -1665,8 +1698,8 @@ msgstr "&Cursor/Puck"
 msgid "&Pen"
 msgstr "&Llapis"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unitat de CD/DVD de l'amfitrió (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Unitat de CD/DVD de l'amfitrió (%1)"
 
 msgid "&Connected"
 msgstr "&Connectat"
@@ -1956,6 +1989,9 @@ msgstr "Versió de la BIOS"
 msgid "BIOS Language"
 msgstr "Idioma de la BIOS"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unitat d'expansió IBM 5161"
 
@@ -2219,9 +2255,6 @@ msgstr "Mida de memòria"
 
 msgid "EMU8000 Address"
 msgstr "Adreça del EMU8000"
-
-msgid "IDE Controller"
-msgstr "Controladora IDE"
 
 msgid "Codec"
 msgstr "Codec"
@@ -2607,6 +2640,9 @@ msgstr "Estàndard"
 msgid "High-Speed"
 msgstr "Alta velocitat"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "DAC LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "DAC LPT estèreo"
 
@@ -2619,14 +2655,17 @@ msgstr "Impressora genèrica matricial ESC/P 2"
 msgid "Generic PostScript Printer"
 msgstr "Impressora genèrica PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Impresora genèrica PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Impresora genèrica PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Protocol d'Internet de línia paralela"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle de protecció per a Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Dispositiu de passatge de port sèrie"
@@ -2673,6 +2712,12 @@ msgstr "Alt impacte en el rendiment"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Genèric] Disc RAM (velocitat màxima)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Genèric] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Genèric] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Genèric] 1989 (3500 RPM)"
 
@@ -2711,6 +2756,12 @@ msgstr "Expansió genèrica PC/XT de memòria"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Expansió genèrica PC/AT de memòria"
+
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "No fou possible trobar els tipus de lletra matricials"
@@ -2775,8 +2826,14 @@ msgstr "Moure cap avall"
 msgid "Could not load file %1"
 msgstr "Error en carregar el fitxer %1"
 
-msgid "Key Bindings:"
-msgstr "Dreceres de teclat:"
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Key bindings"
+msgstr "Dreceres de teclat"
 
 msgid "Action"
 msgstr "Acció"
@@ -2838,8 +2895,8 @@ msgstr "Commutador local"
 msgid "Remote Switch"
 msgstr "Commutador remot"
 
-msgid "Switch:"
-msgstr "Commutador:"
+msgid "Shared secret:"
+msgstr "Secret compartit:"
 
 msgid "Hub Mode"
 msgstr "Modalitat de concentrador"
@@ -2952,6 +3009,9 @@ msgstr "El sistema no serà afegit."
 msgid "&Update mouse every CPU frame"
 msgstr "&Actualitza l'estat del ratolí a cada bloc del CPU"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Matís"
 
@@ -2967,11 +3027,8 @@ msgstr "Luminositat"
 msgid "Sharpness"
 msgstr "Nitidesa"
 
-msgid "&CGA composite settings…"
-msgstr "Configuració de la modalitat compòsita &CGA…"
-
-msgid "CGA composite settings"
-msgstr "Configuració de la modalitat compòsita CGA"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "EDID del monitor"
@@ -3000,9 +3057,6 @@ msgstr "Clar"
 msgid "Dark"
 msgstr "Fosc"
 
-msgid "Search:"
-msgstr "Cerca:"
-
 msgid "Force interpretation"
 msgstr "Força interpretació"
 
@@ -3016,10 +3070,16 @@ msgid "&Allow recompilation"
 msgstr "&Permetre recompilació"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Avançar ràpidament"
 
 msgid "Fast forward"
-msgstr ""
+msgstr "Avançar ràpidament"
 
 msgid "To change the system directory, stop all running machines."
+msgstr "Per canviar el directori del sistema, atureu totes les màquines en funcionament."
+
+msgid "Raw"
+msgstr "En brut"
+
+msgid "Use EDC/ECC emulation"
 msgstr ""

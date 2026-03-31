@@ -45,7 +45,7 @@ static const device_config_t prosignias31x_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "prosignias31x_bx",
+        .default_string = "p6bxt",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -53,7 +53,7 @@ static const device_config_t prosignias31x_config[] = {
         .bios           = {
             {
                 .name          = "Award Modular BIOS v4.51PG - Revision 5.3",
-                .internal_name = "p6bxt",
+                .internal_name = "p6bxt_53",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -68,6 +68,15 @@ static const device_config_t prosignias31x_config[] = {
                 .local         = 0,
                 .size          = 262144,
                 .files         = { "roms/machines/prosignias31x_bx/p6bxt-ap-092600.bin", "" }
+            },
+            {
+                .name          = "Award Modular BIOS v4.51PG - Revision 5.6",
+                .internal_name = "p6bxt",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/prosignias31x_bx/p6bxt-a-56-6990cdf1659c7829277668.bin", "" }
             },
             {
                 .name          = "Phoenix - AwardBIOS v6.00PG - Unofficial Version 6.0 (by rushieda)",
@@ -114,7 +123,7 @@ machine_at_prosignias31x_bx_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -154,7 +163,7 @@ machine_at_s1857_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -193,7 +202,7 @@ machine_at_p6bat_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

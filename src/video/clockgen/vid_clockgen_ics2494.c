@@ -174,8 +174,7 @@ ics2494_getclock(int clock, void *priv)
 static void *
 ics2494_init(const device_t *info)
 {
-    ics2494_t *ics2494 = (ics2494_t *) malloc(sizeof(ics2494_t));
-    memset(ics2494, 0, sizeof(ics2494_t));
+    ics2494_t *ics2494 = (ics2494_t *) calloc(1, sizeof(ics2494_t));
 
     switch (info->local) {
         case 0:

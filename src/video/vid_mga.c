@@ -6337,7 +6337,7 @@ mystique_tvp3026_gpio_write(uint8_t cntl, uint8_t data, void *priv)
 }
 
 static uint8_t
-mystique_pci_read(UNUSED(int func), int addr, void *priv)
+mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
     uint8_t     ret      = 0x00;
@@ -6574,7 +6574,7 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+mystique_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 
@@ -6777,10 +6777,8 @@ mystique_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
 static void *
 mystique_init(const device_t *info)
 {
-    mystique_t *mystique = malloc(sizeof(mystique_t));
+    mystique_t *mystique = calloc(1, sizeof(mystique_t));
     const char *romfn = NULL;
-
-    memset(mystique, 0, sizeof(mystique_t));
 
     mystique->type = info->local;
 
