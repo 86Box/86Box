@@ -2795,6 +2795,12 @@ msgstr "Γενική Επέκταση Μνήμης PC/XT"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Γενική Επέκταση Μνήμης PC/AT"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Αδυναμία εύρεσης γραμματοσειρών Dot-Matrix"
 

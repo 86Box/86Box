@@ -2751,6 +2751,12 @@ msgstr ""
 msgid "Generic PC/AT Memory Expansion"
 msgstr ""
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr ""
 

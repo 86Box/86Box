@@ -2776,6 +2776,12 @@ msgstr "Genel PC/XT Bellek Artırıcı"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Genel PC/AT Bellek Artırıcı"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Dot-Matrix yazı tipleri bulunamıyor"
 

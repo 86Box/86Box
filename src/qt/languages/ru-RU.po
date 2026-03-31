@@ -2770,6 +2770,12 @@ msgstr "Стандартное расширение памяти PC/XT"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Стандартное расширение памяти PC/AT"
 
+msgid "Generic MM58167 RTC"
+msgstr "Стандартный RTC MM58167"
+
+msgid "OPL2Board (External Device)"
+msgstr "OPL2Board (внешнее устройство)"
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Невозможно найти матричные шрифты"
 

@@ -2760,6 +2760,12 @@ msgstr "Generična razširitev pomnilnika PC/XT"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generična razširitev pomnilnika PC/AT"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Ni bilo mogoče najti matričnih pisav"
 

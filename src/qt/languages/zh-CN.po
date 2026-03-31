@@ -2758,6 +2758,12 @@ msgstr "通用 PC/XT 内存扩展"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "通用 PC/AT 内存扩展"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "无法找到点阵字体"
 

@@ -2761,6 +2761,12 @@ msgstr "Obecné rozšíření paměti PC/XT"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Obecné rozšíření paměti PC/AT"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nebylo možné nalézt písma pro jehličkovou tiskárnu"
 

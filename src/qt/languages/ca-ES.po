@@ -2757,6 +2757,12 @@ msgstr "Expansió genèrica PC/XT de memòria"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Expansió genèrica PC/AT de memòria"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "No fou possible trobar els tipus de lletra matricials"
 

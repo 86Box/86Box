@@ -2757,6 +2757,12 @@ msgstr "일반 PC/XT 메모리 확장 카드"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "일반 PC/AT 메모리 확장 카드"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "도트 매트릭스 글꼴을 찾을 수 없습니다"
 
