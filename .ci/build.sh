@@ -471,17 +471,20 @@ then
 					# Copy or lipo files that exist on both bundles.
 					cat "$cache_dir/universal_listing.txt" | uniq -d | while IFS= read line
 					do
-						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
+						path1="archive_tmp_universal/$merge_src.app/$line"
+						path2="archive_tmp_universal/$arch_universal.app/$line"
+						dest="archive_tmp_universal/$merge_dest.app/$line"
+						if cmp -s "$path1" "$path2"
 						then
 							echo "> Identical: $line"
-							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
-						elif lipo -create -output "archive_tmp_universal/$merge_dest.app/$line" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+						elif lipo -create -output "$dest" "$path1" "$path2" 2> /dev/null
 						then
 							echo "> Merged: $line"
+							continue
 						else
 							echo "> Copied from [$merge_src]: $line"
-							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
 						fi
+						cp -p "$path1" "$dest"
 					done
 
 					# Merge symlinks.
@@ -505,17 +508,36 @@ then
 							file_src="$arch_universal"
 						fi
 						link_dest="$(readlink "archive_tmp_universal/$file_src.app/$line")"
+						link_path="archive_tmp_universal/$merge_dest.app/$line"
 
 						# Warn if destinations differ.
 						if [ -n "$other_link_dest" -a "$link_dest" != "$other_link_dest" ]
 						then
 							echo "> Symlink: $line => WARNING: different targets"
-							echo ">> Using: [$merge_src] $link_dest"
-							echo ">> Other: [$arch_universal] $other_link_dest"
+
+							# Attempt to lipo the diverging destinations in case they're libraries.
+							if lipo -create -output "$link_path" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+							then
+								echo ">> Merged: [$merge_src] $link_dest"
+								echo ">> With: [$arch_universal] $other_link_dest"
+
+								# Point the diverging destinations back to the merged library.
+								for dest in "$link_dest" "$other_link_dest"
+								do
+									ln -s "$dest" "$link_path.tmp"
+									real_dest="$(readlink -f "$link_path.tmp")"
+									rm -f "$real_dest" "$link_path.tmp"
+									ln -s "$link_path" "$real_dest"
+								done
+								continue
+							else
+								echo ">> Using: [$merge_src] $link_dest"
+								echo ">> Other: [$arch_universal] $other_link_dest"
+							fi
 						else
 							echo "> Symlink: $line => $link_dest"
 						fi
-						ln -s "$link_dest" "archive_tmp_universal/$merge_dest.app/$line"
+						ln -s "$link_dest" "$link_path"
 					done
 
 					# Merge a subsequent bundle with this one.
