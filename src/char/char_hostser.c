@@ -408,12 +408,13 @@ hostser_port_config(void *priv)
 #    ifdef TCGETS2
             struct termios2 port_config = { 0 };
             ioctl(dev->fd, TCGETS2, &port_config);
-#    elif defined(USE_LINUX_TERMIOS)
-            struct termios port_config = { 0 };
-            ioctl(dev->fd, TCGETS, &port_config);
 #    else
             struct termios port_config = { 0 };
+#        if defined(USE_LINUX_TERMIOS)
+            ioctl(dev->fd, TCGETS, &port_config);
+#        else
             tcgetattr(dev->fd, &port_config);
+#        endif
 #    endif
 
             /* Modify configuration. */
@@ -446,7 +447,7 @@ hostser_port_config(void *priv)
 #    ifdef CMSPAR
             port_config.c_cflag &= ~CMSPAR;
 #    endif
-            port_config.c_cflag |= PARENB;
+            port_config.c_cflag |= CREAD | PARENB;
             switch (dev->port->com.parity) {
                 case CHAR_COM_PARITY_SPACE:
 #    ifdef CMSPAR
