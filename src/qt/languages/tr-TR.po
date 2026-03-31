@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 08:00+0000\n"
-"Last-Translator: Reine <185547947+kotochi98@users.noreply.github.com>\n"
+"PO-Revision-Date: 2026-03-31 17:06+0000\n"
+"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -355,19 +355,19 @@ msgid "Machine type:"
 msgstr "Anakart türü:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 ve 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Diğer)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (Tek Voltaj)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (Çift Voltaj)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Diğer"
 
 msgid "Machine:"
 msgstr "Anakart:"
@@ -541,13 +541,13 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROM denetleyicisi:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi arayüzü"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic arayüzü"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic arayüzü (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE Denetleyicisi"
@@ -2036,7 +2036,7 @@ msgid "BIOS Language"
 msgstr "BIOS Dili"
 
 msgid "Variant"
-msgstr ""
+msgstr "Tür"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Genişletme Ünitesi"
@@ -2711,7 +2711,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest için Koruma Kilidi"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Geri Döngü Adaptörü"
 
 msgid "Serial Passthrough Device"
 msgstr "Seri Geçiş Cihazı"
@@ -2804,10 +2804,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Genel PC/AT Bellek Artırıcı"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Jenerik MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (Harici Cihaz)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Dot-Matrix yazı tipleri bulunamıyor"
@@ -2873,10 +2873,10 @@ msgid "Could not load file %1"
 msgstr "%1 dosyası yüklenemedi"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emülatör"
 
 msgid "Input"
-msgstr ""
+msgstr "Giriş"
 
 msgid "Key bindings"
 msgstr "Tuş atamaları"
@@ -3062,7 +3062,7 @@ msgid "&Update mouse every CPU frame"
 msgstr "Fareyi her işlemci karesinde güncelle"
 
 msgid "Composite CGA"
-msgstr ""
+msgstr "Kompozit CGA"
 
 msgid "Hue"
 msgstr "Renk tonu"
@@ -3080,7 +3080,7 @@ msgid "Sharpness"
 msgstr "Keskinlik"
 
 msgid "Reset"
-msgstr ""
+msgstr "Sıfırla"
 
 msgid "Monitor EDID"
 msgstr "Monitörün EDID'si"
@@ -3134,4 +3134,4 @@ msgid "Raw"
 msgstr "Ham"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "EDC/ECC emülasyonunu kullan"

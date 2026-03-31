@@ -282,12 +282,12 @@ mt32emu_init(char *control_rom, char *pcm_rom)
     /* buf_size = samplerate/RENDER_RATE*2; */
     if (sound_is_float) {
         buf_size     = (samplerate / RENDER_RATE) * 2 * BUFFER_SEGMENTS * sizeof(float);
-        buffer       = malloc(buf_size);
+        buffer       = calloc(1, buf_size);
         buffer_int16 = NULL;
     } else {
         buf_size     = (samplerate / RENDER_RATE) * 2 * BUFFER_SEGMENTS * sizeof(int16_t);
         buffer       = NULL;
-        buffer_int16 = malloc(buf_size);
+        buffer_int16 = calloc(1, buf_size);
     }
 
     mt32emu_set_output_gain(context, device_get_config_int("output_gain") / 100.0f);

@@ -418,7 +418,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_mda);
 
-    mda->vram = malloc(MDA_VRAM);
+    mda->vram = calloc(1, MDA_VRAM);
 
     switch (device_get_config_int("font")) {
         case 0:

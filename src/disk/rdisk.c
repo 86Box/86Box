@@ -759,7 +759,7 @@ rdisk_buf_alloc(rdisk_t *dev, const uint32_t len)
     rdisk_log(dev->log, "Allocated buffer length: %i\n", len);
 
     if (dev->buffer == NULL) {
-        dev->buffer = (uint8_t *) malloc(len);
+        dev->buffer = (uint8_t *) calloc(1, len);
         dev->buffer_sz = len;
     }
 

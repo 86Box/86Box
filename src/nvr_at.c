@@ -1134,21 +1134,18 @@ nvr_at_init(const device_t *info)
     nvr_t   *nvr;
 
     /* Allocate an NVR for this machine. */
-    nvr = (nvr_t *) malloc(sizeof(nvr_t));
+    nvr = (nvr_t *) calloc(1, sizeof(nvr_t));
     if (nvr == NULL)
         return (NULL);
-    memset(nvr, 0x00, sizeof(nvr_t));
 
-    local = (local_t *) malloc(sizeof(local_t));
-    memset(local, 0x00, sizeof(local_t));
+    local = (local_t *) calloc(1, sizeof(local_t));
 
     nvr->data           = local;
 
     /* This is machine specific. */
     nvr->size           = (info->local & FLAG_FIXED_SIZE) ? 128 :
                               (machines[machine].nvrmask + 1);
-    local->lock         = (uint8_t *) malloc(nvr->size);
-    memset(local->lock, 0x00, nvr->size);
+    local->lock         = (uint8_t *) calloc(1, nvr->size);
 
     local->flags        = info->local & 0xffff;
     local->cent         = (info->local >> 16) & 0xff;

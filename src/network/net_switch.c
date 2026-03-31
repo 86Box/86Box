@@ -273,7 +273,7 @@ net_switch_update_hostaddrs(net_switch_t *netswitch)
     DWORD buf_size = 16 * sizeof(INTERFACE_INFO);
     INTERFACE_INFO *buf;
 retry:
-    buf = (INTERFACE_INFO *) malloc(buf_size);
+    buf = (INTERFACE_INFO *) calloc(1, buf_size);
     DWORD returned;
     if (!buf) {
         /* shouldn't happen */

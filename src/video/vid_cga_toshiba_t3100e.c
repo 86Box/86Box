@@ -661,7 +661,7 @@ t3100e_init(UNUSED(const device_t *info))
     t3100e->internal = 1;
 
     /* 32k video RAM */
-    t3100e->vram = malloc(0x8000);
+    t3100e->vram = calloc(1, 0x8000);
 
     timer_set_callback(&t3100e->cga.timer, t3100e_poll);
     timer_set_p(&t3100e->cga.timer, t3100e);

@@ -409,8 +409,7 @@ static void *
 tvga_init(const device_t *info)
 {
     const char *bios_fn;
-    tvga_t     *tvga    = malloc(sizeof(tvga_t));
-    memset(tvga, 0, sizeof(tvga_t));
+    tvga_t     *tvga    = calloc(1, sizeof(tvga_t));
 
     uint32_t    local   = info->local;
     if (local == 0x00000000)

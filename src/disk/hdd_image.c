@@ -208,8 +208,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     t    = (uint32_t) (target_size >> 20);     /* Amount of 1 MB blocks. */
     size = (uint32_t) (target_size & 0xfffff); /* 1 MB mask. */
 
-    empty_sector_1mb = (char *) malloc(1048576);
-    memset(empty_sector_1mb, 0, 1048576);
+    empty_sector_1mb = (char *) calloc(1, 1048576);
 
     /* Temporarily switch off suppression of seen messages so that the
        progress gets displayed. */

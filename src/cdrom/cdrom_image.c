@@ -2082,7 +2082,7 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     fseek(*fp, data2Offset, SEEK_SET);
 
-    u8 *data2 = (u8 *)malloc(data2Size);
+    u8 *data2 = (u8 *) calloc(1, data2Size);
     ret = fread(data2, 1, data2Size, *fp);
     if (ret != data2Size)
         return mds_decrypt_error(img, mdsfile, fp);
@@ -2091,7 +2091,7 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     DecryptBlock(data2, data2Size, 0, 0, 4, ci);
     image_log(img->log, "mds_decrypt_track_data(): Decoded the second data buffer\n");
 
-    u8 *mdxHeader = (u8 *)malloc(decSize + 0x12);
+    u8 *mdxHeader = (u8 *) calloc(1, decSize + 0x12);
 
     z_stream infstream;
     infstream.zalloc = Z_NULL;
@@ -2367,7 +2367,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             if (mds_dpm_block.type == 0x00000002) {
                 /* Bad sectors. */
                 img->bad_sectors_num = mds_dpm_block.entries;
-                img->bad_sectors     = (uint32_t *) malloc(img->bad_sectors_num * sizeof(uint32_t));
+                img->bad_sectors     = (uint32_t *) calloc(img->bad_sectors_num, sizeof(uint32_t));
                 fseek(fp, mds_dpm_block_offs + sizeof(mds_dpm_block_t), SEEK_SET);
                 int read_size = img->bad_sectors_num * sizeof(uint32_t);
                 if (LOG_VAR(dbtret) fread(img->bad_sectors, 1, read_size, fp) != read_size) {

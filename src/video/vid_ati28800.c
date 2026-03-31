@@ -547,8 +547,7 @@ ati28800k_recalctimings(svga_t *svga)
 void *
 ati28800k_init(const device_t *info)
 {
-    ati28800_t *ati28800 = (ati28800_t *) malloc(sizeof(ati28800_t));
-    memset(ati28800, 0, sizeof(ati28800_t));
+    ati28800_t *ati28800 = (ati28800_t *) calloc(1, sizeof(ati28800_t));
 
     ati28800->type_korean = info->local;
 
@@ -614,8 +613,7 @@ static void *
 ati28800_init(const device_t *info)
 {
     ati28800_t *ati28800;
-    ati28800 = malloc(sizeof(ati28800_t));
-    memset(ati28800, 0x00, sizeof(ati28800_t));
+    ati28800 = calloc(1, sizeof(ati28800_t));
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
 

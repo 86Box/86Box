@@ -743,7 +743,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
         return 0;
     }
 
-    dev->current      = (ncr53c8xx_request *) malloc(sizeof(ncr53c8xx_request));
+    dev->current      = (ncr53c8xx_request *) calloc(1, sizeof(ncr53c8xx_request));
     dev->current->tag = id;
 
     sd->buffer_length = -1;

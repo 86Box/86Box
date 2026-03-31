@@ -723,7 +723,7 @@ tape_buf_alloc(tape_t *dev, uint32_t len)
     tape_log(dev->log, "Allocated buffer length: %i\n", len);
 
     if (dev->buffer == NULL) {
-        dev->buffer    = (uint8_t *) malloc(len);
+        dev->buffer    = (uint8_t *) calloc(1, len);
         dev->buffer_sz = len;
     }
 
@@ -1698,7 +1698,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                         /* Allocate/reallocate record buffer if needed. */
                         if (peek_len > dev->rec_buf_size) {
                             free(dev->rec_buf);
-                            dev->rec_buf      = (uint8_t *) malloc(peek_len);
+                            dev->rec_buf      = (uint8_t *) calloc(1, peek_len);
                             dev->rec_buf_size = peek_len;
                         }
 

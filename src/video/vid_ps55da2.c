@@ -3451,7 +3451,7 @@ da2_init(UNUSED(const device_t *info))
     da2->changedvram       = calloc(1,  (DA2_MASK_VRAMPLANE + 1) >> 9); /* XX000h */
 
     da2->mmio.charset = device_get_config_int("charset");
-    da2->mmio.font    = malloc(DA2_FONTROM_SIZE);
+    da2->mmio.font    = calloc(1, DA2_FONTROM_SIZE);
     switch (da2->mmio.charset) {
         case DA2_DCONFIG_CHARSET_HANT:
             da2_video_load_font(DA2_FONTROM_PATH_HANT, da2);
@@ -3471,7 +3471,7 @@ da2_init(UNUSED(const device_t *info))
     memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
     memset(da2->bitblt.reg, 0xfe, DA2_BLT_REGSIZE * sizeof(uint32_t)); /* clear memory */
 #ifdef ENABLE_DA2_DEBUGBLT
-    da2->bitblt.debug_reg    = malloc(DA2_DEBUG_BLTLOG_MAX * DA2_DEBUG_BLTLOG_SIZE);
+    da2->bitblt.debug_reg    = calloc(DA2_DEBUG_BLTLOG_MAX, DA2_DEBUG_BLTLOG_SIZE);
     da2->bitblt.debug_reg_ip = 0;
     for (int i = 0; i < DA2_BLT_REGSIZE; i++) {
         da2->bitblt.debug_regexe[i] = DA2_DEBUG_BLT_NEVERUSED;

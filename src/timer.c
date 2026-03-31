@@ -150,8 +150,8 @@ timer_close(void)
     pc_timer_t *r;
 
     /* Set all timers' prev and next to NULL so it is assured that
-       timers that are not in malloc'd structs don't keep pointing
-       to timers that may be in malloc'd structs. */
+       timers that are not in calloc'd structs don't keep pointing
+       to timers that may be in calloc'd structs. */
     while (t != NULL) {
         r       = t;
         r->prev = r->next = NULL;

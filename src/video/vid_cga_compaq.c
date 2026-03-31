@@ -409,7 +409,7 @@ compaq_cga_init(const device_t *info)
     dev->revision       = device_get_config_int("composite_type");
     dev->snow_enabled   = device_get_config_int("snow_enabled");
 
-    dev->vram           = malloc(0x4000);
+    dev->vram           = calloc(1, 0x4000);
 
     cga_comp_init(dev->revision);
     timer_add(&dev->timer, compaq_cga_poll, dev, 1);

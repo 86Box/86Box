@@ -2761,8 +2761,7 @@ et4000w32p_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, v
 static void *
 et4000w32p_init(const device_t *info)
 {
-    et4000w32p_t *et4000 = malloc(sizeof(et4000w32p_t));
-    memset(et4000, 0, sizeof(et4000w32p_t));
+    et4000w32p_t *et4000 = calloc(1, sizeof(et4000w32p_t));
 
     et4000->pci = (info->flags & DEVICE_PCI) ? 0x80 : 0x00;
     et4000->vlb = (info->flags & DEVICE_VLB) ? 0x40 : 0x00;
