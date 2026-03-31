@@ -2235,7 +2235,7 @@ vfio_irq_enable(vfio_device_t *dev, int type)
 
     /* Prepare structure for enabling the interrupt type. */
     size_t irq_set_size = sizeof(struct vfio_irq_set) + (dev->irq.vector_count * sizeof(int32_t));
-    struct vfio_irq_set *irq_set = (struct vfio_irq_set *) malloc(irq_set_size);
+    struct vfio_irq_set *irq_set = (struct vfio_irq_set *) calloc(1, irq_set_size);
     irq_set->argsz = irq_set_size;
     irq_set->flags = VFIO_IRQ_SET_DATA_EVENTFD | VFIO_IRQ_SET_ACTION_TRIGGER;
     irq_set->index = type;
@@ -2245,7 +2245,7 @@ vfio_irq_enable(vfio_device_t *dev, int type)
     struct epoll_event event   = { .events = EPOLLIN };
 
     /* Create interrupt vectors with their respective eventfds. */
-    dev->irq.vectors = (vfio_irq_t *) malloc(sizeof(vfio_irq_t) * dev->irq.vector_count);
+    dev->irq.vectors = (vfio_irq_t *) calloc(dev->irq.vector_count, sizeof(vfio_irq_t));
     for (int i = 0; i < dev->irq.vector_count; i++) {
         dev->irq.vectors[i].dev    = dev;
         dev->irq.vectors[i].type   = type;
@@ -2497,10 +2497,10 @@ vfio_group_get(int id, uint8_t add)
 
     /* Add group if no matches were found. */
     if (group) {
-        group->next = (vfio_group_t *) malloc(sizeof(vfio_group_t));
+        group->next = (vfio_group_t *) calloc(1, sizeof(vfio_group_t));
         group       = group->next;
     } else {
-        group = first_group = (vfio_group_t *) malloc(sizeof(vfio_group_t));
+        group = first_group = (vfio_group_t *) calloc(1, sizeof(vfio_group_t));
     }
     memset(group, 0, sizeof(vfio_group_t));
     group->id = id;
@@ -2765,16 +2765,16 @@ vfio_dev_init(vfio_device_t *dev)
 
                     /* Allocate table and PBA structures. */
                     dev->irq.msix.table_size = dev->irq.msix.vector_count << 4;
-                    dev->irq.msix.table      = malloc(dev->irq.msix.table_size);
+                    dev->irq.msix.table      = calloc(1, dev->irq.msix.table_size);
                     if (!dev->irq.msix.table) {
-                        pclog("VFIO %s: MSI-X table malloc(%d) failed\n", dev->name, dev->irq.msix.table_size);
+                        pclog("VFIO %s: MSI-X table calloc(1, %d) failed\n", dev->name, dev->irq.msix.table_size);
                         dev->irq.msix.table_size = dev->irq.msix.vector_count = 0;
                     }
 
                     dev->irq.msix.pba_size = ((dev->irq.msix.vector_count - 1) >> 3) + 1;
-                    dev->irq.msix.pba      = malloc(dev->irq.msix.pba_size);
+                    dev->irq.msix.pba      = calloc(1, dev->irq.msix.pba_size);
                     if (!dev->irq.msix.pba) {
-                        pclog("VFIO %s: MSI-X PBA malloc(%d) failed\n", dev->name, dev->irq.msix.pba_size);
+                        pclog("VFIO %s: MSI-X PBA calloc(1, %d) failed\n", dev->name, dev->irq.msix.pba_size);
                         dev->irq.msix.pba_size = dev->irq.msix.vector_count = 0;
                     }
 
@@ -2928,9 +2928,9 @@ vfio_reset(void *priv)
 
             /* Get hot reset information for the first time to get the entry count. */
             size           = sizeof(struct vfio_pci_hot_reset_info);
-            hot_reset_info = (struct vfio_pci_hot_reset_info *) malloc(size);
+            hot_reset_info = (struct vfio_pci_hot_reset_info *) calloc(1, size);
             if (!hot_reset_info) {
-                vfio_log("VFIO %s: malloc(hot_reset_info) 1 failed\n", dev->name);
+                vfio_log("VFIO %s: calloc(1, hot_reset_info) 1 failed\n", dev->name);
                 goto next1;
             }
             memset(hot_reset_info, 0, size);
@@ -2944,9 +2944,9 @@ vfio_reset(void *priv)
 
             /* Get hot reset information for the second time to get the actual entries. */
             size           = sizeof(struct vfio_pci_hot_reset) + (sizeof(struct vfio_pci_dependent_device) * count);
-            hot_reset_info = (struct vfio_pci_hot_reset_info *) malloc(size);
+            hot_reset_info = (struct vfio_pci_hot_reset_info *) calloc(1, size);
             if (!hot_reset_info) {
-                vfio_log("VFIO %s: malloc(hot_reset_info) 2 failed\n", dev->name);
+                vfio_log("VFIO %s: calloc(1, hot_reset_info) 2 failed\n", dev->name);
                 goto next1;
             }
             memset(hot_reset_info, 0, size);
@@ -3118,11 +3118,11 @@ vfio_init(void)
         if (token[0] == '/') {
             /* sysfs path: use basename as device name. */
             i        = strlen(token);
-            dev_name = malloc(i + 1);
+            dev_name = calloc(1, i + 1);
             strncpy(dev_name, path_get_basename(token), i);
 
             /* Just append iommu_group to the path. */
-            sysfs_device = malloc(i + 13);
+            sysfs_device = calloc(1, i + 13);
             snprintf(sysfs_device, i + 13,
                      "%s/iommu_group", token);
         } else if (token[0]) {
@@ -3148,12 +3148,12 @@ vfio_init(void)
             }
 
             /* Use dddd:bb:dd.f as device name. */
-            dev_name = malloc(13);
+            dev_name = calloc(1, 13);
             snprintf(dev_name, 13,
                      "%04x:%02x:%02x.%1x", domain_id, bus_id, dev_id, func_id);
 
             /* Generate sysfs path. */
-            sysfs_device = malloc(46);
+            sysfs_device = calloc(1, 46);
             snprintf(sysfs_device, 46,
                      "/sys/bus/pci/devices/%s/iommu_group", dev_name);
         } else {
@@ -3200,7 +3200,7 @@ vfio_init(void)
 
         /* Read device-specific settings. */
         i          = strlen(token) + 8;
-        config_key = malloc(i);
+        config_key = calloc(1, i);
         snprintf(config_key, i, "%s_rom_fn", token);
         dev->rom_fn = config_get_string(category, config_key, NULL);
         free(config_key);

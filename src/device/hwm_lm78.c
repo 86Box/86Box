@@ -101,7 +101,7 @@ void
 lm78_nvram(lm78_t *dev, uint8_t save)
 {
     size_t l        = strlen(machine_get_nvr_name_ex(machine)) + 14;
-    char  *nvr_path = (char *) malloc(l);
+    char  *nvr_path = (char *) calloc(1, l);
     sprintf(nvr_path, "%s_as99127f.nvr", machine_get_nvr_name_ex(machine));
 
     FILE *fp = nvr_fopen(nvr_path, save ? "wb" : "rb");
@@ -825,7 +825,7 @@ lm78_init(const device_t *info)
     /* Initialize secondary/tertiary LM75 sensors on Winbond. */
     for (uint8_t i = 0; i <= 1; i++) {
         if (dev->local & LM78_WINBOND) {
-            dev->lm75[i] = (device_t *) malloc(sizeof(device_t));
+            dev->lm75[i] = (device_t *) calloc(1, sizeof(device_t));
             memcpy(dev->lm75[i], &lm75_w83781d_device, sizeof(device_t));
             dev->lm75[i]->local = (i + 1) << 8;
             if (dev->local & LM78_I2C)

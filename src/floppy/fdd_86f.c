@@ -3208,8 +3208,8 @@ d86f_writeback(int drive)
         fseek(dev->fp, header_size, SEEK_SET);
 
         /* Compress data from the temporary uncompressed file to the original, compressed file. */
-        dev->filebuf = (uint8_t *) malloc(len);
-        dev->outbuf  = (uint8_t *) malloc(len - 1);
+        dev->filebuf = (uint8_t *) calloc(1, len);
+        dev->outbuf  = (uint8_t *) calloc(1, len - 1);
         fread(dev->filebuf, 1, len, dev->fp);
         ret = lzf_compress(dev->filebuf, len, dev->outbuf, len - 1);
 
@@ -3516,7 +3516,7 @@ d86f_export(int drive, char *fn)
         return 0;
 
     /* Allocate a temporary drive for conversion. */
-    temp86 = (d86f_t *) malloc(sizeof(d86f_t));
+    temp86 = (d86f_t *) calloc(1, sizeof(d86f_t));
     memcpy(temp86, dev, sizeof(d86f_t));
 
     fwrite(&magic, 4, 1, fp);
@@ -3638,11 +3638,11 @@ d86f_load(int drive, char *fn)
 
     if (d86f_has_surface_desc(drive)) {
         for (uint8_t i = 0; i < 2; i++)
-            dev->track_surface_data[i] = (uint16_t *) malloc(53048 * sizeof(uint16_t));
+            dev->track_surface_data[i] = (uint16_t *) calloc(53048, sizeof(uint16_t));
 
         for (uint8_t i = 0; i < 2; i++) {
             for (uint8_t j = 0; j < 2; j++)
-                dev->thin_track_surface_data[i][j] = (uint16_t *) malloc(53048 * sizeof(uint16_t));
+                dev->thin_track_surface_data[i][j] = (uint16_t *) calloc(53048, sizeof(uint16_t));
         }
     }
 
@@ -3668,7 +3668,7 @@ d86f_load(int drive, char *fn)
 
     crc64 = 0xffffffffffffffff;
 
-    dev->filebuf = malloc(len);
+    dev->filebuf = calloc(1, len);
     fread(dev->filebuf, 1, len, dev->fp);
     *(uint64_t *) &(dev->filebuf[8]) = 0xffffffffffffffff;
     crc64                            = (uint64_t) crc64speed(0, dev->filebuf, len);
@@ -3707,8 +3707,8 @@ d86f_load(int drive, char *fn)
             fwrite(&temp, 1, 2, dev->fp);
         }
 
-        dev->filebuf = (uint8_t *) malloc(len);
-        dev->outbuf  = (uint8_t *) malloc(67108864);
+        dev->filebuf = (uint8_t *) calloc(1, len);
+        dev->outbuf  = (uint8_t *) calloc(1, 67108864);
         fread(dev->filebuf, 1, len, tf);
         temp = lzf_decompress(dev->filebuf, len, dev->outbuf, 67108864);
         if (temp) {

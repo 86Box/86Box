@@ -205,7 +205,7 @@ pc_cas_set_fname(pc_cassette_t *cas, char *fname)
 
     n = strlen(fname);
 
-    cas->fname = malloc((n + offs + 1) * sizeof(char));
+    cas->fname = calloc((n + offs + 1), sizeof(char));
 
     if (cas->fname != NULL)
         memcpy(cas->fname, fname - offs, (n + offs + 1) * sizeof(char));

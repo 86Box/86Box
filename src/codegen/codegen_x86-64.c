@@ -62,10 +62,9 @@ void
 codegen_init(void)
 {
     codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 1);
-    codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
+    codeblock_hash = calloc(1, HASH_SIZE * sizeof(codeblock_t *));
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
-    memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
 
     for (int c = 0; c < BLOCK_SIZE; c++)
         codeblock[c].valid = 0;

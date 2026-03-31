@@ -2399,7 +2399,7 @@ ql_sxp_handle_state_send_cdb_bios(ql_t *dev, scsi_device_t *sd)
             /* PIO */
             dev->scsi_data_offset = 0;
             dev->scsi_data_size = dev_buffer_length;
-            dev->scsi_data_buffer = malloc(dev_buffer_length);
+            dev->scsi_data_buffer = calloc(1, dev_buffer_length);
             memcpy(dev->scsi_data_buffer, dev_buffer, dev_buffer_length);
         } else {
             uint32_t address, block_size;
