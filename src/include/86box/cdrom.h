@@ -9,8 +9,10 @@
  *          Generic CD-ROM drive core header.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Nat Portillo, <claunia@claunia.com>
  *
  *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2025 Nat Portillo.
  */
 #ifndef EMU_CDROM_H
 #define EMU_CDROM_H
@@ -31,7 +33,10 @@
 #define CD_STATUS_HOLD              8
 #define CD_STATUS_DVD_REJECTED      16
 #define CD_STATUS_HAS_AUDIO         0xc
-#define CD_STATUS_MASK              0x1f
+#define CD_STATUS_MASK              0x2f
+
+#define CD_BLANK_NOT 0x00
+#define CD_BLANK_CDR 0x01
 
 /* Medium changed flag. */
 #define CD_STATUS_TRANSITION     0x40
@@ -189,6 +194,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "CD-ROM XM-6702B",  "1007", "toshiba_6720b",  BUS_TYPE_IDE,  0, 48, 96, 0, 0, {  4,  2,  2,  2 } },
     { "TOSHIBA",  "DVD-ROM SD-M1202", "1020", "toshiba_m1202",  BUS_TYPE_IDE,  0, 32, 96, 0, 1, {  4,  2,  2,  2 } },
     { "TOSHIBA",  "DVD-ROM SD-M1802", "1051", "toshiba_m1802",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  2 } },
+    { "YAMAHA",   "CRW8424E",         "1.0g", "yamaha_crw8424", BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2, -1 } },
     { "CHINON",   "CD-ROM CDS-431",   "H42 ", "chinon_431",     BUS_TYPE_SCSI, 1,  1, 36, 1, 0, { -1, -1, -1, -1 } },
     { "CHINON",   "CD-ROM CDX-435",   "M62 ", "chinon_435",     BUS_TYPE_SCSI, 1,  2, 36, 1, 0, { -1, -1, -1, -1 } },
     { "DEC",      "RRD42   (C) DEC",  "4.5d", "dec_42",         BUS_TYPE_SCSI, 1,  1, 36, 0, 0, { -1, -1, -1, -1 } },
@@ -301,6 +307,11 @@ typedef struct cdrom_ops_t {
     int      (*is_dvd)(const void *local);
     int      (*has_audio)(const void *local);
     int      (*is_empty)(const void *local);
+    int      (*send_cuesheet)(const void *local, const uint8_t *buffer,
+                              int len);
+    int      (*write_sector)(const void *local, const uint8_t *buffer,
+                             const uint32_t sector);
+    int      (*write_to_toc)(const void *local, const uint8_t track);
     void     (*close)(void *local);
     void     (*load)(const void *local);
 } cdrom_ops_t;
@@ -321,6 +332,7 @@ typedef struct cdrom {
                                         Bit 1 = DMA supportd. */
     uint8_t            cd_status;    /* Struct variable reserved for
                                         media status. */
+    uint8_t            blank_media;
     uint8_t            speed;
     uint8_t            cur_speed;
 
@@ -357,6 +369,7 @@ typedef struct cdrom {
 
     void               (*insert)(void *priv);
     void               (*close)(void *priv);
+    void               (*insert_blank)(void *priv);
     uint32_t           (*get_volume)(void *p, int channel);
     uint32_t           (*get_channel)(void *p, int channel);
 
@@ -373,6 +386,7 @@ typedef struct cdrom {
     int32_t            is_plextor;
     int32_t            is_sony;
     int32_t            is_toshiba;
+    int32_t            is_yamaha;
 
     int32_t            c2_first;
     int32_t            cur_buf;
@@ -455,6 +469,8 @@ extern void            cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b);
 extern uint8_t         cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b);
 extern int             cdrom_read_toc(const cdrom_t *dev, uint8_t *b, const int type,
                                       const uint8_t start_track, const int msf, const int max_len);
+extern int             cdrom_read_pma(const cdrom_t *dev, uint8_t *b, const int max_len);
+extern int             cdrom_read_atip(const cdrom_t *dev, uint8_t *b, const int max_len);
 extern int             cdrom_read_toc_sony(const cdrom_t *dev, uint8_t *b, const uint8_t start_track,
                                            const int msf, const int max_len);
 #ifdef USE_CDROM_MITSUMI
@@ -488,12 +504,18 @@ extern int             cdrom_is_playing(const uint8_t id);
 extern int             cdrom_is_paused(const uint8_t id);
 extern void            cdrom_eject(const uint8_t id);
 extern void            cdrom_reload(const uint8_t id);
+extern int             cdrom_insert_blank(cdrom_t *dev, const char *fn);
 
 extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
                                                uint32_t major_count, uint32_t minor_count,
                                                uint32_t major_mult, uint32_t minor_inc, int m2f1);
 extern unsigned long   cdrom_crc32(unsigned long crc, const unsigned char *buf,
                                    size_t len);
+extern int             cdrom_send_cuesheet(cdrom_t *dev, const uint8_t *buffer, int len);
+extern int             cdrom_read_buffer_capacity(cdrom_t *dev, uint8_t *buffer, int block);
+extern int             cdrom_write_to_toc(cdrom_t *dev, const uint8_t track);
+extern int             cdrom_writesector(cdrom_t *dev, const uint8_t *buffer, int sector,
+                                         int write_type, int data_block_type);
 
 extern int             cdrom_assigned_letters;
 

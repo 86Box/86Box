@@ -3017,6 +3017,9 @@ static const cdrom_ops_t image_ops = {
     image_is_dvd,
     image_has_audio,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     image_close,
     NULL
 };
