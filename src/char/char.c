@@ -26,7 +26,7 @@
 #include <86box/char.h>
 
 static const struct {
-    const char_device_t *chardev;
+    const device_t *dev;
 } char_devices[] = {
     // clang-format off
     { &hostfile_device },
@@ -55,12 +55,14 @@ char_log(const char *fmt, ...)
 #    define char_log(fmt, ...)
 #endif
 
-const char_device_t *
+static char_port_t *active_port = NULL;
+
+static const device_t *
 char_get(const char *internal_name)
 {
-    for (int i = 0; char_devices[i].chardev; i++) {
-        if (!strcmp(internal_name, char_devices[i].chardev->device.internal_name))
-            return char_devices[i].chardev;
+    for (int i = 0; char_devices[i].dev; i++) {
+        if (!strcmp(internal_name, char_devices[i].dev->internal_name))
+            return char_devices[i].dev;
     }
 
     char_log("Char: Could not find device \"%s\"\n", internal_name);
@@ -73,13 +75,15 @@ char_init(char_port_t *port, const char *init_string, int instance)
     if (!init_string)
         return;
 
+    /* Find the device. */
     char *buf = strdup(init_string);
     char *strtok_save;
-    const char_device_t *chardev = char_get(strtok_r(buf, ":", &strtok_save));
-    if (!chardev)
+    const device_t *dev = char_get(strtok_r(buf, ":", &strtok_save));
+    if (!dev)
         goto end;
-    char_log("Char: Initializing device \"%s\"\n", chardev->device.internal_name);
+    char_log("Char: Initializing device \"%s\"\n", dev->internal_name);
 
+    /* Parse device configuration. */
     port->config = ini_new();
     const char *key;
     int i = 0;
@@ -89,20 +93,41 @@ char_init(char_port_t *port, const char *init_string, int instance)
             *((char *) val++) = '\0';
         } else {
             val = key;
-            key = (chardev->device.config && (chardev->device.config[i].type != CONFIG_END)) ? chardev->device.config[i].name : "";
+            key = (dev->config && (dev->config[i].type != CONFIG_END)) ? dev->config[i].name : "";
         }
-        if (chardev->device.config && (chardev->device.config[i].type != CONFIG_END))
+        if (dev->config && (dev->config[i].type != CONFIG_END))
             i++;
         char_log("Char: Setting option %s = %s\n", key, val);
         ini_set_string(port->config, "", key, val);
     }
 
-    memcpy(&port->chardev, chardev, sizeof(char_device_t));
-    port->local = port->chardev.device.local;
-    port->chardev.device.local = 0;
-
-    port->priv = device_add_inst_params(&port->chardev.device, instance, port);
+    /* Add the device. */
+    active_port = port;
+    port->chardev.priv = device_add_inst(dev, instance);
+    active_port = NULL;
 
 end:
     free(buf);
+}
+
+void *
+char_attach(uint32_t flags,
+            ssize_t  (*read)(uint8_t *buf, ssize_t len, void *priv),
+            ssize_t  (*write)(uint8_t *buf, ssize_t len, void *priv),
+            uint32_t (*status)(void *priv),
+            void     (*control)(uint32_t flags, void *priv),
+            void     (*port_config)(void *priv),
+            void     *priv)
+{
+    if (!active_port)
+        fatal("Char: No active port\n");
+
+    char_device_t *chardev = &active_port->chardev;
+    chardev->flags         = flags;
+    chardev->read          = read;
+    chardev->write         = write;
+    chardev->status        = status;
+    chardev->control       = control;
+    chardev->port_config   = port_config;
+    chardev->priv          = priv;
 }

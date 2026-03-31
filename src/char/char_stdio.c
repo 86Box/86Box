@@ -169,17 +169,6 @@ stdio_write(uint8_t *buf, ssize_t len, void *priv)
     return ret;
 }
 
-static void
-stdio_control(uint32_t flags, void *priv)
-{
-    stdio_t *dev = (stdio_t *) priv;
-    
-    if (flags & CHAR_COM_BREAK) {
-        uint8_t brk = 0;
-        stdio_write(&brk, sizeof(brk), dev);
-    }
-}
-
 static uint32_t
 stdio_status(void *priv)
 {
@@ -200,6 +189,17 @@ stdio_status(void *priv)
         ret |= CHAR_COM_CTS;
     ret |= ret ? CHAR_COM_DSR : CHAR_DISCONNECTED;
     return ret;
+}
+
+static void
+stdio_control(uint32_t flags, void *priv)
+{
+    stdio_t *dev = (stdio_t *) priv;
+    
+    if (flags & CHAR_COM_BREAK) {
+        uint8_t brk = 0;
+        stdio_write(&brk, sizeof(brk), dev);
+    }
 }
 
 static void
@@ -249,8 +249,10 @@ stdio_init(const device_t *info)
     stdio_t *dev = (stdio_t *) calloc(1, sizeof(stdio_t));
 
     dev->log = log_open("StdIO");
-    dev->port = (char_port_t *) info->local;
     stdio_log(dev->log, "init()\n");
+
+    /* Attach character device. */
+    dev->port = char_attach(0, stdio_read, stdio_write, stdio_status, stdio_control, NULL, dev);
 
 #ifdef _WIN32
     /* Spawn a console if required. (GUI executable) */
@@ -332,24 +334,16 @@ stdio_init(const device_t *info)
     return dev;
 }
 
-const char_device_t stdio_device = {
-    .device = {
-        .name          = "Standard Input/Output",
-        .internal_name = "stdio",
-        .flags         = DEVICE_COM,
-        .local         = 0,
-        .init          = stdio_init,
-        .close         = stdio_close,
-        .reset         = NULL,
-        .available     = NULL,
-        .speed_changed = NULL,
-        .force_redraw  = NULL,
-        .config        = NULL
-    },
-    .flags       = 0,
-    .read        = stdio_read,
-    .write       = stdio_write,
-    .port_config = NULL,
-    .control     = stdio_control,
-    .status      = stdio_status
+const device_t stdio_device = {
+    .name          = "Standard Input/Output",
+    .internal_name = "stdio",
+    .flags         = DEVICE_COM,
+    .local         = 0,
+    .init          = stdio_init,
+    .close         = stdio_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

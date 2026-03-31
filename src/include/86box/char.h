@@ -65,20 +65,18 @@ enum { /* device status */
 };
 
 typedef struct _char_device_ {
-    device_t device;
-    uint32_t flags;
+    uint32_t  flags;
+    void     *priv;
 
     ssize_t       (*read)(uint8_t *buf, ssize_t len, void *priv);
     ssize_t       (*write)(uint8_t *buf, ssize_t len, void *priv);
-    void          (*port_config)(void *priv);
-    void          (*control)(uint32_t flags, void *priv);
     uint32_t      (*status)(void *priv);
+    void          (*control)(uint32_t flags, void *priv);
+    void          (*port_config)(void *priv);
 } char_device_t;
 
 typedef struct {
     char_device_t chardev;
-    uintptr_t local;
-    void *priv;
 #ifdef EMU_INI_H
     ini_t config;
 #else
@@ -99,11 +97,17 @@ typedef struct {
     };
 } char_port_t;
 
-extern const char_device_t *char_get(const char *internal_name);
-extern void                 char_init(char_port_t *port, const char *init_string, int instance);
+extern void  char_init(char_port_t *port, const char *init_string, int instance);
+extern void *char_attach(uint32_t flags,
+                         ssize_t  (*read)(uint8_t *buf, ssize_t len, void *priv),
+                         ssize_t  (*write)(uint8_t *buf, ssize_t len, void *priv),
+                         uint32_t (*status)(void *priv),
+                         void     (*control)(uint32_t flags, void *priv),
+                         void     (*port_config)(void *priv),
+                         void     *priv);
 
-extern const char_device_t hostfile_device;
-extern const char_device_t hostser_device;
-extern const char_device_t stdio_device;
+extern const device_t hostfile_device;
+extern const device_t hostser_device;
+extern const device_t stdio_device;
 
 #endif /*EMU_CHAR_H*/

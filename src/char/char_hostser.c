@@ -519,40 +519,6 @@ hostser_port_config(void *priv)
     }
 }
 
-static void
-hostser_control(uint32_t flags, void *priv)
-{
-    hostser_t *dev = (hostser_t *) priv;
-
-#ifdef _WIN32
-    if (!dev->fd)
-        return;
-
-    EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
-    EscapeCommFunction(dev->fd, (flags & CHAR_COM_RTS) ? SETRTS : CLRRTS);
-    EscapeCommFunction(dev->fd, (flags & CHAR_COM_BREAK) ? SETBREAK : CLRBREAK);
-#else
-    if (dev->fd == -1)
-        return;
-
-    int set = 0;
-    int clear = 0;
-
-    if (flags & CHAR_COM_DTR)
-        set |= TIOCM_DTR;
-    else
-        clear |= TIOCM_DTR;
-    if (flags & CHAR_COM_RTS)
-        set |= TIOCM_RTS;
-    else
-        clear |= TIOCM_RTS;
-
-    ioctl(dev->fd, TIOCMBIS, &set);
-    ioctl(dev->fd, TIOCMBIC, &clear);
-    ioctl(dev->fd, (flags & CHAR_COM_BREAK) ? TIOCSBRK : TIOCCBRK);
-#endif
-}
-
 static uint32_t
 hostser_status(void *priv)
 {
@@ -598,6 +564,40 @@ hostser_status(void *priv)
 }
 
 static void
+hostser_control(uint32_t flags, void *priv)
+{
+    hostser_t *dev = (hostser_t *) priv;
+
+#ifdef _WIN32
+    if (!dev->fd)
+        return;
+
+    EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
+    EscapeCommFunction(dev->fd, (flags & CHAR_COM_RTS) ? SETRTS : CLRRTS);
+    EscapeCommFunction(dev->fd, (flags & CHAR_COM_BREAK) ? SETBREAK : CLRBREAK);
+#else
+    if (dev->fd == -1)
+        return;
+
+    int set = 0;
+    int clear = 0;
+
+    if (flags & CHAR_COM_DTR)
+        set |= TIOCM_DTR;
+    else
+        clear |= TIOCM_DTR;
+    if (flags & CHAR_COM_RTS)
+        set |= TIOCM_RTS;
+    else
+        clear |= TIOCM_RTS;
+
+    ioctl(dev->fd, TIOCMBIS, &set);
+    ioctl(dev->fd, TIOCMBIC, &clear);
+    ioctl(dev->fd, (flags & CHAR_COM_BREAK) ? TIOCSBRK : TIOCCBRK);
+#endif
+}
+
+static void
 hostser_close(void *priv)
 {
     hostser_t *dev = (hostser_t *) priv;
@@ -614,13 +614,17 @@ hostser_init(const device_t *info)
 {
     hostser_t *dev = (hostser_t *) calloc(1, sizeof(hostser_t));
 
-    dev->port = (char_port_t *) info->local;
+    /* Attach character device. */
+    dev->port = char_attach(0, hostser_read, hostser_write, hostser_status, hostser_control, hostser_port_config, dev);
+
+    /* Get serial port. */
     dev->path = ini_get_string(dev->port->config, "", "path", NULL);
     char buf[256] = {0};
     snprintf(buf, sizeof(buf) - 1, "Host Serial %s", dev->path);
     dev->log = log_open(buf);
     hostser_log(dev->log, "init(%s)\n", dev->path);
 
+    /* Connect to serial port. */
     if (dev->path)
         hostser_connect(dev);
 
@@ -644,24 +648,16 @@ static const device_config_t hostser_config[] = {
 };
 // clang-format on
 
-const char_device_t hostser_device = {
-    .device = {
-        .name          = "Host Serial Passthrough",
-        .internal_name = "hostser",
-        .flags         = DEVICE_COM,
-        .local         = 0,
-        .init          = hostser_init,
-        .close         = hostser_close,
-        .reset         = NULL,
-        .available     = NULL,
-        .speed_changed = NULL,
-        .force_redraw  = NULL,
-        .config        = hostser_config
-    },
-    .flags       = 0,
-    .read        = hostser_read,
-    .write       = hostser_write,
-    .port_config = hostser_port_config,
-    .control     = hostser_control,
-    .status      = hostser_status
+const device_t hostser_device = {
+    .name          = "Host Serial Passthrough",
+    .internal_name = "hostser",
+    .flags         = DEVICE_COM,
+    .local         = 0,
+    .init          = hostser_init,
+    .close         = hostser_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = hostser_config
 };

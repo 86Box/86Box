@@ -140,8 +140,10 @@ hostfile_init(const device_t *info)
     hostfile_t *dev = (hostfile_t *) calloc(1, sizeof(hostfile_t));
 
     dev->log = log_open("Host File");
-    dev->port = (char_port_t *) info->local;
     hostfile_log(dev->log, "init()\n");
+
+    /* Attach character device. */
+    dev->port = char_attach(0, hostfile_read, hostfile_write, hostfile_status, NULL, NULL, dev);
 
     char *path = ini_get_string(dev->port->config, "", "path", NULL);
     if (path) {
@@ -213,24 +215,16 @@ static const device_config_t hostfile_config[] = {
 };
 // clang-format on
 
-const char_device_t hostfile_device = {
-    .device = {
-        .name          = "File",
-        .internal_name = "hostfile",
-        .flags         = DEVICE_COM,
-        .local         = 0,
-        .init          = hostfile_init,
-        .close         = hostfile_close,
-        .reset         = NULL,
-        .available     = NULL,
-        .speed_changed = NULL,
-        .force_redraw  = NULL,
-        .config        = hostfile_config
-    },
-    .flags       = 0,
-    .read        = hostfile_read,
-    .write       = hostfile_write,
-    .port_config = NULL,
-    .control     = NULL,
-    .status      = hostfile_status
+const device_t hostfile_device = {
+    .name          = "File",
+    .internal_name = "hostfile",
+    .flags         = DEVICE_COM,
+    .local         = 0,
+    .init          = hostfile_init,
+    .close         = hostfile_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = hostfile_config
 };
