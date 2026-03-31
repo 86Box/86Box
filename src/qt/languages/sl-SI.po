@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 14:13+0000\n"
+"PO-Revision-Date: 2026-03-31 14:14+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
@@ -571,16 +571,16 @@ msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
 msgstr "XTIDE AT PS/2 (1.1.5) (samo primarni)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terciarni in kvartarni)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terciarni in kvartarni)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terciarni in kvartarni)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Krmilnik McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Terciarni krmilnik IDE"
@@ -1993,7 +1993,7 @@ msgid "BIOS Language"
 msgstr "Jezik BIOS-a"
 
 msgid "Variant"
-msgstr ""
+msgstr "Različica"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Razširitvena enota IBM 5161"
@@ -2668,7 +2668,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Zaščitni ključek za Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Priključek Loopback"
 
 msgid "Serial Passthrough Device"
 msgstr "Naprava za prepust serijskih vrat"
@@ -2761,10 +2761,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generična razširitev pomnilnika PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Generična ura v realnem času MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (zunanja naprava)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Ni bilo mogoče najti matričnih pisav"
@@ -2830,10 +2830,10 @@ msgid "Could not load file %1"
 msgstr "Ni bilo mogoče naložiti datoteke %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Vnos"
 
 msgid "Key bindings"
 msgstr "Kombinacije tipk"
