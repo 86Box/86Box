@@ -156,8 +156,8 @@ msgstr "Colors RGB"
 msgid "RGB (no brown)"
 msgstr "RGB (sense marró)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB en escala de grisos"
+msgid "RGB Grayscale"
+msgstr "RGB en escala de grisos"
 
 msgid "Generic RGBI color monitor"
 msgstr "Monitor RGBI genèric a color"
@@ -180,7 +180,7 @@ msgstr "Mitja"
 msgid "Overscan"
 msgstr "Overscan"
 
-msgid "Change contrast for &monochrome display"
+msgid "Change contrast for monochrome display"
 msgstr "Canvia contrast per a la pantalla monocromàtica"
 
 msgid "&Media"

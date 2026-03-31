@@ -181,7 +181,7 @@ msgstr "平均"
 msgid "Overscan"
 msgstr "過掃描"
 
-msgid "Change contrast for &monochrome display"
+msgid "Change contrast for monochrome display"
 msgstr "變更單色顯示對比度"
 
 msgid "&Media"
