@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
+"PO-Revision-Date: 2026-03-31 14:15+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
@@ -358,19 +358,19 @@ msgid "Machine type:"
 msgstr "Vrsta sistema:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 in 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (razno)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (enonapetostni)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (dvonapetostni)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Razno"
 
 msgid "Machine:"
 msgstr "Sistem:"
@@ -544,43 +544,43 @@ msgid "CD-ROM controller:"
 msgstr "Krmilnik CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Vmesnik Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Vmesnik MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Vmesnik MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Krmilnik IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Krmilnik IDE (dvokanalni)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Krmilnik IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Krmilnik IDE PC/AT (dvokanalni)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE PC/AT (samo primarni)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "XTIDE AT PS/2 (1.1.5) (samo primarni)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terciarni in kvartarni)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terciarni in kvartarni)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terciarni in kvartarni)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Krmilnik McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Terciarni krmilnik IDE"
@@ -1993,7 +1993,7 @@ msgid "BIOS Language"
 msgstr "Jezik BIOS-a"
 
 msgid "Variant"
-msgstr ""
+msgstr "Različica"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Razširitvena enota IBM 5161"
@@ -2668,7 +2668,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Zaščitni ključek za Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Priključek Loopback"
 
 msgid "Serial Passthrough Device"
 msgstr "Naprava za prepust serijskih vrat"
@@ -2761,10 +2761,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generična razširitev pomnilnika PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Generična ura v realnem času MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (zunanja naprava)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Ni bilo mogoče najti matričnih pisav"
@@ -2830,10 +2830,10 @@ msgid "Could not load file %1"
 msgstr "Ni bilo mogoče naložiti datoteke %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Vnos"
 
 msgid "Key bindings"
 msgstr "Kombinacije tipk"
@@ -3013,7 +3013,7 @@ msgid "&Update mouse every CPU frame"
 msgstr "&Posodibi stanje miške ob vsakem bloku procesorja"
 
 msgid "Composite CGA"
-msgstr ""
+msgstr "Kompozitni CGA"
 
 msgid "Hue"
 msgstr "Hue"
@@ -3031,7 +3031,7 @@ msgid "Sharpness"
 msgstr "Ostrina"
 
 msgid "Reset"
-msgstr ""
+msgstr "Ponastavi"
 
 msgid "Monitor EDID"
 msgstr "EDID monitorja"
@@ -3085,4 +3085,4 @@ msgid "Raw"
 msgstr "Neobdelan"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Uporabi emulacijo EDC/ECC"
