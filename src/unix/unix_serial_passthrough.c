@@ -223,6 +223,10 @@ plat_serpt_set_params(void *priv)
 #endif
         }
         term_attr.c_iflag &= ~(IXON | IXOFF);
+
+        /* Enable receiver */
+        term_attr.c_cflag |= CREAD;
+
         tcsetattr(dev->master_fd, TCSANOW, &term_attr);
 #undef BAUDRATE_RANGE
     }

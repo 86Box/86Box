@@ -744,9 +744,8 @@ paradise_readw(uint32_t addr, void *priv)
 void *
 paradise_init(const device_t *info, uint32_t memory)
 {
-    paradise_t *paradise = malloc(sizeof(paradise_t));
+    paradise_t *paradise = calloc(1, sizeof(paradise_t));
     svga_t     *svga     = &paradise->svga;
-    memset(paradise, 0, sizeof(paradise_t));
 
     if (info->local == PVGA1A)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_pvga1a);

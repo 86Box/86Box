@@ -52,7 +52,7 @@ typedef struct tape_drive_type_t {
 
 #define KNOWN_TAPE_DRIVE_TYPES 2
 static const tape_drive_type_t tape_drive_types[KNOWN_TAPE_DRIVE_TYPES] = {
-    { "86BOX",   "SCSI TAPE",        "1.00", { 1, 1, 1 } },
+    { "86BOX",   "TAPE",             "1.00", { 1, 1, 1 } },
     { "ARCHIVE", "VIPER 150 21247",  "2.10", { 1, 0, 0 } },
 };
 

@@ -302,8 +302,7 @@ rtg_init(const device_t *info)
     const char *fn;
     rtg_t      *dev;
 
-    dev = (rtg_t *) malloc(sizeof(rtg_t));
-    memset(dev, 0x00, sizeof(rtg_t));
+    dev = (rtg_t *) calloc(1, sizeof(rtg_t));
     dev->name = info->name;
     dev->type = info->local;
     fn = NULL;

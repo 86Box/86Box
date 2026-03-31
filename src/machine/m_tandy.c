@@ -890,7 +890,7 @@ read_roml(uint32_t addr, void *priv)
 static void
 init_rom(tandy_t *dev)
 {
-    dev->rom = (uint8_t *) malloc(0x80000);
+    dev->rom = (uint8_t *) calloc(1, 0x80000);
 
 #if 1
     if (!rom_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",

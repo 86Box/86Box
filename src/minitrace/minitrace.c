@@ -232,8 +232,8 @@ void mtr_init_from_stream(void *stream) {
 #ifndef MTR_ENABLED
     return;
 #endif
-    event_buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
-    flush_buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
+    event_buffer = (raw_event_t *)calloc(INTERNAL_MINITRACE_BUFFER_SIZE, sizeof(raw_event_t));
+    flush_buffer = (raw_event_t *)calloc(INTERNAL_MINITRACE_BUFFER_SIZE, sizeof(raw_event_t));
     event_count = 0;
     fp = (FILE *) stream;
     const char *header = "{\"traceEvents\":[\n";
@@ -276,7 +276,7 @@ void mtr_shutdown(void) {
 const char *mtr_pool_string(const char *str) {
     for (uint8_t i = 0; i < STRING_POOL_SIZE; i++) {
         if (!str_pool[i]) {
-            str_pool[i] = (char*)malloc(strlen(str) + 1);
+            str_pool[i] = (char*)calloc(1, strlen(str) + 1);
             strcpy(str_pool[i], str);
             return str_pool[i];
         } else {
@@ -475,11 +475,11 @@ void internal_mtr_raw_event(const char *category, const char *name, char ph, voi
 
 #ifdef MTR_COPY_EVENT_CATEGORY_AND_NAME
     const size_t category_len = strlen(category);
-    ev->cat = malloc(category_len + 1);
+    ev->cat = calloc(1, category_len + 1);
     strcpy(ev->cat, category);
 
     const size_t name_len = strlen(name);
-    ev->name = malloc(name_len + 1);
+    ev->name = calloc(1, name_len + 1);
     strcpy(ev->name, name);
 
 #else
@@ -539,11 +539,11 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 
 #ifdef MTR_COPY_EVENT_CATEGORY_AND_NAME
     const size_t category_len = strlen(category);
-    ev->cat = malloc(category_len + 1);
+    ev->cat = calloc(1, category_len + 1);
     strcpy(ev->cat, category);
 
     const size_t name_len = strlen(name);
-    ev->name = malloc(name_len + 1);
+    ev->name = calloc(1, name_len + 1);
     strcpy(ev->name, name);
 
 #else

@@ -352,7 +352,7 @@ pci_reg_write(uint16_t port, uint8_t val)
         if (pci_cards[slot].write)
             pci_cards[slot].write(pci_func, pci_index | (port & 0x03), pci_access_len, val, pci_cards[slot].priv);
     }
-    pci_log("PCI: [WB] Mechanism #%i, slot %02X, %s card %02X:%02X, function %02X, index %02X, length %I = %02X\n",
+    pci_log("PCI: [WB] Mechanism #%i, slot %02X, %s card %02X:%02X, function %02X, index %02X, length %i = %02X\n",
             (port >= 0xc000) ? 2 : 1, slot,
             (slot == PCI_CARD_INVALID) ? "non-existent" : (pci_cards[slot].write ? "used" : "unused"),
             pci_card, pci_bus, pci_func, pci_index | (port & 0x03), pci_access_len, val);

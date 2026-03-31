@@ -6,19 +6,51 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Program settings UI module.
+ *          Program preferences UI module.
  *
- * Authors: Cacodemon345
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
  *
+ *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
  */
 #include <QDebug>
 
-#include "qt_progsettings.hpp"
-#include "ui_qt_progsettings.h"
+#include <cstdint>
+#include <cstdio>
+
+extern "C" {
+#include <86box/86box.h>
+#include <86box/config.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/hdd.h>
+}
+
+#include "qt_settings_completer.hpp"
+#include "qt_preferences.hpp"
+#include "ui_qt_preferences.h"
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 #include "qt_machinestatus.hpp"
+
+#include <QStandardItemModel>
+
+#include <QDialog>
+#include <QTranslator>
+
+#include <QPushButton>
+
+#include "qt_preferencesemulator.hpp"
+#include "qt_preferencesinput.hpp"
+#include "qt_preferenceskeybindings.hpp"
+#include "qt_defs.hpp"
+
+#include <QDebug>
+#include <QMessageBox>
+#include <QCheckBox>
+#include <QApplication>
+#include <QStyle>
 
 #include <QTimer>
 #include <QMap>
@@ -32,22 +64,67 @@
 #    include <windows.h>
 #endif
 
-extern "C" {
-#include <86box/86box.h>
-#include <86box/version.h>
-#include <86box/config.h>
-#include <86box/plat.h>
-#include <86box/mem.h>
-#include <86box/rom.h>
-#include <86box/video.h>
-}
-
 extern MainWindow *main_window;
 
-ProgSettings::CustomTranslator *ProgSettings::translator   = nullptr;
-QTranslator                    *ProgSettings::qtTranslator = nullptr;
+class PreferencesModel : public QAbstractListModel {
+public:
+    PreferencesModel(QObject *parent)
+        : QAbstractListModel(parent)
+    {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        fontHeight = QFontMetrics(qApp->font()).height();
+#else
+        fontHeight = QApplication::fontMetrics().height();
+#endif
+    }
 
-QVector<QPair<QString, QString>> ProgSettings::languages = {
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    int      rowCount(const QModelIndex &parent = QModelIndex()) const override;
+
+private:
+    QStringList pages = {
+        "Emulator",
+        "Input",
+        "Key bindings",
+    };
+    QStringList page_icons = {
+        "emulator",
+        "input_devices",
+        "key_bindings",
+    };
+    int fontHeight;
+};
+
+QVariant
+PreferencesModel::data(const QModelIndex &index, int role) const
+{
+    Q_ASSERT(checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid | QAbstractItemModel::CheckIndexOption::ParentIsInvalid));
+
+    switch (role) {
+        case Qt::DisplayRole:
+            return tr(pages.at(index.row()).toUtf8().data());
+        case Qt::DecorationRole:
+            return QIcon(QString(":/settings/qt/icons/%1.ico").arg(page_icons[index.row()]));
+        case Qt::SizeHintRole:
+            return QSize(-1, fontHeight * 2);
+        default:
+            return {};
+    }
+}
+
+int
+PreferencesModel::rowCount(const QModelIndex &parent) const
+{
+    (void) parent;
+    return pages.size();
+}
+
+Preferences *Preferences::preferences = nullptr;
+;
+Preferences::CustomTranslator *Preferences::translator   = nullptr;
+QTranslator                   *Preferences::qtTranslator = nullptr;
+
+QVector<QPair<QString, QString>> Preferences::languages = {
     { "system", "(System Default)"         },
     { "ca-ES",  "Catalan (Spain)"          },
     { "zh-CN",  "Chinese (Simplified)"     },
@@ -78,72 +155,57 @@ QVector<QPair<QString, QString>> ProgSettings::languages = {
     { "vi-VN",  "Vietnamese (Vietnam)"     },
 };
 
-ProgSettings::ProgSettings(QWidget *parent)
+Preferences::Preferences(QWidget *parent)
     : QDialog(parent)
-    , ui(new Ui::ProgSettings)
+    , ui(new Ui::Preferences)
 {
     ui->setupUi(this);
-    ui->comboBoxLanguage->setItemData(0, 0);
-    for (int i = 1; i < languages.length(); i++) {
-        ui->comboBoxLanguage->addItem(languages[i].second, i);
-        if (i == lang_id) {
-            ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i));
-        }
-    }
-    ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
+    auto *model = new PreferencesModel(this);
+    ui->listView->setModel(model);
 
-    mouseSensitivity = mouse_sensitivity;
-    ui->horizontalSlider->setValue(mouseSensitivity * 100.);
-    ui->openDirUsrPath->setChecked(open_dir_usr_path > 0);
-    ui->checkBoxMultimediaKeys->setChecked(inhibit_multimedia_keys);
-    ui->checkBoxConfirmExit->setChecked(confirm_exit);
-    ui->checkBoxConfirmSave->setChecked(confirm_save);
-    ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
+    emulator                  = new PreferencesEmulator(this);
+    input                     = new PreferencesInput(this);
+    key_bindings              = new PreferencesKeyBindings(this);
 
-    ui->radioButtonSystem->setChecked(color_scheme == 0);
-    ui->radioButtonLight->setChecked(color_scheme == 1);
-    ui->radioButtonDark->setChecked(color_scheme == 2);
+    ui->stackedWidget->addWidget(emulator);
+    ui->stackedWidget->addWidget(input);
+    ui->stackedWidget->addWidget(key_bindings);
 
-#ifndef Q_OS_WINDOWS
-    ui->checkBoxMultimediaKeys->setHidden(true);
-    ui->groupBox->setHidden(true);
-#endif
+    connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
+            [this](const QModelIndex &current, const QModelIndex &previous) {
+                ui->stackedWidget->setCurrentIndex(current.row());
+                ui->headerIcon->setPixmap(qvariant_cast<QIcon>(ui->listView->model()->data(current, Qt::DecorationRole)).pixmap(QSize(16, 16)));
+                ui->headerLabel->setText(ui->listView->model()->data(current, Qt::DisplayRole).toString());
+            });
+
+    ui->listView->setCurrentIndex(model->index(0, 0));
+
+    Preferences::preferences = this;
+}
+
+Preferences::~Preferences()
+{
+    delete ui;
+
+    Preferences::preferences = nullptr;
 }
 
 void
-ProgSettings::accept()
+Preferences::save()
+{
+    emulator->save();
+    input->save();
+    key_bindings->save();
+}
+
+void
+Preferences::accept()
 {
     auto size               = main_window->centralWidget()->size();
-    lang_id                 = ui->comboBoxLanguage->currentData().toInt();
-    open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
-    confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
-    confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
-    confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
-    inhibit_multimedia_keys = ui->checkBoxMultimediaKeys->isChecked() ? 1 : 0;
 
-    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
-
-#ifdef Q_OS_WINDOWS
-    extern void selectDarkMode();
-    selectDarkMode();
-#endif
-
-    loadTranslators(QCoreApplication::instance());
-    reloadStrings();
-    update_mouse_msg();
-    main_window->ui->retranslateUi(main_window);
-    QString vmname(vm_name);
-    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
-        vmname.truncate(vmname.size() - 1);
-    main_window->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
-    QString msg = main_window->status->getMessage();
-    main_window->status.reset(new MachineStatus(main_window));
-    main_window->refreshMediaMenu();
-    main_window->status->message(msg);
-    connect(main_window, &MainWindow::updateStatusBarTip, main_window->status.get(), &MachineStatus::updateTip);
-    connect(main_window, &MainWindow::statusBarMessage, main_window->status.get(), &MachineStatus::message, Qt::QueuedConnection);
-    mouse_sensitivity = mouseSensitivity;
+    save();
     config_save_global();
+    config_changed = 2;
     QTimer::singleShot(200, [size] () {
         main_window->centralWidget()->setFixedSize(size);
         QApplication::processEvents();
@@ -152,11 +214,6 @@ ProgSettings::accept()
         }
     });
     QDialog::accept();
-}
-
-ProgSettings::~ProgSettings()
-{
-    delete ui;
 }
 
 static QString sys_lang;
@@ -168,7 +225,7 @@ static QString sys_lang;
    We use the message font here since that is what most Windows components and
    other third-party programs use. */
 QFont
-ProgSettings::getUIFont()
+Preferences::getUIFont()
 {
     QString langCode = languageIdToCode(lang_id);
 
@@ -224,7 +281,7 @@ ProgSettings::getUIFont()
 #endif
 
 int
-ProgSettings::languageCodeToId(QString langCode)
+Preferences::languageCodeToId(QString langCode)
 {
     for (int i = 0; i < languages.length(); i++) {
         if (languages[i].first == langCode) {
@@ -235,7 +292,7 @@ ProgSettings::languageCodeToId(QString langCode)
 }
 
 QString
-ProgSettings::languageIdToCode(int id)
+Preferences::languageIdToCode(int id)
 {
     if ((id <= 0) || (id >= languages.length())) {
         return "system";
@@ -244,7 +301,7 @@ ProgSettings::languageIdToCode(int id)
 }
 
 void
-ProgSettings::getSysLang(QObject *parent)
+Preferences::getSysLang(QObject *parent)
 {
     if (qtTranslator) {
         QApplication::removeTranslator(qtTranslator);
@@ -276,7 +333,7 @@ ProgSettings::getSysLang(QObject *parent)
 }
 
 void
-ProgSettings::loadTranslators(QObject *parent)
+Preferences::loadTranslators(QObject *parent)
 {
     getSysLang(parent);
     if (qtTranslator) {
@@ -322,7 +379,7 @@ ProgSettings::loadTranslators(QObject *parent)
 }
 
 bool
-ProgSettings::loadQtTranslations(const QString name)
+Preferences::loadQtTranslations(const QString name)
 {
     QString name_lang_only = name.left(name.indexOf('_'));
     /* System-wide translations */
@@ -350,23 +407,4 @@ ProgSettings::loadQtTranslations(const QString name)
         return true;
     else
         return false;
-}
-
-void
-ProgSettings::on_pushButtonLanguage_released()
-{
-    ui->comboBoxLanguage->setCurrentIndex(0);
-}
-
-void
-ProgSettings::on_horizontalSlider_valueChanged(int value)
-{
-    mouseSensitivity = (double) value / 100.;
-}
-
-void
-ProgSettings::on_pushButton_2_clicked()
-{
-    mouseSensitivity = 1.0;
-    ui->horizontalSlider->setValue(100);
 }

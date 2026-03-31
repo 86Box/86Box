@@ -210,7 +210,7 @@ catalyst_flash_init(UNUSED(const device_t *info))
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
 
-    dev->array = (uint8_t *) malloc(0x20000);
+    dev->array = (uint8_t *) calloc(1, 0x20000);
     memset(dev->array, 0xff, 0x20000);
 
     catalyst_flash_add_mappings(dev);

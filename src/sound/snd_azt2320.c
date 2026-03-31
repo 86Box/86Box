@@ -402,7 +402,7 @@ static const device_config_t azt2320_config[] = {
 };
 
 const device_t azt2320_device = {
-    .name          = "HP Multimedia Pro 16V-A (AZT2320)",
+    .name          = "HP Multimedia Pro 16V-A",
     .internal_name = "azt2320",
     .flags         = DEVICE_ISA16,
     .local         = SB_SUBTYPE_CLONE_AZT2320_0X13,
@@ -412,5 +412,6 @@ const device_t azt2320_device = {
     .available     = azt2320_available,
     .speed_changed = azt2320_speed_changed,
     .force_redraw  = NULL,
+    .alias         = "AZT2320",
     .config        = azt2320_config
 };

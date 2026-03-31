@@ -32,6 +32,7 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
+
      <widget class="QWidget" name="tabMO">
       <attribute name="icon">
        <iconset resource="../qt_resources.qrc">

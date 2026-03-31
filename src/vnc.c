@@ -220,7 +220,7 @@ vnc_init(UNUSED(void *arg))
 
         rfb              = rfbGetScreen(0, NULL, VNC_MAX_X, VNC_MAX_Y, 8, 3, 4);
         rfb->desktopName = title;
-        rfb->frameBuffer = (char *) malloc(VNC_MAX_X * VNC_MAX_Y * 4);
+        rfb->frameBuffer = (char *) calloc(VNC_MAX_X * VNC_MAX_Y, 4);
 
         rfb->serverFormat  = rpf;
         rfb->alwaysShared  = TRUE;

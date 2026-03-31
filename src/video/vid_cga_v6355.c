@@ -900,7 +900,7 @@ v6355_standalone_init(const device_t *info) {
     v6355->display_type = device_get_config_int("display_type");
     v6355->revision = device_get_config_int("composite_type");
 
-    v6355->vram = malloc(0x4000);
+    v6355->vram = calloc(1, 0x4000);
 
     cga_comp_init(v6355->revision);
 

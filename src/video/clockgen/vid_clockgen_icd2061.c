@@ -153,8 +153,7 @@ icd2061_set_ref_clock(void *priv, float ref_clock)
 static void *
 icd2061_init(UNUSED(const device_t *info))
 {
-    icd2061_t *icd2061 = (icd2061_t *) malloc(sizeof(icd2061_t));
-    memset(icd2061, 0, sizeof(icd2061_t));
+    icd2061_t *icd2061 = (icd2061_t *) calloc(1, sizeof(icd2061_t));
 
     icd2061->ref_clock = 14318184.0f;
     icd2061->freq[0] = 25175000.0;

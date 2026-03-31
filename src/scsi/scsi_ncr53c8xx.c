@@ -743,7 +743,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
         return 0;
     }
 
-    dev->current      = (ncr53c8xx_request *) malloc(sizeof(ncr53c8xx_request));
+    dev->current      = (ncr53c8xx_request *) calloc(1, sizeof(ncr53c8xx_request));
     dev->current->tag = id;
 
     sd->buffer_length = -1;
@@ -2719,7 +2719,7 @@ const device_t ncr53c815_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config
 };
 
 const device_t ncr53c820_pci_device = {

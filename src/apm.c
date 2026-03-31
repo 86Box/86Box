@@ -103,8 +103,7 @@ apm_close(void *priv)
 static void *
 apm_init(const device_t *info)
 {
-    apm_t *dev = (apm_t *) malloc(sizeof(apm_t));
-    memset(dev, 0, sizeof(apm_t));
+    apm_t *dev = (apm_t *) calloc(1, sizeof(apm_t));
 
     if (info->local == 0)
         io_sethandler(0x00b2, 0x0002, apm_in, NULL, NULL, apm_out, NULL, NULL, dev);

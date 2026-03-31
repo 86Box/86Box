@@ -1116,8 +1116,7 @@ ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock)
 void *
 ibm_rgb528_ramdac_init(UNUSED(const device_t *info))
 {
-    ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) malloc(sizeof(ibm_rgb528_ramdac_t));
-    memset(ramdac, 0, sizeof(ibm_rgb528_ramdac_t));
+    ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) calloc(1, sizeof(ibm_rgb528_ramdac_t));
 
     ramdac->smlc_part            = 0x0100;
     ramdac->ref_clock            = 14318184.0f;

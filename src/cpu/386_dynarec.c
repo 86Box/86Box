@@ -319,7 +319,7 @@ exec386_dynarec_int(void)
             fetchdat >>= 8;
 
 #    ifdef USE_DEBUG_REGS_486
-            trap |= !!(cpu_state.flags & T_FLAG);
+            trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
 #    else
             trap = cpu_state.flags & T_FLAG;
 #    endif
@@ -374,7 +374,9 @@ exec386_dynarec_int(void)
 
 block_ended:
     if (!cpu_state.abrt && !new_ne && trap) {
-        dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
+        if (trap & 2) dr[6] |= 0x8000;
+        if (trap & 1) dr[6] |= 0x4000;
+        if (trap & 16) dr[6] |= 0x2000;
 
         trap = 0;
 #    ifndef USE_NEW_DYNAREC
@@ -942,7 +944,7 @@ exec386(int32_t cycs)
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
 #ifdef USE_DEBUG_REGS_486
-                trap |= !!(cpu_state.flags & T_FLAG);
+                trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
 #else
                 trap = cpu_state.flags & T_FLAG;
 #endif
@@ -1021,6 +1023,7 @@ block_ended:
 #ifdef USE_DEBUG_REGS_486
                 if (trap & 2) dr[6] |= 0x8000;
                 if (trap & 1) dr[6] |= 0x4000;
+                if (trap & 16) dr[6] |= 0x2000;
 #endif
                 trap = 0;
 #ifndef USE_NEW_DYNAREC

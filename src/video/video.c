@@ -311,7 +311,7 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
                  8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
                  PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * blit_data_ptr->h);
+    b_rgb = (png_bytep *) calloc(blit_data_ptr->h, sizeof(png_bytep));
     if (b_rgb == NULL) {
         video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
         fclose(fp);
@@ -319,7 +319,7 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
     }
 
     for (int y = 0; y < blit_data_ptr->h; ++y) {
-        b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
+        b_rgb[y] = (png_byte *) calloc(1, png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
         for (int x = 0; x < blit_data_ptr->w; ++x) {
             if (buf == NULL)
                 memset(&(b_rgb[y][x * 3]), 0x00, 3);
@@ -894,23 +894,23 @@ video_init(void)
             egaremap2bpp[c] |= 0x08;
     }
 
-    video_6to8 = malloc(4 * 256);
+    video_6to8 = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
         video_6to8[c] = calc_6to8(c);
 
-    video_8togs = malloc(4 * 256);
+    video_8togs = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
         video_8togs[c] = c | (c << 16) | (c << 24);
 
-    video_8to32 = malloc(4 * 256);
+    video_8to32 = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
         video_8to32[c] = calc_8to32(c);
 
-    video_15to32 = malloc(4 * 65536);
+    video_15to32 = calloc(4, 65536);
     for (uint32_t c = 0; c < 65536; c++)
         video_15to32[c] = calc_15to32(c & 0x7fff);
 
-    video_16to32 = malloc(4 * 65536);
+    video_16to32 = calloc(4, 65536);
     for (uint32_t c = 0; c < 65536; c++)
         video_16to32[c] = calc_16to32(c);
 
@@ -1033,10 +1033,10 @@ video_load_font(char *fn, int format, int offset)
 
         case FONT_FORMAT_KSC6501: /* Korean KSC-5601 */
             if (!fontdatksc5601)
-                fontdatksc5601 = malloc(16384 * sizeof(dbcs_font_t));
+                fontdatksc5601 = calloc(16384, sizeof(dbcs_font_t));
 
             if (!fontdatksc5601_user)
-                fontdatksc5601_user = malloc(192 * sizeof(dbcs_font_t));
+                fontdatksc5601_user = calloc(192, sizeof(dbcs_font_t));
 
             for (uint32_t c = 0; c < 16384; c++) {
                 for (uint8_t d = 0; d < 32; d++)

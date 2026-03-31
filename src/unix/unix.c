@@ -16,6 +16,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -23,6 +25,18 @@
 #include <wchar.h>
 #include <pwd.h>
 #include <stdatomic.h>
+
+/* Block device ioctl headers */
+#ifdef __linux__
+#    include <linux/fs.h>
+#endif
+#ifdef __APPLE__
+#    include <sys/disk.h>
+#endif
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+#    include <sys/disk.h>
+#    include <sys/disklabel.h>
+#endif
 
 #ifdef __APPLE__
 #    include "macOSXGlue.h"
@@ -34,6 +48,7 @@
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/config.h>
+#include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
@@ -426,6 +441,76 @@ plat_file_check(const char *path)
 }
 
 int
+plat_is_block_device(const char *path)
+{
+    struct stat stats;
+    if (stat(path, &stats) < 0)
+        return 0;
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+    /* BSD systems use character devices for disk access, not block devices */
+    return S_ISCHR(stats.st_mode) ? 1 : 0;
+#else
+    return S_ISBLK(stats.st_mode) ? 1 : 0;
+#endif
+}
+
+int64_t
+plat_get_block_device_size(const char *path)
+{
+#ifdef __linux__
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t size = 0;
+    if (ioctl(fd, BLKGETSIZE64, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#elif defined(__APPLE__)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t block_count = 0;
+    uint32_t block_size = 0;
+
+    if (ioctl(fd, DKIOCGETBLOCKCOUNT, &block_count) < 0) {
+        close(fd);
+        return -1;
+    }
+    if (ioctl(fd, DKIOCGETBLOCKSIZE, &block_size) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return (int64_t)(block_count * block_size);
+
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    off_t size = 0;
+    if (ioctl(fd, DIOCGMEDIASIZE, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#else
+    /* Unsupported platform */
+    (void) path;
+    return -1;
+#endif
+}
+
+int
 plat_dir_create(char *path)
 {
     return mkdir(path, S_IRWXU);
@@ -741,6 +826,7 @@ void
 plat_power_off(void)
 {
     confirm_exit_cmdl = 0;
+    hdd_image_sync_all();
     nvr_save();
     config_save();
 

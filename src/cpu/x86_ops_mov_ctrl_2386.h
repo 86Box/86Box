@@ -91,7 +91,7 @@ opMOV_r_DRx_a16(uint32_t fetchdat)
         return 1;
     }
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         return 1;
     }
     fetch_ea_16(fetchdat);
@@ -133,7 +133,7 @@ opMOV_r_DRx_a32(uint32_t fetchdat)
         return 1;
     }
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         return 1;
     }
     fetch_ea_32(fetchdat);
@@ -297,7 +297,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
         return 1;
     }
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         return 1;
     }
     fetch_ea_16(fetchdat);
@@ -340,7 +340,7 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
         return 1;
     }
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         return 1;
     }
     fetch_ea_32(fetchdat);

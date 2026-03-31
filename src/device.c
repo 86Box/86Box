@@ -90,150 +90,161 @@ device_init(void)
 }
 
 void
+device_video_config_migrate(const device_t *dev, const char *old_internal_name, int inst)
+{
+    /* Migrate the old section (new bios internal name = old gfxcard internal name) */
+    const void *sec             = config_find_section(dev->name);
+    const char *bios            = device_get_bios_name(dev, old_internal_name);
+    uint32_t    rev             = ((uint32_t) device_get_bios_local(dev, old_internal_name)) >> 24;
+    char        old_name[2048]  = { 0 };
+    char        bios_name[2048] = { 0 };
+    char        old_name2[2560] = { 0 };
+
+    if (!strcmp(bios_name, "Generic") && (strstr(dev->name, "Trio3D") || strstr(dev->name, "ViRGE"))) {
+        uint32_t chip_id = ((uint32_t) device_get_bios_local(dev, old_internal_name)) >> 16;
+        strcpy(old_name, dev->name);
+        sprintf(old_name + strlen(dev->name) - 3, "(%3i)", chip_id);
+        strcpy(old_name + strlen(old_name), dev->name + strlen(dev->name) - 4);
+    } else if (strstr(dev->name, "9000B") || strstr(dev->name, "DEC") || strstr(dev->name, "SMC"))
+        snprintf(old_name,  2047, "%s (%s)", bios, dev->name);
+    else
+        snprintf(old_name,  2047, "%s (%s)", dev->name, bios);
+    if (strlen(bios) >= 9) {
+        snprintf(bios_name, 2047, "%s", &(bios[8]));
+        /* Layout is "Rev. X (Name)" */
+        bios_name[strlen(bios_name) - 1] = 0x00;
+        if (!strcmp(bios_name, "Generic"))
+            snprintf(old_name2, 2559, "%s Rev. %c", dev->name, rev);
+        else
+            snprintf(old_name2, 2559, "%s Rev. %c (%s)", dev->name, rev, bios_name);
+    }
+
+    void *      old_sec  = config_find_section(old_name);
+    void *      old_sec2 = NULL;
+    void *      bios_sec = config_find_section(bios);
+
+    if (old_name2[0] != 0x00)
+        old_sec2 = config_find_section(old_name2);
+
+    if ((old_name2[0] != 0x00) && (rev >= 'B') && (rev <= 'D') && (sec == NULL)) {
+        /* Tseng ET4000/W32p Migration. */
+        if (old_sec2 != NULL)
+            config_rename_section(old_sec2, dev->name);
+        else
+            config_create_section(dev->name);
+        /* Do not set BIOS variable for on-board devices. */
+        if (strstr(dev->name, "oard") == NULL)
+            config_set_string(dev->name, "bios", old_internal_name);
+    } if (sec == NULL) {
+        if (bios_sec != NULL)
+            config_rename_section(bios_sec, dev->name);
+        else if (old_sec != NULL)
+            config_rename_section(old_sec, dev->name);
+        else
+            config_create_section(dev->name);
+        /* Do not set BIOS variable for on-board devices. */
+        if (strstr(dev->name, "oard") == NULL)
+            config_set_string(dev->name, "bios", old_internal_name);
+    } else {
+        /* The section was already there, just add the BIOS. */
+        if (strstr(dev->name, "oard") == NULL)
+            config_set_string(dev->name, "bios", old_internal_name);
+    }
+}
+
+void
 device_set_context(device_context_t *ctx, const device_t *dev, int inst)
 {
-    memset(ctx, 0, sizeof(device_context_t));
+    static const struct {
+        const char *old;
+        const char *new;
+    } section_migrations[] = {
+        { .old = "Standard PS/2 Mouse", .new = "PS/2 Mouse" },
+        { .old = "Microsoft RAMCard for IBM PC", .new = "Microsoft RAMCard" },
+        { .old = "Western Digital WD1007V-SE1 (ESDI)", .new = "WD1007V-SE1 (ESDI)" },
+        { .old = "WD1003 AT MFM/RLL Controller", .new = "WD1003-WAH (MFM/RLL)" },
+        { .old = "ST-11R RLL Fixed Disk Adapter", .new = "ST-11R (RLL)" },
+        { .old = "WD1002A-WX1 MFM Fixed Disk Adapter", .new = "WD1002A-WX1 (MFM)" },
+        { .old = "WD1002A-WX1 MFM Fixed Disk Adapter (No BIOS)", .new = "WD1002A-WX1 (MFM) (No BIOS)" },
+        { .old = "WD1002A-27X RLL Fixed Disk Adapter", .new = "WD1002A-27X (RLL)" },
+        { .old = "WD1004A-WX1 MFM Fixed Disk Adapter", .new = "WD1004A-WX1 (MFM)" },
+        { .old = "WD1004-27X RLL Fixed Disk Adapter", .new = "WD1004-27X (RLL)" },
+        { .old = "WD1004a-27X RLL Fixed Disk Adapter", .new = "WD1004a-27X (RLL)" },
+        { .old = "Victor V86P RLL Fixed Disk Adapter", .new = "Victor V86P Fixed Disk Adapter (RLL)" },
+        { .old = "WDXT-150 XTA Fixed Disk Controller", .new = "WDXT-150 (XTA)" },
+        { .old = "WDXT-150 XTA Fixed Disk Controller (PC3086)", .new = "WDXT-150 (XTA) (PC3086)" },
+        { .old = "ST-50X Fixed Disk Controller", .new = "ST-50X (XTA)" },
+        { .old = "ST-50X Fixed Disk Controller (PC5086)", .new = "ST-50X (XTA) (PC5086)" },
+        { .old = "Acculogic XT IDE", .new = "Acculogic sIDE-1/16 (IDE)" },
+        { .old = "Multitech PC-500", .new = "Multitech PC-500 / Franklin PC 8000" },
+        { .old = "Multitech PC-500 plus", .new = "Multitech PC-500+" },
+        { .old = "Multitech PC-700", .new = "Multitech PC-700 / Siemens SICOMP PC 16 05" },
+        { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300/PB320" },
+        { .old = "AST Bravo MS P/90", .new = "AST Bravo MS/MS-T/MS-L (Rattler)" },
+        { .old = "DTK PII-151B (MiniMicro) Floppy Drive Controller", .new = "DTK PII-151B (MiniMicro) FDC" },
+        { .old = "DTK PII-158B (MiniMicro4) Floppy Drive Controller", .new = "DTK PII-158B (MiniMicro4) FDC" },
+        { .old = "Monster FDC Floppy Drive Controller", .new = "Monster FDC" },
+        { .old = "Panasonic/MKE CD-ROM interface (Creative)", .new = "MKE/Panasonic interface (Creative)" },
+        { .old = "Panasonic/MKE CD-ROM interface", .new = "MKE/Panasonic interface" },
+        { .old = "S3 Trio32 VLB On-Board (Phoenix)", .new = "S3 Trio32 VLB On-Board" },
+        { .old = "S3 Trio32 PCI On-Board (Phoenix)", .new = "S3 Trio32 PCI On-Board" },
+        { .old = "S3 Trio64 PCI On-Board (Phoenix)", .new = "S3 Trio64 PCI On-Board" },
+        { .old = "S3 Trio64V+ PCI On-Board (Phoenix)", .new = "S3 Trio64V+ PCI On-Board" },
+        { .old = "Tseng Labs ET4000/w32 ISA (MachSpeed VGA GUI 2400S)", .new = "Tseng Labs ET4000/w32 ISA" },
+        { .old = "Tseng Labs ET4000/w32 VLB (MachSpeed VGA GUI 2400S)", .new = "Tseng Labs ET4000/w32 VLB" },
+        { .old = "Tseng Labs ET4000/w32i Rev. B ISA (Axis MicroDevice)", .new = "Tseng Labs ET4000/w32i ISA" },
+        { .old = "Tseng Labs ET4000/w32i Rev. B VLB (Hercules Dynamite Pro)", .new = "Tseng Labs ET4000/w32i VLB" },
+        { .old = "S3 ViRGE/GX (385) PCI", .new = "S3 ViRGE/GX PCI" },
+        { .old = "S3 ViRGE/GX2 (357) PCI", .new = "S3 ViRGE/GX2 PCI" },
+        { .old = "ATI 28800-6 (ATI VGA Wonder 1024D XL Plus)", .new = "ATI 28800-6" },
+        { .old = "DEC DE-500A Fast Ethernet (DECchip 21143 \"Tulip\")", .new = "DECchip 21143 \"Tulip\"" },
+        { .old = "DEC DE-435 EtherWorks Turbo (DECchip 21040 \"Tulip\")", .new = "DECchip 21040 \"Tulip\"" },
+        { .old = "SMC EtherPower II 9432 (SMC 83C170 \"EPIC/100\")", .new = "SMC 83C170 \"EPIC/100\"" },
+        { .old = "Aztech Sound Galaxy Pro 16 II (AZT2316R)", .new = "Aztech Sound Galaxy Pro 16 II" },
+        { .old = "Aztech Sound Galaxy Pro 16 AB (Washington)", .new = "Aztech Sound Galaxy Pro 16 AB" },
+        { .old = "Aztech Sound Galaxy Nova 16 Extra (Clinton)", .new = "Aztech Sound Galaxy Nova 16 Extra" },
+        { .old = "Aztech Sound Galaxy Pro 16 (AZTPR16)", .new = "Aztech Sound Galaxy Pro 16" },
+        { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A (AZT2320)" },
+        { 0 }
+    };
+
     ctx->dev      = dev;
     ctx->instance = inst;
-    if (inst) {
+    if (inst)
         sprintf(ctx->name, "%s #%i", dev->name, inst);
+    else
+        strncpy(ctx->name, dev->name, sizeof(ctx->name) - 1);
 
-        /* If a numbered section is not present, but a non-numbered of the same name
-           is, rename the non-numbered section to numbered. */
-        const void *sec        = config_find_section(ctx->name);
-        void *      single_sec = config_find_section((char *) dev->name);
-        if ((sec == NULL) && (single_sec != NULL))
-            config_rename_section(single_sec, ctx->name);
-    } else if (!strcmp(dev->name, "PS/2 Mouse")) {
-        sprintf(ctx->name, "%s", dev->name);
+    if (!config_find_section(ctx->name)) {
+        /* Find and migrate old config sections. */
+        void *old_sec;
+        char  old_name[2048] = { 0 };
+        for (int i = 0; section_migrations[i].new; i++) {
+            if (!strcmp(dev->name, section_migrations[i].new)) {
+                if (inst) {
+                    sprintf(old_name, "%s #%i", section_migrations[i].old, inst);
+                    old_sec = config_find_section(old_name);
+                    if (old_sec) {
+                        config_rename_section(old_sec, ctx->name);
+                        return; /* numbering below does not apply */
+                    }
+                }
+                old_sec = config_find_section((char *) section_migrations[i].old);
+                if (old_sec) {
+                    config_rename_section(old_sec, ctx->name);
+                    return; /* if inst, numbering below was already done here */
+                }
+            }
+        }
 
-        /* Migrate the old "Standard PS/2 Mouse" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("Standard PS/2 Mouse");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "Microsoft RAMCard")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "Microsoft RAMCard for IBM PC" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("Microsoft RAMCard for IBM PC");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1007V-SE1 (ESDI)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "Western Digital WD1007V-SE1 (ESDI)" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("Western Digital WD1007V-SE1 (ESDI)");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1003 AT (MFM/RLL)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WD1003 AT MFM/RLL Controller" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WD1003 AT MFM/RLL Controller");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "ST-11R (RLL)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "ST-11R RLL Fixed Disk Adapter" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("ST-11R RLL Fixed Disk Adapter");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1002A-WX1 (MFM)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WD1002A-WX1 MFM Fixed Disk Adapter" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WD1002A-WX1 MFM Fixed Disk Adapter");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1002A-WX1 (MFM) (No BIOS)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WD1002A-WX1 MFM Fixed Disk Adapter (No BIOS)" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WD1002A-WX1 MFM Fixed Disk Adapter (No BIOS)");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1002A-27X (RLL)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WD1002A-27X RLL Fixed Disk Adapter" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WD1002A-27X RLL Fixed Disk Adapter");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1004A-WX1 (MFM)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WD1004A-WX1 MFM Fixed Disk Adapter" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WD1004A-WX1 MFM Fixed Disk Adapter");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1004-27X (RLL)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WD1004-27X RLL Fixed Disk Adapter" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WD1004-27X RLL Fixed Disk Adapter");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WD1004a-27X (RLL)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WD1004a-27X RLL Fixed Disk Adapter" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WD1004a-27X RLL Fixed Disk Adapter");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "Victor V86P (RLL)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "Victor V86P RLL Fixed Disk Adapter" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("Victor V86P RLL Fixed Disk Adapter");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WDXT-150 (XTA)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WDXT-150 XTA Fixed Disk Controller" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WDXT-150 XTA Fixed Disk Controller");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "WDXT-150 (XTA) (PC3086)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "WDXT-150 XTA Fixed Disk Controller (PC3086)" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("WDXT-150 XTA Fixed Disk Controller (PC3086)");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "ST-50X (XTA)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "ST-50X Fixed Disk Controller" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("ST-50X Fixed Disk Controller");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else if (!strcmp(dev->name, "ST-50X (XTA) (PC5086)")) {
-        sprintf(ctx->name, "%s", dev->name);
-
-        /* Migrate the old "ST-50X Fixed Disk Controller (PC5086)" section */
-        const void *sec        = config_find_section(ctx->name);
-        void *      old_sec    = config_find_section("ST-50X Fixed Disk Controller (PC5086)");
-        if ((sec == NULL) && (old_sec != NULL))
-            config_rename_section(old_sec, ctx->name);
-    } else
-        sprintf(ctx->name, "%s", dev->name);
+        if (inst) {
+            /* If a numbered section is not present, but a non-numbered of
+               the same name is, rename the non-numbered section to numbered. */
+            old_sec = config_find_section((char *) dev->name);
+            if (old_sec)
+                config_rename_section(old_sec, ctx->name);
+        }
+    }
 }
 
 static void
@@ -366,6 +377,15 @@ device_get_internal_name(const device_t *dev)
     return dev->internal_name;
 }
 
+const char *
+device_get_alias(const device_t *dev)
+{
+    if (dev == NULL)
+        return "";
+
+    return dev->alias;
+}
+
 void *
 device_add(const device_t *dev)
 {
@@ -438,6 +458,23 @@ device_close_all(void)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
         if (devices[c] != NULL) {
+#ifdef ENABLE_DEVICE_LOG
+            if (devices[c]->name)
+                device_log("Closing device: \"%s\"...\n", devices[c]->name);
+#endif
+            if (devices[c]->close != NULL)
+                devices[c]->close(device_priv[c]);
+            devices[c]     = NULL;
+            device_priv[c] = NULL;
+        }
+    }
+}
+
+void
+device_close_by_flags(uint32_t match_flags)
+{
+    for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
+        if ((devices[c] != NULL) && (devices[c]->flags & match_flags)) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -538,6 +575,13 @@ device_get_bios(const device_t *dev, const char *internal_name)
     return NULL;
 }
 
+const char *
+device_get_bios_name(const device_t *dev, const char *internal_name)
+{
+    const device_config_bios_t *bios = device_get_bios(dev, internal_name);
+    return bios ? bios->name : 0;
+}
+
 uint8_t
 device_get_bios_type(const device_t *dev, const char *internal_name)
 {
@@ -564,6 +608,13 @@ device_get_bios_file_size(const device_t *dev, const char *internal_name)
 {
     const device_config_bios_t *bios = device_get_bios(dev, internal_name);
     return bios ? bios->size : 0;
+}
+
+uint64_t
+device_get_bios_flags(const device_t *dev, const char *internal_name)
+{
+    const device_config_bios_t *bios = device_get_bios(dev, internal_name);
+    return bios ? bios->flags : 0;
 }
 
 const char *
@@ -677,7 +728,7 @@ device_get_name(const device_t *dev, int bus, char *name)
             /* Then change string from ISA16 to ISA if applicable. */
             if (!strcmp(sbus, "ISA16"))
                 sbus = "ISA";
-            else if (!strcmp(sbus, "COM") || !strcmp(sbus, "LPT")) {
+            else if (!strcmp(sbus, "COM")) {
                 sbus = NULL;
                 strcat(name, dev->name);
                 return;
@@ -691,6 +742,7 @@ device_get_name(const device_t *dev, int bus, char *name)
             /* Allocate the temporary device name string and set it to all zeroes. */
             tname = (char *) calloc(1, strlen(dev->name) + 1);
 
+
             /* First strip the bus string with parentheses. */
             fbus = strstr(dev->name, pbus);
             if (fbus == dev->name)
@@ -702,13 +754,18 @@ device_get_name(const device_t *dev, int bus, char *name)
                 strcat(tname, fbus + strlen(pbus));
             }
 
-            /* Then also strip the bus string with parentheses. */
+            /* Special case for LPT DACs - don't strip LPT */
+            int is_dac = 0;
+            if (!strcmp(sbus, "LPT"))
+                is_dac = (strstr(dev->name, "LPT DAC") != NULL);
+
+            /* Then also strip the bus string without parentheses. */
             fbus = strstr(tname, sbus);
-            if (fbus == tname)
+            if ((fbus == tname) && !is_dac)
                 strcat(name, tname + strlen(sbus) + 1);
             /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI",
                the "-ISA" from "AMD PCnet-ISA" or the " PCI" from "CMD PCI-064x". */
-            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')))
+            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
                 strcat(name, tname);
             else {
                 strncat(name, tname, fbus - tname - 1);
@@ -1006,9 +1063,11 @@ machine_device_available(const device_t *dev)
                    (bios->internal_name != NULL) &&
                    (bios->files_no != 0)) {
                 int i = 0;
-                for (uint8_t bf = 0; bf < bios->files_no; bf++)
-                    i += !!rom_present(bios->files[bf]);
-                if (i == bios->files_no)
+                if (bios->files_no > 0) {
+                    for (uint8_t bf = 0; bf < bios->files_no; bf++)
+                        i += !!rom_present(bios->files[bf]);
+                }
+                if ((bios->files_no == -1) || (i == bios->files_no))
                     roms_present++;
                 bios++;
             }

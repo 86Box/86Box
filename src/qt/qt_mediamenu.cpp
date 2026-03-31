@@ -16,7 +16,7 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  */
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_machinestatus.hpp"
 
 #include <QMenu>
@@ -26,6 +26,8 @@
 #include <QStringBuilder>
 #include <QApplication>
 #include <QStyle>
+#include <QDirIterator>
+#include <QTextStream>
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
@@ -61,6 +63,7 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/plat_floppy_ioctl.h>
 };
 
 #include "qt_newfloppydialog.hpp"
@@ -146,6 +149,13 @@ MediaMenu::refresh(QMenu *parentMenu)
             menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { floppyMenuSelect(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
+        const char *hostDevice = fdd_get_host_device(i);
+        if (hostDevice && hostDevice[0] != '\0') {
+            menu->addAction(img_icon, tr("&Use Host Floppy Drive"), [this, i, hostDevice] {
+                floppyMount(i, QString("ioctl://%1").arg(QString::fromUtf8(hostDevice)), false);
+            })->setCheckable(false);
+            menu->addSeparator();
+        }
         floppyExportPos = menu->children().count();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Export), tr("E&xport to 86F…"), [this, i]() { floppyExportTo86f(i); });
         menu->addSeparator();
@@ -157,12 +167,16 @@ MediaMenu::refresh(QMenu *parentMenu)
 
     cdromMenus.clear();
     MachineStatus::iterateCDROM([this, parentMenu](int i) {
-        auto *menu   = parentMenu->addMenu("");
+        auto *menu        = parentMenu->addMenu("");
+        int   t           = cdrom[i].type;
+        QIcon img_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_image.ico")  : QIcon(":/settings/qt/icons/cdrom_image.ico");
+        QIcon folder_icon = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_folder.ico");
+        QIcon host_icon   = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_host.ico")   : QIcon(":/settings/qt/icons/cdrom_host.ico");
         cdromMutePos = menu->children().count();
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
-        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_image.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_folder.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/dvdrom_folder.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
@@ -170,20 +184,38 @@ MediaMenu::refresh(QMenu *parentMenu)
         }
         menu->addSeparator();
 #ifdef Q_OS_WINDOWS
-        /* Loop through each Windows drive letter and test to see if
-           it's a CDROM */
-        for (const auto &letter : driveLetters) {
-            auto drive = QString("%1:\\").arg(letter);
-            if (GetDriveTypeA(drive.toUtf8().constData()) == DRIVE_CDROM)
-                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1:)").arg(letter), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
+        /* Go through all active drive letters. */
+        uint32_t drives = GetLogicalDrives();
+        int letterIdx = 0;
+        while (drives) {
+            if (drives & 1) {
+                auto letter = driveLetters.at(letterIdx);
+                auto drive = QString("%1:\\").arg(letter);
+                /* Check if the letter is a CD-ROM drive. */
+                if (GetDriveTypeA(drive.toUtf8().constData()) == DRIVE_CDROM)
+                    menu->addAction(host_icon, tr("&Host CD/DVD Drive (%1)").arg(QString(letter).append(':')), [this, i, letter] { cdromMount(i, 2, QString(R"(\\.\%1:)").arg(letter)); })->setCheckable(false);
+            }
+            drives >>= 1;
+            letterIdx++;
         }
         menu->addSeparator();
 #elif defined(Q_OS_LINUX)
-        /* Enumerate Linux CD/DVD drives (/dev/sr0 .. /dev/sr15). */
-        for (int sr = 0; sr < 16; sr++) {
-            QString devPath = QString("/dev/sr%1").arg(sr);
-            if (QFile::exists(devPath))
-                menu->addAction(QIcon(":/settings/qt/icons/cdrom_host.ico"), tr("&Host CD/DVD Drive (%1)").arg(devPath), [this, i, devPath] { cdromMount(i, 2, devPath); })->setCheckable(false);
+        /* Go through all active block devices. */
+        QDirIterator it("/sys/class/block", QDir::Dirs | QDir::NoDotAndDotDot);
+        while (it.hasNext()) {
+            auto dev = it.next();
+            /* Check if the device is a CD-ROM drive. */
+            QFile file(QString("%1/device/type").arg(dev));
+            if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QTextStream textStream(&file);
+                if (textStream.readLine() == "5") {
+                    auto devName = it.fileName();
+                    auto devPath = QString("/dev/%1").arg(devName);
+                    if (QFile::exists(devPath))
+                        menu->addAction(host_icon, tr("&Host CD/DVD Drive (%1)").arg(devName), [this, i, devPath] { cdromMount(i, 2, devPath); })->setCheckable(false);
+                }
+                file.close();
+            }
         }
         menu->addSeparator();
 #endif
@@ -732,14 +764,18 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
                 imageHistoryUpdatePos->setIcon(menu_icon);
             }
             break;
-        case ui::MediaType::Optical:
+        case ui::MediaType::Optical: {
             if (!cdromMenus.contains(index))
                 return;
+            int   t           = cdrom[index].type;
+            QIcon img_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_image.ico")  : QIcon(":/settings/qt/icons/cdrom_image.ico");
+            QIcon folder_icon = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_folder.ico");
+            QIcon host_icon   = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_host.ico")   : QIcon(":/settings/qt/icons/cdrom_host.ico");
             menu                  = cdromMenus[index];
             children              = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cdromImageHistoryPos[slot]]);
             if (fn.left(8) == "ioctl://") {
-                menu_icon = QIcon(":/settings/qt/icons/cdrom_host.ico");
+                menu_icon = host_icon;
 #ifdef Q_OS_WINDOWS
                 menu_item_name = tr("Host CD/DVD Drive (%1)").arg(fn.right(2));
 #else
@@ -747,12 +783,12 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
 #endif
             } else {
                 fi.setFile(fn);
-                menu_icon      = fi.isDir() ? QIcon(":/settings/qt/icons/cdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_image.ico");
+                menu_icon      = fi.isDir() ? folder_icon : img_icon;
                 menu_item_name = fn.isEmpty() ? tr("Reload previous image") : fn;
             }
             imageHistoryUpdatePos->setIcon(menu_icon);
             break;
-        case ui::MediaType::RDisk:
+        } case ui::MediaType::RDisk:
             if (!rdiskMenus.contains(index))
                 return;
             menu                  = rdiskMenus[index];
@@ -843,6 +879,12 @@ MediaMenu::cdromUpdateMenu(int i)
     auto *menu   = cdromMenus[i];
     auto  childs = menu->children();
 
+    int   t           = cdrom[i].type;
+    QIcon img_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_image.ico")  : QIcon(":/settings/qt/icons/cdrom_image.ico");
+    QIcon folder_icon = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_folder.ico");
+    QIcon host_icon   = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_host.ico")   : QIcon(":/settings/qt/icons/cdrom_host.ico");
+    QIcon drv_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom.ico")        : QIcon(":/settings/qt/icons/cdrom.ico");
+
     auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos]);
     muteMenu->setIcon(QIcon((cdrom[i].sound_on == 0) ? ":/settings/qt/icons/cdrom_unmute.ico" : ":/settings/qt/icons/cdrom_mute.ico"));
     muteMenu->setText((cdrom[i].sound_on == 0) ? tr("&Unmute") : tr("&Mute"));
@@ -857,16 +899,16 @@ MediaMenu::cdromUpdateMenu(int i)
         menu_item_name = tr("Host CD/DVD Drive (%1)").arg(name.right(name.length() - 8));
 #endif
         name2     = menu_item_name;
-        menu_icon = QIcon(":/settings/qt/icons/cdrom_host.ico");
+        menu_icon = host_icon;
     } else {
         QFileInfo fi(cdrom[i].image_path);
 
         menu_item_name = name.isEmpty() ? QString() : fi.fileName();
         name2          = name;
         if (name.isEmpty())
-            menu_icon = QIcon(":/settings/qt/icons/cdrom.ico");
+            menu_icon = drv_icon;
         else
-            menu_icon = fi.isDir() ? QIcon(":/settings/qt/icons/cdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_image.ico");
+            menu_icon = fi.isDir() ? folder_icon : img_icon;
     }
     ejectMenu->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, Eject));
     ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(menu_item_name));

@@ -156,8 +156,7 @@ att498_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 static void *
 att498_ramdac_init(const device_t *info)
 {
-    att498_ramdac_t *ramdac = (att498_ramdac_t *) malloc(sizeof(att498_ramdac_t));
-    memset(ramdac, 0, sizeof(att498_ramdac_t));
+    att498_ramdac_t *ramdac = (att498_ramdac_t *) calloc(1, sizeof(att498_ramdac_t));
 
     ramdac->type = info->local;
 

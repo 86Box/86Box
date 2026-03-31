@@ -94,6 +94,8 @@ extern const device_t      dss_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
+extern const device_t      lpt_loopback_device;
+
 extern int                 lpt_device_available(int id);
 #ifdef EMU_DEVICE_H
 extern const device_t     *lpt_device_getdevice(const int id);
@@ -141,6 +143,7 @@ extern void *              lpt_attach(void    (*write_data)(uint8_t val, void *p
                                       void    (*epp_request_read)(uint8_t is_addr, void *priv),
                                       void    *priv);
 extern void                lpt_devices_close(void);
+extern void                lpt_devices_reset(void);
 
 extern void                lpt_set_next_inst(int ni);
 extern void                lpt_set_3bc_used(int is_3bc_used);

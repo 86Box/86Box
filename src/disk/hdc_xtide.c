@@ -459,7 +459,7 @@ const device_t xtide_at_2ch_device = {
 };
 
 const device_t xtide_acculogic_device = {
-    .name          = "Acculogic XT IDE",
+    .name          = "Acculogic sIDE-1/16 (IDE)",
     .internal_name = "xtide_acculogic",
     .flags         = DEVICE_ISA,
     .local         = 0,

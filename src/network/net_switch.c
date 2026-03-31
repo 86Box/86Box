@@ -131,7 +131,7 @@ net_switch_secret_hash(const char *secret, uint8_t *hash)
 {
     SHA3Context cx;
     SHA3Init(&cx, 256);
-    SHA3Update(&cx, (const uint8_t *)secret, strlen(secret));
+    SHA3Update(&cx, (const uint8_t *) secret, strlen(secret));
     memcpy(hash, SHA3Final(&cx), 32);
 }
 
@@ -198,12 +198,10 @@ net_switch_add_hostaddr(net_switch_t *netswitch, net_switch_sockaddr_t *addr, ne
             }
 
             /* Join IPv4 multicast group. */
-            struct ip_mreq mreq = { .imr_interface = { .s_addr = hostaddr->addr.sin.sin_addr.s_addr } };
-            if (netswitch->secret_enabled)
-                mreq.imr_multiaddr.s_addr = htonl(SWITCH_MULTICAST_GROUP);
-            else
-                mreq.imr_multiaddr.s_addr = htonl(SWITCH_MULTICAST_GROUP + 0x600); // 239.255.86.86
-
+            struct ip_mreq mreq = {
+                .imr_interface = { .s_addr = hostaddr->addr.sin.sin_addr.s_addr },
+                .imr_multiaddr = { .s_addr = htonl(SWITCH_MULTICAST_GROUP + (netswitch->secret_enabled ? 0 : 0x600)) } // 239.255.86.86 if no secret
+            };
             if (setsockopt(netswitch->socket_rx, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &mreq, sizeof(mreq)) < 0) {
                 netswitch_log("Network Switch: could not join multicast group on interface %s\n", buf);
                 goto broadcast;
@@ -223,7 +221,7 @@ broadcast:
             if (flags & IFF_LOOPBACK) {
                 /* Loopback interfaces don't advertise broadcast support and therefore
                    the broadcast address is invalid, so we build one from the netmask. */
-                hostaddr->addr_tx.sin.sin_addr.s_addr = hostaddr->addr.sin.sin_addr.s_addr | (netmask ? ~netmask->sin.sin_addr.s_addr : htonl(0x00ffffff));
+                hostaddr->addr_tx.sin.sin_addr.s_addr = hostaddr->addr.sin.sin_addr.s_addr | ((netmask && netmask->sin.sin_addr.s_addr) ? ~netmask->sin.sin_addr.s_addr : htonl(0x00ffffff));
                 ret = 0;
             } else if (!(flags & (IFF_BROADCAST | IFF_POINTOPOINT)) ||
                        !broadcast || !broadcast->sin.sin_addr.s_addr ||
@@ -275,9 +273,11 @@ net_switch_update_hostaddrs(net_switch_t *netswitch)
     DWORD buf_size = 16 * sizeof(INTERFACE_INFO);
     INTERFACE_INFO *buf;
 retry:
-    buf = (INTERFACE_INFO *) malloc(buf_size);
+    buf = (INTERFACE_INFO *) calloc(1, buf_size);
     DWORD returned;
-    if (WSAIoctl(netswitch->socket_rx, SIO_GET_INTERFACE_LIST, NULL, 0, buf, buf_size, &returned, NULL, NULL) == SOCKET_ERROR) {
+    if (!buf) {
+        /* shouldn't happen */
+    } else if (WSAIoctl(netswitch->socket_rx, SIO_GET_INTERFACE_LIST, NULL, 0, buf, buf_size, &returned, NULL, NULL) == SOCKET_ERROR) {
         free(buf);
         if (WSAGetLastError() == WSAEFAULT) {
             buf_size *= 2;
@@ -402,20 +402,18 @@ net_switch_thread(void *priv)
                     }
 
 #define MAC_FORMAT "(%02X:%02X:%02X:%02X:%02X:%02X -> %02X:%02X:%02X:%02X:%02X:%02X)"
-#define MAC_FORMAT_NOSECRET_ARGS(p) (p)[6], (p)[7], (p)[8], (p)[9], (p)[10], (p)[11], (p)[0], (p)[1], (p)[2], (p)[3], (p)[4], (p)[5]
-#define MAC_FORMAT_ARGS(p) (p)[38], (p)[39], (p)[40], (p)[41], (p)[42], (p)[43], (p)[32], (p)[33], (p)[34], (p)[35], (p)[36], (p)[37]
+#define MAC_FORMAT_ARGS(p) (p)[6], (p)[7], (p)[8], (p)[9], (p)[10], (p)[11], (p)[0], (p)[1], (p)[2], (p)[3], (p)[4], (p)[5]
                     netswitch_log("Network Switch: sending %d-byte packet " MAC_FORMAT "\n",
                                   netswitch->pkt_tx_v[i].len,
-                                  netswitch->secret_enabled ? MAC_FORMAT_ARGS(netswitch->pkt_tx_v[i].data)
-                                                            : MAC_FORMAT_NOSECRET_ARGS(netswitch->pkt_tx_v[i].data));
+                                  MAC_FORMAT_ARGS(&netswitch->pkt_tx_v[i].data[netswitch->secret_enabled]));
 
                     /* Send through all known host interfaces. */
                     for (net_switch_hostaddr_t *hostaddr = netswitch->hostaddrs; hostaddr; hostaddr = hostaddr->next)
                         if (netswitch->secret_enabled)
-                            sendto(hostaddr->socket_tx, (char *)augmented, send_len, 0,
+                            sendto(hostaddr->socket_tx, (char *) augmented, send_len, 0,
                                    &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
                         else
-                            sendto(hostaddr->socket_tx, (char *)netswitch->pkt_tx_v[i].data,
+                            sendto(hostaddr->socket_tx, (char *) netswitch->pkt_tx_v[i].data,
                                    send_len, 0, &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
                 }
             }
@@ -441,7 +439,7 @@ net_switch_thread(void *priv)
 #endif
             if (netswitch->secret_enabled) {
                 len = recv(netswitch->socket_rx, (char *) netswitch->pkt.data, NET_MAX_FRAME + sizeof(netswitch->secret_hash), 0);
-                if (len < sizeof(netswitch->secret_hash) + 12) {
+                if (len < (sizeof(netswitch->secret_hash) + 12)) {
                     netswitch_log("Network Switch: recv error (%d)\n", len);
                     continue;
                 }
@@ -453,7 +451,7 @@ net_switch_thread(void *priv)
                     memmove(netswitch->pkt.data,
                             netswitch->pkt.data + sizeof(netswitch->secret_hash),
                             len - sizeof(netswitch->secret_hash));
-                    len = len - sizeof(netswitch->secret_hash);
+                    len -= sizeof(netswitch->secret_hash);
                     netswitch->pkt.len = len;
                 }
             } else {
@@ -464,7 +462,7 @@ net_switch_thread(void *priv)
                 }
             }
 
-            if ((AS_U64(netswitch->pkt.data[netswitch->secret_enabled ? 38 : 6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
+            if ((AS_U64(netswitch->pkt.data[netswitch->secret_enabled + 6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
                 /* A packet we've sent has looped back, drop it. */
             } else if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN) && (netswitch->promisc || /* promiscuous mode? */
                        (netswitch->pkt.data[0] & 1) || /* broadcast packet? */
@@ -504,10 +502,10 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
     netswitch->promisc = !!netcard->promisc_mode;
 
     if (netcard->secret[0] != '\0') {
-        uint8_t temp[32];
+        uint8_t temp[sizeof(netswitch->secret_hash)];
         net_switch_secret_hash((const char *) netcard->secret, (uint8_t *) temp);
-        memcpy(netswitch->secret_hash, temp, 32);
-        netswitch->secret_enabled = 1;
+        memcpy(netswitch->secret_hash, temp, sizeof(netswitch->secret_hash));
+        netswitch->secret_enabled = sizeof(netswitch->secret_hash);
     } else {
         netswitch->secret_enabled = 0;
     }

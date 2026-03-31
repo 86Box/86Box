@@ -144,53 +144,45 @@ msgstr "&Celočíselné škálovanie"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Celočíselné škálovanie"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Nastavenia pre EGA a (S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Obrátiť farby"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Obrátiť farby"
+msgid "VGA screen type:"
+msgstr "Typ monitora VGA:"
 
-msgid "VGA screen &type"
-msgstr "&Typ monitora VGA"
-
-msgid "RGB &Color"
-msgstr "RGB &farebný"
+msgid "RGB Color"
+msgstr "RGB farebný"
 
 msgid "RGB (no brown)"
 msgstr "RGB (bez hnedej)"
 
-msgid "&RGB Grayscale"
-msgstr "&Odtiene sivej"
+msgid "RGB Grayscale"
+msgstr "Odtiene sivej"
 
 msgid "Generic RGBI color monitor"
 msgstr "Obecný RGBI farebný monitor"
 
-msgid "&Amber monitor"
-msgstr "&Jantárová obrazovka"
+msgid "Amber monitor"
+msgstr "Jantárová obrazovka"
 
-msgid "&Green monitor"
-msgstr "&Zelená obrazovka"
+msgid "Green monitor"
+msgstr "Zelená obrazovka"
 
-msgid "&White monitor"
-msgstr "&Biela obrazovka"
+msgid "White monitor"
+msgstr "Biela obrazovka"
 
-msgid "Grayscale &conversion type"
-msgstr "Konverzia na &odtiene sivej"
+msgid "Grayscale conversion type:"
+msgstr "Konverzia na odtiene sivej:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Priemer"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+#, fuzzy
+msgid "Overscan"
+msgstr "Prekrytie obrazu"
 
-msgid "&Average"
-msgstr "&Priemer"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Prekrytie obrazu CGA/PCjr/Tandy/E&GA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "&Úprava kontrastu čiernobielej obrazovky"
+msgid "Change contrast for monochrome display"
+msgstr "Úprava kontrastu čiernobielej obrazovky"
 
 msgid "&Media"
 msgstr "&Média"
@@ -363,6 +355,21 @@ msgstr "Výkon"
 msgid "Machine type:"
 msgstr "Typ počítača:"
 
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
+
 msgid "Machine:"
 msgstr "Počítač:"
 
@@ -432,8 +439,8 @@ msgstr "Grafika:"
 msgid "Video #2:"
 msgstr "Grafika 2:"
 
-msgid "Accelerators"
-msgstr "Akcelerátory"
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Grafický akcelerátor Voodoo 1 alebo 2"
@@ -513,30 +520,6 @@ msgstr "Nuked (presnejší)"
 msgid "YMFM (faster)"
 msgstr "YMFM (rýchlejší)"
 
-msgid "COM1 Device:"
-msgstr "Zariadenie na COM1:"
-
-msgid "COM2 Device:"
-msgstr "Zariadenie na COM2:"
-
-msgid "COM3 Device:"
-msgstr "Zariadenie na COM3:"
-
-msgid "COM4 Device:"
-msgstr "Zariadenie na COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Zariadenie na LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Zariadenie na LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Zariadenie na LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Zariadenie na LPT4:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA kanál ECP interného LPT portu:"
 
@@ -552,23 +535,50 @@ msgstr "Povoliť port COM3"
 msgid "Serial port 4"
 msgstr "Povoliť port COM4"
 
-msgid "Parallel port 1"
-msgstr "Povoliť port LPT1"
-
-msgid "Parallel port 2"
-msgstr "Povoliť port LPT2"
-
-msgid "Parallel port 3"
-msgstr "Povoliť port LPT3"
-
-msgid "Parallel port 4"
-msgstr "Povoliť port LPT4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketový radič:"
 
 msgid "CD-ROM controller:"
 msgstr "Radič CD-ROM:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "Radič IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "Tretí radič IDE"
@@ -1058,15 +1068,6 @@ msgstr "%1 je potrebná pre automatický prevod PCL dokumentov do PDF.\n\nAkéko
 
 msgid "Don't show this message again"
 msgstr "Nezobrazovať ďalej túto správu"
-
-msgid "Don't exit"
-msgstr "Neukončovať"
-
-msgid "Reset"
-msgstr "Resetovať"
-
-msgid "Don't reset"
-msgstr "Neresetovať"
 
 msgid "CD-ROM images"
 msgstr "Obraz CD-ROM disku"
@@ -1572,9 +1573,6 @@ msgstr "DMF (cluster 2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1701,8 +1699,8 @@ msgstr "&Kurzor/Puck"
 msgid "&Pen"
 msgstr "&Pero"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Hostiteľská jednotka CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Hostiteľská jednotka CD/DVD (%1)"
 
 msgid "&Connected"
 msgstr "&Pripojené"
@@ -1992,6 +1990,9 @@ msgstr "Verzia BIOS"
 msgid "BIOS Language"
 msgstr "Jazyk BIOS"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "Rozširujúca jednotka IBM 5161"
 
@@ -2255,9 +2256,6 @@ msgstr "Veľkosť pamäte"
 
 msgid "EMU8000 Address"
 msgstr "Adresa EMU8000"
-
-msgid "IDE Controller"
-msgstr "Radič IDE"
 
 msgid "Codec"
 msgstr "Kodek"
@@ -2643,6 +2641,9 @@ msgstr "Štandard"
 msgid "High-Speed"
 msgstr "Vysokorýchlostný"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereofónny prevodník LPT DAC"
 
@@ -2655,14 +2656,17 @@ msgstr "Generická ihličková tlačiareň ESC/P 2"
 msgid "Generic PostScript Printer"
 msgstr "Generická tlačiareň PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Generická tlačiareň PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Generická tlačiareň PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Internetový protokol paralelnej linky"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Ochranný kľúč pre Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Zariadenie priechodu sériového portu"
@@ -2754,6 +2758,12 @@ msgstr "Všeobecné rozšírenie pamäte PC/XT"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Všeobecné rozšírenie pamäte PC/AT"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nastala chyba pri hľadaní ihličkových písem"
 
@@ -2816,6 +2826,12 @@ msgstr "Posunúť nižšie"
 
 msgid "Could not load file %1"
 msgstr "Nebolo možné načítať súbor %1"
+
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
 
 msgid "Key bindings"
 msgstr "Nastavenie klávesov"
@@ -2994,6 +3010,9 @@ msgstr "Systém nebude pridaný."
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovať myš pri každom rámci CPU"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Odtieň"
 
@@ -3009,11 +3028,8 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrota"
 
-msgid "&CGA composite settings…"
-msgstr "Nastavenia kompozitného režimu &CGA…"
-
-msgid "CGA composite settings"
-msgstr "Nastavenia kompozitného režimu CGA"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
@@ -3042,9 +3058,6 @@ msgstr "Svetlo"
 msgid "Dark"
 msgstr "Tmavá"
 
-msgid "Search:"
-msgstr "Hľadať:"
-
 msgid "Force interpretation"
 msgstr "Vynútiť interpretáciu"
 
@@ -3068,3 +3081,6 @@ msgstr "Ak chcete zmeniť systémový adresár, zastavte všetky bežiace stroje
 
 msgid "Raw"
 msgstr "Surový"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

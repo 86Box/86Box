@@ -11,7 +11,7 @@
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
-#          Copyright 2021-2025 Jasmine Iwanek.
+#          Copyright 2021-2026 Jasmine Iwanek.
 #
 
 cmake_minimum_required(VERSION 3.16)

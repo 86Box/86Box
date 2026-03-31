@@ -666,7 +666,7 @@ mo_buf_alloc(mo_t *dev, uint32_t len)
     mo_log(dev->log, "Allocated buffer length: %i\n", len);
 
     if (dev->buffer == NULL) {
-        dev->buffer = (uint8_t *) malloc(len);
+        dev->buffer = (uint8_t *) calloc(1, len);
         dev->buffer_sz = len;
     }
 

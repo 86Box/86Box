@@ -2157,7 +2157,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     if (!fp)
         fatal("AWE32.RAW not found\n");
 
-    emu8k->rom = malloc(1024 * 1024);
+    emu8k->rom = calloc(1024, 1024);
     if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
         fatal("emu8k_init(): Error reading data\n");
     fclose(fp);

@@ -146,53 +146,45 @@ msgstr "&Cijelobrojno skaliranje"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Cijelobrojno skaliranje"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGA postavke"
+msgid "Inverted VGA monitor"
+msgstr "Obrni boje zaslona VGA"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Obrni boje zaslona VGA"
+msgid "VGA screen type:"
+msgstr "Tip zaslona VGA:"
 
-msgid "VGA screen &type"
-msgstr "&Tip zaslona VGA"
-
-msgid "RGB &Color"
-msgstr "RGB u &boji"
+msgid "RGB Color"
+msgstr "RGB u boji"
 
 msgid "RGB (no brown)"
 msgstr "RGB (bez smeđe)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB u nijansama sive boje"
+msgid "RGB Grayscale"
+msgstr "RGB u nijansama sive boje"
 
 msgid "Generic RGBI color monitor"
 msgstr "Generični RGBI monitor u boji"
 
-msgid "&Amber monitor"
-msgstr "&Jantarni zaslon"
+msgid "Amber monitor"
+msgstr "Jantarni zaslon"
 
-msgid "&Green monitor"
-msgstr "&Zeleni zaslon"
+msgid "Green monitor"
+msgstr "Zeleni zaslon"
 
-msgid "&White monitor"
-msgstr "&Bijeli zaslon"
+msgid "White monitor"
+msgstr "Bijeli zaslon"
 
-msgid "Grayscale &conversion type"
-msgstr "&Vrsta konverzije nijansa sive boje"
+msgid "Grayscale conversion type:"
+msgstr "Vrsta konverzije nijansa sive boje:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Prosjek"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+#, fuzzy
+msgid "Overscan"
+msgstr "Višak slike"
 
-msgid "&Average"
-msgstr "&Prosjek"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "&Višak slike CGA/PCjr/Tandy/EGA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "&Promjeni kontrast za crno-bijeli zaslon"
+msgid "Change contrast for monochrome display"
+msgstr "Promjeni kontrast za crno-bijeli zaslon"
 
 msgid "&Media"
 msgstr "&Mediji"
@@ -365,6 +357,21 @@ msgstr "Učinkovitost"
 msgid "Machine type:"
 msgstr "Tip sistema:"
 
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
+
 msgid "Machine:"
 msgstr "Sistem:"
 
@@ -434,8 +441,8 @@ msgstr "Video:"
 msgid "Video #2:"
 msgstr "Video 2:"
 
-msgid "Accelerators"
-msgstr "Ubrzivači"
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 ili 2 grafika"
@@ -515,30 +522,6 @@ msgstr "Nuked (precizniji)"
 msgid "YMFM (faster)"
 msgstr "YMFM (brži)"
 
-msgid "COM1 Device:"
-msgstr "Uređaj COM1:"
-
-msgid "COM2 Device:"
-msgstr "Uređaj COM2:"
-
-msgid "COM3 Device:"
-msgstr "Uređaj COM3:"
-
-msgid "COM4 Device:"
-msgstr "Uređaj COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Uređaj LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Uređaj LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Uređaj LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Uređaj LPT4:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP unutrašnjeg LPT-a:"
 
@@ -554,23 +537,50 @@ msgstr "Serijska vrata 3"
 msgid "Serial port 4"
 msgstr "Serijska vrata 4"
 
-msgid "Parallel port 1"
-msgstr "Paralelna vrata 1"
-
-msgid "Parallel port 2"
-msgstr "Paralelna vrata 2"
-
-msgid "Parallel port 3"
-msgstr "Paralelna vrata 3"
-
-msgid "Parallel port 4"
-msgstr "Paralelna vrata 4"
-
 msgid "Floppy disk controller:"
 msgstr "Kontroler diskete:"
 
 msgid "CD-ROM controller:"
 msgstr "Kontroler CD-ROM:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "Kontroler IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "Tercijarni IDE kontroler"
@@ -1060,15 +1070,6 @@ msgstr "%1 je potrebno za automatsku konverziju PCL datoteke u PDF datoteke.\n\n
 
 msgid "Don't show this message again"
 msgstr "Ne pokazi više ovu poruku"
-
-msgid "Don't exit"
-msgstr "Ne izlazi"
-
-msgid "Reset"
-msgstr "Resetiraj"
-
-msgid "Don't reset"
-msgstr "Ne resetiraj"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM slike"
@@ -1574,9 +1575,6 @@ msgstr "DMF (2048 clusteri)"
 msgid "2.88 MB"
 msgstr "2,88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3,5\" 128 MB (ISO 10090)"
 
@@ -1703,8 +1701,8 @@ msgstr "&Kursor/Pak"
 msgid "&Pen"
 msgstr "&Olovka"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "CD/DVD pogon &nositelja (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "CD/DVD pogon &nositelja (%1)"
 
 msgid "&Connected"
 msgstr "&Povezan"
@@ -1994,6 +1992,9 @@ msgstr "Verzija BIOS-a"
 msgid "BIOS Language"
 msgstr "Jezik BIOS-a"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "Jedinica za proširenj IBM 5161"
 
@@ -2257,9 +2258,6 @@ msgstr "Veličina memorije"
 
 msgid "EMU8000 Address"
 msgstr "Adresa EMU8000-a"
-
-msgid "IDE Controller"
-msgstr "Kontroler IDE"
 
 msgid "Codec"
 msgstr "Kodek"
@@ -2645,6 +2643,9 @@ msgstr "Standardna"
 msgid "High-Speed"
 msgstr "Visoka brzina"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "DAC za LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo DAC za LPT"
 
@@ -2657,14 +2658,17 @@ msgstr "Generični matrični pisač ESC/P 2"
 msgid "Generic PostScript Printer"
 msgstr "Generični pisač PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Generični pisač PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Generični pisač PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Internet protokol za paralelnu liniju"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Zaštitni uređaj za Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Uređaj prolaza serijskih vrata"
@@ -2756,6 +2760,12 @@ msgstr "Generičko proširenje memorije PC/XT"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generičko proširenje memorije PC/AT"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nije moguće pronaći matrične fontove"
 
@@ -2818,6 +2828,12 @@ msgstr "Pomakni dolje"
 
 msgid "Could not load file %1"
 msgstr "Nije moguće učitati datoteku %1"
+
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
 
 msgid "Key bindings"
 msgstr "Veze tipki"
@@ -2996,6 +3012,9 @@ msgstr "Sistem neće biti dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Ažuriraj status miša kod skavog bloka procesora"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Boja"
 
@@ -3011,11 +3030,8 @@ msgstr "Svjetlina"
 msgid "Sharpness"
 msgstr "Oštrina"
 
-msgid "&CGA composite settings…"
-msgstr "Opcije kompozitnog načina &CGA…"
-
-msgid "CGA composite settings"
-msgstr "Opcije kompozitnog načina CGA"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
@@ -3044,9 +3060,6 @@ msgstr "Svjetlo"
 msgid "Dark"
 msgstr "Tamno"
 
-msgid "Search:"
-msgstr "Pretrag:"
-
 msgid "Force interpretation"
 msgstr "Prisilna interpretacija"
 
@@ -3070,3 +3083,6 @@ msgstr "Za promjenu sustavskog direktorija zaustavite sve pokrenute strojeve."
 
 msgid "Raw"
 msgstr "Neobrađeni podaci"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

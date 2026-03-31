@@ -717,7 +717,7 @@ pitf_handler(int set, uint16_t base, int size, void *priv)
 static void *
 pitf_init(const device_t *info)
 {
-    pitf_t *dev = (pitf_t *) malloc(sizeof(pitf_t));
+    pitf_t *dev = (pitf_t *) calloc(1, sizeof(pitf_t));
 
     pitf_reset(dev);
 
