@@ -20,7 +20,7 @@ extern "C" {
 #include <86box/86box.h>
 }
 
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_util.hpp"
 #include "qt_vmmanager_details.hpp"
 #include "ui_qt_vmmanager_details.h"
@@ -165,7 +165,7 @@ VMManagerDetails::VMManagerDetails(QWidget *parent)
     connect(this, &VMManagerDetails::styleUpdated, portsSection, &VMManagerDetailSection::updateStyle);
     connect(this, &VMManagerDetails::styleUpdated, otherSection, &VMManagerDetailSection::updateStyle);
 
-    QApplication::setFont(ProgSettings::getUIFont());
+    QApplication::setFont(Preferences::getUIFont());
 #endif
 
     sysconfig = new VMManagerSystem();

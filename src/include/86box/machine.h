@@ -385,6 +385,7 @@ typedef struct _machine_ {
     void                  *snd_device;
     void                  *net_device;
 #endif
+    const char            *aliases[16];
 } machine_t;
 
 /* Global variables. */
@@ -1231,7 +1232,7 @@ extern const device_t  p6kdi_device;
 extern int             machine_at_p6kdi_init(const machine_t *);
 extern int             machine_at_p65up5_cpknd_init(const machine_t *);
 extern int             machine_at_kn97_init(const machine_t *);
-extern int             machine_at_fickn6010_init(const machine_t *);
+extern int             machine_at_fickn6000_init(const machine_t *);
 
 /* i440LX */
 #ifdef EMU_DEVICE_H
@@ -1493,7 +1494,6 @@ extern const device_t  jukopc_device;
 #endif
 extern int             machine_xt_jukopc_init(const machine_t *);
 extern int             machine_xt_kaypropc_init(const machine_t *);
-extern int             machine_xt_micoms_xl7turbo_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  pc500_device;
 #endif
@@ -1511,6 +1511,7 @@ extern int             machine_xt_openxt_init(const machine_t *);
 extern int             machine_xt_p3105_init(const machine_t *);
 extern int             machine_xt_pxxt_init(const machine_t *);
 extern int             machine_xt_pravetz16_imko4_init(const machine_t *);
+extern int             machine_xt_mxl7t_init(const machine_t *);
 extern int             machine_xt_pravetz16s_cpu12p_init(const machine_t *);
 extern int             machine_xt_pb8810_init(const machine_t *);
 extern int             machine_xt_sansx16_init(const machine_t *);

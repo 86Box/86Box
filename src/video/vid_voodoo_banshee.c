@@ -3404,7 +3404,7 @@ banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 }
 
 static void *
-banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int voodoo_type, int agp)
+banshee_init_common(const device_t *info, const char *fn, int has_sgram, int type, int voodoo_type, int agp)
 {
     int        mem_size;
     banshee_t *banshee = malloc(sizeof(banshee_t));
@@ -3606,21 +3606,13 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
 }
 
 static void *
-banshee_init(const device_t *info)
+banshee_bios_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_BANSHEE, 1, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
-}
+    uint32_t local = device_get_bios_local(info, device_get_config_bios("bios"));
 
-static void *
-creative_banshee_init(const device_t *info)
-{
-    return banshee_init_common(info, ROM_CREATIVE_BANSHEE, 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
-}
-
-static void *
-quantum3d_raven_init(const device_t *info)
-{
-    return banshee_init_common(info, ROM_QUANTUM3D_RAVEN, 0, TYPE_QUANTUM3D_RAVEN, VOODOO_BANSHEE, 0);
+    return banshee_init_common(info, device_get_bios_file(info, device_get_config_bios("bios"), 0),
+                               (local >> 8) & 0xff, local & 0xff,
+                               VOODOO_BANSHEE, 0);
 }
 
 static void *
@@ -3666,33 +3658,11 @@ v3_3000_agp_init(const device_t *info)
 }
 
 static void *
-v3_3500_agp_ntsc_init(const device_t *info)
+v3_3500_agp_bios_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VOODOO3_3500_AGP_NTSC, 0, TYPE_V3_3500, VOODOO_3, 1);
-}
-
-static void *
-v3_3500_agp_pal_init(const device_t *info)
-{
-    return banshee_init_common(info, ROM_VOODOO3_3500_AGP_PAL, 0, TYPE_V3_3500, VOODOO_3, 1);
-}
-
-static void *
-compaq_v3_3500_agp_init(const device_t *info)
-{
-    return banshee_init_common(info, ROM_VOODOO3_3500_AGP_COMPAQ, 0, TYPE_V3_3500_COMPAQ, VOODOO_3, 1);
-}
-
-static void *
-v3_3500_se_agp_init(const device_t *info)
-{
-    return banshee_init_common(info, ROM_VOODOO3_3500_SE_AGP, 0, TYPE_V3_3500, VOODOO_3, 1);
-}
-
-static void *
-v3_3500_si_agp_init(const device_t *info)
-{
-    return banshee_init_common(info, ROM_VOODOO3_3500_SI_AGP, 0, TYPE_V3_3500_SI, VOODOO_3, 1);
+    return banshee_init_common(info, device_get_bios_file(info, device_get_config_bios("bios"), 0),
+                               0, device_get_bios_local(info, device_get_config_bios("bios")),
+                               VOODOO_3, 1);
 }
 
 static void *
@@ -3705,24 +3675,6 @@ static void *
 velocity_200_agp_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_VELOCITY_200, 1, TYPE_VELOCITY200, VOODOO_3, 1);
-}
-
-static int
-banshee_available(void)
-{
-    return rom_present(ROM_BANSHEE);
-}
-
-static int
-creative_banshee_available(void)
-{
-    return rom_present(ROM_CREATIVE_BANSHEE);
-}
-
-static int
-quantum3d_raven_available(void)
-{
-    return rom_present(ROM_QUANTUM3D_RAVEN);
 }
 
 static int
@@ -3745,36 +3697,6 @@ v3_3000_available(void)
     return rom_present(ROM_VOODOO3_3000);
 }
 #define v3_3000_agp_available v3_3000_available
-
-static int
-v3_3500_agp_ntsc_available(void)
-{
-    return rom_present(ROM_VOODOO3_3500_AGP_NTSC);
-}
-
-static int
-v3_3500_agp_pal_available(void)
-{
-    return rom_present(ROM_VOODOO3_3500_AGP_PAL);
-}
-
-static int
-compaq_v3_3500_agp_available(void)
-{
-    return rom_present(ROM_VOODOO3_3500_AGP_COMPAQ);
-}
-
-static int
-v3_3500_se_agp_available(void)
-{
-    return rom_present(ROM_VOODOO3_3500_SE_AGP);
-}
-
-static int
-v3_3500_si_agp_available(void)
-{
-    return rom_present(ROM_VOODOO3_3500_SI_AGP);
-}
 
 static int
 velocity_100_available(void)
@@ -3819,7 +3741,7 @@ banshee_force_redraw(void *priv)
 }
 
 // clang-format off
-static const device_config_t banshee_sgram_config[] = {
+static const device_config_t voodoo_sgram_config[] = {
     {
         .name           = "memory",
         .description    = "Memory size",
@@ -3911,7 +3833,64 @@ static const device_config_t banshee_sgram_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t banshee_sgram_16mbonly_config[] = {
+static const device_config_t voodoo_banshee_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio64vplus_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "3Dfx Voodoo Banshee",
+                .internal_name = "voodoo_banshee_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_BANSHEE | 0x100,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | 16,
+                .files         = { ROM_BANSHEE, "" }
+            },
+            {
+                .name          = "Creative 3D Blaster Banshee",
+                .internal_name = "ctl3d_banshee_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_BANSHEE,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_CREATIVE_BANSHEE, "" }
+            },
+            {
+                .name          = "Quantum3D Raven",
+                .internal_name = "q3d_raven_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_QUANTUM3D_RAVEN,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_QUANTUM3D_RAVEN, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 16,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
@@ -3988,7 +3967,146 @@ static const device_config_t banshee_sgram_16mbonly_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t banshee_sdram_config[] = {
+static const device_config_t voodoo_nomem_config[] = {
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "chromakey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+#ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+#endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t voodoo_3_3500_agp_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "voodoo3_3500_si_agp",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "3dfx Voodoo3 3500 TV (NTSC)",
+                .internal_name = "voodoo3_3500_agp_ntsc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_V3_3500,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VOODOO3_3500_AGP_NTSC, "" }
+            },
+            {
+                .name          = "3dfx Voodoo3 3500 TV (PAL)",
+                .internal_name = "voodoo3_3500_agp_pal",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_V3_3500,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VOODOO3_3500_AGP_PAL, "" }
+            },
+            {
+                .name          = "Compaq Voodoo3 3500 TV",
+                .internal_name = "compaq_voodoo3_3500_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_V3_3500_COMPAQ,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VOODOO3_3500_AGP_COMPAQ, "" }
+            },
+            {
+                .name          = "Falcon Northwest Voodoo3 3500 SE",
+                .internal_name = "voodoo3_3500_se_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_V3_3500,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VOODOO3_3500_SE_AGP, "" }
+            },
+            {
+                .name          = "3dfx Voodoo3 3500 SI",
+                .internal_name = "voodoo3_3500_si_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_V3_3500_SI,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_VOODOO3_3500_SI_AGP, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
     {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
@@ -4066,46 +4184,18 @@ static const device_config_t banshee_sdram_config[] = {
 };
 // clang-format on
 
-const device_t voodoo_banshee_device = {
-    .name          = "3Dfx Voodoo Banshee",
+const device_t voodoo_banshee_pci_device = {
+    .name          = "3Dfx Voodoo Banshee PCI",
     .internal_name = "voodoo_banshee_pci",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_BIOS_ALIAS,
     .local         = 0,
-    .init          = banshee_init,
+    .init          = banshee_bios_init,
     .close         = banshee_close,
     .reset         = NULL,
-    .available     = banshee_available,
+    .available     = NULL,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
-};
-
-const device_t creative_voodoo_banshee_device = {
-    .name          = "Creative 3D Blaster Banshee",
-    .internal_name = "ctl3d_banshee_pci",
-    .flags         = DEVICE_PCI,
-    .local         = 0,
-    .init          = creative_banshee_init,
-    .close         = banshee_close,
-    .reset         = NULL,
-    .available     = creative_banshee_available,
-    .speed_changed = banshee_speed_changed,
-    .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
-};
-
-const device_t quantum3d_raven_device = {
-    .name          = "Quantum3D Raven",
-    .internal_name = "q3d_raven_pci",
-    .flags         = DEVICE_PCI,
-    .local         = 0,
-    .init          = quantum3d_raven_init,
-    .close         = banshee_close,
-    .reset         = NULL,
-    .available     = quantum3d_raven_available,
-    .speed_changed = banshee_speed_changed,
-    .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
+    .config        = voodoo_banshee_pci_config
 };
 
 const device_t voodoo_3_1000_device = {
@@ -4119,7 +4209,7 @@ const device_t voodoo_3_1000_device = {
     .available     = v3_1000_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = voodoo_sgram_config
 };
 
 const device_t voodoo_3_1000_agp_device = {
@@ -4133,7 +4223,7 @@ const device_t voodoo_3_1000_agp_device = {
     .available     = v3_1000_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_16mbonly_config
+    .config        = voodoo_nomem_config
 };
 
 const device_t voodoo_3_2000_device = {
@@ -4147,7 +4237,7 @@ const device_t voodoo_3_2000_device = {
     .available     = v3_2000_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
+    .config        = voodoo_nomem_config
 };
 
 const device_t voodoo_3_2000_agp_device = {
@@ -4161,7 +4251,7 @@ const device_t voodoo_3_2000_agp_device = {
     .available     = v3_2000_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
+    .config        = voodoo_nomem_config
 };
 
 const device_t voodoo_3_2000_agp_onboard_8m_device = {
@@ -4175,7 +4265,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
     .available     = NULL,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_config
+    .config        = voodoo_sgram_config
 };
 
 const device_t voodoo_3_3000_device = {
@@ -4189,7 +4279,7 @@ const device_t voodoo_3_3000_device = {
     .available     = v3_3000_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
+    .config        = voodoo_nomem_config
 };
 
 const device_t voodoo_3_3000_agp_device = {
@@ -4203,77 +4293,21 @@ const device_t voodoo_3_3000_agp_device = {
     .available     = v3_3000_agp_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
+    .config        = voodoo_nomem_config
 };
 
-const device_t voodoo_3_3500_agp_ntsc_device = {
-    .name          = "3dfx Voodoo3 3500 TV (NTSC)",
-    .internal_name = "voodoo3_3500_agp_ntsc",
-    .flags         = DEVICE_AGP,
+const device_t voodoo_3_3500_agp_device = {
+    .name          = "3dfx Voodoo3 3500 AGP",
+    .internal_name = "voodoo3_3500_agp",
+    .flags         = DEVICE_AGP | DEVICE_BIOS_ALIAS,
     .local         = 0,
-    .init          = v3_3500_agp_ntsc_init,
+    .init          = v3_3500_agp_bios_init,
     .close         = banshee_close,
     .reset         = NULL,
-    .available     = v3_3500_agp_ntsc_available,
+    .available     = NULL,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
-};
-
-const device_t voodoo_3_3500_agp_pal_device = {
-    .name          = "3dfx Voodoo3 3500 TV (PAL)",
-    .internal_name = "voodoo3_3500_agp_pal",
-    .flags         = DEVICE_AGP,
-    .local         = 0,
-    .init          = v3_3500_agp_pal_init,
-    .close         = banshee_close,
-    .reset         = NULL,
-    .available     = v3_3500_agp_pal_available,
-    .speed_changed = banshee_speed_changed,
-    .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
-};
-
-const device_t compaq_voodoo_3_3500_agp_device = {
-    .name          = "Compaq Voodoo3 3500 TV",
-    .internal_name = "compaq_voodoo3_3500_agp",
-    .flags         = DEVICE_AGP,
-    .local         = 0,
-    .init          = compaq_v3_3500_agp_init,
-    .close         = banshee_close,
-    .reset         = NULL,
-    .available     = compaq_v3_3500_agp_available,
-    .speed_changed = banshee_speed_changed,
-    .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
-};
-
-const device_t voodoo_3_3500_se_agp_device = {
-    .name          = "Falcon Northwest Voodoo3 3500 SE",
-    .internal_name = "voodoo3_3500_se_agp",
-    .flags         = DEVICE_AGP,
-    .local         = 0,
-    .init          = v3_3500_se_agp_init,
-    .close         = banshee_close,
-    .reset         = NULL,
-    .available     = v3_3500_se_agp_available,
-    .speed_changed = banshee_speed_changed,
-    .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
-};
-
-const device_t voodoo_3_3500_si_agp_device = {
-    .name          = "3dfx Voodoo3 3500 SI",
-    .internal_name = "voodoo3_3500_si_agp",
-    .flags         = DEVICE_AGP,
-    .local         = 0,
-    .init          = v3_3500_si_agp_init,
-    .close         = banshee_close,
-    .reset         = NULL,
-    .available     = v3_3500_si_agp_available,
-    .speed_changed = banshee_speed_changed,
-    .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
+    .config        = voodoo_3_3500_agp_config
 };
 
 const device_t velocity_100_agp_device = {
@@ -4287,7 +4321,7 @@ const device_t velocity_100_agp_device = {
     .available     = velocity_100_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sdram_config
+    .config        = voodoo_nomem_config
 };
 
 const device_t velocity_200_agp_device = {
@@ -4301,5 +4335,5 @@ const device_t velocity_200_agp_device = {
     .available     = velocity_200_available,
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    .config        = banshee_sgram_16mbonly_config
+    .config        = voodoo_nomem_config
 };

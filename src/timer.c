@@ -114,8 +114,6 @@ timer_remove_head(void)
 void
 timer_process(void)
 {
-    int num = 0;
-
     if (!timer_head)
         return;
 
@@ -140,8 +138,6 @@ timer_process(void)
             timer->callback(timer->priv);
             timer->in_callback = 0;
         }
-
-        num++;
     }
 
     timer_target = timer_head->ts_integer;

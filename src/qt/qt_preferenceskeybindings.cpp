@@ -12,11 +12,13 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingskeybindings.hpp"
-#include "ui_qt_settingskeybindings.h"
+#include "qt_preferences.hpp"
+#include "qt_preferenceskeybindings.hpp"
+#include "ui_qt_preferenceskeybindings.h"
 #include "qt_mainwindow.hpp"
-#include "qt_progsettings.hpp"
 
+#include <QDialog>
+#include <QTranslator>
 #include <QDebug>
 #include <QKeySequence>
 #include <QMessageBox>
@@ -39,12 +41,14 @@ extern "C" {
 
 extern MainWindow *main_window;
 
+accelKey org_acc_keys_t[NUM_ACCELS];
+
 // Temporary working copy of key list
 accelKey acc_keys_t[NUM_ACCELS];
 
-SettingsKeyBindings::SettingsKeyBindings(QWidget *parent)
+PreferencesKeyBindings::PreferencesKeyBindings(QWidget *parent)
     : QWidget(parent)
-    , ui(new Ui::SettingsKeyBindings)
+    , ui(new Ui::PreferencesKeyBindings)
 {
     ui->setupUi(this);
 
@@ -56,6 +60,8 @@ SettingsKeyBindings::SettingsKeyBindings(QWidget *parent)
 
     QTableWidget *keyTable = ui->tableKeys;
     keyTable->setRowCount(NUM_ACCELS);
+    for (int i = 0; i < NUM_ACCELS; i++)
+        keyTable->setRowHeight(i, 25);
     keyTable->setColumnCount(3);
     keyTable->setColumnHidden(2, true);
     keyTable->setColumnWidth(0, 200);
@@ -78,17 +84,15 @@ SettingsKeyBindings::SettingsKeyBindings(QWidget *parent)
     }
 
     refreshInputList();
-
-    onCurrentMachineChanged(machine);
 }
 
-SettingsKeyBindings::~SettingsKeyBindings()
+PreferencesKeyBindings::~PreferencesKeyBindings()
 {
     delete ui;
 }
 
 void
-SettingsKeyBindings::save()
+PreferencesKeyBindings::save()
 {
     // Copy accelerators from working set to global set
     for (int x = 0; x < NUM_ACCELS; x++) {
@@ -96,16 +100,11 @@ SettingsKeyBindings::save()
         strcpy(acc_keys[x].desc, acc_keys_t[x].desc);
         strcpy(acc_keys[x].seq, acc_keys_t[x].seq);
     }
-    ProgSettings::reloadStrings();
+    Preferences::reloadStrings();
 }
 
 void
-SettingsKeyBindings::onCurrentMachineChanged(int machineId)
-{
-}
-
-void
-SettingsKeyBindings::refreshInputList()
+PreferencesKeyBindings::refreshInputList()
 {
     for (int x = 0; x < NUM_ACCELS; x++) {
         ui->tableKeys->setItem(x, 0, new QTableWidgetItem(tr(acc_keys_t[x].desc)));
@@ -115,7 +114,7 @@ SettingsKeyBindings::refreshInputList()
 }
 
 void
-SettingsKeyBindings::on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
+PreferencesKeyBindings::on_tableKeys_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
 {
     // Enable/disable bind/clear buttons if user clicked valid row
     QTableWidgetItem *cell = ui->tableKeys->item(currentRow, 1);
@@ -129,7 +128,7 @@ SettingsKeyBindings::on_tableKeys_currentCellChanged(int currentRow, int current
 }
 
 void
-SettingsKeyBindings::on_tableKeys_cellDoubleClicked(int row, int col)
+PreferencesKeyBindings::on_tableKeys_cellDoubleClicked(int row, int col)
 {
     // Edit bind
     QTableWidgetItem *cell = ui->tableKeys->item(row, 1);
@@ -169,7 +168,7 @@ SettingsKeyBindings::on_tableKeys_cellDoubleClicked(int row, int col)
 }
 
 void
-SettingsKeyBindings::on_pushButtonBind_clicked()
+PreferencesKeyBindings::on_pushButtonBind_clicked()
 {
     // Edit bind
     QTableWidgetItem *cell = ui->tableKeys->currentItem();
@@ -180,7 +179,7 @@ SettingsKeyBindings::on_pushButtonBind_clicked()
 }
 
 void
-SettingsKeyBindings::on_pushButtonClearBind_clicked()
+PreferencesKeyBindings::on_pushButtonClearBind_clicked()
 {
     // Wipe bind
     QTableWidgetItem *cell = ui->tableKeys->item(ui->tableKeys->currentRow(), 1);

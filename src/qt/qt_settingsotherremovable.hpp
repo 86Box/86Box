@@ -18,6 +18,9 @@ public:
     void reloadBusChannels_RDisk();
     void reloadBusChannels_Tape();
 
+    int  changed();
+
+    void restore();
     void save();
 
 signals:
@@ -62,6 +65,10 @@ private:
     QIcon zip_icon;
     QIcon tape_disabled_icon;
     QIcon tape_icon;
+
+    SettingsCompleter *scMOType;
+    SettingsCompleter *scRDiskType;
+    SettingsCompleter *scTapeType;
 };
 
 #endif // QT_SETTINGSOTHERREMOVABLE_HPP

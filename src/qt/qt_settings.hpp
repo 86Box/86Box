@@ -10,7 +10,6 @@ class Settings;
 class SettingsMachine;
 class SettingsDisplay;
 class SettingsInput;
-class SettingsKeyBindings;
 class SettingsSound;
 class SettingsNetwork;
 class SettingsPorts;
@@ -38,7 +37,6 @@ private:
     SettingsMachine            *machine;
     SettingsDisplay            *display;
     SettingsInput              *input;
-    SettingsKeyBindings        *key_bindings;
     SettingsSound              *sound;
     SettingsNetwork            *network;
     SettingsPorts              *ports;

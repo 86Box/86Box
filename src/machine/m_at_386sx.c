@@ -240,7 +240,7 @@ machine_at_flytech386_init(const machine_t *model)
     device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89 | W83XX7_IDE_PRI | W837X7_IDE_START));
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&tvga8900d_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

@@ -52,6 +52,8 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
 {
     ui->setupUi(this);
 
+    scSpeed = new SettingsCompleter(ui->comboBoxSpeed, nullptr);
+
     auto *model = ui->comboBoxFormat->model();
     model->insertRows(0, 6);
     model->setData(model->index(0, 0), tr("Raw image (.img)"));
@@ -132,6 +134,8 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
 
 HarddiskDialog::~HarddiskDialog()
 {
+    delete scSpeed;
+
     delete ui;
 }
 
@@ -857,7 +861,7 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
     ui->lineEditSectors->setValidator(new QIntValidator(1, max_sectors, this));
 
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
-    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), ui->comboBoxBus->currentData().toInt());
+    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), scSpeed, ui->comboBoxBus->currentData().toInt());
 
     switch (ui->comboBoxBus->currentData().toInt()) {
         case HDD_BUS_MFM:

@@ -419,7 +419,11 @@ const cpu_family_t cpu_families[] = {
     },
     {
         .package       = CPU_PKG_8086_MAZOVIA,
-        .manufacturer  = "Kyiv Research Institute of Microdevices",
+         /*
+            Kyiv Research Institute of Microdevices - Shortening to KRIM so it doesn't
+                                                      make the Machine page too wide.
+          */
+        .manufacturer  = "KRIM",
         .name          = "K1810VM86",
         .internal_name = "8086_mazovia",
         .cpus          = (const CPU[]) {

@@ -77,7 +77,7 @@ extern "C" {
 
 #include "qt_defs.hpp"
 #include "qt_mainwindow.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_settings.hpp"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
@@ -622,9 +622,9 @@ main(int argc, char *argv[])
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
-    ProgSettings::loadTranslators(&app);
+    Preferences::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
-    QApplication::setFont(ProgSettings::getUIFont());
+    QApplication::setFont(Preferences::getUIFont());
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
 

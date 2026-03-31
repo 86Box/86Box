@@ -203,6 +203,7 @@ extern int             network_type_has_config(int);
 extern const char     *network_card_get_internal_name(int);
 extern int             network_card_get_from_internal_name(char *);
 #ifdef EMU_DEVICE_H
+extern const device_t *network_card_get_from_old_internal_name(char *s);
 extern const device_t *network_card_getdevice(int);
 #endif
 
@@ -252,7 +253,6 @@ extern const device_t rtl8139c_plus_device;
 /* DEC Tulip */
 extern const device_t dec_tulip_device;
 extern const device_t dec_tulip_21140_device;
-extern const device_t dec_tulip_21140_vpc_device;
 extern const device_t dec_tulip_21040_device;
 
 /* WD 80x3 */

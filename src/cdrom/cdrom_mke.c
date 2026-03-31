@@ -1048,7 +1048,7 @@ static const device_config_t mke_config[] = {
 };
 
 const device_t mke_cdrom_device = {
-    .name          = "Panasonic/MKE CD-ROM interface (Creative)",
+    .name          = "MKE/Panasonic interface (Creative)",
     .internal_name = "mkecd",
     .flags         = DEVICE_ISA,
     .local         = 1,
@@ -1062,7 +1062,7 @@ const device_t mke_cdrom_device = {
 };
 
 const device_t mke_cdrom_noncreative_device = {
-    .name          = "Panasonic/MKE CD-ROM interface",
+    .name          = "MKE/Panasonic interface",
     .internal_name = "mkecd_normal",
     .flags         = DEVICE_ISA,
     .local         = 0,

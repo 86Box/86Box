@@ -20,6 +20,9 @@ public:
     explicit SettingsInput(QWidget *parent = nullptr);
     ~SettingsInput();
 
+    int  changed();
+
+    void restore();
     void save();
 
 public slots:
@@ -40,8 +43,16 @@ private slots:
 
 private:
     Ui::SettingsInput *ui;
+
+    int                kbd_config_changed   = 0;
+    int                mouse_config_changed = 0;
+
     int                machineId = 0;
-    void               refreshInputList();
+
+    SettingsCompleter   *scKeyboard;
+    SettingsCompleter   *scMouse;
+
+    SettingsCompleter   *scJoystick0;
 };
 
 #endif // QT_SETTINGSINPUT_HPP

@@ -12,8 +12,9 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsnetwork.hpp"
-#include "ui_qt_settingsnetwork.h"
+
+#include <cstdint>
+#include <cstdio>
 
 extern "C" {
 #include <86box/86box.h>
@@ -27,10 +28,19 @@ extern "C" {
 #include "qt_models_common.hpp"
 #include "qt_deviceconfig.hpp"
 
+#include "qt_defs.hpp"
+
+#include "qt_settings_completer.hpp"
+
+#include "qt_settingsnetwork.hpp"
+#include "ui_qt_settingsnetwork.h"
+
 void
 SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
 {
     for (int i = 0; i < NET_CARD_MAX; ++i) {
+        net_card_cfg_changed[i] = 0;
+
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
 
@@ -173,6 +183,11 @@ SettingsNetwork::SettingsNetwork(QWidget *parent)
 {
     ui->setupUi(this);
 
+    for (int i = 0; i < NET_CARD_MAX; i++) {
+        sc[i]                           = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1)), nullptr);
+        scDevice[i]                     = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1)), nullptr);
+    }
+
     onCurrentMachineChanged(machine);
     enableElements(ui);
     for (int i = 0; i < NET_CARD_MAX; i++) {
@@ -187,7 +202,76 @@ SettingsNetwork::SettingsNetwork(QWidget *parent)
 
 SettingsNetwork::~SettingsNetwork()
 {
+    for (int i = 0; i < NET_CARD_MAX; i++) {
+        delete sc[i];
+        delete scDevice[i];
+    }
+
     delete ui;
+}
+
+int
+SettingsNetwork::changed()
+{
+    int has_changed = 0;
+
+    for (int i = 0; i < NET_CARD_MAX; ++i) {
+        auto *cbox = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+#ifdef HAS_VDE
+        auto *socket_line = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+#endif
+#if defined(__unix__) || defined(__APPLE__)
+        auto *bridge_line = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
+#endif
+        has_changed                 |= (net_cards_conf[i].device_num != cbox->currentData().toInt());
+        has_changed                 |= net_card_cfg_changed[i];
+        cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+        has_changed                 |= (net_cards_conf[i].net_type != cbox->currentData().toInt());
+        cbox                         = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+        auto *hostname_value         = findChild<QLineEdit *>(QString("hostnameSwitch%1").arg(i + 1));
+        auto *promisc_value          = findChild<QCheckBox *>(QString("boxPromisc%1").arg(i + 1));
+        auto *secret_value           = findChild<QLineEdit *>(QString("secretSwitch%1").arg(i + 1));
+        has_changed                 |= (net_cards_conf[i].net_type != cbox->currentData().toInt());
+        char  temp_host_dev_name[128];
+        char  temp_secret[256];
+        char  temp_nrs_hostname[128];
+        memset(temp_host_dev_name, '\0', sizeof(temp_host_dev_name));
+        memcpy(temp_secret, net_cards_conf[i].secret, 256);
+        memcpy(temp_nrs_hostname, net_cards_conf[i].nrs_hostname, 128);
+        if (net_cards_conf[i].net_type == NET_TYPE_PCAP)
+            strncpy(temp_host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(temp_host_dev_name) - 1);
+#ifdef HAS_VDE
+        else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
+            strncpy(temp_host_dev_name, socket_line->text().toUtf8().constData(), sizeof(temp_host_dev_name) - 1);
+#endif
+#if defined(__unix__) || defined(__APPLE__)
+        else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
+            strncpy(temp_host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(temp_host_dev_name) - 1);
+#endif
+        else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
+            memset(temp_nrs_hostname, '\0', sizeof(temp_nrs_hostname));
+            strncpy(temp_nrs_hostname, hostname_value->text().toUtf8().constData(), sizeof(temp_nrs_hostname) - 1);
+            memset(temp_secret, '\0', sizeof(temp_secret));
+            strncpy(temp_secret, secret_value->text().toUtf8().constData(), sizeof(temp_secret) - 1);
+        } else if (net_cards_conf[i].net_type == NET_TYPE_NLSWITCH) {
+            has_changed |= (net_cards_conf[i].promisc_mode != promisc_value->isChecked());
+            memset(temp_secret, '\0', sizeof(temp_secret));
+            strncpy(temp_secret, secret_value->text().toUtf8().constData(), sizeof(temp_secret) - 1);
+        }
+        if (temp_host_dev_name[0] == 0x00)
+            strncpy(temp_host_dev_name, "none", 5);
+        temp_host_dev_name[sizeof(temp_host_dev_name) - 1] = 0x00;
+        has_changed |= strcmp(temp_host_dev_name, net_cards_conf[i].host_dev_name);
+        has_changed |= strcmp(temp_secret,        net_cards_conf[i].secret);
+        has_changed |= strcmp(temp_nrs_hostname,  net_cards_conf[i].nrs_hostname);
+    }
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsNetwork::restore()
+{
 }
 
 void
@@ -213,11 +297,11 @@ SettingsNetwork::save()
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
 #ifdef HAS_VDE
         else if (net_cards_conf[i].net_type == NET_TYPE_VDE)
-            strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+            strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name) - 1);
 #endif
 #if defined(__unix__) || defined(__APPLE__)
         else if (net_cards_conf[i].net_type == NET_TYPE_TAP)
-            strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+            strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name) - 1);
 #endif
         else if (net_cards_conf[i].net_type == NET_TYPE_NRSWITCH) {
             memset(net_cards_conf[i].nrs_hostname, '\0', sizeof(net_cards_conf[i].nrs_hostname));
@@ -229,6 +313,11 @@ SettingsNetwork::save()
             memset(net_cards_conf[i].secret, '\0', sizeof(net_cards_conf[i].secret));
             strncpy(net_cards_conf[i].secret, secret_value->text().toUtf8().constData(), sizeof(net_cards_conf[i].secret) - 1);
         }
+
+        if (net_cards_conf[i].host_dev_name[0] == 0x00)
+            strncpy(net_cards_conf[i].host_dev_name, "none", 5);
+
+        net_cards_conf[i].host_dev_name[sizeof(net_cards_conf[i].host_dev_name) - 1] = 0x00;
     }
 }
 
@@ -248,6 +337,8 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
     int                 m_has_net                  = machine_has_flags(machineId, MACHINE_NIC);
 
     for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
+        sc[i]->removeRows();
+        scDevice[i]->removeRows();
         cbox_[i]       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         models[i]      = cbox_[i]->model();
         removeRows_[i] = models[i]->rowCount();
@@ -255,8 +346,8 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 
     c = 0;
     while (true) {
-        const QString name = DeviceConfig::DeviceName(network_card_getdevice(c),
-                                                      network_card_get_internal_name(c), 1);
+        QString name = DeviceConfig::DeviceName(network_card_getdevice(c),
+                                                network_card_get_internal_name(c), 1);
 
         if (name.isEmpty())
             break;
@@ -265,7 +356,11 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             if (device_is_valid(network_card_getdevice(c), machineId)) {
                 for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
                     if ((c != 1) || ((i == 0) && m_has_net)) {
+                        if (i == 0 && c == 1 && m_has_net && machine_get_net_device(machineId)) {
+                            name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_net_device(machineId), machine_get_net_device(machineId)->internal_name, 0));
+                        }
                         int row = Models::AddEntry(models[i], name, c);
+                        sc[i]->addDevice(network_card_getdevice(c), name);
 
                         if (c == net_cards_conf[i].device_num)
                             selectedRows[i] = row - removeRows_[i];
@@ -318,6 +413,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             removeRows                = model->rowCount();
             for (int c = 0; c < network_ndev; c++) {
                 Models::AddEntry(model, tr(network_devs[c].description), c);
+                scDevice[i]->addDevice(nullptr, tr(network_devs[c].description));
                 if (QString(network_devs[c].device) == currentPcapDevice) {
                     selectedRow = c;
                 }
@@ -370,7 +466,7 @@ SettingsNetwork::on_pushButtonConf1_clicked()
     auto *device  = network_card_getdevice(netCard);
     if (netCard == NET_INTERNAL)
         device = machine_get_net_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 1);
+    net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -378,7 +474,7 @@ SettingsNetwork::on_pushButtonConf2_clicked()
 {
     int   netCard = ui->comboBoxNIC2->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 2);
+    net_card_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
@@ -386,7 +482,7 @@ SettingsNetwork::on_pushButtonConf3_clicked()
 {
     int   netCard = ui->comboBoxNIC3->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 3);
+    net_card_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
@@ -394,5 +490,5 @@ SettingsNetwork::on_pushButtonConf4_clicked()
 {
     int   netCard = ui->comboBoxNIC4->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
-    DeviceConfig::ConfigureDevice(device, 4);
+    net_card_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 4);
 }

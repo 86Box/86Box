@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>398</width>
     <height>466</height>
    </rect>
   </property>
@@ -62,7 +62,7 @@
           <item row="0" column="0">
            <widget class="QLabel" name="labelVideo">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -72,7 +72,7 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0" colspan="2">
+          <item row="0" column="1">
            <widget class="QComboBox" name="comboBoxVideo">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -80,12 +80,15 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
             <property name="maxVisibleItems">
              <number>30</number>
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
+          <item row="0" column="2">
            <widget class="QPushButton" name="pushButtonConfigureVideo">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -98,10 +101,10 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
+          <item row="1" column="0">
            <widget class="QLabel" name="labelVideoSecondary">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -111,10 +114,157 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0" colspan="2">
+          <item row="1" column="1">
            <widget class="QComboBox" name="comboBoxVideoSecondary">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToContents</enum>
+            </property>
+            <property name="maxVisibleItems">
+             <number>30</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QPushButton" name="pushButtonConfigureVideoSecondary">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Configure</string>
+            </property>
+           </widget>
+          </item>
+
+          <item row="2" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxVoodoo">
+            <property name="text">
+             <string>Voodoo 1 or 2 Graphics</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QPushButton" name="pushButtonConfigureVoodoo">
+            <property name="text">
+             <string>Configure</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBox8514">
+            <property name="text">
+             <string>IBM 8514/A Graphics</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QPushButton" name="pushButtonConfigure8514">
+            <property name="text">
+             <string>Configure</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxXga">
+            <property name="text">
+             <string>XGA Graphics</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2">
+           <widget class="QPushButton" name="pushButtonConfigureXga">
+            <property name="text">
+             <string>Configure</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxDa2">
+            <property name="text">
+             <string>IBM PS/55 Display Adapter Graphics</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="2">
+           <widget class="QPushButton" name="pushButtonConfigureDa2">
+            <property name="text">
+             <string>Configure</string>
+            </property>
+           </widget>
+          </item>
+
+         </layout>
+        </widget>
+       </item>
+
+       <item row="2" column="1">
+        <spacer name="verticalSpacerGeneral">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabMonitor">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/monitor.ico</normaloff>:/settings/qt/icons/monitor.ico</iconset>
+      </attribute>
+      <attribute name="title">
+       <string>Monitor</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutMonitor">
+
+       <item>
+        <widget class="QWidget" name="widget_2" native="true">
+         <layout class="QGridLayout" name="gridLayout_2" columnstretch="2,0,0">
+
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelScreenType">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>VGA screen type:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1" colspan="2">
+           <widget class="QComboBox" name="comboBoxScreenType">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -124,14 +274,34 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="2">
-           <widget class="QPushButton" name="pushButtonConfigureVideoSecondary">
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelVideoConversionType">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="text">
-             <string>Configure</string>
+             <string>Grayscale conversion type:</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="0" colspan="3">
+          <item row="1" column="1" colspan="2">
+           <widget class="QComboBox" name="comboBoxConversionType">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maxVisibleItems">
+             <number>30</number>
+            </property>
+           </widget>
+          </item>
+
+          <item row="2" column="0" colspan="3">
            <widget class="QGroupBox" name="groupBoxEDID">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -195,12 +365,40 @@
            </widget>
           </item>
 
+          <item row="3" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxOverscan">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           <property name="text">
+             <string>Overscan</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxInverted">
+            <property name="text">
+             <string>Inverted VGA monitor</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxContrast">
+            <property name="text">
+             <string>Change contrast for monochrome display</string>
+            </property>
+           </widget>
+          </item>
+
          </layout>
         </widget>
        </item>
 
        <item row="2" column="1">
-        <spacer name="verticalSpacerGeneral">
+        <spacer name="verticalSpacerMonitor">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -212,21 +410,22 @@
          </property>
         </spacer>
        </item>
+
       </layout>
      </widget>
-     <widget class="QWidget" name="tabAccelerators">
+     <widget class="QWidget" name="tabCompositeCGA">
       <attribute name="icon">
        <iconset resource="../qt_resources.qrc">
-        <normaloff>:/settings/qt/icons/accelerators.ico</normaloff>:/settings/qt/icons/accelerators.ico</iconset>
+        <normaloff>:/settings/qt/icons/composite_cga.ico</normaloff>:/settings/qt/icons/composite_cga.ico</iconset>
       </attribute>
       <attribute name="title">
-       <string>Accelerators</string>
+       <string>Composite CGA</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayoutAccelerators">
+      <layout class="QVBoxLayout" name="verticalLayoutCompositeCGA">
 
        <item>
-        <widget class="QWidget" name="widget_2" native="true">
-         <layout class="QGridLayout" name="gridLayout_2" columnstretch="2,0,0">
+        <widget class="QWidget" name="widget_3" native="true">
+         <layout class="QGridLayout" name="gridLayout_3">
 
           <property name="leftMargin">
            <number>0</number>
@@ -241,59 +440,110 @@
            <number>0</number>
           </property>
 
-          <item row="0" column="0" colspan="2">
-           <widget class="QCheckBox" name="checkBoxVoodoo">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelHue">
             <property name="text">
-             <string>Voodoo 1 or 2 Graphics</string>
+             <string>Hue</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="2">
-           <widget class="QPushButton" name="pushButtonConfigureVoodoo">
-            <property name="text">
-             <string>Configure</string>
+          <item row="0" column="1">
+           <widget class="QSlider" name="horizontalSliderHue">
+            <property name="minimum">
+             <number>-360</number>
+            </property>
+            <property name="maximum">
+             <number>360</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
            </widget>
           </item>
-          <item row="1" column="0" colspan="2">
-           <widget class="QCheckBox" name="checkBox8514">
+           <item row="1" column="0">
+           <widget class="QLabel" name="labelSaturation">
             <property name="text">
-             <string>IBM 8514/A Graphics</string>
+             <string>Saturation</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QPushButton" name="pushButtonConfigure8514">
-            <property name="text">
-             <string>Configure</string>
+          <item row="1" column="1">
+           <widget class="QSlider" name="horizontalSliderSaturation">
+            <property name="maximum">
+             <number>360</number>
+            </property>
+            <property name="value">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
            </widget>
           </item>
-          <item row="2" column="0" colspan="2">
-           <widget class="QCheckBox" name="checkBoxXga">
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelBrightness">
             <property name="text">
-             <string>XGA Graphics</string>
+             <string>Brightness</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="2">
-           <widget class="QPushButton" name="pushButtonConfigureXga">
-            <property name="text">
-             <string>Configure</string>
+          <item row="2" column="1">
+           <widget class="QSlider" name="horizontalSliderBrightness">
+            <property name="minimum">
+             <number>-100</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
            </widget>
           </item>
-          <item row="3" column="0" colspan="2">
-           <widget class="QCheckBox" name="checkBoxDa2">
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelContrast">
             <property name="text">
-             <string>IBM PS/55 Display Adapter Graphics</string>
+             <string>Contrast</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="2">
-           <widget class="QPushButton" name="pushButtonConfigureDa2">
+          <item row="3" column="1">
+           <widget class="QSlider" name="horizontalSliderContrast">
+            <property name="maximum">
+             <number>360</number>
+            </property>
+            <property name="value">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="labelSharpness">
             <property name="text">
-             <string>Configure</string>
+             <string>Sharpness</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QSlider" name="horizontalSliderSharpness">
+            <property name="minimum">
+             <number>-50</number>
+            </property>
+            <property name="maximum">
+             <number>50</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QPushButton" name="pushButtonReset">
+            <property name="text">
+             <string>Reset</string>
             </property>
            </widget>
           </item>
@@ -302,8 +552,8 @@
         </widget>
        </item>
 
-      <item row="2" column="1">
-        <spacer name="verticalSpacerAccelerators">
+       <item row="2" column="1">
+        <spacer name="verticalSpacerCompositeCGA">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -315,6 +565,7 @@
          </property>
         </spacer>
        </item>
+
       </layout>
      </widget>
     </widget>

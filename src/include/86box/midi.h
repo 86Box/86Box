@@ -27,6 +27,7 @@ extern int         midi_out_device_get_from_internal_name(char *s);
 extern int         midi_in_device_get_from_internal_name(char *s);
 extern void        midi_out_device_init(void);
 extern void        midi_in_device_init(void);
+extern void        midi_config_changed(void);
 
 typedef struct midi_device_t {
     void (*play_sysex)(uint8_t *sysex, unsigned int len);
