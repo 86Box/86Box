@@ -57,7 +57,7 @@ endif()
 
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
-if(APPLE AND USE_QT6)
+if(APPLE AND USE_QT6 AND VCPKG_TOOLCHAIN)
     find_package(Qt6Gui/Qt6QCocoaIntegrationPlugin REQUIRED)
     find_package(Qt6Widgets/Qt6QMacStylePlugin REQUIRED)
     find_package(Qt6Gui/Qt6QICOPlugin REQUIRED)
@@ -113,6 +113,20 @@ add_library(ui STATIC
     qt_about.cpp
     qt_about.hpp
 
+    qt_preferences.cpp
+    qt_preferences.hpp
+    qt_preferences.ui
+
+    qt_preferencesemulator.cpp
+    qt_preferencesemulator.hpp
+    qt_preferencesemulator.ui
+    qt_preferencesinput.cpp
+    qt_preferencesinput.hpp
+    qt_preferencesinput.ui
+    qt_preferenceskeybindings.cpp
+    qt_preferenceskeybindings.hpp
+    qt_preferenceskeybindings.ui
+
     qt_settings.cpp
     qt_settings.hpp
     qt_settings.ui
@@ -126,9 +140,6 @@ add_library(ui STATIC
     qt_settingsinput.cpp
     qt_settingsinput.hpp
     qt_settingsinput.ui
-    qt_settingskeybindings.cpp
-    qt_settingskeybindings.hpp
-    qt_settingskeybindings.ui
     qt_settingssound.cpp
     qt_settingssound.hpp
     qt_settingssound.ui
@@ -155,6 +166,8 @@ add_library(ui STATIC
     qt_settingsotherperipherals.ui
     qt_settings_bus_tracking.cpp
     qt_settings_bus_tracking.hpp
+    qt_settings_completer.cpp
+    qt_settings_completer.hpp
 
     qt_deviceconfig.cpp
     qt_deviceconfig.hpp
@@ -192,9 +205,6 @@ add_library(ui STATIC
 
     qt_styleoverride.cpp
     qt_styleoverride.hpp
-    qt_progsettings.hpp
-    qt_progsettings.cpp
-    qt_progsettings.ui
     qt_util.hpp
     qt_util.cpp
 
@@ -262,7 +272,6 @@ add_library(ui STATIC
 
     qt_iconindicators.hpp
     qt_iconindicators.cpp
-    qt_cgasettingsdialog.hpp qt_cgasettingsdialog.cpp qt_cgasettingsdialog.ui
 )
 
 if(EMU_BUILD_NUM)
@@ -351,10 +360,18 @@ endif()
 
 if(WIN32)
     target_sources(plat PRIVATE win_cdrom_ioctl.c)
-elseif(UNIX AND NOT APPLE)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(plat PRIVATE ../unix/linux_cdrom_ioctl.c)
 else()
     target_sources(plat PRIVATE dummy_cdrom_ioctl.c)
+endif()
+
+if(WIN32)
+    target_sources(plat PRIVATE ../unix/dummy_floppy_ioctl.c)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_sources(plat PRIVATE ../unix/unix_floppy_ioctl.c)
+else()
+    target_sources(plat PRIVATE ../unix/dummy_floppy_ioctl.c)
 endif()
 
 if (APPLE)

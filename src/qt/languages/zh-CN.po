@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
+"PO-Revision-Date: 2026-03-29 17:00+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -145,53 +145,44 @@ msgstr "整数比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数比例(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)VGA 设置(&V)"
+msgid "Inverted VGA monitor"
+msgstr "VGA 显示器反色显示"
 
-msgid "&Inverted VGA monitor"
-msgstr "VGA 显示器反色显示(&I)"
+msgid "VGA screen type:"
+msgstr "VGA 屏幕类型:"
 
-msgid "VGA screen &type"
-msgstr "VGA 屏幕类型(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB 彩色(&C)"
+msgid "RGB Color"
+msgstr "RGB 彩色"
 
 msgid "RGB (no brown)"
 msgstr "RGB (无棕色)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB 灰度(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB 灰度"
 
 msgid "Generic RGBI color monitor"
 msgstr "通用 RGBI 彩色显示器"
 
-msgid "&Amber monitor"
-msgstr "琥珀色单色显示器(&A)"
+msgid "Amber monitor"
+msgstr "琥珀色单色显示器"
 
-msgid "&Green monitor"
-msgstr "绿色单色显示器(&G)"
+msgid "Green monitor"
+msgstr "绿色单色显示器"
 
-msgid "&White monitor"
-msgstr "白色单色显示器(&W)"
+msgid "White monitor"
+msgstr "白色单色显示器"
 
-msgid "Grayscale &conversion type"
-msgstr "灰度转换类型(&C)"
+msgid "Grayscale conversion type:"
+msgstr "灰度转换类型:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "平均"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "过扫描"
 
-msgid "&Average"
-msgstr "平均(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGA 过扫描(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "更改单色显示对比度(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "更改单色显示对比度"
 
 msgid "&Media"
 msgstr "介质(&M)"
@@ -364,6 +355,21 @@ msgstr "性能"
 msgid "Machine type:"
 msgstr "机器类型:"
 
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
+
 msgid "Machine:"
 msgstr "机型:"
 
@@ -433,8 +439,8 @@ msgstr "显卡:"
 msgid "Video #2:"
 msgstr "显卡 2:"
 
-msgid "Accelerators"
-msgstr "图形加速器"
+msgid "Monitor"
+msgstr "显示器"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 图形"
@@ -514,30 +520,6 @@ msgstr "Nuked (更准确)"
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
-msgid "COM1 Device:"
-msgstr "COM1 设备:"
-
-msgid "COM2 Device:"
-msgstr "COM2 设备:"
-
-msgid "COM3 Device:"
-msgstr "COM3 设备:"
-
-msgid "COM4 Device:"
-msgstr "COM4 设备:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1 设备:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2 设备:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3 设备:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4 设备:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "内部 LPT 的 ECP DMA:"
 
@@ -553,23 +535,50 @@ msgstr "串口 3"
 msgid "Serial port 4"
 msgstr "串口 4"
 
-msgid "Parallel port 1"
-msgstr "并口 1"
-
-msgid "Parallel port 2"
-msgstr "并口 2"
-
-msgid "Parallel port 3"
-msgstr "并口 3"
-
-msgid "Parallel port 4"
-msgstr "并口 4"
-
 msgid "Floppy disk controller:"
 msgstr "软盘控制器:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "IDE 控制器"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "IDE 控制器（双通道）"
+
+msgid "PC/AT IDE Controller"
+msgstr "PC/AT IDE 控制器"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "PC/AT IDE 控制器（双通道）"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "PC/AT XTIDE（仅主通道）"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "PS/2 AT XTIDE（1.1.5）（仅主通道）"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646（第三和第四控制器）"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648（第三和第四控制器）"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649（第三和第四控制器）"
+
+msgid "McIDE Controller"
+msgstr "McIDE 控制器"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三 IDE 控制器"
@@ -662,7 +671,7 @@ msgid "MO:"
 msgstr "磁光盘:"
 
 msgid "Removable disk drives"
-msgstr "可移动磁盘（ZIP）驱动器"
+msgstr "可移动磁盘驱动器"
 
 msgid "Removable disks:"
 msgstr "可移动磁盘:"
@@ -722,13 +731,13 @@ msgid "Speed"
 msgstr "速度"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "可移动磁盘 (ZIP) %1 (%2): %3"
+msgstr "可移动磁盘 %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "可移动磁盘(&R) (ZIP) %1 (%2): %3"
+msgstr "可移动磁盘(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "可移动磁盘 (ZIP) 映像"
+msgstr "可移动磁盘映像"
 
 msgid "Tape %1 (%2): %3"
 msgstr "磁带%1 (%2)：%3"
@@ -1059,15 +1068,6 @@ msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL
 
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
-
-msgid "Don't exit"
-msgstr "不退出"
-
-msgid "Reset"
-msgstr "重置"
-
-msgid "Don't reset"
-msgstr "不重置"
 
 msgid "CD-ROM images"
 msgstr "光盘映像"
@@ -1573,9 +1573,6 @@ msgstr "DMF (2048 簇)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5 英寸 128 MB (ISO 10090)"
 
@@ -1702,8 +1699,8 @@ msgstr "光标/冰球(&C)"
 msgid "&Pen"
 msgstr "笔(&P)"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "主机 CD/DVD 驱动器 (%1:) (&H)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "主机 CD/DVD 驱动器 (%1) (&H)"
 
 msgid "&Connected"
 msgstr "已连接(&C)"
@@ -1993,6 +1990,9 @@ msgstr "BIOS 版本"
 msgid "BIOS Language"
 msgstr "BIOS 语言"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 扩展单元"
 
@@ -2256,9 +2256,6 @@ msgstr "内存大小"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 地址"
-
-msgid "IDE Controller"
-msgstr "IDE 控制器"
 
 msgid "Codec"
 msgstr "编解码器"
@@ -2644,6 +2641,9 @@ msgstr "标准"
 msgid "High-Speed"
 msgstr "高速"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "立体声 LPT DAC"
 
@@ -2656,14 +2656,17 @@ msgstr "通用 ESC/P 2 点阵打印机"
 msgid "Generic PostScript Printer"
 msgstr "通用 PostScript 打印机"
 
-msgid "Generic PCL5e Printer"
-msgstr "通用 PCL5e 打印机"
+msgid "Generic PCL Printer"
+msgstr "通用 PCL 打印机"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest 保护加密狗"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "串口直通设备"
@@ -2755,6 +2758,12 @@ msgstr "通用 PC/XT 内存扩展"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "通用 PC/AT 内存扩展"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "无法找到点阵字体"
 
@@ -2817,6 +2826,12 @@ msgstr "下移"
 
 msgid "Could not load file %1"
 msgstr "无法加载文件 %1"
+
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
 
 msgid "Key bindings"
 msgstr "按键绑定"
@@ -2995,6 +3010,9 @@ msgstr "系统将不会被添加。"
 msgid "&Update mouse every CPU frame"
 msgstr "逐 CPU 帧更新鼠标(&U)"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "色调"
 
@@ -3010,11 +3028,8 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "锐度"
 
-msgid "&CGA composite settings…"
-msgstr "CGA 复合模式设置(&C)…"
-
-msgid "CGA composite settings"
-msgstr "CGA 复合模式设置"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "显示器的EDID"
@@ -3043,9 +3058,6 @@ msgstr "亮色"
 msgid "Dark"
 msgstr "暗色"
 
-msgid "Search:"
-msgstr "搜索:"
-
 msgid "Force interpretation"
 msgstr "强制解释执行"
 
@@ -3069,3 +3081,6 @@ msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"
 
 msgid "Raw"
 msgstr "原始"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

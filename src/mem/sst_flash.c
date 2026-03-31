@@ -512,7 +512,7 @@ sst_init(const device_t *info)
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
 
-    dev->array = (uint8_t *) malloc(biosmask + 1);
+    dev->array = (uint8_t *) calloc(1, biosmask + 1);
     memset(dev->array, 0xff, biosmask + 1);
 
     dev->manufacturer = info->local & 0xff;

@@ -267,8 +267,8 @@
 #ifdef ENABLE_DA2_LOG
 // #    define ENABLE_DA2_DEBUGIO 1
 #    define ENABLE_DA2_DEBUGBLT 1
-// #    define ENABLE_DA2_DEBUGVRAM 1
-// #    define ENABLE_DA2_DEBUGFULLSCREEN 1
+#    define ENABLE_DA2_DEBUGVRAM 1
+#    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
 int da2_do_log = ENABLE_DA2_LOG;
 
@@ -405,6 +405,7 @@ typedef struct da2_t {
         int32_t   *debug_reg;            // for debug
         int        debug_reg_ip;         // for debug
         int        debug_exesteps;
+        int32_t    debug_regexe[DA2_BLT_REGSIZE];
 #endif
         pc_timer_t timer;
         int64_t    timerspeed;
@@ -827,6 +828,9 @@ da2_bitblt_parsecmd(da2_t *da2)
             value32 |= da2->bitblt.payload[2];
             da2_bltreglog("[%02x] %02x: %04x (%d)\n", da2->bitblt.payload[0], da2->bitblt.payload[1], value32, value32);
             da2->bitblt.reg[da2->bitblt.payload[1]] = value32;
+#ifdef ENABLE_DA2_DEBUGBLT
+            da2->bitblt.debug_regexe[da2->bitblt.payload[1]] = value32;
+#endif
             break;
         case 0x95:
             value32 = da2->bitblt.payload[3];
@@ -836,6 +840,9 @@ da2_bitblt_parsecmd(da2_t *da2)
             da2->bitblt.reg[da2->bitblt.payload[1]] = value32;
             /* Also set the value to GDC regs. */
             da2->gdcreg[da2->bitblt.payload[1]] = value32;
+#ifdef ENABLE_DA2_DEBUGBLT
+            da2->bitblt.debug_regexe[da2->bitblt.payload[1]] = value32;
+#endif
             break;
         case 0x91:
             value32 = da2->bitblt.payload[5];
@@ -847,6 +854,9 @@ da2_bitblt_parsecmd(da2_t *da2)
             value32 |= da2->bitblt.payload[2];
             da2_bltreglog("[%02x] %02x: %08x (%d)\n", da2->bitblt.payload[0], da2->bitblt.payload[1], value32, value32);
             da2->bitblt.reg[da2->bitblt.payload[1]] = value32;
+#ifdef ENABLE_DA2_DEBUGBLT
+            da2->bitblt.debug_regexe[da2->bitblt.payload[1]] = value32;
+#endif
             break;
         case 0x99:
             value64 = da2->bitblt.payload[7];
@@ -863,6 +873,9 @@ da2_bitblt_parsecmd(da2_t *da2)
             da2_bltreglog("[%02x] %02x: %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[0], da2->bitblt.payload[1], da2->bitblt.payload[2], da2->bitblt.payload[3],
                           da2->bitblt.payload[4], da2->bitblt.payload[5], da2->bitblt.payload[6], da2->bitblt.payload[7]);
             da2->bitblt.reg[da2->bitblt.payload[1]] = value64;
+#ifdef ENABLE_DA2_DEBUGBLT
+            da2->bitblt.debug_regexe[da2->bitblt.payload[1]] = value64;
+#endif
             break;
         case 0xa1:
             value64 = da2->bitblt.payload[9];
@@ -883,6 +896,9 @@ da2_bitblt_parsecmd(da2_t *da2)
             da2_bltreglog("[%02x] %02x: %02x %02x %02x %02x %02x %02x %02x %02x\n", da2->bitblt.payload[0], da2->bitblt.payload[1], da2->bitblt.payload[2], da2->bitblt.payload[3],
                           da2->bitblt.payload[4], da2->bitblt.payload[5], da2->bitblt.payload[6], da2->bitblt.payload[7], da2->bitblt.payload[8], da2->bitblt.payload[9]);
             da2->bitblt.reg[da2->bitblt.payload[1]] = value64;
+#ifdef ENABLE_DA2_DEBUGBLT
+            da2->bitblt.debug_regexe[da2->bitblt.payload[1]] = value64;
+#endif
             break;
         case 0x00: /* Win 3.0 Clock writes invalid zero data. */
             break;
@@ -905,13 +921,17 @@ da2_bitblt_load(da2_t *da2)
 {
 #ifdef ENABLE_DA2_DEBUGBLT
     for (int i = 0; i < DA2_DEBUG_BLTLOG_SIZE; i++) {
-        da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip + i] = da2->bitblt.reg[i];
+        da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip + i] = da2->bitblt.debug_regexe[i];
     }
     da2->bitblt.debug_reg[DA2_DEBUG_BLTLOG_SIZE * (da2->bitblt.debug_reg_ip + 1) - 1] = 0;
     da2->bitblt.debug_reg_ip++;
     if ((DA2_DEBUG_BLTLOG_SIZE * da2->bitblt.debug_reg_ip) >= DA2_DEBUG_BLTLOG_MAX)
         da2->bitblt.debug_reg_ip = 0;
     da2->bitblt.debug_exesteps = 0;
+    for (int i = 0; i < DA2_BLT_REGSIZE; i++) {
+        if (da2->bitblt.debug_regexe[i] != DA2_DEBUG_BLT_NEVERUSED)
+            da2->bitblt.debug_regexe[i] = DA2_DEBUG_BLT_USEDRESET;
+    }
 #endif
     da2->bitblt.bitshift_destr = ((da2->bitblt.reg[0x03] >> 4) & 0x0f); /* set bit shift */
     da2->bitblt.writemode      = da2->bitblt.reg[0x05] & 0x03;
@@ -923,11 +943,8 @@ da2_bitblt_load(da2_t *da2)
     da2->bitblt.destpitch      = da2->bitblt.reg[0x21];
     da2->bitblt.srcpitch       = da2->bitblt.reg[0x22];
     da2->bitblt.cmd1       = da2->bitblt.reg[0x30];
-    if (da2->bitblt.cmd1 > 0xffff) {
-        da2->bitblt.cmd2 = da2->bitblt.cmd1 >> 16;
-        da2->bitblt.cmd1 &= 0xffff;
-    } else
-        da2->bitblt.cmd2 = 0;
+    da2->bitblt.cmd2 = da2->bitblt.cmd1 & 0xffffu;
+    da2->bitblt.cmd1 >>= 16;
     /*
         DOS/V Extension 1040x725 some DBCS uses 0xB0 others 0x90
     */
@@ -961,7 +978,7 @@ da2_bitblt_load(da2_t *da2)
     //     da2->gdcreg[i] = da2->bitblt.reg[i];
     // }
     /* Put DBCS char used by OS/2 and DOS/V Extension */
-    if (da2->bitblt.cmd1 == 0x0202) {
+    if (da2->bitblt.cmd2 == 0x0202) {
         da2->bitblt.exec    = DA2_BLT_CPUTCHAR;
         // if (da2->bitblt.destoption != 0xb0) // debug
         //     da2->bitblt.exec   = DA2_BLT_CDONE;
@@ -992,7 +1009,7 @@ da2_bitblt_load(da2_t *da2)
 #endif
 
     /* Draw a line */
-    } else if (da2->bitblt.cmd1 == 0x128b) {
+    } else if (da2->bitblt.cmd1 == 0x128b || da2->bitblt.cmd2 == 0x128b) {
         da2->bitblt.exec           = DA2_BLT_CLINE;
         da2->bitblt.dest_x         = (da2->bitblt.reg[0x32] & 0xffff);
         da2->bitblt.dest_y         = (da2->bitblt.reg[0x34] & 0xffff);
@@ -3434,7 +3451,7 @@ da2_init(UNUSED(const device_t *info))
     da2->changedvram       = calloc(1,  (DA2_MASK_VRAMPLANE + 1) >> 9); /* XX000h */
 
     da2->mmio.charset = device_get_config_int("charset");
-    da2->mmio.font    = malloc(DA2_FONTROM_SIZE);
+    da2->mmio.font    = calloc(1, DA2_FONTROM_SIZE);
     switch (da2->mmio.charset) {
         case DA2_DCONFIG_CHARSET_HANT:
             da2_video_load_font(DA2_FONTROM_PATH_HANT, da2);
@@ -3454,8 +3471,11 @@ da2_init(UNUSED(const device_t *info))
     memset(da2->bitblt.payload, 0x00, DA2_BLT_MEMSIZE);
     memset(da2->bitblt.reg, 0xfe, DA2_BLT_REGSIZE * sizeof(uint32_t)); /* clear memory */
 #ifdef ENABLE_DA2_DEBUGBLT
-    da2->bitblt.debug_reg    = malloc(DA2_DEBUG_BLTLOG_MAX * DA2_DEBUG_BLTLOG_SIZE);
+    da2->bitblt.debug_reg    = calloc(DA2_DEBUG_BLTLOG_MAX, DA2_DEBUG_BLTLOG_SIZE);
     da2->bitblt.debug_reg_ip = 0;
+    for (int i = 0; i < DA2_BLT_REGSIZE; i++) {
+        da2->bitblt.debug_regexe[i] = DA2_DEBUG_BLT_NEVERUSED;
+    }
 #endif
 #ifdef ENABLE_DA2_DEBUGVRAM
     da2->mmdbg_fp            = fopen("da2_mmiowdat.txt", "w");

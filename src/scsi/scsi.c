@@ -91,7 +91,7 @@ static SCSI_CARD scsi_cards[] = {
     { &ncr53c825a_pci_device,    },
     { &ncr53c860_pci_device,     },
     { &ncr53c875_pci_device,     },
-    { &isp1020_device,           },
+    { &isp1020a_device,          },
     { &qla1040b_device,          },
     { &qla1080_device,           },
     { &qla1240_device,           },

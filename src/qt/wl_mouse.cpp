@@ -111,7 +111,7 @@ wl_keyboard_grab(QWindow *window)
 void
 wl_mouse_capture(QWindow *window)
 {
-    if (!kbd_inhibitor) {
+    if (!kbd_inhibitor && kbd_manager) {
         kbd_inhibitor = zwp_keyboard_shortcuts_inhibit_manager_v1_inhibit_shortcuts(kbd_manager, (wl_surface *) QGuiApplication::platformNativeInterface()->nativeResourceForWindow("surface", window), (wl_seat *) QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("wl_seat"));
     }
     if (rel_manager) {

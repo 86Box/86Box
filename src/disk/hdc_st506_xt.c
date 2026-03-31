@@ -84,6 +84,7 @@
 #include <86box/pic.h>
 #include <86box/hdc.h>
 #include <86box/hdd.h>
+#include <86box/hdd_audio.h>
 
 #define ST506_XT_TYPE_XEBEC              0
 #define ST506_XT_TYPE_WDXT_GEN           1
@@ -526,6 +527,9 @@ st506_callback(void *priv)
                         double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], 0, HDD_OP_SEEK, 0, 0.0);
                         timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
 
+                        hdd_audio_seek(&hdd[drive->hdd_num], 0);
+                        hdd[drive->hdd_num].cur_cylinder = 0;
+
                         dev->cylinder   = dev->cyl_off;
                         drive->cylinder = dev->cylinder;
                         dev->state      = STATE_DONE;
@@ -917,6 +921,10 @@ write_error:
                             if (get_sector(dev, drive, &addr)) {
                                 double seek_us = hdd_seek_get_time(&hdd[drive->hdd_num], addr, HDD_OP_SEEK, 0, 0.0);
                                 timer_advance_u64(&dev->timer, (uint64_t)(seek_us * TIMER_USEC));
+
+                                uint16_t new_cylinder = (uint16_t) dev->cylinder;
+                                hdd_audio_seek(&hdd[drive->hdd_num], new_cylinder);
+                                hdd[drive->hdd_num].cur_cylinder = new_cylinder;
 
                                 dev->state      = STATE_DONE;
                             } else {
@@ -1548,7 +1556,7 @@ loadrom(hdc_t *dev, const char *fn)
     (void) fseek(fp, 0L, SEEK_SET);
 
     /* Load the ROM data. */
-    dev->bios_rom.rom = (uint8_t *) malloc(size);
+    dev->bios_rom.rom = (uint8_t *) calloc(1, size);
     memset(dev->bios_rom.rom, 0xff, size);
     if (fread(dev->bios_rom.rom, 1, size, fp) != size)
         fatal("ST-506 XT loadrom(): Error reading data\n");
@@ -1791,7 +1799,7 @@ st506_init(const device_t *info)
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
-        case ST506_XT_TYPE_VICTOR_V86P: /* Victor V86P (RLL) */
+        case ST506_XT_TYPE_VICTOR_V86P: /* Victor V86P Fixed Disk Adapter (RLL) */
             fn = VICTOR_V86P_BIOS_FILE;
             break;
 
@@ -2450,7 +2458,7 @@ const device_t st506_xt_wd1004a_27x_device = {
 };
 
 const device_t st506_xt_victor_v86p_device = {
-    .name          = "Victor V86P (RLL)",
+    .name          = "Victor V86P Fixed Disk Adapter (RLL)",
     .internal_name = "st506_xt_victor_v86p",
     .flags         = DEVICE_ISA,
     .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_VICTOR_V86P,

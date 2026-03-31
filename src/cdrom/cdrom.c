@@ -3186,7 +3186,9 @@ cdrom_close(void)
 void
 cdrom_insert(const uint8_t id)
 {
-    const cdrom_t *dev = &cdrom[id];
+    cdrom_t *dev = &cdrom[id];
+
+    dev->cached_sector = -1;
 
     if (dev->bus_type && dev->insert)
         dev->insert(dev->priv);

@@ -547,8 +547,7 @@ ati28800k_recalctimings(svga_t *svga)
 void *
 ati28800k_init(const device_t *info)
 {
-    ati28800_t *ati28800 = (ati28800_t *) malloc(sizeof(ati28800_t));
-    memset(ati28800, 0, sizeof(ati28800_t));
+    ati28800_t *ati28800 = (ati28800_t *) calloc(1, sizeof(ati28800_t));
 
     ati28800->type_korean = info->local;
 
@@ -614,14 +613,15 @@ static void *
 ati28800_init(const device_t *info)
 {
     ati28800_t *ati28800;
-    ati28800 = malloc(sizeof(ati28800_t));
-    memset(ati28800, 0x00, sizeof(ati28800_t));
+    ati28800 = calloc(1, sizeof(ati28800_t));
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
 
     ati28800->memory = device_get_config_int("memory");
 
     ati28800->type = info->local;
+    if (ati28800->type == 0)
+        ati28800->type = device_get_bios_local(info, device_get_config_bios("bios"));
 
     switch (ati28800->type) {
         case VGAWONDERXL:
@@ -706,21 +706,9 @@ ati28800_init(const device_t *info)
 }
 
 static int
-ati28800_available(void)
-{
-    return (rom_present(BIOS_ROM_PATH));
-}
-
-static int
 ati28800k_available(void)
 {
     return (rom_present(BIOS_ATIKOR_PATH) && rom_present(FONT_ATIKOR_PATH));
-}
-
-static int
-compaq_ati28800_available(void)
-{
-    return (rom_present(BIOS_VGAXL_ROM_PATH));
 }
 
 static int
@@ -764,6 +752,58 @@ ati28800_force_redraw(void *priv)
 }
 
 // clang-format off
+static const device_config_t ati28800_5_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "ati28800",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "ATI VGA Charger",
+                .internal_name = "ati28800",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH, "" }
+            },
+            {
+                .name          = "ATI VGA Wonder XL",
+                .internal_name = "compaq_ati28800",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = VGAWONDERXL,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_VGAXL_ROM_PATH, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value =  256 },
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t ati28800_config[] = {
     {
         .name           = "memory",
@@ -807,18 +847,18 @@ static const device_config_t ati28800_wonderxl_config[] = {
 #endif /* USE_XL24 */
 // clang-format on
 
-const device_t ati28800_device = {
-    .name          = "ATI 28800-5 (ATI VGA Charger)",
-    .internal_name = "ati28800",
+const device_t ati28800_5_device = {
+    .name          = "ATI 28800-5",
+    .internal_name = "ati28800_5",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = ati28800_init,
     .close         = ati28800_close,
     .reset         = NULL,
-    .available     = ati28800_available,
+    .available     = NULL,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
-    .config        = ati28800_config
+    .config        = ati28800_5_config
 };
 
 const device_t ati28800k_device = {
@@ -863,22 +903,8 @@ const device_t ati28800k_spc6033p_device = {
     .config        = NULL
 };
 
-const device_t compaq_ati28800_device = {
-    .name          = "ATI 28800-5 (ATI VGA Wonder XL)",
-    .internal_name = "compaq_ati28800",
-    .flags         = DEVICE_ISA,
-    .local         = VGAWONDERXL,
-    .init          = ati28800_init,
-    .close         = ati28800_close,
-    .reset         = NULL,
-    .available     = compaq_ati28800_available,
-    .speed_changed = ati28800_speed_changed,
-    .force_redraw  = ati28800_force_redraw,
-    .config        = ati28800_config
-};
-
 const device_t ati28800_wonder1024d_xl_plus_device = {
-    .name          = "ATI 28800-6 (ATI VGA Wonder 1024D XL Plus)",
+    .name          = "ATI 28800-6",
     .internal_name = "ati28800_wonder1024d_xl_plus",
     .flags         = DEVICE_ISA,
     .local         = VGAWONDERXLPLUS,
@@ -888,6 +914,7 @@ const device_t ati28800_wonder1024d_xl_plus_device = {
     .available     = ati28800_wonder1024d_xl_plus_available,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
+    .alias         = "ATI VGA Wonder 1024D XL Plus",
     .config        = NULL
 };
 

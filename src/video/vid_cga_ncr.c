@@ -559,9 +559,8 @@ nga_init(UNUSED(const device_t *info))
 {
     int     mem;
     uint8_t charset;
-    nga_t  *nga = (nga_t *) malloc(sizeof(nga_t));
+    nga_t  *nga = (nga_t *) calloc(1, sizeof(nga_t));
 
-    memset(nga, 0x00, sizeof(nga_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_nga);
 
     charset = device_get_config_int("charset");
@@ -571,8 +570,8 @@ nga_init(UNUSED(const device_t *info))
     nga->cga.composite    = 0;
     nga->cga.snow_enabled = device_get_config_int("snow_enabled");
 
-    nga->cga.vram = malloc(0x8000);
-    nga->vram_64k = malloc(0x8000);
+    nga->cga.vram = calloc(1, 0x8000);
+    nga->vram_64k = calloc(1, 0x8000);
 
     timer_add(&nga->cga.timer, nga_poll, nga, 1);
     mem_mapping_add(&nga->cga.mapping, 0xb8000, 0x8000,

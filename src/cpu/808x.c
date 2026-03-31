@@ -2582,6 +2582,8 @@ execx86_instruction(void)
                 }
 #else
                 wait_cycs(7, 0);
+                if (fpu_softfloat && (fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary))
+                    nmi = 1;
                 check_interrupts(0);
 #endif
                 break;

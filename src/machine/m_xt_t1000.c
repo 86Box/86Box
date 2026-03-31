@@ -856,7 +856,7 @@ machine_xt_t1000_init(const machine_t *model)
      */
     fp = rom_fopen("roms/machines/t1000/t1000dos.rom", "rb");
     if (fp != NULL) {
-        t1000.romdrive = malloc(T1000_ROMSIZE);
+        t1000.romdrive = calloc(1, T1000_ROMSIZE);
         if (t1000.romdrive) {
             memset(t1000.romdrive, 0xff, T1000_ROMSIZE);
             if (fread(t1000.romdrive, 1, T1000_ROMSIZE, fp) != T1000_ROMSIZE)

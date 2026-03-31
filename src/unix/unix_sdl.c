@@ -446,7 +446,7 @@ sdl_init_common(int flags)
     /* Make sure we get a clean exit. */
     atexit(sdl_close);
 
-    pixeldata = malloc(2048 * 2048 * 4);
+    pixeldata = calloc(1, 2048 * 2048 * 4);
 
     /* Register our renderer! */
     video_setblit(sdl_blit_shim);

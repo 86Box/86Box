@@ -534,8 +534,8 @@ hndl_poly(pgc_t *pgc)
     int      parsing = 1;
     uint8_t  count;
 
-    x = (int32_t *) malloc(as * sizeof(int32_t));
-    y = (int32_t *) malloc(as * sizeof(int32_t));
+    x = (int32_t *) calloc(as, sizeof(int32_t));
+    y = (int32_t *) calloc(as, sizeof(int32_t));
     if (!x || !y) {
 #ifdef ENABLE_IM1024_LOG
         im1024_log("IM1024: POLY: out of memory\n");
@@ -1033,13 +1033,12 @@ im1024_init(UNUSED(const device_t *info))
 {
     im1024_t *dev;
 
-    dev = (im1024_t *) malloc(sizeof(im1024_t));
-    memset(dev, 0x00, sizeof(im1024_t));
+    dev = (im1024_t *) calloc(1, sizeof(im1024_t));
 
     video_load_font(BIOS_ROM_PATH, FONT_FORMAT_IM1024, LOAD_FONT_NO_OFFSET);
 
     dev->fifo_len   = 4096;
-    dev->fifo       = (uint8_t *) malloc(dev->fifo_len);
+    dev->fifo       = (uint8_t *) calloc(1, dev->fifo_len);
     dev->fifo_wrptr = 0;
     dev->fifo_rdptr = 0;
 

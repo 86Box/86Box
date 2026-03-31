@@ -12,7 +12,7 @@
  */
 #pragma once
 
-extern const device_t isp1020_device;
+extern const device_t isp1020a_device;
 extern const device_t qla1040b_device;
 extern const device_t qla1080_device;
 extern const device_t qla1240_device;

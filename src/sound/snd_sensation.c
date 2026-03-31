@@ -1069,7 +1069,7 @@ static void
 sensation_get_buffer(int32_t *buffer, int len, void *priv)
 {
     sensation_t *dev = (sensation_t *) priv;
-    int16_t *mma_buffer = malloc(sizeof(int16_t) * len * 2);
+    int16_t *mma_buffer = calloc(len * 2, sizeof(int16_t));
     if (mma_buffer == NULL)
         fatal("mma_buffer = NULL");
 

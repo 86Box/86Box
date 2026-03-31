@@ -867,9 +867,9 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
     if (!x || !y || (corners < 2))
         return; /* Degenerate polygon */
 
-    nodex = (double *) malloc(corners * sizeof(double));
-    dx    = (double *) malloc(corners * sizeof(double));
-    dy    = (double *) malloc(corners * sizeof(double));
+    nodex = (double *) calloc(corners, sizeof(double));
+    dx    = (double *) calloc(corners, sizeof(double));
+    dy    = (double *) calloc(corners, sizeof(double));
     if (!nodex || !dx || !dy) {
         if (nodex) {
             free(nodex);
@@ -1977,7 +1977,7 @@ pgc_cl_append(pgc_cl_t *list, uint8_t v)
     uint8_t *buf;
 
     if (list->listmax == 0 || list->list == NULL) {
-        list->list = (uint8_t *) malloc(4096);
+        list->list = (uint8_t *) calloc(1, 4096);
         if (!list->list) {
 #ifdef ENABLE_PGC_LOG
             pgc_log("PGC: out of memory initializing command list\n");
@@ -2008,7 +2008,7 @@ pgc_cl_append(pgc_cl_t *list, uint8_t v)
 int
 pgc_parse_bytes(pgc_t *dev, pgc_cl_t *cl, int count)
 {
-    uint8_t *param = (uint8_t *) malloc(count);
+    uint8_t *param = (uint8_t *) calloc(1, count);
 
     if (!param) {
         pgc_error(dev, PGC_ERROR_OVERFLOW);
@@ -2037,7 +2037,7 @@ pgc_parse_bytes(pgc_t *dev, pgc_cl_t *cl, int count)
 int
 pgc_parse_words(pgc_t *dev, pgc_cl_t *cl, int count)
 {
-    int16_t *param = (int16_t *) malloc(count * sizeof(int16_t));
+    int16_t *param = (int16_t *) calloc(count, sizeof(int16_t));
 
     if (!param) {
         pgc_error(dev, PGC_ERROR_OVERFLOW);
@@ -2066,7 +2066,7 @@ pgc_parse_words(pgc_t *dev, pgc_cl_t *cl, int count)
 int
 pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
 {
-    int32_t *param = (int32_t *) malloc(count * sizeof(int32_t));
+    int32_t *param = (int32_t *) calloc(count, sizeof(int32_t));
     int      n;
 
     if (!param) {
@@ -2685,13 +2685,13 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     dev->visw = visw;
     dev->vish = vish;
 
-    dev->vram = (uint8_t *) malloc((size_t) maxw * maxh);
+    dev->vram = (uint8_t *) calloc((size_t) maxw, maxh);
     memset(dev->vram, 0x00, (size_t) maxw * maxh);
-    dev->cga_vram = (uint8_t *) malloc(16384);
+    dev->cga_vram = (uint8_t *) calloc(1, 16384);
     memset(dev->cga_vram, 0x00, 16384);
 
     /* Create and initialize command lists. */
-    dev->clist = (pgc_cl_t *) malloc(256 * sizeof(pgc_cl_t));
+    dev->clist = (pgc_cl_t *) calloc(256, sizeof(pgc_cl_t));
     memset(dev->clist, 0x00, 256 * sizeof(pgc_cl_t));
     for (uint16_t i = 0; i < 256; i++) {
         dev->clist[i].list    = NULL;
@@ -2721,8 +2721,7 @@ pgc_standalone_init(const device_t *info)
 {
     pgc_t *dev;
 
-    dev = (pgc_t *) malloc(sizeof(pgc_t));
-    memset(dev, 0x00, sizeof(pgc_t));
+    dev = (pgc_t *) calloc(1, sizeof(pgc_t));
     dev->type = info->local;
 
     /* Framebuffer and screen are both 640x480. */

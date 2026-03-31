@@ -14,6 +14,9 @@ public:
     explicit SettingsSound(QWidget *parent = nullptr);
     ~SettingsSound();
 
+    int  changed();
+
+    void restore();
     void save();
 
 public slots:
@@ -44,6 +47,16 @@ private slots:
 private:
     Ui::SettingsSound *ui;
     int                machineId = 0;
+
+    int                sound_card_cfg_changed[4]      = { 0, 0, 0, 0 };
+    int                mpu401_cfg_changed             = 0;
+    int                midi_output_device_cfg_changed = 0;
+    int                midi_input_device_cfg_changed  = 0;
+
+    SettingsCompleter   *scSound[4];
+
+    SettingsCompleter   *scMidiOut;
+    SettingsCompleter   *scMidiIn;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

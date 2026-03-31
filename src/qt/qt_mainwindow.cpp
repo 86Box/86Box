@@ -25,13 +25,11 @@
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
-
-#include "qt_cgasettingsdialog.hpp"
 
 #include "qt_defs.hpp"
 
@@ -192,7 +190,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     status->setSoundMenu(ui->menuSound);
     ui->actionMute_Unmute->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
-    ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 
@@ -320,16 +317,6 @@ MainWindow::MainWindow(QWidget *parent)
 #else
         ui->menuTablet_tool->menuAction()->setVisible(false);
 #endif
-
-        bool enable_comp_option = false;
-        for (int i = 0; i < MONITORS_NUM; i++) {
-            if (monitors[i].mon_composite) {
-                enable_comp_option = true;
-                break;
-            }
-        }
-
-        ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
@@ -731,56 +718,8 @@ MainWindow::MainWindow(QWidget *parent)
         if (action == ui->action4_3_Integer_scale_gl)
             video_gl_input_scale_mode = FULLSCR_SCALE_INT43;
     });
-    switch (video_grayscale) {
-        default:
-            break;
-        case 0:
-            ui->actionRGB_Color->setChecked(true);
-            break;
-        case 1:
-            ui->actionRGB_Grayscale->setChecked(true);
-            break;
-        case 2:
-            ui->actionAmber_monitor->setChecked(true);
-            break;
-        case 3:
-            ui->actionGreen_monitor->setChecked(true);
-            break;
-        case 4:
-            ui->actionWhite_monitor->setChecked(true);
-            break;
-    }
-    actGroup = new QActionGroup(this);
-    actGroup->addAction(ui->actionRGB_Grayscale);
-    actGroup->addAction(ui->actionAmber_monitor);
-    actGroup->addAction(ui->actionGreen_monitor);
-    actGroup->addAction(ui->actionWhite_monitor);
-    actGroup->addAction(ui->actionRGB_Color);
-    switch (video_graytype) {
-        default:
-            break;
-        case 0:
-            ui->actionBT601_NTSC_PAL->setChecked(true);
-            break;
-        case 1:
-            ui->actionBT709_HDTV->setChecked(true);
-            break;
-        case 2:
-            ui->actionAverage->setChecked(true);
-            break;
-    }
-    actGroup = new QActionGroup(this);
-    actGroup->addAction(ui->actionBT601_NTSC_PAL);
-    actGroup->addAction(ui->actionBT709_HDTV);
-    actGroup->addAction(ui->actionAverage);
     if (force_43 > 0) {
         ui->actionForce_4_3_display_ratio->setChecked(true);
-    }
-    if (enable_overscan > 0) {
-        ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan->setChecked(true);
-    }
-    if (vid_cga_contrast > 0) {
-        ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
     if (do_auto_pause > 0) {
         ui->actionAuto_pause->setChecked(true);
@@ -1216,9 +1155,7 @@ void
 MainWindow::on_actionHard_Reset_triggered()
 {
     if (confirm_reset) {
-        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::NoButton, this);
-        questionbox.addButton(tr("Reset"), QMessageBox::AcceptRole);
-        auto no_reset_button = questionbox.addButton(tr("Don't reset"), QMessageBox::RejectRole);
+        QMessageBox questionbox(QMessageBox::Icon::Question, EMU_NAME, tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::Yes | QMessageBox::No, this);
         const auto chkbox    = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_reset);
@@ -1227,7 +1164,7 @@ MainWindow::on_actionHard_Reset_triggered()
             confirm_reset = (state == Qt::CheckState::Unchecked);
         });
         questionbox.exec();
-        if (questionbox.clickedButton() == no_reset_button) {
+        if (questionbox.result() == QMessageBox::No) {
             confirm_reset = true;
             return;
         }
@@ -1261,6 +1198,12 @@ MainWindow::on_actionExit_triggered()
 }
 
 void
+MainWindow::emitVmmSignal()
+{
+    emit vmmConfigurationChanged();
+}
+
+void
 MainWindow::on_actionSettings_triggered()
 {
     const int currentPause = dopause;
@@ -1279,9 +1222,16 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
-            updateShortcuts();
             emit vmmConfigurationChanged();
             pc_reset_hard();
+            video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+            config_save();
+            reset_screen_size();
+            device_force_redraw();
+            for (int i = 0; i < MONITORS_NUM; i++) {
+                if (monitors[i].target_buffer)
+                    video_force_resize_set_monitor(1, i);
+            }
             break;
         case QDialog::Rejected:
             break;
@@ -1674,16 +1624,6 @@ MainWindow::refreshMediaMenu()
     int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
     int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
     kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
-
-    bool enable_comp_option = false;
-    for (int i = 0; i < MONITORS_NUM; i++) {
-        if (monitors[i].mon_composite) {
-            enable_comp_option = true;
-            break;
-        }
-    }
-
-    ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
 }
 
 void
@@ -1843,12 +1783,6 @@ video_toggle_option(QAction *action, int *val)
         if (monitors[i].target_buffer)
             video_force_resize_set_monitor(1, i);
     }
-}
-
-void
-MainWindow::on_actionInverted_VGA_monitor_triggered()
-{
-    video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
 }
 
 void
@@ -2024,83 +1958,6 @@ MainWindow::on_actionFullScreen_int43_triggered()
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43);
 }
 
-static void
-update_greyscale_checkboxes(Ui::MainWindow *ui, QAction *selected, int value)
-{
-    ui->actionRGB_Color->setChecked(ui->actionRGB_Color == selected);
-    ui->actionRGB_Grayscale->setChecked(ui->actionRGB_Grayscale == selected);
-    ui->actionAmber_monitor->setChecked(ui->actionAmber_monitor == selected);
-    ui->actionGreen_monitor->setChecked(ui->actionGreen_monitor == selected);
-    ui->actionWhite_monitor->setChecked(ui->actionWhite_monitor == selected);
-
-    startblit();
-    video_grayscale = value;
-    video_copy      = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
-    endblit();
-    device_force_redraw();
-    config_save();
-}
-
-void
-MainWindow::on_actionRGB_Color_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionRGB_Color, 0);
-}
-
-void
-MainWindow::on_actionRGB_Grayscale_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionRGB_Grayscale, 1);
-}
-
-void
-MainWindow::on_actionAmber_monitor_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionAmber_monitor, 2);
-}
-
-void
-MainWindow::on_actionGreen_monitor_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionGreen_monitor, 3);
-}
-
-void
-MainWindow::on_actionWhite_monitor_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionWhite_monitor, 4);
-}
-
-static void
-update_greyscale_type_checkboxes(Ui::MainWindow *ui, QAction *selected, int value)
-{
-    ui->actionBT601_NTSC_PAL->setChecked(ui->actionBT601_NTSC_PAL == selected);
-    ui->actionBT709_HDTV->setChecked(ui->actionBT709_HDTV == selected);
-    ui->actionAverage->setChecked(ui->actionAverage == selected);
-
-    video_graytype = value;
-    device_force_redraw();
-    config_save();
-}
-
-void
-MainWindow::on_actionBT601_NTSC_PAL_triggered()
-{
-    update_greyscale_type_checkboxes(ui, ui->actionBT601_NTSC_PAL, 0);
-}
-
-void
-MainWindow::on_actionBT709_HDTV_triggered()
-{
-    update_greyscale_type_checkboxes(ui, ui->actionBT709_HDTV, 1);
-}
-
-void
-MainWindow::on_actionAverage_triggered()
-{
-    update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
-}
-
 void
 MainWindow::on_actionAbout_Qt_triggered()
 {
@@ -2118,24 +1975,6 @@ void
 MainWindow::on_actionDocumentation_triggered()
 {
     QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
-}
-
-void
-MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered()
-{
-    update_overscan = 1;
-    video_toggle_option(ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan, &enable_overscan);
-}
-
-void
-MainWindow::on_actionChange_contrast_for_monochrome_display_triggered()
-{
-    startblit();
-    vid_cga_contrast ^= 1;
-    for (int i = 0; i < MONITORS_NUM; i++)
-        cgapal_rebuild_monitor(i);
-    config_save();
-    endblit();
 }
 
 void
@@ -2384,9 +2223,25 @@ MainWindow::updateStatusEmptyIcons()
 void
 MainWindow::on_actionPreferences_triggered()
 {
-    ProgSettings progsettings(this);
-    if (progsettings.exec() == QDialog::Accepted) {
-        emit vmmGlobalConfigurationChanged();
+    Preferences preferences(this);
+    preferences.setModal(true);
+    preferences.setWindowModality(Qt::WindowModal);
+    preferences.setWindowFlag(Qt::CustomizeWindowHint, true);
+    preferences.setWindowFlag(Qt::WindowTitleHint, true);
+    preferences.setWindowFlag(Qt::WindowSystemMenuHint, false);
+    preferences.exec();
+
+    switch (preferences.result()) {
+        default:
+            break;
+        case QDialog::Accepted:
+            preferences.save();
+            updateShortcuts();
+            config_changed = 2;
+            emit vmmGlobalConfigurationChanged();
+            break;
+        case QDialog::Rejected:
+            break;
     }
 }
 
@@ -2431,7 +2286,7 @@ MainWindow::changeEvent(QEvent *event)
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
         auto size = this->centralWidget()->size();
-        QApplication::setFont(ProgSettings::getUIFont());
+        QApplication::setFont(Preferences::getUIFont());
         QApplication::processEvents();
         main_window->centralWidget()->setFixedSize(size);
         QApplication::processEvents();
@@ -2578,15 +2433,4 @@ void
 MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
-}
-
-void
-MainWindow::on_actionCGA_composite_settings_triggered()
-{
-    isNonPause = true;
-    CGASettingsDialog dialog;
-    dialog.setModal(true);
-    dialog.exec();
-    isNonPause = false;
-    config_save();
 }

@@ -1295,7 +1295,7 @@ static const device_config_t epic100_config[] = {
 // clang-format on
 
 const device_t smc_epic100_device = {
-    .name          = "SMC EtherPower II 9432 (SMC 83C170 \"EPIC/100\")",
+    .name          = "SMC 83C170 \"EPIC/100\"",
     .internal_name = "smc_epic100",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -1305,5 +1305,6 @@ const device_t smc_epic100_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .alias         = "SMC EtherPower II 9432",
     .config        = epic100_config
 };

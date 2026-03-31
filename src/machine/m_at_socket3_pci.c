@@ -202,32 +202,6 @@ machine_at_arb1476_init(const machine_t *model)
 }
 
 int
-machine_at_win486pci_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/win486pci/v1hj3.BIN",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
-
-    device_add(&ali1489_device);
-    device_add_params(&gm82c803ab_device, (void *) GM82C803B);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    return ret;
-}
-
-int
 machine_at_tf486_init(const machine_t *model)
 {
     int ret;
@@ -280,6 +254,32 @@ machine_at_ms4145_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
+machine_at_win486pci_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/win486pci/v1hj3.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
+
+    device_add(&ali1489_device);
+    device_add_params(&gm82c803ab_device, (void *) GM82C803B);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -572,6 +572,32 @@ machine_at_486ap4_init(const machine_t *model)
 }
 
 int
+machine_at_sb486p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sb486p/amiboot.rom",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add_params(&i82091aa_device, (void *) I82091AA_26E);
+    device_add(&i420ex_device);
+
+    return ret;
+}
+
+int
 machine_at_ninja_init(const machine_t *model)
 {
     int ret;
@@ -597,32 +623,6 @@ machine_at_ninja_init(const machine_t *model)
 
     device_add(&i420ex_device);
     device_add_params(&i82091aa_device, (void *) I82091AA_022);
-
-    return ret;
-}
-
-int
-machine_at_sb486p_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/sb486p/amiboot.rom",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 1, 2);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
-
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    device_add_params(&i82091aa_device, (void *) I82091AA_26E);
-    device_add(&i420ex_device);
 
     return ret;
 }

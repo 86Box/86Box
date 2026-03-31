@@ -51,11 +51,11 @@
 #    define PATH_GHOSTSCRIPT_DLL "libgs.dylib"
 #    define PATH_GHOSTPCL_DLL    "libgpcl6.9.54.dylib"
 #else
-#    define PATH_GHOSTSCRIPT_DLL      "libgs.so.9"
-#    define PATH_GHOSTSCRIPT_DLL_ALT1 "libgs.so.10"
+#    define PATH_GHOSTSCRIPT_DLL      "libgs.so.10"
+#    define PATH_GHOSTSCRIPT_DLL_ALT1 "libgs.so.9"
 #    define PATH_GHOSTSCRIPT_DLL_ALT2 "libgs.so"
-#    define PATH_GHOSTPCL_DLL         "libgpcl6.so.9"
-#    define PATH_GHOSTPCL_DLL_ALT1    "libgpcl6.so.10"
+#    define PATH_GHOSTPCL_DLL         "libgpcl6.so.10"
+#    define PATH_GHOSTPCL_DLL_ALT1    "libgpcl6.so.9"
 #    define PATH_GHOSTPCL_DLL_ALT2    "libgpcl6.so"
 #endif
 

@@ -2576,6 +2576,12 @@ cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg)
     if (seg->ar_high & 0x80)
         limit_raw >>= 12;
 
+    if ((limit_raw == 0xffffffff) && !(seg->ar_high & 0x80)) {
+        x86seg_log("4G segment limit without page granularity!\n");
+        seg->ar_high |= 0x80;
+        limit_raw >>= 12;
+    }
+
     writememl(0, addr, (limit_raw & 0xffff) | (seg->base << 16));
     writememl(0, addr + 4, ((seg->base >> 16) & 0xff) | (seg->access << 8) | (limit_raw & 0xf0000) | (seg->ar_high << 16) | (seg->base & 0xff000000));
 }

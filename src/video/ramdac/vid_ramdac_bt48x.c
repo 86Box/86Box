@@ -500,8 +500,7 @@ bt48x_hwcursor_draw(svga_t *svga, int displine)
 void *
 bt48x_ramdac_init(const device_t *info)
 {
-    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) malloc(sizeof(bt48x_ramdac_t));
-    memset(ramdac, 0, sizeof(bt48x_ramdac_t));
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) calloc(1, sizeof(bt48x_ramdac_t));
 
     ramdac->type = info->local;
 

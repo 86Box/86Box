@@ -89,9 +89,9 @@ private:
 #endif
     QLineEdit *displayName;
     QLabel    *systemNameValidation;
+    QRegularExpression dirValidate;
 #ifdef CUSTOM_SYSTEM_LOCATION
     QLabel            *systemLocationValidation;
-    QRegularExpression dirValidate;
 private slots:
     void chooseDirectoryLocation();
 #endif

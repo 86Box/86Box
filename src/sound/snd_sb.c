@@ -55,7 +55,7 @@
 
 #define SB_VIBRA16XV 0
 #define SB_VIBRA16C  1
-#define SB_VIBRA16CL  2
+#define SB_VIBRA16CL 2
 
 #define SB_32_PNP      0
 #define SB_AWE32_PNP   1
@@ -295,11 +295,9 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
     if (!sb->opl_enabled)
         return;
 
-    if (sb->dsp.sb_type == SBPRO_DSP_300) {
-        opl_buf  = sb->opl.update(sb->opl.priv);
+    opl_buf  = sb->opl.update(sb->opl.priv);
+    if (sb->has_dualopl2)
         opl2_buf = sb->opl2.update(sb->opl2.priv);
-    } else
-        opl_buf = sb->opl.update(sb->opl.priv);
 
     sb_dsp_update(&sb->dsp);
 
@@ -307,7 +305,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
         out_l = 0.0;
         out_r = 0.0;
 
-        if (sb->dsp.sb_type == SBPRO_DSP_300) {
+        if (sb->has_dualopl2) {
             /* Two chips for LEFT and RIGHT channels.
                Each chip stores data into the LEFT channel only (no sample alternating.) */
             out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
@@ -2954,28 +2952,28 @@ sb_init(UNUSED(const device_t *info))
        for music to play. */
     sb_t          *sb         = calloc(1, sizeof(sb_t));
     const uint16_t addr       = device_get_config_hex16("base");
+    uint8_t        dspver     = SB_DSP_105;
     uint16_t       mixer_addr = 0x0000;
-    uint8_t        model      = 0;
 
     switch (info->local) {
         default:
         case SB_1:
-            model           = SB_DSP_105;
+            dspver          = SB_DSP_105;
             sb->cms_enabled = 1;
             break;
 
         case SB_15:
-            model           = SB_DSP_200;
+            dspver          = SB_DSP_200;
             sb->cms_enabled = device_get_config_int("cms");
             break;
 
         case SB_2:
-            model           = SB_DSP_201;
+            dspver          = SB_DSP_201;
             sb->cms_enabled = device_get_config_int("cms");
             mixer_addr      = device_get_config_int("mixaddr");
             break;
         case THUNDERBOARD:
-            model           = SB_DSP_200;
+            dspver          = SB_DSP_200;
             sb->cms_enabled = 0;
             break;
     }
@@ -2985,7 +2983,7 @@ sb_init(UNUSED(const device_t *info))
         fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, model, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, dspver, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, 1); // SB 1, SB1.5 and 2 don't support DMA3
@@ -3001,7 +2999,7 @@ sb_init(UNUSED(const device_t *info))
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
         // TODO: See if this applies to the SB1.5 as well
-        if ((!sb->cms_enabled) && ((model == SB_DSP_201) || (model == SB_DSP_202))) {
+        if ((!sb->cms_enabled) && ((dspver == SB_DSP_201) || (dspver == SB_DSP_202))) {
             io_sethandler(addr, 0x0002,
                           sb->opl.read, NULL, NULL,
                           sb->opl.write, NULL, NULL,
@@ -3166,13 +3164,14 @@ sb_pro_v1_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    sb_t    *sb   = calloc(1, sizeof(sb_t));
-    uint16_t addr = device_get_config_hex16("base");
+    sb_t          *sb   = calloc(1, sizeof(sb_t));
+    const uint16_t addr = device_get_config_hex16("base");
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled) {
         fm_driver_get(FM_YM3812, &sb->opl);
         sb->opl.set_do_cycles(sb->opl.priv, 0);
+        sb->has_dualopl2 = 1;
         fm_driver_get(FM_YM3812, &sb->opl2);
         sb->opl2.set_do_cycles(sb->opl2.priv, 0);
     }
@@ -3233,8 +3232,8 @@ sb_pro_v2_init(UNUSED(const device_t *info))
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip (9 voices)
        2x0+10 to 2x0+13 CDROM interface. */
-    sb_t    *sb   = calloc(1, sizeof(sb_t));
-    uint16_t addr = device_get_config_hex16("base");
+    sb_t          *sb   = calloc(1, sizeof(sb_t));
+    const uint16_t addr = device_get_config_hex16("base");
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
@@ -6176,7 +6175,7 @@ const device_t sb_awe64_gold_device = {
 const device_t ess_688_device = {
     .name          = "ESS AudioDrive ES688",
     .internal_name = "ess_es688",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = ess_x688_init,
     .close         = sb_close,
@@ -6190,7 +6189,7 @@ const device_t ess_688_device = {
 const device_t ess_ess0100_pnp_device = {
     .name          = "ESS AudioDrive ES688 (ESS0100) PnP",
     .internal_name = "ess_ess0100_pnp",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 0,
     .init          = ess_x688_pnp_init,
     .close         = sb_close,
@@ -6204,7 +6203,7 @@ const device_t ess_ess0100_pnp_device = {
 const device_t ess_1688_device = {
     .name          = "ESS AudioDrive ES1688",
     .internal_name = "ess_es1688",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 1,
     .init          = ess_x688_init,
     .close         = sb_close,
@@ -6218,7 +6217,7 @@ const device_t ess_1688_device = {
 const device_t ess_ess0102_pnp_device = {
     .name          = "ESS AudioDrive ES1688 (ESS0102) PnP",
     .internal_name = "ess_ess0102_pnp",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 1,
     .init          = ess_x688_pnp_init,
     .close         = sb_close,
@@ -6232,7 +6231,7 @@ const device_t ess_ess0102_pnp_device = {
 const device_t ess_ess0968_pnp_688_device = {
     .name          = "ESS AudioDrive ES688 (ESS0968) PnP",
     .internal_name = "ess_ess0968_pnp_es688",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 2,
     .init          = ess_x688_pnp_init,
     .close         = sb_close,
@@ -6246,7 +6245,7 @@ const device_t ess_ess0968_pnp_688_device = {
 const device_t ess_ess0968_pnp_device = {
     .name          = "ESS AudioDrive ES1688 (ESS0968) PnP",
     .internal_name = "ess_ess0968_pnp",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = 3,
     .init          = ess_x688_pnp_init,
     .close         = sb_close,

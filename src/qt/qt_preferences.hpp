@@ -1,19 +1,28 @@
-#ifndef QT_PROGSETTINGS_HPP
-#define QT_PROGSETTINGS_HPP
+#ifndef QT_PREFERENCES_HPP
+#define QT_PREFERENCES_HPP
 
 #include <QDialog>
 #include <QTranslator>
 
 namespace Ui {
-class ProgSettings;
+class Preferences;
 }
 
-class ProgSettings : public QDialog {
+class PreferencesEmulator;
+class PreferencesInput;
+class PreferencesKeyBindings;
+
+class Preferences : public QDialog {
     Q_OBJECT
 
 public:
-    explicit ProgSettings(QWidget *parent = nullptr);
-    ~ProgSettings();
+    explicit Preferences(QWidget *parent = nullptr);
+    ~Preferences();
+    void save();
+
+    static Preferences *preferences;
+
+    /* Move to qt_preferencesemulator.cpp? */
 #ifdef Q_OS_WINDOWS
     static QFont getUIFont();
 #endif
@@ -27,7 +36,7 @@ public:
         CustomTranslator(QObject *parent = nullptr)
             : QTranslator(parent) {};
 
-    protected:
+protected:
         QString translate(const char *context, const char *sourceText,
                           const char *disambiguation = nullptr, int n = -1) const override
         {
@@ -38,22 +47,16 @@ public:
     static QTranslator                     *qtTranslator;
     static QVector<QPair<QString, QString>> languages;
     static QMap<int, std::wstring>          translatedstrings;
-
 protected slots:
     void accept() override;
-private slots:
-    void on_pushButtonLanguage_released();
-
-    void on_horizontalSlider_valueChanged(int value);
-
-    void on_pushButton_2_clicked();
 
 private:
-    Ui::ProgSettings *ui;
+    Ui::Preferences            *ui;
     static bool       loadQtTranslations(const QString name);
 
-    friend class MainWindow;
-    double mouseSensitivity;
+    PreferencesEmulator        *emulator;
+    PreferencesInput           *input;
+    PreferencesKeyBindings     *key_bindings;
 };
 
-#endif // QT_PROGSETTINGS_HPP
+#endif // QT_PREFERENCES_HPP
