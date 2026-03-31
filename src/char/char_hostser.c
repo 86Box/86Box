@@ -410,7 +410,7 @@ hostser_port_config(void *priv)
             ioctl(dev->fd, TCGETS2, &port_config);
 #    else
             struct termios port_config = { 0 };
-#        if defined(USE_LINUX_TERMIOS)
+#        ifdef USE_LINUX_TERMIOS
             ioctl(dev->fd, TCGETS, &port_config);
 #        else
             tcgetattr(dev->fd, &port_config);
