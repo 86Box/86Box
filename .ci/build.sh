@@ -896,7 +896,11 @@ fi
 debug_args=
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
 cd archive_tmp
-git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" mdsx || exit 99
+for retry in 0 1 2 3 4
+do
+	sleep $retry
+	git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" mdsx && break
+done
 make -C mdsx/src -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
 rm -f mdsx/src/*.a
 mv mdsx/src/mdsx.* . || exit 99
