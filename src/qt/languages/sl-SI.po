@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 14:14+0000\n"
+"PO-Revision-Date: 2026-03-31 14:15+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
@@ -3013,7 +3013,7 @@ msgid "&Update mouse every CPU frame"
 msgstr "&Posodibi stanje miške ob vsakem bloku procesorja"
 
 msgid "Composite CGA"
-msgstr ""
+msgstr "Kompozitni CGA"
 
 msgid "Hue"
 msgstr "Hue"
@@ -3031,7 +3031,7 @@ msgid "Sharpness"
 msgstr "Ostrina"
 
 msgid "Reset"
-msgstr ""
+msgstr "Ponastavi"
 
 msgid "Monitor EDID"
 msgstr "EDID monitorja"
@@ -3085,4 +3085,4 @@ msgid "Raw"
 msgstr "Neobdelan"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Uporabi emulacijo EDC/ECC"
