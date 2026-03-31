@@ -660,7 +660,7 @@ t1000_init(UNUSED(const device_t *info))
     t1000->invert    = device_get_config_int("invert");
 
     /* 16k video RAM */
-    t1000->vram = malloc(0x4000);
+    t1000->vram = calloc(1, 0x4000);
 
     timer_set_callback(&t1000->cga.timer, t1000_poll);
     timer_set_p(&t1000->cga.timer, t1000);

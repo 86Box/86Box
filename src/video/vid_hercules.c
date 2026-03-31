@@ -538,7 +538,7 @@ hercules_init(UNUSED(const device_t *info))
     overscan_x = 16;
     overscan_y = 28;
 
-    dev->vram = (uint8_t *) malloc(0x10000);
+    dev->vram = (uint8_t *) calloc(1, 0x10000);
 
     switch(device_get_config_int("font")) {
         case 0:

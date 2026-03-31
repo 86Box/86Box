@@ -591,7 +591,7 @@ ogc_init(UNUSED(const device_t *info))
 #if 0
     int display_type;
 #endif
-    ogc_t *ogc = (ogc_t *) malloc(sizeof(ogc_t));
+    ogc_t *ogc = (ogc_t *) calloc(1, sizeof(ogc_t));
 
     memset(ogc, 0x00, sizeof(ogc_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_ogc);
@@ -606,7 +606,7 @@ ogc_init(UNUSED(const device_t *info))
     ogc->cga.revision     = device_get_config_int("composite_type");
     ogc->cga.snow_enabled = device_get_config_int("snow_enabled");
 
-    ogc->cga.vram = malloc(0x8000);
+    ogc->cga.vram = calloc(1, 0x8000);
 
     cga_comp_init(ogc->cga.revision);
     timer_add(&ogc->cga.timer, ogc_poll, ogc, 1);

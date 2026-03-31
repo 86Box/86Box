@@ -797,8 +797,8 @@ quadcolor_standalone_init(UNUSED(const device_t *info))
     quadcolor->has_2nd_charset = device_get_config_int("has_2nd_charset");
     quadcolor->has_quadcolor_2 = device_get_config_int("has_quadcolor_2");
 
-    quadcolor->vram   = malloc(DEVICE_VRAM);
-    quadcolor->vram_2 = malloc(0x10000);
+    quadcolor->vram   = calloc(1, DEVICE_VRAM);
+    quadcolor->vram_2 = calloc(1, 0x10000);
 
     cga_comp_init(quadcolor->revision);
     timer_add(&quadcolor->timer, quadcolor_poll, quadcolor, 1);

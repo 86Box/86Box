@@ -573,7 +573,7 @@ f82c425_poll(void *priv)
 static void *
 f82c425_init(UNUSED(const device_t *info))
 {
-    f82c425_t *f82c425 = malloc(sizeof(f82c425_t));
+    f82c425_t *f82c425 = calloc(1, sizeof(f82c425_t));
 
     memset(f82c425, 0, sizeof(f82c425_t));
     cga_init(&f82c425->cga);
@@ -584,7 +584,7 @@ f82c425_init(UNUSED(const device_t *info))
     f82c425->vsync_blink = 0x72;
 
     /* 16k video RAM */
-    f82c425->vram = malloc(0x4000);
+    f82c425->vram = calloc(1, 0x4000);
 
     timer_set_callback(&f82c425->cga.timer, f82c425_poll);
     timer_set_p(&f82c425->cga.timer, f82c425);

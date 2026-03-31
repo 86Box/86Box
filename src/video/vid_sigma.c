@@ -784,7 +784,7 @@ static void *
 sigma_init(UNUSED(const device_t *info))
 {
     int      bios_addr;
-    sigma_t *sigma = malloc(sizeof(sigma_t));
+    sigma_t *sigma = calloc(1, sizeof(sigma_t));
 
     memset(sigma, 0, sizeof(sigma_t));
 
@@ -802,7 +802,7 @@ sigma_init(UNUSED(const device_t *info))
     mem_mapping_disable(&sigma->bios_rom.mapping);
     memcpy(sigma->bram, &sigma->bios_rom.rom[0x1800], 0x800);
 
-    sigma->vram = malloc(0x8000 * 4);
+    sigma->vram = calloc(4, 0x8000);
 
     timer_add(&sigma->timer, sigma_poll, sigma, 1);
     mem_mapping_add(&sigma->mapping, 0xb8000, 0x08000,
