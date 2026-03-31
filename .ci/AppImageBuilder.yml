@@ -48,7 +48,6 @@ AppDir:
     - libfreetype6
     - libgomp1
     - libgs9
-    - libinstpatch-1.0-2
     - libpng16-16
     - libqt5core5a # if QT:BOOL=ON
     - libqt5gui5 # if QT:BOOL=ON
@@ -58,6 +57,7 @@ AppDir:
     - libsndfile1
     - libsndio7.0 # if OPENAL:BOOL=ON
     - libvdeplug-dev # -dev also pulls in libvdeplug2. -dev is required to get the proper .so symlink to the library
+    - libvncserver1 # if VNC:BOOL=ON
     - libx11-6 # if QT:BOOL=ON
     - libx11-xcb1 # if QT:BOOL=ON
     - libxcb1 # if QT:BOOL=ON
@@ -65,6 +65,7 @@ AppDir:
     - libxcb-shape0 # if QT:BOOL=ON
     - libxcb-shm0 # if QT:BOOL=ON
     - libxcb-xfixes0 # if QT:BOOL=ON
+    - libxi6 # if QT:BOOL=ON
     - libxkbcommon-x11-0 # if QT:BOOL=ON
     - qtwayland5 # if QT:BOOL=ON
     - zlib1g
@@ -74,6 +75,7 @@ AppDir:
     - etc
     - lib/udev
     - usr/[!ls]* # * except lib, local, share
+    - usr/lib/*/*.a # produced by library compilation
     - usr/lib/*/libasound.so.* # using our own ALSA can cause issues, and the API is pretty stable anyway
     - usr/lib/*.a # produced by library compilation
     - usr/lib/cmake # produced by library compilation
