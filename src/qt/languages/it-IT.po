@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-03-31 14:05+0000\n"
+"PO-Revision-Date: 2026-03-31 14:13+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it-IT\n"
@@ -179,9 +179,8 @@ msgstr "Conversione scala di grigi:"
 msgid "Average"
 msgstr "Media"
 
-#, fuzzy
 msgid "Overscan"
-msgstr "Sovrascansione"
+msgstr "Overscan"
 
 msgid "Change contrast for monochrome display"
 msgstr "Modifica il contrasto per schermi monocromatici"
@@ -370,7 +369,7 @@ msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr "[1996] Socket 7 (a due tensioni)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Vari"
 
 msgid "Machine:"
 msgstr "Macchina:"
@@ -544,43 +543,43 @@ msgid "CD-ROM controller:"
 msgstr "Controller CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Interfaccia Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Interfaccia MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Interfaccia MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Controller IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Controller IDE (a due canali)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Controller IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Controller IDE PC/AT (a due canali)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE PC/AT (solo primario)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "XTIDE AT PS/2 (1.1.5) (solo primario)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terziario e quaternario)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terziario e quaternario)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terziario e quaternario)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Controller McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Controller IDE terziario"
@@ -2071,7 +2070,7 @@ msgid "BIOS Language"
 msgstr "Lingua BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variante"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unità di espansione IBM 5161"
@@ -2746,7 +2745,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Supporto di protezione per Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Connettore loopback"
 
 msgid "Serial Passthrough Device"
 msgstr "Dispositivo passaggio porta seriale"
@@ -2839,10 +2838,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Espansione di memoria PC/AT generica"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "RTC MM58167 generico"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (dispositivo esterno)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Impossibile trovare i caratteri a matrice di punti"
@@ -2920,10 +2919,10 @@ msgid "Could not load file %1"
 msgstr "Impossibile caricare il file %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulatore"
 
 msgid "Input"
-msgstr ""
+msgstr "Entrata"
 
 msgid "Key bindings"
 msgstr "Associazione dei tasti"
@@ -3119,7 +3118,7 @@ msgid "&Update mouse every CPU frame"
 msgstr "Forza &aggiornamento stato del mouse"
 
 msgid "Composite CGA"
-msgstr ""
+msgstr "CGA composito"
 
 msgid "Hue"
 msgstr "Tinta"
@@ -3137,7 +3136,7 @@ msgid "Sharpness"
 msgstr "Nitidezza"
 
 msgid "Reset"
-msgstr ""
+msgstr "Ripristina"
 
 msgid "Monitor EDID"
 msgstr "EDID del monitor"
@@ -3191,4 +3190,4 @@ msgid "Raw"
 msgstr "Grezzo"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Usa emulazione EDC/ECC"
