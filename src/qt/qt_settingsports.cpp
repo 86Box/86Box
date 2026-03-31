@@ -191,7 +191,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
 
     while (true) {
         const QString name = DeviceConfig::DeviceName(lpt_device_getdevice(c),
-                                                      lpt_device_get_internal_name(c), 1);
+                                                      lpt_device_get_internal_name(c), -1);
 
         if (name.isEmpty())
             break;

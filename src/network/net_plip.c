@@ -501,7 +501,7 @@ const device_t lpt_plip_device = {
 };
 
 const device_t plip_device = {
-    .name          = "Parallel Line Internet Protocol (Network)",
+    .name          = "Parallel Line Internet Protocol",
     .internal_name = "plip",
     .flags         = DEVICE_LPT,
     .local         = 0,

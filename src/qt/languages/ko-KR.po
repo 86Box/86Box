@@ -144,53 +144,44 @@ msgstr "정수배 확대(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGA 설정"
+msgid "Inverted VGA monitor"
+msgstr "색상 반전된 VGA 모니터"
 
-msgid "&Inverted VGA monitor"
-msgstr "색상 반전된 VGA 모니터(&I)"
+msgid "VGA screen type:"
+msgstr "VGA 화면 종류:"
 
-msgid "VGA screen &type"
-msgstr "VGA 화면 종류(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB 천연색(&C)"
+msgid "RGB Color"
+msgstr "RGB 천연색"
 
 msgid "RGB (no brown)"
 msgstr "RGB (갈색 없음)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB 회색조(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB 회색조"
 
 msgid "Generic RGBI color monitor"
 msgstr "일반 RGBI 컬러 모니터"
 
-msgid "&Amber monitor"
-msgstr "주황색 모니터(&A)"
+msgid "Amber monitor"
+msgstr "주황색 모니터"
 
-msgid "&Green monitor"
-msgstr "녹색 모니터(&G)"
+msgid "Green monitor"
+msgstr "녹색 모니터"
 
-msgid "&White monitor"
-msgstr "흰색 모니터(&W)"
+msgid "White monitor"
+msgstr "흰색 모니터"
 
-msgid "Grayscale &conversion type"
-msgstr "회색조 표현방식(&C)"
+msgid "Grayscale conversion type:"
+msgstr "회색조 표현방식:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "평균값"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "오버스캔"
 
-msgid "&Average"
-msgstr "평균값(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGA 오버스캔(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "흑백 표시를 위한 밝기 조정(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "흑백 표시를 위한 밝기 조정"
 
 msgid "&Media"
 msgstr "미디어(&M)"
@@ -363,6 +354,21 @@ msgstr "성능"
 msgid "Machine type:"
 msgstr "머신 종류:"
 
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
+
 msgid "Machine:"
 msgstr "기종:"
 
@@ -432,8 +438,8 @@ msgstr "비디오 카드:"
 msgid "Video #2:"
 msgstr "비디오 카드 2:"
 
-msgid "Accelerators"
-msgstr "가속기"
+msgid "Monitor"
+msgstr "모니터"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 또는 2 그래픽"
@@ -513,30 +519,6 @@ msgstr "Nuked (더 정확한)"
 msgid "YMFM (faster)"
 msgstr "YMFM (더 빠르게)"
 
-msgid "COM1 Device:"
-msgstr "COM1 장치:"
-
-msgid "COM2 Device:"
-msgstr "COM2 장치:"
-
-msgid "COM3 Device:"
-msgstr "COM3 장치:"
-
-msgid "COM4 Device:"
-msgstr "COM4 장치:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1 장치:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2 장치:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3 장치:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4 장치:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "내부 LPT의 ECP의 DMA:"
 
@@ -552,23 +534,20 @@ msgstr "직렬 포트 3"
 msgid "Serial port 4"
 msgstr "직렬 포트 4"
 
-msgid "Parallel port 1"
-msgstr "병렬 포트 1"
-
-msgid "Parallel port 2"
-msgstr "병렬 포트 2"
-
-msgid "Parallel port 3"
-msgstr "병렬 포트 3"
-
-msgid "Parallel port 4"
-msgstr "병렬 포트 4"
-
 msgid "Floppy disk controller:"
 msgstr "플로피 디스크 컨트롤러:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 컨트롤러:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE 컨트롤러"
@@ -2010,6 +1989,9 @@ msgstr "BIOS 버전"
 msgid "BIOS Language"
 msgstr "BIOS 언어"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 확장 유닛"
 
@@ -2658,6 +2640,9 @@ msgstr "표준"
 msgid "High-Speed"
 msgstr "고속"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "스테레오 LPT DAC"
 
@@ -2670,14 +2655,17 @@ msgstr "일반 ESC/P 2 도트 매트릭스 프린터"
 msgid "Generic PostScript Printer"
 msgstr "일반 포스트스크립트 프린터"
 
-msgid "Generic PCL5e Printer"
-msgstr "일반 PCL5e 프린터"
+msgid "Generic PCL Printer"
+msgstr "일반 PCL 프린터"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "병렬 인터넷 프로토콜"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "새비지 퀘스트용 보호 동글"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "직렬 포트 패스스루 장치"
@@ -2769,6 +2757,12 @@ msgstr "일반 PC/XT 메모리 확장 카드"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "일반 PC/AT 메모리 확장 카드"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "도트 매트릭스 글꼴을 찾을 수 없습니다"
 
@@ -2831,6 +2825,12 @@ msgstr "아래로 이동"
 
 msgid "Could not load file %1"
 msgstr "파일 %1을 로드할 수 없습니다"
+
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
 
 msgid "Key bindings"
 msgstr "키 바인딩"
@@ -3009,6 +3009,9 @@ msgstr "시스템은 추가되지 않을 것입니다."
 msgid "&Update mouse every CPU frame"
 msgstr "마우스를 각 CPU 프레임마다 업데이트합니다(&U)"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "색조"
 
@@ -3024,11 +3027,8 @@ msgstr "밝기"
 msgid "Sharpness"
 msgstr "선명도"
 
-msgid "&CGA composite settings…"
-msgstr "CGA 복합 모드의 설정(&C)…"
-
-msgid "CGA composite settings"
-msgstr "CGA 복합 모드의 설정"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "모니터의 EDID"
@@ -3057,9 +3057,6 @@ msgstr "빛"
 msgid "Dark"
 msgstr "어둠"
 
-msgid "Search:"
-msgstr "검색:"
-
 msgid "Force interpretation"
 msgstr "강제 해석"
 
@@ -3083,3 +3080,6 @@ msgstr "시스템 디렉터리를 변경하려면 실행 중인 모든 머신을
 
 msgid "Raw"
 msgstr "원본"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

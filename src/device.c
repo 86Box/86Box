@@ -719,7 +719,7 @@ device_get_name(const device_t *dev, int bus, char *name)
 
         if (sbus != NULL) {
             /* First concatenate [<Bus>] before the device's name. */
-            if ((bus > 0) && strcmp(sbus, "LPT")) {
+            if (bus > 0) {
                 strcat(name, "[");
                 strcat(name, sbus);
                 strcat(name, "] ");
@@ -742,6 +742,7 @@ device_get_name(const device_t *dev, int bus, char *name)
             /* Allocate the temporary device name string and set it to all zeroes. */
             tname = (char *) calloc(1, strlen(dev->name) + 1);
 
+
             /* First strip the bus string with parentheses. */
             fbus = strstr(dev->name, pbus);
             if (fbus == dev->name)
@@ -753,13 +754,18 @@ device_get_name(const device_t *dev, int bus, char *name)
                 strcat(tname, fbus + strlen(pbus));
             }
 
-            /* Then also strip the bus string with parentheses. */
+            /* Special case for LPT DACs - don't strip LPT */
+            int is_dac = 0;
+            if (!strcmp(sbus, "LPT"))
+                is_dac = (strstr(dev->name, "LPT DAC") != NULL);
+
+            /* Then also strip the bus string without parentheses. */
             fbus = strstr(tname, sbus);
-            if (fbus == tname)
+            if ((fbus == tname) && !is_dac)
                 strcat(name, tname + strlen(sbus) + 1);
             /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI",
                the "-ISA" from "AMD PCnet-ISA" or the " PCI" from "CMD PCI-064x". */
-            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')))
+            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
                 strcat(name, tname);
             else {
                 strncat(name, tname, fbus - tname - 1);

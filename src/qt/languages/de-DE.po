@@ -144,53 +144,44 @@ msgstr "&Integer-Skalierung"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Integer-Skalierung"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGA-Einstellungen"
+msgid "Inverted VGA monitor"
+msgstr "Invertierte VGA-Anzeige"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Invertierte VGA-Anzeige"
+msgid "VGA screen type:"
+msgstr "VGA-Bildschirmtyp:"
 
-msgid "VGA screen &type"
-msgstr "&VGA-Bildschirmtyp"
-
-msgid "RGB &Color"
-msgstr "RGB-&Farbe"
+msgid "RGB Color"
+msgstr "RGB-Farbe"
 
 msgid "RGB (no brown)"
 msgstr "RGB (ohne Braun)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB-Graustufen"
+msgid "RGB Grayscale"
+msgstr "RGB-Graustufen"
 
 msgid "Generic RGBI color monitor"
 msgstr "Generischer RGBI-Farbmonitor"
 
-msgid "&Amber monitor"
-msgstr "&Bernstein-Monitor"
+msgid "Amber monitor"
+msgstr "Bernstein-Monitor"
 
-msgid "&Green monitor"
-msgstr "&Grüner Monitor"
+msgid "Green monitor"
+msgstr "Grüner Monitor"
 
-msgid "&White monitor"
-msgstr "&Weißer Monitor"
+msgid "White monitor"
+msgstr "Weißer Monitor"
 
-msgid "Grayscale &conversion type"
-msgstr "Methode zur &Graustufenkonversion"
+msgid "Grayscale conversion type:"
+msgstr "Methode zur Graustufenkonversion:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Durchschnittsmethode"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Durchschnittsmethode"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Overscan für CGA/PCjr/Tandy/E&GA/(S)VGA-Monitore"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Kontrast für &monochrome Monitore ändern"
+msgid "Change contrast for monochrome display"
+msgstr "Kontrast für monochrome Monitore ändern"
 
 msgid "&Media"
 msgstr "&Medien"
@@ -363,6 +354,21 @@ msgstr "Leistung"
 msgid "Machine type:"
 msgstr "Systemtyp:"
 
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
+
 msgid "Machine:"
 msgstr "System:"
 
@@ -432,8 +438,8 @@ msgstr "Grafikkarte:"
 msgid "Video #2:"
 msgstr "Grafikkarte 2:"
 
-msgid "Accelerators"
-msgstr "Beschleuniger"
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 oder 2 Grafik"
@@ -513,30 +519,6 @@ msgstr "Nuked (genauer)"
 msgid "YMFM (faster)"
 msgstr "YMFM (schneller)"
 
-msgid "COM1 Device:"
-msgstr "COM1-Gerät:"
-
-msgid "COM2 Device:"
-msgstr "COM2-Gerät:"
-
-msgid "COM3 Device:"
-msgstr "COM3-Gerät:"
-
-msgid "COM4 Device:"
-msgstr "COM4-Gerät:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1-Gerät:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2-Gerät:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3-Gerät:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4-Gerät:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA des ECP des internen Parallelports:"
 
@@ -552,23 +534,20 @@ msgstr "Serielle Schnittstelle 3"
 msgid "Serial port 4"
 msgstr "Serielle Schnittstelle 4"
 
-msgid "Parallel port 1"
-msgstr "Parallelport 1"
-
-msgid "Parallel port 2"
-msgstr "Parallelport 2"
-
-msgid "Parallel port 3"
-msgstr "Parallelport 3"
-
-msgid "Parallel port 4"
-msgstr "Parallelport 4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketten-Controller:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM-Controller:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE-Controller"
@@ -2010,6 +1989,9 @@ msgstr "BIOS-Version"
 msgid "BIOS Language"
 msgstr "BIOS-Sprache"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Erweiterungseinheit"
 
@@ -2658,6 +2640,9 @@ msgstr "Standard"
 msgid "High-Speed"
 msgstr "Höchstgeschwindigkeit"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT-DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo-LPT-DAC"
 
@@ -2670,14 +2655,17 @@ msgstr "Allgemeiner ESC/P 2-Nadel-Drucker"
 msgid "Generic PostScript Printer"
 msgstr "Generischer PostScript-Drucker"
 
-msgid "Generic PCL5e Printer"
-msgstr "Generischer PCL5e-Drucker"
+msgid "Generic PCL Printer"
+msgstr "Generischer PCL-Drucker"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protokoll"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Kopierschutz-Dongle für Savage Quest"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "Serielles Gerät durchreichen"
@@ -2769,6 +2757,12 @@ msgstr "Generische PC/XT-Speichererweiterung"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generische PC/AT-Speichererweiterung"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nadel-Schriften konnten nicht gefunden werden"
 
@@ -2831,6 +2825,12 @@ msgstr "Nach unten verschieben"
 
 msgid "Could not load file %1"
 msgstr "Datei %1 konnte nicht geladen werden"
+
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
 
 msgid "Key bindings"
 msgstr "Tastenbelegungen"
@@ -3009,6 +3009,9 @@ msgstr "Das System wird nicht hinzugefügt werden."
 msgid "&Update mouse every CPU frame"
 msgstr "&Maus bei jedem CPU-Frame aktualisieren"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "Farbton"
 
@@ -3024,11 +3027,8 @@ msgstr "Helligkeit"
 msgid "Sharpness"
 msgstr "Schärfe"
 
-msgid "&CGA composite settings…"
-msgstr "Optionen des &CGA-Composite-Modus…"
-
-msgid "CGA composite settings"
-msgstr "Optionen des CGA-Composite-Modus"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "EDID des Monitors"
@@ -3057,9 +3057,6 @@ msgstr "Licht"
 msgid "Dark"
 msgstr "Dunkel"
 
-msgid "Search:"
-msgstr "Suche:"
-
 msgid "Force interpretation"
 msgstr "Erzwingen der Interpretation"
 
@@ -3083,3 +3080,6 @@ msgstr "Um das Systemverzeichnis zu ändern, stoppen Sie alle laufenden Maschine
 
 msgid "Raw"
 msgstr "Roh"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""
