@@ -177,7 +177,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/dvdrom_folder.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
