@@ -3137,6 +3137,8 @@ execute_instruction(void)
 
         case 0x9b: /* WAIT */
             do_cycles(3);
+            if (fpu_softfloat && (fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary))
+                nmi = 1;
             break;
 
         case 0x9c: /* PUSHF */

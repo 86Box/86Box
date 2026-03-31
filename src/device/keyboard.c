@@ -40,7 +40,9 @@ typedef struct keyboard_t {
     const device_t *device;
 } keyboard_t;
 
-int          keyboard_type = 0;
+int          keyboard_type    = 0;
+
+static int   override_capture = 0;
 
 static const device_t keyboard_internal_device = {
     .name          = "Internal",
@@ -135,6 +137,12 @@ static scconvtbl scconv55_8a[18 + 1] =
       {.sc = 0 , .mk = { 0 }, .brk = { 0 } } /* end */
     // clang-format on
 };
+
+void
+keyboard_toggle_override(void)
+{
+    override_capture ^= 1;
+}
 
 void
 keyboard_init(void)
@@ -374,7 +382,7 @@ keyboard_input(int down, uint16_t scan)
     /* kbc_at_log("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
     recv_key_ui[scan & 0x1ff] = down;
 
-    if (mouse_capture || !kbd_req_capture || (video_fullscreen && !fullscreen_ui_visible)) {
+    if (override_capture || mouse_capture || !kbd_req_capture || (video_fullscreen && !fullscreen_ui_visible)) {
         recv_key[scan & 0x1ff] = down;
         key_process(scan & 0x1ff, down);
     }

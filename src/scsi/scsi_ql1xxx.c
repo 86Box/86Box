@@ -58,23 +58,31 @@
 #define QL_DEV_CHIP_TYPE_MASK        0x0000000F
 #define QL_DEV_CHIP_REV_MASK         0x000000F0
 #define QL_DEV_FLASH_TYPE_MASK       0x00000F00
+#define QL_DEV_CHIP_TYPE_SHIFT       0
 #define QL_DEV_CHIP_REV_SHIFT        4
 #define QL_DEV_FLASH_TYPE_SHIFT      8
+
+#define QL_DEV(chip_type, chip_rev, flash_type) \
+    (((chip_type) << QL_DEV_CHIP_TYPE_SHIFT) | \
+     ((chip_rev) << QL_DEV_CHIP_REV_SHIFT) | \
+     ((flash_type) << QL_DEV_FLASH_TYPE_SHIFT))
 
 #define QL_ISP1040                   0x00000000 // Used for the 1020/1040 ISP chips
 #define QL_ISP1080                   0x00000001
 #define QL_ISP1240                   0x00000002
 #define QL_ISP1280                   0x00000003
 #define QL_ISP12160                  0x00000004
-#define QL_REV_ISP1020               0x00000000
-#define QL_REV_ISP1020A              0x00000010
-#define QL_REV_ISP1040               0x00000020
-#define QL_REV_ISP1040A              0x00000030
-#define QL_REV_ISP1040B              0x00000040
-#define QL_REV_ISP1040C              0x00000050
-#define QL_REV_ISP1080               0x00000010
+
+#define QL_REV_ISP1020               0x00000001
+#define QL_REV_ISP1020A              0x00000002
+#define QL_REV_ISP1040               0x00000003
+#define QL_REV_ISP1040A              0x00000004
+#define QL_REV_ISP1040B              0x00000005
+#define QL_REV_ISP1040C              0x00000006
+#define QL_REV_ISP1080               0x00000001
+
 #define QL_FLASH_AM29F010            0x00000000
-#define QL_FLASH_AM29LV010B          0x00000100
+#define QL_FLASH_AM29LV010B          0x00000001
 
 /* Address of the IOCB handler in firmware for the 1040 ISP chips */
 #define QL_IOCB_FW_BASE     0x0700
@@ -200,15 +208,6 @@
 
 /* QL_REG_CFG0 */
 #define BIU_CONF0_HW_MASK         0x000F /* Hardware revision mask */
-
-#define BIU_CONF0_REV_1020        0x0000
-#define BIU_CONF0_REV_1020A       0x0001
-#define BIU_CONF0_REV_1040        0x0002
-#define BIU_CONF0_REV_1040A       0x0003
-#define BIU_CONF0_REV_1040B       0x0004
-#define BIU_CONF0_REV_1040C       0x0005
-
-#define BIU_CONF0_REV_1080        0x0001
 
 /* QL_REG_CFG1 */
 #define BIU_BURST_ENABLE          0x0004
@@ -1563,7 +1562,7 @@ ql_handle_cmd_exec_firmware(ql_t *dev)
     return QL_MBOX_STATUS_COMPLETE;
 }
 
-static uint32_t
+static uint8_t
 ql_hex2int(int8_t byte)
 {
     if (byte >= '0' && byte <= '9')
@@ -2400,7 +2399,7 @@ ql_sxp_handle_state_send_cdb_bios(ql_t *dev, scsi_device_t *sd)
             /* PIO */
             dev->scsi_data_offset = 0;
             dev->scsi_data_size = dev_buffer_length;
-            dev->scsi_data_buffer = malloc(dev_buffer_length);
+            dev->scsi_data_buffer = calloc(1, dev_buffer_length);
             memcpy(dev->scsi_data_buffer, dev_buffer, dev_buffer_length);
         } else {
             uint32_t address, block_size;
@@ -3564,6 +3563,22 @@ ql_pci_remap_ioport_mapping(ql_t *dev, bool do_enable)
     }
 }
 
+static uint32_t
+ql_pci_decode_address(ql_t *dev, uint32_t addr)
+{
+    if (dev->isp_type == QL_ISP1040) {
+        /* The hw mirrors 0x00-0x7F at 0x80-0xFF */
+        addr &= 0x7F;
+    } else {
+        /* The hw decodes 0x4C-0xFF to 0x00-0x03 */
+        if (addr >= 0x4C) {
+            addr &= 0x03;
+        }
+    }
+
+    return addr;
+}
+
 static void
 ql_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
@@ -3573,6 +3588,8 @@ ql_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pri
     ql_log("QL: PCI [%2X] <-- %X\n", addr, val);
 
     assert(addr < 256);
+
+    addr = ql_pci_decode_address(dev, addr);
 
     switch (addr) {
         case PCI_REG_COMMAND_L:
@@ -3744,7 +3761,7 @@ ql_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 
     assert(addr < 256);
 
-    ret = dev->pci_cfg[addr];
+    ret = dev->pci_cfg[ql_pci_decode_address(dev, addr)];
 
     ql_log("QL: PCI [%2X] --> %X\n", addr, ret);
     return ret;
@@ -3997,6 +4014,15 @@ ql_create_eeprom_image_1080(ql_t *dev, uint8_t* nvr)
 
     /* System ID */
     switch (dev->isp_type) {
+        case QL_ISP1080:
+            /*
+             * NOTE: Older QLA1080 cards indicate [1077:0001] instead.
+             * We emulate a newer one, because of the NT4 driver (1080v7nt713.exe)
+             * which only accepts subsystem IDs [1077:0005] or [0000:0005].
+             */
+            nvr[0xFC] = 0x05;
+            nvr[0xFD] = 0x00;
+            break;
         case QL_ISP1280:
             nvr[0xFC] = 0x06;
             nvr[0xFD] = 0x00;
@@ -4012,7 +4038,7 @@ ql_create_eeprom_image_1080(ql_t *dev, uint8_t* nvr)
             break;
     }
 
-    /* System Vendor offset in words */
+    /* System Vendor offset in bytes */
     if (dev->isp_type != QL_ISP1080) {
         nvr[0xFE] = 0xFA;
     }
@@ -4197,7 +4223,6 @@ ql_init_pci_config(ql_t *dev)
 
     memset(dev->pci_cfg, 0, sizeof(dev->pci_cfg));
 
-    dev->pci_cfg[PCI_REG_STATUS_L] = PCI_STATUS_L_FAST_B2B | PCI_STATUS_L_CAPAB;
     dev->pci_cfg[PCI_REG_STATUS_H] = PCI_DEVSEL_MEDIUM;
 
     /* ISP1xxx */
@@ -4211,22 +4236,25 @@ ql_init_pci_config(ql_t *dev)
             dev->pci_cfg[PCI_REG_DEVICE_ID_L] = 0x80;
             dev->pci_cfg[PCI_REG_DEVICE_ID_H] = 0x10;
             dev->pci_cfg[PCI_REG_REVISION] = 0x01;
+            dev->pci_cfg[PCI_REG_STATUS_L] = PCI_STATUS_L_FAST_B2B;
             break;
         case QL_ISP1240:
             dev->pci_cfg[PCI_REG_DEVICE_ID_L] = 0x40;
             dev->pci_cfg[PCI_REG_DEVICE_ID_H] = 0x12;
             dev->pci_cfg[PCI_REG_REVISION] = 0x01;
+            dev->pci_cfg[PCI_REG_STATUS_L] = PCI_STATUS_L_FAST_B2B;
             break;
         case QL_ISP1280:
             dev->pci_cfg[PCI_REG_DEVICE_ID_L] = 0x80;
             dev->pci_cfg[PCI_REG_DEVICE_ID_H] = 0x12;
-            dev->pci_cfg[PCI_REG_REVISION] = 0x01;
+            dev->pci_cfg[PCI_REG_REVISION] = 0x03;
+            dev->pci_cfg[PCI_REG_STATUS_L] = PCI_STATUS_L_FAST_B2B;
             break;
         case QL_ISP12160:
             dev->pci_cfg[PCI_REG_DEVICE_ID_L] = 0x16;
             dev->pci_cfg[PCI_REG_DEVICE_ID_H] = 0x12;
             dev->pci_cfg[PCI_REG_REVISION] = 0x06;
-            dev->pci_cfg[PCI_REG_STATUS_L] |= PCI_STATUS_L_66MHZ;
+            dev->pci_cfg[PCI_REG_STATUS_L] = PCI_STATUS_L_FAST_B2B | PCI_STATUS_L_66MHZ;
             break;
 
         default:
@@ -4265,7 +4293,13 @@ ql_init_pci_config(ql_t *dev)
     /* BAR[1] Memory */
     dev->pci_cfg[PCI_REG_BAR1_BYTE0] = 0;
 
-    dev->pci_cfg[0x40] = 0x44;
+    if (dev->isp_type == QL_ISP1040) {
+        if (dev->isp_rev >= QL_REV_ISP1040) {
+            dev->pci_cfg[0x40] = 0x34;
+        }
+    } else {
+        dev->pci_cfg[0x40] = 0x44;
+    }
 
     if (dev->has_pci_caps) {
         dev->pci_cfg[PCI_REG_STATUS_L] |= PCI_STATUS_L_CAPAB;
@@ -4285,14 +4319,6 @@ ql_init_pci_config(ql_t *dev)
         dev->pci_cfg[QL_PCI_PM_BASE + 6] = 0x00;
         /* Data */
         dev->pci_cfg[QL_PCI_PM_BASE + 7] = 0x00;
-    }
-
-    /* This area for some reason holds the VenID/DevID pair */
-    for (uint32_t reg = 0x4C; reg < sizeof(dev->pci_cfg); reg += 4) {
-        dev->pci_cfg[reg + 0] = dev->pci_cfg[PCI_REG_VENDOR_ID_L];
-        dev->pci_cfg[reg + 1] = dev->pci_cfg[PCI_REG_VENDOR_ID_H];
-        dev->pci_cfg[reg + 2] = dev->pci_cfg[PCI_REG_DEVICE_ID_L];
-        dev->pci_cfg[reg + 3] = dev->pci_cfg[PCI_REG_DEVICE_ID_H];
     }
 }
 
@@ -4318,7 +4344,7 @@ ql_init(const device_t *info)
 {
     ql_t *dev = calloc(1, sizeof(ql_t));
 
-    dev->isp_type = info->local & QL_DEV_CHIP_TYPE_MASK;
+    dev->isp_type = (info->local & QL_DEV_CHIP_TYPE_MASK) >> QL_DEV_CHIP_TYPE_SHIFT;
     dev->isp_rev = (info->local & QL_DEV_CHIP_REV_MASK) >> QL_DEV_CHIP_REV_SHIFT;
 
     dev->has_pci_caps = (dev->isp_type != QL_ISP1040);
@@ -4657,11 +4683,11 @@ static const device_config_t qla12160a_config[] = {
 };
 // clang-format on
 
-const device_t isp1020_device = {
-    .name          = "QLogic ISP1020",
-    .internal_name = "isp1020",
+const device_t isp1020a_device = {
+    .name          = "QLogic ISP1020A",
+    .internal_name = "isp1020a",
     .flags         = DEVICE_PCI,
-    .local         = QL_ISP1040 | QL_REV_ISP1020 | QL_FLASH_AM29F010,
+    .local         = QL_DEV(QL_ISP1040, QL_REV_ISP1020A, QL_FLASH_AM29F010),
     .init          = ql_init,
     .close         = ql_close,
     .reset         = ql_reset,
@@ -4675,7 +4701,7 @@ const device_t qla1040b_device = {
     .name          = "QLogic ISP1040B",
     .internal_name = "qla1040b",
     .flags         = DEVICE_PCI,
-    .local         = QL_ISP1040 | QL_REV_ISP1040B | QL_FLASH_AM29F010,
+    .local         = QL_DEV(QL_ISP1040, QL_REV_ISP1040B, QL_FLASH_AM29F010),
     .init          = ql_init,
     .close         = ql_close,
     .reset         = ql_reset,
@@ -4689,7 +4715,7 @@ const device_t qla1080_device = {
     .name          = "QLogic ISP1080",
     .internal_name = "qla1080",
     .flags         = DEVICE_PCI,
-    .local         = QL_ISP1080 | QL_REV_ISP1080 | QL_FLASH_AM29F010,
+    .local         = QL_DEV(QL_ISP1080, QL_REV_ISP1080, QL_FLASH_AM29F010),
     .init          = ql_init,
     .close         = ql_close,
     .reset         = ql_reset,
@@ -4703,7 +4729,7 @@ const device_t qla1240_device = {
     .name          = "QLogic ISP1240",
     .internal_name = "qla1240",
     .flags         = DEVICE_PCI,
-    .local         = QL_ISP1240 | QL_REV_ISP1080 | QL_FLASH_AM29LV010B,
+    .local         = QL_DEV(QL_ISP1240, QL_REV_ISP1080, QL_FLASH_AM29LV010B),
     .init          = ql_init,
     .close         = ql_close,
     .reset         = ql_reset,
@@ -4717,7 +4743,7 @@ const device_t qla1280_device = {
     .name          = "QLogic ISP1280",
     .internal_name = "qla1280",
     .flags         = DEVICE_PCI,
-    .local         = QL_ISP1280 | QL_REV_ISP1080 | QL_FLASH_AM29LV010B,
+    .local         = QL_DEV(QL_ISP1280, QL_REV_ISP1080, QL_FLASH_AM29LV010B),
     .init          = ql_init,
     .close         = ql_close,
     .reset         = ql_reset,
@@ -4731,7 +4757,7 @@ const device_t qla12160a_device = {
     .name          = "QLogic ISP12160A",
     .internal_name = "qla12160a",
     .flags         = DEVICE_PCI,
-    .local         = QL_ISP12160 | QL_REV_ISP1080 | QL_FLASH_AM29LV010B,
+    .local         = QL_DEV(QL_ISP12160, QL_REV_ISP1080, QL_FLASH_AM29LV010B),
     .init          = ql_init,
     .close         = ql_close,
     .reset         = ql_reset,

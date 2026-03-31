@@ -269,6 +269,8 @@ sis_5581_host_to_pci_write(int addr, uint8_t val, void *priv)
 
     sis_5581_host_to_pci_log("SiS 5581 H2P: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
 
+    uint8_t old = dev->pci_conf[addr];
+
     switch (addr) {
         default:
             break;
@@ -378,10 +380,10 @@ sis_5581_host_to_pci_write(int addr, uint8_t val, void *priv)
 
         case 0x93:
             dev->pci_conf[addr] = val;
-            if (val & 0x02) {
+            if ((val & 0x02) && !(old & 0x02)) {
                 dev->pci_conf[0x9d] |= 0x01;
                 if (dev->pci_conf[0x9b] & 0x01)
-                    acpi_sis5582_pmu_event(dev->sis->acpi);
+                    smi_raise();
             }
             break;
 

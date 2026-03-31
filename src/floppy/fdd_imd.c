@@ -675,7 +675,7 @@ imd_load(int drive, char *fn)
     }
     if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("imd_load(): Error seeking to the beginning of the file again\n");
-    dev->buffer = malloc(fsize);
+    dev->buffer = calloc(1, fsize);
     if (fread(dev->buffer, 1, fsize, dev->fp) != fsize)
         fatal("imd_load(): Error reading data\n");
     buffer = dev->buffer;

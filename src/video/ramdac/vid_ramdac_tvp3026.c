@@ -734,8 +734,7 @@ tvp3026_gpio(uint8_t (*read)(uint8_t cntl, void *priv),
 void *
 tvp3026_ramdac_init(const device_t *info)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) malloc(sizeof(tvp3026_ramdac_t));
-    memset(ramdac, 0, sizeof(tvp3026_ramdac_t));
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) calloc(1, sizeof(tvp3026_ramdac_t));
 
     ramdac->type = info->local;
 

@@ -878,13 +878,12 @@ void *
 wy700_init(UNUSED(const device_t *info))
 {
     int      c;
-    wy700_t *wy700 = malloc(sizeof(wy700_t));
+    wy700_t *wy700 = calloc(1, sizeof(wy700_t));
 
-    memset(wy700, 0, sizeof(wy700_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_wy700);
 
     /* 128k video RAM */
-    wy700->vram = malloc(0x20000);
+    wy700->vram = calloc(1, 0x20000);
 
     video_load_font("roms/video/wyse700/wy700.rom", FONT_FORMAT_WY700, LOAD_FONT_NO_OFFSET);
 

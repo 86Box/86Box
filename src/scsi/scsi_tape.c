@@ -59,26 +59,26 @@ tape_drive_t tape_drives[TAPE_NUM];
  */
 const uint8_t tape_command_flags[0x100] = {
     [0x00]          = IMPLEMENTED | CHECK_READY,             /* TEST UNIT READY */
-    [0x01]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY, /* REWIND */
+    [0x01]          = IMPLEMENTED | CHECK_READY,             /* REWIND */
     [0x02]          = IMPLEMENTED | CHECK_READY,             /* REQUEST BLOCK ADDRESS */
     [0x03]          = IMPLEMENTED | ALLOW_UA,                /* REQUEST SENSE */
     [0x05]          = IMPLEMENTED | CHECK_READY,             /* READ BLOCK LIMITS */
     [0x08]          = IMPLEMENTED | CHECK_READY,             /* READ(6) */
     [0x0a]          = IMPLEMENTED | CHECK_READY,             /* WRITE(6) */
     [0x0c]          = IMPLEMENTED | CHECK_READY,             /* SEEK BLOCK */
+    [0x0d]          = IMPLEMENTED | CHECK_READY,             /* PARTITION */
     [0x10]          = IMPLEMENTED | CHECK_READY,             /* WRITE FILEMARKS(6) */
     [0x11]          = IMPLEMENTED | CHECK_READY,             /* SPACE(6) */
     [0x12]          = IMPLEMENTED | ALLOW_UA,                /* INQUIRY */
     [0x15]          = IMPLEMENTED,                           /* MODE SELECT(6) */
     [0x16]          = IMPLEMENTED,                           /* RESERVE */
-    // [0x16]          = IMPLEMENTED | SCSI_ONLY,               /* RESERVE */
     [0x17]          = IMPLEMENTED,                           /* RELEASE */
-    // [0x17]          = IMPLEMENTED | SCSI_ONLY,               /* RELEASE */
     [0x19]          = IMPLEMENTED | CHECK_READY,             /* ERASE(6) */
     [0x1a]          = IMPLEMENTED,                           /* MODE SENSE(6) */
     [0x1b]          = IMPLEMENTED | CHECK_READY,             /* LOAD/UNLOAD */
     [0x1d]          = IMPLEMENTED,                           /* SEND DIAGNOSTIC */
     [0x1e]          = IMPLEMENTED | CHECK_READY,             /* PREVENT/ALLOW MEDIUM REMOVAL */
+    [0x2b]          = IMPLEMENTED | CHECK_READY,             /* LOCATE(10) */
     [0x34]          = IMPLEMENTED | CHECK_READY,             /* READ POSITION */
     [0x55]          = IMPLEMENTED,                           /* MODE SELECT(10) */
     [0x5a]          = IMPLEMENTED,                           /* MODE SENSE(10) */
@@ -723,7 +723,7 @@ tape_buf_alloc(tape_t *dev, uint32_t len)
     tape_log(dev->log, "Allocated buffer length: %i\n", len);
 
     if (dev->buffer == NULL) {
-        dev->buffer    = (uint8_t *) malloc(len);
+        dev->buffer    = (uint8_t *) calloc(1, len);
         dev->buffer_sz = len;
     }
 
@@ -1192,23 +1192,31 @@ tape_space_filemarks_backward(tape_t *dev, int32_t count)
 {
     int32_t found = 0;
 
-    /* Read the trailing length of the previous record. */
-    fseeko64(dev->drv->fp, (int64_t)(dev->tape_pos - 4), SEEK_SET);
-
     while (found < count) {
+        if (dev->tape_pos == 0) {
+            dev->bot = 1;
+            return -(ABS(count) - found);
+        }
+
+        /* Read the trailing length of the previous record. */
+        fseeko64(dev->drv->fp, (int64_t)(dev->tape_pos - 4), SEEK_SET);
+
         uint32_t trailing_len;
 
         if (tape_read_marker(dev, &trailing_len) < 0)
-            return -(count - found);
+            return -(ABS(count) - found);
 
         if (trailing_len == TAPE_SIMH_FILEMARK) {
             dev->tape_pos -= 4;
+            fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
             found++;
         } else {
             /* Skip data record. */
-            fseeko64(dev->drv->fp, (int64_t)(-trailing_len - 4), SEEK_CUR);
-            dev->tape_pos -= 4 + trailing_len + 4;
-            dev->num_blocks--;
+            /* Back up over: trailing_len(4) + data(trailing_len) + leading_len(4). */
+            dev->tape_pos -= (4 + trailing_len + 4);
+            fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
+            if (dev->num_blocks > 0)
+                dev->num_blocks--;
         }
 
         dev->bot = 0;
@@ -1510,7 +1518,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_command_complete(dev);
             break;
 
-        case GPCMD_REZERO_UNIT: /* 0x01 = REWIND for tape devices. */
+        case GPCMD_REWIND:
             tape_log(dev->log, "REWIND\n");
             tape_rewind(dev);
             tape_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1582,32 +1590,43 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_SEEK_BLOCK:
-            count = ((cdb[2] << 16) | (cdb[3] << 8) | cdb[4]) - 1;
+            count = (((cdb[2] & 0x0f) << 16) | (cdb[3] << 8) | cdb[4]);
 
-            if (count > 0) {
+            if (((cdb[2] & 0x0f) == 0x00) && (count >= 1)) {
                 tape_rewind(dev);
 
-                tape_seek_blocks_forward(dev, count);
+                tape_seek_blocks_forward(dev, count - 1);
 
                 tape_set_phase(dev, SCSI_PHASE_STATUS);
                 tape_command_complete(dev);
             } else
-                tape_invalid_field_pl(dev, 0x00000000);
+                tape_invalid_field(dev, count);
             break;
 
-        /* LOCATE on tapes. */
-        case GPCMD_SEEK_10:
+        case GPCMD_PARTITION:
+            if (cdb[1] & 0xfc)
+                tape_invalid_field(dev, cdb[1]);
+            else {
+                tape_set_phase(dev, SCSI_PHASE_STATUS);
+                tape_command_complete(dev);
+            }
+            break;
+
+        case GPCMD_LOCATE_10:
             count = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
-            if (count > 0) {
+            if (cdb[1] & 0x06)
+                tape_invalid_field(dev, cdb[1]);
+            else if (cdb[8] != 0x00)
+                tape_invalid_field(dev, cdb[8]);
+            else {
                 tape_rewind(dev);
 
                 tape_seek_blocks_forward(dev, count);
 
                 tape_set_phase(dev, SCSI_PHASE_STATUS);
                 tape_command_complete(dev);
-            } else
-                tape_invalid_field_pl(dev, 0x00000000);
+            }
             break;
 
         case GPCMD_READ_6: {
@@ -1679,7 +1698,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                         /* Allocate/reallocate record buffer if needed. */
                         if (peek_len > dev->rec_buf_size) {
                             free(dev->rec_buf);
-                            dev->rec_buf      = (uint8_t *) malloc(peek_len);
+                            dev->rec_buf      = (uint8_t *) calloc(1, peek_len);
                             dev->rec_buf_size = peek_len;
                         }
 
@@ -1725,6 +1744,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                     blocks_read++;
                 }
 
+#ifdef ENABLE_TAPE_LOG
                 /* Log data checksum for debugging. */
                 {
                     uint32_t cksum = 0;
@@ -1736,6 +1756,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                              blocks_read, xfer_len, hit_filemark, hit_eod,
                              bytes_total, cksum, dev->rec_remaining);
                 }
+#endif
 
                 if (hit_filemark) {
                     if (blocks_read > 0) {
@@ -2107,13 +2128,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->buffer[0] = 0x01;    /* Sequential access */
                 dev->buffer[1] = 0x80;        /* Removable */
                 /* SCSI-2 compliant */
-                // dev->buffer[2] = (dev->drv->bus_type == TAPE_BUS_SCSI) ? 0x02 : 0x00;
-                // dev->buffer[3] = (dev->drv->bus_type == TAPE_BUS_SCSI) ? 0x02 : 0x21;
                 dev->buffer[2] = 0x02;
                 dev->buffer[3] = 0x02;
-#if 0
-                dev->buffer[4] = 31;
-#endif
                 dev->buffer[4] = 0;
                 if (dev->drv->bus_type == TAPE_BUS_SCSI) {
                     dev->buffer[6] = 1;       /* 16-bit transfers supported */
@@ -2157,10 +2173,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_MODE_SENSE_10:
             tape_set_phase(dev, SCSI_PHASE_DATA_IN);
 
-            // if (dev->drv->bus_type == TAPE_BUS_SCSI)
-                block_desc = ((cdb[1] >> 3) & 1) ? 0 : 1;
-            // else
-                // block_desc = 0;
+            block_desc = ((cdb[1] >> 3) & 1) ? 0 : 1;
 
             if (cdb[0] == GPCMD_MODE_SENSE_6) {
                 len = cdb[4];
@@ -2340,18 +2353,15 @@ tape_phase_data_out(scsi_common_t *sc)
                 param_list_len = dev->current_cdb[4];
             }
 
-            // if (dev->drv->bus_type == TAPE_BUS_SCSI) {
-                if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
-                    block_desc_len = dev->buffer[2];
-                    block_desc_len <<= 8;
-                   block_desc_len |= dev->buffer[3];
-                } else {
-                    block_desc_len = dev->buffer[6];
-                    block_desc_len <<= 8;
-                    block_desc_len |= dev->buffer[7];
-                }
-            // } else
-                // block_desc_len = 0;
+            if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
+                block_desc_len = dev->buffer[2];
+                block_desc_len <<= 8;
+                block_desc_len |= dev->buffer[3];
+            } else {
+                block_desc_len = dev->buffer[6];
+                block_desc_len <<= 8;
+                block_desc_len |= dev->buffer[7];
+            }
 
             /* If there's a block descriptor, parse the block size from it. */
             if (block_desc_len >= 8) {

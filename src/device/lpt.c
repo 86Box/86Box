@@ -62,6 +62,7 @@ static const struct {
     { &lpt_prt_pcl_device       },
     { &lpt_plip_device          },
     { &lpt_hasp_savquest_device },
+    { &lpt_loopback_device      },
     { NULL                      }
   // clang-format on
 };
@@ -176,6 +177,16 @@ lpt_devices_close(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++)
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
+}
+
+void
+lpt_devices_reset(void)
+{
+    device_close_by_flags(DEVICE_LPT);
+
+    lpt_devices_close();
+
+    lpt_devices_init();
 }
 
 static uint8_t

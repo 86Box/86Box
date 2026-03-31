@@ -43,6 +43,7 @@
 /* SCSI commands. */
 #define GPCMD_TEST_UNIT_READY                         0x00
 #define GPCMD_REZERO_UNIT                             0x01
+#define GPCMD_REWIND                                  0x01
 #define GPCMD_REQUEST_BLOCK_ADDRESS                   0x02
 #define GPCMD_REQUEST_SENSE                           0x03
 #define GPCMD_FORMAT_UNIT                             0x04
@@ -57,10 +58,11 @@
 #define GPCMD_SEEK_BLOCK                              0x0c
 #define GPCMD_WRITE_FILEMARKS_6                       0x10
 #define GPCMD_SPACE_6                                 0x11
-#define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
-#define GPCMD_IMATION_EJECT                           0x0d /* ATAPI only? */
 #define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command. */
 #define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command. */
+#define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
+#define GPCMD_IMATION_EJECT                           0x0d /* ATAPI only? */
+#define GPCMD_PARTITION                               0x0d
 #define GPCMD_INQUIRY                                 0x12
 #define GPCMD_VERIFY_6                                0x13
 #define GPCMD_MODE_SELECT_6                           0x15
@@ -78,6 +80,7 @@
 #define GPCMD_READ_GENERATION                         0x29
 #define GPCMD_WRITE_10                                0x2a
 #define GPCMD_SEEK_10                                 0x2b
+#define GPCMD_LOCATE_10                               0x2b
 #define GPCMD_ERASE_10                                0x2c
 #define GPCMD_WRITE_AND_VERIFY_10                     0x2e
 #define GPCMD_VERIFY_10                               0x2f

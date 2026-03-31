@@ -23,6 +23,7 @@ public:
     enum class FileType {
         Img,
         Fdi,
+        Sdi,
         Zdi,
         Sdi,
         Mdi,

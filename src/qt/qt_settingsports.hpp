@@ -14,6 +14,9 @@ public:
     explicit SettingsPorts(QWidget *parent = nullptr);
     ~SettingsPorts();
 
+    int  changed();
+
+    void restore();
     void save();
 
 public slots:
@@ -69,6 +72,11 @@ private slots:
 private:
     Ui::SettingsPorts *ui;
     int                machineId = 0;
+
+    int                lpt_device_cfg_changed[4] = { 0, 0, 0, 0 };
+    int                serial_passthrough_cfg_changed[7] = { 0, 0, 0, 0, 0, 0, 0 };
+
+    SettingsCompleter *scLpt[4];
 };
 
 #endif // QT_SETTINGSPORTS_HPP

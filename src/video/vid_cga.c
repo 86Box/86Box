@@ -767,7 +767,7 @@ cga_standalone_init(UNUSED(const device_t *info))
     cga->revision     = device_get_config_int("composite_type");
     cga->snow_enabled = device_get_config_int("snow_enabled");
 
-    cga->vram = malloc(DEVICE_VRAM);
+    cga->vram = calloc(1, DEVICE_VRAM);
 
     cga_comp_init(cga->revision);
     timer_add(&cga->timer, cga_poll, cga, 1);

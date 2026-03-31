@@ -6777,10 +6777,8 @@ mystique_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
 static void *
 mystique_init(const device_t *info)
 {
-    mystique_t *mystique = malloc(sizeof(mystique_t));
+    mystique_t *mystique = calloc(1, sizeof(mystique_t));
     const char *romfn = NULL;
-
-    memset(mystique, 0, sizeof(mystique_t));
 
     mystique->type = info->local;
 

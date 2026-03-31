@@ -48,10 +48,15 @@ add_library(ui OBJECT
     unix_osd.c
     unix_cdrom.c
 )
-if(APPLE)
-    target_sources(ui PRIVATE dummy_cdrom_ioctl.c)
-else()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ui PRIVATE linux_cdrom_ioctl.c)
+else()
+    target_sources(ui PRIVATE dummy_cdrom_ioctl.c)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_sources(ui PRIVATE unix_floppy_ioctl.c)
+else()
+    target_sources(ui PRIVATE dummy_floppy_ioctl.c)
 endif()
 target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
 target_link_libraries(ui ${CMAKE_DL_LIBS})

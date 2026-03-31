@@ -12,7 +12,7 @@
 #          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
-#          Copyright 2024      Jasmine Iwanek.
+#          Copyright 2024-2026 Jasmine Iwanek.
 #
 
 add_library(snd OBJECT
@@ -53,6 +53,7 @@ add_library(snd OBJECT
     snd_ym7128.c
     snd_optimc.c
     snd_opl_esfm.c
+    snd_ps1_midi.c
     snd_sensation.c
     snd_ymf701.c
     snd_ymf71x.c

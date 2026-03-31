@@ -259,8 +259,7 @@ ati18800_recalctimings(svga_t *svga)
 static void *
 ati18800_init(const device_t *info)
 {
-    ati18800_t *ati18800 = malloc(sizeof(ati18800_t));
-    memset(ati18800, 0, sizeof(ati18800_t));
+    ati18800_t *ati18800 = calloc(1, sizeof(ati18800_t));
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati18800);
 

@@ -189,6 +189,8 @@ extern void superdisk_reload(uint8_t id);
 extern void tape_eject(uint8_t id);
 extern void tape_mount(uint8_t id, char *fn, uint8_t wp);
 extern void tape_reload(uint8_t id);
+extern int     plat_is_block_device(const char *path);
+extern int64_t plat_get_block_device_size(const char *path);
 
 /* Other stuff. */
 extern void startblit(void);

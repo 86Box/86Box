@@ -14,6 +14,9 @@ public:
     explicit SettingsNetwork(QWidget *parent = nullptr);
     ~SettingsNetwork();
 
+    int  changed();
+
+    void restore();
     void save();
 
 public slots:
@@ -31,6 +34,11 @@ private slots:
 private:
     Ui::SettingsNetwork *ui;
     int                  machineId = 0;
+
+    int                  net_card_cfg_changed[4] = { 0, 0, 0, 0 };
+
+    SettingsCompleter   *sc[4];
+    SettingsCompleter   *scDevice[4];
 };
 
 #endif // QT_SETTINGSNETWORK_HPP

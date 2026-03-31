@@ -395,7 +395,7 @@ machine_at_vectra54_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio64_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&i430fx_device);
     device_add(&piix_device);

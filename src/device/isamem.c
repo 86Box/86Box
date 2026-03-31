@@ -618,8 +618,7 @@ isamem_init(const device_t *info)
 
     /* Allocate and initialize our RAM. */
     k        = dev->total_size << 10;
-    dev->ram = (uint8_t *) malloc(k);
-    memset(dev->ram, 0x00, k);
+    dev->ram = (uint8_t *) calloc(1, k);
     ptr = dev->ram;
 
     /*

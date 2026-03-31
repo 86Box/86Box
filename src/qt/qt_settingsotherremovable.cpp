@@ -14,8 +14,8 @@
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_settingsotherremovable.hpp"
-#include "ui_qt_settingsotherremovable.h"
+#include <cstdint>
+#include <cstdio>
 
 extern "C" {
 #include <86box/86box.h>
@@ -27,10 +27,16 @@ extern "C" {
 #include <86box/scsi_tape.h>
 }
 
+#include "qt_settings_completer.hpp"
+
+#include "qt_settingsotherremovable.hpp"
+#include "ui_qt_settingsotherremovable.h"
+
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
+#include "qt_defs.hpp"
 
 static QString
 moDriveTypeName(int i)
@@ -178,6 +184,11 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 {
     ui->setupUi(this);
 
+    scMOType                        = new SettingsCompleter(ui->comboBoxMOType, nullptr);
+    scRDiskType                     = new SettingsCompleter(ui->comboBoxRDiskType, nullptr);
+
+    scTapeType                      = new SettingsCompleter(ui->comboBoxTapeType, nullptr);
+
     mo_disabled_icon = QIcon(":/settings/qt/icons/mo_disabled.ico");
     mo_icon          = QIcon(":/settings/qt/icons/mo.ico");
 
@@ -186,6 +197,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     auto *model = ui->comboBoxMOType->model();
     for (uint32_t i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
         Models::AddEntry(model, moDriveTypeName(i), i);
+        scMOType->addDevice(nullptr, moDriveTypeName(i));
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -194,6 +206,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model->setHeaderData(1, Qt::Horizontal, tr("Type"));
     model->insertRows(0, MO_NUM);
     for (int i = 0; i < MO_NUM; i++) {
+        ui->tableViewMO->setRowHeight(i, 25);
         auto idx = model->index(i, 0);
         setMOBus(model, idx, mo_drives[i].bus_type, mo_drives[i].res);
         setMOType(model, idx.siblingAtColumn(1), mo_drives[i].type);
@@ -215,6 +228,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model = ui->comboBoxRDiskType->model();
     for (uint32_t i = 0; i < KNOWN_RDISK_DRIVE_TYPES; i++) {
         Models::AddEntry(model, rdiskDriveTypeName(i), i);
+        scRDiskType->addDevice(nullptr, rdiskDriveTypeName(i));
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -223,6 +237,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model->setHeaderData(1, Qt::Horizontal, tr("Type"));
     model->insertRows(0, RDISK_NUM);
     for (int i = 0; i < RDISK_NUM; i++) {
+        ui->tableViewRDisk->setRowHeight(i, 25);
         auto idx = model->index(i, 0);
         setRDiskBus(model, idx, rdisk_drives[i].bus_type, rdisk_drives[i].type, rdisk_drives[i].res);
         setRDiskType(model, idx.siblingAtColumn(1), rdisk_drives[i].bus_type, rdisk_drives[i].type);
@@ -243,6 +258,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model = ui->comboBoxTapeType->model();
     for (uint32_t i = 0; i < KNOWN_TAPE_DRIVE_TYPES; i++) {
         Models::AddEntry(model, tapeDriveTypeName(i), i);
+        scTapeType->addDevice(nullptr, tapeDriveTypeName(i));
     }
 
     model = new QStandardItemModel(0, 2, this);
@@ -251,6 +267,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model->setHeaderData(1, Qt::Horizontal, tr("Type"));
     model->insertRows(0, TAPE_NUM);
     for (int i = 0; i < TAPE_NUM; i++) {
+        ui->tableViewTape->setRowHeight(i, 25);
         auto idx = model->index(i, 0);
         setTapeBus(model, idx, tape_drives[i].bus_type, tape_drives[i].res);
         setTapeType(model, idx.siblingAtColumn(1), tape_drives[i].type);
@@ -265,7 +282,46 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
 
 SettingsOtherRemovable::~SettingsOtherRemovable()
 {
+    delete scTapeType;
+
+    delete scMOType;
+    delete scRDiskType;
+
     delete ui;
+}
+
+int
+SettingsOtherRemovable::changed()
+{
+    int has_changed = 0;
+
+    const auto *model = ui->tableViewMO->model();
+    for (uint8_t i = 0; i < MO_NUM; i++) {
+        has_changed |= (mo_drives[i].bus_type != model->index(i, 0).data(Qt::UserRole).toUInt());
+        has_changed |= (mo_drives[i].res      != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
+        has_changed |= (mo_drives[i].type     != model->index(i, 1).data(Qt::UserRole).toUInt());
+    }
+
+    model = ui->tableViewRDisk->model();
+    for (uint8_t i = 0; i < RDISK_NUM; i++) {
+        has_changed |= (rdisk_drives[i].bus_type != model->index(i, 0).data(Qt::UserRole).toUInt());
+        has_changed |= (rdisk_drives[i].res      != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
+        has_changed |= (rdisk_drives[i].type     != model->index(i, 1).data(Qt::UserRole).toUInt());
+    }
+
+    model = ui->tableViewTape->model();
+    for (uint8_t i = 0; i < TAPE_NUM; i++) {
+        has_changed |= (tape_drives[i].bus_type != model->index(i, 0).data(Qt::UserRole).toUInt());
+        has_changed |= (tape_drives[i].res      != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
+        has_changed |= (tape_drives[i].type     != model->index(i, 1).data(Qt::UserRole).toUInt());
+    }
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+}
+
+void
+SettingsOtherRemovable::restore()
+{
 }
 
 void

@@ -26,117 +26,6 @@
 extern "C" {
 #endif
 
-#if 0
-typedef struct storage_cfg_t {
-    uint8_t id;
-    uint8_t bus_type;   /* Bus type: IDE, SCSI, etc. */
-    uint8_t bus    : 4; /* ID of the bus (for example, for IDE,
-                            0 = primary, 1 = secondary, etc. */
-    uint8_t bus_id : 4; /* ID of the device on the bus */
-    uint8_t type;       /* Type flags, interpretation depends
-                           on the device */
-    uint8_t is_image;   /* This is only used for CD-ROM:
-                            0 = Image;
-                            1 = Host drive */
-
-    wchar_t path[1024]; /* Name of current image file or
-                            host drive */
-
-    uint32_t spt;       /* Physical geometry parameters */
-    uint32_t hpc;
-    uint32_t tracks;
-} storage_cfg_t;
-
-typedef struct config_t {
-    /* General configuration */
-    int vid_resize;           /* Window is resizable or not */
-    int vid_renderer;         /* Renderer */
-    int vid_fullscreen_scale; /* Full screen scale type */
-    int vid_fullscreen_start; /* Start emulator in full screen */
-    int vid_force_43;         /* Force 4:3 display ratio in windowed mode */
-    int vid_scale;            /* Windowed mode scale */
-    int vid_overscan;         /* EGA/(S)VGA overscan enabled */
-    int vid_cga_contrast;     /* CGA alternate contrast enabled */
-    int vid_grayscale;        /* Video is grayscale */
-    int vid_grayscale_type;   /* Video grayscale type */
-    int vid_invert_display;   /* Invert display */
-    int rctrl_is_lalt;        /* Right CTRL is left ALT */
-    int update_icons;         /* Update status bar icons */
-    int window_remember;      /* Remember window position and size */
-    int window_w;             /* Window coordinates */
-    int window_h;
-    int window_x;
-    int window_y;
-    int sound_gain;           /* Sound gain */
-#    ifdef USE_LANGUAGE
-    uint16_t language_id;     /* Language ID (0x0409 = English (US)) */
-#    endif
-
-    /* Machine cateogory */
-    int      machine;             /* Machine */
-    int      cpu;                 /* CPU */
-#    ifdef USE_DYNAREC
-    int      cpu_use_dynarec;     /* CPU recompiler enabled */
-#    endif
-    int      wait_states;         /* CPU wait states */
-    int      enable_external_fpu; /* FPU enabled */
-    int      time_sync;           /* Time sync enabled */
-    uint32_t mem_size;            /* Memory size */
-
-    /* Video category */
-    int video_card;               /* Video card */
-    int voodoo_enabled;           /* Voodoo enabled */
-
-    /* Input devices category */
-    int mouse_type;               /* Mouse type */
-    int joystick_type;            /* Joystick type */
-
-    /* Sound category */
-    int sound_card;               /* Sound card */
-    int midi_device;              /* Midi device */
-    int mpu_401;                  /* Standalone MPU-401 enabled */
-    int ssi_2001_enabled;         /* SSI-2001 enabled */
-    int game_blaster_enabled;     /* Game blaster enabled */
-    int gus_enabled;              /* Gravis Ultrasound enabled */
-    int opl_type;                 /* OPL emulation type */
-    int sound_is_float;           /* Sound is 32-bit float or 16-bit integer */
-
-    /* Network category */
-    int network_type;             /* Network type (SLiRP or PCap) */
-    int network_card;             /* Network card */
-    char network_host[520];       /* PCap device */
-
-    /* Ports category */
-    char parallel_devices[PARALLEL_MAX][32]; /* LPT device names */
-#    ifdef USE_SERIAL_DEVICES
-    char serial_devices[SERIAL_MAX][32];     /* Serial device names */
-#    endif
-    char gameport_devices[GAMEPORT_MAX][32]; /* gameport device names */
-
-    /* Other peripherals category */
-    int fdc_current[FDC_MAX];     /* Floppy disk controller type */
-    int hdc_current[HDC_MAX];     /* Hard disk controller type */
-    int hdc;                      /* Hard disk controller */
-    int scsi_card;                /* SCSI controller */
-    int ide_ter_enabled;          /* Tertiary IDE controller enabled */
-    int ide_qua_enabled;          /* Quaternary IDE controller enabled */
-    int bugger_enabled;           /* ISA bugger device enabled */
-    int isa_rtc_type;             /* ISA RTC card */
-    int isa_rom_type[ISAROM_MAX]; /* ISA ROM boards */
-    int isa_mem_type[ISAMEM_MAX]; /* ISA memory boards */
-
-    /* Hard disks category */
-    storage_cfg_t hdd[HDD_NUM];   /* Hard disk drives */
-
-    /* Floppy drives category */
-    storage_cfg_t fdd[FDD_NUM];   /* Floppy drives */
-
-    /* Other removable devices category */
-    storage_cfg_t cdrom[CDROM_NUM]; /* CD-ROM drives */
-    storage_cfg_t rdisk[RDISK_NUM]; /* Removable disk drives */
-} config_t;
-#endif
-
 extern void config_load_global(void);
 extern void config_load(void);
 extern void config_save_global(void);
@@ -167,6 +56,7 @@ extern void *config_get_ini(void);
 #define config_set_wstring(head, name, val) ini_set_wstring(config_get_ini(), head, name, val)
 
 #define config_find_section(name)           ini_find_section(config_get_ini(), name)
+#define config_create_section(name)         ini_find_or_create_section(config_get_ini(), name)
 #define config_rename_section               ini_rename_section
 
 #ifdef __cplusplus

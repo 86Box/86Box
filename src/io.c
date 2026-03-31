@@ -122,8 +122,7 @@ io_sethandler_common(uint16_t base, int size,
 
     for (int c = 0; c < size; c += step) {
         p = io_last[base + c];
-        q = (io_t *) malloc(sizeof(io_t));
-        memset(q, 0, sizeof(io_t));
+        q = (io_t *) calloc(1, sizeof(io_t));
         if (p) {
             p->next = q;
             q->prev = p;
@@ -860,7 +859,7 @@ io_trap_add(void (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, vo
             void *priv)
 {
     /* Instantiate new I/O trap. */
-    io_trap_t *trap = (io_trap_t *) malloc(sizeof(io_trap_t));
+    io_trap_t *trap = (io_trap_t *) calloc(1, sizeof(io_trap_t));
     trap->enable    = 0;
     trap->base = trap->size = 0;
     trap->func              = func;

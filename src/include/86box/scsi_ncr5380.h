@@ -91,6 +91,7 @@ typedef struct ncr_t {
 
 extern void     ncr5380_irq(ncr_t *ncr, int set_irq);
 extern void	    ncr5380_set_irq(ncr_t *ncr, int irq);
+extern void     ncr5380_reset(ncr_t *ncr);
 extern uint32_t ncr5380_get_bus_host(ncr_t *ncr);
 extern void     ncr5380_write(uint16_t port, uint8_t val, ncr_t *ncr);
 extern uint8_t  ncr5380_read(uint16_t port, ncr_t *ncr);

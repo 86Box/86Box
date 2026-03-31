@@ -6,12 +6,14 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the Iomega ZIP drive with SCSI(-like)
+ *          Implementation of removable disk drives with SCSI(-like)
  *          commands, for both ATAPI and SCSI usage.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2018-2025 Miran Grca.
+ *          Copyright 2018-2026 Miran Grca.
+ *          Copyright 2022-2026 Jasmine Iwanek.
  */
 #ifdef ENABLE_RDISK_LOG
 #include <stdarg.h>
@@ -76,13 +78,13 @@ const uint8_t rdisk_command_flags[0x100] = {
     [0xbd]          = IMPLEMENTED
 };
 
-static uint64_t zip_mode_sense_page_flags     = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE |
+static uint64_t zip_100_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE |
                                                  GPMODEP_IOMEGA_PAGE | GPMODEP_ALL_PAGES);
 static uint64_t zip_250_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_FLEXIBLE_DISK_PAGE |
                                                  GPMODEP_CACHING_PAGE | GPMODEP_IOMEGA_PAGE |
                                                  GPMODEP_ALL_PAGES);
 
-static const mode_sense_pages_t zip_mode_sense_pages_default = {
+static const mode_sense_pages_t zip_100_mode_sense_pages_default = {
     { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
                  0x5a,                                0x00, 0x50, 0x20                         },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -101,7 +103,7 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_default = {
       [0x2f] = { GPMODE_IOMEGA_PAGE,                  0x04, 0x5c, 0x0f, 0x3c, 0x0f             } }
 };
 
-static const mode_sense_pages_t zip_mode_sense_pages_default_scsi = {
+static const mode_sense_pages_t zip_100_mode_sense_pages_default_scsi = {
     { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
                  0x5a,                                0x00, 0x50, 0x20                         },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -120,7 +122,7 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_default_scsi = {
       [0x2f] = { GPMODE_IOMEGA_PAGE,                  0x04, 0x5c, 0x0f, 0x3c, 0x0f             } }
 };
 
-static const mode_sense_pages_t zip_mode_sense_pages_changeable = {
+static const mode_sense_pages_t zip_100_mode_sense_pages_changeable = {
     { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xff, 0xff, 0x00, 0x00, 0x00, 0xff,
                  0x5a,                                0xff, 0xff, 0xff                         },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -173,6 +175,12 @@ rdisk_load_abort(const rdisk_t *dev)
 }
 
 static int
+image_is_sdi(const char *s)
+{
+    return !strcasecmp(path_get_extension((char *) s), "SDI");
+}
+
+static int
 image_is_zdi(const char *s)
 {
     return !strcasecmp(path_get_extension((char *) s), "ZDI");
@@ -207,6 +215,7 @@ rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert)
     if (dev->drv == NULL)
         rdisk_eject(dev->id);
     else {
+        const int is_sdi = image_is_sdi(fn);
         const int is_zdi = image_is_zdi(fn);
 
         dev->drv->fp     = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
@@ -227,8 +236,8 @@ rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert)
             fseek(dev->drv->fp, 0, SEEK_END);
             int size = ftell(dev->drv->fp);
 
-            if (is_zdi) {
-                /* This is a ZDI image. */
+            if ((is_sdi) || (is_zdi)) {
+                /* This is a SDI or ZDI image. */
                 size -= 0x1000;
                 dev->drv->base = 0x1000;
             } else
@@ -390,9 +399,9 @@ rdisk_mode_sense_load(rdisk_t *dev)
 
     if (dev->drv->type == RDISK_TYPE_ZIP_100) {
         if (rdisk_drives[dev->id].bus_type == RDISK_BUS_SCSI)
-            memcpy(&dev->ms_pages_saved, &zip_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
+            memcpy(&dev->ms_pages_saved, &zip_100_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
         else
-            memcpy(&dev->ms_pages_saved, &zip_mode_sense_pages_default, sizeof(mode_sense_pages_t));
+            memcpy(&dev->ms_pages_saved, &zip_100_mode_sense_pages_default, sizeof(mode_sense_pages_t));
     } else {
         if (rdisk_drives[dev->id].bus_type == RDISK_BUS_SCSI)
             memcpy(&dev->ms_pages_saved, &zip_250_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
@@ -404,6 +413,7 @@ rdisk_mode_sense_load(rdisk_t *dev)
         sprintf(fn, "scsi_rdisk_%02i_mode_sense_bin", dev->id);
     else
         sprintf(fn, "rdisk_%02i_mode_sense_bin", dev->id);
+
     FILE *fp = plat_fopen(nvr_path(fn), "rb");
     if (fp) {
         /* Nothing to read, not used by RDISK. */
@@ -441,15 +451,15 @@ zip_mode_sense_read(const rdisk_t *dev, const uint8_t pgctl,
             return dev->ms_pages_saved.pages[page][pos];
         case 1:
             if (dev->drv->type == RDISK_TYPE_ZIP_100)
-                return zip_mode_sense_pages_changeable.pages[page][pos];
+                return zip_100_mode_sense_pages_changeable.pages[page][pos];
             else
                 return zip_250_mode_sense_pages_changeable.pages[page][pos];
         case 2:
             if (dev->drv->type == RDISK_TYPE_ZIP_100) {
                 if (dev->drv->bus_type == RDISK_BUS_SCSI)
-                    return zip_mode_sense_pages_default_scsi.pages[page][pos];
+                    return zip_100_mode_sense_pages_default_scsi.pages[page][pos];
                 else
-                    return zip_mode_sense_pages_default.pages[page][pos];
+                    return zip_100_mode_sense_pages_default.pages[page][pos];
             } else {
                 if ((page == 5) && (pos == 9) && (dev->drv->medium_size == ZIP_SECTORS))
                     return 0x60;
@@ -474,7 +484,7 @@ rdisk_mode_sense(const rdisk_t *dev, uint8_t *buf, uint32_t pos,
     const uint8_t  pgctl = (page >> 6) & 3;
 
     if (dev->drv->type == RDISK_TYPE_ZIP_100)
-        pf = zip_mode_sense_page_flags;
+        pf = zip_100_mode_sense_page_flags;
     else
         pf = zip_250_mode_sense_page_flags;
 
@@ -749,7 +759,7 @@ rdisk_buf_alloc(rdisk_t *dev, const uint32_t len)
     rdisk_log(dev->log, "Allocated buffer length: %i\n", len);
 
     if (dev->buffer == NULL) {
-        dev->buffer = (uint8_t *) malloc(len);
+        dev->buffer = (uint8_t *) calloc(1, len);
         dev->buffer_sz = len;
     }
 
@@ -777,10 +787,10 @@ rdisk_bus_master_error(scsi_common_t *sc)
 
     rdisk_buf_free(dev);
     rdisk_sense_key = rdisk_asc = rdisk_ascq = 0;
-    rdisk_info      =  (dev->sector_pos >> 24)        |
-                    ((dev->sector_pos >> 16) <<  8) |
-                    ((dev->sector_pos >> 8)  << 16) |
-                    ( dev->sector_pos        << 24);
+    rdisk_info      = (dev->sector_pos >> 24)        |
+                     ((dev->sector_pos >> 16) <<  8) |
+                     ((dev->sector_pos >> 8)  << 16) |
+                     ( dev->sector_pos        << 24);
     rdisk_cmd_error(dev);
 }
 
@@ -800,10 +810,10 @@ rdisk_write_protected(rdisk_t *dev)
     rdisk_sense_key = SENSE_UNIT_ATTENTION;
     rdisk_asc       = ASC_WRITE_PROTECTED;
     rdisk_ascq      = 0;
-    rdisk_info      =  (dev->sector_pos >> 24)        |
-                    ((dev->sector_pos >> 16) <<  8) |
-                    ((dev->sector_pos >> 8)  << 16) |
-                    ( dev->sector_pos        << 24);
+    rdisk_info      = (dev->sector_pos >> 24)        |
+                     ((dev->sector_pos >> 16) <<  8) |
+                     ((dev->sector_pos >> 8)  << 16) |
+                     ( dev->sector_pos        << 24);
     rdisk_cmd_error(dev);
 }
 
@@ -813,10 +823,10 @@ rdisk_write_error(rdisk_t *dev)
     rdisk_sense_key = SENSE_MEDIUM_ERROR;
     rdisk_asc       = ASC_WRITE_ERROR;
     rdisk_ascq      = 0;
-    rdisk_info      =  (dev->sector_pos >> 24)        |
-                    ((dev->sector_pos >> 16) <<  8) |
-                    ((dev->sector_pos >> 8)  << 16) |
-                    ( dev->sector_pos        << 24);
+    rdisk_info      = (dev->sector_pos >> 24)        |
+                     ((dev->sector_pos >> 16) <<  8) |
+                     ((dev->sector_pos >> 8)  << 16) |
+                     ( dev->sector_pos        << 24);
     rdisk_cmd_error(dev);
 }
 
@@ -826,10 +836,10 @@ rdisk_read_error(rdisk_t *dev)
     rdisk_sense_key = SENSE_MEDIUM_ERROR;
     rdisk_asc       = ASC_UNRECOVERED_READ_ERROR;
     rdisk_ascq      = 0;
-    rdisk_info      =  (dev->sector_pos >> 24)        |
-                    ((dev->sector_pos >> 16) <<  8) |
-                    ((dev->sector_pos >> 8)  << 16) |
-                    ( dev->sector_pos        << 24);
+    rdisk_info      = (dev->sector_pos >> 24)        |
+                     ((dev->sector_pos >> 16) <<  8) |
+                     ((dev->sector_pos >> 8)  << 16) |
+                     ( dev->sector_pos        << 24);
     rdisk_cmd_error(dev);
 }
 
@@ -859,10 +869,10 @@ rdisk_lba_out_of_range(rdisk_t *dev)
     rdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     rdisk_asc       = ASC_LBA_OUT_OF_RANGE;
     rdisk_ascq      = 0;
-    rdisk_info      =  (dev->sector_pos >> 24)        |
-                    ((dev->sector_pos >> 16) <<  8) |
-                    ((dev->sector_pos >> 8)  << 16) |
-                    ( dev->sector_pos        << 24);
+    rdisk_info      = (dev->sector_pos >> 24)        |
+                     ((dev->sector_pos >> 16) <<  8) |
+                     ((dev->sector_pos >> 8)  << 16) |
+                     ( dev->sector_pos        << 24);
     rdisk_cmd_error(dev);
 }
 
@@ -872,10 +882,10 @@ rdisk_invalid_field(rdisk_t *dev, const uint32_t field)
     rdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     rdisk_asc       = ASC_INV_FIELD_IN_CMD_PACKET;
     rdisk_ascq      = 0;
-    rdisk_info      =  (field >> 24)        |
-                    ((field >> 16) <<  8) |
-                    ((field >> 8)  << 16) |
-                    ( field        << 24);
+    rdisk_info      = (field >> 24)        |
+                     ((field >> 16) <<  8) |
+                     ((field >> 8)  << 16) |
+                     ( field        << 24);
     rdisk_cmd_error(dev);
     dev->tf->status = 0x53;
 }
@@ -886,10 +896,10 @@ rdisk_invalid_field_pl(rdisk_t *dev, const uint32_t field)
     rdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     rdisk_asc       = ASC_INV_FIELD_IN_PARAMETER_LIST;
     rdisk_ascq      = 0;
-    rdisk_info      =  (field >> 24)        |
-                    ((field >> 16) <<  8) |
-                    ((field >> 8)  << 16) |
-                    ( field        << 24);
+    rdisk_info      = (field >> 24)        |
+                     ((field >> 16) <<  8) |
+                     ((field >> 8)  << 16) |
+                     ( field        << 24);
     rdisk_cmd_error(dev);
     dev->tf->status = 0x53;
 }
@@ -900,10 +910,10 @@ rdisk_data_phase_error(rdisk_t *dev, const uint32_t info)
     rdisk_sense_key = SENSE_ILLEGAL_REQUEST;
     rdisk_asc       = ASC_DATA_PHASE_ERROR;
     rdisk_ascq      = 0;
-    rdisk_info      =  (info >> 24)        |
-                    ((info >> 16) <<  8) |
-                    ((info >> 8)  << 16) |
-                    ( info        << 24);
+    rdisk_info      = (info >> 24)        |
+                     ((info >> 16) <<  8) |
+                     ((info >> 8)  << 16) |
+                     ( info        << 24);
     rdisk_cmd_error(dev);
 }
 
@@ -1010,8 +1020,8 @@ rdisk_pre_execution_check(rdisk_t *dev, const uint8_t *cdb)
 
     if (!(rdisk_command_flags[cdb[0]] & IMPLEMENTED)) {
         rdisk_log(dev->log, "Attempting to execute unknown command %02X over %s\n",
-                cdb[0], (dev->drv->bus_type == RDISK_BUS_SCSI) ?
-                "SCSI" : "ATAPI");
+                  cdb[0], (dev->drv->bus_type == RDISK_BUS_SCSI) ?
+                  "SCSI" : "ATAPI");
 
         rdisk_illegal_opcode(dev, cdb[0]);
         return 0;
@@ -1020,7 +1030,7 @@ rdisk_pre_execution_check(rdisk_t *dev, const uint8_t *cdb)
     if ((dev->drv->bus_type < RDISK_BUS_SCSI) &&
         (rdisk_command_flags[cdb[0]] & SCSI_ONLY)) {
         rdisk_log(dev->log, "Attempting to execute SCSI-only command %02X "
-                "over ATAPI\n", cdb[0]);
+                  "over ATAPI\n", cdb[0]);
         rdisk_illegal_opcode(dev, cdb[0]);
         return 0;
     }
@@ -1028,7 +1038,7 @@ rdisk_pre_execution_check(rdisk_t *dev, const uint8_t *cdb)
     if ((dev->drv->bus_type == RDISK_BUS_SCSI) &&
         (rdisk_command_flags[cdb[0]] & ATAPI_ONLY)) {
         rdisk_log(dev->log, "Attempting to execute ATAPI-only command %02X "
-                "over SCSI\n", cdb[0]);
+                  "over SCSI\n", cdb[0]);
         rdisk_illegal_opcode(dev, cdb[0]);
         return 0;
     }
@@ -1068,7 +1078,7 @@ rdisk_pre_execution_check(rdisk_t *dev, const uint8_t *cdb)
             rdisk_log(dev->log, "Unit attention now 2\n");
             dev->unit_attention++;
             rdisk_log(dev->log, "UNIT ATTENTION: Command %02X not allowed to pass through\n",
-                    cdb[0]);
+                      cdb[0]);
             rdisk_unit_attention(dev);
             return 0;
         }
@@ -1123,8 +1133,8 @@ rdisk_reset(scsi_common_t *sc)
     dev->packet_status      = PHASE_NONE;
     dev->unit_attention     = 0;
     dev->cur_lun            = SCSI_LUN_USE_CDB;
-    rdisk_sense_key = rdisk_asc = rdisk_ascq = dev->unit_attention = dev->transition = 0;
-    rdisk_info      = 0x00000000;
+    rdisk_sense_key         = rdisk_asc = rdisk_ascq = dev->unit_attention = dev->transition = 0;
+    rdisk_info              = 0x00000000;
 }
 
 static void
@@ -1173,8 +1183,8 @@ rdisk_request_sense(rdisk_t *dev, uint8_t *buffer, const uint8_t alloc_length, c
 static void
 rdisk_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, const uint8_t alloc_length)
 {
-    rdisk_t     *dev   = (rdisk_t *) sc;
-    const int  ready = (dev->drv->fp != NULL);
+    rdisk_t  *dev   = (rdisk_t *) sc;
+    const int ready = (dev->drv->fp != NULL);
 
     if (!ready && dev->unit_attention) {
         /*
@@ -1238,14 +1248,14 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
 
     if (cdb[0] != 0) {
         rdisk_log(dev->log, "Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, "
-                "Unit attention: %i\n",
-                cdb[0], rdisk_sense_key, rdisk_asc, rdisk_ascq, dev->unit_attention);
+                  "Unit attention: %i\n",
+                  cdb[0], rdisk_sense_key, rdisk_asc, rdisk_ascq, dev->unit_attention);
         rdisk_log(dev->log, "Request length: %04X\n", dev->tf->request_length);
 
         rdisk_log(dev->log, "CDB: %02X %02X %02X %02X %02X %02X %02X %02X "
-                "%02X %02X %02X %02X\n",
-                cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
-                cdb[8], cdb[9], cdb[10], cdb[11]);
+                  "%02X %02X %02X %02X\n",
+                  cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
+                  cdb[8], cdb[9], cdb[10], cdb[11]);
     }
 
     dev->sector_len = 0;
@@ -1583,7 +1593,7 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                 rdisk_buf_alloc(dev, 65536);
             }
 
-            if (zip_mode_sense_page_flags & (1LL << (uint64_t) (cdb[2] & 0x3f))) {
+            if (zip_100_mode_sense_page_flags & (1LL << (uint64_t) (cdb[2] & 0x3f))) {
                 memset(dev->buffer, 0, len);
                 alloc_length = len;
 
@@ -1868,8 +1878,7 @@ atapi_out:
 
             /* Current/Maximum capacity header */
             if (dev->drv->type == RDISK_TYPE_ZIP_100) {
-                /* ZIP 100 only supports ZIP 100 media as well, so we always return
-                   the ZIP 100 size. */
+                /* ZIP 100 only supports ZIP 100 media, so we always return the ZIP 100 size. */
                 dev->buffer[pos++] = (ZIP_SECTORS >> 24) & 0xff;
                 dev->buffer[pos++] = (ZIP_SECTORS >> 16) & 0xff;
                 dev->buffer[pos++] = (ZIP_SECTORS >> 8) & 0xff;
@@ -2041,11 +2050,11 @@ rdisk_phase_data_out(scsi_common_t *sc)
 
                 pos += 2;
 
-                if (!(zip_mode_sense_page_flags & (1LL << ((uint64_t) page))))
+                if (!(zip_100_mode_sense_page_flags & (1LL << ((uint64_t) page))))
                     error |= 1;
                 else for (i = 0; i < page_len; i++) {
                     const uint8_t old_val = dev->ms_pages_saved.pages[page][i + 2];
-                    const uint8_t ch      = zip_mode_sense_pages_changeable.pages[page][i + 2];
+                    const uint8_t ch      = zip_100_mode_sense_pages_changeable.pages[page][i + 2];
                     val                   = dev->buffer[pos + i];
                     if (val != old_val) {
                         if (ch)
@@ -2060,9 +2069,9 @@ rdisk_phase_data_out(scsi_common_t *sc)
                 pos += page_len;
 
                 if (dev->drv->bus_type == RDISK_BUS_SCSI)
-                    val = zip_mode_sense_pages_default_scsi.pages[page][0] & 0x80;
+                    val = zip_100_mode_sense_pages_default_scsi.pages[page][0] & 0x80;
                 else
-                    val = zip_mode_sense_pages_default.pages[page][0] & 0x80;
+                    val = zip_100_mode_sense_pages_default.pages[page][0] & 0x80;
                 if (dev->do_page_save && val)
                     rdisk_mode_sense_save(dev);
 

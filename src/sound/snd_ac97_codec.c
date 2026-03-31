@@ -793,8 +793,8 @@ ac97_codec_init(const device_t *info)
         if (dev->vendor_reg_page_max > 0) {
             ac97_codec_log("AC97 Codec %d: Allocating %d vendor-specific register pages\n", dev->codec_id, dev->vendor_reg_page_max);
             int i                 = 16 * dev->vendor_reg_page_max;
-            dev->vendor_reg_pages = (uint16_t *) malloc(i);
-            memset(dev->vendor_reg_pages, 0, i);
+
+            dev->vendor_reg_pages = (uint16_t *) calloc(1, i);
         }
     }
 
