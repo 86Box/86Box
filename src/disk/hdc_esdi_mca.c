@@ -734,7 +734,7 @@ esdi_callback(void *priv)
                 dev->status_data[2] = drive->sectors & 0xffff;
                 dev->status_data[3] = drive->sectors >> 16;
                 dev->status_data[4] = drive->tracks;
-                dev->status_data[5] = drive->hpc | (drive->spt << 16);
+                dev->status_data[5] = drive->hpc | (drive->spt << 8);
             }
             esdi_mca_log("CMD_GET_DEV_CONFIG %i  %04x %04x %04x %04x %04x %04x\n",
                 drive->sectors,
