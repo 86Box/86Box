@@ -207,6 +207,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A" },
         { .old = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)", .new = "IBM ESDI Fixed Disk Adapter" },
         { .old = "IBM Integrated Fixed Disk and Controller (MCA)", .new = "IBM Integrated Fixed Disk" },
+        { .old = "IBM PS/2 ST506 Fixed Disk Adapter (MCA)", .new = "IBM ST506 Fixed Disk Adapter" },
         { 0 }
     };
 
