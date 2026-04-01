@@ -204,7 +204,9 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Aztech Sound Galaxy Pro 16 AB (Washington)", .new = "Aztech Sound Galaxy Pro 16 AB" },
         { .old = "Aztech Sound Galaxy Nova 16 Extra (Clinton)", .new = "Aztech Sound Galaxy Nova 16 Extra" },
         { .old = "Aztech Sound Galaxy Pro 16 (AZTPR16)", .new = "Aztech Sound Galaxy Pro 16" },
-        { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A (AZT2320)" },
+        { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A" },
+        { .old = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)", .new = "IBM ESDI Fixed Disk Adapter" },
+        { .old = "IBM Integrated Fixed Disk and Controller (MCA)", .new = "IBM Integrated Fixed Disk" },
         { 0 }
     };
 

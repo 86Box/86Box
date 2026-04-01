@@ -1448,7 +1448,7 @@ esdi_available(void)
 }
 
 const device_t esdi_ps2_device = {
-    .name          = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
+    .name          = "IBM ESDI Fixed Disk Adapter",
     .internal_name = "esdi_mca",
     .flags         = DEVICE_MCA,
     .local         = ESDI_IS_ADAPTER,
@@ -1497,7 +1497,7 @@ Following IBM machines are supported:
 */
 const device_t
 esdi_integrated_device = {
-    .name = "IBM Integrated Fixed Disk and Controller (MCA)",
+    .name = "IBM Integrated Fixed Disk",
     .internal_name = "esdi_integrated_mca",
     .flags = DEVICE_MCA,
     .local = ESDI_IS_INTEGRATED,
