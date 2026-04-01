@@ -244,6 +244,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     uint32_t j               = 0;
     int      selectedTypeRow = 0;
     int      eligibleRows    = 0;
+    scCDROMType->removeRows();
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
         if (((bus_type == CDROM_BUS_MKE) || (bus_type == CDROM_BUS_ATAPI) || (bus_type == CDROM_BUS_SCSI)) && ((cdrom_drive_types[j].bus_type == bus_type) || ((cdrom_drive_types[j].bus_type == BUS_TYPE_BOTH) && (bus_type != BUS_TYPE_MKE)))) {
             QString name = CDROMName(j);
