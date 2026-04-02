@@ -9,9 +9,12 @@
  *          Generic CD-ROM drive core.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Nat Portillo, <claunia@claunia.com>
  *
  *          Copyright 2018-2021 Miran Grca.
+ *          Copyright 2025 Nat Portillo.
  */
+
 #include <inttypes.h>
 #ifdef ENABLE_CDROM_LOG
 #include <stdarg.h>
@@ -26,6 +29,7 @@
 #include <86box/config.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
+#include <86box/cdrom_image_writable.h>
 #include <86box/cdrom_interface.h>
 #ifdef USE_CDROM_MITSUMI
 #include <86box/cdrom_mitsumi.h>
@@ -40,10 +44,18 @@
 #include <86box/sound.h>
 #include <86box/ui.h>
 
-#define RAW_SECTOR_SIZE    2352
+#define RAW_SECTOR_SIZE                2352
 
-#define MIN_SEEK           2000
-#define MAX_SEEK           333333
+#define MIN_SEEK                       2000
+#define MAX_SEEK                       333333
+
+#define CALCULATE_SUB_HEADER           0x01
+#define CALCULATE_CRC_AND_ECC          0x02
+
+#define SUBCH_NONE_PRESENT             0x00
+#define SUBCH_P_AND_Q_PRESENT          0x01
+#define SUBCH_PACKED_P_TO_W_PRESENT    0x02   
+#define SUBCH_RAW_P_TO_W_PRESENT       0x03
 
 cdrom_t cdrom[CDROM_NUM] = { 0 };
 
@@ -2153,6 +2165,65 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
 }
 
 int
+cdrom_read_pma(const cdrom_t *dev, uint8_t *b, const int max_len)
+{
+    if (max_len < 4)
+        return -1;
+
+    // This is exactly what a blank CD-R returns, no PMA, seems only CD-RWs have PMA?
+    b[0] = 0x00; /* PMA Data Length (MSB) */
+    b[1] = 0x02; /* PMA Data Length (LSB) */
+    b[2] = 0x00; /* Reserved */
+    b[3] = 0x00; /* Reserved */
+
+    return 4;
+}
+
+int
+cdrom_read_atip(const cdrom_t *dev, uint8_t *b, const int max_len)
+{
+    if (max_len < 28)
+        return -1;
+
+    b[ 0] = 0x00; /* ATIP Data Length (MSB) */
+    b[ 1] = 0x1a; /* ATIP Data Length (LSB) */
+    b[ 2] = 0x00; /* Reserved */
+    b[ 3] = 0x00; /* Reserved */
+    // Special Information 1
+    b[ 4] = 0xd0; /* Indicative Target Writing Power, Reference Speed */
+    b[ 5] = 0x00; /* URU */
+    b[ 6] = 0x98; /* 1, Disc Type, Disc Sub-Type, A1 Valid, A2 Valid, A3 Valid*/
+    b[ 7] = 0x00; /* Reserved*/
+    // Special Information 2
+    b[ 8] = 0x61; /* ATIP Start Time of Lead-in (Min) */
+    b[ 9] = 0x1a; /* ATIP Start Time of Lead-in (Sec) */
+    b[10] = 0x42; /* ATIP Start Time of Lead-in (Frame) */
+    b[11] = 0x00; /* Reserved */
+    // Special Information 3
+    b[12] = 0x4f; /* ATIP Last Possible Start of Lead-out (Min) */
+    b[13] = 0x3b; /* ATIP Last Possible Start of Lead-out (Sec) */
+    b[14] = 0x47; /* ATIP Last Possible Start of Lead-out (Frame) */
+    b[15] = 0x00; /* Reserved */
+    // Additional Information 1
+    b[16] = 0x00; /* A1 Values */
+    b[17] = 0x00; /* A1 Values */
+    b[18] = 0x80; /* A1 Values */
+    b[19] = 0x00; /* Reserved */
+    // Additional Information 2
+    b[20] = 0x00; /* A2 Values */
+    b[21] = 0x80; /* A2 Values */
+    b[22] = 0x00; /* A2 Values */
+    b[23] = 0x00; /* Reserved */
+    // Additional Information 3
+    b[24] = 0x00; /* A3 Values */
+    b[25] = 0x80; /* A3 Values */
+    b[26] = 0x80; /* A3 Values */
+    b[27] = 0x00; /* Reserved */
+
+    return 28;
+}
+
+int
 cdrom_read_toc(const cdrom_t *dev, uint8_t *b, const int type,
                const uint8_t start_track, const int msf, const int max_len)
 {
@@ -2745,6 +2816,45 @@ cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer)
     int               ls_last    = 0;
     int               t_b0       = -1;
 
+    if (dev->blank_media == CD_BLANK_CDR) {
+        memset(buffer, 0x00, 34);
+
+        buffer[ 0] = 0x00; /* Disc Information Length (MSB) */
+        buffer[ 1] = 0x20; /* Disc Information Lenght (LSB) */
+        buffer[ 2] = 0x00; /* Reserved, Erasable, State of Last Session, Disc Status */
+        buffer[ 3] = 0x01; /* Number of First Track on Disc */
+        buffer[ 4] = 0x01; /* Number of Sessions (LSB) */
+        buffer[ 5] = 0x01; /* First track number in last session (LSB) */
+        buffer[ 6] = 0x01; /* Last track number in last session (LSB) */
+        buffer[ 7] = 0x00; /* DID_V, DBC_V, URU, DAC_V, Reserved, Dbit, BG format Status */
+        buffer[ 8] = 0xff; /* Disc type */
+        buffer[ 9] = 0x00; /* Number Of Sessions (MSB) */
+        buffer[10] = 0x00; /* First Track Number in Last Session (MSB) */
+        buffer[11] = 0x00; /* Last Track Number in Last Session (MSB) */
+        buffer[12] = 0x00; /* Disc identification (MSB...) */
+        buffer[13] = 0x00; /* ... */
+        buffer[14] = 0x00; /* ... */
+        buffer[15] = 0x00; /* Disc identification (...LSB) */
+        buffer[16] = 0x00; /* Last session Lead-In Start Address (MSB...) */
+        buffer[17] = 0x61; /* ... */
+        buffer[18] = 0x1a; /* ... */
+        buffer[19] = 0x42; /* Last session Lead-In Start Address (...LSB) */
+        buffer[20] = 0x00; /* Last Possible Start Time for Start of Lead-out (MSB) */
+        buffer[21] = 0x4f; /* ... */
+        buffer[22] = 0x3b; /* ... */
+        buffer[23] = 0x47; /* Last Possible Start Time for Start of Lead-out (...LSB) */
+        buffer[24] = 0x00; /* Disc barcode (MSB...) */
+        buffer[25] = 0x00; /* ... */
+        buffer[26] = 0x00; /* ... */
+        buffer[27] = 0x00; /* ... */
+        buffer[28] = 0x00; /* ... */
+        buffer[29] = 0x00; /* ... */
+        buffer[30] = 0x00; /* ... */
+        buffer[31] = 0x00; /* Disc barcode (...LSB) */
+
+        return;
+    }
+
     dev->ops->get_raw_track_info(dev->local, &num, rti);
 
     for (int i = 0; i < num; i++)
@@ -2850,6 +2960,47 @@ cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer)
             }
             break;
         case 0x01:
+            if (dev->blank_media) {
+                if ((pos != 0xff) && (pos != 0x01)) {
+                    ret = -cdb[1];
+                    break;
+                }
+
+                // Otherwise it is asking the invisible/incomplete track information
+                memset(buffer, 0, 36);
+                buffer[ 0] = 0x00; /* Data Length (MSB) */
+                buffer[ 1] = 0x22; /* Data Length (LSB) */
+                buffer[ 2] = 0x01; /* Logical Track Number (LSB) */
+                buffer[ 3] = 0x01; /* Session Number (LSB) */
+                buffer[ 4] = 0x00; /* Reserved */
+                buffer[ 5] = 0x04; /* LJRS, Damage, Copy, Track Mode */
+                buffer[ 6] = 0x4f; /* RT, Blank, Packet, FP, Data Mode */
+                buffer[ 7] = 0x01; /* LRA_V, NWA_V */
+                buffer[ 8] = 0x00; /* Logical Track Start Addres (MSB...) */
+                buffer[ 9] = 0x00; /* ... */
+                buffer[10] = 0x00; /* ... */
+                buffer[11] = 0x00; /* Logical Track Start Address (...LSB) */
+                buffer[12] = 0x00; /* Next Writable Address (MSB...) */
+                buffer[13] = 0x00; /* ... */
+                buffer[14] = 0x00; /* ... */
+                buffer[15] = 0x00; /* Next Writable Address (...LSB) */
+                buffer[16] = 0x00; /* Free Blocks (MSB...) */
+                buffer[17] = 0x05; /* ... */
+                buffer[18] = 0x7d; /* ... */
+                buffer[19] = 0xa4; /* Free Blocks (...LSB) */
+                buffer[20] = 0x00; /* Fixed Packet Size (MSB...) */
+                buffer[21] = 0x00; /* ... */
+                buffer[22] = 0x00; /* ... */
+                buffer[23] = 0x00; /* Fixed Packet Size (...LSB) */
+                buffer[24] = 0x00; /* Logical Track Size (MSB...) */
+                buffer[25] = 0x05; /* ... */
+                buffer[26] = 0x7d; /* ... */
+                buffer[27] = 0xa4; /* Logical Track Size (...LSB) */
+
+                ret = 28;
+                break;
+            }
+
             switch (pos) {
                 default:
                     /*
@@ -3002,6 +3153,37 @@ cdrom_update_status(cdrom_t *dev)
 }
 
 int
+cdrom_insert_blank(cdrom_t *dev, const char *fn)
+{
+    int ret = 0;
+
+    // Create new image
+    dev->local = wimage_open(dev, dev->image_path);
+
+    // Clear cached sectors
+    dev->cached_sector = -1;
+
+    // If new image could not be created
+    if (dev->local == NULL) {
+        dev->ops = NULL;
+        dev->image_path[0] = 0;
+
+        ret = 1;
+    } else {
+        // All looking good, reset state
+        dev->seek_pos = 0;
+        dev->cd_buflen = 0;
+        dev->cd_status = CD_STATUS_DATA_ONLY;
+        dev->blank_media = CD_BLANK_CDR;
+        dev->cdrom_capacity = 0;
+        cdrom_log(dev->log, "Blank CD-R created\n");
+        cdrom_insert(dev->id);
+    }
+
+    return ret;
+}
+
+int
 cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 {
     const int  was_empty = cdrom_is_empty(dev->id);
@@ -3097,6 +3279,7 @@ cdrom_hard_reset(void)
             dev->is_chinon  = !strcmp(vendor, "CHINON");
             dev->is_pioneer = !strcmp(vendor, "PIONEER");
             dev->is_plextor = !strcmp(vendor, "PLEXTOR");
+            dev->is_yamaha  = !strcmp(vendor, "YAMAHA");
             dev->is_sony    = (dev->bus_type == CDROM_BUS_SCSI) &&
                               (!strcmp(vendor, "DEC") ||
                                !strcmp(vendor, "ShinaKen") ||
@@ -3299,4 +3482,198 @@ cdrom_reload(const uint8_t id)
     plat_cdrom_ui_update(id, 1);
 
     config_save();
+}
+
+int
+cdrom_send_cuesheet(cdrom_t *dev, const uint8_t *buffer, int len)
+{
+    return dev->ops->send_cuesheet(dev->local, buffer, len);
+}
+
+int
+cdrom_read_buffer_capacity(cdrom_t *dev, uint8_t *buffer, int block)
+{
+    /* Buffer capacity hardcoded to 1 MiB */
+
+    memset(buffer, 0, 12);
+
+    buffer[0] = 0x00; /* Data Length (MSB) */
+    buffer[1] = 0x0a; /* Data Length (LSB) */
+    buffer[2] = 0x00; /* Reserved */
+    buffer[3] = 0x00; /* Reserved */
+    if (block) { /* 512 blocks */
+        buffer[4] = 0x00; /* Length of the Buffer (MSB...) */
+        buffer[5] = 0x00; /* ... */
+        buffer[6] = 0x02; /* ... */
+        buffer[7] = 0x00; /* Length of the Buffer (...LSB) */
+        buffer[8] = 0x00; /* Blank Length of the Buffer (MSB...) */
+        buffer[9] = 0x00; /* ... */
+        buffer[10] = 0x00; /* ... */
+        buffer[11] = 0x00; /* Blank Length of the Buffer (...LSB) */
+    }
+    else { /* 1048576 bytes */
+        buffer[4] = 0x00; /* Length of the Buffer (MSB...) */
+        buffer[5] = 0x10; /* ... */
+        buffer[6] = 0x00; /* ... */
+        buffer[7] = 0x00; /* Length of the Buffer (...LSB) */
+        buffer[8] = 0x00; /* Blank Length of the Buffer (MSB...) */
+        buffer[9] = 0x10; /* ... */
+        buffer[10] = 0x00; /* ... */
+        buffer[11] = 0x00; /* Blank Length of the Buffer (...LSB) */
+    }
+
+    return 12;
+}
+
+int
+cdrom_write_to_toc(cdrom_t *dev, const uint8_t track)
+{
+    int ret = 0;
+
+    if (dev->ops->write_to_toc)
+        ret = dev->ops->write_to_toc(dev->local, track);
+
+    return ret;
+}
+
+static void
+reconstruct_raw_sector(cdrom_t *dev, uint8_t *buffer, int sector, int mode, int form, int flags, int subch_flags)
+{
+    if (mode > 0) {
+        /* Write the sync bytes */
+        buffer[0]  = buffer[11] = 0x00;
+        memset(&(buffer[1]), 0xff, 10);
+
+        /* Write the header */
+        int m = ((sector - 150) / (60 * 75)) % 60;
+        int s = ((sector - 150) / 75) % 60;
+        int f = (sector - 150) % 75;
+        buffer[12] = bin2bcd(m & 0xff);    /* Minute */
+        buffer[13] = bin2bcd(s & 0xff);    /* Second */
+        buffer[14] = bin2bcd(f & 0xff);    /* Frame  */
+        buffer[15] = mode;                 /* Mode   */
+
+        if (flags & CALCULATE_SUB_HEADER)
+            buffer[0x0012] = buffer[0x0016] = (form - 1) << 5;
+
+        if (flags & CALCULATE_CRC_AND_ECC) {
+            if (form <= 1) {
+                /* Calculate and fill the EDC (aka CRC) */
+                uint32_t edc = cdrom_crc32(0xffffffff, buffer, 2056) ^ 0xffffffff;
+                memcpy(&(buffer[(mode == 1) ? 2064 : 2072]), &edc, 4);
+            }
+
+            /* Compute ECC P code */
+            cdrom_compute_ecc_block(dev, &(buffer[2076]), &(buffer[12]), 86, 24, 2, 86, (form == 1));
+
+            /* Compute ECC Q code */
+            cdrom_compute_ecc_block(dev, &(buffer[2248]), &(buffer[12]), 52, 43, 86, 88, (form == 1));
+        }
+
+        /* Scramble the data */
+    }
+
+    /* Convert or construct the sub-channel flags if raw P to W sub-channel is not already present. */
+    switch (subch_flags) {
+        case SUBCH_NONE_PRESENT:
+            break;
+        case SUBCH_P_AND_Q_PRESENT:
+            break;
+        case SUBCH_PACKED_P_TO_W_PRESENT:
+            break;
+    }
+}
+
+static int
+cdrom_get_data_block_size(int data_block_type)
+{
+    int block_size      = 0;
+
+    switch (data_block_type) {
+        case 0:
+            block_size = 2352;
+            break;
+        case 1:
+            block_size = 2368;
+            break;
+        case 2 ... 3:
+            block_size = 2448;
+            break;
+        case 8: case 10:
+            block_size = 2048;
+            break;
+        case 9:
+            block_size = 2336;
+            break;
+        case 11:
+            block_size = 2056;
+            break;
+        case 12:
+            block_size = 2324;
+            break;
+        case 13:
+            block_size = 2332;
+            break;
+    }
+
+    return block_size;
+}
+
+static int
+cdrom_get_data_block_start(int data_block_type)
+{
+    int block_start     = 0;
+
+    switch (data_block_type) {
+        case 0 ... 3:
+            block_start = 0;
+            break;
+        case 8 ... 9:
+        case 11: case 13:
+            block_start = 16;
+            break;
+        case 10: case 12:
+            block_start = 24;
+            break;
+    }
+
+    return block_start;
+}
+
+/* TODO: Have a struct flag for storing data block type, updated on reset and mode sense page change. */
+int
+cdrom_writesector(cdrom_t *dev, const uint8_t *buffer, int sector, int write_type, int data_block_type)
+{
+    uint8_t        sector_buffer[2448] = { 0 };
+    const uint8_t *buf                 = buffer;
+    int            ret                 = 0;
+
+    /* TODO: SAO, RAW and Packet */
+    if (write_type == 1) {    /* TAO */
+        int block_size  = cdrom_get_data_block_size(data_block_type);
+        int block_start = cdrom_get_data_block_start(data_block_type);
+
+        if (block_size == 0)
+            ret = -1;
+        else {
+            if (data_block_type >= 1) {
+                /* Copy user data to sector buffer */
+                buf = (const uint8_t *) sector_buffer;
+                memcpy(&sector_buffer[block_start], buffer, block_size);
+
+                /* Reconstruct the rest of the raw sector */
+                reconstruct_raw_sector(dev, sector_buffer, sector,
+                                       (data_block_type >= 8) ? ((data_block_type >= 9) ? 2 : 1) : 0,
+                                       (data_block_type >= 10) ? ((data_block_type >= 12) ? 2 : 1) : 0,
+                                       (data_block_type >= 10) ? ((data_block_type & 3) ^ 1) : 0,
+                                       (data_block_type >= 8) ? 0 : (data_block_type & 3));
+            }
+
+            /* Write sector data */
+            dev->ops->write_sector(dev->local, buf, sector);
+        }
+    } else
+        ret = -1;
+
+    return ret;
 }
