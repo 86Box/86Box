@@ -616,7 +616,11 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
                 return tr((const char *) temp);
         } else {
             device_get_name(device, bus, temp);
-            return tr((const char *) temp).remove(" (On-Board)", Qt::CaseInsensitive);
+            const char *m = device_get_machine(device);
+            if (m == NULL)
+                return tr((const char *) temp).remove(" (On-Board)", Qt::CaseInsensitive).remove(" On-Board", Qt::CaseInsensitive);
+            else
+                return tr((const char *) temp).remove(" (On-Board)", Qt::CaseInsensitive).remove(" On-Board", Qt::CaseInsensitive).remove(QString(" (%1)").arg(m), Qt::CaseInsensitive);
         }
     }
 }

@@ -1972,6 +1972,7 @@ const device_t ht216_32_pb410a_device = {
     .available     = NULL,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
+    .machine       = "Packard Bell PB410A",
     .config        = NULL
 };
 
