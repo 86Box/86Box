@@ -254,6 +254,9 @@ typedef struct pas16_t {
     uint8_t  ym3802_reg6_banked[16];
     uint8_t  ym3802_reg7_banked[16];
 
+    uint16_t ym3802_gen_timer;
+    pc_timer_t ym3802_gentimer;
+
     nsc_mixer_t   nsc_mixer;
     mv508_mixer_t mv508_mixer;
 
@@ -717,6 +720,23 @@ pas16_update_irq(pas16_t *pas16)
     }
     if (pas16->midi_uart_in && (pas16->midi_stat & 0x04)) {
         pas16->irq_stat |= PAS16_INT_MIDI;
+        if ((pas16->irq != -1) && (pas16->irq_ena & PAS16_INT_MIDI))
+            picint(1 << pas16->irq);
+    }
+}
+
+void
+ym3802_gentimer_poll(void *priv)
+{
+    pas16_t *pas16 = (pas16_t *) priv;
+
+    //pas16_log("Reloading YM3802 general timer\n");
+    timer_set_delay_u64(&pas16->ym3802_gentimer, (pas16->ym3802_gen_timer * 8 * TIMER_USEC));
+
+    if (pas16->ym3802_reg6_banked[0x00] & 0x80) {
+        //pas16_log("Firing YM3802 general timer IRQ!\n");
+        pas16->irq_stat |= PAS16_INT_MIDI;
+        pas16->ym3802_ivr |= 0x0e;
         if ((pas16->irq != -1) && (pas16->irq_ena & PAS16_INT_MIDI))
             picint(1 << pas16->irq);
     }
@@ -1600,16 +1620,34 @@ pas_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x1403:
             pas16->ym3802_icr = val;
+            pas16->ym3802_ivr = 0x00;
+            pas16->ym3802_isr &= ~val;
+            pas16->irq_stat &= 0x0f;
+            if ((pas16->irq != -1) && (!(pas16->irq_stat & 0x0f)))
+                picintc(1 << pas16->irq);
             break;
 
         case 0x1800:
             pas16->ym3802_reg4_banked[pas16->ym3802_banked_idx] = val;
+            if (pas16->ym3802_banked_idx == 0x08)
+                pas16->ym3802_gen_timer = (pas16->ym3802_gen_timer & 0x3f00) | val;
             break;
         case 0x1801:
             pas16->ym3802_reg5_banked[pas16->ym3802_banked_idx] = val;
+            if (pas16->ym3802_banked_idx == 0x08) {
+                pas16->ym3802_gen_timer = (pas16->ym3802_gen_timer & 0x00ff) | ((val & 0x3f) << 8);
+                if (val & 0x80)
+                    timer_set_delay_u64(&pas16->ym3802_gentimer, (pas16->ym3802_gen_timer * 8 * TIMER_USEC));
+            }
             break;
         case 0x1802:
             pas16->ym3802_reg6_banked[pas16->ym3802_banked_idx] = val;
+            if (pas16->ym3802_banked_idx == 0x05) {
+                if (pas16->ym3802_reg5_banked[0x05] & 0x01) {
+                    pas16_log("MIDI data out %02X\n", val);
+                    midi_raw_out_byte(val);
+                }
+            }
             break;
         case 0x1803:
             pas16->ym3802_reg7_banked[pas16->ym3802_banked_idx] = val;
@@ -2961,6 +2999,9 @@ pas_init(const device_t *info)
     }
 
     pas16->audio_mixer = 0x10;
+
+    /* YM3802 timer init */
+    timer_add(&pas16->ym3802_gentimer, ym3802_gentimer_poll, pas16, 0);
 
     return pas16;
 }
