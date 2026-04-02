@@ -613,6 +613,9 @@ msgstr "Σκληροί δίσκοι:"
 msgid "Firmware Version"
 msgstr "Έκδοση Firmware"
 
+msgid "DSP Version"
+msgstr "Έκδοση DSP"
+
 msgid "&New…"
 msgstr "&Δημιουργία…"
 

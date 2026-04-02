@@ -612,6 +612,9 @@ msgstr "Sabit diskler:"
 msgid "Firmware Version"
 msgstr "Bellenim Sürümü"
 
+msgid "DSP Version"
+msgstr "DSP Sürümü"
+
 msgid "&New…"
 msgstr "&Yeni…"
 

@@ -613,6 +613,9 @@ msgstr "Жёсткие диски:"
 msgid "Firmware Version"
 msgstr "Версия прошивки"
 
+msgid "DSP Version"
+msgstr "Версия DSP"
+
 msgid "&New…"
 msgstr "&Создать…"
 

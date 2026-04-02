@@ -613,6 +613,9 @@ msgstr "Kiintolevyt:"
 msgid "Firmware Version"
 msgstr "Laiteohjelmiston versio"
 
+msgid "DSP Version"
+msgstr "DSP:n versio"
+
 msgid "&New…"
 msgstr "&Uusi…"
 

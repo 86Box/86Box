@@ -612,6 +612,9 @@ msgstr "Discs durs:"
 msgid "Firmware Version"
 msgstr "Versió del firmware"
 
+msgid "DSP Version"
+msgstr "Versió del DSP"
+
 msgid "&New…"
 msgstr "&Nou…"
 

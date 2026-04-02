@@ -606,6 +606,9 @@ msgstr ""
 msgid "Firmware Version"
 msgstr ""
 
+msgid "DSP Version"
+msgstr ""
+
 msgid "&New…"
 msgstr ""
 

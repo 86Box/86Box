@@ -613,6 +613,9 @@ msgstr "ハード ディスク:"
 msgid "Firmware Version"
 msgstr "ファームウェアバージョン"
 
+msgid "DSP Version"
+msgstr "DSP バージョン"
+
 msgid "&New…"
 msgstr "新規(&N)…"
 

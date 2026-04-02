@@ -613,6 +613,9 @@ msgstr "Harddisker:"
 msgid "Firmware Version"
 msgstr "Firmware-versjon"
 
+msgid "DSP Version"
+msgstr "DSP-versjon"
+
 msgid "&New…"
 msgstr "&Ny…"
 

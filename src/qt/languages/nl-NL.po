@@ -612,6 +612,9 @@ msgstr "Harde schijven:"
 msgid "Firmware Version"
 msgstr "Firmware versie"
 
+msgid "DSP Version"
+msgstr "DSP versie"
+
 msgid "&New…"
 msgstr "&Nieuw…"
 

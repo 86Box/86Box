@@ -613,6 +613,9 @@ msgstr "Discos rígidos:"
 msgid "Firmware Version"
 msgstr "Versão do Firmware"
 
+msgid "DSP Version"
+msgstr "Versão do DSP"
+
 msgid "&New…"
 msgstr "&Novo…"
 

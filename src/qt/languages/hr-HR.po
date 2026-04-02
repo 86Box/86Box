@@ -615,6 +615,9 @@ msgstr "Tvrdi diskovi:"
 msgid "Firmware Version"
 msgstr "Verzija firmvera"
 
+msgid "DSP Version"
+msgstr "Verzija DSP-a"
+
 msgid "&New…"
 msgstr "&Novi…"
 
