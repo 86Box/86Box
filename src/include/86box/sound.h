@@ -183,6 +183,7 @@ extern const device_t sb_awe64_value_device;
 extern const device_t sb_awe64_device;
 extern const device_t sb_awe64_ide_device;
 extern const device_t sb_awe64_gold_device;
+extern const device_t sb_live_device;
 
 /* Crystal CS423x */
 extern const device_t cs4232_device;

@@ -325,32 +325,33 @@ emu8k_log(const char *fmt, ...)
 #    define emu8k_log(fmt, ...)
 #endif
 
-static inline int16_t
+static int16_t
 EMU8K_READ(emu8k_t *emu8k, uint32_t addr)
 {
     register const emu8k_mem_pointers_t addrmem = { { addr } };
     return emu8k->ram_pointers[addrmem.hb_address][addrmem.lw_address];
 }
 
-#if NOTUSED
-static inline int16_t
-EMU8K_READ_INTERP_LINEAR(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
+static inline int32_t
+emu8k_interp(UNUSED(emu8k_t *emu8k),
+#ifndef RESAMPLER_LINEAR
+             int32_t dat0,
+#endif
+             int32_t dat1, int32_t dat2,
+#ifndef RESAMPLER_LINEAR
+             int32_t dat3,
+#endif
+             uint16_t fract)
 {
+#ifdef RESAMPLER_LINEAR
     /* The interpolation in AWE32 used a so-called patented 3-point interpolation
      * ( I guess some sort of spline having one point before and one point after).
      * Also, it has the consequence that the playback is delayed by one sample.
      * I simulate the "one sample later" than the address with addr+1 and addr+2
      * instead of +0 and +1 */
-    int16_t dat1 = EMU8K_READ(emu8k, int_addr + 1);
-    int32_t dat2 = EMU8K_READ(emu8k, int_addr + 2);
-    dat1 += ((dat2 - (int32_t) dat1) * fract) >> 16;
+    dat1 += ((dat2 - dat1) * fract) >> 16;
     return dat1;
-}
-#endif
-
-static inline int32_t
-EMU8K_READ_INTERP_CUBIC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
-{
+#elif defined RESAMPLER_CUBIC
     /*Since there are four floats in the table for each fraction, the position is 16byte aligned. */
     fract >>= 16 - CUBIC_RESOLUTION_LOG;
     fract <<= 2;
@@ -369,17 +370,15 @@ EMU8K_READ_INTERP_CUBIC(emu8k_t *emu8k, uint32_t int_addr, uint16_t fract)
      * Also, it takes into account the "Note that the actual audio location is the point
      * 1 word higher than this value due to interpolation offset".
      * That's why the pointers are 0, 1, 2, 3 and not -1, 0, 1, 2 */
-    int32_t       dat2  = EMU8K_READ(emu8k, int_addr + 1);
-    const float  *table = &cubic_table[fract];
-    const int32_t dat1  = EMU8K_READ(emu8k, int_addr);
-    const int32_t dat3  = EMU8K_READ(emu8k, int_addr + 2);
-    const int32_t dat4  = EMU8K_READ(emu8k, int_addr + 3);
+    const float *table = &cubic_table[fract];
     /* Note: I've ended using float for the table values to avoid some cases of integer overflow. */
-    dat2 = dat1 * table[0] + dat2 * table[1] + dat3 * table[2] + dat4 * table[3];
-    return dat2;
+    return dat0 * table[0] + dat1 * table[1] + dat2 * table[2] + dat3 * table[3];
+#else
+    return dat0;
+#endif
 }
 
-static inline void
+static void
 EMU8K_WRITE(emu8k_t *emu8k, uint32_t addr, uint16_t val)
 {
     addr &= EMU8K_MEM_ADDRESS_MASK;
@@ -393,6 +392,36 @@ EMU8K_WRITE(emu8k_t *emu8k, uint32_t addr, uint16_t val)
         addr -= emu8k->ram_end_addr - EMU8K_RAM_MEM_START;
 
     emu8k->ram[addr - EMU8K_RAM_MEM_START] = val;
+}
+
+static void
+emu8k_10k1_recalc_format(emu8k_t *emu8k)
+{
+    emu8k_voice_t *emu_voice = &emu8k->voice[emu8k->cur_voice];
+
+    /* Calculate addressing mode. */
+    emu_voice->ccr_readaddr = (!CCCA_10K1_8BITSELECT(emu_voice->ccca) << 6) | (!!CPF_10K1_STEREO(emu_voice->cpf) << 7);
+    switch (emu_voice->ccr_readaddr & 0xc0) {
+        case 0x00:
+            emu_voice->addr_shift       = 0;
+            emu_voice->dword_multiplier = 0x01010101;
+            break;
+        case 0xc0:
+            emu_voice->addr_shift       = 2;
+            emu_voice->dword_multiplier = 0x00000001;
+            break;
+        default:
+            emu_voice->addr_shift       = 1;
+            emu_voice->dword_multiplier = 0x00010001;
+            break;
+    }
+
+    /* Add stereo channel offset. For the formats we deal with, addr_shift == ((1 << addr_shift) >> 1) as a shortcut. */
+    emu_voice->stereo_offset = ((emu_voice->ccr_readaddr & 0x80) && (emu8k->cur_voice & 1)) ? emu_voice->addr_shift : 0;
+
+    /* Reset FIFO due to format change. */
+    emu_voice->fifo_pos = 0;
+    emu_voice->fifo_end = 0;
 }
 
 uint16_t
@@ -762,7 +791,7 @@ emu8k_inw(uint16_t addr, void *priv)
                     return emu8k->voice[emu8k->cur_voice].fm2frq2;
 
                 case 6:
-                    return 0xffff;
+                    return emu8k->voice[emu8k->cur_voice].tempenv;
 
                 case 7: /*ID?*/
                     return 0x1c | ((emu8k->id & 0x0002) ? 0xff02 : 0);
@@ -871,16 +900,30 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
             switch (emu8k->cur_reg) {
                 case 0:
                     /* The docs says that this value is constantly updating, and it should have no actual effect. Actions should be done over ptrx */
+                    if (CPF_10K1_STEREO(emu8k->voice[emu8k->cur_voice].cpf) != CPF_10K1_STEREO(val))
+                        emu8k_10k1_recalc_format(emu8k);
                     WRITE16(addr, emu8k->voice[emu8k->cur_voice].cpf, val);
+                    if (emu8k->emu10k1_fxsends && CPF_10K1_STOP(emu8k->voice[emu8k->cur_voice].cpf))
+                        emu8k->voice[emu8k->cur_voice].cpf_curr_pitch = 0;
                     return;
 
                 case 1:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].ptrx, val);
+                    {
+                        emu8k_voice_t *emu_voice = &emu8k->voice[emu8k->cur_voice];
+                        WRITE16(addr, emu_voice->ptrx, val);
+                        emu_voice->fx_send[0] = emu_voice->ptrx_revb_send * 0x0101;
+                        if (emu8k->emu10k1_fxsends)
+                            emu_voice->fx_send[1] = emu_voice->ptrx_pan_aux * 0x0101;
+                    }
                     return;
 
                 case 2:
                     /* The docs says that this value is constantly updating, and it should have no actual effect. Actions should be done over vtft */
                     WRITE16(addr, emu8k->voice[emu8k->cur_voice].cvcf, val);
+
+                    /* EMU10K1 Linux PCM sets both cvcf_curr_volume and vtft_vol_target to 0xffff to maintain a constant volume.
+                       Therefore, the volume slide must be updated so that it doesn't immediately reset to 0 then ramp back up. */
+                    emu8k->voice[emu8k->cur_voice].volumeslide.last = emu8k->voice[emu8k->cur_voice].cvcf_curr_volume;
                     return;
 
                 case 3:
@@ -902,16 +945,24 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                         /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
                         emu_voice->loop_start.int_address = emu_voice->psst & EMU8K_MEM_ADDRESS_MASK;
                         if (addr & 2) {
-                            emu_voice->vol_l = emu_voice->psst_pan;
-                            emu_voice->vol_r = 255 - (emu_voice->psst_pan);
+                            if (emu8k->emu10k1_fxsends) { /* psst_pan became FX send 2 in EMU10K1 */
+                                emu_voice->fx_send[2] = emu_voice->psst_pan * 0x0101;
+                            } else {
+                                emu_voice->vol_l = emu_voice->psst_pan * 0x0101;
+                                emu_voice->vol_r = (255 - emu_voice->psst_pan) * 0x0101;
+                            }
                         }
                     }
                     return;
 
                 case 7:
-                    WRITE16(addr, emu8k->voice[emu8k->cur_voice].csl, val);
-                    /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
-                    emu8k->voice[emu8k->cur_voice].loop_end.int_address = emu8k->voice[emu8k->cur_voice].csl & EMU8K_MEM_ADDRESS_MASK;
+                    {
+                        emu8k_voice_t *emu_voice = &emu8k->voice[emu8k->cur_voice];
+                        WRITE16(addr, emu_voice->csl, val);
+                        emu_voice->fx_send[3] = emu_voice->csl_chor_send * 0x0101;
+                        /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
+                        emu_voice->loop_end.int_address = emu_voice->csl & EMU8K_MEM_ADDRESS_MASK;
+                    }
                     return;
 
                 default:
@@ -922,6 +973,8 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
         case 0xA00: /*Data1. also known as BLASTER+0x800 and EMU+0x400 */
             switch (emu8k->cur_reg) {
                 case 0:
+                    if (CCCA_10K1_8BITSELECT(emu8k->voice[emu8k->cur_voice].ccca) != CCCA_10K1_8BITSELECT(val))
+                        emu8k_10k1_recalc_format(emu8k);
                     WRITE16(addr, emu8k->voice[emu8k->cur_voice].ccca, val);
                     /* TODO: Should we update only on MSB update, or this could be used as some sort of hack by applications? */
                     emu8k->voice[emu8k->cur_voice].addr.int_address = emu8k->voice[emu8k->cur_voice].ccca & EMU8K_MEM_ADDRESS_MASK;
@@ -1179,6 +1232,8 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                         uint32_t paramq             = CCCA_FILTQ_GET(emu_voice->ccca);
                         emu_voice->filt_att         = filter_atten[paramq];
                         emu_voice->filterq_idx      = paramq;
+                        emu_voice->half_looped      = 0;
+                        emu8k_10k1_recalc_format(emu8k);
                     }
                     return;
 
@@ -1203,7 +1258,7 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                                 double osc_speed = emu8k->hwcf5; //*1.316;
 #if 1                                                            // milliHz
                                 /*milliHz to lfotable samples.*/
-                                osc_speed *= 65.536 / 44100.0;
+                                osc_speed *= 65.536 / (double) emu8k->freq;
 #elif 0 // periods
                                 /* 44.1Khz ticks to lfotable samples.*/
                                 osc_speed = 65.536 / osc_speed;
@@ -1508,6 +1563,12 @@ emu8k_outw(uint16_t addr, uint16_t val, void *priv)
                     }
                     return;
 
+                case 6:
+                    if (!emu8k->emu10k1_fxsends)
+                        break;
+                    emu8k->voice[emu8k->cur_voice].tempenv = val;
+                    return;
+
                 case 7: /*ID? I believe that this allows applications to know if the emu is in use by another application */
                     emu8k->id = val;
                     return;
@@ -1758,7 +1819,8 @@ int32_t old_vol[32]   = { 0 };
 void
 emu8k_update(emu8k_t *emu8k)
 {
-    if (emu8k->pos >= wavetable_pos_global)
+    int new_pos = (sound_pos_global * emu8k->freq) / WT_FREQ;
+    if (emu8k->pos >= new_pos)
         return;
 
     int32_t       *buf;
@@ -1767,28 +1829,132 @@ emu8k_update(emu8k_t *emu8k)
 
     /* Clean the buffers since we will accumulate into them. */
     buf = &emu8k->buffer[emu8k->pos * 2];
-    memset(buf, 0, 2 * (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->buffer[0]));
-    memset(&emu8k->chorus_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->chorus_in_buffer[0]));
-    memset(&emu8k->reverb_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->reverb_in_buffer[0]));
+    memset(buf, 0, 2 * (new_pos - emu8k->pos) * sizeof(emu8k->buffer[0]));
+    if (emu8k->emu10k1_fxbuses) {
+        memset(&emu8k->fx_buffer[emu8k->pos], 0, (new_pos - emu8k->pos) * sizeof(emu8k->fx_buffer[0]));
+    } else {
+        memset(&emu8k->chorus_in_buffer[emu8k->pos], 0, (new_pos - emu8k->pos) * sizeof(emu8k->chorus_in_buffer[0]));
+        memset(&emu8k->reverb_in_buffer[emu8k->pos], 0, (new_pos - emu8k->pos) * sizeof(emu8k->reverb_in_buffer[0]));
+    }
 
     /* Voices section  */
-    for (uint8_t c = 0; c < 32; c++) {
+    for (int c = 0; c < emu8k->nvoices; c++) {
         emu_voice = &emu8k->voice[c];
         buf       = &emu8k->buffer[emu8k->pos * 2];
 
         for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
             int32_t dat;
 
+            uint64_t new_addr = emu_voice->addr.addr + (((uint64_t) emu_voice->cpf_curr_pitch) << 18);
             if (emu_voice->cvcf_curr_volume) {
                 /* Waveform oscillator */
-#ifdef RESAMPLER_LINEAR
-                dat = EMU8K_READ_INTERP_LINEAR(emu8k, emu_voice->addr.int_address,
-                                               emu_voice->addr.fract_address);
+                int16_t dat0;
+                int16_t dat1;
+                int16_t dat2;
+                int16_t dat3;
+                if (emu8k->emu10k1_fxsends) { /* EMU10K1: 8/16-bit, mono/stereo, FIFO */
+#if 0
+                    /* Fetch samples into FIFO if less than 4 samples are left. */
+                    int fifo_delta = emu_voice->fifo_end - emu_voice->fifo_pos;
+                    if (fifo_delta < (4 << emu_voice->addr_shift)) {
+                        uint32_t addr = (emu_voice->addr.int_address << emu_voice->addr_shift) + emu_voice->stereo_offset + fifo_delta,
+                                 end_addr = (emu_voice->loop_end.int_address << emu_voice->addr_shift) + emu_voice->stereo_offset;
+                        if (CCCA_10K1_8BITSELECT(emu_voice->ccca)) pclog("USING 8BIT ON CHANNEL %d\n", c);
 
-#elif defined RESAMPLER_CUBIC
-                dat = EMU8K_READ_INTERP_CUBIC(emu8k, emu_voice->addr.int_address,
-                                              emu_voice->addr.fract_address);
+                        /* Make sure unaligned writes past the end of the FIFO don't happen. */
+                        addr -= emu_voice->fifo_end & 3;
+                        emu_voice->fifo_end &= ~3;
+
+                        /* Fetch 8 dwords as specified by Creative. */
+                        int fetch = 8;
+                        do {
+                            /* There are a few ways to go about handling overflows. Just repeating the last sample
+                               satisfies both PCM playback (no clicks on period loop) and synth (no weird artifacting). */
+                            int overflow = addr - end_addr;
+                            if (UNLIKELY(overflow >= 0)) {
+                                overflow &= 3;
+                                emu_voice->fifo_end -= overflow;
+#    if 1
+                                addr -= ((emu_voice->loop_end.int_address - emu_voice->loop_start.int_address) << emu_voice->addr_shift) + overflow;
+#    else
+                                /* Read last sample and multiply it across the dword. */
+                                dat = (emu8k->readl(emu8k, emu_voice, end_addr - 4) >> (32 - (8 << emu_voice->addr_shift))) * emu_voice->dword_multiplier;
+
+                                /* Fill remaining fetches with the last sample. */
+                                do {
+                                    *((uint32_t *) &emu_voice->cd[emu_voice->fifo_end & (sizeof(emu_voice->cd) - 1)]) = dat;
+                                    emu_voice->fifo_end += 4;
+                                } while (fetch--);
+                                break;
+#    endif
+                            }
+
+                            /* Read data into the FIFO. */
+                            *((uint32_t *) &emu_voice->cd[emu_voice->fifo_end & (sizeof(emu_voice->cd) - 1)]) = emu8k->readl(emu8k, emu_voice, addr);
+                            emu_voice->fifo_end += 4;
+                            addr += 4;
+                        } while (fetch--);
+                    }
 #endif
+                    uint32_t addr     = (emu_voice->addr.int_address << emu_voice->addr_shift) + emu_voice->stereo_offset;
+                    uint32_t end_addr = (emu_voice->loop_end.int_address << emu_voice->addr_shift) + emu_voice->stereo_offset;
+                    for (int i = 0; i < 16; i++) {
+                        emu_voice->cd[i] = emu8k->readl(emu8k, emu_voice, addr++);
+                        if (addr >= end_addr)
+                            addr -= ((emu_voice->loop_end.int_address - emu_voice->loop_start.int_address) << emu_voice->addr_shift);
+                    }
+                    emu_voice->fifo_pos = 0;
+
+                    /* Read sample points. */
+                    if (CCCA_10K1_8BITSELECT(emu_voice->ccca)) {
+                        if (CPF_10K1_STEREO(emu_voice->cpf)) { /* 8-bit stereo */
+                            dat0 = emu_voice->cd[emu_voice->fifo_pos & (sizeof(emu_voice->cd) - 1)];
+                            dat1 = emu_voice->cd[(emu_voice->fifo_pos + 2) & (sizeof(emu_voice->cd) - 1)];
+                            dat2 = emu_voice->cd[(emu_voice->fifo_pos + 4) & (sizeof(emu_voice->cd) - 1)];
+                            dat3 = emu_voice->cd[(emu_voice->fifo_pos + 6) & (sizeof(emu_voice->cd) - 1)];
+                        } else { /* 8-bit mono */
+                            dat0 = emu_voice->cd[emu_voice->fifo_pos & (sizeof(emu_voice->cd) - 1)];
+                            dat1 = emu_voice->cd[(emu_voice->fifo_pos + 1) & (sizeof(emu_voice->cd) - 1)];
+                            dat2 = emu_voice->cd[(emu_voice->fifo_pos + 2) & (sizeof(emu_voice->cd) - 1)];
+                            dat3 = emu_voice->cd[(emu_voice->fifo_pos + 3) & (sizeof(emu_voice->cd) - 1)];
+                        }
+                        dat0 = (dat0 << 8) ^ 0x8000;
+                        dat1 = (dat1 << 8) ^ 0x8000;
+                        dat2 = (dat2 << 8) ^ 0x8000;
+                        dat3 = (dat3 << 8) ^ 0x8000;
+                    } else if (CPF_10K1_STEREO(emu_voice->cpf)) { /* 16-bit stereo */
+                        dat0 = *((int16_t *) &emu_voice->cd[emu_voice->fifo_pos & (sizeof(emu_voice->cd) - 1)]);
+                        dat1 = *((int16_t *) &emu_voice->cd[(emu_voice->fifo_pos + 4) & (sizeof(emu_voice->cd) - 1)]);
+                        dat2 = *((int16_t *) &emu_voice->cd[(emu_voice->fifo_pos + 8) & (sizeof(emu_voice->cd) - 1)]);
+                        dat3 = *((int16_t *) &emu_voice->cd[(emu_voice->fifo_pos + 12) & (sizeof(emu_voice->cd) - 1)]);
+                    } else { /* 16-bit mono */
+                        dat0 = *((int16_t *) &emu_voice->cd[emu_voice->fifo_pos & (sizeof(emu_voice->cd) - 1)]);
+                        dat1 = *((int16_t *) &emu_voice->cd[(emu_voice->fifo_pos + 2) & (sizeof(emu_voice->cd) - 1)]);
+                        dat2 = *((int16_t *) &emu_voice->cd[(emu_voice->fifo_pos + 4) & (sizeof(emu_voice->cd) - 1)]);
+                        dat3 = *((int16_t *) &emu_voice->cd[(emu_voice->fifo_pos + 6) & (sizeof(emu_voice->cd) - 1)]);
+                    }
+
+                    /* Advance FIFO to the next sample. */
+                    emu_voice->fifo_pos += ((new_addr >> 32) - emu_voice->addr.int_address) << emu_voice->addr_shift;
+                    if (UNLIKELY(emu_voice->fifo_end < emu_voice->fifo_pos)) {
+                        /* Reposition FIFO due to overflow. */
+                        emu_voice->fifo_end = emu_voice->fifo_pos;
+                    }
+                } else {
+                    dat0 = EMU8K_READ(emu8k, emu_voice->addr.int_address);
+                    dat1 = EMU8K_READ(emu8k, emu_voice->addr.int_address + 1);
+                    dat2 = EMU8K_READ(emu8k, emu_voice->addr.int_address + 2);
+                    dat3 = EMU8K_READ(emu8k, emu_voice->addr.int_address + 3);
+                }
+                dat = emu8k_interp(emu8k,
+#ifndef RESAMPLER_LINEAR
+                                   dat0,
+#endif
+                                   dat1, dat2,
+#ifndef RESAMPLER_LINEAR
+                                   dat3,
+#endif
+                                   emu_voice->addr.fract_address);
 
                 /* Filter section */
                 if (emu_voice->filterq_idx || emu_voice->cvcf_curr_filt_ctoff != 0xFFFF) {
@@ -1862,28 +2028,34 @@ emu8k_update(emu8k_t *emu8k)
                     emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
 
                     dat = (int32_t) (emu_voice->filt_buffer[1] >> 8);
-                    if (dat > 32767)
-                        dat = 32767;
-                    else if (dat < -32768)
-                        dat = -32768;
-
 #endif
                 }
-                if ((emu8k->hwcf3 & 0x04) && !CCCA_DMA_ACTIVE(emu_voice->ccca)) {
+
+                if (emu8k->emu10k1_fxsends || ((emu8k->hwcf3 & 0x04) && !CCCA_DMA_ACTIVE(emu_voice->ccca))) {
+                    /* Moved from the individual filters to here due to overflow issues with no filtering on EMU10K1 Linux PCM. */
+                    if (dat > 32768) { /* intentional: 32768 * max volume = 32767 */
+                        dat = 32768;
+                    } else if (dat < -32768) {
+                        dat = -32768;
+
                     /*volume and pan*/
                     dat = (dat * emu_voice->cvcf_curr_volume) >> 16;
 
-                    (*buf++) += (dat * emu_voice->vol_l) >> 8;
-                    (*buf++) += (dat * emu_voice->vol_r) >> 8;
+                    if (emu8k->emu10k1_fxsends) {
+                        for (int i = 0; i < emu8k->emu10k1_fxsends; i++)
+                            emu8k->fx_buffer[pos][emu_voice->fx_send_bus[i]] += (dat * emu_voice->fx_send[i]) >> 16;
+                    } else {
+                        (*buf++) += (dat * emu_voice->vol_l) >> 16;
+                        (*buf++) += (dat * emu_voice->vol_r) >> 16;
 
-                    /* Effects section */
-                    if (emu_voice->ptrx_revb_send > 0) {
-                        emu8k->reverb_in_buffer[pos] += (dat * emu_voice->ptrx_revb_send) >> 8;
-                    }
-                    if (emu_voice->csl_chor_send > 0) {
-                        emu8k->chorus_in_buffer[pos] += (dat * emu_voice->csl_chor_send) >> 8;
+                        /* Effects section */
+                        emu8k->reverb_in_buffer[pos] += (dat * emu_voice->revb_send) >> 16;
+                        emu8k->chorus_in_buffer[pos] += (dat * emu_voice->chor_send) >> 16;
                     }
                 }
+            } else {
+                /* Reposition EMU10K1 FIFO due to address desync. */
+                emu_voice->fifo_end = emu_voice->fifo_pos;
             }
 
             if (emu_voice->env_engine_on) {
@@ -1899,7 +2071,6 @@ emu8k_update(emu8k_t *emu8k)
                             volenv->state         = ENV_ATTACK;
                             volenv->delay_samples = 0;
                         }
-                        attenuation = 0x1FFFFF;
                         break;
 
                     case ENV_ATTACK:
@@ -2091,21 +2262,46 @@ emu8k_update(emu8k_t *emu8k)
             -In programs that use the awe, they generally set the loop address as "loopaddress -1" to compensate for the above.
             (Note: I am already using address+1 in the interpolators so these things are already as they should.)
             */
-            emu_voice->addr.addr += ((uint64_t) emu_voice->cpf_curr_pitch) << 18;
+            emu_voice->addr.addr = new_addr;
             if (emu_voice->addr.addr >= emu_voice->loop_end.addr) {
                 emu_voice->addr.int_address -= (emu_voice->loop_end.int_address - emu_voice->loop_start.int_address);
                 emu_voice->addr.int_address &= EMU8K_MEM_ADDRESS_MASK;
+
+                if (emu8k->emu10k1_fxsends) {
+                    emu_voice->half_looped = 0;
+
+                    /* Trigger loop interrupt. */
+                    if (*(emu8k->clie) & (1ULL << c)) {
+                        *(emu8k->clip) |= 1ULL << c;
+                        emu8k->lip = 1;
+                    }
+
+                    /* Stop if requested. */
+                    if (*(emu8k->sole) & (1ULL << c))
+                        emu_voice->cpf |= 0x00004000; /* CPF_STOP */
+                }
+            } else if (emu8k->emu10k1_fxsends && !emu_voice->half_looped && (emu_voice->addr.addr >= (emu_voice->loop_end.addr >> 1))) {
+                emu_voice->half_looped = 1;
+
+                /* Trigger half loop interrupt. */
+                if (*(emu8k->hlie) & (1ULL << c)) {
+                    *(emu8k->hlip) |= 1ULL << c;
+                    emu8k->lip = 1;
+                }
             }
 
             /* TODO: How and when are the target and current values updated */
-            emu_voice->cpf_curr_pitch       = emu_voice->ptrx_pit_target;
+            emu_voice->cpf_curr_pitch       = (emu8k->emu10k1_fxsends && CPF_10K1_STOP(emu_voice->cpf)) ? 0 : emu_voice->ptrx_pit_target;
             emu_voice->cvcf_curr_volume     = emu8k_vol_slide(&emu_voice->volumeslide, emu_voice->vtft_vol_target);
             emu_voice->cvcf_curr_filt_ctoff = emu_voice->vtft_filter_target;
         }
 
         /* Update EMU voice registers. */
-        emu_voice->ccca               = (((uint32_t) emu_voice->ccca_qcontrol) << 24) | emu_voice->addr.int_address;
-        emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
+        emu_voice->ccca = (((uint32_t) emu_voice->ccca_qcontrol) << 24) | emu_voice->addr.int_address;
+        if (emu8k->emu10k1_fxsends)
+            emu_voice->cpf_curr_frac_addr = (emu_voice->cpf_curr_frac_addr & 0xc000) | (emu_voice->addr.fract_address & 0x3fff);
+        else
+            emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
 
 #if 0
         if (emu_voice->cvcf_curr_volume != old_vol[c]) {
@@ -2117,9 +2313,33 @@ emu8k_update(emu8k_t *emu8k)
     }
 
     buf = &emu8k->buffer[emu8k->pos * 2];
-    emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, wavetable_pos_global - emu8k->pos);
-    emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, wavetable_pos_global - emu8k->pos);
-    emu8k_work_eq(buf, wavetable_pos_global - emu8k->pos);
+    if (emu8k->emu10k1_fxsends) {
+        extern void emu10k1_dsp_exec(void *dev, int pos, int32_t *buf);
+        for (pos = emu8k->pos; pos < new_pos; pos++) {
+            emu10k1_dsp_exec(emu8k, pos, buf);
+            buf += 2;
+        }
+        buf = &emu8k->buffer[emu8k->pos * 2];
+    } else {
+        emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, new_pos - emu8k->pos);
+        emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, new_pos - emu8k->pos);
+        emu8k_work_eq(buf, new_pos - emu8k->pos);
+    }
+
+    // Clip signal
+    for (pos = emu8k->pos; pos < new_pos; pos++) {
+        if (buf[0] < -32768)
+            buf[0] = -32768;
+        else if (buf[0] > 32767)
+            buf[0] = 32767;
+
+        if (buf[1] < -32768)
+            buf[1] = -32768;
+        else if (buf[1] > 32767)
+            buf[1] = 32767;
+
+        buf += 2;
+    }
 
     /* Update EMU clock. */
     emu8k->wc += (wavetable_pos_global - emu8k->pos);
@@ -2144,60 +2364,14 @@ emu8k_change_addr(emu8k_t *emu8k, uint16_t emu_addr)
     }
 }
 
-/* onboard_ram in kilobytes */
 void
-emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
+emu8k_init_standalone(emu8k_t *emu8k, int nvoices, int freq)
 {
-    uint32_t const BLOCK_SIZE_WORDS = 0x10000;
-    FILE          *fp;
-    int            c;
-    double         out;
+    int    c;
+    double out;
 
-    fp = rom_fopen(EMU8K_ROM_PATH, "rb");
-    if (!fp)
-        fatal("AWE32.RAW not found\n");
-
-    emu8k->rom = calloc(1024, 1024);
-    if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
-        fatal("emu8k_init(): Error reading data\n");
-    fclose(fp);
-    /*AWE-DUMP creates ROM images offset by 2 bytes, so if we detect this
-      then correct it*/
-    if (emu8k->rom[3] == 0x314d && emu8k->rom[4] == 0x474d) {
-        memmove(&emu8k->rom[0], &emu8k->rom[1], (1024 * 1024) - 2);
-        emu8k->rom[0x7ffff] = 0;
-    }
-
-    emu8k->empty = calloc(2, BLOCK_SIZE_WORDS);
-
-    int j = 0;
-    for (; j < 0x8; j++) {
-        emu8k->ram_pointers[j] = emu8k->rom + (j * BLOCK_SIZE_WORDS);
-    }
-    for (; j < 0x20; j++) {
-        emu8k->ram_pointers[j] = emu8k->empty;
-    }
-
-    if (onboard_ram) {
-        /*Clip to 28MB, since that's the max that we can address. */
-        if (onboard_ram > 0x7000)
-            onboard_ram = 0x7000;
-        emu8k->ram = calloc(1024, onboard_ram);
-        const int i_end = onboard_ram >> 7;
-        int       i     = 0;
-        for (; i < i_end; i++, j++) {
-            emu8k->ram_pointers[j] = emu8k->ram + (i * BLOCK_SIZE_WORDS);
-        }
-        emu8k->ram_end_addr = EMU8K_RAM_MEM_START + (onboard_ram << 9);
-    } else {
-        emu8k->ram          = 0;
-        emu8k->ram_end_addr = EMU8K_RAM_MEM_START;
-    }
-    for (; j < 0x100; j++) {
-        emu8k->ram_pointers[j] = emu8k->empty;
-    }
-
-    emu8k_change_addr(emu8k, emu_addr);
+    emu8k->nvoices = nvoices;
+    emu8k->freq    = freq;
 
     /*Create frequency table. (Convert initial pitch register value to a linear speed change)
      * The input is encoded such as 0xe000 is center note (no pitch shift)
@@ -2257,6 +2431,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     env_mod_hertz_to_octave[0x10000] = 65536;
 
     /* This formula comes from vince vu/judge dredd's awe32p10 and corresponds to what the freebsd/linux AWE32 driver has. */
+    out = emu8k->freq / 1000.0;
     float millis;
     for (c = 0; c < 128; c++) {
         if (c == 0)
@@ -2266,7 +2441,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         else
             millis = 360 * exp((c - 32) / (16.0 / log(1.0 / 2.0)));
 
-        env_attack_to_samples[c] = 44.1 * millis;
+        env_attack_to_samples[c] = out * millis;
         /* This is an alternate formula with linear increments, but probably incorrect:
          * millis = (256+4096*(0x7F-c)) */
     }
@@ -2283,7 +2458,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
     /* The 65536 * 65536 is in order to left-shift the 32bit value to a 64bit value as a 32.32 fixed point. */
     out = 0.01;
     for (c = 0; c < 256; c++) {
-        lfofreqtospeed[c] = (uint64_t) (out * 65536.0 / 44100.0 * 65536.0 * 65536.0);
+        lfofreqtospeed[c] = (uint64_t) (out * 65536.0 / (double) emu8k->freq * 65536.0 * 65536.0);
         out += 0.042;
     }
 
@@ -2296,7 +2471,7 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         out = 125.0; /* Start at 125Hz */
         for (c = 0; c < 256; c++) {
 #ifdef FILTER_INITIAL
-            float w0 = sin(2.0 * M_PI * out / 44100.0);
+            float w0 = sin(2.0 * M_PI * out / (double) emu8k->freq);
             /* The value 102.5f has been selected a bit randomly. Pretends to reach 0.2929 at w0 = 1.0 */
             float q = (qidx / 102.5f) * (1.0 + 1.0 / w0);
             /* Limit max value. Else it would be 470. */
@@ -2306,20 +2481,20 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
             filt_coeffs[qidx][c][1] = 16777216.0;
             filt_coeffs[qidx][c][2] = (int32_t) ((1.0f / (0.7071f + q)) * 16777216.0);
 #elif defined FILTER_MOOG
-            float w0 = sin(2.0 * M_PI * out / 44100.0);
-            float q_factor = 1.0f - w0;
-            float p = w0 + 0.8f * w0 * q_factor;
-            float f = p + p - 1.0f;
-            float resonance = (1.0 - pow(2.0, -qidx * 24.0 / 90.0)) * 0.8;
-            float q = resonance * (1.0f + 0.5f * q_factor * (w0 + 5.6f * q_factor * q_factor));
+            float w0                = sin(2.0 * M_PI * out / (double) emu8k->freq);
+            float q_factor          = 1.0f - w0;
+            float p                 = w0 + 0.8f * w0 * q_factor;
+            float f                 = p + p - 1.0f;
+            float resonance         = (1.0 - pow(2.0, -qidx * 24.0 / 90.0)) * 0.8;
+            float q                 = resonance * (1.0f + 0.5f * q_factor * (w0 + 5.6f * q_factor * q_factor));
             filt_coeffs[qidx][c][0] = (int32_t) (p * 16777216.0);
             filt_coeffs[qidx][c][1] = (int32_t) (f * 16777216.0);
             filt_coeffs[qidx][c][2] = (int32_t) (q * 16777216.0);
 #elif defined FILTER_CONSTANT
-            float q = (1.0 - pow(2.0, -qidx * 24.0 / 90.0)) * 0.8;
-            float coef0 = sin(2.0 * M_PI * out / 44100.0);
-            float coef1 = 1.0 - coef0;
-            float coef2 = q * (1.0 + 1.0 / coef1);
+            float q                 = (1.0 - pow(2.0, -qidx * 24.0 / 90.0)) * 0.8;
+            float coef0             = sin(2.0 * M_PI * out / (double) emu8k->freq);
+            float coef1             = 1.0 - coef0;
+            float coef2             = q * (1.0 + 1.0 / coef1);
             filt_coeffs[qidx][c][0] = (int32_t) (coef0 * 16777216.0);
             filt_coeffs[qidx][c][1] = (int32_t) (coef1 * 16777216.0);
             filt_coeffs[qidx][c][2] = (int32_t) (coef2 * 16777216.0);
@@ -2358,6 +2533,65 @@ emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         cubic_table[c * 4 + 2] = (-1.5 * x * x * x + 2.0 * x * x + 0.5 * x);
         cubic_table[c * 4 + 3] = (0.5 * x * x * x - 0.5 * x * x);
     }
+}
+
+/* onboard_ram in kilobytes */
+void
+emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
+{
+    uint32_t const BLOCK_SIZE_WORDS = 0x10000;
+    FILE          *fp;
+
+    fp = rom_fopen(EMU8K_ROM_PATH, "rb");
+    if (!fp)
+        fatal("AWE32.RAW not found\n");
+
+    emu8k->rom = malloc(1024 * 1024);
+    if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
+        fatal("emu8k_init(): Error reading data\n");
+    fclose(fp);
+    /*AWE-DUMP creates ROM images offset by 2 bytes, so if we detect this
+      then correct it*/
+    if (emu8k->rom[3] == 0x314d && emu8k->rom[4] == 0x474d) {
+        memmove(&emu8k->rom[0], &emu8k->rom[1], (1024 * 1024) - 2);
+        emu8k->rom[0x7ffff] = 0;
+    }
+
+    emu8k->empty = malloc(2 * BLOCK_SIZE_WORDS);
+    memset(emu8k->empty, 0, 2 * BLOCK_SIZE_WORDS);
+
+    int j = 0;
+    for (; j < 0x8; j++) {
+        emu8k->ram_pointers[j] = emu8k->rom + (j * BLOCK_SIZE_WORDS);
+    }
+    for (; j < 0x20; j++) {
+        emu8k->ram_pointers[j] = emu8k->empty;
+    }
+
+    if (onboard_ram) {
+        /*Clip to 28MB, since that's the max that we can address. */
+        if (onboard_ram > 0x7000)
+            onboard_ram = 0x7000;
+        emu8k->ram = malloc(onboard_ram * 1024);
+        memset(emu8k->ram, 0, onboard_ram * 1024);
+        const int i_end = onboard_ram >> 7;
+        int       i     = 0;
+        for (; i < i_end; i++, j++) {
+            emu8k->ram_pointers[j] = emu8k->ram + (i * BLOCK_SIZE_WORDS);
+        }
+        emu8k->ram_end_addr = EMU8K_RAM_MEM_START + (onboard_ram << 9);
+    } else {
+        emu8k->ram          = 0;
+        emu8k->ram_end_addr = EMU8K_RAM_MEM_START;
+    }
+    for (; j < 0x100; j++) {
+        emu8k->ram_pointers[j] = emu8k->empty;
+    }
+
+    emu8k_change_addr(emu8k, emu_addr);
+
+    emu8k_init_standalone(emu8k, 32, FREQ_44100);
+
     /* Even when the documentation says that this has to be written by applications to initialize the card,
      * several applications and drivers ( aweman on windows, linux oss driver..) read it to detect an AWE card. */
     emu8k->hwcf1 = 0x59;

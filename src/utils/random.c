@@ -76,13 +76,12 @@ random_twist(uint32_t *val)
     *val ^= 0x4ED32706;
 }
 
-uint8_t
+uint32_t
 random_generate(void)
 {
-    uint16_t r = 0;
-    r          = (RDTSC() ^ ROTATE_LEFT(preconst, rand() % 32)) % 256;
+    uint32_t r = RDTSC() ^ ROTATE_LEFT(preconst, rand() % 32);
     random_twist(&preconst);
-    return (r & 0xff);
+    return r;
 }
 
 void

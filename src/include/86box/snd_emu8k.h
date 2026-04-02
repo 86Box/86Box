@@ -172,6 +172,8 @@ typedef struct emu8k_voice_t {
             uint16_t cpf_curr_pitch;     /* 0x4000 = no shift. Linear increment */
         };
     };
+#define CPF_10K1_STEREO(cpf) (cpf & 0x00008000)
+#define CPF_10K1_STOP(cpf)   (cpf & 0x00004000)
     union {
         uint32_t ptrx;
         struct {
@@ -233,6 +235,29 @@ typedef struct emu8k_voice_t {
 #define CCCA_DMA_ACTIVE(ccca)      (ccca & 0x04000000)
 #define CCCA_DMA_WRITE_MODE(ccca)  (ccca & 0x02000000)
 #define CCCA_DMA_WRITE_RIGHT(ccca) (ccca & 0x01000000)
+#define CCCA_10K1_8BITSELECT(ccca) (ccca & 0x01000000)
+
+    /* EMU10K1 */
+    union {
+        uint32_t ccr;
+        struct {
+            uint8_t clp_hw_address;
+            uint8_t ccr_loopinval;
+            uint8_t ccr_readaddr;
+            uint8_t ccr_cacheinval;
+        };
+    };
+    union {
+        uint32_t clp_fxrt;
+        struct {
+            uint16_t clp_lw_address;
+            uint16_t fxrt;
+        };
+    };
+    uint32_t map[2];
+    uint32_t sendamounts;
+    int      tlb_pos;
+    int      request_cache_loop;
 
     uint16_t envvol;
 #define ENVVOL_NODELAY(envol) (envvol & 0x8000)
@@ -241,7 +266,8 @@ typedef struct emu8k_voice_t {
 
     uint16_t dcysusv;
 #define DCYSUSV_IS_RELEASE(dcysusv)          (dcysusv & 0x8000)
-#define DCYSUSV_GENERATOR_ENGINE_ON(dcysusv) !(dcysusv & 0x0080)
+/* Everything agrees this bit is inverted on EMU10K1 (except for a single Linux define comment). */
+#define DCYSUSV_GENERATOR_ENGINE_ON(dcysusv) !!emu8k->emu10k1_fxsends ^ !(dcysusv & 0x0080)
 #define DCYSUSV_SUSVALUE_GET(dcysusv)        ((dcysusv >> 8) & 0x7F)
 /* Inverting the range compared to documentation because the envelope runs from 0dBFS = 0 to -96dBFS = (1 <<21) */
 #define DCYSUSV_SUS_TO_ENV_RANGE(susvalue) (((0x7F - susvalue) << 21) / 0x7F)
@@ -313,6 +339,7 @@ typedef struct emu8k_voice_t {
             int8_t  fm2frq2_lfo2_vibrato;
         };
     };
+    uint16_t tempenv;
 
     int env_engine_on;
 
@@ -332,8 +359,25 @@ typedef struct emu8k_voice_t {
     emu8k_mem_internal_t lfo2_count;
     int32_t              lfo1_delay_samples;
     int32_t              lfo2_delay_samples;
-    int                  vol_l;
-    int                  vol_r;
+    union {
+        struct {       /* EMU8000 */
+            int revb_send; /* reusing fx_send[0,3] positions as only [1,2] are used */
+            int vol_r;
+            int vol_l;
+            int chor_send;
+        };
+        struct { /* EMU10K1 */
+            int      fx_send[8];
+            int      fx_send_bus[8];
+            int      half_looped;
+            int      addr_shift;
+            int      dword_multiplier;
+            int      stereo_offset;
+            uint8_t  cd[128]; /* cache */
+            uint32_t fifo_pos;
+            uint32_t fifo_end;
+        };
+    };
 
     int16_t fixed_modenv_filter_height;
     int16_t fixed_modenv_pitch_height;
@@ -350,29 +394,51 @@ typedef struct emu8k_voice_t {
 } emu8k_voice_t;
 
 typedef struct emu8k_t {
-    emu8k_voice_t voice[32];
+    int           nvoices;
+    int           freq;
+    int           emu10k1_fxbuses;
+    int           emu10k1_fxsends;
+    emu8k_voice_t voice[64];
 
-    uint16_t hwcf1;
-    uint16_t hwcf2;
-    uint16_t hwcf3;
-    uint32_t hwcf4;
-    uint32_t hwcf5;
-    uint32_t hwcf6;
-    uint32_t hwcf7;
+    union {
+        struct { /* EMU8000 */
+            uint16_t hwcf1;
+            uint16_t hwcf2;
+            uint16_t hwcf3;
+            uint32_t hwcf4;
+            uint32_t hwcf5;
+            uint32_t hwcf6;
+            uint32_t hwcf7;
 
-    uint16_t init1[32];
-    uint16_t init2[32];
-    uint16_t init3[32];
-    uint16_t init4[32];
+            uint16_t init1[32];
+            uint16_t init2[32];
+            uint16_t init3[32];
+            uint16_t init4[32];
 
-    uint32_t smalr;
-    uint32_t smarr;
-    uint32_t smalw;
-    uint32_t smarw;
-    uint16_t smld_buffer;
-    uint16_t smrd_buffer;
+            uint32_t smalr;
+            uint32_t smarr;
+            uint32_t smalw;
+            uint32_t smarw;
+            uint16_t smld_buffer;
+            uint16_t smrd_buffer;
 
-    uint16_t wc;
+            /* RAM pointers are a way to avoid checking ram boundaries on read */
+            int16_t *ram_pointers[0x100];
+            uint32_t ram_end_addr;
+
+            emu8k_chorus_eng_t chorus_engine;
+            int32_t            chorus_in_buffer[SOUNDBUFLEN];
+            emu8k_reverb_eng_t reverb_engine;
+            int32_t            reverb_in_buffer[SOUNDBUFLEN];
+
+            uint16_t addr;
+        };
+        struct { /* EMU10K1 */
+            int32_t fx_buffer[SOUNDBUFLEN][64];
+        };
+    };
+
+    uint32_t wc;
 
     uint16_t id;
 
@@ -380,10 +446,6 @@ typedef struct emu8k_t {
     int16_t *ram;
     int16_t *rom;
     int16_t *empty;
-
-    /* RAM pointers are a way to avoid checking ram boundaries on read */
-    int16_t *ram_pointers[0x100];
-    uint32_t ram_end_addr;
 
     int cur_reg;
     int cur_voice;
@@ -396,15 +458,26 @@ typedef struct emu8k_t {
     emu8k_reverb_eng_t reverb_engine;
     int32_t            reverb_in_buffer[WTBUFLEN];
 
+    /* EMU10K1 */
+    uint64_t *clie;
+    uint64_t *clip;
+    uint64_t *hlie;
+    uint64_t *hlip;
+    uint64_t *sole; /* loop interrupt/stop */
+    int       lip;  /* any pending interrupt? */
+
     int     pos;
     int32_t buffer[WTBUFLEN * 2];
 
-    uint16_t addr;
+    uint32_t (*readl)(struct emu8k_t *emu8k, emu8k_voice_t *voice, uint32_t addr);
 } emu8k_t;
 
-void emu8k_change_addr(emu8k_t *emu8k, uint16_t emu_addr);
-void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram);
-void emu8k_close(emu8k_t *emu8k);
+uint16_t emu8k_inw(uint16_t addr, void *p);
+void     emu8k_outw(uint16_t addr, uint16_t val, void *p);
+void     emu8k_change_addr(emu8k_t *emu8k, uint16_t emu_addr);
+void     emu8k_init_standalone(emu8k_t *emu8k, int nvoices, int freq);
+void     emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram);
+void     emu8k_close(emu8k_t *emu8k);
 
 void emu8k_update(emu8k_t *emu8k);
 
@@ -794,5 +867,5 @@ Treble Parameters:
 0xD308  0xD308  0xD308  0xD308  0xD308  0xD308  0xD3019 0xD32A  0xD34C  0xD36E  0xD36E  0xD36E
 0x0001  0x0001  0x0001  0x0001  0x0001  0x0002  0x0002  0x0002  0x0002  0x0002  0x0002  0x0002
 */
-
+#define OP_BASE E##M##U##_##N##A##M##E
 #endif /*SOUND_EMU8K_H*/
