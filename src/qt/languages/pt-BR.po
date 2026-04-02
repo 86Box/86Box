@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-02 16:28+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-02 17:09+0000\n"
+"Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
 "Language: pt-BR\n"
@@ -356,7 +356,7 @@ msgid "Machine type:"
 msgstr "Tipo de máquina:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr "[1989] i486 (Soquete 168 e 1)"
+msgstr "[1989] i486 (Socket 168 e 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
 msgstr "[1994] i486 (Miscelânea)"
@@ -554,13 +554,13 @@ msgid "IDE Controller"
 msgstr "Controlador IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr "Controladora IDE (Duplo-Canal)"
+msgstr "Controlador IDE (Duplo-Canal)"
 
 msgid "PC/AT IDE Controller"
-msgstr "Controladora PC/AT IDE"
+msgstr "Controlador PC/AT IDE"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr "Controladora PC/AT IDE (Duplo-Canal)"
+msgstr "Controlador PC/AT IDE (Duplo-Canal)"
 
 msgid "PC/AT XTIDE (Primary Only)"
 msgstr "PC/AT XTIDE (Apenas Primário)"
@@ -578,7 +578,7 @@ msgid "CMD PCI-0649 (Tertiary and Quaternary)"
 msgstr "CMD PCI-0649 (Terciário e Quaternário)"
 
 msgid "McIDE Controller"
-msgstr "Controladora McIDE"
+msgstr "Controlador McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciário"
