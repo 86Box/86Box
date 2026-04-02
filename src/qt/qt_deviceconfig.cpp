@@ -616,7 +616,7 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
                 return tr((const char *) temp);
         } else {
             device_get_name(device, bus, temp);
-            return tr((const char *) temp);
+            return tr((const char *) temp).remove(" (On-Board)", Qt::CaseInsensitive);
         }
     }
 }
