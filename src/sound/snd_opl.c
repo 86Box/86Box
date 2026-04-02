@@ -58,8 +58,8 @@ fm_driver_get_ex(int chip_id, fm_drv_t *drv, int is_48k)
 
         case FM_YM3812: /* OPL2 */
             if (fm_driver == FM_DRV_NUKED) {
-                *drv      = is_48k ? nuked_opl3_drv_48k : nuked_opl3_drv;
-                drv->priv = device_add_inst_params(&ym3812_nuked_opl3_device, fm_dev_inst[fm_driver][chip_id]++, flag_48k);
+                *drv      = is_48k ? nuked_opl2_drv_48k : nuked_opl2_drv;
+                drv->priv = device_add_inst_params(&ym3812_nuked_opl2_device, fm_dev_inst[fm_driver][chip_id]++, flag_48k);
             } else {
                 *drv      = ymfm_drv;
                 drv->priv = device_add_inst_params(&ym3812_ymfm_device, fm_dev_inst[fm_driver][chip_id]++, flag_48k);
