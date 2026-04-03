@@ -725,6 +725,18 @@ pas16_update_irq(pas16_t *pas16)
     }
 }
 
+static void
+pas_update_irq(pas16_t *pas16)
+{
+    if ((pas16->ym3802_reg5_banked[0x03] & 0x01) && (pas16->ym3802_reg4_banked[0x03] & 0x80)) {
+        pas16->irq_stat |= PAS16_INT_MIDI;
+        pas16->ym3802_ivr |= 0x0a;
+        pas16->ym3802_isr |= 0x20;
+        if ((pas16->irq != -1) && (pas16->irq_ena & PAS16_INT_MIDI))
+            picint(1 << pas16->irq);
+    }
+}
+
 void
 ym3802_gentimer_poll(void *priv)
 {
@@ -737,6 +749,7 @@ ym3802_gentimer_poll(void *priv)
         //pas16_log("Firing YM3802 general timer IRQ!\n");
         pas16->irq_stat |= PAS16_INT_MIDI;
         pas16->ym3802_ivr |= 0x0e;
+        pas16->ym3802_isr |= 0x80;
         if ((pas16->irq != -1) && (pas16->irq_ena & PAS16_INT_MIDI))
             picint(1 << pas16->irq);
     }
@@ -797,6 +810,21 @@ pas_in(uint16_t port, void *priv)
             break;
         case 0x1802:
             ret = pas16->ym3802_reg6_banked[pas16->ym3802_banked_idx];
+            if (pas16->ym3802_banked_idx == 0x03) {
+                ret = 0;
+                if (pas16->ym3802_reg5_banked[0x03] & 0x01) {
+                    ret = pas16->midi_queue[pas16->midi_r];
+                    pas16_log("Read MIDI queue %02X\n", pas16->midi_queue[pas16->midi_r]);
+                    if (pas16->midi_r != pas16->midi_w) {
+                        pas16->midi_r++;
+                        pas16->midi_r &= 0xff;
+                    }
+                    if (pas16->midi_r == pas16->midi_w)
+                        pas16->ym3802_reg4_banked[0x03] &= 0x7f;
+                }
+                pas16->ym3802_reg4_banked[0x03] &= 0x7f;
+                pas_update_irq(pas16);
+            }
             break;
         case 0x1803:
             ret = pas16->ym3802_reg7_banked[pas16->ym3802_banked_idx];
@@ -1620,7 +1648,7 @@ pas_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x1403:
             pas16->ym3802_icr = val;
-            pas16->ym3802_ivr = 0x00;
+            pas16->ym3802_ivr = (pas16->ym3802_reg4_banked[0x00] & 0xe0);
             pas16->ym3802_isr &= ~val;
             pas16->irq_stat &= 0x0f;
             if ((pas16->irq != -1) && (!(pas16->irq_stat & 0x0f)))
@@ -1629,6 +1657,8 @@ pas_out(uint16_t port, uint8_t val, void *priv)
 
         case 0x1800:
             pas16->ym3802_reg4_banked[pas16->ym3802_banked_idx] = val;
+            if (pas16->ym3802_banked_idx == 0x00)
+                pas16->ym3802_ivr = (val & 0xe0) | (pas16->ym3802_ivr & 0x1f);
             if (pas16->ym3802_banked_idx == 0x08)
                 pas16->ym3802_gen_timer = (pas16->ym3802_gen_timer & 0x3f00) | val;
             break;
@@ -2407,6 +2437,32 @@ pas16_out_base(UNUSED(uint16_t port), uint8_t val, void *priv)
 }
 
 static void
+pas_input_msg(void *priv, uint8_t *msg, uint32_t len)
+{
+    pas16_t  *pas16 = (pas16_t *) priv;
+
+    if (pas16->sysex)
+        return;
+
+    pas16_log("MIDI message in\n");
+
+    if (pas16->ym3802_reg5_banked[0x03] & 0x01) {
+        pas16->ym3802_reg4_banked[0x03] |= 0x80; /* Set FIFO-Rx Ready flag */
+
+        for (uint32_t i = 0; i < len; i++) {
+            pas16_log("Write message %02X to queue\n", msg[i]);
+            pas16->midi_queue[pas16->midi_w++] = msg[i];
+            pas16->midi_w &= 0xff;
+        }
+
+        if (pas16->ym3802_reg6_banked[0x00] & 0x20) { /* Check if FIFO-Rx interrupt is enabled */
+            pas16_log("FIFO Rx IRQ enabled\n");
+            pas_update_irq(pas16);
+        }
+    }
+}
+
+static void
 pas16_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
     pas16_t  *pas16 = (pas16_t *) priv;
@@ -2984,8 +3040,8 @@ pas_init(const device_t *info)
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(pasplus_filter_pc_speaker, pas16);
 
-    //if (device_get_config_int("receive_input"))
-    //    midi_in_handler(1, pas_input_msg, pas_input_sysex, pas16);
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, pas_input_msg, pas16_input_sysex, pas16);
 
     for (uint8_t i = 0; i < 16; i++) {
         if (i < 6)
