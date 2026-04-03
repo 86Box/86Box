@@ -813,7 +813,7 @@ et4000_init(const device_t *info)
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
-            bios_ver      = (char *) device_get_config_bios("bios_ver");
+            bios_ver      = (char *) device_get_config_bios("bios");
             fn            = (char *) device_get_bios_file(info, bios_ver, 0);
             break;
 
