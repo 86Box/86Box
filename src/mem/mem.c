@@ -571,6 +571,7 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
+#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -587,6 +588,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     readlookup[readlnext++] = virt >> 12;
     readlnext &= (cachesize - 1);
+#endif
 
     cycles -= 9;
 }
@@ -594,6 +596,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
+#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -626,6 +629,7 @@ addwritelookup(uint32_t virt, uint32_t phys)
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
+#endif
 
     cycles -= 9;
 }
@@ -2804,18 +2808,14 @@ mem_reset(void)
      * Allocate and initialize the (new) page table.
      */
     pages_sz = m;
-    pages    = (page_t *) malloc(m * sizeof(page_t));
+    pages    = (page_t *) calloc(m, sizeof(page_t));
 
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
-    memset(pages, 0x00, pages_sz * sizeof(page_t));
-
 #ifdef USE_NEW_DYNAREC
-    byte_dirty_mask = malloc((mem_size * 1024) / 8);
-    memset(byte_dirty_mask, 0, (mem_size * 1024) / 8);
+    byte_dirty_mask = calloc(1, (mem_size * 1024) / 8);
 
-    byte_code_present_mask = malloc((mem_size * 1024) / 8);
-    memset(byte_code_present_mask, 0, (mem_size * 1024) / 8);
+    byte_code_present_mask = calloc(1, (mem_size * 1024) / 8);
 #endif
 
     for (uint32_t c = 0; c < pages_sz; c++) {

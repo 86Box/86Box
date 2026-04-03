@@ -744,9 +744,8 @@ paradise_readw(uint32_t addr, void *priv)
 void *
 paradise_init(const device_t *info, uint32_t memory)
 {
-    paradise_t *paradise = malloc(sizeof(paradise_t));
+    paradise_t *paradise = calloc(1, sizeof(paradise_t));
     svga_t     *svga     = &paradise->svga;
-    memset(paradise, 0, sizeof(paradise_t));
 
     if (info->local == PVGA1A)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_paradise_pvga1a);
@@ -974,6 +973,7 @@ const device_t paradise_pvga1a_pc2086_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "Amstrad PC2086",
     .config        = NULL
 };
 
@@ -988,6 +988,7 @@ const device_t paradise_pvga1a_pc3086_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "Amstrad PC3086",
     .config        = NULL
 };
 
@@ -1023,6 +1024,7 @@ const device_t paradise_pvga1a_ncr3302_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "NCR 3302",
     .config        = paradise_pvga1a_config
 };
 
@@ -1051,6 +1053,7 @@ const device_t paradise_wd90c11_megapc_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "Amstrad MegaPC",
     .config        = NULL
 };
 

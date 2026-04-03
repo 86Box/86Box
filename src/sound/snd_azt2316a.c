@@ -2434,7 +2434,7 @@ static const device_config_t azt2316r_config[] = {
 };
 
 const device_t azt2316r_device = {
-    .name          = "Aztech Sound Galaxy Pro 16 II (AZT2316R)",
+    .name          = "Aztech Sound Galaxy Pro 16 II",
     .internal_name = "azt2316r",
     .flags         = DEVICE_ISA16,
     .local         = SB_SUBTYPE_CLONE_AZT2316R_0X12,
@@ -2444,11 +2444,12 @@ const device_t azt2316r_device = {
     .available     = NULL,
     .speed_changed = azt_speed_changed,
     .force_redraw  = NULL,
+    .alias         = "AZT2316R",
     .config        = azt2316r_config
 };
 
 const device_t azt2316a_device = {
-    .name          = "Aztech Sound Galaxy Pro 16 AB (Washington)",
+    .name          = "Aztech Sound Galaxy Pro 16 AB",
     .internal_name = "azt2316a",
     .flags         = DEVICE_ISA16,
     .local         = SB_SUBTYPE_CLONE_AZT2316A_0X11,
@@ -2458,11 +2459,12 @@ const device_t azt2316a_device = {
     .available     = NULL,
     .speed_changed = azt_speed_changed,
     .force_redraw  = NULL,
+    .alias         = "Washington",
     .config        = azt2316a_config
 };
 
 const device_t azt1605_device = {
-    .name          = "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
+    .name          = "Aztech Sound Galaxy Nova 16 Extra",
     .internal_name = "azt1605",
     .flags         = DEVICE_ISA16,
     .local         = SB_SUBTYPE_CLONE_AZT1605_0X0C,
@@ -2472,11 +2474,12 @@ const device_t azt1605_device = {
     .available     = NULL,
     .speed_changed = azt_speed_changed,
     .force_redraw  = NULL,
+    .alias         = "Clinton",
     .config        = azt1605_config
 };
 
 const device_t aztpr16_device = {
-    .name          = "Aztech Sound Galaxy Pro 16 (AZTPR16)",
+    .name          = "Aztech Sound Galaxy Pro 16",
     .internal_name = "aztpr16",
     .flags         = DEVICE_ISA16,
     .local         = SB_SUBTYPE_CLONE_AZTPR16_0X09,
@@ -2486,5 +2489,6 @@ const device_t aztpr16_device = {
     .available     = NULL,
     .speed_changed = azt_speed_changed,
     .force_redraw  = NULL,
+    .alias         = "AZTPR16",
     .config        = aztpr16_config
 };

@@ -1309,7 +1309,7 @@ unknown:
             /* Insert or remove the breakpoint. */
             if (client->packet[0] != 'z') {
                 /* Allocate a new breakpoint. */
-                breakpoint       = malloc(sizeof(gdbstub_breakpoint_t));
+                breakpoint       = calloc(1, sizeof(gdbstub_breakpoint_t));
                 breakpoint->addr = j;
                 breakpoint->end  = j + k;
                 breakpoint->next = NULL;
@@ -1622,7 +1622,7 @@ gdbstub_server_thread(void *priv)
     socklen_t         sl = sizeof(struct sockaddr_in);
     while (1) {
         /* Allocate client structure. */
-        client = malloc(sizeof(gdbstub_client_t));
+        client = calloc(1, sizeof(gdbstub_client_t));
         memset(client, 0, sizeof(gdbstub_client_t));
         client->processed_event = thread_create_event();
         client->response_event  = thread_create_event();

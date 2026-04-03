@@ -1188,24 +1188,6 @@ machine_xt_kaypropc_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_xt_micoms_xl7turbo_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&kbc_xt_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
 static const device_config_t pc500_config[] = {
     // clang-format off
     {
@@ -1625,6 +1607,24 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
         return ret;
 
     device_add(&kbc_pravetz_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_mxl7t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 

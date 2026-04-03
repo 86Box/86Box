@@ -93,12 +93,12 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     if (sound_is_float) {
         float* input = (float*) buf;
         conv_size = sizeof(int16_t) * size;
-        conv = malloc(conv_size);
+        conv = calloc(1, conv_size);
         for (int i = 0; i < conv_size / sizeof(int16_t); i++)
             conv[i] = 32767 * input[i];
     } else {
         conv_size = size * sizeof(int16_t);
-        conv = malloc(conv_size);
+        conv = calloc(1, conv_size);
         memcpy(conv, buf, conv_size);
     }
 
@@ -106,7 +106,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
 
     output_size = (double) conv_size * target_rate / freq;
     output_size -= output_size % 4;
-    output = malloc(output_size);
+    output = calloc(1, output_size);
     
     for (int i = 0; i < output_size / sizeof(int16_t) / 2; i++) {
         int ind = i * freq / target_rate * 2;

@@ -467,11 +467,10 @@ prnt_init(const device_t *info)
     reset_printer(dev);
 
     /* Create a page buffer. */
-    dev->page        = (psurface_t *) malloc(sizeof(psurface_t));
+    dev->page        = (psurface_t *) calloc(1, sizeof(psurface_t));
     dev->page->w     = dev->max_chars;
     dev->page->h     = dev->max_lines;
-    dev->page->chars = (char *) malloc(dev->page->w * dev->page->h);
-    memset(dev->page->chars, 0x00, dev->page->w * dev->page->h);
+    dev->page->chars = (char *) calloc(dev->page->w, dev->page->h);
 
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);

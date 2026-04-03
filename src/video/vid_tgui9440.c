@@ -4029,9 +4029,8 @@ tgui_init(const device_t *info)
 {
     const char *bios_fn;
 
-    tgui_t *tgui = malloc(sizeof(tgui_t));
+    tgui_t *tgui = calloc(1, sizeof(tgui_t));
     svga_t *svga = &tgui->svga;
-    memset(tgui, 0, sizeof(tgui_t));
 
     tgui->vram_size = device_get_config_int("memory") << 20;
     tgui->vram_mask = tgui->vram_size - 1;

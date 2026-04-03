@@ -2191,12 +2191,11 @@ escp_init(const device_t *info)
     dev->dpi           = dev->lang >= LANG_ESCP ? 360 : 240;
 
     /* Create 8-bit grayscale buffer for the page. */
-    dev->page         = (psurface_t *) malloc(sizeof(psurface_t));
+    dev->page         = (psurface_t *) calloc(1, sizeof(psurface_t));
     dev->page->w      = (int) (dev->dpi * dev->page_width);
     dev->page->h      = (int) (dev->dpi * dev->page_height);
     dev->page->pitch  = dev->page->w;
-    dev->page->pixels = (uint8_t *) malloc((size_t) dev->page->pitch * dev->page->h);
-    memset(dev->page->pixels, 0x00, (size_t) dev->page->pitch * dev->page->h);
+    dev->page->pixels = (uint8_t *) calloc(dev->page->h, (size_t) dev->page->pitch);
 
     /* Initialize parameters. */
     /* 0 = all white needed for logic 000 */

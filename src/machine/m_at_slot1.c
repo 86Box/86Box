@@ -192,7 +192,7 @@ machine_at_p6kdi_init(const machine_t *model)
     device_add(&i440fx_device);
     device_add(&piix3_device);
     device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
-    device_add(&intel_flash_bxt_device);
+    device_add(&winbond_flash_w29c020_device);
 
     return ret;
 }
@@ -248,11 +248,11 @@ machine_at_kn97_init(const machine_t *model)
 }
 
 int
-machine_at_fickn6010_init(const machine_t *model)
+machine_at_fickn6000_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/fickn6010/626hb13.rom",
+    ret = bios_load_linear("roms/machines/fickn6000/626ha14.rom",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -267,16 +267,15 @@ machine_at_fickn6010_init(const machine_t *model)
     pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
 
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    /* This actually has the W83977AF, which seems to be same as
-       the W83977F but with IrDA FIR (Fast Infrared) support */
-    device_add_params(&w83977_device, (void *) (W83977F | W83977_AMI));
-    /* From the very blurry picture, it looks like an SST flash chip.
-       And indeed, the Micro House schema lists a jumper that selects
-       Intel or SST flash, which specifically mentions the 29EE010 */
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&w83877_device, (void *) (W83877F | W83877_250));
+    /* From the very blurry TRW picture, it looks like an SST flash chip.
+       And indeed, the Micro House schema lists a jumper that selects between
+       Intel and SST flash, which specifically mentions the 29EE010 */
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -652,7 +651,7 @@ machine_at_brio83xx_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_VIDEO,       1, 2, 3, 4); /* Onboard */
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_trio64v2_dx_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
 
     device_add(&i440ex_device);
     device_add(&piix4_device);

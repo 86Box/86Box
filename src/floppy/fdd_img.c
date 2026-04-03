@@ -824,7 +824,7 @@ img_load(int drive, char *fn)
                     } else {
                         /* Literal. */
                         track_bytes -= (run & 0x7f);
-                        literal = (uint8_t *) malloc(run & 0x7f);
+                        literal = (uint8_t *) calloc(1, run & 0x7f);
                         (void) !fread(literal, 1, (run & 0x7f), dev->fp);
                         free(literal);
                     }
@@ -834,7 +834,7 @@ img_load(int drive, char *fn)
                 } else {
                     /* Literal block. */
                     size += (track_bytes - fdf_suppress_final_byte);
-                    literal = (uint8_t *) malloc(track_bytes);
+                    literal = (uint8_t *) calloc(1, track_bytes);
                     (void) !fread(literal, 1, track_bytes, dev->fp);
                     free(literal);
                     track_bytes = 0;
@@ -845,7 +845,7 @@ img_load(int drive, char *fn)
             }
 
             /* Allocate the buffer. */
-            dev->disk_data = (uint8_t *) malloc(size);
+            dev->disk_data = (uint8_t *) calloc(1, size);
 
             /* Decode the entire file - pass 2, write to buffer. */
             fseek(dev->fp, 0x80, SEEK_SET);
@@ -886,7 +886,7 @@ img_load(int drive, char *fn)
                     } else {
                         /* Literal. */
                         track_bytes -= real_run;
-                        literal = (uint8_t *) malloc(real_run);
+                        literal = (uint8_t *) calloc(1, real_run);
                         (void) !fread(literal, 1, real_run, dev->fp);
                         if (!track_bytes)
                             real_run -= fdf_suppress_final_byte;
@@ -897,7 +897,7 @@ img_load(int drive, char *fn)
                     bpos += real_run;
                 } else {
                     /* Literal block. */
-                    literal = (uint8_t *) malloc(track_bytes);
+                    literal = (uint8_t *) calloc(1, track_bytes);
                     (void) !fread(literal, 1, track_bytes, dev->fp);
                     memcpy(bpos, literal, track_bytes - fdf_suppress_final_byte);
                     free(literal);
@@ -947,7 +947,7 @@ img_load(int drive, char *fn)
             fseek(dev->fp, 0x76, SEEK_SET);
             dev->skew = fgetc(dev->fp);
 
-            dev->disk_data = (uint8_t *) malloc(((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
+            dev->disk_data = (uint8_t *) calloc(((uint32_t) bpb_total), ((uint32_t) bpb_bps));
             memset(dev->disk_data, 0xf6, ((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
 
             fseek(dev->fp, 0x6F, SEEK_SET);

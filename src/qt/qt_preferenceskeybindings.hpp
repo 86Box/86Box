@@ -1,5 +1,5 @@
-#ifndef QT_SETTINGSKEYBINDINGS_HPP
-#define QT_SETTINGSKEYBINDINGS_HPP
+#ifndef QT_PREFERENCESKEYBINDINGS_HPP
+#define QT_PREFERENCESKEYBINDINGS_HPP
 
 #include <QWidget>
 #include <QtGui/QStandardItemModel>
@@ -10,20 +10,17 @@
 #include <QTableWidget>
 
 namespace Ui {
-class SettingsKeyBindings;
+class PreferencesKeyBindings;
 }
 
-class SettingsKeyBindings : public QWidget {
+class PreferencesKeyBindings : public QWidget {
     Q_OBJECT
 
 public:
-    explicit SettingsKeyBindings(QWidget *parent = nullptr);
-    ~SettingsKeyBindings();
+    explicit PreferencesKeyBindings(QWidget *parent = nullptr);
+    ~PreferencesKeyBindings();
 
     void save();
-
-public slots:
-    void onCurrentMachineChanged(int machineId);
 
 private slots:
     void on_tableKeys_cellDoubleClicked(int row, int col);
@@ -33,9 +30,8 @@ private slots:
     void on_pushButtonBind_clicked();
 
 private:
-    Ui::SettingsKeyBindings *ui;
-    int                      machineId = 0;
-    void                     refreshInputList();
+    Ui::PreferencesKeyBindings *ui;
+    void                        refreshInputList();
 };
 
-#endif // QT_SETTINGSKEYBINDINGS_HPP
+#endif // QT_PREFERENCESKEYBINDINGS_HPP

@@ -5356,8 +5356,7 @@ static void *
 mach64_common_init(const device_t *info)
 {
     svga_t   *svga;
-    mach64_t *mach64 = malloc(sizeof(mach64_t));
-    memset(mach64, 0, sizeof(mach64_t));
+    mach64_t *mach64 = calloc(1, sizeof(mach64_t));
     reset_state[monitor_index_global] = calloc(1, sizeof(mach64_t));
 
     svga = &mach64->svga;

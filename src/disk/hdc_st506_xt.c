@@ -1556,7 +1556,7 @@ loadrom(hdc_t *dev, const char *fn)
     (void) fseek(fp, 0L, SEEK_SET);
 
     /* Load the ROM data. */
-    dev->bios_rom.rom = (uint8_t *) malloc(size);
+    dev->bios_rom.rom = (uint8_t *) calloc(1, size);
     memset(dev->bios_rom.rom, 0xff, size);
     if (fread(dev->bios_rom.rom, 1, size, fp) != size)
         fatal("ST-506 XT loadrom(): Error reading data\n");

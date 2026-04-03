@@ -272,6 +272,16 @@ midi_in_device_init(void)
 }
 
 void
+midi_config_changed(void)
+{
+    midi_out_close();
+    midi_in_close();
+
+    midi_out_device_init();
+    midi_in_device_init();
+}
+
+void
 midi_raw_out_rt_byte(uint8_t val)
 {
     if (!midi_in)

@@ -11326,7 +11326,11 @@ s3_init(const device_t *info)
     char        filename[1024] = { 0 };
     uint16_t    checksum;
 
-    switch (info->local) {
+    s3->card_type = info->local;
+    if (s3->card_type == 0)
+        s3->card_type = device_get_bios_local(info, device_get_config_bios("bios"));
+
+    switch (s3->card_type) {
         case S3_ORCHID_86C911:
             bios_fn = ROM_ORCHID_86C911;
             chip    = S3_86C911;
@@ -11606,15 +11610,13 @@ s3_init(const device_t *info)
 
     if (vram)
         vram_size = vram << 20;
-    else if (info->local == S3_86C805_ONBOARD) {
+    else if (s3->card_type == S3_86C805_ONBOARD) {
         vram_size = 1024 << 10;
         vram = 1;
-    }
-    else if (info->local == S3_PHOENIX_TRIO32_ONBOARD) {
+    } else if (s3->card_type == S3_PHOENIX_TRIO32_ONBOARD) {
         vram_size = 1024 << 10;
         vram = 1;
-    }
-    else
+    } else
         vram_size = 512 << 10;
 
     s3->vram_mask = vram_size - 1;
@@ -11688,7 +11690,7 @@ s3_init(const device_t *info)
 
     switch (chip) {
         case S3_VISION964:
-            switch (info->local) {
+            switch (s3->card_type) {
                 case S3_ELSAWIN2KPROX_964:
                     svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
                     break;
@@ -11699,7 +11701,7 @@ s3_init(const device_t *info)
             break;
 
         case S3_VISION968:
-            switch (info->local) {
+            switch (s3->card_type) {
                 case S3_DIAMOND_STEALTH64_968:
                 case S3_ELSAWIN2KPROX:
                 case S3_PHOENIX_VISION968:
@@ -11776,8 +11778,6 @@ s3_init(const device_t *info)
     s3->chip = chip;
 
     s3->int_line = 0;
-
-    s3->card_type = info->local;
 
     svga->force_old_addr = 1;
 
@@ -11990,7 +11990,7 @@ s3_init(const device_t *info)
         case S3_PHOENIX_VISION864:
         case S3_MIROCRYSTAL20SD_864: /*BIOS 3.xx has a SDAC ramdac.*/
             svga->decode_mask = (8 << 20) - 1;
-            if (info->local == S3_PARADISE_BAHAMAS64)
+            if (s3->card_type == S3_PARADISE_BAHAMAS64)
                 stepping = 0xc0; /*Vision864*/
             else
                 stepping = 0xc1; /*Vision864P*/
@@ -12017,7 +12017,7 @@ s3_init(const device_t *info)
             s3->packed_mmio             = 1;
             svga->crtc[0x5a]            = 0x0a;
 
-            switch (info->local) {
+            switch (s3->card_type) {
                 case S3_ELSAWIN2KPROX_964:
                     svga->ramdac = device_add(&ibm_rgb528_ramdac_device);
                     s3->ramdac_type = IBM_RGB;
@@ -12060,7 +12060,7 @@ s3_init(const device_t *info)
                 svga->crtc[0x5a] = 0x0a;
             }
 
-            switch (info->local) {
+            switch (s3->card_type) {
                 case S3_DIAMOND_STEALTH64_968:
                 case S3_ELSAWIN2KPROX:
                 case S3_PHOENIX_VISION968:
@@ -12069,10 +12069,10 @@ s3_init(const device_t *info)
                     s3->ramdac_type = IBM_RGB;
                     svga->clock_gen = svga->ramdac;
                     svga->getclock  = ibm_rgb528_getclock;
-                    if (info->local == S3_ELSAWIN2KPROX) {
+                    if (s3->card_type == S3_ELSAWIN2KPROX) {
                         s3->elsa_eeprom = 1;
                         ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 28322000.0f);
-                    } else if (info->local == S3_DIAMOND_STEALTH64_968)
+                    } else if (s3->card_type == S3_DIAMOND_STEALTH64_968)
                         ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 14318184.0f);
                     else
                         ibm_rgb528_ramdac_set_ref_clock(svga->ramdac, svga, 16000000.0f);
@@ -12106,7 +12106,7 @@ s3_init(const device_t *info)
                 svga->crtc[0x5a] = 0x0a;
             }
 
-            if (info->local == S3_NUMBER9_9FX_531) {
+            if (s3->card_type == S3_NUMBER9_9FX_531) {
                 svga->ramdac    = device_add(&att498_ramdac_device);
                 s3->ramdac_type = ATT498;
                 svga->clock_gen = device_add(&icd2061_device);
@@ -12265,240 +12265,6 @@ s3_init(const device_t *info)
     return s3;
 }
 
-static int
-s3_orchid_86c911_available(void)
-{
-    return rom_present(ROM_ORCHID_86C911);
-}
-
-static int
-s3_diamond_stealth_vram_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH_VRAM);
-}
-
-static int
-s3_ami_86c924_available(void)
-{
-    return rom_present(ROM_AMI_86C924);
-}
-
-static int
-s3_spea_mirage_86c801_available(void)
-{
-    return rom_present(ROM_SPEA_MIRAGE_86C801);
-}
-
-static int
-s3_spea_mirage_86c805_available(void)
-{
-    return rom_present(ROM_SPEA_MIRAGE_86C805);
-}
-
-static int
-s3_phoenix_86c80x_available(void)
-{
-    return rom_present(ROM_PHOENIX_86C80X);
-}
-
-static int
-s3_winner1000_805_available(void)
-{
-    return rom_present(ROM_WINNER1000_805);
-}
-
-static int
-s3_mirocrystal_8s_805_available(void)
-{
-    return rom_present(ROM_MIROCRYSTAL8S_805);
-}
-
-static int
-s3_mirocrystal_10sd_805_available(void)
-{
-    return rom_present(ROM_MIROCRYSTAL10SD_805);
-}
-
-static int
-s3_elsa_winner1000_86c928_vlb_available(void)
-{
-    return rom_present(ROM_ELSAWIN1KVL_86C928);
-}
-
-static int
-s3_elsa_winner1000_86c928_pci_available(void)
-{
-    return rom_present(ROM_ELSAWIN1KPCI_86C928);
-}
-
-static int
-s3_elsa_winner2000_86c928_available(void)
-{
-    return rom_present(ROM_ELSAWIN2K_86C928);
-}
-
-static int
-s3_metheus_86c928_available(void)
-{
-    return rom_present(ROM_METHEUS_86C928);
-}
-
-static int
-s3_spea_mercury_lite_pci_available(void)
-{
-    return rom_present(ROM_SPEA_MERCURY_LITE_PCI);
-}
-
-static int
-s3_bahamas64_available(void)
-{
-    return rom_present(ROM_PARADISE_BAHAMAS64);
-}
-
-static int
-s3_phoenix_vision864_available(void)
-{
-    return rom_present(ROM_PHOENIX_VISION864);
-}
-
-static int
-s3_9fx_531_available(void)
-{
-    return rom_present(ROM_NUMBER9_9FX_531);
-}
-
-static int
-s3_phoenix_vision868_available(void)
-{
-    return rom_present(ROM_PHOENIX_VISION868);
-}
-
-static int
-s3_mirocrystal_20sv_964_vlb_available(void)
-{
-    return rom_present(ROM_MIROCRYSTAL20SV_964_VLB);
-}
-
-static int
-s3_mirocrystal_20sv_964_pci_available(void)
-{
-    return rom_present(ROM_MIROCRYSTAL20SV_964_PCI);
-}
-
-static int
-s3_diamond_stealth64_964_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH64_964);
-}
-
-static int
-s3_diamond_stealth64_968_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH64_968);
-}
-
-static int
-s3_mirovideo_40sv_ergo_968_pci_available(void)
-{
-    return rom_present(ROM_MIROVIDEO40SV_ERGO_968_PCI);
-}
-
-static int
-s3_9fx_771_available(void)
-{
-    return rom_present(ROM_NUMBER9_9FX_771);
-}
-
-static int
-s3_phoenix_vision968_available(void)
-{
-    return rom_present(ROM_PHOENIX_VISION968);
-}
-
-static int
-s3_mirocrystal_20sd_864_vlb_available(void)
-{
-    return rom_present(ROM_MIROCRYSTAL20SD_864_VLB);
-}
-
-static int
-s3_spea_mercury_p64v_pci_available(void)
-{
-    return rom_present(ROM_SPEA_MERCURY_P64V);
-}
-
-static int
-s3_elsa_winner2000_pro_x_964_available(void)
-{
-    return rom_present(ROM_ELSAWIN2KPROX_964);
-}
-
-static int
-s3_elsa_winner2000_pro_x_available(void)
-{
-    return rom_present(ROM_ELSAWIN2KPROX);
-}
-
-static int
-s3_phoenix_trio32_available(void)
-{
-    return rom_present(ROM_PHOENIX_TRIO32);
-}
-
-static int
-s3_diamond_stealth_se_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH_SE);
-}
-
-static int
-s3_9fx_available(void)
-{
-    return rom_present(ROM_NUMBER9_9FX);
-}
-
-static int
-s3_spea_mirage_p64_vlb_available(void)
-{
-    return rom_present(ROM_SPEA_MIRAGE_P64);
-}
-
-static int
-s3_phoenix_trio64_available(void)
-{
-    return rom_present(ROM_PHOENIX_TRIO64);
-}
-
-static int
-s3_stb_powergraph_64_video_available(void)
-{
-    return rom_present(ROM_STB_POWERGRAPH_64_VIDEO);
-}
-
-static int
-s3_phoenix_trio64vplus_available(void)
-{
-    return rom_present(ROM_PHOENIX_TRIO64VPLUS);
-}
-
-static int
-s3_cardex_trio64vplus_available(void)
-{
-    return rom_present(ROM_PHOENIX_TRIO64VPLUS);
-}
-
-static int
-s3_diamond_stealth64_764_available(void)
-{
-    return rom_present(ROM_DIAMOND_STEALTH64_764);
-}
-
-static int
-s3_trio64v2_dx_available(void)
-{
-    return rom_present(ROM_TRIO64V2_DX_VBE20);
-}
-
 static void
 s3_close(void *priv)
 {
@@ -12538,26 +12304,7 @@ s3_force_redraw(void *priv)
 }
 
 // clang-format off
-static const device_config_t s3_orchid_86c911_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "512 KB", .value = 0 },
-            { .description = "1 MB",   .value = 1 },
-            { .description = ""                   }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t s3_9fx_config[] = {
+static const device_config_t s3_trio_onboard_config[] = {
     {
         .name           = "memory",
         .description    = "Memory size",
@@ -12572,87 +12319,6 @@ static const device_config_t s3_9fx_config[] = {
              /* Trio64 also supports 4 MB, however the Number Nine BIOS does not */
              { .description = ""                 }
         },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t s3_phoenix_trio32_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "512 KB", .value = 0 },
-            { .description = "1 MB",   .value = 1 },
-            { .description = "2 MB",   .value = 2 },
-            { .description = ""                   }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t s3_phoenix_trio32_v_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB",   .value = 1 },
-            { .description = "2 MB",   .value = 2 },
-            { .description = ""                   }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "colorkey",
-        .description    = "Video chroma-keying",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t s3_trio64v_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 4,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB", .value = 1 },
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "colorkey",
-        .description    = "Video chroma-keying",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
@@ -12687,137 +12353,7 @@ static const device_config_t s3_trio64v_onboard_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
-
-static const device_config_t s3_standard_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 4,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB", .value = 1 },
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t s3_968_config[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 4,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "1 MB", .value = 1 },
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = "8 MB", .value = 8 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-static const device_config_t s3_standard_config2[] = {
-    {
-        .name           = "memory",
-        .description    = "Memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 4,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
 // clang-format on
-
-const device_t s3_orchid_86c911_isa_device = {
-    .name          = "S3 86c911 ISA (Orchid Fahrenheit 1280)",
-    .internal_name = "orchid_s3_911",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_ORCHID_86C911,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_orchid_86c911_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_orchid_86c911_config
-};
-
-const device_t s3_diamond_stealth_vram_isa_device = {
-    .name          = "S3 86c911 ISA (Diamond Stealth VRAM)",
-    .internal_name = "stealthvram_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_DIAMOND_STEALTH_VRAM,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth_vram_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_orchid_86c911_config
-};
-
-const device_t s3_ami_86c924_isa_device = {
-    .name          = "S3 86c924 ISA (AMI Graphics Accelerator 215X)",
-    .internal_name = "ami_s3_924",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_AMI_86C924,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_ami_86c924_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_orchid_86c911_config
-};
-
-const device_t s3_spea_mirage_86c801_isa_device = {
-    .name          = "S3 86c801 ISA (SPEA V7-Mirage ISA)",
-    .internal_name = "px_s3_v7_801_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_SPEA_MIRAGE_86C801,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_spea_mirage_86c801_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_winner1000_805_isa_device = {
-    .name          = "S3 86c805 ISA (ELSA Winner 1000 805i)",
-    .internal_name = "winner1000_805_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_WINNER1000_805,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available = s3_winner1000_805_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
 
 const device_t s3_86c805_onboard_vlb_device = {
     .name          = "S3 86c805 VLB On-Board",
@@ -12833,373 +12369,8 @@ const device_t s3_86c805_onboard_vlb_device = {
     .config        = NULL
 };
 
-const device_t s3_spea_mirage_86c805_vlb_device = {
-    .name          = "S3 86c805 VLB (SPEA V7-Mirage VL)",
-    .internal_name = "px_s3_v7_805_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_SPEA_MIRAGE_86C805,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_spea_mirage_86c805_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_mirocrystal_8s_805_vlb_device = {
-    .name          = "S3 86c805 VLB (miroCRYSTAL 8S)",
-    .internal_name = "mirocrystal8s_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_MIROCRYSTAL8S_805,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_mirocrystal_8s_805_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_mirocrystal_10sd_805_vlb_device = {
-    .name          = "S3 86c805 VLB (miroCRYSTAL 10SD)",
-    .internal_name = "mirocrystal10sd_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_MIROCRYSTAL10SD_805,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_mirocrystal_10sd_805_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_phoenix_86c801_isa_device = {
-    .name          = "S3 86c801 ISA (Phoenix)",
-    .internal_name = "px_86c801_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_PHOENIX_86C801,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_86c80x_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_phoenix_86c805_vlb_device = {
-    .name          = "S3 86c805 VLB (Phoenix)",
-    .internal_name = "px_86c805_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_PHOENIX_86C805,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_86c80x_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_elsa_winner1000_86c928_vlb_device = {
-    .name          = "S3 86c928 VLB (ELSA Winner 1000 928)",
-    .internal_name = "elsawin1k928_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_ELSAWIN1K_86C928,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_elsa_winner1000_86c928_vlb_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_elsa_winner2000_86c928_isa_device = {
-    .name          = "S3 86c928 ISA (ELSA Winner 2000 928)",
-    .internal_name = "elsawin2k928_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_ELSAWIN2K_86C928,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_elsa_winner2000_86c928_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_metheus_86c928_isa_device = {
-    .name          = "S3 86c928 ISA (Metheus Premier 928)",
-    .internal_name = "metheus928_isa",
-    .flags         = DEVICE_ISA16,
-    .local         = S3_METHEUS_86C928,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_metheus_86c928_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_metheus_86c928_vlb_device = {
-    .name          = "S3 86c928 VLB (Metheus Premier 928)",
-    .internal_name = "metheus928_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_METHEUS_86C928,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_metheus_86c928_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_elsa_winner1000_86c928_pci_device = {
-    .name          = "S3 86c928 PCI (ELSA Winner 1000 928)",
-    .internal_name = "elsawin1k928_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_ELSAWIN1KPCI_86C928,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_elsa_winner1000_86c928_pci_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-
-const device_t s3_spea_mercury_lite_86c928_pci_device = {
-    .name          = "S3 86c928 PCI (SPEA V7-Mercury Lite)",
-    .internal_name = "spea_mercurylite_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_SPEA_MERCURY_LITE_PCI,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_spea_mercury_lite_pci_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_orchid_86c911_config
-};
-
-const device_t s3_mirocrystal_20sd_864_vlb_device = {
-    .name          = "S3 Vision864 VLB (miroCRYSTAL 20SD)",
-    .internal_name = "mirocrystal20sd_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_MIROCRYSTAL20SD_864,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_mirocrystal_20sd_864_vlb_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_bahamas64_vlb_device = {
-    .name          = "S3 Vision864 VLB (Paradise Bahamas 64)",
-    .internal_name = "bahamas64_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_PARADISE_BAHAMAS64,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_bahamas64_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_bahamas64_pci_device = {
-    .name          = "S3 Vision864 PCI (Paradise Bahamas 64)",
-    .internal_name = "bahamas64_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_PARADISE_BAHAMAS64,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_bahamas64_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_mirocrystal_20sv_964_vlb_device = {
-    .name          = "S3 Vision964 VLB (miroCRYSTAL 20SV)",
-    .internal_name = "mirocrystal20sv_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_MIROCRYSTAL20SV_964,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_mirocrystal_20sv_964_vlb_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_mirocrystal_20sv_964_pci_device = {
-    .name          = "S3 Vision964 PCI (miroCRYSTAL 20SV)",
-    .internal_name = "mirocrystal20sv_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_MIROCRYSTAL20SV_964,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_mirocrystal_20sv_964_pci_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_diamond_stealth64_964_vlb_device = {
-    .name          = "S3 Vision964 VLB (Diamond Stealth64 VRAM)",
-    .internal_name = "stealth64v_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_DIAMOND_STEALTH64_964,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth64_964_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_diamond_stealth64_964_pci_device = {
-    .name          = "S3 Vision964 PCI (Diamond Stealth64 VRAM)",
-    .internal_name = "stealth64v_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH64_964,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth64_964_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_diamond_stealth64_968_vlb_device = {
-    .name          = "S3 Vision968 VLB (Diamond Stealth64 Video 3000)",
-    .internal_name = "stealth64vv_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_DIAMOND_STEALTH64_968,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth64_968_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config2
-};
-
-const device_t s3_diamond_stealth64_968_pci_device = {
-    .name          = "S3 Vision968 PCI (Diamond Stealth64 Video 3000 Ver. 2)",
-    .internal_name = "stealth64vv_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH64_968,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth64_968_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config2
-};
-
-const device_t s3_9fx_771_pci_device = {
-    .name          = "S3 Vision968 PCI (Number Nine 9FX Motion 771)",
-    .internal_name = "n9_9fx_771_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_NUMBER9_9FX_771,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_9fx_771_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_968_config
-};
-
-const device_t s3_phoenix_vision968_pci_device = {
-    .name          = "S3 Vision968 PCI (Phoenix)",
-    .internal_name = "px_vision968_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_PHOENIX_VISION968,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_vision968_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_mirovideo_40sv_ergo_968_pci_device = {
-    .name          = "S3 Vision968 PCI (miroVIDEO 40SV Ergo)",
-    .internal_name = "mirovideo40sv_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_MIROVIDEO40SV_ERGO_968,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_mirovideo_40sv_ergo_968_pci_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_spea_mercury_p64v_pci_device = {
-    .name          = "S3 Vision968 PCI (SPEA V7-Mercury P64V)",
-    .internal_name = "spea_mercury64p_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_SPEA_MERCURY_P64V,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_spea_mercury_p64v_pci_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_9fx_vlb_device = {
-    .name          = "S3 Trio64 VLB (Number Nine 9FX Vision 330)",
-    .internal_name = "n9_9fx_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_NUMBER9_9FX,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_9fx_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_9fx_pci_device = {
-    .name          = "S3 Trio64 PCI (Number Nine 9FX Vision 330)",
-    .internal_name = "n9_9fx_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_NUMBER9_9FX,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_9fx_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_phoenix_trio32_onboard_vlb_device = {
-    .name          = "S3 Trio32 VLB On-Board (Phoenix)",
+const device_t s3_trio32_onboard_vlb_device = {
+    .name          = "S3 Trio32 VLB On-Board",
     .internal_name = "px_trio32_onboard_vlb",
     .flags         = DEVICE_VLB,
     .local         = S3_PHOENIX_TRIO32_ONBOARD,
@@ -13212,22 +12383,8 @@ const device_t s3_phoenix_trio32_onboard_vlb_device = {
     .config        = NULL
 };
 
-const device_t s3_phoenix_trio32_vlb_device = {
-    .name          = "S3 Trio32 VLB (Phoenix)",
-    .internal_name = "px_trio32_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_PHOENIX_TRIO32,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_trio32_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_phoenix_trio32_config
-};
-
-const device_t s3_phoenix_trio32_onboard_pci_device = {
-    .name          = "S3 Trio32 PCI On-Board (Phoenix)",
+const device_t s3_trio32_onboard_pci_device = {
+    .name          = "S3 Trio32 PCI On-Board",
     .internal_name = "px_trio32_onboard_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_PHOENIX_TRIO32_ONBOARD,
@@ -13237,68 +12394,12 @@ const device_t s3_phoenix_trio32_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
+    .config        = s3_trio_onboard_config
 };
 
-const device_t s3_phoenix_trio32_pci_device = {
-    .name          = "S3 Trio32 PCI (Phoenix)",
-    .internal_name = "px_trio32_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_PHOENIX_TRIO32,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_trio32_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_phoenix_trio32_config
-};
-
-const device_t s3_diamond_stealth_se_vlb_device = {
-    .name          = "S3 Trio32 VLB (Diamond Stealth SE)",
-    .internal_name = "stealthse_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_DIAMOND_STEALTH_SE,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth_se_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_phoenix_trio32_config
-};
-
-const device_t s3_diamond_stealth_se_pci_device = {
-    .name          = "S3 Trio32 PCI (Diamond Stealth SE)",
-    .internal_name = "stealthse_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH_SE,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth_se_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_phoenix_trio32_config
-};
-
-const device_t s3_phoenix_trio64_vlb_device = {
-    .name          = "S3 Trio64 VLB (Phoenix)",
-    .internal_name = "px_trio64_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_PHOENIX_TRIO64,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_trio64_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_phoenix_trio64_onboard_pci_device = {
-    .name          = "S3 Trio64 PCI On-Board (Phoenix)",
-    .internal_name = "px_trio64_onboard_pci",
+const device_t s3_trio64_onboard_pci_device = {
+    .name          = "S3 Trio64 PCI On-Board",
+    .internal_name = "trio64_onboard_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_PHOENIX_TRIO64_ONBOARD,
     .init          = s3_init,
@@ -13307,40 +12408,12 @@ const device_t s3_phoenix_trio64_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
+    .config        = s3_trio_onboard_config
 };
 
-const device_t s3_phoenix_trio64_pci_device = {
-    .name          = "S3 Trio64 PCI (Phoenix)",
-    .internal_name = "px_trio64_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_PHOENIX_TRIO64,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_trio64_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_stb_powergraph_64_video_vlb_device = {
-    .name          = "S3 Trio64V+ VLB (STB PowerGraph 64 Video)",
-    .internal_name = "stb_trio64vplus_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_STB_POWERGRAPH_64_VIDEO,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_stb_powergraph_64_video_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_phoenix_trio32_v_config
-};
-
-const device_t s3_phoenix_trio64vplus_onboard_pci_device = {
-    .name          = "S3 Trio64V+ PCI On-Board (Phoenix)",
-    .internal_name = "px_trio64vplus_onboard_pci",
+const device_t s3_trio64vplus_onboard_pci_device = {
+    .name          = "S3 Trio64V+ PCI On-Board",
+    .internal_name = "trio64vplus_onboard_pci",
     .flags         = DEVICE_PCI,
     .local         = S3_PHOENIX_TRIO64VPLUS_ONBOARD,
     .init          = s3_init,
@@ -13352,175 +12425,7 @@ const device_t s3_phoenix_trio64vplus_onboard_pci_device = {
     .config        = s3_trio64v_onboard_config
 };
 
-const device_t s3_phoenix_trio64vplus_pci_device = {
-    .name          = "S3 Trio64V+ PCI (Phoenix)",
-    .internal_name = "px_trio64vplus_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_PHOENIX_TRIO64VPLUS,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_trio64vplus_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_trio64v_config
-};
-
-const device_t s3_cardex_trio64vplus_pci_device = {
-    .name          = "S3 Trio64V+ PCI (Cardex)",
-    .internal_name = "cardex_trio64vplus_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_CARDEX_TRIO64VPLUS,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_cardex_trio64vplus_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_trio64v_config
-};
-
-const device_t s3_phoenix_vision864_vlb_device = {
-    .name          = "S3 Vision864 VLB (Phoenix)",
-    .internal_name = "px_vision864_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_PHOENIX_VISION864,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_vision864_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_phoenix_vision864_pci_device = {
-    .name          = "S3 Vision864 PCI (Phoenix)",
-    .internal_name = "px_vision864_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_PHOENIX_VISION864,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_vision864_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_9fx_531_pci_device = {
-    .name          = "S3 Vision868 PCI (Number Nine 9FX Motion 531)",
-    .internal_name = "n9_9fx_531_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_NUMBER9_9FX_531,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_9fx_531_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_phoenix_vision868_pci_device = {
-    .name          = "S3 Vision868 PCI (Phoenix)",
-    .internal_name = "px_vision868_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_PHOENIX_VISION868,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_phoenix_vision868_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
-};
-
-const device_t s3_diamond_stealth64_vlb_device = {
-    .name          = "S3 Trio64 VLB (Diamond Stealth64 Graphics 2000)",
-    .internal_name = "stealth64d_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_DIAMOND_STEALTH64_764,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth64_764_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_diamond_stealth64_pci_device = {
-    .name          = "S3 Trio64 PCI (Diamond Stealth64 Graphics 2000)",
-    .internal_name = "stealth64d_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_DIAMOND_STEALTH64_764,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_diamond_stealth64_764_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_spea_mirage_p64_vlb_device = {
-    .name          = "S3 Trio64 VLB (SPEA V7-Mirage P64)",
-    .internal_name = "spea_miragep64_vlb",
-    .flags         = DEVICE_VLB,
-    .local         = S3_SPEA_MIRAGE_P64,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_spea_mirage_p64_vlb_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_9fx_config
-};
-
-const device_t s3_elsa_winner2000_pro_x_964_pci_device = {
-    .name          = "S3 Vision964 PCI (ELSA Winner 2000 Pro/X)",
-    .internal_name = "elsawin2kprox_964_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_ELSAWIN2KPROX_964,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_elsa_winner2000_pro_x_964_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_968_config
-};
-
-const device_t s3_elsa_winner2000_pro_x_pci_device = {
-    .name          = "S3 Vision968 PCI (ELSA Winner 2000 Pro/X)",
-    .internal_name = "elsawin2kprox_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_ELSAWIN2KPROX,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_elsa_winner2000_pro_x_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_968_config
-};
-
-const device_t s3_trio64v2_dx_pci_device = {
-    .name          = "S3 Trio64V2/DX PCI",
-    .internal_name = "trio64v2dx_pci",
-    .flags         = DEVICE_PCI,
-    .local         = S3_TRIO64V2_DX,
-    .init          = s3_init,
-    .close         = s3_close,
-    .reset         = s3_reset,
-    .available     = s3_trio64v2_dx_available,
-    .speed_changed = s3_speed_changed,
-    .force_redraw  = s3_force_redraw,
-    .config        = s3_trio64v_config
-};
-
-const device_t s3_trio64v2_dx_onboard_pci_device = {
+const device_t s3_trio64v2dx_onboard_pci_device = {
     .name          = "S3 Trio64V2/DX On-Board PCI",
     .internal_name = "trio64v2dx_onboard_pci",
     .flags         = DEVICE_PCI,
@@ -13532,4 +12437,1547 @@ const device_t s3_trio64v2_dx_onboard_pci_device = {
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
     .config        = s3_trio64v_onboard_config
+};
+
+// clang-format off
+static const device_config_t s3_86c911_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "orchid_s3_911",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth VRAM",
+                .internal_name = "stealthvram_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH_VRAM,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH_VRAM, "" }
+            },
+            {
+                .name          = "Orchid Fahrenheit 1280",
+                .internal_name = "orchid_s3_911",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ORCHID_86C911,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_ORCHID_86C911, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 0 },
+            { .description = "1 MB",   .value = 1 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_86c924_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "ami_s3_924",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "AMI Graphics Accelerator 215X",
+                .internal_name = "ami_s3_924",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_AMI_86C924,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_AMI_86C924, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 0 },
+            { .description = "1 MB",   .value = 1 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_86c928_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "elsawin2k928_isa",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "ELSA Winner 2000 928",
+                .internal_name = "elsawin2k928_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ELSAWIN2K_86C928,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_ELSAWIN2K_86C928, "" }
+            },
+            {
+                .name          = "Metheus Premier 928",
+                .internal_name = "metheus928_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_METHEUS_86C928,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_METHEUS_86C928, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_86c928_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "elsawin1k928_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "ELSA Winner 1000 928",
+                .internal_name = "elsawin1k928_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ELSAWIN1K_86C928,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_ELSAWIN1KVL_86C928, "" }
+            },
+            {
+                .name          = "Metheus Premier 928",
+                .internal_name = "metheus928_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_METHEUS_86C928,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_METHEUS_86C928, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_86c928_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "elsawin1k928_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "ELSA Winner 1000 928",
+                .internal_name = "elsawin1k928_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ELSAWIN1KPCI_86C928,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | 1,
+                .files         = { ROM_ELSAWIN1KPCI_86C928, "" }
+            },
+            {
+                .name          = "SPEA V7-Mercury Lite",
+                .internal_name = "spea_mercurylite_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_SPEA_MERCURY_LITE_PCI,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (1 << 16),
+                .files         = { ROM_SPEA_MERCURY_LITE_PCI, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 0 },
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = "4 MB",   .value = 4 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_86c801_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_86c801_isa",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_86c801_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_86C801,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_86C80X, "" }
+            },
+            {
+                .name          = "SPEA V7-Mirage ISA",
+                .internal_name = "px_s3_v7_801_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_SPEA_MIRAGE_86C801,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_SPEA_MIRAGE_86C801, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_86c805_isa_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "winner1000_805_isa",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "ELSA Winner 1000 805i",
+                .internal_name = "winner1000_805_isa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_WINNER1000_805,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_WINNER1000_805, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_86c805_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_86c805_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "miroCRYSTAL 8S",
+                .internal_name = "mirocrystal8s_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROCRYSTAL8S_805,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_MIROCRYSTAL8S_805, "" }
+            },
+            {
+                .name          = "miroCRYSTAL 10SD",
+                .internal_name = "mirocrystal10sd_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROCRYSTAL10SD_805,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_MIROCRYSTAL10SD_805, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_86c805_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_86C805,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_86C80X, "" }
+            },
+            {
+                .name          = "SPEA V7-Mirage VL",
+                .internal_name = "px_s3_v7_805_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_SPEA_MIRAGE_86C805,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_SPEA_MIRAGE_86C805, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_vision864_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_vision864_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "miroCRYSTAL 20SD",
+                .internal_name = "mirocrystal20sd_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROCRYSTAL20SD_864,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_MIROCRYSTAL20SD_864_VLB, "" }
+            },
+            {
+                .name          = "Paradise Bahamas 64",
+                .internal_name = "bahamas64_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PARADISE_BAHAMAS64,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_PARADISE_BAHAMAS64, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_vision864_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_VISION864,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_VISION864, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = "4 MB",   .value = 4 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_vision864_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_vision864_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Paradise Bahamas 64",
+                .internal_name = "bahamas64_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PARADISE_BAHAMAS64,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_PARADISE_BAHAMAS64, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_vision864_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_VISION864,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_VISION864, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = "4 MB",   .value = 4 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_trio32_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio32_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth SE",
+                .internal_name = "stealthse_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH_SE,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH_SE, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_trio32_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_TRIO32,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_TRIO32, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 0 },
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_trio32_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio32_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth SE",
+                .internal_name = "stealthse_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH_SE,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH_SE, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_trio32_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_TRIO32,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_TRIO32, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 0 },
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_vision964_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "stealth64v_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth64 VRAM",
+                .internal_name = "stealth64v_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH64_964,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH64_964, "" }
+            },
+            {
+                .name          = "miroCRYSTAL 20SV",
+                .internal_name = "mirocrystal20sv_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROCRYSTAL20SV_964,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_MIROCRYSTAL20SV_964_VLB, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = "4 MB",   .value = 4 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_vision964_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "elsawin2kprox_964_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth64 VRAM",
+                .internal_name = "stealth64v_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH64_964,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .files         = { ROM_DIAMOND_STEALTH64_964, "" }
+            },
+            {
+                .name          = "ELSA Winner 2000 Pro/X",
+                .internal_name = "elsawin2kprox_964_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ELSAWIN2KPROX_964,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_ELSAWIN2KPROX_964, "" }
+            },
+            {
+                .name          = "miroCRYSTAL 20SV",
+                .internal_name = "mirocrystal20sv_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROCRYSTAL20SV_964,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_MIROCRYSTAL20SV_964_PCI, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_trio64_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio64_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth64 Graphics 2000",
+                .internal_name = "stealth64d_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH64_764,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_DIAMOND_STEALTH64_764, "" }
+            },
+            {
+                .name          = "Number Nine 9FX Vision 330",
+                .internal_name = "n9_9fx_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_NUMBER9_9FX,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_NUMBER9_9FX, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_trio64_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_TRIO64,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_TRIO64, "" }
+            },
+            {
+                .name          = "SPEA V7-Mirage P64",
+                .internal_name = "spea_miragep64_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_SPEA_MIRAGE_P64,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_SPEA_MIRAGE_P64, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = "4 MB",   .value = 4 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_trio64_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio64_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth64 Graphics 2000",
+                .internal_name = "stealth64d_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH64_764,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_DIAMOND_STEALTH64_764, "" }
+            },
+            {
+                .name          = "Number Nine 9FX Vision 330",
+                .internal_name = "n9_9fx_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_NUMBER9_9FX,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_NUMBER9_9FX, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_trio64_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_TRIO64,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_TRIO64, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = "4 MB",   .value = 4 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_vision868_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_vision868_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Number Nine 9FX Motion 531",
+                .internal_name = "n9_9fx_531_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_NUMBER9_9FX_531,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_NUMBER9_9FX_531, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_vision868_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_VISION868,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_VISION868, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = "4 MB",   .value = 4 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_vision968_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "stealth64vv_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth64 Video 3000",
+                .internal_name = "stealth64vv_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH64_968,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIAMOND_STEALTH64_968, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_vision968_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "elsawin2kprox_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Diamond Stealth64 Video 3000 Ver. 2",
+                .internal_name = "stealth64vv_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH64_968,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 2 | (4 << 16),
+                .files         = { ROM_DIAMOND_STEALTH64_968, "" }
+            },
+            {
+                .name          = "ELSA Winner 2000 Pro/X",
+                .internal_name = "elsawin2kprox_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ELSAWIN2KPROX,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_ELSAWIN2KPROX, "" }
+            },
+            {
+                .name          = "miroVIDEO 40SV Ergo",
+                .internal_name = "mirovideo40sv_pcii",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROVIDEO40SV_ERGO_968,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .files         = { ROM_MIROVIDEO40SV_ERGO_968_PCI, "" }
+            },
+            {
+                .name          = "Number Nine 9FX Motion 771",
+                .internal_name = "n9_9fx_771_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_NUMBER9_9FX_771,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_NUMBER9_9FX_771, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_vision968_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_VISION968,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .files         = { ROM_PHOENIX_VISION968, "" }
+            },
+            {
+                .name          = "SPEA V7-Mercury P64V",
+                .internal_name = "spea_mercury64p_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_SPEA_MERCURY_P64V,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .files         = { ROM_SPEA_MERCURY_P64V, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_trio64vplus_vlb_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "stb_trio64vplus_vlb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "STB PowerGraph 64 Video",
+                .internal_name = "stb_trio64vplus_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_STB_POWERGRAPH_64_VIDEO,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_STB_POWERGRAPH_64_VIDEO, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB",   .value = 1 },
+            { .description = "2 MB",   .value = 2 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_trio64vplus_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "px_trio64vplus_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Cardex",
+                .internal_name = "cardex_trio64vplus_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_CARDEX_TRIO64VPLUS,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_CARDEX_TRIO64VPLUS, "" }
+            },
+            {
+                .name          = "Phoenix",
+                .internal_name = "px_trio64vplus_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_PHOENIX_TRIO64VPLUS,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_PHOENIX_TRIO64VPLUS, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t s3_trio64v2dx_pci_config[] = {
+    {
+        .name           = "bios",
+        .description    = "BIOS",
+        .type           = CONFIG_BIOS,
+        .default_string = "trio64v2dx_pci",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "Phoenix",
+                .internal_name = "trio64v2dx_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_TRIO64V2_DX,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_TRIO64V2_DX_VBE20, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "colorkey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
+const device_t s3_86c911_isa_device = {
+    .name          = "S3 86c911 ISA",
+    .internal_name = "s3_86c911_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c911_isa_config
+};
+
+const device_t s3_86c924_isa_device = {
+    .name          = "S3 86c924 ISA",
+    .internal_name = "s3_86c924_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c924_isa_config
+};
+
+const device_t s3_86c928_isa_device = {
+    .name          = "S3 86c928 ISA",
+    .internal_name = "s3_86c928_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c928_isa_config
+};
+
+const device_t s3_86c928_vlb_device = {
+    .name          = "S3 86c928 VLB",
+    .internal_name = "s3_86c928_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c928_vlb_config
+};
+
+const device_t s3_86c928_pci_device = {
+    .name          = "S3 86c928 PCI",
+    .internal_name = "s3_86c928_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c928_pci_config
+};
+
+const device_t s3_86c801_isa_device = {
+    .name          = "S3 86c801 ISA",
+    .internal_name = "s3_86c801_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c801_isa_config
+};
+
+const device_t s3_86c805_isa_device = {
+    .name          = "S3 86c805 ISA",
+    .internal_name = "s3_86c805_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c805_isa_config
+};
+
+const device_t s3_86c805_vlb_device = {
+    .name          = "S3 86c805 VLB",
+    .internal_name = "s3_86c805_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_86c805_vlb_config
+};
+
+const device_t s3_vision864_vlb_device = {
+    .name          = "S3 Vision864 VLB",
+    .internal_name = "s3_vision864_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_vision864_vlb_config
+};
+
+const device_t s3_vision864_pci_device = {
+    .name          = "S3 Vision864 PCI",
+    .internal_name = "s3_vision864_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_vision864_pci_config
+};
+
+const device_t s3_trio32_vlb_device = {
+    .name          = "S3 Trio32 VLB",
+    .internal_name = "s3_trio32_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_trio32_vlb_config
+};
+
+const device_t s3_trio32_pci_device = {
+    .name          = "S3 Trio32 PCI",
+    .internal_name = "s3_trio32_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_trio32_pci_config
+};
+
+const device_t s3_vision964_vlb_device = {
+    .name          = "S3 Vision964 VLB",
+    .internal_name = "s3_vision964_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_vision964_vlb_config
+};
+
+const device_t s3_vision964_pci_device = {
+    .name          = "S3 Vision964 PCI",
+    .internal_name = "s3_vision964_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_vision964_pci_config
+};
+
+const device_t s3_trio64_vlb_device = {
+    .name          = "S3 Trio64 VLB",
+    .internal_name = "s3_trio64_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_trio64_vlb_config
+};
+
+const device_t s3_trio64_pci_device = {
+    .name          = "S3 Trio64 PCI",
+    .internal_name = "s3_trio64_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_trio64_pci_config
+};
+
+const device_t s3_vision868_pci_device = {
+    .name          = "S3 Vision868 PCI",
+    .internal_name = "s3_vision868_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_vision868_pci_config
+};
+
+const device_t s3_vision968_vlb_device = {
+    .name          = "S3 Vision968 VLB",
+    .internal_name = "s3_vision968_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_vision968_vlb_config
+};
+
+const device_t s3_vision968_pci_device = {
+    .name          = "S3 Vision968 PCI",
+    .internal_name = "s3_vision968_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_vision968_pci_config
+};
+
+const device_t s3_trio64vplus_vlb_device = {
+    .name          = "S3 Trio64V+ VLB",
+    .internal_name = "s3_trio64vplus_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_trio64vplus_vlb_config
+};
+
+const device_t s3_trio64vplus_pci_device = {
+    .name          = "S3 Trio64V+ PCI",
+    .internal_name = "s3_trio64vplus_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_trio64vplus_pci_config
+};
+
+const device_t s3_trio64v2dx_pci_device = {
+    .name          = "S3 Trio64V2/DX PCI",
+    .internal_name = "s3_trio64v2dx_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    .available     = NULL,
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_trio64v2dx_pci_config
 };

@@ -174,8 +174,7 @@ port_6x_close(void *priv)
 void *
 port_6x_init(const device_t *info)
 {
-    port_6x_t *dev = (port_6x_t *) malloc(sizeof(port_6x_t));
-    memset(dev, 0, sizeof(port_6x_t));
+    port_6x_t *dev = (port_6x_t *) calloc(1, sizeof(port_6x_t));
 
     dev->flags = info->local & 0xff;
 

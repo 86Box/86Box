@@ -10,17 +10,17 @@ msgstr ""
 "X-Language: en_GB\n"
 "X-Source-Language: en_US\n"
 
-msgid "RGB &Color"
-msgstr "RGB &Colour"
+msgid "RGB Color"
+msgstr "RGB Colour"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB Greyscale"
+msgid "RGB Grayscale"
+msgstr "RGB Greyscale"
 
 msgid "Generic RGBI color monitor"
 msgstr "Generic RGBI colour monitor"
 
-msgid "Grayscale &conversion type"
-msgstr "Greyscale &conversion type"
+msgid "Grayscale conversion type:"
+msgstr "Greyscale conversion type:"
 
 msgid "Time synchronization"
 msgstr "Time synchronisation"

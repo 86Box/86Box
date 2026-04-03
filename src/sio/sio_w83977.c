@@ -918,7 +918,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
 
                             if (valxor)
-                                w83977_gpio_handler(dev, 0);
+                                w83977_gpio_handler(dev, 1);
                             break;
                         case 0xe8 ... 0xed:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x1f;
@@ -951,7 +951,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
 
                             if (valxor)
-                                w83977_gpio_handler(dev, 0);
+                                w83977_gpio_handler(dev, 2);
                             break;
                         case 0xe0 ... 0xe7:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x1b;

@@ -130,8 +130,7 @@ agpgart_aperture_writel(uint32_t addr, uint32_t val, void *priv)
 static void *
 agpgart_init(UNUSED(const device_t *info))
 {
-    agpgart_t *dev = malloc(sizeof(agpgart_t));
-    memset(dev, 0, sizeof(agpgart_t));
+    agpgart_t *dev = calloc(1, sizeof(agpgart_t));
 
     agpgart_log("AGP GART: init()\n");
 

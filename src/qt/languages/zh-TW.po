@@ -145,53 +145,44 @@ msgstr "整數比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整數比例(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)VGA 設定(&V)"
+msgid "Inverted VGA monitor"
+msgstr "VGA 監視器反色顯示"
 
-msgid "&Inverted VGA monitor"
-msgstr "VGA 監視器反色顯示(&I)"
+msgid "VGA screen type:"
+msgstr "VGA 螢幕類型:"
 
-msgid "VGA screen &type"
-msgstr "VGA 螢幕類型(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB 彩色(&C)"
+msgid "RGB Color"
+msgstr "RGB 彩色"
 
 msgid "RGB (no brown)"
 msgstr "RGB (無棕色)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB 灰階(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB 灰階"
 
 msgid "Generic RGBI color monitor"
 msgstr "通用 RGBI 彩色監視器"
 
-msgid "&Amber monitor"
-msgstr "琥珀色單色監視器(&A)"
+msgid "Amber monitor"
+msgstr "琥珀色單色監視器"
 
-msgid "&Green monitor"
-msgstr "綠色單色監視器(&G)"
+msgid "Green monitor"
+msgstr "綠色單色監視器"
 
-msgid "&White monitor"
-msgstr "白色單色監視器(&W)"
+msgid "White monitor"
+msgstr "白色單色監視器"
 
-msgid "Grayscale &conversion type"
-msgstr "灰階轉換類型(&C)"
+msgid "Grayscale conversion type:"
+msgstr "灰階轉換類型:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "平均"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "過掃描"
 
-msgid "&Average"
-msgstr "平均(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGA 過掃描(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "變更單色顯示對比度(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "變更單色顯示對比度"
 
 msgid "&Media"
 msgstr "媒體(&M)"
@@ -364,6 +355,21 @@ msgstr "效能"
 msgid "Machine type:"
 msgstr "機器類型:"
 
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
+
 msgid "Machine:"
 msgstr "機型:"
 
@@ -433,8 +439,8 @@ msgstr "顯示卡:"
 msgid "Video #2:"
 msgstr "顯示卡 2:"
 
-msgid "Accelerators"
-msgstr "加速卡"
+msgid "Monitor"
+msgstr "監視器"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 圖形"
@@ -514,30 +520,6 @@ msgstr "Nuked (更準確)"
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
-msgid "COM1 Device:"
-msgstr "COM1 裝置:"
-
-msgid "COM2 Device:"
-msgstr "COM2 裝置:"
-
-msgid "COM3 Device:"
-msgstr "COM3 裝置:"
-
-msgid "COM4 Device:"
-msgstr "COM4 裝置:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1 裝置:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2 裝置:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3 裝置:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4 裝置:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "內部 LPT 的 ECP 的 DMA:"
 
@@ -553,23 +535,20 @@ msgstr "序列埠 3"
 msgid "Serial port 4"
 msgstr "序列埠 4"
 
-msgid "Parallel port 1"
-msgstr "並列埠 1"
-
-msgid "Parallel port 2"
-msgstr "並列埠 2"
-
-msgid "Parallel port 3"
-msgstr "並列埠 3"
-
-msgid "Parallel port 4"
-msgstr "並列埠 4"
-
 msgid "Floppy disk controller:"
 msgstr "軟碟控制器:"
 
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
+
+msgid "Mitsumi interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE 控制器"
@@ -633,6 +612,9 @@ msgstr "硬碟:"
 
 msgid "Firmware Version"
 msgstr "韌體版本"
+
+msgid "DSP Version"
+msgstr "DSP 版本"
 
 msgid "&New…"
 msgstr "新增(&N)…"
@@ -2011,6 +1993,9 @@ msgstr "BIOS 版本"
 msgid "BIOS Language"
 msgstr "BIOS 語言"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 擴充單元"
 
@@ -2659,6 +2644,9 @@ msgstr "標準"
 msgid "High-Speed"
 msgstr "高速"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "立體聲 LPT DAC"
 
@@ -2671,14 +2659,17 @@ msgstr "通用 ESC/P 2 點矩陣印表機"
 msgid "Generic PostScript Printer"
 msgstr "通用 PostScript 印表機"
 
-msgid "Generic PCL5e Printer"
-msgstr "通用 PCL5e 印表機"
+msgid "Generic PCL Printer"
+msgstr "通用 PCL 印表機"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "用於 Savage Quest 的防拷保護鎖"
+
+msgid "Loopback Plug"
+msgstr ""
 
 msgid "Serial Passthrough Device"
 msgstr "序列埠直通裝置"
@@ -2770,6 +2761,12 @@ msgstr "通用 PC/XT 記憶體擴充"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "通用 PC/AT 記憶體擴充"
 
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
+
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "無法找到點矩陣字型"
 
@@ -2832,6 +2829,12 @@ msgstr "下移"
 
 msgid "Could not load file %1"
 msgstr "無法載入檔案 %1"
+
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
 
 msgid "Key bindings"
 msgstr "按鍵組合"
@@ -3010,6 +3013,9 @@ msgstr "系統將不會被新增。"
 msgid "&Update mouse every CPU frame"
 msgstr "每 CPU 執行期框架更新滑鼠(&U)"
 
+msgid "Composite CGA"
+msgstr ""
+
 msgid "Hue"
 msgstr "色調"
 
@@ -3025,11 +3031,8 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "銳利度"
 
-msgid "&CGA composite settings…"
-msgstr "CGA 複合視訊的設定(&C)…"
-
-msgid "CGA composite settings"
-msgstr "CGA 複合視訊的設定"
+msgid "Reset"
+msgstr ""
 
 msgid "Monitor EDID"
 msgstr "監視器的 EDID"
@@ -3058,9 +3061,6 @@ msgstr "亮色"
 msgid "Dark"
 msgstr "暗色"
 
-msgid "Search:"
-msgstr "搜尋:"
-
 msgid "Force interpretation"
 msgstr "強制解譯執行"
 
@@ -3084,3 +3084,6 @@ msgstr "欲變更系統目錄，請先停止全部運行中的機器。"
 
 msgid "Raw"
 msgstr "原始"
+
+msgid "Use EDC/ECC emulation"
+msgstr ""

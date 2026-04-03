@@ -114,8 +114,6 @@ timer_remove_head(void)
 void
 timer_process(void)
 {
-    int num = 0;
-
     if (!timer_head)
         return;
 
@@ -140,8 +138,6 @@ timer_process(void)
             timer->callback(timer->priv);
             timer->in_callback = 0;
         }
-
-        num++;
     }
 
     timer_target = timer_head->ts_integer;
@@ -154,8 +150,8 @@ timer_close(void)
     pc_timer_t *r;
 
     /* Set all timers' prev and next to NULL so it is assured that
-       timers that are not in malloc'd structs don't keep pointing
-       to timers that may be in malloc'd structs. */
+       timers that are not in calloc'd structs don't keep pointing
+       to timers that may be in calloc'd structs. */
     while (t != NULL) {
         r       = t;
         r->prev = r->next = NULL;

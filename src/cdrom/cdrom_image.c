@@ -1897,22 +1897,28 @@ image_load_cue(cd_image_t *img, const char *cuefile)
     return success;
 }
 
-// Converts UTF-16 string into UTF-8 string.
-// If destination string is NULL returns total number of symbols that would've
-// been written (without null terminator). However, when actually writing into
-// destination string, it does include it. So, be sure to allocate extra byte
-// for destination string.
-// Params:
-// u16_str      - source UTF-16 string
-// u16_str_len  - length of source UTF-16 string
-// u8_str       - destination UTF-8 string
-// u8_str_size  - size of destination UTF-8 string in bytes
-// Return value:
-// 0 on success, -1 if encountered invalid surrogate pair, -2 if
-// encountered buffer overflow or length of destination UTF-8 string in bytes
-// (without including the null terminator).
-long int utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
-                       uint8_t *u8_str, size_t u8_str_size)
+/*
+   Converts UTF-16 string into UTF-8 string.
+
+   If destination string is NULL returns total number of symbols that would've
+   been written (without null terminator). However, when actually writing into
+   destination string, it does include it. So, be sure to allocate extra byte
+   for destination string.
+
+   Params:
+   - u16_str      - source UTF-16 string;
+   - u16_str_len  - length of source UTF-16 string;
+   - u8_str       - destination UTF-8 string;
+   - u8_str_size  - size of destination UTF-8 string in bytes.
+
+   Return value:
+   0 on success, -1 if encountered invalid surrogate pair, -2 if
+   encountered buffer overflow or length of destination UTF-8 string in bytes
+   (without including the null terminator).
+ */
+static long int
+utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
+              uint8_t *u8_str, size_t u8_str_size)
 {
     size_t i = 0, j = 0;
 
@@ -1982,10 +1988,25 @@ long int utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
     return (long int)j;
 }
 
-int
+static int
+mds_decrypt_error(cd_image_t *img, const char *mdsfile, FILE **fp)
+{
+#ifdef ENABLE_IMAGE_LOG
+    log_warning(img->log, "    [MDS   ] Error reading \"%s\"\n",
+                mdsfile);
+#else
+    warning("Error reading \"%s\"\n", mdsfile);
+#endif
+    fclose(*fp);
+    *fp = NULL;
+    return 0;
+}
+
+static int
 mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 {
     int      is_mdx     = 0;
+    int      ret        = 0;
 
     uint64_t mdx_offset = 0ULL;
     uint64_t mdx_size_1 = 0ULL;
@@ -2009,14 +2030,23 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     uint64_t offset = 0ULL;
     fread(&offset, 1, 4, *fp);
+    if (ret != 4)
+        return mds_decrypt_error(img, mdsfile, fp);
+
     image_log(img->log, "mds_decrypt_track_data(): Offset is %016" PRIX64 "\n", offset);
 
     if (offset == 0xffffffff) {
         image_log(img->log, "mds_decrypt_track_data(): File is MDX\n");
         is_mdx = 1;
 
-        fread(&mdx_offset, 1, 8, *fp);
-        fread(&mdx_size_1, 1, 8, *fp);
+        ret = fread(&mdx_offset, 1, 8, *fp);
+        if (ret != 8)
+            return mds_decrypt_error(img, mdsfile, fp);
+
+        ret = fread(&mdx_size_1, 1, 8, *fp);
+        if (ret != 8)
+            return mds_decrypt_error(img, mdsfile, fp);
+
         image_log(img->log, "mds_decrypt_track_data(): MDX footer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", mdx_size_1, mdx_offset);
 
         offset = mdx_offset + (mdx_size_1 - 0x40);
@@ -2027,7 +2057,9 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     uint8_t data1[0x200];
 
-    fread(data1, 0x200, 1, *fp);
+    ret = fread(data1, 1, 0x200, *fp);
+    if (ret != 0x200)
+        return mds_decrypt_error(img, mdsfile, fp);
     image_log(img->log, "mds_decrypt_track_data(): Read the first data buffer\n");
 
     PCRYPTO_INFO ci;
@@ -2050,14 +2082,16 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     fseek(*fp, data2Offset, SEEK_SET);
 
-    u8 *data2 = (u8 *)malloc(data2Size);
-    fread(data2, 1, data2Size, *fp);
+    u8 *data2 = (u8 *) calloc(1, data2Size);
+    ret = fread(data2, 1, data2Size, *fp);
+    if (ret != data2Size)
+        return mds_decrypt_error(img, mdsfile, fp);
     image_log(img->log, "mds_decrypt_track_data(): Read the second data buffer\n");
 
     DecryptBlock(data2, data2Size, 0, 0, 4, ci);
     image_log(img->log, "mds_decrypt_track_data(): Decoded the second data buffer\n");
 
-    u8 *mdxHeader = (u8 *)malloc(decSize + 0x12);
+    u8 *mdxHeader = (u8 *) calloc(1, decSize + 0x12);
 
     z_stream infstream;
     infstream.zalloc = Z_NULL;
@@ -2074,7 +2108,9 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     inflateEnd(&infstream);
 
     fseek(*fp, 0, SEEK_SET);
-    fread(mdxHeader, 1, 0x12, *fp);
+    ret = fread(mdxHeader, 1, 0x12, *fp);
+    if (ret != 0x12)
+        return mds_decrypt_error(img, mdsfile, fp);
 
     u8 medium_type = getU8(mdxHeader + offsetof(MDX_Header, medium_type));
     int isDVD = 1;
@@ -2331,7 +2367,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             if (mds_dpm_block.type == 0x00000002) {
                 /* Bad sectors. */
                 img->bad_sectors_num = mds_dpm_block.entries;
-                img->bad_sectors     = (uint32_t *) malloc(img->bad_sectors_num * sizeof(uint32_t));
+                img->bad_sectors     = (uint32_t *) calloc(img->bad_sectors_num, sizeof(uint32_t));
                 fseek(fp, mds_dpm_block_offs + sizeof(mds_dpm_block_t), SEEK_SET);
                 int read_size = img->bad_sectors_num * sizeof(uint32_t);
                 if (LOG_VAR(dbtret) fread(img->bad_sectors, 1, read_size, fp) != read_size) {

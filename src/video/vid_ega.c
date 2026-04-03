@@ -1437,7 +1437,7 @@ ega_read(uint32_t addr, void *priv)
 void
 ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
-    ega->vram     = malloc(0x40000);
+    ega->vram     = calloc(1, 0x40000);
     ega->vrammask = 0x3ffff;
 
     for (uint16_t c = 0; c < 256; c++) {

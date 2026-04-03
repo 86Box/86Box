@@ -614,7 +614,7 @@ rom_reset(uint32_t addr, int sz)
         rom = NULL;
     }
     rom_log("Allocating ROM...\n");
-    rom = (uint8_t *) malloc(biosmask + 1);
+    rom = (uint8_t *) calloc(1, biosmask + 1);
     rom_log("Filling ROM with FF's...\n");
     memset(rom, 0xff, biosmask + 1);
 
@@ -795,7 +795,7 @@ rom_init(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, int off, u
     rom_log("rom_init(%08X, %s, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
     /* Allocate a buffer for the image. */
-    rom->rom = malloc(sz);
+    rom->rom = calloc(1, sz);
     memset(rom->rom, 0xff, sz);
 
     /* Load the image file into the buffer. */
@@ -824,7 +824,7 @@ rom_init_oddeven(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, in
     rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
     /* Allocate a buffer for the image. */
-    rom->rom = malloc(sz);
+    rom->rom = calloc(1, sz);
     memset(rom->rom, 0xff, sz);
 
     /* Load the image file into the buffer. */
@@ -851,7 +851,7 @@ int
 rom_init_interleaved(rom_t *rom, const char *fnl, const char *fnh, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     /* Allocate a buffer for the image. */
-    rom->rom = malloc(sz);
+    rom->rom = calloc(1, sz);
     memset(rom->rom, 0xff, sz);
 
     /* Load the image file into the buffer. */

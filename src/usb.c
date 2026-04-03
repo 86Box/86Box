@@ -400,7 +400,7 @@ usb_init(UNUSED(const device_t *info))
 {
     usb_t *dev;
 
-    dev = (usb_t *) malloc(sizeof(usb_t));
+    dev = (usb_t *) calloc(1, sizeof(usb_t));
     if (dev == NULL)
         return (NULL);
     memset(dev, 0x00, sizeof(usb_t));
