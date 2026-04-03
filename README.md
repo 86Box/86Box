@@ -9,9 +9,6 @@
 
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 
-### Powered by
-[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSource)
-
 Features
 --------
 
@@ -90,3 +87,9 @@ We do not charge you for the emulator but donations are still welcome:
 <https://paypal.me/86Box>.
 You can also support the project on Patreon:
 <https://www.patreon.com/86box>.
+
+Acknowledgments
+---------------
+
+### Powered by
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSource)
