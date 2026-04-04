@@ -11374,6 +11374,8 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
+        /* Machine has custom (currently unemulated) power management harware
+           needed for the APM interface to function */
         .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
             .min  = 1024,
@@ -14926,7 +14928,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "AT&T Globalyst 630", "NCR 3248", "NCR3348", "" }
+        .aliases                  = { "AT&T Globalyst 630", "NCR 3248", "NCR 3348", "" }
     },
     /* Has a VIA KBC chip */
     {
@@ -15129,7 +15131,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64vplus_onboard_pci_device,
         .snd_device               = &cs4232_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "HP Pavilion 7070", "HP Pavilion 7079", "HP Pavilion 71xx (Holly)", "HP Holly", "" }
+        .aliases                  = { "HP Pavilion 7070", "HP Pavilion 7090", "HP Pavilion 71xx (Holly)", "HP Holly", "" }
     },
     {
         .name              = "[i430FX] HP Vectra 500 Series xxx/MT",
