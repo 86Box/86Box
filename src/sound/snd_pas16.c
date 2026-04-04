@@ -742,11 +742,9 @@ ym3802_gentimer_poll(void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
 
-    //pas16_log("Reloading YM3802 general timer\n");
     timer_set_delay_u64(&pas16->ym3802_gentimer, (pas16->ym3802_gen_timer * 8 * TIMER_USEC));
 
     if (pas16->ym3802_reg6_banked[0x00] & 0x80) {
-        //pas16_log("Firing YM3802 general timer IRQ!\n");
         pas16->irq_stat |= PAS16_INT_MIDI;
         pas16->ym3802_ivr |= 0x0e;
         pas16->ym3802_isr |= 0x80;
@@ -900,7 +898,6 @@ pas_in(uint16_t port, void *priv)
               CS, cpu_state.pc, port + 0x388, port, ret);
 
     return ret;
-
 }
 
 static uint8_t
@@ -1583,7 +1580,6 @@ pas_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x0801:
             pas16->irq_stat &= ~val;
-            //if ((pas16->irq != -1) && !(pas16->irq_stat & 0x1f))
             if (pas16->irq != -1)
                 picintc(1 << pas16->irq);
             break;
@@ -1597,8 +1593,7 @@ pas_out(uint16_t port, uint8_t val, void *priv)
             pas16->dma8_ff = 0;
 
             if ((val & 0x20) && !(pas16->audiofilt & 0x20)) {
-                pas16_log("Reset.\n");
-                //pas16_reset_regs(pas16);
+                pas16_log("PAS PCM enable, clearing IRQ mask/status\n");
                 /* Clear IRQ mask and status bits */
                 pas16->irq_ena = 0;
                 pas16->irq_stat = 0;
@@ -2444,8 +2439,6 @@ pas_input_msg(void *priv, uint8_t *msg, uint32_t len)
     if (pas16->sysex)
         return;
 
-    pas16_log("MIDI message in\n");
-
     if (pas16->ym3802_reg5_banked[0x03] & 0x01) {
         pas16->ym3802_reg4_banked[0x03] |= 0x80; /* Set FIFO-Rx Ready flag */
 
@@ -2455,10 +2448,8 @@ pas_input_msg(void *priv, uint8_t *msg, uint32_t len)
             pas16->midi_w &= 0xff;
         }
 
-        if (pas16->ym3802_reg6_banked[0x00] & 0x20) { /* Check if FIFO-Rx interrupt is enabled */
-            pas16_log("FIFO Rx IRQ enabled\n");
+        if (pas16->ym3802_reg6_banked[0x00] & 0x20) /* Check if FIFO-Rx interrupt is enabled */
             pas_update_irq(pas16);
-        }
     }
 }
 
