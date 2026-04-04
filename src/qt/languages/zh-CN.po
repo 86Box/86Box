@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-29 17:00+0000\n"
+"PO-Revision-Date: 2026-04-04 18:00+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "机器类型:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486（Socket 168及Socket 1）"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486（杂项）"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7（单电压）"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7（双电压）"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "杂项"
 
 msgid "Machine:"
 msgstr "机型:"
@@ -1994,7 +1994,7 @@ msgid "BIOS Language"
 msgstr "BIOS 语言"
 
 msgid "Variant"
-msgstr ""
+msgstr "变种"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 扩展单元"
@@ -2834,7 +2834,7 @@ msgid "Emulator"
 msgstr ""
 
 msgid "Input"
-msgstr ""
+msgstr "输入"
 
 msgid "Key bindings"
 msgstr "按键绑定"
@@ -3032,7 +3032,7 @@ msgid "Sharpness"
 msgstr "锐度"
 
 msgid "Reset"
-msgstr ""
+msgstr "重置"
 
 msgid "Monitor EDID"
 msgstr "显示器的EDID"
@@ -3086,4 +3086,4 @@ msgid "Raw"
 msgstr "原始"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "使用EDC/ECC模拟"
