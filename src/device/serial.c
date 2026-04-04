@@ -625,7 +625,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                     dev->sd->lcr_callback(dev, dev->sd->priv, dev->lcr);
             }
             if (((old ^ val) & 0x40) && dev->char_port.chardev.control)
-                dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.chardev.priv);
+                dev->char_port.chardev.control((dev->mctrl & 0x03) | (val & 0x40), dev->char_port.chardev.priv);
             break;
         case 4:
             if ((val & 2) && !(dev->mctrl & 2)) {
@@ -641,7 +641,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
             if (dev->sd && dev->sd->dtr_callback && (val ^ dev->mctrl) & 1)
                 dev->sd->dtr_callback(dev, val & 1, dev->sd->priv);
             if (((dev->mctrl ^ val) & 0x03) && dev->char_port.chardev.control)
-                dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.chardev.priv);
+                dev->char_port.chardev.control((val & 0x03) | (dev->lcr & 0x40), dev->char_port.chardev.priv);
             dev->mctrl = val & 0x1f;
             if (val & 0x10) {
                 new_msr = (val & 0x0c) << 4;
@@ -995,7 +995,8 @@ serial_init(const device_t *info)
         if (next_inst == 0) {
             // DEBUG CODE
             dev->char_port.type = CHAR_PORT_COM;
-            char_init(&dev->char_port, "hostfile:86box.log:input_path=C:\\msys64\\home\\Richard\\86Box\\src\\device\\serial.c:input_loop=1", next_inst);
+            //char_init(&dev->char_port, "hostfile:86box.log:input_path=C:\\msys64\\home\\Richard\\86Box\\src\\device\\serial.c:input_loop=1", next_inst);
+            char_init(&dev->char_port, "loopback", next_inst);
         }
 
         if (info->local & 0xfff00000) {
