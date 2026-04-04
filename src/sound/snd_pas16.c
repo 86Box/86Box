@@ -2120,6 +2120,13 @@ pas16_out(uint16_t port, uint8_t val, void *priv)
 
         case 0xf000:
             pas16->io_conf_1 = val;
+            if (pas16->io_conf_1 & 0x40) {
+                pas16_log("pas16_out: Enable joystick\n");
+                gameport_remap(pas16->gameport, 0x201);
+            } else {
+                pas16_log("pas16_out: Disable joystick\n");
+                gameport_remap(pas16->gameport, 0x0);
+            }
             break;
         case 0xf001:
             pas16->io_conf_2 = val;
@@ -3143,7 +3150,8 @@ pas16_init(const device_t *info)
     pas16_next++;
 
     /* Gameport init */
-    pas16->gameport = gameport_add(&gameport_201_device);
+    pas16->gameport = gameport_add(&gameport_pnp_1io_device);
+    gameport_remap(pas16->gameport, 0x201);
 
     return pas16;
 }
