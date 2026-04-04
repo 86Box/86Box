@@ -3019,7 +3019,7 @@ pas_init(const device_t *info)
         other_scsi_present++;
     }
 
-    pas16->pit = device_add(&i8254_ext_io_fast_device);
+    pas16->pit = device_add(&i8253_ext_io_fast_device);
     pas16_reset(pas16);
     pas16->pit->dev_priv = pas16;
     if (pas16->has_scsi) {
@@ -3099,7 +3099,7 @@ pas16_init(const device_t *info)
         other_scsi_present++;
     }
 
-    pas16->pit = device_add(&i8254_ext_io_fast_device);
+    pas16->pit = device_add(&i8253_ext_io_fast_device);
     pas16_reset(pas16);
     pas16->pit->dev_priv = pas16;
     pas16->irq = pas16->type ? 10 : 5;
