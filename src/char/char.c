@@ -29,6 +29,8 @@ static const struct {
     const device_t *dev;
 } char_devices[] = {
     // clang-format off
+    { &loopback_com_device },
+    { &loopback_lpt_device },
     { &hostfile_device },
     { &hostser_device },
     { &stdio_device },
@@ -130,4 +132,6 @@ char_attach(uint32_t flags,
     chardev->control       = control;
     chardev->port_config   = port_config;
     chardev->priv          = priv;
+
+    return active_port;
 }

@@ -106,6 +106,8 @@ extern void *char_attach(uint32_t flags,
                          void     (*port_config)(void *priv),
                          void     *priv);
 
+extern const device_t loopback_com_device;
+extern const device_t loopback_lpt_device;
 extern const device_t hostfile_device;
 extern const device_t hostser_device;
 extern const device_t stdio_device;
