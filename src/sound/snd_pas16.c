@@ -108,6 +108,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/midi.h>
+#include <86box/gameport.h>
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
@@ -265,6 +266,8 @@ typedef struct pas16_t {
     sb_dsp_t dsp;
 
     mpu_t *  mpu;
+
+    void *gameport;
 
     pitf_t * pit;
 
@@ -3050,6 +3053,9 @@ pas_init(const device_t *info)
     /* YM3802 timer init */
     timer_add(&pas16->ym3802_gentimer, ym3802_gentimer_poll, pas16, 0);
 
+    /* Gameport init */
+    pas16->gameport = gameport_add(&gameport_201_device);
+
     return pas16;
 }
 
@@ -3135,6 +3141,9 @@ pas16_init(const device_t *info)
     }
 
     pas16_next++;
+
+    /* Gameport init */
+    pas16->gameport = gameport_add(&gameport_201_device);
 
     return pas16;
 }
