@@ -612,6 +612,9 @@ msgstr "Festplatten:"
 msgid "Firmware Version"
 msgstr "Firmware-Version"
 
+msgid "DSP Version"
+msgstr "DSP-Version"
+
 msgid "&New…"
 msgstr "&Neu…"
 

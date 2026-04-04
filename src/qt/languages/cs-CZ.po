@@ -613,6 +613,9 @@ msgstr "Pevné disky:"
 msgid "Firmware Version"
 msgstr "Verze firmware"
 
+msgid "DSP Version"
+msgstr "Verze DSP"
+
 msgid "&New…"
 msgstr "&Nový…"
 

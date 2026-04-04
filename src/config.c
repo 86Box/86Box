@@ -586,7 +586,7 @@ load_video(void)
                 if (!strcmp(p, "et4000ax")) {
                     ini_section_t new  = ini_find_section(config, "Tseng Labs ET4000AX (ISA)");
                     char *        bios = ini_section_get_string(new, "bios_ver", "v8_01");
-                    if (strcmp(p, "v8_01"))
+                    if (strcmp(bios, "v8_01"))
                         ini_section_set_string(new, "bios", bios);
                     ini_section_delete_var(new, "bios_ver");
                 }

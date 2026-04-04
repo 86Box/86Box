@@ -613,6 +613,9 @@ msgstr "Đĩa cứng:"
 msgid "Firmware Version"
 msgstr "Phiên bản firmware"
 
+msgid "DSP Version"
+msgstr "Phiên bản DSP"
+
 msgid "&New…"
 msgstr "Tạ&o mới…"
 

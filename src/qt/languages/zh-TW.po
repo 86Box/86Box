@@ -613,6 +613,9 @@ msgstr "硬碟:"
 msgid "Firmware Version"
 msgstr "韌體版本"
 
+msgid "DSP Version"
+msgstr "DSP 版本"
+
 msgid "&New…"
 msgstr "新增(&N)…"
 

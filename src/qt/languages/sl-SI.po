@@ -614,6 +614,9 @@ msgstr "Trdi diski:"
 msgid "Firmware Version"
 msgstr "Različica programske opreme"
 
+msgid "DSP Version"
+msgstr "Različica DSP-ja"
+
 msgid "&New…"
 msgstr "Nov…"
 

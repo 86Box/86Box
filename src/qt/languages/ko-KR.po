@@ -613,6 +613,9 @@ msgstr "하드 디스크:"
 msgid "Firmware Version"
 msgstr "펌웨어 버전"
 
+msgid "DSP Version"
+msgstr "DSP 버전"
+
 msgid "&New…"
 msgstr "새로 만들기(&N)…"
 
