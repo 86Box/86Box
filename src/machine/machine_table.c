@@ -10348,7 +10348,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM, /* Has internal video: Western Digital WD90C33-ZZ */
+        .flags     = MACHINE_IDE, /* Has internal video: Western Digital WD90C33-ZZ */
         .ram       = {
             .min  = 4096,
             .max  = 40960,
@@ -14553,7 +14553,7 @@ const machine_t machines[] = {
             .max_multi   = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -16790,7 +16790,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 4096,
             .max  = 524288,
