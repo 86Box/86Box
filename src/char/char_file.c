@@ -28,23 +28,23 @@
 #include <86box/log.h>
 #include <86box/plat.h>
 
-#define ENABLE_HOSTFILE_LOG 1
-#ifdef ENABLE_HOSTFILE_LOG
-int hostfile_do_log = ENABLE_HOSTFILE_LOG;
+#define ENABLE_CHAR_FILE_LOG 1
+#ifdef ENABLE_CHAR_FILE_LOG
+int char_file_do_log = ENABLE_CHAR_FILE_LOG;
 
 static void
-hostfile_log(void *priv, const char *fmt, ...)
+char_file_log(void *priv, const char *fmt, ...)
 {
     va_list ap;
 
-    if (hostfile_do_log) {
+    if (char_file_do_log) {
         va_start(ap, fmt);
         log_out(priv, fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define hostfile_log(priv, fmt, ...)
+#    define char_file_log(priv, fmt, ...)
 #endif
 
 typedef struct {
@@ -53,12 +53,12 @@ typedef struct {
     FILE *file_in;
     FILE *file_out;
     int loop_in : 1;
-} hostfile_t;
+} char_file_t;
 
 static ssize_t
-hostfile_read(uint8_t *buf, ssize_t len, void *priv)
+char_file_read(uint8_t *buf, ssize_t len, void *priv)
 {
-    hostfile_t *dev = (hostfile_t *) priv;
+    char_file_t *dev = (char_file_t *) priv;
 
     if (!dev->file_in)
         return 0;
@@ -77,10 +77,10 @@ hostfile_read(uint8_t *buf, ssize_t len, void *priv)
 
         /* ...then loop back if requested. */
         if (dev->loop_in) {
-            hostfile_log(dev->log, "Looping input file\n");
+            char_file_log(dev->log, "Looping input file\n");
             fseek(dev->file_in, 0, SEEK_SET);
         } else {
-            hostfile_log(dev->log, "Reached end of input file, closing\n");
+            char_file_log(dev->log, "Reached end of input file, closing\n");
             fclose(dev->file_in);
             dev->file_in = NULL;
             break;
@@ -90,9 +90,9 @@ hostfile_read(uint8_t *buf, ssize_t len, void *priv)
 }
 
 static ssize_t
-hostfile_write(uint8_t *buf, ssize_t len, void *priv)
+char_file_write(uint8_t *buf, ssize_t len, void *priv)
 {
-    hostfile_t *dev = (hostfile_t *) priv;
+    char_file_t *dev = (char_file_t *) priv;
 
     if (!dev->file_out)
         return 0;
@@ -108,9 +108,9 @@ hostfile_write(uint8_t *buf, ssize_t len, void *priv)
 }
 
 static uint32_t
-hostfile_status(void *priv)
+char_file_status(void *priv)
 {
-    hostfile_t *dev = (hostfile_t *) priv;
+    char_file_t *dev = (char_file_t *) priv;
 
     uint32_t ret = 0;
     if (dev->file_in)
@@ -122,11 +122,11 @@ hostfile_status(void *priv)
 }
 
 static void
-hostfile_close(void *priv)
+char_file_close(void *priv)
 {
-    hostfile_t *dev = (hostfile_t *) priv;
+    char_file_t *dev = (char_file_t *) priv;
 
-    hostfile_log(dev->log, "close()\n");
+    char_file_log(dev->log, "close()\n");
 
     if (dev->file_in)
         fclose(dev->file_in);
@@ -135,29 +135,29 @@ hostfile_close(void *priv)
 }
 
 static void *
-hostfile_init(const device_t *info)
+char_file_init(const device_t *info)
 {
-    hostfile_t *dev = (hostfile_t *) calloc(1, sizeof(hostfile_t));
+    char_file_t *dev = (char_file_t *) calloc(1, sizeof(char_file_t));
 
     dev->log = log_open("Host File");
-    hostfile_log(dev->log, "init()\n");
+    char_file_log(dev->log, "init()\n");
 
     /* Attach character device. */
-    dev->port = char_attach(0, hostfile_read, hostfile_write, hostfile_status, NULL, NULL, dev);
+    dev->port = char_attach(0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
 
     char *path = ini_get_string(dev->port->config, "", "path", NULL);
     if (path) {
         dev->file_out = plat_fopen(path, ini_get_int(dev->port->config, "", "append", 0) ? "ab" : "wb");
-        hostfile_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
+        char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
     } else {
-        hostfile_log(dev->log, "No output file specified\n");
+        char_file_log(dev->log, "No output file specified\n");
     }
     path = ini_get_string(dev->port->config, "", "input_path", NULL);
     if (path) {
         dev->file_in = plat_fopen(path, "rb");
-        hostfile_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
+        char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
     } else {
-        hostfile_log(dev->log, "No input file specified\n");
+        char_file_log(dev->log, "No input file specified\n");
     }
 
     dev->loop_in = !!ini_get_int(dev->port->config, "", "input_loop", 0);
@@ -166,7 +166,7 @@ hostfile_init(const device_t *info)
 }
 
 // clang-format off
-static const device_config_t hostfile_config[] = {
+static const device_config_t char_file_config[] = {
     {
         .name           = "path",
         .description    = "Output file path",
@@ -215,16 +215,16 @@ static const device_config_t hostfile_config[] = {
 };
 // clang-format on
 
-const device_t hostfile_device = {
+const device_t char_file_device = {
     .name          = "File",
-    .internal_name = "hostfile",
+    .internal_name = "char_file",
     .flags         = DEVICE_COM | DEVICE_LPT,
     .local         = 0,
-    .init          = hostfile_init,
-    .close         = hostfile_close,
+    .init          = char_file_init,
+    .close         = char_file_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = hostfile_config
+    .config        = char_file_config
 };

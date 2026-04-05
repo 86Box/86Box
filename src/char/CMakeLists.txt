@@ -19,8 +19,8 @@
 add_library(char OBJECT
     char.c
     char_loopback.c
-    char_hostfile.c
-    char_hostser.c
+    char_file.c
+    char_serial.c
     char_stdio.c
 )
 

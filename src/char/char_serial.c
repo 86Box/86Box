@@ -43,23 +43,23 @@
 #include <86box/log.h>
 #include <86box/plat_fallthrough.h>
 
-#define ENABLE_HOSTSER_LOG 1
-#ifdef ENABLE_HOSTSER_LOG
-int hostser_do_log = ENABLE_HOSTSER_LOG;
+#define ENABLE_CHAR_SERIAL_LOG 1
+#ifdef ENABLE_CHAR_SERIAL_LOG
+int char_serial_do_log = ENABLE_CHAR_SERIAL_LOG;
 
 static void
-hostser_log(void *priv, const char *fmt, ...)
+char_serial_log(void *priv, const char *fmt, ...)
 {
     va_list ap;
 
-    if (hostser_do_log) {
+    if (char_serial_do_log) {
         va_start(ap, fmt);
         log_out(priv, fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define hostser_log(priv, fmt, ...)
+#    define char_serial_log(priv, fmt, ...)
 #endif
 
 typedef struct {
@@ -79,7 +79,7 @@ typedef struct {
 #    endif
 #endif
     int prev_config_valid : 1;
-} hostser_t;
+} char_serial_t;
 
 #ifdef _WIN32
 typedef DWORD host_baudrate_t;
@@ -174,7 +174,7 @@ static const struct {
 };
 
 static void
-hostser_disconnect(hostser_t *dev)
+char_serial_disconnect(char_serial_t *dev)
 {
 #ifdef _WIN32
     if (!dev->fd)
@@ -209,7 +209,7 @@ hostser_disconnect(hostser_t *dev)
 }
 
 static uint8_t
-hostser_connect(hostser_t *dev)
+char_serial_connect(char_serial_t *dev)
 {
 #ifdef _WIN32
     /* Open serial port. */
@@ -222,7 +222,7 @@ hostser_connect(hostser_t *dev)
     };
     dev->fd = CreateFileA(dev->path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_WRITE_THROUGH, NULL);
     if (!dev->fd) {
-        hostser_log(dev->log, "Connect failed (%08X)\n", GetLastError());
+        char_serial_log(dev->log, "Connect failed (%08X)\n", GetLastError());
         return 0;
     }
 
@@ -243,13 +243,13 @@ hostser_connect(hostser_t *dev)
     /* Open serial port. */
     dev->fd = open(dev->path, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (dev->fd == -1) {
-        hostser_log(dev->log, "Connect failed (%d)\n", errno);
+        char_serial_log(dev->log, "Connect failed (%d)\n", errno);
         return 0;
     }
 
     /* Make sure we're talking to a tty. */
     if (!isatty(dev->fd)) {
-        hostser_log(dev->log, "Not a tty\n");
+        char_serial_log(dev->log, "Not a tty\n");
         close(dev->fd);
         dev->fd = -1;
         return 0;
@@ -264,18 +264,18 @@ hostser_connect(hostser_t *dev)
     dev->prev_config_valid = !tcgetattr(dev->fd, &dev->prev_config);
 #    endif
     if (!dev->prev_config_valid)
-        hostser_log(dev->log, "tcgetattr failed (%d)\n", errno);
+        char_serial_log(dev->log, "tcgetattr failed (%d)\n", errno);
 #endif
 
-    hostser_log(dev->log, "Connected\n");
+    char_serial_log(dev->log, "Connected\n");
 
     return 1;
 }
 
 static ssize_t
-hostser_read(uint8_t *buf, ssize_t len, void *priv)
+char_serial_read(uint8_t *buf, ssize_t len, void *priv)
 {
-    hostser_t *dev = (hostser_t *) priv;
+    char_serial_t *dev = (char_serial_t *) priv;
 
 #ifdef _WIN32
     DWORD ret = 0;
@@ -299,9 +299,9 @@ hostser_read(uint8_t *buf, ssize_t len, void *priv)
 }
 
 static ssize_t
-hostser_write(uint8_t *buf, ssize_t len, void *priv)
+char_serial_write(uint8_t *buf, ssize_t len, void *priv)
 {
-    hostser_t *dev = (hostser_t *) priv;
+    char_serial_t *dev = (char_serial_t *) priv;
 
 #ifdef _WIN32
     DWORD ret = 0;
@@ -322,7 +322,7 @@ hostser_write(uint8_t *buf, ssize_t len, void *priv)
 }
 
 static host_baudrate_t
-hostser_find_baud(uint32_t baud)
+char_serial_find_baud(uint32_t baud)
 {
     /* Search the host's common baud rate table for the closest match to the specified baud rate. */
     uint32_t lbound = 0;
@@ -338,9 +338,9 @@ hostser_find_baud(uint32_t baud)
 }
 
 static void
-hostser_port_config(void *priv)
+char_serial_port_config(void *priv)
 {
-    hostser_t *dev = (hostser_t *) priv;
+    char_serial_t *dev = (char_serial_t *) priv;
 
     switch (dev->port->type) {
         case CHAR_PORT_COM: {
@@ -396,9 +396,9 @@ hostser_port_config(void *priv)
             /* Set configuration. */
             if (!SetCommState(dev->fd, &port_config)) {
                 /* Failed, try again with the closest common baud rate. */
-                port_config.BaudRate = hostser_find_baud(dev->port->com.baud);
+                port_config.BaudRate = char_serial_find_baud(dev->port->com.baud);
                 if (!SetCommState(dev->fd, &port_config))
-                    hostser_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
+                    char_serial_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
             }
 #else
             if (dev->fd == -1)
@@ -496,7 +496,7 @@ hostser_port_config(void *priv)
                 port_config.c_cflag &= ~(CBAUD << IBSHIFT);
 #        endif
 #    endif
-                host_baudrate_t baud = hostser_find_baud(dev->port->com.baud);
+                host_baudrate_t baud = char_serial_find_baud(dev->port->com.baud);
                 port_config.c_cflag |= baud;
 #    ifdef IBSHIFT
                 port_config.c_cflag |= baud << IBSHIFT;
@@ -509,7 +509,7 @@ hostser_port_config(void *priv)
 #    else
                 if (tcsetattr(dev->fd, TCSANOW, &port_config))
 #    endif
-                    hostser_log(dev->log, "TCS* failed (%08X)\n", errno);
+                    char_serial_log(dev->log, "TCS* failed (%08X)\n", errno);
             }
 #endif
             break;
@@ -521,9 +521,9 @@ hostser_port_config(void *priv)
 }
 
 static uint32_t
-hostser_status(void *priv)
+char_serial_status(void *priv)
 {
-    hostser_t *dev = (hostser_t *) priv;
+    char_serial_t *dev = (char_serial_t *) priv;
 
     uint32_t ret = 0;
 
@@ -565,9 +565,9 @@ hostser_status(void *priv)
 }
 
 static void
-hostser_control(uint32_t flags, void *priv)
+char_serial_control(uint32_t flags, void *priv)
 {
-    hostser_t *dev = (hostser_t *) priv;
+    char_serial_t *dev = (char_serial_t *) priv;
 
 #ifdef _WIN32
     if (!dev->fd)
@@ -599,41 +599,41 @@ hostser_control(uint32_t flags, void *priv)
 }
 
 static void
-hostser_close(void *priv)
+char_serial_close(void *priv)
 {
-    hostser_t *dev = (hostser_t *) priv;
+    char_serial_t *dev = (char_serial_t *) priv;
 
-    hostser_log(dev->log, "close()\n");
+    char_serial_log(dev->log, "close()\n");
 
-    hostser_disconnect(dev);
+    char_serial_disconnect(dev);
 
     free(dev);
 }
 
 static void *
-hostser_init(const device_t *info)
+char_serial_init(const device_t *info)
 {
-    hostser_t *dev = (hostser_t *) calloc(1, sizeof(hostser_t));
+    char_serial_t *dev = (char_serial_t *) calloc(1, sizeof(char_serial_t));
 
     /* Attach character device. */
-    dev->port = char_attach(0, hostser_read, hostser_write, hostser_status, hostser_control, hostser_port_config, dev);
+    dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
 
     /* Get serial port. */
     dev->path = ini_get_string(dev->port->config, "", "path", NULL);
     char buf[256] = {0};
     snprintf(buf, sizeof(buf) - 1, "Host Serial %s", dev->path);
     dev->log = log_open(buf);
-    hostser_log(dev->log, "init(%s)\n", dev->path);
+    char_serial_log(dev->log, "init(%s)\n", dev->path);
 
     /* Connect to serial port. */
     if (dev->path)
-        hostser_connect(dev);
+        char_serial_connect(dev);
 
     return dev;
 }
 
 // clang-format off
-static const device_config_t hostser_config[] = {
+static const device_config_t char_serial_config[] = {
     {
         .name           = "path",
         .description    = "Host serial device",
@@ -649,16 +649,16 @@ static const device_config_t hostser_config[] = {
 };
 // clang-format on
 
-const device_t hostser_device = {
+const device_t char_serial_device = {
     .name          = "Host Serial Passthrough",
-    .internal_name = "hostser",
+    .internal_name = "char_serial",
     .flags         = DEVICE_COM,
     .local         = 0,
-    .init          = hostser_init,
-    .close         = hostser_close,
+    .init          = char_serial_init,
+    .close         = char_serial_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = hostser_config
+    .config        = char_serial_config
 };

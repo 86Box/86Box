@@ -44,11 +44,11 @@ static const struct {
 } char_devices[] = {
     // clang-format off
     { &char_none_device },
-    { &loopback_com_device },
-    { &loopback_lpt_device },
-    { &hostfile_device },
-    { &hostser_device },
-    { &stdio_device },
+    { &char_serial_device },
+    { &char_stdio_device },
+    { &char_file_device },
+    { &char_loopback_com_device },
+    { &char_loopback_lpt_device },
     { 0 }
     // clang-format on
 };
