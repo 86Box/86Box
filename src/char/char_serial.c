@@ -82,14 +82,12 @@ typedef struct {
 } char_serial_t;
 
 #ifdef _WIN32
-typedef DWORD host_baudrate_t;
-#else
-typedef speed_t host_baudrate_t;
+typedef DWORD speed_t;
 #endif
 
 static const struct {
-    uint32_t        baud;
-    host_baudrate_t value;
+    uint32_t baud;
+    speed_t  value;
 } common_baud[] = {
     // clang-format off
 #ifdef _WIN32
@@ -321,7 +319,7 @@ char_serial_write(uint8_t *buf, ssize_t len, void *priv)
     return ret;
 }
 
-static host_baudrate_t
+static speed_t
 char_serial_find_baud(uint32_t baud)
 {
     /* Search the host's common baud rate table for the closest match to the specified baud rate. */
@@ -419,12 +417,16 @@ char_serial_port_config(void *priv)
 
             /* Modify configuration. */
             port_config.c_cflag &= ~(CSIZE | PARODD | CSTOPB);
+#    ifdef CMSPAR
+            port_config.c_cflag &= ~CMSPAR;
+#    endif
 #    ifdef CBAUD
             port_config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
             port_config.c_cflag &= ~(CBAUD << IBSHIFT);
 #        endif
 #    endif
+            port_config.c_cflag |= CREAD | PARENB;
 
             switch (dev->port->com.data_bits) {
                 case 5:
@@ -444,10 +446,6 @@ char_serial_port_config(void *priv)
                     break;
             }
 
-#    ifdef CMSPAR
-            port_config.c_cflag &= ~CMSPAR;
-#    endif
-            port_config.c_cflag |= CREAD | PARENB;
             switch (dev->port->com.parity) {
                 case CHAR_COM_PARITY_SPACE:
 #    ifdef CMSPAR
@@ -489,14 +487,14 @@ char_serial_port_config(void *priv)
             if (ioctl(dev->fd, TCSETS2, &port_config))
 #    endif
             {
-                /* Failed or we're not in a BOTHER system, try again with the closest common baud rate. */
+                /* Failed or we're not in a BOTHER platform, try again with the closest common baud rate. */
 #    ifdef CBAUD
                 port_config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
                 port_config.c_cflag &= ~(CBAUD << IBSHIFT);
 #        endif
 #    endif
-                host_baudrate_t baud = char_serial_find_baud(dev->port->com.baud);
+                speed_t baud = char_serial_find_baud(dev->port->com.baud);
                 port_config.c_cflag |= baud;
 #    ifdef IBSHIFT
                 port_config.c_cflag |= baud << IBSHIFT;
