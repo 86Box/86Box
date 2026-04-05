@@ -25,7 +25,7 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
-#include <86box/serial_passthrough.h>
+#include <86box/char.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -89,7 +89,7 @@ SettingsPorts::changed()
     	auto *cbox     = findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         if (cbox != NULL)
-            soft_changed |= (serial_passthrough_enabled[i] != cbox->currentData().toInt());
+            soft_changed |= (com_ports[i].device           != cbox->currentData().toInt());
         if (checkBox != NULL)
             has_changed  |= (com_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
         soft_changed  |= lpt_device_cfg_changed[i];
@@ -122,7 +122,7 @@ SettingsPorts::save()
         auto *cbox     = findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         if (cbox != NULL)
-            serial_passthrough_enabled[i] = cbox->currentData().toInt();
+            com_ports[i].device = cbox->currentData().toInt();
         if (checkBox != NULL)
             com_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
     }
@@ -249,14 +249,14 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     }
 
     while (true) {
-        const device_t *device = (c == 0) ? lpt_device_getdevice(0) : ((c == 1) ? &serial_passthrough_device : nullptr); /* hack to obtain a None device */
+        const device_t *device = char_get_device(c);
         const QString name = DeviceConfig::DeviceName(device,
                                                       device ? device->internal_name : nullptr, -1);
 
         if (name.isEmpty())
             break;
 
-        if (device_available(device)) {
+        if ((device->flags & DEVICE_COM) && device_available(device)) {
             if (name.isEmpty())
                 break;
 
@@ -265,7 +265,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
                     int row = Models::AddEntry(models[i], name, c);
                     scCom[i]->addDevice(nullptr, name);
 
-                    if (c == serial_passthrough_enabled[i])
+                    if (c == com_ports[i].device)
                         selectedRows[i] = row - removeRows_[i];
                 }
             }
@@ -288,7 +288,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             cbox[i]->setEnabled(com_ports[i].enabled > 0);
             if (buttonCfg != NULL) {
                 int comDevice = cbox[i]->currentData().toInt();
-                buttonCfg->setEnabled(comDevice && device_has_config(&serial_passthrough_device) && (com_ports[i].enabled > 0));
+                buttonCfg->setEnabled(device_has_config(char_get_device(comDevice)) && (com_ports[i].enabled > 0));
             }
         }
     }
@@ -410,14 +410,14 @@ SettingsPorts::on_comboBoxCom1_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom1->currentData().toInt();
 
-    ui->pushButtonConfigureCom1->setEnabled(ui->comboBoxCom1->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom1->setEnabled(ui->comboBoxCom1->isEnabled() && device_has_config(char_get_device(comDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom1_clicked()
 {
     int   comDevice = ui->comboBoxCom1->currentData().toInt();
-    auto *device    = &serial_passthrough_device; (void) comDevice;
+    auto *device    = char_get_device(comDevice);
 
     com_device_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -430,14 +430,14 @@ SettingsPorts::on_comboBoxCom2_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom2->currentData().toInt();
 
-    ui->pushButtonConfigureCom2->setEnabled(ui->comboBoxCom2->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom2->setEnabled(ui->comboBoxCom2->isEnabled() && device_has_config(char_get_device(comDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom2_clicked()
 {
     int   comDevice = ui->comboBoxCom2->currentData().toInt();
-    auto *device    = &serial_passthrough_device; (void) comDevice;
+    auto *device    = char_get_device(comDevice);
 
     com_device_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 2);
 }
@@ -450,14 +450,14 @@ SettingsPorts::on_comboBoxCom3_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom3->currentData().toInt();
 
-    ui->pushButtonConfigureCom3->setEnabled(ui->comboBoxCom3->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom3->setEnabled(ui->comboBoxCom3->isEnabled() && device_has_config(char_get_device(comDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom3_clicked()
 {
     int   comDevice = ui->comboBoxCom3->currentData().toInt();
-    auto *device    = &serial_passthrough_device; (void) comDevice;
+    auto *device    = char_get_device(comDevice);
 
     com_device_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 3);
 }
@@ -470,14 +470,14 @@ SettingsPorts::on_comboBoxCom4_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom4->currentData().toInt();
 
-    ui->pushButtonConfigureCom4->setEnabled(ui->comboBoxCom4->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom4->setEnabled(ui->comboBoxCom4->isEnabled() && device_has_config(char_get_device(comDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom4_clicked()
 {
     int   comDevice = ui->comboBoxCom4->currentData().toInt();
-    auto *device    = &serial_passthrough_device; (void) comDevice;
+    auto *device    = char_get_device(comDevice);
 
     com_device_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 4);
 }
