@@ -246,6 +246,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
         cbox[i]        = findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1));
         models[i]      = cbox[i]->model();
         removeRows_[i] = models[i]->rowCount();
+        selectedRows[i] = 0;
     }
 
     while (true) {
