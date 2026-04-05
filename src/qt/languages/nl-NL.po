@@ -522,18 +522,6 @@ msgstr "YMFM (sneller)"
 msgid "Internal LPT ECP DMA:"
 msgstr "Interne LPT ECP DMA:"
 
-msgid "Serial port 1"
-msgstr "Seriële poort 1"
-
-msgid "Serial port 2"
-msgstr "Seriële poort 2"
-
-msgid "Serial port 3"
-msgstr "Seriële poort 3"
-
-msgid "Serial port 4"
-msgstr "Seriële poort 4"
-
 msgid "Floppy disk controller:"
 msgstr "Floppy disk controller:"
 
@@ -1830,18 +1818,6 @@ msgstr "86Box Apparaattester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Key Card"
 
-msgid "Serial port passthrough 1"
-msgstr "Seriële poort doorvoer 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Seriële poort doorvoer 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Seriële poort doorvoer 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Seriële poort doorvoer 4"
-
 msgid "Renderer &options…"
 msgstr "Renderer-opties…"
 
@@ -2670,7 +2646,7 @@ msgstr "Beschermingsdongle voor Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Serieel doorvoerapparaat"
 
 msgid "Passthrough Mode"

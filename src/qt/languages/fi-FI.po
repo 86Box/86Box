@@ -523,18 +523,6 @@ msgstr "YMFM (nopeampi)"
 msgid "Internal LPT ECP DMA:"
 msgstr "Sisäisen LPT:n ECP DMA:"
 
-msgid "Serial port 1"
-msgstr "Sarjaportti 1"
-
-msgid "Serial port 2"
-msgstr "Sarjaportti 2"
-
-msgid "Serial port 3"
-msgstr "Sarjaportti 3"
-
-msgid "Serial port 4"
-msgstr "Sarjaportti 4"
-
 msgid "Floppy disk controller:"
 msgstr "Levykeohjain:"
 
@@ -1831,18 +1819,6 @@ msgstr "86Box Unit Tester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x-avainkortti"
 
-msgid "Serial port passthrough 1"
-msgstr "Sarjaportin läpivienti 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Sarjaportin läpivienti 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Sarjaportin läpivienti 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Sarjaportin läpivienti 4"
-
 msgid "Renderer &options…"
 msgstr "Renderöijän &asetukset…"
 
@@ -2671,7 +2647,7 @@ msgstr "Savage Questin suojausdongle"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Sarjaportin läpivientilaite"
 
 msgid "Passthrough Mode"

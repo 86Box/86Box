@@ -523,18 +523,6 @@ msgstr "YMFM (raskere)"
 msgid "Internal LPT ECP DMA:"
 msgstr "Intern LPT ECP DMA:"
 
-msgid "Serial port 1"
-msgstr "Seriell port 1"
-
-msgid "Serial port 2"
-msgstr "Seriell port 2"
-
-msgid "Serial port 3"
-msgstr "Seriell port 3"
-
-msgid "Serial port 4"
-msgstr "Seriell port 4"
-
 msgid "Floppy disk controller:"
 msgstr "Diskettkontroller:"
 
@@ -1831,18 +1819,6 @@ msgstr "86Box-enhetstester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x nøkkelkort"
 
-msgid "Serial port passthrough 1"
-msgstr "Seriell port-gjennomkobling 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Seriell port-gjennomkobling 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Seriell port-gjennomkobling 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Seriell port-gjennomkobling 4"
-
 msgid "Renderer &options…"
 msgstr "Gjengivelses&alternativer…"
 
@@ -2671,7 +2647,7 @@ msgstr "Beskyttelsesdongle for Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Seriell gjennomkoblingsenhet"
 
 msgid "Passthrough Mode"

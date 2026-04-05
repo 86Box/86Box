@@ -516,18 +516,6 @@ msgstr ""
 msgid "Internal LPT ECP DMA:"
 msgstr ""
 
-msgid "Serial port 1"
-msgstr ""
-
-msgid "Serial port 2"
-msgstr ""
-
-msgid "Serial port 3"
-msgstr ""
-
-msgid "Serial port 4"
-msgstr ""
-
 msgid "Floppy disk controller:"
 msgstr ""
 
@@ -1824,18 +1812,6 @@ msgstr ""
 msgid "Novell NetWare 2.x Key Card"
 msgstr ""
 
-msgid "Serial port passthrough 1"
-msgstr ""
-
-msgid "Serial port passthrough 2"
-msgstr ""
-
-msgid "Serial port passthrough 3"
-msgstr ""
-
-msgid "Serial port passthrough 4"
-msgstr ""
-
 msgid "Renderer &options…"
 msgstr ""
 
@@ -2664,7 +2640,7 @@ msgstr ""
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr ""
 
 msgid "Passthrough Mode"

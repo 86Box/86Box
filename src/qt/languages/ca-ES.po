@@ -522,18 +522,6 @@ msgstr "YMFM (més ràpid)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA de ECP de l'LPT intern:"
 
-msgid "Serial port 1"
-msgstr "Port sèrie 1"
-
-msgid "Serial port 2"
-msgstr "Port sèrie 2"
-
-msgid "Serial port 3"
-msgstr "Port sèrie 3"
-
-msgid "Serial port 4"
-msgstr "Port sèrie 4"
-
 msgid "Floppy disk controller:"
 msgstr "Controladora de disquets:"
 
@@ -1830,18 +1818,6 @@ msgstr "Comprovador d'unitats del 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Targeta de clau per al Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Passatge de port sèrie 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Passatge de port sèrie 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Passatge de port sèrie 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Passatge de port sèrie 4"
-
 msgid "Renderer &options…"
 msgstr "Opc&ions del renderitzador…"
 
@@ -2670,7 +2646,7 @@ msgstr "Dongle de protecció per a Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Dispositiu de passatge de port sèrie"
 
 msgid "Passthrough Mode"

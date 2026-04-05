@@ -524,18 +524,6 @@ msgstr "YMFM (hitrejši)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP-ja notranjega LPT-ja:"
 
-msgid "Serial port 1"
-msgstr "Serijska vrata 1"
-
-msgid "Serial port 2"
-msgstr "Serijska vrata 2"
-
-msgid "Serial port 3"
-msgstr "Serijska vrata 3"
-
-msgid "Serial port 4"
-msgstr "Serijska vrata 4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketni krmilnik:"
 
@@ -1832,18 +1820,6 @@ msgstr "Tester enote 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Key Card"
 
-msgid "Serial port passthrough 1"
-msgstr "Prepust za serijska vrata 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Prepust za serijska vrata 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Prepust za serijska vrata 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Prepust za serijska vrata 4"
-
 msgid "Renderer &options…"
 msgstr "Možnosti sistema za upodabljanje…"
 
@@ -2672,7 +2648,7 @@ msgstr "Zaščitni ključek za Savage Quest"
 msgid "Loopback Plug"
 msgstr "Priključek Loopback"
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Naprava za prepust serijskih vrat"
 
 msgid "Passthrough Mode"

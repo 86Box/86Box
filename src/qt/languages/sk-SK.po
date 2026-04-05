@@ -523,18 +523,6 @@ msgstr "YMFM (rýchlejší)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA kanál ECP interného LPT portu:"
 
-msgid "Serial port 1"
-msgstr "Povoliť port COM1"
-
-msgid "Serial port 2"
-msgstr "Povoliť port COM2"
-
-msgid "Serial port 3"
-msgstr "Povoliť port COM3"
-
-msgid "Serial port 4"
-msgstr "Povoliť port COM4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketový radič:"
 
@@ -1831,18 +1819,6 @@ msgstr "86Box Unit Tester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Kľúčová karta Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Priechod sériového portu 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Priechod sériového portu 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Priechod sériového portu 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Priechod cez sériový port 4"
-
 msgid "Renderer &options…"
 msgstr "Možnosti vykresľovača…"
 
@@ -2671,7 +2647,7 @@ msgstr "Ochranný kľúč pre Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Zariadenie priechodu sériového portu"
 
 msgid "Passthrough Mode"

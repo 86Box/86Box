@@ -523,18 +523,6 @@ msgstr "YMFM (더 빠르게)"
 msgid "Internal LPT ECP DMA:"
 msgstr "내부 LPT의 ECP의 DMA:"
 
-msgid "Serial port 1"
-msgstr "직렬 포트 1"
-
-msgid "Serial port 2"
-msgstr "직렬 포트 2"
-
-msgid "Serial port 3"
-msgstr "직렬 포트 3"
-
-msgid "Serial port 4"
-msgstr "직렬 포트 4"
-
 msgid "Floppy disk controller:"
 msgstr "플로피 디스크 컨트롤러:"
 
@@ -1831,18 +1819,6 @@ msgstr "86Box 유닛 테스터"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 키 카드"
 
-msgid "Serial port passthrough 1"
-msgstr "직렬 포트 패스스루 1"
-
-msgid "Serial port passthrough 2"
-msgstr "직렬 포트 패스스루 2"
-
-msgid "Serial port passthrough 3"
-msgstr "직렬 포트 패스스루 3"
-
-msgid "Serial port passthrough 4"
-msgstr "직렬 포트 패스스루 4"
-
 msgid "Renderer &options…"
 msgstr "렌더러 옵션(&O)…"
 
@@ -2673,7 +2649,7 @@ msgstr "새비지 퀘스트용 보호 동글"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "직렬 포트 패스스루 장치"
 
 msgid "Passthrough Mode"
