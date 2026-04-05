@@ -732,9 +732,7 @@ banshee_recalctimings(svga_t *svga)
         int    n    = (banshee->pllCtrl0 >> 8) & 0xff;
         double freq = (((double) n + 2) / (((double) m + 2) * (double) (1 << k))) * 14318184.0;
 
-        pclog("Special clock mode\n");
         svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
-        svga->clock *= 2;
 
 #if 0
         svga->clock = cpuclock / freq;
