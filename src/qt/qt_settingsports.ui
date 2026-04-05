@@ -205,132 +205,112 @@
       <layout class="QVBoxLayout" name="verticalLayoutSerial">
 
        <item row="0" column="0">
-        <layout class="QGridLayout" name="gridLayoutPassThru">
-         <property name="sizeConstraint">
-          <enum>QLayout::SetDefaultConstraint</enum>
-         </property>
-         <item row="0" column="0">
-          <widget class="QCheckBox" name="checkBoxSerialPassThru1">
-           <property name="text">
-            <string>Serial port passthrough 1</string>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QPushButton" name="pushButtonSerialPassThru1">
-           <property name="text">
-            <string>Configure</string>
-           </property>
-          </widget>
-         </item>
+        <layout class="QGridLayout" name="gridLayoutCom">
          <item row="1" column="0">
-          <widget class="QCheckBox" name="checkBoxSerialPassThru2">
+          <widget class="QCheckBox" name="checkBoxSerial1">
            <property name="text">
-            <string>Serial port passthrough 2</string>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+            <string>COM1:</string>
            </property>
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QPushButton" name="pushButtonSerialPassThru2">
+          <widget class="QComboBox" name="comboBoxCom1">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QPushButton" name="pushButtonConfigureCom1">
            <property name="text">
             <string>Configure</string>
            </property>
           </widget>
          </item>
          <item row="2" column="0">
-          <widget class="QCheckBox" name="checkBoxSerialPassThru3">
+          <widget class="QCheckBox" name="checkBoxSerial2">
            <property name="text">
-            <string>Serial port passthrough 3</string>
+            <string>COM2:</string>
            </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="comboBoxCom2">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
           </widget>
          </item>
-         <item row="2" column="1">
-          <widget class="QPushButton" name="pushButtonSerialPassThru3">
+         <item row="2" column="2">
+          <widget class="QPushButton" name="pushButtonConfigureCom2">
            <property name="text">
             <string>Configure</string>
            </property>
           </widget>
          </item>
          <item row="3" column="0">
-          <widget class="QCheckBox" name="checkBoxSerialPassThru4">
+          <widget class="QCheckBox" name="checkBoxSerial3">
            <property name="text">
-            <string>Serial port passthrough 4</string>
+            <string>COM3:</string>
            </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="comboBoxCom3">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
           </widget>
          </item>
-         <item row="3" column="1">
-          <widget class="QPushButton" name="pushButtonSerialPassThru4">
+         <item row="3" column="2">
+          <widget class="QPushButton" name="pushButtonConfigureCom3">
            <property name="text">
             <string>Configure</string>
            </property>
           </widget>
          </item>
-         <!-- <item row="4" column="0" colspan="2">
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item> -->
-        </layout>
-       </item>
-       <item row="1" column="0">
-        <layout class="QGridLayout" name="gridLayoutSerial">
-         <item row="0" column="0">
-          <widget class="QCheckBox" name="checkBoxSerial1">
-           <property name="text">
-            <string>Serial port 1</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QCheckBox" name="checkBoxSerial2">
-           <property name="text">
-            <string>Serial port 2</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QCheckBox" name="checkBoxSerial3">
-           <property name="text">
-            <string>Serial port 3</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
+         <item row="4" column="0">
           <widget class="QCheckBox" name="checkBoxSerial4">
            <property name="text">
-            <string>Serial port 4</string>
+            <string>COM4:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QComboBox" name="comboBoxCom4">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QPushButton" name="pushButtonConfigureCom4">
+           <property name="text">
+            <string>Configure</string>
            </property>
           </widget>
          </item>
