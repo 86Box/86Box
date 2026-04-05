@@ -184,7 +184,7 @@ serial_receive_timer(void *priv)
         dev->msr = (dev->msr & ~mask) | (flags & mask);
         mask &= ~CHAR_COM_RI;
         dev->msr |= ((prev_msr & mask) ^ (dev->msr & mask)) >> 4;
-        if (!(prev_msr & CHAR_COM_RI) && !(dev->msr & CHAR_COM_RI))
+        if ((prev_msr & CHAR_COM_RI) && !(dev->msr & CHAR_COM_RI))
             dev->msr |= CHAR_COM_RI >> 4;
     }
 
@@ -996,7 +996,7 @@ serial_init(const device_t *info)
             // DEBUG CODE
             dev->char_port.type = CHAR_PORT_COM;
             //char_init(&dev->char_port, "hostfile:86box.log:input_path=C:\\msys64\\home\\Richard\\86Box\\src\\device\\serial.c:input_loop=1", next_inst);
-            char_init(&dev->char_port, "stdio", next_inst);
+            char_init(&dev->char_port, "loopback", next_inst);
         }
 
         if (info->local & 0xfff00000) {
