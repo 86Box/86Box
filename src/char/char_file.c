@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Host file character device.
+ *          File character device.
  *
  *
  *
@@ -217,7 +217,7 @@ static const device_config_t char_file_config[] = {
 
 const device_t char_file_device = {
     .name          = "File",
-    .internal_name = "char_file",
+    .internal_name = "file",
     .flags         = DEVICE_COM | DEVICE_LPT,
     .local         = 0,
     .init          = char_file_init,

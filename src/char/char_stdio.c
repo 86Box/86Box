@@ -334,7 +334,11 @@ char_stdio_init(const device_t *info)
 }
 
 const device_t char_stdio_device = {
+#if defined(_WIN32) && defined(USE_WIN32_GUI)
+    .name          = "Console Window",
+#else
     .name          = "Standard Input/Output",
+#endif
     .internal_name = "stdio",
     .flags         = DEVICE_COM | DEVICE_LPT,
     .local         = 0,

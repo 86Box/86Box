@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Host serial passthrough character device.
+ *          Serial passthrough character device.
  *
  *
  *
@@ -650,8 +650,8 @@ static const device_config_t char_serial_config[] = {
 // clang-format on
 
 const device_t char_serial_device = {
-    .name          = "Host Serial Passthrough",
-    .internal_name = "char_serial",
+    .name          = "Serial Passthrough",
+    .internal_name = "serial",
     .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_serial_init,

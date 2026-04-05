@@ -28,6 +28,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     target_include_directories(char PRIVATE /usr/local/include)
 endif()
 
+if(CMAKE_WIN32_EXECUTABLE)
+    target_compile_definitions(char PRIVATE USE_WIN32_GUI)
+endif()
+
 include(CheckIncludeFiles)
 check_include_files("asm/termbits.h;asm/ioctls.h" LINUX_TERMIOS)
 if(LINUX_TERMIOS)
