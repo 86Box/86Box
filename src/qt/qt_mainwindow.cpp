@@ -920,7 +920,6 @@ MainWindow::closeEvent(QCloseEvent *event)
     }
 
     qt_nvr_save();
-    config_save();
     QApplication::processEvents();
     cpu_thread_run = 0;
     event->accept();
@@ -1990,6 +1989,7 @@ MainWindow::on_actionForce_4_3_display_ratio_triggered()
                 renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
         }
     }
+    config_save();
 }
 
 void
@@ -2036,6 +2036,7 @@ MainWindow::on_actionRemember_size_and_position_triggered()
         }
     }
     ui->actionRemember_size_and_position->setChecked(window_remember);
+    config_save();
 }
 
 void
@@ -2056,6 +2057,7 @@ MainWindow::on_actionHiDPI_scaling_triggered()
         if (renderers[i])
             emit resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
     }
+    config_save();
 }
 
 void
@@ -2080,6 +2082,7 @@ MainWindow::on_actionHide_status_bar_triggered()
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
+    config_save();
 }
 
 void
@@ -2101,6 +2104,7 @@ MainWindow::on_actionHide_tool_bar_triggered()
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
+    config_save();
 }
 
 void
@@ -2111,6 +2115,8 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
 
     /* Prevent icons staying when disabled during activity. */
     status->clearActivity();
+
+    config_save();
 }
 
 void
@@ -2237,8 +2243,8 @@ MainWindow::on_actionPreferences_triggered()
         case QDialog::Accepted:
             preferences.save();
             updateShortcuts();
-            config_changed = 2;
             emit vmmGlobalConfigurationChanged();
+            config_save_global();
             break;
         case QDialog::Rejected:
             break;
@@ -2259,6 +2265,7 @@ MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
         discordupdate.stop();
     }
 #endif
+    config_save();
 }
 
 void
@@ -2327,6 +2334,7 @@ MainWindow::on_actionRenderer_options_triggered()
                     if (renderers[i] && renderers[i]->hasOptions())
                         renderers[i]->reloadOptions();
                 }
+            config_save();
         } else if (reload_renderers && ui->stackedWidget->reloadRendererOption()) {
             reload_renderers = false;
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
@@ -2382,6 +2390,7 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
             }
         }
     }
+    config_save();
 }
 
 void

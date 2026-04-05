@@ -27,6 +27,7 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
@@ -119,4 +120,6 @@ SpecifyDimensions::on_SpecifyDimensions_accepted()
         window_w = ui->spinBoxWidth->value();
         window_h = ui->spinBoxHeight->value();
     }
+
+    config_save();
 }
