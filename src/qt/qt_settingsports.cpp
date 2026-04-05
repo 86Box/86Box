@@ -439,7 +439,7 @@ SettingsPorts::on_pushButtonConfigureCom2_clicked()
     int   comDevice = ui->comboBoxCom2->currentData().toInt();
     auto *device    = &serial_passthrough_device; (void) comDevice;
 
-    com_device_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 1);
+    com_device_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void
@@ -459,7 +459,7 @@ SettingsPorts::on_pushButtonConfigureCom3_clicked()
     int   comDevice = ui->comboBoxCom3->currentData().toInt();
     auto *device    = &serial_passthrough_device; (void) comDevice;
 
-    com_device_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 1);
+    com_device_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 3);
 }
 
 void
@@ -479,7 +479,7 @@ SettingsPorts::on_pushButtonConfigureCom4_clicked()
     int   comDevice = ui->comboBoxCom4->currentData().toInt();
     auto *device    = &serial_passthrough_device; (void) comDevice;
 
-    com_device_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 1);
+    com_device_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 4);
 }
 
 void
