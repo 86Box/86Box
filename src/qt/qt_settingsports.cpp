@@ -302,7 +302,7 @@ SettingsPorts::on_comboBoxLpt1_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt1->currentData().toInt();
 
-    ui->pushButtonConfigureLpt1->setEnabled(lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt1->setEnabled(ui->comboBoxLpt1->isEnabled() && lpt_device_has_config(lptDevice));
 }
 
 void
@@ -322,7 +322,7 @@ SettingsPorts::on_comboBoxLpt2_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt2->currentData().toInt();
 
-    ui->pushButtonConfigureLpt2->setEnabled(lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt2->setEnabled(ui->comboBoxLpt2->isEnabled() && lpt_device_has_config(lptDevice));
 }
 
 void
@@ -342,7 +342,7 @@ SettingsPorts::on_comboBoxLpt3_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt3->currentData().toInt();
 
-    ui->pushButtonConfigureLpt3->setEnabled(lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt3->setEnabled(ui->comboBoxLpt3->isEnabled() && lpt_device_has_config(lptDevice));
 }
 
 void
@@ -362,7 +362,7 @@ SettingsPorts::on_comboBoxLpt4_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt4->currentData().toInt();
 
-    ui->pushButtonConfigureLpt4->setEnabled(lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt4->setEnabled(ui->comboBoxLpt4->isEnabled() && lpt_device_has_config(lptDevice));
 }
 
 void
@@ -378,24 +378,28 @@ void
 SettingsPorts::on_checkBoxParallel1_stateChanged(int state)
 {
     ui->comboBoxLpt1->setEnabled(state == Qt::Checked);
+    on_comboBoxLpt1_currentIndexChanged(0);
 }
 
 void
 SettingsPorts::on_checkBoxParallel2_stateChanged(int state)
 {
     ui->comboBoxLpt2->setEnabled(state == Qt::Checked);
+    on_comboBoxLpt2_currentIndexChanged(0);
 }
 
 void
 SettingsPorts::on_checkBoxParallel3_stateChanged(int state)
 {
     ui->comboBoxLpt3->setEnabled(state == Qt::Checked);
+    on_comboBoxLpt3_currentIndexChanged(0);
 }
 
 void
 SettingsPorts::on_checkBoxParallel4_stateChanged(int state)
 {
     ui->comboBoxLpt4->setEnabled(state == Qt::Checked);
+    on_comboBoxLpt4_currentIndexChanged(0);
 }
 
 void
@@ -406,14 +410,14 @@ SettingsPorts::on_comboBoxCom1_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom1->currentData().toInt();
 
-    ui->pushButtonConfigureCom1->setEnabled(comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom1->setEnabled(ui->comboBoxCom1->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom1_clicked()
 {
     int   comDevice = ui->comboBoxCom1->currentData().toInt();
-    auto *device    = &serial_passthrough_device;
+    auto *device    = &serial_passthrough_device; (void) comDevice;
 
     com_device_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -426,14 +430,14 @@ SettingsPorts::on_comboBoxCom2_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom2->currentData().toInt();
 
-    ui->pushButtonConfigureCom2->setEnabled(comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom2->setEnabled(ui->comboBoxCom2->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom2_clicked()
 {
     int   comDevice = ui->comboBoxCom2->currentData().toInt();
-    auto *device    = &serial_passthrough_device;
+    auto *device    = &serial_passthrough_device; (void) comDevice;
 
     com_device_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -446,14 +450,14 @@ SettingsPorts::on_comboBoxCom3_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom3->currentData().toInt();
 
-    ui->pushButtonConfigureCom3->setEnabled(comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom3->setEnabled(ui->comboBoxCom3->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom3_clicked()
 {
     int   comDevice = ui->comboBoxCom3->currentData().toInt();
-    auto *device    = &serial_passthrough_device;
+    auto *device    = &serial_passthrough_device; (void) comDevice;
 
     com_device_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -466,14 +470,14 @@ SettingsPorts::on_comboBoxCom4_currentIndexChanged(int index)
 
     int comDevice = ui->comboBoxCom4->currentData().toInt();
 
-    ui->pushButtonConfigureCom4->setEnabled(comDevice && device_has_config(&serial_passthrough_device));
+    ui->pushButtonConfigureCom4->setEnabled(ui->comboBoxCom4->isEnabled() && comDevice && device_has_config(&serial_passthrough_device));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureCom4_clicked()
 {
     int   comDevice = ui->comboBoxCom4->currentData().toInt();
-    auto *device    = &serial_passthrough_device;
+    auto *device    = &serial_passthrough_device; (void) comDevice;
 
     com_device_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -482,22 +486,26 @@ void
 SettingsPorts::on_checkBoxSerial1_stateChanged(int state)
 {
     ui->comboBoxCom1->setEnabled(state == Qt::Checked);
+    on_comboBoxCom1_currentIndexChanged(0);
 }
 
 void
 SettingsPorts::on_checkBoxSerial2_stateChanged(int state)
 {
     ui->comboBoxCom2->setEnabled(state == Qt::Checked);
+    on_comboBoxCom2_currentIndexChanged(0);
 }
 
 void
 SettingsPorts::on_checkBoxSerial3_stateChanged(int state)
 {
     ui->comboBoxCom3->setEnabled(state == Qt::Checked);
+    on_comboBoxCom3_currentIndexChanged(0);
 }
 
 void
 SettingsPorts::on_checkBoxSerial4_stateChanged(int state)
 {
     ui->comboBoxCom4->setEnabled(state == Qt::Checked);
+    on_comboBoxCom4_currentIndexChanged(0);
 }
