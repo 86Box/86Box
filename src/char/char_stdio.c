@@ -89,9 +89,9 @@ stdio_stdin_thread(void *priv)
 {
     stdio_t *dev = (stdio_t *) priv;
 
-    while (1) {
+    while (dev->fd_in) {
         DWORD read;
-        if (!dev->fd_in || !ReadFile(dev->fd_in, &dev->buf_in, 1, &read, NULL))
+        if (!ReadFile(dev->fd_in, &dev->buf_in, 1, &read, NULL))
             break;
         if (read <= 0)
             continue;
@@ -107,6 +107,7 @@ stdio_read(uint8_t *buf, ssize_t len, void *priv)
 {
     stdio_t *dev = (stdio_t *) priv;
 
+    ssize_t ret = 0;
 #ifdef _WIN32
     if (dev->thread_in) {
         if (dev->buf_in_valid && (len > 0)) {
@@ -119,7 +120,6 @@ stdio_read(uint8_t *buf, ssize_t len, void *priv)
         }
     }
 
-    DWORD ret = 0;
     if (dev->fd_in) {
         while (len-- > 0) {
             DWORD events;
@@ -135,7 +135,6 @@ stdio_read(uint8_t *buf, ssize_t len, void *priv)
         }
     }
 #else
-    ssize_t ret = 0;
     if (dev->fd_in != -1) {
         ret = read(dev->fd_in, buf, len);
         if (ret < 0)
@@ -207,7 +206,7 @@ stdio_close(void *priv)
 {
     stdio_t *dev = (stdio_t *) priv;
 
-    /* Reconnect logging if it had been disconnected. */
+    /* Resume logging to stdout if it had been stopped. */
     if (dev->prev_log) {
         fclose(stdlog);
         stdlog = dev->prev_log;
@@ -320,7 +319,7 @@ stdio_init(const device_t *info)
     }
 #endif
 
-    /* Disconnect logging from stdout. */
+    /* Stop logging to stdout. */
     if (stdlog == stdout) {
         stdio_log(dev->log, "Disconnecting logging from stdout\n");
         dev->prev_log = stdlog;
