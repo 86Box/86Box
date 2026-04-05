@@ -112,13 +112,8 @@ char_file_status(void *priv)
 {
     char_file_t *dev = (char_file_t *) priv;
 
-    uint32_t ret = 0;
-    if (dev->file_in)
-        ret |= CHAR_COM_DCD;
-    if (dev->file_out)
-        ret |= CHAR_COM_CTS;
-    ret |= ret ? CHAR_COM_DSR : CHAR_DISCONNECTED;
-    return ret;
+    return (dev->file_in ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | 
+           (dev->file_out ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
 }
 
 static void

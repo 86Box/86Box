@@ -61,7 +61,9 @@ enum { /* device status */
     CHAR_LPT_BUSY = 0x8000,
 
     /* global status */
-    CHAR_DISCONNECTED = 0x80000000
+    CHAR_RX_DISCONNECTED = 0x40000000,
+    CHAR_TX_DISCONNECTED = 0x80000000,
+    CHAR_DISCONNECTED = CHAR_RX_DISCONNECTED | CHAR_TX_DISCONNECTED
 };
 
 typedef struct _char_device_ {

@@ -99,6 +99,9 @@ char_stdio_stdin_thread(void *priv)
         thread_wait_event(dev->event_in, -1);
         thread_reset_event(dev->event_in);
     }
+
+    dev->thread_in = NULL;
+    dev->fd_in     = NULL;
 }
 #endif
 
@@ -173,21 +176,19 @@ char_stdio_status(void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 
-    uint32_t ret = 0;
+    return (
 #ifdef _WIN32
-    if (dev->fd_in)
+           dev->fd_in
 #else
-    if (dev->fd_in != -1)
+           (dev->fd_in != -1)
 #endif
-        ret |= CHAR_COM_DCD;
+           ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (
 #ifdef _WIN32
-    if (dev->fd_out)
+           dev->fd_out
 #else
-    if (dev->fd_out != -1)
+           (dev->fd_out != -1)
 #endif
-        ret |= CHAR_COM_CTS;
-    ret |= ret ? CHAR_COM_DSR : CHAR_DISCONNECTED;
-    return ret;
+           ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
 }
 
 static void

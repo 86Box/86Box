@@ -525,12 +525,12 @@ char_serial_status(void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    uint32_t ret = 0;
-
+    uint32_t ret;
 #ifdef _WIN32
     if (!dev->fd) {
-        ret |= CHAR_DISCONNECTED;
+        ret = CHAR_DISCONNECTED;
     } else {
+        ret = 0;
         DWORD status;
         if (GetCommModemStatus(dev->fd, &status)) {
             if (status & MS_CTS_ON)
@@ -545,8 +545,9 @@ char_serial_status(void *priv)
     }
 #else
     if (dev->fd == -1) {
-        ret |= CHAR_DISCONNECTED;
+        ret = CHAR_DISCONNECTED;
     } else {
+        ret = 0;
         int status;
         if (!ioctl(dev->fd, TIOCMGET, &status)) {
             if (status & TIOCM_CTS)
@@ -592,8 +593,10 @@ char_serial_control(uint32_t flags, void *priv)
     else
         clear |= TIOCM_RTS;
 
-    ioctl(dev->fd, TIOCMBIS, &set);
-    ioctl(dev->fd, TIOCMBIC, &clear);
+    if (set)
+        ioctl(dev->fd, TIOCMBIS, &set);
+    if (clear)
+        ioctl(dev->fd, TIOCMBIC, &clear);
     ioctl(dev->fd, (flags & CHAR_COM_BREAK) ? TIOCSBRK : TIOCCBRK);
 #endif
 }
