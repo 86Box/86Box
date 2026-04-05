@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 17:06+0000\n"
-"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -2692,6 +2692,7 @@ msgstr "Savage Quest için Koruma Kilidi"
 msgid "Loopback Plug"
 msgstr "Geri Döngü Adaptörü"
 
+#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Seri Geçiş Cihazı"
 
