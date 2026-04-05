@@ -25,10 +25,25 @@
 #include <86box/ini.h>
 #include <86box/char.h>
 
+static const device_t char_none_device = {
+    .name          = "None",
+    .internal_name = "none",
+    .flags         = DEVICE_COM | DEVICE_LPT,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 static const struct {
-    const device_t *dev;
+    const device_t *device;
 } char_devices[] = {
     // clang-format off
+    { &char_none_device },
     { &loopback_com_device },
     { &loopback_lpt_device },
     { &hostfile_device },
@@ -59,16 +74,22 @@ char_log(const char *fmt, ...)
 
 static char_port_t *active_port = NULL;
 
-static const device_t *
-char_get(const char *internal_name)
+const device_t *
+char_get_device(const int id)
 {
-    for (int i = 0; char_devices[i].dev; i++) {
-        if (!strcmp(internal_name, char_devices[i].dev->internal_name))
-            return char_devices[i].dev;
+    return char_devices[id].device;
+}
+
+const int
+char_get_from_internal_name(const char *internal_name)
+{
+    for (int i = 0; char_devices[i].device; i++) {
+        if (!strcmp(internal_name, char_devices[i].device->internal_name))
+            return i;
     }
 
     char_log("Char: Could not find device \"%s\"\n", internal_name);
-    return NULL;
+    return 0;
 }
 
 void
@@ -80,7 +101,7 @@ char_init(char_port_t *port, const char *init_string, int instance)
     /* Find the device. */
     char *buf = strdup(init_string);
     char *strtok_save;
-    const device_t *dev = char_get(strtok_r(buf, ":", &strtok_save));
+    const device_t *dev = char_get_device(char_get_from_internal_name(strtok_r(buf, ":", &strtok_save)));
     if (!dev)
         goto end;
     char_log("Char: Initializing device \"%s\"\n", dev->internal_name);

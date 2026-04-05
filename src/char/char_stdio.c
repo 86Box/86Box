@@ -336,7 +336,7 @@ stdio_init(const device_t *info)
 const device_t stdio_device = {
     .name          = "Standard Input/Output",
     .internal_name = "stdio",
-    .flags         = DEVICE_COM,
+    .flags         = DEVICE_COM | DEVICE_LPT,
     .local         = 0,
     .init          = stdio_init,
     .close         = stdio_close,

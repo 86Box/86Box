@@ -97,6 +97,9 @@ typedef struct {
     };
 } char_port_t;
 
+extern const int       char_get_from_internal_name(const char *internal_name);
+extern const device_t *char_get_device(const int id);
+
 extern void  char_init(char_port_t *port, const char *init_string, int instance);
 extern void *char_attach(uint32_t flags,
                          ssize_t  (*read)(uint8_t *buf, ssize_t len, void *priv),
