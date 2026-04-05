@@ -523,18 +523,6 @@ msgstr "YMFM (更快)"
 msgid "Internal LPT ECP DMA:"
 msgstr "內部 LPT 的 ECP 的 DMA:"
 
-msgid "Serial port 1"
-msgstr "序列埠 1"
-
-msgid "Serial port 2"
-msgstr "序列埠 2"
-
-msgid "Serial port 3"
-msgstr "序列埠 3"
-
-msgid "Serial port 4"
-msgstr "序列埠 4"
-
 msgid "Floppy disk controller:"
 msgstr "軟碟控制器:"
 
@@ -1830,18 +1818,6 @@ msgstr "86Box 單元測試器"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 金鑰卡"
-
-msgid "Serial port passthrough 1"
-msgstr "序列埠的直通 1"
-
-msgid "Serial port passthrough 2"
-msgstr "序列埠的直通 2"
-
-msgid "Serial port passthrough 3"
-msgstr "序列埠的直通 3"
-
-msgid "Serial port passthrough 4"
-msgstr "序列埠的直通 4"
 
 msgid "Renderer &options…"
 msgstr "渲染器選項(&O)…"

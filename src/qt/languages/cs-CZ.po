@@ -523,18 +523,6 @@ msgstr "YMFM (rychlejší)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA kanál ECP interního LPT portu:"
 
-msgid "Serial port 1"
-msgstr "Povolit port COM1"
-
-msgid "Serial port 2"
-msgstr "Povolit port COM2"
-
-msgid "Serial port 3"
-msgstr "Povolit port COM3"
-
-msgid "Serial port 4"
-msgstr "Povolit port COM4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketový řadič:"
 
@@ -1832,18 +1820,6 @@ msgstr "86Box Unit Tester"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Karta s klíčem pro Novell NetWare 2.x"
-
-msgid "Serial port passthrough 1"
-msgstr "Průchod sériového portu 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Průchod sériového portu 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Průchod sériového portu 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Průchod sériového portu 4"
 
 msgid "Renderer &options…"
 msgstr "Možnosti rendereru…"

@@ -524,18 +524,6 @@ msgstr "YMFM (più veloce)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA LPT ECP interna:"
 
-msgid "Serial port 1"
-msgstr "Porta seriale 1"
-
-msgid "Serial port 2"
-msgstr "Porta seriale 2"
-
-msgid "Serial port 3"
-msgstr "Porta seriale 3"
-
-msgid "Serial port 4"
-msgstr "Porta seriale 4"
-
 msgid "Floppy disk controller:"
 msgstr "Controller dischi floppy:"
 
@@ -1909,18 +1897,6 @@ msgstr "Tester di unità 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Chiave magnetica Novell NetWare 2.x"
-
-msgid "Serial port passthrough 1"
-msgstr "Porta seriale passante 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Porta seriale passante 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Porta seriale passante 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Porta seriale passante 4"
 
 msgid "Renderer &options…"
 msgstr "&Opzioni renderizzatore…"

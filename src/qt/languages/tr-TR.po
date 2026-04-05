@@ -522,18 +522,6 @@ msgstr "YMFM (daha hızlı)"
 msgid "Internal LPT ECP DMA:"
 msgstr "Dahili LPT ECP DMA'sı:"
 
-msgid "Serial port 1"
-msgstr "1. Seri bağlantı noktası"
-
-msgid "Serial port 2"
-msgstr "2. Seri bağlantı noktası"
-
-msgid "Serial port 3"
-msgstr "3. Seri bağlantı noktası"
-
-msgid "Serial port 4"
-msgstr "4. Seri bağlantı noktası"
-
 msgid "Floppy disk controller:"
 msgstr "Disket denetleyicisi:"
 
@@ -1875,18 +1863,6 @@ msgstr "86Box Test Cihazı"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Anahtar Kartı"
-
-msgid "Serial port passthrough 1"
-msgstr "1. Seri bağlantı noktası geçişi"
-
-msgid "Serial port passthrough 2"
-msgstr "2. Seri bağlantı noktası geçişi"
-
-msgid "Serial port passthrough 3"
-msgstr "3. Seri bağlantı noktası geçişi"
-
-msgid "Serial port passthrough 4"
-msgstr "4. Seri bağlantı noktası geçişi"
 
 msgid "Renderer &options…"
 msgstr "Derleyici seçenekleri…"

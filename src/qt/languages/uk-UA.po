@@ -524,18 +524,6 @@ msgstr "YMFM (швидший)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP вбудованого LPT:"
 
-msgid "Serial port 1"
-msgstr "Послідов. порт COM1"
-
-msgid "Serial port 2"
-msgstr "Послідов. порт COM2"
-
-msgid "Serial port 3"
-msgstr "Послідов. порт COM3"
-
-msgid "Serial port 4"
-msgstr "Послідов. порт COM4"
-
 msgid "Floppy disk controller:"
 msgstr "Контролер гнучких дисків:"
 
@@ -1831,18 +1819,6 @@ msgstr "Тестер блоків 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Ключова картка Novell NetWare 2.x"
-
-msgid "Serial port passthrough 1"
-msgstr "Пропуск послідовного порту 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Пропуск послідовного порту 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Пропуск послідовного порту 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Пропуск послідовного порту 4"
 
 msgid "Renderer &options…"
 msgstr "Параметри рендерингу…"

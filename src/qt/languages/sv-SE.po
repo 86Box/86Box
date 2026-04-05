@@ -523,18 +523,6 @@ msgstr "YMFM (snabbare)"
 msgid "Internal LPT ECP DMA:"
 msgstr "Intern LPT ECP DMA:"
 
-msgid "Serial port 1"
-msgstr "Serieport 1"
-
-msgid "Serial port 2"
-msgstr "Serieport 2"
-
-msgid "Serial port 3"
-msgstr "Serieport 3"
-
-msgid "Serial port 4"
-msgstr "Serieport 4"
-
 msgid "Floppy disk controller:"
 msgstr "Styrenhet för diskett:"
 
@@ -1830,18 +1818,6 @@ msgstr "86Box enhetsprövare"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x nyckelkort"
-
-msgid "Serial port passthrough 1"
-msgstr "Serieport passthrough 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Serieport passthrough 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Serieport passthrough 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Serieport passthrough 4"
 
 msgid "Renderer &options…"
 msgstr "Renderingsalternativ…"
