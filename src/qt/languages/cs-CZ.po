@@ -2650,7 +2650,7 @@ msgstr "Ochranný klíč pro Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Zařízení průchodu sériového portu"
 
 msgid "Passthrough Mode"

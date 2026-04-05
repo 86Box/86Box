@@ -2647,7 +2647,7 @@ msgstr "Skyddsdongel till Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Seriepassthrough-enhet"
 
 msgid "Passthrough Mode"

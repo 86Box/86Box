@@ -2647,7 +2647,7 @@ msgstr "Savage Quest 保护加密狗"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "串口直通设备"
 
 msgid "Passthrough Mode"

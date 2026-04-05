@@ -2647,7 +2647,7 @@ msgstr "Savage Questin suojausdongle"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Sarjaportin läpivientilaite"
 
 msgid "Passthrough Mode"

@@ -2649,7 +2649,7 @@ msgstr "Zaštitni uređaj za Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Uređaj prolaza serijskih vrata"
 
 msgid "Passthrough Mode"

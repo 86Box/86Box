@@ -2648,7 +2648,7 @@ msgstr "Zaščitni ključek za Savage Quest"
 msgid "Loopback Plug"
 msgstr "Priključek Loopback"
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Naprava za prepust serijskih vrat"
 
 msgid "Passthrough Mode"

@@ -2649,7 +2649,7 @@ msgstr "새비지 퀘스트용 보호 동글"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "직렬 포트 패스스루 장치"
 
 msgid "Passthrough Mode"

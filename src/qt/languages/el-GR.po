@@ -2684,7 +2684,7 @@ msgstr "Dongle προστασίας για το Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Συσκευή Σειριακής Διέλευσης"
 
 msgid "Passthrough Mode"

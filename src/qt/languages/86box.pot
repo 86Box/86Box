@@ -2640,7 +2640,7 @@ msgstr ""
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr ""
 
 msgid "Passthrough Mode"

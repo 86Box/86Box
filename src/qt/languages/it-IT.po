@@ -2726,7 +2726,7 @@ msgstr "Supporto di protezione per Savage Quest"
 msgid "Loopback Plug"
 msgstr "Connettore loopback"
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Dispositivo passaggio porta seriale"
 
 msgid "Passthrough Mode"

@@ -2659,7 +2659,7 @@ msgstr "Защитный донгл для Savage Quest"
 msgid "Loopback Plug"
 msgstr "Loopback-кабель"
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Устройство проброса через последовательный порт"
 
 msgid "Passthrough Mode"

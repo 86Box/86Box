@@ -2648,7 +2648,7 @@ msgstr "Ключовий захист для Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Пристрій для пропуску послідовного порту"
 
 msgid "Passthrough Mode"

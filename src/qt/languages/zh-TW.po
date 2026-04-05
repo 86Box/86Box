@@ -2647,7 +2647,7 @@ msgstr "用於 Savage Quest 的防拷保護鎖"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "序列埠直通裝置"
 
 msgid "Passthrough Mode"

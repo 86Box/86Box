@@ -2692,7 +2692,7 @@ msgstr "Savage Quest için Koruma Kilidi"
 msgid "Loopback Plug"
 msgstr "Geri Döngü Adaptörü"
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "Seri Geçiş Cihazı"
 
 msgid "Passthrough Mode"

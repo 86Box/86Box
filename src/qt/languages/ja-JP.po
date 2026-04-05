@@ -2647,7 +2647,7 @@ msgstr "サベージクエスト用プロテクションドングル"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr "シリアルポートパススルーデバイス"
 
 msgid "Passthrough Mode"
