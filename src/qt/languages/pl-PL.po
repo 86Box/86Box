@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 08:00+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-04-05 17:55+0000\n"
+"Last-Translator: JanuSzaj <testowe07@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "Rodzaj maszyny:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 oraz 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Inne)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (jednonapięciowe)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (dwunapięciowe)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Inne"
 
 msgid "Machine:"
 msgstr "Maszyna:"
@@ -530,13 +530,13 @@ msgid "CD-ROM controller:"
 msgstr "Kontroler CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Interfejs Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Interfejs MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Interfejs MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Kontroler IDE"
@@ -1970,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "Język BIOS-u"
 
 msgid "Variant"
-msgstr ""
+msgstr "Wariant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Expansion Unit"
@@ -2645,7 +2645,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Klucz ochronny dla Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Wtyczka loopback"
 
 msgid "Serial Passthrough"
 msgstr "Urządzenie przelotowe portu szeregowego"
@@ -2738,10 +2738,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generyczne rozszerzenie pamięci PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Standardowy RTC MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (zewnętrzne urządzenie)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nie można znaleźć fontów igłowych"
@@ -2807,10 +2807,10 @@ msgid "Could not load file %1"
 msgstr "Nie można wczytać pliku %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Wejście"
 
 msgid "Key bindings"
 msgstr "Przypisania klawiszy"
@@ -2990,7 +2990,7 @@ msgid "&Update mouse every CPU frame"
 msgstr "Aktualizuj &mysz z każdą ramką CPU"
 
 msgid "Composite CGA"
-msgstr ""
+msgstr "Kompozytowe CGA"
 
 msgid "Hue"
 msgstr "Barwa"
@@ -3008,7 +3008,7 @@ msgid "Sharpness"
 msgstr "Ostrość"
 
 msgid "Reset"
-msgstr ""
+msgstr "Reset"
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
@@ -3062,4 +3062,4 @@ msgid "Raw"
 msgstr "Surowy"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Użyj emulacji EDC/ECC"
