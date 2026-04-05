@@ -31,6 +31,7 @@ enum serial_passthrough_mode {
     SERPT_MODE_NPIPE_CLNT, /* Named Pipe (Client) */
 #else
     SERPT_MODE_VCON,       /* Pseudo Terminal/Virtual Console */
+    SERPT_MODE_DUMMY,      /* filler */
 #endif
     SERPT_MODE_TCP_SRV,    /* TCP Server (TODO) */
     SERPT_MODE_TCP_CLNT,   /* TCP Client (TODO) */
