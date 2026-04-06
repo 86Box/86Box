@@ -412,7 +412,7 @@ pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
 #ifndef RELEASE_BUILD
     char temp[LOG_SIZE_BUFFER];
 
-    if (strcmp(fmt, "") == 0)
+    if (!fmt || !fmt[0])
         return;
 
     pclog_ensure_stdlog_open();
@@ -684,15 +684,14 @@ delete_nvr_file(uint8_t flash)
 void
 pc_debug_console(void)
 {
-    if (force_debug)
-        return;
-
-    if (AllocConsole()) {
+    if (!force_debug && AllocConsole()) {
         force_debug = 1;
         freopen("CONIN$", "r", stdin);
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
     }
+    if (force_debug && vm_name[0])
+        SetConsoleTitle(vm_name);
 }
 #endif
 
@@ -1215,11 +1214,17 @@ usage:
      * If no --vmname parameter specified we'll use the
      *   working directory name as the VM's name.
      */
-    if (strlen(vm_name) == 0) {
+    if (!vm_name[0]) {
         char ltemp[1024] = { '\0' };
         path_get_dirname(ltemp, usr_path);
         strcpy(vm_name, path_get_filename(ltemp));
     }
+
+#ifdef _WIN32
+    /* Update debug console title with the VM name. */
+    if (force_debug)
+        pc_debug_console();
+#endif
 
     /*
      * This is where we start outputting to the log file,
@@ -2251,8 +2256,8 @@ do_pause(int p)
 // Helper to find an accelerator key and return it's index in acc_keys
 int FindAccelerator(const char *name) {
     for (int x = 0; x < NUM_ACCELS; x++) {
-        if(strcmp(acc_keys[x].name, name) == 0)
-            return(x);
+        if (!strcmp(acc_keys[x].name, name))
+            return x;
     }
 
     // No key was found
