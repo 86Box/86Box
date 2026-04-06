@@ -593,13 +593,10 @@ extern int hasfpu;
 #define CPU_FEATURE_3DNOW   (1 << 6)
 #define CPU_FEATURE_SYSCALL (1 << 7)
 #define CPU_FEATURE_3DNOWE  (1 << 8)
-<<<<<<< Updated upstream
 #define CPU_FEATURE_PSE36   (1 << 9)
-=======
 #define CPU_FEATURE_SSE     (1 << 9)
 #define CPU_FEATURE_PGE     (1 << 10)
 #define CPU_FEATURE_CLFLUSH (1 << 12)
->>>>>>> Stashed changes
 
 extern uint32_t cpu_features;
 
@@ -908,7 +905,6 @@ extern int cpu_override_interpreter;
 
 extern int is_lock_legal(uint32_t fetchdat);
 
-<<<<<<< Updated upstream
 extern void     prefetch_queue_set_pos(int pos);
 extern void     prefetch_queue_set_ip(uint16_t ip);
 extern void     prefetch_queue_set_prefetching(int p);
@@ -919,9 +915,8 @@ extern int      prefetch_queue_get_size(void);
 
 #define prefetch_queue_set_suspended(s) prefetch_queue_set_prefetching(!s)
 #define prefetch_queue_get_suspended !prefetch_queue_get_prefetching
-=======
+
 extern int is_repe;
 extern int is_repne;
->>>>>>> Stashed changes
 
 #endif /*EMU_CPU_H*/
