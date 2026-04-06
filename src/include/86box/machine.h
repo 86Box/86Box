@@ -1374,6 +1374,7 @@ extern const device_t  ms6318_device;
 extern int             machine_at_ms6318_init(const machine_t *);
 extern int             machine_at_cairo5_init(const machine_t *);
 
+extern int             machine_at_cusl2c_init(const machine_t *);
 extern int             machine_at_j815epda_init(const machine_t *);
 extern int             machine_at_m6tsl_init(const machine_t *);
 extern int             machine_at_m6tss_init(const machine_t *);

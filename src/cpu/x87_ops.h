@@ -45,10 +45,6 @@ extern void fpu_log(const char *fmt, ...);
 
 extern double exp_pow_table[0x800];
 
-#ifndef X87_INLINE_ASM
-static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO };
-#endif
-
 #define ST(x)             cpu_state.ST[((cpu_state.TOP + (x)) & 7)]
 
 #define FPU_SW_C3         (0x4000)  /* condition bit 3 */
@@ -62,6 +58,10 @@ static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARD
 #define X87_TAG_EMPTY     3
 
 #define FPU_SW_Zero_Div   (0x0004)  /* divide by zero */
+
+#if (!defined(FPU_8087) && !defined(OPS_286_386)) || !defined(X87_INLINE_ASM)
+static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO };
+#endif
 
 typedef union {
     double d;

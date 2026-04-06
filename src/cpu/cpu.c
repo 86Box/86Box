@@ -51,8 +51,6 @@
 #endif /* USE_DYNAREC */
 #include "x87_timings.h"
 
-<<<<<<< Updated upstream
-=======
 #define CCR1_USE_SMI  (1 << 1)
 #define CCR1_SMAC     (1 << 2)
 #define CCR1_SM3      (1 << 7)
@@ -63,7 +61,6 @@
 SSE_REG  XMM[8];
 uint32_t mxcsr;
 
->>>>>>> Stashed changes
 enum {
     CPUID_FPU       = (1 << 0),  /* On-chip Floating Point Unit */
     CPUID_VME       = (1 << 1),  /* Virtual 8086 mode extensions */
@@ -83,12 +80,9 @@ enum {
     CPUID_MCA       = (1 << 14), /* Machine Check Architecture */
     CPUID_CMOV      = (1 << 15), /* Conditional move instructions */
     CPUID_PAT       = (1 << 16), /* Page Attribute Table */
-<<<<<<< Updated upstream
     CPUID_PSE36     = (1 << 17), /* 36-bit Page Size Extension */
-=======
     CPUID_PSN       = (1 << 18), /* Processor Serial Number */
     CPUID_CLFLUSH   = (1 << 19), /* CLFLUSH instruction */
->>>>>>> Stashed changes
     CPUID_MMX       = (1 << 23), /* MMX technology */
     CPUID_FXSR      = (1 << 24), /* FXSAVE and FXRSTOR instructions */
     CPUID_SSE       = (1 << 25)  /* SSE Instructions */
@@ -578,20 +572,15 @@ cpu_set(void)
 
     /* SL-Enhanced Intel 486s have the same SMM save state table layout as Pentiums,
        and the WinChip datasheet claims those are Pentium-compatible as well. AMD Am486DXL/DXL2 also has compatible SMM, or would if not for it's different SMBase*/
-    is_pentium = (cpu_isintel && (cpu_s->cpu_type >= CPU_i486SX_SLENH) && (cpu_s->cpu_type < CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "IDT") || (cpu_s->cpu_type == CPU_Am486DXL);
-    is_k5      = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_ENH_Am486DX) && (cpu_s->cpu_type < CPU_K6);
-    is_k6      = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
-    is_athlon  = (cpu_s->cpu_type >= CPU_ATHLON) && !strcmp(cpu_f->manufacturer, "AMD");
+    is_pentium  = (cpu_isintel && (cpu_s->cpu_type >= CPU_i486SX_SLENH) && (cpu_s->cpu_type < CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "IDT") || (cpu_s->cpu_type == CPU_Am486DXL);
+    is_k5       = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_ENH_Am486DX) && (cpu_s->cpu_type < CPU_K6);
+    is_k6       = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
+    is_athlon   = (cpu_s->cpu_type >= CPU_ATHLON) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */
-<<<<<<< Updated upstream
-    is_p6     = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
-    is_cxsmm  = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
-    is_cx6x86 = (cpu_s->cpu_type >= CPU_Cx6x86) && (cpu_s->cpu_type <= CPU_Cx6x86L);
-=======
     is_p6       = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
     is_pentium3 = cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUM3);
     is_cxsmm    = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
->>>>>>> Stashed changes
+    is_cx6x86   = (cpu_s->cpu_type >= CPU_Cx6x86) && (cpu_s->cpu_type <= CPU_Cx6x86L);
 
     cpu_isintel = cpu_isintel || !strcmp(cpu_f->manufacturer, "AMD");
 

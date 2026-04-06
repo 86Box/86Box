@@ -44,6 +44,7 @@
 typedef struct {
     fdc_t        *fdc;
     serial_t     *uart[2];
+    lpt_t        *lpt;
     nsc366_hwm_t *hwm;
 
     uint8_t index;
@@ -101,14 +102,14 @@ nsc366_fdc(nsc366_t *dev)
 void
 nsc366_lpt(nsc366_t *dev)
 {
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
     int base = ((dev->io_base0[0][1] & 7) << 8) | (dev->io_base0[1][1] & 0xfc);
     int irq  = (dev->int_num_irq[1] & 0x0f);
 
     if (dev->ld_activate[1]) {
         nsc366_log("NSC 366 LPT: Reconfigured with Base 0x%04x IRQ: %d\n", base, irq);
-        lpt1_init(base);
-        lpt1_irq(irq);
+        lpt_port_setup(dev->lpt, base);
+        lpt_port_irq(dev->lpt, irq);
     }
 }
 
@@ -500,7 +501,7 @@ nsc366_init(const device_t *info)
     dev->hwm = device_add(&nsc366_hwm_device);
 
     /* Keyboard Controller */
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00003500));
 
     /* Port 92h */
     device_add(&port_92_pci_device);
@@ -508,6 +509,9 @@ nsc366_init(const device_t *info)
     /* Serial */
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt     = device_add_inst(&lpt_port_device, 1);
+    lpt_set_cnfga_readout(dev->lpt, 0x14);
 
     nsc366_reset(dev);
 
@@ -522,7 +526,7 @@ const device_t nsc366_device = {
     .init          = nsc366_init,
     .close         = nsc366_close,
     .reset         = nsc366_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -536,7 +540,7 @@ const device_t nsc366_4f_device = {
     .init          = nsc366_init,
     .close         = nsc366_close,
     .reset         = nsc366_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

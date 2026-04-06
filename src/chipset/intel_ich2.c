@@ -391,7 +391,7 @@ intel_ich2_smbus_setup(intel_ich2_t *dev)
 
 /* ICH2 Registers */
 static void
-intel_ich2_write(int func, int addr, uint8_t val, void *priv)
+intel_ich2_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *) priv;
 
@@ -765,7 +765,7 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-intel_ich2_read(int func, int addr, void *priv)
+intel_ich2_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const intel_ich2_t *dev = (intel_ich2_t *) priv;
 
@@ -1044,7 +1044,7 @@ intel_ich2_init(UNUSED(const device_t *info))
     dev->gpio = device_add(&intel_ich2_gpio_device);
 
     /* NVR Handler */
-    dev->nvr = device_add(&piix4_nvr_device);
+    dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4);
     acpi_set_nvr(dev->acpi, dev->nvr);
 
     /* Intel ICH2 Hub */
@@ -1092,7 +1092,7 @@ const device_t intel_ich2_device = {
     .init          = intel_ich2_init,
     .close         = intel_ich2_close,
     .reset         = intel_ich2_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

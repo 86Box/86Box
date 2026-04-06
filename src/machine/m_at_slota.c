@@ -59,7 +59,7 @@ machine_at_k7m_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -76,7 +76,6 @@ machine_at_k7m_init(const machine_t *model)
     device_add(&amd751_device);             /* AMD 751 */
     device_add(&via_vt82c686a_device);      /* VIA VT82C686A */
     device_add(&sst_flash_39sf020_device);  /* SST 4Mbit Flash */
-    device_add(&keyboard_ps2_ami_pci_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512); /* SPD */
 
     return ret;

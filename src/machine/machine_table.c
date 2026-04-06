@@ -23076,8 +23076,8 @@ const machine_t machines[] = {
             .step = 32768
         },
         .nvrmask = 255,
-        .kbc_device = NULL,
-        .kbc_params               = 0x00000000,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00005200, /* Guess. */
         .nvr_device               = NULL,
         .nvr_params               = 0x00000000,
         .sio_device               = NULL,

@@ -138,6 +138,7 @@ typedef struct {
     fdc_t     *fdc_controller;
     port_92_t *port_92;
     serial_t  *uart[2];
+    lpt_t     *lpt;
 } w83627hf_t;
 
 /* These differ per board and must be programmed manually */
@@ -389,7 +390,7 @@ w83627hf_fdc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 static void
 w83627hf_lpt_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    lpt1_remove();
+    lpt_port_remove(dev->lpt);
 
     switch (cur_reg) {
         case 0x30:
@@ -413,8 +414,8 @@ w83627hf_lpt_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
     }
 
     if (dev->dev_regs[1][0x30] & 1) {
-        lpt1_init((dev->dev_regs[1][0x60] << 8) | (dev->dev_regs[1][0x61]));
-        lpt1_irq(dev->dev_regs[1][0x70]);
+        lpt_port_setup(dev->lpt, (dev->dev_regs[1][0x60] << 8) | (dev->dev_regs[1][0x61]));
+        lpt_port_irq(dev->lpt, dev->dev_regs[1][0x70]);
         w83627hf_log("W83627HF-LPT: BASE: %04x IRQ: %d\n", (dev->dev_regs[1][0x60] << 8) | (dev->dev_regs[1][0x61]), dev->dev_regs[1][0x70]);
     }
 }
@@ -953,7 +954,7 @@ w83627hf_init(const device_t *info)
 
     /* Keyboard Controller (Based on AMIKEY-2) */
     /* Note: The base addresses and IRQ's of the Keyboard & PS/2 Mouse are remappable. Due to 86Box limitations we can't do that just yet */
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00004800));
 
     /* Port 92h */
     dev->port_92 = device_add(&port_92_device);
@@ -961,6 +962,8 @@ w83627hf_init(const device_t *info)
     /* UART */
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->lpt       = device_add_inst(&lpt_port_device, 1);
 
     return dev;
 }
@@ -973,7 +976,7 @@ const device_t w83627hf_device = {
     .init          = w83627hf_init,
     .close         = w83627hf_close,
     .reset         = w83627hf_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
@@ -987,7 +990,7 @@ const device_t w83627hf_no_hwm_device = {
     .init          = w83627hf_init,
     .close         = w83627hf_close,
     .reset         = w83627hf_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

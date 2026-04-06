@@ -169,7 +169,7 @@ amd751_host_write(int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-amd751_read(int func, int addr, void *priv)
+amd751_read(int func, int addr, UNUSED(int len), void *priv)
 {
     amd751_t *dev = (amd751_t *) priv;
     uint8_t       ret = 0xff;
@@ -187,7 +187,7 @@ amd751_read(int func, int addr, void *priv)
 }
 
 static void
-amd751_write(int func, int addr, uint8_t val, void *priv)
+amd751_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     switch (func) {
         case 0:
@@ -242,7 +242,7 @@ const device_t amd751_device = {
     .init          = amd751_init,
     .close         = amd751_close,
     .reset         = amd751_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

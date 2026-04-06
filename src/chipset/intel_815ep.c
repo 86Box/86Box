@@ -163,7 +163,7 @@ intel_815ep_gart_table(intel_815ep_t *dev)
 }
 
 static void
-intel_815ep_write(int func, int addr, uint8_t val, void *priv)
+intel_815ep_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     intel_815ep_t *dev = (intel_815ep_t *) priv;
 
@@ -318,7 +318,7 @@ intel_815ep_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-intel_815ep_read(int func, int addr, void *priv)
+intel_815ep_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const intel_815ep_t *dev = (intel_815ep_t *) priv;
 
@@ -465,7 +465,7 @@ const device_t intel_815ep_device = {
     .init          = intel_815ep_init,
     .close         = intel_815ep_close,
     .reset         = intel_815ep_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

@@ -132,7 +132,6 @@ static void
 acpi_timer_overflow(void *priv)
 {
     acpi_t *dev    = (acpi_t *) priv;
-    int     sci_en = dev->regs.pmcntrl & 1;
 
     dev->regs.pmsts |= TMROF_STS;
 #if 0
@@ -2928,7 +2927,7 @@ const device_t acpi_intel_ich2_device = {
     .init          = acpi_init,
     .close         = acpi_close,
     .reset         = acpi_reset,
-    { .available = NULL },
+    .available     = NULL,
     .speed_changed = acpi_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
