@@ -102,6 +102,8 @@ VMManagerSystem::VMManagerSystem(const QString &sysconfig_file)
     find86BoxBinary();
     platform = QApplication::platformName();
     process  = new QProcess();
+    process->setInputChannelMode(QProcess::ForwardedInputChannel);
+    process->setProcessChannelMode(QProcess::ForwardedChannels);
     connect(process, &QProcess::stateChanged, this, &VMManagerSystem::processStatusChanged);
 
     // Server type for this instance (Standard should always be used instead of Legacy)
@@ -440,6 +442,10 @@ VMManagerSystem::launch86Box(bool settings)
         args << "--fullscreen";
     if (!confirm_exit_cmdl)
         args << "--noconfirm";
+#ifdef Q_OS_WINDOWS
+    if (force_debug)
+        args << "--debug";
+#endif
     process->setProgram(program);
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
