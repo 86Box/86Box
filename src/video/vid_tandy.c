@@ -211,11 +211,11 @@ tandy_update_color(t1kvid_t *vid)
     uint8_t border_val;
 
     if (vid->array[3] & 4)
-        border_val = (vid->array[2] & 0xf) + 16;
+        border_val = vid->array[2] & 0xf;
     else if ((vid->mode & 0x12) == 0x12)
         border_val = 0;
     else
-        border_val = (vid->col & 15);
+        border_val = vid->col & 0xf;
 
     update_cga16_color(vid->mode, border_val);
 }

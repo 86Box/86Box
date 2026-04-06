@@ -112,6 +112,10 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
                 if ((quadcolor->crtcreg < 0xe) || (quadcolor->crtcreg > 0x11)) {
                     quadcolor->fullchange = changeframecount;
                     quadcolor_recalctimings(quadcolor);
+
+                    if (quadcolor->crtcreg == 3)
+                        update_cga16_color(quadcolor->cgamode, (quadcolor->cgacol & 0x0f) |
+                                                           (((quadcolor->crtc[3] == 0) || (quadcolor->crtc[3] == 15)) ? 0x80 : 0x00));
                 }
             }
             return;
@@ -121,7 +125,8 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
 
             if (old ^ val) {
                 if ((old ^ val) & 0x07)
-                    update_cga16_color(val, quadcolor->cgacol);
+                    update_cga16_color(quadcolor->cgamode, (quadcolor->cgacol & 0x0f) |
+                                                       (((quadcolor->crtc[3] == 0) || (quadcolor->crtc[3] == 15)) ? 0x80 : 0x00));
 
                 quadcolor_recalctimings(quadcolor);
             }
@@ -130,7 +135,9 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
             old         = quadcolor->cgacol;
             quadcolor->cgacol = val;
             if (old ^ val) {
-                update_cga16_color(quadcolor->cgamode, val);
+                update_cga16_color(quadcolor->cgamode, (quadcolor->cgacol & 0x0f) |
+                                                   (((quadcolor->crtc[3] == 0) || (quadcolor->crtc[3] == 15)) ? 0x80 : 0x00));
+
                 quadcolor_recalctimings(quadcolor);
             }
             return;

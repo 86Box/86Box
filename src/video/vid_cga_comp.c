@@ -264,7 +264,9 @@ Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doub
         OUT(b[x & 3]);
 
     int is_high_res_text = ((cgamode & (CGA_MODE_FLAG_HIGHRES | CGA_MODE_FLAG_GRAPHICS)) == CGA_MODE_FLAG_HIGHRES);
-    if (((cgamode & CGA_MODE_FLAG_BW) != 0) || (is_high_res_text && ((current_cgacol & 0x0f) == 0x00))) {
+    int border_ex        = current_cgacol & 0x0f;
+    int motorola_hsync_0 = current_cgacol & 0x80;
+    if (((cgamode & CGA_MODE_FLAG_BW) != 0) || (is_high_res_text && (border_ex == 0x00) && !motorola_hsync_0)) {
         /* Decode */
         i    = temp + 5;
         srgb = TempLine;

@@ -101,6 +101,10 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
                     cga->fullchange = changeframecount;
                     cga_recalctimings(cga);
+
+                    if (cga->crtcreg == 3)
+                        update_cga16_color(cga->cgamode, (cga->cgacol & 0x0f) |
+                                                         (((cga->crtc[3] == 0) || (cga->crtc[3] == 15)) ? 0x80 : 0x00));
                 }
             }
             return;
@@ -110,7 +114,8 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
 
             if (old ^ val) {
                 if ((old ^ val) & 0x07)
-                    update_cga16_color(val, cga->cgacol);
+                    update_cga16_color(cga->cgamode, (cga->cgacol & 0x0f) |
+                                                     (((cga->crtc[3] == 0) || (cga->crtc[3] == 15)) ? 0x80 : 0x00));
 
                 cga_recalctimings(cga);
             }
@@ -119,7 +124,9 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
             old         = cga->cgacol;
             cga->cgacol = val;
             if (old ^ val) {
-                update_cga16_color(cga->cgamode, val);
+                update_cga16_color(cga->cgamode, (cga->cgacol & 0x0f) |
+                                                 (((cga->crtc[3] == 0) || (cga->crtc[3] == 15)) ? 0x80 : 0x00));
+
                 cga_recalctimings(cga);
             }
             return;
