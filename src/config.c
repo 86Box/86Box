@@ -1033,12 +1033,20 @@ load_ports(void)
         if (serial_passthrough_enabled[c])
             config_log("Serial Port %d: passthrough enabled.\n\n", c + 1);
 
-        /* The addition of Windows named pipe client mode in v5.3 made a mess
-           of the enum IDs. Migrate the old HOSTSER ID (now TCP_CLNT) to the
-           new one. The section is migrated to the new name by device.c later. */
+        /* Migrate serial passthrough config section. Doing it here (instead of
+           the device.c migration path) covers disabled passthroughs as well. */
         sprintf(temp, "Serial Passthrough Device #%i", c + 1);
-        if (ini_get_int(config, temp, "mode", 0) == 3)
-            ini_set_int(config, temp, "mode", SERPT_MODE_HOSTSER);
+        ini_section_t cat2 = ini_find_section(config, temp);
+        sprintf(temp, "Serial Passthrough #%i", c + 1);
+        if (cat2)
+            ini_rename_section(cat2, temp);
+        else
+            cat2 = ini_find_section(config, temp);
+
+        /* The addition of Windows named pipe client mode in v5.3 made a mess of
+           the enum IDs. Migrate the old HOSTSER ID (now TCP_CLNT) to the new one. */
+        if (ini_section_get_int(cat2, "mode", 0) == 3)
+            ini_section_set_int(cat2, "mode", SERPT_MODE_HOSTSER);
     }
 
     for (int c = 0; c < PARALLEL_MAX; c++) {
