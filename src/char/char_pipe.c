@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
@@ -28,6 +29,8 @@
 #    include <unistd.h>
 #    include <sys/types.h>
 #    include <sys/socket.h>
+#    include <sys/un.h>
+#    include <sys/stat.h>
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -177,7 +180,7 @@ char_pipe_init(const device_t *info)
             /* Try connecting to the socket first. */
             struct sockaddr_un addr = { .sun_family = AF_UNIX };
             strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
-            if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+            if (connect(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
                 /* Connection failed, try creating a new socket. */
                 int open_error = errno;
                 char_pipe_log(dev->log, "connect failed (%d)\n", open_error);
@@ -187,7 +190,7 @@ char_pipe_init(const device_t *info)
                 if ((stat(path, &stats) != 0) && S_ISSOCK(stats.st_mode))
                     unlink(path);
 
-                if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+                if (bind(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
                     /* Both connection and creation failed. */
                     int create_error = errno;
                     char_pipe_log(dev->log, "connect failed (%d)\n", create_error);
@@ -196,13 +199,13 @@ char_pipe_init(const device_t *info)
                     dev->fd = -1;
 
                     wchar_t msg[1024];
-                    swprintf(msg, sizeof(msg) / sizeof(msg[0]), L"Could not create or connect to socket %s:\nConnect: %ls\nCreate: %ls", full_path, strerror(open_error), strerror(create_error));
+                    swprintf(msg, sizeof(msg) / sizeof(msg[0]), L"Could not create or connect to socket %s:\nConnect: %ls\nCreate: %ls", path, strerror(open_error), strerror(create_error));
                     ui_msgbox(MBX_ERROR, msg);
                 }
             }
         } else {
             wchar_t msg[1024];
-            swprintf(msg, sizeof(msg) / sizeof(msg[0]), L"Could not create or connect to socket %s: %s", full_path, strerror(errno));
+            swprintf(msg, sizeof(msg) / sizeof(msg[0]), L"Could not create or connect to socket %s: %s", path, strerror(errno));
             ui_msgbox(MBX_ERROR, msg);
         }
 #endif
