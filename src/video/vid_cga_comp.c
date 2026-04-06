@@ -94,8 +94,10 @@ int vid_cga_comp_hue = 0;
 int vid_cga_comp_saturation = 100;
 int vid_cga_comp_contrast = 100;
 
+static uint8_t current_cgacol = 0x00;
+
 void
-update_cga16_color(uint8_t cgamode)
+update_cga16_color(uint8_t cgamode, uint8_t cgacol)
 {
     double c;
     double i;
@@ -109,6 +111,8 @@ update_cga16_color(uint8_t cgamode)
     double i0;
     double i3;
     double mode_saturation;
+
+    current_cgacol = cgacol;
 
     static const double ri = 0.9563;
     static const double rq = 0.6210;
@@ -259,7 +263,8 @@ Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doub
     for (uint8_t x = 0; x < 5; ++x)
         OUT(b[x & 3]);
 
-    if ((cgamode & CGA_MODE_FLAG_BW) != 0) {
+    int is_high_res_text = ((cgamode & (CGA_MODE_FLAG_HIGHRES | CGA_MODE_FLAG_GRAPHICS)) == CGA_MODE_FLAG_HIGHRES);
+    if (((cgamode & CGA_MODE_FLAG_BW) != 0) || (is_high_res_text && ((current_cgacol & 0x0f) == 0x00))) {
         /* Decode */
         i    = temp + 5;
         srgb = TempLine;
@@ -313,7 +318,7 @@ IncreaseHue(uint8_t cgamode)
 {
     hue_offset += 5.0;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -321,7 +326,7 @@ DecreaseHue(uint8_t cgamode)
 {
     hue_offset -= 5.0;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -329,7 +334,7 @@ IncreaseSaturation(uint8_t cgamode)
 {
     saturation += 5;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -337,7 +342,7 @@ DecreaseSaturation(uint8_t cgamode)
 {
     saturation -= 5;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -345,7 +350,7 @@ IncreaseContrast(uint8_t cgamode)
 {
     contrast += 5;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -353,7 +358,7 @@ DecreaseContrast(uint8_t cgamode)
 {
     contrast -= 5;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -361,7 +366,7 @@ IncreaseBrightness(uint8_t cgamode)
 {
     brightness += 5;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -369,7 +374,7 @@ DecreaseBrightness(uint8_t cgamode)
 {
     brightness -= 5;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -377,7 +382,7 @@ IncreaseSharpness(uint8_t cgamode)
 {
     sharpness += 10;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -385,7 +390,7 @@ DecreaseSharpness(uint8_t cgamode)
 {
     sharpness -= 10;
 
-    update_cga16_color(cgamode);
+    update_cga16_color(cgamode, current_cgacol);
 }
 
 void
@@ -403,7 +408,7 @@ cga_comp_reload(int new_brightness, int new_saturation, int new_sharpness, int n
     sharpness  = new_sharpness;
     hue_offset = new_hue;
 
-    update_cga16_color(current_cgamode);
+    update_cga16_color(current_cgamode, current_cgacol);
 
     if (!is_cpu_thread)
         thread_release_mutex(cga_comp_mutex);
@@ -424,5 +429,5 @@ cga_comp_init(int revision)
     sharpness  = vid_cga_comp_sharpness;
     hue_offset = vid_cga_comp_hue;
 
-    update_cga16_color(0);
+    update_cga16_color(0, 0);
 }

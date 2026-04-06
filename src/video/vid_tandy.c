@@ -205,6 +205,21 @@ vid_update_display_offset(t1kvid_t *vid, uint8_t reg)
     }
 }
 
+static void
+tandy_update_color(t1kvid_t *vid)
+{
+    uint8_t border_val;
+
+    if (vid->array[3] & 4)
+        border_val = (vid->array[2] & 0xf) + 16;
+    else if ((vid->mode & 0x12) == 0x12)
+        border_val = 0;
+    else
+        border_val = (vid->col & 15);
+
+    update_cga16_color(vid->mode, border_val);
+}
+
 void
 tandy_vid_out(uint16_t addr, uint8_t val, void *priv)
 {
@@ -244,10 +259,14 @@ tandy_vid_out(uint16_t addr, uint8_t val, void *priv)
             if ((old ^ val) & 0x01)
                 recalc_timings(dev);
             if (!dev->is_sl2)
-                update_cga16_color(vid->mode);
+                tandy_update_color(vid);
             break;
 
         case 0x03d9:
+            if (vid->col ^ val) {
+                vid->col = val;
+                tandy_update_color(vid);
+            }
             vid->col = val;
             break;
 
@@ -270,6 +289,10 @@ tandy_vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x03de:
             if (vid->array_index & 16)
                 val &= 0xf;
+            if (((vid->array_index & 0x1f) == 2) && (vid->array[2] ^ val)) {
+                vid->array[vid->array_index & 0x1f] = val;
+                tandy_update_color(vid);
+            }
             vid->array[vid->array_index & 0x1f] = val;
             if (dev->is_sl2) {
                 if ((vid->array_index & 0x1f) == 5) {

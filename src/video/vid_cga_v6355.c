@@ -166,11 +166,15 @@ v6355_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d8:
             if (((v6355->cgamode ^ val) & 5) != 0) {
                 v6355->cgamode = val;
-                update_cga16_color(v6355->cgamode);
+                update_cga16_color(v6355->cgamode, v6355->cgacol);
             }
             v6355->cgamode = val;
             break;
         case 0x3d9:
+            if (v6355->cgacol ^ val) {
+                v6355->cgacol = val;
+                update_cga16_color(v6355->cgamode, v6355->cgacol);
+            }
             v6355->cgacol = val;
             break;
         case 0x3dd:
@@ -917,7 +921,7 @@ v6355_standalone_init(const device_t *info) {
     v6355->rgb_type = device_get_config_int("rgb_type");
     cga_palette     = (v6355->rgb_type << 1);
     cgapal_rebuild();
-    update_cga16_color(v6355->cgamode);
+    update_cga16_color(v6355->cgamode, v6355->cgacol);
 
     v6355->double_type = device_get_config_int("double_type");
     cga_interpolate_init();
