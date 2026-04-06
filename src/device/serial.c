@@ -995,8 +995,9 @@ serial_init(const device_t *info)
         if (next_inst == 0) {
             // DEBUG CODE
             dev->char_port.type = CHAR_PORT_COM;
-            //char_init(&dev->char_port, "hostfile:86box.log:input_path=C:\\msys64\\home\\Richard\\86Box\\src\\device\\serial.c:input_loop=1", next_inst);
-            char_init(&dev->char_port, "loopback", next_inst);
+            //char_init(&dev->char_port, "file:86box.log:input_path=C:\\msys64\\home\\Richard\\86Box\\src\\device\\serial.c:input_loop=1", next_inst);
+            //char_init(&dev->char_port, "stdio", next_inst);
+            char_init(&dev->char_port, "pipe:86boxchrtest", next_inst);
         }
 
         if (info->local & 0xfff00000) {

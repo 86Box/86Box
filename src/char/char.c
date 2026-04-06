@@ -45,8 +45,9 @@ static const struct {
     // clang-format off
     { &char_none_device },
     { &char_serial_device },
-    { &char_stdio_device },
+    { &char_pipe_device },
     { &char_file_device },
+    { &char_stdio_device },
     { &char_loopback_com_device },
     { &char_loopback_lpt_device },
     { 0 }
