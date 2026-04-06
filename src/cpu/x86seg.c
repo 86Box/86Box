@@ -1833,8 +1833,8 @@ pmodeiret(int is32)
 {
     uint16_t      newss;
     uint16_t      seg = 0;
-    uint16_t      segdat[4];
-    uint16_t      segdat2[4];
+    uint16_t      segdat[4] = { 0 };
+    uint16_t      segdat2[4] = { 0 };
     uint16_t      segs[4];
     uint32_t      tempflags;
     uint32_t      flagmask;

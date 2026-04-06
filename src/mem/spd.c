@@ -584,6 +584,150 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
     }
 }
 
+/* This is needed because the AMD 751 does this stuff completely differently,
+   as it has DRAM bank registers instead of DRAM row boundary registers. */
+void
+spd_write_drbs_amd751(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t map_min, uint8_t map_max)
+{
+    uint8_t  dimm;
+    uint8_t  drb;
+    uint8_t  map;
+    uint16_t size;
+    uint16_t bank_addr = 0;
+
+    /* Write DRBs for each row. */
+    spd_log("SPD: Writing DRBs... regs=[%02X:%02X]\n", reg_min, reg_max);
+    for (dimm = 0; dimm <= ((reg_max - reg_min) >> 1); dimm++) {
+        size = 0;
+        drb  = reg_min + (dimm << 1);
+        map = map_min + (dimm >> 1);
+
+        if (spd_modules[dimm] == NULL)
+            continue;
+
+        /* SPD enabled: use SPD info for this slot, if present. */
+        size = (spd_modules[dimm]->row1 + spd_modules[dimm]->row2) >> 1;
+        bank_addr += size >> 2;
+
+        regs[drb]     = (bank_addr & 1) << 7;
+        regs[drb + 1] = (bank_addr >> 1);
+
+        if (spd_modules[dimm]->row1 || spd_modules[dimm]->row2)
+            regs[drb] |= 0x01;
+
+        if (spd_modules[dimm]->row2)
+            regs[map] |= 0x02 << ((dimm & 1) << 2);
+
+        switch (size) {
+            default:
+            case 4:
+                regs[drb] |= 0x00;
+                break;
+            case 8:
+                regs[drb] |= 0x02;
+                break;
+            case 16:
+                regs[drb] |= 0x06;
+                break;
+            case 32:
+                regs[drb] |= 0x0e;
+                break;
+            case 64:
+                regs[drb] |= 0x1e;
+                break;
+            case 128:
+                regs[drb] |= 0x3e;
+                break;
+            case 256:
+                regs[drb] |= 0x7e;
+                break;
+        }
+
+        spd_log("SPD: DIMM %i: %02X %02X %02X\n", dimm, regs[drb], regs[drb + 1], regs[map]);
+    }
+}
+
+void
+spd_write_drbs_intel_815ep(uint8_t *regs)
+{
+    /* All Intel MCH based boards demand SPD so we ignore completely the non-SPD calculations */
+    int      size;
+    int      reg_apply;
+    uint16_t rows[SPD_MAX_SLOTS];
+
+    if (!spd_present)
+        spd_populate(rows, 3, mem_size << 10, 32, 512, 0);
+
+    /* Clear previous configurations */
+    regs[0x52] = regs[0x54] = 0;
+
+    /* Write DRBs for each row. */
+    for (int slot = 0; slot < 3; slot++) {
+        if(spd_modules[slot] == NULL)
+            break;
+        size = spd_modules[slot]->row1 + spd_modules[slot]->row2;
+        spd_log("Intel 815EP SPD: Registering Slot %d with size %dMB.\n", slot, size);
+
+        /* Calculate Size. Nullify if the size is illegal. */
+        switch (size) {
+            default:
+                reg_apply = 0;
+                spd_log("Intel 815EP SPD: Illegal Size on Slot %d. Size not divisible by 32.\n", slot);
+                break;
+
+            case 32:
+                reg_apply = 1;
+                break;
+
+            case 48:
+                reg_apply = 3;
+                break;
+
+            case 64:
+                reg_apply = 4;
+                break;
+
+            case 96:
+                reg_apply = 6;
+                break;
+
+            case 128:
+                reg_apply = 7;
+                break;
+
+            case 192:
+                reg_apply = 11;
+                break;
+
+            case 256:
+                reg_apply = 12;
+                break;
+
+            case 512:
+                reg_apply = 15;
+                break;
+        }
+
+        /* Write on the representative register */
+        switch (slot) {
+            case 0:
+                regs[0x52] |= reg_apply;
+                break;
+
+            case 1:
+                regs[0x52] |= reg_apply << 4;
+                break;
+
+            case 2:
+                regs[0x54] |= reg_apply;
+                break;
+
+            default:
+                break;
+        }
+    }
+}
+
 static const device_t spd_device = {
     .name          = "Serial Presence Detect ROMs",
     .internal_name = "spd",

@@ -79,6 +79,8 @@ extern const device_t fdc37c67x_device;
 extern const device_t it8661f_device;
 extern const device_t it8671f_device;
 
+extern const device_t it8702_device;
+
 /* Intel */
 #define I82091AA_022         0x00000    /* Default. */
 #define I82091AA_024         0x00008
@@ -131,6 +133,9 @@ extern const device_t pc873xx_device;
 extern const device_t pc87307_device;
 
 extern const device_t pc87309_device;
+
+extern const device_t nsc366_device;
+extern const device_t nsc366_4f_device;
 
 /* LG Prime */
 #define GM82C803A            0x00000
@@ -211,5 +216,8 @@ extern const device_t w83877_device;
 #define W83977_KBC           0x000f0
 
 extern const device_t w83977_device;
+
+extern const device_t w83627hf_device;
+extern const device_t w83627hf_no_hwm_device;
 
 #endif /*EMU_SIO_H*/

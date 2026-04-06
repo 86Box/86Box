@@ -23,6 +23,7 @@
 #include <86box/mem.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
+#include <86box/random.h>
 #include <86box/gdbstub.h>
 #include "codegen.h"
 #include <86box/plat_unused.h>

@@ -324,11 +324,15 @@ extern uint8_t     pci_bridge_get_bus_index(void *priv);
 extern const device_t dec21150_device;
 extern const device_t dec21152_device;
 
+extern const device_t intel_ich2_hub_device;
+
 extern const device_t ali5243_agp_device;
 extern const device_t ali5247_agp_device;
+extern const device_t amd751_agp_device;
 extern const device_t i440lx_agp_device;
 extern const device_t i440bx_agp_device;
 extern const device_t i440gx_agp_device;
+extern const device_t intel_815ep_agp_device;
 extern const device_t via_vp3_agp_device;
 extern const device_t via_mvp3_agp_device;
 extern const device_t via_apro_agp_device;

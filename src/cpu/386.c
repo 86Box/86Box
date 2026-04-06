@@ -293,6 +293,7 @@ exec386_2386(int32_t cycs)
                 if (opcode == 0xf0)
                     in_lock = 1;
                 x86_2386_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                sse_xmm = 0;
                 in_lock = 0;
                 if (x86_was_reset)
                     break;

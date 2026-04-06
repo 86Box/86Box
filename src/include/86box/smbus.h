@@ -15,6 +15,10 @@
 #ifndef EMU_SMBUS_H
 #define EMU_SMBUS_H
 
+#include <86box/apm.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
+
 #define SMBUS_PIIX4_BLOCK_DATA_SIZE   32
 #define SMBUS_PIIX4_BLOCK_DATA_MASK   (SMBUS_PIIX4_BLOCK_DATA_SIZE - 1)
 
@@ -25,13 +29,15 @@
 #define SMBUS_SIS5595_BLOCK_DATA_MASK (SMBUS_ALI7101_BLOCK_DATA_SIZE - 1)
 
 enum {
-    SMBUS_PIIX4 = 0,
-    SMBUS_VIA   = 1
+    SMBUS_PIIX4      = 0,
+    SMBUS_INTEL_ICH2 = 1,
+    SMBUS_VIA        = 2
 };
 
 typedef struct smbus_piix4_t {
     uint32_t   local;
     uint16_t   io_base;
+    uint16_t   byte_rw;
     int        clock;
     double     bit_period;
     uint8_t    stat;
@@ -43,6 +49,10 @@ typedef struct smbus_piix4_t {
     uint8_t    data1;
     uint8_t    index;
     uint8_t    data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
+    uint8_t    block_data_byte;
+    uint8_t    irq;
+    uint8_t    smi_en;
+    acpi_t    *acpi;
     pc_timer_t response_timer;
     void      *i2c;
 } smbus_piix4_t;
@@ -85,6 +95,10 @@ typedef struct smbus_sis5595_t {
     void      *i2c;
 } smbus_sis5595_t;
 
+extern void    smbus_piix4_get_acpi(smbus_piix4_t *dev, acpi_t *acpi);
+extern void    smbus_piix4_get_irq(uint8_t irq, smbus_piix4_t *dev);
+extern void    smbus_piix4_smi_en(uint8_t smi_en, smbus_piix4_t *dev);
+
 extern void    smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable);
 extern void    smbus_piix4_setclock(smbus_piix4_t *dev, int clock);
 
@@ -99,6 +113,7 @@ extern void    smbus_sis5595_write_data(void *priv, uint8_t val);
 
 #ifdef EMU_DEVICE_H
 extern const device_t piix4_smbus_device;
+extern const device_t intel_ich2_smbus_device;
 extern const device_t via_smbus_device;
 
 extern const device_t ali7101_smbus_device;

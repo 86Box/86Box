@@ -540,6 +540,7 @@ opPSRLQ_a16(uint32_t fetchdat)
 
     return 0;
 }
+
 static int
 opPSRLQ_a32(uint32_t fetchdat)
 {

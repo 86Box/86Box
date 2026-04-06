@@ -35,6 +35,7 @@ extern const device_t ali6117d_device;
 
 /* AMD */
 extern const device_t amd640_device;
+extern const device_t amd751_device;
 
 /* ASUS */
 extern const device_t isa486c_device;
@@ -119,6 +120,10 @@ extern const device_t piix4e_device;
 extern const device_t slc90e66_device;
 
 extern const device_t ioapic_device;
+
+/* Intel ICH2 */
+extern const device_t intel_815ep_device;
+extern const device_t intel_ich2_device;
 
 /* VTech */
 extern const device_t laserxt_device;

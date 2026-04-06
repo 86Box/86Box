@@ -30,10 +30,13 @@ add_library(dev OBJECT
     hwm_gl518sm.c
     hwm_lm75.c
     hwm_lm78.c
+    hwm_nsc366.c
     hwm_vt82c686.c
     i2c.c
     i2c_gpio.c
     ibm_5161.c
+    intel_ich2_gpio.c
+    intel_ich2_trap.c
     isamem.c
     isarom.c
     isartc.c
@@ -63,6 +66,7 @@ add_library(dev OBJECT
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c
+    tco.c
     tulip_jumper.c
     unittester.c
     zenith_scratchpad.c

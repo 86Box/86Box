@@ -99,6 +99,7 @@ op_66(uint32_t fetchdat) /*Data size select*/
     cpu_state.pc++;
 
     cpu_state.op32 = ((use32 & 0x100) ^ 0x100) | (cpu_state.op32 & 0x200);
+    sse_xmm        = 1;
     CLOCK_CYCLES(2);
     PREFETCH_PREFIX();
     return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
@@ -126,6 +127,7 @@ op_66_REPE(uint32_t fetchdat) /*Data size select*/
     cpu_state.pc++;
 
     cpu_state.op32 = ((use32 & 0x100) ^ 0x100) | (cpu_state.op32 & 0x200);
+    sse_xmm        = 1;
     CLOCK_CYCLES(2);
     PREFETCH_PREFIX();
     if (x86_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32])
@@ -156,6 +158,7 @@ op_66_REPNE(uint32_t fetchdat) /*Data size select*/
     cpu_state.pc++;
 
     cpu_state.op32 = ((use32 & 0x100) ^ 0x100) | (cpu_state.op32 & 0x200);
+    sse_xmm        = 1;
     CLOCK_CYCLES(2);
     PREFETCH_PREFIX();
     if (x86_opcodes_REPNE[(fetchdat & 0xff) | cpu_state.op32])

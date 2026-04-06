@@ -374,7 +374,8 @@ reset_common(int hard)
             reset_808x(hard);
     }
 
-    in_lock    = 0;
+    mxcsr   = 0x1f80;
+    in_lock = 0;
 
     cpu_cpurst_on_sr = 0;
 
