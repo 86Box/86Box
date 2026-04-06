@@ -129,7 +129,8 @@ char_stdio_read(uint8_t *buf, ssize_t len, void *priv)
             if (GetNumberOfConsoleInputEvents(dev->fd_in, &count) && (count > 0)) {
                 INPUT_RECORD ir;
                 if (ReadConsoleInput(dev->fd_in, &ir, 1, &count) && (count > 0) &&
-                    (ir.EventType == KEY_EVENT) && ir.Event.KeyEvent.bKeyDown) {
+                    (ir.EventType == KEY_EVENT) && ir.Event.KeyEvent.bKeyDown &&
+                    ir.Event.KeyEvent.uChar.AsciiChar) {
                     *buf++ = ir.Event.KeyEvent.uChar.AsciiChar;
                     ret++;
                 }
@@ -243,9 +244,10 @@ char_stdio_init(const device_t *info)
     dev->port = char_attach(0, char_stdio_read, char_stdio_write, char_stdio_status, char_stdio_control, NULL, dev);
 
 #ifdef _WIN32
-    /* Spawn a console if required. (GUI executable) */
+    /* Set file descriptors. */
     dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
     if (!CHAR_FD_VALID(dev->fd_in)) {
+        /* Spawn a console if one isn't present. (GUI executable) */
         char_stdio_log(dev->log, "No Windows console, spawning one\n");
         pc_debug_console();
         dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
