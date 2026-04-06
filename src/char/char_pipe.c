@@ -193,7 +193,7 @@ char_pipe_init(const device_t *info)
                 if (bind(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
                     /* Both connection and creation failed. */
                     int create_error = errno;
-                    char_pipe_log(dev->log, "connect failed (%d)\n", create_error);
+                    char_pipe_log(dev->log, "bind failed (%d)\n", create_error);
 
                     close(dev->fd);
                     dev->fd = -1;
