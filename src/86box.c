@@ -503,8 +503,6 @@ fatal(const char *fmt, ...)
 
     nvr_save();
 
-    config_save();
-
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
 #endif
@@ -546,8 +544,6 @@ fatal_ex(const char *fmt, va_list ap)
     fflush(stdlog);
 
     nvr_save();
-
-    config_save();
 
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
@@ -1951,8 +1947,6 @@ pc_close(UNUSED(thread_t *ptr))
     is_quit = 1;
 
     nvr_save();
-
-    config_save();
 
     plat_mouse_capture(0);
 

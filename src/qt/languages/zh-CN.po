@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-04 18:00+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -2647,6 +2647,7 @@ msgstr "Savage Quest 保护加密狗"
 msgid "Loopback Plug"
 msgstr ""
 
+#, fuzzy
 msgid "Serial Passthrough"
 msgstr "串口直通设备"
 

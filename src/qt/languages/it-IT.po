@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-03-31 14:13+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it-IT\n"
 "MIME-Version: 1.0\n"
@@ -2726,6 +2726,7 @@ msgstr "Supporto di protezione per Savage Quest"
 msgid "Loopback Plug"
 msgstr "Connettore loopback"
 
+#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Dispositivo passaggio porta seriale"
 

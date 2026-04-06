@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 14:32+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
 "Language: sl-SI\n"
@@ -2648,6 +2648,7 @@ msgstr "Zaščitni ključek za Savage Quest"
 msgid "Loopback Plug"
 msgstr "Priključek Loopback"
 
+#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Naprava za prepust serijskih vrat"
 

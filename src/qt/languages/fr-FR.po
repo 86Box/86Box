@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
@@ -2646,6 +2646,7 @@ msgstr "Clé de protection pour Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
+#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Dispositif de transfert du port série"
 

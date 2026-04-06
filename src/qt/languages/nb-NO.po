@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://weblate.86box.net/projects/86box/"
 "86box/nb_NO/>\n"
 "Language: nb-NO\n"
@@ -2647,6 +2647,7 @@ msgstr "Beskyttelsesdongle for Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
+#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Seriell gjennomkoblingsenhet"
 

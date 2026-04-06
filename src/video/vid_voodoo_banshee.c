@@ -733,6 +733,7 @@ banshee_recalctimings(svga_t *svga)
         double freq = (((double) n + 2) / (((double) m + 2) * (double) (1 << k))) * 14318184.0;
 
         svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
+
 #if 0
         svga->clock = cpuclock / freq;
 #endif
