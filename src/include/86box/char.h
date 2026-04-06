@@ -17,6 +17,12 @@
 #ifndef EMU_CHAR_H
 #define EMU_CHAR_H
 
+#ifdef _WIN32
+#    define CHAR_FD_VALID(fd) ((fd) && ((fd) != INVALID_HANDLE_VALUE))
+#else
+#    define CHAR_FD_VALID(fd) ((fd) >= 0)
+#endif
+
 enum {
     CHAR_LPT_USESTROBE = 0x1
 };
@@ -111,10 +117,11 @@ extern void *char_attach(uint32_t flags,
                          void     (*port_config)(void *priv),
                          void     *priv);
 
+extern const device_t char_serial_device;
+extern const device_t char_pipe_device;
+extern const device_t char_file_device;
+extern const device_t char_stdio_device;
 extern const device_t char_loopback_com_device;
 extern const device_t char_loopback_lpt_device;
-extern const device_t char_file_device;
-extern const device_t char_serial_device;
-extern const device_t char_stdio_device;
 
 #endif /*EMU_CHAR_H*/

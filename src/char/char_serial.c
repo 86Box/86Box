@@ -174,10 +174,10 @@ static const struct {
 static void
 char_serial_disconnect(char_serial_t *dev)
 {
-#ifdef _WIN32
-    if (!dev->fd)
+    if (!CHAR_FD_VALID(dev->fd))
         return;
 
+#ifdef _WIN32
     /* Restore serial port configuration. */
     FlushFileBuffers(dev->fd);
     if (dev->prev_config_valid)
@@ -187,9 +187,6 @@ char_serial_disconnect(char_serial_t *dev)
     CloseHandle(dev->fd);
     dev->fd = NULL;
 #else
-    if (dev->fd == -1)
-        return;
-
     /* Restore serial port configuration. */
     if (dev->prev_config_valid)
 #    ifdef TCSETS2
@@ -240,7 +237,7 @@ char_serial_connect(char_serial_t *dev)
 #else
     /* Open serial port. */
     dev->fd = open(dev->path, O_RDWR | O_NOCTTY | O_NONBLOCK);
-    if (dev->fd == -1) {
+    if (!CHAR_FD_VALID(dev->fd)) {
         char_serial_log(dev->log, "Connect failed (%d)\n", errno);
         return 0;
     }
@@ -277,7 +274,7 @@ char_serial_read(uint8_t *buf, ssize_t len, void *priv)
 
 #ifdef _WIN32
     DWORD ret = 0;
-    if (dev->fd) {
+    if (CHAR_FD_VALID(dev->fd)) {
         DWORD err;
         COMSTAT stats;
         ClearCommError(dev->fd, &err, &stats);
@@ -286,7 +283,7 @@ char_serial_read(uint8_t *buf, ssize_t len, void *priv)
     }
 #else
     ssize_t ret = 0;
-    if (dev->fd != -1) {
+    if (CHAR_FD_VALID(dev->fd)) {
         ret = read(dev->fd, buf, len);
         if (ret < 0)
             ret = 0;
@@ -303,11 +300,11 @@ char_serial_write(uint8_t *buf, ssize_t len, void *priv)
 
 #ifdef _WIN32
     DWORD ret = 0;
-    if (dev->fd)
+    if (CHAR_FD_VALID(dev->fd))
         WriteFile(dev->fd, buf, len, &ret, NULL);
 #else
     ssize_t ret = 0;
-    if (dev->fd != -1) {
+    if (CHAR_FD_VALID(dev->fd)) {
         do {
             ret = write(dev->fd, buf, len);
         } while ((ret == 0) || ((ret < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
@@ -342,10 +339,10 @@ char_serial_port_config(void *priv)
 
     switch (dev->port->type) {
         case CHAR_PORT_COM: {
-#ifdef _WIN32
-            if (!dev->fd)
+            if (!CHAR_FD_VALID(dev->fd))
                 return;
 
+#ifdef _WIN32
             /* Get existing configuration. */
             DCB port_config = { 0 };
             GetCommState(dev->fd, &port_config);
@@ -399,9 +396,6 @@ char_serial_port_config(void *priv)
                     char_serial_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
             }
 #else
-            if (dev->fd == -1)
-                return;
-
             /* Get existing configuration. */
 #    ifdef TCGETS2
             struct termios2 port_config = { 0 };
@@ -523,40 +517,33 @@ char_serial_status(void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    uint32_t ret;
+    if (!CHAR_FD_VALID(dev->fd))
+        return CHAR_DISCONNECTED;
+
+    uint32_t ret = 0;
 #ifdef _WIN32
-    if (!dev->fd) {
-        ret = CHAR_DISCONNECTED;
-    } else {
-        ret = 0;
-        DWORD status;
-        if (GetCommModemStatus(dev->fd, &status)) {
-            if (status & MS_CTS_ON)
-                ret |= CHAR_COM_CTS;
-            if (status & MS_DSR_ON)
-                ret |= CHAR_COM_DSR;
-            if (status & MS_RING_ON)
-                ret |= CHAR_COM_RI;
-            if (status & MS_RLSD_ON)
-                ret |= CHAR_COM_DCD;
-        }
+    DWORD status;
+    if (GetCommModemStatus(dev->fd, &status)) {
+        if (status & MS_CTS_ON)
+            ret |= CHAR_COM_CTS;
+        if (status & MS_DSR_ON)
+            ret |= CHAR_COM_DSR;
+        if (status & MS_RING_ON)
+            ret |= CHAR_COM_RI;
+        if (status & MS_RLSD_ON)
+            ret |= CHAR_COM_DCD;
     }
 #else
-    if (dev->fd == -1) {
-        ret = CHAR_DISCONNECTED;
-    } else {
-        ret = 0;
-        int status;
-        if (!ioctl(dev->fd, TIOCMGET, &status)) {
-            if (status & TIOCM_CTS)
-                ret |= CHAR_COM_CTS;
-            if (status & TIOCM_DSR)
-                ret |= CHAR_COM_DSR;
-            if (status & TIOCM_RNG)
-                ret |= CHAR_COM_RI;
-            if (status & TIOCM_CAR)
-                ret |= CHAR_COM_DCD;
-        }
+    int status;
+    if (!ioctl(dev->fd, TIOCMGET, &status)) {
+        if (status & TIOCM_CTS)
+            ret |= CHAR_COM_CTS;
+        if (status & TIOCM_DSR)
+            ret |= CHAR_COM_DSR;
+        if (status & TIOCM_RNG)
+            ret |= CHAR_COM_RI;
+        if (status & TIOCM_CAR)
+            ret |= CHAR_COM_DCD;
     }
 #endif
 
@@ -568,17 +555,14 @@ char_serial_control(uint32_t flags, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-#ifdef _WIN32
-    if (!dev->fd)
+    if (!CHAR_FD_VALID(dev->fd))
         return;
 
+#ifdef _WIN32
     EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
     EscapeCommFunction(dev->fd, (flags & CHAR_COM_RTS) ? SETRTS : CLRRTS);
     EscapeCommFunction(dev->fd, (flags & CHAR_COM_BREAK) ? SETBREAK : CLRBREAK);
 #else
-    if (dev->fd == -1)
-        return;
-
     int set = 0;
     int clear = 0;
 

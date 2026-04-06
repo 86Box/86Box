@@ -89,7 +89,7 @@ char_stdio_stdin_thread(void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 
-    while (dev->fd_in) {
+    while (CHAR_FD_VALID(dev->fd_in)) {
         DWORD read;
         if (!ReadFile(dev->fd_in, &dev->buf_in, 1, &read, NULL))
             break;
@@ -123,12 +123,11 @@ char_stdio_read(uint8_t *buf, ssize_t len, void *priv)
         }
     }
 
-    if (dev->fd_in) {
+    if (CHAR_FD_VALID(dev->fd_in)) {
         while (len-- > 0) {
-            DWORD events;
-            if (GetNumberOfConsoleInputEvents(dev->fd_in, &events) && (events > 0)) {
+            DWORD count;
+            if (GetNumberOfConsoleInputEvents(dev->fd_in, &count) && (count > 0)) {
                 INPUT_RECORD ir;
-                DWORD count;
                 if (ReadConsoleInput(dev->fd_in, &ir, 1, &count) && (count > 0) &&
                     (ir.EventType == KEY_EVENT) && ir.Event.KeyEvent.bKeyDown) {
                     *buf++ = ir.Event.KeyEvent.uChar.AsciiChar;
@@ -138,7 +137,7 @@ char_stdio_read(uint8_t *buf, ssize_t len, void *priv)
         }
     }
 #else
-    if (dev->fd_in != -1) {
+    if (CHAR_FD_VALID(dev->fd_in)) {
         ret = read(dev->fd_in, buf, len);
         if (ret < 0)
             ret = 0;
@@ -155,11 +154,11 @@ char_stdio_write(uint8_t *buf, ssize_t len, void *priv)
 
 #ifdef _WIN32
     DWORD ret = 0;
-    if (dev->fd_out)
+    if (CHAR_FD_VALID(dev->fd_out))
         WriteFile(dev->fd_out, buf, len, &ret, NULL);
 #else
     ssize_t ret = 0;
-    if (dev->fd_out != -1) {
+    if (CHAR_FD_VALID(dev->fd_out)) {
         do {
             ret = write(dev->fd_out, buf, len);
         } while ((ret == 0) || ((ret < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
@@ -176,19 +175,8 @@ char_stdio_status(void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 
-    return (
-#ifdef _WIN32
-           dev->fd_in
-#else
-           (dev->fd_in != -1)
-#endif
-           ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (
-#ifdef _WIN32
-           dev->fd_out
-#else
-           (dev->fd_out != -1)
-#endif
-           ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
+    return (CHAR_FD_VALID(dev->fd_in) ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) |
+           (CHAR_FD_VALID(dev->fd_out) ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
 }
 
 static void
@@ -257,7 +245,7 @@ char_stdio_init(const device_t *info)
 #ifdef _WIN32
     /* Spawn a console if required. (GUI executable) */
     dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
-    if (!dev->fd_in) {
+    if (!CHAR_FD_VALID(dev->fd_in)) {
         char_stdio_log(dev->log, "No Windows console, spawning one\n");
         pc_debug_console();
         dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
@@ -265,7 +253,7 @@ char_stdio_init(const device_t *info)
     dev->fd_out = GetStdHandle(STD_OUTPUT_HANDLE);
 
     /* Discover what kind of stdin we're dealing with. */
-    if (dev->fd_in) {
+    if (CHAR_FD_VALID(dev->fd_in)) {
         dev->prev_in_mode_valid = !!GetConsoleMode(dev->fd_in, &dev->prev_in_mode);
         if (dev->prev_in_mode_valid) {
             /* Proper console (CLI executable or spawned earlier), enable raw and ANSI output and use console events. */
@@ -280,7 +268,7 @@ char_stdio_init(const device_t *info)
     }
 
     /* Enable ANSI output if we're on a proper console. */
-    if (dev->fd_out) {
+    if (CHAR_FD_VALID(dev->fd_out)) {
         dev->prev_out_mode_valid = !!GetConsoleMode(dev->fd_out, &dev->prev_out_mode);
         if (!dev->prev_out_mode_valid)
             char_stdio_log(dev->log, "Output GetConsoleMode failed (%08X)\n", GetLastError());
