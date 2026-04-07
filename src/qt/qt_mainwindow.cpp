@@ -1205,6 +1205,8 @@ MainWindow::emitVmmSignal()
 void
 MainWindow::on_actionSettings_triggered()
 {
+    const int currentPause = dopause;
+    plat_pause(1);
     Settings settings(this);
     settings.setModal(true);
     settings.setWindowModality(Qt::WindowModal);
@@ -1216,9 +1218,7 @@ MainWindow::on_actionSettings_triggered()
     switch (settings.result()) {
         default:
             break;
-        case QDialog::Accepted: {
-            const int currentPause = dopause;
-            plat_pause(1);
+        case QDialog::Accepted:
             settings.save();
             config_changed = 2;
             emit vmmConfigurationChanged();
@@ -1231,11 +1231,11 @@ MainWindow::on_actionSettings_triggered()
                 if (monitors[i].target_buffer)
                     video_force_resize_set_monitor(1, i);
             }
-            plat_pause(currentPause);
             break;
-        } case QDialog::Rejected:
+        case QDialog::Rejected:
             break;
     }
+    plat_pause(currentPause);
 }
 
 void
