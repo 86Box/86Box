@@ -3041,9 +3041,6 @@ msgstr "Sistem eklenmeyecek."
 msgid "&Update mouse every CPU frame"
 msgstr "Fareyi her işlemci karesinde güncelle"
 
-msgid "Composite CGA"
-msgstr "Kompozit CGA"
-
 msgid "Hue"
 msgstr "Renk tonu"
 
@@ -3059,8 +3056,11 @@ msgstr "Parlaklık"
 msgid "Sharpness"
 msgstr "Keskinlik"
 
-msgid "Reset"
-msgstr "Sıfırla"
+msgid "&CGA composite settings…"
+msgstr "&CGA kompozit modunun ayarları…"
+
+msgid "CGA composite settings"
+msgstr "CGA kompozit modunun ayarları"
 
 msgid "Monitor EDID"
 msgstr "Monitörün EDID'si"

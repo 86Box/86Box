@@ -2990,9 +2990,6 @@ msgstr "Konetta ei lisätä."
 msgid "&Update mouse every CPU frame"
 msgstr "&Päivitä hiiri jokaisen CPU framen yhteydessä"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Sävy"
 
@@ -3008,8 +3005,11 @@ msgstr "Kirkkaus"
 msgid "Sharpness"
 msgstr "Terävyys"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "&CGA:n komposiittiasetukset…"
+
+msgid "CGA composite settings"
+msgstr "CGA:n komposiittiasetukset"
 
 msgid "Monitor EDID"
 msgstr "Näytön EDID"

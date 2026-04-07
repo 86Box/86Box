@@ -2990,9 +2990,6 @@ msgstr "System nie będzie dodany."
 msgid "&Update mouse every CPU frame"
 msgstr "Aktualizuj &mysz z każdą ramką CPU"
 
-msgid "Composite CGA"
-msgstr "Kompozytowe CGA"
-
 msgid "Hue"
 msgstr "Barwa"
 
@@ -3008,8 +3005,11 @@ msgstr "Jasność"
 msgid "Sharpness"
 msgstr "Ostrość"
 
-msgid "Reset"
-msgstr "Reset"
+msgid "&CGA composite settings…"
+msgstr "Ustawienia trybu kompozytowego &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Ustawienia trybu kompozytowego CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"

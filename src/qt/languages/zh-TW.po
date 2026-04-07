@@ -2990,9 +2990,6 @@ msgstr "系統將不會被新增。"
 msgid "&Update mouse every CPU frame"
 msgstr "每 CPU 執行期框架更新滑鼠(&U)"
 
-msgid "Composite CGA"
-msgstr "複合視訊 CGA"
-
 msgid "Hue"
 msgstr "色調"
 
@@ -3008,8 +3005,11 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "銳利度"
 
-msgid "Reset"
-msgstr "重設"
+msgid "&CGA composite settings…"
+msgstr "CGA 複合視訊的設定(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA 複合視訊的設定"
 
 msgid "Monitor EDID"
 msgstr "監視器的 EDID"

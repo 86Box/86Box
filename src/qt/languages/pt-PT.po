@@ -2989,9 +2989,6 @@ msgstr "O sistema não será adicionado."
 msgid "&Update mouse every CPU frame"
 msgstr "&Atualiza o estado do rato em cada bloco do CPU"
 
-msgid "Composite CGA"
-msgstr "CGA compósito"
-
 msgid "Hue"
 msgstr "Matiz"
 
@@ -3007,8 +3004,11 @@ msgstr "Brilho"
 msgid "Sharpness"
 msgstr "Nitidez"
 
-msgid "Reset"
-msgstr "Repor"
+msgid "&CGA composite settings…"
+msgstr "Definições do modo compósito &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Definições do modo compósito CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID do monitor"
