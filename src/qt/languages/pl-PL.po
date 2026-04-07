@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-04-07 05:04+0000\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -602,7 +602,7 @@ msgid "Firmware Version"
 msgstr "Wersja firmware'u"
 
 msgid "DSP Version"
-msgstr "Wersja DSP'u"
+msgstr "Wersja DSP"
 
 msgid "&New…"
 msgstr "&Nowy…"
