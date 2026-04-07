@@ -793,6 +793,8 @@ pas_in(uint16_t port, void *priv)
 
         case 0x1400:
             ret = pas16->ym3802_ivr;
+            if ((pas16->ym3802_ivr & 0x1e) == 0x00)
+                ret |= 0x10;
             break;
         case 0x1401:
             ret = pas16->ym3802_rgr;
