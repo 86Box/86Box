@@ -1785,17 +1785,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Tarjeta de red 1"
+msgid "Adapter 1"
+msgstr "Adaptador 1"
 
-msgid "Network Card #2"
-msgstr "Tarjeta de red 2"
+msgid "Adapter 2"
+msgstr "Adaptador 2"
 
-msgid "Network Card #3"
-msgstr "Tarjeta de red 3"
+msgid "Adapter 3"
+msgstr "Adaptador 3"
 
-msgid "Network Card #4"
-msgstr "Tarjeta de red 4"
+msgid "Adapter 4"
+msgstr "Adaptador 4"
 
 msgid "Mode:"
 msgstr "Modalidad:"
