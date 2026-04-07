@@ -337,179 +337,171 @@ char_serial_port_config(void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    switch (dev->port->type) {
-        case CHAR_PORT_COM: {
-            if (!CHAR_FD_VALID(dev->fd))
-                return;
+    if ((dev->port->type != CHAR_PORT_COM) || !CHAR_FD_VALID(dev->fd))
+        return;
 
 #ifdef _WIN32
-            /* Get existing configuration. */
-            DCB port_config = { 0 };
-            GetCommState(dev->fd, &port_config);
+    /* Get existing configuration. */
+    DCB port_config = { 0 };
+    GetCommState(dev->fd, &port_config);
 
-            /* Modify configuration. */
-            port_config.BaudRate        = dev->port->com.baud; /* try actual baud rate first */
-            port_config.fDtrControl     = DTR_CONTROL_ENABLE;
-            port_config.fDsrSensitivity = FALSE;
-            port_config.fInX            = FALSE;
-            port_config.fOutX           = FALSE;
-            port_config.fRtsControl     = RTS_CONTROL_ENABLE;
-            port_config.fAbortOnError   = FALSE;
-            port_config.ByteSize        = dev->port->com.data_bits;
+    /* Modify configuration. */
+    port_config.BaudRate        = dev->port->com.baud; /* try actual baud rate first */
+    port_config.fDtrControl     = DTR_CONTROL_ENABLE;
+    port_config.fDsrSensitivity = FALSE;
+    port_config.fInX            = FALSE;
+    port_config.fOutX           = FALSE;
+    port_config.fRtsControl     = RTS_CONTROL_ENABLE;
+    port_config.fAbortOnError   = FALSE;
+    port_config.ByteSize        = dev->port->com.data_bits;
 
-            if (dev->port->com.stop_bits <= 1)
-                port_config.StopBits = ONESTOPBIT;
-            else if (dev->port->com.data_bits <= 5)
-                port_config.StopBits = ONE5STOPBITS;
-            else
-                port_config.StopBits = TWOSTOPBITS;
+    if (dev->port->com.stop_bits <= 1)
+        port_config.StopBits = ONESTOPBIT;
+    else if (dev->port->com.data_bits <= 5)
+        port_config.StopBits = ONE5STOPBITS;
+    else
+        port_config.StopBits = TWOSTOPBITS;
 
-            port_config.fParity = 1;
-            switch (dev->port->com.parity) {
-                case CHAR_COM_PARITY_EVEN:
-                    port_config.Parity = EVENPARITY;
-                    break;
+    port_config.fParity = 1;
+    switch (dev->port->com.parity) {
+        case CHAR_COM_PARITY_EVEN:
+            port_config.Parity = EVENPARITY;
+            break;
 
-                case CHAR_COM_PARITY_ODD:
-                    port_config.Parity = ODDPARITY;
-                    break;
+        case CHAR_COM_PARITY_ODD:
+            port_config.Parity = ODDPARITY;
+            break;
 
-                case CHAR_COM_PARITY_MARK:
-                    port_config.Parity = MARKPARITY;
-                    break;
+        case CHAR_COM_PARITY_MARK:
+            port_config.Parity = MARKPARITY;
+            break;
 
-                case CHAR_COM_PARITY_SPACE:
-                    port_config.Parity = SPACEPARITY;
-                    break;
+        case CHAR_COM_PARITY_SPACE:
+            port_config.Parity = SPACEPARITY;
+            break;
 
-                default:
-                    port_config.fParity = 0;
-                    port_config.Parity  = NOPARITY;
-                    break;
-            }
+        default:
+            port_config.fParity = 0;
+            port_config.Parity  = NOPARITY;
+            break;
+    }
 
-            /* Set configuration. */
-            if (!SetCommState(dev->fd, &port_config)) {
-                /* Failed, try again with the closest common baud rate. */
-                port_config.BaudRate = char_serial_find_baud(dev->port->com.baud);
-                if (!SetCommState(dev->fd, &port_config))
-                    char_serial_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
-            }
+    /* Set configuration. */
+    if (!SetCommState(dev->fd, &port_config)) {
+        /* Failed, try again with the closest common baud rate. */
+        port_config.BaudRate = char_serial_find_baud(dev->port->com.baud);
+        if (!SetCommState(dev->fd, &port_config))
+            char_serial_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
+    }
 #else
-            /* Get existing configuration. */
+    /* Get existing configuration. */
 #    ifdef TCGETS2
-            struct termios2 port_config = { 0 };
-            ioctl(dev->fd, TCGETS2, &port_config);
+    struct termios2 port_config = { 0 };
+    ioctl(dev->fd, TCGETS2, &port_config);
 #    else
-            struct termios port_config = { 0 };
+    struct termios port_config = { 0 };
 #        ifdef USE_LINUX_TERMIOS
-            ioctl(dev->fd, TCGETS, &port_config);
+    ioctl(dev->fd, TCGETS, &port_config);
 #        else
-            tcgetattr(dev->fd, &port_config);
+    tcgetattr(dev->fd, &port_config);
 #        endif
 #    endif
 
-            /* Modify configuration. */
-            port_config.c_cflag &= ~(CSIZE | PARODD | CSTOPB);
+    /* Modify configuration. */
+    port_config.c_cflag &= ~(CSIZE | PARODD | CSTOPB);
 #    ifdef CMSPAR
-            port_config.c_cflag &= ~CMSPAR;
+    port_config.c_cflag &= ~CMSPAR;
 #    endif
 #    ifdef CBAUD
-            port_config.c_cflag &= ~CBAUD;
+    port_config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
-            port_config.c_cflag &= ~(CBAUD << IBSHIFT);
+    port_config.c_cflag &= ~(CBAUD << IBSHIFT);
 #        endif
 #    endif
-            port_config.c_cflag |= CREAD | PARENB;
+    port_config.c_cflag |= CREAD | PARENB;
 
-            switch (dev->port->com.data_bits) {
-                case 5:
-                    port_config.c_cflag |= CS5;
-                    break;
+    switch (dev->port->com.data_bits) {
+        case 5:
+            port_config.c_cflag |= CS5;
+            break;
 
-                case 6:
-                    port_config.c_cflag |= CS6;
-                    break;
+        case 6:
+            port_config.c_cflag |= CS6;
+            break;
 
-                case 7:
-                    port_config.c_cflag |= CS7;
-                    break;
+        case 7:
+            port_config.c_cflag |= CS7;
+            break;
 
-                default:
-                    port_config.c_cflag |= CS8;
-                    break;
-            }
+        default:
+            port_config.c_cflag |= CS8;
+            break;
+    }
 
-            switch (dev->port->com.parity) {
-                case CHAR_COM_PARITY_SPACE:
+    switch (dev->port->com.parity) {
+        case CHAR_COM_PARITY_SPACE:
 #    ifdef CMSPAR
-                    port_config.c_cflag |= CMSPAR;
+            port_config.c_cflag |= CMSPAR;
 #    endif
-                    fallthrough;
+            fallthrough;
 
-                case CHAR_COM_PARITY_EVEN:
-                    break;
+        case CHAR_COM_PARITY_EVEN:
+            break;
 
-                case CHAR_COM_PARITY_MARK:
+        case CHAR_COM_PARITY_MARK:
 #    ifdef CMSPAR
-                    port_config.c_cflag |= CMSPAR;
+            port_config.c_cflag |= CMSPAR;
 #    endif
-                    fallthrough;
+            fallthrough;
 
-                case CHAR_COM_PARITY_ODD:
-                    port_config.c_cflag |= PARODD;
-                    break;
+        case CHAR_COM_PARITY_ODD:
+            port_config.c_cflag |= PARODD;
+            break;
 
-                default:
-                    port_config.c_cflag &= ~PARENB;
-                    break;
-            }
+        default:
+            port_config.c_cflag &= ~PARENB;
+            break;
+    }
 
-            if (dev->port->com.stop_bits > 1)
-                port_config.c_cflag |= CSTOPB;
+    if (dev->port->com.stop_bits > 1)
+        port_config.c_cflag |= CSTOPB;
 
-            /* Set specific baud rate through BOTHER if available. */
+    /* Set specific baud rate through BOTHER if available. */
 #    if defined(BOTHER) && defined(TCSETS2)
-            port_config.c_cflag |= BOTHER;
-            port_config.c_ospeed = dev->port->com.baud;
+    port_config.c_cflag |= BOTHER;
+    port_config.c_ospeed = dev->port->com.baud;
 #        ifdef IBSHIFT
-            port_config.c_cflag |= BOTHER << IBSHIFT;
-            port_config.c_ispeed = dev->port->com.baud;
+    port_config.c_cflag |= BOTHER << IBSHIFT;
+    port_config.c_ispeed = dev->port->com.baud;
 #        endif
 
-            /* Set configuration. */
-            if (ioctl(dev->fd, TCSETS2, &port_config))
+    /* Set configuration. */
+    if (ioctl(dev->fd, TCSETS2, &port_config))
 #    endif
-            {
-                /* Failed or we're not in a BOTHER platform, try again with the closest common baud rate. */
+    {
+        /* Failed or we're not in a BOTHER platform, try again with the closest common baud rate. */
 #    ifdef CBAUD
-                port_config.c_cflag &= ~CBAUD;
+        port_config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
-                port_config.c_cflag &= ~(CBAUD << IBSHIFT);
+        port_config.c_cflag &= ~(CBAUD << IBSHIFT);
 #        endif
 #    endif
-                speed_t baud = char_serial_find_baud(dev->port->com.baud);
-                port_config.c_cflag |= baud;
+        speed_t baud = char_serial_find_baud(dev->port->com.baud);
+        port_config.c_cflag |= baud;
 #    ifdef IBSHIFT
-                port_config.c_cflag |= baud << IBSHIFT;
+        port_config.c_cflag |= baud << IBSHIFT;
 #    endif
 
 #    ifdef TCSETS2
-                if (ioctl(dev->fd, TCSETS2, &port_config))
+        if (ioctl(dev->fd, TCSETS2, &port_config))
 #    elif defined(USE_LINUX_TERMIOS)
-                if (ioctl(dev->fd, TCSETS, &port_config))
+        if (ioctl(dev->fd, TCSETS, &port_config))
 #    else
-                if (tcsetattr(dev->fd, TCSANOW, &port_config))
+        if (tcsetattr(dev->fd, TCSANOW, &port_config))
 #    endif
-                    char_serial_log(dev->log, "TCS* failed (%08X)\n", errno);
-            }
-#endif
-            break;
-        }
-
-        default:
-            break;
+            char_serial_log(dev->log, "TCS* failed (%08X)\n", errno);
     }
+#endif
 }
 
 static uint32_t
