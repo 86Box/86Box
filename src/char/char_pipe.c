@@ -146,9 +146,21 @@ char_pipe_init(const device_t *info)
     char *path = ini_get_string(dev->port->config, "", "path", NULL);
     if (path) {
 #ifdef _WIN32
+        /* Remove any leading slashes. */
+        while ((path[0] == '\\') || (path[0] == '/'))
+            path++;
+
         /* Add \\.\pipe\ prefix if not present. */
         char full_path[257]; /* "The entire pipe name string can be up to 256 characters long." */
-        snprintf(full_path, sizeof(full_path) - 1, !strncmp(path, "\\\\.\\pipe\\", 9) ? "%s" : "\\\\.\\pipe\\%s", path);
+        int len = snprintf(full_path, sizeof(full_path), !strnicmp(path, ".\\pipe\\", 7) ? "\\\\%s" : "\\\\.\\pipe\\%s", path);
+
+        /* Convert forward slashes to backslashes. */
+        if (len >= sizeof(full_path))
+            len = sizeof(full_path) - 1;
+        for (int i = 0; i < len; i++) {
+            if (full_path[i] == '/')
+                full_path[i] = '\\';
+        }
 
         /* Try connecting to the pipe first. */
         dev->fd = CreateFileA(full_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
