@@ -1431,6 +1431,7 @@ pas_out(uint16_t port, uint8_t val, void *priv)
 {
     pas16_t *      pas16       = (pas16_t *) priv;
     nsc_mixer_t *  nsc_mixer   = &pas16->nsc_mixer;
+    uint8_t old;
 
     pas16_log("[%04X:%08X] PAS: [W] %04X (%04X) = %02X\n",
               CS, cpu_state.pc, port, port - 0x388, val);
@@ -1643,8 +1644,24 @@ pas_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x1401:
+            old = pas16->ym3802_rgr;
             pas16->ym3802_rgr = val;
             pas16->ym3802_banked_idx = val & 0x0f; /* Bits 3-0 select register bank */
+            if ((old == 0x80) && (val == 0x00)) {
+                pas16_log("YM3802 reset\n");
+                timer_disable(&pas16->ym3802_gentimer);
+                pas16->irq_stat &= 0xef;
+                pas16->ym3802_ivr = 0x00;
+                pas16->ym3802_isr = 0x00;
+                pas16->ym3802_icr = 0x00;
+                pas16->ym3802_gen_timer = 0x0000;
+                for (int i = 0; i < 0x0a; i++) {
+                    pas16->ym3802_reg4_banked[i] = val;
+                    pas16->ym3802_reg5_banked[i] = val;
+                    pas16->ym3802_reg6_banked[i] = val;
+                    pas16->ym3802_reg7_banked[i] = val;
+                }
+            }
             break;
         case 0x1403:
             pas16->ym3802_icr = val;
