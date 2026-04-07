@@ -2990,9 +2990,6 @@ msgstr "系统将不会被添加。"
 msgid "&Update mouse every CPU frame"
 msgstr "逐 CPU 帧更新鼠标(&U)"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "色调"
 
@@ -3008,8 +3005,11 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "锐度"
 
-msgid "Reset"
-msgstr "重置"
+msgid "&CGA composite settings…"
+msgstr "CGA 复合模式设置(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA 复合模式设置"
 
 msgid "Monitor EDID"
 msgstr "显示器的EDID"
