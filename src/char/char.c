@@ -44,10 +44,10 @@ static const struct {
 } char_devices[] = {
     // clang-format off
     { &char_none_device },
-    { &char_serial_device },
-    { &char_pipe_device },
-    { &char_file_device },
-    { &char_stdio_device },
+    { &char_passthrough_com_device },
+    { &char_pipe_com_device },
+    { &char_file_com_device },
+    { &char_stdio_com_device },
     { &char_loopback_com_device },
     { &char_loopback_lpt_device },
     { 0 }
@@ -93,45 +93,16 @@ char_get_from_internal_name(const char *internal_name)
     return 0;
 }
 
-void
-char_init(char_port_t *port, const char *init_string, int instance)
+void *
+char_init(char_port_t *port, const device_t *device, int instance)
 {
-    if (!init_string)
-        return;
+    if (!port || !device)
+        return NULL;
 
-    /* Find the device. */
-    char *buf = strdup(init_string);
-    char *strtok_save;
-    const device_t *dev = char_get_device(char_get_from_internal_name(strtok_r(buf, ":", &strtok_save)));
-    if (!dev)
-        goto end;
-    char_log("Char: Initializing device \"%s\"\n", dev->internal_name);
-
-    /* Parse device configuration. */
-    port->config = ini_new();
-    const char *key;
-    int i = 0;
-    while ((key = strtok_r(NULL, ":", &strtok_save))) {
-        const char *val = strchr(key, '=');
-        if (val) {
-            *((char *) val++) = '\0';
-        } else {
-            val = key;
-            key = (dev->config && (dev->config[i].type != CONFIG_END)) ? dev->config[i].name : "";
-        }
-        if (dev->config && (dev->config[i].type != CONFIG_END))
-            i++;
-        char_log("Char: Setting option %s = %s\n", key, val);
-        ini_set_string(port->config, "", key, val);
-    }
-
-    /* Add the device. */
     active_port = port;
-    port->chardev.priv = device_add_inst(dev, instance);
+    void *priv = device_add_inst(device, instance);
     active_port = NULL;
-
-end:
-    free(buf);
+    return priv;
 }
 
 void *

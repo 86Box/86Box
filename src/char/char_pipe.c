@@ -249,14 +249,14 @@ static const device_config_t char_pipe_config[] = {
 };
 // clang-format on
 
-const device_t char_pipe_device = {
+const device_t char_pipe_com_device = {
 #ifdef _WIN32
     .name          = "Named Pipe",
 #else
     .name          = "UNIX Socket",
 #endif
-    .internal_name = "pipe",
-    .flags         = DEVICE_COM | DEVICE_LPT,
+    .internal_name = "char_pipe_com",
+    .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_pipe_init,
     .close         = char_pipe_close,

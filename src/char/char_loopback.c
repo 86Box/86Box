@@ -200,8 +200,8 @@ char_loopback_init(const device_t *info)
 }
 
 const device_t char_loopback_com_device = {
-    .name          = "Loopback Plug",
-    .internal_name = "loopback",
+    .name          = "Loopback Plug (COM)",
+    .internal_name = "loopback_com",
     .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_loopback_init,
@@ -229,8 +229,8 @@ static const device_config_t char_loopback_lpt_config[] = {
 };
 
 const device_t char_loopback_lpt_device = {
-    .name          = "Loopback Plug",
-    .internal_name = "loopback",
+    .name          = "Loopback Plug (LPT)",
+    .internal_name = "char_loopback_lpt",
     .flags         = DEVICE_LPT,
     .local         = 0,
     .init          = char_loopback_init,

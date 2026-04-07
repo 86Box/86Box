@@ -108,7 +108,7 @@ typedef struct {
 extern const int       char_get_from_internal_name(const char *internal_name);
 extern const device_t *char_get_device(const int id);
 
-extern void  char_init(char_port_t *port, const char *init_string, int instance);
+extern void *char_init(char_port_t *port, const device_t *device, int instance);
 extern void *char_attach(uint32_t flags,
                          ssize_t  (*read)(uint8_t *buf, ssize_t len, void *priv),
                          ssize_t  (*write)(uint8_t *buf, ssize_t len, void *priv),
@@ -117,10 +117,10 @@ extern void *char_attach(uint32_t flags,
                          void     (*port_config)(void *priv),
                          void     *priv);
 
-extern const device_t char_serial_device;
-extern const device_t char_pipe_device;
-extern const device_t char_file_device;
-extern const device_t char_stdio_device;
+extern const device_t char_passthrough_com_device;
+extern const device_t char_pipe_com_device;
+extern const device_t char_file_com_device;
+extern const device_t char_stdio_com_device;
 extern const device_t char_loopback_com_device;
 extern const device_t char_loopback_lpt_device;
 

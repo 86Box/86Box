@@ -324,14 +324,14 @@ char_stdio_init(const device_t *info)
     return dev;
 }
 
-const device_t char_stdio_device = {
+const device_t char_stdio_com_device = {
 #if defined(_WIN32) && defined(USE_WIN32_GUI)
-    .name          = "Console Window",
+    .name          = "Console Window (COM)",
 #else
-    .name          = "Standard Input/Output",
+    .name          = "Standard Input/Output (COM)",
 #endif
-    .internal_name = "stdio",
-    .flags         = DEVICE_COM | DEVICE_LPT,
+    .internal_name = "char_stdio_com",
+    .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_stdio_init,
     .close         = char_stdio_close,
