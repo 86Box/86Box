@@ -3115,3 +3115,9 @@ msgstr "Ham"
 
 msgid "Use EDC/ECC emulation"
 msgstr "EDC/ECC emülasyonunu kullan"
+
+msgid "Audio output device:"
+msgstr "Ses çıkış aygıtı:"
+
+msgid "System Default"
+msgstr "Sistem Varsayılanı"
