@@ -123,7 +123,6 @@ static const SOUND_CARD sound_cards[] = {
     { &opl2board_device             },
 #endif
     { &pas_device                   },
-    { &pasplus_device               },
     { &sb_1_device                  },
     { &sb_15_device                 },
     { &sb_2_device                  },
@@ -164,6 +163,7 @@ static const SOUND_CARD sound_cards[] = {
     { &mirosound_pcm10_device       },
     { &opti_82c930_device           },
     { &opti_82c931_device           },
+    { &pasplus_device               },
     { &pas16_device                 },
     { &pas16d_device                },
     { &sb_16_device                 },
