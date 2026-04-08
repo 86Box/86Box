@@ -3063,3 +3063,9 @@ msgstr "En brut"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Dispositiu de sortida de so:"
+
+msgid "System Default"
+msgstr "Per defecte del sistema"

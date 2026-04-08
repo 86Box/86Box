@@ -3171,3 +3171,9 @@ msgstr "Grezzo"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Usa emulazione EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Dispositivo di uscita audio:"
+
+msgid "System Default"
+msgstr "Predefinito del sistema"

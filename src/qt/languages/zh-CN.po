@@ -3064,3 +3064,9 @@ msgstr "原始"
 
 msgid "Use EDC/ECC emulation"
 msgstr "使用EDC/ECC模拟"
+
+msgid "Audio output device:"
+msgstr "音频输出设备:"
+
+msgid "System Default"
+msgstr "系统默认"
