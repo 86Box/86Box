@@ -50,39 +50,6 @@ static struct audio_swpar info[7];
 static audio_info_t info[7];
 #endif
 static int freqs[7] = {SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, SOUND_FREQ, 0};
-const char *
-sound_get_output_devices(void)
-{
-    static char dev_list[1024];
-    char       *p   = dev_list;
-    size_t      rem = sizeof(dev_list);
-
-    memset(dev_list, 0, sizeof(dev_list));
-
-    for (int i = 0; i < 8; i++) {
-        char   devname[32];
-        size_t len;
-
-        snprintf(devname, sizeof(devname), "/dev/audio%d", i);
-        if (access(devname, F_OK) != 0)
-            break; /* devices are numbered consecutively */
-
-        len = strlen(devname) + 1;
-        if (len < rem) {
-            memcpy(p, devname, len);
-            p   += len;
-            rem -= len;
-        }
-    }
-
-    if (p > dev_list) {
-        if (rem > 0)
-            *p = '\0'; /* double-null terminator */
-        return dev_list;
-    }
-    return NULL; /* no audio devices found */
-}
-
 void
 closeal(void)
 {
@@ -98,13 +65,9 @@ void
 inital(void)
 {
     for (int i = 0; i < sizeof(audio) / sizeof(audio[0]); i++) {
-        if (sound_output_device[0] != '\0') {
-            audio[i] = open(sound_output_device, O_WRONLY);
-        } else {
-            audio[i] = open("/dev/audio", O_WRONLY);
-            if (audio[i] == -1)
-                audio[i] = open("/dev/audio0", O_WRONLY);
-        }
+        audio[i] = open("/dev/audio", O_WRONLY);
+        if (audio[i] == -1)
+            audio[i] = open("/dev/audio0", O_WRONLY);
         if (audio[i] != -1) {
 #ifdef USE_NEW_API
             AUDIO_INITPAR(&info[i]);

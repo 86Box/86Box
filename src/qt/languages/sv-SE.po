@@ -3064,9 +3064,3 @@ msgstr "Rå"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
-
-msgid "Audio output device:"
-msgstr "Ljudutdataenhet:"
-
-msgid "System Default"
-msgstr "Systemstandard"

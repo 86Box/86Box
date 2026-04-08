@@ -3067,9 +3067,3 @@ msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
-
-msgid "Audio output device:"
-msgstr "Výstupní zvukové zařízení:"
-
-msgid "System Default"
-msgstr "Výchozí nastavení systému"

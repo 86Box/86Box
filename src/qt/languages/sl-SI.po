@@ -3065,9 +3065,3 @@ msgstr "Neobdelan"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Uporabi emulacijo EDC/ECC"
-
-msgid "Audio output device:"
-msgstr "Naprava za zvočni izhod:"
-
-msgid "System Default"
-msgstr "Sistemsko privzeto"

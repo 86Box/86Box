@@ -3125,9 +3125,3 @@ msgstr "Αρχικος"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
-
-msgid "Audio output device:"
-msgstr "Συσκευή εξόδου ήχου:"
-
-msgid "System Default"
-msgstr "Προεπιλογή Συστήματος"

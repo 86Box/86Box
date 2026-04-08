@@ -21,8 +21,7 @@
 
 #define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
-extern int  sound_gain;
-extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
+extern int sound_gain;
 
 #define FREQ_44100  44100
 #define FREQ_48000  48000
@@ -107,9 +106,8 @@ extern void sound_fdd_thread_end(void);
 extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
-extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
-extern void        closeal(void);
-extern void        inital(void);
+extern void closeal(void);
+extern void inital(void);
 extern void givealbuffer(const void *buf);
 extern void givealbuffer_music(const void *buf);
 extern void givealbuffer_wt(const void *buf);

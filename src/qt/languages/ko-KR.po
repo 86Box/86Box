@@ -3066,9 +3066,3 @@ msgstr "원본"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
-
-msgid "Audio output device:"
-msgstr "오디오 출력 장치:"
-
-msgid "System Default"
-msgstr "시스템 기본값"

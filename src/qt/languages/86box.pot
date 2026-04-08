@@ -504,12 +504,6 @@ msgstr ""
 msgid "Use FLOAT32 sound"
 msgstr ""
 
-msgid "Audio output device:"
-msgstr ""
-
-msgid "System Default"
-msgstr ""
-
 msgid "FM synth driver:"
 msgstr ""
 

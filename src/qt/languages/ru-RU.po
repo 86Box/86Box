@@ -3075,9 +3075,3 @@ msgstr "Сырой"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Использовать эмуляцию EDC/ECC"
-
-msgid "Audio output device:"
-msgstr "Устройство вывода звука:"
-
-msgid "System Default"
-msgstr "Системный"
