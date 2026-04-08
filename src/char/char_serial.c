@@ -206,6 +206,9 @@ char_serial_disconnect(char_serial_t *dev)
 static uint8_t
 char_serial_connect(char_serial_t *dev)
 {
+    if (!dev->path[0])
+        return 0;
+
 #ifdef _WIN32
     /* Open serial port. */
     COMMTIMEOUTS timeouts = {
@@ -592,15 +595,15 @@ char_serial_init(const device_t *info)
 {
     char_serial_t *dev = (char_serial_t *) calloc(1, sizeof(char_serial_t));
 
-    /* Attach character device. */
-    dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
-
     /* Get serial port. */
-    dev->path = ini_get_string(dev->port->config, "", "path", NULL);
+    dev->path = device_get_config_string("path");
     char buf[256] = {0};
-    snprintf(buf, sizeof(buf) - 1, "Host Serial %s", dev->path);
+    snprintf(buf, sizeof(buf), "Host Serial %s", dev->path);
     dev->log = log_open(buf);
     char_serial_log(dev->log, "init(%s)\n", dev->path);
+
+    /* Attach character device. */
+    dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
 
     /* Connect to serial port. */
     if (dev->path)
@@ -627,7 +630,7 @@ static const device_config_t char_serial_config[] = {
 // clang-format on
 
 const device_t char_passthrough_com_device = {
-    .name          = "Serial Passthrough",
+    .name          = "Serial Passthrough (COM)",
     .internal_name = "char_passthrough_com",
     .flags         = DEVICE_COM,
     .local         = 0,

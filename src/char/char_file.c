@@ -135,27 +135,27 @@ char_file_init(const device_t *info)
     char_file_t *dev = (char_file_t *) calloc(1, sizeof(char_file_t));
 
     dev->log = log_open("Host File");
-    char_file_log(dev->log, "init()\n");
+    const char *path = device_get_config_string("path");
+    char_file_log(dev->log, "init(%s)\n", path);
+    dev->loop_in = !!device_get_config_int("input_loop");
 
     /* Attach character device. */
     dev->port = char_attach(0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
 
-    char *path = ini_get_string(dev->port->config, "", "path", NULL);
-    if (path) {
-        dev->file_out = plat_fopen(path, ini_get_int(dev->port->config, "", "append", 0) ? "ab" : "wb");
+    /* Open files. */
+    if (path[0]) {
+        dev->file_out = plat_fopen(path, device_get_config_int("append") ? "ab" : "wb");
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
     } else {
         char_file_log(dev->log, "No output file specified\n");
     }
-    path = ini_get_string(dev->port->config, "", "input_path", NULL);
-    if (path) {
+    path = device_get_config_string("input_path");
+    if (path[0]) {
         dev->file_in = plat_fopen(path, "rb");
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
     } else {
         char_file_log(dev->log, "No input file specified\n");
     }
-
-    dev->loop_in = !!ini_get_int(dev->port->config, "", "input_loop", 0);
 
     return dev;
 }
@@ -200,7 +200,7 @@ static const device_config_t char_file_config[] = {
         .description    = "Loop input file",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },

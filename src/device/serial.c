@@ -997,7 +997,7 @@ serial_init(const device_t *info)
         dev->sd->serial = dev;
 
         if (com_ports[next_inst].device)
-            char_init(&dev->char_port, char_get_device(com_ports[next_inst].device), next_inst);
+            char_init(&dev->char_port, char_get_device(com_ports[next_inst].device), next_inst + 1);
 
         if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;
@@ -1071,7 +1071,7 @@ serial_standalone_init(void)
 {
     while (next_inst < (SERIAL_MAX - 1))
         device_add_inst(&ns8250_device, next_inst + 1);
-};
+}
 
 const device_t ns8250_device = {
     .name          = "National Semiconductor 8250(-compatible) UART",

@@ -85,11 +85,6 @@ typedef struct _char_device_ {
 
 typedef struct {
     char_device_t chardev;
-#ifdef EMU_INI_H
-    ini_t config;
-#else
-    void *config;
-#endif
 
     uint8_t type;
     union {

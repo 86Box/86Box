@@ -190,7 +190,7 @@ char_loopback_init(const device_t *info)
     dev->port = char_attach(0, char_loopback_read, char_loopback_write, char_loopback_status, char_loopback_control, NULL, dev);
 
     if (info->config && !strcmp(info->config[0].name, "type"))
-        dev->type = ini_get_int(dev->port->config, "", info->config[0].name, info->config[0].default_int);
+        dev->type = device_get_config_int(info->config[0].name);
     else
         dev->type = LOOPBACK_TYPE_SERIAL;
     if (dev->type >= (sizeof(char_loopback_types) / sizeof(char_loopback_types[0])))

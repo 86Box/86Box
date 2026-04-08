@@ -138,13 +138,13 @@ char_pipe_init(const device_t *info)
     char_pipe_t *dev = (char_pipe_t *) calloc(1, sizeof(char_pipe_t));
 
     dev->log = log_open("Pipe/Socket");
-    char_pipe_log(dev->log, "init()\n");
+    const char *path = device_get_config_string("path");
+    char_pipe_log(dev->log, "init(%s)\n", path);
 
     /* Attach character device. */
     dev->port = char_attach(0, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
 
-    char *path = ini_get_string(dev->port->config, "", "path", NULL);
-    if (path) {
+    if (path[0]) {
 #ifdef _WIN32
         /* Remove any leading slashes. */
         while ((path[0] == '\\') || (path[0] == '/'))
@@ -165,6 +165,8 @@ char_pipe_init(const device_t *info)
         /* Try connecting to the pipe first. */
         dev->fd = CreateFileA(full_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
+            char_pipe_log(dev->log, "Connected to existing pipe\n");
+
             DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
             SetNamedPipeHandleState(dev->fd, &mode, NULL, NULL);
         } else {
@@ -173,7 +175,9 @@ char_pipe_init(const device_t *info)
             char_pipe_log(dev->log, "CreateFileA failed (%08X)\n", open_error);
 
             dev->fd = CreateNamedPipeA(full_path, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
-            if (!CHAR_FD_VALID(dev->fd)) {
+            if (CHAR_FD_VALID(dev->fd)) {
+                char_pipe_log(dev->log, "Created new pipe\n");
+            } else {
                 /* Both creation and connection failed. */
                 DWORD create_error = GetLastError();
                 char_pipe_log(dev->log, "CreateNamedPipeA failed (%08X)\n", create_error);
@@ -192,7 +196,9 @@ char_pipe_init(const device_t *info)
             /* Try connecting to the socket first. */
             struct sockaddr_un addr = { .sun_family = AF_UNIX };
             strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
-            if (connect(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+            if (connect(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) >= 0) {
+                char_pipe_log(dev->log, "Connected to existing socket\n");
+            } else {
                 /* Connection failed, try creating a new socket. */
                 int open_error = errno;
                 char_pipe_log(dev->log, "connect failed (%d)\n", open_error);
@@ -202,7 +208,9 @@ char_pipe_init(const device_t *info)
                 if ((stat(path, &stats) != 0) && S_ISSOCK(stats.st_mode))
                     unlink(path);
 
-                if (bind(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+                if (bind(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) >= 0) {
+                    char_pipe_log(dev->log, "Craeted new socket\n");
+                } else {
                     /* Both connection and creation failed. */
                     int create_error = errno;
                     char_pipe_log(dev->log, "bind failed (%d)\n", create_error);
@@ -250,11 +258,7 @@ static const device_config_t char_pipe_config[] = {
 // clang-format on
 
 const device_t char_pipe_com_device = {
-#ifdef _WIN32
-    .name          = "Named Pipe",
-#else
-    .name          = "UNIX Socket",
-#endif
+    .name          = "Named Pipe / Socket (COM)",
     .internal_name = "char_pipe_com",
     .flags         = DEVICE_COM,
     .local         = 0,
