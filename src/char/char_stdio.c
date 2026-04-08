@@ -330,7 +330,7 @@ const device_t char_stdio_com_device = {
 #else
     .name          = "Standard Input/Output (COM)",
 #endif
-    .internal_name = "char_stdio_com",
+    .internal_name = "stdio",
     .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_stdio_init,

@@ -44,7 +44,7 @@ static const struct {
 } char_devices[] = {
     // clang-format off
     { &char_none_device },
-    { &char_passthrough_com_device },
+    { &char_serial_passthrough_com_device },
     { &char_pipe_com_device },
     { &char_file_com_device },
     { &char_stdio_com_device },
@@ -82,10 +82,10 @@ char_get_device(const int id)
 }
 
 const int
-char_get_from_internal_name(const char *internal_name)
+char_get_from_internal_name(const char *internal_name, int bus)
 {
     for (int i = 0; char_devices[i].device; i++) {
-        if (!strcmp(internal_name, char_devices[i].device->internal_name))
+        if ((char_devices[i].device->flags & bus) && !strcmp(internal_name, char_devices[i].device->internal_name))
             return i;
     }
 

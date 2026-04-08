@@ -1046,7 +1046,7 @@ load_ports(void)
             if (p[0])
                 ini_section_set_string(cat2, "path", p);
             ini_section_delete_var(cat2, "named_pipe");
-            p = "char_passthrough_com";
+            p = "serial_passthrough";
         } else { /* pipe/pty */
 #ifdef _WIN32
             sprintf(temp, "Named Pipe / Socket (COM) #%i", c + 1);
@@ -1054,9 +1054,9 @@ load_ports(void)
             p = ini_section_get_string(cat2, "named_pipe", (old_enable || cat2) ? "\\\\.\\pipe\\86Box\\test" : ""); /* use old default path if there's any evidence of passthrough having been enabled */
             if (p[0])
                 ini_set_string(config, temp, "path", p); /* create section if not present */
-            p = "char_pipe_com";
+            p = "pipe";
 #else
-            p = "char_pty_com";
+            p = "pty";
 #endif
         }
 
@@ -1074,7 +1074,7 @@ load_ports(void)
             ini_section_set_string(cat, temp, p);
         else
             p = ini_section_get_string(cat, temp, "none");
-        com_ports[c].device = char_get_from_internal_name(p);
+        com_ports[c].device = char_get_from_internal_name(p, DEVICE_COM);
     }
 
     for (int c = 0; c < PARALLEL_MAX; c++) {

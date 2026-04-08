@@ -212,7 +212,7 @@ static const device_config_t char_file_config[] = {
 
 const device_t char_file_com_device = {
     .name          = "File (COM)",
-    .internal_name = "char_file_com",
+    .internal_name = "file",
     .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_file_init,

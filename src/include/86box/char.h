@@ -100,7 +100,7 @@ typedef struct {
     };
 } char_port_t;
 
-extern const int       char_get_from_internal_name(const char *internal_name);
+extern const int       char_get_from_internal_name(const char *internal_name, int bus);
 extern const device_t *char_get_device(const int id);
 
 extern void *char_init(char_port_t *port, const device_t *device, int instance);
@@ -112,7 +112,7 @@ extern void *char_attach(uint32_t flags,
                          void     (*port_config)(void *priv),
                          void     *priv);
 
-extern const device_t char_passthrough_com_device;
+extern const device_t char_serial_passthrough_com_device;
 extern const device_t char_pipe_com_device;
 extern const device_t char_file_com_device;
 extern const device_t char_stdio_com_device;

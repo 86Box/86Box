@@ -629,9 +629,9 @@ static const device_config_t char_serial_config[] = {
 };
 // clang-format on
 
-const device_t char_passthrough_com_device = {
+const device_t char_serial_passthrough_com_device = {
     .name          = "Serial Passthrough (COM)",
-    .internal_name = "char_passthrough_com",
+    .internal_name = "serial_passthrough",
     .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_serial_init,

@@ -259,7 +259,7 @@ static const device_config_t char_pipe_config[] = {
 
 const device_t char_pipe_com_device = {
     .name          = "Named Pipe / Socket (COM)",
-    .internal_name = "char_pipe_com",
+    .internal_name = "pipe",
     .flags         = DEVICE_COM,
     .local         = 0,
     .init          = char_pipe_init,
