@@ -31,6 +31,8 @@
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
 
+#include "qt_cgasettingsdialog.hpp"
+
 #include "qt_defs.hpp"
 
 extern "C" {
@@ -317,6 +319,16 @@ MainWindow::MainWindow(QWidget *parent)
 #else
         ui->menuTablet_tool->menuAction()->setVisible(false);
 #endif
+
+        bool enable_comp_option = false;
+        for (int i = 0; i < MONITORS_NUM; i++) {
+            if (monitors[i].mon_composite) {
+                enable_comp_option = true;
+                break;
+            }
+        }
+
+        ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
@@ -1205,6 +1217,8 @@ MainWindow::emitVmmSignal()
 void
 MainWindow::on_actionSettings_triggered()
 {
+    const int currentPause = dopause;
+    plat_pause(1);
     Settings settings(this);
     settings.setModal(true);
     settings.setWindowModality(Qt::WindowModal);
@@ -1216,9 +1230,7 @@ MainWindow::on_actionSettings_triggered()
     switch (settings.result()) {
         default:
             break;
-        case QDialog::Accepted: {
-            const int currentPause = dopause;
-            plat_pause(1);
+        case QDialog::Accepted:
             settings.save();
             config_changed = 2;
             emit vmmConfigurationChanged();
@@ -1231,11 +1243,11 @@ MainWindow::on_actionSettings_triggered()
                 if (monitors[i].target_buffer)
                     video_force_resize_set_monitor(1, i);
             }
-            plat_pause(currentPause);
             break;
-        } case QDialog::Rejected:
+        case QDialog::Rejected:
             break;
     }
+    plat_pause(currentPause);
 }
 
 void
@@ -1623,6 +1635,16 @@ MainWindow::refreshMediaMenu()
     int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
     int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
     kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+
+    bool enable_comp_option = false;
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        if (monitors[i].mon_composite) {
+            enable_comp_option = true;
+            break;
+        }
+    }
+
+    ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
 }
 
 void
@@ -2442,4 +2464,15 @@ void
 MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
+}
+
+void
+MainWindow::on_actionCGA_composite_settings_triggered()
+{
+    isNonPause = true;
+    CGASettingsDialog dialog;
+    dialog.setModal(true);
+    dialog.exec();
+    isNonPause = false;
+    config_save();
 }

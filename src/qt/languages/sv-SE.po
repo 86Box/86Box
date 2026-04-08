@@ -2990,9 +2990,6 @@ msgstr "Systemet kommer inte att läggas till."
 msgid "&Update mouse every CPU frame"
 msgstr "&Uppdatera mus varje processorram"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Färgton"
 
@@ -3008,8 +3005,11 @@ msgstr "Ljusstyrka"
 msgid "Sharpness"
 msgstr "Skärpa"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Inställningar för &CGA-kompositläget…"
+
+msgid "CGA composite settings"
+msgstr "Inställningar för CGA-kompositläget"
 
 msgid "Monitor EDID"
 msgstr "EDID för bildskärm"

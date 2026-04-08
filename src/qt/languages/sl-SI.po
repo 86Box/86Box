@@ -2991,9 +2991,6 @@ msgstr "Sistem ne bo dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Posodibi stanje miške ob vsakem bloku procesorja"
 
-msgid "Composite CGA"
-msgstr "Kompozitni CGA"
-
 msgid "Hue"
 msgstr "Hue"
 
@@ -3009,8 +3006,11 @@ msgstr "Svetlost"
 msgid "Sharpness"
 msgstr "Ostrina"
 
-msgid "Reset"
-msgstr "Ponastavi"
+msgid "&CGA composite settings…"
+msgstr "Nastavitve kompozitnega načina &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Nastavitve kompozitnega načina CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitorja"

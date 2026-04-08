@@ -297,8 +297,6 @@ Settings::accept()
             return;
         }
     } else if (changed && !(changed & SETTINGS_REQUIRE_HARD_RESET) && !settings_only) {
-        const int currentPause = dopause;
-        plat_pause(1);
         save();
         config_changed = 2;
         main_window->emitVmmSignal();
@@ -313,7 +311,6 @@ Settings::accept()
             if (monitors[i].target_buffer)
                 video_force_resize_set_monitor(1, i);
         }
-        plat_pause(currentPause);
 
         /* Reject so the main window does nothing. */
         QDialog::reject();
@@ -352,8 +349,6 @@ Settings::reject()
 {
     if (plat_path_is_empty(usr_path))
         rmdir(usr_path);
-
-    display->restore();
 
     QDialog::reject();
 }

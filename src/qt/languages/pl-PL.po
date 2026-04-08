@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-04-07 05:04+0000\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -602,7 +602,7 @@ msgid "Firmware Version"
 msgstr "Wersja firmware'u"
 
 msgid "DSP Version"
-msgstr "Wersja DSP'u"
+msgstr "Wersja DSP"
 
 msgid "&New…"
 msgstr "&Nowy…"
@@ -2990,9 +2990,6 @@ msgstr "System nie będzie dodany."
 msgid "&Update mouse every CPU frame"
 msgstr "Aktualizuj &mysz z każdą ramką CPU"
 
-msgid "Composite CGA"
-msgstr "Kompozytowe CGA"
-
 msgid "Hue"
 msgstr "Barwa"
 
@@ -3008,8 +3005,11 @@ msgstr "Jasność"
 msgid "Sharpness"
 msgstr "Ostrość"
 
-msgid "Reset"
-msgstr "Reset"
+msgid "&CGA composite settings…"
+msgstr "Ustawienia trybu kompozytowego &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Ustawienia trybu kompozytowego CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
