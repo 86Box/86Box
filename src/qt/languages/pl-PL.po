@@ -3064,3 +3064,9 @@ msgstr "Surowy"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Użyj emulacji EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Urządzenie wyjściowe dźwięku:"
+
+msgid "System Default"
+msgstr "Domyślne ustawienie systemowe"

@@ -3066,3 +3066,9 @@ msgstr "Neobrađeni podaci"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Uređaj za izlaz zvuka:"
+
+msgid "System Default"
+msgstr "Zadana postavka operativnog sustava"

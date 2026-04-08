@@ -3063,3 +3063,9 @@ msgstr "Ruw"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Audio-uitvoerapparaat:"
+
+msgid "System Default"
+msgstr "Systeemstandaard"
