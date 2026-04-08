@@ -9,3 +9,9 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Language: en_US\n"
 "X-Source-Language: en_US\n"
+
+msgid "Audio output device:"
+msgstr "Audio output device:"
+
+msgid "System Default"
+msgstr "System Default"

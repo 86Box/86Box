@@ -3062,3 +3062,9 @@ msgstr "Plano"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Dispositivo de salida de audio:"
+
+msgid "System Default"
+msgstr "Por defecto del sistema"

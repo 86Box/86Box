@@ -3063,3 +3063,9 @@ msgstr "Roh"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Audio-Ausgabegerät:"
+
+msgid "System Default"
+msgstr "Systemstandard"
