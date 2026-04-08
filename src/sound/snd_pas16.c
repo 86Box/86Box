@@ -793,8 +793,9 @@ pas_in(uint16_t port, void *priv)
 
         case 0x1400:
             ret = pas16->ym3802_ivr;
-            if ((pas16->ym3802_ivr & 0x1e) == 0x00)
+            if (pas16->ym3802_isr == 0x00)
                 ret |= 0x10;
+            pas16_log("YM3802 IVR read: ivr = %02X, isr = %02X\n", pas16->ym3802_ivr, pas16->ym3802_isr);
             break;
         case 0x1401:
             ret = pas16->ym3802_rgr;
@@ -822,10 +823,11 @@ pas_in(uint16_t port, void *priv)
                         pas16->midi_r++;
                         pas16->midi_r &= 0xff;
                     }
-                    if (pas16->midi_r == pas16->midi_w)
+                    if (pas16->midi_r == pas16->midi_w) {
                         pas16->ym3802_reg4_banked[0x03] &= 0x7f;
+                        pas16->ym3802_isr &= 0xdf;
+                    }
                 }
-                pas16->ym3802_reg4_banked[0x03] &= 0x7f;
                 pas_update_irq(pas16);
             }
             break;
@@ -1667,8 +1669,12 @@ pas_out(uint16_t port, uint8_t val, void *priv)
             pas16->ym3802_icr = val;
             pas16->ym3802_ivr = (pas16->ym3802_reg4_banked[0x00] & 0xe0);
             pas16->ym3802_isr &= ~val;
-            pas16->irq_stat &= 0x0f;
-            if ((pas16->irq != -1) && (!(pas16->irq_stat & 0x0f)))
+            if (pas16->ym3802_isr & 0x20)
+                pas16->ym3802_ivr |= 0x0a;
+            pas16_log("YM3802 ICR write: icr = %02X, ivr = %02X, isr = %02X\n", pas16->ym3802_icr, pas16->ym3802_ivr, pas16->ym3802_isr);
+            if (!(pas16->ym3802_isr))
+                pas16->irq_stat &= 0x0f;
+            if ((pas16->irq != -1) && (!(pas16->irq_stat & 0x0f)) && (!(pas16->ym3802_isr)))
                 picintc(1 << pas16->irq);
             break;
 
