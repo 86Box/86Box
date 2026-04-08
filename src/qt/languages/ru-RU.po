@@ -3001,9 +3001,6 @@ msgstr "Система не будет добавлена."
 msgid "&Update mouse every CPU frame"
 msgstr "&Обновлять мышь при каждом кадре ЦП"
 
-msgid "Composite CGA"
-msgstr "Композит. CGA"
-
 msgid "Hue"
 msgstr "Тон"
 
@@ -3019,8 +3016,11 @@ msgstr "Яркость"
 msgid "Sharpness"
 msgstr "Резкость"
 
-msgid "Reset"
-msgstr "Сброс"
+msgid "&CGA composite settings…"
+msgstr "Настройки композитного видео &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Настройки композитного видео CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID монитора"

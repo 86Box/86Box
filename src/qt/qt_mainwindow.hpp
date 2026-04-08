@@ -167,6 +167,8 @@ private slots:
 
     void on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked);
 
+    void on_actionCGA_composite_settings_triggered();
+
 private:
     Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;

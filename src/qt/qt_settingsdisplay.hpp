@@ -20,7 +20,6 @@ public:
 
     int  changed();
 
-    void restore();
     void save();
 
 public slots:
