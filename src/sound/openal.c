@@ -67,22 +67,11 @@ al_set_midi(const int freq, const int buf_size)
     midi_buf_size = buf_size;
 }
 
-const char *
-sound_get_output_devices(void)
-{
-    if (alcIsExtensionPresent(NULL, "ALC_ENUMERATE_ALL_EXT"))
-        return alcGetString(NULL, ALC_ALL_DEVICES_SPECIFIER);
-    if (alcIsExtensionPresent(NULL, "ALC_ENUMERATION_EXT"))
-        return alcGetString(NULL, ALC_DEVICE_SPECIFIER);
-    return NULL;
-}
-
 ALvoid
 alutInit(UNUSED(ALint *argc), UNUSED(ALbyte **argv))
 {
-    /* Open device: use the user-selected device, or NULL for system default */
-    const ALCchar *dev_name = (sound_output_device[0] != '\0') ? sound_output_device : NULL;
-    Device = alcOpenDevice(dev_name);
+    /* Open device */
+    Device = alcOpenDevice((ALCchar *) "");
     if (Device != NULL) {
         /* Create context(s) */
         Context = alcCreateContext(Device, NULL);

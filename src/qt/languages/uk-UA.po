@@ -3065,9 +3065,3 @@ msgstr "Сирий"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
-
-msgid "Audio output device:"
-msgstr "Пристрій виведення звуку:"
-
-msgid "System Default"
-msgstr "Системний"

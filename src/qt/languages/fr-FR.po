@@ -3063,9 +3063,3 @@ msgstr "Brut"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
-
-msgid "Audio output device:"
-msgstr "Périphérique de sortie audio :"
-
-msgid "System Default"
-msgstr "Défaut du système"

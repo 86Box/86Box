@@ -16,7 +16,6 @@
  */
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 
 extern "C" {
 #include <86box/86box.h>
@@ -88,7 +87,6 @@ SettingsSound::changed()
     has_changed  |= (mpu401_standalone_enable   != (ui->checkBoxMPU401->isChecked() ? 1 : 0));
     has_changed  |= mpu401_cfg_changed;
     has_changed  |= (sound_is_float             != (ui->checkBoxFloat32->isChecked() ? 1 : 0));
-    has_changed  |= (QString(sound_output_device) != ui->comboBoxAudioOutputDevice->currentData().toString());
 
     soft_changed |= (midi_output_device_current != ui->comboBoxMidiOut->currentData().toInt());
     soft_changed |= midi_output_device_cfg_changed;
@@ -121,10 +119,6 @@ SettingsSound::save()
     mpu401_standalone_enable = ui->checkBoxMPU401->isChecked() ? 1 : 0;
 
     sound_is_float = ui->checkBoxFloat32->isChecked() ? 1 : 0;
-
-    QByteArray devName = ui->comboBoxAudioOutputDevice->currentData().toString().toUtf8();
-    strncpy(sound_output_device, devName.constData(), sizeof(sound_output_device) - 1);
-    sound_output_device[sizeof(sound_output_device) - 1] = '\0';
 }
 
 void
@@ -262,31 +256,6 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
 
     // Float32 Sound
     ui->checkBoxFloat32->setChecked(sound_is_float > 0);
-
-    // Audio Output Device
-    auto *modelAudioOut      = ui->comboBoxAudioOutputDevice->model();
-    auto  removeRowsAudioOut = modelAudioOut->rowCount();
-    int   selectedAudioRow   = 0;
-
-    int audioRow = Models::AddEntry(modelAudioOut, tr("System Default"), QString(""));
-    if (sound_output_device[0] == '\0')
-        selectedAudioRow = audioRow - removeRowsAudioOut;
-
-    const char *devList = sound_get_output_devices();
-    if (devList != nullptr) {
-        const char *dev = devList;
-        while (*dev != '\0') {
-            QString devName = QString::fromUtf8(dev);
-            audioRow        = Models::AddEntry(modelAudioOut, devName, devName);
-            if (devName == QString(sound_output_device))
-                selectedAudioRow = audioRow - removeRowsAudioOut;
-            dev += strlen(dev) + 1;
-        }
-    }
-
-    modelAudioOut->removeRows(0, removeRowsAudioOut);
-    ui->comboBoxAudioOutputDevice->setCurrentIndex(-1);
-    ui->comboBoxAudioOutputDevice->setCurrentIndex(selectedAudioRow);
 }
 
 static bool
