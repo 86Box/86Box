@@ -106,9 +106,7 @@ SpecifyDimensions::on_SpecifyDimensions_accepted()
                 }
             }
         }
-        main_window->ui->actionResizable_window->setChecked(true);
         vid_resize = 1;
-        main_window->ui->actionResizable_window->trigger();
         emit main_window->updateMenuResizeOptions();
     }
     main_window->show();
