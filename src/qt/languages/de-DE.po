@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-04-09 03:16+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Last-Translator: ttaute <tillmann07@outlook.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -358,10 +358,10 @@ msgid "[1989] i486 (Socket 168 and 1)"
 msgstr "[1989] i486 (Socket 168 und 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Verschiedenes)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Sockel 7 (Einfache Spannung)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr ""
