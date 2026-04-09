@@ -1149,3 +1149,95 @@ plat_send_to_clipboard(unsigned char *rgb, int width, int height)
     width_  = 0;
     rgb_    = NULL;
 }
+
+#if !defined(Q_OS_WINDOWS) && !defined(Q_OS_MACOS)
+static int
+have_env_var(const char *var, const char *compare = NULL)
+{
+    const char *val = getenv(var);
+    return val && val[0] && (!compare || !strnicmp(val, compare, strlen(compare)));
+}
+#endif
+
+int
+plat_run_terminal(const char *cmd, const char *title)
+{
+    QString cmdq = QString(cmd);
+    QString titleq = (title && title[0]) ? QString(title) : QString();
+
+    auto process = new QProcess();
+    process->setInputChannelMode(QProcess::ForwardedInputChannel);
+    process->setProcessChannelMode(QProcess::ForwardedChannels);
+
+#ifdef Q_OS_WINDOWS
+    process->setCreateProcessArgumentsModifier([] (QProcess::CreateProcessArguments *args) {
+        args->flags |= CREATE_NEW_CONSOLE;
+        args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
+    });
+    process->setProgram(QString(getenv("ComSpec")));
+    auto escaper = QRegularExpression(QStringLiteral("([&|<>^])"));
+    auto newcmd = cmdq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"));
+    if (!titleq.isEmpty())
+        newcmd.prepend(QStringLiteral("title %1&").arg(titleq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"))));
+    process->setArguments(QStringList() << QStringLiteral("/c") << newcmd);
+    process->start();
+    return process->waitForStarted();
+#elif defined(Q_OS_MACOS)
+    QString script = QString("do script (system attribute \"COMMAND\")");
+    auto env = QProcessEnvironment::systemEnvironment();
+    if (!titleq.isEmpty()) {
+        env.insert(QStringLiteral("WINDOW_TITLE"), titleq);
+        script.prepend(QStringLiteral("set custom title of (")).append(QStringLiteral(") to (system attribute \"WINDOW_TITLE\")"));
+    }
+    script.prepend(QStringLiteral("tell application \"Terminal\" to "));
+    env.insert(QStringLiteral("COMMAND"), cmdq.replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("clear;")).append(QStringLiteral(";exit")));
+    process->setProcessEnvironment(env);
+    process->setProgram(QStringLiteral("osascript"));
+    process->setArguments(QStringList() << QStringLiteral("-e") << script);
+    process->start();
+    return process->waitForStarted();
+#else
+    if (!titleq.isEmpty()) {
+        auto env = QProcessEnvironment::systemEnvironment();
+        env.insert(QStringLiteral("WINDOW_TITLE"), titleq);
+        process->setProcessEnvironment(env);
+        cmdq.prepend(QString("printf '\\e]0;%s\\a\\r' \"$WINDOW_TITLE\";"));
+    }
+
+    /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
+    QStringList terminals;
+    if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
+        terminals.prepend("konsole");
+    else
+        terminals << "konsole";
+    if (have_env_var("XDG_CURRENT_DESKTOP", "GNOME") || have_env_var("DESKTOP_SESSION", "gnome") || have_env_var("GNOME_DESKTOP_SESSION_ID") ||
+        have_env_var("XDG_CURRENT_DESKTOP", "Cinnamon") || have_env_var("XDG_CURRENT_DESKTOP", "X-Cinnamon") ||
+        have_env_var("XDG_CURRENT_DESKTOP", "Unity"))
+        terminals.prepend("gnome-terminal");
+    else
+        terminals << "gnome-terminal";
+    if (have_env_var("XDG_CURRENT_DESKTOP", "LXQt") || have_env_var("LXQT_SESSION_CONFIG"))
+        terminals.prepend("qterminal");
+    else
+        terminals << "qterminal";
+    if (have_env_var("XDG_CURRENT_DESKTOP", "LXDE") || have_env_var("DESKTOP_SESSION", "LXDE") || have_env_var("DESKTOP_SESSION", "Lubuntu"))
+        terminals.prepend("lxterminal");
+    else
+        terminals << "lxterminal";
+    terminals << QStringLiteral("x-terminal-emulator") /* Debian */ << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
+
+    for (const auto &terminal : terminals) {
+        QStringList args;
+        if (terminal == QStringLiteral("gnome-terminal"))
+            args << QStringLiteral("--");
+        else
+            args << QStringLiteral("-e");
+        args << QStringLiteral("sh") << QStringLiteral("-c") << cmdq;
+        process->setArguments(args);
+        process->start();
+        if (process->waitForStarted())
+            return 1;
+    }
+    return 0;
+#endif
+}

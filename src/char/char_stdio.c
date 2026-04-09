@@ -278,6 +278,50 @@ char_stdio_init(const device_t *info)
             char_stdio_log(dev->log, "Output SetConsoleMode failed (%08X)\n", GetLastError());
     }
 #else
+    if (1) {
+        /* Create pseudoterminal. */
+        dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NONBLOCK);
+        if (dev->fd_out >= 0) {
+            if (grantpt(dev->fd_out) >= 0) {
+                if (unlockpt(dev->fd_out) >= 0) {
+                    char *pts = ptsname(dev->fd_out);
+                    if (pts) {
+                        char_stdio_log("Bound to %s\n", pts);
+
+                        /* Enable raw input. */
+                        tcgetattr(dev->fd_out, &dev->prev_config);
+                        cfmakeraw(&dev->prev_config);
+                        if (tcsetattr(dev->fd_out, TCSAFLUSH, &dev->prev_config))
+                            char_stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
+
+                        /* Spawn terminal emulator. */
+                        char cmd[2048];
+                        snprintf(cmd, sizeof(cmd), "stty raw -echo;which socat>/dev/null&&exec socat stdio pipe:'%s';exec cat>'%s'&exec cat '%s'", pts, pts, pts);
+                        if (!plat_run_terminal(cmd, vm_name))
+                            char_stdio_log("plat_run_terminal failed\n");
+                    } else {
+                        char_stdio_log(dev->log, "ptsname failed (%d)\n", errno);
+                        goto bad_fd;
+                    }
+                } else {
+                    char_stdio_log(dev->log, "unlockpt failed (%d)\n", errno);
+                    goto bad_fd;
+                }
+            } else {
+                char_stdio_log(dev->log, "grantpt failed (%d)\n", errno);
+                goto bad_fd;
+            }
+        } else {
+            char_stdio_log(dev->log, "posix_openpt failed (%d)\n", errno);
+bad_fd:
+            close(dev->fd_out);
+            dev->fd_out = -1;
+        }
+
+        /* No terminal configuration or logging redirection required. */
+        return dev;
+    }
+
     /* Set file descriptors. */
     dev->fd_in = STDIN_FILENO;
     dev->fd_out = STDOUT_FILENO;
@@ -301,8 +345,7 @@ char_stdio_init(const device_t *info)
         /* Enable raw input. */
         struct termios ios;
         memcpy(&ios, &dev->prev_config, sizeof(struct termios));
-        ios.c_lflag &= ~(ECHO | ICANON | ISIG);
-        ios.c_iflag &= ~IXON;
+        cfmakeraw(&ios);
         if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ios))
             char_stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
     } else {
@@ -323,6 +366,22 @@ char_stdio_init(const device_t *info)
 
     return dev;
 }
+
+#ifndef _WIN32
+static void *
+char_pty_init(const device_t *info)
+{
+    char_stdio_t *dev = (char_stdio_t *) calloc(1, sizeof(char_stdio_t));
+
+    dev->log = log_open("PTY");
+    char_stdio_log(dev->log, "init()\n");
+
+    /* Attach character device. */
+    dev->port = char_attach(0, char_stdio_read, char_stdio_write, char_stdio_status, char_stdio_control, NULL, dev);
+
+    
+}
+#endif
 
 const device_t char_stdio_com_device = {
 #if defined(_WIN32) && defined(USE_WIN32_GUI)

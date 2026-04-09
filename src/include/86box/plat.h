@@ -157,6 +157,7 @@ extern void     plat_get_system_directory(char *outbuf);
 extern void     plat_set_thread_name(void *thread, const char *name);
 extern void     plat_break(void);
 extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height);
+extern int      plat_run_terminal(const char *cmd, const char *title);
 
 /* Resource management. */
 extern wchar_t *plat_get_string(int id);
