@@ -14,6 +14,18 @@
  *
  *          Copyright 2026 RichardG.
  */
+#ifndef __APPLE__
+#    define _XOPEN_SOURCE   600
+#    define _DEFAULT_SOURCE 1
+#    define _BSD_SOURCE     1
+#endif
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+#    define __BSD_VISIBLE 1
+#endif
+#ifdef __NetBSD__
+#    define _NETBSD_VISIBLE 1
+#    define _NETBSD_SOURCE 1
+#endif
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -191,6 +203,10 @@ char_stdio_control(uint32_t flags, void *priv)
     }
 }
 
+#ifdef USE_NEW_DYNAREC
+extern FILE *stdlog;
+#endif
+
 static void
 char_stdio_close(void *priv)
 {
@@ -227,6 +243,10 @@ char_stdio_close(void *priv)
         char_stdio_log(dev->log, "Restore TCSAFLUSH failed (%d)\n", errno);
     if (dev->prev_flags_valid && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
         char_stdio_log(dev->log, "Restore F_SETFL failed (%d)\n", errno);
+
+    /* Terminate pseudoterminal. */
+    if (dev->fd_out != STDOUT_FILENO)
+        close(dev->fd_out);
 #endif
 
     free(dev);
@@ -284,9 +304,9 @@ char_stdio_init(const device_t *info)
         if (dev->fd_out >= 0) {
             if (grantpt(dev->fd_out) >= 0) {
                 if (unlockpt(dev->fd_out) >= 0) {
-                    char *pts = ptsname(dev->fd_out);
-                    if (pts) {
-                        char_stdio_log("Bound to %s\n", pts);
+                    char *pty = ptsname(dev->fd_out);
+                    if (pty) {
+                        char_stdio_log(dev->log, "Bound to %s\n", pty);
 
                         /* Enable raw input. */
                         tcgetattr(dev->fd_out, &dev->prev_config);
@@ -296,9 +316,9 @@ char_stdio_init(const device_t *info)
 
                         /* Spawn terminal emulator. */
                         char cmd[2048];
-                        snprintf(cmd, sizeof(cmd), "stty raw -echo;which socat>/dev/null&&exec socat stdio pipe:'%s';exec cat>'%s'&exec cat '%s'", pts, pts, pts);
+                        snprintf(cmd, sizeof(cmd), "PTY='%s';stty raw -echo eof undef;which socat>/dev/null&&exec socat stdio pipe:\"$PTY\";cat \"$PTY\"&cat>\"$PTY\"", pty);
                         if (!plat_run_terminal(cmd, vm_name))
-                            char_stdio_log("plat_run_terminal failed\n");
+                            char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
                     } else {
                         char_stdio_log(dev->log, "ptsname failed (%d)\n", errno);
                         goto bad_fd;
@@ -366,22 +386,6 @@ bad_fd:
 
     return dev;
 }
-
-#ifndef _WIN32
-static void *
-char_pty_init(const device_t *info)
-{
-    char_stdio_t *dev = (char_stdio_t *) calloc(1, sizeof(char_stdio_t));
-
-    dev->log = log_open("PTY");
-    char_stdio_log(dev->log, "init()\n");
-
-    /* Attach character device. */
-    dev->port = char_attach(0, char_stdio_read, char_stdio_write, char_stdio_status, char_stdio_control, NULL, dev);
-
-    
-}
-#endif
 
 const device_t char_stdio_com_device = {
 #if defined(_WIN32) && defined(USE_WIN32_GUI)

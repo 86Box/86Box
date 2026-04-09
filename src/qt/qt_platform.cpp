@@ -1190,7 +1190,7 @@ plat_run_terminal(const char *cmd, const char *title)
         script.prepend(QStringLiteral("set custom title of (")).append(QStringLiteral(") to (system attribute \"WINDOW_TITLE\")"));
     }
     script.prepend(QStringLiteral("tell application \"Terminal\" to "));
-    env.insert(QStringLiteral("COMMAND"), cmdq.replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("clear;")).append(QStringLiteral(";exit")));
+    env.insert(QStringLiteral("COMMAND"), cmdq.prepend(QStringLiteral("clear;")).append(QStringLiteral(";exit")));
     process->setProcessEnvironment(env);
     process->setProgram(QStringLiteral("osascript"));
     process->setArguments(QStringList() << QStringLiteral("-e") << script);
@@ -1216,6 +1216,14 @@ plat_run_terminal(const char *cmd, const char *title)
         terminals.prepend("gnome-terminal");
     else
         terminals << "gnome-terminal";
+    if (have_env_var("XDG_CURRENT_DESKTOP", "MATE") || have_env_var("DESKTOP_SESSION", "MATE"))
+        terminals.prepend("mate-terminal");
+    else
+        terminals << "mate-terminal";
+    if (have_env_var("XDG_CURRENT_DESKTOP", "XFCE") || have_env_var("DESKTOP_SESSION", "xfce"))
+        terminals.prepend("xfce4-terminal");
+    else
+        terminals << "xfce4-terminal";
     if (have_env_var("XDG_CURRENT_DESKTOP", "LXQt") || have_env_var("LXQT_SESSION_CONFIG"))
         terminals.prepend("qterminal");
     else
@@ -1227,12 +1235,12 @@ plat_run_terminal(const char *cmd, const char *title)
     terminals << QStringLiteral("x-terminal-emulator") /* Debian */ << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
 
     for (const auto &terminal : terminals) {
+        process->setProgram(terminal);
         QStringList args;
-        if (terminal == QStringLiteral("gnome-terminal"))
-            args << QStringLiteral("--");
+        if (terminal == QStringLiteral("xfce4-terminal"))
+            args << QStringLiteral("-e") << QString(cmdq).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("sh -c '")).append(QStringLiteral("'"));
         else
-            args << QStringLiteral("-e");
-        args << QStringLiteral("sh") << QStringLiteral("-c") << cmdq;
+            args << (terminal.endsWith(QStringLiteral("-terminal")) ? QStringLiteral("--") : QStringLiteral("-e")) << QStringLiteral("sh") << QStringLiteral("-c") << cmdq;
         process->setArguments(args);
         process->start();
         if (process->waitForStarted())
