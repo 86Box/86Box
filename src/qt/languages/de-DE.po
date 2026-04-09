@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-09 03:15+0000\n"
-"Last-Translator: ttaute <tillmann07@outlook.de>\n"
+"PO-Revision-Date: 2026-04-09 03:16+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -355,7 +355,7 @@ msgid "Machine type:"
 msgstr "Systemtyp:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr "[1989] i486 (Sockel 168 und 1)"
+msgstr "[1989] i486 (Socket 168 und 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
 msgstr ""
