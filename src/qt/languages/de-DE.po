@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-09 03:16+0000\n"
+"PO-Revision-Date: 2026-04-09 07:38+0000\n"
 "Last-Translator: ttaute <tillmann07@outlook.de>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
@@ -367,7 +367,7 @@ msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr ""
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Verschiedenes"
 
 msgid "Machine:"
 msgstr "System:"
@@ -544,7 +544,7 @@ msgid "IDE Controller (Dual-Channel)"
 msgstr ""
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE-Controller"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
 msgstr ""
@@ -2644,7 +2644,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Kopierschutz-Dongle für Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-Stecker"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -3062,7 +3062,7 @@ msgid "Raw"
 msgstr "Roh"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "EDC/ECC-Emulation verwenden"
 
 msgid "Audio output device:"
 msgstr "Audio-Ausgabegerät:"
