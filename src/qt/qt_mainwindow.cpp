@@ -347,17 +347,6 @@ MainWindow::MainWindow(QWidget *parent)
         ui->actionResizable_window->setEnabled(vid_resize != 2);
         ui->actionResizable_window->setChecked(vid_resize == 1);
         ui->menuWindow_scale_factor->setEnabled(vid_resize == 0);
-
-        if (vid_resize == 1) {
-            setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
-            setWindowFlag(Qt::WindowMaximizeButtonHint, true);
-            for (int i = 1; i < MONITORS_NUM; i++) {
-                if (monitors[i].target_buffer) {
-                    renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, true);
-                    renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-                }
-            }
-        }
     });
 
     connect(this, &MainWindow::updateWindowRememberOption, [this]() {
