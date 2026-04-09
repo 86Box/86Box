@@ -83,11 +83,11 @@ typedef struct _char_device_ {
     uint32_t  flags;
     void     *priv;
 
-    ssize_t       (*read)(uint8_t *buf, ssize_t len, void *priv);
-    ssize_t       (*write)(uint8_t *buf, ssize_t len, void *priv);
-    uint32_t      (*status)(void *priv);
-    void          (*control)(uint32_t flags, void *priv);
-    void          (*port_config)(void *priv);
+    size_t   (*read)(uint8_t *buf, size_t len, void *priv);
+    size_t   (*write)(uint8_t *buf, size_t len, void *priv);
+    uint32_t (*status)(void *priv);
+    void     (*control)(uint32_t flags, void *priv);
+    void     (*port_config)(void *priv);
 } char_device_t;
 
 typedef struct {
@@ -112,8 +112,8 @@ extern const device_t *char_get_device(const int id);
 
 extern void *char_init(char_port_t *port, const device_t *device, int instance);
 extern void *char_attach(uint32_t flags,
-                         ssize_t  (*read)(uint8_t *buf, ssize_t len, void *priv),
-                         ssize_t  (*write)(uint8_t *buf, ssize_t len, void *priv),
+                         size_t   (*read)(uint8_t *buf, size_t len, void *priv),
+                         size_t   (*write)(uint8_t *buf, size_t len, void *priv),
                          uint32_t (*status)(void *priv),
                          void     (*control)(uint32_t flags, void *priv),
                          void     (*port_config)(void *priv),

@@ -118,8 +118,8 @@ char_loopback_update(char_loopback_t *dev)
     }
 }
 
-static ssize_t
-char_loopback_read(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_loopback_read(uint8_t *buf, size_t len, void *priv)
 {
     char_loopback_t *dev = (char_loopback_t *) priv;
 
@@ -135,8 +135,8 @@ char_loopback_read(uint8_t *buf, ssize_t len, void *priv)
     return len;
 }
 
-static ssize_t
-char_loopback_write(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_loopback_write(uint8_t *buf, size_t len, void *priv)
 {
     char_loopback_t *dev = (char_loopback_t *) priv;
 

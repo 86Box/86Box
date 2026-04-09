@@ -55,8 +55,8 @@ typedef struct {
     int loop_in : 1;
 } char_file_t;
 
-static ssize_t
-char_file_read(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_file_read(uint8_t *buf, size_t len, void *priv)
 {
     char_file_t *dev = (char_file_t *) priv;
 
@@ -89,8 +89,8 @@ char_file_read(uint8_t *buf, ssize_t len, void *priv)
     return ret;
 }
 
-static ssize_t
-char_file_write(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_file_write(uint8_t *buf, size_t len, void *priv)
 {
     char_file_t *dev = (char_file_t *) priv;
 

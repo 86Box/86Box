@@ -117,12 +117,12 @@ char_stdio_stdin_thread(void *priv)
 }
 #endif
 
-static ssize_t
-char_stdio_read(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_stdio_read(uint8_t *buf, size_t len, void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 
-    ssize_t ret = 0;
+    size_t ret = 0;
 #ifdef _WIN32
     if (dev->thread_in) {
         if (dev->buf_in_valid && (len > 0)) {
@@ -160,8 +160,8 @@ char_stdio_read(uint8_t *buf, ssize_t len, void *priv)
     return ret;
 }
 
-static ssize_t
-char_stdio_write(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_stdio_write(uint8_t *buf, size_t len, void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 

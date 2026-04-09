@@ -69,8 +69,8 @@ typedef struct {
 #endif
 } char_pipe_t;
 
-static ssize_t
-char_pipe_read(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_pipe_read(uint8_t *buf, size_t len, void *priv)
 {
     char_pipe_t *dev = (char_pipe_t *) priv;
 
@@ -90,8 +90,8 @@ char_pipe_read(uint8_t *buf, ssize_t len, void *priv)
 #endif
 }
 
-static ssize_t
-char_pipe_write(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_pipe_write(uint8_t *buf, size_t len, void *priv)
 {
     char_pipe_t *dev = (char_pipe_t *) priv;
 

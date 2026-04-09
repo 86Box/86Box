@@ -270,8 +270,8 @@ char_serial_connect(char_serial_t *dev)
     return 1;
 }
 
-static ssize_t
-char_serial_read(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_serial_read(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
@@ -296,8 +296,8 @@ char_serial_read(uint8_t *buf, ssize_t len, void *priv)
     return ret;
 }
 
-static ssize_t
-char_serial_write(uint8_t *buf, ssize_t len, void *priv)
+static size_t
+char_serial_write(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
