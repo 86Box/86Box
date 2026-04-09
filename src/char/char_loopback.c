@@ -218,7 +218,7 @@ static const device_config_t char_loopback_lpt_config[] = {
         .name         = "type",
         .description  = "Loopback Type",
         .type         = CONFIG_SELECTION,
-        .default_int  = 0,
+        .default_int  = LOOPBACK_TYPE_CHECKIT,
         .selection    = {
             { .description = "CheckIt / IBM Diagnostic", .value = LOOPBACK_TYPE_CHECKIT },
             { .description = "Norton",                   .value = LOOPBACK_TYPE_NORTON  },

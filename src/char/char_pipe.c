@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
@@ -81,7 +80,13 @@ char_pipe_read(uint8_t *buf, ssize_t len, void *priv)
         ReadFile(dev->fd, buf, len, &ret, NULL);
     return ret;
 #else
-    return CHAR_FD_VALID(dev->fd) ? recv(dev->fd, buf, len, 0) : 0;
+    ssize_t ret = 0;
+    if (CHAR_FD_VALID(dev->fd)) {
+        ret = recv(dev->fd, buf, len, 0);
+        if (ret < 0)
+            ret = 0;
+    }
+    return ret;
 #endif
 }
 
@@ -96,7 +101,13 @@ char_pipe_write(uint8_t *buf, ssize_t len, void *priv)
         WriteFile(dev->fd, buf, len, &ret, NULL);
     return ret;
 #else
-    return CHAR_FD_VALID(dev->fd) ? send(dev->fd, buf, len, 0) : 0;
+    ssize_t ret = 0;
+    if (CHAR_FD_VALID(dev->fd)) {
+        ret = send(dev->fd, buf, len, 0);
+        if (ret < 0)
+            ret = 0;
+    }
+    return ret;
 #endif
 }
 
@@ -105,13 +116,7 @@ char_pipe_status(void *priv)
 {
     char_pipe_t *dev = (char_pipe_t *) priv;
 
-    return 
-#ifdef _WIN32
-           dev->fd
-#else
-           (dev->fd != -1)
-#endif
-           ? (CHAR_COM_DSR | CHAR_COM_DCD | CHAR_COM_CTS) : CHAR_DISCONNECTED;
+    return CHAR_FD_VALID(dev->fd) ? (CHAR_COM_DSR | CHAR_COM_DCD | CHAR_COM_CTS) : CHAR_DISCONNECTED;
 }
 
 static void
@@ -144,6 +149,7 @@ char_pipe_init(const device_t *info)
     /* Attach character device. */
     dev->port = char_attach(0, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
 
+    int mode = device_get_config_int("mode");
     if (path[0]) {
 #ifdef _WIN32
         /* Remove any leading slashes. */
@@ -162,71 +168,95 @@ char_pipe_init(const device_t *info)
                 full_path[i] = '\\';
         }
 
-        /* Try connecting to the pipe first. */
-        dev->fd = CreateFileA(full_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-        if (CHAR_FD_VALID(dev->fd)) {
-            char_pipe_log(dev->log, "Connected to existing pipe\n");
+        /* Connect or create pipe. */
+        char fmt[512];
+        char msg[1024];
+        if ((mode == CHAR_PIPE_MODE_AUTO) || (mode == CHAR_PIPE_MODE_CLIENT)) {
+            dev->fd = CreateFileA(full_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+            if (CHAR_FD_VALID(dev->fd)) {
+                char_pipe_log(dev->log, "Connected to existing pipe\n");
 
-            DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
-            SetNamedPipeHandleState(dev->fd, &mode, NULL, NULL);
-        } else {
-            /* Connection failed, try creating a new pipe. */
-            DWORD open_error = GetLastError();
-            char_pipe_log(dev->log, "CreateFileA failed (%08X)\n", open_error);
+                /* Configure client pipe. */
+                DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
+                SetNamedPipeHandleState(dev->fd, &mode, NULL, NULL);
+            } else {
+                DWORD err = GetLastError();
+                char_pipe_log(dev->log, "CreateFileA failed (%08X)\n", err);
 
+                snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
+                FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
+                snprintf(msg, sizeof(msg), "Could not connect to %s: %s", full_path, fmt);
+                if (mode == CHAR_PIPE_MODE_AUTO)
+                    goto server;
+                else
+                    ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+            }
+        } else if (mode == CHAR_PIPE_MODE_SERVER) {
+server:
             dev->fd = CreateNamedPipeA(full_path, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
             if (CHAR_FD_VALID(dev->fd)) {
                 char_pipe_log(dev->log, "Created new pipe\n");
             } else {
                 /* Both creation and connection failed. */
-                DWORD create_error = GetLastError();
-                char_pipe_log(dev->log, "CreateNamedPipeA failed (%08X)\n", create_error);
+                DWORD err = GetLastError();
+                char_pipe_log(dev->log, "CreateNamedPipeA failed (%08X)\n", err);
 
-                wchar_t msg[3][1024] = { 0 };
-                FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, open_error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), msg[0], sizeof(msg[0]) / sizeof(msg[0][0]), NULL);
-                FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, create_error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), msg[1], sizeof(msg[1]) / sizeof(msg[1][0]), NULL);
-                swprintf(msg[2], sizeof(msg[2]) / sizeof(msg[2][0]), L"Could not create or connect to pipe %s:\nConnect: %ls\nCreate: %ls", full_path, msg[0], msg[1]);
-                ui_msgbox(MBX_ERROR, msg[2]);
+                if (mode == CHAR_PIPE_MODE_AUTO) /* on auto mode, delay connect failed message to here */
+                    ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
+                FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
+                snprintf(msg, sizeof(msg), "Could not create %s: %s", full_path, fmt);
+                ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
             }
         }
 #else
-        /* Create socket. */
+        /* Initialize socket. */
         dev->fd = socket(PF_UNIX, SOCK_DGRAM, 0);
         if (CHAR_FD_VALID(dev->fd)) {
-            /* Try connecting to the socket first. */
+            /* Connect or create socket. */
             struct sockaddr_un addr = { .sun_family = AF_UNIX };
             strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
-            if (connect(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) >= 0) {
-                char_pipe_log(dev->log, "Connected to existing socket\n");
-            } else {
-                /* Connection failed, try creating a new socket. */
-                int open_error = errno;
-                char_pipe_log(dev->log, "connect failed (%d)\n", open_error);
+            char msg[1024];
+            if ((mode == CHAR_PIPE_MODE_AUTO) || (mode == CHAR_PIPE_MODE_CLIENT)) {
+                if (connect(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) >= 0) {
+                    char_pipe_log(dev->log, "Connected to existing socket\n");
+                } else {
+                    int err = errno;
+                    char_pipe_log(dev->log, "connect failed (%d)\n", err);
 
+                    snprintf(msg, sizeof(msg), "Could not connect to %s: %s", full_path, strerror(err));
+                    if (mode == CHAR_PIPE_MODE_AUTO)
+                        goto server;
+                    else
+                        ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                }
+            } else if (mode == CHAR_PIPE_MODE_SERVER) {
+server:
                 /* Delete an existing file only if it's a socket. */
                 struct stat stats;
-                if ((stat(path, &stats) != 0) && S_ISSOCK(stats.st_mode))
-                    unlink(path);
+                if ((stat(path, &stats) != 0) && S_ISSOCK(stats.st_mode) && (unlink(path) < 0))
+                    char_pipe_log(dev->log, "unlink failed (%d)\n", errno);
 
                 if (bind(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) >= 0) {
-                    char_pipe_log(dev->log, "Craeted new socket\n");
+                    char_pipe_log(dev->log, "Created new socket\n");
                 } else {
                     /* Both connection and creation failed. */
-                    int create_error = errno;
-                    char_pipe_log(dev->log, "bind failed (%d)\n", create_error);
+                    int err = errno;
+                    char_pipe_log(dev->log, "bind failed (%d)\n", err);
 
                     close(dev->fd);
                     dev->fd = -1;
 
-                    wchar_t msg[1024];
-                    swprintf(msg, sizeof(msg) / sizeof(msg[0]), L"Could not create or connect to socket %s:\nConnect: %ls\nCreate: %ls", path, strerror(open_error), strerror(create_error));
-                    ui_msgbox(MBX_ERROR, msg);
+                    if (mode == CHAR_PIPE_MODE_AUTO) /* on auto mode, delay connect failed message to here */
+                        ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                    snprintf(msg, sizeof(msg), "Could not create %s: %s", full_path, strerror(err));
+                    ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
                 }
             }
         } else {
-            wchar_t msg[1024];
-            swprintf(msg, sizeof(msg) / sizeof(msg[0]), L"Could not create or connect to socket %s: %s", path, strerror(errno));
-            ui_msgbox(MBX_ERROR, msg);
+            int err = errno;
+            char_pipe_log(dev->log, "socket failed (%d)\n", err);
+            ui_msgbox(MBX_ERROR | MBX_ANSI, strerror(errno));
         }
 #endif
     } else {
@@ -252,6 +282,23 @@ static const device_config_t char_pipe_config[] = {
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
+    },
+    {
+        .name         = "mode",
+        .description  = "Mode",
+        .type         = CONFIG_SELECTION,
+        .default_int  = CHAR_PIPE_MODE_AUTO,
+        .selection    = {
+            { .description = "Auto",    .value = CHAR_PIPE_MODE_AUTO   },
+#ifdef _WIN32
+            { .description = "Server",  .value = CHAR_PIPE_MODE_SERVER },
+            { .description = "Client",  .value = CHAR_PIPE_MODE_CLIENT },
+#else
+            { .description = "Create",  .value = CHAR_PIPE_MODE_SERVER },
+            { .description = "Connect", .value = CHAR_PIPE_MODE_CLIENT },
+#endif
+            { NULL                                                }
+        }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

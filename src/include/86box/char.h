@@ -72,6 +72,13 @@ enum { /* device status */
     CHAR_DISCONNECTED = CHAR_RX_DISCONNECTED | CHAR_TX_DISCONNECTED
 };
 
+enum { /* char_pipe modes (for config migration) */
+    CHAR_PIPE_MODE_AUTO = 0,
+    CHAR_PIPE_MODE_SERVER,
+    CHAR_PIPE_MODE_CLIENT,
+    CHAR_PIPE_MODE_MAX
+};
+
 typedef struct _char_device_ {
     uint32_t  flags;
     void     *priv;

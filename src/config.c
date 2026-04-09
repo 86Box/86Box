@@ -1039,29 +1039,33 @@ load_ports(void)
             sprintf(temp, "Serial Passthrough #%i", c + 1); /* as of 8699 */
             cat2 = ini_find_section(config, temp);
         }
-        if (ini_section_get_int(cat2, "mode", 0) >= 3) { /* passthrough (4 on v5.3 Windows, 3 otherwise) */
+        int old_mode = ini_section_get_int(cat2, "mode", -1);
+        if (old_mode >= 3) { /* passthrough (4 on v5.3 Windows, 3 otherwise) */
             sprintf(temp, "Serial Passthrough (COM) #%i", c + 1);
             ini_rename_section(cat2, temp);
             p = ini_section_get_string(cat2, "host_serial_path", "");
             if (p[0])
                 ini_section_set_string(cat2, "path", p);
-            ini_section_delete_var(cat2, "named_pipe");
             p = "serial_passthrough";
         } else { /* pipe/pty */
 #ifdef _WIN32
             sprintf(temp, "Named Pipe / Socket (COM) #%i", c + 1);
             ini_rename_section(cat2, temp);
-            p = ini_section_get_string(cat2, "named_pipe", (old_enable || cat2) ? "\\\\.\\pipe\\86Box\\test" : ""); /* use old default path if there's any evidence of passthrough having been enabled */
+            p = ini_section_get_string(cat2, "named_pipe", (old_enable || (old_mode >= 0) || cat2) ? "\\\\.\\pipe\\86Box\\test" : ""); /* use old default path if there's any evidence of passthrough having been enabled */
             if (p[0])
                 ini_set_string(config, temp, "path", p); /* create section if not present */
+            ini_set_int(config, temp, "mode", (old_mode == 1) ? CHAR_PIPE_MODE_CLIENT : CHAR_PIPE_MODE_SERVER);
             p = "pipe";
+            goto keep_mode;
 #else
-            p = "pty";
+            p = "stdio";
+            // TODO: set to pty mode
 #endif
         }
 
-        /* Clean up unused serial passthrough device settings. */
+        /* Clean up old serial passthrough device settings. */
         ini_section_delete_var(cat2, "mode");
+keep_mode:
         ini_section_delete_var(cat2, "host_serial_path");
         ini_section_delete_var(cat2, "named_pipe");
         ini_section_delete_var(cat2, "data_bits");
