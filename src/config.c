@@ -1051,9 +1051,10 @@ load_ports(void)
             sprintf(temp, "Named Pipe / Socket (COM) #%i", c + 1);
             ini_rename_section(cat2, temp);
             p = ini_section_get_string(cat2, "named_pipe", (old_enable || (old_mode >= 0) || cat2) ? "\\\\.\\pipe\\86Box\\test" : ""); /* use old default path if there's any evidence of passthrough having been enabled */
-            if (p[0])
+            if (p[0]) {
                 ini_set_string(config, temp, "path", p); /* create section if not present */
-            ini_set_int(config, temp, "mode", (old_mode == 1) ? CHAR_PIPE_MODE_CLIENT : CHAR_PIPE_MODE_SERVER);
+                ini_set_int(config, temp, "mode", (old_mode == 1) ? CHAR_PIPE_MODE_CLIENT : CHAR_PIPE_MODE_SERVER);
+            }
             p = "pipe";
             goto keep_mode;
 #else
