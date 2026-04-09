@@ -122,7 +122,6 @@ char_stdio_read(uint8_t *buf, size_t len, void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 
-    size_t ret = 0;
 #ifdef _WIN32
     if (dev->thread_in) {
         if (dev->buf_in_valid && (len > 0)) {
@@ -135,6 +134,7 @@ char_stdio_read(uint8_t *buf, size_t len, void *priv)
         }
     }
 
+    size_t ret = 0;
     if (CHAR_FD_VALID(dev->fd_in)) {
         while (len-- > 0) {
             DWORD count;
@@ -150,6 +150,7 @@ char_stdio_read(uint8_t *buf, size_t len, void *priv)
         }
     }
 #else
+    ssize_t ret = 0;
     if (CHAR_FD_VALID(dev->fd_in)) {
         ret = read(dev->fd_in, buf, len);
         if (ret < 0)

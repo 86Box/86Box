@@ -224,7 +224,7 @@ server:
                     int err = errno;
                     char_pipe_log(dev->log, "connect failed (%d)\n", err);
 
-                    snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, strerror(err));
+                    snprintf(msg, sizeof(msg), "Could not connect to %s: %s", addr.sun_path, strerror(err));
                     if (mode == CHAR_PIPE_MODE_AUTO)
                         goto server;
                     else
@@ -234,7 +234,7 @@ server:
 server: {}
                 /* Delete an existing file only if it's a socket. */
                 struct stat stats;
-                if ((stat(path, &stats) != 0) && S_ISSOCK(stats.st_mode) && (unlink(path) < 0))
+                if ((stat(addr.sun_path, &stats) != 0) && S_ISSOCK(stats.st_mode) && (unlink(addr.sun_path) < 0))
                     char_pipe_log(dev->log, "unlink failed (%d)\n", errno);
 
                 if (bind(dev->fd, (struct sockaddr *) &addr, sizeof(addr)) >= 0) {
@@ -249,7 +249,7 @@ server: {}
 
                     if (mode == CHAR_PIPE_MODE_AUTO) /* on auto mode, delay connect failed message to here */
                         ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
-                    snprintf(msg, sizeof(msg), "Could not create %s: %s", path, strerror(err));
+                    snprintf(msg, sizeof(msg), "Could not create %s: %s", addr.sun_path, strerror(err));
                     ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
                 }
             }
