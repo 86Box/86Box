@@ -2029,7 +2029,7 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     fseek(*fp, 0x2c, SEEK_SET);
 
     uint64_t offset = 0ULL;
-    fread(&offset, 1, 4, *fp);
+    ret = fread(&offset, 1, 4, *fp);
     if (ret != 4)
         return mds_decrypt_error(img, mdsfile, fp);
 

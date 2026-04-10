@@ -616,7 +616,7 @@ esdi_callback(void *priv)
                 return;
             }
 
-            if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+            if (dev->rba >= hdd_image_get_last_sector(drive->hdd_num)) {
                 rba_out_of_range(dev);
                 return;
             }

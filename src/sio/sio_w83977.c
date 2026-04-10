@@ -561,11 +561,11 @@ w83977_gpio_handler(w83977_t *dev, const int gpio)
     if (dev->gpio[gpio].base != old_base) {
         if ((old_base >= 0x0100) && (old_base <= 0x0ff8))
             io_removehandler(old_base, 0x0002,
-                             w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, dev);
+                             w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, &(dev->gpio[gpio]));
 
         if ((dev->gpio[gpio].base >= 0x0100) && (dev->gpio[gpio].base <= 0x0ff8))
             io_sethandler(dev->gpio[gpio].base, 0x0002,
-                          w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, dev);
+                          w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, &(dev->gpio[gpio]));
     }
 }
 

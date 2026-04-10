@@ -1473,7 +1473,7 @@ MainWindow::on_actionFullscreen_triggered()
     }
     fs_on_signal  = false;
     fs_off_signal = false;
-    ui->stackedWidget->onResize(width(), height());
+    ui->stackedWidget->onResize(ui->stackedWidget->width(), ui->stackedWidget->height());
 }
 
 void
@@ -2263,10 +2263,8 @@ MainWindow::on_actionPreferences_triggered()
         default:
             break;
         case QDialog::Accepted:
-            preferences.save();
             updateShortcuts();
             emit vmmGlobalConfigurationChanged();
-            config_save_global();
             break;
         case QDialog::Rejected:
             break;
