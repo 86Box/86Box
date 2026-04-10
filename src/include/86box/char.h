@@ -22,6 +22,7 @@
 #else
 #    define CHAR_FD_VALID(fd) ((fd) >= 0)
 #endif
+#define CHAR_RECONNECT_MS 500
 
 enum {
     CHAR_LPT_USESTROBE = 0x1

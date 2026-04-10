@@ -41,6 +41,8 @@
 #include <86box/ini.h>
 #include <86box/char.h>
 #include <86box/log.h>
+#include <86box/path.h>
+#include <86box/plat.h>
 #include <86box/plat_fallthrough.h>
 
 #define ENABLE_CHAR_SERIAL_LOG 1
@@ -67,6 +69,8 @@ typedef struct {
     char_port_t *port;
 
     const char *path;
+    int reconnect : 1;
+    uint32_t last_connect_attempt;
 #ifdef _WIN32
     HANDLE fd;
     DCB    prev_config;
@@ -185,7 +189,7 @@ char_serial_disconnect(char_serial_t *dev)
 
     /* Close serial port. */
     CloseHandle(dev->fd);
-    dev->fd = NULL;
+    dev->fd = INVALID_HANDLE_VALUE;
 #else
     /* Restore serial port configuration. */
     if (dev->prev_config_valid)
@@ -203,12 +207,28 @@ char_serial_disconnect(char_serial_t *dev)
 #endif
 }
 
-static uint8_t
-char_serial_connect(char_serial_t *dev)
+static int
+char_serial_connect(char_serial_t *dev, int startup)
 {
-    if (!dev->path[0])
+    /* Limit the connection attempt rate. */
+    uint32_t now = plat_get_ticks();
+    if (LIKELY(!startup) && ((now - dev->last_connect_attempt) < CHAR_RECONNECT_MS))
         return 0;
+    dev->last_connect_attempt = now;
 
+    /* Close any existing connection. */
+    if (LIKELY(!startup))
+        char_serial_disconnect(dev);
+
+    /* Stop if there's nothing to connect to. */
+    const char *path = dev->path;
+    if (!path || !path[0]) {
+        if (startup)
+            char_serial_log(dev->log, "No path specified\n");
+        return 0;
+    }
+
+    char msg[1024];
 #ifdef _WIN32
     /* Open serial port. */
     COMMTIMEOUTS timeouts = {
@@ -218,9 +238,15 @@ char_serial_connect(char_serial_t *dev)
         .WriteTotalTimeoutMultiplier = 0,
         .WriteTotalTimeoutConstant   = 1000
     };
-    dev->fd = CreateFileA(dev->path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_WRITE_THROUGH, NULL);
-    if (!dev->fd) {
-        char_serial_log(dev->log, "Connect failed (%08X)\n", GetLastError());
+    dev->fd = CreateFileA(path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_WRITE_THROUGH, NULL);
+    if (!CHAR_FD_VALID(dev->fd)) {
+        DWORD err = GetLastError();
+        char_serial_log(dev->log, "CreateFileA failed (%08X)\n", err);
+
+        char fmt[512];
+        snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
+        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
+        snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, fmt);
         return 0;
     }
 
@@ -239,9 +265,13 @@ char_serial_connect(char_serial_t *dev)
     ClearCommError(dev->fd, &err, &stats);
 #else
     /* Open serial port. */
-    dev->fd = open(dev->path, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    dev->fd = open(path, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (!CHAR_FD_VALID(dev->fd)) {
-        char_serial_log(dev->log, "Connect failed (%d)\n", errno);
+        int err = errno;
+        char_serial_log(dev->log, "open failed (%d)\n", errno);
+
+errmsg:
+
         return 0;
     }
 
@@ -265,7 +295,7 @@ char_serial_connect(char_serial_t *dev)
         char_serial_log(dev->log, "tcgetattr failed (%d)\n", errno);
 #endif
 
-    char_serial_log(dev->log, "Connected\n");
+    char_serial_log(dev->log, "Connected: %s\n", path);
 
     return 1;
 }
@@ -275,24 +305,34 @@ char_serial_read(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
+    int retried = !dev->reconnect;
 #ifdef _WIN32
     DWORD ret = 0;
+retry:
     if (CHAR_FD_VALID(dev->fd)) {
         DWORD err;
         COMSTAT stats;
         ClearCommError(dev->fd, &err, &stats);
-        if (stats.cbInQue > 0)
-            ReadFile(dev->fd, buf, len, &ret, NULL);
-    }
+        if ((stats.cbInQue <= 0) || ReadFile(dev->fd, buf, len, &ret, NULL))
+            return ret;
+        char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
 #else
     ssize_t ret = 0;
+retry:
     if (CHAR_FD_VALID(dev->fd)) {
-        ret = read(dev->fd, buf, len);
-        if (ret < 0)
-            ret = 0;
+        do {
+            ret = read(dev->fd, buf, len);
+        } while ((ret == 0) || ((ret < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
     }
+    if (ret < 0) {
+        char_serial_log(dev->log, "read failed (%d)\n", errno);
 #endif
-
+        ret = 0;
+        if (!retried && char_serial_connect(dev, 0)) {
+            retried = 1;
+            goto retry;
+        }
+    }
     return ret;
 }
 
@@ -301,21 +341,29 @@ char_serial_write(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
+    int retried = !dev->reconnect;
 #ifdef _WIN32
     DWORD ret = 0;
-    if (CHAR_FD_VALID(dev->fd))
-        WriteFile(dev->fd, buf, len, &ret, NULL);
+retry:
+    if (CHAR_FD_VALID(dev->fd) && !WriteFile(dev->fd, buf, len, &ret, NULL)) {
+        char_serial_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
 #else
     ssize_t ret = 0;
+retry:
     if (CHAR_FD_VALID(dev->fd)) {
         do {
             ret = write(dev->fd, buf, len);
         } while ((ret == 0) || ((ret < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
-        if (ret < 0)
-            ret = 0;
     }
+    if (ret < 0) {
+        char_serial_log(dev->log, "write failed (%d)\n", errno);
 #endif
-
+        ret = 0;
+        if (!retried && char_serial_connect(dev, 0)) {
+            retried = 1;
+            goto retry;
+        }
+    }
     return ret;
 }
 
@@ -584,6 +632,7 @@ char_serial_close(void *priv)
     char_serial_t *dev = (char_serial_t *) priv;
 
     char_serial_log(dev->log, "close()\n");
+    log_close(dev->log);
 
     char_serial_disconnect(dev);
 
@@ -597,17 +646,17 @@ char_serial_init(const device_t *info)
 
     /* Get serial port. */
     dev->path = device_get_config_string("path");
-    char buf[256] = {0};
-    snprintf(buf, sizeof(buf), "Host Serial %s", dev->path);
+    char buf[256];
+    snprintf(buf, sizeof(buf), "Host Serial %s", path_get_filename((char *) dev->path));
     dev->log = log_open(buf);
     char_serial_log(dev->log, "init(%s)\n", dev->path);
+    dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
     dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
 
     /* Connect to serial port. */
-    if (dev->path)
-        char_serial_connect(dev);
+    char_serial_connect(dev, 1);
 
     return dev;
 }
@@ -620,6 +669,17 @@ static const device_config_t char_serial_config[] = {
         .type           = CONFIG_SERPORT,
         .default_string = NULL,
         .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "reconnect",
+        .description    = "Reconnect automatically",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },

@@ -220,6 +220,7 @@ char_stdio_close(void *priv)
     }
 
     char_stdio_log(dev->log, "close()\n");
+    log_close(dev->log);
 
     /* Restore existing terminal configuration. */
 #ifdef _WIN32

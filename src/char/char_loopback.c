@@ -176,6 +176,9 @@ char_loopback_close(void *priv)
     char_loopback_t *dev = (char_loopback_t *) priv;
 
     char_loopback_log(dev->log, "close()\n");
+    log_close(dev->log);
+
+    free(dev);
 }
 
 static void *

@@ -122,11 +122,14 @@ char_file_close(void *priv)
     char_file_t *dev = (char_file_t *) priv;
 
     char_file_log(dev->log, "close()\n");
+    log_close(dev->log);
 
     if (dev->file_in)
         fclose(dev->file_in);
     if (dev->file_out)
         fclose(dev->file_out);
+
+    free(dev);
 }
 
 static void *
