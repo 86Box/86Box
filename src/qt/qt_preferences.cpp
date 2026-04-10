@@ -205,7 +205,6 @@ Preferences::accept()
 
     save();
     config_save_global();
-    config_changed = 2;
     QTimer::singleShot(200, [size] () {
         main_window->centralWidget()->setFixedSize(size);
         QApplication::processEvents();
