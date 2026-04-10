@@ -319,7 +319,9 @@ ymf701_reg_write(uint16_t addr, uint8_t val, void *priv)
                         mpu401_setirq(ymf701->mpu, ymf701->cur_mpu401_irq);
                         gameport_remap(ymf701->gameport, (ymf701->regs[3] & 0x1) ? 0x200 : 0x00);
                         break;
-                    case 0x04: /* LSI Version Register, on a real Intel Ruby board this is always 0 */
+                    case 0x04: /* LSI Version Register, bit 0 sets SB DSP version */
+                        ymf701->regs[0x04] = val & 0x01;
+                        ymf701->sb->dsp.opl3sa_dsp_ver = (ymf701->regs[0x04] & 0x01) ? 2 : 3;
                         break;
                     default:
                         break;
@@ -419,11 +421,12 @@ ymf701_init(const device_t *info)
     ymf701->sb->opl_enabled = 1;
 
     sb_dsp_set_real_opl(&ymf701->sb->dsp, 1);
-    sb_dsp_init(&ymf701->sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, ymf701);
+    sb_dsp_init(&ymf701->sb->dsp, SBPRO_DSP_301, SB_SUBTYPE_YMF7XX, ymf701);
     sb_dsp_setaddr(&ymf701->sb->dsp, ymf701->cur_sb_addr);
     sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_sb_irq);
     sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_sb_dma);
     sb_ct1345_mixer_reset(ymf701->sb);
+    ymf701->sb->dsp.opl3sa_dsp_ver = 3;
 
     ymf701->sb->opl_mixer = ymf701;
     ymf701->sb->opl_mix   = ymf701_filter_opl;
