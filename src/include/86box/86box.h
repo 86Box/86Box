@@ -288,9 +288,6 @@ extern void reset_screen_size(void);
 extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
 extern void update_mouse_msg(void);
-#if 0
-extern void pc_reload(wchar_t *fn);
-#endif
 extern int  pc_init_roms(void);
 extern int  pc_init_modules(void);
 extern int  pc_init(int argc, char *argv[]);

@@ -48,11 +48,12 @@ typedef struct {
     void *priv;
 } sound_handler_t;
 
-int sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
-int sound_pos_global                   = 0;
-int music_pos_global                   = 0;
-int wavetable_pos_global               = 0;
-int sound_gain                         = 0;
+int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
+int  sound_pos_global                   = 0;
+int  music_pos_global                   = 0;
+int  wavetable_pos_global               = 0;
+int  sound_gain                         = 0;
+char sound_output_device[512]           = { 0 };
 
 static sound_handler_t sound_handlers[8];
 static sound_handler_t music_handlers[8];
@@ -123,7 +124,6 @@ static const SOUND_CARD sound_cards[] = {
     { &opl2board_device             },
 #endif
     { &pas_device                   },
-    { &pasplus_device               },
     { &sb_1_device                  },
     { &sb_15_device                 },
     { &sb_2_device                  },
@@ -164,6 +164,7 @@ static const SOUND_CARD sound_cards[] = {
     { &mirosound_pcm10_device       },
     { &opti_82c930_device           },
     { &opti_82c931_device           },
+    { &pasplus_device               },
     { &pas16_device                 },
     { &pas16d_device                },
     { &sb_16_device                 },

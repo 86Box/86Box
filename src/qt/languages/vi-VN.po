@@ -2990,9 +2990,6 @@ msgstr "Hệ thống sẽ không được thêm."
 msgid "&Update mouse every CPU frame"
 msgstr "&Cập nhật chuột mỗi cỡ khung CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Màu sắc"
 
@@ -3008,8 +3005,11 @@ msgstr "Độ sáng"
 msgid "Sharpness"
 msgstr "Độ sắc nét"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Cài đặt chế độ tổng hợp &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Cài đặt chế độ tổng hợp CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID của màn hình"
@@ -3064,3 +3064,9 @@ msgstr "Thô"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Thiết bị đầu ra âm thanh:"
+
+msgid "System Default"
+msgstr "Mặc định hệ thống"
