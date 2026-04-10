@@ -122,6 +122,8 @@ QComboBox *cbox_bios   = nullptr;
 const _device_config_ *cfg_memory = nullptr;
 const _device_config_ *cfg_bios   = nullptr;
 
+int bios_rows = 0;
+
 void
 DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 {
@@ -280,6 +282,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         q++;
                     }
 
+                    bios_rows = rows;
                     if (rows > 1)
                         this->ui->formLayout->addRow(tr(config->description), cbox);
 
@@ -422,6 +425,8 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     cfg_memory   = nullptr;
     cfg_bios     = nullptr;
 
+    bios_rows    = 0;
+
     DeviceConfig dc(settings);
     dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
 
@@ -502,11 +507,13 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     }
                 case CONFIG_BIOS:
                     {
-                        auto *cbox = dc.findChild<QComboBox *>(config->name);
-                        int   idx  = cbox->currentData().toInt();
-                        if (strcmp(selected.toUtf8(), const_cast<char *>(config->bios[idx].internal_name))) {
-                            config_set_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->bios[idx].internal_name));
-                            has_changed |= 1;
+                        if (bios_rows > 1) {
+                            auto *cbox = dc.findChild<QComboBox *>(config->name);
+                            int   idx  = cbox->currentData().toInt();
+                            if (strcmp(selected.toUtf8(), const_cast<char *>(config->bios[idx].internal_name))) {
+                                config_set_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->bios[idx].internal_name));
+                                has_changed |= 1;
+                            }
                         }
                         break;
                     }
