@@ -941,10 +941,13 @@ then
 	[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
 	# Archive Ghostscript DLL from local official distribution installation.
-	for gs in "$pf"/gs/gs*.*.*
-	do
-		cp -p "$gs"/bin/gsdll*.dll archive_tmp/
-	done
+	if [ "$arch" != "ARM64" ]
+	then
+		for gs in "$pf"/gs/gs*.*.*
+		do
+			cp -p "$gs"/bin/gsdll*.dll archive_tmp/
+		done
+	fi
 
 	# Archive Discord Game SDK DLL.
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
