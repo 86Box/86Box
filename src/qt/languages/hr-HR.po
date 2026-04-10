@@ -2992,9 +2992,6 @@ msgstr "Sistem neće biti dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Ažuriraj status miša kod skavog bloka procesora"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Boja"
 
@@ -3010,8 +3007,11 @@ msgstr "Svjetlina"
 msgid "Sharpness"
 msgstr "Oštrina"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Opcije kompozitnog načina &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Opcije kompozitnog načina CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
@@ -3066,3 +3066,9 @@ msgstr "Neobrađeni podaci"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Uređaj za izlaz zvuka:"
+
+msgid "System Default"
+msgstr "Zadana postavka operativnog sustava"

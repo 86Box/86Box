@@ -852,6 +852,10 @@ load_sound(void)
     } else {
         fm_driver = FM_DRV_NUKED;
     }
+
+    p = ini_section_get_string(cat, "sound_output_device", "");
+    strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
+    sound_output_device[sizeof(sound_output_device) - 1] = '\0';
 }
 
 /* Load "Network" section. */
@@ -3160,6 +3164,11 @@ save_sound(void)
         ini_section_delete_var(cat, "fm_driver");
     else
         ini_section_set_string(cat, "fm_driver", "ymfm");
+
+    if (sound_output_device[0] == '\0')
+        ini_section_delete_var(cat, "sound_output_device");
+    else
+        ini_section_set_string(cat, "sound_output_device", sound_output_device);
 
     ini_delete_section_if_empty(config, cat);
 }

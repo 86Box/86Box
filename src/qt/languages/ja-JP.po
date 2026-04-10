@@ -2990,9 +2990,6 @@ msgstr "システムは追加されません。"
 msgid "&Update mouse every CPU frame"
 msgstr "マウスをCPUフレームごとに更新(&U)"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "色相"
 
@@ -3008,8 +3005,11 @@ msgstr "明るさ"
 msgid "Sharpness"
 msgstr "シャープネス"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "CGA複合モードの設定(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA複合モードの設定"
 
 msgid "Monitor EDID"
 msgstr "モニターのEDID"
@@ -3064,3 +3064,9 @@ msgstr "生"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "音声出力デバイス:"
+
+msgid "System Default"
+msgstr "システム既定値"

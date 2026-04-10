@@ -2990,9 +2990,6 @@ msgstr "Systém nebude pridaný."
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovať myš pri každom rámci CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Odtieň"
 
@@ -3008,8 +3005,11 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrota"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Nastavenia kompozitného režimu &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Nastavenia kompozitného režimu CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
@@ -3064,3 +3064,9 @@ msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Výstupné zvukové zariadenie:"
+
+msgid "System Default"
+msgstr "Predvolené nastavenie systému"
