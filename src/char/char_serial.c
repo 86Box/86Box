@@ -44,6 +44,7 @@
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/ui.h>
 
 #define ENABLE_CHAR_SERIAL_LOG 1
 #ifdef ENABLE_CHAR_SERIAL_LOG
@@ -247,40 +248,32 @@ char_serial_connect(char_serial_t *dev, int startup)
         snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
         snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, fmt);
-        return 0;
+        goto errmsg;
     }
 
     /* Save current serial port configuration for restoring on close. */
     dev->prev_config_valid = !!GetCommState(dev->fd, &dev->prev_config);
 
-    /* Set buffer sizes. */
+    /* Set up serial port. */
     SetupComm(dev->fd, 2048, 2048);
-
-    /* Set port timeouts. */
     SetCommTimeouts(dev->fd, &timeouts);
-
-    /* Clear any outstanding errors. */
     DWORD err;
     COMSTAT stats;
     ClearCommError(dev->fd, &err, &stats);
 #else
     /* Open serial port. */
+    int err = 0;
     dev->fd = open(path, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (!CHAR_FD_VALID(dev->fd)) {
-        int err = errno;
-        char_serial_log(dev->log, "open failed (%d)\n", errno);
-
-errmsg:
-
-        return 0;
+        err = errno;
+        char_serial_log(dev->log, "open failed (%d)\n", err);
+    } else if (!isatty(dev->fd)) {
+        err = ENOTTY;
+        char_serial_log(dev->log, "Path is not a TTY\n");
     }
-
-    /* Make sure we're talking to a tty. */
-    if (!isatty(dev->fd)) {
-        char_serial_log(dev->log, "Not a tty\n");
-        close(dev->fd);
-        dev->fd = -1;
-        return 0;
+    if (err > 0) {        
+        snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, strerror(err));
+        goto errmsg;
     }
 
     /* Save current serial port configuration for restoring on close. */
@@ -298,6 +291,14 @@ errmsg:
     char_serial_log(dev->log, "Connected: %s\n", path);
 
     return 1;
+
+errmsg:
+    char_serial_disconnect(dev);
+    if (startup)
+        ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+    else
+        char_serial_log(dev->log, "%s\n", msg);
+    return 0;
 }
 
 static size_t
