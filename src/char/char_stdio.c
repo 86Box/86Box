@@ -313,33 +313,33 @@ char_stdio_init(const device_t *info)
                     if (pty) {
                         char_stdio_log(dev->log, "Bound to %s\n", pty);
 
+#    ifndef __APPLE__ /* pty master is not a terminal on macOS, flags must be set by the other end */
                         /* Enable raw input. */
                         tcgetattr(dev->fd_out, &dev->prev_config);
                         cfmakeraw(&dev->prev_config);
-                        if (tcsetattr(dev->fd_out, TCSAFLUSH, &dev->prev_config))
-                            char_stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
+                        if (tcsetattr(dev->fd_out, TCSANOW, &dev->prev_config))
+                            char_stdio_log(dev->log, "tcsetattr failed (%d)\n", errno);
+#    endif
 
                         if (mode == CHAR_STDIO_MODE_PTY) {
                             snprintf(msg, sizeof(msg), "%s: Attached to %s", dev->port->name, pty);
                             ui_msgbox(MBX_INFO | MBX_ANSI, msg);
                         } else {
                             /* Spawn terminal emulator. */
-                            snprintf(msg, sizeof(msg), "exec \1 -V '");
-                            int offset = strlen(msg);
-                            int pty_len = strlen(pty);
-                            for (int i = 0; vm_name[i] && (offset < (sizeof(msg) - 9 - pty_len)); i++)
-                                msg[offset++] = (vm_name[i] == '\'') ? '"' : vm_name[i];
-                            msg[offset++] = ' ';
-                            for (int i = 0; dev->port->name[i] && (offset < (sizeof(msg) - 8 - pty_len)); i++)
-                                msg[offset++] = (dev->port->name[i] == '\'') ? '"' : dev->port->name[i];
-                            snprintf(&msg[offset], sizeof(msg) - offset, "' -D '");
-                            offset = strlen(msg);
-                            for (int i = 0; pty[i] && (offset < (sizeof(msg) - 2)); i++)
-                                msg[offset++] = (pty[i] == '\'') ? '"' : pty[i];
-                            msg[offset++] = '\'';
-                            msg[offset] = '\0';
-                            if (!plat_run_terminal(msg, NULL))
-                                char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", msg);
+                            char cmd[2048];
+                            snprintf(cmd, sizeof(cmd),
+                                "stty raw -echo;" /* enable raw input on terminal */
+                                "(stty raw -echo;" /* enable raw input on pty for macOS */
+                                "cat;" /* pipe to stdout... */
+                                "kill $$)" /* (stop script once the read connection is broken) */
+                                "<'%s'&" /* ...from pty */
+                                "clear;" /* clear screen of the background task indicator */
+                                "cat>'%s';" /* pipe from stdin to pty */
+                                "kill $!", /* stop script once the write connection is broken */
+                                pty, pty);
+                            snprintf(msg, sizeof(msg), "%s [%s]", vm_name, dev->port->name);
+                            if (!plat_run_terminal(cmd, msg))
+                                char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
                         }
                     } else {
                         err = errno;

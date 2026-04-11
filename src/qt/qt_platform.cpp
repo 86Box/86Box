@@ -1162,46 +1162,34 @@ have_env_var(const char *var, const char *compare = NULL)
 int
 plat_run_terminal(const char *cmd, const char *title)
 {
-    auto cmdq = QString(cmd);
-    QString apppath = QCoreApplication::applicationFilePath();
-#ifdef Q_OS_WINDOWS
-    auto escaper = QRegularExpression(QStringLiteral("([&|<>^])"));
-    apppath.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%")).prepend('"').append('"');
-#else
-#    ifndef Q_OS_MACOS
-    const char *appimage = getenv("APPIMAGE");
-    if (appimage && appimage[0])
-        apppath = QString(appimage);
-#    endif
-    apppath.replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend('\'').append('\'');
-#endif
-    cmdq.replace(QStringLiteral("\1"), apppath);
-    QString titleq = QString(title);
+    QString cmdq = cmd;
+    QString titleq = title;
 
     auto process = new QProcess();
     process->setInputChannelMode(QProcess::ForwardedInputChannel);
     process->setProcessChannelMode(QProcess::ForwardedChannels);
+    process->setWorkingDirectory(usr_path);
 
 #ifdef Q_OS_WINDOWS
     process->setCreateProcessArgumentsModifier([] (QProcess::CreateProcessArguments *args) {
         args->flags |= CREATE_NEW_CONSOLE;
         args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
     });
-    process->setProgram(QString(getenv("ComSpec")));
+    process->setProgram(getenv("ComSpec"));
     cmdq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"));
     if (!titleq.isEmpty())
         cmdq.prepend(QStringLiteral("title %1&").arg(titleq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"))));
     process->setArguments(QStringList() << QStringLiteral("/c") << cmdq);
     return process->startDetached();
 #elif defined(Q_OS_MACOS)
-    QString script = QString("do script (system attribute \"COMMAND\")");
+    auto script = QString("do script (system attribute \"COMMAND\")");
     auto env = QProcessEnvironment::systemEnvironment();
     if (!titleq.isEmpty()) {
         env.insert(QStringLiteral("WINDOW_TITLE"), titleq);
         script.prepend(QStringLiteral("set custom title of (")).append(QStringLiteral(") to (system attribute \"WINDOW_TITLE\")"));
     }
     script.prepend(QStringLiteral("tell application \"Terminal\" to "));
-    env.insert(QStringLiteral("COMMAND"), cmdq.prepend(QStringLiteral("clear;")).append(QStringLiteral(";exit")));
+    env.insert(QStringLiteral("COMMAND"), cmdq.replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("clear;exec sh -c '")).append('\''));
     process->setProcessEnvironment(env);
     process->setProgram(QStringLiteral("osascript"));
     process->setArguments(QStringList() << QStringLiteral("-e") << script);
@@ -1211,7 +1199,7 @@ plat_run_terminal(const char *cmd, const char *title)
         auto env = QProcessEnvironment::systemEnvironment();
         env.insert(QStringLiteral("WINDOW_TITLE"), titleq);
         process->setProcessEnvironment(env);
-        cmdq.prepend(QString("printf '\\e]0;%s\\a\\r' \"$WINDOW_TITLE\";"));
+        cmdq.prepend(QStringLiteral("printf '\\e]0;%s\\a\\r' \"$WINDOW_TITLE\";"));
     }
 
     /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
