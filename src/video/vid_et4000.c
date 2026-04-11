@@ -746,7 +746,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 }
 
 static uint8_t
-et4000_mca_read(int port, void *priv)
+et4000_mca_read(const uint16_t port, void *priv)
 {
     const et4000_t *et4000 = (et4000_t *) priv;
 
@@ -754,7 +754,7 @@ et4000_mca_read(int port, void *priv)
 }
 
 static void
-et4000_mca_write(int port, uint8_t val, void *priv)
+et4000_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     et4000_t *et4000 = (et4000_t *) priv;
 

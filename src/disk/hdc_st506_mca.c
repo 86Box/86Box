@@ -1492,7 +1492,7 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
 }
 
 static uint8_t
-mfm_mca_read(int port, void *priv)
+mfm_mca_read(const uint16_t port, void *priv)
 {
     const mfm_t *dev = (mfm_t *) priv;
 
@@ -1502,7 +1502,7 @@ mfm_mca_read(int port, void *priv)
 }
 
 static void
-mfm_mca_write(int port, uint8_t val, void* priv)
+mfm_mca_write(const uint16_t port, uint8_t val, void* priv)
 {
     mfm_t *dev = (mfm_t *) priv;
 

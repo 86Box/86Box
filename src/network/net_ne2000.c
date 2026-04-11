@@ -1005,7 +1005,7 @@ nic_rom_init(nic_t *dev, char *s)
 }
 
 static uint8_t
-nic_mca_read(int port, void *priv)
+nic_mca_read(const uint16_t port, void *priv)
 {
     const nic_t *dev = (nic_t *) priv;
 
@@ -1024,7 +1024,7 @@ nic_mca_read(int port, void *priv)
     }
 
 static void
-nic_mca_write(int port, uint8_t val, void *priv)
+nic_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     nic_t   *dev    = (nic_t *) priv;
     uint16_t base[] = MCA_611F_IO_PORTS;
