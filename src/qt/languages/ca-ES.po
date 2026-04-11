@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.86box.net/projects/86box/86box/ca/>\n"
 "Language: ca-ES\n"
 "MIME-Version: 1.0\n"
@@ -522,18 +522,6 @@ msgstr "YMFM (més ràpid)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA de ECP de l'LPT intern:"
 
-msgid "Serial port 1"
-msgstr "Port sèrie 1"
-
-msgid "Serial port 2"
-msgstr "Port sèrie 2"
-
-msgid "Serial port 3"
-msgstr "Port sèrie 3"
-
-msgid "Serial port 4"
-msgstr "Port sèrie 4"
-
 msgid "Floppy disk controller:"
 msgstr "Controladora de disquets:"
 
@@ -611,6 +599,9 @@ msgstr "Discs durs:"
 
 msgid "Firmware Version"
 msgstr "Versió del firmware"
+
+msgid "DSP Version"
+msgstr "Versió del DSP"
 
 msgid "&New…"
 msgstr "&Nou…"
@@ -1827,18 +1818,6 @@ msgstr "Comprovador d'unitats del 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Targeta de clau per al Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Passatge de port sèrie 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Passatge de port sèrie 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Passatge de port sèrie 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Passatge de port sèrie 4"
-
 msgid "Renderer &options…"
 msgstr "Opc&ions del renderitzador…"
 
@@ -2667,7 +2646,8 @@ msgstr "Dongle de protecció per a Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Dispositiu de passatge de port sèrie"
 
 msgid "Passthrough Mode"
@@ -3009,9 +2989,6 @@ msgstr "El sistema no serà afegit."
 msgid "&Update mouse every CPU frame"
 msgstr "&Actualitza l'estat del ratolí a cada bloc del CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Matís"
 
@@ -3027,8 +3004,11 @@ msgstr "Luminositat"
 msgid "Sharpness"
 msgstr "Nitidesa"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Configuració de la modalitat compòsita &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Configuració de la modalitat compòsita CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID del monitor"
@@ -3083,3 +3063,9 @@ msgstr "En brut"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Dispositiu de sortida de so:"
+
+msgid "System Default"
+msgstr "Per defecte del sistema"

@@ -504,6 +504,12 @@ msgstr ""
 msgid "Use FLOAT32 sound"
 msgstr ""
 
+msgid "Audio output device:"
+msgstr ""
+
+msgid "System Default"
+msgstr ""
+
 msgid "FM synth driver:"
 msgstr ""
 
@@ -514,18 +520,6 @@ msgid "YMFM (faster)"
 msgstr ""
 
 msgid "Internal LPT ECP DMA:"
-msgstr ""
-
-msgid "Serial port 1"
-msgstr ""
-
-msgid "Serial port 2"
-msgstr ""
-
-msgid "Serial port 3"
-msgstr ""
-
-msgid "Serial port 4"
 msgstr ""
 
 msgid "Floppy disk controller:"
@@ -604,6 +598,9 @@ msgid "Hard disks:"
 msgstr ""
 
 msgid "Firmware Version"
+msgstr ""
+
+msgid "DSP Version"
 msgstr ""
 
 msgid "&New…"
@@ -1821,18 +1818,6 @@ msgstr ""
 msgid "Novell NetWare 2.x Key Card"
 msgstr ""
 
-msgid "Serial port passthrough 1"
-msgstr ""
-
-msgid "Serial port passthrough 2"
-msgstr ""
-
-msgid "Serial port passthrough 3"
-msgstr ""
-
-msgid "Serial port passthrough 4"
-msgstr ""
-
 msgid "Renderer &options…"
 msgstr ""
 
@@ -2661,7 +2646,7 @@ msgstr ""
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+msgid "Serial Passthrough"
 msgstr ""
 
 msgid "Passthrough Mode"
@@ -3003,9 +2988,6 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr ""
 
@@ -3021,7 +3003,10 @@ msgstr ""
 msgid "Sharpness"
 msgstr ""
 
-msgid "Reset"
+msgid "&CGA composite settings…"
+msgstr ""
+
+msgid "CGA composite settings"
 msgstr ""
 
 msgid "Monitor EDID"

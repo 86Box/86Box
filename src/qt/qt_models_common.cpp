@@ -28,3 +28,16 @@ Models::AddEntry(QAbstractItemModel *model, const QString &displayRole, int user
 
     return row;
 }
+
+int
+Models::AddEntry(QAbstractItemModel *model, const QString &displayRole, const QString &userRole)
+{
+    int row = model->rowCount();
+    model->insertRow(row);
+    auto idx = model->index(row, 0);
+
+    model->setData(idx, displayRole, Qt::DisplayRole);
+    model->setData(idx, userRole, Qt::UserRole);
+
+    return row;
+}

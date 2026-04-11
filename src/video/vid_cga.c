@@ -101,6 +101,10 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
                     cga->fullchange = changeframecount;
                     cga_recalctimings(cga);
+
+                    if (cga->crtcreg == 3)
+                        update_cga16_color(cga->cgamode, (cga->cgacol & 0x0f) |
+                                                         (((cga->crtc[3] == 0) || (cga->crtc[3] == 15)) ? 0x80 : 0x00));
                 }
             }
             return;
@@ -110,7 +114,8 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
 
             if (old ^ val) {
                 if ((old ^ val) & 0x07)
-                    update_cga16_color(val);
+                    update_cga16_color(cga->cgamode, (cga->cgacol & 0x0f) |
+                                                     (((cga->crtc[3] == 0) || (cga->crtc[3] == 15)) ? 0x80 : 0x00));
 
                 cga_recalctimings(cga);
             }
@@ -118,8 +123,12 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
         case CGA_REGISTER_COLOR_SELECT:
             old         = cga->cgacol;
             cga->cgacol = val;
-            if (old ^ val)
+            if (old ^ val) {
+                update_cga16_color(cga->cgamode, (cga->cgacol & 0x0f) |
+                                                 (((cga->crtc[3] == 0) || (cga->crtc[3] == 15)) ? 0x80 : 0x00));
+
                 cga_recalctimings(cga);
+            }
             return;
 
         case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
@@ -779,7 +788,7 @@ cga_standalone_init(UNUSED(const device_t *info))
     cga->rgb_type = device_get_config_int("rgb_type");
     cga_palette   = (cga->rgb_type << 1);
     cgapal_rebuild();
-    update_cga16_color(cga->cgamode);
+    update_cga16_color(cga->cgamode, cga->cgacol);
 
     cga->double_type = device_get_config_int("double_type");
     cga_interpolate_init();

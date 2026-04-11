@@ -274,7 +274,7 @@ nvr_update_io_mapping(piix_t *dev)
 }
 
 static void
-piix_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
+piix_trap_io(UNUSED(const uint16_t size), UNUSED(const uint16_t port), UNUSED(const uint8_t write), UNUSED(const uint8_t val), void *priv)
 {
     piix_io_trap_t *trap = (piix_io_trap_t *) priv;
 
@@ -285,13 +285,13 @@ piix_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNU
 }
 
 static void
-piix_trap_io_ide(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+piix_trap_io_ide(uint16_t size, const uint16_t port, const uint8_t write, const uint8_t val, void *priv)
 {
     const piix_io_trap_t *trap = (piix_io_trap_t *) priv;
 
     /* IDE traps are per drive, not per channel. */
     if (ide_drives[trap->dev_id]->selected)
-        piix_trap_io(size, addr, write, val, priv);
+        piix_trap_io(size, port, write, val, priv);
 }
 
 static void

@@ -517,7 +517,7 @@ wd_io_remove(wd_t *dev, uint16_t addr)
 }
 
 static uint8_t
-wd_mca_read(int port, void *priv)
+wd_mca_read(const uint16_t port, void *priv)
 {
     const wd_t *dev = (wd_t *) priv;
 
@@ -530,7 +530,7 @@ wd_mca_read(int port, void *priv)
     }
 
 static void
-wd_mca_write(int port, uint8_t val, void *priv)
+wd_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     wd_t  *dev    = (wd_t *) priv;
     int8_t irq[4] = MCA_6FC0_IRQS;
@@ -572,7 +572,7 @@ wd_mca_write(int port, uint8_t val, void *priv)
 }
 
 static void
-wd_8013epa_mca_write(int port, uint8_t val, void *priv)
+wd_8013epa_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     wd_t *dev = (wd_t *) priv;
 

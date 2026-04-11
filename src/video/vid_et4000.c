@@ -746,7 +746,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 }
 
 static uint8_t
-et4000_mca_read(int port, void *priv)
+et4000_mca_read(const uint16_t port, void *priv)
 {
     const et4000_t *et4000 = (et4000_t *) priv;
 
@@ -754,7 +754,7 @@ et4000_mca_read(int port, void *priv)
 }
 
 static void
-et4000_mca_write(int port, uint8_t val, void *priv)
+et4000_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     et4000_t *et4000 = (et4000_t *) priv;
 
@@ -813,7 +813,7 @@ et4000_init(const device_t *info)
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
-            bios_ver      = (char *) device_get_config_bios("bios_ver");
+            bios_ver      = (char *) device_get_config_bios("bios");
             fn            = (char *) device_get_bios_file(info, bios_ver, 0);
             break;
 

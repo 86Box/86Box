@@ -620,7 +620,7 @@ static const device_config_t tvga9000b_config[] = {
 
 const device_t tvga8900_device = {
     .name          = "Trident TVGA 8900",
-    .internal_name = "tvga8900_onboard",
+    .internal_name = "tvga8900",
     .flags         = DEVICE_ISA | DEVICE_BIOS_ALIAS,
     .local         = 0,
     .init          = tvga_init,

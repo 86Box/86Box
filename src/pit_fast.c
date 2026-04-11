@@ -755,6 +755,20 @@ const device_t i8253_fast_device = {
     .config        = NULL
 };
 
+const device_t i8253_ext_io_fast_device = {
+    .name          = "Intel 8253 Programmable Interval Timer (External I/O)",
+    .internal_name = "i8253_ext_io_fast",
+    .flags         = DEVICE_ISA,
+    .local         = PIT_8253 | PIT_EXT_IO,
+    .init          = pitf_init,
+    .close         = pitf_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t i8254_fast_device = {
     .name          = "Intel 8254 Programmable Interval Timer",
     .internal_name = "i8254_fast",

@@ -23,6 +23,7 @@
 #if defined(_WIN32) && !defined(USE_FAUDIO)
 #    define COBJMACROS
 #    include <xaudio2.h>
+#    include <mmdeviceapi.h>
 #else
 #    include <FAudio.h>
 #    include <FAudio_compat.h>
@@ -118,6 +119,139 @@ static FAudioVoiceCallback callbacks =
 static IXAudio2VoiceCallback callbacks = { &callbacksVtbl };
 #endif
 
+#if defined(_WIN32) && !defined(USE_FAUDIO)
+/* GUIDs defined locally to avoid INITGUID/linking complications. */
+static const GUID   xa2_CLSID_MMDeviceEnumerator = { 0xBCDE0395, 0xE52F, 0x467C, { 0x8E, 0x3D, 0xC4, 0x57, 0x92, 0x91, 0x69, 0x2E } };
+static const GUID   xa2_IID_IMMDeviceEnumerator  = { 0xA95664D2, 0x9614, 0x4F35, { 0xA7, 0x46, 0xDE, 0x8D, 0xB6, 0x36, 0x17, 0xE6 } };
+static const PROPERTYKEY xa2_FriendlyNameKey     = { { 0xA45C254E, 0xDF1C, 0x4EFD, { 0x80, 0x20, 0x67, 0xD1, 0x46, 0xA8, 0x50, 0xE0 } }, 14 };
+
+static char    xa2_dev_list[8192]; /* double-null-terminated list of UTF-8 friendly names */
+static LPWSTR  xa2_dev_ids[64];   /* parallel array of device IDs (CoTaskMemAlloc'd) */
+static int     xa2_dev_count = 0;
+
+static void
+xa2_free_dev_ids(void)
+{
+    for (int i = 0; i < xa2_dev_count; i++) {
+        CoTaskMemFree(xa2_dev_ids[i]);
+        xa2_dev_ids[i] = NULL;
+    }
+    xa2_dev_count = 0;
+}
+
+static void
+xa2_build_dev_list(void)
+{
+    IMMDeviceEnumerator *penum = NULL;
+    IMMDeviceCollection *pcoll = NULL;
+    UINT                 count = 0;
+    char                *p    = xa2_dev_list;
+    size_t               rem  = sizeof(xa2_dev_list);
+    HRESULT              co_hr;
+
+    xa2_free_dev_ids();
+    memset(xa2_dev_list, 0, sizeof(xa2_dev_list));
+
+    co_hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
+    if (FAILED(CoCreateInstance(&xa2_CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL,
+                                &xa2_IID_IMMDeviceEnumerator, (void **) &penum)))
+        goto done;
+
+    if (FAILED(IMMDeviceEnumerator_EnumAudioEndpoints(penum, eRender,
+                                                       DEVICE_STATE_ACTIVE, &pcoll))) {
+        IMMDeviceEnumerator_Release(penum);
+        goto done;
+    }
+
+    IMMDeviceCollection_GetCount(pcoll, &count);
+
+    for (UINT i = 0; i < count && xa2_dev_count < 64; i++) {
+        IMMDevice      *pdev   = NULL;
+        IPropertyStore *pprops = NULL;
+        PROPVARIANT     var;
+        LPWSTR          pwszId = NULL;
+
+        if (FAILED(IMMDeviceCollection_Item(pcoll, i, &pdev)))
+            continue;
+
+        if (FAILED(IMMDevice_GetId(pdev, &pwszId))) {
+            IMMDevice_Release(pdev);
+            continue;
+        }
+
+        memset(&var, 0, sizeof(var));
+        if (FAILED(IMMDevice_OpenPropertyStore(pdev, STGM_READ, &pprops))) {
+            CoTaskMemFree(pwszId);
+            IMMDevice_Release(pdev);
+            continue;
+        }
+
+        if (SUCCEEDED(IPropertyStore_GetValue(pprops, &xa2_FriendlyNameKey, &var))
+            && var.vt == VT_LPWSTR) {
+            char name_u8[512];
+            int  len = WideCharToMultiByte(CP_UTF8, 0, var.pwszVal, -1,
+                                           name_u8, (int) sizeof(name_u8), NULL, NULL);
+            if (len > 1 && (size_t) len < rem) {
+                memcpy(p, name_u8, len); /* len includes the null terminator */
+                p   += len;
+                rem -= len;
+                xa2_dev_ids[xa2_dev_count++] = pwszId;
+                pwszId = NULL;           /* ownership transferred */
+            }
+            CoTaskMemFree(var.pwszVal);
+        }
+
+        IPropertyStore_Release(pprops);
+        if (pwszId)
+            CoTaskMemFree(pwszId);
+        IMMDevice_Release(pdev);
+    }
+
+    if (rem > 0)
+        *p = '\0'; /* double-null terminator */
+
+    IMMDeviceCollection_Release(pcoll);
+    IMMDeviceEnumerator_Release(penum);
+
+done:
+    if (SUCCEEDED(co_hr))
+        CoUninitialize();
+}
+
+/* Returns the device ID (LPWSTR) matching the given UTF-8 friendly name,
+   or NULL if not found or name is empty (caller should use system default). */
+static LPWSTR
+xa2_find_dev_id(const char *friendly_name)
+{
+    if (friendly_name[0] == '\0')
+        return NULL;
+
+    xa2_build_dev_list();
+
+    const char *p   = xa2_dev_list;
+    int         idx = 0;
+    while (*p && idx < xa2_dev_count) {
+        if (strcmp(p, friendly_name) == 0)
+            return xa2_dev_ids[idx];
+        p += strlen(p) + 1;
+        idx++;
+    }
+    return NULL; /* not found — fall back to system default */
+}
+#endif /* _WIN32 && !USE_FAUDIO */
+
+const char *
+sound_get_output_devices(void)
+{
+#if defined(_WIN32) && !defined(USE_FAUDIO)
+    xa2_build_dev_list();
+    return (xa2_dev_count > 0) ? xa2_dev_list : NULL;
+#else
+    return NULL; /* FAudio: device enumeration not supported */
+#endif
+}
+
 void
 inital(void)
 {
@@ -135,7 +269,12 @@ inital(void)
     if (XAudio2Create(&xaudio2, 0, XAUDIO2_DEFAULT_PROCESSOR))
         return;
 
+#if defined(_WIN32) && !defined(USE_FAUDIO)
+    LPWSTR dev_id = xa2_find_dev_id(sound_output_device);
+    if (IXAudio2_CreateMasteringVoice(xaudio2, &mastervoice, 2, FREQ, 0, dev_id, NULL, 0)) {
+#else
     if (IXAudio2_CreateMasteringVoice(xaudio2, &mastervoice, 2, FREQ, 0, 0, NULL, 0)) {
+#endif
         IXAudio2_Release(xaudio2);
         xaudio2 = NULL;
         return;

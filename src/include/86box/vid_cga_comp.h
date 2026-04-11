@@ -23,7 +23,7 @@
 
 #define Bitu unsigned int
 
-void      update_cga16_color(uint8_t cgamode);
+void      update_cga16_color(uint8_t cgamode, uint8_t cgacol);
 void      cga_comp_init(int revision);
 void      cga_comp_reload(int new_brightness, int new_saturation, int new_sharpness, int new_hue, int new_contrast);
 uint32_t *Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doublewidth*/, uint32_t *TempLine);

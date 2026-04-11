@@ -289,7 +289,7 @@ codegen_backend_init(void)
     codeblock_hash = calloc(HASH_SIZE, sizeof(codeblock_t *));
 
     for (int c = 0; c < BLOCK_SIZE; c++) {
-        codeblock[c].pc = BLOCK_PC_INVALID;
+        codeblock[c].valid = 0;
     }
 
     block_current         = 0;

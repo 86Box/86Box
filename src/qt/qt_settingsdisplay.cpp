@@ -24,8 +24,6 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/video.h>
-#include <86box/plat.h>
-#include <86box/vid_cga_comp.h>
 #include <86box/vid_ega.h>
 #include <86box/vid_8514a_device.h>
 #include <86box/vid_xga_device.h>
@@ -63,41 +61,6 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
-    cga_hue        = vid_cga_comp_hue;
-    cga_saturation = vid_cga_comp_saturation;
-    cga_brightness = vid_cga_comp_brightness;
-    cga_contrast   = vid_cga_comp_contrast;
-    cga_sharpness  = vid_cga_comp_sharpness;
-
-    ui->horizontalSliderHue->setValue(vid_cga_comp_hue);
-    ui->horizontalSliderSaturation->setValue(vid_cga_comp_saturation);
-    ui->horizontalSliderBrightness->setValue(vid_cga_comp_brightness);
-    ui->horizontalSliderContrast->setValue(vid_cga_comp_contrast);
-    ui->horizontalSliderSharpness->setValue(vid_cga_comp_sharpness);
-
-    connect(ui->pushButtonReset, &QPushButton::clicked, this, [this] {
-        ui->horizontalSliderHue->setValue(0);
-        ui->horizontalSliderSaturation->setValue(100);
-        ui->horizontalSliderBrightness->setValue(0);
-        ui->horizontalSliderContrast->setValue(100);
-        ui->horizontalSliderSharpness->setValue(0);
-    });
-
-    connect(ui->horizontalSliderHue, &QSlider::valueChanged, this, [this] { updateDisplay(); });
-    connect(ui->horizontalSliderSaturation, &QSlider::valueChanged, this, [this] { updateDisplay(); });
-    connect(ui->horizontalSliderBrightness, &QSlider::valueChanged, this, [this] { updateDisplay(); });
-    connect(ui->horizontalSliderContrast, &QSlider::valueChanged, this, [this] { updateDisplay(); });
-    connect(ui->horizontalSliderSharpness, &QSlider::valueChanged, this, [this] { updateDisplay(); });
-
-    bool enable_comp_option = false;
-
-    if (!settings_only)  for (int i = 0; i < MONITORS_NUM; i++) {
-        if (monitors[i].mon_composite) {
-            enable_comp_option = true;
-            break;
-        }
-    }
-
     ui->comboBoxScreenType->addItem(tr("RGB Color"), 0);
     ui->comboBoxScreenType->addItem(tr("RGB Grayscale"), 1);
     ui->comboBoxScreenType->addItem(tr("Amber monitor"), 2);
@@ -115,11 +78,6 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
     ui->checkBoxInverted->setChecked(invert_display);
 
-    ui->tabCompositeCGA->setEnabled(enable_comp_option);
-
-    if (!enable_comp_option)
-        ui->tabWidgetDisplay->removeTab(2);
-
     onCurrentMachineChanged(machine);
 }
 
@@ -129,17 +87,6 @@ SettingsDisplay::~SettingsDisplay()
     delete sc;
 
     delete ui;
-}
-
-void
-SettingsDisplay::updateDisplay()
-{
-    auto temp_cga_comp_hue        = ui->horizontalSliderHue->value();
-    auto temp_cga_comp_saturation = ui->horizontalSliderSaturation->value();
-    auto temp_cga_comp_brightness = ui->horizontalSliderBrightness->value();
-    auto temp_cga_comp_contrast   = ui->horizontalSliderContrast->value();
-    auto temp_cga_comp_sharpness  = ui->horizontalSliderSharpness->value();
-    cga_comp_reload(temp_cga_comp_brightness, temp_cga_comp_saturation, temp_cga_comp_sharpness, temp_cga_comp_hue, temp_cga_comp_contrast);
 }
 
 int
@@ -160,12 +107,6 @@ SettingsDisplay::changed()
 
     has_changed  |= strcmp(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data());
 
-    soft_changed |= (vid_cga_comp_hue               != ui->horizontalSliderHue->value());
-    soft_changed |= (vid_cga_comp_saturation        != ui->horizontalSliderSaturation->value());
-    soft_changed |= (vid_cga_comp_brightness        != ui->horizontalSliderBrightness->value());
-    soft_changed |= (vid_cga_comp_contrast          != ui->horizontalSliderContrast->value());
-    soft_changed |= (vid_cga_comp_sharpness         != ui->horizontalSliderSharpness->value());
-
     soft_changed |= (video_grayscale                != ui->comboBoxScreenType->currentData().toInt());
     soft_changed |= (video_graytype                 != ui->comboBoxConversionType->currentData().toInt());
 
@@ -176,18 +117,6 @@ SettingsDisplay::changed()
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
                          (soft_changed ? SETTINGS_CHANGED : 0);
-}
-
-void
-SettingsDisplay::restore()
-{
-    vid_cga_comp_hue        = cga_hue;
-    vid_cga_comp_saturation = cga_saturation;
-    vid_cga_comp_brightness = cga_brightness;
-    vid_cga_comp_contrast   = cga_contrast;
-    vid_cga_comp_sharpness  = cga_sharpness;
-
-    cga_comp_reload(vid_cga_comp_brightness, vid_cga_comp_saturation, vid_cga_comp_sharpness, vid_cga_comp_hue, vid_cga_comp_contrast);
 }
 
 void
@@ -212,13 +141,6 @@ SettingsDisplay::save()
     monitor_edid               = ui->radioButtonCustom->isChecked() ? 1 : 0;
 
     strncpy(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
-
-    vid_cga_comp_hue        = ui->horizontalSliderHue->value();
-    vid_cga_comp_saturation = ui->horizontalSliderSaturation->value();
-    vid_cga_comp_brightness = ui->horizontalSliderBrightness->value();
-    vid_cga_comp_contrast   = ui->horizontalSliderContrast->value();
-    vid_cga_comp_sharpness  = ui->horizontalSliderSharpness->value();
-    cga_comp_reload(vid_cga_comp_brightness, vid_cga_comp_saturation, vid_cga_comp_sharpness, vid_cga_comp_hue, vid_cga_comp_contrast);
 
     video_grayscale         = ui->comboBoxScreenType->currentData().toInt();
     video_graytype          = ui->comboBoxConversionType->currentData().toInt();

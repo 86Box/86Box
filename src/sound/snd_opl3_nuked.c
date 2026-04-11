@@ -27,8 +27,6 @@
  *          in that order. The OPL2, however, is mono. What should
  *          we generate for that?
  *
- * Version: @(#)snd_opl_nuked.c    1.0.5    2020/07/16
- *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Alexey Khokholov (Nuke.YKT)
@@ -50,21 +48,21 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/snd_opl.h>
-#include <86box/snd_opl_nuked.h>
+#include <86box/snd_opl3_nuked.h>
 
 
-#if OPL_ENABLE_STEREOEXT && !defined OPL_SIN
+#if OPL3_ENABLE_STEREOEXT && !defined OPL3_SIN
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES 1
 #endif
 #include <math.h>
 // input: [0, 256), output: [0, 65536]
-#define OPL_SIN(x) ((int32_t)(sin((x) * M_PI / 512.0) * 65536.0))
+#define OPL3_SIN(x) ((int32_t)(sin((x) * M_PI / 512.0) * 65536.0))
 #endif
 
-/* Quirk: Some FM channels are output one sample later on the left side than the right. */
-#ifndef OPL_QUIRK_CHANNELSAMPLEDELAY
-#define OPL_QUIRK_CHANNELSAMPLEDELAY (!OPL_ENABLE_STEREOEXT)
+// Quirk: Some FM channels are output one sample later on the left side than the right.
+#ifndef OPL3_QUIRK_CHANNELSAMPLEDELAY
+#define OPL3_QUIRK_CHANNELSAMPLEDELAY (!OPL3_ENABLE_STEREOEXT)
 #endif
 
 #define RSM_FRAC    10
@@ -83,22 +81,22 @@ enum {
     egk_drum = 0x02
 };
 
-#ifdef ENABLE_OPL_LOG
-int nuked_do_log = ENABLE_OPL_LOG;
+#ifdef ENABLE_NUKED_OPL3_LOG
+int nuked_opl3_do_log = ENABLE_NUKED_OPL3_LOG;
 
 static void
-nuked_log(const char *fmt, ...)
+nuked_opl3_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (nuked_do_log) {
+    if (nuked_opl3_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define nuked_log(fmt, ...)
+#    define nuked_opl3_log(fmt, ...)
 #endif
 
 // logsin table
@@ -207,11 +205,8 @@ static const uint8_t ch_slot[18] = {
     0, 1, 2, 6, 7, 8, 12, 13, 14, 18, 19, 20, 24, 25, 26, 30, 31, 32
 };
 
-#if OPL_ENABLE_STEREOEXT
-/*
-    stereo extension panning table
-*/
-
+#if OPL3_ENABLE_STEREOEXT
+// stereo extension panning table
 static int32_t panpot_lut[256];
 static uint8_t panpot_lut_build = 0;
 #endif
@@ -237,10 +232,10 @@ OPL3_EnvelopeCalcSin0(uint16_t phase, uint16_t envelope)
 
     phase &= 0x3ff;
 
-    if (phase & 0x0200)
+    if (phase & 0x200)
         neg = 0xffff;
 
-    if (phase & 0x0100)
+    if (phase & 0x100)
         out = logsinrom[(phase & 0xffu) ^ 0xffu];
     else
         out = logsinrom[phase & 0xffu];
@@ -255,9 +250,9 @@ OPL3_EnvelopeCalcSin1(uint16_t phase, uint16_t envelope)
 
     phase &= 0x3ff;
 
-    if (phase & 0x0200)
+    if (phase & 0x200)
         out = 0x1000;
-    else if (phase & 0x0100)
+    else if (phase & 0x100)
         out = logsinrom[(phase & 0xffu) ^ 0xffu];
     else
         out = logsinrom[phase & 0xffu];
@@ -270,9 +265,9 @@ OPL3_EnvelopeCalcSin2(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
 
-    phase &= 0x03ff;
+    phase &= 0x3ff;
 
-    if (phase & 0x0100)
+    if (phase & 0x100)
         out = logsinrom[(phase & 0xffu) ^ 0xffu];
     else
         out = logsinrom[phase & 0xffu];
@@ -285,9 +280,9 @@ OPL3_EnvelopeCalcSin3(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
 
-    phase &= 0x03ff;
+    phase &= 0x3ff;
 
-    if (phase & 0x0100)
+    if (phase & 0x100)
         out = 0x1000;
     else
         out = logsinrom[phase & 0xffu];
@@ -301,12 +296,12 @@ OPL3_EnvelopeCalcSin4(uint16_t phase, uint16_t envelope)
     uint16_t out = 0;
     uint16_t neg = 0;
 
-    phase &= 0x03ff;
+    phase &= 0x3ff;
 
-    if ((phase & 0x0300) == 0x0100)
+    if ((phase & 0x300) == 0x100)
         neg = 0xffff;
 
-    if (phase & 0x0200)
+    if (phase & 0x200)
         out = 0x1000;
     else if (phase & 0x80)
         out = logsinrom[((phase ^ 0xffu) << 1u) & 0xffu];
@@ -321,9 +316,9 @@ OPL3_EnvelopeCalcSin5(uint16_t phase, uint16_t envelope)
 {
     uint16_t out = 0;
 
-    phase &= 0x03ff;
+    phase &= 0x3ff;
 
-    if (phase & 0x0200)
+    if (phase & 0x200)
         out = 0x1000;
     else if (phase & 0x80)
         out = logsinrom[((phase ^ 0xffu) << 1u) & 0xffu];
@@ -338,9 +333,9 @@ OPL3_EnvelopeCalcSin6(uint16_t phase, uint16_t envelope)
 {
     uint16_t neg = 0;
 
-    phase &= 0x03ff;
+    phase &= 0x3ff;
 
-    if (phase & 0x0200)
+    if (phase & 0x200)
         neg = 0xffff;
 
     return (OPL3_EnvelopeCalcExp(envelope << 3) ^ neg);
@@ -352,11 +347,11 @@ OPL3_EnvelopeCalcSin7(uint16_t phase, uint16_t envelope)
     uint16_t out = 0;
     uint16_t neg = 0;
 
-    phase &= 0x03ff;
+    phase &= 0x3ff;
 
-    if (phase & 0x0200) {
+    if (phase & 0x200) {
         neg   = 0xffff;
-        phase = (phase & 0x01ff) ^ 0x01ff;
+        phase = (phase & 0x1ff) ^ 0x1ff;
     }
 
     out = phase << 3;
@@ -412,6 +407,7 @@ OPL3_EnvelopeCalc(opl3_slot *slot)
 
     slot->eg_out = slot->eg_rout + (slot->reg_tl << 2)
                  + (slot->eg_ksl >> kslshift[slot->reg_ksl]) + *slot->trem;
+
     if (slot->key && slot->eg_gen == envelope_gen_num_release) {
         reset    = 1;
         reg_rate = slot->reg_ar;
@@ -474,6 +470,7 @@ OPL3_EnvelopeCalc(opl3_slot *slot)
             shift = (rate_hi & 0x03) + eg_incstep[rate_lo][slot->chip->eg_timer_lo];
             if (shift & 0x04)
                 shift = 0x03;
+
             if (!shift)
                 shift = slot->chip->eg_state;
         }
@@ -518,6 +515,7 @@ OPL3_EnvelopeCalc(opl3_slot *slot)
         default:
             break;
     }
+
     slot->eg_rout = (eg_rout + eg_inc) & 0x1ff;
 
     // Key off
@@ -554,6 +552,7 @@ OPL3_PhaseGenerate(opl3_slot *slot)
 
     chip  = slot->chip;
     f_num = slot->channel->f_num;
+
     if (slot->reg_vib) {
         int8_t  range;
         uint8_t vibpos;
@@ -565,6 +564,7 @@ OPL3_PhaseGenerate(opl3_slot *slot)
             range = 0;
         else if (vibpos & 1)
             range >>= 1;
+
         range >>= chip->vibshift;
 
         if (vibpos & 4)
@@ -577,6 +577,7 @@ OPL3_PhaseGenerate(opl3_slot *slot)
 
     if (slot->pg_reset)
         slot->pg_phase = 0;
+
     slot->pg_phase += (basefreq * mt[slot->reg_mult]) >> 1;
 
     // Rhythm mode
@@ -588,10 +589,12 @@ OPL3_PhaseGenerate(opl3_slot *slot)
         chip->rm_hh_bit7 = (phase >> 7) & 1;
         chip->rm_hh_bit8 = (phase >> 8) & 1;
     }
+
     if (slot->slot_num == 17 && (chip->rhy & 0x20)) { // tc
         chip->rm_tc_bit3 = (phase >> 3) & 1;
         chip->rm_tc_bit5 = (phase >> 5) & 1;
     }
+
     if (chip->rhy & 0x20) {
         rm_xor = (chip->rm_hh_bit2 ^ chip->rm_hh_bit7)
                  | (chip->rm_hh_bit3 ^ chip->rm_tc_bit5)
@@ -620,8 +623,7 @@ OPL3_PhaseGenerate(opl3_slot *slot)
         }
     }
 
-    n_bit = ((noise >> 14) ^ noise) & 0x01;
-
+    n_bit       = ((noise >> 14) ^ noise) & 0x01;
     chip->noise = (noise >> 1) | (n_bit << 22);
 }
 
@@ -703,7 +705,7 @@ OPL3_ChannelUpdateRhythm(opl3_chip *chip, uint8_t data)
     opl3_channel *channel6;
     opl3_channel *channel7;
     opl3_channel *channel8;
-    uint8_t chnum;
+    uint8_t       chnum;
 
     chip->rhy = data & 0x3f;
     if (chip->rhy & 0x20) {
@@ -966,7 +968,7 @@ OPL3_ChannelWriteC0(opl3_channel *channel, uint8_t data)
         channel->chc = channel->chd = 0;
     }
 
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
     if (!channel->chip->stereoext) {
         channel->leftpan  = channel->cha << 16;
         channel->rightpan = channel->chb << 16;
@@ -974,7 +976,7 @@ OPL3_ChannelWriteC0(opl3_channel *channel, uint8_t data)
 #endif
 }
 
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
 static void
 OPL3_ChannelWriteD0(opl3_channel *channel, uint8_t data)
 {
@@ -1071,7 +1073,7 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
     buf4[1] = chip->mixbuff[1];
     buf4[3] = chip->mixbuff[3];
 
-#if OPL_QUIRK_CHANNELSAMPLEDELAY
+#if OPL3_QUIRK_CHANNELSAMPLEDELAY
     for (i = 0; i < 15; i++)
 #else
     for (i = 0; i < 36; i++)
@@ -1084,7 +1086,7 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
         channel = &chip->channel[i];
         out     = channel->out;
         accm    = *out[0] + *out[1] + *out[2] + *out[3];
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
         mix[0] += (int16_t) ((accm * channel->leftpan) >> 16);
 #else
         mix[0] += (int16_t) (accm & channel->cha);
@@ -1095,7 +1097,7 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
     chip->mixbuff[0] = mix[0];
     chip->mixbuff[2] = mix[1];
 
-#if OPL_QUIRK_CHANNELSAMPLEDELAY
+#if OPL3_QUIRK_CHANNELSAMPLEDELAY
     for (i = 15; i < 18; i++)
         OPL3_ProcessSlot(&chip->slot[i]);
 #endif
@@ -1103,7 +1105,7 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
     buf4[0] = chip->mixbuff[0];
     buf4[2] = chip->mixbuff[2];
 
-#if OPL_QUIRK_CHANNELSAMPLEDELAY
+#if OPL3_QUIRK_CHANNELSAMPLEDELAY
     for (i = 18; i < 33; i++)
         OPL3_ProcessSlot(&chip->slot[i]);
 #endif
@@ -1114,7 +1116,7 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
         channel = &chip->channel[i];
         out     = channel->out;
         accm    = *out[0] + *out[1] + *out[2] + *out[3];
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
         mix[0] += (int16_t) ((accm * channel->rightpan) >> 16);
 #else
         mix[0] += (int16_t) (accm & channel->chb);
@@ -1125,7 +1127,7 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
     chip->mixbuff[1] = mix[0];
     chip->mixbuff[3] = mix[1];
 
-#if OPL_QUIRK_CHANNELSAMPLEDELAY
+#if OPL3_QUIRK_CHANNELSAMPLEDELAY
     for (i = 33; i < 36; i++)
         OPL3_ProcessSlot(&chip->slot[i]);
 #endif
@@ -1138,7 +1140,7 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
     else
         chip->tremolo = (210 - chip->tremolopos) >> chip->tremoloshift;
 
-    if ((chip->timer & 0x03ff) == 0x03ff)
+    if ((chip->timer & 0x3ff) == 0x3ff)
         chip->vibpos = (chip->vibpos + 1) & 7;
 
     chip->timer++;
@@ -1171,11 +1173,11 @@ OPL3_Generate4Ch(void *priv, int32_t *buf4)
         if (!(writebuf->reg & 0x200))
             break;
 
-        writebuf->reg &= 0x01ff;
+        writebuf->reg &= 0x1ff;
 
         OPL3_WriteReg(chip, writebuf->reg, writebuf->data);
 
-        chip->writebuf_cur = (chip->writebuf_cur + 1) % OPL_WRITEBUF_SIZE;
+        chip->writebuf_cur = (chip->writebuf_cur + 1) % OPL3_WRITEBUF_SIZE;
     }
 
     chip->writebuf_samplecnt++;
@@ -1185,7 +1187,9 @@ void
 OPL3_Generate(opl3_chip *chip, int32_t *buf)
 {
     int32_t samples[4];
+
     OPL3_Generate4Ch(chip, samples);
+
     buf[0] = samples[0];
     buf[1] = samples[1];
 }
@@ -1233,14 +1237,14 @@ OPL3_Reset(opl3_chip *chip, uint32_t samplerate)
     memset(chip, 0x00, sizeof(opl3_chip));
 
     for (uint8_t slotnum = 0; slotnum < 36; slotnum++) {
-        slot             = &chip->slot[slotnum];
-        slot->chip       = chip;
-        slot->mod        = &chip->zeromod;
-        slot->eg_rout    = 0x01ff;
-        slot->eg_out     = 0x01ff;
-        slot->eg_gen     = envelope_gen_num_release;
-        slot->trem       = (uint8_t *) &chip->zeromod;
-        slot->slot_num   = slotnum;
+        slot           = &chip->slot[slotnum];
+        slot->chip     = chip;
+        slot->mod      = &chip->zeromod;
+        slot->eg_rout  = 0x1ff;
+        slot->eg_out   = 0x1ff;
+        slot->eg_gen   = envelope_gen_num_release;
+        slot->trem     = (uint8_t *) &chip->zeromod;
+        slot->slot_num = slotnum;
     }
 
     for (uint8_t channum = 0; channum < 18; channum++) {
@@ -1264,7 +1268,7 @@ OPL3_Reset(opl3_chip *chip, uint32_t samplerate)
         channel->chtype = ch_2op;
         channel->cha    = 0xffff;
         channel->chb    = 0xffff;
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
         channel->leftpan  = 0x10000;
         channel->rightpan = 0x10000;
 #endif
@@ -1278,22 +1282,22 @@ OPL3_Reset(opl3_chip *chip, uint32_t samplerate)
     chip->tremoloshift = 4;
     chip->vibshift     = 1;
 
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
     if (!panpot_lut_build) {
         for (int32_t i = 0; i < 256; i++)
-            panpot_lut[i] = OPL_SIN(i);
+            panpot_lut[i] = OPL3_SIN(i);
+
         panpot_lut_build = 1;
     }
 #endif
 }
 
 uint16_t
-nuked_write_addr(void *priv, uint16_t port, uint8_t val)
+nuked_opl3_write_addr(void *priv, uint16_t port, uint8_t val)
 {
     const opl3_chip *chip = (opl3_chip *) priv;
-    uint16_t addr;
+    uint16_t         addr = val;
 
-    addr = val;
     if ((port & 0x0002) && ((addr == 0x0005) || chip->newm))
         addr |= 0x0100;
 
@@ -1317,7 +1321,7 @@ OPL3_WriteReg(void *priv, uint16_t reg, uint8_t val)
 
                     case 0x05:
                         chip->newm = val & 0x01;
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
                         chip->stereoext = (val >> 1) & 0x01;
 #endif
                         break;
@@ -1391,7 +1395,7 @@ OPL3_WriteReg(void *priv, uint16_t reg, uint8_t val)
                 OPL3_ChannelWriteC0(&chip->channel[9u * high + (regm & 0x0fu)], val);
             break;
 
-#if OPL_ENABLE_STEREOEXT
+#if OPL3_ENABLE_STEREOEXT
         case 0xd0:
             if ((regm & 0x0f) < 9)
                 OPL3_ChannelWriteD0(&chip->channel[9u * high + (regm & 0x0fu)], val);
@@ -1415,16 +1419,16 @@ OPL3_WriteRegBuffered(void *priv, uint16_t reg, uint8_t val)
     writebuf_last = chip->writebuf_last;
     writebuf      = &chip->writebuf[writebuf_last];
 
-    if (writebuf->reg & 0x0200) {
-        OPL3_WriteReg(chip, writebuf->reg & 0x01ff, writebuf->data);
+    if (writebuf->reg & 0x200) {
+        OPL3_WriteReg(chip, writebuf->reg & 0x1ff, writebuf->data);
 
-        chip->writebuf_cur       = (writebuf_last + 1) % OPL_WRITEBUF_SIZE;
+        chip->writebuf_cur       = (writebuf_last + 1) % OPL3_WRITEBUF_SIZE;
         chip->writebuf_samplecnt = writebuf->time;
     }
 
-    writebuf->reg  = reg | 0x0200;
+    writebuf->reg  = reg | 0x200;
     writebuf->data = val;
-    time1          = chip->writebuf_lasttime + OPL_WRITEBUF_DELAY;
+    time1          = chip->writebuf_lasttime + OPL3_WRITEBUF_DELAY;
     time2          = chip->writebuf_samplecnt;
 
     if (time1 < time2)
@@ -1432,7 +1436,7 @@ OPL3_WriteRegBuffered(void *priv, uint16_t reg, uint8_t val)
 
     writebuf->time          = time1;
     chip->writebuf_lasttime = time1;
-    chip->writebuf_last     = (writebuf_last + 1) % OPL_WRITEBUF_SIZE;
+    chip->writebuf_last     = (writebuf_last + 1) % OPL3_WRITEBUF_SIZE;
 }
 
 void
@@ -1456,6 +1460,7 @@ OPL3_GenerateStream(opl3_chip *chip, int32_t *sndptr, uint32_t numsamples)
 {
     for (uint_fast32_t i = 0; i < numsamples; i++) {
         OPL3_Generate(chip, sndptr);
+
         sndptr += 2;
     }
 }
@@ -1465,41 +1470,42 @@ OPL3_GenerateResampledStream(opl3_chip *chip, int32_t *sndptr, uint32_t numsampl
 {
     for (uint_fast32_t i = 0; i < numsamples; i++) {
         OPL3_GenerateResampled(chip, sndptr);
+
         sndptr += 2;
     }
 }
 
 static void
-nuked_timer_tick(nuked_drv_t *dev, int tmr)
+nuked_opl3_timer_tick(nuked_opl3_drv_t *dev, int tmr)
 {
     dev->timer_cur_count[tmr] = (dev->timer_cur_count[tmr] + 1) & 0xff;
 
-    nuked_log("Ticking timer %i, count now %02X...\n", tmr, dev->timer_cur_count[tmr]);
+    nuked_opl3_log("Ticking timer %i, count now %02X...\n", tmr, dev->timer_cur_count[tmr]);
 
     if (dev->timer_cur_count[tmr] == 0x00) {
         dev->status |= ((STAT_TMR1_OVER >> tmr) & ~dev->timer_ctrl);
         dev->timer_cur_count[tmr] = dev->timer_count[tmr];
 
-        nuked_log("Count wrapped around to zero, reloading timer %i (%02X), status = %02X...\n", tmr, (STAT_TMR1_OVER >> tmr), dev->status);
+        nuked_opl3_log("Count wrapped around to zero, reloading timer %i (%02X), status = %02X...\n", tmr, (STAT_TMR1_OVER >> tmr), dev->status);
     }
 
     timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
 }
 
 static void
-nuked_timer_control(nuked_drv_t *dev, int tmr, int start)
+nuked_opl3_timer_control(nuked_opl3_drv_t *dev, int tmr, int start)
 {
     timer_on_auto(&dev->timers[tmr], 0.0);
 
     if (start) {
-        nuked_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
+        nuked_opl3_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
         dev->timer_cur_count[tmr] = dev->timer_count[tmr];
         if (dev->flags & FLAG_OPL3)
-            nuked_timer_tick(dev, tmr); /* Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2. */
+            nuked_opl3_timer_tick(dev, tmr); // Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2.
         else
             timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
     } else {
-        nuked_log("Timer %i stopped\n", tmr);
+        nuked_opl3_log("Timer %i stopped\n", tmr);
         if (tmr == 1) {
             dev->status &= ~STAT_TMR2_OVER;
         } else
@@ -1508,25 +1514,25 @@ nuked_timer_control(nuked_drv_t *dev, int tmr, int start)
 }
 
 static void
-nuked_timer_1(void *priv)
+nuked_opl3_timer_1(void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
-    nuked_timer_tick(dev, 0);
+    nuked_opl3_timer_tick(dev, 0);
 }
 
 static void
-nuked_timer_2(void *priv)
+nuked_opl3_timer_2(void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
-    nuked_timer_tick(dev, 1);
+    nuked_opl3_timer_tick(dev, 1);
 }
 
 static void
-nuked_drv_set_do_cycles(void *priv, int8_t do_cycles)
+nuked_opl3_drv_set_do_cycles(void *priv, int8_t do_cycles)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
     if (do_cycles)
         dev->flags |= FLAG_CYCLES;
@@ -1535,9 +1541,9 @@ nuked_drv_set_do_cycles(void *priv, int8_t do_cycles)
 }
 
 static int32_t *
-nuked_drv_update(void *priv)
+nuked_opl3_drv_update(void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
     if (dev->pos >= music_pos_global)
         return dev->buffer;
@@ -1555,9 +1561,9 @@ nuked_drv_update(void *priv)
 }
 
 static int32_t *
-nuked_drv_update_48k(void *priv)
+nuked_opl3_drv_update_48k(void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
     if (dev->pos >= sound_pos_global)
         return dev->buffer;
@@ -1575,9 +1581,9 @@ nuked_drv_update_48k(void *priv)
 }
 
 static uint8_t
-nuked_drv_read(uint16_t port, void *priv)
+nuked_opl3_drv_read(uint16_t port, void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
     if (dev->flags & FLAG_CYCLES)
         cycles -= ((int) (isa_timing * 8));
@@ -1592,15 +1598,15 @@ nuked_drv_read(uint16_t port, void *priv)
             ret |= STAT_TMR_ANY;
     }
 
-    nuked_log("OPL statret = %02x, status = %02x\n", ret, dev->status);
+    nuked_opl3_log("OPL statret = %02x, status = %02x\n", ret, dev->status);
 
     return ret;
 }
 
 static void
-nuked_drv_write(uint16_t port, uint8_t val, void *priv)
+nuked_opl3_drv_write(uint16_t port, uint8_t val, void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
     dev->update(dev);
 
@@ -1608,25 +1614,25 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
         OPL3_WriteRegBuffered(&dev->opl, dev->port, val);
 
         switch (dev->port) {
-            case 0x002: /* Timer 1 */
+            case 0x002: // Timer 1
                 dev->timer_count[0] = val;
-                nuked_log("Timer 0 count now: %i\n", dev->timer_count[0]);
+                nuked_opl3_log("Timer 0 count now: %i\n", dev->timer_count[0]);
                 break;
 
-            case 0x003: /* Timer 2 */
+            case 0x003: // Timer 2
                 dev->timer_count[1] = val;
-                nuked_log("Timer 1 count now: %i\n", dev->timer_count[1]);
+                nuked_opl3_log("Timer 1 count now: %i\n", dev->timer_count[1]);
                 break;
 
-            case 0x004: /* Timer control */
+            case 0x004: // Timer control
                 if (val & CTRL_RESET) {
-                    nuked_log("Resetting timer status...\n");
+                    nuked_opl3_log("Resetting timer status...\n");
                     dev->status &= ~STAT_TMR_OVER;
                 } else {
                     dev->timer_ctrl = val;
-                    nuked_timer_control(dev, 0, val & CTRL_TMR1_START);
-                    nuked_timer_control(dev, 1, val & CTRL_TMR2_START);
-                    nuked_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
+                    nuked_opl3_timer_control(dev, 0, val & CTRL_TMR1_START);
+                    nuked_opl3_timer_control(dev, 1, val & CTRL_TMR2_START);
+                    nuked_opl3_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
                 }
                 break;
 
@@ -1638,7 +1644,7 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
                 break;
         }
     } else {
-        dev->port = nuked_write_addr(&dev->opl, port, val) & 0x01ff;
+        dev->port = nuked_opl3_write_addr(&dev->opl, port, val) & 0x01ff;
 
         if (!(dev->flags & FLAG_OPL3))
             dev->port &= 0x00ff;
@@ -1646,68 +1652,55 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static void
-nuked_drv_reset_buffer(void *priv)
+nuked_opl3_drv_reset_buffer(void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
 
     dev->pos = 0;
 }
 
 static void
-nuked_drv_close(void *priv)
+nuked_opl3_drv_close(void *priv)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) priv;
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) priv;
+
     free(dev);
 }
 
 static void *
-nuked_drv_init(const device_t *info)
+nuked_opl3_drv_init(const device_t *info)
 {
-    nuked_drv_t *dev = (nuked_drv_t *) calloc(1, sizeof(nuked_drv_t));
+    nuked_opl3_drv_t *dev = (nuked_opl3_drv_t *) calloc(1, sizeof(nuked_opl3_drv_t));
     dev->flags       = FLAG_CYCLES;
-    if ((info->local & FM_TYPE_MASK) == FM_YMF262)
+    if (((info->local & FM_TYPE_MASK) == FM_YMF262) || ((info->local & FM_TYPE_MASK) == FM_YMF289B))
         dev->flags |= FLAG_OPL3;
     else
         dev->status = 0x06;
 
     dev->is_48k      = !!(info->local & FM_FORCE_48K);
 
-    /* Initialize the NukedOPL object. */
+    // Initialize the NukedOPL3 object.
     if (dev->is_48k) {
-        dev->update      = nuked_drv_update_48k;
+        dev->update      = nuked_opl3_drv_update_48k;
         OPL3_Reset(&dev->opl, FREQ_48000);
     } else {
-        dev->update      = nuked_drv_update;
+        dev->update      = nuked_opl3_drv_update;
         OPL3_Reset(&dev->opl, FREQ_49716);
     }
 
-    timer_add(&dev->timers[0], nuked_timer_1, dev, 0);
-    timer_add(&dev->timers[1], nuked_timer_2, dev, 0);
+    timer_add(&dev->timers[0], nuked_opl3_timer_1, dev, 0);
+    timer_add(&dev->timers[1], nuked_opl3_timer_2, dev, 0);
 
     return dev;
 }
 
-const device_t ym3812_nuked_device = {
-    .name          = "Yamaha YM3812 OPL2 (NUKED)",
-    .internal_name = "ym3812_nuked",
+const device_t ym3812_nuked_opl3_device = {
+    .name          = "Yamaha YM3812 OPL2 (NUKED OPL3)",
+    .internal_name = "ym3812_nuked_opl3",
     .flags         = 0,
     .local         = FM_YM3812,
-    .init          = nuked_drv_init,
-    .close         = nuked_drv_close,
-    .reset         = NULL,
-    .available     = NULL ,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ymf262_nuked_device = {
-    .name          = "Yamaha YMF262 OPL3 (NUKED)",
-    .internal_name = "ymf262_nuked",
-    .flags         = 0,
-    .local         = FM_YMF262,
-    .init          = nuked_drv_init,
-    .close         = nuked_drv_close,
+    .init          = nuked_opl3_drv_init,
+    .close         = nuked_opl3_drv_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,
@@ -1715,22 +1708,50 @@ const device_t ymf262_nuked_device = {
     .config        = NULL
 };
 
-const fm_drv_t nuked_opl_drv = {
-    .read          = &nuked_drv_read,
-    .write         = &nuked_drv_write,
-    .update        = &nuked_drv_update,
-    .reset_buffer  = &nuked_drv_reset_buffer,
-    .set_do_cycles = &nuked_drv_set_do_cycles,
+const device_t ymf262_nuked_opl3_device = {
+    .name          = "Yamaha YMF262 OPL3 (NUKED OPL3)",
+    .internal_name = "ymf262_nuked",
+    .flags         = 0,
+    .local         = FM_YMF262,
+    .init          = nuked_opl3_drv_init,
+    .close         = nuked_opl3_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ymf289b_nuked_opl3_device = {
+    .name          = "Yamaha YMF262 OPL3 (NUKED OPL3)",
+    .internal_name = "ymf289b_nuked",
+    .flags         = 0,
+    .local         = FM_YMF289B,
+    .init          = nuked_opl3_drv_init,
+    .close         = nuked_opl3_drv_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const fm_drv_t nuked_opl3_drv = {
+    .read          = &nuked_opl3_drv_read,
+    .write         = &nuked_opl3_drv_write,
+    .update        = &nuked_opl3_drv_update,
+    .reset_buffer  = &nuked_opl3_drv_reset_buffer,
+    .set_do_cycles = &nuked_opl3_drv_set_do_cycles,
     .priv          = NULL,
     .generate      = NULL,
 };
 
-const fm_drv_t nuked_opl_drv_48k = {
-    .read          = &nuked_drv_read,
-    .write         = &nuked_drv_write,
-    .update        = &nuked_drv_update_48k,
-    .reset_buffer  = &nuked_drv_reset_buffer,
-    .set_do_cycles = &nuked_drv_set_do_cycles,
+const fm_drv_t nuked_opl3_drv_48k = {
+    .read          = &nuked_opl3_drv_read,
+    .write         = &nuked_opl3_drv_write,
+    .update        = &nuked_opl3_drv_update_48k,
+    .reset_buffer  = &nuked_opl3_drv_reset_buffer,
+    .set_do_cycles = &nuked_opl3_drv_set_do_cycles,
     .priv          = NULL,
     .generate      = NULL,
 };

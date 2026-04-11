@@ -1549,7 +1549,7 @@ machine_at_486vipio2_init(const machine_t *model)
 
     device_add(&via_vt82c49x_pci_ide_device);
     device_add(&via_vt82c505_device);
-    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
+    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89 | W83XX7_IDE_SEC));
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

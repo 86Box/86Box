@@ -206,6 +206,7 @@
     <addaction name="separator"/>
     <addaction name="menuFullscreen_stretch_mode"/>
     <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
+    <addaction name="actionCGA_composite_settings"/>
     <addaction name="separator"/>
     <addaction name="menuWindow_scale_factor"/>
     <addaction name="actionHiDPI_scaling"/>
@@ -830,6 +831,11 @@
    </property>
    <property name="text">
     <string>&amp;Pen</string>
+   </property>
+  </action>
+  <action name="actionCGA_composite_settings">
+   <property name="text">
+    <string>&amp;CGA composite settings…</string>
    </property>
   </action>
   <action name="action_Full_screen_stretch_gl">

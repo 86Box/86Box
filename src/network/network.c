@@ -93,6 +93,8 @@ static const NETWORK_CARD net_cards[] = {
     { &ne1000_compat_device       },
     { &ne2000_compat_8bit_device  },
     { &ne1000_device              },
+    { &ne2000_device              },
+    { &rtl8019as_pnp_device       },
     { &wd8003e_device             },
     { &wd8003eb_device            },
     { &wd8013ebt_device           },
@@ -105,9 +107,7 @@ static const NETWORK_CARD net_cards[] = {
     { &pcnet_am79c961_device      },
     { &de220p_device              },
     { &ne2000_compat_device       },
-    { &ne2000_device              },
     { &pcnet_am79c960_eb_device   },
-    { &rtl8019as_pnp_device       },
     /* MCA */
     { &ethernext_mc_device        },
     { &wd8003ea_device            },

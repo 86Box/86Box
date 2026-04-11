@@ -571,6 +571,7 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
+#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -587,6 +588,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     readlookup[readlnext++] = virt >> 12;
     readlnext &= (cachesize - 1);
+#endif
 
     cycles -= 9;
 }
@@ -594,6 +596,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
+#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -626,6 +629,7 @@ addwritelookup(uint32_t virt, uint32_t phys)
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
+#endif
 
     cycles -= 9;
 }

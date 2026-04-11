@@ -71,7 +71,7 @@ opl2board_device_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 uint8_t
-opl2board_device_mca_read(int port, void *priv)
+opl2board_device_mca_read(const uint16_t port, void *priv)
 {
     const opl2board_device_t *serial = (opl2board_device_t *) priv;
 
@@ -81,7 +81,7 @@ opl2board_device_mca_read(int port, void *priv)
 }
 
 void
-opl2board_device_mca_write(int port, uint8_t val, void *priv)
+opl2board_device_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     opl2board_device_t *serial = (opl2board_device_t *) priv;
 

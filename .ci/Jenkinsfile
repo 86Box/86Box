@@ -24,7 +24,7 @@ def tarballFlags = ['', '-t']
 def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
 def osArchs = [
-	'Windows': ['64'],
+	'Windows': ['64', 'ARM64'],
 	'Linux': ['x86_64', 'arm64'],
 	'macOS': ['x86_64+arm64']
 ]
@@ -264,7 +264,7 @@ pipeline {
 									combinations[combination] = {
 										catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
 											retry(10) {
-												node(os) {
+												node("$os && ($arch || all)") {
 													stage(combination) {
 														/* Run git clone. */
 														gitClone(repository[buildBranch], branch[buildBranch])
@@ -274,9 +274,9 @@ pipeline {
 															/* Run build process. */
 															def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch$buildSuffix"
 															def ret = -1
-															def archName = archNames[arch]
+															def archName = archNames[arch.toLowerCase()]
 															if (os == 'macOS')
-																archName = archNamesMac[arch]
+																archName = archNamesMac[arch.toLowerCase()]
 															dir(dynarecNames[dynarec]) {
 																dir("$os - $archName") {
 																	ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")

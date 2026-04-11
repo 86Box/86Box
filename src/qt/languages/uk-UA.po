@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -524,18 +524,6 @@ msgstr "YMFM (швидший)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP вбудованого LPT:"
 
-msgid "Serial port 1"
-msgstr "Послідов. порт COM1"
-
-msgid "Serial port 2"
-msgstr "Послідов. порт COM2"
-
-msgid "Serial port 3"
-msgstr "Послідов. порт COM3"
-
-msgid "Serial port 4"
-msgstr "Послідов. порт COM4"
-
 msgid "Floppy disk controller:"
 msgstr "Контролер гнучких дисків:"
 
@@ -613,6 +601,9 @@ msgstr "Жорсткі диски:"
 
 msgid "Firmware Version"
 msgstr "Версія прошивки"
+
+msgid "DSP Version"
+msgstr "Версія DSP"
 
 msgid "&New…"
 msgstr "&Створити…"
@@ -1829,18 +1820,6 @@ msgstr "Тестер блоків 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Ключова картка Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Пропуск послідовного порту 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Пропуск послідовного порту 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Пропуск послідовного порту 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Пропуск послідовного порту 4"
-
 msgid "Renderer &options…"
 msgstr "Параметри рендерингу…"
 
@@ -2669,7 +2648,8 @@ msgstr "Ключовий захист для Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Пристрій для пропуску послідовного порту"
 
 msgid "Passthrough Mode"
@@ -3011,9 +2991,6 @@ msgstr "Система не буде додана."
 msgid "&Update mouse every CPU frame"
 msgstr "&Оновлювати мишу при кожному кадрі ЦП"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Відтінок"
 
@@ -3029,8 +3006,11 @@ msgstr "Яскравість"
 msgid "Sharpness"
 msgstr "Гострота"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Налаштування композитного відео &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Налаштування композитного відео CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID монітора"
@@ -3085,3 +3065,9 @@ msgstr "Сирий"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Пристрій виведення звуку:"
+
+msgid "System Default"
+msgstr "Системний"

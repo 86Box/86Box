@@ -973,6 +973,7 @@ const device_t paradise_pvga1a_pc2086_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "Amstrad PC2086",
     .config        = NULL
 };
 
@@ -987,6 +988,7 @@ const device_t paradise_pvga1a_pc3086_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "Amstrad PC3086",
     .config        = NULL
 };
 
@@ -1022,6 +1024,7 @@ const device_t paradise_pvga1a_ncr3302_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "NCR 3302",
     .config        = paradise_pvga1a_config
 };
 
@@ -1050,6 +1053,7 @@ const device_t paradise_wd90c11_megapc_device = {
     .available     = NULL,
     .speed_changed = paradise_speed_changed,
     .force_redraw  = paradise_force_redraw,
+    .machine       = "Amstrad MegaPC",
     .config        = NULL
 };
 

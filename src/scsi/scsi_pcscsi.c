@@ -2407,7 +2407,7 @@ ncr53c9x_outw(uint16_t port, uint16_t val, void *priv)
 }
 
 static uint8_t
-ncr53c9x_mca_read(int port, void *priv)
+ncr53c9x_mca_read(const uint16_t port, void *priv)
 {
     const esp_t *dev = (esp_t *) priv;
 
@@ -2415,7 +2415,7 @@ ncr53c9x_mca_read(int port, void *priv)
 }
 
 static void
-ncr53c9x_mca_write(int port, uint8_t val, void *priv)
+ncr53c9x_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     esp_t                *dev             = (esp_t *) priv;
     static const uint16_t ncrmca_iobase[] = {

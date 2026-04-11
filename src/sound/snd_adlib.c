@@ -71,7 +71,7 @@ adlib_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 uint8_t
-adlib_mca_read(int port, void *priv)
+adlib_mca_read(const uint16_t port, void *priv)
 {
     const adlib_t *adlib = (adlib_t *) priv;
 
@@ -81,7 +81,7 @@ adlib_mca_read(int port, void *priv)
 }
 
 void
-adlib_mca_write(int port, uint8_t val, void *priv)
+adlib_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     adlib_t *adlib = (adlib_t *) priv;
 

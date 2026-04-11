@@ -886,6 +886,7 @@ const device_t ati28800k_spc4620p_device = {
     .available     = NULL,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
+    .machine       = "Samsung SPC-4620P",
     .config        = NULL
 };
 
@@ -900,6 +901,7 @@ const device_t ati28800k_spc6033p_device = {
     .available     = NULL,
     .speed_changed = ati28800_speed_changed,
     .force_redraw  = ati28800_force_redraw,
+    .machine       = "Samsung SPC-6033P",
     .config        = NULL
 };
 

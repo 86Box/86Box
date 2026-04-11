@@ -3458,7 +3458,7 @@ xga_poll(void *priv)
 }
 
 static uint8_t
-xga_mca_read(int port, void *priv)
+xga_mca_read(const uint16_t port, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = (xga_t *) svga->xga;
@@ -3471,7 +3471,7 @@ xga_mca_read(int port, void *priv)
 }
 
 static void
-xga_mca_write(int port, uint8_t val, void *priv)
+xga_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = (xga_t *) svga->xga;

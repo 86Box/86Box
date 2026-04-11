@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
 "Language: vi-VN\n"
@@ -523,18 +523,6 @@ msgstr "YMFM (nhanh hơn)"
 msgid "Internal LPT ECP DMA:"
 msgstr "LPT ECP DMA nội bộ:"
 
-msgid "Serial port 1"
-msgstr "Cổng serial 1"
-
-msgid "Serial port 2"
-msgstr "Cổng serial 2"
-
-msgid "Serial port 3"
-msgstr "Cổng serial 3"
-
-msgid "Serial port 4"
-msgstr "Cổng serial 4"
-
 msgid "Floppy disk controller:"
 msgstr "Bộ điều khiển ổ mềm:"
 
@@ -612,6 +600,9 @@ msgstr "Đĩa cứng:"
 
 msgid "Firmware Version"
 msgstr "Phiên bản firmware"
+
+msgid "DSP Version"
+msgstr "Phiên bản DSP"
 
 msgid "&New…"
 msgstr "Tạ&o mới…"
@@ -1828,18 +1819,6 @@ msgstr "Trình kiểm tra đơn vị 86box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Thẻ khóa Novell Netware 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Thông qua cổng serial 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Thông qua cổng serial 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Thông qua cổng serial 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Thông qua cổng serial 4"
-
 msgid "Renderer &options…"
 msgstr "Tùy chọn kết xuất…"
 
@@ -2668,7 +2647,8 @@ msgstr "Dongle bảo vệ cho Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Thiết bị thông qua cổng serial"
 
 msgid "Passthrough Mode"
@@ -3010,9 +2990,6 @@ msgstr "Hệ thống sẽ không được thêm."
 msgid "&Update mouse every CPU frame"
 msgstr "&Cập nhật chuột mỗi cỡ khung CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Màu sắc"
 
@@ -3028,8 +3005,11 @@ msgstr "Độ sáng"
 msgid "Sharpness"
 msgstr "Độ sắc nét"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Cài đặt chế độ tổng hợp &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Cài đặt chế độ tổng hợp CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID của màn hình"
@@ -3084,3 +3064,9 @@ msgstr "Thô"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Thiết bị đầu ra âm thanh:"
+
+msgid "System Default"
+msgstr "Mặc định hệ thống"

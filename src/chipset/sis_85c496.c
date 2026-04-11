@@ -86,12 +86,12 @@ sis_85c496_log(const char *fmt, ...)
 #    define sis_85c496_log(fmt, ...)
 #endif
 
-static void sis_497_trap_io(UNUSED(int size), uint16_t addr, UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
+static void sis_497_trap_io(UNUSED(const uint16_t size), uint16_t port, UNUSED(const uint8_t write), UNUSED(const uint8_t val), void *priv)
 {
     sis_497_io_trap_t *trap = (sis_497_io_trap_t *) priv;
-    sis_85c496_t *dev = (sis_85c496_t *) trap->priv;
+    sis_85c496_t      *dev  = (sis_85c496_t *) trap->priv;
 
-    sis_85c496_log("[%04X:%08X] I/O Trap Write %02X to   %04X!\n", CS, cpu_state.pc, val, addr);
+    sis_85c496_log("[%04X:%08X] I/O Trap Write %02X to   %04X!\n", CS, cpu_state.pc, val, port);
     if (dev->pci_conf[0xA2] & 0x04) {
         dev->pci_conf[0xA0] |= 0x04;
         smi_raise();

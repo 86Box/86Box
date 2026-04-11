@@ -648,7 +648,7 @@ ncr53c400_callback(void *priv)
 }
 
 static uint8_t
-rt1000b_mc_read(int port, void *priv)
+rt1000b_mc_read(const uint16_t port, void *priv)
 {
     const ncr53c400_t *ncr400 = (ncr53c400_t *) priv;
 
@@ -656,7 +656,7 @@ rt1000b_mc_read(int port, void *priv)
 }
 
 static void
-rt1000b_mc_write(int port, uint8_t val, void *priv)
+rt1000b_mc_write(const uint16_t port, const uint8_t val, void *priv)
 {
     ncr53c400_t *ncr400 = (ncr53c400_t *) priv;
 

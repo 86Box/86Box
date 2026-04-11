@@ -32,7 +32,7 @@ typedef struct ioapic_t {
 } ioapic_t;
 
 #ifdef ENABLE_IOAPIC_LOG
-int ioapic_do_log = ENABLE_IOAPIC_LOG;
+uint8_t ioapic_do_log = ENABLE_IOAPIC_LOG;
 
 static void
 ioapic_log(const char *fmt, ...)

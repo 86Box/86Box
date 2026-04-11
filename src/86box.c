@@ -503,8 +503,6 @@ fatal(const char *fmt, ...)
 
     nvr_save();
 
-    config_save();
-
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
 #endif
@@ -546,8 +544,6 @@ fatal_ex(const char *fmt, va_list ap)
     fflush(stdlog);
 
     nvr_save();
-
-    config_save();
 
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
@@ -1236,6 +1232,13 @@ usage:
     pclog("# Emulator path: %s\n", exe_path);
     pclog("# Global configuration file: %s\n", global_cfg_path);
 
+    /* Initialize the keyboard accelerator list with default values */
+    for (int x = 0; x < NUM_ACCELS; x++) {
+        strcpy(acc_keys[x].name, def_acc_keys[x].name);
+        strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
+        strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
+    }
+
     /* Load the global configuration file. */
     config_load_global();
     config_save_global(); // hack
@@ -1296,15 +1299,10 @@ usage:
         mo_global_init();
         tape_global_init();
 
-        /* Initialize the keyboard accelerator list with default values */
-        for (int x = 0; x < NUM_ACCELS; x++) {
-            strcpy(acc_keys[x].name, def_acc_keys[x].name);
-            strcpy(acc_keys[x].desc, def_acc_keys[x].desc);
-            strcpy(acc_keys[x].seq, def_acc_keys[x].seq);
-        }
-
         /* Load the configuration file. */
         config_load();
+        /* To save the global key binds. */
+        config_save_global();
 
         /* Clear the CMOS and/or BIOS flash file, if we were started with
            the relevant parameter(s). */
@@ -1930,8 +1928,6 @@ pc_close(UNUSED(thread_t *ptr))
     is_quit = 1;
 
     nvr_save();
-
-    config_save();
 
     plat_mouse_capture(0);
 

@@ -1340,6 +1340,40 @@ machine_at_d943_init(const machine_t *model)
     return ret;
 }
 
+#include <86box/pci_dummy.h>
+
+int
+machine_at_op47_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/op47/Op47bios.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add_inst_params(&fdc37c93x_device, 1, (void *) (FDC37XXX2 | FDC37C93X_NORMAL | FDC37XXXX_370));
+    device_add_inst_params(&i82091aa_device, 2, (void *) I82091AA_26E);
+    device_add(&intel_flash_bxt_device);
+
+    /* TODO: Implement the VADEM VG-469 PCMCIA controller. */
+
+    return ret;
+}
+
 /* i430VX */
 int
 machine_at_gw2kma_init(const machine_t *model)
