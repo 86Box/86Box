@@ -996,8 +996,10 @@ serial_init(const device_t *info)
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
 
-        if (com_ports[next_inst].device)
+        if (com_ports[next_inst].device) {
+            snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%i", next_inst + 1);
             char_init(&dev->char_port, char_get_device(com_ports[next_inst].device), next_inst + 1);
+        }
 
         if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;

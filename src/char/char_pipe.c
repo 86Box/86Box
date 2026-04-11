@@ -146,7 +146,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "Could not connect to %s: %s", full_path, fmt);
+            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, full_path, fmt);
             if (dev->mode == CHAR_PIPE_MODE_AUTO)
                 goto server;
             else
@@ -172,7 +172,7 @@ server:
             }
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "Could not create %s: %s", full_path, fmt);
+            snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, full_path, fmt);
             goto errmsg;
         }
     }
@@ -190,7 +190,7 @@ server:
                 int err = errno;
                 char_pipe_log(dev->log, "connect failed (%d)\n", err);
 
-                snprintf(msg, sizeof(msg), "Could not connect to %s: %s", addr.sun_path, strerror(err));
+                snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, addr.sun_path, strerror(err));
                 if (dev->mode == CHAR_PIPE_MODE_AUTO)
                     goto server;
                 else
@@ -216,13 +216,13 @@ server: {}
                     else
                         char_pipe_log(dev->log, "%s\n", msg);
                 }
-                snprintf(msg, sizeof(msg), "Could not create %s: %s", addr.sun_path, strerror(err));
+                snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, addr.sun_path, strerror(err));
                 goto errmsg;
             }
         }
     } else {
         int err = errno;
-        snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, strerror(err));
+        snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
         goto errmsg;
     }
 #endif
@@ -232,7 +232,7 @@ server: {}
 errmsg:
     char_pipe_disconnect(dev);
     if (startup)
-        ui_msgbox(MBX_ERROR | MBX_ANSI, strerror(errno));
+        ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
     else
         char_pipe_log(dev->log, "%s\n", msg);
     return 0;
@@ -316,14 +316,15 @@ char_pipe_init(const device_t *info)
 {
     char_pipe_t *dev = (char_pipe_t *) calloc(1, sizeof(char_pipe_t));
 
-    dev->log = log_open("Pipe/Socket");
+    /* Get configuration. */
     dev->path = device_get_config_string("path");
-    char_pipe_log(dev->log, "init(%s)\n", dev->path);
     dev->mode = device_get_config_int("mode");
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
     dev->port = char_attach(0, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
+    dev->log = char_log_open(dev->port, "Pipe");
+    char_pipe_log(dev->log, "init(%s)\n", dev->path);
 
     /* Connect to pipe. */
 #ifdef _WIN32

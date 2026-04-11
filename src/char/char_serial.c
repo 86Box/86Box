@@ -247,7 +247,7 @@ char_serial_connect(char_serial_t *dev, int startup)
         char fmt[512];
         snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-        snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, fmt);
+        snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
         goto errmsg;
     }
 
@@ -272,7 +272,7 @@ char_serial_connect(char_serial_t *dev, int startup)
         char_serial_log(dev->log, "Path is not a TTY\n");
     }
     if (err > 0) {        
-        snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, strerror(err));
+        snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
         goto errmsg;
     }
 
@@ -665,16 +665,14 @@ char_serial_init(const device_t *info)
 {
     char_serial_t *dev = (char_serial_t *) calloc(1, sizeof(char_serial_t));
 
-    /* Get serial port. */
+    /* Get configuration. */
     dev->path = device_get_config_string("path");
-    char buf[256];
-    snprintf(buf, sizeof(buf), "Host Serial %s", path_get_filename((char *) dev->path));
-    dev->log = log_open(buf);
-    char_serial_log(dev->log, "init(%s)\n", dev->path);
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
     dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
+    dev->log = char_log_open(dev->port, "Serial Passthrough");
+    char_serial_log(dev->log, "init(%s)\n", dev->path);
 
     /* Connect to serial port. */
 #ifdef _WIN32

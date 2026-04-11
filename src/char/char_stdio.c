@@ -260,11 +260,10 @@ char_stdio_init(const device_t *info)
 {
     char_stdio_t *dev = (char_stdio_t *) calloc(1, sizeof(char_stdio_t));
 
-    dev->log = log_open("StdIO");
-    char_stdio_log(dev->log, "init()\n");
-
     /* Attach character device. */
     dev->port = char_attach(0, char_stdio_read, char_stdio_write, char_stdio_status, char_stdio_control, NULL, dev);
+    dev->log = char_log_open(dev->port, "StdIO");
+    char_stdio_log(dev->log, "init()\n");
 
 #ifdef _WIN32
     /* Set file descriptors. */
@@ -304,6 +303,8 @@ char_stdio_init(const device_t *info)
     int mode = device_get_config_int("mode");
     if ((mode == CHAR_STDIO_MODE_PTY) || (mode == CHAR_STDIO_MODE_TERM)) {
         /* Create pseudoterminal. */
+        char msg[2048];
+        int err;
         dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NONBLOCK);
         if (dev->fd_out >= 0) {
             if (grantpt(dev->fd_out) >= 0) {
@@ -318,33 +319,38 @@ char_stdio_init(const device_t *info)
                         if (tcsetattr(dev->fd_out, TCSAFLUSH, &dev->prev_config))
                             char_stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
 
-                        char buf[2048];
                         if (mode == CHAR_STDIO_MODE_PTY) {
-                            snprintf(buf, sizeof(buf), "COM%i attached to %s", device_get_instance(), pty);
-                            ui_msgbox(MBX_INFO | MBX_ANSI, buf);
+                            snprintf(msg, sizeof(msg), "%s attached to %s", dev->port->name, pty);
+                            ui_msgbox(MBX_INFO | MBX_ANSI, msg);
                         } else {
                             /* Spawn terminal emulator. */
                             char cmd[2048];
                             snprintf(cmd, sizeof(cmd), "PTY='%s';stty raw -echo eof undef;which socat>/dev/null&&exec socat stdio pipe:\"$PTY\";cat \"$PTY\"&cat>\"$PTY\"", pty);
-                            snprintf(buf, sizeof(buf), "%s COM%i", vm_name, device_get_instance());
-                            if (!plat_run_terminal(cmd, buf))
+                            snprintf(msg, sizeof(msg), "%s %s", vm_name, dev->port->name);
+                            if (!plat_run_terminal(cmd, msg))
                                 char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
                         }
                     } else {
-                        char_stdio_log(dev->log, "ptsname failed (%d)\n", errno);
+                        err = errno;
+                        char_stdio_log(dev->log, "ptsname failed (%d)\n", err);
                         goto bad_fd;
                     }
                 } else {
-                    char_stdio_log(dev->log, "unlockpt failed (%d)\n", errno);
+                    err = errno;
+                    char_stdio_log(dev->log, "unlockpt failed (%d)\n", err);
                     goto bad_fd;
                 }
             } else {
-                char_stdio_log(dev->log, "grantpt failed (%d)\n", errno);
+                err = errno;
+                char_stdio_log(dev->log, "grantpt failed (%d)\n", err);
                 goto bad_fd;
             }
         } else {
-            char_stdio_log(dev->log, "posix_openpt failed (%d)\n", errno);
-bad_fd:
+            err = errno;
+            char_stdio_log(dev->log, "posix_openpt failed (%d)\n", err);
+errmsg:
+            snprintf(msg, sizeof(msg), "%s: Could not create pseudoterminal: %s", dev->port->name, strerror(err));
+            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
             close(dev->fd_out);
             dev->fd_out = -1;
         }

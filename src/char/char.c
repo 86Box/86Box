@@ -24,6 +24,7 @@
 #include <86box/device.h>
 #include <86box/ini.h>
 #include <86box/char.h>
+#include <86box/log.h>
 
 static const device_t char_none_device = {
     .name          = "None",
@@ -105,7 +106,7 @@ char_init(char_port_t *port, const device_t *device, int instance)
     return priv;
 }
 
-void *
+char_port_t *
 char_attach(uint32_t flags,
             size_t   (*read)(uint8_t *buf, size_t len, void *priv),
             size_t   (*write)(uint8_t *buf, size_t len, void *priv),
@@ -127,4 +128,12 @@ char_attach(uint32_t flags,
     chardev->priv          = priv;
 
     return active_port;
+}
+
+void *
+char_log_open(char_port_t *port, char *dev_name)
+{
+    char new_dev_name[1024];
+    snprintf(new_dev_name, sizeof(new_dev_name), "%s %s", dev_name, port->name);
+    return log_open(new_dev_name);
 }

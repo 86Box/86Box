@@ -186,12 +186,12 @@ char_loopback_init(const device_t *info)
 {
     char_loopback_t *dev = (char_loopback_t *) calloc(1, sizeof(char_loopback_t));
 
-    dev->log = log_open("Loopback");
-    char_loopback_log(dev->log, "init()\n");
-
     /* Attach character device. */
     dev->port = char_attach(0, char_loopback_read, char_loopback_write, char_loopback_status, char_loopback_control, NULL, dev);
+    dev->log = char_log_open(dev->port, "Loopback");
+    char_loopback_log(dev->log, "init()\n");
 
+    /* Get configuration. */
     if (info->config && !strcmp(info->config[0].name, "type"))
         dev->type = device_get_config_int(info->config[0].name);
     else

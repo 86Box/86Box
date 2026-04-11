@@ -100,6 +100,7 @@ typedef struct _char_device_ {
 
 typedef struct {
     char_device_t chardev;
+    char          name[32];
 
     uint8_t type;
     union {
@@ -118,14 +119,15 @@ typedef struct {
 extern const int       char_get_from_internal_name(const char *internal_name, int bus);
 extern const device_t *char_get_device(const int id);
 
-extern void *char_init(char_port_t *port, const device_t *device, int instance);
-extern void *char_attach(uint32_t flags,
-                         size_t   (*read)(uint8_t *buf, size_t len, void *priv),
-                         size_t   (*write)(uint8_t *buf, size_t len, void *priv),
-                         uint32_t (*status)(void *priv),
-                         void     (*control)(uint32_t flags, void *priv),
-                         void     (*port_config)(void *priv),
-                         void     *priv);
+extern void        *char_init(char_port_t *port, const device_t *device, int instance);
+extern char_port_t *char_attach(uint32_t flags,
+                                size_t   (*read)(uint8_t *buf, size_t len, void *priv),
+                                size_t   (*write)(uint8_t *buf, size_t len, void *priv),
+                                uint32_t (*status)(void *priv),
+                                void     (*control)(uint32_t flags, void *priv),
+                                void     (*port_config)(void *priv),
+                                void     *priv);
+extern void        *char_log_open(char_port_t *port, char *dev_name);
 
 extern const device_t char_serial_passthrough_com_device;
 extern const device_t char_pipe_com_device;

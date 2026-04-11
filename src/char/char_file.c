@@ -27,6 +27,7 @@
 #include <86box/char.h>
 #include <86box/log.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 
 #define ENABLE_CHAR_FILE_LOG 1
 #ifdef ENABLE_CHAR_FILE_LOG
@@ -137,18 +138,22 @@ char_file_init(const device_t *info)
 {
     char_file_t *dev = (char_file_t *) calloc(1, sizeof(char_file_t));
 
-    dev->log = log_open("Host File");
+    /* Attach character device. */
+    dev->port = char_attach(0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
+    dev->log = char_log_open(dev->port, "File");
     const char *path = device_get_config_string("path");
     char_file_log(dev->log, "init(%s)\n", path);
     dev->loop_in = !!device_get_config_int("input_loop");
 
-    /* Attach character device. */
-    dev->port = char_attach(0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
-
     /* Open files. */
+    char msg[2048];
     if (path[0]) {
         dev->file_out = plat_fopen(path, device_get_config_int("append") ? "ab" : "wb");
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
+        if (!dev->file_out) {
+            snprintf(msg, sizeof(msg), "%s: Could not open output file %s", dev->port->name, path);
+            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+        }
     } else {
         char_file_log(dev->log, "No output file specified\n");
     }
@@ -156,6 +161,10 @@ char_file_init(const device_t *info)
     if (path[0]) {
         dev->file_in = plat_fopen(path, "rb");
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
+        if (!dev->file_in) {
+            snprintf(msg, sizeof(msg), "%s: Could not open input file %s", dev->port->name, path);
+            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+        }
     } else {
         char_file_log(dev->log, "No input file specified\n");
     }
