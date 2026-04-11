@@ -920,13 +920,17 @@ debug_args=
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
 if [ -e "$prefix/src/Makefile" ]
 then
-	git -C "$prefix" clean -dfx
-	git -C "$prefix" reset --hard HEAD
-	for retry in 0 1 2 3 4
-	do
-		sleep $retry
-		git -C "$prefix" pull && break
-	done
+	if ! check_buildtag mdsx
+	then
+		git -C "$prefix" clean -dfx
+		git -C "$prefix" reset --hard HEAD
+		for retry in 0 1 2 3 4
+		do
+			sleep $retry
+			git -C "$prefix" pull && break
+		done
+		save_buildtag mdsx
+	fi
 else
 	rm -rf "$prefix"
 	for retry in 0 1 2 3 4
@@ -1009,7 +1013,6 @@ then
 	fi
 else
 	cwd_root="$(pwd)"
-	check_buildtag "libs.$arch_deb"
 
 	if grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
