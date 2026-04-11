@@ -1064,7 +1064,8 @@ load_ports(void)
 #else
             sprintf(temp, "Virtual Console (COM) #%i", c + 1);
             ini_rename_section(cat2, temp);
-            ini_set_int(config, temp, "mode", CHAR_STDIO_MODE_PTY);
+            if (old_enable || (old_mode >= 0) || cat2)
+                ini_set_int(config, temp, "mode", CHAR_STDIO_MODE_PTY);
             p = "stdio";
 #endif
         }
