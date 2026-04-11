@@ -471,17 +471,20 @@ then
 					# Copy or lipo files that exist on both bundles.
 					cat "$cache_dir/universal_listing.txt" | uniq -d | while IFS= read line
 					do
-						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
+						path1="archive_tmp_universal/$merge_src.app/$line"
+						path2="archive_tmp_universal/$arch_universal.app/$line"
+						dest="archive_tmp_universal/$merge_dest.app/$line"
+						if cmp -s "$path1" "$path2"
 						then
 							echo "> Identical: $line"
-							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
-						elif lipo -create -output "archive_tmp_universal/$merge_dest.app/$line" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+						elif lipo -create -output "$dest" "$path1" "$path2" 2> /dev/null
 						then
 							echo "> Merged: $line"
+							continue
 						else
 							echo "> Copied from [$merge_src]: $line"
-							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
 						fi
+						cp -p "$path1" "$dest"
 					done
 
 					# Merge symlinks.
@@ -505,17 +508,36 @@ then
 							file_src="$arch_universal"
 						fi
 						link_dest="$(readlink "archive_tmp_universal/$file_src.app/$line")"
+						link_path="archive_tmp_universal/$merge_dest.app/$line"
 
 						# Warn if destinations differ.
 						if [ -n "$other_link_dest" -a "$link_dest" != "$other_link_dest" ]
 						then
 							echo "> Symlink: $line => WARNING: different targets"
-							echo ">> Using: [$merge_src] $link_dest"
-							echo ">> Other: [$arch_universal] $other_link_dest"
+
+							# Attempt to lipo the diverging destinations in case they're libraries.
+							if lipo -create -output "$link_path" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+							then
+								echo ">> Merged: [$merge_src] $link_dest"
+								echo ">> With: [$arch_universal] $other_link_dest"
+
+								# Point the diverging destinations back to the merged library.
+								for dest in "$link_dest" "$other_link_dest"
+								do
+									ln -s "$dest" "$link_path.tmp"
+									real_dest="$(readlink -f "$link_path.tmp")"
+									rm -f "$real_dest" "$link_path.tmp"
+									ln -s "$link_path" "$real_dest"
+								done
+								continue
+							else
+								echo ">> Using: [$merge_src] $link_dest"
+								echo ">> Other: [$arch_universal] $other_link_dest"
+							fi
 						else
 							echo "> Symlink: $line => $link_dest"
 						fi
-						ln -s "$link_dest" "archive_tmp_universal/$merge_dest.app/$line"
+						ln -s "$link_dest" "$link_path"
 					done
 
 					# Merge a subsequent bundle with this one.
@@ -684,7 +706,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libinstpatch-dev libserialport-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -893,19 +915,33 @@ then
 fi
 
 # Build mdsx library.
+prefix="$cache_dir/mdsx"
 debug_args=
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
-cd archive_tmp
-for retry in 0 1 2 3 4
-do
-	sleep $retry
-	git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" mdsx && break
-done
-make -C mdsx/src -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
-rm -f mdsx/src/*.a
-mv mdsx/src/mdsx.* . || exit 99
-rm -rf mdsx
-cd ..
+if [ -e "$prefix/src/Makefile" ]
+then
+	if ! check_buildtag mdsx
+	then
+		git -C "$prefix" clean -dfx
+		git -C "$prefix" reset --hard HEAD
+		for retry in 0 1 2 3 4
+		do
+			sleep $retry
+			git -C "$prefix" pull && break
+		done
+		save_buildtag mdsx
+	fi
+else
+	rm -rf "$prefix"
+	for retry in 0 1 2 3 4
+	do
+		sleep $retry
+		git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" "$prefix" && break
+	done
+fi
+make -C "$prefix/src" -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
+find "$prefix/src" -name '*.[oa]' -delete
+mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
@@ -919,10 +955,13 @@ then
 	[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
 	# Archive Ghostscript DLL from local official distribution installation.
-	for gs in "$pf"/gs/gs*.*.*
-	do
-		cp -p "$gs"/bin/gsdll*.dll archive_tmp/
-	done
+	if [ "$arch" != "ARM64" -a "$arch" != "arm64" ]
+	then
+		for gs in "$pf"/gs/gs*.*.*
+		do
+			cp -p "$gs"/bin/gsdll*.dll archive_tmp/
+		done
+	fi
 
 	# Archive Discord Game SDK DLL.
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
@@ -974,12 +1013,12 @@ then
 	fi
 else
 	cwd_root="$(pwd)"
-	check_buildtag "libs.$arch_deb"
 
 	if grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
+		# Newer versions require C++20 which our current environment doesn't support.
 		prefix="$cache_dir/openal-soft-1.23.1"
 		if [ ! -d "$prefix" ]
 		then
@@ -999,13 +1038,13 @@ else
 		# Build SDL2 without sound systems.
 		sdl_ss=OFF
 	else
-		# Build FAudio 22.03 manually to remove the dependency on GStreamer. This is a temporary
+		# Build FAudio 26.03 manually to remove the dependency on GStreamer. This is a temporary
 		# workaround until a newer version of FAudio trickles down to Debian repos.
-		prefix="$cache_dir/FAudio-22.03"
+		prefix="$cache_dir/FAudio-26.03"
 		if [ ! -d "$prefix" ]
 		then
 			rm -rf "$cache_dir/FAudio-"* # remove old versions
-			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/26.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 		prefix_build="$prefix/build-$arch_deb"
 		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
@@ -1022,6 +1061,7 @@ else
 
 	# Build rtmidi without JACK support to remove the dependency on libjack, as
 	# the Debian libjack is very likely to be incompatible with the system jackd.
+	# Newer versions are ABI incompatible and require newer CMake.
 	prefix="$cache_dir/rtmidi-4.0.0"
 	if [ ! -d "$prefix" ]
 	then
@@ -1035,15 +1075,16 @@ else
 
 	# Build FluidSynth without sound systems to remove the dependencies on libjack
 	# and other sound system libraries. We don't output audio through FluidSynth.
-	prefix="$cache_dir/fluidsynth-2.3.0"
+	prefix="$cache_dir/fluidsynth-2.5.3"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
-		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.5.3.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
+	sed -i -e 's/SndFile_WITH_EXTERNAL_LIBS/1/g' "$prefix/CMakeLists.txt" # patch to enable sf3 support with old libsndfile
 	prefix_build="$prefix/build-$arch_deb"
 	cmake -G Ninja -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
-		-D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF \
+		-D SndFile_WITH_EXTERNAL_LIBS=ON -D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF \
 		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
@@ -1051,13 +1092,13 @@ else
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
-	prefix="$cache_dir/SDL2-2.0.20"
+	prefix="$cache_dir/SDL2-2.32.10"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/SDL2-"* # remove old versions
-		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		wget -qO - https://www.libsdl.org/release/SDL2-2.32.10.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	prefix_build="$cache_dir/SDL2-2.0.20-build-$arch_deb"
+	prefix_build="$cache_dir/SDL2-2.32.10-build-$arch_deb"
 	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
 		\
 		-D SDL_AUDIO=$sdl_ss -D SDL_DUMMYAUDIO=$sdl_ss -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss -D SDL_ALSA_SHARED=$sdl_ss \

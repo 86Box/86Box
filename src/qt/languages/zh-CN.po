@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-29 17:00+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "机器类型:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486（Socket 168及Socket 1）"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486（杂项）"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7（单电压）"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7（双电压）"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "杂项"
 
 msgid "Machine:"
 msgstr "机型:"
@@ -523,18 +523,6 @@ msgstr "YMFM (更快)"
 msgid "Internal LPT ECP DMA:"
 msgstr "内部 LPT 的 ECP DMA:"
 
-msgid "Serial port 1"
-msgstr "串口 1"
-
-msgid "Serial port 2"
-msgstr "串口 2"
-
-msgid "Serial port 3"
-msgstr "串口 3"
-
-msgid "Serial port 4"
-msgstr "串口 4"
-
 msgid "Floppy disk controller:"
 msgstr "软盘控制器:"
 
@@ -612,6 +600,9 @@ msgstr "硬盘:"
 
 msgid "Firmware Version"
 msgstr "固件版本"
+
+msgid "DSP Version"
+msgstr "DSP 版本"
 
 msgid "&New…"
 msgstr "新建(&N)…"
@@ -1828,18 +1819,6 @@ msgstr "86Box 单元测试工具"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 密钥卡"
 
-msgid "Serial port passthrough 1"
-msgstr "串口直通 1"
-
-msgid "Serial port passthrough 2"
-msgstr "串口直通 2"
-
-msgid "Serial port passthrough 3"
-msgstr "串口直通 3"
-
-msgid "Serial port passthrough 4"
-msgstr "串口直通 4"
-
 msgid "Renderer &options…"
 msgstr "渲染器选项(&O)…"
 
@@ -1991,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "BIOS 语言"
 
 msgid "Variant"
-msgstr ""
+msgstr "变种"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 扩展单元"
@@ -2668,7 +2647,8 @@ msgstr "Savage Quest 保护加密狗"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "串口直通设备"
 
 msgid "Passthrough Mode"
@@ -2831,7 +2811,7 @@ msgid "Emulator"
 msgstr ""
 
 msgid "Input"
-msgstr ""
+msgstr "输入"
 
 msgid "Key bindings"
 msgstr "按键绑定"
@@ -3010,9 +2990,6 @@ msgstr "系统将不会被添加。"
 msgid "&Update mouse every CPU frame"
 msgstr "逐 CPU 帧更新鼠标(&U)"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "色调"
 
@@ -3028,8 +3005,11 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "锐度"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "CGA 复合模式设置(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA 复合模式设置"
 
 msgid "Monitor EDID"
 msgstr "显示器的EDID"
@@ -3083,4 +3063,10 @@ msgid "Raw"
 msgstr "原始"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "使用EDC/ECC模拟"
+
+msgid "Audio output device:"
+msgstr "音频输出设备:"
+
+msgid "System Default"
+msgstr "系统默认"

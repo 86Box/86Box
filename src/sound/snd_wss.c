@@ -142,14 +142,14 @@ wss_init(UNUSED(const device_t *info))
 }
 
 static uint8_t
-ncr_audio_mca_read(int port, void *priv)
+ncr_audio_mca_read(const uint16_t port, void *priv)
 {
     const wss_t *wss = (wss_t *) priv;
     return wss->pos_regs[port & 7];
 }
 
 static void
-ncr_audio_mca_write(int port, uint8_t val, void *priv)
+ncr_audio_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     wss_t   *wss      = (wss_t *) priv;
     uint16_t ports[4] = { 0x530, 0xE80, 0xF40, 0x604 };

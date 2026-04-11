@@ -701,7 +701,6 @@ plat_power_off(void)
     confirm_exit_cmdl = 0;
     hdd_image_sync_all();
     nvr_save();
-    config_save();
 
     /* Deduct a sufficiently large number of cycles that no instructions will
        run before the main thread is terminated */

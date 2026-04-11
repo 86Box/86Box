@@ -285,10 +285,13 @@ i82091aa_init(const device_t *info)
 {
     i82091aa_t *dev = (i82091aa_t *) calloc(1, sizeof(i82091aa_t));
 
+    int inst = device_get_instance();
+    inst = inst ? (inst - 1) : 0;
+
     dev->fdc = device_add(&fdc_at_device);
 
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    dev->uart[0] = device_add_inst(&ns16550_device, 1 + (inst << 1));
+    dev->uart[1] = device_add_inst(&ns16550_device, 2 + (inst << 1));
 
     dev->lpt     = device_add_inst(&lpt_port_device, 1);
 

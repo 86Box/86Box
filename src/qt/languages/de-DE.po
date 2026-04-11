@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-12 16:30+0000\n"
-"Last-Translator: toggo9 <johann2000@outlook.at>\n"
+"PO-Revision-Date: 2026-04-09 07:38+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -355,19 +355,19 @@ msgid "Machine type:"
 msgstr "Systemtyp:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 und 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Verschiedenes)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (Einfache Spannung)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr ""
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Verschiedenes"
 
 msgid "Machine:"
 msgstr "System:"
@@ -522,18 +522,6 @@ msgstr "YMFM (schneller)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA des ECP des internen Parallelports:"
 
-msgid "Serial port 1"
-msgstr "Serielle Schnittstelle 1"
-
-msgid "Serial port 2"
-msgstr "Serielle Schnittstelle 2"
-
-msgid "Serial port 3"
-msgstr "Serielle Schnittstelle 3"
-
-msgid "Serial port 4"
-msgstr "Serielle Schnittstelle 4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketten-Controller:"
 
@@ -556,7 +544,7 @@ msgid "IDE Controller (Dual-Channel)"
 msgstr ""
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE-Controller"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
 msgstr ""
@@ -611,6 +599,9 @@ msgstr "Festplatten:"
 
 msgid "Firmware Version"
 msgstr "Firmware-Version"
+
+msgid "DSP Version"
+msgstr "DSP-Version"
 
 msgid "&New…"
 msgstr "&Neu…"
@@ -1827,18 +1818,6 @@ msgstr "86Box-Gerätetester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Schlüsselkarte"
 
-msgid "Serial port passthrough 1"
-msgstr "Serielle Schnittstelle 1 durchreichen"
-
-msgid "Serial port passthrough 2"
-msgstr "Serielle Schnittstelle 2 durchreichen"
-
-msgid "Serial port passthrough 3"
-msgstr "Serielle Schnittstelle 3 durchreichen"
-
-msgid "Serial port passthrough 4"
-msgstr "Serielle Schnittstelle 4 durchreichen"
-
 msgid "Renderer &options…"
 msgstr "Renderer-&Optionen…"
 
@@ -2665,9 +2644,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Kopierschutz-Dongle für Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-Stecker"
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Serielles Gerät durchreichen"
 
 msgid "Passthrough Mode"
@@ -3009,9 +2989,6 @@ msgstr "Das System wird nicht hinzugefügt werden."
 msgid "&Update mouse every CPU frame"
 msgstr "&Maus bei jedem CPU-Frame aktualisieren"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Farbton"
 
@@ -3027,8 +3004,11 @@ msgstr "Helligkeit"
 msgid "Sharpness"
 msgstr "Schärfe"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Optionen des &CGA-Composite-Modus…"
+
+msgid "CGA composite settings"
+msgstr "Optionen des CGA-Composite-Modus"
 
 msgid "Monitor EDID"
 msgstr "EDID des Monitors"
@@ -3082,4 +3062,10 @@ msgid "Raw"
 msgstr "Roh"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "EDC/ECC-Emulation verwenden"
+
+msgid "Audio output device:"
+msgstr "Audio-Ausgabegerät:"
+
+msgid "System Default"
+msgstr "Systemstandard"

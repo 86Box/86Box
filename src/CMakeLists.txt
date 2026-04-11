@@ -35,6 +35,7 @@ add_executable(86Box
     dma.c
     ddma.c
     nmi.c
+    pci_dummy.c
     pic.c
     pit.c
     pit_fast.c
