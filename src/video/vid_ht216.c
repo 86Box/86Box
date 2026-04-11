@@ -1593,7 +1593,7 @@ ht216_read_linear(uint32_t addr, void *priv)
 }
 
 static uint8_t
-radius_mca_read(int port, void *priv)
+radius_mca_read(const uint16_t port, void *priv)
 {
     const ht216_t *ht216 = (ht216_t *) priv;
 
@@ -1603,7 +1603,7 @@ radius_mca_read(int port, void *priv)
 }
 
 static void
-radius_mca_write(int port, uint8_t val, void *priv)
+radius_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     ht216_t *ht216 = (ht216_t *) priv;
 
@@ -1972,6 +1972,7 @@ const device_t ht216_32_pb410a_device = {
     .available     = NULL,
     .speed_changed = ht216_speed_changed,
     .force_redraw  = ht216_force_redraw,
+    .machine       = "Packard Bell PB410A",
     .config        = NULL
 };
 

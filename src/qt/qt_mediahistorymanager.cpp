@@ -30,6 +30,7 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/cassette.h>
 #include <86box/cartridge.h>
+#include <86box/config.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
@@ -311,6 +312,8 @@ MediaHistoryManager::addImageToHistory(int index, ui::MediaType type, const QStr
 
     setHistoryListForDeviceIndex(index, type, device_history);
     serializeImageHistoryType(type);
+
+    config_save();
 }
 
 QString
@@ -402,8 +405,11 @@ MediaHistoryManager::removeMissingImages(device_index_list_t &device_history)
         if (!file_exists) {
             qWarning("Image file %s does not exist - removing from history", qPrintable(new_fi.filePath()));
             checked_path = "";
+
+            config_save();
         }
     }
+
     return device_history;
 }
 

@@ -397,21 +397,21 @@ cmi8x38_dma_mask_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
 }
 
 static void
-cmi8338_io_trap(UNUSED(int size), uint16_t addr, uint8_t write, uint8_t val, void *priv)
+cmi8338_io_trap(UNUSED(const uint16_t size), uint16_t port, uint8_t write, uint8_t val, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
 #ifdef ENABLE_CMI8X38_LOG
     if (write)
-        cmi8x38_log("CMI8x38: cmi8338_io_trap(%04X, %02X)\n", addr, val);
+        cmi8x38_log("CMI8x38: cmi8338_io_trap(%04X, %02X)\n", port, val);
     else
-        cmi8x38_log("CMI8x38: cmi8338_io_trap(%04X)\n", addr);
+        cmi8x38_log("CMI8x38: cmi8338_io_trap(%04X)\n", port);
 #endif
 
     /* Weird offsets, it's best to just treat the register as a big dword. */
     uint32_t *lcs = (uint32_t *) &dev->io_regs[0x14];
     *lcs &= ~0x0003dff0;
-    *lcs |= (addr & 0x0f) << 14;
+    *lcs |= (port & 0x0f) << 14;
     if (write)
         *lcs |= 0x1000 | (val << 4);
 

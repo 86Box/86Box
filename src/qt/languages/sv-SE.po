@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
 "MIME-Version: 1.0\n"
@@ -523,18 +523,6 @@ msgstr "YMFM (snabbare)"
 msgid "Internal LPT ECP DMA:"
 msgstr "Intern LPT ECP DMA:"
 
-msgid "Serial port 1"
-msgstr "Serieport 1"
-
-msgid "Serial port 2"
-msgstr "Serieport 2"
-
-msgid "Serial port 3"
-msgstr "Serieport 3"
-
-msgid "Serial port 4"
-msgstr "Serieport 4"
-
 msgid "Floppy disk controller:"
 msgstr "Styrenhet för diskett:"
 
@@ -612,6 +600,9 @@ msgstr "Hårddiskar:"
 
 msgid "Firmware Version"
 msgstr "Firmware-version"
+
+msgid "DSP Version"
+msgstr "DSP-version"
 
 msgid "&New…"
 msgstr "&Ny…"
@@ -1828,18 +1819,6 @@ msgstr "86Box enhetsprövare"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x nyckelkort"
 
-msgid "Serial port passthrough 1"
-msgstr "Serieport passthrough 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Serieport passthrough 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Serieport passthrough 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Serieport passthrough 4"
-
 msgid "Renderer &options…"
 msgstr "Renderingsalternativ…"
 
@@ -2668,7 +2647,8 @@ msgstr "Skyddsdongel till Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Seriepassthrough-enhet"
 
 msgid "Passthrough Mode"
@@ -3010,9 +2990,6 @@ msgstr "Systemet kommer inte att läggas till."
 msgid "&Update mouse every CPU frame"
 msgstr "&Uppdatera mus varje processorram"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Färgton"
 
@@ -3028,8 +3005,11 @@ msgstr "Ljusstyrka"
 msgid "Sharpness"
 msgstr "Skärpa"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Inställningar för &CGA-kompositläget…"
+
+msgid "CGA composite settings"
+msgstr "Inställningar för CGA-kompositläget"
 
 msgid "Monitor EDID"
 msgstr "EDID för bildskärm"
@@ -3084,3 +3064,9 @@ msgstr "Rå"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Ljudutdataenhet:"
+
+msgid "System Default"
+msgstr "Systemstandard"

@@ -350,7 +350,5 @@ Settings::reject()
     if (plat_path_is_empty(usr_path))
         rmdir(usr_path);
 
-    display->restore();
-
     QDialog::reject();
 }

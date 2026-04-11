@@ -444,7 +444,7 @@ exec386_dynarec_dyn(uint32_t phys_addr, page_t *page)
         if (valid_block && (block->page_mask & *block->dirty_mask)) {
 #    ifdef USE_NEW_DYNAREC
             codegen_check_flush(page, page->dirty_mask, phys_addr);
-            if (block->pc == BLOCK_PC_INVALID) {
+            if (!block->valid) {
                 valid_block = 0;
                 goto invalid_block;
             } else if (block->flags & CODEBLOCK_IN_DIRTY_LIST) {
@@ -489,16 +489,15 @@ invalid_block:
             else if (block->page_mask2 & *block->dirty_mask2) {
 #    ifdef USE_NEW_DYNAREC
                 codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
-                if (block->pc == BLOCK_PC_INVALID)
-                    valid_block = 0;
-                else if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
+                if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
                     block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+                else
 #    else
                 codegen_check_flush(page_2, page_2->dirty_mask[(phys_addr_2 >> 10) & 3], phys_addr_2);
                 page_2->dirty_mask[(phys_addr_2 >> 10) & 3] = 0;
+#    endif
                 if (!block->valid)
                     valid_block = 0;
-#    endif
             }
         }
 #    ifdef USE_NEW_DYNAREC

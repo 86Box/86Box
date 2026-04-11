@@ -204,7 +204,18 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Aztech Sound Galaxy Pro 16 AB (Washington)", .new = "Aztech Sound Galaxy Pro 16 AB" },
         { .old = "Aztech Sound Galaxy Nova 16 Extra (Clinton)", .new = "Aztech Sound Galaxy Nova 16 Extra" },
         { .old = "Aztech Sound Galaxy Pro 16 (AZTPR16)", .new = "Aztech Sound Galaxy Pro 16" },
-        { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A (AZT2320)" },
+        { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A" },
+        { .old = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)", .new = "IBM ESDI Fixed Disk Adapter" },
+        { .old = "IBM Integrated Fixed Disk and Controller (MCA)", .new = "IBM Integrated Fixed Disk" },
+        { .old = "IBM PS/2 ST506 Fixed Disk Adapter (MCA)", .new = "IBM ST506 Fixed Disk Adapter" },
+        { .old = "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1)", .new = "Cirrus Logic GD5401 (ISA)" },
+        { .old = "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1) (On-Board)", .new = "Cirrus Logic GD5401 (ISA) (On-Board)" },
+        { .old = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2)", .new = "Cirrus Logic GD5402 (ISA)" },
+        { .old = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2) (On-Board)", .new = "Cirrus Logic GD5402 (ISA) (On-Board)" },
+        { .old = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2) (On-Board) (Commodore)", .new = "Cirrus Logic GD5402 (ISA) (On-Board) (Commodore)" },
+        { .old = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)", .new = "Cirrus Logic GD5428 (MCA)" },
+        { .old = "Cirrus Logic GD5426 (MCA) (Reply Video Adapter)", .new = "Cirrus Logic GD5426 (MCA)" },
+        { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
         { 0 }
     };
 
@@ -384,6 +395,15 @@ device_get_alias(const device_t *dev)
         return "";
 
     return dev->alias;
+}
+
+const char *
+device_get_machine(const device_t *dev)
+{
+    if (dev == NULL)
+        return NULL;
+
+    return dev->machine;
 }
 
 void *

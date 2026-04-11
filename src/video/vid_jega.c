@@ -1052,5 +1052,6 @@ const device_t if386jega_device = {
     .available     = if386jega_available,
     .speed_changed = jega_speed_changed,
     .force_redraw  = NULL,
+    .machine       = "OKI if386AX30L",
     .config        = NULL
 };
