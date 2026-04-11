@@ -320,7 +320,7 @@ char_stdio_init(const device_t *info)
                             char_stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
 
                         if (mode == CHAR_STDIO_MODE_PTY) {
-                            snprintf(msg, sizeof(msg), "%s attached to %s", dev->port->name, pty);
+                            snprintf(msg, sizeof(msg), "%s: Attached to %s", dev->port->name, pty);
                             ui_msgbox(MBX_INFO | MBX_ANSI, msg);
                         } else {
                             /* Spawn terminal emulator. */
@@ -333,17 +333,17 @@ char_stdio_init(const device_t *info)
                     } else {
                         err = errno;
                         char_stdio_log(dev->log, "ptsname failed (%d)\n", err);
-                        goto bad_fd;
+                        goto errmsg;
                     }
                 } else {
                     err = errno;
                     char_stdio_log(dev->log, "unlockpt failed (%d)\n", err);
-                    goto bad_fd;
+                    goto errmsg;
                 }
             } else {
                 err = errno;
                 char_stdio_log(dev->log, "grantpt failed (%d)\n", err);
-                goto bad_fd;
+                goto errmsg;
             }
         } else {
             err = errno;
@@ -376,18 +376,17 @@ errmsg:
     }
 
     /* Save current terminal configuration for restoring on close. */
-    if (!tcgetattr(STDIN_FILENO, &dev->prev_config)) {
-        dev->prev_config_valid = 1;
-
-        /* Enable raw input. */
-        struct termios ios;
-        memcpy(&ios, &dev->prev_config, sizeof(struct termios));
-        cfmakeraw(&ios);
-        if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ios))
-            char_stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
-    } else {
+    struct termios port_config = { 0 };
+    dev->prev_config_valid = !tcgetattr(dev->fd_in, &port_config);
+    if (dev->prev_config_valid)
+        memcpy(&dev->prev_config, &port_config, sizeof(port_config));
+    else
         char_stdio_log(dev->log, "tcgetattr failed (%d)\n", errno);
-    }
+
+    /* Enable raw input. */
+    cfmakeraw(&port_config);
+    if (tcsetattr(dev->fd_in, TCSANOW, &port_config))
+        char_stdio_log(dev->log, "Raw mode tcsetattr failed (%d)\n", errno);
 #endif
 
     /* Stop logging to stdout. */
