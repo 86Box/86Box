@@ -49,6 +49,7 @@
 #include <86box/log.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
+#include <86box/ui.h>
 
 #define ENABLE_CHAR_STDIO_LOG 1
 #ifdef ENABLE_CHAR_STDIO_LOG
@@ -246,7 +247,7 @@ char_stdio_close(void *priv)
     if (dev->prev_flags_valid && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
         char_stdio_log(dev->log, "Restore F_SETFL failed (%d)\n", errno);
 
-    /* Terminate pseudoterminal. */
+    /* Terminate pseudoterminal if we have one. */
     if (dev->fd_out != STDOUT_FILENO)
         close(dev->fd_out);
 #endif
@@ -300,7 +301,8 @@ char_stdio_init(const device_t *info)
             char_stdio_log(dev->log, "Output SetConsoleMode failed (%08X)\n", GetLastError());
     }
 #else
-    if (1) {
+    int mode = device_get_config_int("mode");
+    if ((mode == CHAR_STDIO_MODE_PTY) || (mode == CHAR_STDIO_MODE_TERM)) {
         /* Create pseudoterminal. */
         dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NONBLOCK);
         if (dev->fd_out >= 0) {
@@ -316,11 +318,18 @@ char_stdio_init(const device_t *info)
                         if (tcsetattr(dev->fd_out, TCSAFLUSH, &dev->prev_config))
                             char_stdio_log(dev->log, "TCSAFLUSH failed (%d)\n", errno);
 
-                        /* Spawn terminal emulator. */
-                        char cmd[2048];
-                        snprintf(cmd, sizeof(cmd), "PTY='%s';stty raw -echo eof undef;which socat>/dev/null&&exec socat stdio pipe:\"$PTY\";cat \"$PTY\"&cat>\"$PTY\"", pty);
-                        if (!plat_run_terminal(cmd, vm_name))
-                            char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
+                        char buf[2048];
+                        if (mode == CHAR_STDIO_MODE_PTY) {
+                            snprintf(buf, sizeof(buf), "COM%i attached to %s", device_get_instance(), pty);
+                            ui_msgbox(MBX_INFO | MBX_ANSI, buf);
+                        } else {
+                            /* Spawn terminal emulator. */
+                            char cmd[2048];
+                            snprintf(cmd, sizeof(cmd), "PTY='%s';stty raw -echo eof undef;which socat>/dev/null&&exec socat stdio pipe:\"$PTY\";cat \"$PTY\"&cat>\"$PTY\"", pty);
+                            snprintf(buf, sizeof(buf), "%s COM%i", vm_name, device_get_instance());
+                            if (!plat_run_terminal(cmd, buf))
+                                char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
+                        }
                     } else {
                         char_stdio_log(dev->log, "ptsname failed (%d)\n", errno);
                         goto bad_fd;
@@ -389,12 +398,28 @@ bad_fd:
     return dev;
 }
 
-const device_t char_stdio_com_device = {
-#if defined(_WIN32) && defined(USE_WIN32_GUI)
-    .name          = "Console Window (COM)",
-#else
-    .name          = "Standard Input/Output (COM)",
+#ifndef _WIN32
+// clang-format off
+static const device_config_t char_stdio_config[] = {
+    {
+        .name         = "mode",
+        .description  = "Mode",
+        .type         = CONFIG_SELECTION,
+        .default_int  = CHAR_STDIO_MODE_TERM,
+        .selection    = {
+            { .description = "Standard input/output",   .value = CHAR_STDIO_MODE_STDIO },
+            { .description = "Create pseudoterminal",   .value = CHAR_STDIO_MODE_PTY   },
+            { .description = "Start terminal emulator", .value = CHAR_STDIO_MODE_TERM  },
+            { NULL                                                                     }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
 #endif
+
+const device_t char_stdio_com_device = {
+    .name          = "Virtual Console (COM)",
     .internal_name = "stdio",
     .flags         = DEVICE_COM,
     .local         = 0,
@@ -404,5 +429,9 @@ const device_t char_stdio_com_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
+#ifdef _WIN32
     .config        = NULL
+#else
+    .config        = char_stdio_config
+#endif
 };

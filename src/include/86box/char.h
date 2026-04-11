@@ -80,6 +80,13 @@ enum { /* char_pipe modes (for config migration) */
     CHAR_PIPE_MODE_MAX
 };
 
+enum { /* char_stdio modes (for config migration) */
+    CHAR_STDIO_MODE_STDIO = 0,
+    CHAR_STDIO_MODE_PTY,
+    CHAR_STDIO_MODE_TERM,
+    CHAR_STDIO_MODE_MAX
+};
+
 typedef struct _char_device_ {
     uint32_t  flags;
     void     *priv;
