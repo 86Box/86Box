@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Slovak <https://weblate.86box.net/projects/86box/86box/sk/>\n"
 "Language: sk-SK\n"
 "MIME-Version: 1.0\n"
@@ -522,18 +522,6 @@ msgstr "YMFM (rýchlejší)"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA kanál ECP interného LPT portu:"
-
-msgid "Serial port 1"
-msgstr "Povoliť port COM1"
-
-msgid "Serial port 2"
-msgstr "Povoliť port COM2"
-
-msgid "Serial port 3"
-msgstr "Povoliť port COM3"
-
-msgid "Serial port 4"
-msgstr "Povoliť port COM4"
 
 msgid "Floppy disk controller:"
 msgstr "Disketový radič:"
@@ -1831,18 +1819,6 @@ msgstr "86Box Unit Tester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Kľúčová karta Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Priechod sériového portu 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Priechod sériového portu 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Priechod sériového portu 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Priechod cez sériový port 4"
-
 msgid "Renderer &options…"
 msgstr "Možnosti vykresľovača…"
 
@@ -2671,7 +2647,8 @@ msgstr "Ochranný kľúč pre Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Zariadenie priechodu sériového portu"
 
 msgid "Passthrough Mode"
@@ -3013,9 +2990,6 @@ msgstr "Systém nebude pridaný."
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovať myš pri každom rámci CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Odtieň"
 
@@ -3031,8 +3005,11 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrota"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Nastavenia kompozitného režimu &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Nastavenia kompozitného režimu CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
@@ -3087,3 +3064,9 @@ msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Výstupné zvukové zariadenie:"
+
+msgid "System Default"
+msgstr "Predvolené nastavenie systému"

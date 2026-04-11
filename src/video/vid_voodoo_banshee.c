@@ -733,6 +733,7 @@ banshee_recalctimings(svga_t *svga)
         double freq = (((double) n + 2) / (((double) m + 2) * (double) (1 << k))) * 14318184.0;
 
         svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
+
 #if 0
         svga->clock = cpuclock / freq;
 #endif
@@ -3837,7 +3838,7 @@ static const device_config_t voodoo_banshee_pci_config[] = {
         .name           = "bios",
         .description    = "BIOS",
         .type           = CONFIG_BIOS,
-        .default_string = "px_trio64vplus_pci",
+        .default_string = "voodoo_banshee_pci",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },

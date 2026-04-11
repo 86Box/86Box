@@ -367,7 +367,7 @@ t128_callback(void *priv)
 }
 
 static uint8_t
-t228_read(int port, void *priv)
+t228_read(const uint16_t port, void *priv)
 {
     const t128_t *t128 = (t128_t *) priv;
 
@@ -375,7 +375,7 @@ t228_read(int port, void *priv)
 }
 
 static void
-t228_write(int port, uint8_t val, void *priv)
+t228_write(const uint16_t port, const uint8_t val, void *priv)
 {
     t128_t *t128 = (t128_t *) priv;
     ncr_t  *ncr  = &t128->ncr;

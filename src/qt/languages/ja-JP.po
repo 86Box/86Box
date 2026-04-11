@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
 "Language: ja-JP\n"
@@ -522,18 +522,6 @@ msgstr "YMFM(より速く)"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "内部LPTのECPのDMA:"
-
-msgid "Serial port 1"
-msgstr "シリアルポート1"
-
-msgid "Serial port 2"
-msgstr "シリアルポート2"
-
-msgid "Serial port 3"
-msgstr "シリアルポート3"
-
-msgid "Serial port 4"
-msgstr "シリアルポート4"
 
 msgid "Floppy disk controller:"
 msgstr "FDDコントローラー:"
@@ -1831,18 +1819,6 @@ msgstr "86Boxユニットテスター"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.xキーカード"
 
-msgid "Serial port passthrough 1"
-msgstr "シリアルポートパススルー 1"
-
-msgid "Serial port passthrough 2"
-msgstr "シリアルポートパススルー 2"
-
-msgid "Serial port passthrough 3"
-msgstr "シリアルポートパススルー 3"
-
-msgid "Serial port passthrough 4"
-msgstr "シリアルポートパススルー 4"
-
 msgid "Renderer &options…"
 msgstr "レンダラー設定(&O)…"
 
@@ -2671,7 +2647,8 @@ msgstr "サベージクエスト用プロテクションドングル"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "シリアルポートパススルーデバイス"
 
 msgid "Passthrough Mode"
@@ -3013,9 +2990,6 @@ msgstr "システムは追加されません。"
 msgid "&Update mouse every CPU frame"
 msgstr "マウスをCPUフレームごとに更新(&U)"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "色相"
 
@@ -3031,8 +3005,11 @@ msgstr "明るさ"
 msgid "Sharpness"
 msgstr "シャープネス"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "CGA複合モードの設定(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA複合モードの設定"
 
 msgid "Monitor EDID"
 msgstr "モニターのEDID"
@@ -3087,3 +3064,9 @@ msgstr "生"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "音声出力デバイス:"
+
+msgid "System Default"
+msgstr "システム既定値"

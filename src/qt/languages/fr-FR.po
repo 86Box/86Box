@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
@@ -521,18 +521,6 @@ msgstr "YMFM (plus rapide)"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA de l'ECP du LPT interne :"
-
-msgid "Serial port 1"
-msgstr "Port série 1"
-
-msgid "Serial port 2"
-msgstr "Port série 2"
-
-msgid "Serial port 3"
-msgstr "Port série 3"
-
-msgid "Serial port 4"
-msgstr "Port série 4"
 
 msgid "Floppy disk controller:"
 msgstr "Contrôleur de disquette :"
@@ -1830,18 +1818,6 @@ msgstr "Testeur d'unité de 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Carte clé Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Transfert du port série 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Transfert du port série 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Transfert du port série 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Transfert du port série 4"
-
 msgid "Renderer &options…"
 msgstr "&Options du rendu…"
 
@@ -2670,7 +2646,8 @@ msgstr "Clé de protection pour Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Dispositif de transfert du port série"
 
 msgid "Passthrough Mode"
@@ -3012,9 +2989,6 @@ msgstr "Le système ne sera pas ajouté."
 msgid "&Update mouse every CPU frame"
 msgstr "&Mettre à jour le statut souris à chaque frame CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Teinte"
 
@@ -3030,8 +3004,11 @@ msgstr "Luminosité"
 msgid "Sharpness"
 msgstr "Netteté"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Réglages du mode composite &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Réglages du mode composite CGA"
 
 msgid "Monitor EDID"
 msgstr "Écran EDID"
@@ -3086,3 +3063,9 @@ msgstr "Brut"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Périphérique de sortie audio :"
+
+msgid "System Default"
+msgstr "Défaut du système"

@@ -12,8 +12,9 @@
 #define SB_SUBTYPE_CLONE_AZT2316R_0X12 4 /* Aztech Sound Galaxy Pro 16 II */
 #define SB_SUBTYPE_CLONE_AZT2320_0X13  5 /* Aztech AZT2320 */
 #define SB_SUBTYPE_MVD201              6 /* Mediavision MVD201, found on the thunderboard and PAS16 */
-#define SB_SUBTYPE_ESS_ES688           7 /* ESS Technology ES688 */
-#define SB_SUBTYPE_ESS_ES1688          8 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_YMF7XX              7 /* Yamaha YMF-701/71x */
+#define SB_SUBTYPE_ESS_ES688           8 /* ESS Technology ES688 */
+#define SB_SUBTYPE_ESS_ES1688          9 /* ESS Technology ES1688 */
 
 /* ESS-related */
 #define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
@@ -184,6 +185,9 @@ typedef struct sb_dsp_t {
     int8_t    espcm_sample_buffer[19]; /* used for ESPCM_4 recording */
     uint8_t   espcm_table_index;       /* used for ESPCM_3 */
     uint8_t   espcm_last_value;        /* used for ESPCM_3 */
+
+    /* OPL3-SA switchable DSP version */
+    uint8_t   opl3sa_dsp_ver;
 
     mpu_t *mpu;
 } sb_dsp_t;

@@ -363,7 +363,7 @@ static const device_config_t serial_passthrough_config[] = {
 // clang-format on
 
 const device_t serial_passthrough_device = {
-    .name          = "Serial Passthrough Device",
+    .name          = "Serial Passthrough",
     .flags         = 0,
     .local         = 0,
     .init          = serial_passthrough_dev_init,

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://weblate.86box.net/projects/86box/"
 "86box/nb_NO/>\n"
 "Language: nb-NO\n"
@@ -522,18 +522,6 @@ msgstr "YMFM (raskere)"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "Intern LPT ECP DMA:"
-
-msgid "Serial port 1"
-msgstr "Seriell port 1"
-
-msgid "Serial port 2"
-msgstr "Seriell port 2"
-
-msgid "Serial port 3"
-msgstr "Seriell port 3"
-
-msgid "Serial port 4"
-msgstr "Seriell port 4"
 
 msgid "Floppy disk controller:"
 msgstr "Diskettkontroller:"
@@ -1831,18 +1819,6 @@ msgstr "86Box-enhetstester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x nøkkelkort"
 
-msgid "Serial port passthrough 1"
-msgstr "Seriell port-gjennomkobling 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Seriell port-gjennomkobling 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Seriell port-gjennomkobling 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Seriell port-gjennomkobling 4"
-
 msgid "Renderer &options…"
 msgstr "Gjengivelses&alternativer…"
 
@@ -2671,7 +2647,8 @@ msgstr "Beskyttelsesdongle for Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Seriell gjennomkoblingsenhet"
 
 msgid "Passthrough Mode"
@@ -3013,9 +2990,6 @@ msgstr "Systemet vil ikke bli lagt til."
 msgid "&Update mouse every CPU frame"
 msgstr "&Oppdater musen for hver CPU-ramme"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Fargetone"
 
@@ -3031,8 +3005,11 @@ msgstr "Lysstyrke"
 msgid "Sharpness"
 msgstr "Skarphet"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "&CGA-komposittinnstillinger…"
+
+msgid "CGA composite settings"
+msgstr "CGA-komposittinnstillinger"
 
 msgid "Monitor EDID"
 msgstr "EDID for skjerm"
@@ -3087,3 +3064,9 @@ msgstr "Rå"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Lydutdataenhet:"
+
+msgid "System Default"
+msgstr "Systemstandard"

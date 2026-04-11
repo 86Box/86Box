@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
 "MIME-Version: 1.0\n"
@@ -521,18 +521,6 @@ msgstr "YMFM (sneller)"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "Interne LPT ECP DMA:"
-
-msgid "Serial port 1"
-msgstr "Seriële poort 1"
-
-msgid "Serial port 2"
-msgstr "Seriële poort 2"
-
-msgid "Serial port 3"
-msgstr "Seriële poort 3"
-
-msgid "Serial port 4"
-msgstr "Seriële poort 4"
 
 msgid "Floppy disk controller:"
 msgstr "Floppy disk controller:"
@@ -1830,18 +1818,6 @@ msgstr "86Box Apparaattester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Key Card"
 
-msgid "Serial port passthrough 1"
-msgstr "Seriële poort doorvoer 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Seriële poort doorvoer 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Seriële poort doorvoer 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Seriële poort doorvoer 4"
-
 msgid "Renderer &options…"
 msgstr "Renderer-opties…"
 
@@ -2670,7 +2646,8 @@ msgstr "Beschermingsdongle voor Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Serieel doorvoerapparaat"
 
 msgid "Passthrough Mode"
@@ -3012,9 +2989,6 @@ msgstr "Het systeem wordt niet toegevoegd."
 msgid "&Update mouse every CPU frame"
 msgstr "&Muis bijwerken bij elk CPU-frame"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Kleurtoon"
 
@@ -3030,8 +3004,11 @@ msgstr "Helderheid"
 msgid "Sharpness"
 msgstr "Scherpte"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Instellingen van de &CGA-compositemodus…"
+
+msgid "CGA composite settings"
+msgstr "Instellingen van de CGA-compositemodus"
 
 msgid "Monitor EDID"
 msgstr "EDID-monitor"
@@ -3086,3 +3063,9 @@ msgstr "Ruw"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Audio-uitvoerapparaat:"
+
+msgid "System Default"
+msgstr "Systeemstandaard"

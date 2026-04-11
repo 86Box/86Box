@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-10 14:03+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Croatian <https://weblate.86box.net/projects/86box/86box/hr/>"
 "\n"
 "Language: hr-HR\n"
@@ -524,18 +524,6 @@ msgstr "YMFM (brži)"
 
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP unutrašnjeg LPT-a:"
-
-msgid "Serial port 1"
-msgstr "Serijska vrata 1"
-
-msgid "Serial port 2"
-msgstr "Serijska vrata 2"
-
-msgid "Serial port 3"
-msgstr "Serijska vrata 3"
-
-msgid "Serial port 4"
-msgstr "Serijska vrata 4"
 
 msgid "Floppy disk controller:"
 msgstr "Kontroler diskete:"
@@ -1833,18 +1821,6 @@ msgstr "Jedinični ispitivač 86Box-a"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Kjučna kartica za Novell Netware 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Prolaz serijskih vrata 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Prolaz serijskih vrata 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Prolaz serijskih vrata 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Prolaz serijskih vrata 4"
-
 msgid "Renderer &options…"
 msgstr "Opcije rendera…"
 
@@ -2673,7 +2649,8 @@ msgstr "Zaštitni uređaj za Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Uređaj prolaza serijskih vrata"
 
 msgid "Passthrough Mode"
@@ -3015,9 +2992,6 @@ msgstr "Sistem neće biti dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Ažuriraj status miša kod skavog bloka procesora"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Boja"
 
@@ -3033,8 +3007,11 @@ msgstr "Svjetlina"
 msgid "Sharpness"
 msgstr "Oštrina"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Opcije kompozitnog načina &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Opcije kompozitnog načina CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitora"
@@ -3089,3 +3066,9 @@ msgstr "Neobrađeni podaci"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Uređaj za izlaz zvuka:"
+
+msgid "System Default"
+msgstr "Zadana postavka operativnog sustava"

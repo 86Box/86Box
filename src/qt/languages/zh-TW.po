@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-02 21:56+0000\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "機器類型:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (腳座 168 及 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (其他)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] 腳座 7 (單電壓)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] 腳座 7 (雙電壓)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "其他"
 
 msgid "Machine:"
 msgstr "機型:"
@@ -523,18 +523,6 @@ msgstr "YMFM (更快)"
 msgid "Internal LPT ECP DMA:"
 msgstr "內部 LPT 的 ECP 的 DMA:"
 
-msgid "Serial port 1"
-msgstr "序列埠 1"
-
-msgid "Serial port 2"
-msgstr "序列埠 2"
-
-msgid "Serial port 3"
-msgstr "序列埠 3"
-
-msgid "Serial port 4"
-msgstr "序列埠 4"
-
 msgid "Floppy disk controller:"
 msgstr "軟碟控制器:"
 
@@ -542,13 +530,13 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi 介面"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic 介面"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic 介面 (創巨)"
 
 msgid "IDE Controller"
 msgstr "IDE 控制器"
@@ -1831,18 +1819,6 @@ msgstr "86Box 單元測試器"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 金鑰卡"
 
-msgid "Serial port passthrough 1"
-msgstr "序列埠的直通 1"
-
-msgid "Serial port passthrough 2"
-msgstr "序列埠的直通 2"
-
-msgid "Serial port passthrough 3"
-msgstr "序列埠的直通 3"
-
-msgid "Serial port passthrough 4"
-msgstr "序列埠的直通 4"
-
 msgid "Renderer &options…"
 msgstr "渲染器選項(&O)…"
 
@@ -1994,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "BIOS 語言"
 
 msgid "Variant"
-msgstr ""
+msgstr "變體"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 擴充單元"
@@ -2669,9 +2645,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "用於 Savage Quest 的防拷保護鎖"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "回授測試接頭"
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "序列埠直通裝置"
 
 msgid "Passthrough Mode"
@@ -2762,10 +2739,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "通用 PC/AT 記憶體擴充"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "通用 MM58167 實時時鐘"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2卡 (外部裝置)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "無法找到點矩陣字型"
@@ -2831,10 +2808,10 @@ msgid "Could not load file %1"
 msgstr "無法載入檔案 %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "模擬器"
 
 msgid "Input"
-msgstr ""
+msgstr "輸入"
 
 msgid "Key bindings"
 msgstr "按鍵組合"
@@ -3013,9 +2990,6 @@ msgstr "系統將不會被新增。"
 msgid "&Update mouse every CPU frame"
 msgstr "每 CPU 執行期框架更新滑鼠(&U)"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "色調"
 
@@ -3031,8 +3005,11 @@ msgstr "亮度"
 msgid "Sharpness"
 msgstr "銳利度"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "CGA 複合視訊的設定(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA 複合視訊的設定"
 
 msgid "Monitor EDID"
 msgstr "監視器的 EDID"
@@ -3086,4 +3063,10 @@ msgid "Raw"
 msgstr "原始"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "使用 EDC/ECC 摸擬"
+
+msgid "Audio output device:"
+msgstr "音訊輸出裝置:"
+
+msgid "System Default"
+msgstr "系統預設"
