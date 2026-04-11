@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"PO-Revision-Date: 2026-04-09 07:38+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
@@ -355,19 +355,19 @@ msgid "Machine type:"
 msgstr "Systemtyp:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 und 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Verschiedenes)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (Einfache Spannung)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr ""
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Verschiedenes"
 
 msgid "Machine:"
 msgstr "System:"
@@ -544,7 +544,7 @@ msgid "IDE Controller (Dual-Channel)"
 msgstr ""
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE-Controller"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
 msgstr ""
@@ -2644,7 +2644,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Kopierschutz-Dongle für Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-Stecker"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2989,9 +2989,6 @@ msgstr "Das System wird nicht hinzugefügt werden."
 msgid "&Update mouse every CPU frame"
 msgstr "&Maus bei jedem CPU-Frame aktualisieren"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Farbton"
 
@@ -3007,8 +3004,11 @@ msgstr "Helligkeit"
 msgid "Sharpness"
 msgstr "Schärfe"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Optionen des &CGA-Composite-Modus…"
+
+msgid "CGA composite settings"
+msgstr "Optionen des CGA-Composite-Modus"
 
 msgid "Monitor EDID"
 msgstr "EDID des Monitors"
@@ -3062,4 +3062,10 @@ msgid "Raw"
 msgstr "Roh"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "EDC/ECC-Emulation verwenden"
+
+msgid "Audio output device:"
+msgstr "Audio-Ausgabegerät:"
+
+msgid "System Default"
+msgstr "Systemstandard"

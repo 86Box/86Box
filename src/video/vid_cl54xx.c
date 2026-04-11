@@ -4153,7 +4153,7 @@ cl_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pri
 }
 
 static uint8_t
-gd5428_mca_read(int port, void *priv)
+gd5428_mca_read(const uint16_t port, void *priv)
 {
     const gd54xx_t *gd54xx = (gd54xx_t *) priv;
 
@@ -4161,7 +4161,7 @@ gd5428_mca_read(int port, void *priv)
 }
 
 static void
-gd5428_mca_write(int port, uint8_t val, void *priv)
+gd5428_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
 

@@ -915,19 +915,33 @@ then
 fi
 
 # Build mdsx library.
+prefix="$cache_dir/mdsx"
 debug_args=
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
-cd archive_tmp
-for retry in 0 1 2 3 4
-do
-	sleep $retry
-	git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" mdsx && break
-done
-make -C mdsx/src -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
-rm -f mdsx/src/*.a
-mv mdsx/src/mdsx.* . || exit 99
-rm -rf mdsx
-cd ..
+if [ -e "$prefix/src/Makefile" ]
+then
+	if ! check_buildtag mdsx
+	then
+		git -C "$prefix" clean -dfx
+		git -C "$prefix" reset --hard HEAD
+		for retry in 0 1 2 3 4
+		do
+			sleep $retry
+			git -C "$prefix" pull && break
+		done
+		save_buildtag mdsx
+	fi
+else
+	rm -rf "$prefix"
+	for retry in 0 1 2 3 4
+	do
+		sleep $retry
+		git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" "$prefix" && break
+	done
+fi
+make -C "$prefix/src" -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
+find "$prefix/src" -name '*.[oa]' -delete
+mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
@@ -941,10 +955,13 @@ then
 	[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
 	# Archive Ghostscript DLL from local official distribution installation.
-	for gs in "$pf"/gs/gs*.*.*
-	do
-		cp -p "$gs"/bin/gsdll*.dll archive_tmp/
-	done
+	if [ "$arch" != "ARM64" -a "$arch" != "arm64" ]
+	then
+		for gs in "$pf"/gs/gs*.*.*
+		do
+			cp -p "$gs"/bin/gsdll*.dll archive_tmp/
+		done
+	fi
 
 	# Archive Discord Game SDK DLL.
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
@@ -996,7 +1013,6 @@ then
 	fi
 else
 	cwd_root="$(pwd)"
-	check_buildtag "libs.$arch_deb"
 
 	if grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt
 	then

@@ -2988,9 +2988,6 @@ msgstr "El sistema no será añadido."
 msgid "&Update mouse every CPU frame"
 msgstr "&Actualiza el estado del ratón en cada bloco de CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Tono"
 
@@ -3006,8 +3003,11 @@ msgstr "Brillo"
 msgid "Sharpness"
 msgstr "Nitidez"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Configuración del modo compósito &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Configuración del modo compósito CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID del monitor"
@@ -3062,3 +3062,9 @@ msgstr "Plano"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Dispositivo de salida de audio:"
+
+msgid "System Default"
+msgstr "Por defecto del sistema"

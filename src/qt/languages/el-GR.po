@@ -3051,9 +3051,6 @@ msgstr "Το σύστημα δεν θα προστεθεί."
 msgid "&Update mouse every CPU frame"
 msgstr "&Ανανέωση ποντικιού ανα καρέ CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Απόχρωση"
 
@@ -3069,8 +3066,11 @@ msgstr "Φωτεινότητα"
 msgid "Sharpness"
 msgstr "Οξύτητα"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Ρυθμίσεις &CGA composite…"
+
+msgid "CGA composite settings"
+msgstr "Ρυθμίσεις CGA composite"
 
 msgid "Monitor EDID"
 msgstr "Οθόνη EDID"
@@ -3125,3 +3125,9 @@ msgstr "Αρχικος"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Συσκευή εξόδου ήχου:"
+
+msgid "System Default"
+msgstr "Προεπιλογή Συστήματος"

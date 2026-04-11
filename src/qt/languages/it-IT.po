@@ -3097,9 +3097,6 @@ msgstr "Il sistema non verrà aggiunto."
 msgid "&Update mouse every CPU frame"
 msgstr "Forza &aggiornamento stato del mouse"
 
-msgid "Composite CGA"
-msgstr "CGA composito"
-
 msgid "Hue"
 msgstr "Tinta"
 
@@ -3115,8 +3112,11 @@ msgstr "Luminosità"
 msgid "Sharpness"
 msgstr "Nitidezza"
 
-msgid "Reset"
-msgstr "Ripristina"
+msgid "&CGA composite settings…"
+msgstr "Impostazioni video composito &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Impostazioni video composito CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID del monitor"
@@ -3171,3 +3171,9 @@ msgstr "Grezzo"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Usa emulazione EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Dispositivo di uscita audio:"
+
+msgid "System Default"
+msgstr "Predefinito del sistema"

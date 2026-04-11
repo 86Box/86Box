@@ -2990,9 +2990,6 @@ msgstr "Systemet vil ikke bli lagt til."
 msgid "&Update mouse every CPU frame"
 msgstr "&Oppdater musen for hver CPU-ramme"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Fargetone"
 
@@ -3008,8 +3005,11 @@ msgstr "Lysstyrke"
 msgid "Sharpness"
 msgstr "Skarphet"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "&CGA-komposittinnstillinger…"
+
+msgid "CGA composite settings"
+msgstr "CGA-komposittinnstillinger"
 
 msgid "Monitor EDID"
 msgstr "EDID for skjerm"
@@ -3064,3 +3064,9 @@ msgstr "Rå"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Lydutdataenhet:"
+
+msgid "System Default"
+msgstr "Systemstandard"

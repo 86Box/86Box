@@ -1041,6 +1041,7 @@ extern int             machine_at_8500tuc_init(const machine_t *);
 extern const device_t  d943_device;
 #endif
 extern int             machine_at_d943_init(const machine_t *);
+extern int             machine_at_op47_init(const machine_t *);
 
 /* i430VX */
 extern int             machine_at_gw2kma_init(const machine_t *);

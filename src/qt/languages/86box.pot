@@ -504,6 +504,12 @@ msgstr ""
 msgid "Use FLOAT32 sound"
 msgstr ""
 
+msgid "Audio output device:"
+msgstr ""
+
+msgid "System Default"
+msgstr ""
+
 msgid "FM synth driver:"
 msgstr ""
 
@@ -2982,9 +2988,6 @@ msgstr ""
 msgid "&Update mouse every CPU frame"
 msgstr ""
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr ""
 
@@ -3000,7 +3003,10 @@ msgstr ""
 msgid "Sharpness"
 msgstr ""
 
-msgid "Reset"
+msgid "&CGA composite settings…"
+msgstr ""
+
+msgid "CGA composite settings"
 msgstr ""
 
 msgid "Monitor EDID"

@@ -2992,9 +2992,6 @@ msgstr "시스템은 추가되지 않을 것입니다."
 msgid "&Update mouse every CPU frame"
 msgstr "마우스를 각 CPU 프레임마다 업데이트합니다(&U)"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "색조"
 
@@ -3010,8 +3007,11 @@ msgstr "밝기"
 msgid "Sharpness"
 msgstr "선명도"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "CGA 복합 모드의 설정(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA 복합 모드의 설정"
 
 msgid "Monitor EDID"
 msgstr "모니터의 EDID"
@@ -3066,3 +3066,9 @@ msgstr "원본"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "오디오 출력 장치:"
+
+msgid "System Default"
+msgstr "시스템 기본값"

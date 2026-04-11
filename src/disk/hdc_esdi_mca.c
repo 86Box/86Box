@@ -616,7 +616,7 @@ esdi_callback(void *priv)
                 return;
             }
 
-            if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+            if (dev->rba >= hdd_image_get_last_sector(drive->hdd_num)) {
                 rba_out_of_range(dev);
                 return;
             }
@@ -1163,7 +1163,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 }
 
 static uint8_t
-esdi_mca_read(int port, void *priv)
+esdi_mca_read(const uint16_t port, void *priv)
 {
     const esdi_t *dev = (esdi_t *) priv;
 
@@ -1173,7 +1173,7 @@ esdi_mca_read(int port, void *priv)
 }
 
 static void
-esdi_mca_write(int port, uint8_t val, void *priv)
+esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
 
@@ -1267,7 +1267,7 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 }
 
 static void
-esdi_integrated_mca_write(int port, uint8_t val, void* priv)
+esdi_integrated_mca_write(const uint16_t port, uint8_t val, void* priv)
 {
     esdi_t* dev = (esdi_t*)priv;
 
