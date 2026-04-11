@@ -4186,7 +4186,12 @@ static const device_config_t voodoo_3_3500_agp_config[] = {
 
 const device_t voodoo_banshee_pci_device = {
     .name          = "3Dfx Voodoo Banshee PCI",
-    .internal_name = "voodoo_banshee_pci",
+    /*
+       Migrate this to without _migrated once the migration from unmerged to merged is removed:
+       This is because the Generic variant uses the internal name without _migrated that would
+       be expected here, which would cause the migrated variants to recursively migrate.
+     */
+    .internal_name = "voodoo_banshee_migrated_pci",
     .flags         = DEVICE_PCI | DEVICE_BIOS_ALIAS,
     .local         = 0,
     .init          = banshee_bios_init,

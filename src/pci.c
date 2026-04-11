@@ -589,7 +589,7 @@ pci_reg_read(uint16_t port)
     pci_log("PCI: [RB] Mechanism #%i, slot %02X, %s card %02X:%02X, function %02X, index %02X, length %i = %02X\n",
             (port >= 0xc000) ? 2 : 1, slot,
             (slot == PCI_CARD_INVALID) ? "non-existent" : (pci_cards[slot].read ? "used" : "unused"),
-            pci_card, pci_bus, pci_access_len, pci_index | (port & 0x03), pci_func, ret);
+            pci_card, pci_bus, pci_func, pci_index | (port & 0x03), pci_access_len, ret);
 
     return ret;
 }

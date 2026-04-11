@@ -502,7 +502,7 @@ aha_callback(void *priv)
 }
 
 static uint8_t
-aha_mca_read(int port, void *priv)
+aha_mca_read(const uint16_t port, void *priv)
 {
     const x54x_t *dev = (x54x_t *) priv;
 
@@ -510,7 +510,7 @@ aha_mca_read(int port, void *priv)
 }
 
 static void
-aha_mca_write(int port, uint8_t val, void *priv)
+aha_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     x54x_t *dev = (x54x_t *) priv;
 
