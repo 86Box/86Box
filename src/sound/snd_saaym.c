@@ -9,6 +9,7 @@
  *          Texelec Saaym Emulation.
  *
  * Authors: Jasmine Iwanek, <jriwanek@gmail.com>
+ *          win2kgamer
  *
  *          Copyright 2024-2026 Jasmine Iwanek.
  *          Copyright 2026 win2kgamer
@@ -86,8 +87,7 @@ saaym_read(uint16_t addr, void *priv)
             ret = saaym->latched_data;
             break;
         case 0xe: /* YM2151 Register Select Port */
-            /* TODO: Can the YM2151 be read? */
-            ret = saaym->opm.read(addr + 2, saaym->opm.priv);
+            ret = saaym->opm.read(addr + 1, saaym->opm.priv);
             break;
 
         default:
