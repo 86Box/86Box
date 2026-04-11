@@ -33,6 +33,12 @@ jit_flags_rebuild_c(void)
     flags_rebuild_c();
 }
 
+static JIT_WRAPPER void
+jit_flags_rebuild_zpna(void)
+{
+    flags_rebuild_zpna();
+}
+
 /* --- individual flag test functions (void → int) --- */
 
 static JIT_WRAPPER int
