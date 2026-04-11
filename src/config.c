@@ -1064,6 +1064,7 @@ load_ports(void)
 #else
             p = "stdio";
             // TODO: set to pty mode
+            goto keep_mode;
 #endif
         }
 
