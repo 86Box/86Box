@@ -734,6 +734,7 @@ const device_t oti037_pbl300sx_device = {
     .available     = NULL,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
+    .machine       = "Packard Bell PB300/PB320",
     .config        = NULL
 };
 
@@ -762,6 +763,7 @@ const device_t oti067_ama932j_device = {
     .available     = oti067_ama932j_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
+    .machine       = "Arche AMA-932J",
     .config        = oti067_ama932j_config
 };
 
@@ -776,6 +778,7 @@ const device_t oti067_m300_device = {
     .available     = oti067_m300_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
+    .machine       = "Olivetti M300-08/15",
     .config        = oti067_config
 };
 
@@ -804,6 +807,7 @@ const device_t oti077_acer100t_device = {
     .available     = oti077_acer100t_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
+    .machine       = "Acer 100T",
     .config        = oti077_acer100t_config
 };
 const device_t oti077_pcs44c_device = {
@@ -817,5 +821,6 @@ const device_t oti077_pcs44c_device = {
     .available     = oti077_pcs44c_available,
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
+    .machine       = "Olivetti PCS 44/C",
     .config        = oti077_acer100t_config
 };

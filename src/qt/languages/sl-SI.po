@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 14:32+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
 "Language: sl-SI\n"
@@ -524,18 +524,6 @@ msgstr "YMFM (hitrejši)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP-ja notranjega LPT-ja:"
 
-msgid "Serial port 1"
-msgstr "Serijska vrata 1"
-
-msgid "Serial port 2"
-msgstr "Serijska vrata 2"
-
-msgid "Serial port 3"
-msgstr "Serijska vrata 3"
-
-msgid "Serial port 4"
-msgstr "Serijska vrata 4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketni krmilnik:"
 
@@ -613,6 +601,9 @@ msgstr "Trdi diski:"
 
 msgid "Firmware Version"
 msgstr "Različica programske opreme"
+
+msgid "DSP Version"
+msgstr "Različica DSP-ja"
 
 msgid "&New…"
 msgstr "Nov…"
@@ -1829,18 +1820,6 @@ msgstr "Tester enote 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Key Card"
 
-msgid "Serial port passthrough 1"
-msgstr "Prepust za serijska vrata 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Prepust za serijska vrata 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Prepust za serijska vrata 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Prepust za serijska vrata 4"
-
 msgid "Renderer &options…"
 msgstr "Možnosti sistema za upodabljanje…"
 
@@ -2669,7 +2648,8 @@ msgstr "Zaščitni ključek za Savage Quest"
 msgid "Loopback Plug"
 msgstr "Priključek Loopback"
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Naprava za prepust serijskih vrat"
 
 msgid "Passthrough Mode"
@@ -3011,9 +2991,6 @@ msgstr "Sistem ne bo dodan."
 msgid "&Update mouse every CPU frame"
 msgstr "&Posodibi stanje miške ob vsakem bloku procesorja"
 
-msgid "Composite CGA"
-msgstr "Kompozitni CGA"
-
 msgid "Hue"
 msgstr "Hue"
 
@@ -3029,8 +3006,11 @@ msgstr "Svetlost"
 msgid "Sharpness"
 msgstr "Ostrina"
 
-msgid "Reset"
-msgstr "Ponastavi"
+msgid "&CGA composite settings…"
+msgstr "Nastavitve kompozitnega načina &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Nastavitve kompozitnega načina CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitorja"
@@ -3085,3 +3065,9 @@ msgstr "Neobdelan"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Uporabi emulacijo EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Naprava za zvočni izhod:"
+
+msgid "System Default"
+msgstr "Sistemsko privzeto"

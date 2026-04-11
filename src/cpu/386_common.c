@@ -1688,10 +1688,14 @@ x86_int_sw(int num)
         }
     }
 
+#ifdef USE_DEBUG_REGS_486
+    trap &= ~1;
+#else
     if (cpu_use_exec)
         trap = 0;
     else
         trap &= ~1;
+#endif
     CPU_BLOCK_END();
 }
 
@@ -1734,10 +1738,14 @@ x86_int_sw_rm(int num)
 #endif
 
     cycles -= timing_int_rm;
+#ifdef USE_DEBUG_REGS_486
+    trap &= ~1;
+#else
     if (cpu_use_exec)
         trap = 0;
     else
         trap &= ~1;
+#endif
     CPU_BLOCK_END();
 
     return 0;

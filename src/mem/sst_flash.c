@@ -132,6 +132,7 @@ static char flash_path[1024];
 #define W29C040     0x4600
 
 #define AMD         0x01 /* AMD Manufacturer's ID */
+#define AMD29F010A  0x2000
 #define AMD29F020A  0xb000
 
 #define SIZE_512K   0x010000
@@ -147,7 +148,7 @@ sst_sector_erase(sst_t *dev, uint32_t addr)
 {
     uint32_t base = addr & (dev->mask & ~0xfff);
 
-    if (dev->manufacturer == AMD) {
+    if ((dev->manufacturer == AMD) && (dev->id == 0xb0)) {
         base = addr & biosmask;
 
         if ((base >= 0x00000) && (base <= 0x0ffff))
@@ -164,6 +165,25 @@ sst_sector_erase(sst_t *dev, uint32_t addr)
             memset(&dev->array[0x3a000], 0xff, 8192);
         else if ((base >= 0x3c000) && (base <= 0x3ffff))
             memset(&dev->array[0x3c000], 0xff, 16384);
+    } else if ((dev->manufacturer == AMD) && (dev->id == 0x20)) {
+        base = addr & biosmask;
+
+        if ((base >= 0x00000) && (base <= 0x03fff))
+            memset(&dev->array[0x00000], 0xff, 16384);
+        else if ((base >= 0x04000) && (base <= 0x07fff))
+            memset(&dev->array[0x04000], 0xff, 16384);
+        else if ((base >= 0x08000) && (base <= 0x0bfff))
+            memset(&dev->array[0x08000], 0xff, 16384);
+        else if ((base >= 0x0c000) && (base <= 0x0ffff))
+            memset(&dev->array[0x0C000], 0xff, 16384);
+        else if ((base >= 0x10000) && (base <= 0x13fff))
+            memset(&dev->array[0x10000], 0xff, 16384);
+        else if ((base >= 0x14000) && (base <= 0x17fff))
+            memset(&dev->array[0x14000], 0xff, 16384);
+        else if ((base >= 0x18000) && (base <= 0x1bfff))
+            memset(&dev->array[0x18000], 0xff, 16384);
+        else if ((base >= 0x1C000) && (base <= 0x1ffff))
+            memset(&dev->array[0x1c000], 0xff, 16384);
     } else {
         if ((base < 0x2000) && (dev->bbp_first_8k & 0x01))
             return;
@@ -987,6 +1007,20 @@ const device_t sst_flash_49lf160_device = {
     .internal_name = "sst_flash_49lf160",
     .flags         = 0,
     .local         = SST | SST49LF160 | SIZE_16M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t amd_flash_29f010a_device = {
+    .name          = "AMD 29F010a Flash BIOS",
+    .internal_name = "amd_flash_29f010a",
+    .flags         = 0,
+    .local         = AMD | AMD29F010A | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
     .reset         = NULL,

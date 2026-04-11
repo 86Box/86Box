@@ -523,18 +523,6 @@ msgstr "YMFM (mais rápido)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA do ECP do LPT interno:"
 
-msgid "Serial port 1"
-msgstr "Porta de série 1"
-
-msgid "Serial port 2"
-msgstr "Porta de série 2"
-
-msgid "Serial port 3"
-msgstr "Porta de série 3"
-
-msgid "Serial port 4"
-msgstr "Porta de série 4"
-
 msgid "Floppy disk controller:"
 msgstr "Controlador de disquetes:"
 
@@ -612,6 +600,9 @@ msgstr "Discos rígidos:"
 
 msgid "Firmware Version"
 msgstr "Versão de firmware"
+
+msgid "DSP Version"
+msgstr "Versão de DSP"
 
 msgid "&New…"
 msgstr "&Novo…"
@@ -1828,18 +1819,6 @@ msgstr "Testador de unidades 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Cartão-chave do Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Passagem da porta de série 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Passagem da porta de série 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Passagem da porta de série 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Passagem da porta de série 4"
-
 msgid "Renderer &options…"
 msgstr "Opções do re&nderizador…"
 
@@ -2668,8 +2647,8 @@ msgstr "Dongle de proteção para Savage Quest"
 msgid "Loopback Plug"
 msgstr "Conector de Loopback"
 
-msgid "Serial Passthrough Device"
-msgstr "Dispositivo de passagem de porta de série"
+msgid "Serial Passthrough"
+msgstr "Passagem de porta de série"
 
 msgid "Passthrough Mode"
 msgstr "Modo de passagem"
@@ -3010,9 +2989,6 @@ msgstr "O sistema não será adicionado."
 msgid "&Update mouse every CPU frame"
 msgstr "&Atualiza o estado do rato em cada bloco do CPU"
 
-msgid "Composite CGA"
-msgstr "CGA compósito"
-
 msgid "Hue"
 msgstr "Matiz"
 
@@ -3028,8 +3004,11 @@ msgstr "Brilho"
 msgid "Sharpness"
 msgstr "Nitidez"
 
-msgid "Reset"
-msgstr "Repor"
+msgid "&CGA composite settings…"
+msgstr "Definições do modo compósito &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Definições do modo compósito CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID do monitor"
@@ -3084,3 +3063,9 @@ msgstr "Bruto"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Utilizar emulação EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Dispositivo de saída de áudio:"
+
+msgid "System Default"
+msgstr "Padrão do sistema"

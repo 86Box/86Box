@@ -140,17 +140,14 @@ sf_FXTRACT(uint32_t fetchdat)
     struct softfloat_status_t   status;
     floatx80                    a;
     floatx80                    b;
-#if 0
     const floatx80              floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
-#endif
 
     FP_ENTER();
     FPU_check_pending_exceptions();
     cpu_state.pc++;
     clear_C1();
 
-#if 0 // TODO
-    if ((IS_TAG_EMPTY(0) || IS_TAG_EMPTY(-1))) {
+    if ((IS_TAG_EMPTY(0) || !IS_TAG_EMPTY(-1))) {
         if (IS_TAG_EMPTY(0))
             FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
         else
@@ -164,7 +161,6 @@ sf_FXTRACT(uint32_t fetchdat)
         }
         goto next_ins;
     }
-#endif
 
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
     a      = FPU_read_regi(0);
@@ -175,9 +171,7 @@ sf_FXTRACT(uint32_t fetchdat)
         FPU_save_regi(a, 0); // fraction
     }
 
-#if 0 // TODO.
 next_ins:
-#endif
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fxtract) : (x87_timings.fxtract * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fxtract) : (x87_concurrency.fxtract * cpu_multi));
     return 0;

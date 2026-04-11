@@ -3315,7 +3315,7 @@ ide_hard_reset(void)
 }
 
 static uint8_t
-mcide_mca_read(const int port, void *priv)
+mcide_mca_read(const uint16_t port, void *priv)
 {
     const mcide_t *dev = (mcide_t *) priv;
 
@@ -3325,7 +3325,7 @@ mcide_mca_read(const int port, void *priv)
 }
 
 static void
-mcide_mca_write(const int port, const uint8_t val, void *priv)
+mcide_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     mcide_t *dev      = (mcide_t *) priv;
     uint16_t bases[4] = { HDC_PRIMARY_BASE, HDC_SECONDARY_BASE, HDC_TERTIARY_BASE, HDC_QUATERNARY_BASE };

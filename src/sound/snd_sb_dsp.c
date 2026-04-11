@@ -1779,6 +1779,28 @@ sb_exec_command(sb_dsp_t *dsp)
                 }
                 break;
             }
+            if (dsp->sb_subtype == SB_SUBTYPE_YMF7XX) {
+                switch (dsp->opl3sa_dsp_ver) {
+                    case 0x00: /* DSP ver 0.00 */
+                        sb_add_data(dsp, 0x0);
+                        sb_add_data(dsp, 0x0);
+                        break;
+                    case 0x01: /* DSP ver 1.05 */
+                        sb_add_data(dsp, 0x1);
+                        sb_add_data(dsp, 0x5);
+                        break;
+                    case 0x02: /* DSP ver 2.01 */
+                        sb_add_data(dsp, 0x2);
+                        sb_add_data(dsp, 0x1);
+                        break;
+                    case 0x03: /* DSP ver 3.01 */
+                    default:
+                        sb_add_data(dsp, 0x3);
+                        sb_add_data(dsp, 0x1);
+                        break;
+                }
+                break;
+            }
             sb_add_data(dsp, sb_dsp_versions[dsp->sb_type] >> 8);
             sb_add_data(dsp, sb_dsp_versions[dsp->sb_type] & 0xff);
             break;
@@ -2116,6 +2138,8 @@ sb_read(uint16_t addr, void *priv)
                 sb_dsp_log("SB Read Data Aztech read %02X, Read RP = %d, Read WP = %d\n",
                            (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x80, dsp->sb_read_rp, dsp->sb_read_wp);
                 ret = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x80;
+            } else if ((dsp->state == DSP_S_RESET) && (dsp->sb_subtype == SB_SUBTYPE_YMF7XX)) {
+                ret = 0x00; /* Newer OPL3-SA drivers check that all bits are clear during reset */
             } else {
                 sb_dsp_log("SB Read Data Creative read %02X\n", (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x7f : 0xff);
                 if ((dsp->sb_type < SB16_DSP_404) && IS_NOT_ESS(dsp))
