@@ -13526,7 +13526,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 4096,
             .max  = 262144,
@@ -15842,7 +15842,7 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 50000000,
             .max_bus     = 66666667,
-            .min_voltage = 2800,
+            .min_voltage = 3380,
             .max_voltage = 3520,
             .min_multi   = 1.5,
             .max_multi   = 3.0
@@ -15890,17 +15890,13 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 50000000,
             .max_bus     = 66666667,
-            .min_voltage = 2800,
+            .min_voltage = 3380,
             .max_voltage = 3520,
             .min_multi   = 1.5,
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        /*
-           It has on-board video but the only high-resolution screenshot available
-           has a sticker over the video chip.
-         */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: C&T F65548 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 65536,
