@@ -123,11 +123,98 @@ config_log(const char *fmt, ...)
 #    define config_log(fmt, ...)
 #endif
 
+int new_loaded = 0;
+int kb_loaded  = 0;
+
 /* Load global configuration */
 static void
-load_global(void)
+load_global_emulator(void)
+{
+    ini_section_t cat = ini_find_section(global, "Emulator");
+    new_loaded |= (cat != NULL);
+
+    char         *p;
+
+    p = ini_section_get_string(cat, "language", NULL);
+    if (p != NULL)
+        lang_id = plat_language_code(p);
+    else
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
+
+    open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
+
+    confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
+    confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
+    confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
+    color_scheme  = ini_section_get_int(cat, "color_scheme", 0);
+
+    vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
+
+    p = ini_section_get_string(cat, "vmm_path", NULL);
+    if (p != NULL) {
+        /* Convert relative paths to absolute in portable mode */
+        if (portable_mode && !path_abs(p)) {
+            path_append_filename(vmm_path_cfg, exe_path, p);
+            path_normalize(vmm_path_cfg);
+        } else {
+            strncpy(vmm_path_cfg, p, sizeof(vmm_path_cfg) - 1);
+        }
+    } else {
+        plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
+    }
+}
+
+static void
+load_global_input(void)
+{
+    ini_section_t cat = ini_find_section(global, "Input");
+    new_loaded |= (cat != NULL);
+
+    inhibit_multimedia_keys = ini_section_get_int(cat, "inhibit_multimedia_keys", 0);
+
+    mouse_sensitivity = ini_section_get_double(cat, "mouse_sensitivity", 1.0);
+    if (mouse_sensitivity < 0.1)
+        mouse_sensitivity = 0.1;
+    else if (mouse_sensitivity > 2.0)
+        mouse_sensitivity = 2.0;
+}
+
+/* Load "Keybinds" section. */
+static void
+load_global_keybinds(void)
+{
+    ini_section_t cat = ini_find_section(global, "Keybinds");
+    kb_loaded |= (cat != NULL);
+    char         *p;
+    char          temp[512];
+    memset(temp, 0, sizeof(temp));
+
+    /* Now load values from config */
+    for (int x = 0; x < NUM_ACCELS; x++) {
+        p = ini_section_get_string(cat, acc_keys[x].name, "default");
+        /* Check if the binding was marked as cleared */
+        if (strcmp(p, "none") == 0)
+            acc_keys[x].seq[0] = '\0';
+        /* If there's no binding in the file, leave it alone. */
+        else if (strcmp(p, "default") != 0) {
+            /*
+               It would be ideal to validate whether the user entered a
+               valid combo at this point, but the Qt method for testing that is
+               not available from C. Fortunately, if you feed Qt an invalid
+               keysequence string it just assigns nothing, so this won't blow up.
+               However, to improve the user experience, we should validate keys
+               and erase any bad combos from config on mainwindow load.
+             */
+            strcpy(acc_keys[x].seq, p);
+        }
+    }
+}
+
+static void
+load_global_legacy(void)
 {
     ini_section_t cat = ini_find_section(global, "");
+
     char         *p;
 
     p = ini_section_get_string(cat, "language", NULL);
@@ -165,6 +252,21 @@ load_global(void)
     } else {
         plat_get_vmm_dir(vmm_path_cfg, sizeof(vmm_path_cfg));
     }
+}
+
+static void
+load_global(void)
+{
+    new_loaded = 0;
+    kb_loaded  = 0;
+
+    load_global_emulator();
+    load_global_input();
+
+    load_global_keybinds();            /* Load shortcut keybinds */
+
+    if (!new_loaded)
+        load_global_legacy();
 }
 
 /* Load scan code mappings. */
@@ -2419,7 +2521,11 @@ load_keybinds(void)
               */
              strcpy(acc_keys[x].seq, p);
         }
+
+        ini_section_delete_var(cat, acc_keys[x].name);
     }
+
+    ini_delete_section_if_empty(config, cat);
 }
 
 void
@@ -2548,7 +2654,8 @@ config_load(void)
 #ifndef USE_SDL_UI
         load_gl3_shaders();             /* GL3 Shaders */
 #endif
-        load_keybinds();                /* Load shortcut keybinds */
+        if (!kb_loaded)
+            load_keybinds();            /* Load shortcut keybinds */
 
         /* Migrate renamed device configurations. */
         c = ini_find_section(config, "MDA");
@@ -2576,11 +2683,10 @@ config_load(void)
     video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 }
 
-/* Save global configuration */
 static void
-save_global(void)
+save_global_emulator(void)
 {
-    ini_section_t cat = ini_find_or_create_section(global, "");
+    ini_section_t cat = ini_find_or_create_section(global, "Emulator");
     char          buffer[512] = { 0 };
 
     if (lang_id == plat_language_code(DEFAULT_LANGUAGE))
@@ -2615,16 +2721,6 @@ save_global(void)
     else
         ini_section_delete_var(cat, "confirm_save");
 
-    if (inhibit_multimedia_keys == 1)
-        ini_section_set_int(cat, "inhibit_multimedia_keys", inhibit_multimedia_keys);
-    else
-        ini_section_delete_var(cat, "inhibit_multimedia_keys");
-
-    if (mouse_sensitivity != 1.0)
-        ini_section_set_double(cat, "mouse_sensitivity", mouse_sensitivity);
-    else
-        ini_section_delete_var(cat, "mouse_sensitivity");
-
     if (vmm_disabled != 0)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
     else
@@ -2640,6 +2736,52 @@ save_global(void)
     } else {
         ini_section_delete_var(cat, "vmm_path");
     }
+}
+
+static void
+save_global_input(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Input");
+
+    if (inhibit_multimedia_keys == 1)
+        ini_section_set_int(cat, "inhibit_multimedia_keys", inhibit_multimedia_keys);
+    else
+        ini_section_delete_var(cat, "inhibit_multimedia_keys");
+
+    if (mouse_sensitivity != 1.0)
+        ini_section_set_double(cat, "mouse_sensitivity", mouse_sensitivity);
+    else
+        ini_section_delete_var(cat, "mouse_sensitivity");
+}
+
+/* Save "Keybinds" section. */
+static void
+save_global_keybinds(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Keybinds");
+
+    for (int x = 0; x < NUM_ACCELS; x++) {
+        /* Has accelerator been changed from default? */
+        if (strcmp(def_acc_keys[x].seq, acc_keys[x].seq) == 0)
+            ini_section_delete_var(cat, acc_keys[x].name);
+        /* Check for a cleared binding to avoid saving it as an empty string */
+        else if (acc_keys[x].seq[0] == '\0')
+            ini_section_set_string(cat, acc_keys[x].name, "none");
+        else
+            ini_section_set_string(cat, acc_keys[x].name, acc_keys[x].seq);
+    }
+
+    ini_delete_section_if_empty(config, cat);
+}
+
+/* Save global configuration */
+static void
+save_global(void)
+{
+    save_global_emulator();
+    save_global_input();
+
+    save_global_keybinds();
 }
 
 /* Save scan code mappings. */
@@ -3342,26 +3484,6 @@ save_ports(void)
                                    gameport_get_internal_name(gameport_type[c]));
     }
 #endif
-
-    ini_delete_section_if_empty(config, cat);
-}
-
-/* Save "Keybinds" section. */
-static void
-save_keybinds(void)
-{
-    ini_section_t cat = ini_find_or_create_section(config, "Keybinds");
-
-    for (int x = 0; x < NUM_ACCELS; x++) {
-        /* Has accelerator been changed from default? */
-        if (strcmp(def_acc_keys[x].seq, acc_keys[x].seq) == 0)
-            ini_section_delete_var(cat, acc_keys[x].name);
-        /* Check for a cleared binding to avoid saving it as an empty string */
-        else if (acc_keys[x].seq[0] == '\0')
-            ini_section_set_string(cat, acc_keys[x].name, "none");
-        else
-            ini_section_set_string(cat, acc_keys[x].name, acc_keys[x].seq);
-    }
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -4122,7 +4244,6 @@ config_save(void)
 #ifndef USE_SDL_UI
     save_gl3_shaders();             /* GL3 Shaders */
 #endif
-    save_keybinds();                /* Key bindings */
 
     ini_write(config, cfg_path);
 
