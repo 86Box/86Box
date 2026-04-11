@@ -2736,6 +2736,8 @@ save_global_emulator(void)
     } else {
         ini_section_delete_var(cat, "vmm_path");
     }
+
+    ini_delete_section_if_empty(global, cat);
 }
 
 static void
@@ -2752,6 +2754,8 @@ save_global_input(void)
         ini_section_set_double(cat, "mouse_sensitivity", mouse_sensitivity);
     else
         ini_section_delete_var(cat, "mouse_sensitivity");
+
+    ini_delete_section_if_empty(global, cat);
 }
 
 /* Save "Keybinds" section. */
@@ -2771,7 +2775,7 @@ save_global_keybinds(void)
             ini_section_set_string(cat, acc_keys[x].name, acc_keys[x].seq);
     }
 
-    ini_delete_section_if_empty(config, cat);
+    ini_delete_section_if_empty(global, cat);
 }
 
 /* Save global configuration */
