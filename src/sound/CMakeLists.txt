@@ -48,6 +48,7 @@ add_library(snd OBJECT
     snd_mmb.c
     snd_mpu401.c
     snd_pas16.c
+    snd_saaym.c
     snd_sn76489.c
     snd_ssi2001.c
     snd_wss.c
