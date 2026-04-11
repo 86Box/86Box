@@ -68,7 +68,6 @@ saaym_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         default:
-            cms_write(addr, val, &saaym->cms);
             break;
     }
 
@@ -91,7 +90,6 @@ saaym_read(uint16_t addr, void *priv)
             break;
 
         default:
-            ret = cms_read(addr, (void *) &saaym->cms);
             break;
     }
     saaym_log(saaym->log, "SAAYM read: port = %04X, ret = %02X\n", addr, ret);
@@ -123,16 +121,17 @@ saaym_get_music_buffer(int32_t *buffer, int len, void *priv)
 void *
 saaym_init(UNUSED(const device_t *info))
 {
-    saaym_t *saaym = malloc(sizeof(saaym_t));
-    memset(saaym, 0, sizeof(saaym_t));
+    saaym_t *saaym = calloc(1, sizeof(saaym_t));
 
     memset(&saaym->cms, 0, sizeof(cms_t));
 
     saaym->log = log_open("SAAYM");
 
     uint16_t addr = device_get_config_hex16("base");
-    /* Do this properly and pass through the CMS */
-    io_sethandler(addr, 0x0010, saaym_read, NULL, NULL, saaym_write, NULL, NULL, saaym);
+    io_sethandler(addr, 0x0008, cms_read, NULL, NULL, cms_write, NULL, NULL, &saaym->cms);
+    io_sethandler(addr + 0x08, 0x02, saaym_read, NULL, NULL, saaym_write, NULL, NULL, saaym);
+    io_sethandler(addr + 0x0a, 0x02, cms_read, NULL, NULL, cms_write, NULL, NULL, &saaym->cms);
+    io_sethandler(addr + 0x0c, 0x04, saaym_read, NULL, NULL, saaym_write, NULL, NULL, saaym);
     sound_add_handler(cms_get_buffer, &saaym->cms);
 
     /* OPM init */
