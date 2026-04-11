@@ -1920,7 +1920,7 @@ ess_mixer_reset(sb_t *ess)
 }
 
 uint8_t
-sb_mcv_read(int port, void *priv)
+sb_mcv_read(const uint16_t port, void *priv)
 {
     const sb_t *sb = (sb_t *) priv;
 
@@ -1930,7 +1930,7 @@ sb_mcv_read(int port, void *priv)
 }
 
 void
-sb_mcv_write(int port, uint8_t val, void *priv)
+sb_mcv_write(const uint16_t port, uint8_t val, void *priv)
 {
     uint16_t addr = 0;
     sb_t    *sb   = (sb_t *) priv;
@@ -1983,7 +1983,7 @@ sb_mcv_feedb(void *priv)
 }
 
 static uint8_t
-sb_pro_mcv_read(int port, void *priv)
+sb_pro_mcv_read(const uint16_t port, void *priv)
 {
     const sb_t *sb  = (sb_t *) priv;
     uint8_t     ret = sb->pos_regs[port & 7];
@@ -1994,7 +1994,7 @@ sb_pro_mcv_read(int port, void *priv)
 }
 
 static void
-sb_pro_mcv_write(int port, uint8_t val, void *priv)
+sb_pro_mcv_write(const uint16_t port, uint8_t val, void *priv)
 {
     uint16_t addr = 0;
     sb_t    *sb   = (sb_t *) priv;
@@ -2054,7 +2054,7 @@ sb_pro_mcv_write(int port, uint8_t val, void *priv)
 }
 
 static uint8_t
-sb_16_reply_mca_read(int port, void *priv)
+sb_16_reply_mca_read(const uint16_t port, void *priv)
 {
     const sb_t *sb  = (sb_t *) priv;
     uint8_t     ret = sb->pos_regs[port & 7];
@@ -2065,7 +2065,7 @@ sb_16_reply_mca_read(int port, void *priv)
 }
 
 static void
-sb_16_reply_mca_write(const int port, const uint8_t val, void *priv)
+sb_16_reply_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     uint16_t addr = 0;
     sb_t    *sb   = (sb_t *) priv;
@@ -2635,7 +2635,7 @@ ess_x688_pnp_config_changed(UNUSED(const uint8_t ld), isapnp_device_config_t *co
 
 /* This function is common to all the ESS MCA cards. */
 static uint8_t
-ess_x688_mca_read(const int port, void *priv)
+ess_x688_mca_read(const uint16_t port, void *priv)
 {
     const sb_t   *ess = (sb_t *) priv;
     const uint8_t ret = ess->pos_regs[port & 7];
@@ -2646,7 +2646,7 @@ ess_x688_mca_read(const int port, void *priv)
 }
 
 static void
-ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
+ess_soundpiper_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
@@ -2809,7 +2809,7 @@ ess_soundpiper_mca_write(const int port, const uint8_t val, void *priv)
 }
 
 static void
-ess_chipchat_mca_write(int port, uint8_t val, void *priv)
+ess_chipchat_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 

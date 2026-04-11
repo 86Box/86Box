@@ -174,7 +174,7 @@ static uint8_t pipc_read(int func, int addr, int len, void *priv);
 static void    pipc_write(int func, int addr, int len, uint8_t val, void *priv);
 
 static void
-pipc_io_trap_pact(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
+pipc_io_trap_pact(UNUSED(const uint16_t size), UNUSED(const uint16_t port), UNUSED(const uint8_t write), UNUSED(const uint8_t val), void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 
@@ -187,7 +187,7 @@ pipc_io_trap_pact(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write)
 }
 
 static void
-pipc_io_trap_glb(UNUSED(int size), UNUSED(uint16_t addr), uint8_t write, UNUSED(uint8_t val), void *priv)
+pipc_io_trap_glb(UNUSED(const uint16_t size), UNUSED(const uint16_t port), const uint8_t write, UNUSED(const uint8_t val), void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 

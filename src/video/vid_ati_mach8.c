@@ -7034,7 +7034,7 @@ mach_io_set(mach_t *mach)
 }
 
 static uint8_t
-mach_mca_read(int port, void *priv)
+mach_mca_read(const uint16_t port, void *priv)
 {
     const mach_t *mach = (mach_t *) priv;
 
@@ -7043,7 +7043,7 @@ mach_mca_read(int port, void *priv)
 }
 
 static void
-mach_mca_write(int port, uint8_t val, void *priv)
+mach_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     mach_t       *mach = (mach_t *) priv;
 
@@ -7084,7 +7084,7 @@ mach_mca_reset(void *priv)
 }
 
 uint8_t
-ati8514_mca_read(int port, void *priv)
+ati8514_mca_read(const uint16_t port, void *priv)
 {
     const svga_t    *svga = (svga_t *) priv;
     const ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
@@ -7093,7 +7093,7 @@ ati8514_mca_read(int port, void *priv)
 }
 
 void
-ati8514_mca_write(int port, uint8_t val, void *priv)
+ati8514_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
     ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
