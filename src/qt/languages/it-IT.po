@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-03-31 14:13+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it-IT\n"
 "MIME-Version: 1.0\n"
@@ -524,18 +524,6 @@ msgstr "YMFM (più veloce)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA LPT ECP interna:"
 
-msgid "Serial port 1"
-msgstr "Porta seriale 1"
-
-msgid "Serial port 2"
-msgstr "Porta seriale 2"
-
-msgid "Serial port 3"
-msgstr "Porta seriale 3"
-
-msgid "Serial port 4"
-msgstr "Porta seriale 4"
-
 msgid "Floppy disk controller:"
 msgstr "Controller dischi floppy:"
 
@@ -613,6 +601,9 @@ msgstr "Dischi rigidi:"
 
 msgid "Firmware Version"
 msgstr "Versione firmware"
+
+msgid "DSP Version"
+msgstr "Versione DSP"
 
 msgid "&New…"
 msgstr "&Nuovo…"
@@ -1913,18 +1904,6 @@ msgstr "Tester di unità 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Chiave magnetica Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Porta seriale passante 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Porta seriale passante 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Porta seriale passante 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Porta seriale passante 4"
-
 msgid "Renderer &options…"
 msgstr "&Opzioni renderizzatore…"
 
@@ -2753,7 +2732,8 @@ msgstr "Supporto di protezione per Savage Quest"
 msgid "Loopback Plug"
 msgstr "Connettore loopback"
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Dispositivo passaggio porta seriale"
 
 msgid "Passthrough Mode"
@@ -3123,9 +3103,6 @@ msgstr "Il sistema non verrà aggiunto."
 msgid "&Update mouse every CPU frame"
 msgstr "Forza &aggiornamento stato del mouse"
 
-msgid "Composite CGA"
-msgstr "CGA composito"
-
 msgid "Hue"
 msgstr "Tinta"
 
@@ -3141,8 +3118,11 @@ msgstr "Luminosità"
 msgid "Sharpness"
 msgstr "Nitidezza"
 
-msgid "Reset"
-msgstr "Ripristina"
+msgid "&CGA composite settings…"
+msgstr "Impostazioni video composito &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Impostazioni video composito CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID del monitor"
@@ -3197,3 +3177,9 @@ msgstr "Grezzo"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Usa emulazione EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Dispositivo di uscita audio:"
+
+msgid "System Default"
+msgstr "Predefinito del sistema"

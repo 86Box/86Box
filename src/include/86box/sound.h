@@ -21,7 +21,8 @@
 
 #define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
-extern int sound_gain;
+extern int  sound_gain;
+extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
 
 #define FREQ_44100  44100
 #define FREQ_48000  48000
@@ -106,8 +107,9 @@ extern void sound_fdd_thread_end(void);
 extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
-extern void closeal(void);
-extern void inital(void);
+extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
+extern void        closeal(void);
+extern void        inital(void);
 extern void givealbuffer(const void *buf);
 extern void givealbuffer_music(const void *buf);
 extern void givealbuffer_wt(const void *buf);
@@ -240,7 +242,8 @@ extern const device_t mirosound_pcm10_device;
 extern const device_t opti_82c930_device;
 extern const device_t opti_82c931_device;
 
-/* Pro Audio Spectrum Plus, 16, and 16D */
+/* Pro Audio Spectrum, Plus, 16, and 16D */
+extern const device_t pas_device;
 extern const device_t pasplus_device;
 extern const device_t pas16_device;
 extern const device_t pas16d_device;

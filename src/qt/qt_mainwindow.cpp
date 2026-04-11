@@ -31,6 +31,8 @@
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
 
+#include "qt_cgasettingsdialog.hpp"
+
 #include "qt_defs.hpp"
 
 extern "C" {
@@ -317,6 +319,16 @@ MainWindow::MainWindow(QWidget *parent)
 #else
         ui->menuTablet_tool->menuAction()->setVisible(false);
 #endif
+
+        bool enable_comp_option = false;
+        for (int i = 0; i < MONITORS_NUM; i++) {
+            if (monitors[i].mon_composite) {
+                enable_comp_option = true;
+                break;
+            }
+        }
+
+        ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
@@ -920,7 +932,6 @@ MainWindow::closeEvent(QCloseEvent *event)
     }
 
     qt_nvr_save();
-    config_save();
     QApplication::processEvents();
     cpu_thread_run = 0;
     event->accept();
@@ -1462,7 +1473,7 @@ MainWindow::on_actionFullscreen_triggered()
     }
     fs_on_signal  = false;
     fs_off_signal = false;
-    ui->stackedWidget->onResize(width(), height());
+    ui->stackedWidget->onResize(ui->stackedWidget->width(), ui->stackedWidget->height());
 }
 
 void
@@ -1624,6 +1635,16 @@ MainWindow::refreshMediaMenu()
     int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
     int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
     kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+
+    bool enable_comp_option = false;
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        if (monitors[i].mon_composite) {
+            enable_comp_option = true;
+            break;
+        }
+    }
+
+    ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
 }
 
 void
@@ -1990,6 +2011,7 @@ MainWindow::on_actionForce_4_3_display_ratio_triggered()
                 renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
         }
     }
+    config_save();
 }
 
 void
@@ -2036,6 +2058,7 @@ MainWindow::on_actionRemember_size_and_position_triggered()
         }
     }
     ui->actionRemember_size_and_position->setChecked(window_remember);
+    config_save();
 }
 
 void
@@ -2056,6 +2079,7 @@ MainWindow::on_actionHiDPI_scaling_triggered()
         if (renderers[i])
             emit resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
     }
+    config_save();
 }
 
 void
@@ -2080,6 +2104,7 @@ MainWindow::on_actionHide_status_bar_triggered()
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
+    config_save();
 }
 
 void
@@ -2101,6 +2126,7 @@ MainWindow::on_actionHide_tool_bar_triggered()
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
+    config_save();
 }
 
 void
@@ -2111,6 +2137,8 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
 
     /* Prevent icons staying when disabled during activity. */
     status->clearActivity();
+
+    config_save();
 }
 
 void
@@ -2235,9 +2263,7 @@ MainWindow::on_actionPreferences_triggered()
         default:
             break;
         case QDialog::Accepted:
-            preferences.save();
             updateShortcuts();
-            config_changed = 2;
             emit vmmGlobalConfigurationChanged();
             break;
         case QDialog::Rejected:
@@ -2259,6 +2285,7 @@ MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
         discordupdate.stop();
     }
 #endif
+    config_save();
 }
 
 void
@@ -2327,6 +2354,7 @@ MainWindow::on_actionRenderer_options_triggered()
                     if (renderers[i] && renderers[i]->hasOptions())
                         renderers[i]->reloadOptions();
                 }
+            config_save();
         } else if (reload_renderers && ui->stackedWidget->reloadRendererOption()) {
             reload_renderers = false;
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
@@ -2382,6 +2410,7 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
             }
         }
     }
+    config_save();
 }
 
 void
@@ -2433,4 +2462,15 @@ void
 MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
+}
+
+void
+MainWindow::on_actionCGA_composite_settings_triggered()
+{
+    isNonPause = true;
+    CGASettingsDialog dialog;
+    dialog.setModal(true);
+    dialog.exec();
+    isNonPause = false;
+    config_save();
 }

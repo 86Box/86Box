@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 13:58+0000\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -523,18 +523,6 @@ msgstr "YMFM (더 빠르게)"
 msgid "Internal LPT ECP DMA:"
 msgstr "내부 LPT의 ECP의 DMA:"
 
-msgid "Serial port 1"
-msgstr "직렬 포트 1"
-
-msgid "Serial port 2"
-msgstr "직렬 포트 2"
-
-msgid "Serial port 3"
-msgstr "직렬 포트 3"
-
-msgid "Serial port 4"
-msgstr "직렬 포트 4"
-
 msgid "Floppy disk controller:"
 msgstr "플로피 디스크 컨트롤러:"
 
@@ -612,6 +600,9 @@ msgstr "하드 디스크:"
 
 msgid "Firmware Version"
 msgstr "펌웨어 버전"
+
+msgid "DSP Version"
+msgstr "DSP 버전"
 
 msgid "&New…"
 msgstr "새로 만들기(&N)…"
@@ -1834,18 +1825,6 @@ msgstr "86Box 유닛 테스터"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 키 카드"
 
-msgid "Serial port passthrough 1"
-msgstr "직렬 포트 패스스루 1"
-
-msgid "Serial port passthrough 2"
-msgstr "직렬 포트 패스스루 2"
-
-msgid "Serial port passthrough 3"
-msgstr "직렬 포트 패스스루 3"
-
-msgid "Serial port passthrough 4"
-msgstr "직렬 포트 패스스루 4"
-
 msgid "Renderer &options…"
 msgstr "렌더러 옵션(&O)…"
 
@@ -2676,7 +2655,8 @@ msgstr "새비지 퀘스트용 보호 동글"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "직렬 포트 패스스루 장치"
 
 msgid "Passthrough Mode"
@@ -3018,9 +2998,6 @@ msgstr "시스템은 추가되지 않을 것입니다."
 msgid "&Update mouse every CPU frame"
 msgstr "마우스를 각 CPU 프레임마다 업데이트합니다(&U)"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "색조"
 
@@ -3036,8 +3013,11 @@ msgstr "밝기"
 msgid "Sharpness"
 msgstr "선명도"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "CGA 복합 모드의 설정(&C)…"
+
+msgid "CGA composite settings"
+msgstr "CGA 복합 모드의 설정"
 
 msgid "Monitor EDID"
 msgstr "모니터의 EDID"
@@ -3092,3 +3072,9 @@ msgstr "원본"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "오디오 출력 장치:"
+
+msgid "System Default"
+msgstr "시스템 기본값"

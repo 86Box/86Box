@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-10 12:56+0000\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -523,18 +523,6 @@ msgstr "YMFM (быстрее)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP встроенного LPT:"
 
-msgid "Serial port 1"
-msgstr "Последовательный порт COM1"
-
-msgid "Serial port 2"
-msgstr "Последовательный порт COM2"
-
-msgid "Serial port 3"
-msgstr "Последовательный порт COM3"
-
-msgid "Serial port 4"
-msgstr "Последовательный порт COM4"
-
 msgid "Floppy disk controller:"
 msgstr "Контроллер гибких дисков:"
 
@@ -612,6 +600,9 @@ msgstr "Жёсткие диски:"
 
 msgid "Firmware Version"
 msgstr "Версия прошивки"
+
+msgid "DSP Version"
+msgstr "Версия DSP"
 
 msgid "&New…"
 msgstr "&Создать…"
@@ -1846,18 +1837,6 @@ msgstr "Модульный Тестер 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Карта ключей Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Сквозной последовательный порт COM1"
-
-msgid "Serial port passthrough 2"
-msgstr "Сквозной последовательный порт COM2"
-
-msgid "Serial port passthrough 3"
-msgstr "Сквозной последовательный порт COM3"
-
-msgid "Serial port passthrough 4"
-msgstr "Сквозной последовательный порт COM4"
-
 msgid "Renderer &options…"
 msgstr "Параметры &рендеринга…"
 
@@ -2686,8 +2665,8 @@ msgstr "Защитный донгл для Savage Quest"
 msgid "Loopback Plug"
 msgstr "Loopback-кабель"
 
-msgid "Serial Passthrough Device"
-msgstr "Устройство проброса через последовательный порт"
+msgid "Serial Passthrough"
+msgstr "Проброс через последовательный порт"
 
 msgid "Passthrough Mode"
 msgstr "Режим проброса"
@@ -3028,9 +3007,6 @@ msgstr "Система не будет добавлена."
 msgid "&Update mouse every CPU frame"
 msgstr "&Обновлять мышь при каждом кадре ЦП"
 
-msgid "Composite CGA"
-msgstr "Композит. CGA"
-
 msgid "Hue"
 msgstr "Тон"
 
@@ -3046,8 +3022,11 @@ msgstr "Яркость"
 msgid "Sharpness"
 msgstr "Резкость"
 
-msgid "Reset"
-msgstr "Сброс"
+msgid "&CGA composite settings…"
+msgstr "Настройки композитного видео &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Настройки композитного видео CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID монитора"
@@ -3102,3 +3081,9 @@ msgstr "Сырой"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Использовать эмуляцию EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Устройство вывода звука:"
+
+msgid "System Default"
+msgstr "Системный"

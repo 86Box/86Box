@@ -38,6 +38,7 @@ typedef struct codeblock_t {
     uint16_t flags;
     uint8_t  ins;
     uint8_t  TOP;
+    int      valid;
 
     /*Pointers for codeblock tree, used to search for blocks when hash lookup
       fails.*/

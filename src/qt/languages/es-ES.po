@@ -522,18 +522,6 @@ msgstr "YMFM (más rápido)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA de ECP del LPT interno:"
 
-msgid "Serial port 1"
-msgstr "Puerto serie 1"
-
-msgid "Serial port 2"
-msgstr "Puerto serie 2"
-
-msgid "Serial port 3"
-msgstr "Puerto serie 3"
-
-msgid "Serial port 4"
-msgstr "Puerto serie 4"
-
 msgid "Floppy disk controller:"
 msgstr "Controladora de disquetes:"
 
@@ -611,6 +599,9 @@ msgstr "Discos duros:"
 
 msgid "Firmware Version"
 msgstr "Versión de firmware"
+
+msgid "DSP Version"
+msgstr "Versión de DSP"
 
 msgid "&New…"
 msgstr "&Nuevo…"
@@ -1833,18 +1824,6 @@ msgstr "Comprobador de unidad 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Tarjeta de llave Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Paso de puerto serie 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Paso de puerto serie 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Paso de puerto serie 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Paso de puerto serie 4"
-
 msgid "Renderer &options…"
 msgstr "Opc&iones del renderizador…"
 
@@ -2673,8 +2652,8 @@ msgstr "Dongle de protección para Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
-msgstr "Dispositivo de paso de puerto serie"
+msgid "Serial Passthrough"
+msgstr "Paso de puerto serie"
 
 msgid "Passthrough Mode"
 msgstr "Modo de paso"
@@ -3015,9 +2994,6 @@ msgstr "El sistema no será añadido."
 msgid "&Update mouse every CPU frame"
 msgstr "&Actualiza el estado del ratón en cada bloco de CPU"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Tono"
 
@@ -3033,8 +3009,11 @@ msgstr "Brillo"
 msgid "Sharpness"
 msgstr "Nitidez"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Configuración del modo compósito &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Configuración del modo compósito CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID del monitor"
@@ -3089,3 +3068,9 @@ msgstr "Plano"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Dispositivo de salida de audio:"
+
+msgid "System Default"
+msgstr "Por defecto del sistema"

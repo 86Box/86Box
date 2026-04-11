@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-31 17:06+0000\n"
-"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -522,18 +522,6 @@ msgstr "YMFM (daha hızlı)"
 msgid "Internal LPT ECP DMA:"
 msgstr "Dahili LPT ECP DMA'sı:"
 
-msgid "Serial port 1"
-msgstr "1. Seri bağlantı noktası"
-
-msgid "Serial port 2"
-msgstr "2. Seri bağlantı noktası"
-
-msgid "Serial port 3"
-msgstr "3. Seri bağlantı noktası"
-
-msgid "Serial port 4"
-msgstr "4. Seri bağlantı noktası"
-
 msgid "Floppy disk controller:"
 msgstr "Disket denetleyicisi:"
 
@@ -611,6 +599,9 @@ msgstr "Sabit diskler:"
 
 msgid "Firmware Version"
 msgstr "Bellenim Sürümü"
+
+msgid "DSP Version"
+msgstr "DSP Sürümü"
 
 msgid "&New…"
 msgstr "&Yeni…"
@@ -1879,18 +1870,6 @@ msgstr "86Box Test Cihazı"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Anahtar Kartı"
 
-msgid "Serial port passthrough 1"
-msgstr "1. Seri bağlantı noktası geçişi"
-
-msgid "Serial port passthrough 2"
-msgstr "2. Seri bağlantı noktası geçişi"
-
-msgid "Serial port passthrough 3"
-msgstr "3. Seri bağlantı noktası geçişi"
-
-msgid "Serial port passthrough 4"
-msgstr "4. Seri bağlantı noktası geçişi"
-
 msgid "Renderer &options…"
 msgstr "Derleyici seçenekleri…"
 
@@ -2719,7 +2698,8 @@ msgstr "Savage Quest için Koruma Kilidi"
 msgid "Loopback Plug"
 msgstr "Geri Döngü Adaptörü"
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Seri Geçiş Cihazı"
 
 msgid "Passthrough Mode"
@@ -3067,9 +3047,6 @@ msgstr "Sistem eklenmeyecek."
 msgid "&Update mouse every CPU frame"
 msgstr "Fareyi her işlemci karesinde güncelle"
 
-msgid "Composite CGA"
-msgstr "Kompozit CGA"
-
 msgid "Hue"
 msgstr "Renk tonu"
 
@@ -3085,8 +3062,11 @@ msgstr "Parlaklık"
 msgid "Sharpness"
 msgstr "Keskinlik"
 
-msgid "Reset"
-msgstr "Sıfırla"
+msgid "&CGA composite settings…"
+msgstr "&CGA kompozit modunun ayarları…"
+
+msgid "CGA composite settings"
+msgstr "CGA kompozit modunun ayarları"
 
 msgid "Monitor EDID"
 msgstr "Monitörün EDID'si"
@@ -3141,3 +3121,9 @@ msgstr "Ham"
 
 msgid "Use EDC/ECC emulation"
 msgstr "EDC/ECC emülasyonunu kullan"
+
+msgid "Audio output device:"
+msgstr "Ses çıkış aygıtı:"
+
+msgid "System Default"
+msgstr "Sistem Varsayılanı"

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-03-17 02:29+0000\n"
-"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
@@ -523,18 +523,6 @@ msgstr "YMFM (rychlejší)"
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA kanál ECP interního LPT portu:"
 
-msgid "Serial port 1"
-msgstr "Povolit port COM1"
-
-msgid "Serial port 2"
-msgstr "Povolit port COM2"
-
-msgid "Serial port 3"
-msgstr "Povolit port COM3"
-
-msgid "Serial port 4"
-msgstr "Povolit port COM4"
-
 msgid "Floppy disk controller:"
 msgstr "Disketový řadič:"
 
@@ -612,6 +600,9 @@ msgstr "Pevné disky:"
 
 msgid "Firmware Version"
 msgstr "Verze firmware"
+
+msgid "DSP Version"
+msgstr "Verze DSP"
 
 msgid "&New…"
 msgstr "&Nový…"
@@ -1836,18 +1827,6 @@ msgstr "86Box Unit Tester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Karta s klíčem pro Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Průchod sériového portu 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Průchod sériového portu 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Průchod sériového portu 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Průchod sériového portu 4"
-
 msgid "Renderer &options…"
 msgstr "Možnosti rendereru…"
 
@@ -2677,7 +2656,8 @@ msgstr "Ochranný klíč pro Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-msgid "Serial Passthrough Device"
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Zařízení průchodu sériového portu"
 
 msgid "Passthrough Mode"
@@ -3019,9 +2999,6 @@ msgstr "Systém nebude přidán."
 msgid "&Update mouse every CPU frame"
 msgstr "&Aktualizovat myš při každém CPU rámci"
 
-msgid "Composite CGA"
-msgstr ""
-
 msgid "Hue"
 msgstr "Odstín"
 
@@ -3037,8 +3014,11 @@ msgstr "Jas"
 msgid "Sharpness"
 msgstr "Ostrost"
 
-msgid "Reset"
-msgstr ""
+msgid "&CGA composite settings…"
+msgstr "Nastavení kompozitního výstupu &CGA…"
+
+msgid "CGA composite settings"
+msgstr "Nastavení kompozitního výstupu CGA"
 
 msgid "Monitor EDID"
 msgstr "EDID monitoru"
@@ -3093,3 +3073,9 @@ msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Výstupní zvukové zařízení:"
+
+msgid "System Default"
+msgstr "Výchozí nastavení systému"

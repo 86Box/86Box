@@ -265,11 +265,12 @@
 #endif
 
 #ifdef ENABLE_DA2_LOG
-// #    define ENABLE_DA2_DEBUGIO 1
-#    define ENABLE_DA2_DEBUGBLT 1
-#    define ENABLE_DA2_DEBUGVRAM 1
-#    define ENABLE_DA2_DEBUGFULLSCREEN 1
+#    define ENABLE_DA2_DEBUGIO 1
+// #    define ENABLE_DA2_DEBUGBLT 1
+// #    define ENABLE_DA2_DEBUGVRAM 1
+// #    define ENABLE_DA2_DEBUGFULLSCREEN 1
 // #    define ENABLE_DA2_DEBUGMONWAIT 1
+#    define ENABLE_DA2_DEBUGDACPAL 1
 int da2_do_log = ENABLE_DA2_LOG;
 
 static void
@@ -340,7 +341,7 @@ typedef struct da2_t {
     uint8_t plane_mask;
 
     uint8_t  egapal[16];
-    uint32_t pallook[512];
+    uint32_t pallook[256];
     PALETTE  vgapal;
 
     int      vtotal, dispend, vsyncstart, split, vblankstart;
@@ -1417,7 +1418,7 @@ da2_out(uint16_t addr, uint16_t val, void *priv)
             da2->dac_pos   = 0;
             break;
         case 0x3C9: /* Data */
-            // da2_iolog("DA2 Out addr %03X idx %d:%d val %02X %04X:%04X esdi %04X:%04X\n", addr, da2->dac_write, da2->dac_pos, val, cs >> 4, cpu_state.pc, ES, DI);
+            da2_iolog("DA2 DAC idx %d:%d val %02X %04X:%04X esdi %04X:%04X\n", da2->dac_write, da2->dac_pos, val, cs >> 4, cpu_state.pc, ES, DI);
             da2->dac_status = 0;
             da2->fullchange = 3;
             switch (da2->dac_pos) {
@@ -2597,7 +2598,6 @@ da2_mapping_update(da2_t *da2)
         da2_log("DA2 enable registers\n");
         for (uint8_t i = 0; i < 8; i++)
             da2_log("DA2 POS[%d]: %x\n", i, da2->pos_regs[i]);
-        io_sethandler(0x03c0, 0x000a, da2_inb, da2_inw, NULL, da2_outb, da2_outw, NULL, da2);
         io_sethandler(0x03e0, 0x0010, da2_inb, da2_inw, NULL, da2_outb, da2_outw, NULL, da2);
         io_sethandler(0x03d0, 0x000b, da2_in_ISR, NULL, NULL, da2_out_ISR, NULL, NULL, da2);
         mem_mapping_enable(&da2->cmapping);
@@ -2608,25 +2608,24 @@ da2_mapping_update(da2_t *da2)
         timer_disable(&da2->bitblt.timer);
         mem_mapping_disable(&da2->cmapping);
         mem_mapping_disable(&da2->mmio.mapping);
-        io_removehandler(0x03c0, 0x000a, da2_inb, da2_inw, NULL, da2_outb, da2_outw, NULL, da2);
         io_removehandler(0x03e0, 0x0010, da2_inb, da2_inw, NULL, da2_outb, da2_outw, NULL, da2);
         io_removehandler(0x03d0, 0x000b, da2_in_ISR, NULL, NULL, da2_out_ISR, NULL, NULL, da2);
     }
 }
 
 static uint8_t
-da2_mca_read(int port, void *priv)
+da2_mca_read(const uint16_t port, void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
     return da2->pos_regs[port & 7];
 }
 
 static void
-da2_mca_write(int port, uint8_t val, void *priv)
+da2_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     da2_t *da2 = (da2_t *) priv;
 
-    da2_log("da2_mca_write: port=%04x val=%02x\n", port, val);
+    da2_log("da2_mca_write: port=%04x val=%02x %04x %04x\n", port, val, cs >> 4, cpu_state.pc);
 
     if (port < 0x102)
         return;
@@ -3285,6 +3284,15 @@ da2_poll(void *priv)
                 da2->fullchange--;
                 // pclog("fc %d %d\n",da2->fullchange,da2->oddeven);
             }
+#ifdef ENABLE_DA2_DEBUGDACPAL
+            da2->bitblt.writemode      = 0;
+            da2->bitblt.bitshift_destr = 0;
+            da2->bitblt.raster_op      = 0;
+            da2->fullchange            = 1;
+            for (int i = 0; i < 256; i++)
+                for (int j = 0; j < 4; j++)
+                    da2_DrawColorWithBitmask((da2->rowoffset * 8 * (i / 32)) + (i % 32) * 2 + j * da2->rowoffset * 2, i, 0xffff, da2);
+#endif
         }
         if (da2->vc == da2->vsyncstart) {
             int wx, wy;
@@ -3300,7 +3308,6 @@ da2_poll(void *priv)
 
             wx = x;
             wy = da2->lastline - da2->firstline;
-
             da2_doblit(wx, wy, da2);
 
             da2->firstline = 2000;
@@ -3368,39 +3375,12 @@ da2_video_load_font(char *fname, void *priv)
     return;
 }
 
-/* 12-bit DAC color palette for IBMJ Display Adapter with color monitor */
-static uint8_t ps55_palette_color[64][3] = {
-    { 0x00, 0x00, 0x00 },    { 0x00, 0x00, 0x2A },    { 0x00, 0x2A, 0x00 },    { 0x00, 0x2A, 0x2A },
-    { 0x2A, 0x00, 0x00 },    { 0x2A, 0x00, 0x2A },    { 0x2A, 0x2A, 0x00 },    { 0x2A, 0x2A, 0x2A },
-    { 0x00, 0x00, 0x15 },    { 0x00, 0x00, 0x3F },    { 0x00, 0x2A, 0x15 },    { 0x00, 0x2A, 0x3F },
-    { 0x2A, 0x00, 0x15 },    { 0x2A, 0x00, 0x3F },    { 0x2A, 0x2A, 0x15 },    { 0x2A, 0x2A, 0x3F },
-    { 0x00, 0x15, 0x00 },    { 0x00, 0x15, 0x2A },    { 0x00, 0x3F, 0x00 },    { 0x00, 0x3F, 0x2A },
-    { 0x2A, 0x15, 0x00 },    { 0x2A, 0x15, 0x2A },    { 0x2A, 0x3F, 0x00 },    { 0x2A, 0x3F, 0x2A },
-    { 0x00, 0x15, 0x15 },    { 0x00, 0x15, 0x3F },    { 0x00, 0x3F, 0x15 },    { 0x00, 0x3F, 0x3F },
-    { 0x2A, 0x15, 0x15 },    { 0x2A, 0x15, 0x3F },    { 0x2A, 0x3F, 0x15 },    { 0x2A, 0x3F, 0x3F },
-    { 0x15, 0x00, 0x00 },    { 0x15, 0x00, 0x2A },    { 0x15, 0x2A, 0x00 },    { 0x15, 0x2A, 0x2A },
-    { 0x3F, 0x00, 0x00 },    { 0x3F, 0x00, 0x2A },    { 0x3F, 0x2A, 0x00 },    { 0x3F, 0x2A, 0x2A },
-    { 0x15, 0x00, 0x15 },    { 0x15, 0x00, 0x3F },    { 0x15, 0x2A, 0x15 },    { 0x15, 0x2A, 0x3F },
-    { 0x3F, 0x00, 0x15 },    { 0x3F, 0x00, 0x3F },    { 0x3F, 0x2A, 0x15 },    { 0x3F, 0x2A, 0x3F },
-    { 0x15, 0x15, 0x00 },    { 0x15, 0x15, 0x2A },    { 0x15, 0x3F, 0x00 },    { 0x15, 0x3F, 0x2A },
-    { 0x3F, 0x15, 0x00 },    { 0x3F, 0x15, 0x2A },    { 0x3F, 0x3F, 0x00 },    { 0x3F, 0x3F, 0x2A },
-    { 0x15, 0x15, 0x15 },    { 0x15, 0x15, 0x3F },    { 0x15, 0x3F, 0x15 },    { 0x15, 0x3F, 0x3F },
-    { 0x3F, 0x15, 0x15 },    { 0x3F, 0x15, 0x3F },    { 0x3F, 0x3F, 0x15 },    { 0x3F, 0x3F, 0x3F }
-};
-
 static void
 da2_reset_ioctl(da2_t *da2)
 {
     da2->ioctl[LS_RESET] = 0x00;     /* Bit 0: Reset sequencer */
     da2_outw(LS_INDEX, 0x0302, da2); /* Index 02, Bit 1: VGA passthrough, Bit 0: Character Mode */
     da2_outw(LS_INDEX, 0x0008, da2); /* Index 08, Bit 0: Enable MMIO */
-    /* Set default color palette (Windows 3.1 display driver won't reset palette regs) */
-    for (uint16_t i = 0; i < 256; i++) {
-        da2->vgapal[i].r = ps55_palette_color[i & 0x3F][0];
-        da2->vgapal[i].g = ps55_palette_color[i & 0x3F][1];
-        da2->vgapal[i].b = ps55_palette_color[i & 0x3F][2];
-        da2->pallook[i]  = makecol32((da2->vgapal[i].r & 0x3f) * 4, (da2->vgapal[i].g & 0x3f) * 4, (da2->vgapal[i].b & 0x3f) * 4);
-    }
 }
 
 static void
@@ -3485,6 +3465,8 @@ da2_init(UNUSED(const device_t *info))
 
     timer_add(&da2->timer_vidupd, da2_updatevidselector_tick, da2, 0);/* Init timer before executing reset */
     da2_reset(da2);
+    
+    io_sethandler(0x03c0, 0x000a, da2_inb, da2_inw, NULL, da2_outb, da2_outw, NULL, da2);
 
     mem_mapping_add(&da2->mmio.mapping, 0xA0000, 0x20000, da2_mmio_read, da2_mmio_readw, NULL, da2_mmio_write, da2_mmio_writew, NULL, NULL, MEM_MAPPING_EXTERNAL, da2);
     // da2_log("DA2mmio new mapping: %X, base: %x, size: %x\n", &da2->mmio.mapping, da2->mmio.mapping.base, da2->mmio.mapping.size);
