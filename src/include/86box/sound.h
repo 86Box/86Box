@@ -262,6 +262,9 @@ extern const device_t tndy_device;
 /* Tandy Sensation */
 extern const device_t sensationaud_device;
 
+/* TexElec SAAYM */
+extern const device_t saaym_device;
+
 /* Windows Sound System */
 extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
