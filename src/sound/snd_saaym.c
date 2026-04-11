@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Texelec Saaym Emulation.
+ *          TexElec Saaym Emulation.
  *
  * Authors: Jasmine Iwanek, <jriwanek@gmail.com>
  *          win2kgamer
@@ -28,8 +28,6 @@
 #include <86box/snd_saaym.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
-
-#define ENABLE_SAAYM_LOG 1
 
 #ifdef ENABLE_SAAYM_LOG
 int saaym_do_log = ENABLE_SAAYM_LOG;
@@ -54,11 +52,11 @@ saaym_write(uint16_t addr, uint8_t val, void *priv)
     saaym_t *saaym = (saaym_t *) priv;
 
     switch (addr & 0xf) {
-        case 0xe: /* SAAYM Register Select Port */
+        case 0xe: /* YM2151 Register Select Port */
             saaym->opm.write(addr, val, saaym->opm.priv);
             break;
 
-        case 0xf: /* SAAYM Data Port */
+        case 0xf: /* YM2151 Data Port */
             saaym->opm.write(addr, val, saaym->opm.priv);
             break;
 
@@ -85,7 +83,7 @@ saaym_read(uint16_t addr, void *priv)
         case 0xd: /* SAAYM Read Port */
             ret = saaym->latched_data;
             break;
-        case 0xe: /* YM2151 Register Select Port */
+        case 0xe: /* YM2151 Status Port */
             ret = saaym->opm.read(addr + 1, saaym->opm.priv);
             break;
 
@@ -108,8 +106,8 @@ saaym_get_music_buffer(int32_t *buffer, int len, void *priv)
         double out_l = 0.0;
         double out_r = 0.0;
 
-        out_l = ((double) opm_buf[c]) * 1;
-        out_r = ((double) opm_buf[c + 1]) * 1;
+        out_l = ((double) opm_buf[c]);
+        out_r = ((double) opm_buf[c + 1]);
 
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
@@ -207,7 +205,7 @@ static const device_config_t saaym_config[] = {
 };
 
 const device_t saaym_device = {
-    .name          = "Texelec SAAYM",
+    .name          = "TexElec SAAYM",
     .internal_name = "saaym",
     .flags         = DEVICE_ISA,
     .local         = 0,
