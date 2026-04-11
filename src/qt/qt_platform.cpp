@@ -1162,8 +1162,21 @@ have_env_var(const char *var, const char *compare = NULL)
 int
 plat_run_terminal(const char *cmd, const char *title)
 {
-    QString cmdq = QString(cmd);
-    QString titleq = (title && title[0]) ? QString(title) : QString();
+    auto cmdq = QString(cmd);
+    QString apppath = QCoreApplication::applicationFilePath();
+#ifdef Q_OS_WINDOWS
+    auto escaper = QRegularExpression(QStringLiteral("([&|<>^])"));
+    apppath.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%")).prepend('"').append('"');
+#else
+#    ifndef Q_OS_MACOS
+    const char *appimage = getenv("APPIMAGE");
+    if (appimage && appimage[0])
+        apppath = QString(appimage);
+#    endif
+    apppath.replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend('\'').append('\'');
+#endif
+    cmdq.replace(QStringLiteral("\1"), apppath);
+    QString titleq = QString(title);
 
     auto process = new QProcess();
     process->setInputChannelMode(QProcess::ForwardedInputChannel);
@@ -1175,13 +1188,11 @@ plat_run_terminal(const char *cmd, const char *title)
         args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
     });
     process->setProgram(QString(getenv("ComSpec")));
-    auto escaper = QRegularExpression(QStringLiteral("([&|<>^])"));
-    auto newcmd = cmdq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"));
+    cmdq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"));
     if (!titleq.isEmpty())
-        newcmd.prepend(QStringLiteral("title %1&").arg(titleq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"))));
-    process->setArguments(QStringList() << QStringLiteral("/c") << newcmd);
-    process->start();
-    return process->waitForStarted();
+        cmdq.prepend(QStringLiteral("title %1&").arg(titleq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"))));
+    process->setArguments(QStringList() << QStringLiteral("/c") << cmdq);
+    return process->startDetached();
 #elif defined(Q_OS_MACOS)
     QString script = QString("do script (system attribute \"COMMAND\")");
     auto env = QProcessEnvironment::systemEnvironment();
@@ -1194,8 +1205,7 @@ plat_run_terminal(const char *cmd, const char *title)
     process->setProcessEnvironment(env);
     process->setProgram(QStringLiteral("osascript"));
     process->setArguments(QStringList() << QStringLiteral("-e") << script);
-    process->start();
-    return process->waitForStarted();
+    return process->startDetached();
 #else
     if (!titleq.isEmpty()) {
         auto env = QProcessEnvironment::systemEnvironment();
@@ -1238,12 +1248,11 @@ plat_run_terminal(const char *cmd, const char *title)
         process->setProgram(terminal);
         QStringList args;
         if (terminal == QStringLiteral("xfce4-terminal"))
-            args << QStringLiteral("-e") << QString(cmdq).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("sh -c '")).append(QStringLiteral("'"));
+            args << QStringLiteral("-e") << QString(cmdq).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("sh -c '")).append('\'');
         else
             args << (terminal.endsWith(QStringLiteral("-terminal")) ? QStringLiteral("--") : QStringLiteral("-e")) << QStringLiteral("sh") << QStringLiteral("-c") << cmdq;
         process->setArguments(args);
-        process->start();
-        if (process->waitForStarted())
+        if (process->startDetached())
             return 1;
     }
     return 0;

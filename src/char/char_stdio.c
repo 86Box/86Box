@@ -305,7 +305,7 @@ char_stdio_init(const device_t *info)
         /* Create pseudoterminal. */
         char msg[2048];
         int err;
-        dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NONBLOCK);
+        dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NONBLOCK | O_CLOEXEC); /* O_CLOEXEC required for hangup detection in terminal emulator mode */
         if (dev->fd_out >= 0) {
             if (grantpt(dev->fd_out) >= 0) {
                 if (unlockpt(dev->fd_out) >= 0) {
@@ -324,11 +324,22 @@ char_stdio_init(const device_t *info)
                             ui_msgbox(MBX_INFO | MBX_ANSI, msg);
                         } else {
                             /* Spawn terminal emulator. */
-                            char cmd[2048];
-                            snprintf(cmd, sizeof(cmd), "PTY='%s';stty raw -echo eof undef;which socat>/dev/null&&exec socat stdio pipe:\"$PTY\";cat \"$PTY\"&cat>\"$PTY\"", pty);
-                            snprintf(msg, sizeof(msg), "%s %s", vm_name, dev->port->name);
-                            if (!plat_run_terminal(cmd, msg))
-                                char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
+                            snprintf(msg, sizeof(msg), "exec \1 -V '");
+                            int offset = strlen(msg);
+                            int pty_len = strlen(pty);
+                            for (int i = 0; vm_name[i] && (offset < (sizeof(msg) - 9 - pty_len)); i++)
+                                msg[offset++] = (vm_name[i] == '\'') ? '"' : vm_name[i];
+                            msg[offset++] = ' ';
+                            for (int i = 0; dev->port->name[i] && (offset < (sizeof(msg) - 8 - pty_len)); i++)
+                                msg[offset++] = (dev->port->name[i] == '\'') ? '"' : dev->port->name[i];
+                            snprintf(&msg[offset], sizeof(msg) - offset, "' -D '");
+                            offset = strlen(msg);
+                            for (int i = 0; pty[i] && (offset < (sizeof(msg) - 2)); i++)
+                                msg[offset++] = (pty[i] == '\'') ? '"' : pty[i];
+                            msg[offset++] = '\'';
+                            msg[offset] = '\0';
+                            if (!plat_run_terminal(msg, NULL))
+                                char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", msg);
                         }
                     } else {
                         err = errno;

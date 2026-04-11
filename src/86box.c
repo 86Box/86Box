@@ -34,9 +34,6 @@
 #include <unistd.h>
 #include <math.h>
 
-#ifndef _WIN32
-#    include <pwd.h>
-#endif
 #ifdef __APPLE__
 #    include <string.h>
 #    include <dispatch/dispatch.h>
@@ -110,6 +107,15 @@
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
 #include <86box/vfio.h>
+#include <86box/char.h>
+
+#ifndef _WIN32
+#    include <pwd.h>
+#    include <errno.h>
+#    include <fcntl.h>
+#    include <termios.h>
+#    include <poll.h>
+#endif
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -854,9 +860,58 @@ usage:
             return 0;
         } else if (!strcasecmp(argv[c], "--lastvmpath") || !strcasecmp(argv[c], "-Z")) {
             lvmp = 1;
-#ifdef _WIN32
         } else if (!strcasecmp(argv[c], "--debug") || !strcasecmp(argv[c], "-D")) {
+#ifdef _WIN32
             pc_debug_console();
+#else
+            if ((c + 1) == argc)
+                goto usage;
+
+            /* Enable raw input. */
+            struct termios port_config = { 0 };
+            struct termios prev_config = { 0 };
+            int prev_config_valid = !tcgetattr(STDIN_FILENO, &port_config);
+            if (prev_config_valid)
+                memcpy(&prev_config, &port_config, sizeof(port_config));
+            cfmakeraw(&port_config);
+            tcsetattr(STDIN_FILENO, TCSANOW, &port_config);
+
+            /* Set window title and clear screen. */
+            always_log("\033]0;%s\a\033[H\033[2J\r", vm_name);
+
+            /* Run passthrough loop. */
+            int fd = open(argv[++c], O_RDWR);
+            if (CHAR_FD_VALID(fd)) {
+                struct pollfd fds[3] = {
+                    { .fd = STDIN_FILENO, .events = POLLIN | POLLERR | POLLHUP },
+                    { .fd = STDOUT_FILENO, .events = POLLERR | POLLHUP },
+                    { .fd = fd, .events = POLLIN | POLLERR | POLLHUP }
+                };
+                uint8_t buf[4096];
+                ssize_t len;
+                while (1) {
+                    if ((poll(fds, sizeof(fds) / sizeof(fds[0]), -1) < 0) ||
+                        ((fds[0].revents | fds[1].revents | fds[2].revents) & (POLLERR | POLLHUP | POLLNVAL)))
+                        break;
+                    if (fds[0].revents & POLLIN) {
+                        len = read(fds[0].fd, buf, sizeof(buf));
+                        if ((len < 0) || ((len > 0) && (write(fds[2].fd, buf, len) < 0)))
+                            break;
+                    }
+                    if (fds[2].revents & POLLIN) {
+                        len = read(fds[2].fd, buf, sizeof(buf));
+                        if ((len < 0) || ((len > 0) && (write(fds[1].fd, buf, len) < 0)))
+                            break;
+                    }
+                }
+                close(fd);
+            }
+
+            /* Restore existing terminal configuration. */
+            if (prev_config_valid)
+                tcsetattr(STDIN_FILENO, TCSAFLUSH, &prev_config);
+
+            return 0;
 #endif
 #ifndef USE_SDL_UI
         } else if (!strcasecmp(argv[c], "--vmmpath") ||
