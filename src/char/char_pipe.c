@@ -222,7 +222,7 @@ server: {}
         }
     } else {
         int err = errno;
-        snprintf(msg, sizeof(msg), "Could not connect to %s: %s", addr.sun_path, strerror(err));
+        snprintf(msg, sizeof(msg), "Could not connect to %s: %s", path, strerror(err));
         goto errmsg;
     }
 #endif
@@ -326,6 +326,11 @@ char_pipe_init(const device_t *info)
     dev->port = char_attach(0, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
 
     /* Connect to pipe. */
+#ifdef _WIN32
+    dev->fd = INVALID_HANDLE_VALUE;
+#else
+    dev->fd = -1;
+#endif
     char_pipe_connect(dev, 1);
 
     return dev;

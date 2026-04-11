@@ -278,14 +278,37 @@ char_serial_connect(char_serial_t *dev, int startup)
 
     /* Save current serial port configuration for restoring on close. */
 #    ifdef TCGETS2
-    dev->prev_config_valid = !ioctl(dev->fd, TCGETS2, &dev->prev_config);
-#    elif defined(USE_LINUX_TERMIOS)
-    dev->prev_config_valid = !ioctl(dev->fd, TCGETS, &dev->prev_config);
+    struct termios2 port_config = { 0 };
+    dev->prev_config_valid = !ioctl(dev->fd, TCGETS2, &port_config);
 #    else
-    dev->prev_config_valid = !tcgetattr(dev->fd, &dev->prev_config);
+    struct termios port_config = { 0 };
+#        ifdef USE_LINUX_TERMIOS
+    dev->prev_config_valid = !ioctl(dev->fd, TCGETS, &port_config);
+#        else
+    dev->prev_config_valid = !tcgetattr(dev->fd, &port_config);
+#        endif
 #    endif
-    if (!dev->prev_config_valid)
+    if (dev->prev_config_valid)
+        memcpy(&dev->prev_config, &port_config, sizeof(port_config));
+    else
         char_serial_log(dev->log, "tcgetattr failed (%d)\n", errno);
+
+    /* Set up serial port. */
+#    if defined(TCSETS2) || defined(USE_LINUX_TERMIOS)
+    /* cfmakeraw not available here, set attributes according to the man page */
+    port_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    port_config.c_oflag &= ~OPOST;
+    port_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+#        ifdef TCSETS2
+    if (ioctl(dev->fd, TCSETS2, &port_config))
+#        elif defined(USE_LINUX_TERMIOS)
+    if (ioctl(dev->fd, TCSETS, &port_config))
+#        endif
+#    else
+    cfmakeraw(&port_config);
+    if (tcsetattr(dev->fd, TCSANOW, &port_config))
+#    endif
+        char_serial_log(dev->log, "Raw mode tcsetattr failed (%d)\n", errno);
 #endif
 
     char_serial_log(dev->log, "Connected: %s\n", path);
@@ -314,24 +337,21 @@ retry:
         DWORD err;
         COMSTAT stats;
         ClearCommError(dev->fd, &err, &stats);
-        if ((stats.cbInQue <= 0) || ReadFile(dev->fd, buf, len, &ret, NULL))
-            return ret;
-        char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
+        if ((stats.cbInQue > 0) && !ReadFile(dev->fd, buf, len, &ret, NULL)) {
+            char_serial_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
+            ret = 0;
 #else
     ssize_t ret = 0;
 retry:
-    if (CHAR_FD_VALID(dev->fd)) {
-        do {
-            ret = read(dev->fd, buf, len);
-        } while ((ret == 0) || ((ret < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK))));
-    }
-    if (ret < 0) {
-        char_serial_log(dev->log, "read failed (%d)\n", errno);
-#endif
+    if (CHAR_FD_VALID(dev->fd) && ((ret = read(dev->fd, buf, len)) < 0)) {
         ret = 0;
-        if (!retried && char_serial_connect(dev, 0)) {
-            retried = 1;
-            goto retry;
+        if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
+            char_serial_log(dev->log, "read failed (%d)\n", errno);
+#endif
+            if (!retried && char_serial_connect(dev, 0)) {
+                retried = 1;
+                goto retry;
+            }
         }
     }
     return ret;
@@ -531,7 +551,7 @@ char_serial_port_config(void *priv)
     if (ioctl(dev->fd, TCSETS2, &port_config))
 #    endif
     {
-        /* Failed or we're not in a BOTHER platform, try again with the closest common baud rate. */
+        /* Failed or we're not in a BOTHER platform, try using the closest common baud rate. */
 #    ifdef CBAUD
         port_config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
@@ -551,7 +571,7 @@ char_serial_port_config(void *priv)
 #    else
         if (tcsetattr(dev->fd, TCSANOW, &port_config))
 #    endif
-            char_serial_log(dev->log, "TCS* failed (%08X)\n", errno);
+            char_serial_log(dev->log, "tcsetattr failed (%d)\n", errno);
     }
 #endif
 }
@@ -657,6 +677,11 @@ char_serial_init(const device_t *info)
     dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
 
     /* Connect to serial port. */
+#ifdef _WIN32
+    dev->fd = INVALID_HANDLE_VALUE;
+#else
+    dev->fd = -1;
+#endif
     char_serial_connect(dev, 1);
 
     return dev;
