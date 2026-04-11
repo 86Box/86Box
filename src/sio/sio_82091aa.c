@@ -189,12 +189,12 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x10:
             *reg = (val & 0x83);
-            if (valxor & 0x03)
+            if ((dev->fdc != NULL) && (valxor & 0x03))
                 fdc_handler(dev);
             break;
         case 0x11:
             *reg = (val & 0x0f);
-            if ((valxor & 0x04) && (val & 0x04))
+            if ((dev->fdc != NULL) && (valxor & 0x04) && (val & 0x04))
                 fdc_reset(dev->fdc);
             break;
         case 0x20:
@@ -259,9 +259,12 @@ i82091aa_reset(i82091aa_t *dev)
     dev->regs[0x31] = dev->regs[0x41] = 0x02;
     dev->regs[0x50]                   = 0x01;
 
-    fdc_reset(dev->fdc);
+    if (dev->fdc != NULL) {
+        fdc_reset(dev->fdc);
 
-    fdc_handler(dev);
+        fdc_handler(dev);
+    }
+
     lpt_handler(dev);
     serial_handler(dev, 0);
     serial_handler(dev, 1);
@@ -288,7 +291,8 @@ i82091aa_init(const device_t *info)
     int inst = device_get_instance();
     inst = inst ? (inst - 1) : 0;
 
-    dev->fdc = device_add(&fdc_at_device);
+    if (inst == 0)
+        dev->fdc = device_add(&fdc_at_device);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1 + (inst << 1));
     dev->uart[1] = device_add_inst(&ns16550_device, 2 + (inst << 1));
