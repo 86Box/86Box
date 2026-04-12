@@ -331,13 +331,13 @@ char_stdio_init(const device_t *info)
                                 "stty raw -echo;" /* enable raw input on terminal */
                                 "(stty raw -echo;" /* enable raw input on pty for macOS */
                                 "cat;" /* pipe to stdout... */
-                                "kill $$)" /* (stop script once the read connection is broken) */
+                                "exec kill $$)" /* (stop script once the read connection is broken) */
                                 "<'%s'&" /* ...from pty */
                                 "clear;" /* clear screen of the background task indicator */
                                 "cat>'%s';" /* pipe from stdin to pty */
-                                "kill $!", /* stop script once the write connection is broken */
+                                "exec kill $!", /* stop script once the write connection is broken */
                                 pty, pty);
-                            snprintf(msg, sizeof(msg), "%s [%s]", vm_name, dev->port->name);
+                            snprintf(msg, sizeof(msg), "%s\n%s", vm_name, dev->port->name);
                             if (!plat_run_terminal(cmd, msg))
                                 char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
                         }

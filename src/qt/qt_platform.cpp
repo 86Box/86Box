@@ -1152,56 +1152,82 @@ plat_send_to_clipboard(unsigned char *rgb, int width, int height)
 
 #if !defined(Q_OS_WINDOWS) && !defined(Q_OS_MACOS)
 static int
-have_env_var(const char *var, const char *compare = NULL)
+have_env_var(const char *var, const char *cmp = NULL)
 {
     const char *val = getenv(var);
-    return val && val[0] && (!compare || !strnicmp(val, compare, strlen(compare)));
+    return val && val[0] && (!cmp || !strnicmp(val, cmp, strlen(cmp)));
 }
 #endif
 
 int
 plat_run_terminal(const char *cmd, const char *title)
 {
-    QString cmdq = cmd;
-    QString titleq = title;
-
     auto process = new QProcess();
     process->setInputChannelMode(QProcess::ForwardedInputChannel);
     process->setProcessChannelMode(QProcess::ForwardedChannels);
     process->setWorkingDirectory(usr_path);
 
+    /* Take advantage of macOS displaying the script name in the title bar. */
+    auto titleq = QString::fromUtf8(title);
+    char buf[256];
+#ifdef Q_OS_MACOS
+    auto idx = titleq.lastIndexOf('\n');
+    if (idx > -1) {
+        snprintf(buf, sizeof(buf), "%s", titleq.mid(idx + 1).replace('/', QChar(0xff0f)).toUtf8().constData()); /* replace slash with fullwidth slash */
+        titleq.truncate(idx);
+    } else
+#endif
+        buf[0] = '\0';
+    titleq.replace(QRegularExpression(QStringLiteral("\\n([^\\n]*)")), QStringLiteral(" [\\1]"));
+
 #ifdef Q_OS_WINDOWS
-    process->setCreateProcessArgumentsModifier([] (QProcess::CreateProcessArguments *args) {
+    (void) buf; /* clear unused warning */
+    auto titlew = titleq.toStdWString();
+    process->setCreateProcessArgumentsModifier([titleq, titlew] (QProcess::CreateProcessArguments *args) {
         args->flags |= CREATE_NEW_CONSOLE;
         args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
+        if (!titleq.isNull())
+            args->startupInfo->lpTitle = (wchar_t *) titlew.c_str();
     });
     process->setProgram(getenv("ComSpec"));
-    cmdq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"));
-    if (!titleq.isEmpty())
-        cmdq.prepend(QStringLiteral("title %1&").arg(titleq.replace(escaper, QStringLiteral("^\\1")).replace(QStringLiteral("%"), QStringLiteral("%%"))));
-    process->setArguments(QStringList() << QStringLiteral("/c") << cmdq);
-    return process->startDetached();
-#elif defined(Q_OS_MACOS)
-    auto script = QString("do script (system attribute \"COMMAND\")");
-    auto env = QProcessEnvironment::systemEnvironment();
-    if (!titleq.isEmpty()) {
-        env.insert(QStringLiteral("WINDOW_TITLE"), titleq);
-        script.prepend(QStringLiteral("set custom title of (")).append(QStringLiteral(") to (system attribute \"WINDOW_TITLE\")"));
-    }
-    script.prepend(QStringLiteral("tell application \"Terminal\" to "));
-    env.insert(QStringLiteral("COMMAND"), cmdq.replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("clear;exec sh -c '")).append('\''));
-    process->setProcessEnvironment(env);
-    process->setProgram(QStringLiteral("osascript"));
-    process->setArguments(QStringList() << QStringLiteral("-e") << script);
+    process->setNativeArguments(QString(cmd).prepend(QStringLiteral("/c ")));
     return process->startDetached();
 #else
-    if (!titleq.isEmpty()) {
-        auto env = QProcessEnvironment::systemEnvironment();
-        env.insert(QStringLiteral("WINDOW_TITLE"), titleq);
-        process->setProcessEnvironment(env);
-        cmdq.prepend(QStringLiteral("printf '\\e]0;%s\\a\\r' \"$WINDOW_TITLE\";"));
+    /* Generate script. */
+    if (!buf[0])
+        plat_tempfile(buf, (char *) ".temp", (char *) ".sh");
+    char *script = nvr_path(buf);
+    auto f = QFile(script);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
+        return 0;
+    f.write("#!/bin/sh\n");
+    auto titleb = titleq.toUtf8();
+    unsigned int len = titleb.length();
+    if (!titleq.isNull()) {
+        len += 5;
+        snprintf(buf, sizeof(buf), "tail -c %u \"$0\"\n", len);
+        f.write(buf);
     }
+    f.write("rm -f -- \"$0\"\nclear\n");
+    f.write(cmd);
+    f.write("\nexit\n");
+    if (!titleq.isNull()) {
+        f.write("\e]0;");
+        f.write(titleb);
+        f.write("\a");
+    }
+    f.close();
+    f.setPermissions(QFileDevice::ReadUser | QFileDevice::WriteUser | QFileDevice::ExeUser);
 
+    /* Execute script under a terminal emulator. */
+#    ifdef Q_OS_MACOS
+    /* We can't control the working directory displayed on the title, or the lack of auto-exit by default. */
+    process->setProgram(QStringLiteral("open"));
+    process->setArguments(QStringList() << QStringLiteral("-b") << QStringLiteral("com.apple.Terminal") << script);
+    process->start();
+    if (process->waitForStarted() && process->waitForFinished())
+        return 1;
+#    else
     /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
     QStringList terminals;
     if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
@@ -1230,19 +1256,25 @@ plat_run_terminal(const char *cmd, const char *title)
         terminals.prepend("lxterminal");
     else
         terminals << "lxterminal";
-    terminals << QStringLiteral("x-terminal-emulator") /* Debian */ << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
+    terminals << QStringLiteral("x-terminal-emulator"); /* Debian alternatives system */
+    terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
 
     for (const auto &terminal : terminals) {
         process->setProgram(terminal);
         QStringList args;
-        if (terminal == QStringLiteral("xfce4-terminal"))
-            args << QStringLiteral("-e") << QString(cmdq).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral("sh -c '")).append('\'');
+        if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
+            args << QStringLiteral("-e");
         else
-            args << (terminal.endsWith(QStringLiteral("-terminal")) ? QStringLiteral("--") : QStringLiteral("-e")) << QStringLiteral("sh") << QStringLiteral("-c") << cmdq;
+            args << QStringLiteral("--");
+        args << script;
         process->setArguments(args);
         if (process->startDetached())
             return 1;
     }
+#    endif
+
+    /* Remove script if terminal emulator execution failed. */
+    f.remove();
     return 0;
 #endif
 }
