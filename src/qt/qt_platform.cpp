@@ -1083,7 +1083,7 @@ plat_set_thread_name(void *thread, const char *name)
     }
 #else
 #    ifdef Q_OS_DARWIN
-    if (thread) /* Apple pthread can only set self's name */
+    if (thread) /* macOS pthread can only set self's name */
         return;
     char truncated[64];
 #    elif defined(Q_OS_NETBSD)
@@ -1247,69 +1247,69 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     f.close();
     f.setPermissions(QFileDevice::ReadUser | QFileDevice::WriteUser | QFileDevice::ExeUser);
 
-    /* Execute script directly if requested. */
+    /* Execute script directly or under a terminal emulator if requested. */
     if (titleq.isNull()) {
         process->setProgram(QStringLiteral("/bin/sh"));
         process->setArguments(QStringList() << script);
-        return process->startDetached();
-    }
-
-    /* Execute script under a terminal emulator if requested. */
-#    ifdef Q_OS_MACOS
-    /* This (and AppleScript which requires user consent) opens an interactive shell and types the path in, so
-       we can't control the working directory displayed on the title bar, nor the lack of auto-exit by default. */
-    process->setProgram(QStringLiteral("open"));
-    process->setArguments(QStringList() << QStringLiteral("-b") << QStringLiteral("com.apple.Terminal") << script);
-    process->start();
-    if (process->waitForStarted() && process->waitForFinished())
-        return 1;
-#    else
-    /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
-    QStringList terminals;
-    if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
-        terminals.prepend("konsole");
-    else
-        terminals << "konsole";
-    if (have_env_var("XDG_CURRENT_DESKTOP", "GNOME") || have_env_var("DESKTOP_SESSION", "gnome") || have_env_var("GNOME_DESKTOP_SESSION_ID") ||
-        have_env_var("XDG_CURRENT_DESKTOP", "Cinnamon") || have_env_var("XDG_CURRENT_DESKTOP", "X-Cinnamon") ||
-        have_env_var("XDG_CURRENT_DESKTOP", "Unity"))
-        terminals.prepend("gnome-terminal");
-    else
-        terminals << "gnome-terminal";
-    if (have_env_var("XDG_CURRENT_DESKTOP", "MATE") || have_env_var("DESKTOP_SESSION", "MATE"))
-        terminals.prepend("mate-terminal");
-    else
-        terminals << "mate-terminal";
-    if (have_env_var("XDG_CURRENT_DESKTOP", "XFCE") || have_env_var("DESKTOP_SESSION", "xfce"))
-        terminals.prepend("xfce4-terminal");
-    else
-        terminals << "xfce4-terminal";
-    if (have_env_var("XDG_CURRENT_DESKTOP", "LXQt") || have_env_var("LXQT_SESSION_CONFIG"))
-        terminals.prepend("qterminal");
-    else
-        terminals << "qterminal";
-    if (have_env_var("XDG_CURRENT_DESKTOP", "LXDE") || have_env_var("DESKTOP_SESSION", "LXDE") || have_env_var("DESKTOP_SESSION", "Lubuntu"))
-        terminals.prepend("lxterminal");
-    else
-        terminals << "lxterminal";
-    terminals << QStringLiteral("x-terminal-emulator"); /* Debian alternatives system */
-    terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
-
-    for (const auto &terminal : terminals) {
-        process->setProgram(terminal);
-        QStringList args;
-        if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
-            args << QStringLiteral("-e");
-        else
-            args << QStringLiteral("--");
-        args << script;
-        process->setArguments(args);
         if (process->startDetached())
             return 1;
-    }
-#    endif
+    } else {
+#    ifdef Q_OS_MACOS
+        /* This (and AppleScript which requires user consent) opens an interactive shell and types the path in, so
+           we can't control the working directory displayed in the title bar, nor the lack of auto-exit by default. */
+        process->setProgram(QStringLiteral("open"));
+        process->setArguments(QStringList() << QStringLiteral("-b") << QStringLiteral("com.apple.Terminal") << script);
+        process->start();
+        if (process->waitForStarted() && process->waitForFinished())
+            return 1;
+#    else
+        /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
+        QStringList terminals;
+        if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
+            terminals.prepend("konsole");
+        else
+            terminals << "konsole";
+        if (have_env_var("XDG_CURRENT_DESKTOP", "GNOME") || have_env_var("DESKTOP_SESSION", "gnome") || have_env_var("GNOME_DESKTOP_SESSION_ID") ||
+            have_env_var("XDG_CURRENT_DESKTOP", "Cinnamon") || have_env_var("XDG_CURRENT_DESKTOP", "X-Cinnamon") ||
+            have_env_var("XDG_CURRENT_DESKTOP", "Unity"))
+            terminals.prepend("gnome-terminal");
+        else
+            terminals << "gnome-terminal";
+        if (have_env_var("XDG_CURRENT_DESKTOP", "MATE") || have_env_var("DESKTOP_SESSION", "MATE"))
+            terminals.prepend("mate-terminal");
+        else
+            terminals << "mate-terminal";
+        if (have_env_var("XDG_CURRENT_DESKTOP", "XFCE") || have_env_var("DESKTOP_SESSION", "xfce"))
+            terminals.prepend("xfce4-terminal");
+        else
+            terminals << "xfce4-terminal";
+        if (have_env_var("XDG_CURRENT_DESKTOP", "LXQt") || have_env_var("LXQT_SESSION_CONFIG"))
+            terminals.prepend("qterminal");
+        else
+            terminals << "qterminal";
+        if (have_env_var("XDG_CURRENT_DESKTOP", "LXDE") || have_env_var("DESKTOP_SESSION", "LXDE") || have_env_var("DESKTOP_SESSION", "Lubuntu"))
+            terminals.prepend("lxterminal");
+        else
+            terminals << "lxterminal";
+        terminals << QStringLiteral("x-terminal-emulator"); /* Debian alternatives system */
+        terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
 
-    /* Delete script if terminal emulator execution failed. */
+        for (const auto &terminal : terminals) {
+            process->setProgram(terminal);
+            QStringList args;
+            if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
+                args << QStringLiteral("-e");
+            else
+                args << QStringLiteral("--");
+            args << script;
+            process->setArguments(args);
+            if (process->startDetached())
+                return 1;
+        }
+#    endif
+    }
+
+    /* Delete script if execution failed. */
     f.remove();
     return 0;
 #endif

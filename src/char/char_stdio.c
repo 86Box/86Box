@@ -303,7 +303,7 @@ char_stdio_init(const device_t *info)
     }
 #else
     int mode = device_get_config_int("mode");
-    if ((mode == CHAR_STDIO_MODE_PTY) || (mode == CHAR_STDIO_MODE_TERM)) {
+    if (mode != CHAR_STDIO_MODE_STDIO) {
         /* Create pseudoterminal. */
         char msg[2048];
         int err;
@@ -344,16 +344,15 @@ char_stdio_init(const device_t *info)
                                 if (!cmd || !cmd[0])
                                     cmd = CHAR_STDIO_DEFAULT_CMD;
                             }
-                            char env[4][2048];
+                            char env[3][2048];
                             snprintf(env[0], sizeof(env[0]), "PTY=%s", pty);
                             snprintf(env[1], sizeof(env[1]), "VMNAME=%s", vm_name);
                             snprintf(env[2], sizeof(env[2]), "PORT=%s", dev->port->name);
-                            env[3][0] = '\0';
                             if ((mode == CHAR_STDIO_MODE_TERM) || device_get_config_int("command_terminal"))
                                 snprintf(msg, sizeof(msg), "%s\n%s", vm_name, dev->port->name);
                             else
                                 msg[0] = '\0';
-                            if (!plat_run_command(cmd, env, msg[0] ? msg : NULL))
+                            if (!plat_run_command(cmd, (const char *[]) {env[0], env[1], env[2], NULL}, msg[0] ? msg : NULL))
                                 char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
                         }
                     } else {
