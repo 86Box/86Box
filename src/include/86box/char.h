@@ -84,6 +84,7 @@ enum { /* char_stdio modes (for config migration) */
     CHAR_STDIO_MODE_STDIO = 0,
     CHAR_STDIO_MODE_PTY,
     CHAR_STDIO_MODE_TERM,
+    CHAR_STDIO_MODE_CMD,
     CHAR_STDIO_MODE_MAX
 };
 

@@ -1160,7 +1160,7 @@ have_env_var(const char *var, const char *cmp = NULL)
 #endif
 
 int
-plat_run_terminal(const char *cmd, const char *title)
+plat_run_command(const char *cmd, const char **env, const char *title)
 {
     auto process = new QProcess();
     process->setInputChannelMode(QProcess::ForwardedInputChannel);
@@ -1169,7 +1169,9 @@ plat_run_terminal(const char *cmd, const char *title)
 
     /* Take advantage of macOS displaying the script name in the title bar. */
     auto titleq = QString::fromUtf8(title);
+#ifndef Q_OS_WINDOWS
     char buf[256];
+#endif
 #ifdef Q_OS_MACOS
     auto idx = titleq.lastIndexOf('\n');
     if (idx > -1) {
@@ -1177,20 +1179,42 @@ plat_run_terminal(const char *cmd, const char *title)
         titleq.truncate(idx);
     } else
 #endif
+#ifndef Q_OS_WINDOWS
         buf[0] = '\0';
+#endif
     titleq.replace(QRegularExpression(QStringLiteral("\\n([^\\n]*)")), QStringLiteral(" [\\1]"));
 
+    if (
+#ifndef Q_OS_WINDOWS
+        titleq.isNull() &&
+#endif
+        env && *env && *env[0]) { /* set environment variables for direct execution */
+        auto envq = QProcessEnvironment::systemEnvironment();
+        while (*env && *env[0]) {
+            auto varq = QString::fromUtf8(*env++);
+            auto idx = varq.indexOf('=');
+            if (idx > 0)
+                envq.insert(varq.left(idx), varq.mid(idx + 1));
+            else
+                envq.insert(varq, QStringLiteral(""));
+        }
+        process->setProcessEnvironment(envq);
+    }
+
 #ifdef Q_OS_WINDOWS
-    (void) buf; /* clear unused warning */
-    auto titlew = titleq.toStdWString();
-    process->setCreateProcessArgumentsModifier([titleq, titlew] (QProcess::CreateProcessArguments *args) {
-        args->flags |= CREATE_NEW_CONSOLE;
-        args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
-        if (!titleq.isNull())
+    /* Set up terminal execution if requested. */
+    if (!titleq.isEmpty()) {
+        auto titlew = titleq.toStdWString();
+        process->setCreateProcessArgumentsModifier([titleq, titlew] (QProcess::CreateProcessArguments *args) {
+            args->flags |= CREATE_NEW_CONSOLE;
+            args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
             args->startupInfo->lpTitle = (wchar_t *) titlew.c_str();
-    });
+        });
+    }
+
+    /* Execute command. */
     process->setProgram(getenv("ComSpec"));
-    process->setNativeArguments(QString(cmd).prepend(QStringLiteral("/c ")));
+    process->setNativeArguments(QString::fromUtf8(cmd).prepend(QStringLiteral("/c ")));
     return process->startDetached();
 #else
     /* Generate script. */
@@ -1200,28 +1224,40 @@ plat_run_terminal(const char *cmd, const char *title)
     auto f = QFile(script);
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
         return 0;
-    f.write("#!/bin/sh\n");
-    auto titleb = titleq.toUtf8();
-    unsigned int len = titleb.length();
-    if (!titleq.isNull()) {
-        len += 5;
-        snprintf(buf, sizeof(buf), "tail -c %u \"$0\"\n", len);
-        f.write(buf);
+    f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
+    if (!titleq.isEmpty()) {
+        titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''"));
+        f.write("printf '\e]0;%s\a' '");
+        f.write(titleq.toUtf8());
+        f.write("'\n");
     }
-    f.write("rm -f -- \"$0\"\nclear\n");
+    if (!titleq.isNull() && env && *env && *env[0]) { /* set environment variables for terminal execution */
+        f.write("export");
+        while (*env && *env[0]) {
+            f.write(" '");
+            f.write(QString::fromUtf8(*env++).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
+            f.write("'");
+        }
+        f.write("\n");
+    }
+    if (!titleq.isNull())
+        f.write("clear\n");
     f.write(cmd);
-    f.write("\nexit\n");
-    if (!titleq.isNull()) {
-        f.write("\e]0;");
-        f.write(titleb);
-        f.write("\a");
-    }
+    f.write("\n");
     f.close();
     f.setPermissions(QFileDevice::ReadUser | QFileDevice::WriteUser | QFileDevice::ExeUser);
 
-    /* Execute script under a terminal emulator. */
+    /* Execute script directly if requested. */
+    if (titleq.isNull()) {
+        process->setProgram(QStringLiteral("/bin/sh"));
+        process->setArguments(QStringList() << script);
+        return process->startDetached();
+    }
+
+    /* Execute script under a terminal emulator if requested. */
 #    ifdef Q_OS_MACOS
-    /* We can't control the working directory displayed on the title, or the lack of auto-exit by default. */
+    /* This (and AppleScript which requires user consent) opens an interactive shell and types the path in, so
+       we can't control the working directory displayed on the title bar, nor the lack of auto-exit by default. */
     process->setProgram(QStringLiteral("open"));
     process->setArguments(QStringList() << QStringLiteral("-b") << QStringLiteral("com.apple.Terminal") << script);
     process->start();
@@ -1273,7 +1309,7 @@ plat_run_terminal(const char *cmd, const char *title)
     }
 #    endif
 
-    /* Remove script if terminal emulator execution failed. */
+    /* Delete script if terminal emulator execution failed. */
     f.remove();
     return 0;
 #endif

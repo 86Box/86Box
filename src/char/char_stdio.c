@@ -51,6 +51,8 @@
 #include <86box/thread.h>
 #include <86box/ui.h>
 
+#define CHAR_STDIO_DEFAULT_CMD "screen -dmS \"$VMNAME.$PORT\" \"$PTY\""
+
 #define ENABLE_CHAR_STDIO_LOG 1
 #ifdef ENABLE_CHAR_STDIO_LOG
 int char_stdio_do_log = ENABLE_CHAR_STDIO_LOG;
@@ -326,19 +328,32 @@ char_stdio_init(const device_t *info)
                             ui_msgbox(MBX_INFO | MBX_ANSI, msg);
                         } else {
                             /* Spawn terminal emulator. */
-                            char cmd[2048];
-                            snprintf(cmd, sizeof(cmd),
-                                "stty raw -echo;" /* enable raw input on terminal */
-                                "(stty raw -echo;" /* enable raw input on pty for macOS */
-                                "cat;" /* pipe to stdout... */
-                                "exec kill $$)" /* (stop script once the read connection is broken) */
-                                "<'%s'&" /* ...from pty */
-                                "clear;" /* clear screen of the background task indicator */
-                                "cat>'%s';" /* pipe from stdin to pty */
-                                "exec kill $!", /* stop script once the write connection is broken */
-                                pty, pty);
-                            snprintf(msg, sizeof(msg), "%s\n%s", vm_name, dev->port->name);
-                            if (!plat_run_terminal(cmd, msg))
+                            const char *cmd;
+                            if (mode == CHAR_STDIO_MODE_TERM) {
+                                cmd =
+                                    "stty raw -echo;" /* enable raw input on terminal */
+                                    "(stty raw -echo;" /* enable raw input on pty for macOS */
+                                    "cat;" /* pipe to stdout... */
+                                    "exec kill $$)" /* (stop script once the read connection is broken) */
+                                    "<\"$PTY\"&" /* ...from pty */
+                                    "clear;" /* clear screen of the background task indicator */
+                                    "cat>\"$PTY\"';" /* pipe from stdin to pty */
+                                    "exec kill $!"; /* stop script once the write connection is broken */
+                            } else {
+                                cmd = device_get_config_string("command");
+                                if (!cmd || !cmd[0])
+                                    cmd = CHAR_STDIO_DEFAULT_CMD;
+                            }
+                            char env[4][2048];
+                            snprintf(env[0], sizeof(env[0]), "PTY=%s", pty);
+                            snprintf(env[1], sizeof(env[1]), "VMNAME=%s", vm_name);
+                            snprintf(env[2], sizeof(env[2]), "PORT=%s", dev->port->name);
+                            env[3][0] = '\0';
+                            if ((mode == CHAR_STDIO_MODE_TERM) || device_get_config_int("command_terminal"))
+                                snprintf(msg, sizeof(msg), "%s\n%s", vm_name, dev->port->name);
+                            else
+                                msg[0] = '\0';
+                            if (!plat_run_command(cmd, env, msg[0] ? msg : NULL))
                                 char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
                         }
                     } else {
@@ -423,11 +438,34 @@ static const device_config_t char_stdio_config[] = {
         .type         = CONFIG_SELECTION,
         .default_int  = CHAR_STDIO_MODE_TERM,
         .selection    = {
-            { .description = "Standard input/output",   .value = CHAR_STDIO_MODE_STDIO },
-            { .description = "Create pseudoterminal",   .value = CHAR_STDIO_MODE_PTY   },
-            { .description = "Start terminal emulator", .value = CHAR_STDIO_MODE_TERM  },
-            { NULL                                                                     }
+            { .description = "Use standard input/output", .value = CHAR_STDIO_MODE_STDIO },
+            { .description = "Create pseudoterminal",     .value = CHAR_STDIO_MODE_PTY   },
+            { .description = "Start terminal emulator",   .value = CHAR_STDIO_MODE_TERM  },
+            { .description = "Run custom command",        .value = CHAR_STDIO_MODE_CMD   },
+            { NULL                                                                       }
         }
+    },
+    {
+        .name           = "command",
+        .description    = "Custom command",
+        .type           = CONFIG_STRING,
+        .default_string = CHAR_STDIO_DEFAULT_CMD,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "command_terminal",
+        .description    = "Run custom command in terminal",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
