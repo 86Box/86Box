@@ -689,7 +689,8 @@ ymf71x_init(const device_t *info)
     ymf71x->regs[0x00] = 0xFF;
     ymf71x->regs[0x01] = 0x00;
     ymf71x->regs[0x02] = 0x00;
-    ymf71x->regs[0x03] = 0x69; /* IRQ-A = WSS + OPL3, IRQ-B = SB+MPU401 */
+    ymf71x->regs[0x03] = 0x0f; /* Datasheet specifies 0x69 as default power-on value but this is what the Win9x drivers expect */
+                               /* and the AN430TX BIOS sets this value after writing the PnP resource data */
     ymf71x->regs[0x04] = 0x00;
     ymf71x->regs[0x05] = 0x00;
     ymf71x->regs[0x06] = 0x61; /* DMA-A = WSS Playback, DMA-B = WSS Capture + SBPro */
