@@ -1850,7 +1850,6 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         for (int i = 0; terminals[i]; i++) {
             args[0] = (char *) terminals[i];
             if (!posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ)) {
-                printf("used %s\n", args[0]);
                 ret = 1;
                 goto end;
             }

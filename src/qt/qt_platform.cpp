@@ -1264,7 +1264,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             return 1;
 #    else
         /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
-        auto terminals = QStringList() << QStringLiteral("xdg-terminal-exec");
+        QStringList terminals;
         if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
             terminals.prepend(QStringLiteral("konsole"));
         else
@@ -1291,7 +1291,9 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             terminals.prepend(QStringLiteral("lxterminal"));
         else
             terminals << QStringLiteral("lxterminal");
-        terminals << QStringLiteral("x-terminal-emulator") << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
+        terminals.prepend(QStringLiteral("x-terminal-emulator"));
+        terminals.prepend(QStringLiteral("xdg-terminal-exec"));
+        terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
 
         for (const auto &terminal : terminals) {
             process->setProgram(terminal);
