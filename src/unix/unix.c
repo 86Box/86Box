@@ -1833,10 +1833,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     int ret;
     pid_t pid;
     const char *args[] = {NULL, NULL, NULL, NULL, "/bin/sh", "-c", cmd, NULL};
-    int xdg = 0;
     if (title) {
         /* Set arguments for xdg-terminal-exec. */
-        xdg = 1;
         int len = strlen(title) + 10;
         args[1] = malloc(len);
         snprintf((char *) args[1], len, "--title=%s", title);
@@ -1849,17 +1847,19 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         static const char *terminals[] = {"xdg-terminal-exec", "x-terminal-emulator", "xterm", "urxvt", "rxvt", NULL};
         for (int i = 0; terminals[i]; i++) {
             args[0] = (char *) terminals[i];
-            if (!posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ)) {
-                ret = 1;
-                goto end;
-            }
-            if (xdg) {
+            ret = !posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ);
+            if (len) {
+                len = 0;
+                free((void *) args[1]);
+                free((void *) args[2]);
+
                 /* Set arguments for other terminals. */
-                xdg = 0;
                 args[1] = "-T";
                 args[2] = title;
                 args[3] = "-e";
             }
+            if (ret)
+                goto end;
         }
     }
 
@@ -1868,10 +1868,6 @@ plat_run_command(const char *cmd, const char **env, const char *title)
 end:
     if (new_env)
         free(new_env);
-    if (xdg) {
-        free((void *) args[1]);
-        free((void *) args[2]);
-    }
     return ret;
 }
 
