@@ -1846,14 +1846,13 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         /* Try terminals. */
         static const char *terminals[] = {"xdg-terminal-exec", "x-terminal-emulator", "xterm", "urxvt", "rxvt", NULL};
         for (int i = 0; terminals[i]; i++) {
-            args[0] = (char *) terminals[i];
+            args[0] = terminals[i];
             ret = !posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ);
             if (len) {
+                /* Set arguments for other terminals. */
                 len = 0;
                 free((void *) args[1]);
                 free((void *) args[2]);
-
-                /* Set arguments for other terminals. */
                 args[1] = "-T";
                 args[2] = title;
                 args[3] = "-e";
