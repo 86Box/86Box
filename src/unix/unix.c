@@ -1829,24 +1829,50 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         new_env[c] = NULL;
     }
 
-    /* Run command. */
+    /* Execute command under a terminal emulator if requested. */
     int ret;
     pid_t pid;
-    const char *args[] = {NULL, "-T", title, "-e", "/bin/sh", "-c", cmd, NULL};
+    const char *args[] = {NULL, NULL, NULL, NULL, "/bin/sh", "-c", cmd, NULL};
+    int xdg = 0;
     if (title) {
-        static const char *terminals[] = {"x-terminal-emulator" /* Debian alternatives system */, "xterm", "urxvt", "rxvt", NULL};
+        /* Set arguments for xdg-terminal-exec. */
+        xdg = 1;
+        int len = strlen(title) + 10;
+        args[1] = malloc(len);
+        snprintf((char *) args[1], len, "--title=%s", title);
+        len = strlen(usr_path) + 7;
+        args[2] = malloc(len);
+        snprintf((char *) args[2], len, "--dir=%s", usr_path);
+        args[3] = "--";
+
+        /* Try terminals. */
+        static const char *terminals[] = {"xdg-terminal-exec", "x-terminal-emulator", "xterm", "urxvt", "rxvt", NULL};
         for (int i = 0; terminals[i]; i++) {
             args[0] = (char *) terminals[i];
             if (!posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ)) {
+                printf("used %s\n", args[0]);
                 ret = 1;
                 goto end;
             }
+            if (xdg) {
+                /* Set arguments for other terminals. */
+                xdg = 0;
+                args[1] = "-T";
+                args[2] = title;
+                args[3] = "-e";
+            }
         }
     }
+
+    /* Execute command directly. */
     ret = !posix_spawn(&pid, args[4], NULL, NULL, (char * const *) &args[4], new_env ? (char * const *) new_env : (char * const *) environ);
 end:
     if (new_env)
         free(new_env);
+    if (xdg) {
+        free((void *) args[1]);
+        free((void *) args[2]);
+    }
     return ret;
 }
 

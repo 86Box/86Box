@@ -1264,40 +1264,41 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             return 1;
 #    else
         /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
-        QStringList terminals;
+        auto terminals = QStringList() << QStringLiteral("xdg-terminal-exec");
         if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
-            terminals.prepend("konsole");
+            terminals.prepend(QStringLiteral("konsole"));
         else
-            terminals << "konsole";
+            terminals << QStringLiteral("konsole");
         if (have_env_var("XDG_CURRENT_DESKTOP", "GNOME") || have_env_var("DESKTOP_SESSION", "gnome") || have_env_var("GNOME_DESKTOP_SESSION_ID") ||
             have_env_var("XDG_CURRENT_DESKTOP", "Cinnamon") || have_env_var("XDG_CURRENT_DESKTOP", "X-Cinnamon") ||
             have_env_var("XDG_CURRENT_DESKTOP", "Unity"))
-            terminals.prepend("gnome-terminal");
+            terminals.prepend(QStringLiteral("gnome-terminal"));
         else
-            terminals << "gnome-terminal";
+            terminals << QStringLiteral("gnome-terminal");
         if (have_env_var("XDG_CURRENT_DESKTOP", "MATE") || have_env_var("DESKTOP_SESSION", "MATE"))
-            terminals.prepend("mate-terminal");
+            terminals.prepend(QStringLiteral("mate-terminal"));
         else
-            terminals << "mate-terminal";
+            terminals << QStringLiteral("mate-terminal");
         if (have_env_var("XDG_CURRENT_DESKTOP", "XFCE") || have_env_var("DESKTOP_SESSION", "xfce"))
-            terminals.prepend("xfce4-terminal");
+            terminals.prepend(QStringLiteral("xfce4-terminal"));
         else
-            terminals << "xfce4-terminal";
+            terminals << QStringLiteral("xfce4-terminal");
         if (have_env_var("XDG_CURRENT_DESKTOP", "LXQt") || have_env_var("LXQT_SESSION_CONFIG"))
-            terminals.prepend("qterminal");
+            terminals.prepend(QStringLiteral("qterminal"));
         else
-            terminals << "qterminal";
+            terminals << QStringLiteral("qterminal");
         if (have_env_var("XDG_CURRENT_DESKTOP", "LXDE") || have_env_var("DESKTOP_SESSION", "LXDE") || have_env_var("DESKTOP_SESSION", "Lubuntu"))
-            terminals.prepend("lxterminal");
+            terminals.prepend(QStringLiteral("lxterminal"));
         else
-            terminals << "lxterminal";
-        terminals << QStringLiteral("x-terminal-emulator"); /* Debian alternatives system */
-        terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
+            terminals << QStringLiteral("lxterminal");
+        terminals << QStringLiteral("x-terminal-emulator") << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
 
         for (const auto &terminal : terminals) {
             process->setProgram(terminal);
             QStringList args;
-            if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
+            if (terminal == QStringLiteral("xdg-terminal-exec"))
+                args << QString("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
+            else if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
                 args << QStringLiteral("-e");
             else
                 args << QStringLiteral("--");
