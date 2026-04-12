@@ -133,7 +133,7 @@ char_attach(uint32_t flags,
 void
 char_update_status(char_port_t *port)
 {
-    if (port->update_status)
+    if (port && port->update_status)
         port->update_status(port->priv);
 }
 
