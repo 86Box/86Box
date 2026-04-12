@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include <pwd.h>
 #include <stdatomic.h>
+#include <spawn.h>
 
 /* Block device ioctl headers */
 #ifdef __linux__
@@ -1777,7 +1778,7 @@ void
 plat_set_thread_name(void *thread, const char *name)
 {
 #ifdef __APPLE__
-    if (thread) /* Apple pthread can only set self's name */
+    if (thread) /* macOS pthread can only set self's name */
         return;
     char truncated[64];
 #elif defined(__NetBSD__)
@@ -1805,6 +1806,48 @@ plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;
+}
+
+int
+plat_run_command(const char *cmd, const char **env, const char *title)
+{
+    /* Append environment variables to the existing environment. */
+    extern char **environ;
+    const char **new_env = NULL;
+    if (env && env[0] && env[0][0]) {
+        int c = 0;
+        while (environ[c])
+            c++;
+        int d = 0;
+        while (env[d] && env[d][0])
+            d++;
+        new_env = (const char **) malloc((c + d + 1) * sizeof(char *));
+        for (c = 0; environ[c]; c++)
+            new_env[c] = environ[c];
+        for (d = 0; env[d] && env[d][0]; d++)
+            new_env[c++] = env[d];
+        new_env[c] = NULL;
+    }
+
+    /* Run command. */
+    int ret;
+    pid_t pid;
+    const char *args[] = {NULL, "-T", title, "-e", "/bin/sh", "-c", cmd, NULL};
+    if (title) {
+        static const char *terminals[] = {"x-terminal-emulator" /* Debian alternatives system */, "xterm", "urxvt", "rxvt", NULL};
+        for (int i = 0; terminals[i]; i++) {
+            args[0] = (char *) terminals[i];
+            if (!posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ)) {
+                ret = 1;
+                goto end;
+            }
+        }
+    }
+    ret = !posix_spawn(&pid, args[4], NULL, NULL, (char * const *) &args[4], new_env ? (char * const *) new_env : (char * const *) environ);
+end:
+    if (new_env)
+        free(new_env);
+    return ret;
 }
 
 void
