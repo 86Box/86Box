@@ -661,7 +661,7 @@ load_video(void)
                 if (old != NULL) {
                     ini_section_delete_var(old, "bios_ver");
                     ini_section_delete_var(old, "memory");
-                    ini_delete_section_if_empty(config, "Tseng Labs ET4000AX (TC6058AF) (ISA)");
+                    ini_delete_section_if_empty(config, old);
                 }
             } else if (!strcmp(p, "tgkorvga") || !strcmp(p, "et4000k_tg286_isa") || !strcmp(p, "kasan16vga")) {
                 gfxcard[0] = video_get_video_from_internal_name("et4000ax");
@@ -681,7 +681,7 @@ load_video(void)
                 ini_section_set_int(new, "memory", mem);
                 if (old != NULL) {
                     ini_section_delete_var(old, "memory");
-                    ini_delete_section_if_empty(config, on);
+                    ini_delete_section_if_empty(config, old);
                 }
             } else {
                 gfxcard[0] = video_get_video_from_internal_name(p);
