@@ -84,6 +84,7 @@ char_file_read(uint8_t *buf, size_t len, void *priv)
             char_file_log(dev->log, "Reached end of input file, closing\n");
             fclose(dev->file_in);
             dev->file_in = NULL;
+            char_update_status(dev->port);
             break;
         }
     }
@@ -169,6 +170,7 @@ char_file_init(const device_t *info)
         char_file_log(dev->log, "No input file specified\n");
     }
 
+    char_update_status(dev->port);
     return dev;
 }
 

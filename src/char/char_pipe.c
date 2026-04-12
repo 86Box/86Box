@@ -89,6 +89,8 @@ char_pipe_disconnect(char_pipe_t *dev)
     close(dev->fd);
     dev->fd = -1;
 #endif
+
+    char_update_status(dev->port);
 }
 
 static int
@@ -227,6 +229,7 @@ server: {}
     }
 #endif
 
+    char_update_status(dev->port);
     return 1;
 
 errmsg:

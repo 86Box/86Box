@@ -130,6 +130,13 @@ char_attach(uint32_t flags,
     return active_port;
 }
 
+void
+char_update_status(char_port_t *port)
+{
+    if (port->update_status)
+        port->update_status(port->priv);
+}
+
 void *
 char_log_open(char_port_t *port, char *dev_name)
 {

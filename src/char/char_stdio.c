@@ -116,7 +116,7 @@ char_stdio_stdin_thread(void *priv)
     }
 
     dev->thread_in = NULL;
-    dev->fd_in     = NULL;
+    dev->fd_in     = INVALID_HANDLE_VALUE;
 }
 #endif
 
@@ -381,6 +381,7 @@ errmsg:
         }
 
         /* No terminal configuration or logging redirection required. */
+        char_update_status(dev->port);
         return dev;
     }
 
@@ -425,6 +426,7 @@ errmsg:
 #endif
     }
 
+    char_update_status(dev->port);
     return dev;
 }
 

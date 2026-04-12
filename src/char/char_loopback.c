@@ -58,7 +58,7 @@ static const struct {
         .bits = (const char_loopback_bits_t[]) {
             { 0x00, 0x00, CHAR_LPT_PSELECT, CHAR_LPT_BUSY },
             { 0x00, 0x00, CHAR_LPT_RESET, CHAR_LPT_ACK },
-            { 0x00, 0x00, CHAR_LPT_LINEFEED, CHAR_LPT_PAPEROUT },
+            { 0x00, 0x00, CHAR_LPT_AUTOFEED, CHAR_LPT_PAPEROUT },
             { 0x00, 0x00, CHAR_LPT_STROBE, CHAR_LPT_SELECT },
             { 0x01, 0x00, 0, CHAR_LPT_ERROR },
             { 0 }
@@ -116,6 +116,8 @@ char_loopback_update(char_loopback_t *dev)
             dev->status  |= char_loopback_types[dev->type].bits[i].status;
         }
     }
+    dev->status = CHAR_RAW_STATUS(dev->status);
+    char_update_status(dev->port);
 }
 
 static size_t
@@ -165,7 +167,7 @@ char_loopback_control(uint32_t flags, void *priv)
 {
     char_loopback_t *dev = (char_loopback_t *) priv;
 
-    dev->control = flags;
+    dev->control = CHAR_RAW_CONTROL(flags);
     char_loopback_update(dev);
     char_loopback_log(dev->log, "control(%08X) = %02X %08X\n", flags, dev->data_rx, dev->status);
 }

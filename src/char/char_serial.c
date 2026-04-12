@@ -206,6 +206,8 @@ char_serial_disconnect(char_serial_t *dev)
     close(dev->fd);
     dev->fd = -1;
 #endif
+
+    char_update_status(dev->port);
 }
 
 static int
@@ -312,6 +314,7 @@ char_serial_connect(char_serial_t *dev, int startup)
 #endif
 
     char_serial_log(dev->log, "Connected: %s\n", path);
+    char_update_status(dev->port);
 
     return 1;
 
