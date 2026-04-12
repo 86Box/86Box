@@ -341,8 +341,10 @@ char_stdio_init(const device_t *info)
                                     "exec kill $!"; /* stop script once the write connection is broken */
                             } else {
                                 cmd = device_get_config_string("command");
-                                if (!cmd || !cmd[0])
+                                if (!cmd || !cmd[0]) {
                                     cmd = CHAR_STDIO_DEFAULT_CMD;
+                                    device_set_config_string("command", cmd);
+                                }
                             }
                             char env[3][2048];
                             snprintf(env[0], sizeof(env[0]), "PTY=%s", pty);

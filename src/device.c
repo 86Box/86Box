@@ -937,6 +937,23 @@ device_get_config_mac(const char *str, int def)
 }
 
 void
+device_set_config_string(const char *str, const char *val)
+{
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
+
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_string((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
+        }
+    }
+}
+
+void
 device_set_config_int(const char *str, int val)
 {
     if (device_current.dev != NULL) {
