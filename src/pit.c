@@ -955,12 +955,13 @@ pit_init(const device_t *info)
 
     pit_set_pit_const(dev, PITCONST);
 
+    dev->flags = info->local;
+
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
         timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
         timer_set_delay_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
     }
 
-    dev->flags = info->local;
     dev->dev_priv = NULL;
 
     if (!(dev->flags & PIT_EXT_IO)) {
