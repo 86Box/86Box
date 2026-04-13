@@ -1155,7 +1155,7 @@ load_ports(void)
             p = "serial_passthrough";
         } else { /* pipe/pty */
 #ifdef _WIN32
-            sprintf(temp, "Named Pipe / Socket (COM) #%i", c + 1);
+            sprintf(temp, "Named Pipe (COM) #%i", c + 1);
             ini_rename_section(cat2, temp);
             p = ini_section_get_string(cat2, "named_pipe", (old_enable || (old_mode >= 0) || cat2) ? "\\\\.\\pipe\\86Box\\test" : ""); /* use old default path if there's any evidence of passthrough having been enabled */
             if (p[0]) {
