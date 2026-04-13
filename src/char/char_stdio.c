@@ -225,7 +225,6 @@ char_stdio_close(void *priv)
     }
 
     char_stdio_log(dev->log, "close()\n");
-    log_close(dev->log);
 
     /* Restore existing terminal configuration. */
 #ifdef _WIN32
@@ -241,22 +240,24 @@ char_stdio_close(void *priv)
     }
     if (dev->event_in)
         thread_destroy_event(dev->event_in);
-    if (dev->prev_in_mode_valid && !SetConsoleMode(dev->fd_in, dev->prev_in_mode))
+    if (dev->prev_in_mode_valid && CHAR_FD_VALID(dev->fd_in) && !SetConsoleMode(dev->fd_in, dev->prev_in_mode))
         char_stdio_log(dev->log, "Input restore SetConsoleMode failed (%08X)\n", GetLastError());
-    if (dev->prev_out_mode_valid && !SetConsoleMode(dev->fd_out, dev->prev_out_mode))
+    if (dev->prev_out_mode_valid && CHAR_FD_VALID(dev->fd_out) && !SetConsoleMode(dev->fd_out, dev->prev_out_mode))
         char_stdio_log(dev->log, "Output restore SetConsoleMode failed (%08X)\n", GetLastError());
 
     stdio_claimed = 0;
 #else
-    if (dev->prev_config_valid && tcsetattr(STDIN_FILENO, TCSAFLUSH, &dev->prev_config))
+    if (dev->prev_config_valid && CHAR_FD_VALID(dev->fd_in) && tcsetattr(dev->fd_in, TCSAFLUSH, &dev->prev_config))
         char_stdio_log(dev->log, "Restore TCSAFLUSH failed (%d)\n", errno);
-    if (dev->prev_flags_valid && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
+    if (dev->prev_flags_valid && CHAR_FD_VALID(dev->fd_out) && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
         char_stdio_log(dev->log, "Restore F_SETFL failed (%d)\n", errno);
 
     /* Terminate pseudoterminal if we have one. */
-    if (dev->fd_out != STDOUT_FILENO)
+    if (CHAR_FD_VALID(dev->fd_out) && (dev->fd_out != STDOUT_FILENO))
         close(dev->fd_out);
 #endif
+
+    log_close(dev->log);
 
     free(dev);
 }
