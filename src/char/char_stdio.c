@@ -24,7 +24,7 @@
 #endif
 #ifdef __NetBSD__
 #    define _NETBSD_VISIBLE 1
-#    define _NETBSD_SOURCE 1
+#    define _NETBSD_SOURCE  1
 #endif
 #include <stdarg.h>
 #include <stdint.h>
@@ -72,28 +72,28 @@ char_stdio_log(void *priv, const char *fmt, ...)
 #endif
 
 typedef struct {
-    void *log;
+    void        *log;
     char_port_t *port;
 
     FILE *prev_log;
 #ifdef _WIN32
-    HANDLE fd_in;
-    HANDLE fd_out;
-    int prev_in_mode_valid : 1;
-    int prev_out_mode_valid : 1;
-    DWORD prev_in_mode;
-    DWORD prev_out_mode;
+    HANDLE     fd_in;
+    HANDLE     fd_out;
+    int        prev_in_mode_valid  : 1;
+    int        prev_out_mode_valid : 1;
+    DWORD      prev_in_mode;
+    DWORD      prev_out_mode;
     ATOMIC_INT buf_in_valid;
-    uint8_t buf_in;
-    thread_t *thread_in;
-    event_t *event_in;
+    uint8_t    buf_in;
+    thread_t  *thread_in;
+    event_t   *event_in;
 #else
-    int fd_in;
-    int fd_out;
-    int prev_config_valid : 1;
-    int prev_flags_valid : 1;
+    int            fd_in;
+    int            fd_out;
+    int            prev_config_valid : 1;
+    int            prev_flags_valid  : 1;
     struct termios prev_config;
-    int prev_flags;
+    int            prev_flags;
 #endif
 } char_stdio_t;
 
@@ -129,7 +129,7 @@ char_stdio_read(uint8_t *buf, size_t len, void *priv)
 #ifdef _WIN32
     if (dev->thread_in) {
         if (dev->buf_in_valid && (len > 0)) {
-            *buf = dev->buf_in;
+            *buf              = dev->buf_in;
             dev->buf_in_valid = 0;
             thread_set_event(dev->event_in);
             return 1;
@@ -144,9 +144,7 @@ char_stdio_read(uint8_t *buf, size_t len, void *priv)
             DWORD count;
             if (GetNumberOfConsoleInputEvents(dev->fd_in, &count) && (count > 0)) {
                 INPUT_RECORD ir;
-                if (ReadConsoleInput(dev->fd_in, &ir, 1, &count) && (count > 0) &&
-                    (ir.EventType == KEY_EVENT) && ir.Event.KeyEvent.bKeyDown &&
-                    ir.Event.KeyEvent.uChar.AsciiChar) {
+                if (ReadConsoleInput(dev->fd_in, &ir, 1, &count) && (count > 0) && (ir.EventType == KEY_EVENT) && ir.Event.KeyEvent.bKeyDown && ir.Event.KeyEvent.uChar.AsciiChar) {
                     *buf++ = ir.Event.KeyEvent.uChar.AsciiChar;
                     ret++;
                 }
@@ -193,15 +191,14 @@ char_stdio_status(void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 
-    return (CHAR_FD_VALID(dev->fd_in) ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) |
-           (CHAR_FD_VALID(dev->fd_out) ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
+    return (CHAR_FD_VALID(dev->fd_in) ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (CHAR_FD_VALID(dev->fd_out) ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
 }
 
 static void
 char_stdio_control(uint32_t flags, void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
-    
+
     if (flags & CHAR_COM_BREAK) {
         uint8_t brk = 0;
         char_stdio_write(&brk, sizeof(brk), dev);
@@ -231,7 +228,7 @@ char_stdio_close(void *priv)
         /* Terminate input thread if it's being used. */
         char_stdio_log(dev->log, "Waiting for stdin thread to terminate...");
         HANDLE fd_in = dev->fd_in;
-        dev->fd_in = NULL;
+        dev->fd_in   = NULL;
         CancelIoEx(fd_in, NULL);
         thread_set_event(dev->event_in);
         thread_wait(dev->thread_in);
@@ -271,7 +268,7 @@ char_stdio_init(const device_t *info)
 
     /* Attach character device. */
     dev->port = char_attach(0, char_stdio_read, char_stdio_write, char_stdio_status, char_stdio_control, NULL, dev);
-    dev->log = char_log_open(dev->port, "StdIO");
+    dev->log  = char_log_open(dev->port, "StdIO");
     char_stdio_log(dev->log, "init()\n");
 
 #ifdef _WIN32
@@ -315,7 +312,7 @@ char_stdio_init(const device_t *info)
         } else {
             /* Redirected (or MSYS2), use file I/O. */
             char_stdio_log(dev->log, "Input GetConsoleMode failed (%08X)\n", GetLastError());
-            dev->event_in = thread_create_event();
+            dev->event_in  = thread_create_event();
             dev->thread_in = thread_create(char_stdio_stdin_thread, dev);
         }
     }
@@ -333,7 +330,7 @@ char_stdio_init(const device_t *info)
     if (mode != CHAR_STDIO_MODE_STDIO) {
         /* Create pseudoterminal. */
         char msg[2048];
-        int err;
+        int  err;
         dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NONBLOCK);
         fcntl(dev->fd_out, F_SETFD, FD_CLOEXEC); /* required for any commands we run to properly detach from the pty when it's closed */
         if (dev->fd_out >= 0) {
@@ -358,15 +355,14 @@ char_stdio_init(const device_t *info)
                             /* Spawn terminal emulator. */
                             const char *cmd;
                             if (mode == CHAR_STDIO_MODE_TERM) {
-                                cmd =
-                                    "stty raw -echo;" /* enable raw input on terminal */
-                                    "(stty raw -echo;" /* enable raw input on pty for macOS */
-                                    "cat;" /* pipe to stdout... */
-                                    "exec kill $$)" /* (stop script once the read connection is broken) */
-                                    "<\"$PTY\"&" /* ...from pty */
-                                    "clear;" /* clear screen of the background task indicator */
-                                    "cat>\"$PTY\"';" /* pipe from stdin to pty */
-                                    "exec kill $!"; /* stop script once the write connection is broken */
+                                cmd = "stty raw -echo;"  /* enable raw input on terminal */
+                                      "(stty raw -echo;" /* enable raw input on pty for macOS */
+                                      "cat;"             /* pipe to stdout... */
+                                      "exec kill $$)"    /* (stop script once the read connection is broken) */
+                                      "<\"$PTY\"&"       /* ...from pty */
+                                      "clear;"           /* clear screen of the background task indicator */
+                                      "cat>\"$PTY\"';"   /* pipe from stdin to pty */
+                                      "exec kill $!";    /* stop script once the write connection is broken */
                             } else {
                                 cmd = device_get_config_string("command");
                                 if (!cmd || !cmd[0]) {
@@ -382,7 +378,7 @@ char_stdio_init(const device_t *info)
                                 snprintf(msg, sizeof(msg), "%s\n%s", vm_name, dev->port->name);
                             else
                                 msg[0] = '\0';
-                            if (!plat_run_command(cmd, (const char *[]) {env[0], env[1], env[2], NULL}, msg[0] ? msg : NULL))
+                            if (!plat_run_command(cmd, (const char *[]) { env[0], env[1], env[2], NULL }, msg[0] ? msg : NULL))
                                 char_stdio_log(dev->log, "plat_run_terminal(%s) failed\n", cmd);
                         }
                     } else {
@@ -416,7 +412,7 @@ errmsg:
     }
 
     /* Set file descriptors. */
-    dev->fd_in = STDIN_FILENO;
+    dev->fd_in  = STDIN_FILENO;
     dev->fd_out = STDOUT_FILENO;
 
     /* Save current stdout flags for restoring on close. */
@@ -433,7 +429,7 @@ errmsg:
 
     /* Save current terminal configuration for restoring on close. */
     struct termios port_config = { 0 };
-    dev->prev_config_valid = !tcgetattr(dev->fd_in, &port_config);
+    dev->prev_config_valid     = !tcgetattr(dev->fd_in, &port_config);
     if (dev->prev_config_valid)
         memcpy(&dev->prev_config, &port_config, sizeof(port_config));
     else
@@ -515,8 +511,8 @@ const device_t char_stdio_com_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
 #ifdef _WIN32
-    .config        = NULL
+    .config = NULL
 #else
-    .config        = char_stdio_config
+    .config = char_stdio_config
 #endif
 };

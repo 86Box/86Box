@@ -54,11 +54,11 @@ char_file_log(void *priv, const char *fmt, ...)
 #endif
 
 typedef struct {
-    void *log;
+    void        *log;
     char_port_t *port;
-    FILE *file_in;
-    FILE *file_out;
-    int loop_in : 1;
+    FILE        *file_in;
+    FILE        *file_out;
+    int          loop_in : 1;
 } char_file_t;
 
 static size_t
@@ -119,8 +119,7 @@ char_file_status(void *priv)
 {
     char_file_t *dev = (char_file_t *) priv;
 
-    return (dev->file_in ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | 
-           (dev->file_out ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
+    return (dev->file_in ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (dev->file_out ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
 }
 
 static void
@@ -145,8 +144,8 @@ char_file_init(const device_t *info)
     char_file_t *dev = (char_file_t *) calloc(1, sizeof(char_file_t));
 
     /* Attach character device. */
-    dev->port = char_attach(0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
-    dev->log = char_log_open(dev->port, "File");
+    dev->port        = char_attach(0, char_file_read, char_file_write, char_file_status, NULL, NULL, dev);
+    dev->log         = char_log_open(dev->port, "File");
     const char *path = device_get_config_string("path");
     char_file_log(dev->log, "init(%s)\n", path);
     dev->loop_in = !!device_get_config_int("input_loop");
@@ -157,11 +156,11 @@ char_file_init(const device_t *info)
         dev->file_out = plat_fopen(path, device_get_config_int("append") ? "ab" : "wb");
 #ifdef _WIN32
         DWORD err = GetLastError();
-        char fmt[512];
+        char  fmt[512];
         snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
 #else
-        int err = errno;
+        int         err = errno;
         const char *fmt = strerror(err);
 #endif
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
@@ -177,11 +176,11 @@ char_file_init(const device_t *info)
         dev->file_in = plat_fopen(path, "rb");
 #ifdef _WIN32
         DWORD err = GetLastError();
-        char fmt[512];
+        char  fmt[512];
         snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
 #else
-        int err = errno;
+        int         err = errno;
         const char *fmt = strerror(err);
 #endif
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);

@@ -65,13 +65,13 @@ char_serial_log(void *priv, const char *fmt, ...)
 #endif
 
 typedef struct {
-    void *log;
+    void        *log;
     char_port_t *port;
 
     const char *path;
-    int reconnect : 1;
-    int block_connect : 1;
-    uint32_t last_connect_attempt;
+    int         reconnect     : 1;
+    int         block_connect : 1;
+    uint32_t    last_connect_attempt;
 #ifdef _WIN32
     HANDLE fd;
     DCB    prev_config;
@@ -94,7 +94,7 @@ static const struct {
     uint32_t baud;
     speed_t  value;
 } common_baud[] = {
-    // clang-format off
+// clang-format off
 #ifdef _WIN32
     { .baud = 110, .value = CBR_110 },
     { .baud = 300, .value = CBR_300 },
@@ -254,7 +254,7 @@ char_serial_connect(char_serial_t *dev, int startup)
     /* Set up serial port. */
     SetupComm(dev->fd, 2048, 2048);
     SetCommTimeouts(dev->fd, &timeouts);
-    DWORD err;
+    DWORD   err;
     COMSTAT stats;
     ClearCommError(dev->fd, &err, &stats);
 #else
@@ -268,7 +268,7 @@ char_serial_connect(char_serial_t *dev, int startup)
         err = ENOTTY;
         char_serial_log(dev->log, "Path is not a TTY\n");
     }
-    if (err > 0) {        
+    if (err > 0) {
         snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
         goto errmsg;
     }
@@ -276,7 +276,7 @@ char_serial_connect(char_serial_t *dev, int startup)
     /* Save current serial port configuration for restoring on close. */
 #    ifdef TCGETS2
     struct termios2 port_config = { 0 };
-    dev->prev_config_valid = !ioctl(dev->fd, TCGETS2, &port_config);
+    dev->prev_config_valid      = !ioctl(dev->fd, TCGETS2, &port_config);
 #    else
     struct termios port_config = { 0 };
 #        ifdef USE_LINUX_TERMIOS
@@ -335,7 +335,7 @@ retry:
     if (connect)
         char_serial_connect(dev, 0);
     if (CHAR_FD_VALID(dev->fd)) {
-        DWORD err;
+        DWORD   err;
         COMSTAT stats;
         ClearCommError(dev->fd, &err, &stats);
         if ((stats.cbInQue > 0) && !ReadFile(dev->fd, buf, len, &ret, NULL)) {
@@ -403,7 +403,7 @@ char_serial_find_baud(uint32_t baud)
     /* Search the host's common baud rate table for the closest match to the specified baud rate. */
     uint32_t lbound = 0;
     uint32_t hbound;
-    int i;
+    int      i;
     for (i = 0; common_baud[i + 1].baud; i++) {
         hbound = (common_baud[i].baud + common_baud[i + 1].baud) / 2;
         if ((baud >= lbound) && (baud < hbound))
@@ -636,7 +636,7 @@ char_serial_control(uint32_t flags, void *priv)
     EscapeCommFunction(dev->fd, (flags & CHAR_COM_RTS) ? SETRTS : CLRRTS);
     EscapeCommFunction(dev->fd, (flags & CHAR_COM_BREAK) ? SETBREAK : CLRBREAK);
 #else
-    int set = 0;
+    int set   = 0;
     int clear = 0;
 
     if (flags & CHAR_COM_DTR)
@@ -675,12 +675,12 @@ char_serial_init(const device_t *info)
     char_serial_t *dev = (char_serial_t *) calloc(1, sizeof(char_serial_t));
 
     /* Get configuration. */
-    dev->path = device_get_config_string("path");
+    dev->path      = device_get_config_string("path");
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
     dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
-    dev->log = char_log_open(dev->port, "Serial Passthrough");
+    dev->log  = char_log_open(dev->port, "Serial Passthrough");
     char_serial_log(dev->log, "init(%s)\n", dev->path);
 
     /* Connect to serial port. */

@@ -57,21 +57,21 @@ char_pipe_log(void *priv, const char *fmt, ...)
 #endif
 
 typedef struct {
-    void *log;
+    void        *log;
     char_port_t *port;
 #ifdef _WIN32
     const
 #endif
         char *path;
-    int mode;
-    uint32_t last_connect_attempt;
-    int reconnect : 1;
-    int server : 1;
+    int       mode;
+    uint32_t  last_connect_attempt;
+    int       reconnect : 1;
+    int       server    : 1;
 #ifdef _WIN32
-    int block_connect : 1;
+    int    block_connect : 1;
     HANDLE fd;
 #else
-    int block_connect_in : 1;
+    int block_connect_in  : 1;
     int block_connect_out : 1;
     int direction;
     int path_len;
@@ -132,7 +132,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 
     /* Add \\.\pipe\ prefix if not present. */
     char full_path[257]; /* "The entire pipe name string can be up to 256 characters long." */
-    int len = snprintf(full_path, sizeof(full_path), !strnicmp(path, ".\\pipe\\", 7) ? "\\\\%s" : "\\\\.\\pipe\\%s", path);
+    int  len = snprintf(full_path, sizeof(full_path), !strnicmp(path, ".\\pipe\\", 7) ? "\\\\%s" : "\\\\.\\pipe\\%s", path);
 
     /* Convert forward slashes to backslashes. */
     if (len >= sizeof(full_path))
@@ -172,7 +172,7 @@ server:
         if (CHAR_FD_VALID(dev->fd)) {
             char_pipe_log(dev->log, "Created new pipe: %s\n", full_path);
             dev->block_connect = !dev->reconnect;
-            dev->server = 1;
+            dev->server        = 1;
         } else {
             /* Both creation and connection failed. */
             DWORD err = GetLastError();
@@ -268,8 +268,8 @@ char_pipe_read(uint8_t *buf, size_t len, void *priv)
     char_pipe_t *dev = (char_pipe_t *) priv;
 
 #ifdef _WIN32
-    int connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
-    DWORD ret = 0;
+    int   connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
+    DWORD ret     = 0;
 retry:
     if (connect)
         char_pipe_connect(dev, 0);
@@ -280,8 +280,8 @@ retry:
             char_pipe_disconnect(dev, 1);
             if (!dev->block_connect && !connect)
 #else
-    int connect = !CHAR_FD_VALID(dev->fd_in) && !dev->block_connect_in;
-    ssize_t ret = 0;
+    int     connect = !CHAR_FD_VALID(dev->fd_in) && !dev->block_connect_in;
+    ssize_t ret     = 0;
 retry:
     if (connect)
         char_pipe_connect(dev, 0);
@@ -307,8 +307,8 @@ char_pipe_write(uint8_t *buf, size_t len, void *priv)
     char_pipe_t *dev = (char_pipe_t *) priv;
 
 #ifdef _WIN32
-    int connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
-    DWORD ret = 0;
+    int   connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
+    DWORD ret     = 0;
     if (connect)
         char_pipe_connect(dev, 0);
 retry:
@@ -319,8 +319,8 @@ retry:
             char_pipe_disconnect(dev, 0);
             if (!dev->block_connect && !connect)
 #else
-    int connect = !CHAR_FD_VALID(dev->fd_out) && !dev->block_connect_out;
-    ssize_t ret = 0;
+    int     connect = !CHAR_FD_VALID(dev->fd_out) && !dev->block_connect_out;
+    ssize_t ret     = 0;
 retry:
     if (connect)
         char_pipe_connect(dev, 0);
@@ -351,8 +351,7 @@ char_pipe_status(void *priv)
 #ifdef _WIN32
     return CHAR_FD_VALID(dev->fd) ? (CHAR_COM_DSR | CHAR_COM_DCD | CHAR_COM_CTS) : CHAR_DISCONNECTED;
 #else
-    return (CHAR_FD_VALID(dev->fd_in) ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) |
-           (CHAR_FD_VALID(dev->fd_out) ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
+    return (CHAR_FD_VALID(dev->fd_in) ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (CHAR_FD_VALID(dev->fd_out) ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
 #endif
 }
 
@@ -383,16 +382,16 @@ char_pipe_init(const device_t *info)
     dev->path = device_get_config_string("path");
 #else
     const char *path = device_get_config_string("path");
-    dev->path_len = strlen(path) + 5;
-    dev->path = (char *) calloc(1, dev->path_len);
+    dev->path_len    = strlen(path) + 5;
+    dev->path        = (char *) calloc(1, dev->path_len);
     snprintf(dev->path, dev->path_len, "%s", path);
 #endif
-    dev->mode = device_get_config_int("mode");
+    dev->mode      = device_get_config_int("mode");
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
     dev->port = char_attach(0, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
-    dev->log = char_log_open(dev->port, "Pipe");
+    dev->log  = char_log_open(dev->port, "Pipe");
     char_pipe_log(dev->log, "init(%s)\n", dev->path);
 
     /* Connect to pipe. */

@@ -100,19 +100,19 @@ char_init(char_port_t *port, const device_t *device, int instance)
         return NULL;
 
     active_port = port;
-    void *priv = device_add_inst(device, instance);
+    void *priv  = device_add_inst(device, instance);
     active_port = NULL;
     return priv;
 }
 
 char_port_t *
 char_attach(uint32_t flags,
-            size_t   (*read)(uint8_t *buf, size_t len, void *priv),
-            size_t   (*write)(uint8_t *buf, size_t len, void *priv),
+            size_t (*read)(uint8_t *buf, size_t len, void *priv),
+            size_t (*write)(uint8_t *buf, size_t len, void *priv),
             uint32_t (*status)(void *priv),
-            void     (*control)(uint32_t flags, void *priv),
-            void     (*port_config)(void *priv),
-            void     *priv)
+            void (*control)(uint32_t flags, void *priv),
+            void (*port_config)(void *priv),
+            void *priv)
 {
     if (!active_port)
         fatal("Char: No active port\n");

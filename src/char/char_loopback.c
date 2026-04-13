@@ -35,8 +35,8 @@ enum {
 };
 
 typedef struct {
-    const uint8_t data_tx;
-    const uint8_t data_rx;
+    const uint8_t  data_tx;
+    const uint8_t  data_rx;
     const uint32_t control;
     const uint32_t status;
 } char_loopback_bits_t;
@@ -44,6 +44,7 @@ typedef struct {
 static const struct {
     const char_loopback_bits_t *bits;
 } char_loopback_types[] = {
+    // clang-format off
     [LOOPBACK_TYPE_NORTON] = {
         .bits = (const char_loopback_bits_t[]) {
             { 0x01, 0x00, 0, CHAR_LPT_ERROR },
@@ -72,6 +73,7 @@ static const struct {
             { 0 }
         }
     }
+    // clang-format on
 };
 
 #ifdef ENABLE_CHAR_LOOPBACK_LOG
@@ -93,14 +95,14 @@ char_loopback_log(void *priv, const char *fmt, ...)
 #endif
 
 typedef struct {
-    void *log;
+    void        *log;
     char_port_t *port;
-    int type;
-    uint8_t data_tx;
-    uint8_t data_rx;
-    int data_read : 1;
-    uint32_t control;
-    uint32_t status;
+    int          type;
+    uint8_t      data_tx;
+    uint8_t      data_rx;
+    int          data_read : 1;
+    uint32_t     control;
+    uint32_t     status;
 } char_loopback_t;
 
 static void
@@ -109,10 +111,9 @@ char_loopback_update(char_loopback_t *dev)
     dev->data_rx = 0;
     dev->status  = 0;
     for (int i = 0; char_loopback_types[dev->type].bits[i].data_tx || char_loopback_types[dev->type].bits[i].control; i++) {
-        if ((dev->data_tx & char_loopback_types[dev->type].bits[i].data_tx) ||
-            (dev->control & char_loopback_types[dev->type].bits[i].control)) {
+        if ((dev->data_tx & char_loopback_types[dev->type].bits[i].data_tx) || (dev->control & char_loopback_types[dev->type].bits[i].control)) {
             dev->data_rx |= dev->data_tx & char_loopback_types[dev->type].bits[i].data_rx;
-            dev->status  |= char_loopback_types[dev->type].bits[i].status;
+            dev->status |= char_loopback_types[dev->type].bits[i].status;
         }
     }
     dev->status = CHAR_RAW_STATUS(dev->status);
@@ -189,7 +190,7 @@ char_loopback_init(const device_t *info)
 
     /* Attach character device. */
     dev->port = char_attach(0, char_loopback_read, char_loopback_write, char_loopback_status, char_loopback_control, NULL, dev);
-    dev->log = char_log_open(dev->port, "Loopback");
+    dev->log  = char_log_open(dev->port, "Loopback");
     char_loopback_log(dev->log, "init()\n");
 
     /* Get configuration. */
@@ -217,6 +218,7 @@ const device_t char_loopback_com_device = {
     .config        = NULL
 };
 
+// clang-format off
 static const device_config_t char_loopback_lpt_config[] = {
     {
         .name         = "type",
@@ -231,6 +233,7 @@ static const device_config_t char_loopback_lpt_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+// clang-format on
 
 const device_t char_loopback_lpt_device = {
     .name          = "Loopback Plug (LPT)",
