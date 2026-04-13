@@ -179,33 +179,32 @@ static const struct {
 static void
 char_serial_disconnect(char_serial_t *dev)
 {
-    if (!CHAR_FD_VALID(dev->fd))
-        return;
-
+    if (CHAR_FD_VALID(dev->fd)) {
 #ifdef _WIN32
-    /* Restore serial port configuration. */
-    FlushFileBuffers(dev->fd);
-    if (dev->prev_config_valid)
-        SetCommState(dev->fd, &dev->prev_config);
+        /* Restore serial port configuration. */
+        FlushFileBuffers(dev->fd);
+        if (dev->prev_config_valid)
+            SetCommState(dev->fd, &dev->prev_config);
 
-    /* Close serial port. */
-    CloseHandle(dev->fd);
-    dev->fd = INVALID_HANDLE_VALUE;
+        /* Close serial port. */
+        CloseHandle(dev->fd);
+        dev->fd = INVALID_HANDLE_VALUE;
 #else
-    /* Restore serial port configuration. */
-    if (dev->prev_config_valid)
+        /* Restore serial port configuration. */
+        if (dev->prev_config_valid)
 #    ifdef TCSETS2
-        ioctl(dev->fd, TCSETS2, &dev->prev_config);
+            ioctl(dev->fd, TCSETS2, &dev->prev_config);
 #    elif defined(USE_LINUX_TERMIOS)
-        ioctl(dev->fd, TCSETS, &dev->prev_config);
+            ioctl(dev->fd, TCSETS, &dev->prev_config);
 #    else
-        tcsetattr(dev->fd, TCSANOW, &dev->prev_config);
+            tcsetattr(dev->fd, TCSANOW, &dev->prev_config);
 #    endif
 
-    /* Close serial port. */
-    close(dev->fd);
-    dev->fd = -1;
+        /* Close serial port. */
+        close(dev->fd);
+        dev->fd = -1;
 #endif
+    }
 
     char_update_status(dev->port);
 }
