@@ -938,7 +938,7 @@ mystique_recalctimings(svga_t *svga)
     mystique_t *mystique = (mystique_t *) svga->priv;
     int         clk_sel  = (svga->miscout >> 2) & 3;
 
-    svga->clock = (cpuclock * (float) (1ULL << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal |= 0x100;
