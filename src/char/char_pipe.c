@@ -69,8 +69,11 @@ typedef struct {
     int reconnect : 1;
     int server : 1;
 #ifdef _WIN32
+    int block_connect : 1;
     HANDLE fd;
 #else
+    int block_connect_in : 1;
+    int block_connect_out : 1;
     int direction;
     int path_len;
     int fd_in;
@@ -146,6 +149,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
         dev->fd = CreateFileA(full_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
             char_pipe_log(dev->log, "Connected to existing pipe: %s\n", full_path);
+            dev->block_connect = !dev->reconnect;
 
             /* Configure client pipe. */
             DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
@@ -168,6 +172,7 @@ server:
         dev->fd = CreateNamedPipeA(full_path, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
             char_pipe_log(dev->log, "Created new pipe: %s\n", full_path);
+            dev->block_connect = !dev->reconnect;
             dev->server = 1;
         } else {
             /* Both creation and connection failed. */
@@ -221,6 +226,10 @@ server:
         *target = open(path, ((i == 0) ? O_WRONLY : O_RDONLY) | O_NONBLOCK);
         if (CHAR_FD_VALID(*target)) {
             char_pipe_log(dev->log, "Connected to %s pipe: %s\n", (i == 0) ? "output" : "input", path);
+            if (i == 0)
+                dev->block_connect_out = !dev->reconnect;
+            else
+                dev->block_connect_in = !dev->reconnect;
         } else {
             int err = errno;
             char_pipe_log(dev->log, "%s open failed (%d)\n", (i == 0) ? "Output" : "Input", err);
@@ -260,7 +269,7 @@ char_pipe_read(uint8_t *buf, size_t len, void *priv)
     char_pipe_t *dev = (char_pipe_t *) priv;
 
 #ifdef _WIN32
-    int connect = !CHAR_FD_VALID(dev->fd);
+    int connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
     DWORD ret = 0;
 retry:
     if (connect)
@@ -270,7 +279,7 @@ retry:
         if (!dev->server && (GetLastError() != ERROR_NO_DATA)) {
             char_pipe_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
 #else
-    int connect = !CHAR_FD_VALID(dev->fd_in);
+    int connect = !CHAR_FD_VALID(dev->fd_in) && !dev->block_connect_in;
     ssize_t ret = 0;
 retry:
     if (connect)
@@ -281,7 +290,7 @@ retry:
             char_pipe_log(dev->log, "read failed (%d)\n", errno);
 #endif
             char_pipe_disconnect(dev, 1);
-            if (dev->reconnect && !connect) {
+            if (!dev->block_connect && !connect) {
                 connect = 1;
                 goto retry;
             }
@@ -296,7 +305,7 @@ char_pipe_write(uint8_t *buf, size_t len, void *priv)
     char_pipe_t *dev = (char_pipe_t *) priv;
 
 #ifdef _WIN32
-    int connect = !CHAR_FD_VALID(dev->fd);
+    int connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
     DWORD ret = 0;
     if (connect)
         char_pipe_connect(dev, 0);
@@ -306,7 +315,7 @@ retry:
         if (!dev->server) {
             char_pipe_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
 #else
-    int connect = !CHAR_FD_VALID(dev->fd_out);
+    int connect = !CHAR_FD_VALID(dev->fd_out) && !dev->block_connect_out;
     ssize_t ret = 0;
 retry:
     if (connect)
@@ -320,7 +329,7 @@ retry:
             char_pipe_log(dev->log, "write failed (%d)\n", errno);
 #endif
             char_pipe_disconnect(dev, 0);
-            if (dev->reconnect && !connect) {
+            if (!dev->block_connect && !connect) {
                 connect = 1;
                 goto retry;
             }

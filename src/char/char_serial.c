@@ -71,6 +71,7 @@ typedef struct {
 
     const char *path;
     int reconnect : 1;
+    int block_connect : 1;
     uint32_t last_connect_attempt;
 #ifdef _WIN32
     HANDLE fd;
@@ -218,10 +219,6 @@ char_serial_connect(char_serial_t *dev, int startup)
         return 0;
     dev->last_connect_attempt = now;
 
-    /* Close any existing connection. */
-    if (LIKELY(!startup))
-        char_serial_disconnect(dev);
-
     /* Stop if there's nothing to connect to. */
     const char *path = dev->path;
     if (!path || !path[0]) {
@@ -313,6 +310,7 @@ char_serial_connect(char_serial_t *dev, int startup)
 #endif
 
     char_serial_log(dev->log, "Connected: %s\n", path);
+    dev->block_connect = !dev->reconnect;
     char_update_status(dev->port);
 
     return 1;
@@ -331,10 +329,12 @@ char_serial_read(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    int retried = !dev->reconnect;
+    int connect = !CHAR_FD_VALID(dev->fd) && !dev->block_connect;
 #ifdef _WIN32
     DWORD ret = 0;
 retry:
+    if (connect)
+        char_serial_connect(dev, 0);
     if (CHAR_FD_VALID(dev->fd)) {
         DWORD err;
         COMSTAT stats;
@@ -345,13 +345,16 @@ retry:
 #else
     ssize_t ret = 0;
 retry:
+    if (connect)
+        char_serial_connect(dev, 0);
     if (CHAR_FD_VALID(dev->fd) && ((ret = read(dev->fd, buf, len)) < 0)) {
         ret = 0;
         if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
             char_serial_log(dev->log, "read failed (%d)\n", errno);
 #endif
-            if (!retried && char_serial_connect(dev, 0)) {
-                retried = 1;
+            char_serial_disconnect(dev);
+            if (!dev->block_connect && !connect) {
+                connect = 1;
                 goto retry;
             }
         }
@@ -364,15 +367,19 @@ char_serial_write(uint8_t *buf, size_t len, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    int retried = !dev->reconnect;
+    int connect = !CHAR_FD_VALID(dev->fd) && (dev->reconnect || !dev->block_connect);
 #ifdef _WIN32
     DWORD ret = 0;
 retry:
+    if (connect)
+        char_serial_connect(dev, 0);
     if (CHAR_FD_VALID(dev->fd) && !WriteFile(dev->fd, buf, len, &ret, NULL)) {
         char_serial_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
 #else
     ssize_t ret = 0;
 retry:
+    if (connect)
+        char_serial_connect(dev, 0);
     if (CHAR_FD_VALID(dev->fd)) {
         do {
             ret = write(dev->fd, buf, len);
@@ -382,8 +389,9 @@ retry:
         char_serial_log(dev->log, "write failed (%d)\n", errno);
 #endif
         ret = 0;
-        if (!retried && char_serial_connect(dev, 0)) {
-            retried = 1;
+        char_serial_disconnect(dev);
+        if (!dev->block_connect && !connect) {
+            connect = 1;
             goto retry;
         }
     }
