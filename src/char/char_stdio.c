@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Standard input/output character device.
+ *          Standard input/output and pseudoterminal character device.
  *
  *
  *

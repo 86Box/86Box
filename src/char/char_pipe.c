@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Windows named pipe or UNIX socket character device.
+ *          Windows named pipe and UNIX FIFO character device.
  *
  *
  *
