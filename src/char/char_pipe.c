@@ -278,6 +278,8 @@ retry:
         ret = 0;
         if (!dev->server && (GetLastError() != ERROR_NO_DATA)) {
             char_pipe_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
+            char_pipe_disconnect(dev, 1);
+            if (!dev->block_connect && !connect)
 #else
     int connect = !CHAR_FD_VALID(dev->fd_in) && !dev->block_connect_in;
     ssize_t ret = 0;
@@ -288,9 +290,10 @@ retry:
         ret = 0;
         if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
             char_pipe_log(dev->log, "read failed (%d)\n", errno);
-#endif
             char_pipe_disconnect(dev, 1);
-            if (!dev->block_connect && !connect) {
+            if (!dev->block_connect_in && !connect)
+#endif
+            {
                 connect = 1;
                 goto retry;
             }
@@ -314,6 +317,8 @@ retry:
         ret = 0;
         if (!dev->server) {
             char_pipe_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
+            char_pipe_disconnect(dev, 0);
+            if (!dev->block_connect && !connect)
 #else
     int connect = !CHAR_FD_VALID(dev->fd_out) && !dev->block_connect_out;
     ssize_t ret = 0;
@@ -327,9 +332,10 @@ retry:
         if (ret < 0) {
             ret = 0;
             char_pipe_log(dev->log, "write failed (%d)\n", errno);
-#endif
             char_pipe_disconnect(dev, 0);
-            if (!dev->block_connect && !connect) {
+            if (!dev->block_connect_out && !connect)
+#endif
+            {
                 connect = 1;
                 goto retry;
             }

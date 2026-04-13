@@ -20,6 +20,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
+#else
+#    include <errno.h>
+#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -150,7 +156,15 @@ char_file_init(const device_t *info)
     char msg[2048];
     if (path[0]) {
         dev->file_out = plat_fopen(path, device_get_config_int("append") ? "ab" : "wb");
+#ifdef _WIN32
+        DWORD err = GetLastError();
+        char fmt[512];
+        snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
+        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
+#else
         int err = errno;
+        const char *fmt = strerror(err);
+#endif
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
         if (!dev->file_out) {
             snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
@@ -162,10 +176,18 @@ char_file_init(const device_t *info)
     path = device_get_config_string("input_path");
     if (path[0]) {
         dev->file_in = plat_fopen(path, "rb");
+#ifdef _WIN32
+        DWORD err = GetLastError();
+        char fmt[512];
+        snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
+        FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
+#else
         int err = errno;
+        const char *fmt = strerror(err);
+#endif
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
         if (!dev->file_in) {
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
+            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
             ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
         }
     } else {
