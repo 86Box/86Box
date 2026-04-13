@@ -99,6 +99,8 @@ typedef struct {
 } char_stdio_t;
 
 #ifdef _WIN32
+static int stdio_claimed = 0;
+
 static void
 char_stdio_stdin_thread(void *priv)
 {
@@ -243,6 +245,8 @@ char_stdio_close(void *priv)
         char_stdio_log(dev->log, "Input restore SetConsoleMode failed (%08X)\n", GetLastError());
     if (dev->prev_out_mode_valid && !SetConsoleMode(dev->fd_out, dev->prev_out_mode))
         char_stdio_log(dev->log, "Output restore SetConsoleMode failed (%08X)\n", GetLastError());
+
+    stdio_claimed = 0;
 #else
     if (dev->prev_config_valid && tcsetattr(STDIN_FILENO, TCSAFLUSH, &dev->prev_config))
         char_stdio_log(dev->log, "Restore TCSAFLUSH failed (%d)\n", errno);
@@ -268,6 +272,20 @@ char_stdio_init(const device_t *info)
     char_stdio_log(dev->log, "init()\n");
 
 #ifdef _WIN32
+    /* Check if another instance has already claimed the console. */
+    if (stdio_claimed) {
+        char_stdio_log(dev->log, "Windows console already claimed\n");
+
+        char msg[2048];
+        snprintf(msg, sizeof(msg), "%s: Only one virtual console can be used on Windows", dev->port->name);
+        ui_msgbox(MBX_INFO | MBX_ANSI, msg);
+
+        dev->fd_in = dev->fd_out = INVALID_HANDLE_VALUE;
+        char_update_status(dev->port);
+        return dev;
+    }
+    stdio_claimed = 1;
+
     /* Set file descriptors. */
     dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
     if (!CHAR_FD_VALID(dev->fd_in)) {
