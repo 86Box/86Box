@@ -1352,9 +1352,9 @@ x54x_in(uint16_t port, void *priv)
                             ret = 'P';
                             break;
                     }
-                    ret ^= 1;
                     dev->Geometry++;
                     dev->Geometry &= 0x03;
+                    dev->Status = STAT_IDLE | STAT_INIT;
                 } else
                     ret = 0xff;
                 break;
