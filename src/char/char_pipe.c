@@ -73,7 +73,7 @@ typedef struct {
 #else
     int block_connect_in  : 1;
     int block_connect_out : 1;
-    int direction;
+    int direction         : 1;
     int path_len;
     int fd_in;
     int fd_out;
@@ -192,16 +192,16 @@ server:
     }
 #else
     /* Determine pipe direction. */
+    int out_test_fd = -1;
     if (dev->mode == CHAR_PIPE_MODE_SERVER) {
         dev->direction = 0;
     } else if (dev->mode == CHAR_PIPE_MODE_CLIENT) {
         dev->direction = 1;
-    } else if (!CHAR_FD_VALID(dev->fd_out) && !CHAR_FD_VALID(dev->fd_in)) {
+    } else if (!CHAR_FD_VALID(dev->fd_out) && !CHAR_FD_VALID(dev->fd_in)) { /* autodetection cannot be performed if any pipe is open */
         snprintf(&path[dev->path_len - 5], 5, ".in");
-        int fd = open(path, O_WRONLY | O_NONBLOCK); /* fails if there's nobody on the other end */
-        if ((dev->direction = CHAR_FD_VALID(fd)))
-            close(fd);
-        char_pipe_log(dev->log, "Automatic direction %d\n", dev->direction);
+        out_test_fd = open(path, O_WRONLY | O_NONBLOCK); /* fails if nobody is connected; if successful, fd reused further below */
+        dev->direction = CHAR_FD_VALID(out_test_fd);
+        char_pipe_log(dev->log, "Automatic direction: %s\n", dev->direction ? "client" : "server");
     }
 
     /* Connect or create pipes. */
@@ -212,17 +212,22 @@ server:
             continue;
 
         /* Determine file suffix. */
-        snprintf(&path[dev->path_len - 5], 5, ((i ^ dev->direction) == 0) ? ".out" : ".in");
+        snprintf(&path[dev->path_len - 5], 5, ((i ^ !!dev->direction) == 0) ? ".out" : ".in");
 
-        /* Create pipe if it doesn't exist. */
         int create_err = 0;
-        if (mkfifo(path, 0666)) {
-            create_err = errno;
-            char_pipe_log(dev->log, "%s mkfifo failed (%d)\n", (i == 0) ? "Output" : "Input", create_err);
-        }
+        if ((i == 0) && CHAR_FD_VALID(out_test_fd)) {
+            /* Reuse file descriptor from earlier test. */
+            *target = out_test_fd;
+        } else {
+            /* Create pipe if it doesn't exist. */
+            if (mkfifo(path, 0666)) {
+                create_err = errno;
+                char_pipe_log(dev->log, "%s mkfifo failed (%d)\n", (i == 0) ? "Output" : "Input", create_err);
+            }
 
-        /* Connect to pipe. */
-        *target = open(path, ((i == 0) ? O_WRONLY : O_RDONLY) | O_NONBLOCK);
+            /* Connect to pipe. */
+            *target = open(path, ((i == 0) ? O_WRONLY : O_RDONLY) | O_NONBLOCK);
+        }
         if (CHAR_FD_VALID(*target)) {
             char_pipe_log(dev->log, "Connected to %s pipe: %s\n", (i == 0) ? "output" : "input", path);
             if (i == 0)
