@@ -1786,17 +1786,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "網路卡 1"
+msgid "Adapter 1"
+msgstr "配接器 1"
 
-msgid "Network Card #2"
-msgstr "網路卡 2"
+msgid "Adapter 2"
+msgstr "配接器 2"
 
-msgid "Network Card #3"
-msgstr "網路卡 3"
+msgid "Adapter 3"
+msgstr "配接器 3"
 
-msgid "Network Card #4"
-msgstr "網路卡 4"
+msgid "Adapter 4"
+msgstr "配接器 4"
 
 msgid "Mode:"
 msgstr "模式:"

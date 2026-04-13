@@ -38,7 +38,7 @@
         <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
       </attribute>
       <attribute name="title">
-       <string>Network Card #1</string>
+       <string>Adapter 1</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayoutNet1">
        <item row="0" column="0">
@@ -241,7 +241,7 @@
         <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
       </attribute>
       <attribute name="title">
-       <string>Network Card #2</string>
+       <string>Adapter 2</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayoutNet2">
        <item row="0" column="0">
@@ -444,7 +444,7 @@
         <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
       </attribute>
       <attribute name="title">
-       <string>Network Card #3</string>
+       <string>Adapter 3</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayoutNet3">
        <item row="0" column="0">
@@ -647,7 +647,7 @@
         <normaloff>:/settings/qt/icons/network.ico</normaloff>:/settings/qt/icons/network.ico</iconset>
       </attribute>
       <attribute name="title">
-       <string>Network Card #4</string>
+       <string>Adapter 4</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayoutNet4">
        <item row="0" column="0">

@@ -1786,17 +1786,17 @@ msgstr ""
 msgid "GiB"
 msgstr ""
 
-msgid "Network Card #1"
-msgstr "Verkkokortti 1"
+msgid "Adapter 1"
+msgstr "Sovitin 1"
 
-msgid "Network Card #2"
-msgstr "Verkkokortti 2"
+msgid "Adapter 2"
+msgstr "Sovitin 2"
 
-msgid "Network Card #3"
-msgstr "Verkkokortti 3"
+msgid "Adapter 3"
+msgstr "Sovitin 3"
 
-msgid "Network Card #4"
-msgstr "Verkkokortti 4"
+msgid "Adapter 4"
+msgstr "Sovitin 4"
 
 msgid "Mode:"
 msgstr "Tila:"
