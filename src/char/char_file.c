@@ -150,9 +150,10 @@ char_file_init(const device_t *info)
     char msg[2048];
     if (path[0]) {
         dev->file_out = plat_fopen(path, device_get_config_int("append") ? "ab" : "wb");
+        int err = errno;
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
         if (!dev->file_out) {
-            snprintf(msg, sizeof(msg), "%s: Could not open output file %s", dev->port->name, path);
+            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
             ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
         }
     } else {
@@ -161,9 +162,10 @@ char_file_init(const device_t *info)
     path = device_get_config_string("input_path");
     if (path[0]) {
         dev->file_in = plat_fopen(path, "rb");
+        int err = errno;
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
         if (!dev->file_in) {
-            snprintf(msg, sizeof(msg), "%s: Could not open input file %s", dev->port->name, path);
+            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
             ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
         }
     } else {
