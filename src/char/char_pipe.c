@@ -197,11 +197,11 @@ server:
         dev->direction = 0;
     } else if (dev->mode == CHAR_PIPE_MODE_CLIENT) {
         dev->direction = 1;
-    } else if (!CHAR_FD_VALID(dev->fd_out) && !CHAR_FD_VALID(dev->fd_in)) { /* autodetection cannot be performed if any pipe is open */
+    } else if (!CHAR_FD_VALID(dev->fd_out) && !CHAR_FD_VALID(dev->fd_in)) { /* autodetection can only be performed if .in isn't already open on this end */
         snprintf(&path[dev->path_len - 5], 5, ".in");
         out_test_fd = open(path, O_WRONLY | O_NONBLOCK); /* fails if nobody is connected; if successful, fd reused further below */
         dev->direction = CHAR_FD_VALID(out_test_fd);
-        char_pipe_log(dev->log, "Automatic direction: %s\n", dev->direction ? "client" : "server");
+        char_pipe_log(dev->log, "Autodetected direction: %s\n", dev->direction ? "client" : "server");
     }
 
     /* Connect or create pipes. */
@@ -211,14 +211,15 @@ server:
         if (CHAR_FD_VALID(*target))
             continue;
 
-        /* Determine file suffix. */
-        snprintf(&path[dev->path_len - 5], 5, ((i ^ !!dev->direction) == 0) ? ".out" : ".in");
-
         int create_err = 0;
-        if ((i == 0) && CHAR_FD_VALID(out_test_fd)) {
+        if (CHAR_FD_VALID(out_test_fd)) {
             /* Reuse file descriptor from earlier test. */
             *target = out_test_fd;
+            out_test_fd = -1;
         } else {
+            /* Set filename suffix. */
+            snprintf(&path[dev->path_len - 5], 5, ((i ^ !!dev->direction) == 0) ? ".out" : ".in");
+
             /* Create pipe if it doesn't exist. */
             if (mkfifo(path, 0666)) {
                 create_err = errno;
