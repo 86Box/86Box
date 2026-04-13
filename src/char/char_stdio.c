@@ -245,7 +245,10 @@ char_stdio_close(void *priv)
     if (dev->prev_out_mode_valid && CHAR_FD_VALID(dev->fd_out) && !SetConsoleMode(dev->fd_out, dev->prev_out_mode))
         char_stdio_log(dev->log, "Output restore SetConsoleMode failed (%08X)\n", GetLastError());
 
+    /* Release console. */
     stdio_claimed = 0;
+    if (force_debug) /* reset title */
+        pc_debug_console();
 #else
     if (dev->prev_config_valid && CHAR_FD_VALID(dev->fd_in) && tcsetattr(dev->fd_in, TCSAFLUSH, &dev->prev_config))
         char_stdio_log(dev->log, "Restore TCSAFLUSH failed (%d)\n", errno);
@@ -274,10 +277,10 @@ char_stdio_init(const device_t *info)
 
 #ifdef _WIN32
     /* Check if another instance has already claimed the console. */
+    char msg[2048];
     if (stdio_claimed) {
         char_stdio_log(dev->log, "Windows console already claimed\n");
 
-        char msg[2048];
         snprintf(msg, sizeof(msg), "%s: Only one virtual console can be used on Windows", dev->port->name);
         ui_msgbox(MBX_INFO | MBX_ANSI, msg);
 
@@ -296,6 +299,12 @@ char_stdio_init(const device_t *info)
         dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
     }
     dev->fd_out = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    /* Set console title. */
+    if (CHAR_FD_VALID(dev->fd_in) || CHAR_FD_VALID(dev->fd_out)) {
+        snprintf(msg, sizeof(msg), "%s [%s]", vm_name, dev->port->name);
+        SetConsoleTitle(msg);
+    }
 
     /* Discover what kind of stdin we're dealing with. */
     if (CHAR_FD_VALID(dev->fd_in)) {
