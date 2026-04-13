@@ -127,6 +127,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 #ifdef _WIN32
     /* Connect or create pipe. */
     char fmt[512];
+    DWORD create_err = 0;
     if (dev->mode != CHAR_PIPE_MODE_CLIENT) {
         dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
@@ -134,11 +135,11 @@ char_pipe_connect(char_pipe_t *dev, int startup)
             dev->block_connect = !dev->reconnect;
             dev->server        = 1;
         } else {
-            DWORD err = GetLastError();
-            char_pipe_log(dev->log, "CreateNamedPipeA failed (%08X)\n", err);
+            create_err = GetLastError();
+            char_pipe_log(dev->log, "CreateNamedPipeA failed (%08X)\n", create_err);
 
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
-            FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
+            FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, create_err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
             snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, dev->path, fmt);
             if (dev->mode == CHAR_PIPE_MODE_SERVER)
                 goto errmsg;
@@ -160,7 +161,9 @@ client:
             DWORD err = GetLastError();
             char_pipe_log(dev->log, "CreateFileA failed (%08X)\n", err);
 
-            if (dev->mode != CHAR_PIPE_MODE_CLIENT) { /* on auto mode, delay connect failed message to here */
+            if (dev->mode != CHAR_PIPE_MODE_CLIENT) {                            /* on auto mode, delay connect failed message to here */
+                if ((create_err == ERROR_PIPE_BUSY) && (err == ERROR_PIPE_BUSY)) /* special case to mitigate race condition when switching modes after the other end hard resets (by deferring a retry) */
+                    return 0;                                                    /* don't char_update_status to avoid infinite loop */
                 if (startup)
                     ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
                 else
@@ -191,9 +194,9 @@ client:
         int *target = (i == 0) ? &dev->fd_out : &dev->fd_in;
         if (CHAR_FD_VALID(*target))
             continue;
-        const char *path = ((i ^ !!dev->direction) == 0) ? dev->path_out : dev->path_in;
 
-        int create_err = 0;
+        const char *path = ((i ^ !!dev->direction) == 0) ? dev->path_out : dev->path_in;
+        int create_err   = 0;
         if (CHAR_FD_VALID(out_test_fd)) {
             /* Reuse file descriptor from earlier test. */
             *target     = out_test_fd;
@@ -336,8 +339,12 @@ char_pipe_status(void *priv)
     char_pipe_t *dev = (char_pipe_t *) priv;
 
 #ifdef _WIN32
+    if (!CHAR_FD_VALID(dev->fd) && !dev->block_connect)
+        char_pipe_connect(dev, 0);
     return CHAR_FD_VALID(dev->fd) ? (CHAR_COM_DSR | CHAR_COM_DCD | CHAR_COM_CTS) : CHAR_DISCONNECTED;
 #else
+    if ((!CHAR_FD_VALID(dev->fd_in) && !dev->block_connect_in) || (!CHAR_FD_VALID(dev->fd_out) && !dev->block_connect_out))
+        char_pipe_connect(dev, 0);
     return (CHAR_FD_VALID(dev->fd_in) ? (CHAR_COM_DSR | CHAR_COM_DCD) : CHAR_RX_DISCONNECTED) | (CHAR_FD_VALID(dev->fd_out) ? CHAR_COM_CTS : CHAR_TX_DISCONNECTED);
 #endif
 }
