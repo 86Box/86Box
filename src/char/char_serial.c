@@ -590,8 +590,15 @@ char_serial_status(void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    if (!CHAR_FD_VALID(dev->fd))
-        return CHAR_DISCONNECTED;
+    if (!CHAR_FD_VALID(dev->fd)) {
+        if (!dev->block_connect) {
+            char_serial_connect(dev, 0);
+            if (!CHAR_FD_VALID(dev->fd))
+                return CHAR_DISCONNECTED;
+        } else {
+            return CHAR_DISCONNECTED;
+        }
+    }
 
     uint32_t ret = 0;
 #ifdef _WIN32

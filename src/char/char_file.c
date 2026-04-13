@@ -165,7 +165,7 @@ char_file_init(const device_t *info)
 #endif
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
         if (!dev->file_out) {
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
+            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
             ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
         }
     } else {
