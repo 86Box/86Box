@@ -38,7 +38,6 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 
-#define ENABLE_CHAR_PIPE_LOG 1
 #ifdef ENABLE_CHAR_PIPE_LOG
 int char_pipe_do_log = ENABLE_CHAR_PIPE_LOG;
 

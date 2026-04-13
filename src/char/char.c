@@ -55,7 +55,6 @@ static const struct {
     // clang-format on
 };
 
-#define ENABLE_CHAR_LOG 1
 #ifdef ENABLE_CHAR_LOG
 int char_do_log = ENABLE_CHAR_LOG;
 

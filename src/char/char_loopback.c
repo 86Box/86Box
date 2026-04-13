@@ -74,7 +74,6 @@ static const struct {
     }
 };
 
-#define ENABLE_CHAR_LOOPBACK_LOG 1
 #ifdef ENABLE_CHAR_LOOPBACK_LOG
 int char_loopback_do_log = ENABLE_CHAR_LOOPBACK_LOG;
 

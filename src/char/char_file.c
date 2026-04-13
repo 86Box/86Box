@@ -35,7 +35,6 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 
-#define ENABLE_CHAR_FILE_LOG 1
 #ifdef ENABLE_CHAR_FILE_LOG
 int char_file_do_log = ENABLE_CHAR_FILE_LOG;
 

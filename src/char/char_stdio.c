@@ -53,7 +53,6 @@
 
 #define CHAR_STDIO_DEFAULT_CMD "screen -dmS \"$VMNAME.$PORT\" \"$PTY\""
 
-#define ENABLE_CHAR_STDIO_LOG 1
 #ifdef ENABLE_CHAR_STDIO_LOG
 int char_stdio_do_log = ENABLE_CHAR_STDIO_LOG;
 
