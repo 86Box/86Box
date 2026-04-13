@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-04-13 07:02+0000\n"
+"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -1831,17 +1831,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "1. Ağ Kartı"
+msgid "Adapter 1"
+msgstr "Adaptör 1"
 
-msgid "Network Card #2"
-msgstr "2. Ağ Kartı"
+msgid "Adapter 2"
+msgstr "Adaptör 2"
 
-msgid "Network Card #3"
-msgstr "3. Ağ Kartı"
+msgid "Adapter 3"
+msgstr "Adaptör 3"
 
-msgid "Network Card #4"
-msgstr "4. Ağ Kartı"
+msgid "Adapter 4"
+msgstr "Adaptör 4"
 
 msgid "Mode:"
 msgstr "Mod:"
@@ -2692,7 +2692,6 @@ msgstr "Savage Quest için Koruma Kilidi"
 msgid "Loopback Plug"
 msgstr "Geri Döngü Adaptörü"
 
-#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Seri Geçiş Cihazı"
 

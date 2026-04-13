@@ -1785,16 +1785,16 @@ msgstr ""
 msgid "GiB"
 msgstr ""
 
-msgid "Network Card #1"
+msgid "Adapter 1"
 msgstr ""
 
-msgid "Network Card #2"
+msgid "Adapter 2"
 msgstr ""
 
-msgid "Network Card #3"
+msgid "Adapter 3"
 msgstr ""
 
-msgid "Network Card #4"
+msgid "Adapter 4"
 msgstr ""
 
 msgid "Mode:"

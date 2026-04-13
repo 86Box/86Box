@@ -1786,17 +1786,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Thẻ mạng 1"
+msgid "Adapter 1"
+msgstr "Bộ chuyển đổi 1"
 
-msgid "Network Card #2"
-msgstr "Thẻ mạng 2"
+msgid "Adapter 2"
+msgstr "Bộ chuyển đổi 2"
 
-msgid "Network Card #3"
-msgstr "Thẻ mạng 3"
+msgid "Adapter 3"
+msgstr "Bộ chuyển đổi 3"
 
-msgid "Network Card #4"
-msgstr "Thẻ mạng 4"
+msgid "Adapter 4"
+msgstr "Bộ chuyển đổi 4"
 
 msgid "Mode:"
 msgstr "Chế độ:"
