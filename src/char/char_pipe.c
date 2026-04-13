@@ -127,7 +127,26 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 #ifdef _WIN32
     /* Connect or create pipe. */
     char fmt[512];
-    if ((dev->mode == CHAR_PIPE_MODE_AUTO) || (dev->mode == CHAR_PIPE_MODE_CLIENT)) {
+    if (dev->mode != CHAR_PIPE_MODE_CLIENT) {
+        dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
+        if (CHAR_FD_VALID(dev->fd)) {
+            char_pipe_log(dev->log, "Created new pipe: %s\n", dev->path);
+            dev->block_connect = !dev->reconnect;
+            dev->server        = 1;
+        } else {
+            DWORD err = GetLastError();
+            char_pipe_log(dev->log, "CreateNamedPipeA failed (%08X)\n", err);
+
+            snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
+            FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
+            snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, dev->path, fmt);
+            if (dev->mode == CHAR_PIPE_MODE_SERVER)
+                goto errmsg;
+            else
+                goto client;
+        }
+    } else {
+client:
         dev->fd = CreateFileA(dev->path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
             char_pipe_log(dev->log, "Connected to existing pipe: %s\n", dev->path);
@@ -140,28 +159,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
             DWORD err = GetLastError();
             char_pipe_log(dev->log, "CreateFileA failed (%08X)\n", err);
 
-            snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
-            FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path, fmt);
-            if (dev->mode == CHAR_PIPE_MODE_AUTO)
-                goto server;
-            else
-                goto errmsg;
-            return 0;
-        }
-    } else if (dev->mode == CHAR_PIPE_MODE_SERVER) {
-server:
-        dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
-        if (CHAR_FD_VALID(dev->fd)) {
-            char_pipe_log(dev->log, "Created new pipe: %s\n", dev->path);
-            dev->block_connect = !dev->reconnect;
-            dev->server        = 1;
-        } else {
-            /* Both creation and connection failed. */
-            DWORD err = GetLastError();
-            char_pipe_log(dev->log, "CreateNamedPipeA failed (%08X)\n", err);
-
-            if (dev->mode == CHAR_PIPE_MODE_AUTO) { /* on auto mode, delay connect failed message to here */
+            if (dev->mode != CHAR_PIPE_MODE_CLIENT) { /* on auto mode, delay connect failed message to here */
                 if (startup)
                     ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
                 else
@@ -169,7 +167,7 @@ server:
             }
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, dev->path, fmt);
+            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path, fmt);
             goto errmsg;
         }
     }
