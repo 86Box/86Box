@@ -584,7 +584,7 @@ VMManagerSystem::setupVars()
 
     display_table[VMManager::Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_internal_name, 1);
 
-    if (QString(video_internal_name) == "internal") {
+    if ((ci != -1) && (QString(video_internal_name) == "internal")) {
         auto internal_device = machine_get_vid_device(ci);
         if (internal_device)
             display_table[VMManager::Display::Name::Video].append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
@@ -885,7 +885,7 @@ VMManagerSystem::setupVars()
             auto audio_id            = sound_card_get_from_internal_name(audio_internal_name.toUtf8().data());
             auto audio_device        = sound_card_getdevice(audio_id);
             auto audio_name          = DeviceConfig::DeviceName(audio_device, sound_card_get_internal_name(audio_id), 1);
-            if (QString(audio_internal_name) == "internal") {
+            if ((ci != -1) && (QString(audio_internal_name) == "internal")) {
                 auto internal_device = machine_get_snd_device(ci);
                 if (internal_device)
                     audio_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
@@ -927,7 +927,7 @@ VMManagerSystem::setupVars()
             auto nic_id            = network_card_get_from_internal_name(nic_internal_name.toUtf8().data());
             auto nic               = network_card_getdevice(nic_id);
             auto nic_name          = DeviceConfig::DeviceName(nic, network_card_get_internal_name(nic_id), 1);
-            if (QString(nic_internal_name) == "internal") {
+            if ((ci != -1) && (QString(nic_internal_name) == "internal")) {
                 auto internal_device = machine_get_net_device(ci);
                 if (internal_device)
                     nic_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
