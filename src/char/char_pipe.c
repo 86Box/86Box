@@ -59,24 +59,22 @@ char_pipe_log(void *priv, const char *fmt, ...)
 typedef struct {
     void        *log;
     char_port_t *port;
-#ifdef _WIN32
-    const
-#endif
-        char *path;
-    int       mode;
-    uint32_t  last_connect_attempt;
-    int       reconnect : 1;
-    int       server    : 1;
+    int          mode;
+    uint32_t     last_connect_attempt;
+    int          reconnect : 1;
+    int          server    : 1;
 #ifdef _WIN32
     int    block_connect : 1;
+    char   path[257]; /* "The entire pipe name string can be up to 256 characters long." */
     HANDLE fd;
 #else
-    int block_connect_in  : 1;
-    int block_connect_out : 1;
-    int direction         : 1;
-    int path_len;
-    int fd_in;
-    int fd_out;
+    int   block_connect_in  : 1;
+    int   block_connect_out : 1;
+    int   direction         : 1;
+    char *path_in;
+    char *path_out;
+    int   fd_in;
+    int   fd_out;
 #endif
 } char_pipe_t;
 
@@ -115,10 +113,11 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 
     /* Stop if there's nothing to connect to. */
 #ifdef _WIN32
-    const
+    if (!dev->path[0])
+#else
+    if (!(dev->path_in && dev->path_in[0]) && !(dev->path_out && dev->path_out[0]))
 #endif
-        char *path = dev->path;
-    if (!path || !path[0]) {
+    {
         if (startup)
             char_pipe_log(dev->log, "No path specified\n");
         return 0;
@@ -126,28 +125,12 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 
     char msg[1024];
 #ifdef _WIN32
-    /* Strip any leading slashes. */
-    while ((path[0] == '\\') || (path[0] == '/'))
-        path++;
-
-    /* Add \\.\pipe\ prefix if not present. */
-    char full_path[257]; /* "The entire pipe name string can be up to 256 characters long." */
-    int  len = snprintf(full_path, sizeof(full_path), !strnicmp(path, ".\\pipe\\", 7) ? "\\\\%s" : "\\\\.\\pipe\\%s", path);
-
-    /* Convert forward slashes to backslashes. */
-    if (len >= sizeof(full_path))
-        len = sizeof(full_path) - 1;
-    for (int i = 0; i < len; i++) {
-        if (full_path[i] == '/')
-            full_path[i] = '\\';
-    }
-
     /* Connect or create pipe. */
     char fmt[512];
     if ((dev->mode == CHAR_PIPE_MODE_AUTO) || (dev->mode == CHAR_PIPE_MODE_CLIENT)) {
-        dev->fd = CreateFileA(full_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+        dev->fd = CreateFileA(dev->path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
-            char_pipe_log(dev->log, "Connected to existing pipe: %s\n", full_path);
+            char_pipe_log(dev->log, "Connected to existing pipe: %s\n", dev->path);
             dev->block_connect = !dev->reconnect;
 
             /* Configure client pipe. */
@@ -159,7 +142,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, full_path, fmt);
+            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path, fmt);
             if (dev->mode == CHAR_PIPE_MODE_AUTO)
                 goto server;
             else
@@ -168,9 +151,9 @@ char_pipe_connect(char_pipe_t *dev, int startup)
         }
     } else if (dev->mode == CHAR_PIPE_MODE_SERVER) {
 server:
-        dev->fd = CreateNamedPipeA(full_path, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
+        dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, PIPE_UNLIMITED_INSTANCES, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
-            char_pipe_log(dev->log, "Created new pipe: %s\n", full_path);
+            char_pipe_log(dev->log, "Created new pipe: %s\n", dev->path);
             dev->block_connect = !dev->reconnect;
             dev->server        = 1;
         } else {
@@ -186,7 +169,7 @@ server:
             }
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, full_path, fmt);
+            snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, dev->path, fmt);
             goto errmsg;
         }
     }
@@ -198,8 +181,7 @@ server:
     } else if (dev->mode == CHAR_PIPE_MODE_CLIENT) {
         dev->direction = 1;
     } else if (!CHAR_FD_VALID(dev->fd_out) && !CHAR_FD_VALID(dev->fd_in)) { /* autodetection can only be performed if .in isn't already open on this end */
-        snprintf(&path[dev->path_len - 5], 5, ".in");
-        out_test_fd = open(path, O_WRONLY | O_NONBLOCK); /* fails if nobody is connected; if successful, fd reused further below */
+        out_test_fd    = open(dev->path_in, O_WRONLY | O_NONBLOCK);         /* fails if nobody is connected; if successful, fd reused further below */
         dev->direction = CHAR_FD_VALID(out_test_fd);
         char_pipe_log(dev->log, "Autodetected direction: %s\n", dev->direction ? "client" : "server");
     }
@@ -210,16 +192,14 @@ server:
         int *target = (i == 0) ? &dev->fd_out : &dev->fd_in;
         if (CHAR_FD_VALID(*target))
             continue;
+        const char *path = ((i ^ !!dev->direction) == 0) ? dev->path_out : dev->path_in;
 
         int create_err = 0;
         if (CHAR_FD_VALID(out_test_fd)) {
             /* Reuse file descriptor from earlier test. */
-            *target = out_test_fd;
+            *target     = out_test_fd;
             out_test_fd = -1;
         } else {
-            /* Set filename suffix. */
-            snprintf(&path[dev->path_len - 5], 5, ((i ^ !!dev->direction) == 0) ? ".out" : ".in");
-
             /* Create pipe if it doesn't exist. */
             if (mkfifo(path, 0666)) {
                 create_err = errno;
@@ -372,7 +352,8 @@ char_pipe_close(void *priv)
     char_pipe_disconnect(dev, -1);
 
 #ifndef _WIN32
-    free(dev->path);
+    free(dev->path_in);
+    free(dev->path_out);
 #endif
 
     free(dev);
@@ -384,13 +365,23 @@ char_pipe_init(const device_t *info)
     char_pipe_t *dev = (char_pipe_t *) calloc(1, sizeof(char_pipe_t));
 
     /* Get configuration. */
-#ifdef _WIN32
-    dev->path = device_get_config_string("path");
-#else
     const char *path = device_get_config_string("path");
-    dev->path_len    = strlen(path) + 5;
-    dev->path        = (char *) calloc(1, dev->path_len);
-    snprintf(dev->path, dev->path_len, "%s", path);
+#ifdef _WIN32
+    while ((path[0] == '\\') || (path[0] == '/')) /* strip leading slashes */
+        path++;
+    if (path[0]) {
+        snprintf(dev->path, sizeof(dev->path), !strnicmp(path, ".\\pipe\\", 7) ? "\\\\%s" : "\\\\.\\pipe\\%s", path); /* add \\.\pipe\ prefix if not present */
+        for (int i = 2; dev->path[i]; i++) {                                                                          /* convert forward slashes to backslashes */
+            if (dev->path[i] == '/')
+                dev->path[i] = '\\';
+        }
+    }
+#else
+    size_t len   = strlen(path) + 4;
+    dev->path_in = (char *) calloc(1, len);
+    snprintf(dev->path_in, len, "%s.in", path);
+    dev->path_out = (char *) calloc(1, ++len);
+    snprintf(dev->path_out, len, "%s.out", path);
 #endif
     dev->mode      = device_get_config_int("mode");
     dev->reconnect = !!device_get_config_int("reconnect");
@@ -398,7 +389,7 @@ char_pipe_init(const device_t *info)
     /* Attach character device. */
     dev->port = char_attach(0, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
     dev->log  = char_log_open(dev->port, "Pipe");
-    char_pipe_log(dev->log, "init(%s)\n", dev->path);
+    char_pipe_log(dev->log, "init(%s)\n", path);
 
     /* Connect to pipe. */
 #ifdef _WIN32
