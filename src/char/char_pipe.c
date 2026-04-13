@@ -128,7 +128,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
     /* Connect or create pipe. */
     char fmt[512];
     if (dev->mode != CHAR_PIPE_MODE_CLIENT) {
-        dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
+        dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
             char_pipe_log(dev->log, "Created new pipe: %s\n", dev->path);
             dev->block_connect = !dev->reconnect;
@@ -151,9 +151,10 @@ client:
         if (CHAR_FD_VALID(dev->fd)) {
             char_pipe_log(dev->log, "Connected to existing pipe: %s\n", dev->path);
             dev->block_connect = !dev->reconnect;
+            dev->server        = 0;
 
             /* Configure client pipe. */
-            DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
+            DWORD mode = PIPE_READMODE_BYTE | PIPE_WAIT;
             SetNamedPipeHandleState(dev->fd, &mode, NULL, NULL);
         } else {
             DWORD err = GetLastError();
@@ -257,9 +258,11 @@ char_pipe_read(uint8_t *buf, size_t len, void *priv)
 retry:
     if (connect)
         char_pipe_connect(dev, 0);
-    if (CHAR_FD_VALID(dev->fd) && !ReadFile(dev->fd, buf, len, &ret, NULL)) {
-        ret = 0;
-        if (!dev->server && (GetLastError() != ERROR_NO_DATA)) {
+    if (CHAR_FD_VALID(dev->fd)) {
+        BOOL result = PeekNamedPipe(dev->fd, NULL, len, NULL, &ret, NULL);
+        if (result && (ret > 0))
+            result = ReadFile(dev->fd, buf, MIN(len, ret), &ret, NULL);
+        if (!result && !dev->server) {
             char_pipe_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
             char_pipe_disconnect(dev, 1);
             if (!dev->block_connect && !connect)
