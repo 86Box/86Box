@@ -961,9 +961,6 @@ serial_reset(void *priv)
         dev->dlab      = 96;
         dev->fcr       = 0x06;
 
-        if (dev->char_port.chardev.control)
-            dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.chardev.priv);
-
         serial_transmit_period(dev);
         serial_update_speed(dev);
     }
@@ -987,7 +984,9 @@ serial_init(const device_t *info)
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;
 
+        memset(&dev->char_port, 0, sizeof(dev->char_port));
         if (com_ports[next_inst].device) {
+            dev->char_port.type = CHAR_PORT_COM;
             snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%i", next_inst + 1);
             char_init(&dev->char_port, char_get_device(com_ports[next_inst].device), next_inst + 1);
         }

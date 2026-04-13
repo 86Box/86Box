@@ -45,7 +45,7 @@
 #include <86box/plat.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/ui.h>
-
+#define ENABLE_CHAR_SERIAL_LOG 1
 #ifdef ENABLE_CHAR_SERIAL_LOG
 int char_serial_do_log = ENABLE_CHAR_SERIAL_LOG;
 
@@ -176,6 +176,8 @@ static const struct {
     // clang-format on
 };
 
+static void char_serial_port_config(void *priv);
+
 static void
 char_serial_disconnect(char_serial_t *dev)
 {
@@ -292,7 +294,7 @@ char_serial_connect(char_serial_t *dev, int startup)
 
     /* Set up serial port. */
 #    if defined(TCSETS2) || defined(USE_LINUX_TERMIOS)
-    /* cfmakeraw not available here, set attributes according to the man page */
+    /* cfmakeraw not available here, set attributes according to the man page. */
     port_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
     port_config.c_oflag &= ~OPOST;
     port_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
@@ -310,6 +312,8 @@ char_serial_connect(char_serial_t *dev, int startup)
 
     char_serial_log(dev->log, "Connected: %s\n", path);
     dev->block_connect = !dev->reconnect;
+    if (!startup) /* sane defaults will be provided later */
+        char_serial_port_config(dev);
     char_update_status(dev->port);
 
     return 1;
@@ -420,6 +424,22 @@ char_serial_port_config(void *priv)
 
     if ((dev->port->type != CHAR_PORT_COM) || !CHAR_FD_VALID(dev->fd))
         return;
+
+#ifdef ENABLE_CHAR_SERIAL_LOG
+    // clang-format off
+    static const char parity[] = {
+        'N',
+        [CHAR_COM_PARITY_EVEN]  = 'E',
+        [CHAR_COM_PARITY_ODD]   = 'O',
+        [CHAR_COM_PARITY_MARK]  = 'M',
+        [CHAR_COM_PARITY_SPACE] = 'S'
+    };
+    // clang-format on
+    char_serial_log(dev->log, "Configuring port to %d %d%c%d\n",
+        dev->port->com.baud, dev->port->com.data_bits,
+        (dev->port->com.parity >= sizeof(parity)) ? parity[0] : parity[dev->port->com.parity],
+        dev->port->com.stop_bits);
+#endif
 
 #ifdef _WIN32
     /* Get existing configuration. */
