@@ -83,6 +83,7 @@ typedef struct {
     int        prev_out_mode_valid : 1;
     DWORD      prev_in_mode;
     DWORD      prev_out_mode;
+    char      *prev_title;
     ATOMIC_INT buf_in_valid;
     uint8_t    buf_in;
     thread_t  *thread_in;
@@ -243,8 +244,10 @@ char_stdio_close(void *priv)
 
     /* Release console. */
     stdio_claimed = 0;
-    if (force_debug) /* reset title */
-        pc_debug_console();
+    if (dev->prev_title) { /* reset title */
+        SetConsoleTitle(dev->prev_title);
+        free(dev->prev_title);
+    }
 #else
     if (dev->prev_config_valid && CHAR_FD_VALID(dev->fd_in) && tcsetattr(dev->fd_in, TCSAFLUSH, &dev->prev_config))
         char_stdio_log(dev->log, "Restore TCSAFLUSH failed (%d)\n", errno);
@@ -298,6 +301,8 @@ char_stdio_init(const device_t *info)
 
     /* Set console title. */
     if (CHAR_FD_VALID(dev->fd_in) || CHAR_FD_VALID(dev->fd_out)) {
+        if ((GetConsoleTitle(msg, sizeof(msg)) > 0) || (GetConsoleOriginalTitle(msg, sizeof(msg)) > 0))
+            dev->prev_title = strdup(msg);
         snprintf(msg, sizeof(msg), "%s [%s]", vm_name, dev->port->name);
         SetConsoleTitle(msg);
     }
