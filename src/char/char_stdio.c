@@ -361,7 +361,7 @@ char_stdio_init(const device_t *info)
                                       "exec kill $$)"    /* (stop script once the read connection is broken) */
                                       "<\"$PTY\"&"       /* ...from pty */
                                       "clear;"           /* clear screen of the background task indicator */
-                                      "cat>\"$PTY\"';"   /* pipe from stdin to pty */
+                                      "cat>\"$PTY\";"    /* pipe from stdin to pty */
                                       "exec kill $!";    /* stop script once the write connection is broken */
                             } else {
                                 cmd = device_get_config_string("command");
