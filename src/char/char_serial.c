@@ -75,12 +75,15 @@ typedef struct {
 #ifdef _WIN32
     HANDLE fd;
     DCB    prev_config;
+    DCB    config;
 #else
     int fd;
 #    ifdef TCGETS2
+    struct termios2 config;
     struct termios2 prev_config;
 #    else
     struct termios prev_config;
+    struct termios config;
 #    endif
 #endif
     int prev_config_valid : 1;
@@ -252,6 +255,10 @@ char_serial_connect(char_serial_t *dev, int startup)
 
     /* Save current serial port configuration for restoring on close. */
     dev->prev_config_valid = !!GetCommState(dev->fd, &dev->prev_config);
+    if (dev->prev_config_valid)
+        memcpy(&dev->config, &dev->prev_config, sizeof(dev->config));
+    else
+        char_serial_log(dev->log, "GetCommState failed (%08X)\n", GetLastError());
 
     /* Set up serial port. */
     SetupComm(dev->fd, 2048, 2048);
@@ -270,42 +277,40 @@ char_serial_connect(char_serial_t *dev, int startup)
         err = ENOTTY;
         char_serial_log(dev->log, "Path is not a TTY\n");
     }
-    if (err > 0) {
+    if (err) {
         snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
         goto errmsg;
     }
 
     /* Save current serial port configuration for restoring on close. */
 #    ifdef TCGETS2
-    struct termios2 port_config = { 0 };
-    dev->prev_config_valid      = !ioctl(dev->fd, TCGETS2, &port_config);
+    dev->prev_config_valid = !ioctl(dev->fd, TCGETS2, &dev->prev_config);
 #    else
-    struct termios port_config = { 0 };
 #        ifdef USE_LINUX_TERMIOS
-    dev->prev_config_valid = !ioctl(dev->fd, TCGETS, &port_config);
+    dev->prev_config_valid = !ioctl(dev->fd, TCGETS, &dev->prev_config);
 #        else
-    dev->prev_config_valid = !tcgetattr(dev->fd, &port_config);
+    dev->prev_config_valid = !tcgetattr(dev->fd, &dev->prev_config);
 #        endif
 #    endif
     if (dev->prev_config_valid)
-        memcpy(&dev->prev_config, &port_config, sizeof(port_config));
+        memcpy(&dev->config, &dev->prev_config, sizeof(dev->config));
     else
         char_serial_log(dev->log, "tcgetattr failed (%d)\n", errno);
 
     /* Set up serial port. */
 #    if defined(TCSETS2) || defined(USE_LINUX_TERMIOS)
     /* cfmakeraw not available here, set attributes according to the man page. */
-    port_config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
-    port_config.c_oflag &= ~OPOST;
-    port_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    dev->config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+    dev->config.c_oflag &= ~OPOST;
+    dev->config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 #        ifdef TCSETS2
-    if (ioctl(dev->fd, TCSETS2, &port_config))
+    if (ioctl(dev->fd, TCSETS2, &dev->config))
 #        elif defined(USE_LINUX_TERMIOS)
-    if (ioctl(dev->fd, TCSETS, &port_config))
+    if (ioctl(dev->fd, TCSETS, &dev->config))
 #        endif
 #    else
-    cfmakeraw(&port_config);
-    if (tcsetattr(dev->fd, TCSANOW, &port_config))
+    cfmakeraw(&dev->config);
+    if (tcsetattr(dev->fd, TCSANOW, &dev->config))
 #    endif
         char_serial_log(dev->log, "Raw mode tcsetattr failed (%d)\n", errno);
 #endif
@@ -452,107 +457,90 @@ char_serial_port_config(void *priv)
 #endif
 
 #ifdef _WIN32
-    /* Get existing configuration. */
-    DCB port_config = { 0 };
-    GetCommState(dev->fd, &port_config);
-
     /* Modify configuration. */
-    port_config.BaudRate        = dev->port->com.baud; /* try actual baud rate first */
-    port_config.fDtrControl     = DTR_CONTROL_ENABLE;
-    port_config.fDsrSensitivity = FALSE;
-    port_config.fInX            = FALSE;
-    port_config.fOutX           = FALSE;
-    port_config.fRtsControl     = RTS_CONTROL_ENABLE;
-    port_config.fAbortOnError   = FALSE;
-    port_config.ByteSize        = dev->port->com.data_bits;
+    dev->config.BaudRate        = dev->port->com.baud; /* try actual baud rate first */
+    dev->config.fDtrControl     = DTR_CONTROL_ENABLE;
+    dev->config.fDsrSensitivity = FALSE;
+    dev->config.fInX            = FALSE;
+    dev->config.fOutX           = FALSE;
+    dev->config.fRtsControl     = RTS_CONTROL_ENABLE;
+    dev->config.fAbortOnError   = FALSE;
+    dev->config.ByteSize        = dev->port->com.data_bits;
 
     if (dev->port->com.stop_bits <= 1)
-        port_config.StopBits = ONESTOPBIT;
+        dev->config.StopBits = ONESTOPBIT;
     else if (dev->port->com.data_bits <= 5)
-        port_config.StopBits = ONE5STOPBITS;
+        dev->config.StopBits = ONE5STOPBITS;
     else
-        port_config.StopBits = TWOSTOPBITS;
+        dev->config.StopBits = TWOSTOPBITS;
 
-    port_config.fParity = 1;
+    dev->config.fParity = 1;
     switch (dev->port->com.parity) {
         case CHAR_COM_PARITY_EVEN:
-            port_config.Parity = EVENPARITY;
+            dev->config.Parity = EVENPARITY;
             break;
 
         case CHAR_COM_PARITY_ODD:
-            port_config.Parity = ODDPARITY;
+            dev->config.Parity = ODDPARITY;
             break;
 
         case CHAR_COM_PARITY_MARK:
-            port_config.Parity = MARKPARITY;
+            dev->config.Parity = MARKPARITY;
             break;
 
         case CHAR_COM_PARITY_SPACE:
-            port_config.Parity = SPACEPARITY;
+            dev->config.Parity = SPACEPARITY;
             break;
 
         default:
-            port_config.fParity = 0;
-            port_config.Parity  = NOPARITY;
+            dev->config.fParity = 0;
+            dev->config.Parity  = NOPARITY;
             break;
     }
 
     /* Set configuration. */
-    if (!SetCommState(dev->fd, &port_config)) {
+    if (!SetCommState(dev->fd, &dev->config)) {
         /* Failed, try again with the closest common baud rate. */
-        port_config.BaudRate = char_serial_find_baud(dev->port->com.baud);
-        if (!SetCommState(dev->fd, &port_config))
+        dev->config.BaudRate = char_serial_find_baud(dev->port->com.baud);
+        if (!SetCommState(dev->fd, &dev->config))
             char_serial_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
     }
 #else
-    /* Get existing configuration. */
-#    ifdef TCGETS2
-    struct termios2 port_config = { 0 };
-    ioctl(dev->fd, TCGETS2, &port_config);
-#    else
-    struct termios port_config = { 0 };
-#        ifdef USE_LINUX_TERMIOS
-    ioctl(dev->fd, TCGETS, &port_config);
-#        else
-    tcgetattr(dev->fd, &port_config);
-#        endif
-#    endif
-
     /* Modify configuration. */
-    port_config.c_cflag &= ~(CSIZE | PARODD | CSTOPB);
+    dev->config.c_cflag &= ~(CSIZE | PARODD | CSTOPB);
 #    ifdef CMSPAR
-    port_config.c_cflag &= ~CMSPAR;
+    dev->config.c_cflag &= ~CMSPAR;
 #    endif
 #    ifdef CBAUD
-    port_config.c_cflag &= ~CBAUD;
+    dev->config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
-    port_config.c_cflag &= ~(CBAUD << IBSHIFT);
+    dev->config.c_cflag &= ~(CBAUD << IBSHIFT);
 #        endif
 #    endif
-    port_config.c_cflag |= CREAD | PARENB;
+    dev->config.c_cflag |= CREAD | PARENB;
 
     switch (dev->port->com.data_bits) {
         case 5:
-            port_config.c_cflag |= CS5;
+            dev->config.c_cflag |= CS5;
             break;
 
         case 6:
-            port_config.c_cflag |= CS6;
+            dev->config.c_cflag |= CS6;
             break;
 
         case 7:
-            port_config.c_cflag |= CS7;
+            dev->config.c_cflag |= CS7;
             break;
 
         default:
-            port_config.c_cflag |= CS8;
+            dev->config.c_cflag |= CS8;
             break;
     }
 
     switch (dev->port->com.parity) {
         case CHAR_COM_PARITY_SPACE:
 #    ifdef CMSPAR
-            port_config.c_cflag |= CMSPAR;
+            dev->config.c_cflag |= CMSPAR;
 #    endif
             fallthrough;
 
@@ -561,54 +549,52 @@ char_serial_port_config(void *priv)
 
         case CHAR_COM_PARITY_MARK:
 #    ifdef CMSPAR
-            port_config.c_cflag |= CMSPAR;
+            dev->config.c_cflag |= CMSPAR;
 #    endif
             fallthrough;
 
         case CHAR_COM_PARITY_ODD:
-            port_config.c_cflag |= PARODD;
+            dev->config.c_cflag |= PARODD;
             break;
 
         default:
-            port_config.c_cflag &= ~PARENB;
+            dev->config.c_cflag &= ~PARENB;
             break;
     }
 
     if (dev->port->com.stop_bits > 1)
-        port_config.c_cflag |= CSTOPB;
+        dev->config.c_cflag |= CSTOPB;
 
     /* Set specific baud rate through BOTHER if available. */
 #    if defined(BOTHER) && defined(TCSETS2)
-    port_config.c_cflag |= BOTHER;
-    port_config.c_ospeed = dev->port->com.baud;
+    dev->config.c_cflag |= BOTHER;
+    dev->config.c_ospeed = dev->port->com.baud;
 #        ifdef IBSHIFT
-    port_config.c_cflag |= BOTHER << IBSHIFT;
-    port_config.c_ispeed = dev->port->com.baud;
+    dev->config.c_cflag |= BOTHER << IBSHIFT;
+    dev->config.c_ispeed = dev->port->com.baud;
 #        endif
-
-    /* Set configuration. */
-    if (ioctl(dev->fd, TCSETS2, &port_config))
+    if (ioctl(dev->fd, TCSETS2, &dev->config))
 #    endif
     {
         /* Failed or we're not in a BOTHER platform, try using the closest common baud rate. */
 #    ifdef CBAUD
-        port_config.c_cflag &= ~CBAUD;
+        dev->config.c_cflag &= ~CBAUD;
 #        ifdef IBSHIFT
-        port_config.c_cflag &= ~(CBAUD << IBSHIFT);
+        dev->config.c_cflag &= ~(CBAUD << IBSHIFT);
 #        endif
 #    endif
         speed_t baud = char_serial_find_baud(dev->port->com.baud);
-        port_config.c_cflag |= baud;
+        dev->config.c_cflag |= baud;
 #    ifdef IBSHIFT
-        port_config.c_cflag |= baud << IBSHIFT;
+        dev->config.c_cflag |= baud << IBSHIFT;
 #    endif
 
 #    ifdef TCSETS2
-        if (ioctl(dev->fd, TCSETS2, &port_config))
+        if (ioctl(dev->fd, TCSETS2, &dev->config))
 #    elif defined(USE_LINUX_TERMIOS)
-        if (ioctl(dev->fd, TCSETS, &port_config))
+        if (ioctl(dev->fd, TCSETS, &dev->config))
 #    else
-        if (tcsetattr(dev->fd, TCSANOW, &port_config))
+        if (tcsetattr(dev->fd, TCSANOW, &dev->config))
 #    endif
             char_serial_log(dev->log, "tcsetattr failed (%d)\n", errno);
     }
