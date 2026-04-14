@@ -288,8 +288,8 @@ v6355_recalctimings(v6355_t *v6355)
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 #endif
-    v6355->dispontime = (uint64_t)_dispontime;
-    v6355->dispofftime = (uint64_t)_dispofftime;
+    v6355->dispontime = (uint64_t) (int64_t) _dispontime;
+    v6355->dispofftime = (uint64_t) (int64_t) _dispofftime;
 }
 
 /* Overlay the pointer on a line of the display. pixel[] is an array of 640

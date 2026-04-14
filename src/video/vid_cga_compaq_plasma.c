@@ -95,8 +95,8 @@ compaq_plasma_recalctimings(compaq_plasma_t *self)
     disptime = 651;
     _dispontime = 640;
     _dispofftime = disptime - _dispontime;
-    self->cga.dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
-    self->cga.dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    self->cga.dispontime  = (uint64_t) (int64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    self->cga.dispofftime = (uint64_t) (int64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
 }
 
 static void

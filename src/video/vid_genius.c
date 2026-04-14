@@ -336,8 +336,8 @@ genius_recalctimings(genius_t *genius)
     _dispofftime = disptime - _dispontime;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
-    genius->dispontime  = (uint64_t) (_dispontime);
-    genius->dispofftime = (uint64_t) (_dispofftime);
+    genius->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    genius->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static int

@@ -227,8 +227,8 @@ t1000_recalctimings(t1000_t *t1000)
     disptime           = 651;
     _dispontime        = 640;
     _dispofftime       = disptime - _dispontime;
-    t1000->dispontime  = (uint64_t) (_dispontime * xt_cpu_multi);
-    t1000->dispofftime = (uint64_t) (_dispofftime * xt_cpu_multi);
+    t1000->dispontime  = (uint64_t) (int64_t) (_dispontime * xt_cpu_multi);
+    t1000->dispofftime = (uint64_t) (int64_t) (_dispofftime * xt_cpu_multi);
 }
 
 /* Draw a row of text in 80-column mode */

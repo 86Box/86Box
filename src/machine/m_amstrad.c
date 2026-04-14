@@ -220,8 +220,8 @@ recalc_timings_1512(amsvid_t *vid)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
     _dispofftime *= CGACONST;
-    vid->dispontime  = (uint64_t) _dispontime;
-    vid->dispofftime = (uint64_t) _dispofftime;
+    vid->dispontime  = (uint64_t) (int64_t) _dispontime;
+    vid->dispofftime = (uint64_t) (int64_t) _dispofftime;
 }
 
 static void

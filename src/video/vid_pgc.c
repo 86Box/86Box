@@ -2159,8 +2159,8 @@ pgc_recalctimings(pgc_t *dev)
     _dispofftime     = disptime - _dispontime;
     _dispontime     *= pixel_clock;
     _dispofftime    *= pixel_clock;
-    dev->dispontime  = (uint64_t) (_dispontime);
-    dev->dispofftime = (uint64_t) (_dispofftime);
+    dev->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    dev->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 /* Write to CGA registers are copied into the transfer memory buffer. */

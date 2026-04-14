@@ -64,8 +64,8 @@ nga_recalctimings(nga_t *nga)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST / 2;
     _dispofftime *= CGACONST / 2;
-    nga->cga.dispontime  = (uint64_t) (_dispontime);
-    nga->cga.dispofftime = (uint64_t) (_dispofftime);
+    nga->cga.dispontime  = (uint64_t) (int64_t) (_dispontime);
+    nga->cga.dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 void

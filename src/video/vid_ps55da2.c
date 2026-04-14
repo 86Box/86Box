@@ -2572,8 +2572,8 @@ da2_recalctimings(da2_t *da2)
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 
-    da2->dispontime  = (uint64_t) _dispontime;
-    da2->dispofftime = (uint64_t) _dispofftime;
+    da2->dispontime  = (uint64_t) (int64_t) _dispontime;
+    da2->dispofftime = (uint64_t) (int64_t) _dispofftime;
     if (da2->dispontime < TIMER_USEC)
         da2->dispontime = TIMER_USEC;
     if (da2->dispofftime < TIMER_USEC)
