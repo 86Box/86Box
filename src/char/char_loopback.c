@@ -68,7 +68,7 @@ static const struct {
     [LOOPBACK_TYPE_SERIAL] = {
         .bits = (const char_loopback_bits_t[]) {
             { 0x00, 0x00, CHAR_COM_RTS, CHAR_COM_CTS },
-            { 0x00, 0x00, CHAR_COM_DTR, CHAR_COM_DSR | CHAR_COM_DCD },
+            { 0x00, 0x00, CHAR_COM_DTR, CHAR_COM_DSR | CHAR_COM_DCD | CHAR_COM_RI },
             { 0xff, 0xff, 0, 0 },
             { 0 }
         }
