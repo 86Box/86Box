@@ -1096,20 +1096,20 @@ svga_recalctimings(svga_t *svga)
              svga->htotal, hdispstart, hdispend, hsyncstart, hsyncend,
              svga->hblankstart, svga->hblankend);
 
-    disptime    = svga->htotal * svga->multiplier;
-    _dispontime = svga->hdisp_time;
+    disptime    = ((double) (uint32_t) svga->htotal) * svga->multiplier;
+    _dispontime = (double) (uint32_t) svga->hdisp_time;
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
-            disptime8514 = dev->h_total;
-            _dispontime8514 = dev->h_disp_time;
+            disptime8514 = (double) (uint32_t) dev->h_total;
+            _dispontime8514 = (double) (uint32_t) dev->h_disp_time;
         }
     }
 
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on) {
-            disptime_xga = xga->h_total;
-            _dispontime_xga = xga->h_disp_time;
+            disptime_xga = (double) (uint32_t) xga->h_total;
+            _dispontime_xga = (double) (uint32_t) xga->h_disp_time;
         }
     }
 
@@ -1122,8 +1122,8 @@ svga_recalctimings(svga_t *svga)
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 
-    svga->dispontime  = (uint64_t) round(_dispontime);
-    svga->dispofftime = (uint64_t) round(_dispofftime);
+    svga->dispontime  = (uint64_t) (int64_t) round(_dispontime);
+    svga->dispofftime = (uint64_t) (int64_t) round(_dispofftime);
     if (svga->dispontime < TIMER_USEC)
         svga->dispontime = TIMER_USEC;
     if (svga->dispofftime < TIMER_USEC)
@@ -1148,8 +1148,8 @@ svga_recalctimings(svga_t *svga)
                 _dispontime8514 *= crtcconst8514;
                 _dispofftime8514 *= crtcconst8514;
 
-                dev->dispontime  = (uint64_t) round(_dispontime8514);
-                dev->dispofftime = (uint64_t) round(_dispofftime8514);
+                dev->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
+                dev->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
                 if (dev->dispontime < TIMER_USEC)
                     dev->dispontime = TIMER_USEC;
                 if (dev->dispofftime < TIMER_USEC)
@@ -1166,8 +1166,8 @@ svga_recalctimings(svga_t *svga)
                 _dispontime_xga *= crtcconst_xga;
                 _dispofftime_xga *= crtcconst_xga;
 
-                xga->dispontime  = (uint64_t) round(_dispontime_xga);
-                xga->dispofftime = (uint64_t) round(_dispofftime_xga);
+                xga->dispontime  = (uint64_t) (int64_t) round(_dispontime_xga);
+                xga->dispofftime = (uint64_t) (int64_t) round(_dispofftime_xga);
                 if (xga->dispontime < TIMER_USEC)
                     xga->dispontime = TIMER_USEC;
                 if (xga->dispofftime < TIMER_USEC)
@@ -1184,8 +1184,8 @@ svga_recalctimings(svga_t *svga)
                 _dispontime8514 *= crtcconst8514;
                 _dispofftime8514 *= crtcconst8514;
 
-                dev->dispontime  = (uint64_t) round(_dispontime8514);
-                dev->dispofftime = (uint64_t) round(_dispofftime8514);
+                dev->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
+                dev->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
                 if (dev->dispontime < TIMER_USEC)
                     dev->dispontime = TIMER_USEC;
                 if (dev->dispofftime < TIMER_USEC)
