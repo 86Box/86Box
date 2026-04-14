@@ -241,6 +241,7 @@ client:
     char_update_status(dev->port);
     return 1;
 
+#ifdef _WIN32
 errmsg:
     char_update_status(dev->port);
     if (startup)
@@ -248,6 +249,7 @@ errmsg:
     else
         char_pipe_log(dev->log, "%s\n", msg);
     return 0;
+#endif
 }
 
 static size_t
