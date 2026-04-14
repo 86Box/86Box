@@ -331,7 +331,7 @@ char_stdio_init(const device_t *info)
         /* Create pseudoterminal. */
         char msg[2048];
         int  err;
-        dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NONBLOCK);
+        dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
         fcntl(dev->fd_out, F_SETFD, FD_CLOEXEC); /* required for any commands we run to properly detach from the pty when it's closed */
         if (dev->fd_out >= 0) {
             if (grantpt(dev->fd_out) >= 0) {
