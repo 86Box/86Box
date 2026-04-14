@@ -32,6 +32,7 @@
 #include <QDir>
 #include <QSettings>
 #include <QStringBuilder>
+#include <QCollator>
 
 extern "C" {
 #include <86box/86box.h>
@@ -50,7 +51,8 @@ extern "C" {
 #ifdef Q_OS_WINDOWS
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
-#    include <QCollator>
+#    include <setupapi.h>
+#    include <devguid.h>
 #endif
 
 device_t *cfg_dev = NULL;
@@ -67,33 +69,41 @@ DeviceConfig::~DeviceConfig()
     delete ui;
 }
 
-static QStringList
+static QMap<QString, QString>
 enumerateSerialDevices()
 {
-    QStringList serialDevices;
+    QMap<QString, QString> serialDevices;
 #ifdef Q_OS_WINDOWS
-    HKEY hKey;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DEVICEMAP\\SERIALCOMM", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS) {
-        char  buf[1024];
-        DWORD bufSize;
-        for (int i = 0; bufSize = sizeof(buf), RegEnumValueA(hKey, i, buf, &bufSize, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS; i++) {
-            bufSize = sizeof(buf);
-            if (RegQueryValueExA(hKey, buf, NULL, NULL, (unsigned char *) buf, &bufSize) == ERROR_SUCCESS)
-                serialDevices.push_back(QString(buf));
+    auto classDevs = SetupDiGetClassDevs(&GUID_DEVCLASS_PORTS, nullptr, nullptr, DIGCF_PRESENT);
+    if (classDevs) {
+        SP_DEVINFO_DATA devInfo = { .cbSize = sizeof(SP_DEVINFO_DATA) };
+        char            buf[1024];
+        DWORD           bufSize;
+        for (int i = 0; SetupDiEnumDeviceInfo(classDevs, i, &devInfo); i++) {
+            bufSize   = sizeof(buf);
+            auto hKey = SetupDiOpenDevRegKey(classDevs, &devInfo, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE);
+            if (!hKey || (RegQueryValueExA(hKey, "PortName", NULL, NULL, (unsigned char *) buf, &bufSize) != ERROR_SUCCESS))
+                continue;
+            QString path(buf);
+            buf[0] = '\0';
+            SetupDiGetDeviceRegistryProperty(classDevs, &devInfo, SPDRP_FRIENDLYNAME, &bufSize, (unsigned char *) buf, sizeof(buf), nullptr);
+            QString name(buf);
+            if (name.contains(path))
+                serialDevices[path] = name;
+            else
+                serialDevices[path] = QStringLiteral("%1 (%2)").arg(name, path);
         }
-        RegCloseKey(hKey);
-        QCollator collator(QLocale::English); /* https://github.com/keepassxreboot/keepassxc/issues/11813 - also happens on Windows */
-        collator.setNumericMode(true);
-        std::sort(serialDevices.begin(), serialDevices.end(), collator);
     }
 #elif defined(Q_OS_LINUX)
     QDir class_dir("/sys/class/tty/");
     QDir dev_dir("/dev/");
-    for (const auto &device : class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::SortFlag::Name)) {
-        if (class_dir.exists(device + "/device/driver/") && dev_dir.exists(device)) {
+    QRegularExpression regex(QStringLiteral("[^/]*/"));
+    for (const auto &device : class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        auto driver = QFile::symLinkTarget(class_dir.absoluteFilePath(device) + "/device/driver");
+        if (!driver.isEmpty() && dev_dir.exists(device)) {
             QFileInfo fi(dev_dir.canonicalPath() + '/' + device);
             if (fi.isReadable() && fi.isWritable())
-                serialDevices.push_back(fi.canonicalFilePath());
+                serialDevices[fi.canonicalFilePath()] = QStringLiteral("%1 (%2)").arg(device, driver.replace(regex, QStringLiteral("")));
         }
     }
 #else
@@ -104,8 +114,8 @@ enumerateSerialDevices()
     dev_dir.setNameFilters({ "tty[a-z]", "tty[0-9a-zA-Z][0-9]*", "cua[0-9a-zA-Z][0-9]*", "dty[0-9a-zA-Z][0-9]*" });
 #    endif
     QDir::Filters serial_dev_flags = QDir::Files | QDir::NoSymLinks | QDir::Readable | QDir::Writable | QDir::NoDotAndDotDot | QDir::System;
-    for (const auto &device : dev_dir.entryInfoList(serial_dev_flags, QDir::SortFlag::Name))
-        serialDevices.push_back(device.canonicalFilePath());
+    for (const auto &device : dev_dir.entryInfoList(serial_dev_flags))
+        serialDevices[device.canonicalFilePath()] = device.fileName();
 #endif
     return serialDevices;
 }
@@ -350,15 +360,18 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     auto *model         = cbox->model();
                     int   currentIndex  = 0;
                     auto  serialDevices = enumerateSerialDevices();
-
-                    Models::AddEntry(model, tr("None"), -1);
-                    for (int i = 0; i < serialDevices.size(); i++) {
-                        const int row = Models::AddEntry(model, serialDevices[i], i);
-                        if ((selected == serialDevices[i])
+                    auto  serialPaths   = serialDevices.keys();
+                    QCollator collator(QLocale::English); /* https://github.com/keepassxreboot/keepassxc/issues/11813 - also happens on Windows */
+                    collator.setNumericMode(true);
+                    std::sort(serialPaths.begin(), serialPaths.end(), collator);
 #ifdef Q_OS_WINDOWS
-                            || (selected.startsWith("\\\\.\\") && (selected.mid(4) == serialDevices[i]))
+                    if (selected.startsWith("\\\\.\\"))
+                        selected.remove(0, 4);
 #endif
-                            )
+                    Models::AddEntry(model, tr("None"), "");
+                    for (const auto &path : serialPaths) {
+                        const int row = Models::AddEntry(model, serialDevices[path], path);
+                        if (selected == path)
                             currentIndex = row;
                     }
 
@@ -518,9 +531,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 case CONFIG_SERPORT:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
-                        auto  path = cbox->currentText().toUtf8();
-                        if (cbox->currentData().toInt() == -1)
-                            path = "";
+                        auto  path = cbox->currentData().toString().toUtf8();
                         if (strcmp(selected.toUtf8(), path)) {
                             config_set_string(device_context.name, const_cast<char *>(config->name), path);
                             has_changed |= 1;
