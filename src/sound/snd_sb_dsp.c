@@ -519,7 +519,10 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->sb_command = 0;
 
     dsp->sb_8_length  = 0xffff;
-    dsp->sb_8_autolen = 0x7fff;
+    if (dsp->sb_subtype == SB_SUBTYPE_YMF7XX)
+        dsp->sb_8_autolen = 0x3fff;
+    else
+        dsp->sb_8_autolen = 0x7fff;
 
     dsp->sb_irq8     = 0;
     dsp->sb_irq16    = 0;

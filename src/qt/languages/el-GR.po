@@ -1822,17 +1822,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Κάρτα δικτύου #1"
+msgid "Adapter 1"
+msgstr "Προσαρμογέας 1"
 
-msgid "Network Card #2"
-msgstr "Κάρτα δικτύου #2"
+msgid "Adapter 2"
+msgstr "Προσαρμογέας 2"
 
-msgid "Network Card #3"
-msgstr "Κάρτα δικτύου #3"
+msgid "Adapter 3"
+msgstr "Προσαρμογέας 3"
 
-msgid "Network Card #4"
-msgstr "Κάρτα δικτύου #4"
+msgid "Adapter 4"
+msgstr "Προσαρμογέας 4"
 
 msgid "Mode:"
 msgstr "Λειτουργία:"

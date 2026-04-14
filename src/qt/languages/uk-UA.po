@@ -1787,17 +1787,17 @@ msgstr "МіБ"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Мережева карта 1"
+msgid "Adapter 1"
+msgstr "Адаптер 1"
 
-msgid "Network Card #2"
-msgstr "Мережева карта 2"
+msgid "Adapter 2"
+msgstr "Адаптер 2"
 
-msgid "Network Card #3"
-msgstr "Мережева карта 3"
+msgid "Adapter 3"
+msgstr "Адаптер 3"
 
-msgid "Network Card #4"
-msgstr "Мережева карта 4"
+msgid "Adapter 4"
+msgstr "Адаптер 4"
 
 msgid "Mode:"
 msgstr "Режим:"

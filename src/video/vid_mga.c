@@ -918,16 +918,16 @@ mystique_getclock(int clock, void *priv)
     const mystique_t *mystique = (mystique_t *) priv;
 
     if (clock == 0)
-        return 25175000.0;
+        return 25175000.0f;
     if (clock == 1)
-        return 28322000.0;
+        return 28322000.0f;
 
     int m  = mystique->xpixpll[2].m;
     int n  = mystique->xpixpll[2].n;
     int pl = mystique->xpixpll[2].p;
 
-    float fvco = 14318181.0 * (n + 1) / (m + 1);
-    float fo   = fvco / (pl + 1);
+    float fvco = 14318181.0f * ((float) n + 1.0f) / ((float) m + 1.0f);
+    float fo   = fvco / ((float) pl + 1.0);
 
     return fo;
 }
@@ -938,7 +938,7 @@ mystique_recalctimings(svga_t *svga)
     mystique_t *mystique = (mystique_t *) svga->priv;
     int         clk_sel  = (svga->miscout >> 2) & 3;
 
-    svga->clock = (cpuclock * (float) (1ULL << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal |= 0x100;

@@ -704,16 +704,16 @@ tvp3026_getclock(int clock, void *priv)
     float                   f_pll;
 
     if (clock == 0)
-        return 25175000.0;
+        return 25175000.0f;
     if (clock == 1)
-        return 28322000.0;
+        return 28322000.0f;
 
     /*Fvco = 8 x Fref x (65 - M) / (65 - N)*/
     /*Fpll = Fvco / 2^P*/
     n     = ramdac->pix.n & 0x3f;
     m     = ramdac->pix.m & 0x3f;
     pl    = ramdac->pix.p & 0x03;
-    f_vco = 8.0f * 14318184 * (float) (65 - m) / (float) (65 - n);
+    f_vco = 8.0f * 14318184.0f * (float) (65 - m) / (float) (65 - n);
     f_pll = f_vco / (float) (1 << pl);
 
     return f_pll;
