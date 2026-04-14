@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-04-15 14:00+0000\n"
+"Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
 "MIME-Version: 1.0\n"
@@ -359,7 +359,7 @@ msgid "[1989] i486 (Socket 168 and 1)"
 msgstr ""
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Ανάμεικτα)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
 msgstr ""
@@ -368,7 +368,7 @@ msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr ""
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Διάφορα"
 
 msgid "Machine:"
 msgstr "Σύστημα:"
@@ -530,13 +530,13 @@ msgid "CD-ROM controller:"
 msgstr "Ελεγκτής CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Διεπαφή Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Διεπαφή MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Διεπαφή MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Ελεγκτής IDE"
@@ -2006,7 +2006,7 @@ msgid "BIOS Language"
 msgstr "Γλώσσα BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Παραλλαγή"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Επέκταση μονάδας IBM 5161"
@@ -2682,7 +2682,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle προστασίας για το Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Βύσμα Loopback"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2776,10 +2776,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Γενική Επέκταση Μνήμης PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Γενικό MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (Εξωτερική Συσκευή)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Αδυναμία εύρεσης γραμματοσειρών Dot-Matrix"
@@ -2853,10 +2853,10 @@ msgid "Could not load file %1"
 msgstr "Αδυναμία φόρτωσης αρχείου %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Εξομοιωτής"
 
 msgid "Input"
-msgstr ""
+msgstr "Είσοδος"
 
 msgid "Key bindings"
 msgstr "Αντιστοιχίσεις πλήκτρων"
@@ -3085,10 +3085,10 @@ msgid "EDID file \"%ls\" is too large."
 msgstr "Το αρχείο EDID \"%ls\" είναι πολύ μεγάλο."
 
 msgid "OpenGL input scale"
-msgstr "Κλίμακα OpenGL input"
+msgstr "Κλίμακα εισόδου OpenGL"
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL input σε λειτουργία τεντώματος"
+msgstr "Είσοδος OpenGL σε λειτουργία τεντώματος"
 
 msgid "Color scheme"
 msgstr "Συνδυασμός χρωμάτων"
@@ -3124,7 +3124,7 @@ msgid "Raw"
 msgstr "Αρχικος"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Χρήση εξομοίωσης EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Συσκευή εξόδου ήχου:"
