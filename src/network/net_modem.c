@@ -318,7 +318,8 @@ modem_speed_changed(void *priv)
     /* FIXME: do something to dev->baudrate */
     timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double) dev->baudrate) * 9);
 #if 0
-    serial_clear_fifo(dev->serial);
+    if (dev->serial)
+        serial_clear_fifo(dev->serial);
 #endif
 }
 
@@ -1336,7 +1337,8 @@ modem_rcr_cb(UNUSED(struct serial_s *serial), void *priv)
     /* FIXME: do something to dev->baudrate */
     timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double) dev->baudrate) * (double) 9);
 #if 0
-    serial_clear_fifo(dev->serial);
+    if (dev->serial)
+        serial_clear_fifo(dev->serial);
 #endif
 }
 

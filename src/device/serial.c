@@ -882,6 +882,9 @@ serial_attach_ex(int port,
 {
     serial_device_t *sd = &serial_devices[port];
 
+    if (!sd->serial)
+        return NULL;
+
     sd->rcr_callback             = rcr_callback;
     sd->dev_write                = dev_write;
     sd->transmit_period_callback = transmit_period_callback;
@@ -899,6 +902,9 @@ serial_attach_ex_2(int port,
                  void *priv)
 {
     serial_device_t *sd = &serial_devices[port];
+
+    if (!sd->serial)
+        return NULL;
 
     sd->rcr_callback             = rcr_callback;
     sd->dtr_callback             = dtr_callback;
@@ -986,9 +992,13 @@ serial_init(const device_t *info)
 
         memset(&dev->char_port, 0, sizeof(dev->char_port));
         if (com_ports[next_inst].device) {
-            dev->char_port.type = CHAR_PORT_COM;
-            snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%i", next_inst + 1);
-            char_init(&dev->char_port, char_get_device(com_ports[next_inst].device), next_inst + 1);
+            const device_t *chardev = char_get_device(com_ports[next_inst].device);
+            if (chardev) {
+                dev->sd->serial     = NULL; /* other devices can no longer attach to this port */
+                dev->char_port.type = CHAR_PORT_COM;
+                snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%i", next_inst + 1);
+                char_init(&dev->char_port, chardev, next_inst + 1);
+            }
         }
 
         if (info->local & 0xfff00000) {
