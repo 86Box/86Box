@@ -20,6 +20,8 @@
 #ifndef EMU_SERIAL_H
 #define EMU_SERIAL_H
 
+#include <86box/char.h>
+
 #define SERIAL_8250          0
 #define SERIAL_8250_PCJR_3F8 1
 #define SERIAL_8250_PCJR_2F8 2
@@ -98,6 +100,8 @@ typedef struct serial_s {
     double     transmit_period;
 
     struct serial_device_s *sd;
+
+    char_port_t char_port;
 } serial_t;
 
 typedef struct serial_device_s {
@@ -112,6 +116,7 @@ typedef struct serial_device_s {
 
 typedef struct serial_port_s {
     uint8_t enabled;
+    int     device;
 } serial_port_t;
 
 extern serial_port_t com_ports[SERIAL_MAX];

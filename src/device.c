@@ -748,11 +748,6 @@ device_get_name(const device_t *dev, int bus, char *name)
             /* Then change string from ISA16 to ISA if applicable. */
             if (!strcmp(sbus, "ISA16"))
                 sbus = "ISA";
-            else if (!strcmp(sbus, "COM")) {
-                sbus = NULL;
-                strcat(name, dev->name);
-                return;
-            }
 
             /* Generate the bus string with parentheses. */
             strcat(pbus, "(");
@@ -939,6 +934,23 @@ device_get_config_mac(const char *str, int def)
     }
 
     return def;
+}
+
+void
+device_set_config_string(const char *str, const char *val)
+{
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
+
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_string((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
+        }
+    }
 }
 
 void

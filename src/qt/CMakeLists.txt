@@ -351,12 +351,10 @@ endif()
 
 if(WIN32)
     target_sources(plat PRIVATE
-        win_serial_passthrough.c
         win_netsocket.c
     )
 else()
     target_sources(plat PRIVATE
-        ../unix/unix_serial_passthrough.c
         ../unix/unix_netsocket.c
     )
 endif()
