@@ -1000,63 +1000,46 @@ plat_init_asset_paths(void)
 void
 plat_get_cpu_string(char *outbuf, uint8_t len)
 {
-    auto cpu_string = QString("Unknown");
+    QString cpu_string("Unknown");
     /* Write the default string now in case we have to exit early from an error */
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
 
-#if defined(Q_OS_MACOS)
-    auto       *process = new QProcess(nullptr);
-    QStringList arguments;
-    QString     program = "/usr/sbin/sysctl";
-    arguments << "machdep.cpu.brand_string";
-    process->start(program, arguments);
-    if (!process->waitForStarted()) {
-        return;
-    }
-    if (!process->waitForFinished()) {
-        return;
-    }
-    QByteArray result         = process->readAll();
-    auto       command_result = QString(result).split(": ").last().trimmed();
-    if (!command_result.isEmpty()) {
-        cpu_string = command_result;
-    }
-#elif defined(Q_OS_WINDOWS)
-    const LPCSTR  keyName   = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
-    const LPCSTR  valueName = "ProcessorNameString";
-    unsigned char buf[32768];
-    DWORD         bufSize;
-    HKEY          hKey;
-    bufSize = 32768;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
+#ifdef Q_OS_WINDOWS
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS) {
+        unsigned char buf[256];
+        DWORD         bufSize = sizeof(buf);
+        if (RegQueryValueExA(hKey, "ProcessorNameString", NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
             cpu_string = reinterpret_cast<const char *>(buf);
-        }
         RegCloseKey(hKey);
     }
 #elif defined(Q_OS_LINUX)
-    auto cpuinfo    = QString("/proc/cpuinfo");
-    auto cpuinfo_fi = QFileInfo(cpuinfo);
-    if (!cpuinfo_fi.isReadable()) {
+    QString cpuinfo("/proc/cpuinfo");
+    if (!QFileInfo(cpuinfo).isReadable())
         return;
-    }
     QFile file(cpuinfo);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream textStream(&file);
-        while (true) {
-            QString line = textStream.readLine();
-            if (line.isNull()) {
+        auto regex = QRegularExpression(QStringLiteral("model name\\s*:\\s*(.+)"));
+        QString line;
+        while (!(line = textStream.readLine()).isNull()) {
+            auto match = regex.match(line);
+            if (match.hasMatch()) {
+                cpu_string = match.captured(1).trimmed();
                 break;
             }
-            if (QRegularExpression("model name.*:").match(line).hasMatch()) {
-                auto list = line.split(": ");
-                if (!list.last().isEmpty()) {
-                    cpu_string = list.last();
-                    break;
-                }
-            }
         }
+        file.close();
     }
+#elif defined(Q_OS_MACOS)
+    auto process = new QProcess();
+    process->start("/usr/sbin/sysctl", QStringList() << "machdep.cpu.brand_string");
+    if (!process->waitForStarted() || !process->waitForFinished())
+        return;
+    auto command_result = QString(process->readAll());
+    auto idx = command_result.indexOf(':');
+    if (idx > -1)
+        cpu_string = command_result.remove(idx + 1).trimmed();
 #endif
 
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
@@ -1221,7 +1204,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     if (!buf[0])
         plat_tempfile(buf, (char *) ".temp", (char *) ".sh");
     char *script = nvr_path(buf);
-    auto f = QFile(script);
+    QFile f(script);
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
         return 0;
     f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
