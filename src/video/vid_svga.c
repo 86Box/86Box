@@ -922,7 +922,7 @@ svga_recalctimings(svga_t *svga)
     if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
-    svga->vblankend = (svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f);
+    svga->vblankend = (int) (((uint32_t) svga->vblankstart & 0xffffff80) | (svga->crtc[0x16] & 0x7f));
     if (svga->vblankend <= svga->vblankstart)
         svga->vblankend += 0x00000080;
 
@@ -935,14 +935,14 @@ svga_recalctimings(svga_t *svga)
 
         svga->htotal &= 0x7fff;
     } else {
-        uint32_t hadj    = (svga->htotal & 0x8000) ? 0x100 : 0;
+        const uint32_t hadj    = (svga->htotal & 0x8000) ? 0x100 : 0;
         svga->htotal &= 0x7fff;
 
         uint32_t dot = svga->hblankstart;
         uint32_t adj_dot = svga->hblankstart;
         /* Verified with both the Voodoo 3 and the S3 cards: compare 7 bits if bit 7 is set,
            otherwise compare 6 bits. */
-        uint32_t eff_mask = (svga->hblank_end_val & ~0x0000003f) ? svga->hblank_end_mask : 0x0000003f;
+        const uint32_t eff_mask = ((uint32_t) svga->hblank_end_val & ~0x0000003f) ? ((uint32_t) svga->hblank_end_mask) : 0x0000003f;
         svga->hblank_sub = 0;
 
         svga_log("HDISP=%d, CRTC1+1=%d, Blank: %04i-%04i, Total: %04i, "
@@ -961,18 +961,18 @@ svga_recalctimings(svga_t *svga)
                      "hblankendvalmask=%02x, blankendval=%02x.\n", adj_dot,
                      svga->htotal, dot & eff_mask, svga->hblank_end_val & eff_mask,
                      svga->hblank_end_val);
-            if ((dot & eff_mask) == (svga->hblank_end_val & eff_mask))
+            if ((dot & eff_mask) == (((uint32_t) svga->hblank_end_val) & eff_mask))
                 break;
 
             dot++;
             adj_dot++;
         }
 
-        uint32_t hd = svga->hdisp;
+        const uint32_t hd = svga->hdisp;
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
 
-        svga->left_overscan = svga->x_add = (svga->htotal - adj_dot - hadj - 1) * svga->dots_per_clock;
-        svga->monitor->mon_overscan_x = svga->x_add + (svga->hblankstart * svga->dots_per_clock) - hd + svga->dots_per_clock;
+        svga->left_overscan = svga->x_add = (int) ((uint32_t) svga->htotal - adj_dot - hadj - 1) * svga->dots_per_clock;
+        svga->monitor->mon_overscan_x = (int) ((uint32_t) svga->x_add + ((uint32_t) svga->hblankstart * (uint32_t) svga->dots_per_clock) - hd + (uint32_t) svga->dots_per_clock);
         /* Compensate for the HDISP code above. */
         if (svga->crtc[1] & 1)
             svga->monitor->mon_overscan_x++;
