@@ -18,6 +18,7 @@
  *          Copyright 2016-2019 Miran Grca.
  */
 #include <inttypes.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -1051,7 +1052,7 @@ svga_recalctimings(svga_t *svga)
         svga->dispend = svga->vblankstart;
     }
 
-    crtcconst = svga->clock * svga->char_width;
+    crtcconst = svga->clock * (double) svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on)
             crtcconst8514 = svga->clock_8514 * 8;
@@ -1113,16 +1114,16 @@ svga_recalctimings(svga_t *svga)
     }
 
     if (svga->seqregs[1] & 8) {
-        disptime *= 2;
-        _dispontime *= 2;
+        disptime *= 2.0;
+        _dispontime *= 2.0;
     }
 
     _dispofftime = disptime - _dispontime;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 
-    svga->dispontime  = (uint64_t) (_dispontime);
-    svga->dispofftime = (uint64_t) (_dispofftime);
+    svga->dispontime  = (uint64_t) lround(_dispontime);
+    svga->dispofftime = (uint64_t) lround(_dispofftime);
     if (svga->dispontime < TIMER_USEC)
         svga->dispontime = TIMER_USEC;
     if (svga->dispofftime < TIMER_USEC)
@@ -1147,8 +1148,8 @@ svga_recalctimings(svga_t *svga)
                 _dispontime8514 *= crtcconst8514;
                 _dispofftime8514 *= crtcconst8514;
 
-                dev->dispontime  = (uint64_t) (_dispontime8514);
-                dev->dispofftime = (uint64_t) (_dispofftime8514);
+                dev->dispontime  = (uint64_t) lround(_dispontime8514);
+                dev->dispofftime = (uint64_t) lround(_dispofftime8514);
                 if (dev->dispontime < TIMER_USEC)
                     dev->dispontime = TIMER_USEC;
                 if (dev->dispofftime < TIMER_USEC)
@@ -1165,8 +1166,8 @@ svga_recalctimings(svga_t *svga)
                 _dispontime_xga *= crtcconst_xga;
                 _dispofftime_xga *= crtcconst_xga;
 
-                xga->dispontime  = (uint64_t) (_dispontime_xga);
-                xga->dispofftime = (uint64_t) (_dispofftime_xga);
+                xga->dispontime  = (uint64_t) lround(_dispontime_xga);
+                xga->dispofftime = (uint64_t) lround(_dispofftime_xga);
                 if (xga->dispontime < TIMER_USEC)
                     xga->dispontime = TIMER_USEC;
                 if (xga->dispofftime < TIMER_USEC)
