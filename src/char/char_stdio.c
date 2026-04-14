@@ -360,14 +360,15 @@ char_stdio_init(const device_t *info)
                             /* Spawn terminal emulator. */
                             const char *cmd;
                             if (mode == CHAR_STDIO_MODE_TERM) {
-                                cmd = "stty raw -echo;"  /* enable raw input on terminal */
-                                      "(stty raw -echo;" /* enable raw input on pty for macOS */
-                                      "cat;"             /* pipe to stdout... */
-                                      "exec kill $$)"    /* (stop script once the read connection is broken) */
-                                      "<\"$PTY\"&"       /* ...from pty */
-                                      "clear;"           /* clear screen of the background task indicator */
-                                      "cat>\"$PTY\";"    /* pipe from stdin to pty */
-                                      "exec kill $!";    /* stop script once the write connection is broken */
+                                cmd = "exec 2>/dev/null;" /* suppress stderr output */
+                                      "stty raw -echo;"   /* enable raw input on terminal */
+                                      "(stty raw -echo;"  /* enable raw input on pty (for macOS) */
+                                      "cat;"              /* pipe to stdout... */
+                                      "exec kill $$)"     /* (stop script once the read connection is broken) */
+                                      "<\"$PTY\"&"        /* ...from pty in the background */
+                                      "clear;"            /* suppress background task indicator (zsh prints it to stdout) */
+                                      "cat>\"$PTY\";"     /* pipe from stdin to pty */
+                                      "exec kill $!";     /* stop script once the write connection is broken */
                             } else {
                                 cmd = device_get_config_string("command");
                                 if (!cmd || !cmd[0]) {
