@@ -163,7 +163,9 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
         progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
         QApplication::processEvents();
         QString filename = dir_iterator.next();
-        matches.append(filename);
+        QString root_cfg = QString("%1%2").arg(search_directory, config_file_name);
+        if (filename.compare(root_cfg, Qt::CaseInsensitive) != 0)
+            matches.append(filename);
     }
 
     const auto scanElapsed = timer.elapsed();
