@@ -90,7 +90,7 @@ def presetFlags = [
 
 def gitClone(repository, branch) {
 	/* Clean workspace. */
-	cleanWs()
+	cleanWs(disableDeferredWipeout: true, deleteDirs: true, notFailBuild: true)
 
 	/* Perform git clone if stashed data isn't available yet, or if
 	   this is not debian.citadel where stash is faster than clone. */
@@ -209,7 +209,7 @@ pipeline {
 							gitClone(repository[buildBranch], branch[buildBranch])
 
 							/* Clean workspace, in case this is running in a non-build node. */
-							cleanWs()
+							cleanWs(disableDeferredWipeout: true, deleteDirs: true, notFailBuild: true)
 						}
 					}
 
