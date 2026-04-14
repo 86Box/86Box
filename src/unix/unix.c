@@ -1844,8 +1844,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         args[3] = "--";
 
         /* Try terminals. */
-        static const char *terminals[] = {"xdg-terminal-exec", "x-terminal-emulator", "xterm", "urxvt", "rxvt", NULL};
-        for (int i = 0; terminals[i]; i++) {
+        static const char *terminals[] = {"xdg-terminal-exec", "x-terminal-emulator", "xterm", "urxvt", "rxvt"};
+        for (int i = 0; i < (sizeof(terminals) / sizeof(terminals[0])); i++) {
             args[0] = terminals[i];
             ret = !posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ);
             if (len) {
