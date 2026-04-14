@@ -89,10 +89,9 @@ enumerateSerialDevices()
 #elif defined(Q_OS_LINUX)
     QDir class_dir("/sys/class/tty/");
     QDir dev_dir("/dev/");
-    auto ttyEntries = class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System, QDir::SortFlag::Name);
-    for (int i = 0; i < ttyEntries.size(); i++) {
-        if (class_dir.exists(ttyEntries[i] + "/device/driver/") && dev_dir.exists(ttyEntries[i])) {
-            auto fi = QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]);
+    for (const auto &device : class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::SortFlag::Name)) {
+        if (class_dir.exists(device + "/device/driver/") && dev_dir.exists(device)) {
+            QFileInfo fi(dev_dir.canonicalPath() + '/' + device);
             if (fi.isReadable() && fi.isWritable())
                 serialDevices.push_back(fi.canonicalFilePath());
         }
