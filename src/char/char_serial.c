@@ -45,7 +45,7 @@
 #include <86box/plat.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/ui.h>
-#define ENABLE_CHAR_SERIAL_LOG 1
+
 #ifdef ENABLE_CHAR_SERIAL_LOG
 int char_serial_do_log = ENABLE_CHAR_SERIAL_LOG;
 
