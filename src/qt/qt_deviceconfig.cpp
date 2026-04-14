@@ -355,7 +355,11 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     Models::AddEntry(model, tr("None"), -1);
                     for (int i = 0; i < serialDevices.size(); i++) {
                         const int row = Models::AddEntry(model, serialDevices[i], i);
-                        if (selected == serialDevices[i])
+                        if ((selected == serialDevices[i])
+#ifdef Q_OS_WINDOWS
+                            || (selected.startsWith("\\\\.\\") && (selected.mid(4) == serialDevices[i]))
+#endif
+                            )
                             currentIndex = row;
                     }
 

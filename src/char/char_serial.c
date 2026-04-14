@@ -68,7 +68,10 @@ typedef struct {
     void        *log;
     char_port_t *port;
 
-    const char *path;
+#ifndef _WIN32
+    const
+#endif
+        char *path;
     int         reconnect     : 1;
     int         block_connect : 1;
     uint32_t    last_connect_attempt;
@@ -689,6 +692,10 @@ char_serial_close(void *priv)
 
     char_serial_disconnect(dev);
 
+#ifdef _WIN32
+    free(dev->path);
+#endif
+
     free(dev);
 }
 
@@ -698,13 +705,20 @@ char_serial_init(const device_t *info)
     char_serial_t *dev = (char_serial_t *) calloc(1, sizeof(char_serial_t));
 
     /* Get configuration. */
-    dev->path      = device_get_config_string("path");
+    const char *path = device_get_config_string("path");
+#ifdef _WIN32
+    int len = strlen(path) + 5;
+    dev->path = (char *) calloc(1, len);
+    snprintf(dev->path, len, !strncmp(path, "\\\\.\\", 4) ? "%s" : "\\\\.\\%s", path);
+#else
+    dev->path = path;
+#endif
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
     dev->port = char_attach(0, char_serial_read, char_serial_write, char_serial_status, char_serial_control, char_serial_port_config, dev);
     dev->log  = char_log_open(dev->port, "Serial Passthrough");
-    char_serial_log(dev->log, "init(%s)\n", dev->path);
+    char_serial_log(dev->log, "init(%s)\n", path);
 
     /* Connect to serial port. */
 #ifdef _WIN32
