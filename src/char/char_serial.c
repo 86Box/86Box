@@ -426,19 +426,29 @@ char_serial_port_config(void *priv)
         return;
 
 #ifdef ENABLE_CHAR_SERIAL_LOG
-    // clang-format off
-    static const char parity[] = {
-        'N',
-        [CHAR_COM_PARITY_EVEN]  = 'E',
-        [CHAR_COM_PARITY_ODD]   = 'O',
-        [CHAR_COM_PARITY_MARK]  = 'M',
-        [CHAR_COM_PARITY_SPACE] = 'S'
-    };
-    // clang-format on
-    char_serial_log(dev->log, "Configuring port to %d %d%c%d\n",
-        dev->port->com.baud, dev->port->com.data_bits,
-        (dev->port->com.parity >= sizeof(parity)) ? parity[0] : parity[dev->port->com.parity],
-        dev->port->com.stop_bits);
+    char parity;
+    switch (dev->port->com.parity) {
+        case CHAR_COM_PARITY_ODD:
+            parity = 'O';
+            break;
+
+        case CHAR_COM_PARITY_EVEN:
+            parity = 'E';
+            break;
+
+        case CHAR_COM_PARITY_MARK:
+            parity = 'M';
+            break;
+
+        case CHAR_COM_PARITY_SPACE:
+            parity = 'S';
+            break;
+
+        default:
+            parity = 'N';
+            break;
+    }
+    char_serial_log(dev->log, "Configuring port to %d %d%c%d\n", dev->port->com.baud, dev->port->com.data_bits, parity, dev->port->com.stop_bits);
 #endif
 
 #ifdef _WIN32
