@@ -120,6 +120,7 @@ endif()
 
 target_link_libraries(86Box
     cpu
+    char
     chipset
     mch
     dev
@@ -199,6 +200,7 @@ else()
 endif()
 
 add_subdirectory(cdrom)
+add_subdirectory(char)
 add_subdirectory(chipset)
 
 add_subdirectory(cpu)

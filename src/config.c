@@ -68,7 +68,6 @@
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
-#include <86box/serial_passthrough.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
 #include <86box/thread.h>
@@ -1133,26 +1132,60 @@ load_ports(void)
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
+        /* Get old serial passthrough enable. */
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
-        serial_passthrough_enabled[c] = !!ini_section_get_int(cat, temp, 0);
+        int old_enable = ini_section_get_int(cat, temp, 0);
+        ini_section_delete_var(cat, temp);
 
-        if (serial_passthrough_enabled[c])
-            config_log("Serial Port %d: passthrough enabled.\n\n", c + 1);
-
-        /* Migrate serial passthrough config section. Doing it here (instead of
-           the device.c migration path) covers disabled passthroughs as well. */
+        /* Migrate serial passthrough device settings. */
         sprintf(temp, "Serial Passthrough Device #%i", c + 1);
         ini_section_t cat2 = ini_find_section(config, temp);
-        sprintf(temp, "Serial Passthrough #%i", c + 1);
-        if (cat2)
-            ini_rename_section(cat2, temp);
-        else
+        if (!cat2) {
+            sprintf(temp, "Serial Passthrough #%i", c + 1); /* as of 8699 */
             cat2 = ini_find_section(config, temp);
+        }
+        int old_mode = ini_section_get_int(cat2, "mode", -1);
+        if (old_mode >= 3) { /* passthrough (4 on v5.3 Windows, 3 otherwise) */
+            sprintf(temp, "Serial Passthrough (COM) #%i", c + 1);
+            ini_rename_section(cat2, temp);
+            ini_section_delete_var(cat2, "mode");
+            p = ini_section_get_string(cat2, "host_serial_path", "");
+            if (p[0])
+                ini_section_set_string(cat2, "path", p);
+            p = "serial_passthrough";
+        } else { /* pipe/pty */
+#ifdef _WIN32
+            sprintf(temp, "Named Pipe (COM) #%i", c + 1);
+            ini_rename_section(cat2, temp);
+            if (old_enable || (old_mode >= 0) || cat2)
+                ini_set_int(config, temp, "mode", (old_mode == 1) ? CHAR_PIPE_MODE_CLIENT : CHAR_PIPE_MODE_SERVER);
+            p = ini_section_get_string(cat2, "named_pipe", (old_enable || (old_mode >= 0) || cat2) ? "\\\\.\\pipe\\86Box\\test" : ""); /* use old default path if there's any evidence of passthrough having been enabled */
+            if (p[0])
+                ini_set_string(config, temp, "path", p); /* create section if not present */
+            p = "pipe";
+#else
+            sprintf(temp, "Virtual Console (COM) #%i", c + 1);
+            ini_rename_section(cat2, temp);
+            if (old_enable || (old_mode >= 0) || cat2)
+                ini_set_int(config, temp, "mode", CHAR_STDIO_MODE_PTY);
+            p = "stdio";
+#endif
+        }
 
-        /* The addition of Windows named pipe client mode in v5.3 made a mess of
-           the enum IDs. Migrate the old HOSTSER ID (now TCP_CLNT) to the new one. */
-        if (ini_section_get_int(cat2, "mode", 0) == 3)
-            ini_section_set_int(cat2, "mode", SERPT_MODE_HOSTSER);
+        /* Clean up old serial passthrough device settings. */
+        ini_section_delete_var(cat2, "host_serial_path");
+        ini_section_delete_var(cat2, "named_pipe");
+        ini_section_delete_var(cat2, "data_bits");
+        ini_section_delete_var(cat2, "stop_bits");
+        ini_section_delete_var(cat2, "baudrate");
+
+        /* Migrate old serial passthrough enable. */
+        sprintf(temp, "serial%d_device", c + 1);
+        if (old_enable)
+            ini_section_set_string(cat, temp, p);
+        else
+            p = ini_section_get_string(cat, temp, "none");
+        com_ports[c].device = char_get_from_internal_name(p, DEVICE_COM);
     }
 
     for (int c = 0; c < PARALLEL_MAX; c++) {
@@ -3439,11 +3472,11 @@ save_ports(void)
         else
             ini_section_set_int(cat, temp, com_ports[c].enabled);
 
-        sprintf(temp, "serial%d_passthrough_enabled", c + 1);
-        if (serial_passthrough_enabled[c])
-            ini_section_set_int(cat, temp, 1);
-        else
+        sprintf(temp, "serial%d_device", c + 1);
+        if (com_ports[c].device == 0)
             ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, char_get_device(com_ports[c].device)->internal_name);
     }
 
     for (int c = 0; c < PARALLEL_MAX; c++) {

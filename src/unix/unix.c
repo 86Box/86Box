@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include <pwd.h>
 #include <stdatomic.h>
+#include <spawn.h>
 
 /* Block device ioctl headers */
 #ifdef __linux__
@@ -1777,7 +1778,7 @@ void
 plat_set_thread_name(void *thread, const char *name)
 {
 #ifdef __APPLE__
-    if (thread) /* Apple pthread can only set self's name */
+    if (thread) /* macOS pthread can only set self's name */
         return;
     char truncated[64];
 #elif defined(__NetBSD__)
@@ -1805,6 +1806,68 @@ plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;
+}
+
+int
+plat_run_command(const char *cmd, const char **env, const char *title)
+{
+    /* Append environment variables to the existing environment. */
+    extern char **environ;
+    const char **new_env = NULL;
+    if (env && env[0] && env[0][0]) {
+        int c = 0;
+        while (environ[c])
+            c++;
+        int d = 0;
+        while (env[d] && env[d][0])
+            d++;
+        new_env = (const char **) malloc((c + d + 1) * sizeof(char *));
+        for (c = 0; environ[c]; c++)
+            new_env[c] = environ[c];
+        for (d = 0; env[d] && env[d][0]; d++)
+            new_env[c++] = env[d];
+        new_env[c] = NULL;
+    }
+
+    /* Execute command under a terminal emulator if requested. */
+    int ret;
+    pid_t pid;
+    const char *args[] = {NULL, NULL, NULL, NULL, "/bin/sh", "-c", cmd, NULL};
+    if (title) {
+        /* Set arguments for xdg-terminal-exec. */
+        int len = strlen(title) + 10;
+        args[1] = malloc(len);
+        snprintf((char *) args[1], len, "--title=%s", title);
+        len = strlen(usr_path) + 7;
+        args[2] = malloc(len);
+        snprintf((char *) args[2], len, "--dir=%s", usr_path);
+        args[3] = "--";
+
+        /* Try terminals. */
+        static const char *terminals[] = {"xdg-terminal-exec", "x-terminal-emulator", "xterm", "urxvt", "rxvt"};
+        for (int i = 0; i < (sizeof(terminals) / sizeof(terminals[0])); i++) {
+            args[0] = terminals[i];
+            ret = !posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ);
+            if (len) {
+                /* Set arguments for other terminals. */
+                len = 0;
+                free((void *) args[1]);
+                free((void *) args[2]);
+                args[1] = "-T";
+                args[2] = title;
+                args[3] = "-e";
+            }
+            if (ret)
+                goto end;
+        }
+    }
+
+    /* Execute command directly. */
+    ret = !posix_spawn(&pid, args[4], NULL, NULL, (char * const *) &args[4], new_env ? (char * const *) new_env : (char * const *) environ);
+end:
+    if (new_env)
+        free(new_env);
+    return ret;
 }
 
 void

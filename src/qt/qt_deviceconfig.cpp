@@ -47,12 +47,10 @@ extern "C" {
 #include "qt_filefield.hpp"
 #include "qt_models_common.hpp"
 #include "qt_util.hpp"
-#ifdef Q_OS_LINUX
-#    include <sys/stat.h>
-#    include <sys/sysmacros.h>
-#endif
 #ifdef Q_OS_WINDOWS
+#    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
+#    include <QCollator>
 #endif
 
 device_t *cfg_dev = NULL;
@@ -70,48 +68,45 @@ DeviceConfig::~DeviceConfig()
 }
 
 static QStringList
-EnumerateSerialDevices()
+enumerateSerialDevices()
 {
     QStringList serialDevices;
-    QStringList ttyEntries;
-    QByteArray  devstr(1024, 0);
-#ifdef Q_OS_LINUX
+#ifdef Q_OS_WINDOWS
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DEVICEMAP\\SERIALCOMM", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS) {
+        char  buf[1024];
+        DWORD bufSize;
+        for (int i = 0; bufSize = sizeof(buf), RegEnumValueA(hKey, i, buf, &bufSize, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS; i++) {
+            bufSize = sizeof(buf);
+            if (RegQueryValueExA(hKey, buf, NULL, NULL, (unsigned char *) buf, &bufSize) == ERROR_SUCCESS)
+                serialDevices.push_back(QString(buf));
+        }
+        RegCloseKey(hKey);
+        QCollator collator(QLocale::English); /* https://github.com/keepassxreboot/keepassxc/issues/11813 - also happens on Windows */
+        collator.setNumericMode(true);
+        std::sort(serialDevices.begin(), serialDevices.end(), collator);
+    }
+#elif defined(Q_OS_LINUX)
     QDir class_dir("/sys/class/tty/");
     QDir dev_dir("/dev/");
-    ttyEntries = class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System, QDir::SortFlag::Name);
+    auto ttyEntries = class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System, QDir::SortFlag::Name);
     for (int i = 0; i < ttyEntries.size(); i++) {
-        if (class_dir.exists(ttyEntries[i] + "/device/driver/") && dev_dir.exists(ttyEntries[i])
-            && QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]).isReadable()
-            && QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]).isWritable()) {
-            serialDevices.push_back("/dev/" + ttyEntries[i]);
+        if (class_dir.exists(ttyEntries[i] + "/device/driver/") && dev_dir.exists(ttyEntries[i])) {
+            auto fi = QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]);
+            if (fi.isReadable() && fi.isWritable())
+                serialDevices.push_back(fi.canonicalFilePath());
         }
     }
-#endif
-#ifdef Q_OS_WINDOWS
-    for (int i = 1; i < 256; i++) {
-        devstr[0] = 0;
-        snprintf(devstr.data(), 1024, R"(\\.\COM%d)", i);
-        const auto handle  = CreateFileA(devstr.data(),
-                                         GENERIC_READ | GENERIC_WRITE, 0,
-                                         nullptr, OPEN_EXISTING,
-                                         0, nullptr);
-        const auto dwError = GetLastError();
-        if ((handle != INVALID_HANDLE_VALUE) || (dwError == ERROR_ACCESS_DENIED) ||
-            (dwError == ERROR_GEN_FAILURE) || (dwError == ERROR_SHARING_VIOLATION) ||
-            (dwError == ERROR_SEM_TIMEOUT)) {
-            if (handle != INVALID_HANDLE_VALUE)
-                CloseHandle(handle);
-            serialDevices.push_back(QString(devstr));
-        }
-    }
-#endif
-#ifdef Q_OS_MACOS
+#else
     QDir dev_dir("/dev/");
+#    ifdef Q_OS_DARWIN
     dev_dir.setNameFilters({ "tty.*", "cu.*" });
+#    else
+    dev_dir.setNameFilters({ "tty[a-z]", "tty[0-9a-zA-Z][0-9]*", "cua[0-9a-zA-Z][0-9]*", "dty[0-9a-zA-Z][0-9]*" });
+#    endif
     QDir::Filters serial_dev_flags = QDir::Files | QDir::NoSymLinks | QDir::Readable | QDir::Writable | QDir::NoDotAndDotDot | QDir::System;
-    for (const auto &device : dev_dir.entryInfoList(serial_dev_flags, QDir::SortFlag::Name)) {
+    for (const auto &device : dev_dir.entryInfoList(serial_dev_flags, QDir::SortFlag::Name))
         serialDevices.push_back(device.canonicalFilePath());
-    }
 #endif
     return serialDevices;
 }
@@ -355,12 +350,16 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     cbox->setMaxVisibleItems(30);
                     auto *model         = cbox->model();
                     int   currentIndex  = 0;
-                    auto  serialDevices = EnumerateSerialDevices();
+                    auto  serialDevices = enumerateSerialDevices();
 
                     Models::AddEntry(model, tr("None"), -1);
                     for (int i = 0; i < serialDevices.size(); i++) {
                         const int row = Models::AddEntry(model, serialDevices[i], i);
-                        if (selected == serialDevices[i])
+                        if ((selected == serialDevices[i])
+#ifdef Q_OS_WINDOWS
+                            || (selected.startsWith("\\\\.\\") && (selected.mid(4) == serialDevices[i]))
+#endif
+                            )
                             currentIndex = row;
                     }
 

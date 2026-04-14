@@ -38,6 +38,9 @@ extern void log_set_dev_name(void *priv, char *dev_name);
 #ifndef RELEASE_BUILD
 extern void log_out(void *priv, const char *fmt, va_list);
 extern void log_out_cyclic(void* priv, const char *fmt, va_list);
+#else
+#    define log_out(priv, fmt, ...)
+#    define log_out_cyclic(priv, fmt, ...)
 #endif /*RELEASE_BUILD*/
 extern void log_fatal(void *priv, const char *fmt, ...);
 extern void log_warning(void *priv, const char *fmt, ...);
