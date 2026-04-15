@@ -276,8 +276,8 @@ RendererStack::wheelEvent(QWheelEvent *event)
     }
 
 #if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
-    mouse_set_z((short) event->angleDelta().y());
-    mouse_set_w((short) event->angleDelta().x());
+    mouse_set_z(-((short) event->angleDelta().y()));
+    mouse_set_w(-((short) event->angleDelta().x()));
 #endif
     event->accept();
 }

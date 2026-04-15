@@ -34,10 +34,10 @@
 #include <86box/plat.h>
 #include <86box/plat_unused.h>
 
-#ifdef _WIN32
-#define WHEEL_DELTA 120
-#else
+#if defined(__APPLE__)
 #define WHEEL_DELTA 1
+#else
+#define WHEEL_DELTA 120
 #endif
 
 typedef struct mouse_t {
