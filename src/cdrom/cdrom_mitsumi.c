@@ -522,7 +522,7 @@ static const device_config_t mitsumi_config[] = {
 };
 
 const device_t mitsumi_cdrom_device = {
-    .name          = "Mitsumi CD-ROM interface",
+    .name          = "Mitsumi interface",
     .internal_name = "mcd",
     .flags         = DEVICE_ISA16,
     .local         = 0,

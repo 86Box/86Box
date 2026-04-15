@@ -38,11 +38,6 @@ VMManagerAddMachine::
     setPage(Page_NameAndLocation, new NameAndLocationPage);
     setPage(Page_Conclusion, new ConclusionPage);
 
-    // Need to create a better image
-    // QPixmap originalPixmap(":/assets/86box.png");
-    // QPixmap scaledPixmap = originalPixmap.scaled(150, 150, Qt::KeepAspectRatio);
-    QPixmap wizardPixmap(":/assets/86box-wizard.png");
-
 #ifndef Q_OS_MACOS
     setWizardStyle(ModernStyle);
     setPixmap(LogoPixmap, QPixmap(":assets/addvm-logo.png"));
@@ -186,17 +181,16 @@ WithExistingConfigPage::isComplete() const
 NameAndLocationPage::
     NameAndLocationPage(QWidget *parent)
 {
+#ifdef Q_OS_WINDOWS
+    dirValidate = QRegularExpression(R"(^[^\\/:*?"<>|]+$)");
+#elif defined(Q_OS_MACOS)
+    dirValidate = QRegularExpression(R"(^[^/:]+$)");
+#else
+    dirValidate = QRegularExpression(R"(^[^/]+$)");
+#endif
+
 #ifdef CUSTOM_SYSTEM_LOCATION
     setTitle(tr("System name and location"));
-
-#    if defined(_WIN32)
-    dirValidate = QRegularExpression(R"(^[^\\/:*?"<>|]+$)");
-#    elif defined(__APPLE__)
-    dirValidate = QRegularExpression(R"(^[^/:]+$)");
-#    else
-    dirValidate = QRegularExpression(R"(^[^/]+$)");
-#    endif
-
     setSubTitle(tr("Enter the name of the system and choose the location"));
 #else
     setTitle(tr("System name"));

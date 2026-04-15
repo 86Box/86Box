@@ -37,6 +37,42 @@ extern bool fast_forward;
 static struct sio_hdl* audio[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static struct sio_par  info[7];
 static int             freqs[7] = { SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, SOUND_FREQ, 0 };
+const char *
+sound_get_output_devices(void)
+{
+    static char dev_list[1024];
+    char       *p   = dev_list;
+    size_t      rem = sizeof(dev_list);
+
+    memset(dev_list, 0, sizeof(dev_list));
+
+    for (int i = 0; i < 16; i++) {
+        char           devname[32];
+        struct sio_hdl *hdl;
+        size_t          len;
+
+        snprintf(devname, sizeof(devname), "snd/%d", i);
+        hdl = sio_open(devname, SIO_PLAY, 0);
+        if (hdl == NULL)
+            break; /* devices are numbered consecutively */
+        sio_close(hdl);
+
+        len = strlen(devname) + 1;
+        if (len < rem) {
+            memcpy(p, devname, len);
+            p   += len;
+            rem -= len;
+        }
+    }
+
+    if (p > dev_list) {
+        if (rem > 0)
+            *p = '\0'; /* double-null terminator */
+        return dev_list;
+    }
+    return NULL; /* sndiod not running or no devices */
+}
+
 void
 closeal(void)
 {
@@ -51,8 +87,10 @@ closeal(void)
 void
 inital(void)
 {
+    const char *devname = (sound_output_device[0] != '\0') ? sound_output_device : SIO_DEVANY;
+
     for (int i = 0; i < sizeof(audio) / sizeof(audio[0]); i++) {
-        audio[i] = sio_open(SIO_DEVANY, SIO_PLAY, 0);
+        audio[i] = sio_open(devname, SIO_PLAY, 0);
         if (audio[i] != NULL) {
             int rate;
             int max_frames;
@@ -93,12 +131,12 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     if (sound_is_float) {
         float* input = (float*) buf;
         conv_size = sizeof(int16_t) * size;
-        conv = malloc(conv_size);
+        conv = calloc(1, conv_size);
         for (int i = 0; i < conv_size / sizeof(int16_t); i++)
             conv[i] = 32767 * input[i];
     } else {
         conv_size = size * sizeof(int16_t);
-        conv = malloc(conv_size);
+        conv = calloc(1, conv_size);
         memcpy(conv, buf, conv_size);
     }
 
@@ -106,7 +144,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
 
     output_size = (double) conv_size * target_rate / freq;
     output_size -= output_size % 4;
-    output = malloc(output_size);
+    output = calloc(1, output_size);
     
     for (int i = 0; i < output_size / sizeof(int16_t) / 2; i++) {
         int ind = i * freq / target_rate * 2;

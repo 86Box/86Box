@@ -616,7 +616,7 @@ esdi_callback(void *priv)
                 return;
             }
 
-            if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+            if (dev->rba >= hdd_image_get_last_sector(drive->hdd_num)) {
                 rba_out_of_range(dev);
                 return;
             }
@@ -734,7 +734,7 @@ esdi_callback(void *priv)
                 dev->status_data[2] = drive->sectors & 0xffff;
                 dev->status_data[3] = drive->sectors >> 16;
                 dev->status_data[4] = drive->tracks;
-                dev->status_data[5] = drive->hpc | (drive->spt << 16);
+                dev->status_data[5] = drive->hpc | (drive->spt << 8);
             }
             esdi_mca_log("CMD_GET_DEV_CONFIG %i  %04x %04x %04x %04x %04x %04x\n",
                 drive->sectors,
@@ -1163,7 +1163,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 }
 
 static uint8_t
-esdi_mca_read(int port, void *priv)
+esdi_mca_read(const uint16_t port, void *priv)
 {
     const esdi_t *dev = (esdi_t *) priv;
 
@@ -1173,7 +1173,7 @@ esdi_mca_read(int port, void *priv)
 }
 
 static void
-esdi_mca_write(int port, uint8_t val, void *priv)
+esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
 
@@ -1267,7 +1267,7 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 }
 
 static void
-esdi_integrated_mca_write(int port, uint8_t val, void* priv)
+esdi_integrated_mca_write(const uint16_t port, uint8_t val, void* priv)
 {
     esdi_t* dev = (esdi_t*)priv;
 
@@ -1448,7 +1448,7 @@ esdi_available(void)
 }
 
 const device_t esdi_ps2_device = {
-    .name          = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
+    .name          = "IBM ESDI Fixed Disk Adapter",
     .internal_name = "esdi_mca",
     .flags         = DEVICE_MCA,
     .local         = ESDI_IS_ADAPTER,
@@ -1497,7 +1497,7 @@ Following IBM machines are supported:
 */
 const device_t
 esdi_integrated_device = {
-    .name = "IBM Integrated Fixed Disk and Controller (MCA)",
+    .name = "IBM Integrated Fixed Disk",
     .internal_name = "esdi_integrated_mca",
     .flags = DEVICE_MCA,
     .local = ESDI_IS_INTEGRATED,

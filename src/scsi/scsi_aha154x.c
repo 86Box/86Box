@@ -502,7 +502,7 @@ aha_callback(void *priv)
 }
 
 static uint8_t
-aha_mca_read(int port, void *priv)
+aha_mca_read(const uint16_t port, void *priv)
 {
     const x54x_t *dev = (x54x_t *) priv;
 
@@ -510,7 +510,7 @@ aha_mca_read(int port, void *priv)
 }
 
 static void
-aha_mca_write(int port, uint8_t val, void *priv)
+aha_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     x54x_t *dev = (x54x_t *) priv;
 
@@ -745,11 +745,11 @@ aha_setbios(x54x_t *dev)
     (void) fseek(fp, 0L, SEEK_SET);
 
     /* Load first chunk of BIOS (which is the main BIOS, aka ROM1.) */
-    dev->rom1 = malloc(ROM_SIZE);
+    dev->rom1 = calloc(1, ROM_SIZE);
     (void) !fread(dev->rom1, ROM_SIZE, 1, fp);
     temp -= ROM_SIZE;
     if (temp > 0) {
-        dev->rom2 = malloc(ROM_SIZE);
+        dev->rom2 = calloc(1, ROM_SIZE);
         (void) !fread(dev->rom2, ROM_SIZE, 1, fp);
         temp -= ROM_SIZE;
     } else {
@@ -866,7 +866,7 @@ aha_setmcode(x54x_t *dev)
         free(aha1542cp_pnp_rom);
         aha1542cp_pnp_rom = NULL;
     }
-    aha1542cp_pnp_rom = (uint8_t *) malloc(dev->pnp_len + 7);
+    aha1542cp_pnp_rom = (uint8_t *) calloc(1, dev->pnp_len + 7);
     fseek(fp, dev->pnp_offset, SEEK_SET);
     (void) !fread(aha1542cp_pnp_rom, 4, 1, fp);
     memset(&(aha1542cp_pnp_rom[4]), 0x00, 5);

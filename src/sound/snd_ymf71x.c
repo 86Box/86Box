@@ -266,6 +266,20 @@ ymf71x_reg_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                     case 0x02: /* System Control */
                         ymf71x->regs[0x02] = val;
+                        switch ((ymf71x->regs[0x02] & 0x06) >> 1) { /* Set SBPro DSP version */
+                            case 0x00: /* DSP ver 3.01 */
+                                ymf71x->sb->dsp.opl3sa_dsp_ver = 3;
+                                break;
+                            case 0x01: /* DSP ver 2.01 */
+                                ymf71x->sb->dsp.opl3sa_dsp_ver = 2;
+                                break;
+                            case 0x02: /* DSP ver 1.05 */
+                                ymf71x->sb->dsp.opl3sa_dsp_ver = 1;
+                                break;
+                            case 0x03: /* DSP ver 0.00 */
+                                ymf71x->sb->dsp.opl3sa_dsp_ver = 0;
+                                break;
+                        }
                         break;
                     case 0x03: /* Interrupt Channel Config */
                         ymf71x->regs[0x03] = val;
@@ -675,7 +689,8 @@ ymf71x_init(const device_t *info)
     ymf71x->regs[0x00] = 0xFF;
     ymf71x->regs[0x01] = 0x00;
     ymf71x->regs[0x02] = 0x00;
-    ymf71x->regs[0x03] = 0x69; /* IRQ-A = WSS + OPL3, IRQ-B = SB+MPU401 */
+    ymf71x->regs[0x03] = 0x0f; /* Datasheet specifies 0x69 as default power-on value but this is what the Win9x drivers expect */
+                               /* and the AN430TX BIOS sets this value after writing the PnP resource data */
     ymf71x->regs[0x04] = 0x00;
     ymf71x->regs[0x05] = 0x00;
     ymf71x->regs[0x06] = 0x61; /* DMA-A = WSS Playback, DMA-B = WSS Capture + SBPro */
@@ -712,8 +727,9 @@ ymf71x_init(const device_t *info)
     ymf71x->sb->opl_enabled = 1;
 
     sb_dsp_set_real_opl(&ymf71x->sb->dsp, 1);
-    sb_dsp_init(&ymf71x->sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, ymf71x);
+    sb_dsp_init(&ymf71x->sb->dsp, SBPRO_DSP_301, SB_SUBTYPE_YMF7XX, ymf71x);
     sb_ct1345_mixer_reset(ymf71x->sb);
+    ymf71x->sb->dsp.opl3sa_dsp_ver = 3;
 
     ymf71x->sb->opl_mixer = ymf71x;
     ymf71x->sb->opl_mix   = ymf71x_filter_opl;

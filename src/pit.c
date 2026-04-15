@@ -420,6 +420,15 @@ pit_ctr_get_count(void *data, int counter_id)
     return (uint16_t) ctr->l;
 }
 
+int
+pit_ctr_get_outlevel(void *data, int counter_id)
+{
+    const pit_t *pit = (pit_t *) data;
+    const ctr_t *ctr = &pit->counters[counter_id];
+
+    return (int) ctr->out;
+}
+
 void
 pit_ctr_set_load_func(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count))
 {
@@ -940,18 +949,19 @@ pit_close(void *priv)
 static void *
 pit_init(const device_t *info)
 {
-    pit_t *dev = (pit_t *) malloc(sizeof(pit_t));
+    pit_t *dev = (pit_t *) calloc(1, sizeof(pit_t));
 
     pit_reset(dev);
 
     pit_set_pit_const(dev, PITCONST);
+
+    dev->flags = info->local;
 
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
         timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
         timer_set_delay_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
     }
 
-    dev->flags = info->local;
     dev->dev_priv = NULL;
 
     if (!(dev->flags & PIT_EXT_IO)) {
@@ -1208,6 +1218,11 @@ pit_set_clock(uint32_t clock)
             CGACONST  = (uint64_t) ((cpuclock / (157500000.0 / 88.0)) * (double) (1ULL << 32));
 #endif
         }
+        
+        if (machines[machine].init == machine_xt_ibm5550_init) {
+            PITCONSTD = (cpuclock / 2000000.0); /* CLK input 2.0 MHz */
+            PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+        }
 
         ISACONST = (1ULL << 32ULL);
     }
@@ -1263,6 +1278,7 @@ const pit_intf_t pit_classic_intf = {
     .read            = &pit_read,
     .write           = &pit_write,
     .get_count       = &pit_ctr_get_count,
+    .get_outlevel    = &pit_ctr_get_outlevel,
     .set_gate        = &pit_ctr_set_gate,
     .set_using_timer = &pit_ctr_set_using_timer,
     .set_out_func    = &pit_ctr_set_out_func,

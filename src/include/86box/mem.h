@@ -307,6 +307,7 @@ extern int      read_type;
 
 extern int mem_a20_state;
 extern int mem_a20_alt;
+extern int mem_a20_chipset;
 extern int mem_a20_key;
 
 extern uint8_t  read_mem_b(uint32_t addr);
@@ -462,8 +463,6 @@ extern void mem_remap_top_ex(int kb, uint32_t start);
 extern void mem_remap_top_ex_nomid(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
 extern void mem_remap_top_nomid(int kb);
-
-extern void umc_smram_recalc(uint32_t start, int set);
 
 extern void pcjr_waitstates(void *);
 

@@ -21,7 +21,7 @@
 #    include "qt_updatecheckdialog.hpp"
 #endif
 #include "qt_about.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_util.hpp"
 
 #include <QCloseEvent>
@@ -202,10 +202,19 @@ VMManagerMainWindow::vmmStateChanged(const VMManagerSystem *sysconfig) const
 void
 VMManagerMainWindow::preferencesTriggered()
 {
-    const auto prefs = new VMManagerPreferences();
+    bool machinesRunning = (vmm->getActiveMachineCount() > 0);
+    auto old_vmm_path = QString(vmm_path_cfg);
+    const auto prefs = new VMManagerPreferences(this, machinesRunning);
     if (prefs->exec() == QDialog::Accepted) {
         emit preferencesUpdated();
         updateLanguage();
+
+        auto new_vmm_path = QString(vmm_path_cfg);
+        if (!machinesRunning && (new_vmm_path != old_vmm_path)) {
+            qDebug() << "Machine path changed: old path " << old_vmm_path << ", new path " << new_vmm_path;
+            strncpy(vmm_path, vmm_path_cfg, sizeof(vmm_path));
+            vmm->reload();
+        }
     }
 }
 
@@ -240,8 +249,8 @@ VMManagerMainWindow::saveSettings() const
 void
 VMManagerMainWindow::updateLanguage()
 {
-    ProgSettings::loadTranslators(QCoreApplication::instance());
-    ProgSettings::reloadStrings();
+    Preferences::loadTranslators(QCoreApplication::instance());
+    Preferences::reloadStrings();
     ui->retranslateUi(this);
     setWindowTitle(tr("%1 VM Manager").arg(EMU_NAME));
     emit languageUpdated();
@@ -260,7 +269,7 @@ VMManagerMainWindow::changeEvent(QEvent *event)
 {
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
-        QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+        QApplication::setFont(QFont(Preferences::getUIFont()));
     }
 #endif
     QWidget::changeEvent(event);
@@ -271,7 +280,7 @@ VMManagerMainWindow::closeEvent(QCloseEvent *event)
 {
     int running = vmm->getActiveMachineCount();
     if (running > 0) {
-        QMessageBox warningbox(QMessageBox::Icon::Warning, tr("%1 VM Manager").arg(EMU_NAME), tr("%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?").arg(running), QMessageBox::Yes | QMessageBox::No, this);
+        QMessageBox warningbox(QMessageBox::Icon::Warning, tr("%1 VM Manager").arg(EMU_NAME), tr("%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?", "", running), QMessageBox::Yes | QMessageBox::No, this);
         warningbox.exec();
         if (warningbox.result() == QMessageBox::No) {
             event->ignore();

@@ -76,7 +76,7 @@ typedef struct sis_5591_t {
 } sis_5591_t;
 
 static void
-sis_5591_write(int func, int addr, uint8_t val, void *priv)
+sis_5591_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     const sis_5591_t *dev = (sis_5591_t *) priv;
 
@@ -89,7 +89,7 @@ sis_5591_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_5591_read(int func, int addr, void *priv)
+sis_5591_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const sis_5591_t *dev = (sis_5591_t *) priv;
     uint8_t ret = 0xff;
@@ -105,7 +105,7 @@ sis_5591_read(int func, int addr, void *priv)
 }
 
 static void
-sis_5595_write(int func, int addr, uint8_t val, void *priv)
+sis_5595_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     const sis_5591_t *dev = (sis_5591_t *) priv;
 
@@ -125,7 +125,7 @@ sis_5595_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-sis_5595_read(int func, int addr, void *priv)
+sis_5595_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const sis_5591_t *dev = (sis_5591_t *) priv;
     uint8_t ret = 0xff;

@@ -345,8 +345,8 @@ f82c425_recalctimings(f82c425_t *f82c425)
     disptime             = 651;
     _dispontime          = 640;
     _dispofftime         = disptime - _dispontime;
-    f82c425->dispontime  = (uint64_t) (_dispontime * xt_cpu_multi);
-    f82c425->dispofftime = (uint64_t) (_dispofftime * xt_cpu_multi);
+    f82c425->dispontime  = (uint64_t) (int64_t) (_dispontime * xt_cpu_multi);
+    f82c425->dispofftime = (uint64_t) (int64_t) (_dispofftime * xt_cpu_multi);
 }
 
 /* Draw a row of text. */
@@ -573,9 +573,8 @@ f82c425_poll(void *priv)
 static void *
 f82c425_init(UNUSED(const device_t *info))
 {
-    f82c425_t *f82c425 = malloc(sizeof(f82c425_t));
+    f82c425_t *f82c425 = calloc(1, sizeof(f82c425_t));
 
-    memset(f82c425, 0, sizeof(f82c425_t));
     cga_init(&f82c425->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_f82c425);
 
@@ -584,7 +583,7 @@ f82c425_init(UNUSED(const device_t *info))
     f82c425->vsync_blink = 0x72;
 
     /* 16k video RAM */
-    f82c425->vram = malloc(0x4000);
+    f82c425->vram = calloc(1, 0x4000);
 
     timer_set_callback(&f82c425->cga.timer, f82c425_poll);
     timer_set_p(&f82c425->cga.timer, f82c425);

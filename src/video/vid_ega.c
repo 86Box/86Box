@@ -726,15 +726,15 @@ ega_recalctimings(ega_t *ega)
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 
-    ega->dispontime  = (uint64_t) (_dispontime);
-    ega->dispofftime = (uint64_t) (_dispofftime);
+    ega->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    ega->dispofftime = (uint64_t) (int64_t) (_dispofftime);
     if (ega->dispontime < TIMER_USEC)
         ega->dispontime = TIMER_USEC;
     if (ega->dispofftime < TIMER_USEC)
         ega->dispofftime = TIMER_USEC;
 
     if (ega_type == EGA_TYPE_COMPAQ) {
-        ega->dot_time  = (uint64_t) (ega->dot_clock);
+        ega->dot_time  = (uint64_t) (int64_t) (ega->dot_clock);
         if (ega->dot_time < TIMER_USEC)
             ega->dot_time = TIMER_USEC;
         timer_disable(&ega->dot_timer);
@@ -1437,7 +1437,7 @@ ega_read(uint32_t addr, void *priv)
 void
 ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
-    ega->vram     = malloc(0x40000);
+    ega->vram     = calloc(1, 0x40000);
     ega->vrammask = 0x3ffff;
 
     for (uint16_t c = 0; c < 256; c++) {

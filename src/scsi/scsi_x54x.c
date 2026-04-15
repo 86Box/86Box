@@ -285,7 +285,7 @@ x54x_bios_scsi_command(scsi_device_t *dev, uint8_t *cdb, uint8_t *buf, int len, 
 static uint8_t
 x54x_bios_read_capacity(scsi_device_t *sd, uint8_t *buf, int transfer_size)
 {
-    uint8_t *cdb = (uint8_t *) malloc(12);;
+    uint8_t *cdb = (uint8_t *) calloc(1, 12);
     uint8_t  ret;
 
     memset(cdb, 0, 12);
@@ -302,7 +302,7 @@ x54x_bios_read_capacity(scsi_device_t *sd, uint8_t *buf, int transfer_size)
 static uint8_t
 x54x_bios_inquiry(scsi_device_t *sd, uint8_t *buf, int transfer_size)
 {
-    uint8_t *cdb = (uint8_t *) malloc(12);
+    uint8_t *cdb = (uint8_t *) calloc(1, 12);
     uint8_t  ret;
 
     memset(cdb, 0, 12);
@@ -320,7 +320,7 @@ x54x_bios_inquiry(scsi_device_t *sd, uint8_t *buf, int transfer_size)
 static uint8_t
 x54x_bios_command_08(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
 {
-    uint8_t *rcbuf = (uint8_t *) malloc(8);
+    uint8_t *rcbuf = (uint8_t *) calloc(1, 8);
     uint8_t  ret;
     int      i;
 
@@ -348,7 +348,7 @@ x54x_bios_command_08(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
 static int
 x54x_bios_command_15(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
 {
-    uint8_t *inqbuf = (uint8_t *) malloc(36);
+    uint8_t *inqbuf = (uint8_t *) calloc(1, 36);
     uint8_t *rcbuf;
     uint8_t  ret;
 
@@ -363,7 +363,7 @@ x54x_bios_command_15(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
     buffer[4] = inqbuf[0];
     buffer[5] = inqbuf[1];
 
-    rcbuf = (uint8_t *) malloc(8);
+    rcbuf = (uint8_t *) calloc(1, 8);
     ret   = x54x_bios_read_capacity(sd, rcbuf, transfer_size);
     if (ret) {
         free(rcbuf);
@@ -521,7 +521,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
                 dev->buffer_length = 6;
 
-                buf = (uint8_t *) malloc(6);
+                buf = (uint8_t *) calloc(1, 6);
                 if (cmd->command == 0x08)
                     ret = x54x_bios_command_08(dev, buf, x54x->transfer_size);
                 else
@@ -1352,9 +1352,9 @@ x54x_in(uint16_t port, void *priv)
                             ret = 'P';
                             break;
                     }
-                    ret ^= 1;
                     dev->Geometry++;
                     dev->Geometry &= 0x03;
+                    dev->Status = STAT_IDLE | STAT_INIT;
                 } else
                     ret = 0xff;
                 break;

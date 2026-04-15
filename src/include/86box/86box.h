@@ -288,9 +288,6 @@ extern void reset_screen_size(void);
 extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
 extern void update_mouse_msg(void);
-#if 0
-extern void pc_reload(wchar_t *fn);
-#endif
 extern int  pc_init_roms(void);
 extern int  pc_init_modules(void);
 extern int  pc_init(int argc, char *argv[]);
@@ -306,6 +303,9 @@ extern void pc_send_cab(void);
 extern void pc_run(void);
 extern void pc_start(void);
 extern void pc_onesec(void);
+#ifdef _WIN32
+extern void pc_debug_console(void);
+#endif
 
 extern uint16_t get_last_addr(void);
 
@@ -314,6 +314,9 @@ extern uint16_t get_last_addr(void);
    having to include cpu.h everywhere. */
 extern void sub_cycles(int c);
 extern void resub_cycles(int old_cycles);
+
+extern void sub_cycles_vx0(int c);
+extern void resub_cycles_vx0(int old_cycles);
 
 extern void ack_pause(void);
 extern void do_pause(int p);
@@ -331,7 +334,7 @@ struct accelKey {
 	char desc[64];
 	char seq[64];
 };
-#define NUM_ACCELS 10
+#define NUM_ACCELS 14
 extern struct accelKey acc_keys[NUM_ACCELS];
 extern struct accelKey def_acc_keys[NUM_ACCELS];
 extern int FindAccelerator(const char *name);

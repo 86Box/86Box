@@ -66,6 +66,7 @@
 #include <86box/net_ne2000.h>
 #include <86box/net_pcnet.h>
 #include <86box/net_wd8003.h>
+#include <86box/net_smc_epic100.h>
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
@@ -77,6 +78,11 @@ typedef struct {
     const device_t *device;
 } NETWORK_CARD;
 
+typedef struct net_card_migrate_t {
+    const device_t *device;
+    const char     *old_internal_name;
+} net_card_migrate_t;
+
 static const NETWORK_CARD net_cards[] = {
     // clang-format off
     { &device_none                },
@@ -87,6 +93,8 @@ static const NETWORK_CARD net_cards[] = {
     { &ne1000_compat_device       },
     { &ne2000_compat_8bit_device  },
     { &ne1000_device              },
+    { &ne2000_device              },
+    { &rtl8019as_pnp_device       },
     { &wd8003e_device             },
     { &wd8003eb_device            },
     { &wd8013ebt_device           },
@@ -99,27 +107,36 @@ static const NETWORK_CARD net_cards[] = {
     { &pcnet_am79c961_device      },
     { &de220p_device              },
     { &ne2000_compat_device       },
-    { &ne2000_device              },
     { &pcnet_am79c960_eb_device   },
-    { &rtl8019as_pnp_device       },
     /* MCA */
     { &ethernext_mc_device        },
-    { &wd8003eta_device           },
     { &wd8003ea_device            },
+    { &wd8003eta_device           },
     { &wd8013epa_device           },
     /* VLB */
     { &pcnet_am79c960_vlb_device  },
     /* PCI */
     { &pcnet_am79c973_device      },
     { &pcnet_am79c970a_device     },
-    { &dec_tulip_21140_device     },
     { &dec_tulip_21040_device     },
+    { &dec_tulip_21140_device     },
     { &dec_tulip_device           },
-    { &dec_tulip_21140_vpc_device },
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
+    { &smc_epic100_device         },
     { NULL                        }
     // clang-format on
+};
+
+static const net_card_migrate_t
+net_cards_migrate[] = {
+  // clang-format off
+    /* DECchip 21140 "Tulip FasterNet" */
+    { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip"                },
+    { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip_vpc"            },
+    /* End of table */
+    { .device = NULL,                                           .old_internal_name = ""                               }
+  // clang-format on
 };
 
 netcard_conf_t net_cards_conf[NET_CARD_MAX];
@@ -817,4 +834,18 @@ network_card_get_from_internal_name(char *s)
     }
 
     return 0;
+}
+
+const device_t *
+network_card_get_from_old_internal_name(char *s)
+{
+    int c = 0;
+
+    while (net_cards_migrate[c].device != NULL) {
+        if (!strcmp(net_cards_migrate[c].old_internal_name, s))
+            return net_cards_migrate[c].device;
+        c++;
+    }
+
+    return NULL;
 }

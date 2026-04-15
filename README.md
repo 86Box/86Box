@@ -26,7 +26,7 @@ Minimum system requirements and recommendations
 * Intel Core 2 or AMD Athlon 64 processor or newer
 * Windows version: Windows 7 Service Pack 1 or later
 * Linux version: Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
-* macOS version: macOS High Sierra 10.13 or newer
+* macOS version: macOS 10.14 Mojave or newer
 * 4 GB of RAM or higher
 
 Performance may vary depending on host and guest configuration. Most emulation logic is executed in a single thread. Therefore, systems with greater IPC (instructions per clock) capacity should be able to emulate higher clock speeds.
@@ -87,3 +87,9 @@ We do not charge you for the emulator but donations are still welcome:
 <https://paypal.me/86Box>.
 You can also support the project on Patreon:
 <https://www.patreon.com/86box>.
+
+Acknowledgments
+---------------
+
+### Powered by
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSource)

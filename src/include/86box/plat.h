@@ -157,6 +157,7 @@ extern void     plat_get_system_directory(char *outbuf);
 extern void     plat_set_thread_name(void *thread, const char *name);
 extern void     plat_break(void);
 extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height);
+extern int      plat_run_command(const char *cmd, const char **env, const char *title);
 
 /* Resource management. */
 extern wchar_t *plat_get_string(int id);
@@ -183,6 +184,11 @@ extern void rdisk_reload(uint8_t id);
 extern void mo_eject(uint8_t id);
 extern void mo_mount(uint8_t id, char *fn, uint8_t wp);
 extern void mo_reload(uint8_t id);
+extern void tape_eject(uint8_t id);
+extern void tape_mount(uint8_t id, char *fn, uint8_t wp);
+extern void tape_reload(uint8_t id);
+extern int     plat_is_block_device(const char *path);
+extern int64_t plat_get_block_device_size(const char *path);
 
 /* Other stuff. */
 extern void startblit(void);

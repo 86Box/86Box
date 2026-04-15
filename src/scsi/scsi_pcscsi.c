@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -111,6 +112,7 @@ enum ESPASCMode {
 #define CMD_SELATNS      0x43
 #define CMD_ENSEL        0x44
 #define CMD_DISSEL       0x45
+#define CMD_SELATN3      0x46
 
 #define STAT_DO          0x00
 #define STAT_DI          0x01
@@ -316,11 +318,9 @@ esp_irq(esp_t *dev, int level)
     if (dev->mca) {
         if (level) {
             picintlevel(1 << dev->irq, &dev->irq_state);
-            dev->dma_86c01.mode |= 0x40;
             esp_log("Raising IRQ...\n");
         } else {
             picintclevel(1 << dev->irq, &dev->irq_state);
-            dev->dma_86c01.mode &= ~0x40;
             esp_log("Lowering IRQ...\n");
         }
     } else {
@@ -349,7 +349,12 @@ esp_raise_irq(esp_t *dev)
 {
     if (!(dev->rregs[ESP_RSTAT] & STAT_INT)) {
         dev->rregs[ESP_RSTAT] |= STAT_INT;
-        esp_irq(dev, 1);
+        if (dev->mca) {
+            dev->dma_86c01.status |= 0x01;
+            if (dev->dma_86c01.mode & 0x40)
+                esp_irq(dev, 1);
+        } else
+            esp_irq(dev, 1);
     }
 }
 
@@ -358,6 +363,9 @@ esp_lower_irq(esp_t *dev)
 {
     if (dev->rregs[ESP_RSTAT] & STAT_INT) {
         dev->rregs[ESP_RSTAT] &= ~STAT_INT;
+        if (dev->mca)
+            dev->dma_86c01.status &= ~0x01;
+
         esp_irq(dev, 0);
     }
 }
@@ -482,6 +490,8 @@ esp_transfer_data(esp_t *dev)
             case (CMD_SEL | CMD_DMA):
             case CMD_SELATN:
             case (CMD_SELATN | CMD_DMA):
+            case CMD_SELATN3:
+            case (CMD_SELATN3 | CMD_DMA):
                 /*
                  * Initial incoming data xfer is complete for sequencer command
                  * so raise deferred bus service and function complete interrupt
@@ -679,7 +689,8 @@ esp_hard_reset(esp_t *dev)
 static int
 esp_cdb_ready(esp_t *dev)
 {
-    int len = fifo8_num_used(&dev->cmdfifo) - dev->cmdfifo_cdb_offset;
+    int limit = dev->cmdfifo_cdb_offset + 1;
+    int len = fifo8_num_used(&dev->cmdfifo);
     const uint8_t *pbuf;
     uint32_t n;
     int cdblen;
@@ -688,7 +699,7 @@ esp_cdb_ready(esp_t *dev)
         return 0;
 
     pbuf = fifo8_peek_bufptr(&dev->cmdfifo, len, &n);
-    if (n < len) {
+    if (n < limit) {
         /*
          * In normal use the cmdfifo should never wrap, but include this check
          * to prevent a malicious guest from reading past the end of the
@@ -717,6 +728,7 @@ esp_do_dma(esp_t *dev)
     scsi_device_t *sd  = &scsi_devices[dev->bus][dev->id];
     uint8_t  buf[ESP_CMDFIFO_SZ];
     uint32_t len;
+    int      msg_bytes = 0;
 
     len = esp_get_tc(dev);
 
@@ -745,13 +757,15 @@ esp_do_dma(esp_t *dev)
 
             switch (dev->rregs[ESP_CMD]) {
                 case (CMD_SELATN | CMD_DMA):
-                    if (fifo8_num_used(&dev->cmdfifo) >= 1) {
+                case (CMD_SELATN3 | CMD_DMA):
+                    msg_bytes = (dev->rregs[ESP_CMD] == (CMD_SELATN3 | CMD_DMA)) ? 3 : 1;
+                    if (fifo8_num_used(&dev->cmdfifo) >= msg_bytes) {
                         /* First byte received, switch to command phase */
                         esp_set_phase(dev, STAT_CD);
                         dev->rregs[ESP_RSEQ] = SEQ_CD;
-                        dev->cmdfifo_cdb_offset = 1;
+                        dev->cmdfifo_cdb_offset = msg_bytes;
 
-                        if (fifo8_num_used(&dev->cmdfifo) > 1) {
+                        if (fifo8_num_used(&dev->cmdfifo) > msg_bytes) {
                             /* Process any additional command phase data */
                             esp_do_dma(dev);
                         }
@@ -1042,26 +1056,29 @@ esp_do_nodma(esp_t *dev)
     scsi_device_t *sd  = &scsi_devices[dev->bus][dev->id];
     uint8_t buf[ESP_FIFO_SZ];
     int len;
+    int msg_bytes;
 
     esp_log("No DMA phase=%x.\n", esp_get_phase(dev));
     switch (esp_get_phase(dev)) {
         case STAT_MO:
             switch (dev->rregs[ESP_CMD]) {
                 case CMD_SELATN:
+                case CMD_SELATN3:
                     /* Copy FIFO into cmdfifo */
+                    msg_bytes = (dev->rregs[ESP_CMD] == CMD_SELATN3) ? 3 : 1;
                     len = esp_fifo_pop_buf(dev, buf, fifo8_num_used(&dev->fifo));
                     len = MIN(fifo8_num_free(&dev->cmdfifo), len);
                     esp_log("ESP Message Out CMD SelAtn len=%d.\n", len);
                     fifo8_push_all(&dev->cmdfifo, buf, len);
 
                     esp_log("ESP Message Out CMD SelAtn FIFO num used=%d.\n", fifo8_num_used(&dev->cmdfifo));
-                    if (fifo8_num_used(&dev->cmdfifo) >= 1) {
+                    if (fifo8_num_used(&dev->cmdfifo) >= msg_bytes) {
                         /* First byte received, switch to command phase */
                         esp_set_phase(dev, STAT_CD);
                         dev->rregs[ESP_RSEQ] = SEQ_CD;
-                        dev->cmdfifo_cdb_offset = 1;
+                        dev->cmdfifo_cdb_offset = msg_bytes;
 
-                        if (fifo8_num_used(&dev->cmdfifo) > 1) {
+                        if (fifo8_num_used(&dev->cmdfifo) > msg_bytes) {
                             /* Process any additional command phase data */
                             esp_do_nodma(dev);
                         }
@@ -1138,6 +1155,7 @@ esp_do_nodma(esp_t *dev)
 
                 case (CMD_SEL | CMD_DMA):
                 case (CMD_SELATN | CMD_DMA):
+                case (CMD_SELATN3 | CMD_DMA):
                     /* Copy FIFO into cmdfifo */
                     len = esp_fifo_pop_buf(dev, buf, fifo8_num_used(&dev->fifo));
                     len = MIN(fifo8_num_free(&dev->cmdfifo), len);
@@ -1152,6 +1170,7 @@ esp_do_nodma(esp_t *dev)
 
                 case CMD_SEL:
                 case CMD_SELATN:
+                case CMD_SELATN3:
                     /* FIFO already contain entire CDB: copy to cmdfifo and execute */
                     len = esp_fifo_pop_buf(dev, buf, fifo8_num_used(&dev->fifo));
                     len = MIN(fifo8_num_free(&dev->cmdfifo), len);
@@ -1247,6 +1266,8 @@ esp_command_complete(void *priv, uint32_t status)
         case (CMD_SEL | CMD_DMA):
         case CMD_SELATN:
         case (CMD_SELATN | CMD_DMA):
+        case CMD_SELATN3:
+        case (CMD_SELATN3 | CMD_DMA):
             /*
              * Switch to status phase. For non-DMA transfers from the target the last
              * byte is still in the FIFO
@@ -1501,7 +1522,6 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                 esp_raise_irq(dev);
                 break;
             }
-
             if (val & CMD_DMA) {
                 dev->dma = 1;
                 /* Reload DMA counter.  */
@@ -1564,6 +1584,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     handle_s_without_atn(dev);
                     break;
                 case CMD_SELATN:
+                case CMD_SELATN3:
                     handle_satn(dev);
                     break;
                 case CMD_SELATNS:
@@ -1997,7 +2018,7 @@ esp_bios_disable(esp_t *dev)
 #define EE_ADAPT_OPTION_SCAM_SUPPORT    0x08
 
 static uint8_t
-esp_pci_read(UNUSED(int func), int addr, void *priv)
+esp_pci_read(UNUSED(int func), int addr, int len, void *priv)
 {
     esp_t *dev = (esp_t *) priv;
 
@@ -2006,15 +2027,19 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
     switch (addr) {
         case 0x00:
             // esp_log("ESP PCI: Read DO line = %02x\n", dev->eeprom.out);
-            if (!dev->has_bios || dev->local)
+            if (!dev->has_bios || dev->local) {
+                esp_log("Local=%d.\n", dev->local);
                 return 0x22;
-            else {
-                if (nmc93cxx_eeprom_read(dev->eeprom))
-                    return 0x22;
-                else {
-                    dev->eeprom->dev.out = 1;
-                    return 2;
+            } else {
+                uint8_t ret = 0x22;
+
+                if (len == 1) {
+                    /* First byte of address space is AND-ed with EEPROM DO line */
+                    if (!nmc93cxx_eeprom_read(dev->eeprom))
+                        ret &= 0x00;
                 }
+
+                return ret;
             }
             break;
         case 0x01:
@@ -2084,23 +2109,21 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-esp_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+esp_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     esp_t  *dev = (esp_t *) priv;
     uint8_t valxor;
-    int     eesk;
-    int     eedi;
 
     esp_log("%04X:%08X: ESP PCI: Write value %02X to register %02X\n", CS, cpu_state.pc, val, addr);
 
     if (!dev->local) {
         if ((addr >= 0x80) && (addr <= 0xFF)) {
             if (addr == 0x80) {
-                eesk = val & 0x80 ? 1 : 0;
-                eedi = val & 0x40 ? 1 : 0;
-                nmc93cxx_eeprom_write(dev->eeprom, 1, eesk, eedi);
+                bool eesk = !!(val & 0x80);
+                bool eedi = !!(val & 0x40);
+                nmc93cxx_eeprom_write(dev->eeprom, true, eesk, eedi);
             } else if (addr == 0xc0)
-                nmc93cxx_eeprom_write(dev->eeprom, 0, 0, 0);
+                nmc93cxx_eeprom_write(dev->eeprom, false, false, false);
             // esp_log("ESP PCI: Write value %02X to register %02X\n", val, addr);
             return;
         }
@@ -2297,8 +2320,8 @@ dc390_init(const device_t *info)
         dev->eeprom_data[EE_CHKSUM1] = checksum & 0xff;
         dev->eeprom_data[EE_CHKSUM2] = checksum >> 8;
 
-        params.nwords          = 64;
-        params.default_content = (uint16_t *) dev->eeprom_data;
+        params.type            = NMC_93C46_x16_64;
+        params.default_content = dev->eeprom_data;
         params.filename        = filename;
         snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, dev->eeprom_inst);
         dev->eeprom = device_add_inst_params(&nmc93cxx_device, dev->eeprom_inst, &params);
@@ -2336,14 +2359,13 @@ ncr53c9x_in(uint16_t port, void *priv)
         switch (port) {
             case 0x02:
                 ret = dev->dma_86c01.mode;
+
+                if (ret & 0x40)
+                    dev->dma_86c01.status &= ~0x01;
+
                 break;
 
             case 0x0c:
-                if (dev->dma_86c01.mode & 0x40)
-                    dev->dma_86c01.status |= 0x01;
-                else
-                    dev->dma_86c01.status &= ~0x01;
-
                 if (dev->dma_enabled)
                     dev->dma_86c01.status |= 0x02;
                 else
@@ -2405,7 +2427,7 @@ ncr53c9x_outw(uint16_t port, uint16_t val, void *priv)
 }
 
 static uint8_t
-ncr53c9x_mca_read(int port, void *priv)
+ncr53c9x_mca_read(const uint16_t port, void *priv)
 {
     const esp_t *dev = (esp_t *) priv;
 
@@ -2413,7 +2435,7 @@ ncr53c9x_mca_read(int port, void *priv)
 }
 
 static void
-ncr53c9x_mca_write(int port, uint8_t val, void *priv)
+ncr53c9x_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     esp_t                *dev             = (esp_t *) priv;
     static const uint16_t ncrmca_iobase[] = {
@@ -2490,7 +2512,7 @@ ncr53c9x_mca_init(const device_t *info)
     fifo8_create(&dev->fifo, ESP_FIFO_SZ);
     fifo8_create(&dev->cmdfifo, ESP_CMDFIFO_SZ);
 
-    dev->pos_regs[0] = 0x4d; /* MCA board ID */
+    dev->pos_regs[0] = 0x4f; /* MCA board ID */
     dev->pos_regs[1] = 0x7f;
     mca_add(ncr53c9x_mca_read, ncr53c9x_mca_write, ncr53c9x_mca_feedb, NULL, dev);
 

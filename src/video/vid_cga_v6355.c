@@ -159,18 +159,29 @@ v6355_out(uint16_t addr, uint8_t val, void *priv)
             old = v6355->crtc[v6355->crtcreg];
             v6355->crtc[v6355->crtcreg] = val & crtcmask[v6355->crtcreg];
             if (old != val) {
-                if (v6355->crtcreg < 0xe || v6355->crtcreg > 0x10)
+                if (v6355->crtcreg < 0xe || v6355->crtcreg > 0x10) {
                     v6355_recalctimings(v6355);
+
+                    if (v6355->crtcreg == 3)
+                        update_cga16_color(v6355->cgamode, (v6355->cgacol & 0x0f) |
+                                                           (((v6355->crtc[3] == 0) || (v6355->crtc[3] == 15)) ? 0x80 : 0x00));
+                }
             }
             break;
         case 0x3d8:
             if (((v6355->cgamode ^ val) & 5) != 0) {
                 v6355->cgamode = val;
-                update_cga16_color(v6355->cgamode);
+                update_cga16_color(v6355->cgamode, (v6355->cgacol & 0x0f) |
+                                                   (((v6355->crtc[3] == 0) || (v6355->crtc[3] == 15)) ? 0x80 : 0x00));
             }
             v6355->cgamode = val;
             break;
         case 0x3d9:
+            if (v6355->cgacol ^ val) {
+                v6355->cgacol = val;
+                update_cga16_color(v6355->cgamode, (v6355->cgacol & 0x0f) |
+                                                   (((v6355->crtc[3] == 0) || (v6355->crtc[3] == 15)) ? 0x80 : 0x00));
+            }
             v6355->cgacol = val;
             break;
         case 0x3dd:
@@ -277,8 +288,8 @@ v6355_recalctimings(v6355_t *v6355)
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 #endif
-    v6355->dispontime = (uint64_t)_dispontime;
-    v6355->dispofftime = (uint64_t)_dispofftime;
+    v6355->dispontime = (uint64_t) (int64_t) _dispontime;
+    v6355->dispofftime = (uint64_t) (int64_t) _dispofftime;
 }
 
 /* Overlay the pointer on a line of the display. pixel[] is an array of 640
@@ -900,7 +911,7 @@ v6355_standalone_init(const device_t *info) {
     v6355->display_type = device_get_config_int("display_type");
     v6355->revision = device_get_config_int("composite_type");
 
-    v6355->vram = malloc(0x4000);
+    v6355->vram = calloc(1, 0x4000);
 
     cga_comp_init(v6355->revision);
 
@@ -917,7 +928,7 @@ v6355_standalone_init(const device_t *info) {
     v6355->rgb_type = device_get_config_int("rgb_type");
     cga_palette     = (v6355->rgb_type << 1);
     cgapal_rebuild();
-    update_cga16_color(v6355->cgamode);
+    update_cga16_color(v6355->cgamode, v6355->cgacol);
 
     v6355->double_type = device_get_config_int("double_type");
     cga_interpolate_init();

@@ -155,7 +155,9 @@ fluidsynth_init(UNUSED(const device_t *info))
 {
     fluidsynth_t  *data = &fsdev;
     midi_device_t *dev;
+#ifdef _WIN32
     char           path[4096] = { 0 };
+#endif
 
     memset(data, 0, sizeof(fluidsynth_t));
 
@@ -266,12 +268,12 @@ fluidsynth_init(UNUSED(const device_t *info))
     data->samplerate = (int) samplerate;
     if (sound_is_float) {
         data->buf_size     = (data->samplerate / RENDER_RATE) * 2 * sizeof(float) * BUFFER_SEGMENTS;
-        data->buffer       = malloc(data->buf_size);
+        data->buffer       = calloc(1, data->buf_size);
         data->buffer_int16 = NULL;
     } else {
         data->buf_size     = (data->samplerate / RENDER_RATE) * 2 * sizeof(int16_t) * BUFFER_SEGMENTS;
         data->buffer       = NULL;
-        data->buffer_int16 = malloc(data->buf_size);
+        data->buffer_int16 = calloc(1, data->buf_size);
     }
 
     al_set_midi(data->samplerate, data->buf_size);

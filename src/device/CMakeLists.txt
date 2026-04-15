@@ -13,7 +13,7 @@
 #
 #          Copyright 2020-2021 David Hrdlička.
 #          Copyright 2021      Andreas J. Reichel.
-#          Copyright 2021-2025 Jasmine Iwanek.
+#          Copyright 2021-2026 Jasmine Iwanek.
 #
 
 add_library(dev OBJECT
@@ -45,6 +45,7 @@ add_library(dev OBJECT
     keyboard_at.c
     keyboard_xt.c
     lpt.c
+    lpt_loopback.c
     mouse.c
     mouse_bus.c
     mouse_microtouch_touchscreen.c
@@ -58,7 +59,6 @@ add_library(dev OBJECT
     postcard.c
     radisys_config.c
     serial.c
-    serial_passthrough.c
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c
@@ -83,15 +83,9 @@ if(ISAMEM_BRAT)
     target_compile_definitions(dev PRIVATE USE_ISAMEM_BRAT)
 endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    if(VFIO)
-        include(CheckIncludeFile)
-        check_include_file("linux/vfio.h" VFIO_AVAILABLE)
-        if(VFIO_AVAILABLE)
-            add_compile_definitions(USE_VFIO)
-            target_sources(dev PRIVATE vfio.c)
-        endif()
-    endif()
+if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND VFIO AND VFIO_AVAILABLE)
+    add_compile_definitions(USE_VFIO)
+    target_sources(dev PRIVATE vfio.c)
 endif()
 
 if(LASERXT)

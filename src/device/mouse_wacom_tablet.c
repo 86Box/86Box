@@ -630,7 +630,8 @@ transmit_prepare:
     wacom_transmit_prepare(wacom, x, y);
 
 transmit:
-    serial_write_fifo(wacom->serial, fifo8_pop(&wacom->data));
+    if (wacom->serial)
+        serial_write_fifo(wacom->serial, fifo8_pop(&wacom->data));
     if (fifo8_num_used(&wacom->data) == 0) {
         wacom->old_tsc              = tsc;
     }

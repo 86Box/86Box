@@ -43,6 +43,7 @@
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
+#    include <ws2tcpip.h>
 #else
 #    include <poll.h>
 #endif
@@ -193,11 +194,14 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 
     memcpy(slirp->pkt.data, (uint8_t *) qp, pkt_len);
     slirp->pkt.len = pkt_len;
-    if (slirp->during_tx) {
-        network_rx_on_tx_put_pkt(slirp->card, &slirp->pkt);
-        slirp->recv_on_tx = 1;
-    } else
-        network_rx_put_pkt(slirp->card, &slirp->pkt);
+
+    if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+        if (slirp->during_tx) {
+            network_rx_on_tx_put_pkt(slirp->card, &slirp->pkt);
+            slirp->recv_on_tx = 1;
+        } else
+            network_rx_put_pkt(slirp->card, &slirp->pkt);
+    }
 
     return pkt_len;
 }
@@ -362,8 +366,10 @@ net_slirp_rx_deferred_packets(net_slirp_t *slirp)
     if (slirp->recv_on_tx) {
         do {
             packets = network_rx_on_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-            for (int i = 0; i < packets; i++)
-                 network_rx_put_pkt(slirp->card, &(slirp->pkt_tx_v[i]));
+            if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+                for (int i = 0; i < packets; i++)
+                     network_rx_put_pkt(slirp->card, &(slirp->pkt_tx_v[i]));
+            }
         } while (packets > 0);
         slirp->recv_on_tx = 0;
     }
@@ -403,8 +409,10 @@ net_slirp_thread(void *priv)
                 {
                     slirp->during_tx = 1;
                     int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-                    for (int i = 0; i < packets; i++)
-                        net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+                    if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+                        for (int i = 0; i < packets; i++)
+                            net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+                    }
                     slirp->during_tx = 0;
 
                     net_slirp_rx_deferred_packets(slirp);
@@ -456,8 +464,10 @@ net_slirp_thread(void *priv)
 
             slirp->during_tx = 1;
             int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-            for (int i = 0; i < packets; i++)
-                net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+            if (!(net_cards_conf[slirp->card->card_num].link_state & NET_LINK_DOWN)) {
+                for (int i = 0; i < packets; i++)
+                    net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+            }
             slirp->during_tx = 0;
 
             net_slirp_rx_deferred_packets(slirp);
@@ -484,13 +494,30 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     slirp->pfd      = calloc(1, slirp->pfd_size);
 #endif
 
-    /* Set the IP addresses to use. */
-    struct in_addr  net        = { .s_addr = htonl(0x0a000000 | (slirp_card_num << 8)) }; /* 10.0.x.0 */
-    struct in_addr  mask       = { .s_addr = htonl(0xffffff00) };                         /* 255.255.255.0 */
-    struct in_addr  host       = { .s_addr = htonl(0x0a000002 | (slirp_card_num << 8)) }; /* 10.0.x.2 */
-    struct in_addr  dhcp       = { .s_addr = htonl(0x0a00000f | (slirp_card_num << 8)) }; /* 10.0.x.15 */
-    struct in_addr  dns        = { .s_addr = htonl(0x0a000003 | (slirp_card_num << 8)) }; /* 10.0.x.3 */
-    struct in_addr  bind       = { .s_addr = htonl(0x00000000) };                         /* 0.0.0.0 */
+    struct in_addr net;
+    struct in_addr host;
+    struct in_addr dhcp;
+    struct in_addr dns;
+
+    /* Set the IP addresses to use.
+       Use a configured address if set, otherwise 10.0.x.0 */
+    const char *slirp_net = net_cards_conf[card->card_num].slirp_net;
+    if (slirp_net[0] != '\0') {
+        struct in_addr addr;
+        inet_pton(AF_INET, slirp_net, &addr);
+        net.s_addr = htonl(ntohl(addr.s_addr) & 0xffffff00);
+        host.s_addr = htonl(ntohl(addr.s_addr) + 2);
+        dhcp.s_addr = htonl(ntohl(addr.s_addr) + 15);
+        dns.s_addr = htonl(ntohl(addr.s_addr) + 3);
+    } else {
+        net.s_addr = htonl(0x0a000000 | (slirp_card_num << 8));      /* 10.0.x.0 */
+        host.s_addr = htonl(0x0a000002 | (slirp_card_num << 8));     /* 10.0.x.2 */
+        dhcp.s_addr = htonl(0x0a00000f | (slirp_card_num << 8));     /* 10.0.x.15 */
+        dns.s_addr = htonl(0x0a000003 | (slirp_card_num << 8));      /* 10.0.x.3 */
+    }
+
+    struct in_addr  mask       = { .s_addr = htonl(0xffffff00) };    /* 255.255.255.0 */
+    struct in_addr  bind       = { .s_addr = htonl(0x00000000) };    /* 0.0.0.0 */
 
     const SlirpConfig slirp_config = {
 #if SLIRP_CHECK_VERSION(4, 9, 0)

@@ -61,6 +61,7 @@
 #define CONFIG_FNAME        (1 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_SERPORT      (2 | CONFIG_TYPE_STRING)     /* config_get_string() */
 #define CONFIG_BIOS         (3 | CONFIG_TYPE_STRING)     /* config_get_string() */
+#define CONFIG_VARIANT      CONFIG_BIOS
 
 #define CONFIG_HEX16        (0 | CONFIG_TYPE_HEX16)      /* config_get_hex16() */
 
@@ -77,39 +78,41 @@
 // #define CONFIG_STANDALONE 257      /* not available on the on-board variant */
 
 enum {
-    DEVICE_CASETTE   = 1,          /* requires a Casette Port */
-    DEVICE_SIDECAR   = 2,          /* requires an IBM PCjr */
-    DEVICE_ISA       = 4,          /* requires the ISA bus */
-    DEVICE_XT_KBC    = 8,          /* requires an XT-compatible keyboard controller */
-    DEVICE_CBUS      = 0x10,       /* requires the C-BUS bus */
-    DEVICE_ISA16     = 0x20,       /* requires an AT-compatible system */
-    DEVICE_AT_KBC    = 0x40,       /* requires an AT-compatible keyboard controller */
-    DEVICE_MCA       = 0x80,       /* requires the MCA bus */
-    DEVICE_MCA32     = 0x100,      /* requires the MCA bus */
-    DEVICE_PS2_KBC   = 0x200,      /* requires a PS/1 or PS/2 system */
-    DEVICE_PCMCIA    = 0x400,      /* requires the PCMCIA bus */
-    DEVICE_HIL       = 0x800,      /* requires the HP HIL bus */
-    DEVICE_EISA      = 0x1000,     /* requires the EISA bus */
-    DEVICE_AT32      = 0x2000,     /* requires the Mylex AT/32 local bus */
-    DEVICE_OLB       = 0x4000,     /* requires the OPTi local bus */
-    DEVICE_VLB       = 0x8000,     /* requires the VLB bus */
-    DEVICE_PCI       = 0x10000,    /* requires the PCI bus */
-    DEVICE_CARDBUS   = 0x20000,    /* requires the CardBus bus */
-    DEVICE_USB       = 0x40000,    /* requires the USB bus */
-    DEVICE_AGP       = 0x80000,    /* requires the AGP bus */
-    DEVICE_AC97      = 0x100000,   /* requires the AC'97 bus */
-    DEVICE_BUS       = 0x1fffff,   /* requires a machine bus */
+    DEVICE_CASETTE    = 1,          /* requires a Casette Port */
+    DEVICE_SIDECAR    = 2,          /* requires an IBM PCjr */
+    DEVICE_ISA        = 4,          /* requires the ISA bus */
+    DEVICE_XT_KBC     = 8,          /* requires an XT-compatible keyboard controller */
+    DEVICE_CBUS       = 0x10,       /* requires the C-BUS bus */
+    DEVICE_ISA16      = 0x20,       /* requires an AT-compatible system */
+    DEVICE_AT_KBC     = 0x40,       /* requires an AT-compatible keyboard controller */
+    DEVICE_MCA        = 0x80,       /* requires the MCA bus */
+    DEVICE_MCA32      = 0x100,      /* requires the MCA bus */
+    DEVICE_PS2_KBC    = 0x200,      /* requires a PS/1 or PS/2 system */
+    DEVICE_PCMCIA     = 0x400,      /* requires the PCMCIA bus */
+    DEVICE_HIL        = 0x800,      /* requires the HP HIL bus */
+    DEVICE_EISA       = 0x1000,     /* requires the EISA bus */
+    DEVICE_AT32       = 0x2000,     /* requires the Mylex AT/32 local bus */
+    DEVICE_OLB        = 0x4000,     /* requires the OPTi local bus */
+    DEVICE_VLB        = 0x8000,     /* requires the VLB bus */
+    DEVICE_PCI        = 0x10000,    /* requires the PCI bus */
+    DEVICE_CARDBUS    = 0x20000,    /* requires the CardBus bus */
+    DEVICE_USB        = 0x40000,    /* requires the USB bus */
+    DEVICE_AGP        = 0x80000,    /* requires the AGP bus */
+    DEVICE_AC97       = 0x100000,   /* requires the AC'97 bus */
+    DEVICE_BUS        = 0x1fffff,   /* requires a machine bus */
 
-    DEVICE_COM       = 0x200000,   /* requires a serial port */
-    DEVICE_LPT       = 0x400000,   /* requires a parallel port */
+    DEVICE_COM        = 0x200000,   /* requires a serial port */
+    DEVICE_LPT        = 0x400000,   /* requires a parallel port */
 
-    DEVICE_KBC       = 0x800000,   /* is a keyboard controller */
-    DEVICE_SOFTRESET = 0x1000000,  /* requires to be reset on soft reset */
+    DEVICE_KBC        = 0x800000,   /* is a keyboard controller */
+    DEVICE_SOFTRESET  = 0x1000000,  /* requires to be reset on soft reset */
 
-    DEVICE_ONBOARD   = 0x40000000, /* is on-board */
-    DEVICE_PIT       = 0x80000000, /* device is a PIT */
+    DEVICE_BIOS_ALIAS = 0x2000000,  /* use only BIOS names for aliases */
 
-    DEVICE_ALL       = 0xffffffff  /* match all devices */
+    DEVICE_ONBOARD    = 0x40000000, /* is on-board */
+    DEVICE_PIT        = 0x80000000, /* device is a PIT */
+
+    DEVICE_ALL        = 0xffffffff  /* match all devices */
 };
 
 #define BIOS_NORMAL                      0
@@ -120,6 +123,9 @@ enum {
 #define BIOS_INTEL_AMI                   5
 #define BIOS_INTERLEAVED_INVERT          8
 #define BIOS_HIGH_BIT_INVERT             16
+
+#define BIOS_LIMIT_MIN_MEMORY            0x0100000000000000
+#define BIOS_LIMIT_MAX_MEMORY            0x0200000000000000
 
 typedef struct device_config_selection_t {
     const char *description;
@@ -136,9 +142,10 @@ typedef struct device_config_bios_t {
     const char *name;
     const char *internal_name;
     uint8_t     bios_type;
-    uint8_t     files_no;
+    int8_t      files_no;
     uint32_t    local;
     uint32_t    size;
+    uint64_t    flags;
     void       *dev[2];
     const char *files[9];
 } device_config_bios_t;
@@ -171,6 +178,8 @@ typedef struct _device_ {
     void (*speed_changed)(void *priv);
     void (*force_redraw)(void *priv);
 
+    const char *alias;
+    const char *machine;
     const device_config_t *config;
 } device_t;
 
@@ -185,6 +194,7 @@ extern "C" {
 #endif
 
 extern void  device_init(void);
+extern void  device_video_config_migrate(const device_t *device, const char *old_internal_name, int inst);
 extern void  device_set_context(device_context_t *ctx, const device_t *dev, int inst);
 extern void  device_context(const device_t *dev);
 extern void  device_context_inst(const device_t *dev, int inst);
@@ -200,19 +210,23 @@ extern void  device_add_inst_ex(const device_t *dev, void *priv, int inst);
 extern void  device_add_inst_ex_params(const device_t *dev, void *priv, int inst, void *params);
 extern void *device_get_common_priv(void);
 extern void  device_close_all(void);
+extern void  device_close_by_flags(uint32_t match_flags);
 extern void  device_reset_all(uint32_t match_flags);
 extern void *device_find_first_priv(uint32_t match_flags);
 extern void *device_get_priv(const device_t *dev);
 extern int   device_available(const device_t *dev);
 extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
+extern const char *device_get_bus_name(const device_t *dev);
 extern void  device_get_name(const device_t *dev, int bus, char *name);
 extern int   device_has_config(const device_t *dev);
 
+extern const char *device_get_bios_name(const device_t *dev, const char *internal_name);
 extern uint8_t     device_get_bios_type(const device_t *dev, const char *internal_name);
 extern uint8_t     device_get_bios_num_files(const device_t *dev, const char *internal_name);
 extern uint32_t    device_get_bios_local(const device_t *dev, const char *internal_name);
 extern uint32_t    device_get_bios_file_size(const device_t *dev, const char *internal_name);
+extern uint64_t    device_get_bios_flags(const device_t *dev, const char *internal_name);
 extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, unsigned int file_no);
 
 extern int device_is_valid(const device_t *, int mch);
@@ -229,10 +243,14 @@ extern void        device_set_config_hex16(const char *str, int val);
 extern void        device_set_config_hex20(const char *str, int val);
 extern void        device_set_config_mac(const char *str, int val);
 extern const char *device_get_config_string(const char *name);
+extern void        device_set_config_string(const char *str, const char *val);
 extern int         device_get_instance(void);
 #define device_get_config_bios device_get_config_string
 
 extern const char *device_get_internal_name(const device_t *dev);
+
+extern const char *device_get_alias(const device_t *dev);
+extern const char *device_get_machine(const device_t *dev);
 
 extern int         machine_get_config_int(char *str);
 extern const char *machine_get_config_string(char *str);

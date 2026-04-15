@@ -25,13 +25,15 @@
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
 
 #include "qt_cgasettingsdialog.hpp"
+
+#include "qt_defs.hpp"
 
 extern "C" {
 #include <86box/86box.h>
@@ -190,7 +192,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     status->setSoundMenu(ui->menuSound);
     ui->actionMute_Unmute->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
-    ui->menuEGA_S_VGA_settings->menuAction()->setMenuRole(QAction::NoRole);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
 
@@ -729,56 +730,8 @@ MainWindow::MainWindow(QWidget *parent)
         if (action == ui->action4_3_Integer_scale_gl)
             video_gl_input_scale_mode = FULLSCR_SCALE_INT43;
     });
-    switch (video_grayscale) {
-        default:
-            break;
-        case 0:
-            ui->actionRGB_Color->setChecked(true);
-            break;
-        case 1:
-            ui->actionRGB_Grayscale->setChecked(true);
-            break;
-        case 2:
-            ui->actionAmber_monitor->setChecked(true);
-            break;
-        case 3:
-            ui->actionGreen_monitor->setChecked(true);
-            break;
-        case 4:
-            ui->actionWhite_monitor->setChecked(true);
-            break;
-    }
-    actGroup = new QActionGroup(this);
-    actGroup->addAction(ui->actionRGB_Grayscale);
-    actGroup->addAction(ui->actionAmber_monitor);
-    actGroup->addAction(ui->actionGreen_monitor);
-    actGroup->addAction(ui->actionWhite_monitor);
-    actGroup->addAction(ui->actionRGB_Color);
-    switch (video_graytype) {
-        default:
-            break;
-        case 0:
-            ui->actionBT601_NTSC_PAL->setChecked(true);
-            break;
-        case 1:
-            ui->actionBT709_HDTV->setChecked(true);
-            break;
-        case 2:
-            ui->actionAverage->setChecked(true);
-            break;
-    }
-    actGroup = new QActionGroup(this);
-    actGroup->addAction(ui->actionBT601_NTSC_PAL);
-    actGroup->addAction(ui->actionBT709_HDTV);
-    actGroup->addAction(ui->actionAverage);
     if (force_43 > 0) {
         ui->actionForce_4_3_display_ratio->setChecked(true);
-    }
-    if (enable_overscan > 0) {
-        ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan->setChecked(true);
-    }
-    if (vid_cga_contrast > 0) {
-        ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
     if (do_auto_pause > 0) {
         ui->actionAuto_pause->setChecked(true);
@@ -936,7 +889,7 @@ MainWindow::closeEvent(QCloseEvent *event)
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_exit);
 
-        QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
+        QObject::connect(chkbox, &QCheckBox::CHECK_STATE_CHANGED, [](int state) {
             confirm_exit = (state == Qt::CheckState::Unchecked);
         });
         questionbox.exec();
@@ -979,7 +932,6 @@ MainWindow::closeEvent(QCloseEvent *event)
     }
 
     qt_nvr_save();
-    config_save();
     QApplication::processEvents();
     cpu_thread_run = 0;
     event->accept();
@@ -1018,6 +970,18 @@ MainWindow::updateShortcuts()
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionTake_screenshot->setShortcut(seq);
 
+    accID = FindAccelerator("raw_screenshot");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionTake_raw_screenshot->setShortcut(seq);
+
+    accID = FindAccelerator("copy_screenshot");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionCopy_screenshot->setShortcut(seq);
+
+    accID = FindAccelerator("copy_raw_screenshot");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionCopy_raw_screenshot->setShortcut(seq);
+
     accID = FindAccelerator("send_ctrl_alt_del");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionCtrl_Alt_Del->setShortcut(seq);
@@ -1029,6 +993,10 @@ MainWindow::updateShortcuts()
     accID = FindAccelerator("hard_reset");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionHard_Reset->setShortcut(seq);
+
+    accID = FindAccelerator("fast_forward");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionFast_forward->setShortcut(seq);
 
     accID = FindAccelerator("fullscreen");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
@@ -1198,18 +1166,16 @@ void
 MainWindow::on_actionHard_Reset_triggered()
 {
     if (confirm_reset) {
-        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::NoButton, this);
-        questionbox.addButton(tr("Reset"), QMessageBox::AcceptRole);
-        questionbox.addButton(tr("Don't reset"), QMessageBox::RejectRole);
-        const auto chkbox = new QCheckBox(tr("Don't show this message again"));
+        QMessageBox questionbox(QMessageBox::Icon::Question, EMU_NAME, tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::Yes | QMessageBox::No, this);
+        const auto chkbox    = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_reset);
 
-        QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
+        QObject::connect(chkbox, &QCheckBox::CHECK_STATE_CHANGED, [](int state) {
             confirm_reset = (state == Qt::CheckState::Unchecked);
         });
         questionbox.exec();
-        if (questionbox.result() == QDialog::Accepted) {
+        if (questionbox.result() == QMessageBox::No) {
             confirm_reset = true;
             return;
         }
@@ -1243,6 +1209,12 @@ MainWindow::on_actionExit_triggered()
 }
 
 void
+MainWindow::emitVmmSignal()
+{
+    emit vmmConfigurationChanged();
+}
+
+void
 MainWindow::on_actionSettings_triggered()
 {
     const int currentPause = dopause;
@@ -1261,9 +1233,16 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Accepted:
             settings.save();
             config_changed = 2;
-            updateShortcuts();
             emit vmmConfigurationChanged();
             pc_reset_hard();
+            video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+            config_save();
+            reset_screen_size();
+            device_force_redraw();
+            for (int i = 0; i < MONITORS_NUM; i++) {
+                if (monitors[i].target_buffer)
+                    video_force_resize_set_monitor(1, i);
+            }
             break;
         case QDialog::Rejected:
             break;
@@ -1494,7 +1473,7 @@ MainWindow::on_actionFullscreen_triggered()
     }
     fs_on_signal  = false;
     fs_off_signal = false;
-    ui->stackedWidget->onResize(width(), height());
+    ui->stackedWidget->onResize(ui->stackedWidget->width(), ui->stackedWidget->height());
 }
 
 void
@@ -1550,6 +1529,18 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot")) {
                 ui->actionTake_screenshot->trigger();
             }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("raw_screenshot")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("raw_screenshot")) {
+                ui->actionTake_raw_screenshot->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("copy_screenshot")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("copy_screenshot")) {
+                ui->actionCopy_screenshot->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("copy_raw_screenshot")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("copy_raw_screenshot")) {
+                ui->actionCopy_raw_screenshot->trigger();
+            }
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen")) {
                 ui->actionFullscreen->trigger();
@@ -1557,6 +1548,10 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset")) {
                 ui->actionHard_Reset->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fast_forward")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fast_forward")) {
+                ui->actionFast_forward->trigger();
             }
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_del")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_del")) {
@@ -1812,12 +1807,6 @@ video_toggle_option(QAction *action, int *val)
 }
 
 void
-MainWindow::on_actionInverted_VGA_monitor_triggered()
-{
-    video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
-}
-
-void
 MainWindow::on_actionForce_interpretation_triggered()
 {
     cpu_force_interpreter ^= 1;
@@ -1990,83 +1979,6 @@ MainWindow::on_actionFullScreen_int43_triggered()
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43);
 }
 
-static void
-update_greyscale_checkboxes(Ui::MainWindow *ui, QAction *selected, int value)
-{
-    ui->actionRGB_Color->setChecked(ui->actionRGB_Color == selected);
-    ui->actionRGB_Grayscale->setChecked(ui->actionRGB_Grayscale == selected);
-    ui->actionAmber_monitor->setChecked(ui->actionAmber_monitor == selected);
-    ui->actionGreen_monitor->setChecked(ui->actionGreen_monitor == selected);
-    ui->actionWhite_monitor->setChecked(ui->actionWhite_monitor == selected);
-
-    startblit();
-    video_grayscale = value;
-    video_copy      = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
-    endblit();
-    device_force_redraw();
-    config_save();
-}
-
-void
-MainWindow::on_actionRGB_Color_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionRGB_Color, 0);
-}
-
-void
-MainWindow::on_actionRGB_Grayscale_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionRGB_Grayscale, 1);
-}
-
-void
-MainWindow::on_actionAmber_monitor_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionAmber_monitor, 2);
-}
-
-void
-MainWindow::on_actionGreen_monitor_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionGreen_monitor, 3);
-}
-
-void
-MainWindow::on_actionWhite_monitor_triggered()
-{
-    update_greyscale_checkboxes(ui, ui->actionWhite_monitor, 4);
-}
-
-static void
-update_greyscale_type_checkboxes(Ui::MainWindow *ui, QAction *selected, int value)
-{
-    ui->actionBT601_NTSC_PAL->setChecked(ui->actionBT601_NTSC_PAL == selected);
-    ui->actionBT709_HDTV->setChecked(ui->actionBT709_HDTV == selected);
-    ui->actionAverage->setChecked(ui->actionAverage == selected);
-
-    video_graytype = value;
-    device_force_redraw();
-    config_save();
-}
-
-void
-MainWindow::on_actionBT601_NTSC_PAL_triggered()
-{
-    update_greyscale_type_checkboxes(ui, ui->actionBT601_NTSC_PAL, 0);
-}
-
-void
-MainWindow::on_actionBT709_HDTV_triggered()
-{
-    update_greyscale_type_checkboxes(ui, ui->actionBT709_HDTV, 1);
-}
-
-void
-MainWindow::on_actionAverage_triggered()
-{
-    update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
-}
-
 void
 MainWindow::on_actionAbout_Qt_triggered()
 {
@@ -2087,24 +1999,6 @@ MainWindow::on_actionDocumentation_triggered()
 }
 
 void
-MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered()
-{
-    update_overscan = 1;
-    video_toggle_option(ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan, &enable_overscan);
-}
-
-void
-MainWindow::on_actionChange_contrast_for_monochrome_display_triggered()
-{
-    startblit();
-    vid_cga_contrast ^= 1;
-    for (int i = 0; i < MONITORS_NUM; i++)
-        cgapal_rebuild_monitor(i);
-    config_save();
-    endblit();
-}
-
-void
 MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
@@ -2117,6 +2011,7 @@ MainWindow::on_actionForce_4_3_display_ratio_triggered()
                 renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
         }
     }
+    config_save();
 }
 
 void
@@ -2163,6 +2058,7 @@ MainWindow::on_actionRemember_size_and_position_triggered()
         }
     }
     ui->actionRemember_size_and_position->setChecked(window_remember);
+    config_save();
 }
 
 void
@@ -2183,6 +2079,7 @@ MainWindow::on_actionHiDPI_scaling_triggered()
         if (renderers[i])
             emit resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
     }
+    config_save();
 }
 
 void
@@ -2207,6 +2104,7 @@ MainWindow::on_actionHide_status_bar_triggered()
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
+    config_save();
 }
 
 void
@@ -2228,6 +2126,7 @@ MainWindow::on_actionHide_tool_bar_triggered()
         if (vid_resize == 1)
             setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
+    config_save();
 }
 
 void
@@ -2238,6 +2137,8 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
 
     /* Prevent icons staying when disabled during activity. */
     status->clearActivity();
+
+    config_save();
 }
 
 void
@@ -2350,9 +2251,23 @@ MainWindow::updateStatusEmptyIcons()
 void
 MainWindow::on_actionPreferences_triggered()
 {
-    ProgSettings progsettings(this);
-    if (progsettings.exec() == QDialog::Accepted) {
-        emit vmmGlobalConfigurationChanged();
+    Preferences preferences(this);
+    preferences.setModal(true);
+    preferences.setWindowModality(Qt::WindowModal);
+    preferences.setWindowFlag(Qt::CustomizeWindowHint, true);
+    preferences.setWindowFlag(Qt::WindowTitleHint, true);
+    preferences.setWindowFlag(Qt::WindowSystemMenuHint, false);
+    preferences.exec();
+
+    switch (preferences.result()) {
+        default:
+            break;
+        case QDialog::Accepted:
+            updateShortcuts();
+            emit vmmGlobalConfigurationChanged();
+            break;
+        case QDialog::Rejected:
+            break;
     }
 }
 
@@ -2370,6 +2285,7 @@ MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
         discordupdate.stop();
     }
 #endif
+    config_save();
 }
 
 void
@@ -2397,7 +2313,7 @@ MainWindow::changeEvent(QEvent *event)
 #ifdef Q_OS_WINDOWS
     if (event->type() == QEvent::LanguageChange) {
         auto size = this->centralWidget()->size();
-        QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+        QApplication::setFont(Preferences::getUIFont());
         QApplication::processEvents();
         main_window->centralWidget()->setFixedSize(size);
         QApplication::processEvents();
@@ -2438,6 +2354,7 @@ MainWindow::on_actionRenderer_options_triggered()
                     if (renderers[i] && renderers[i]->hasOptions())
                         renderers[i]->reloadOptions();
                 }
+            config_save();
         } else if (reload_renderers && ui->stackedWidget->reloadRendererOption()) {
             reload_renderers = false;
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
@@ -2493,6 +2410,7 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
             }
         }
     }
+    config_save();
 }
 
 void

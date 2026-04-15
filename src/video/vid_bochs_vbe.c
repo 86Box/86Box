@@ -39,6 +39,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 
@@ -628,7 +629,7 @@ bochs_vbe_in(uint16_t addr, void *priv)
 }
 
 static uint8_t
-bochs_vbe_pci_read(const int func, const int addr, void *priv)
+bochs_vbe_pci_read(const int func, const int addr, UNUSED(const int len), void *priv)
 {
     const bochs_vbe_t *dev = (bochs_vbe_t *) priv;
     uint8_t            ret = 0x00;
@@ -711,7 +712,7 @@ bochs_vbe_disable_handlers(bochs_vbe_t *dev)
 }
 
 static void
-bochs_vbe_pci_write(const int func, const int addr, const uint8_t val, void *priv)
+bochs_vbe_pci_write(const int func, const int addr, UNUSED(const int len), const uint8_t val, void *priv)
 {
     bochs_vbe_t *dev = (bochs_vbe_t *) priv;
 

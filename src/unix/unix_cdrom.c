@@ -32,6 +32,7 @@
 #include <86box/cdrom_image.h>
 #include <86box/mo.h>
 #include <86box/rdisk.h>
+#include <86box/scsi_tape.h>
 #include <86box/scsi_disk.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -239,6 +240,58 @@ rdisk_reload(uint8_t id)
     }
 
     ui_sb_update_tip(SB_RDISK | id);
+
+    config_save();
+}
+
+
+void
+tape_eject(uint8_t id)
+{
+    tape_t *dev = (tape_t *) tape_drives[id].priv;
+
+    tape_disk_close(dev);
+    if (tape_drives[id].bus_type) {
+        /* Signal disk change to the emulated machine. */
+        tape_insert(dev);
+    }
+
+    ui_sb_update_icon_state(SB_TAPE | id, 1);
+
+    ui_sb_update_tip(SB_TAPE | id);
+
+    config_save();
+}
+
+void
+tape_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    tape_t *dev = (tape_t *) tape_drives[id].priv;
+
+    tape_disk_close(dev);
+    tape_drives[id].read_only = wp;
+    tape_load(dev, fn, 0);
+
+    ui_sb_update_icon_state(SB_TAPE | id, strlen(tape_drives[id].image_path) ? 0 : 1);
+
+    ui_sb_update_tip(SB_TAPE | id);
+
+    config_save();
+}
+
+void
+tape_reload(uint8_t id)
+{
+    tape_t *dev = (tape_t *) tape_drives[id].priv;
+
+    tape_disk_reload(dev);
+    if (strlen(tape_drives[id].image_path) == 0) {
+        ui_sb_update_icon_state(SB_TAPE | id, 1);
+    } else {
+        ui_sb_update_icon_state(SB_TAPE | id, 0);
+    }
+
+    ui_sb_update_tip(SB_TAPE | id);
 
     config_save();
 }

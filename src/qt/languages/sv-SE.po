@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
+"Language: sv-SE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: sv_SE\n"
 "X-Source-Language: en_US\n"
 
@@ -138,53 +144,45 @@ msgstr "&Skala till heltal"
 msgid "4:&3 Integer scale"
 msgstr "Skala till heltal i 4:&3"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGA-inställningar"
+msgid "Inverted VGA monitor"
+msgstr "Inverterad VGA-skärm"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Inverterad VGA-skärm"
+msgid "VGA screen type:"
+msgstr "Skärmtyp för VGA:"
 
-msgid "VGA screen &type"
-msgstr "Skärmtyp för &VGA"
-
-msgid "RGB &Color"
-msgstr "RGB &färg"
+msgid "RGB Color"
+msgstr "RGB färg"
 
 msgid "RGB (no brown)"
 msgstr "RGB (utan brunt)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB gråskala"
+msgid "RGB Grayscale"
+msgstr "RGB gråskala"
 
 msgid "Generic RGBI color monitor"
 msgstr "Allmän RGBI färgskärm"
 
-msgid "&Amber monitor"
-msgstr "&Bärnstensfärgad skärm"
+msgid "Amber monitor"
+msgstr "Bärnstensfärgad skärm"
 
-msgid "&Green monitor"
-msgstr "&Grön skärm"
+msgid "Green monitor"
+msgstr "Grön skärm"
 
-msgid "&White monitor"
-msgstr "&Vit skärm"
+msgid "White monitor"
+msgstr "Vit skärm"
 
-msgid "Grayscale &conversion type"
-msgstr "Konverteringstyp till &gråskala"
+msgid "Grayscale conversion type:"
+msgstr "Konverteringstyp till gråskala:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Genomsnittlig"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+#, fuzzy
+msgid "Overscan"
+msgstr "Överskanning"
 
-msgid "&Average"
-msgstr "&Genomsnittlig"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA överskanning"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Ändra kontrast för &svartvita skärmar"
+msgid "Change contrast for monochrome display"
+msgstr "Ändra kontrast för svartvita skärmar"
 
 msgid "&Media"
 msgstr "&Media"
@@ -204,14 +202,26 @@ msgstr "&Uppdatera statusfältets ikoner"
 msgid "Take s&creenshot"
 msgstr "Tag s&kärmbild"
 
+msgid "Take screenshot"
+msgstr "Tag skärmbild"
+
 msgid "Take &raw screenshot"
 msgstr "Tag &rå skärmbild"
 
+msgid "Take raw screenshot"
+msgstr "Tag rå skärmbild"
+
 msgid "C&opy screenshot"
+msgstr "&Kopiera skärmbild"
+
+msgid "Copy screenshot"
 msgstr "Kopiera skärmbild"
 
 msgid "Copy r&aw screenshot"
 msgstr "Kopera r&å skärmbild"
+
+msgid "Copy raw screenshot"
+msgstr "Kopera rå skärmbild"
 
 msgid "S&ound"
 msgstr "L&jud"
@@ -333,8 +343,32 @@ msgstr "Höjd:"
 msgid "Lock to this size"
 msgstr "Lås till denna storlek"
 
+msgid "General"
+msgstr "Allmänt"
+
+msgid "Processor"
+msgstr "Processor"
+
+msgid "Performance"
+msgstr "Prestanda"
+
 msgid "Machine type:"
 msgstr "Maskintyp:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
 
 msgid "Machine:"
 msgstr "Maskin:"
@@ -354,8 +388,14 @@ msgstr "Hastighet:"
 msgid "Frequency:"
 msgstr "Frekvens:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "Flyttalsprocessor:"
+
+msgid "Internal"
+msgstr "Integrerad"
 
 msgid "Wait states:"
 msgstr "Väntcykler:"
@@ -378,6 +418,9 @@ msgstr "Aktiverad (lokal tid)"
 msgid "Enabled (UTC)"
 msgstr "Aktiverad (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Använd 486-tolken för 286- och 386-processorer"
+
 msgid "Dynamic Recompiler"
 msgstr "Dynamisk omkompilering"
 
@@ -395,6 +438,9 @@ msgstr "Bildskärmskort:"
 
 msgid "Video #2:"
 msgstr "Bildskärmskort #2:"
+
+msgid "Monitor"
+msgstr "Skärm"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 eller 2-grafik"
@@ -465,8 +511,8 @@ msgstr "Fristående MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Använd FLOAT32-ljud"
 
-msgid "FM synth driver"
-msgstr "Drivrutin för FM-synt"
+msgid "FM synth driver:"
+msgstr "Drivrutin för FM-synt:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (mer exakt)"
@@ -474,56 +520,8 @@ msgstr "Nuked (mer exakt)"
 msgid "YMFM (faster)"
 msgstr "YMFM (snabbare)"
 
-msgid "COM1 Device:"
-msgstr "COM1-enhet:"
-
-msgid "COM2 Device:"
-msgstr "COM2-enhet:"
-
-msgid "COM3 Device:"
-msgstr "COM3-enhet:"
-
-msgid "COM4 Device:"
-msgstr "COM4-enhet:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1-enhet:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2-enhet:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3-enhet:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4-enhet:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "Intern LPT ECP DMA:"
-
-msgid "Serial port 1"
-msgstr "Serieport 1"
-
-msgid "Serial port 2"
-msgstr "Serieport 2"
-
-msgid "Serial port 3"
-msgstr "Serieport 3"
-
-msgid "Serial port 4"
-msgstr "Serieport 4"
-
-msgid "Parallel port 1"
-msgstr "Parallellport 1"
-
-msgid "Parallel port 2"
-msgstr "Parallellport 2"
-
-msgid "Parallel port 3"
-msgstr "Parallellport 3"
-
-msgid "Parallel port 4"
-msgstr "Parallellport 4"
 
 msgid "Floppy disk controller:"
 msgstr "Styrenhet för diskett:"
@@ -531,11 +529,50 @@ msgstr "Styrenhet för diskett:"
 msgid "CD-ROM controller:"
 msgstr "Styrenhet för CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Tertiär IDE-kontroller"
+msgid "Mitsumi interface"
+msgstr ""
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Kvartär IDE-kontroller"
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "IDE-styrenhet"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
+msgid "Tertiary IDE Controller"
+msgstr "Tertiär IDE-kontroller"
+
+msgid "Quaternary IDE Controller"
+msgstr "Kvartär IDE-kontroller"
 
 msgid "Hard disk controllers"
 msgstr "Hårddiskkontroller"
@@ -563,6 +600,9 @@ msgstr "Hårddiskar:"
 
 msgid "Firmware Version"
 msgstr "Firmware-version"
+
+msgid "DSP Version"
+msgstr "DSP-version"
 
 msgid "&New…"
 msgstr "&Ny…"
@@ -603,8 +643,8 @@ msgstr "Avbildningsformat:"
 msgid "Block Size:"
 msgstr "Blockstorlek:"
 
-msgid "Floppy drives:"
-msgstr "Diskettenhet:"
+msgid "Floppy drives"
+msgstr "Diskettenhet"
 
 msgid "Turbo timings"
 msgstr "Turbo timings"
@@ -612,23 +652,26 @@ msgstr "Turbo timings"
 msgid "Check BPB"
 msgstr "Kontrollera BPB"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROM-enheter:"
+msgid "CD-ROM drives"
+msgstr "CD-ROM-enheter"
 
-msgid "MO drives:"
-msgstr "MO-enheter:"
+msgid "MO drives"
+msgstr "MO-enheter"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Enheter för flyttbara diskar"
+
 msgid "Removable disks:"
 msgstr "Flyttbara diskar:"
 
-msgid "Removable disk drives:"
-msgstr "Enheter för flyttbara diskar:"
+msgid "Tape drives"
+msgstr "Bandenhet"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Bandenhet:"
 
 msgid "ISA RTC:"
 msgstr "ISA realtidsklocka:"
@@ -686,6 +729,15 @@ msgstr "&Flyttbar disk %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Flyttbara disk-avbildningar"
+
+msgid "Tape %1 (%2): %3"
+msgstr "Band %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Band %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Band-avbildningar"
 
 msgid "Image %1"
 msgstr "Avbildning %1"
@@ -750,8 +802,14 @@ msgstr "Portar (COM & LPT)"
 msgid "Ports"
 msgstr "Portar"
 
+msgid "Serial ports"
+msgstr "Serieportar"
+
 msgid "Serial ports:"
 msgstr "Serieportar:"
+
+msgid "Parallel ports"
+msgstr "Parallelportar"
 
 msgid "Parallel ports:"
 msgstr "Parallelportar:"
@@ -798,14 +856,8 @@ msgstr "Buss"
 msgid "File"
 msgstr "Fil"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Geometri"
 
 msgid "KB"
 msgstr "KB"
@@ -1008,15 +1060,6 @@ msgstr "%1 krävs för automatisk omvandling av PCL-filer till PDF.\n\nAlla doku
 msgid "Don't show this message again"
 msgstr "Visa inte detta meddelande igen"
 
-msgid "Don't exit"
-msgstr "Avsluta inte"
-
-msgid "Reset"
-msgstr "Starta om"
-
-msgid "Don't reset"
-msgstr "Starta inte om"
-
 msgid "CD-ROM images"
 msgstr "CD-ROM-avbildningar"
 
@@ -1137,8 +1180,8 @@ msgstr "Kunde inte läsa den valda konfigurationsfilen: %1"
 msgid "Use regular expressions in search box"
 msgstr "Använd vanliga uttryck i sökfältet"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 maskin(er) är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n maskin(er) är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
 
 msgid "Add new system wizard"
 msgstr "Guiden Lägg till nytt system"
@@ -1220,9 +1263,6 @@ msgstr "Ange nytt visningsnamn (tom för att återställa)"
 
 msgid "Change &display name…"
 msgstr "Ändra &visningsnamn…"
-
-msgid "Context Menu"
-msgstr "Innehållsmeny"
 
 msgid "&Open folder…"
 msgstr "&Öppna mapp…"
@@ -1524,9 +1564,6 @@ msgstr "DMF (kluster 2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1568,6 +1605,9 @@ msgstr "1.5% under perfekt varv/min"
 
 msgid "2% below perfect RPM"
 msgstr "2& under perfekt varm/min"
+
+msgid "Creating image…"
+msgstr "Skapar avbildning…"
 
 msgid "(System Default)"
 msgstr "(Systemstandard)"
@@ -1650,8 +1690,8 @@ msgstr "&Pekare/puck"
 msgid "&Pen"
 msgstr "P&enna"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Värdenhet för CD/DVD (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Värdenhet för CD/DVD (%1)"
 
 msgid "&Connected"
 msgstr "&Ansluten"
@@ -1746,17 +1786,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Nätverkskort #1"
+msgid "Adapter 1"
+msgstr "Adapter 1"
 
-msgid "Network Card #2"
-msgstr "Nätverkskort #2"
+msgid "Adapter 2"
+msgstr "Adapter 2"
 
-msgid "Network Card #3"
-msgstr "Nätverkskort #3"
+msgid "Adapter 3"
+msgstr "Adapter 3"
 
-msgid "Network Card #4"
-msgstr "Nätverkskort #4"
+msgid "Adapter 4"
+msgstr "Adapter 4"
 
 msgid "Mode:"
 msgstr "Läge:"
@@ -1771,25 +1811,13 @@ msgid "VDE Socket:"
 msgstr "VDE-sockel:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP-bryggaenhet:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box enhetsprövare"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x nyckelkort"
-
-msgid "Serial port passthrough 1"
-msgstr "Serieport passthrough 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Serieport passthrough 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Serieport passthrough 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Serieport passthrough 4"
 
 msgid "Renderer &options…"
 msgstr "Renderingsalternativ…"
@@ -1845,8 +1873,8 @@ msgstr "3M MicroTouch (serie)"
 msgid "Default Baud rate"
 msgstr "Standard Baudhastighet"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standard Hayes-kompatibelt modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standard Hayes-kompatibelt modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 emulering"
@@ -1940,6 +1968,9 @@ msgstr "BIOS-version"
 
 msgid "BIOS Language"
 msgstr "BIOS-språk"
+
+msgid "Variant"
+msgstr ""
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 expansionsenhet"
@@ -2164,16 +2195,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ för RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Portadress för RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Inbyggd RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Ej installerad"
 
 msgid "Enable OPL"
 msgstr "Aktivera OPL"
@@ -2204,9 +2235,6 @@ msgstr "Minnesstorlek"
 
 msgid "EMU8000 Address"
 msgstr "Adress till EMU8000"
-
-msgid "IDE Controller"
-msgstr "IDE-styrenhet"
 
 msgid "Codec"
 msgstr "Kodek"
@@ -2592,6 +2620,9 @@ msgstr "Standard"
 msgid "High-Speed"
 msgstr "Höghastighet"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo LPT DAC"
 
@@ -2604,8 +2635,8 @@ msgstr "Allmän ESC/P 2 punktmatrisskrivare"
 msgid "Generic PostScript Printer"
 msgstr "Allmän PostScript-skrivare"
 
-msgid "Generic PCL5e Printer"
-msgstr "Allmän PCL5e-skrivare"
+msgid "Generic PCL Printer"
+msgstr "Allmän PCL-skrivare"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
@@ -2613,7 +2644,11 @@ msgstr "Parallel Line Internet Protocol"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Skyddsdongel till Savage Quest"
 
-msgid "Serial Passthrough Device"
+msgid "Loopback Plug"
+msgstr ""
+
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Seriepassthrough-enhet"
 
 msgid "Passthrough Mode"
@@ -2658,6 +2693,12 @@ msgstr "Hög påverkan på prestanda"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Allmän] RAM-disk (max hastighet)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Allmän] 1983 MFM (3600 varv/min)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Allmän] 1983 RLL (3600 varv/min)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Allmän] 1989 (3500 varv/min)"
 
@@ -2696,6 +2737,12 @@ msgstr "Allmän minnesexpansion för PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Allmän minnesexpansion PC/AT"
+
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Kunde inte hitta typsnitt för punktmatris"
@@ -2760,8 +2807,14 @@ msgstr "Flytta ner"
 msgid "Could not load file %1"
 msgstr "Kunde inte ladda fil %1"
 
-msgid "Key Bindings:"
-msgstr "Tangentbindningar:"
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Key bindings"
+msgstr "Tangentbindningar"
 
 msgid "Action"
 msgstr "Handling"
@@ -2797,10 +2850,7 @@ msgid "Toggle fullscreen"
 msgstr "Helskärm"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
-
-msgid "Screenshot"
-msgstr "Skärmbild"
+msgstr "Växla UI till helskärmsläge"
 
 msgid "Release mouse pointer"
 msgstr "Släpp muspekare"
@@ -2826,8 +2876,8 @@ msgstr "Lokal switch"
 msgid "Remote Switch"
 msgstr "Fjärr-switch"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Delad hemlighet:"
 
 msgid "Hub Mode"
 msgstr "Hubb-läge"
@@ -2988,9 +3038,6 @@ msgstr "Ljus"
 msgid "Dark"
 msgstr "Mörk"
 
-msgid "Search:"
-msgstr "Sök:"
-
 msgid "Force interpretation"
 msgstr "Tvinga tolkning"
 
@@ -3004,4 +3051,22 @@ msgid "&Allow recompilation"
 msgstr "&Tillåt omkompilering"
 
 msgid "&Fast forward"
+msgstr "&Spola fram"
+
+msgid "Fast forward"
+msgstr "Spola fram"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "ör att ändra systemkatalogen, stoppa alla maskiner som är körs."
+
+msgid "Raw"
+msgstr "Rå"
+
+msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Ljudutdataenhet:"
+
+msgid "System Default"
+msgstr "Systemstandard"

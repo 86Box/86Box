@@ -12,13 +12,14 @@
 #          Jasmine Iwanek, <jriwanek@gmail.com>
 #
 #          Copyright 2020-2021 David Hrdlička.
-#          Copyright 2024      Jasmine Iwanek.
+#          Copyright 2024-2026 Jasmine Iwanek.
 #
 
 add_library(snd OBJECT
     sound.c
     snd_opl.c
-    snd_opl_nuked.c
+    snd_opl2_nuked.c
+    snd_opl3_nuked.c
     snd_opl_ymfm.cpp
     snd_resid.cpp
     midi.c
@@ -35,6 +36,7 @@ add_library(snd OBJECT
     snd_ad1848.c
     snd_audiopci.c
     snd_azt2316a.c
+    snd_azt2320.c
     snd_cms.c
     snd_cmi8x38.c
     snd_covox.c
@@ -46,12 +48,15 @@ add_library(snd OBJECT
     snd_mmb.c
     snd_mpu401.c
     snd_pas16.c
+    snd_saaym.c
     snd_sn76489.c
     snd_ssi2001.c
     snd_wss.c
     snd_ym7128.c
     snd_optimc.c
     snd_opl_esfm.c
+    snd_ps1_midi.c
+    snd_sensation.c
     snd_ymf701.c
     snd_ymf71x.c
     sound_util.c

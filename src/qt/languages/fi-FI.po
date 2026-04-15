@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-12-29 09:54+0000\n"
-"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
 "MIME-Version: 1.0\n"
@@ -144,53 +144,45 @@ msgstr "&Kokonaislukuskaalaus"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Kokonaislukuskaalaus"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "&EGA/(S)VGA-asetukset"
+msgid "Inverted VGA monitor"
+msgstr "VGA-näyttö käänteisillä väreillä"
 
-msgid "&Inverted VGA monitor"
-msgstr "&VGA-näyttö käänteisillä väreillä"
+msgid "VGA screen type:"
+msgstr "VGA-näytön tyyppi:"
 
-msgid "VGA screen &type"
-msgstr "VGA-näytön &tyyppi"
-
-msgid "RGB &Color"
-msgstr "RGB, &värit"
+msgid "RGB Color"
+msgstr "RGB, värit"
 
 msgid "RGB (no brown)"
 msgstr "RGB (ei ruskeaa)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB, harmaasävy"
+msgid "RGB Grayscale"
+msgstr "RGB, harmaasävy"
 
 msgid "Generic RGBI color monitor"
 msgstr "Yleinen RGBI-värinäyttö"
 
-msgid "&Amber monitor"
-msgstr "&Meripihkanvärinen"
+msgid "Amber monitor"
+msgstr "Meripihkanvärinen"
 
-msgid "&Green monitor"
-msgstr "V&ihreä"
+msgid "Green monitor"
+msgstr "Vihreä"
 
-msgid "&White monitor"
-msgstr "V&alkoinen"
+msgid "White monitor"
+msgstr "Valkoinen"
 
-msgid "Grayscale &conversion type"
-msgstr "&Harmaasävymuunnoksen tyyppi"
+msgid "Grayscale conversion type:"
+msgstr "Harmaasävymuunnoksen tyyppi:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Keskiarvo"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+#, fuzzy
+msgid "Overscan"
+msgstr "Yliskannaus"
 
-msgid "&Average"
-msgstr "&Keskiarvo"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-&yliskannaus"
-
-msgid "Change contrast for &monochrome display"
-msgstr "&Muuta harmaavärinäytön kontrastia"
+msgid "Change contrast for monochrome display"
+msgstr "Muuta harmaavärinäytön kontrastia"
 
 msgid "&Media"
 msgstr "&Media"
@@ -210,14 +202,26 @@ msgstr "&Päivitä tilapalkin kuvakkeita"
 msgid "Take s&creenshot"
 msgstr "Ota &kuvakaappaus"
 
+msgid "Take screenshot"
+msgstr "Ota kuvakaappaus"
+
 msgid "Take &raw screenshot"
 msgstr "Ota &raaka kuvakaappaus"
+
+msgid "Take raw screenshot"
+msgstr "Ota raaka kuvakaappaus"
 
 msgid "C&opy screenshot"
 msgstr "K&opioi kuvakaappaus"
 
+msgid "Copy screenshot"
+msgstr "Kopioi kuvakaappaus"
+
 msgid "Copy r&aw screenshot"
 msgstr "Kopioi r&aaka kuvakaappaus"
+
+msgid "Copy raw screenshot"
+msgstr "Kopioi raaka kuvakaappaus"
 
 msgid "S&ound"
 msgstr "&Ääni"
@@ -339,8 +343,32 @@ msgstr "Korkeus:"
 msgid "Lock to this size"
 msgstr "Lukitse tähän kokoon"
 
+msgid "General"
+msgstr "Yleinen"
+
+msgid "Processor"
+msgstr "Prosessori"
+
+msgid "Performance"
+msgstr "Suorituskyky"
+
 msgid "Machine type:"
 msgstr "Tietokoneen tyyppi:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
 
 msgid "Machine:"
 msgstr "Tietokone:"
@@ -360,8 +388,14 @@ msgstr "Nopeus:"
 msgid "Frequency:"
 msgstr "Taajuus:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "Apusuoritin:"
+
+msgid "Internal"
+msgstr "Sisäinen"
 
 msgid "Wait states:"
 msgstr "Odotustilat:"
@@ -384,6 +418,9 @@ msgstr "Käytössä (paikallinen)"
 msgid "Enabled (UTC)"
 msgstr "Käytössä (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Käytä 486-tulkintaa 286- ja 386-prosessoreille"
+
 msgid "Dynamic Recompiler"
 msgstr "Dynaaminen uudelleenkääntäjä"
 
@@ -401,6 +438,9 @@ msgstr "Näytönohjain:"
 
 msgid "Video #2:"
 msgstr "Toinen näytönohjain:"
+
+msgid "Monitor"
+msgstr "Näyttö"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 tai 2-grafiikkasuoritin"
@@ -471,8 +511,8 @@ msgstr "Erillinen MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Käytä FLOAT32-ääntä"
 
-msgid "FM synth driver"
-msgstr "FM-syntetisaattoriohjain"
+msgid "FM synth driver:"
+msgstr "FM-syntetisaattoriohjain:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (tarkempi)"
@@ -480,56 +520,8 @@ msgstr "Nuked (tarkempi)"
 msgid "YMFM (faster)"
 msgstr "YMFM (nopeampi)"
 
-msgid "COM1 Device:"
-msgstr "COM1-laite:"
-
-msgid "COM2 Device:"
-msgstr "COM2-laite:"
-
-msgid "COM3 Device:"
-msgstr "COM3-laite:"
-
-msgid "COM4 Device:"
-msgstr "COM4-laite:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1-laite:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2-laite:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3-laite:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4-laite:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "Sisäisen LPT:n ECP DMA:"
-
-msgid "Serial port 1"
-msgstr "Sarjaportti 1"
-
-msgid "Serial port 2"
-msgstr "Sarjaportti 2"
-
-msgid "Serial port 3"
-msgstr "Sarjaportti 3"
-
-msgid "Serial port 4"
-msgstr "Sarjaportti 4"
-
-msgid "Parallel port 1"
-msgstr "Rinnakkaisportti 1"
-
-msgid "Parallel port 2"
-msgstr "Rinnakkaisportti 2"
-
-msgid "Parallel port 3"
-msgstr "Rinnakkaisportti 3"
-
-msgid "Parallel port 4"
-msgstr "Rinnakkaisportti 4"
 
 msgid "Floppy disk controller:"
 msgstr "Levykeohjain:"
@@ -537,11 +529,50 @@ msgstr "Levykeohjain:"
 msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Kolmas IDE-ohjain"
+msgid "Mitsumi interface"
+msgstr ""
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Neljäs IDE-ohjain"
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "IDE-ohjain"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
+msgid "Tertiary IDE Controller"
+msgstr "Kolmas IDE-ohjain"
+
+msgid "Quaternary IDE Controller"
+msgstr "Neljäs IDE-ohjain"
 
 msgid "Hard disk controllers"
 msgstr "Kiintolevyohjaimet"
@@ -569,6 +600,9 @@ msgstr "Kiintolevyt:"
 
 msgid "Firmware Version"
 msgstr "Laiteohjelmiston versio"
+
+msgid "DSP Version"
+msgstr "DSP:n versio"
 
 msgid "&New…"
 msgstr "&Uusi…"
@@ -609,8 +643,8 @@ msgstr "Tiedostomuoto:"
 msgid "Block Size:"
 msgstr "Lohkon koko:"
 
-msgid "Floppy drives:"
-msgstr "Levykeasemat:"
+msgid "Floppy drives"
+msgstr "Levykeasemat"
 
 msgid "Turbo timings"
 msgstr "Turbo-ajoitukset"
@@ -618,23 +652,26 @@ msgstr "Turbo-ajoitukset"
 msgid "Check BPB"
 msgstr "Tarkista BPB"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROM-asemat:"
+msgid "CD-ROM drives"
+msgstr "CD-ROM-asemat"
 
-msgid "MO drives:"
-msgstr "Magneettisoptiset asemat (MO):"
+msgid "MO drives"
+msgstr "Magneettisoptiset asemat (MO)"
 
 msgid "MO:"
-msgstr ""
+msgstr "MO:"
+
+msgid "Removable disk drives"
+msgstr "Irrotettavat levyasemat"
 
 msgid "Removable disks:"
 msgstr "Irrotettavat levyt:"
 
-msgid "Removable disk drives:"
-msgstr "Irrotettavat levyasemat:"
+msgid "Tape drives"
+msgstr "Nauha-asemat"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Nauha-asemat:"
 
 msgid "ISA RTC:"
 msgstr "ISA-RTC (kello):"
@@ -692,6 +729,15 @@ msgstr "&Irrotettava levy %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Irrotettavat levykuvat"
+
+msgid "Tape %1 (%2): %3"
+msgstr "Nauha %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Nauha %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Nauhamediat"
 
 msgid "Image %1"
 msgstr "Levykuva %1"
@@ -756,8 +802,14 @@ msgstr "Portit (COM & LPT)"
 msgid "Ports"
 msgstr "Portit"
 
+msgid "Serial ports"
+msgstr "Sarjaportit"
+
 msgid "Serial ports:"
 msgstr "Sarjaportit:"
+
+msgid "Parallel ports"
+msgstr "Rinnakkaisportit"
 
 msgid "Parallel ports:"
 msgstr "Rinnakkaisportit:"
@@ -804,14 +856,8 @@ msgstr "Väylä"
 msgid "File"
 msgstr "Tiedosto"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "Kt"
@@ -1014,15 +1060,6 @@ msgstr "%1 vaaditaan PCL-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiks
 msgid "Don't show this message again"
 msgstr "Älä näytä tätä viestiä uudelleen"
 
-msgid "Don't exit"
-msgstr "Älä poistu"
-
-msgid "Reset"
-msgstr "Käynnistä uudelleen"
-
-msgid "Don't reset"
-msgstr "Älä käynnistä uudelleen"
-
 msgid "CD-ROM images"
 msgstr "CD-ROM-levykuvat"
 
@@ -1069,7 +1106,7 @@ msgid "Pause execution"
 msgstr "Pysäytä suoritus"
 
 msgid "Ctrl+Alt+Del"
-msgstr ""
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Paina Ctrl+Alt+Del"
@@ -1143,8 +1180,8 @@ msgstr "Valittua määritystä ei voitu avata: %1"
 msgid "Use regular expressions in search box"
 msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
 
 msgid "Add new system wizard"
 msgstr "Koneenlisäysohjelma"
@@ -1226,9 +1263,6 @@ msgstr "Anna uusi näyttönimi tai poista se"
 
 msgid "Change &display name…"
 msgstr "Vaihda &näyttönimi…"
-
-msgid "Context Menu"
-msgstr "Kontekstivalikko"
 
 msgid "&Open folder…"
 msgstr "&Avaa kansio…"
@@ -1530,9 +1564,6 @@ msgstr "DMF (lohko 2048)"
 msgid "2.88 MB"
 msgstr "2.88 Mt"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 Mt (ISO 10090)"
 
@@ -1574,6 +1605,9 @@ msgstr "1.5% alle täydellisen RPM:n"
 
 msgid "2% below perfect RPM"
 msgstr "2% alle täydellisen RPM:n"
+
+msgid "Creating image…"
+msgstr "Luodaan levykuvaa…"
 
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"
@@ -1656,8 +1690,8 @@ msgstr "&Kursori/Kiekko"
 msgid "&Pen"
 msgstr "K&ynä"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Isäntä CD/DVD-asema (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Isäntä CD/DVD-asema (%1)"
 
 msgid "&Connected"
 msgstr "&Yhdistetty"
@@ -1752,17 +1786,17 @@ msgstr ""
 msgid "GiB"
 msgstr ""
 
-msgid "Network Card #1"
-msgstr "Verkkokortti 1"
+msgid "Adapter 1"
+msgstr "Sovitin 1"
 
-msgid "Network Card #2"
-msgstr "Verkkokortti 2"
+msgid "Adapter 2"
+msgstr "Sovitin 2"
 
-msgid "Network Card #3"
-msgstr "Verkkokortti 3"
+msgid "Adapter 3"
+msgstr "Sovitin 3"
 
-msgid "Network Card #4"
-msgstr "Verkkokortti 4"
+msgid "Adapter 4"
+msgstr "Sovitin 4"
 
 msgid "Mode:"
 msgstr "Tila:"
@@ -1784,18 +1818,6 @@ msgstr "86Box Unit Tester"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x-avainkortti"
-
-msgid "Serial port passthrough 1"
-msgstr "Sarjaportin läpivienti 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Sarjaportin läpivienti 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Sarjaportin läpivienti 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Sarjaportin läpivienti 4"
 
 msgid "Renderer &options…"
 msgstr "Renderöijän &asetukset…"
@@ -1834,7 +1856,7 @@ msgid "Microsoft Serial Mouse"
 msgstr "Microsoft-sarjahiiri"
 
 msgid "Microsoft Serial BallPoint"
-msgstr ""
+msgstr "Microsoft BallPoint-sarjahiiri"
 
 msgid "Logitech Serial Mouse"
 msgstr "Logitech-sarjahiiri"
@@ -1851,8 +1873,8 @@ msgstr "3M MicroTouch (sarja)"
 msgid "Default Baud rate"
 msgstr "Oletussiirtonopeus"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Tavallinen Hayes-yhteensopiva modeemi"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Tavallinen Hayes-yhteensopiva modeemi"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulointi"
@@ -1921,7 +1943,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "Salli BIOS-laajennuksen ROM-kirjoitukset (ROM #4)"
 
 msgid "Linear framebuffer base"
-msgstr ""
+msgstr "Lineaarisen kehyspuskurin perusosoite"
 
 msgid "Address"
 msgstr "Osoite"
@@ -1947,11 +1969,14 @@ msgstr "BIOS-versio"
 msgid "BIOS Language"
 msgstr "BIOS-kieli"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161-laajennusyksikkö"
 
 msgid "IBM Cassette Basic"
-msgstr ""
+msgstr "IBM Cassette Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Muunna 26 -> 17"
@@ -2170,7 +2195,7 @@ msgid "WSS DMA"
 msgstr "WSS-DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "RTC:n IRQ"
 
 msgid "RTC Port Address"
 msgstr "RTC-portin osoite"
@@ -2210,9 +2235,6 @@ msgstr "Muistin koko"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000-osoite"
-
-msgid "IDE Controller"
-msgstr "IDE-ohjain"
 
 msgid "Codec"
 msgstr "Koodekki"
@@ -2371,10 +2393,10 @@ msgid "Linear"
 msgstr "Lineaarinen"
 
 msgid "4th Order"
-msgstr ""
+msgstr "4. kertaluku"
 
 msgid "7th Order"
-msgstr ""
+msgstr "7. kertaluku"
 
 msgid "Non-timed (original)"
 msgstr "Ajastamaton (alkuperäinen)"
@@ -2572,7 +2594,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "3dfx Voodoo-grafiikkasuoritin"
 
 msgid "3Dfx Voodoo 2"
-msgstr ""
+msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU:ta)"
@@ -2598,6 +2620,9 @@ msgstr "Vakio"
 msgid "High-Speed"
 msgstr "Nopea"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT-DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo-LPT-DAC"
 
@@ -2610,8 +2635,8 @@ msgstr "Yleinen ESC/P 2 pistematriisitulostin"
 msgid "Generic PostScript Printer"
 msgstr "Yleinen PostScript-tulostin"
 
-msgid "Generic PCL5e Printer"
-msgstr "Yleinen PCL5e-tulostin"
+msgid "Generic PCL Printer"
+msgstr "Yleinen PCL-tulostin"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Rinnakkaislinjan Internet-protokolla"
@@ -2619,7 +2644,11 @@ msgstr "Rinnakkaislinjan Internet-protokolla"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Questin suojausdongle"
 
-msgid "Serial Passthrough Device"
+msgid "Loopback Plug"
+msgstr ""
+
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Sarjaportin läpivientilaite"
 
 msgid "Passthrough Mode"
@@ -2664,6 +2693,12 @@ msgstr "Merkittävä vaikutus suorituskykyyn"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Yleinen] RAM-levy (maksiminopeus)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Yleinen] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Yleinen] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Yleinen] 1989 (3500 RPM)"
 
@@ -2692,16 +2727,22 @@ msgid "Vendor"
 msgstr "Valmistaja"
 
 msgid "30 Hz (JMP2 = 1)"
-msgstr ""
+msgstr "30 Hz (JMP2 = 1)"
 
 msgid "60 Hz (JMP2 = 2)"
-msgstr ""
+msgstr "60 Hz (JMP2 = 2)"
 
 msgid "Generic PC/XT Memory Expansion"
 msgstr "Yleinen PC/XT-muistilaajennus"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Yleinen PC/AT-muistilaajennus"
+
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Pistematriisifontteja ei löydy"
@@ -2766,8 +2807,14 @@ msgstr "Siirrä alas"
 msgid "Could not load file %1"
 msgstr "Tiedostoa %1 ei voitu ladata"
 
-msgid "Key Bindings:"
-msgstr "Pikanäppäimet:"
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Key bindings"
+msgstr "Pikanäppäimet"
 
 msgid "Action"
 msgstr "Toiminto"
@@ -2805,9 +2852,6 @@ msgstr "Koko näyttö"
 msgid "Toggle UI in fullscreen"
 msgstr "Käyttöliittymä koko näyttö-tilassa"
 
-msgid "Screenshot"
-msgstr "Kuvakaappaus"
-
 msgid "Release mouse pointer"
 msgstr "Vapauta hiiren osoitin"
 
@@ -2832,8 +2876,8 @@ msgstr "Paikallinen kytkin"
 msgid "Remote Switch"
 msgstr "Etäkytkin"
 
-msgid "Switch:"
-msgstr "Kytkin:"
+msgid "Shared secret:"
+msgstr "Jaettu salaisuus:"
 
 msgid "Hub Mode"
 msgstr "Hubitila"
@@ -2890,7 +2934,7 @@ msgid "stable"
 msgstr "vakaa"
 
 msgid "beta"
-msgstr ""
+msgstr "beta"
 
 msgid "You are running the latest %1 version of 86Box: %2"
 msgstr "Sinulla on käytössä uusin %1-versio 86Boxista: %2"
@@ -2994,9 +3038,6 @@ msgstr "Vaalea"
 msgid "Dark"
 msgstr "Tumma"
 
-msgid "Search:"
-msgstr "Hae:"
-
 msgid "Force interpretation"
 msgstr "Pakota tulkinta"
 
@@ -3010,4 +3051,22 @@ msgid "&Allow recompilation"
 msgstr "&Salli uudelleenkääntäminen"
 
 msgid "&Fast forward"
+msgstr "&Pikakelaus"
+
+msgid "Fast forward"
+msgstr "Pikakelaus"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "Järjestelmähakemiston muuttamiseksi pysäytä kaikki käynnissä olevat koneet."
+
+msgid "Raw"
+msgstr "Raaka"
+
+msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Äänen ulostulolaite:"
+
+msgid "System Default"
+msgstr "Järjestelmän oletus"

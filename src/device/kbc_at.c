@@ -1652,7 +1652,7 @@ write_cmd_data_chips(void *priv, uint8_t val)
     atkbc_t *dev = (atkbc_t *) priv;
     uint8_t  ret = 1;
 
-    switch (val) {
+    switch (dev->command) {
         default:
             break;
 
@@ -1681,7 +1681,7 @@ write_cmd_data_chips(void *priv, uint8_t val)
                         dev->command_phase = 2;
                         break;
                     case 0x05: /* select turbo LED output */
-                        kbc_at_log("ATkbc: Cselect turbo LED output\n");
+                        kbc_at_log("ATkbc: C&T - select turbo LED output\n");
                         dev->mem_addr      = val;
                         dev->wantdata      = 1;
                         dev->state         = STATE_KBC_PARAM;
@@ -1718,8 +1718,9 @@ write_cmd_chips(void *priv, uint8_t val)
 
         case 0xa1: /* CHIPS extensions */
             kbc_at_log("ATkbc: C&T - CHIPS extensions\n");
-            dev->wantdata  = 1;
-            dev->state     = STATE_KBC_PARAM;
+            dev->wantdata      = 1;
+            dev->state         = STATE_KBC_PARAM;
+            dev->command_phase = 1;
             ret = 0;
             break;
 
@@ -2184,6 +2185,7 @@ read_p1(atkbc_t *dev)
                                                                             -----------------
        IBM PS/1:                                                                     xxxxxxxx
        IBM PS/2 MCA:                                                                 xxxxx1xx
+       IBM PS/2 Model 30-286:                                                        x0xxx1xx
        Intel AMI Pentium BIOS'es with AMI MegaKey KB-5 keyboard controller:          x1x1xxxx
        Acer:                                                                         xxxxx0xx
        Packard Bell PB450:                                                           xxxxx1xx
@@ -2198,6 +2200,8 @@ read_p1(atkbc_t *dev)
        Acer:                    Pull down bit 6 if primary display is MDA.
                                 Pull down bit 2 always (must be so to enable CMOS Setup).
        IBM PS/1:                Pull down bit 6 if current floppy drive is 3.5".
+       IBM PS/2 Model 30-286:   Pull down bit 6 always (for 1.44M floppy).
+                                Pull down bits 5 and 4 based on planar memory size.
        Epson Action Tower 2600: Pull down bit 3 always (for Epson logo).
        NCR:                     Pull down bit 5 always (power-on default speed = high).
                                 Pull down bit 3 if there is no FPU.
@@ -2213,14 +2217,22 @@ read_p1(atkbc_t *dev)
        Bit 6: Mostly, display: 0 = CGA, 1 = MDA, inverted on Xi8088 and Acer KBC's;
               Intel AMI MegaKey KB-5: Used for green features, SMM handler expects it to be set;
               IBM PS/1 Model 2011: 0 = current FDD is 3.5", 1 = current FDD is 5.25";
+              IBM PS/2 Model 30-286: 0 = drive A is 1.44M, 1 = drive A is 720k;
               Compaq: 0 = Compaq dual-scan display, 1 = non-Compaq display.
        Bit 5: Mostly, manufacturing jumper: 0 = installed (infinite loop at POST), 1 = not installed;
               NCR: power-on default speed: 0 = high, 1 = low;
+              IBM PS/2 Model 30-286: memory presence detect pin 1;
               Compaq: System board DIP switch 5: 0 = ON, 1 = OFF.
        Bit 4: (Which board?): RAM on motherboard: 0 = 512 kB, 1 = 256 kB;
               NCR: RAM on motherboard: 0 = unsupported, 1 = 512 kB;
               Intel AMI MegaKey KB-5: Must be 1;
               IBM PS/1: Ignored;
+              IBM PS/2 Model 30-286: memory presence detect pin 2;
+              Bit 5, 4:
+                  1, 1: 256Kx2 SIMM memory installed;
+                  1, 0: 256Kx4 SIMM memory installed;
+                  0, 1: 1Mx2 SIMM memory installed;
+                  0, 0: 1Mx4 SIMM memory installed.  
               Compaq: 0 = Auto speed selected, 1 = High speed selected.
        Bit 3: TriGem AMIKey: most significant bit of 2-bit OEM ID;
               NCR: Coprocessor detect (1 = yes, 0 = no);

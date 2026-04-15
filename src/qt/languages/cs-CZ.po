@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-02 21:56+0000\n"
-"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
@@ -144,53 +144,45 @@ msgstr "&Celočíselné škálování"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Celočíselné škálování"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Nastavení pro EGA a (S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Převrátit barvy"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Převrátit barvy"
+msgid "VGA screen type:"
+msgstr "Typ VGA monitoru:"
 
-msgid "VGA screen &type"
-msgstr "&Typ VGA monitoru"
-
-msgid "RGB &Color"
-msgstr "RGB &barevný"
+msgid "RGB Color"
+msgstr "RGB barevný"
 
 msgid "RGB (no brown)"
 msgstr "RGB (bez hnědé)"
 
-msgid "&RGB Grayscale"
-msgstr "&Odstíny šedi"
+msgid "RGB Grayscale"
+msgstr "Odstíny šedi"
 
 msgid "Generic RGBI color monitor"
 msgstr "Obecný RGBI barevný monitor"
 
-msgid "&Amber monitor"
-msgstr "&Jantarový monitor"
+msgid "Amber monitor"
+msgstr "Jantarový monitor"
 
-msgid "&Green monitor"
-msgstr "&Zelený monitor"
+msgid "Green monitor"
+msgstr "Zelený monitor"
 
-msgid "&White monitor"
-msgstr "&Bílý monitor"
+msgid "White monitor"
+msgstr "Bílý monitor"
 
-msgid "Grayscale &conversion type"
-msgstr "Převod na &odstíny šedi"
+msgid "Grayscale conversion type:"
+msgstr "Převod na odstíny šedi:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Průměr"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+#, fuzzy
+msgid "Overscan"
+msgstr "Přesah obrazu"
 
-msgid "&Average"
-msgstr "&Průměr"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Přesah obrazu CGA/PCjr/Tandy/E&GA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "&Upravit kontrast černobílé obrazovky"
+msgid "Change contrast for monochrome display"
+msgstr "Upravit kontrast černobílé obrazovky"
 
 msgid "&Media"
 msgstr "&Média"
@@ -210,14 +202,26 @@ msgstr "&Aktualizovat ikony stavového řádku"
 msgid "Take s&creenshot"
 msgstr "Pořídit &screenshot"
 
+msgid "Take screenshot"
+msgstr "Pořídit screenshot"
+
 msgid "Take &raw screenshot"
 msgstr "Pořídit n&ezpracovaný screenshot"
+
+msgid "Take raw screenshot"
+msgstr "Pořídit nezpracovaný screenshot"
 
 msgid "C&opy screenshot"
 msgstr "&Zkopírovat screenshot"
 
+msgid "Copy screenshot"
+msgstr "Zkopírovat screenshot"
+
 msgid "Copy r&aw screenshot"
 msgstr "Zkopírovat nez&pracovaný screenshot"
+
+msgid "Copy raw screenshot"
+msgstr "Zkopírovat nezpracovaný screenshot"
 
 msgid "S&ound"
 msgstr "&Zvuk"
@@ -339,8 +343,32 @@ msgstr "Výška:"
 msgid "Lock to this size"
 msgstr "Uzamknout na tyto rozměry"
 
+msgid "General"
+msgstr "Obecné"
+
+msgid "Processor"
+msgstr "Procesor"
+
+msgid "Performance"
+msgstr "Výkon"
+
 msgid "Machine type:"
 msgstr "Typ počítače:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr ""
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr ""
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr ""
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr ""
+
+msgid "Miscellaneous"
+msgstr ""
 
 msgid "Machine:"
 msgstr "Počítač:"
@@ -360,8 +388,14 @@ msgstr "Rychlost:"
 msgid "Frequency:"
 msgstr "Frekvence:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "Koprocesor:"
+
+msgid "Internal"
+msgstr "Integrovaný"
 
 msgid "Wait states:"
 msgstr "Čekací stavy:"
@@ -384,6 +418,9 @@ msgstr "Zapnuta (místní čas)"
 msgid "Enabled (UTC)"
 msgstr "Zapnuta (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Použij interpret 486 pro procesory 286 a 386"
+
 msgid "Dynamic Recompiler"
 msgstr "Dynamický překladač"
 
@@ -401,6 +438,9 @@ msgstr "Grafika:"
 
 msgid "Video #2:"
 msgstr "Grafika 2:"
+
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Použít grafický akcelerátor Voodoo 1 nebo 2"
@@ -471,8 +511,8 @@ msgstr "Samostatný MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Použít zvuk FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Ovladač syntezátoru FM"
+msgid "FM synth driver:"
+msgstr "Ovladač syntezátoru FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (přesnější)"
@@ -480,56 +520,8 @@ msgstr "Nuked (přesnější)"
 msgid "YMFM (faster)"
 msgstr "YMFM (rychlejší)"
 
-msgid "COM1 Device:"
-msgstr "Zařízení na COM1:"
-
-msgid "COM2 Device:"
-msgstr "Zařízení na COM2:"
-
-msgid "COM3 Device:"
-msgstr "Zařízení na COM3:"
-
-msgid "COM4 Device:"
-msgstr "Zařízení na COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Zařízení na LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Zařízení na LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Zařízení na LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Zařízení na LPT4:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA kanál ECP interního LPT portu:"
-
-msgid "Serial port 1"
-msgstr "Povolit port COM1"
-
-msgid "Serial port 2"
-msgstr "Povolit port COM2"
-
-msgid "Serial port 3"
-msgstr "Povolit port COM3"
-
-msgid "Serial port 4"
-msgstr "Povolit port COM4"
-
-msgid "Parallel port 1"
-msgstr "Povolit port LPT1"
-
-msgid "Parallel port 2"
-msgstr "Povolit port LPT2"
-
-msgid "Parallel port 3"
-msgstr "Povolit port LPT3"
-
-msgid "Parallel port 4"
-msgstr "Povolit port LPT4"
 
 msgid "Floppy disk controller:"
 msgstr "Disketový řadič:"
@@ -537,11 +529,50 @@ msgstr "Disketový řadič:"
 msgid "CD-ROM controller:"
 msgstr "Řadič CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Třetí řadič IDE"
+msgid "Mitsumi interface"
+msgstr ""
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Čtvrtý řadič IDE"
+msgid "MKE/Panasonic interface"
+msgstr ""
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr ""
+
+msgid "IDE Controller"
+msgstr "Řadič IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT IDE Controller"
+msgstr ""
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr ""
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr ""
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr ""
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr ""
+
+msgid "McIDE Controller"
+msgstr ""
+
+msgid "Tertiary IDE Controller"
+msgstr "Třetí řadič IDE"
+
+msgid "Quaternary IDE Controller"
+msgstr "Čtvrtý řadič IDE"
 
 msgid "Hard disk controllers"
 msgstr "Řadiče pevných disků"
@@ -569,6 +600,9 @@ msgstr "Pevné disky:"
 
 msgid "Firmware Version"
 msgstr "Verze firmware"
+
+msgid "DSP Version"
+msgstr "Verze DSP"
 
 msgid "&New…"
 msgstr "&Nový…"
@@ -609,8 +643,8 @@ msgstr "Formát obrazu:"
 msgid "Block Size:"
 msgstr "Velikost bloků:"
 
-msgid "Floppy drives:"
-msgstr "Disketové mechaniky:"
+msgid "Floppy drives"
+msgstr "Disketové mechaniky"
 
 msgid "Turbo timings"
 msgstr "Turbo časování"
@@ -618,23 +652,26 @@ msgstr "Turbo časování"
 msgid "Check BPB"
 msgstr "Kontrola BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Mechaniky CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Mechaniky CD-ROM"
 
-msgid "MO drives:"
-msgstr "Magnetooptické mechaniky:"
+msgid "MO drives"
+msgstr "Magnetooptické mechaniky"
 
 msgid "MO:"
 msgstr "Magnetooptické jednotky:"
 
+msgid "Removable disk drives"
+msgstr "Mechaniky vyměnitelných disků"
+
 msgid "Removable disks:"
 msgstr "Vyměnitelné disky:"
 
-msgid "Removable disk drives:"
-msgstr "Mechaniky vyměnitelných disků:"
+msgid "Tape drives"
+msgstr "Páskové mechaniky"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Páskové mechaniky:"
 
 msgid "ISA RTC:"
 msgstr "ISA hodiny:"
@@ -692,6 +729,15 @@ msgstr "&Vyměnitelný disk %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Obrazy vyměnitelných disků"
+
+msgid "Tape %1 (%2): %3"
+msgstr "Páska %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Páska %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Páskové obrazy"
 
 msgid "Image %1"
 msgstr "Obraz %1"
@@ -756,8 +802,14 @@ msgstr "COM a LPT porty"
 msgid "Ports"
 msgstr "Porty"
 
+msgid "Serial ports"
+msgstr "Sériové porty"
+
 msgid "Serial ports:"
 msgstr "Sériové porty:"
+
+msgid "Parallel ports"
+msgstr "Paralelní porty"
 
 msgid "Parallel ports:"
 msgstr "Paralelní porty:"
@@ -804,14 +856,8 @@ msgstr "Sběrnice"
 msgid "File"
 msgstr "Soubor"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Geometrie"
 
 msgid "KB"
 msgstr "KB"
@@ -1014,15 +1060,6 @@ msgstr "%1 je potřeba pro automatický převod PCL dokumentů do PDF.\n\nJakék
 msgid "Don't show this message again"
 msgstr "Nezobrazovat dále tuto zprávu"
 
-msgid "Don't exit"
-msgstr "Neukončovat"
-
-msgid "Reset"
-msgstr "Resetovat"
-
-msgid "Don't reset"
-msgstr "Neresetovat"
-
 msgid "CD-ROM images"
 msgstr "Obraz CD-ROM disku"
 
@@ -1143,8 +1180,8 @@ msgstr "Nebylo možné otevřít vybraný konfigurační soubor pro čtení: %1"
 msgid "Use regular expressions in search box"
 msgstr "Použít ve vyhledávacím poli regulární výrazy"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 počítač(ů) je stále aktivních. Opravdu chcete ukončit správce virtuálních počítačů?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n počítač(ů) je stále aktivních. Opravdu chcete ukončit správce virtuálních počítačů?"
 
 msgid "Add new system wizard"
 msgstr "Průvodce přidáním nového systému"
@@ -1226,9 +1263,6 @@ msgstr "Zadejte nové zobrazované jméno (prázdné pole pro vymazání)"
 
 msgid "Change &display name…"
 msgstr "Změnit &zobrazované jméno…"
-
-msgid "Context Menu"
-msgstr "Kontextová nabídka"
 
 msgid "&Open folder…"
 msgstr "&Otevřít složku…"
@@ -1530,9 +1564,6 @@ msgstr "DMF (cluster 2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1574,6 +1605,9 @@ msgstr "1.5% pod dokonalými ot./m"
 
 msgid "2% below perfect RPM"
 msgstr "2% pod dokonalými ot./m"
+
+msgid "Creating image…"
+msgstr "Vytváření obrazu probíhá…"
 
 msgid "(System Default)"
 msgstr "(Výchozí nastavení systému)"
@@ -1656,8 +1690,8 @@ msgstr "&Kurzor/Puk"
 msgid "&Pen"
 msgstr "&Pero"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Jednotka CD/DVD hostitele (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Jednotka CD/DVD hostitele (%1)"
 
 msgid "&Connected"
 msgstr "&Připojeno"
@@ -1723,7 +1757,9 @@ msgid "Error initializing OpenGL"
 msgstr "Chyba při inicializaci OpenGL"
 
 msgid "\nFalling back to software rendering."
-msgstr "\nNávrat k softwarovému vykreslování."
+msgstr ""
+"\n"
+"Obnoví se softwarové vykreslování."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Při výběru obrazů médií (CD-ROM, disketa atd.) se otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému MacOS.</p></body></html>"
@@ -1752,17 +1788,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Síťový adaptér 1"
+msgid "Adapter 1"
+msgstr "Adaptér 1"
 
-msgid "Network Card #2"
-msgstr "Síťový adaptér 2"
+msgid "Adapter 2"
+msgstr "Adaptér 2"
 
-msgid "Network Card #3"
-msgstr "Síťový adaptér 3"
+msgid "Adapter 3"
+msgstr "Adaptér 3"
 
-msgid "Network Card #4"
-msgstr "Síťový adaptér 4"
+msgid "Adapter 4"
+msgstr "Adaptér 4"
 
 msgid "Mode:"
 msgstr "Režim:"
@@ -1784,18 +1820,6 @@ msgstr "86Box Unit Tester"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Karta s klíčem pro Novell NetWare 2.x"
-
-msgid "Serial port passthrough 1"
-msgstr "Průchod sériového portu 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Průchod sériového portu 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Průchod sériového portu 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Průchod sériového portu 4"
 
 msgid "Renderer &options…"
 msgstr "Možnosti rendereru…"
@@ -1851,8 +1875,8 @@ msgstr "3M MicroTouch (sériová)"
 msgid "Default Baud rate"
 msgstr "Výchozí přenosová rychlost"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Modem kompatibilní se standardem Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Modem kompatibilní se standardem Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulace Roland MT-32"
@@ -1927,7 +1951,7 @@ msgid "Address"
 msgstr "Adresa"
 
 msgid "IRQ"
-msgstr "IRQ"
+msgstr "Přerušení"
 
 msgid "Serial port IRQ"
 msgstr "Přerušení sériového portu"
@@ -1947,11 +1971,14 @@ msgstr "Verze BIOS"
 msgid "BIOS Language"
 msgstr "Jazyk BIOS"
 
+msgid "Variant"
+msgstr ""
+
 msgid "IBM 5161 Expansion Unit"
 msgstr "Rozšiřující jednotka IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "Kazetový Basic IBM"
+msgstr "Kazetový IBM Basic"
 
 msgid "Translate 26 -> 17"
 msgstr "Překládat 26 -> 17"
@@ -2164,13 +2191,13 @@ msgid "Use EEPROM setting"
 msgstr "Použít nastavení EEPROM"
 
 msgid "WSS IRQ"
-msgstr "IRQ WSS"
+msgstr "Přerušení WSS"
 
 msgid "WSS DMA"
 msgstr "DMA kanál WSS"
 
 msgid "RTC IRQ"
-msgstr "IRQ hodin reálného času"
+msgstr "Přerušení pro hodiny reálného času"
 
 msgid "RTC Port Address"
 msgstr "Adresa portu hodin reálného času"
@@ -2185,7 +2212,7 @@ msgid "Enable OPL"
 msgstr "Povolit OPL"
 
 msgid "Receive MIDI input (MPU-401)"
-msgstr "Příjem vstupu MIDI (MPU-401)"
+msgstr "Přijímat vstup MIDI (MPU-401)"
 
 msgid "SB low DMA"
 msgstr "Nízký DMA kanál SB"
@@ -2210,9 +2237,6 @@ msgstr "Velikost pamĕti"
 
 msgid "EMU8000 Address"
 msgstr "Adresa EMU8000"
-
-msgid "IDE Controller"
-msgstr "Řadič IDE"
 
 msgid "Codec"
 msgstr "Kodek"
@@ -2272,7 +2296,7 @@ msgid "Dithering"
 msgstr "Dithering"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "Povolit NMI pro emulace CGA"
+msgstr "Povolit NMI pro emulaci CGA"
 
 msgid "Voodoo type"
 msgstr "Typ karty Voodoo"
@@ -2359,7 +2383,8 @@ msgid "64 KB starting from F0000"
 msgstr "64 KB od F0000"
 
 msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
-msgstr "128 KB od E0000 (invertovaný MSB adresy, nejprve posledních 64 KB)"
+msgstr ""
+"128 KB od E0000 (invertovaný nejvyšší bit adresy, nejprve posledních 64 KB)"
 
 msgid "Sine"
 msgstr "Sinusový"
@@ -2598,6 +2623,9 @@ msgstr "Standardní"
 msgid "High-Speed"
 msgstr "Vysokorychlostní"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "Převodník LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereofonní převodník LPT"
 
@@ -2610,8 +2638,8 @@ msgstr "Obecná jehličková tiskárna ESC/P 2"
 msgid "Generic PostScript Printer"
 msgstr "Obecná tiskárna PostScript"
 
-msgid "Generic PCL5e Printer"
-msgstr "Obecná tiskárna PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Obecná tiskárna PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Internetový protokol paralelní linky"
@@ -2619,7 +2647,11 @@ msgstr "Internetový protokol paralelní linky"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Ochranný klíč pro Savage Quest"
 
-msgid "Serial Passthrough Device"
+msgid "Loopback Plug"
+msgstr ""
+
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Zařízení průchodu sériového portu"
 
 msgid "Passthrough Mode"
@@ -2664,6 +2696,12 @@ msgstr "Vysoký dopad na výkon"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Obecný] Disk RAM (max. rychlost)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Obecný] 1983 MFM (3600 ot./m)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Obecný] 1983 RLL (3600 ot./m)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Obecný] 1989 (3500 ot./m)"
 
@@ -2702,6 +2740,12 @@ msgstr "Obecné rozšíření paměti PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Obecné rozšíření paměti PC/AT"
+
+msgid "Generic MM58167 RTC"
+msgstr ""
+
+msgid "OPL2Board (External Device)"
+msgstr ""
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nebylo možné nalézt písma pro jehličkovou tiskárnu"
@@ -2766,8 +2810,14 @@ msgstr "Posunout níž"
 msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
-msgid "Key Bindings:"
-msgstr "Nastavení kláves:"
+msgid "Emulator"
+msgstr ""
+
+msgid "Input"
+msgstr ""
+
+msgid "Key bindings"
+msgstr "Nastavení kláves"
 
 msgid "Action"
 msgstr "Akce"
@@ -2805,9 +2855,6 @@ msgstr "Přepnout režim celé obrazovky"
 msgid "Toggle UI in fullscreen"
 msgstr "Přepnout rozhraní při celé obrazovce"
 
-msgid "Screenshot"
-msgstr "Pořídit snímek obrazovky"
-
 msgid "Release mouse pointer"
 msgstr "Uvolnit kurzor myši"
 
@@ -2832,8 +2879,8 @@ msgstr "Lokální switch"
 msgid "Remote Switch"
 msgstr "Vzdálený switch"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Sdílené tajemství:"
 
 msgid "Hub Mode"
 msgstr "Režim hubu"
@@ -2994,9 +3041,6 @@ msgstr "Světlé"
 msgid "Dark"
 msgstr "Tmavé"
 
-msgid "Search:"
-msgstr "Hledat:"
-
 msgid "Force interpretation"
 msgstr "Vynutit interpretaci"
 
@@ -3010,4 +3054,22 @@ msgid "&Allow recompilation"
 msgstr "&Povolit rekompilaci"
 
 msgid "&Fast forward"
+msgstr "&Zrychlit"
+
+msgid "Fast forward"
+msgstr "Zrychlit"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
+
+msgid "Raw"
+msgstr "Surový"
+
+msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "Audio output device:"
+msgstr "Výstupní zvukové zařízení:"
+
+msgid "System Default"
+msgstr "Výchozí nastavení systému"

@@ -107,11 +107,15 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
             old                     = quadcolor->crtc[quadcolor->crtcreg];
             quadcolor->crtc[quadcolor->crtcreg] = val & crtcmask[quadcolor->crtcreg];
             if (old != val) {
-                // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register 
+                // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register
                 // except the CURSOR and LIGHT PEN registers
                 if ((quadcolor->crtcreg < 0xe) || (quadcolor->crtcreg > 0x11)) {
                     quadcolor->fullchange = changeframecount;
                     quadcolor_recalctimings(quadcolor);
+
+                    if (quadcolor->crtcreg == 3)
+                        update_cga16_color(quadcolor->cgamode, (quadcolor->cgacol & 0x0f) |
+                                                           (((quadcolor->crtc[3] == 0) || (quadcolor->crtc[3] == 15)) ? 0x80 : 0x00));
                 }
             }
             return;
@@ -121,7 +125,8 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
 
             if (old ^ val) {
                 if ((old ^ val) & 0x07)
-                    update_cga16_color(val);
+                    update_cga16_color(quadcolor->cgamode, (quadcolor->cgacol & 0x0f) |
+                                                       (((quadcolor->crtc[3] == 0) || (quadcolor->crtc[3] == 15)) ? 0x80 : 0x00));
 
                 quadcolor_recalctimings(quadcolor);
             }
@@ -129,8 +134,12 @@ quadcolor_out(uint16_t addr, uint8_t val, void *priv)
         case CGA_REGISTER_COLOR_SELECT:
             old         = quadcolor->cgacol;
             quadcolor->cgacol = val;
-            if (old ^ val)
+            if (old ^ val) {
+                update_cga16_color(quadcolor->cgamode, (quadcolor->cgacol & 0x0f) |
+                                                   (((quadcolor->crtc[3] == 0) || (quadcolor->crtc[3] == 15)) ? 0x80 : 0x00));
+
                 quadcolor_recalctimings(quadcolor);
+            }
             return;
 
         case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
@@ -265,8 +274,8 @@ quadcolor_recalctimings(quadcolor_t *quadcolor)
     _dispofftime     = disptime - _dispontime;
     _dispontime      = _dispontime * CGACONST;
     _dispofftime     = _dispofftime * CGACONST;
-    quadcolor->dispontime  = (uint64_t) (_dispontime);
-    quadcolor->dispofftime = (uint64_t) (_dispofftime);
+    quadcolor->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    quadcolor->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static inline uint8_t
@@ -797,8 +806,8 @@ quadcolor_standalone_init(UNUSED(const device_t *info))
     quadcolor->has_2nd_charset = device_get_config_int("has_2nd_charset");
     quadcolor->has_quadcolor_2 = device_get_config_int("has_quadcolor_2");
 
-    quadcolor->vram   = malloc(DEVICE_VRAM);
-    quadcolor->vram_2 = malloc(0x10000);
+    quadcolor->vram   = calloc(1, DEVICE_VRAM);
+    quadcolor->vram_2 = calloc(1, 0x10000);
 
     cga_comp_init(quadcolor->revision);
     timer_add(&quadcolor->timer, quadcolor_poll, quadcolor, 1);
@@ -815,7 +824,7 @@ quadcolor_standalone_init(UNUSED(const device_t *info))
     quadcolor->rgb_type = device_get_config_int("rgb_type");
     cga_palette   = (quadcolor->rgb_type << 1);
     cgapal_rebuild();
-    update_cga16_color(quadcolor->cgamode);
+    update_cga16_color(quadcolor->cgamode, quadcolor->cgacol);
 
     quadcolor->double_type = device_get_config_int("double_type");
 

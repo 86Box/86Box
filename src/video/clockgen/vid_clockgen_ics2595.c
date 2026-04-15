@@ -87,9 +87,7 @@ ics2595_write(void *priv, int strobe, int dat)
 static void *
 ics2595_init(UNUSED(const device_t *info))
 {
-    ics2595_t *ics2595 = (ics2595_t *) malloc(sizeof(ics2595_t));
-
-    memset(ics2595, 0, sizeof(ics2595_t));
+    ics2595_t *ics2595 = (ics2595_t *) calloc(1, sizeof(ics2595_t));
 
     return ics2595;
 }

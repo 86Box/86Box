@@ -196,8 +196,8 @@ recalc_timings(incolor_t *dev)
     _dispontime *= HERCCONST;
     _dispofftime *= HERCCONST;
 
-    dev->dispontime  = (uint64_t) (_dispontime);
-    dev->dispofftime = (uint64_t) (_dispofftime);
+    dev->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    dev->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static void
@@ -987,10 +987,9 @@ incolor_init(UNUSED(const device_t *info))
     incolor_t *dev;
     int        c;
 
-    dev = (incolor_t *) malloc(sizeof(incolor_t));
-    memset(dev, 0x00, sizeof(incolor_t));
+    dev = (incolor_t *) calloc(1, sizeof(incolor_t));
 
-    dev->vram = (uint8_t *) malloc(0x40000); /* 4 planes of 64k */
+    dev->vram = (uint8_t *) calloc(1, 0x40000); /* 4 planes of 64k */
 
     switch(device_get_config_int("font")) {
         case 0:

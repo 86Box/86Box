@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-04-14 08:00+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
+"projects/86box/86box/zh_Hans/>\n"
+"Language: zh-CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: zh_CN\n"
 "X-Source-Language: en_US\n"
 
@@ -138,53 +145,44 @@ msgstr "整数比例(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数比例(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)VGA 设置(&V)"
+msgid "Inverted VGA monitor"
+msgstr "VGA 显示器反色显示"
 
-msgid "&Inverted VGA monitor"
-msgstr "VGA 显示器反色显示(&I)"
+msgid "VGA screen type:"
+msgstr "VGA 屏幕类型:"
 
-msgid "VGA screen &type"
-msgstr "VGA 屏幕类型(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB 彩色(&C)"
+msgid "RGB Color"
+msgstr "RGB 彩色"
 
 msgid "RGB (no brown)"
 msgstr "RGB (无棕色)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB 灰度(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB 灰度"
 
 msgid "Generic RGBI color monitor"
 msgstr "通用 RGBI 彩色显示器"
 
-msgid "&Amber monitor"
-msgstr "琥珀色单色显示器(&A)"
+msgid "Amber monitor"
+msgstr "琥珀色单色显示器"
 
-msgid "&Green monitor"
-msgstr "绿色单色显示器(&G)"
+msgid "Green monitor"
+msgstr "绿色单色显示器"
 
-msgid "&White monitor"
-msgstr "白色单色显示器(&W)"
+msgid "White monitor"
+msgstr "白色单色显示器"
 
-msgid "Grayscale &conversion type"
-msgstr "灰度转换类型(&C)"
+msgid "Grayscale conversion type:"
+msgstr "灰度转换类型:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "平均"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "过扫描"
 
-msgid "&Average"
-msgstr "平均(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGA 过扫描(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "更改单色显示对比度(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "更改单色显示对比度"
 
 msgid "&Media"
 msgstr "介质(&M)"
@@ -204,14 +202,26 @@ msgstr "更新状态栏图标(&U)"
 msgid "Take s&creenshot"
 msgstr "截图(&C)"
 
+msgid "Take screenshot"
+msgstr "截图"
+
 msgid "Take &raw screenshot"
 msgstr "原始截图(&R)"
+
+msgid "Take raw screenshot"
+msgstr "原始截图"
 
 msgid "C&opy screenshot"
 msgstr "复制截图(&O)"
 
+msgid "Copy screenshot"
+msgstr "复制截图"
+
 msgid "Copy r&aw screenshot"
 msgstr "复制原始截图(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "复制原始截图"
 
 msgid "S&ound"
 msgstr "声音(&O)"
@@ -333,8 +343,32 @@ msgstr "高度:"
 msgid "Lock to this size"
 msgstr "锁定此大小"
 
+msgid "General"
+msgstr "通用"
+
+msgid "Processor"
+msgstr "处理器"
+
+msgid "Performance"
+msgstr "性能"
+
 msgid "Machine type:"
 msgstr "机器类型:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486（Socket 168及Socket 1）"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486（杂项）"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7（单电压）"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1995] Socket 7（双电压）"
+
+msgid "Miscellaneous"
+msgstr "杂项"
 
 msgid "Machine:"
 msgstr "机型:"
@@ -354,8 +388,14 @@ msgstr "速度:"
 msgid "Frequency:"
 msgstr "频率:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "浮点处理器 (FPU):"
+
+msgid "Internal"
+msgstr "内置"
 
 msgid "Wait states:"
 msgstr "等待状态 (WS):"
@@ -378,6 +418,9 @@ msgstr "启用 (本地时区)"
 msgid "Enabled (UTC)"
 msgstr "启用 (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "为286及386处理器应用486解释器"
+
 msgid "Dynamic Recompiler"
 msgstr "动态重编译器"
 
@@ -395,6 +438,9 @@ msgstr "显卡:"
 
 msgid "Video #2:"
 msgstr "显卡 2:"
+
+msgid "Monitor"
+msgstr "显示器"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 或 2 图形"
@@ -465,8 +511,8 @@ msgstr "独立 MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "使用单精度浮点（FLOAT32）音频"
 
-msgid "FM synth driver"
-msgstr "FM合成器驱动"
+msgid "FM synth driver:"
+msgstr "FM合成器驱动:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (更准确)"
@@ -474,56 +520,8 @@ msgstr "Nuked (更准确)"
 msgid "YMFM (faster)"
 msgstr "YMFM (更快)"
 
-msgid "COM1 Device:"
-msgstr "COM1 设备:"
-
-msgid "COM2 Device:"
-msgstr "COM2 设备:"
-
-msgid "COM3 Device:"
-msgstr "COM3 设备:"
-
-msgid "COM4 Device:"
-msgstr "COM4 设备:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1 设备:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2 设备:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3 设备:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4 设备:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "内部 LPT 的 ECP DMA:"
-
-msgid "Serial port 1"
-msgstr "串口 1"
-
-msgid "Serial port 2"
-msgstr "串口 2"
-
-msgid "Serial port 3"
-msgstr "串口 3"
-
-msgid "Serial port 4"
-msgstr "串口 4"
-
-msgid "Parallel port 1"
-msgstr "并口 1"
-
-msgid "Parallel port 2"
-msgstr "并口 2"
-
-msgid "Parallel port 3"
-msgstr "并口 3"
-
-msgid "Parallel port 4"
-msgstr "并口 4"
 
 msgid "Floppy disk controller:"
 msgstr "软盘控制器:"
@@ -531,11 +529,50 @@ msgstr "软盘控制器:"
 msgid "CD-ROM controller:"
 msgstr "CD-ROM 控制器:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] 第三 IDE 控制器"
+msgid "Mitsumi interface"
+msgstr "三美（Mitsumi）接口"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] 第四 IDE 控制器"
+msgid "MKE/Panasonic interface"
+msgstr "松下接口"
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr "松下接口（创新科技）"
+
+msgid "IDE Controller"
+msgstr "IDE 控制器"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "IDE 控制器（双通道）"
+
+msgid "PC/AT IDE Controller"
+msgstr "PC/AT IDE 控制器"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "PC/AT IDE 控制器（双通道）"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "PC/AT XTIDE（仅主通道）"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "PS/2 AT XTIDE (1.1.5)（仅主通道）"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646（第三和第四控制器）"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648（第三和第四控制器）"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649（第三和第四控制器）"
+
+msgid "McIDE Controller"
+msgstr "McIDE 控制器"
+
+msgid "Tertiary IDE Controller"
+msgstr "第三 IDE 控制器"
+
+msgid "Quaternary IDE Controller"
+msgstr "第四 IDE 控制器"
 
 msgid "Hard disk controllers"
 msgstr "硬盘控制器"
@@ -563,6 +600,9 @@ msgstr "硬盘:"
 
 msgid "Firmware Version"
 msgstr "固件版本"
+
+msgid "DSP Version"
+msgstr "DSP 版本"
 
 msgid "&New…"
 msgstr "新建(&N)…"
@@ -603,8 +643,8 @@ msgstr "映像格式:"
 msgid "Block Size:"
 msgstr "块大小:"
 
-msgid "Floppy drives:"
-msgstr "软盘驱动器:"
+msgid "Floppy drives"
+msgstr "软盘驱动器"
 
 msgid "Turbo timings"
 msgstr "加速时序"
@@ -612,23 +652,26 @@ msgstr "加速时序"
 msgid "Check BPB"
 msgstr "检查 BPB"
 
-msgid "CD-ROM drives:"
-msgstr "光盘驱动器:"
+msgid "CD-ROM drives"
+msgstr "光盘驱动器"
 
-msgid "MO drives:"
-msgstr "磁光盘驱动器:"
+msgid "MO drives"
+msgstr "磁光盘驱动器"
 
 msgid "MO:"
 msgstr "磁光盘:"
 
+msgid "Removable disk drives"
+msgstr "可移动磁盘驱动器"
+
 msgid "Removable disks:"
-msgstr "可移动磁盘 (ZIP):"
+msgstr "可移动磁盘:"
 
-msgid "Removable disk drives:"
-msgstr "可移动磁盘 (ZIP) 驱动器:"
+msgid "Tape drives"
+msgstr "磁带驱动器"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "磁带驱动器："
 
 msgid "ISA RTC:"
 msgstr "ISA 实时时钟:"
@@ -679,13 +722,22 @@ msgid "Speed"
 msgstr "速度"
 
 msgid "Removable disk %1 (%2): %3"
-msgstr "可移动磁盘 (ZIP) %1 (%2): %3"
+msgstr "可移动磁盘 %1 (%2): %3"
 
 msgid "&Removable disk %1 (%2): %3"
-msgstr "可移动磁盘(&R) (ZIP) %1 (%2): %3"
+msgstr "可移动磁盘(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "可移动磁盘 (ZIP) 映像"
+msgstr "可移动磁盘映像"
+
+msgid "Tape %1 (%2): %3"
+msgstr "磁带%1 (%2)：%3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "磁带(&T) %1 (%2)：%3"
+
+msgid "Tape images"
+msgstr "磁带镜像"
 
 msgid "Image %1"
 msgstr "映像 %1"
@@ -750,8 +802,14 @@ msgstr "端口 (COM 和 LPT)"
 msgid "Ports"
 msgstr "端口"
 
+msgid "Serial ports"
+msgstr "串口"
+
 msgid "Serial ports:"
 msgstr "串口:"
+
+msgid "Parallel ports"
+msgstr "并口"
 
 msgid "Parallel ports:"
 msgstr "并口:"
@@ -798,14 +856,8 @@ msgstr "总线"
 msgid "File"
 msgstr "文件"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "几何结构"
 
 msgid "KB"
 msgstr "KB"
@@ -1008,15 +1060,6 @@ msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
 
-msgid "Don't exit"
-msgstr "不退出"
-
-msgid "Reset"
-msgstr "重置"
-
-msgid "Don't reset"
-msgstr "不重置"
-
 msgid "CD-ROM images"
 msgstr "光盘映像"
 
@@ -1137,8 +1180,8 @@ msgstr "无法打开选定的配置文件进行读取：%1"
 msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"
@@ -1220,9 +1263,6 @@ msgstr "输入新的显示名称 (留空以重置)"
 
 msgid "Change &display name…"
 msgstr "更改显示名称(&D)…"
-
-msgid "Context Menu"
-msgstr "上下文菜单"
 
 msgid "&Open folder…"
 msgstr "打开文件夹(&O)…"
@@ -1524,9 +1564,6 @@ msgstr "DMF (2048 簇)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5 英寸 128 MB (ISO 10090)"
 
@@ -1568,6 +1605,9 @@ msgstr "低于标准转速的 1.5%"
 
 msgid "2% below perfect RPM"
 msgstr "低于标准转速的 2%"
+
+msgid "Creating image…"
+msgstr "正在创建镜像…"
 
 msgid "(System Default)"
 msgstr "(系统默认)"
@@ -1650,8 +1690,8 @@ msgstr "光标/冰球(&C)"
 msgid "&Pen"
 msgstr "笔(&P)"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "主机 CD/DVD 驱动器 (%1:) (&H)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "主机 CD/DVD 驱动器 (%1) (&H)"
 
 msgid "&Connected"
 msgstr "已连接(&C)"
@@ -1746,17 +1786,17 @@ msgstr "兆字节"
 msgid "GiB"
 msgstr "吉字节"
 
-msgid "Network Card #1"
-msgstr "网卡 1"
+msgid "Adapter 1"
+msgstr "适配器 1"
 
-msgid "Network Card #2"
-msgstr "网卡 2"
+msgid "Adapter 2"
+msgstr "适配器 2"
 
-msgid "Network Card #3"
-msgstr "网卡 3"
+msgid "Adapter 3"
+msgstr "适配器 3"
 
-msgid "Network Card #4"
-msgstr "网卡 4"
+msgid "Adapter 4"
+msgstr "适配器 4"
 
 msgid "Mode:"
 msgstr "模式:"
@@ -1778,18 +1818,6 @@ msgstr "86Box 单元测试工具"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x 密钥卡"
-
-msgid "Serial port passthrough 1"
-msgstr "串口直通 1"
-
-msgid "Serial port passthrough 2"
-msgstr "串口直通 2"
-
-msgid "Serial port passthrough 3"
-msgstr "串口直通 3"
-
-msgid "Serial port passthrough 4"
-msgstr "串口直通 4"
 
 msgid "Renderer &options…"
 msgstr "渲染器选项(&O)…"
@@ -1845,8 +1873,8 @@ msgstr "3M MicroTouch (串口)"
 msgid "Default Baud rate"
 msgstr "默认波特率"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 标准 Hayes 兼容调制解调器"
+msgid "Standard Hayes-compliant Modem"
+msgstr "标准 Hayes 兼容调制解调器"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 仿真"
@@ -1940,6 +1968,9 @@ msgstr "BIOS 版本"
 
 msgid "BIOS Language"
 msgstr "BIOS 语言"
+
+msgid "Variant"
+msgstr "变种"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 扩展单元"
@@ -2204,9 +2235,6 @@ msgstr "内存大小"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 地址"
-
-msgid "IDE Controller"
-msgstr "IDE 控制器"
 
 msgid "Codec"
 msgstr "编解码器"
@@ -2592,6 +2620,9 @@ msgstr "标准"
 msgid "High-Speed"
 msgstr "高速"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "立体声 LPT DAC"
 
@@ -2604,8 +2635,8 @@ msgstr "通用 ESC/P 2 点阵打印机"
 msgid "Generic PostScript Printer"
 msgstr "通用 PostScript 打印机"
 
-msgid "Generic PCL5e Printer"
-msgstr "通用 PCL5e 打印机"
+msgid "Generic PCL Printer"
+msgstr "通用 PCL 打印机"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Parallel Line Internet Protocol"
@@ -2613,8 +2644,11 @@ msgstr "Parallel Line Internet Protocol"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest 保护加密狗"
 
-msgid "Serial Passthrough Device"
-msgstr "串口直通设备"
+msgid "Loopback Plug"
+msgstr "环回插头"
+
+msgid "Serial Passthrough"
+msgstr "串口直通"
 
 msgid "Passthrough Mode"
 msgstr "直通模式"
@@ -2638,7 +2672,7 @@ msgid "Named Pipe (Server)"
 msgstr "命名管道（服务器）"
 
 msgid "Named Pipe (Client)"
-msgstr "命名管道 (客户端)"
+msgstr "命名管道（客户端）"
 
 msgid "Host Serial Passthrough"
 msgstr "主机串口直通"
@@ -2650,34 +2684,40 @@ msgid "&Unmute"
 msgstr "解除静音(&U)"
 
 msgid "Softfloat FPU"
-msgstr "Softfloat FPU"
+msgstr "软浮点FPU"
 
 msgid "High performance impact"
 msgstr "重大性能影响"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Generic] RAM 磁盘 (最大速度)"
+msgstr "[通用] 内存盘 (最大速度)"
+
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[通用] 1983 MFM (3600转)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[通用] 1983 RLL (3600转)"
 
 msgid "[Generic] 1989 (3500 RPM)"
-msgstr "[Generic] 1989 (3500 RPM)"
+msgstr "[通用] 1989 (3500转)"
 
 msgid "[Generic] 1992 (3600 RPM)"
-msgstr "[Generic] 1992 (3600 RPM)"
+msgstr "[通用] 1992 (3600转)"
 
 msgid "[Generic] 1994 (4500 RPM)"
-msgstr "[Generic] 1994 (4500 RPM)"
+msgstr "[通用] 1994 (4500转)"
 
 msgid "[Generic] 1996 (5400 RPM)"
-msgstr "[Generic] 1996 (5400 RPM)"
+msgstr "[通用] 1996 (5400转)"
 
 msgid "[Generic] 1997 (5400 RPM)"
-msgstr "[Generic] 1997 (5400 RPM)"
+msgstr "[通用] 1997 (5400转)"
 
 msgid "[Generic] 1998 (5400 RPM)"
-msgstr "[Generic] 1998 (5400 RPM)"
+msgstr "[通用] 1998 (5400转)"
 
 msgid "[Generic] 2000 (7200 RPM)"
-msgstr "[Generic] 2000 (7200 RPM)"
+msgstr "[通用] 2000 (7200转)"
 
 msgid "IBM 8514/A clone (ISA)"
 msgstr "IBM 8514/A 克隆 (ISA)"
@@ -2696,6 +2736,12 @@ msgstr "通用 PC/XT 内存扩展"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "通用 PC/AT 内存扩展"
+
+msgid "Generic MM58167 RTC"
+msgstr "通用 MM58167 RTC"
+
+msgid "OPL2Board (External Device)"
+msgstr "OPL2Board（外置设备）"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "无法找到点阵字体"
@@ -2760,8 +2806,14 @@ msgstr "下移"
 msgid "Could not load file %1"
 msgstr "无法加载文件 %1"
 
-msgid "Key Bindings:"
-msgstr "按键绑定:"
+msgid "Emulator"
+msgstr "模拟器"
+
+msgid "Input"
+msgstr "输入"
+
+msgid "Key bindings"
+msgstr "按键绑定"
 
 msgid "Action"
 msgstr "动作"
@@ -2799,9 +2851,6 @@ msgstr "切换全屏"
 msgid "Toggle UI in fullscreen"
 msgstr "在全屏模式下激活菜单栏"
 
-msgid "Screenshot"
-msgstr "截图"
-
 msgid "Release mouse pointer"
 msgstr "释放鼠标"
 
@@ -2826,8 +2875,8 @@ msgstr "本地交换机"
 msgid "Remote Switch"
 msgstr "远程交换机"
 
-msgid "Switch:"
-msgstr "交换机："
+msgid "Shared secret:"
+msgstr "共享密钥："
 
 msgid "Hub Mode"
 msgstr "集线器模式"
@@ -2988,9 +3037,6 @@ msgstr "亮色"
 msgid "Dark"
 msgstr "暗色"
 
-msgid "Search:"
-msgstr "搜索:"
-
 msgid "Force interpretation"
 msgstr "强制解释执行"
 
@@ -3005,3 +3051,21 @@ msgstr "允许重编译(&A)"
 
 msgid "&Fast forward"
 msgstr "快进(&F)"
+
+msgid "Fast forward"
+msgstr "快进"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"
+
+msgid "Raw"
+msgstr "原始"
+
+msgid "Use EDC/ECC emulation"
+msgstr "使用EDC/ECC模拟"
+
+msgid "Audio output device:"
+msgstr "音频输出设备:"
+
+msgid "System Default"
+msgstr "系统默认"

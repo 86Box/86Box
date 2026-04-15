@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+#define SERIAL_MAX_UI 4
+
 namespace Ui {
 class SettingsPorts;
 }
@@ -14,6 +16,9 @@ public:
     explicit SettingsPorts(QWidget *parent = nullptr);
     ~SettingsPorts();
 
+    int  changed();
+
+    void restore();
     void save();
 
 public slots:
@@ -34,41 +39,29 @@ private slots:
     void on_checkBoxParallel3_stateChanged(int state);
     void on_checkBoxParallel4_stateChanged(int state);
 
+    void on_comboBoxCom1_currentIndexChanged(int index);
+    void on_pushButtonConfigureCom1_clicked();
+    void on_comboBoxCom2_currentIndexChanged(int index);
+    void on_pushButtonConfigureCom2_clicked();
+    void on_comboBoxCom3_currentIndexChanged(int index);
+    void on_pushButtonConfigureCom3_clicked();
+    void on_comboBoxCom4_currentIndexChanged(int index);
+    void on_pushButtonConfigureCom4_clicked();
+
     void on_checkBoxSerial1_stateChanged(int state);
     void on_checkBoxSerial2_stateChanged(int state);
     void on_checkBoxSerial3_stateChanged(int state);
     void on_checkBoxSerial4_stateChanged(int state);
-#if 0
-    void on_checkBoxSerial5_stateChanged(int state);
-    void on_checkBoxSerial6_stateChanged(int state);
-    void on_checkBoxSerial7_stateChanged(int state);
-#endif
-    void on_checkBoxSerialPassThru1_stateChanged(int state);
-    void on_pushButtonSerialPassThru1_clicked();
-
-    void on_checkBoxSerialPassThru2_stateChanged(int state);
-    void on_pushButtonSerialPassThru2_clicked();
-
-    void on_checkBoxSerialPassThru3_stateChanged(int state);
-    void on_pushButtonSerialPassThru3_clicked();
-
-    void on_checkBoxSerialPassThru4_stateChanged(int state);
-    void on_pushButtonSerialPassThru4_clicked();
-
-#if 0
-    void on_checkBoxSerialPassThru5_stateChanged(int state);
-    void on_pushButtonSerialPassThru5_clicked();
-
-    void on_checkBoxSerialPassThru6_stateChanged(int state);
-    void on_pushButtonSerialPassThru6_clicked();
-
-    void on_checkBoxSerialPassThru7_stateChanged(int state);
-    void on_pushButtonSerialPassThru7_clicked();
-#endif
 
 private:
     Ui::SettingsPorts *ui;
     int                machineId = 0;
+
+    int                lpt_device_cfg_changed[4] = { 0, 0, 0, 0 };
+    int                com_device_cfg_changed[SERIAL_MAX_UI] = { 0 };
+
+    SettingsCompleter *scLpt[4];
+    SettingsCompleter *scCom[SERIAL_MAX_UI];
 };
 
 #endif // QT_SETTINGSPORTS_HPP

@@ -1188,24 +1188,6 @@ machine_xt_kaypropc_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_xt_micoms_xl7turbo_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&kbc_xt_device);
-
-    machine_xt_common_init(model, 0);
-
-    return ret;
-}
-
 static const device_config_t pc500_config[] = {
     // clang-format off
     {
@@ -1275,7 +1257,7 @@ static const device_config_t pc500_config[] = {
 };
 
 const device_t pc500_device = {
-    .name          = "Multitech PC-500",
+    .name          = "Multitech PC-500 / Franklin PC 8000",
     .internal_name = "pc500_device",
     .flags         = 0,
     .local         = 0,
@@ -1394,7 +1376,7 @@ static const device_config_t pc500plus_config[] = {
 };
 
 const device_t pc500plus_device = {
-    .name          = "Multitech PC-500 plus",
+    .name          = "Multitech PC-500+",
     .internal_name = "pc500plus_device",
     .flags         = 0,
     .local         = 0,
@@ -1472,7 +1454,7 @@ static const device_config_t pc700_config[] = {
 };
 
 const device_t pc700_device = {
-    .name           = "Multitech PC-700",
+    .name           = "Multitech PC-700 / Siemens SICOMP PC 16 05",
     .internal_name  = "pc700_device",
     .flags          = 0,
     .local          = 0,
@@ -1625,6 +1607,24 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
         return ret;
 
     device_add(&kbc_pravetz_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
+machine_xt_mxl7t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
 
     machine_xt_common_init(model, 0);
 
@@ -1884,10 +1884,17 @@ machine_xt_laserxt_common_init(const machine_t *model, int is_lxt3)
 int
 machine_xt_laserxt_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/ltxt/27c64.bin",
-                           0x000fe000, 8192, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
@@ -2009,7 +2016,7 @@ machine_xt_z184_init(const machine_t *model)
     /* So that serial_standalone_init() won't do anything. */
     serial_set_next_inst(SERIAL_MAX - 1);
 
-    device_add(&cga_device);
+    device_add(&v6355d_device);
 
     return ret;
 }
@@ -2075,8 +2082,6 @@ machine_xt_tuliptc8_init(const machine_t *model)
     nmi_init();
     standalone_gameport_type = &gameport_200_device;
 
-    device_add(&amstrad_megapc_nvr_device);
-
     return ret;
 }
 
@@ -2126,8 +2131,6 @@ machine_xt_pc5086_init(const machine_t *model)
     device_add(&f82c710_pc5086_device);
 
     device_add(&kbc_xt_device);
-
-    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
 
     return ret;
 }

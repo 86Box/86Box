@@ -290,7 +290,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                         ad1848_init(&dev->ad1848, dev->ad1848_type);
                         ad1848_set_cd_audio_channel(&dev->ad1848, AD1848_AUX2);
                     }
-                    val = 0x00;
+                    val &= 0x07;
                     break;
 
                 case 1:         /* Version / Chip ID */
@@ -1203,7 +1203,7 @@ const device_t cs4236b_device = {
 };
 
 const device_t cs4236b_onboard_device = {
-    .name          = "Crystal CS4236B",
+    .name          = "Crystal CS4236B (On-Board)",
     .internal_name = "cs4236b",
     .flags         = DEVICE_ISA16,
     .local         = CRYSTAL_CS4236B | CRYSTAL_NOEEPROM,

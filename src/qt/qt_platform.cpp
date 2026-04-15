@@ -52,7 +52,7 @@
 
 #include "qt_rendererstack.hpp"
 #include "qt_mainwindow.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_util.hpp"
 
 #ifndef Q_OS_WINDOWS
@@ -62,6 +62,27 @@
 #ifdef Q_OS_UNIX
 #    include <pthread.h>
 #    include <sys/mman.h>
+#    include <fcntl.h>
+#    include <unistd.h>
+#    include <sys/ioctl.h>
+#    ifdef Q_OS_LINUX
+#        include <linux/fs.h>
+#    endif
+#    ifdef Q_OS_MACOS
+#        include <sys/disk.h>
+#    endif
+#    if defined(Q_OS_FREEBSD) || defined(Q_OS_OPENBSD) || defined(Q_OS_NETBSD)
+#        include <sys/disk.h>
+#        include <sys/disklabel.h>
+#    endif
+#endif
+
+#ifdef Q_OS_WINDOWS
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
+#    include <winioctl.h>
 #endif
 
 #include <sys/stat.h>
@@ -108,10 +129,6 @@ private:
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
-#    ifndef NOMINMAX
-#        define NOMINMAX
-#    endif
-#    include <windows.h>
 #    include <86box/win.h>
 #else
 #    include <strings.h>
@@ -126,6 +143,7 @@ extern "C" {
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/config.h>
+#include <86box/hdd.h>
 #include <86box/ui.h>
 #ifdef DISCORD
 #    include <86box/discord.h>
@@ -268,6 +286,110 @@ plat_file_check(const char *path)
 }
 
 int
+plat_is_block_device(const char *path)
+{
+#ifdef Q_OS_WINDOWS
+    /* On Windows, check if path looks like a physical disk (e.g., \\.\PhysicalDrive0) */
+    if (path == nullptr)
+        return 0;
+    QString p = QString::fromUtf8(path);
+    if (p.startsWith("\\\\.\\PhysicalDrive", Qt::CaseInsensitive) ||
+        p.startsWith("\\\\.\\Harddisk", Qt::CaseInsensitive) ||
+        p.startsWith("\\\\?\\", Qt::CaseInsensitive))
+        return 1;
+    return 0;
+#else
+    struct stat stats;
+    if (stat(path, &stats) < 0)
+        return 0;
+#if defined(Q_OS_FREEBSD) || defined(Q_OS_OPENBSD) || defined(Q_OS_NETBSD)
+    /* BSD systems use character devices for disk access, not block devices */
+    return S_ISCHR(stats.st_mode) ? 1 : 0;
+#else
+    return S_ISBLK(stats.st_mode) ? 1 : 0;
+#endif
+#endif
+}
+
+int64_t
+plat_get_block_device_size(const char *path)
+{
+#ifdef Q_OS_WINDOWS
+    HANDLE hDevice;
+    DWORD  bytesReturned;
+    GET_LENGTH_INFORMATION lengthInfo;
+
+    auto widePath = QString::fromUtf8(path).toStdWString();
+    hDevice = CreateFileW(widePath.c_str(), GENERIC_READ,
+                          FILE_SHARE_READ | FILE_SHARE_WRITE,
+                          NULL, OPEN_EXISTING, 0, NULL);
+    if (hDevice == INVALID_HANDLE_VALUE)
+        return -1;
+
+    if (!DeviceIoControl(hDevice, IOCTL_DISK_GET_LENGTH_INFO,
+                         NULL, 0, &lengthInfo, sizeof(lengthInfo),
+                         &bytesReturned, NULL)) {
+        CloseHandle(hDevice);
+        return -1;
+    }
+
+    CloseHandle(hDevice);
+    return (int64_t) lengthInfo.Length.QuadPart;
+
+#elif defined(Q_OS_LINUX)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t size = 0;
+    if (ioctl(fd, BLKGETSIZE64, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#elif defined(Q_OS_MACOS)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    uint64_t block_count = 0;
+    uint32_t block_size = 0;
+
+    if (ioctl(fd, DKIOCGETBLOCKCOUNT, &block_count) < 0) {
+        close(fd);
+        return -1;
+    }
+    if (ioctl(fd, DKIOCGETBLOCKSIZE, &block_size) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return (int64_t)(block_count * block_size);
+
+#elif defined(Q_OS_FREEBSD) || defined(Q_OS_OPENBSD) || defined(Q_OS_NETBSD)
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+        return -1;
+
+    off_t size = 0;
+    if (ioctl(fd, DIOCGMEDIASIZE, &size) < 0) {
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    return (int64_t) size;
+
+#else
+    /* Unsupported platform */
+    (void) path;
+    return -1;
+#endif
+}
+
+int
 plat_getcwd(char *bufp, int max)
 {
 #ifdef __APPLE__
@@ -348,6 +470,8 @@ void
 path_normalize(char *path)
 {
 #ifdef Q_OS_WINDOWS
+    if (plat_is_block_device(path))
+        return;
     if (strstr(path, "ioctl://") != path) {
         while (*path++ != 0) {
             if (*path == '\\')
@@ -575,8 +699,8 @@ plat_power_off(void)
 {
     plat_mouse_capture(0);
     confirm_exit_cmdl = 0;
+    hdd_image_sync_all();
     nvr_save();
-    config_save();
 
     /* Deduct a sufficiently large number of cycles that no instructions will
        run before the main thread is terminated */
@@ -590,14 +714,14 @@ plat_power_off(void)
 int
 plat_language_code(char *langcode)
 {
-    return ProgSettings::languageCodeToId(QString(langcode));
+    return Preferences::languageCodeToId(QString(langcode));
 }
 
 /* Converts the numeric language ID to a language code string */
 void
 plat_language_code_r(int id, char *outbuf, int len)
 {
-    qstrncpy(outbuf, ProgSettings::languageIdToCode(id).toUtf8().constData(), len);
+    qstrncpy(outbuf, Preferences::languageIdToCode(id).toUtf8().constData(), len);
     return;
 }
 
@@ -707,10 +831,10 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #    define LIB_NAME_PCAP "libpcap"
 #endif
 
-QMap<int, std::wstring> ProgSettings::translatedstrings;
+QMap<int, std::wstring> Preferences::translatedstrings;
 
 void
-ProgSettings::reloadStrings()
+Preferences::reloadStrings()
 {
     translatedstrings.clear();
     translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
@@ -741,9 +865,9 @@ ProgSettings::reloadStrings()
 wchar_t *
 plat_get_string(int i)
 {
-    if (ProgSettings::translatedstrings.empty())
-        ProgSettings::reloadStrings();
-    return ProgSettings::translatedstrings[i].data();
+    if (Preferences::translatedstrings.empty())
+        Preferences::reloadStrings();
+    return Preferences::translatedstrings[i].data();
 }
 
 int
@@ -876,63 +1000,46 @@ plat_init_asset_paths(void)
 void
 plat_get_cpu_string(char *outbuf, uint8_t len)
 {
-    auto cpu_string = QString("Unknown");
+    QString cpu_string("Unknown");
     /* Write the default string now in case we have to exit early from an error */
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
 
-#if defined(Q_OS_MACOS)
-    auto       *process = new QProcess(nullptr);
-    QStringList arguments;
-    QString     program = "/usr/sbin/sysctl";
-    arguments << "machdep.cpu.brand_string";
-    process->start(program, arguments);
-    if (!process->waitForStarted()) {
-        return;
-    }
-    if (!process->waitForFinished()) {
-        return;
-    }
-    QByteArray result         = process->readAll();
-    auto       command_result = QString(result).split(": ").last().trimmed();
-    if (!command_result.isEmpty()) {
-        cpu_string = command_result;
-    }
-#elif defined(Q_OS_WINDOWS)
-    const LPCSTR  keyName   = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
-    const LPCSTR  valueName = "ProcessorNameString";
-    unsigned char buf[32768];
-    DWORD         bufSize;
-    HKEY          hKey;
-    bufSize = 32768;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
-        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
+#ifdef Q_OS_WINDOWS
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", 0, KEY_QUERY_VALUE, &hKey) == ERROR_SUCCESS) {
+        unsigned char buf[256];
+        DWORD         bufSize = sizeof(buf);
+        if (RegQueryValueExA(hKey, "ProcessorNameString", NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
             cpu_string = reinterpret_cast<const char *>(buf);
-        }
         RegCloseKey(hKey);
     }
 #elif defined(Q_OS_LINUX)
-    auto cpuinfo    = QString("/proc/cpuinfo");
-    auto cpuinfo_fi = QFileInfo(cpuinfo);
-    if (!cpuinfo_fi.isReadable()) {
+    QString cpuinfo("/proc/cpuinfo");
+    if (!QFileInfo(cpuinfo).isReadable())
         return;
-    }
     QFile file(cpuinfo);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream textStream(&file);
-        while (true) {
-            QString line = textStream.readLine();
-            if (line.isNull()) {
+        auto regex = QRegularExpression(QStringLiteral("model name\\s*:\\s*(.+)"));
+        QString line;
+        while (!(line = textStream.readLine()).isNull()) {
+            auto match = regex.match(line);
+            if (match.hasMatch()) {
+                cpu_string = match.captured(1).trimmed();
                 break;
             }
-            if (QRegularExpression("model name.*:").match(line).hasMatch()) {
-                auto list = line.split(": ");
-                if (!list.last().isEmpty()) {
-                    cpu_string = list.last();
-                    break;
-                }
-            }
         }
+        file.close();
     }
+#elif defined(Q_OS_MACOS)
+    auto process = new QProcess();
+    process->start("/usr/sbin/sysctl", QStringList() << "machdep.cpu.brand_string");
+    if (!process->waitForStarted() || !process->waitForFinished())
+        return;
+    auto command_result = QString(process->readAll());
+    auto idx = command_result.indexOf(':');
+    if (idx > -1)
+        cpu_string = command_result.remove(idx + 1).trimmed();
 #endif
 
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
@@ -959,7 +1066,7 @@ plat_set_thread_name(void *thread, const char *name)
     }
 #else
 #    ifdef Q_OS_DARWIN
-    if (thread) /* Apple pthread can only set self's name */
+    if (thread) /* macOS pthread can only set self's name */
         return;
     char truncated[64];
 #    elif defined(Q_OS_NETBSD)
@@ -1024,4 +1131,172 @@ plat_send_to_clipboard(unsigned char *rgb, int width, int height)
     height_ = 0;
     width_  = 0;
     rgb_    = NULL;
+}
+
+#if !defined(Q_OS_WINDOWS) && !defined(Q_OS_MACOS)
+static int
+have_env_var(const char *var, const char *cmp = NULL)
+{
+    const char *val = getenv(var);
+    return val && val[0] && (!cmp || !strnicmp(val, cmp, strlen(cmp)));
+}
+#endif
+
+int
+plat_run_command(const char *cmd, const char **env, const char *title)
+{
+    auto process = new QProcess();
+    process->setInputChannelMode(QProcess::ForwardedInputChannel);
+    process->setProcessChannelMode(QProcess::ForwardedChannels);
+    process->setWorkingDirectory(usr_path);
+
+    /* Take advantage of macOS displaying the script name in the title bar. */
+    auto titleq = QString::fromUtf8(title);
+#ifndef Q_OS_WINDOWS
+    char buf[256];
+#endif
+#ifdef Q_OS_MACOS
+    auto idx = titleq.lastIndexOf('\n');
+    if (idx > -1) {
+        snprintf(buf, sizeof(buf), "%s", titleq.mid(idx + 1).replace('/', QChar(0xff0f)).toUtf8().constData()); /* replace slash with fullwidth slash */
+        titleq.truncate(idx);
+    } else
+#endif
+#ifndef Q_OS_WINDOWS
+        buf[0] = '\0';
+#endif
+    titleq.replace(QRegularExpression(QStringLiteral("\\n([^\\n]*)")), QStringLiteral(" [\\1]"));
+
+    if (
+#ifndef Q_OS_WINDOWS
+        titleq.isNull() &&
+#endif
+        env && *env && *env[0]) { /* set environment variables for direct execution */
+        auto envq = QProcessEnvironment::systemEnvironment();
+        while (*env && *env[0]) {
+            auto varq = QString::fromUtf8(*env++);
+            auto idx = varq.indexOf('=');
+            if (idx > 0)
+                envq.insert(varq.left(idx), varq.mid(idx + 1));
+            else
+                envq.insert(varq, QStringLiteral(""));
+        }
+        process->setProcessEnvironment(envq);
+    }
+
+#ifdef Q_OS_WINDOWS
+    /* Set up terminal execution if requested. */
+    if (!titleq.isEmpty()) {
+        auto titlew = titleq.toStdWString();
+        process->setCreateProcessArgumentsModifier([titleq, titlew] (QProcess::CreateProcessArguments *args) {
+            args->flags |= CREATE_NEW_CONSOLE;
+            args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
+            args->startupInfo->lpTitle = (wchar_t *) titlew.c_str();
+        });
+    }
+
+    /* Execute command. */
+    process->setProgram(getenv("ComSpec"));
+    process->setNativeArguments(QString::fromUtf8(cmd).prepend(QStringLiteral("/c ")));
+    return process->startDetached();
+#else
+    /* Generate script. */
+    if (!buf[0])
+        plat_tempfile(buf, (char *) ".temp", (char *) ".sh");
+    char *script = nvr_path(buf);
+    QFile f(script);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
+        return 0;
+    f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
+    if (!titleq.isEmpty()) {
+        titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''"));
+        f.write("printf '\e]0;%s\a' '");
+        f.write(titleq.toUtf8());
+        f.write("'\n");
+    }
+    if (!titleq.isNull() && env && *env && *env[0]) { /* set environment variables for terminal execution */
+        f.write("export");
+        while (*env && *env[0]) {
+            f.write(" '");
+            f.write(QString::fromUtf8(*env++).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
+            f.write("'");
+        }
+        f.write("\n");
+    }
+    if (!titleq.isNull())
+        f.write("clear\n");
+    f.write(cmd);
+    f.write("\n");
+    f.close();
+    f.setPermissions(QFileDevice::ReadUser | QFileDevice::WriteUser | QFileDevice::ExeUser);
+
+    /* Execute script directly or under a terminal emulator if requested. */
+    if (titleq.isNull()) {
+        process->setProgram(QStringLiteral("/bin/sh"));
+        process->setArguments(QStringList() << script);
+        if (process->startDetached())
+            return 1;
+    } else {
+#    ifdef Q_OS_MACOS
+        /* This (and AppleScript which requires user consent) opens an interactive shell and types the path in, so
+           we can't control the working directory displayed in the title bar, nor the lack of auto-exit by default. */
+        process->setProgram(QStringLiteral("open"));
+        process->setArguments(QStringList() << QStringLiteral("-b") << QStringLiteral("com.apple.Terminal") << script);
+        process->start();
+        if (process->waitForStarted() && process->waitForFinished())
+            return 1;
+#    else
+        /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
+        QStringList terminals;
+        if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
+            terminals.prepend(QStringLiteral("konsole"));
+        else
+            terminals << QStringLiteral("konsole");
+        if (have_env_var("XDG_CURRENT_DESKTOP", "GNOME") || have_env_var("DESKTOP_SESSION", "gnome") || have_env_var("GNOME_DESKTOP_SESSION_ID") ||
+            have_env_var("XDG_CURRENT_DESKTOP", "Cinnamon") || have_env_var("XDG_CURRENT_DESKTOP", "X-Cinnamon") ||
+            have_env_var("XDG_CURRENT_DESKTOP", "Unity"))
+            terminals.prepend(QStringLiteral("gnome-terminal"));
+        else
+            terminals << QStringLiteral("gnome-terminal");
+        if (have_env_var("XDG_CURRENT_DESKTOP", "MATE") || have_env_var("DESKTOP_SESSION", "MATE"))
+            terminals.prepend(QStringLiteral("mate-terminal"));
+        else
+            terminals << QStringLiteral("mate-terminal");
+        if (have_env_var("XDG_CURRENT_DESKTOP", "XFCE") || have_env_var("DESKTOP_SESSION", "xfce"))
+            terminals.prepend(QStringLiteral("xfce4-terminal"));
+        else
+            terminals << QStringLiteral("xfce4-terminal");
+        if (have_env_var("XDG_CURRENT_DESKTOP", "LXQt") || have_env_var("LXQT_SESSION_CONFIG"))
+            terminals.prepend(QStringLiteral("qterminal"));
+        else
+            terminals << QStringLiteral("qterminal");
+        if (have_env_var("XDG_CURRENT_DESKTOP", "LXDE") || have_env_var("DESKTOP_SESSION", "LXDE") || have_env_var("DESKTOP_SESSION", "Lubuntu"))
+            terminals.prepend(QStringLiteral("lxterminal"));
+        else
+            terminals << QStringLiteral("lxterminal");
+        terminals.prepend(QStringLiteral("x-terminal-emulator"));
+        terminals.prepend(QStringLiteral("xdg-terminal-exec"));
+        terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
+
+        for (const auto &terminal : terminals) {
+            process->setProgram(terminal);
+            QStringList args;
+            if (terminal == QStringLiteral("xdg-terminal-exec"))
+                args << QString("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
+            else if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
+                args << QStringLiteral("-e");
+            else
+                args << QStringLiteral("--");
+            args << script;
+            process->setArguments(args);
+            if (process->startDetached())
+                return 1;
+        }
+#    endif
+    }
+
+    /* Delete script if execution failed. */
+    f.remove();
+    return 0;
+#endif
 }

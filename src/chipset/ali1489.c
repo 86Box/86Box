@@ -308,7 +308,7 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
                                     break;
                             }
                             dev->regs[0x35] |= 0x0e;
-                        } else if (!(val & 0x10))
+                        } else if (!(val & 0x10) && !(val & 0x08))
                             dev->regs[0x35] &= ~0x0f;
                         break;
 
@@ -411,7 +411,7 @@ ali1489_read(uint16_t addr, void *priv)
 }
 
 static void
-ali1489_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+ali1489_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ali1489_t *dev = (ali1489_t *) priv;
 
@@ -434,7 +434,7 @@ ali1489_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ali1489_pci_read(UNUSED(int func), int addr, void *priv)
+ali1489_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const ali1489_t *dev = (ali1489_t *) priv;
     uint8_t          ret = 0xff;

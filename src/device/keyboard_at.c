@@ -305,7 +305,7 @@ const scancode scancode_set1_at[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 0de */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0df */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e0 */
-    { .mk = {            0 }, .brk = {                   0 } }, /* 0e1 */
+    { .mk = {      0xE1, 0 }, .brk = {                   0 } }, /* 0e1 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e2 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e3 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e4 */
@@ -822,7 +822,7 @@ const scancode scancode_set2_at[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 0de */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0df */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e0 */
-    { .mk = {            0 }, .brk = {                   0 } }, /* 0e1 */
+    { .mk = {      0xE1, 0 }, .brk = {                   0 } }, /* 0e1 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e2 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e3 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e4 */
@@ -1339,7 +1339,7 @@ const scancode scancode_set1_ax[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 0de */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0df */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e0 */
-    { .mk = {            0 }, .brk = {                   0 } }, /* 0e1 */
+    { .mk = {      0xE1, 0 }, .brk = {                   0 } }, /* 0e1 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e2 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e3 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e4 */
@@ -1856,7 +1856,7 @@ const scancode scancode_set2_ax[512] = {
     { .mk = {            0 }, .brk = {                   0 } }, /* 0de */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0df */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e0 */
-    { .mk = {            0 }, .brk = {                   0 } }, /* 0e1 */
+    { .mk = {      0xE1, 0 }, .brk = {                   0 } }, /* 0e1 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e2 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e3 */
     { .mk = {            0 }, .brk = {                   0 } }, /* 0e4 */
@@ -4758,7 +4758,7 @@ static const scancode scancode_set82[512] = {
   // clang-format on
 };
 /* Scancode set 8Ah : IBM 5556 keyboard compatible scancode set used by J-DOS */
-static scancode scancode_set8a[512] =
+const scancode scancode_set8a[512] =
 {
     // clang-format off                     
       {.mk = {       0 }, .brk = {       0 } }, /* 000 */
@@ -4817,7 +4817,7 @@ static scancode scancode_set8a[512] =
       {.mk = { 0x0a, 0 }, .brk = {       0 } }, /* 035 */
       {.mk = { 0x39, 0 }, .brk = { 0xb9, 0 } }, /* 036 RSHIFT */
       {.mk = { 0x64, 0 }, .brk = {       0 } }, /* 037 * (asterisk) */
-      {.mk = { 0x3A, 0 }, .brk = { 0xba, 0 } }, /* 038 0x3A LALT = Kanji */
+      {.mk = { 0x3a, 0 }, .brk = { 0xba, 0 } }, /* 038 0x3A LALT = Kanji */
       {.mk = { 0x34, 0 }, .brk = {       0 } }, /* 039 */
       {.mk = { 0x32, 0 }, .brk = { 0xb2, 0 } }, /* 03a CAPSLOCK */
       {.mk = { 0x68, 0 }, .brk = {       0 } }, /* 03b F1 */

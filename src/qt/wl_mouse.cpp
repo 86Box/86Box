@@ -71,12 +71,18 @@ display_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name
         zwp_keyboard_shortcuts_inhibitor_v1_destroy(kbd_inhibitor);
         kbd_inhibitor = nullptr;
     }
-    zwp_keyboard_shortcuts_inhibit_manager_v1_destroy(kbd_manager);
-    zwp_relative_pointer_manager_v1_destroy(rel_manager);
-    zwp_pointer_constraints_v1_destroy(conf_pointer_interface);
-    rel_manager            = nullptr;
-    conf_pointer_interface = nullptr;
-    kbd_manager            = nullptr;
+    if (kbd_manager) {
+        zwp_keyboard_shortcuts_inhibit_manager_v1_destroy(kbd_manager);
+        kbd_manager = nullptr;
+    }
+    if (rel_manager) {
+        zwp_relative_pointer_manager_v1_destroy(rel_manager);
+        rel_manager = nullptr;
+    }
+    if (conf_pointer_interface) {
+        zwp_pointer_constraints_v1_destroy(conf_pointer_interface);
+        conf_pointer_interface = nullptr;
+    }
 }
 
 static const struct wl_registry_listener registry_listener = {
@@ -111,7 +117,7 @@ wl_keyboard_grab(QWindow *window)
 void
 wl_mouse_capture(QWindow *window)
 {
-    if (!kbd_inhibitor) {
+    if (!kbd_inhibitor && kbd_manager) {
         kbd_inhibitor = zwp_keyboard_shortcuts_inhibit_manager_v1_inhibit_shortcuts(kbd_manager, (wl_surface *) QGuiApplication::platformNativeInterface()->nativeResourceForWindow("surface", window), (wl_seat *) QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("wl_seat"));
     }
     if (rel_manager) {

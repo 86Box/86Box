@@ -67,6 +67,13 @@ public:
     void moReload(int index, int slot);
     void moUpdateMenu(int i);
 
+    void tapeSelectImage(int i, bool wp);
+    void tapeMount(int i, const QString &filename, bool wp);
+    void tapeEject(int i);
+    void tapeReloadPrev(int i);
+    void tapeReload(int index, int slot);
+    void tapeUpdateMenu(int i);
+
     void nicConnect(int i);
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
@@ -86,12 +93,13 @@ private:
     QMap<int, QMenu *> cdromMenus;
     QMap<int, QMenu *> rdiskMenus;
     QMap<int, QMenu *> moMenus;
+    QMap<int, QMenu *> tapeMenus;
     QMap<int, QMenu *> netMenus;
 
     QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;
 
-    const QByteArray driveLetters = QByteArrayLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    const QByteArray driveLetters = QByteArrayLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZ      ");
 
     int cassetteRecordPos;
     int cassettePlayPos;
@@ -116,6 +124,9 @@ private:
 
     int moEjectPos;
     int moImageHistoryPos[MAX_PREV_IMAGES];
+
+    int tapeEjectPos;
+    int tapeImageHistoryPos[MAX_PREV_IMAGES];
 
     int netDisconnPos;
 

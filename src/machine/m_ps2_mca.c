@@ -147,7 +147,7 @@ static int     ps2_cache_valid[65536 / 8];
 static void    mem_encoding_update(void);
 // #define ENABLE_PS2_MCA_LOG 1
 #ifdef ENABLE_PS2_MCA_LOG
-int ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
+uint8_t ps2_mca_do_log = ENABLE_PS2_MCA_LOG;
 
 static void
 ps2_mca_log(const char *fmt, ...)
@@ -829,7 +829,7 @@ ps55_model_50tv_write(uint16_t port, uint8_t val)
 }
 
 uint8_t
-ps2_mca_read(uint16_t port, UNUSED(void *priv))
+ps2_mca_read(const uint16_t port, UNUSED(void *priv))
 {
     uint8_t temp;
 
@@ -936,7 +936,7 @@ ps2_mca_read(uint16_t port, UNUSED(void *priv))
 }
 
 static void
-ps2_mca_write(uint16_t port, uint8_t val, UNUSED(void *priv))
+ps2_mca_write(const uint16_t port, uint8_t val, UNUSED(void *priv))
 {
     ps2_mca_log("ps2_write: port=%04x val=%02x %04x:%04x\n", port, val, CS, cpu_state.pc);
 
@@ -1036,13 +1036,13 @@ ps2_mca_board_common_init(void)
 }
 
 static uint8_t
-ps2_mem_expansion_read(int port, UNUSED(void *priv))
+ps2_mem_expansion_read(const uint16_t port, UNUSED(void *priv))
 {
     return ps2.mem_pos_regs[port & 7];
 }
 
 static void
-ps2_mem_expansion_write(int port, uint8_t val, UNUSED(void *priv))
+ps2_mem_expansion_write(const uint16_t port, uint8_t val, UNUSED(void *priv))
 {
     if (port < 0x102 || port == 0x104)
         return;
@@ -1636,7 +1636,6 @@ machine_ps2_common_init(const machine_t *model)
 
     dma16_init();
     ps2_dma_init();
-    device_add(&ps_no_nmi_nvr_device);
     pic2_init();
 
     int pit_type = ((pit_mode == -1 && is486) || pit_mode == 1) ? PIT_8254_FAST : PIT_8254;

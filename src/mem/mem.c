@@ -106,9 +106,10 @@ int cachesize = 256;
 uint32_t get_phys_virt;
 uint32_t get_phys_phys;
 
-int mem_a20_key   = 0;
-int mem_a20_alt   = 0;
-int mem_a20_state = 0;
+int mem_a20_key     = 0;
+int mem_a20_alt     = 0;
+int mem_a20_chipset = 0;
+int mem_a20_state   = 0;
 
 int mmuflush = 0;
 
@@ -570,6 +571,7 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
+#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -586,6 +588,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     readlookup[readlnext++] = virt >> 12;
     readlnext &= (cachesize - 1);
+#endif
 
     cycles -= 9;
 }
@@ -593,6 +596,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
+#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -625,6 +629,7 @@ addwritelookup(uint32_t virt, uint32_t phys)
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
+#endif
 
     cycles -= 9;
 }
@@ -2803,18 +2808,14 @@ mem_reset(void)
      * Allocate and initialize the (new) page table.
      */
     pages_sz = m;
-    pages    = (page_t *) malloc(m * sizeof(page_t));
+    pages    = (page_t *) calloc(m, sizeof(page_t));
 
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
-    memset(pages, 0x00, pages_sz * sizeof(page_t));
-
 #ifdef USE_NEW_DYNAREC
-    byte_dirty_mask = malloc((mem_size * 1024) / 8);
-    memset(byte_dirty_mask, 0, (mem_size * 1024) / 8);
+    byte_dirty_mask = calloc(1, (mem_size * 1024) / 8);
 
-    byte_code_present_mask = malloc((mem_size * 1024) / 8);
-    memset(byte_code_present_mask, 0, (mem_size * 1024) / 8);
+    byte_code_present_mask = calloc(1, (mem_size * 1024) / 8);
 #endif
 
     for (uint32_t c = 0; c < pages_sz; c++) {
@@ -2897,37 +2898,6 @@ mem_init(void)
     ram = rom = NULL;
     ram2      = NULL;
     pages     = NULL;
-}
-
-static void
-umc_page_recalc(uint32_t c, uint32_t phys, int set)
-{
-    uint32_t target = set ? phys : c;
-
-    if (set) {
-        pages[c].mem = &ram[(target & 0xff) << 12];
-        pages[c].write_b = mem_write_ramb_page;
-        pages[c].write_w = mem_write_ramw_page;
-        pages[c].write_l = mem_write_raml_page;
-    } else {
-        pages[c].mem = page_ff;
-        pages[c].write_b = NULL;
-        pages[c].write_w = NULL;
-        pages[c].write_l = NULL;
-    }
-
-#ifdef USE_NEW_DYNAREC
-    pages[c].evict_prev             = EVICT_NOT_IN_LIST;
-    pages[c].byte_dirty_mask        = &byte_dirty_mask[(target & 0xff) * 64];
-    pages[c].byte_code_present_mask = &byte_code_present_mask[(target & 0xff) * 64];
-#endif
-}
-
-void
-umc_smram_recalc(uint32_t start, int set)
-{
-    for (uint32_t c = start; c < (start + 0x0020); c++)
-        umc_page_recalc(c, c - start + 0x000a0000, set);
 }
 
 static void
@@ -3109,12 +3079,12 @@ mem_a20_recalc(void)
     if (!is286) {
         rammask = 0xfffff;
         flushmmucache();
-        mem_a20_key = mem_a20_alt = mem_a20_state = 0;
+        mem_a20_key = mem_a20_alt = mem_a20_state = mem_a20_chipset = 0;
 
         return;
     }
 
-    state = mem_a20_key | mem_a20_alt;
+    state = mem_a20_key | mem_a20_alt | mem_a20_chipset;
     if (state && !mem_a20_state) {
         rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
         if (is6117)

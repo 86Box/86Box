@@ -142,11 +142,11 @@ sis_5581_shadow_recalc(sis_5581_host_to_pci_t *dev)
 }
 
 static void
-sis_5581_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val),
+sis_5581_trap_io(UNUSED(const uint16_t size), UNUSED(const uint16_t port), UNUSED(const uint8_t write), UNUSED(const uint8_t val),
                         void *priv)
 {
-    sis_5581_io_trap_t *trap = (sis_5581_io_trap_t *) priv;
-    sis_5581_host_to_pci_t *dev = (sis_5581_host_to_pci_t *) trap->priv;
+    sis_5581_io_trap_t     *trap = (sis_5581_io_trap_t *) priv;
+    sis_5581_host_to_pci_t *dev  = (sis_5581_host_to_pci_t *) trap->priv;
 
     trap->sts_reg[0x04] |= trap->sts_mask;
 
@@ -155,12 +155,12 @@ sis_5581_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write),
 }
 
 static void
-sis_5581_trap_io_mask(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+sis_5581_trap_io_mask(const uint16_t size, const uint16_t port, const uint8_t write, const uint8_t val, void *priv)
 {
     sis_5581_io_trap_t *trap = (sis_5581_io_trap_t *) priv;
 
-    if ((addr & trap->mask) == (trap->addr & trap->mask))
-        sis_5581_trap_io(size, addr, write, val, priv);
+    if ((port & trap->mask) == (trap->addr & trap->mask))
+        sis_5581_trap_io(size, port, write, val, priv);
 }
 
 static void
@@ -268,6 +268,8 @@ sis_5581_host_to_pci_write(int addr, uint8_t val, void *priv)
     sis_5581_host_to_pci_t *dev = (sis_5581_host_to_pci_t *) priv;
 
     sis_5581_host_to_pci_log("SiS 5581 H2P: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
+
+    uint8_t old = dev->pci_conf[addr];
 
     switch (addr) {
         default:
@@ -378,10 +380,10 @@ sis_5581_host_to_pci_write(int addr, uint8_t val, void *priv)
 
         case 0x93:
             dev->pci_conf[addr] = val;
-            if (val & 0x02) {
+            if ((val & 0x02) && !(old & 0x02)) {
                 dev->pci_conf[0x9d] |= 0x01;
                 if (dev->pci_conf[0x9b] & 0x01)
-                    acpi_sis5582_pmu_event(dev->sis->acpi);
+                    smi_raise();
             }
             break;
 

@@ -292,7 +292,7 @@ ims8848_read(uint16_t addr, void *priv)
 }
 
 static void
-ims8849_pci_write(int func, int addr, uint8_t val, void *priv)
+ims8849_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ims8848_t *dev = (ims8848_t *) priv;
 
@@ -326,7 +326,7 @@ ims8849_pci_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ims8849_pci_read(int func, int addr, void *priv)
+ims8849_pci_read(int func, UNUSED(int len), int addr, void *priv)
 {
     const ims8848_t *dev = (ims8848_t *) priv;
     uint8_t          ret = 0xff;

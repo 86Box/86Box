@@ -60,8 +60,7 @@ icd2047_getclock(int clock, void *priv)
 static void *
 icd2047_init(const device_t *info)
 {
-    icd2047_t *icd2047 = (icd2047_t *) malloc(sizeof(icd2047_t));
-    memset(icd2047, 0, sizeof(icd2047_t));
+    icd2047_t *icd2047 = (icd2047_t *) calloc(1, sizeof(icd2047_t));
 
     switch (info->local) {
         case 20:

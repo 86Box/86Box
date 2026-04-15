@@ -26,7 +26,7 @@ QT_END_NAMESPACE
 class VMManagerPreferences final : public QDialog {
     Q_OBJECT
 public:
-    explicit VMManagerPreferences(QWidget *parent = nullptr);
+    explicit VMManagerPreferences(QWidget *parent = nullptr, bool machinesRunning = false);
     ~VMManagerPreferences() override;
 
 private:
@@ -34,6 +34,7 @@ private:
     QString                   settingsFile;
 private slots:
     void chooseDirectoryLocation();
+    void on_pushButtonDefaultSystemDir_released();
     void on_pushButtonLanguage_released();
 
 protected:

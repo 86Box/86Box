@@ -1034,7 +1034,7 @@ void *
 upi42_init(uint32_t type, uint8_t *rom)
 {
     /* Allocate state structure. */
-    upi42_t *upi42 = (upi42_t *) malloc(sizeof(upi42_t));
+    upi42_t *upi42 = (upi42_t *) calloc(1, sizeof(upi42_t));
     upi42_do_init(type, rom);
 
     return upi42;

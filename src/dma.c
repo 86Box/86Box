@@ -978,10 +978,15 @@ dma_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
     addr &= 0x0f;
     dmaregs[2][addr] = val;
 
-    if (addr >= 8)
-        addr = convert[addr & 0x07] | 4;
-    else
-        addr = convert[addr & 0x07];
+    if (machines[machine].init == machine_xt_ibm5550_init) {
+        if (addr >= 4)
+            addr = 8;
+    } else {
+        if (addr >= 8)
+            addr = convert[addr & 0x07] | 4;
+        else
+            addr = convert[addr & 0x07];
+    }
 
     if (addr < 8) {
         dma[addr].page_l = val;
@@ -1503,7 +1508,7 @@ dma_channel_read_only(int channel)
     dma_channel_advance(channel);
 
     if (!dma_at && !channel)
-        refreshread();
+        is_nec ? refreshread_vx0() : refreshread();
 
     if (!dma_c->size) {
         temp = _dma_read(dma_c->ac, dma_c);
@@ -1611,7 +1616,7 @@ dma_channel_read(int channel)
         dma_channel_advance(channel);
 
     if (!dma_at && !channel)
-        refreshread();
+        is_nec ? refreshread_vx0() : refreshread();
 
     if (!dma_c->size) {
         temp = _dma_read(dma_c->ac, dma_c);

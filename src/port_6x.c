@@ -24,12 +24,14 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/keyboard.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/m_xt_xi8088.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
+#include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/ppi.h>
 #include <86box/video.h>
@@ -71,6 +73,9 @@ port_6x_write(uint16_t port, uint8_t val, void *priv)
 
             if (dev->flags & PORT_6X_TURBO)
                 xi8088_turbo_set(!!(val & 0x04));
+
+            if (IS_MCA(machine) && (val & 0x80))
+                picintc(1);
             break;
 
         default:
@@ -174,8 +179,7 @@ port_6x_close(void *priv)
 void *
 port_6x_init(const device_t *info)
 {
-    port_6x_t *dev = (port_6x_t *) malloc(sizeof(port_6x_t));
-    memset(dev, 0, sizeof(port_6x_t));
+    port_6x_t *dev = (port_6x_t *) calloc(1, sizeof(port_6x_t));
 
     dev->flags = info->local & 0xff;
 

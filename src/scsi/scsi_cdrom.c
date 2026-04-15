@@ -645,7 +645,7 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv)
+    if (dev && dev->drv && (dev->drv->bus_type == CDROM_BUS_ATAPI))
         ret = ide_atapi_get_period(dev->drv->ide_channel);
 
     if (ret == -1.0) {
@@ -860,7 +860,7 @@ scsi_cdrom_buf_alloc(scsi_cdrom_t *dev, const uint32_t len)
     scsi_cdrom_log(dev->log, "Allocated buffer length: %i\n", len);
 
     if (dev->buffer == NULL) {
-        dev->buffer = (uint8_t *) malloc(len);
+        dev->buffer = (uint8_t *) calloc(1, len);
         dev->buffer_sz = len;
     }
 
@@ -1159,6 +1159,10 @@ scsi_cdrom_insert(void *priv)
 
     if ((dev == NULL) || (dev->drv == NULL))
         return;
+
+    /* Make sure all cached sectors are cleared. */
+    dev->drv->cached_sector = -1;
+    dev->toc_cached         = 0;
 
     if (dev->drv->ops == NULL) {
         dev->unit_attention = 0;

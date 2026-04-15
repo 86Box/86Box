@@ -220,8 +220,8 @@ recalc_timings_1512(amsvid_t *vid)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
     _dispofftime *= CGACONST;
-    vid->dispontime  = (uint64_t) _dispontime;
-    vid->dispofftime = (uint64_t) _dispofftime;
+    vid->dispontime  = (uint64_t) (int64_t) _dispontime;
+    vid->dispofftime = (uint64_t) (int64_t) _dispofftime;
 }
 
 static void
@@ -666,7 +666,7 @@ vid_init_1512(amstrad_t *ams)
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc1512);
 
-    vid->vram    = malloc(0x10000);
+    vid->vram    = calloc(1, 0x10000);
     vid->cgacol  = 7;
     vid->cgamode = 0x12;
 
@@ -784,7 +784,7 @@ const device_config_t vid_1512_config[] = {
 };
 
 const device_t vid_1512_device = {
-    .name          = "Amstrad PC1512 (video)",
+    .name          = "Amstrad PC1512 (Video)",
     .internal_name = "vid_1512",
     .flags         = 0,
     .local         = 0,
@@ -985,7 +985,7 @@ const device_config_t vid_1640_config[] = {
 };
 
 const device_t vid_1640_device = {
-    .name          = "Amstrad PC1640 (video)",
+    .name          = "Amstrad PC1640 (Video)",
     .internal_name = "vid_1640",
     .flags         = 0,
     .local         = 0,
@@ -1758,7 +1758,7 @@ vid_init_200(amstrad_t *ams)
 
     cga       = &vid->cga;
     mda       = &vid->mda;
-    cga->vram = mda->vram = malloc(0x4000);
+    cga->vram = mda->vram = calloc(1, 0x4000);
     cga_init(cga);
     mda_init(mda);
 
@@ -1911,7 +1911,7 @@ const device_config_t vid_200_config[] = {
 };
 
 const device_t vid_200_device = {
-    .name          = "Amstrad PC200 (video)",
+    .name          = "Amstrad PC200 (Video)",
     .internal_name = "vid_200",
     .flags         = 0,
     .local         = 0,
@@ -2019,7 +2019,7 @@ const device_config_t vid_ppc512_config[] = {
 };
 
 const device_t vid_ppc512_device = {
-    .name          = "Amstrad PPC512 (video)",
+    .name          = "Amstrad PPC512 (Video)",
     .internal_name = "vid_ppc512",
     .flags         = 0,
     .local         = 0,
@@ -2036,7 +2036,7 @@ const device_config_t vid_pc2086_config[] = {
     // clang-format off
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -2054,7 +2054,7 @@ const device_config_t vid_pc2086_config[] = {
 };
 
 const device_t vid_pc2086_device = {
-    .name          = "Amstrad PC2086",
+    .name          = "Amstrad PC2086 (Video)",
     .internal_name = "vid_pc2086",
     .flags         = 0,
     .local         = 0,
@@ -2071,7 +2071,7 @@ const device_config_t vid_pc3086_config[] = {
     // clang-format off
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -2089,7 +2089,7 @@ const device_config_t vid_pc3086_config[] = {
 };
 
 const device_t vid_pc3086_device = {
-    .name          = "Amstrad PC3086",
+    .name          = "Amstrad PC3086 (Video)",
     .internal_name = "vid_pc3086",
     .flags         = 0,
     .local         = 0,
@@ -2970,17 +2970,6 @@ machine_amstrad_init(const machine_t *model, int type)
     ams           = (amstrad_t *) calloc(1, sizeof(amstrad_t));
     ams->type     = type;
     amstrad_latch = 0x80000000;
-
-    switch (type) {
-        case AMS_PC200:
-        case AMS_PPC512:
-            device_add(&amstrad_no_nmi_nvr_device);
-            break;
-
-        default:
-            device_add(&amstrad_nvr_device);
-            break;
-    }
 
     machine_common_init(model);
 

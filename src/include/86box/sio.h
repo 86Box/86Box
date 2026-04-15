@@ -27,6 +27,8 @@ extern const device_t f82c606_device;
 extern const device_t f82c710_device;
 extern const device_t f82c710_pc5086_device;
 
+extern const device_t p82c604_device;
+
 /* Commodore */
 extern const device_t cbm_io_device;
 

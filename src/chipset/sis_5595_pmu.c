@@ -84,11 +84,11 @@ typedef struct sis_5595_pmu_t {
 } sis_5595_pmu_t;
 
 static void
-sis_5595_pmu_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val),
+sis_5595_pmu_trap_io(UNUSED(const uint16_t size), UNUSED(const uint16_t port), UNUSED(const uint8_t write), UNUSED(const uint8_t val),
                      void *priv)
 {
     sis_5595_pmu_io_trap_t *trap = (sis_5595_pmu_io_trap_t *) priv;
-    sis_5595_pmu_t *dev = (sis_5595_pmu_t *) trap->priv;
+    sis_5595_pmu_t         *dev  = (sis_5595_pmu_t *) trap->priv;
 
     trap->sts_reg[0x04] |= trap->sts_mask;
 
@@ -100,26 +100,26 @@ sis_5595_pmu_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t wri
 }
 
 static void
-sis_5595_pmu_trap_io_ide(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+sis_5595_pmu_trap_io_ide(const uint16_t size, const uint16_t port, const uint8_t write, const uint8_t val, void *priv)
 {
     sis_5595_pmu_io_trap_t *trap = (sis_5595_pmu_io_trap_t *) priv;
 
     /* IDE traps are per drive, not per channel. */
     if (ide_drives[trap->flags & 0x03]->selected)
-        sis_5595_pmu_trap_io(size, addr, write, val, priv);
+        sis_5595_pmu_trap_io(size, port, write, val, priv);
 }
 
 static void
-sis_5595_pmu_trap_io_mask(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+sis_5595_pmu_trap_io_mask(const uint16_t size, const uint16_t port, const uint8_t write, const uint8_t val, void *priv)
 {
     sis_5595_pmu_io_trap_t *trap = (sis_5595_pmu_io_trap_t *) priv;
 
-    if ((addr & trap->mask) == (trap->addr & trap->mask))
-        sis_5595_pmu_trap_io(size, addr, write, val, priv);
+    if ((port & trap->mask) == (trap->addr & trap->mask))
+        sis_5595_pmu_trap_io(size, port, write, val, priv);
 }
 
 static void
-sis_5595_pmu_trap_io_ide_bm(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
+sis_5595_pmu_trap_io_ide_bm(UNUSED(const uint16_t size), UNUSED(const uint16_t port), UNUSED(const uint8_t write), UNUSED(const uint8_t val), void *priv)
 {
     sis_5595_pmu_io_trap_t *trap = (sis_5595_pmu_io_trap_t *) priv;
     sis_5595_pmu_t *dev = (sis_5595_pmu_t *) trap->priv;

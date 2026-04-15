@@ -19,13 +19,13 @@
 extern "C" {
 #endif
 
-typedef struct ddma_channel_t {
+typedef struct ddma_channel_s {
     uint16_t io_base;
-    int      channel;
-    int      enable;
+    uint8_t  channel;
+    uint8_t  enable;
 } ddma_channel_t;
 
-typedef struct ddma_t {
+typedef struct ddma_s {
     ddma_channel_t channels[8];
 } ddma_t;
 
@@ -33,7 +33,7 @@ typedef struct ddma_t {
 extern const device_t ddma_device;
 
 /* Functions. */
-extern void ddma_update_io_mapping(ddma_t *dev, int ch, uint8_t base_l, uint8_t base_h, int enable);
+extern void ddma_update_io_mapping(ddma_t *dev, uint8_t ch, uint8_t base_l, uint8_t base_h, uint8_t enable);
 
 #ifdef __cplusplus
 }

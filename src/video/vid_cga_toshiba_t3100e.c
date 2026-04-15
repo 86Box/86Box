@@ -236,8 +236,8 @@ t3100e_recalctimings(t3100e_t *t3100e)
     disptime            = 651;
     _dispontime         = 640;
     _dispofftime        = disptime - _dispontime;
-    t3100e->dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
-    t3100e->dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    t3100e->dispontime  = (uint64_t) (int64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    t3100e->dispofftime = (uint64_t) (int64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
 }
 
 /* Draw a row of text in 80-column mode */
@@ -661,7 +661,7 @@ t3100e_init(UNUSED(const device_t *info))
     t3100e->internal = 1;
 
     /* 32k video RAM */
-    t3100e->vram = malloc(0x8000);
+    t3100e->vram = calloc(1, 0x8000);
 
     timer_set_callback(&t3100e->cga.timer, t3100e_poll);
     timer_set_p(&t3100e->cga.timer, t3100e);

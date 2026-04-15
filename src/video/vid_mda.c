@@ -133,8 +133,8 @@ mda_recalctimings(mda_t *mda)
     _dispofftime = disptime - _dispontime;
     _dispontime *= MDACONST;
     _dispofftime *= MDACONST;
-    mda->dispontime  = (uint64_t) (_dispontime);
-    mda->dispofftime = (uint64_t) (_dispofftime);
+    mda->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    mda->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 void
@@ -418,7 +418,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_mda);
 
-    mda->vram = malloc(MDA_VRAM);
+    mda->vram = calloc(1, MDA_VRAM);
 
     switch (device_get_config_int("font")) {
         case 0:

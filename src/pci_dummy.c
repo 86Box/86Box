@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
@@ -23,6 +24,24 @@ typedef struct pci_dummy_t {
 
     uint8_t irq_level;
 } pci_dummy_t;
+
+#ifdef ENABLE_PCI_DUMMY_LOG
+int pci_dummy_do_log = ENABLE_PCI_DUMMY_LOG;
+
+static void
+pci_dummy_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (pci_dummy_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define pci_dummy_log(fmt, ...)
+#endif
 
 static void
 pci_dummy_interrupt(int set, pci_dummy_t *dev)
@@ -132,43 +151,58 @@ pci_dummy_io_set(pci_dummy_t *dev)
 }
 
 static uint8_t
-pci_dummy_pci_read(int func, int addr, void *priv)
+pci_dummy_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const pci_dummy_t *dev = (pci_dummy_t *) priv;
     uint8_t            ret = 0xff;
 
     if (func == 0x00)
         switch (addr) {
-            case 0x00:
             case 0x2c:
-                ret = 0x1a;
+                ret = 0x4b;
                 break;
             case 0x01:
             case 0x2d:
-                ret = 0x07;
+                ret = 0x10;
                 break;
 
             case 0x02:
             case 0x2e:
-                ret = 0x0b;
+                ret = 0x40;
                 break;
             case 0x03:
             case 0x2f:
-                ret = 0xab;
+                ret = 0x10;
                 break;
 
             case 0x04: /* PCI_COMMAND_LO */
+                ret = dev->pci_regs[addr] & PCI_COMMAND_IO;
+                break;
             case 0x05: /* PCI_COMMAND_HI */
+                ret = 0x00;
+                break;
+
             case 0x06: /* PCI_STATUS_LO */
+                ret = 0x00;
+                break;
             case 0x07: /* PCI_STATUS_HI */
-            case 0x0a:
-            case 0x0b:
-            case 0x3c: /* PCI_ILR */
-                ret = dev->pci_regs[addr];
+                ret = 0x02;
                 break;
 
             case 0x08: /* Techncially, revision, but we return the slot here. */
                 ret = dev->pci_slot;
+                break;
+
+            case 0x09:
+            case 0x0a:
+                ret = 0x00;
+                break;
+            case 0x0b:
+                ret = 0x01;
+                break;
+
+            case 0x3c: /* PCI_ILR */
+                ret = dev->pci_regs[addr];
                 break;
 
             case 0x10: /* PCI_BAR 7:5 */
@@ -187,22 +221,18 @@ pci_dummy_pci_read(int func, int addr, void *priv)
                 break;
         }
 
-#if 0
-    pclog("AB0B:071A: PCI_Read(%d, %04X) = %02X\n", func, addr, ret);
-#endif
+    pci_dummy_log("AB0B:071A: PCI_Read(%d, %04X) = %02X\n", func, addr, ret);
 
     return ret;
 }
 
 static void
-pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
+pci_dummy_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     pci_dummy_t *dev = (pci_dummy_t *) priv;
     uint8_t      valxor;
 
-#if 0
-    pclog("AB0B:071A: PCI_Write(%d, %04X, %02X)\n", func, addr, val);
-#endif
+    pci_dummy_log("AB0B:071A: PCI_Write(%d, %04X, %02X)\n", func, addr, val);
 
     if (func == 0x00)
         switch (addr) {
@@ -213,7 +243,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
                     if ((dev->pci_bar[0].addr != 0) && (val & PCI_COMMAND_IO))
                         pci_dummy_io_set(dev);
                 }
-                dev->pci_regs[addr] = val & 0x03;
+                dev->pci_regs[addr] = val & PCI_COMMAND_IO;
                 break;
 
             case 0x10:       /* PCI_BAR */
@@ -231,7 +261,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_bar[0].addr &= 0xffe0;
 
                 /* Log the new base. */
-                // pclog("AB0B:071A: PCI: new I/O base is %04X\n", dev->pci_bar[0].addr);
+                pci_dummy_log("AB0B:071A: PCI: new I/O base is %04X\n", dev->pci_bar[0].addr);
 
                 /* We're done, so get out of the here. */
                 if (dev->pci_regs[4] & PCI_COMMAND_IO) {
@@ -241,7 +271,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
                 break;
 
             case 0x3c: /* PCI_ILR */
-                pclog("AB0B:071A Device %02X: IRQ now: %i\n", dev->pci_slot, val);
+                pci_dummy_log("AB0B:071A Device %02X: IRQ now: %i\n", dev->pci_slot, val);
                 dev->pci_regs[addr] = val;
                 return;
 
@@ -253,16 +283,20 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
 static void
 pci_dummy_reset(void *priv)
 {
-    pci_dummy_t *dev = (pci_dummy_t *) priv;
+    pci_dummy_t *dev      = (pci_dummy_t *) priv;
+    uint8_t      old_slot = dev->pci_slot;
 
     /* Lower the IRQ. */
     pci_dummy_interrupt(0, dev);
 
     /* Disable I/O and memory accesses. */
-    pci_dummy_pci_write(0x00, 0x04, 0x00, dev);
+    pci_dummy_pci_write(0x00, 0x04, 0x01, 0x00, dev);
 
     /* Zero all the registers. */
     memset(dev, 0x00, sizeof(pci_dummy_t));
+
+    /* Restore the PCI slot number. */
+    dev->pci_slot = old_slot;
 }
 
 static void

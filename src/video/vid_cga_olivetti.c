@@ -74,8 +74,8 @@ ogc_recalctimings(ogc_t *ogc)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST / 2;
     _dispofftime *= CGACONST / 2;
-    ogc->cga.dispontime  = (uint64_t) (_dispontime);
-    ogc->cga.dispofftime = (uint64_t) (_dispofftime);
+    ogc->cga.dispontime  = (uint64_t) (int64_t) (_dispontime);
+    ogc->cga.dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 void
@@ -157,7 +157,11 @@ ogc_waitstates(UNUSED(void *priv))
     int ws;
 
     ws = ws_array[cycles & 0xf];
-    sub_cycles(ws);
+
+    if (is_nec)
+        sub_cycles_vx0(ws);
+    else
+        sub_cycles(ws);
 }
 
 void
@@ -587,9 +591,8 @@ ogc_init(UNUSED(const device_t *info))
 #if 0
     int display_type;
 #endif
-    ogc_t *ogc = (ogc_t *) malloc(sizeof(ogc_t));
+    ogc_t *ogc = (ogc_t *) calloc(1, sizeof(ogc_t));
 
-    memset(ogc, 0x00, sizeof(ogc_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_ogc);
 
     video_load_font("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
@@ -602,7 +605,7 @@ ogc_init(UNUSED(const device_t *info))
     ogc->cga.revision     = device_get_config_int("composite_type");
     ogc->cga.snow_enabled = device_get_config_int("snow_enabled");
 
-    ogc->cga.vram = malloc(0x8000);
+    ogc->cga.vram = calloc(1, 0x8000);
 
     cga_comp_init(ogc->cga.revision);
     timer_add(&ogc->cga.timer, ogc_poll, ogc, 1);
@@ -664,7 +667,7 @@ const device_config_t ogc_m24_config[] = {
 };
 
 const device_t ogc_m24_device = {
-    .name          = "Olivetti M21/M24/M28 (GO317/318/380/709) video card",
+    .name          = "Olivetti M21/M24/M28 (GO317/318/380/709)",
     .internal_name = "ogc_m24",
     .flags         = DEVICE_ISA,
     .local         = 0,

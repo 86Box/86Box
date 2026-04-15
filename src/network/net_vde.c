@@ -151,10 +151,12 @@ static void net_vde_thread(void *priv) {
         if (pfd[NET_EVENT_TX].revents & POLLIN) {
             net_event_clear(&vde->tx_event);
             int packets = network_tx_popv(vde->card, vde->pktv, VDE_PKT_BATCH);
-            for (int i=0; i<packets; i++) {
-                int nc = f_vde_send(vde->vdeconn, vde->pktv[i].data,vde->pktv[i].len, 0 );
-                if (nc == 0) {
-                    vde_log("VDE: Problem, no bytes sent.\n");
+            if (!(net_cards_conf[vde->card->card_num].link_state & NET_LINK_DOWN)) {
+                for (int i=0; i<packets; i++) {
+                    int nc = f_vde_send(vde->vdeconn, vde->pktv[i].data,vde->pktv[i].len, 0 );
+                    if (nc == 0) {
+                        vde_log("VDE: Problem, no bytes sent.\n");
+                    }
                 }
             }
         }
@@ -163,7 +165,8 @@ static void net_vde_thread(void *priv) {
         if (pfd[NET_EVENT_RX].revents & POLLIN) {
             int nc = f_vde_recv(vde->vdeconn, vde->pkt.data, NET_MAX_FRAME, 0);
             vde->pkt.len = nc;
-            network_rx_put_pkt(vde->card, &vde->pkt);
+            if (!(net_cards_conf[vde->card->card_num].link_state & NET_LINK_DOWN))
+                network_rx_put_pkt(vde->card, &vde->pkt);
         }
 
         // We have been told to close

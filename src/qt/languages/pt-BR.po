@@ -1,8 +1,15 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-04-02 17:09+0000\n"
+"Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
+"Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
+"86box/pt_BR/>\n"
+"Language: pt-BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: pt_BR\n"
 "X-Source-Language: en_US\n"
 
@@ -138,53 +145,44 @@ msgstr "&Redimensionamento com valores inteiros"
 msgid "4:&3 Integer scale"
 msgstr "Redimensionamento com valores inteiros 4:&3"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Configurações de EGA/(S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Monitor VGA invertido"
 
-msgid "&Inverted VGA monitor"
-msgstr "Monitor VGA &invertido"
+msgid "VGA screen type:"
+msgstr "Tipo de tela VGA:"
 
-msgid "VGA screen &type"
-msgstr "&Tipo de tela VGA"
-
-msgid "RGB &Color"
-msgstr "&Cor RGB"
+msgid "RGB Color"
+msgstr "Cor RGB"
 
 msgid "RGB (no brown)"
 msgstr "RGB (sem marrom)"
 
-msgid "&RGB Grayscale"
-msgstr "Tons de cinza &RGB"
+msgid "RGB Grayscale"
+msgstr "Tons de cinza RGB"
 
 msgid "Generic RGBI color monitor"
 msgstr "Monitor colorido RGBI genérico"
 
-msgid "&Amber monitor"
-msgstr "Monitor âmb&ar"
+msgid "Amber monitor"
+msgstr "Monitor âmbar"
 
-msgid "&Green monitor"
-msgstr "Monitor &verde"
+msgid "Green monitor"
+msgstr "Monitor verde"
 
-msgid "&White monitor"
-msgstr "Monitor &branco"
+msgid "White monitor"
+msgstr "Monitor branco"
 
-msgid "Grayscale &conversion type"
-msgstr "Tipo de &conversão de tons de cinza"
+msgid "Grayscale conversion type:"
+msgstr "Tipo de conversão de tons de cinza:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Média"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Média"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Overscan do CGA/PCjr/Tandy/E&GA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Alterar contraste para exibição &monocromática"
+msgid "Change contrast for monochrome display"
+msgstr "Alterar contraste para exibição monocromática"
 
 msgid "&Media"
 msgstr "&Mídia"
@@ -204,14 +202,26 @@ msgstr "&Atualizar ícones da barra de status"
 msgid "Take s&creenshot"
 msgstr "Capturar &tela"
 
+msgid "Take screenshot"
+msgstr "Capturar tela"
+
 msgid "Take &raw screenshot"
 msgstr "Fazer captura &bruta da tela"
+
+msgid "Take raw screenshot"
+msgstr "Fazer captura bruta da tela"
 
 msgid "C&opy screenshot"
 msgstr "C&opiar captura da tela"
 
+msgid "Copy screenshot"
+msgstr "Copiar captura da tela"
+
 msgid "Copy r&aw screenshot"
 msgstr "Copiar captura b&ruta da tela"
+
+msgid "Copy raw screenshot"
+msgstr "Copiar captura bruta da tela"
 
 msgid "S&ound"
 msgstr "&Som"
@@ -333,8 +343,32 @@ msgstr "Altura:"
 msgid "Lock to this size"
 msgstr "Travar nesse tamanho"
 
+msgid "General"
+msgstr "Geral"
+
+msgid "Processor"
+msgstr "Processador"
+
+msgid "Performance"
+msgstr "Performance"
+
 msgid "Machine type:"
 msgstr "Tipo de máquina:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486 (Socket 168 e 1)"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486 (Miscelânea)"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7 (Voltagem Única)"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1996] Socket 7 (Voltagem Dupla)"
+
+msgid "Miscellaneous"
+msgstr "Miscelânea"
 
 msgid "Machine:"
 msgstr "Máquina:"
@@ -354,8 +388,14 @@ msgstr "Velocidade:"
 msgid "Frequency:"
 msgstr "Frequência:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "Interno"
 
 msgid "Wait states:"
 msgstr "Estados de espera:"
@@ -378,6 +418,9 @@ msgstr "Ativar (hora local)"
 msgid "Enabled (UTC)"
 msgstr "Ativar (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Usar o interpretador 486 para processadores 286 e 386"
+
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
@@ -395,6 +438,9 @@ msgstr "Vídeo:"
 
 msgid "Video #2:"
 msgstr "Vídeo nº 2:"
+
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gráficos Voodoo 1 ou 2"
@@ -465,8 +511,8 @@ msgstr "MPU-401 autônomo"
 msgid "Use FLOAT32 sound"
 msgstr "Usar som FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Driver de sintetizador FM"
+msgid "FM synth driver:"
+msgstr "Driver de sintetizador FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (mais preciso)"
@@ -474,56 +520,8 @@ msgstr "Nuked (mais preciso)"
 msgid "YMFM (faster)"
 msgstr "YMFM (mais rápido)"
 
-msgid "COM1 Device:"
-msgstr "Dispositivo COM1:"
-
-msgid "COM2 Device:"
-msgstr "Dispositivo COM2:"
-
-msgid "COM3 Device:"
-msgstr "Dispositivo COM3:"
-
-msgid "COM4 Device:"
-msgstr "Dispositivo COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Dispositivo LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Dispositivo LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Dispositivo LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Dispositivo LPT4:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA ECP LPT Interna:"
-
-msgid "Serial port 1"
-msgstr "Porta serial 1"
-
-msgid "Serial port 2"
-msgstr "Porta serial 2"
-
-msgid "Serial port 3"
-msgstr "Porta serial 3"
-
-msgid "Serial port 4"
-msgstr "Porta serial 4"
-
-msgid "Parallel port 1"
-msgstr "Porta paralela 1"
-
-msgid "Parallel port 2"
-msgstr "Porta paralela 2"
-
-msgid "Parallel port 3"
-msgstr "Porta paralela 3"
-
-msgid "Parallel port 4"
-msgstr "Porta paralela 4"
 
 msgid "Floppy disk controller:"
 msgstr "Controlador de disquete:"
@@ -531,11 +529,50 @@ msgstr "Controlador de disquete:"
 msgid "CD-ROM controller:"
 msgstr "Controlador de CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Controlador IDE terciário"
+msgid "Mitsumi interface"
+msgstr "Interface Mitsumi"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Controlador IDE quaternário"
+msgid "MKE/Panasonic interface"
+msgstr "Interface MKE/Panasonic"
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr "Interface MKE/Panasonic (Creative)"
+
+msgid "IDE Controller"
+msgstr "Controlador IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "Controlador IDE (Duplo-Canal)"
+
+msgid "PC/AT IDE Controller"
+msgstr "Controlador PC/AT IDE"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "Controlador PC/AT IDE (Duplo-Canal)"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "PC/AT XTIDE (Apenas Primário)"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "PS/2 AT XTIDE (1.1.5) (Apenas Primário)"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646 (Terciário e Quaternário)"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648 (Terciário e Quaternário)"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649 (Terciário e Quaternário)"
+
+msgid "McIDE Controller"
+msgstr "Controlador McIDE"
+
+msgid "Tertiary IDE Controller"
+msgstr "Controlador IDE terciário"
+
+msgid "Quaternary IDE Controller"
+msgstr "Controlador IDE quaternário"
 
 msgid "Hard disk controllers"
 msgstr "Controladores de disco rígido"
@@ -563,6 +600,9 @@ msgstr "Discos rígidos:"
 
 msgid "Firmware Version"
 msgstr "Versão do Firmware"
+
+msgid "DSP Version"
+msgstr "Versão do DSP"
 
 msgid "&New…"
 msgstr "&Novo…"
@@ -603,8 +643,8 @@ msgstr "Formato:"
 msgid "Block Size:"
 msgstr "Blocos:"
 
-msgid "Floppy drives:"
-msgstr "Unidades de disquete:"
+msgid "Floppy drives"
+msgstr "Unidades de disquete"
 
 msgid "Turbo timings"
 msgstr "Turbo"
@@ -612,23 +652,26 @@ msgstr "Turbo"
 msgid "Check BPB"
 msgstr "Verificar BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Unidades de CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Unidades de CD-ROM"
 
-msgid "MO drives:"
-msgstr "Unidades magneto-ópticas:"
+msgid "MO drives"
+msgstr "Unidades magneto-ópticas"
 
 msgid "MO:"
 msgstr "Magneto-ópticas:"
 
+msgid "Removable disk drives"
+msgstr "Unidades de disco removível"
+
 msgid "Removable disks:"
 msgstr "Discos removíveis:"
 
-msgid "Removable disk drives:"
-msgstr "Unidades de disco removível:"
+msgid "Tape drives"
+msgstr "Drives de Fita"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Drives de fita:"
 
 msgid "ISA RTC:"
 msgstr "RTC ISA:"
@@ -686,6 +729,15 @@ msgstr "Disco &removível %1 (%2): %3"
 
 msgid "Removable disk images"
 msgstr "Imagens de disco removível"
+
+msgid "Tape %1 (%2): %3"
+msgstr "Fita %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Fita %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Imagens de fita"
 
 msgid "Image %1"
 msgstr "Imagem %1"
@@ -750,8 +802,14 @@ msgstr "Portas (COM & LPT)"
 msgid "Ports"
 msgstr "Portas"
 
+msgid "Serial ports"
+msgstr "Portas seriais"
+
 msgid "Serial ports:"
 msgstr "Portas seriais:"
+
+msgid "Parallel ports"
+msgstr "Portas Paralelas"
 
 msgid "Parallel ports:"
 msgstr "Portas Paralelas:"
@@ -798,14 +856,8 @@ msgstr "Barramento"
 msgid "File"
 msgstr "Arquivo"
 
-msgid "C"
-msgstr "CI"
-
-msgid "H"
-msgstr "CA"
-
-msgid "S"
-msgstr "SE"
+msgid "Geometry"
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -1008,15 +1060,6 @@ msgstr "%1 é necessário para a conversão automática de arquivos PCL para PDF
 msgid "Don't show this message again"
 msgstr "Não exibir esta mensagem novamente"
 
-msgid "Don't exit"
-msgstr "Não sair"
-
-msgid "Reset"
-msgstr "Reiniciar"
-
-msgid "Don't reset"
-msgstr "Não reiniciar"
-
 msgid "CD-ROM images"
 msgstr "Imagens de CD-ROM"
 
@@ -1137,8 +1180,8 @@ msgstr "Não foi possível abrir o arquivo de configuração selecionado para le
 msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) está(ão) ativa(s) no momento. Tem certeza de que deseja sair do gerenciador de MVs mesmo assim?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n máquina(s) está(ão) ativa(s) no momento. Tem certeza de que deseja sair do gerenciador de MVs mesmo assim?"
 
 msgid "Add new system wizard"
 msgstr "Assistente para novo sistema"
@@ -1220,9 +1263,6 @@ msgstr "Digite o novo nome de exibição (em branco para restaurar)"
 
 msgid "Change &display name…"
 msgstr "Mudar o &nome de exibição…"
-
-msgid "Context Menu"
-msgstr "Menu de contexto"
 
 msgid "&Open folder…"
 msgstr "Abrir &pasta…"
@@ -1524,9 +1564,6 @@ msgstr "DMF (cluster 2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1568,6 +1605,9 @@ msgstr "1.5% abaixo da rotação ideal"
 
 msgid "2% below perfect RPM"
 msgstr "2% abaixo da rotação ideal"
+
+msgid "Creating image…"
+msgstr "Criando imagem…"
 
 msgid "(System Default)"
 msgstr "(Padrão do sistema)"
@@ -1650,8 +1690,8 @@ msgstr "&Cursor/Puck"
 msgid "&Pen"
 msgstr "C&aneta"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unidade de CD/DVD do anfitrião (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Unidade de CD/DVD do anfitrião (%1)"
 
 msgid "&Connected"
 msgstr "&Conectado"
@@ -1746,17 +1786,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Placa de rede nº 1"
+msgid "Adapter 1"
+msgstr "Adaptador 1"
 
-msgid "Network Card #2"
-msgstr "Placa de rede nº 2"
+msgid "Adapter 2"
+msgstr "Adaptador 2"
 
-msgid "Network Card #3"
-msgstr "Placa de rede nº 3"
+msgid "Adapter 3"
+msgstr "Adaptador 3"
 
-msgid "Network Card #4"
-msgstr "Placa de rede nº 4"
+msgid "Adapter 4"
+msgstr "Adaptador 4"
 
 msgid "Mode:"
 msgstr "Modo:"
@@ -1778,18 +1818,6 @@ msgstr "Testador de unidade 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Cartão de Autenticação Novell NetWare 2.x"
-
-msgid "Serial port passthrough 1"
-msgstr "Passagem de porta serial 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Passagem de porta serial 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Passagem de porta serial 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Passagem de porta serial 4"
 
 msgid "Renderer &options…"
 msgstr "&Opções do renderizador…"
@@ -1845,8 +1873,8 @@ msgstr "3M MicroTouch (serial)"
 msgid "Default Baud rate"
 msgstr "Taxa de transmissão padrão"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Modem padrão compatível com Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Modem padrão compatível com Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulação do Roland MT-32"
@@ -1940,6 +1968,9 @@ msgstr "Versão do BIOS"
 
 msgid "BIOS Language"
 msgstr "Idioma do BIOS"
+
+msgid "Variant"
+msgstr "Variante"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unidade de Expansão IBM 5161"
@@ -2204,9 +2235,6 @@ msgstr "Tamanho da memória"
 
 msgid "EMU8000 Address"
 msgstr "Endereço da EMU8000"
-
-msgid "IDE Controller"
-msgstr "Controlador IDE"
 
 msgid "Codec"
 msgstr "Codec"
@@ -2592,6 +2620,9 @@ msgstr "Padrão"
 msgid "High-Speed"
 msgstr "Alta velocidade"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "DAC LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "DAC LPT estéreo"
 
@@ -2604,8 +2635,8 @@ msgstr "Impressora matricial ESC/P 2 genérica"
 msgid "Generic PostScript Printer"
 msgstr "Impressora PostScript genérica"
 
-msgid "Generic PCL5e Printer"
-msgstr "Impressora PCL5e genérica"
+msgid "Generic PCL Printer"
+msgstr "Impressora PCL genérica"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Protocolo de Internet de linha paralela"
@@ -2613,8 +2644,11 @@ msgstr "Protocolo de Internet de linha paralela"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle de proteção para Savage Quest"
 
-msgid "Serial Passthrough Device"
-msgstr "Dispositivo de passagem de porta serial"
+msgid "Loopback Plug"
+msgstr "Plugue de Loopback"
+
+msgid "Serial Passthrough"
+msgstr "Passagem de porta serial"
 
 msgid "Passthrough Mode"
 msgstr "Modo de passagem"
@@ -2658,6 +2692,12 @@ msgstr "Alto impacto no desempenho"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Genérico] Disco RAM (velocidade máx.)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Genérico] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Genérico] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Genérico] 1989 (3500 RPM)"
 
@@ -2696,6 +2736,12 @@ msgstr "Expansão de memória genérica PC/XT"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Expansão de memória genérica PC/AT"
+
+msgid "Generic MM58167 RTC"
+msgstr "MM58167 RTC Genérico"
+
+msgid "OPL2Board (External Device)"
+msgstr "OPL2Board (Dispositivo Externo)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Não foi possível localizar as fontes matriciais"
@@ -2760,8 +2806,14 @@ msgstr "Mover para baixo"
 msgid "Could not load file %1"
 msgstr "Não foi possível carregar o arquivo %1"
 
-msgid "Key Bindings:"
-msgstr "Atalhos:"
+msgid "Emulator"
+msgstr "Emulador"
+
+msgid "Input"
+msgstr "Entrada"
+
+msgid "Key bindings"
+msgstr "Atalhos"
 
 msgid "Action"
 msgstr "Ação"
@@ -2799,9 +2851,6 @@ msgstr "Alternar tela cheia"
 msgid "Toggle UI in fullscreen"
 msgstr "Alternar interface em tela cheia"
 
-msgid "Screenshot"
-msgstr "Captura de tela"
-
 msgid "Release mouse pointer"
 msgstr "Liberar ponteiro do mouse"
 
@@ -2826,8 +2875,8 @@ msgstr "Switch Local"
 msgid "Remote Switch"
 msgstr "Switch Remoto"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Segredo compartilhado:"
 
 msgid "Hub Mode"
 msgstr "Modo Hub"
@@ -2988,9 +3037,6 @@ msgstr "Claro"
 msgid "Dark"
 msgstr "Escuro"
 
-msgid "Search:"
-msgstr "Pesquisar:"
-
 msgid "Force interpretation"
 msgstr "Forçar interpretação"
 
@@ -3004,4 +3050,22 @@ msgid "&Allow recompilation"
 msgstr "&Permitir recompilação"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Avançar rapidamente"
+
+msgid "Fast forward"
+msgstr "Avançar rapidamente"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "Para alterar o diretório do sistema, pare todas as máquinas em funcionamento."
+
+msgid "Raw"
+msgstr "Bruto"
+
+msgid "Use EDC/ECC emulation"
+msgstr "Usar emulação EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Dispositivo de saída de áudio:"
+
+msgid "System Default"
+msgstr "Padrão do sistema"

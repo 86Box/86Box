@@ -195,6 +195,8 @@ postcard_init(UNUSED(const device_t *info))
         postcard_port = 0x190; /* ISA PS/2 machines */
     else if (strstr(machines[machine].name, " IBM XT "))
         postcard_port = 0x60; /* IBM XT */
+    else if (strstr(machines[machine].name, " Multistation "))
+        postcard_port = 0xA1; /* IBM 5550 */
     else if (strstr(machines[machine].name, " IBM PCjr")) {
         postcard_port = 0x10; /* IBM PCjr */
         postcard_ports_num = 3; /* IBM PCjr error ports 11h and 12h */

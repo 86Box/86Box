@@ -35,7 +35,7 @@
 #include <86box/plat_unused.h>
 
 #ifdef ENABLE_DDMA_LOG
-int ddma_do_log = ENABLE_DDMA_LOG;
+uint8_t ddma_do_log = ENABLE_DDMA_LOG;
 
 static void
 ddma_log(const char *fmt, ...)
@@ -57,7 +57,7 @@ ddma_reg_read(uint16_t addr, void *priv)
 {
     const ddma_channel_t *dev  = (ddma_channel_t *) priv;
     uint8_t               ret  = 0xff;
-    int                   ch   = dev->channel;
+    uint8_t               ch   = dev->channel;
     uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
 
     switch (addr & 0x0f) {
@@ -91,7 +91,7 @@ static void
 ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     const ddma_channel_t *dev          = (ddma_channel_t *) priv;
-    int                   ch           = dev->channel;
+    uint8_t               ch           = dev->channel;
     uint8_t               page_regs[4] = { 7, 3, 1, 2 };
     uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
 
@@ -147,7 +147,7 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 void
-ddma_update_io_mapping(ddma_t *dev, int ch, uint8_t base_l, uint8_t base_h, int enable)
+ddma_update_io_mapping(ddma_t *dev, uint8_t ch, uint8_t base_l, uint8_t base_h, uint8_t enable)
 {
     if (dev->channels[ch].enable && (dev->channels[ch].io_base != 0x0000))
         io_removehandler(dev->channels[ch].io_base, 0x10, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->channels[ch]);
@@ -172,10 +172,9 @@ ddma_init(UNUSED(const device_t *info))
 {
     ddma_t *dev;
 
-    dev = (ddma_t *) malloc(sizeof(ddma_t));
+    dev = (ddma_t *) calloc(1, sizeof(ddma_t));
     if (dev == NULL)
         return (NULL);
-    memset(dev, 0x00, sizeof(ddma_t));
 
     for (uint8_t i = 0; i < 8; i++)
         dev->channels[i].channel = i;

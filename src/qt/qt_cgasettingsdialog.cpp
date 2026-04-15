@@ -27,7 +27,6 @@ CGASettingsDialog::CGASettingsDialog(QWidget *parent)
     ui->horizontalSliderContrast->setValue(vid_cga_comp_contrast);
     ui->horizontalSliderSharpness->setValue(vid_cga_comp_sharpness);
 
-    connect(ui->buttonBox->button(QDialogButtonBox::Apply), &QPushButton::clicked, this, &CGASettingsDialog::applySettings);
     connect(ui->buttonBox->button(QDialogButtonBox::Reset), &QPushButton::clicked, this, [this] {
         ui->horizontalSliderHue->setValue(0);
         ui->horizontalSliderSaturation->setValue(100);
@@ -60,7 +59,7 @@ CGASettingsDialog::updateDisplay()
 }
 
 void
-CGASettingsDialog::applySettings()
+CGASettingsDialog::on_buttonBox_accepted()
 {
     vid_cga_comp_hue        = ui->horizontalSliderHue->value();
     vid_cga_comp_saturation = ui->horizontalSliderSaturation->value();
@@ -74,12 +73,6 @@ CGASettingsDialog::applySettings()
     cga_brightness = vid_cga_comp_brightness;
     cga_contrast   = vid_cga_comp_contrast;
     cga_sharpness  = vid_cga_comp_sharpness;
-}
-
-void
-CGASettingsDialog::on_buttonBox_accepted()
-{
-    applySettings();
 }
 
 void

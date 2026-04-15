@@ -405,8 +405,8 @@ sigma_recalctimings(sigma_t *sigma)
     _dispofftime = disptime - _dispontime;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
-    sigma->dispontime  = (uint64_t) (_dispontime);
-    sigma->dispofftime = (uint64_t) (_dispofftime);
+    sigma->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    sigma->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 /* Render a line in 80-column text mode */
@@ -784,9 +784,7 @@ static void *
 sigma_init(UNUSED(const device_t *info))
 {
     int      bios_addr;
-    sigma_t *sigma = malloc(sizeof(sigma_t));
-
-    memset(sigma, 0, sizeof(sigma_t));
+    sigma_t *sigma = calloc(1, sizeof(sigma_t));
 
     bios_addr = device_get_config_hex20("bios_addr");
 
@@ -802,7 +800,7 @@ sigma_init(UNUSED(const device_t *info))
     mem_mapping_disable(&sigma->bios_rom.mapping);
     memcpy(sigma->bram, &sigma->bios_rom.rom[0x1800], 0x800);
 
-    sigma->vram = malloc(0x8000 * 4);
+    sigma->vram = calloc(4, 0x8000);
 
     timer_add(&sigma->timer, sigma_poll, sigma, 1);
     mem_mapping_add(&sigma->mapping, 0xb8000, 0x08000,

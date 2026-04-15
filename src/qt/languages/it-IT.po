@@ -1,7 +1,9 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it-IT\n"
 "MIME-Version: 1.0\n"
@@ -144,53 +146,44 @@ msgstr "&Scala intera"
 msgid "4:&3 Integer scale"
 msgstr "Scala intera 4:&3"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Impostazioni EGA/(S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Monitor VGA invertito"
 
-msgid "&Inverted VGA monitor"
-msgstr "&Monitor VGA invertito"
+msgid "VGA screen type:"
+msgstr "Schermi VGA:"
 
-msgid "VGA screen &type"
-msgstr "Schermi &VGA"
-
-msgid "RGB &Color"
-msgstr "RGB a &colori"
+msgid "RGB Color"
+msgstr "RGB a colori"
 
 msgid "RGB (no brown)"
 msgstr "RGB (senza marrone)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB a scala di grigi"
+msgid "RGB Grayscale"
+msgstr "RGB a scala di grigi"
 
 msgid "Generic RGBI color monitor"
 msgstr "Monitor a colori RGBI generico"
 
-msgid "&Amber monitor"
-msgstr "Monitor &ambra"
+msgid "Amber monitor"
+msgstr "Monitor ambra"
 
-msgid "&Green monitor"
-msgstr "Monitor &verde"
+msgid "Green monitor"
+msgstr "Monitor verde"
 
-msgid "&White monitor"
-msgstr "Monitor &bianco"
+msgid "White monitor"
+msgstr "Monitor bianco"
 
-msgid "Grayscale &conversion type"
-msgstr "Conversione &scala di grigi"
+msgid "Grayscale conversion type:"
+msgstr "Conversione scala di grigi:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Media"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Media"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Sovrascansione CGA/PCjr/Tandy/E&GA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Modifica il contrasto per schermi &monocromatici"
+msgid "Change contrast for monochrome display"
+msgstr "Modifica il contrasto per schermi monocromatici"
 
 msgid "&Media"
 msgstr "&Dispositivi"
@@ -208,16 +201,28 @@ msgid "&Update status bar icons"
 msgstr "&Aggiorna icone della barra di stato"
 
 msgid "Take s&creenshot"
-msgstr "&Cattura schermata"
+msgstr "&Cattura istantanea schermo"
+
+msgid "Take screenshot"
+msgstr "Cattura istantanea schermo"
 
 msgid "Take &raw screenshot"
-msgstr "Cattura &grezza della schermata"
+msgstr "Cattura istantanea schermo &senza elaborazione"
+
+msgid "Take raw screenshot"
+msgstr "Cattura istantanea schermo senza elaborazione"
 
 msgid "C&opy screenshot"
-msgstr "C&opia cattura della schermata"
+msgstr "C&opia istantanea schermo"
+
+msgid "Copy screenshot"
+msgstr "Copia istantanea schermo"
 
 msgid "Copy r&aw screenshot"
-msgstr "Copia cattura g&rezza della schermata"
+msgstr "Copia istantanea schermo &senza elaborazione"
+
+msgid "Copy raw screenshot"
+msgstr "Copia istantanea schermo senza elaborazione"
 
 msgid "S&ound"
 msgstr "A&udio"
@@ -339,8 +344,32 @@ msgstr "Altezza:"
 msgid "Lock to this size"
 msgstr "Blocca su questa dimensione"
 
+msgid "General"
+msgstr "Generale"
+
+msgid "Processor"
+msgstr "Processore"
+
+msgid "Performance"
+msgstr "Prestazioni"
+
 msgid "Machine type:"
 msgstr "Tipo di macchina:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486 (Socket 168 e 1)"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486 (vari)"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7 (a una tensione)"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1996] Socket 7 (a due tensioni)"
+
+msgid "Miscellaneous"
+msgstr "Vari"
 
 msgid "Machine:"
 msgstr "Macchina:"
@@ -360,8 +389,14 @@ msgstr "Velocità:"
 msgid "Frequency:"
 msgstr "Frequenza:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "Interno"
 
 msgid "Wait states:"
 msgstr "Stati di attesa:"
@@ -384,6 +419,9 @@ msgstr "Abilitato (ora locale)"
 msgid "Enabled (UTC)"
 msgstr "Abilitato (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Utilizza l'interprete 486 per i processori 286 e 386"
+
 msgid "Dynamic Recompiler"
 msgstr "Ricompilatore dinamico"
 
@@ -401,6 +439,9 @@ msgstr "Video:"
 
 msgid "Video #2:"
 msgstr "Video #2:"
+
+msgid "Monitor"
+msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Scheda grafica Voodoo 1 o 2"
@@ -471,8 +512,8 @@ msgstr "Scheda dedicata MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Usa suono FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Driver sint. FM"
+msgid "FM synth driver:"
+msgstr "Driver sint. FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (più accurato)"
@@ -480,71 +521,62 @@ msgstr "Nuked (più accurato)"
 msgid "YMFM (faster)"
 msgstr "YMFM (più veloce)"
 
-msgid "COM1 Device:"
-msgstr "Dispositivo COM1:"
-
-msgid "COM2 Device:"
-msgstr "Dispositivo COM2:"
-
-msgid "COM3 Device:"
-msgstr "Dispositivo COM3:"
-
-msgid "COM4 Device:"
-msgstr "Dispositivo COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Dispositivo LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Dispositivo LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Dispositivo LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Dispositivo LPT4:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA LPT ECP interna:"
 
-msgid "Serial port 1"
-msgstr "Porta seriale 1"
-
-msgid "Serial port 2"
-msgstr "Porta seriale 2"
-
-msgid "Serial port 3"
-msgstr "Porta seriale 3"
-
-msgid "Serial port 4"
-msgstr "Porta seriale 4"
-
-msgid "Parallel port 1"
-msgstr "Porta parallela 1"
-
-msgid "Parallel port 2"
-msgstr "Porta parallela 2"
-
-msgid "Parallel port 3"
-msgstr "Porta parallela 3"
-
-msgid "Parallel port 4"
-msgstr "Porta parallela 4"
-
 msgid "Floppy disk controller:"
-msgstr "Controller del floppy disk:"
+msgstr "Controller dischi floppy:"
 
 msgid "CD-ROM controller:"
 msgstr "Controller CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Controller IDE terziario"
+msgid "Mitsumi interface"
+msgstr "Interfaccia Mitsumi"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Controller IDE quaternario"
+msgid "MKE/Panasonic interface"
+msgstr "Interfaccia MKE/Panasonic"
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr "Interfaccia MKE/Panasonic (Creative)"
+
+msgid "IDE Controller"
+msgstr "Controller IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "Controller IDE (a due canali)"
+
+msgid "PC/AT IDE Controller"
+msgstr "Controller IDE PC/AT"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "Controller IDE PC/AT (a due canali)"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "XTIDE PC/AT (solo primario)"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "XTIDE AT PS/2 (1.1.5) (solo primario)"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646 (terziario e quaternario)"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648 (terziario e quaternario)"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649 (terziario e quaternario)"
+
+msgid "McIDE Controller"
+msgstr "Controller McIDE"
+
+msgid "Tertiary IDE Controller"
+msgstr "Controller IDE terziario"
+
+msgid "Quaternary IDE Controller"
+msgstr "Controller IDE quaternario"
 
 msgid "Hard disk controllers"
-msgstr "Controller del disco rigido"
+msgstr "Controller dischi rigidi"
 
 msgid "SCSI controllers"
 msgstr "Controller SCSI"
@@ -569,6 +601,9 @@ msgstr "Dischi rigidi:"
 
 msgid "Firmware Version"
 msgstr "Versione firmware"
+
+msgid "DSP Version"
+msgstr "Versione DSP"
 
 msgid "&New…"
 msgstr "&Nuovo…"
@@ -609,8 +644,8 @@ msgstr "Formato immagine:"
 msgid "Block Size:"
 msgstr "Dimensioni blocco:"
 
-msgid "Floppy drives:"
-msgstr "Unità floppy:"
+msgid "Floppy drives"
+msgstr "Unità floppy"
 
 msgid "Turbo timings"
 msgstr "Turbo"
@@ -618,23 +653,26 @@ msgstr "Turbo"
 msgid "Check BPB"
 msgstr "Verifica BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Unità CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Unità CD-ROM"
 
-msgid "MO drives:"
-msgstr "Unità magneto-ottiche:"
+msgid "MO drives"
+msgstr "Unità magneto-ottiche"
 
 msgid "MO:"
 msgstr "Magneto-ottiche:"
 
+msgid "Removable disk drives"
+msgstr "Unità disco rimovibili"
+
 msgid "Removable disks:"
 msgstr "Dischi rimovibili:"
 
-msgid "Removable disk drives:"
-msgstr "Unità disco rimovibili:"
+msgid "Tape drives"
+msgstr "Unità a nastro"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Unità a nastro:"
 
 msgid "ISA RTC:"
 msgstr "RTC ISA:"
@@ -693,11 +731,26 @@ msgstr "&Disco rimovibile %1 (%2): %3"
 msgid "Removable disk images"
 msgstr "Immagini dischi rimovibili"
 
+msgid "Tape %1 (%2): %3"
+msgstr "Nastro %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Nastro %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Immagini nastro"
+
 msgid "Image %1"
 msgstr "Immagine %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box non è in grado di trovare immagini ROM utilizzabili.\n\nSi prega di <a href=\"https://github.com/86Box/roms/releases/latest\">scaricare</a> un set di ROM ed estrarlo nella cartella \"roms\"."
+msgid ""
+"86Box could not find any usable ROM images.\n"
+"\n"
+"Please <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr ""
+"86Box non è in grado di trovare immagini ROM utilizzabili.\n"
+"\n"
+"Si prega di <a href=\"https://github.com/86Box/roms/releases/latest\">scaricare</a> un set di ROM ed estrarlo nella cartella \"roms\"."
 
 msgid "(empty)"
 msgstr "(vuoto)"
@@ -756,8 +809,14 @@ msgstr "Porte (COM e LPT)"
 msgid "Ports"
 msgstr "Porte"
 
+msgid "Serial ports"
+msgstr "Porte seriali"
+
 msgid "Serial ports:"
 msgstr "Porte seriali:"
+
+msgid "Parallel ports"
+msgstr "Porte parallele"
 
 msgid "Parallel ports:"
 msgstr "Porte parallele:"
@@ -804,14 +863,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "File"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "T"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -993,8 +1046,22 @@ msgstr "Salva"
 msgid "About %1"
 msgstr "Informazioni su %1"
 
-msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Un emulatore di vecchi computer\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne e altri.\n\nCon i precedenti contributi fondamentali di Sarah Walker, leilei, JohnElliott, greatpsycho e altri.\n\nRilasciato sotto la Licenza Pubblica Generale GNU versione 2 o successiva. Per ulteriori informazioni, consultare il file LICENSE."
+msgid ""
+"An emulator of old computers\n"
+"\n"
+"Authors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n"
+"\n"
+"With previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n"
+"\n"
+"Released under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr ""
+"Un emulatore di vecchi computer\n"
+"\n"
+"Autori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne e altri.\n"
+"\n"
+"Con i precedenti contributi fondamentali di Sarah Walker, leilei, JohnElliott, greatpsycho e altri.\n"
+"\n"
+"Rilasciato sotto la Licenza Pubblica Generale GNU versione 2 o successiva. Per ulteriori informazioni, consultare il file LICENSE."
 
 msgid "Hardware not available"
 msgstr "Hardware non disponibile"
@@ -1005,23 +1072,26 @@ msgstr "Assicurati che %1 sia installato e che la connessione di rete sia compat
 msgid "Invalid configuration"
 msgstr "Configurazione non valida"
 
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 è richiesto per la conversione automatica di file PostScript in PDF.\n\nQualsiasi documento inviato alla stampante PostScript generica verrà salvato come file PostScript (.ps)."
+msgid ""
+"%1 is required for automatic conversion of PostScript files to PDF.\n"
+"\n"
+"Any documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr ""
+"%1 è richiesto per la conversione automatica di file PostScript in PDF.\n"
+"\n"
+"Qualsiasi documento inviato alla stampante PostScript generica verrà salvato come file PostScript (.ps)."
 
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 è richiesto per la conversione automatica di file PCL in PDF.\n\nQualsiasi documento inviato alla stampante PCL generica verrà salvato come file Printer Command Language (.pcl)."
+msgid ""
+"%1 is required for automatic conversion of PCL files to PDF.\n"
+"\n"
+"Any documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr ""
+"%1 è richiesto per la conversione automatica di file PCL in PDF.\n"
+"\n"
+"Qualsiasi documento inviato alla stampante PCL generica verrà salvato come file Printer Command Language (.pcl)."
 
 msgid "Don't show this message again"
 msgstr "Non mostrare più questo messaggio"
-
-msgid "Don't exit"
-msgstr "Non uscire"
-
-msgid "Reset"
-msgstr "Riavvia"
-
-msgid "Don't reset"
-msgstr "Non riavviare"
 
 msgid "CD-ROM images"
 msgstr "Immagini CD-ROM"
@@ -1038,8 +1108,18 @@ msgstr "Shader GLSL"
 msgid "You are loading an unsupported configuration"
 msgstr "Stai caricando una configurazione non supportata"
 
-msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Il filtro del tipo di CPU in base alla macchina selezionata è disabilitato.\n\nCiò consente di scegliere una CPU altrimenti incompatibile con la macchina selezionata. Tuttavia, potrebbero verificarsi incompatibilità con il BIOS della macchina o con altri programmi. \n\nL'abilitazione di questa impostazione non è ufficialmente supportata e qualsiasi segnalazione di errore potrebbe essere chiusa come non valida."
+msgid ""
+"CPU type filtering based on selected machine is disabled for this emulated machine.\n"
+"\n"
+"This makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n"
+"\n"
+"Enabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr ""
+"Il filtro del tipo di CPU in base alla macchina selezionata è disabilitato.\n"
+"\n"
+"Ciò consente di scegliere una CPU altrimenti incompatibile con la macchina selezionata. Tuttavia, potrebbero verificarsi incompatibilità con il BIOS della macchina o con altri programmi. \n"
+"\n"
+"L'abilitazione di questa impostazione non è ufficialmente supportata e qualsiasi segnalazione di errore potrebbe essere chiusa come non valida."
 
 msgid "Continue"
 msgstr "Continua"
@@ -1143,8 +1223,8 @@ msgstr "Impossibile aprire il file di configurazione selezionato per la lettura:
 msgid "Use regular expressions in search box"
 msgstr "Utilizza espressioni regolari nella casella di ricerca"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Sono attualmente attive %1 macchina/e. Vuoi comunque uscire dal gestore delle macchine virtuali?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "Sono attualmente attive %n macchina/e. Vuoi comunque uscire dal gestore delle macchine virtuali?"
 
 msgid "Add new system wizard"
 msgstr "Procedura guidata nuovo sistema"
@@ -1227,9 +1307,6 @@ msgstr "Inserisci il nuovo nome da visualizzare (vuoto per reimpostarlo)"
 msgid "Change &display name…"
 msgstr "Modifica &nome visualizzato…"
 
-msgid "Context Menu"
-msgstr "Menu contestuale"
-
 msgid "&Open folder…"
 msgstr "&Apri cartella…"
 
@@ -1311,8 +1388,14 @@ msgstr "Avviso"
 msgid "&Kill"
 msgstr "&Forza chiusura"
 
-msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "Forzare la chiusura di una macchina virtuale può causare la perdita di dati. Eseguire questa operazione solo se il processo di 86Box si blocca.\n\nDesideri davvero forzare la chiusura della macchina virtuale \"%1\"?"
+msgid ""
+"Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n"
+"\n"
+"Do you really wish to kill the virtual machine \"%1\"?"
+msgstr ""
+"Forzare la chiusura di una macchina virtuale può causare la perdita di dati. Eseguire questa operazione solo se il processo di 86Box si blocca.\n"
+"\n"
+"Desideri davvero forzare la chiusura della macchina virtuale \"%1\"?"
 
 msgid "&Delete"
 msgstr "&Elimina"
@@ -1479,8 +1562,18 @@ msgstr "File VHD"
 msgid "Select the parent VHD"
 msgstr "Seleziona il VHD padre"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Ciò potrebbe significare che l'immagine padre è stata modificata dopo la creazione dell'immagine di differenziazione.\n\nPuò verificarsi anche se i file immagine sono stati spostati o copiati, oppure a causa di un errore del programma che ha creato il disco.\n\nVuoi correggere la marca temporale?"
+msgid ""
+"This could mean that the parent image was modified after the differencing image was created.\n"
+"\n"
+"It can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n"
+"\n"
+"Do you want to fix the timestamps?"
+msgstr ""
+"Ciò potrebbe significare che l'immagine padre è stata modificata dopo la creazione dell'immagine di differenziazione.\n"
+"\n"
+"Può verificarsi anche se i file immagine sono stati spostati o copiati, oppure a causa di un errore del programma che ha creato il disco.\n"
+"\n"
+"Vuoi correggere la marca temporale?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Le marche temporali del disco padre e figlio non corrispondono"
@@ -1530,9 +1623,6 @@ msgstr "DMF (cluster 2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1575,6 +1665,9 @@ msgstr "1,5% al di sotto di RPM ideale"
 msgid "2% below perfect RPM"
 msgstr "2% al di sotto di RPM ideale"
 
+msgid "Creating image…"
+msgstr "Creazione dell'immagine…"
+
 msgid "(System Default)"
 msgstr "(Predefinito del sistema)"
 
@@ -1608,8 +1701,18 @@ msgstr "Pa&usa automatica se in secondo piano"
 msgid "WinBox is no longer supported"
 msgstr "WinBox non è più supportato"
 
-msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "Lo sviluppo del gestore WinBox si è interrotto nel 2022 per mancanza di manutentori. Poiché i nostri sforzi sono rivolti a rendere 86Box ancora migliore, abbiamo deciso di non supportare più WinBox come gestore.\n\nNon saranno forniti ulteriori aggiornamenti tramite WinBox e si potrebbe riscontrare un comportamento non corretto se si continua a utilizzarlo con le versioni più recenti di 86Box. Tutte le segnalazioni di errori relative al comportamento di WinBox saranno chiuse in quanto non valide.\n\nPer un elenco di altri gestori utilizzabili, visitare 86box.net."
+msgid ""
+"Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n"
+"\n"
+"No further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n"
+"\n"
+"Go to 86box.net for a list of other managers you can use."
+msgstr ""
+"Lo sviluppo del gestore WinBox si è interrotto nel 2022 per mancanza di manutentori. Poiché i nostri sforzi sono rivolti a rendere 86Box ancora migliore, abbiamo deciso di non supportare più WinBox come gestore.\n"
+"\n"
+"Non saranno forniti ulteriori aggiornamenti tramite WinBox e si potrebbe riscontrare un comportamento non corretto se si continua a utilizzarlo con le versioni più recenti di 86Box. Tutte le segnalazioni di errori relative al comportamento di WinBox saranno chiuse in quanto non valide.\n"
+"\n"
+"Per un elenco di altri gestori utilizzabili, visitare 86box.net."
 
 msgid "Generate"
 msgstr "Genera"
@@ -1656,8 +1759,8 @@ msgstr "&Cursore/Puck"
 msgid "&Pen"
 msgstr "&Penna"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unità CD/DVD host (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Unità CD/DVD host (%1)"
 
 msgid "&Connected"
 msgstr "&Connesso"
@@ -1722,8 +1825,12 @@ msgstr "È richiesta la versione OpenGL 3.0 o superiore. La versione attuale è 
 msgid "Error initializing OpenGL"
 msgstr "Errore nell'inizializzazione di OpenGL"
 
-msgid "\nFalling back to software rendering."
-msgstr "\nPassaggio alla renderizzazione software."
+msgid ""
+"\n"
+"Falling back to software rendering."
+msgstr ""
+"\n"
+"Passaggio alla renderizzazione software."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Quando si selezionano le immagini (CD-ROM, floppy, ecc.), la finestra di dialogo di apertura si avvia nella stessa directory del file di configurazione di 86Box. Questa impostazione probabilmente farà la differenza solo su MacOS.</p></body></html>"
@@ -1731,8 +1838,14 @@ msgstr "<html><head/><body><p>Quando si selezionano le immagini (CD-ROM, floppy,
 msgid "This machine might have been moved or copied."
 msgstr "Questa macchina potrebbe essere stata spostata o copiata."
 
-msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "Per garantire la corretta funzionalità di rete, 86Box deve sapere se la macchina è stata spostata o copiata.\n\nSelezionare \"L'ho copiata\" se non si è sicuri."
+msgid ""
+"In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n"
+"\n"
+"Select \"I Copied It\" if you are not sure."
+msgstr ""
+"Per garantire la corretta funzionalità di rete, 86Box deve sapere se la macchina è stata spostata o copiata.\n"
+"\n"
+"Selezionare \"L'ho copiata\" se non si è sicuri."
 
 msgid "I Moved It"
 msgstr "L'ho spostata"
@@ -1752,17 +1865,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Scheda di rete #1"
+msgid "Adapter 1"
+msgstr "Adattatore 1"
 
-msgid "Network Card #2"
-msgstr "Scheda di rete #2"
+msgid "Adapter 2"
+msgstr "Adattatore 2"
 
-msgid "Network Card #3"
-msgstr "Scheda di rete #3"
+msgid "Adapter 3"
+msgstr "Adattatore 3"
 
-msgid "Network Card #4"
-msgstr "Scheda di rete #4"
+msgid "Adapter 4"
+msgstr "Adattatore 4"
 
 msgid "Mode:"
 msgstr "Modalità:"
@@ -1784,18 +1897,6 @@ msgstr "Tester di unità 86Box"
 
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Chiave magnetica Novell NetWare 2.x"
-
-msgid "Serial port passthrough 1"
-msgstr "Porta seriale passante 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Porta seriale passante 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Porta seriale passante 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Porta seriale passante 4"
 
 msgid "Renderer &options…"
 msgstr "&Opzioni renderizzatore…"
@@ -1851,8 +1952,8 @@ msgstr "3M MicroTouch (seriale)"
 msgid "Default Baud rate"
 msgstr "Velocità di trasmissione predefinita"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Modem standard conforme a Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Modem standard conforme a Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulazione Roland MT-32"
@@ -1946,6 +2047,9 @@ msgstr "Versione BIOS"
 
 msgid "BIOS Language"
 msgstr "Lingua BIOS"
+
+msgid "Variant"
+msgstr "Variante"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unità di espansione IBM 5161"
@@ -2210,9 +2314,6 @@ msgstr "Dimensione della memoria"
 
 msgid "EMU8000 Address"
 msgstr "Indirizzo EMU8000"
-
-msgid "IDE Controller"
-msgstr "Controller IDE"
 
 msgid "Codec"
 msgstr "Codec"
@@ -2598,6 +2699,9 @@ msgstr "Standard"
 msgid "High-Speed"
 msgstr "Alta velocità"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "DAC LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "DAC LPT stereo"
 
@@ -2610,8 +2714,8 @@ msgstr "Stampante a matrice di punti ESC/P 2 generica"
 msgid "Generic PostScript Printer"
 msgstr "Stampante PostScript generica"
 
-msgid "Generic PCL5e Printer"
-msgstr "Stampante PCL5e generica"
+msgid "Generic PCL Printer"
+msgstr "Stampante PCL generica"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Protocollo Internet a linea parallela"
@@ -2619,7 +2723,11 @@ msgstr "Protocollo Internet a linea parallela"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Supporto di protezione per Savage Quest"
 
-msgid "Serial Passthrough Device"
+msgid "Loopback Plug"
+msgstr "Connettore loopback"
+
+#, fuzzy
+msgid "Serial Passthrough"
 msgstr "Dispositivo passaggio porta seriale"
 
 msgid "Passthrough Mode"
@@ -2664,6 +2772,12 @@ msgstr "Impatto elevato sulle prestazioni"
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Generico] Disco RAM (velocità massima)"
 
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Generico] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Generico] 1983 RLL (3600 RPM)"
+
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generico] 1989 (3500 RPM)"
 
@@ -2702,6 +2816,12 @@ msgstr "Espansione di memoria PC/XT generica"
 
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Espansione di memoria PC/AT generica"
+
+msgid "Generic MM58167 RTC"
+msgstr "RTC MM58167 generico"
+
+msgid "OPL2Board (External Device)"
+msgstr "OPL2Board (dispositivo esterno)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Impossibile trovare i caratteri a matrice di punti"
@@ -2742,11 +2862,23 @@ msgstr "Impossibile caricare lo shader: %1"
 msgid "Could not load texture: %1"
 msgstr "Impossibile caricare la texture: %1"
 
-msgid "Could not compile shader:\n\n%1"
-msgstr "Impossibile compilare lo shader:\n\n%1"
+msgid ""
+"Could not compile shader:\n"
+"\n"
+"%1"
+msgstr ""
+"Impossibile compilare lo shader:\n"
+"\n"
+"%1"
 
-msgid "Program not linked:\n\n%1"
-msgstr "Programma non collegato:\n\n%1"
+msgid ""
+"Program not linked:\n"
+"\n"
+"%1"
+msgstr ""
+"Programma non collegato:\n"
+"\n"
+"%1"
 
 msgid "Shader Manager"
 msgstr "Gestore shader"
@@ -2766,8 +2898,14 @@ msgstr "Sposta giù"
 msgid "Could not load file %1"
 msgstr "Impossibile caricare il file %1"
 
-msgid "Key Bindings:"
-msgstr "Associazione dei tasti:"
+msgid "Emulator"
+msgstr "Emulatore"
+
+msgid "Input"
+msgstr "Entrata"
+
+msgid "Key bindings"
+msgstr "Associazione dei tasti"
 
 msgid "Action"
 msgstr "Azione"
@@ -2803,10 +2941,7 @@ msgid "Toggle fullscreen"
 msgstr "Attiva/disattiva schermo intero"
 
 msgid "Toggle UI in fullscreen"
-msgstr "Attivare/disattivare interfaccia utente in modalità a schermo intero"
-
-msgid "Screenshot"
-msgstr "Istantanea dello schermo"
+msgstr "Attiva/disattiva interfaccia in modalità a schermo intero"
 
 msgid "Release mouse pointer"
 msgstr "Rilascia il puntatore del mouse"
@@ -2832,8 +2967,8 @@ msgstr "Commutatore locale"
 msgid "Remote Switch"
 msgstr "Commutatore remoto"
 
-msgid "Switch:"
-msgstr "Commutatore:"
+msgid "Shared secret:"
+msgstr "Segreto condiviso:"
 
 msgid "Hub Mode"
 msgstr "Modalità Hub"
@@ -2850,8 +2985,14 @@ msgstr "ROM ISA:"
 msgid "&Wipe NVRAM"
 msgstr "&Cancella NVRAM"
 
-msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "Questa operazione eliminerà tutti i file NVRAM (e correlati) della macchina virtuale situati nella sottodirectory \"nvr\". Sarà necessario riconfigurare nuovamente le impostazioni del BIOS e, eventualmente, di altri dispositivi all'interno della macchina virtuale.\n\nSei sicuro di voler cancellare tutto il contenuto della NVRAM della macchina virtuale \"%1\"?"
+msgid ""
+"This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n"
+"\n"
+"Are you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
+msgstr ""
+"Questa operazione eliminerà tutti i file NVRAM (e correlati) della macchina virtuale situati nella sottodirectory \"nvr\". Sarà necessario riconfigurare nuovamente le impostazioni del BIOS e, eventualmente, di altri dispositivi all'interno della macchina virtuale.\n"
+"\n"
+"Sei sicuro di voler cancellare tutto il contenuto della NVRAM della macchina virtuale \"%1\"?"
 
 msgid "Success"
 msgstr "Successo"
@@ -2880,8 +3021,18 @@ msgstr "Verifica la disponibilità degli aggiornamenti all'avvio"
 msgid "Unable to determine release information"
 msgstr "Impossibile determinare le informazioni sulla versione"
 
-msgid "There was an error checking for updates:\n\n%1\n\nPlease try again later."
-msgstr "Si è verificato un errore durante la verifica degli aggiornamenti:\n\n%1\n\nRiprova più tardi."
+msgid ""
+"There was an error checking for updates:\n"
+"\n"
+"%1\n"
+"\n"
+"Please try again later."
+msgstr ""
+"Si è verificato un errore durante la verifica degli aggiornamenti:\n"
+"\n"
+"%1\n"
+"\n"
+"Riprova più tardi."
 
 msgid "Update check complete"
 msgstr "Ricerca degli aggiornamenti completata"
@@ -2994,9 +3145,6 @@ msgstr "Chiara"
 msgid "Dark"
 msgstr "Scura"
 
-msgid "Search:"
-msgstr "Cerca:"
-
 msgid "Force interpretation"
 msgstr "Forza interpretazione"
 
@@ -3010,4 +3158,22 @@ msgid "&Allow recompilation"
 msgstr "&Permetti ricompilazione"
 
 msgid "&Fast forward"
-msgstr ""
+msgstr "&Avanti veloce"
+
+msgid "Fast forward"
+msgstr "Avanti veloce"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "Per modificare la directory di sistema, arrestare tutte le macchine in funzione."
+
+msgid "Raw"
+msgstr "Grezzo"
+
+msgid "Use EDC/ECC emulation"
+msgstr "Usa emulazione EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Dispositivo di uscita audio:"
+
+msgid "System Default"
+msgstr "Predefinito del sistema"
