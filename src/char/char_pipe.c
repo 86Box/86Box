@@ -161,9 +161,13 @@ client:
             DWORD err = GetLastError();
             char_pipe_log(dev->log, "CreateFileA failed (%08X)\n", err);
 
-            if (dev->mode != CHAR_PIPE_MODE_CLIENT) {                            /* on auto mode, delay connect failed message to here */
-                if ((create_err == ERROR_PIPE_BUSY) && (err == ERROR_PIPE_BUSY)) /* special case to mitigate race condition when switching modes after the other end hard resets (by deferring a retry) */
-                    return 0;                                                    /* don't char_update_status to avoid infinite loop */
+            if (dev->mode != CHAR_PIPE_MODE_CLIENT) {                              /* on auto mode, delay connect failed message to here */
+                if ((create_err == ERROR_PIPE_BUSY) && (err == ERROR_PIPE_BUSY)) { /* special case to mitigate race condition when switching modes after the other end hard resets (by deferring a retry) */
+                    dev->block_connect = 1;                                        /* avoid infinite loop in char_update_status */
+                    char_update_status(dev->port);
+                    dev->block_connect = 0;
+                    return 0;
+                }
                 if (startup)
                     ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
                 else
@@ -221,7 +225,7 @@ client:
             int err = errno;
             char_pipe_log(dev->log, "%s open failed (%d)\n", (i == 0) ? "Output" : "Input", err);
 
-            if ((i == 0) && (errno == ENXIO)) /* don't display error if there's nobody on the other end */
+            if ((i == 0) && (errno == ENXIO)) /* don't display error if nobody is connected to the out pipe */
                 continue;
 
             for (int j = 0; j <= 1; j++) {
