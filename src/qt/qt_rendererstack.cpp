@@ -30,6 +30,8 @@
 
 #include "evdev_mouse.hpp"
 
+#include <cmath>
+
 #include <atomic>
 #include <stdexcept>
 
@@ -265,6 +267,11 @@ RendererStack::mousePressEvent(QMouseEvent *event)
     event->accept();
 }
 
+#if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
+    double numSteps  = 0.0;
+    double numStepsW = 0.0;
+#endif
+
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
@@ -274,11 +281,18 @@ RendererStack::wheelEvent(QWheelEvent *event)
     }
 
 #if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
-    double numSteps  = (double) event->angleDelta().y() / 120.0;
-    double numStepsW = (double) event->angleDelta().x() / 120.0;
+    double numSteps  += (double) event->angleDelta().y() / 120.0;
+    double numStepsW += (double) event->angleDelta().x() / 120.0;
 
-    mouse_set_z((int) numSteps);
-    mouse_set_w((int) numStepsW);
+    if (numSteps >= 1.0 || numSteps <= -1.0) {
+        mouse_set_z((int) std::trunc(numSteps));
+        numSteps -= std::trunc(numSteps);
+    }
+
+    if (numStepsW >= 1.0 || numStepsW <= -1.0) {
+        mouse_set_w((int) std::trunc(numStepsW));
+        numStepsW -= std::trunc(numStepsW);
+    }
 #endif
     event->accept();
 }
