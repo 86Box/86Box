@@ -214,7 +214,10 @@ char_serial_disconnect(char_serial_t *dev)
 #endif
     }
 
+    int prev           = dev->block_connect;
+    dev->block_connect = 1;
     char_update_status(dev->port);
+    dev->block_connect = prev;
 }
 
 static int
@@ -692,8 +695,15 @@ char_serial_control(uint32_t flags, void *priv)
 {
     char_serial_t *dev = (char_serial_t *) priv;
 
-    if (!CHAR_FD_VALID(dev->fd))
-        return;
+    if (!CHAR_FD_VALID(dev->fd)) {
+        if (!dev->block_connect) {
+            char_serial_connect(dev, 0);
+            if (!CHAR_FD_VALID(dev->fd))
+                return;
+        } else {
+            return;
+        }
+    }
 
 #ifdef _WIN32
     EscapeCommFunction(dev->fd, (flags & CHAR_COM_DTR) ? SETDTR : CLRDTR);
