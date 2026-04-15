@@ -197,14 +197,15 @@ char_file_init(const device_t *info)
 }
 
 // clang-format off
+#define TEXT_FILE_FILTER "Text files (*.txt *.log)|*.txt,*.log"
 static const device_config_t char_file_config[] = {
     {
         .name           = "path",
         .description    = "Output file path",
         .type           = CONFIG_FNAME,
         .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
+        .default_int    = 1,
+        .file_filter    = TEXT_FILE_FILTER,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
@@ -226,7 +227,7 @@ static const device_config_t char_file_config[] = {
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 0,
-        .file_filter    = NULL,
+        .file_filter    = TEXT_FILE_FILTER,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }

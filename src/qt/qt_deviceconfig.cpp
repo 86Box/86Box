@@ -316,6 +316,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     auto *fileField = new FileField(this);
                     fileField->setObjectName(config->name);
                     fileField->setFileName(selected);
+                    fileField->setCreateFile(!!config->default_int);
                     /* Get the actually used part of the filter */
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
                     QString filter = QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter, "|")));
