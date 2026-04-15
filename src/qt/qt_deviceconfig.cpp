@@ -74,7 +74,7 @@ enumerateSerialDevices()
 {
     QMap<QString, QString> serialDevices;
 #ifdef Q_OS_WINDOWS
-    auto classDevs = SetupDiGetClassDevs(&GUID_DEVCLASS_PORTS, nullptr, nullptr, DIGCF_PRESENT);
+    auto classDevs = SetupDiGetClassDevsA(&GUID_DEVCLASS_PORTS, nullptr, nullptr, DIGCF_PRESENT);
     if (classDevs) {
         SP_DEVINFO_DATA devInfo = { .cbSize = sizeof(SP_DEVINFO_DATA) };
         char            buf[1024];
@@ -86,9 +86,11 @@ enumerateSerialDevices()
                 continue;
             QString path(buf);
             buf[0] = '\0';
-            SetupDiGetDeviceRegistryProperty(classDevs, &devInfo, SPDRP_FRIENDLYNAME, &bufSize, (unsigned char *) buf, sizeof(buf), nullptr);
+            SetupDiGetDeviceRegistryPropertyA(classDevs, &devInfo, SPDRP_FRIENDLYNAME, &bufSize, (unsigned char *) buf, sizeof(buf), nullptr);
             QString name(buf);
-            if (name.contains(path))
+            if (name.isEmpty())
+                serialDevices[path] = path;
+            else if (name.contains(path, Qt::CaseInsensitive))
                 serialDevices[path] = name;
             else
                 serialDevices[path] = QStringLiteral("%1 (%2)").arg(name, path);
