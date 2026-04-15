@@ -46,6 +46,7 @@
 #include <QApplication>
 #include <QTimer>
 
+#include <cmath>
 #include <atomic>
 
 #include <windows.h>
