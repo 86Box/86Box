@@ -72,9 +72,9 @@ typedef struct {
     const
 #endif
         char *path;
-    int         reconnect     : 1;
-    int         block_connect : 1;
-    uint32_t    last_connect_attempt;
+    int       reconnect     : 1;
+    int       block_connect : 1;
+    uint32_t  last_connect_attempt;
 #ifdef _WIN32
     HANDLE fd;
     DCB    prev_config;
@@ -301,14 +301,13 @@ char_serial_connect(char_serial_t *dev, int startup)
         char_serial_log(dev->log, "tcgetattr failed (%d)\n", errno);
 
     /* Set up serial port. */
-#    if defined(TCSETS2) || defined(USE_LINUX_TERMIOS)
-    /* cfmakeraw not available here, set attributes according to the man page. */
+#    ifdef USE_LINUX_TERMIOS /* cfmakeraw not available here, set manually according to the man page */
     dev->config.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
     dev->config.c_oflag &= ~OPOST;
     dev->config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 #        ifdef TCSETS2
     if (ioctl(dev->fd, TCSETS2, &dev->config))
-#        elif defined(USE_LINUX_TERMIOS)
+#        else
     if (ioctl(dev->fd, TCSETS, &dev->config))
 #        endif
 #    else
@@ -502,23 +501,24 @@ char_serial_port_config(void *priv)
     }
 
     /* Set configuration. */
-    if (!SetCommState(dev->fd, &dev->config)) {
-        /* Failed, try again with the closest common baud rate. */
-        dev->config.BaudRate = char_serial_find_baud(dev->port->com.baud);
-        if (!SetCommState(dev->fd, &dev->config))
-            char_serial_log(dev->log, "SetCommState failed (%08X)\n", GetLastError());
+    if (SetCommState(dev->fd, &dev->config)) {
+        char_serial_log(dev->log, "Specific baud configuration successful\n");
+        return;
+    } else {
+        char_serial_log(dev->log, "Specific baud SetCommState failed (%08X)\n", GetLastError());
     }
+
+    /* Failed, try using the closest common baud rate. */
+    dev->config.BaudRate = char_serial_find_baud(dev->port->com.baud);
+    if (SetCommState(dev->fd, &dev->config))
+        char_serial_log(dev->log, "Approximate baud (%d) configuration successful\n", (unsigned int) dev->config.BaudRate);
+    else
+        char_serial_log(dev->log, "Approximate baud (%d) SetCommState failed (%08X)\n", (unsigned int) dev->config.BaudRate, GetLastError());
 #else
     /* Modify configuration. */
     dev->config.c_cflag &= ~(CSIZE | PARODD | CSTOPB);
 #    ifdef CMSPAR
     dev->config.c_cflag &= ~CMSPAR;
-#    endif
-#    ifdef CBAUD
-    dev->config.c_cflag &= ~CBAUD;
-#        ifdef IBSHIFT
-    dev->config.c_cflag &= ~(CBAUD << IBSHIFT);
-#        endif
 #    endif
     dev->config.c_cflag |= CREAD | PARENB;
 
@@ -568,39 +568,77 @@ char_serial_port_config(void *priv)
     if (dev->port->com.stop_bits > 1)
         dev->config.c_cflag |= CSTOPB;
 
-    /* Set specific baud rate through BOTHER if available. */
-#    if defined(BOTHER) && defined(TCSETS2)
+    /* Set specific baud rate if possible. */
+#    ifdef CBAUD
+    dev->config.c_cflag &= ~CBAUD;
+#    endif
+#    ifdef CIBAUD
+    dev->config.c_cflag &= ~CIBAUD;
+#    elif defined(CBAUD) && defined(IBSHIFT)
+    dev->config.c_cflag &= ~(CBAUD << IBSHIFT);
+#    endif
+#    if defined(BOTHER) && defined(TCSETS2) /* Linux extension */
     dev->config.c_cflag |= BOTHER;
-    dev->config.c_ospeed = dev->port->com.baud;
 #        ifdef IBSHIFT
     dev->config.c_cflag |= BOTHER << IBSHIFT;
-    dev->config.c_ispeed = dev->port->com.baud;
 #        endif
-    if (ioctl(dev->fd, TCSETS2, &dev->config))
+    dev->config.c_ispeed = dev->config.c_ospeed = dev->port->com.baud;
+    if (!ioctl(dev->fd, TCSETS2, &dev->config)) {
+        char_serial_log(dev->log, "Specific baud configuration successful\n");
+        return;
+    } else {
+        char_serial_log(dev->log, "Specific baud TCSETS2 failed (%d)\n", errno);
+    }
+#    elif B38400 == 38400 /* BSDs (including macOS) where cfset*speed take a specific baud rate */
+    if (!cfsetispeed(&dev->config, dev->port->com.baud) && !cfsetospeed(&dev->config, dev->port->com.baud)) {
+#        ifdef TCSETS2
+        if (!ioctl(dev->fd, TCSETS2, &dev->config))
+#        elif defined(USE_LINUX_TERMIOS)
+        if (!ioctl(dev->fd, TCSETS, &dev->config))
+#        else
+        if (!tcsetattr(dev->fd, TCSANOW, &dev->config))
+#        endif
+        {
+            char_serial_log(dev->log, "Specific baud configuration successful\n");
+            return;
+        } else {
+            char_serial_log(dev->log, "Specific baud tcsetattr failed (%d)\n", errno);
+        }
+    } else {
+        char_serial_log(dev->log, "Specific baud cfset*speed failed (%d)\n", errno);
+    }
 #    endif
-    {
-        /* Failed or we're not in a BOTHER platform, try using the closest common baud rate. */
+
+    /* Failed or we're not in a specific baud rate platform, try using the closest common baud rate. */
 #    ifdef CBAUD
-        dev->config.c_cflag &= ~CBAUD;
-#        ifdef IBSHIFT
-        dev->config.c_cflag &= ~(CBAUD << IBSHIFT);
-#        endif
+    dev->config.c_cflag &= ~CBAUD;
 #    endif
-        speed_t baud = char_serial_find_baud(dev->port->com.baud);
-        dev->config.c_cflag |= baud;
-#    ifdef IBSHIFT
-        dev->config.c_cflag |= baud << IBSHIFT;
+#    ifdef CIBAUD
+    dev->config.c_cflag &= ~CIBAUD;
+#    elif defined(CBAUD) && defined(IBSHIFT)
+    dev->config.c_cflag &= ~(CBAUD << IBSHIFT);
+#    endif
+    speed_t baud = char_serial_find_baud(dev->port->com.baud);
+#    ifdef USE_LINUX_TERMIOS /* cfset*speed not available here, set manually */
+    dev->config.c_cflag |= baud;
+#        ifdef IBSHIFT
+    dev->config.c_cflag |= baud << IBSHIFT;
+#        endif
+#    else
+    if (cfsetispeed(&dev->config, baud) || cfsetospeed(&dev->config, baud))
+        char_serial_log(dev->log, "Approximate baud (%08X) cfset*speed failed (%d)\n", (unsigned int) baud, errno);
 #    endif
 
 #    ifdef TCSETS2
-        if (ioctl(dev->fd, TCSETS2, &dev->config))
+    if (!ioctl(dev->fd, TCSETS2, &dev->config))
 #    elif defined(USE_LINUX_TERMIOS)
-        if (ioctl(dev->fd, TCSETS, &dev->config))
+    if (!ioctl(dev->fd, TCSETS, &dev->config))
 #    else
-        if (tcsetattr(dev->fd, TCSANOW, &dev->config))
+    if (!tcsetattr(dev->fd, TCSANOW, &dev->config))
 #    endif
-            char_serial_log(dev->log, "tcsetattr failed (%d)\n", errno);
-    }
+        char_serial_log(dev->log, "Approximate baud (%08X) configuration successful\n", (unsigned int) baud);
+    else
+        char_serial_log(dev->log, "Approximate baud (%08X) tcsetattr failed (%d)\n", (unsigned int) baud, errno);
 #endif
 }
 
@@ -707,7 +745,7 @@ char_serial_init(const device_t *info)
     /* Get configuration. */
     const char *path = device_get_config_string("path");
 #ifdef _WIN32
-    int len = strlen(path) + 5;
+    int len   = strlen(path) + 5;
     dev->path = (char *) calloc(1, len);
     snprintf(dev->path, len, !strncmp(path, "\\\\.\\", 4) ? "%s" : "\\\\.\\%s", path);
 #else
