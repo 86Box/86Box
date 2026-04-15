@@ -108,7 +108,7 @@
 #include <86box/machine.h>
 #include "cpu.h"
 
-#define MFM_TIME          (10 * TIMER_USEC)
+#define MFM_TIME          (100 * TIMER_USEC)
 #define MFM_SECTOR_TIME   (500 * TIMER_USEC)
 #define MFM_TYPE_USER 255 /* user drive type */
 
@@ -550,6 +550,22 @@ set_intr(mfm_t *dev, int raise)
     }
 }
 
+static void
+clear_unused_format(mfm_t *dev, int count)
+{
+    if (count == 0xff) /* OS/2 format */
+        if (CS != 0xe000) /* ROM POST */
+            dev->status &= ~ASR_BUSY;
+}
+
+static void
+clear_unused_delay(mfm_t *dev, int cmd)
+{
+    if ((cmd == 0x02) || (cmd == 0x08))
+        if (CS == 0xe000) /* ROM POST */
+            dev->status &= ~ASR_INT_REQ;
+}
+
 /* Get the logical (block) address of a CHS triplet. */
 static int
 get_sector(mfm_t *dev, drive_t *drive, off64_t *addr)
@@ -797,7 +813,6 @@ st506_callback(void *priv)
     /* If we are returning from a RESET, handle this first. */
     if (dev->reset) {
         st506_mca_log("ST506 reset.\n");
-        dev->status &= ~ASR_BUSY;
         dev->ssb.valid = 0;
         dev->reset = 0;
         do_finish(dev);
@@ -864,7 +879,6 @@ do_send:
 
                     /* Ready to transfer the data out. */
                     dev->state   = STATE_SDATA;
-                    dev->status |= ASR_TX_EN;
                     dev->buf_idx = 0;
                     if (ccb->no_data) {
                         /* Delay a bit, no actual transfer. */
@@ -1051,7 +1065,6 @@ do_send:
 do_recv:
                     /* Ready to transfer the data in. */
                     dev->state   = STATE_RDATA;
-                    dev->status |= ASR_TX_EN;
                     dev->buf_idx = 0;
                     if (ccb->no_data) {
                         /* Delay a bit, no actual transfer. */
@@ -1104,7 +1117,6 @@ do_recv:
                     if (get_sector(dev, drive, &addr)) {
                         /* De-activate the status icon. */
                         ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
-
                         do_finish(dev);
                         return;
                     }
@@ -1295,6 +1307,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
                             dev->status |= ASR_BUSY;
 
                         /* Schedule command execution. */
+                        clear_unused_format(dev, dev->ccb.count);
                         timer_set_delay_u64(&dev->timer, MFM_SECTOR_TIME);
                     }
                 }
@@ -1368,7 +1381,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
             }
 
             if (val & ATT_CCB) {
-                if (dev->attn & ATT_CCB)
+                if (val & ATT_DATA)
                     /* Hey now, we're still busy for you! */
                     break;
 
@@ -1410,7 +1423,7 @@ mfm_readw(uint16_t port, void *priv)
                     st506_mca_log("ST506: read with empty buffer!\n");
                     dev->state = STATE_IDLE;
                     dev->intstat |= ISR_INVALID_CMD;
-                    dev->status &= (ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
+                    dev->status &= ~(ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
                     set_intr(dev, 1);
                     break;
                 }
@@ -1479,8 +1492,9 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
                             dev->status |= ASR_BUSY;
 
                         /* Schedule command execution. */
-                        timer_set_delay_u64(&dev->timer, 
-                            ((dev->ccb.cmd == 0x02) || (dev->ccb.cmd == 0x08)) ? MFM_TIME : MFM_SECTOR_TIME);
+                        clear_unused_delay(dev, dev->ccb.cmd);
+                        clear_unused_format(dev, dev->ccb.count);
+                        timer_set_delay_u64(&dev->timer, MFM_SECTOR_TIME);
                     }
                 }
             }
@@ -1618,7 +1632,7 @@ mfm_init(UNUSED(const device_t *info))
             st506_mca_log("ST506: drive%d (type %d: cyl=%d,hd=%d,spt=%d), disk %d\n",
                           hdd[i].mfm_channel, drive->type,
                           drive->tracks, drive->hpc, drive->spt, i);
-            
+
             if (++c > 1)
                 break;
         }
