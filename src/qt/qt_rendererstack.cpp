@@ -268,8 +268,8 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 }
 
 #if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
-    double numSteps  = 0.0;
-    double numStepsW = 0.0;
+double numSteps  = 0.0;
+double numStepsW = 0.0;
 #endif
 
 void
@@ -281,8 +281,8 @@ RendererStack::wheelEvent(QWheelEvent *event)
     }
 
 #if !defined(Q_OS_WINDOWS) && !defined(__APPLE__)
-    double numSteps  += (double) event->angleDelta().y() / 120.0;
-    double numStepsW += (double) event->angleDelta().x() / 120.0;
+    numSteps  += (double) event->angleDelta().y() / 120.0;
+    numStepsW += (double) event->angleDelta().x() / 120.0;
 
     if (numSteps >= 1.0 || numSteps <= -1.0) {
         mouse_set_z((int) std::trunc(numSteps));
