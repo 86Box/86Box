@@ -493,9 +493,8 @@ WindowsRawInputFilter::mouse_handle(RAWMOUSE *raw)
     RAWMOUSE   state = *raw;
     static int x, delta_x;
     static int y, delta_y;
-    static int b;
-
-    static double delta_z, delta_w;
+    static int b, delta_z;
+    static int delta_w;
 
     b = mouse_get_buttons_ex();
 
@@ -528,20 +527,16 @@ WindowsRawInputFilter::mouse_handle(RAWMOUSE *raw)
     mouse_set_buttons_ex(b);
 
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
-        delta_z += (double) ((SHORT)state.usButtonData) / 120.;
-        if (delta_z >= 1.0 || delta_z <= -1.0) {
-            mouse_set_z((int)std::trunc(delta_z));
-            delta_z -= std::trunc(delta_z);
-        }
-    }
+        delta_z = (SHORT) state.usButtonData;
+        mouse_set_z(delta_z);
+    } else
+        delta_z = 0;
 
     if (state.usButtonFlags & RI_MOUSE_HWHEEL) {
-        delta_w += (double) ((SHORT)state.usButtonData) / 120.;
-        if (delta_w >= 1.0 || delta_w <= -1.0) {
-            mouse_set_w((int)std::trunc(delta_w));
-            delta_w -= std::trunc(delta_w);
-        }
-    }
+        delta_w = (SHORT) state.usButtonData;
+        mouse_set_w(delta_w);
+    } else
+        delta_w = 0;
 
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC
