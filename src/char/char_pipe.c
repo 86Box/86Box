@@ -68,38 +68,54 @@ typedef struct {
     char   path[257]; /* "The entire pipe name string can be up to 256 characters long." */
     HANDLE fd;
 #else
-    int   block_connect_in  : 1;
-    int   block_connect_out : 1;
-    int   direction         : 1;
-    char *path_in;
-    char *path_out;
-    int   fd_in;
-    int   fd_out;
+    int    block_connect_in  : 1;
+    int    block_connect_out : 1;
+    int    direction         : 1;
+    size_t path_len;
+    char  *path_in;
+    char  *path_out;
+    int    fd_in;
+    int    fd_out;
 #endif
 } char_pipe_t;
 
 static void
-char_pipe_disconnect(char_pipe_t *dev, int in)
+char_pipe_disconnect(char_pipe_t *dev, int fds)
 {
 #ifdef _WIN32
-    if (CHAR_FD_VALID(dev->fd)) {
+    if (fds && CHAR_FD_VALID(dev->fd)) {
         FlushFileBuffers(dev->fd);
         DisconnectNamedPipe(dev->fd);
         CloseHandle(dev->fd);
         dev->fd = INVALID_HANDLE_VALUE;
     }
-#else
-    if ((in != 0) && CHAR_FD_VALID(dev->fd_in)) {
-        close(dev->fd_in);
-        dev->fd_in = -1;
-    }
-    if ((in <= 0) && CHAR_FD_VALID(dev->fd_out)) {
-        close(dev->fd_out);
-        dev->fd_out = -1;
-    }
-#endif
 
+    int prev           = dev->block_connect;
+    dev->block_connect = 1;
     char_update_status(dev->port);
+    dev->block_connect = prev;
+#else
+    if (fds && (dev->fd_in == dev->fd_out) && CHAR_FD_VALID(dev->fd_in)) { /* PTY mode */
+        close(dev->fd_in);
+        dev->fd_in = dev->fd_out = -1;
+    } else {
+        if ((fds & 1) && CHAR_FD_VALID(dev->fd_in)) {
+            close(dev->fd_in);
+            dev->fd_in = -1;
+        }
+        if ((fds & 2) && CHAR_FD_VALID(dev->fd_out)) {
+            close(dev->fd_out);
+            dev->fd_out = -1;
+        }
+    }
+
+    int prev_in           = dev->block_connect_in;
+    int prev_out          = dev->block_connect_out;
+    dev->block_connect_in = dev->block_connect_out = 1;
+    char_update_status(dev->port);
+    dev->block_connect_in  = prev_in;
+    dev->block_connect_out = prev_out;
+#endif
 }
 
 static int
@@ -163,10 +179,8 @@ client:
 
             if (dev->mode != CHAR_PIPE_MODE_CLIENT) {                              /* on auto mode, delay connect failed message to here */
                 if ((create_err == ERROR_PIPE_BUSY) && (err == ERROR_PIPE_BUSY)) { /* special case to mitigate race condition when switching modes after the other end hard resets (by deferring a retry) */
-                    dev->block_connect = 1;                                        /* avoid infinite loop in char_update_status */
-                    char_update_status(dev->port);
-                    dev->block_connect = 0;
-                    return 0;
+                    msg[0] = '\0';
+                    goto errmsg;
                 }
                 if (startup)
                     ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
@@ -180,6 +194,29 @@ client:
         }
     }
 #else
+    /* Connect directly to the configured path if a character device exists there. */
+    if ((dev->mode != CHAR_PIPE_MODE_SERVER) && !CHAR_FD_VALID(dev->fd_out) && !CHAR_FD_VALID(dev->fd_in)) {
+        char prev                    = dev->path_out[dev->path_len];
+        dev->path_out[dev->path_len] = '\0';
+        struct stat stats;
+        if (!stat(dev->path_out, &stats) && S_ISCHR(stats.st_mode)) {
+            dev->fd_out = dev->fd_in = open(dev->path_out, O_RDWR | O_NONBLOCK);
+            if (CHAR_FD_VALID(dev->fd_out)) {
+                char_pipe_log(dev->log, "Connected to PTY: %s\n", dev->path_out);
+                dev->path_out[dev->path_len] = prev;
+                goto end;
+            } else {
+                int err = errno;
+                char_pipe_log(dev->log, "PTY open failed (%d)\n", err);
+
+                snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path_out, strerror(err));
+                ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                goto errmsg;
+            }
+        }
+        dev->path_out[dev->path_len] = prev;
+    }
+
     /* Determine pipe direction. */
     int out_test_fd = -1;
     if (dev->mode == CHAR_PIPE_MODE_SERVER) {
@@ -242,18 +279,21 @@ client:
     }
 #endif
 
+#ifndef _WIN32
+end:
+#endif
     char_update_status(dev->port);
     return 1;
 
-#ifdef _WIN32
 errmsg:
-    char_update_status(dev->port);
-    if (startup)
-        ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
-    else
-        char_pipe_log(dev->log, "%s\n", msg);
+    char_pipe_disconnect(dev, 0); /* just update status */
+    if (msg[0]) {
+        if (startup)
+            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+        else
+            char_pipe_log(dev->log, "%s\n", msg);
+    }
     return 0;
-#endif
 }
 
 static size_t
@@ -312,7 +352,7 @@ retry:
         ret = 0;
         if (!dev->server) {
             char_pipe_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
-            char_pipe_disconnect(dev, 0);
+            char_pipe_disconnect(dev, 2);
             if (!dev->block_connect && !connect)
 #else
     int     connect = !CHAR_FD_VALID(dev->fd_out) && !dev->block_connect_out;
@@ -327,7 +367,7 @@ retry:
         if (ret < 0) {
             ret = 0;
             char_pipe_log(dev->log, "write failed (%d)\n", errno);
-            char_pipe_disconnect(dev, 0);
+            char_pipe_disconnect(dev, 2);
             if (!dev->block_connect_out && !connect)
 #endif
             {
@@ -363,7 +403,7 @@ char_pipe_close(void *priv)
     char_pipe_log(dev->log, "close()\n");
     log_close(dev->log);
 
-    char_pipe_disconnect(dev, -1);
+    char_pipe_disconnect(dev, 3);
 
 #ifndef _WIN32
     free(dev->path_in);
@@ -391,8 +431,9 @@ char_pipe_init(const device_t *info)
         }
     }
 #else
-    size_t len   = strlen(path) + 4;
-    dev->path_in = (char *) calloc(1, len);
+    dev->path_len = strlen(path);
+    size_t len    = dev->path_len + 4;
+    dev->path_in  = (char *) calloc(1, len);
     snprintf(dev->path_in, len, "%s.in", path);
     dev->path_out = (char *) calloc(1, ++len);
     snprintf(dev->path_out, len, "%s.out", path);
