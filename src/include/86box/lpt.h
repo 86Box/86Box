@@ -98,15 +98,6 @@ extern const device_t      lpt_hasp_savquest_device;
 
 extern const device_t      lpt_loopback_device;
 
-extern int                 lpt_device_available(int id);
-#ifdef EMU_DEVICE_H
-extern const device_t     *lpt_device_getdevice(const int id);
-#endif
-extern int                 lpt_device_has_config(const int id);
-extern const char         *lpt_device_get_name(int id);
-extern const char         *lpt_device_get_internal_name(int id);
-extern int                 lpt_device_get_from_internal_name(const char *str);
-
 extern void                lpt_write(uint16_t port, uint8_t val, void *priv);
 
 extern void                lpt_write_to_fifo(void *priv, uint8_t val);

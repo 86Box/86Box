@@ -18,11 +18,9 @@
 #include <86box/lpt.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
-#include <86box/prt_devs.h>
 #include <86box/thread.h>
 #include <86box/device.h>
 #include <86box/machine.h>
-#include <86box/network.h>
 #include <86box/plat_fallthrough.h>
 
 static int    next_inst               = 0;
@@ -33,39 +31,6 @@ static lpt_t *lpt1;
 lpt_port_t    lpt_ports[PARALLEL_MAX];
 
 lpt_device_t  lpt_devs[PARALLEL_MAX];
-
-const device_t lpt_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = DEVICE_LPT,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const struct {
-    const device_t *device;
-} lpt_devices[] = {
-  // clang-format off
-    { &lpt_none_device          },
-    { &dss_device               },
-    { &lpt_dac_device           },
-    { &lpt_dac_stereo_device    },
-    { &lpt_prt_text_device      },
-    { &lpt_prt_escp_device      },
-    { &lpt_prt_ps_device        },
-    { &lpt_prt_pcl_device       },
-    { &lpt_plip_device          },
-    { &lpt_hasp_savquest_device },
-    { &char_loopback_lpt_device },
-    { NULL                      }
-  // clang-format on
-};
 
 #ifdef ENABLE_LPT_LOG
 int lpt_do_log = ENABLE_LPT_LOG;
@@ -84,57 +49,6 @@ lpt_log(const char *fmt, ...)
 #else
 #    define lpt_log(fmt, ...)
 #endif
-
-int
-lpt_device_available(int id)
-{
-    if (lpt_devices[id].device)
-        return device_available(lpt_devices[id].device);
-
-    return 1;
-}
-
-const device_t *
-lpt_device_getdevice(const int id)
-{
-    return lpt_devices[id].device;
-}
-
-int
-lpt_device_has_config(const int id)
-{
-    if (lpt_devices[id].device == NULL)
-        return 0;
-    return device_has_config(lpt_devices[id].device);
-}
-
-const char *
-lpt_device_get_name(const int id)
-{
-    if (lpt_devices[id].device == NULL)
-        return 0;
-    return lpt_devices[id].device->name;
-}
-
-const char *
-lpt_device_get_internal_name(const int id)
-{
-    return device_get_internal_name(lpt_devices[id].device);
-}
-
-int
-lpt_device_get_from_internal_name(const char *str)
-{
-    int c = 0;
-
-    while (lpt_devices[c].device != NULL) {
-        if (!strcmp(lpt_devices[c].device->internal_name, str))
-            return c;
-        c++;
-    }
-
-    return 0;
-}
 
 static void
 lpt_char_update_control(lpt_t *dev, uint32_t flags)
@@ -215,15 +129,15 @@ lpt_devices_init(void)
             continue;
 
         memset(&lpt_ports[i].lpt->port, 0, sizeof(lpt_ports[i].lpt->port));
-        if ((lpt_devices[lpt_ports[i].device].device != NULL) && 
-            (lpt_devices[lpt_ports[i].device].device != &lpt_none_device)) {
+        if (lpt_ports[i].device) {
             lpt_ports[i].lpt->port.type = CHAR_PORT_LPT;
             snprintf(lpt_ports[i].lpt->port.name, sizeof(lpt_ports[i].lpt->port.name), "LPT%i", i + 1);
-            char_init(&lpt_ports[i].lpt->port, lpt_devices[lpt_ports[i].device].device, i + 1);
+            const device_t *device = char_get_device(lpt_ports[i].device);
+            char_init(&lpt_ports[i].lpt->port, device, i + 1);
             if (lpt_ports[i].lpt->port.attached) {
                 /* Attach character device shim. */
                 lpt_ports[i].lpt->port.lpt.control = -1; /* force update on first control write */
-                device_context_inst(lpt_devices[lpt_ports[i].device].device, i + 1);
+                device_context_inst(device, i + 1);
                 lpt_attach(
                     lpt_ports[i].lpt->port.chardev.write ? lpt_char_write_data : NULL,
                     lpt_ports[i].lpt->port.chardev.control ? lpt_char_write_ctrl : NULL,

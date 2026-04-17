@@ -25,6 +25,11 @@
 #include <86box/ini.h>
 #include <86box/char.h>
 #include <86box/log.h>
+#include <86box/timer.h>
+#include <86box/lpt.h>
+#include <86box/prt_devs.h>
+#include <86box/thread.h>
+#include <86box/network.h>
 
 static const device_t char_none_device = {
     .name          = "None",
@@ -45,12 +50,24 @@ static const struct {
 } char_devices[] = {
     // clang-format off
     { &char_none_device },
+
+    { &dss_device },
+    { &lpt_dac_device },
+    { &lpt_dac_stereo_device },
+    { &lpt_prt_text_device },
+    { &lpt_prt_escp_device },
+    { &lpt_prt_ps_device },
+    { &lpt_prt_pcl_device },
+    { &lpt_plip_device },
+    { &lpt_hasp_savquest_device },
+    { &char_loopback_lpt_device },
+
     { &char_serial_passthrough_com_device },
     { &char_pipe_com_device },
     { &char_file_com_device },
     { &char_stdio_com_device },
     { &char_loopback_com_device },
-    { &char_loopback_lpt_device },
+
     { 0 }
     // clang-format on
 };

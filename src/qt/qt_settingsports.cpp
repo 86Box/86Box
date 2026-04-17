@@ -92,7 +92,7 @@ SettingsPorts::changed()
             soft_changed |= (com_ports[i].device           != cbox->currentData().toInt());
         if (checkBox != NULL)
             has_changed  |= (com_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
-        soft_changed  |= lpt_device_cfg_changed[i];
+        soft_changed  |= com_device_cfg_changed[i];
     }
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
@@ -195,20 +195,21 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     }
 
     while (true) {
-        const QString name = DeviceConfig::DeviceName(lpt_device_getdevice(c),
-                                                      lpt_device_get_internal_name(c), -1);
+        const device_t *device = char_get_device(c);
+        const QString name = DeviceConfig::DeviceName(device,
+                                                      device ? device->internal_name : nullptr, -1);
 
         if (name.isEmpty())
             break;
 
-        if (lpt_device_available(c)) {
+        if ((device->flags & DEVICE_LPT) && device_available(device)) {
             if (name.isEmpty())
                 break;
 
-            if (device_is_valid(lpt_device_getdevice(c), machineId)) {
+            if (device_is_valid(device, machineId)) {
                 for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
                     int row = Models::AddEntry(models[i], name, c);
-                    scLpt[i]->addDevice(nullptr, name);
+                    scCom[i]->addDevice(nullptr, name);
 
                     if (c == lpt_ports[i].device)
                         selectedRows[i] = row - removeRows_[i];
@@ -233,7 +234,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             cbox[i]->setEnabled(lpt_ports[i].enabled > 0);
             if (buttonCfg != NULL) {
                 int lptDevice = cbox[i]->currentData().toInt();
-                buttonCfg->setEnabled(lpt_device_has_config(lptDevice) && (lpt_ports[i].enabled > 0));
+                buttonCfg->setEnabled(device_has_config(char_get_device(lptDevice)) && (lpt_ports[i].enabled > 0));
             }
         }
     }
@@ -303,14 +304,14 @@ SettingsPorts::on_comboBoxLpt1_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt1->currentData().toInt();
 
-    ui->pushButtonConfigureLpt1->setEnabled(ui->comboBoxLpt1->isEnabled() && lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt1->setEnabled(ui->comboBoxLpt1->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureLpt1_clicked()
 {
     int   lptDevice = ui->comboBoxLpt1->currentData().toInt();
-    auto *device    = lpt_device_getdevice(lptDevice);
+    auto *device    = char_get_device(lptDevice);
 
     lpt_device_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -323,14 +324,14 @@ SettingsPorts::on_comboBoxLpt2_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt2->currentData().toInt();
 
-    ui->pushButtonConfigureLpt2->setEnabled(ui->comboBoxLpt2->isEnabled() && lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt2->setEnabled(ui->comboBoxLpt2->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureLpt2_clicked()
 {
     int   lptDevice = ui->comboBoxLpt2->currentData().toInt();
-    auto *device    = lpt_device_getdevice(lptDevice);
+    auto *device    = char_get_device(lptDevice);
 
     lpt_device_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -343,14 +344,14 @@ SettingsPorts::on_comboBoxLpt3_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt3->currentData().toInt();
 
-    ui->pushButtonConfigureLpt3->setEnabled(ui->comboBoxLpt3->isEnabled() && lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt3->setEnabled(ui->comboBoxLpt3->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureLpt3_clicked()
 {
     int   lptDevice = ui->comboBoxLpt3->currentData().toInt();
-    auto *device    = lpt_device_getdevice(lptDevice);
+    auto *device    = char_get_device(lptDevice);
 
     lpt_device_cfg_changed[2] = DeviceConfig::ConfigureDevice(device, 1);
 }
@@ -363,14 +364,14 @@ SettingsPorts::on_comboBoxLpt4_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt4->currentData().toInt();
 
-    ui->pushButtonConfigureLpt4->setEnabled(ui->comboBoxLpt4->isEnabled() && lpt_device_has_config(lptDevice));
+    ui->pushButtonConfigureLpt4->setEnabled(ui->comboBoxLpt4->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 
 void
 SettingsPorts::on_pushButtonConfigureLpt4_clicked()
 {
     int   lptDevice = ui->comboBoxLpt4->currentData().toInt();
-    auto *device    = lpt_device_getdevice(lptDevice);
+    auto *device    = char_get_device(lptDevice);
 
     lpt_device_cfg_changed[3] = DeviceConfig::ConfigureDevice(device, 1);
 }
