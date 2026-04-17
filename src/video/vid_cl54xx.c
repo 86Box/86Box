@@ -540,9 +540,9 @@ gd54xx_update_irqs(gd54xx_t *gd54xx)
             return;
 
         if ((gd54xx->vblank_irq > 0) && gd54xx_vga_vsync_enabled(gd54xx))
-            picintlevel(1 << 2, &gd54xx->irq_state);
+            picint(1 << 2);
         else
-            picintclevel(1 << 2, &gd54xx->irq_state);
+            picintc(1 << 2);
         return;
     }
 
