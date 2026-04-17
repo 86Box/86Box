@@ -333,6 +333,9 @@ ati28800_in(uint16_t addr, void *priv)
                 temp = 0;
             else
                 temp = 0x10;
+
+            if (svga->vertirq_state)
+                temp |= 0x80;
             break;
 
         case 0x3C6:
