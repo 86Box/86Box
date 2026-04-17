@@ -45,16 +45,6 @@ static const struct {
     const char_loopback_bits_t *bits;
 } char_loopback_types[] = {
     // clang-format off
-    [LOOPBACK_TYPE_NORTON] = {
-        .bits = (const char_loopback_bits_t[]) {
-            { 0x01, 0x00, 0, CHAR_LPT_ERROR },
-            { 0x02, 0x00, 0, CHAR_LPT_SELECT },
-            { 0x04, 0x00, 0, CHAR_LPT_PAPEROUT },
-            { 0x08, 0x00, 0, CHAR_LPT_ACK },
-            { 0x10, 0x00, 0, CHAR_LPT_BUSY },
-            { 0 }
-        }
-    },
     [LOOPBACK_TYPE_CHECKIT] = {
         .bits = (const char_loopback_bits_t[]) {
             { 0x00, 0x00, CHAR_LPT_PSELECT, CHAR_LPT_BUSY },
@@ -62,6 +52,16 @@ static const struct {
             { 0x00, 0x00, CHAR_LPT_AUTOFEED, CHAR_LPT_PAPEROUT },
             { 0x00, 0x00, CHAR_LPT_STROBE, CHAR_LPT_SELECT },
             { 0x01, 0x00, 0, CHAR_LPT_ERROR },
+            { 0 }
+        }
+    },
+    [LOOPBACK_TYPE_NORTON] = {
+        .bits = (const char_loopback_bits_t[]) {
+            { 0x01, 0x00, 0, CHAR_LPT_ERROR },
+            { 0x02, 0x00, 0, CHAR_LPT_SELECT },
+            { 0x04, 0x00, 0, CHAR_LPT_PAPEROUT },
+            { 0x08, 0x00, 0, CHAR_LPT_ACK },
+            { 0x10, 0x00, 0, CHAR_LPT_BUSY },
             { 0 }
         }
     },
@@ -116,7 +116,6 @@ char_loopback_update(char_loopback_t *dev)
             dev->status |= char_loopback_types[dev->type].bits[i].status;
         }
     }
-    dev->status = CHAR_RAW_STATUS(dev->status);
     char_update_status(dev->port);
 }
 
@@ -167,7 +166,7 @@ char_loopback_control(uint32_t flags, void *priv)
 {
     char_loopback_t *dev = (char_loopback_t *) priv;
 
-    dev->control = CHAR_RAW_CONTROL(flags);
+    dev->control = flags;
     char_loopback_update(dev);
     char_loopback_log(dev->log, "control(%08X) = %02X %08X\n", flags, dev->data_rx, dev->status);
 }
@@ -237,7 +236,7 @@ static const device_config_t char_loopback_lpt_config[] = {
 
 const device_t char_loopback_lpt_device = {
     .name          = "Loopback Plug (LPT)",
-    .internal_name = "char_loopback_lpt",
+    .internal_name = "loopback",
     .flags         = DEVICE_LPT,
     .local         = 0,
     .init          = char_loopback_init,
