@@ -64,6 +64,7 @@ extern "C" {
 #include <86box/network.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/char.h>
 }
 
 using namespace VMManager;
@@ -1001,7 +1002,7 @@ VMManagerSystem::setupVars()
             if (auto serial_dev = key.split("_").at(0); !serial_dev.isEmpty()) {
                 auto serial_num = serial_dev.at(serial_dev.size() - 1);
                 // qDebug() << "serial is set" << key << ":" << ports_config[key];
-                if (serial_num.isDigit() && serial_num.digitValue() >= 1 && serial_num.digitValue() <= 4) {
+                if (serial_num.isDigit() && serial_num.digitValue() >= 1 && serial_num.digitValue() <= SERIAL_MAX) {
                     // Already verified that it is a digit with isDigit()
                     serial_enabled[serial_num.digitValue() - 1] = ports_config[key].toInt() == 1;
                 }
@@ -1011,7 +1012,7 @@ VMManagerSystem::setupVars()
             if (auto lpt_dev = key.split("_").at(0); !lpt_dev.isEmpty()) {
                 auto lpt_num = lpt_dev.at(lpt_dev.size() - 1);
                 // qDebug() << "lpt is set" << key << ":" << ports_config[key];
-                if (lpt_num.isDigit() && lpt_num.digitValue() >= 1 && lpt_num.digitValue() <= 4)
+                if (lpt_num.isDigit() && lpt_num.digitValue() >= 1 && lpt_num.digitValue() <= PARALLEL_MAX)
                     lpt_enabled[lpt_num.digitValue() - 1] = ports_config[key].toInt() == 1;
             }
         }
@@ -1020,9 +1021,22 @@ VMManagerSystem::setupVars()
     QStringList serialFinal;
     QStringList lptFinal;
     int         portIndex = 0;
+    bool        hasSerialDevices = false;
     while (true) {
-        if (serial_enabled[portIndex])
-            serialFinal.append(QString("COM%1").arg(portIndex + 1));
+        if (serial_enabled[portIndex]) {
+            auto    serial_device_key  = QString("serial%1_device").arg(portIndex + 1);
+            QString serial_device_name = "";
+            if (ports_config.contains(serial_device_key)) {
+                auto serial_internal_name = QString(ports_config[serial_device_key]);
+                auto serial_id            = char_get_from_internal_name(serial_internal_name.toUtf8().data(), DEVICE_COM);
+                if (serial_id) {
+                    auto serial_device = char_get_device(serial_id);
+                    serial_device_name = " (" + DeviceConfig::DeviceName(serial_device, serial_device ? serial_device->internal_name : nullptr, -1) + ")";
+                    hasSerialDevices   = true;
+                }
+            }
+            serialFinal.append(QString("COM%1%2").arg(portIndex + 1).arg(serial_device_name));
+        }
         ++portIndex;
         if (portIndex == SERIAL_MAX)
             break;
@@ -1047,7 +1061,7 @@ VMManagerSystem::setupVars()
         if (portIndex == PARALLEL_MAX)
             break;
     }
-    display_table[VMManager::Display::Name::Serial]   = (serialFinal.empty() ? tr("None") : serialFinal.join(", "));
+    display_table[VMManager::Display::Name::Serial]   = (serialFinal.empty() ? tr("None") : serialFinal.join((hasSerialDevices ? VMManagerDetailSection::sectionSeparator : ", ")));
     display_table[VMManager::Display::Name::Parallel] = (lptFinal.empty() ? tr("None") : lptFinal.join((hasLptDevices ? VMManagerDetailSection::sectionSeparator : ", ")));
 
     // ISA RTC
