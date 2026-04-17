@@ -125,6 +125,7 @@ char_attach(uint32_t flags,
     chardev->control       = control;
     chardev->port_config   = port_config;
     chardev->priv          = priv;
+    active_port->attached  = 1;
 
     return active_port;
 }

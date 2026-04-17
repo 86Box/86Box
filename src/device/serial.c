@@ -992,13 +992,11 @@ serial_init(const device_t *info)
 
         memset(&dev->char_port, 0, sizeof(dev->char_port));
         if (com_ports[next_inst].device) {
-            const device_t *chardev = char_get_device(com_ports[next_inst].device);
-            if (chardev) {
-                dev->sd->serial     = NULL; /* other devices can no longer attach to this port */
-                dev->char_port.type = CHAR_PORT_COM;
-                snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%i", next_inst + 1);
-                char_init(&dev->char_port, chardev, next_inst + 1);
-            }
+            dev->char_port.type = CHAR_PORT_COM;
+            snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%i", next_inst + 1);
+            char_init(&dev->char_port, char_get_device(com_ports[next_inst].device), next_inst + 1);
+            if (dev->char_port.attached)
+                dev->sd->serial = NULL; /* other devices can no longer attach to this port */
         }
 
         if (info->local & 0xfff00000) {

@@ -24,8 +24,9 @@
 #endif
 #define CHAR_RECONNECT_MS 500
 
-enum {                          /* port flags */
-       CHAR_LPT_USESTROBE = 0x1 /* only issue SPP write when STROBE is asserted */
+enum { /* port flags */
+       CHAR_LPT_USESTROBE = 0x1, /* only issue SPP write when STROBE is asserted */
+       CHAR_LPT_LAPLINK   = 0x2  /* use LapLink system for bidirectional communication over SPP */
 };
 
 enum { /* port types */
@@ -114,6 +115,7 @@ typedef struct {
     void *priv;
     void (*update_status)(void *priv);
 
+    uint8_t attached;
     uint8_t type;
     union {
         struct {
@@ -123,7 +125,7 @@ typedef struct {
             uint8_t  stop_bits;
         } com;
         struct {
-            uint8_t dummy;
+            uint8_t buffer;
         } lpt;
     };
 } char_port_t;
