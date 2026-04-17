@@ -136,15 +136,106 @@ lpt_device_get_from_internal_name(const char *str)
     return 0;
 }
 
+static void
+lpt_char_update_control(lpt_t *dev, uint32_t flags)
+{
+    if (dev->port.chardev.control && (dev->port.lpt.control != flags)) {
+        dev->port.lpt.control = flags;
+        dev->port.chardev.control(CHAR_RAW_CONTROL(flags), dev->port.chardev.priv);
+    }
+}
+
+static void
+lpt_char_write_data(uint8_t val, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    if (dev->port.chardev.flags & CHAR_LPT_USESTROBE) {
+        dev->port.lpt.data = val;
+    } else {
+        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+        dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
+    }
+}
+
+static void
+lpt_char_strobe(uint8_t old, uint8_t val, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) && !(val & 0x01) && (old & 0x01)) {
+        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+        dev->port.chardev.write(&dev->port.lpt.data, sizeof(dev->port.lpt.data), dev->port.chardev.priv);
+    }
+}
+
+static void
+lpt_char_write_ctrl(uint8_t val, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    lpt_char_update_control(dev, (dev->port.lpt.control & ~0xff00) | ((uint16_t) val << 8));
+    if (dev->port.chardev.write)
+        lpt_char_strobe(dev->ctrl, val, dev);
+}
+
+static uint8_t
+lpt_char_read_status(void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    return CHAR_RAW_STATUS(dev->port.chardev.status(dev->port.chardev.priv)) >> 8;
+}
+
+static void
+lpt_char_epp_write_data(uint8_t is_addr, uint8_t val, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    lpt_char_update_control(dev, (dev->port.lpt.control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
+    dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
+}
+
+static void
+lpt_char_epp_request_read(uint8_t is_addr, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    lpt_char_update_control(dev, (dev->port.lpt.control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
+    dev->port.chardev.write(&dev->dat, sizeof(dev->dat), dev->port.chardev.priv);
+}
+
 void
 lpt_devices_init(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
+        if (!lpt_ports[i].lpt)
+            continue;
+
+        memset(&lpt_ports[i].lpt->port, 0, sizeof(lpt_ports[i].lpt->port));
         if ((lpt_devices[lpt_ports[i].device].device != NULL) && 
-            (lpt_devices[lpt_ports[i].device].device != &lpt_none_device))
-            device_add_inst((device_t *) lpt_devices[lpt_ports[i].device].device, i + 1);
+            (lpt_devices[lpt_ports[i].device].device != &lpt_none_device)) {
+            lpt_ports[i].lpt->port.type = CHAR_PORT_LPT;
+            snprintf(lpt_ports[i].lpt->port.name, sizeof(lpt_ports[i].lpt->port.name), "LPT%i", i + 1);
+            char_init(&lpt_ports[i].lpt->port, lpt_devices[lpt_ports[i].device].device, i + 1);
+            if (lpt_ports[i].lpt->port.attached) {
+                /* Attach character device shim. */
+                lpt_ports[i].lpt->port.lpt.control = -1; /* force update on first control write */
+                device_context_inst(lpt_devices[lpt_ports[i].device].device, i + 1);
+                lpt_attach(
+                    lpt_ports[i].lpt->port.chardev.write ? lpt_char_write_data : NULL,
+                    lpt_ports[i].lpt->port.chardev.control ? lpt_char_write_ctrl : NULL,
+                    lpt_ports[i].lpt->port.chardev.write ? lpt_char_strobe : NULL,
+                    lpt_ports[i].lpt->port.chardev.status ? lpt_char_read_status : NULL,
+                    NULL, /* read_ctrl */
+                    lpt_ports[i].lpt->port.chardev.write ? lpt_char_epp_write_data : NULL,
+                    lpt_ports[i].lpt->port.chardev.read ? lpt_char_epp_request_read : NULL,
+                    lpt_ports[i].lpt
+                );
+            }
+        }
     }
 }
 

@@ -45,8 +45,6 @@ enum { /* device control */
        /* serial */
        CHAR_COM_DTR = 0x1,
        CHAR_COM_RTS = 0x2,
-       /* CHAR_LPT_EPP_ADDR = 0x4, */
-       /* CHAR_LPT_EPP_DATA = 0x8, */
        CHAR_COM_BREAK = 0x40,
 
        /* parallel */
@@ -54,8 +52,9 @@ enum { /* device control */
        CHAR_LPT_AUTOFEED = 0x200,
        CHAR_LPT_RESET    = 0x400,
        CHAR_LPT_PSELECT  = 0x800,
-       CHAR_LPT_EPP_ADDR = 0x4, /* if set before read/write: data is EPP address */
-       CHAR_LPT_EPP_DATA = 0x8  /* if set before read/write: data is EPP data */
+       CHAR_LPT_EPP_ADDR = 0x40000000, /* if set before read/write: data is EPP address */
+       CHAR_LPT_EPP_DATA = 0x80000000, /* if set before read/write: data is EPP data */
+       CHAR_LPT_EPP      = CHAR_LPT_EPP_ADDR | CHAR_LPT_EPP_DATA
 };
 
 #define CHAR_RAW_CONTROL(x) ((x) ^ (CHAR_LPT_STROBE | CHAR_LPT_AUTOFEED | CHAR_LPT_PSELECT))
@@ -125,7 +124,8 @@ typedef struct {
             uint8_t  stop_bits;
         } com;
         struct {
-            uint8_t buffer;
+            uint32_t control;
+            uint8_t  data;
         } lpt;
     };
 } char_port_t;

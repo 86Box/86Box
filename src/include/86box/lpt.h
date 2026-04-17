@@ -30,6 +30,7 @@ typedef struct lpt_device_s {
 } lpt_device_t;
 
 #ifdef _TIMER_H_
+#include <86box/char.h>
 typedef struct lpt_t {
     uint8_t       enabled;
     uint8_t       irq;
@@ -61,6 +62,7 @@ typedef struct lpt_t {
     uint16_t      pad0[2];
     int           enable_irq;
     lpt_device_t *dt;
+    char_port_t   port;
 #ifdef FIFO_H
     fifo16_t *    fifo;
 #else
