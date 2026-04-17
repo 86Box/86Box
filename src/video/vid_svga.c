@@ -83,7 +83,7 @@ svga_raise_vertirq(svga_t* svga)
 {
     if (!svga->vertirq_state && (svga->crtc[0x11] & 0x30) == 0x10) {
         svga->vertirq_state = 1;
-        picint(1 << 9);
+        picint(1 << 2);
     }
 }
 
@@ -94,7 +94,7 @@ svga_handle_reset(void* priv)
 
     svga->crtc[0x11] |= 0x20;
     svga->vertirq_state = 0;
-    picintc(1 << 9);
+    picintc(1 << 2);
 }
 
 void*
@@ -796,7 +796,7 @@ svga_recalctimings(svga_t *svga)
 
     if (!(svga->crtc[0x11] & 0x10) && ((svga->oldcrtc11 ^ svga->crtc[0x11]) & 0x10)) {
         svga->vertirq_state = 0;
-        picintc(1 << 9);
+        picintc(1 << 2);
     }
 
     svga->oldcrtc11 = svga->crtc[0x11];

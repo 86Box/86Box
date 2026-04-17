@@ -320,7 +320,7 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                         ega_recalctimings(ega);
                         if (!(ega->crtc[0x11] & 0x10)) {
                             ega->vertirq_state = 0;
-                            picintc(1 << 9);
+                            picintc(1 << 2);
                         }
                     }
                 }
@@ -854,7 +854,7 @@ ega_handle_reset(void* priv)
 
     ega->crtc[0x11] |= 0x20;
     ega->vertirq_state = 0;
-    picintc(1 << 9);
+    picintc(1 << 2);
 }
 
 void
@@ -1006,7 +1006,7 @@ ega_poll(void *priv)
 
             if (!ega->vertirq_state && (ega->crtc[0x11] & 0x30) == 0x10) {
                 ega->vertirq_state = 1;
-                picint(1 << 9);
+                picint(1 << 2);
             }
             if (ega->interlace && !ega->oddeven)
                 ega->lastline++;
