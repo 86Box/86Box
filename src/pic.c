@@ -709,8 +709,11 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 
             if (raise) {
                 num &= ~b;
-                if (pic.at && (i == 2))
+                lines &= ~b;
+                if (pic.at && (i == 2)) {
                     num |= (1 << 9);
+                    lines |= (1 << 9);
+                }
             }
         }
     }
