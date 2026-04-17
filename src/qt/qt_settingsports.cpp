@@ -89,10 +89,10 @@ SettingsPorts::changed()
     	auto *cbox     = findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         if (cbox != NULL)
-            soft_changed |= (com_ports[i].device           != cbox->currentData().toInt());
+            has_changed  |= (com_ports[i].device           != cbox->currentData().toInt());
         if (checkBox != NULL)
             has_changed  |= (com_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
-        soft_changed  |= com_device_cfg_changed[i];
+        has_changed   |= com_device_cfg_changed[i];
     }
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
