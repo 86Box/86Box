@@ -45,7 +45,6 @@ add_library(dev OBJECT
     keyboard_at.c
     keyboard_xt.c
     lpt.c
-    lpt_loopback.c
     mouse.c
     mouse_bus.c
     mouse_microtouch_touchscreen.c
