@@ -552,9 +552,8 @@ svga_in(uint16_t addr, void *priv)
                 else
                     ret = 0x10;
 
-                if (svga->vertirq_state) {
+                if (svga->vertirq_state)
                     ret |= 0x80;
-                }
             /* Monitor is not connected to the planar VGA if the PS/55 Display Adapter is installed. */
             } else {
                 /*
@@ -1772,9 +1771,8 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->cable_connected = 1;
     svga->ksc5601_english_font_type = 0;
     svga->vertirq_enabled = !!vga_irq_enabled;
-    if (info->flags & (DEVICE_PCI | DEVICE_AGP | DEVICE_CARDBUS)) {
+    if (info->flags & (DEVICE_PCI | DEVICE_AGP | DEVICE_CARDBUS))
         svga->vertirq_enabled = 0;
-    }
 
     /* TODO: Move DEVICE_MCA to 16-bit once the device flags have been appropriately corrected. */
     if ((info->flags & DEVICE_MCA) || (info->flags & DEVICE_MCA32) ||
