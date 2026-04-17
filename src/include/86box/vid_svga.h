@@ -314,6 +314,7 @@ typedef struct svga_t {
 
     char svga_internal_name[128];
     uint8_t vertirq_state;
+    uint8_t vertirq_enabled;
 
     /* Enable LUT mapping of >= 24 bpp modes. */
     int lut_map;

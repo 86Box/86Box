@@ -83,7 +83,8 @@ svga_raise_vertirq(svga_t* svga)
 {
     if (!svga->vertirq_state && (svga->crtc[0x11] & 0x30) == 0x10) {
         svga->vertirq_state = 1;
-        picint(1 << 2);
+        if (svga->vertirq_enabled)
+            picint(1 << 2);
     }
 }
 
@@ -94,7 +95,8 @@ svga_handle_reset(void* priv)
 
     svga->crtc[0x11] |= 0x20;
     svga->vertirq_state = 0;
-    picintc(1 << 2);
+    if (svga->vertirq_enabled)
+        picintc(1 << 2);
 }
 
 void*
@@ -796,7 +798,8 @@ svga_recalctimings(svga_t *svga)
 
     if (!(svga->crtc[0x11] & 0x10) && ((svga->oldcrtc11 ^ svga->crtc[0x11]) & 0x10)) {
         svga->vertirq_state = 0;
-        picintc(1 << 2);
+        if (svga->vertirq_enabled)
+            picintc(1 << 2);
     }
 
     svga->oldcrtc11 = svga->crtc[0x11];
@@ -1768,6 +1771,10 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
 
     svga->cable_connected = 1;
     svga->ksc5601_english_font_type = 0;
+    svga->vertirq_enabled = 1;
+    if (info->flags & (DEVICE_PCI | DEVICE_AGP | DEVICE_CARDBUS)) {
+        svga->vertirq_enabled = 0;
+    }
 
     /* TODO: Move DEVICE_MCA to 16-bit once the device flags have been appropriately corrected. */
     if ((info->flags & DEVICE_MCA) || (info->flags & DEVICE_MCA32) ||
