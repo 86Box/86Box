@@ -35,6 +35,7 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/pic.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
@@ -57,6 +58,7 @@ uint8_t svga_rotate[8][256];
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
   only SVGA device.*/
 static svga_t *svga_pri;
+static device_t svga_gen_dev[MONITORS_NUM];
 
 #ifdef ENABLE_SVGA_LOG
 int svga_do_log = ENABLE_SVGA_LOG;
@@ -75,6 +77,37 @@ svga_log(const char *fmt, ...)
 #else
 #    define svga_log(fmt, ...)
 #endif
+
+void
+svga_raise_vertirq(svga_t* svga)
+{
+    if (!svga->vertirq_state && (svga->crtc[0x11] & 0x30) == 0x10) {
+        svga->vertirq_state = 1;
+        picint(1 << 9);
+    }
+}
+
+void
+svga_handle_reset(void* priv)
+{
+    svga_t* svga = priv;
+
+    svga->crtc[0x11] |= 0x20;
+    svga->vertirq_state = 0;
+    picintc(1 << 9);
+}
+
+void*
+svga_handle_init(const device_t* info)
+{
+    return &svga_gen_dev[info->local];
+}
+
+void
+svga_handle_close(void* priv)
+{
+    // no-op
+}
 
 svga_t *
 svga_get_pri(void)
@@ -516,6 +549,10 @@ svga_in(uint16_t addr, void *priv)
                     ret = 0;
                 else
                     ret = 0x10;
+
+                if (svga->vertirq_state) {
+                    ret |= 0x80;
+                }
             /* Monitor is not connected to the planar VGA if the PS/55 Display Adapter is installed. */
             } else {
                 /*
@@ -756,6 +793,13 @@ svga_recalctimings(svga_t *svga)
     svga->hdisp = svga->crtc[1];
     if (svga->crtc[1] & 1)
         svga->hdisp++;
+
+    if (!(svga->crtc[0x11] & 0x10) && ((svga->oldcrtc11 ^ svga->crtc[0x11]) & 0x10)) {
+        svga->vertirq_state = 0;
+        picintc(1 << 9);
+    }
+
+    svga->oldcrtc11 = svga->crtc[0x11];
 
     svga->htotal = svga->crtc[0];
     /* +5 has been verified by Sergi to be correct - +6 must have been an off by one error. */
@@ -1606,6 +1650,7 @@ svga_poll(void *priv)
                 svga->vsync_callback(svga);
 
             svga->start_retrace_latch = svga->crtc[0x4];
+            svga_raise_vertirq(svga); 
         }
 #if 0
         if (svga->vc == lines_num) {
@@ -1697,6 +1742,8 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
 
     svga->crtc[0]           = 63;
     svga->crtc[6]           = 255;
+    svga->crtc[0x11]        = 0x20;
+    svga->oldcrtc11         = 0x20;
     svga->dispontime        = 1000ULL << 32;
     svga->dispofftime       = 1000ULL << 32;
     svga->bpp               = 8;
@@ -1769,6 +1816,17 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->ramdac_type = RAMDAC_6BIT;
 
     svga->map8            = svga->pallook;
+
+    svga->svga_internal_name[0] = 0;
+    snprintf(svga->svga_internal_name, 128, "%s_svga_%d", info->internal_name, monitor_index_global);
+    memset(&svga_gen_dev[monitor_index_global], 0, sizeof(svga_gen_dev[0]));
+    svga_gen_dev[monitor_index_global].name = svga->svga_internal_name;
+    svga_gen_dev[monitor_index_global].internal_name = svga->svga_internal_name;
+    svga_gen_dev[monitor_index_global].init = svga_handle_init;
+    svga_gen_dev[monitor_index_global].close = svga_handle_close;
+    svga_gen_dev[monitor_index_global].flags = info->flags & ~(DEVICE_ONBOARD | DEVICE_PIT);
+    svga_gen_dev[monitor_index_global].local = monitor_index_global;
+    device_add(&svga_gen_dev[monitor_index_global]);
 
     return 0;
 }
