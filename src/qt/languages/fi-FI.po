@@ -3070,3 +3070,6 @@ msgstr "Äänen ulostulolaite:"
 
 msgid "System Default"
 msgstr "Järjestelmän oletus"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

@@ -75,6 +75,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
     ui->checkBoxOverscan->setChecked(enable_overscan);
     ui->checkBoxContrast->setChecked(vid_cga_contrast);
+    ui->checkBoxVSyncIrq->setChecked(vga_irq_enabled);
 
     ui->checkBoxInverted->setChecked(invert_display);
 
@@ -104,6 +105,7 @@ SettingsDisplay::changed()
     has_changed  |= (xga_standalone_enabled     != (ui->checkBoxXga->isChecked() ? 1 : 0));
     has_changed  |= (da2_standalone_enabled     != (ui->checkBoxDa2->isChecked() ? 1 : 0));
     has_changed  |= (monitor_edid               != (ui->radioButtonCustom->isChecked() ? 1 : 0));
+    has_changed  |= (vga_irq_enabled            != (ui->checkBoxVSyncIrq->isChecked() ? 1 : 0));
 
     has_changed  |= strcmp(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data());
 
@@ -139,6 +141,7 @@ SettingsDisplay::save()
     xga_standalone_enabled     = ui->checkBoxXga->isChecked() ? 1 : 0;
     da2_standalone_enabled     = ui->checkBoxDa2->isChecked() ? 1 : 0;
     monitor_edid               = ui->radioButtonCustom->isChecked() ? 1 : 0;
+    vga_irq_enabled            = ui->checkBoxVSyncIrq->isChecked() ? 1 : 0;
 
     strncpy(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
 

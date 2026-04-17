@@ -3073,3 +3073,6 @@ msgstr "Výstupní zvukové zařízení:"
 
 msgid "System Default"
 msgstr "Výchozí nastavení systému"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

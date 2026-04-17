@@ -3071,3 +3071,6 @@ msgstr "Пристрій виведення звуку:"
 
 msgid "System Default"
 msgstr "Системний"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

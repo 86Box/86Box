@@ -3062,3 +3062,6 @@ msgstr ""
 
 msgid "Use EDC/ECC emulation"
 msgstr ""
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

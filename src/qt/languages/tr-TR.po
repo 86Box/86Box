@@ -3120,3 +3120,6 @@ msgstr "Ses çıkış aygıtı:"
 
 msgid "System Default"
 msgstr "Sistem Varsayılanı"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

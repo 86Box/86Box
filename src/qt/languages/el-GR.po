@@ -3131,3 +3131,6 @@ msgstr "Συσκευή εξόδου ήχου:"
 
 msgid "System Default"
 msgstr "Προεπιλογή Συστήματος"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""
