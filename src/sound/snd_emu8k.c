@@ -1761,20 +1761,28 @@ emu8k_update(emu8k_t *emu8k)
     if (emu8k->pos >= wavetable_pos_global)
         return;
 
+    const int      num_samples = wavetable_pos_global - emu8k->pos;
     int32_t       *buf;
     emu8k_voice_t *emu_voice;
     int            pos;
+    int            num_active = 0;
 
     /* Clean the buffers since we will accumulate into them. */
     buf = &emu8k->buffer[emu8k->pos * 2];
-    memset(buf, 0, 2 * (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->buffer[0]));
-    memset(&emu8k->chorus_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->chorus_in_buffer[0]));
-    memset(&emu8k->reverb_in_buffer[emu8k->pos], 0, (wavetable_pos_global - emu8k->pos) * sizeof(emu8k->reverb_in_buffer[0]));
+    memset(buf, 0, 2 * num_samples * sizeof(emu8k->buffer[0]));
+    memset(&emu8k->chorus_in_buffer[emu8k->pos], 0, num_samples * sizeof(emu8k->chorus_in_buffer[0]));
+    memset(&emu8k->reverb_in_buffer[emu8k->pos], 0, num_samples * sizeof(emu8k->reverb_in_buffer[0]));
 
     /* Voices section  */
     for (uint8_t c = 0; c < 32; c++) {
         emu_voice = &emu8k->voice[c];
         buf       = &emu8k->buffer[emu8k->pos * 2];
+
+        /* Skip entirely idle voices — no sound output and no envelope to process. */
+        if (!emu_voice->env_engine_on && !emu_voice->cvcf_curr_volume)
+            continue;
+
+        num_active++;
 
         for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
             int32_t dat;
@@ -2116,13 +2124,16 @@ emu8k_update(emu8k_t *emu8k)
 #endif
     }
 
-    buf = &emu8k->buffer[emu8k->pos * 2];
-    emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, wavetable_pos_global - emu8k->pos);
-    emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, wavetable_pos_global - emu8k->pos);
-    emu8k_work_eq(buf, wavetable_pos_global - emu8k->pos);
+    /* Only run reverb/chorus/EQ when at least one voice was active. */
+    if (num_active > 0) {
+        buf = &emu8k->buffer[emu8k->pos * 2];
+        emu8k_work_reverb(&emu8k->reverb_in_buffer[emu8k->pos], buf, &emu8k->reverb_engine, num_samples);
+        emu8k_work_chorus(&emu8k->chorus_in_buffer[emu8k->pos], buf, &emu8k->chorus_engine, num_samples);
+        emu8k_work_eq(buf, num_samples);
+    }
 
     /* Update EMU clock. */
-    emu8k->wc += (wavetable_pos_global - emu8k->pos);
+    emu8k->wc += num_samples;
 
     emu8k->pos = wavetable_pos_global;
 }
