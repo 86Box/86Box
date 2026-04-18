@@ -50,7 +50,7 @@ lpt_log(const char *fmt, ...)
 #    define lpt_log(fmt, ...)
 #endif
 
-static void
+static inline void
 lpt_char_update_control(lpt_t *dev, uint32_t flags)
 {
     if (dev->port.chardev.control && (dev->port.lpt.control != flags)) {
@@ -65,7 +65,7 @@ lpt_char_write_data(uint8_t val, void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     if (dev->port.chardev.flags & CHAR_LPT_USESTROBE) {
-        dev->port.lpt.data = val;
+        dev->port.lpt.data_write = val;
     } else {
         lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
         dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
@@ -79,7 +79,7 @@ lpt_char_strobe(uint8_t old, uint8_t val, void *priv)
 
     if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) && !(val & 0x01) && (old & 0x01)) {
         lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
-        dev->port.chardev.write(&dev->port.lpt.data, sizeof(dev->port.lpt.data), dev->port.chardev.priv);
+        dev->port.chardev.write(&dev->port.lpt.data_write, sizeof(dev->port.lpt.data_write), dev->port.chardev.priv);
     }
 }
 
@@ -93,12 +93,35 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
         lpt_char_strobe(dev->ctrl, val, dev);
 }
 
+static void
+lpt_char_ll_read_data(void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    int     state = 0;
+    uint8_t prev  = dev->port.lpt.data_read;
+    while (dev->port.chardev.read(&dev->port.lpt.data_read, sizeof(dev->port.lpt.data_read), dev->port.chardev.priv)) {
+        state |= (!(prev & 0x08) && (dev->port.lpt.data_read & 0x08)) ? 2 : 1;
+        prev   = dev->port.lpt.data_read;
+    }
+    if (state & 2)
+        lpt_irq(dev, 1);
+    timer_advance_u64(&dev->ll_in_timer, (uint64_t) ((state ? 2.0 : 20.0) * (double) TIMER_USEC));
+}
+
 static uint8_t
 lpt_char_read_status(void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    return CHAR_RAW_STATUS(dev->port.chardev.status(dev->port.chardev.priv)) >> 8;
+    if (dev->port.chardev.flags & CHAR_LPT_LAPLINK) {
+        lpt_char_ll_read_data(dev);
+        return (dev->port.lpt.data_read << 3) ^ (CHAR_RAW_STATUS(0) >> 8);
+    } else if (dev->port.chardev.status) {
+        return CHAR_RAW_STATUS(dev->port.chardev.status(dev->port.chardev.priv)) >> 8;
+    } else {
+        return 0xff;
+    }
 }
 
 static void
@@ -116,7 +139,7 @@ lpt_char_epp_request_read(uint8_t is_addr, void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     lpt_char_update_control(dev, (dev->port.lpt.control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
-    dev->port.chardev.write(&dev->dat, sizeof(dev->dat), dev->port.chardev.priv);
+    dev->port.chardev.read(&dev->dat, sizeof(dev->dat), dev->port.chardev.priv);
 }
 
 void
@@ -142,12 +165,14 @@ lpt_devices_init(void)
                     lpt_ports[i].lpt->port.chardev.write ? lpt_char_write_data : NULL,
                     lpt_ports[i].lpt->port.chardev.control ? lpt_char_write_ctrl : NULL,
                     lpt_ports[i].lpt->port.chardev.write ? lpt_char_strobe : NULL,
-                    lpt_ports[i].lpt->port.chardev.status ? lpt_char_read_status : NULL,
+                    (lpt_ports[i].lpt->port.chardev.status || (lpt_ports[i].lpt->port.chardev.flags & CHAR_LPT_LAPLINK)) ? lpt_char_read_status : NULL,
                     NULL, /* read_ctrl */
                     lpt_ports[i].lpt->port.chardev.write ? lpt_char_epp_write_data : NULL,
                     lpt_ports[i].lpt->port.chardev.read ? lpt_char_epp_request_read : NULL,
                     lpt_ports[i].lpt
                 );
+                if (lpt_ports[i].lpt->port.chardev.flags & CHAR_LPT_LAPLINK)
+                    timer_set_delay_u64(&lpt_ports[i].lpt->ll_in_timer, (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
             }
         }
     }
@@ -180,8 +205,12 @@ lpt_attach(void    (*write_data)(uint8_t val, void *priv),
 void
 lpt_devices_close(void)
 {
-    for (uint8_t i = 0; i < PARALLEL_MAX; i++)
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
+
+        if (lpt_ports[i].lpt)
+            timer_disable(&lpt_ports[i].lpt->ll_in_timer);
+    }
 }
 
 void
@@ -885,6 +914,7 @@ lpt_port_zero(lpt_t *dev)
     temp.dt             = dev->dt;
     temp.fifo           = dev->fifo;
     temp.fifo_out_timer = dev->fifo_out_timer;
+    temp.ll_in_timer    = dev->ll_in_timer;
 
     if (lpt_ports[dev->id].enabled)
         lpt_port_remove(dev);
@@ -897,6 +927,7 @@ lpt_port_zero(lpt_t *dev)
     dev->dt             = temp.dt;
     dev->fifo           = temp.fifo;
     dev->fifo_out_timer = temp.fifo_out_timer;
+    dev->ll_in_timer    = temp.ll_in_timer;
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))
         dev->ext = 1;
@@ -912,7 +943,7 @@ lpt_close(void *priv)
         dev->fifo       = NULL;
 
         timer_disable(&dev->fifo_out_timer);
-
+        timer_disable(&dev->ll_in_timer);
     }
 
     if (lpt1 == dev)
@@ -984,6 +1015,7 @@ lpt_init(const device_t *info)
 
         dev->fifo                = NULL;
         memset(&dev->fifo_out_timer, 0x00, sizeof(pc_timer_t));
+        memset(&dev->ll_in_timer, 0x00, sizeof(pc_timer_t));
 
         lpt_port_zero(dev);
 
@@ -1031,6 +1063,7 @@ lpt_init(const device_t *info)
             fifo_set_priv(dev->fifo, dev);
 
             timer_add(&dev->fifo_out_timer, lpt_fifo_out_callback, dev, 0);
+            timer_add(&dev->ll_in_timer, lpt_char_ll_read_data, dev, 0);
         }
     }
 

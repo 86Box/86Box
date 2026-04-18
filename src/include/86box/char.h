@@ -24,7 +24,7 @@
 #endif
 #define CHAR_RECONNECT_MS 500
 
-enum { /* port flags */
+enum { /* device flags */
        CHAR_LPT_USESTROBE = 0x1, /* only issue SPP write when STROBE is asserted */
        CHAR_LPT_LAPLINK   = 0x2  /* use LapLink system for bidirectional communication over SPP */
 };
@@ -125,7 +125,8 @@ typedef struct {
         } com;
         struct {
             uint32_t control;
-            uint8_t  data;
+            uint8_t  data_write;
+            uint8_t  data_read;
         } lpt;
     };
 } char_port_t;
@@ -146,6 +147,7 @@ extern void        *char_log_open(char_port_t *port, char *dev_name);
 
 extern const device_t char_serial_passthrough_com_device;
 extern const device_t char_pipe_com_device;
+extern const device_t char_pipe_lpt_device;
 extern const device_t char_file_com_device;
 extern const device_t char_stdio_com_device;
 extern const device_t char_loopback_com_device;

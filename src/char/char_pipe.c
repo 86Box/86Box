@@ -442,7 +442,8 @@ char_pipe_init(const device_t *info)
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
-    dev->port = char_attach(0, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
+    dev->port = char_attach(((info->flags & DEVICE_LPT) && !device_get_config_int("lpt_mode")) ? CHAR_LPT_LAPLINK : 0,
+                            char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
     dev->log  = char_log_open(dev->port, "Pipe");
     char_pipe_log(dev->log, "init(%s)\n", path);
 
@@ -458,7 +459,7 @@ char_pipe_init(const device_t *info)
 }
 
 // clang-format off
-static const device_config_t char_pipe_config[] = {
+static const device_config_t char_pipe_com_config[] = {
     {
         .name           = "path",
         .description    = "Pipe path",
@@ -476,10 +477,10 @@ static const device_config_t char_pipe_config[] = {
         .type         = CONFIG_SELECTION,
         .default_int  = CHAR_PIPE_MODE_AUTO,
         .selection    = {
-            { .description = "Auto",    .value = CHAR_PIPE_MODE_AUTO   },
-            { .description = "Server",  .value = CHAR_PIPE_MODE_SERVER },
-            { .description = "Client",  .value = CHAR_PIPE_MODE_CLIENT },
-            { NULL                                                     }
+            { .description = "Auto",   .value = CHAR_PIPE_MODE_AUTO   },
+            { .description = "Server", .value = CHAR_PIPE_MODE_SERVER },
+            { .description = "Client", .value = CHAR_PIPE_MODE_CLIENT },
+            { NULL                                                    }
         }
     },
     {
@@ -508,5 +509,39 @@ const device_t char_pipe_com_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = char_pipe_config
+    .config        = char_pipe_com_config
+};
+
+// clang-format off
+static const device_config_t char_pipe_lpt_config[] = {
+    {
+        .name         = "lpt_mode",
+        .description  = "Parallel port mode",
+        .type         = CONFIG_SELECTION,
+        .default_int  = 0,
+        .selection    = {
+            { .description = "Unidirectional/LapLink", .value = 0 },
+            //{ .description = "Bidirectional",          .value = 1 },
+            { NULL                                                }
+        }
+    },
+    char_pipe_com_config[0], /* path */
+    char_pipe_com_config[1], /* mode */
+    char_pipe_com_config[2], /* reconnect */
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
+const device_t char_pipe_lpt_device = {
+    .name          = "Named Pipe (LPT)",
+    .internal_name = "pipe",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = char_pipe_init,
+    .close         = char_pipe_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = char_pipe_lpt_config
 };
