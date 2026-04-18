@@ -459,7 +459,18 @@ char_pipe_init(const device_t *info)
 }
 
 // clang-format off
-static const device_config_t char_pipe_com_config[] = {
+static const device_config_t char_pipe_config[] = {
+    {
+        .name         = "lpt_mode",
+        .description  = "Parallel port mode",
+        .type         = CONFIG_SELECTION,
+        .default_int  = 0,
+        .selection    = {
+            { .description = "Unidirectional/LapLink", .value = 0 },
+            //{ .description = "Bidirectional",          .value = 1 },
+            { NULL                                                }
+        }
+    },
     {
         .name           = "path",
         .description    = "Pipe path",
@@ -509,28 +520,8 @@ const device_t char_pipe_com_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = char_pipe_com_config
+    .config        = &char_pipe_config[1]
 };
-
-// clang-format off
-static const device_config_t char_pipe_lpt_config[] = {
-    {
-        .name         = "lpt_mode",
-        .description  = "Parallel port mode",
-        .type         = CONFIG_SELECTION,
-        .default_int  = 0,
-        .selection    = {
-            { .description = "Unidirectional/LapLink", .value = 0 },
-            //{ .description = "Bidirectional",          .value = 1 },
-            { NULL                                                }
-        }
-    },
-    char_pipe_com_config[0], /* path */
-    char_pipe_com_config[1], /* mode */
-    char_pipe_com_config[2], /* reconnect */
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-// clang-format on
 
 const device_t char_pipe_lpt_device = {
     .name          = "Named Pipe (LPT)",
@@ -543,5 +534,5 @@ const device_t char_pipe_lpt_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = char_pipe_lpt_config
+    .config        = char_pipe_config
 };
