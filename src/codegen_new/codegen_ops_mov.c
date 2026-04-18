@@ -735,3 +735,84 @@ ropXLAT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
 
     return op_pc;
 }
+
+/*
+ * LODS helpers - adjust SI/ESI by ±size based on DF.
+ * Called via uop_CALL_FUNC from the dynarec to avoid mid-block conditional jumps.
+ */
+static void
+lods_adj_b_a16(void) { if (cpu_state.flags & D_FLAG) SI--; else SI++; }
+static void
+lods_adj_b_a32(void) { if (cpu_state.flags & D_FLAG) ESI--; else ESI++; }
+static void
+lods_adj_w_a16(void) { if (cpu_state.flags & D_FLAG) SI -= 2; else SI += 2; }
+static void
+lods_adj_w_a32(void) { if (cpu_state.flags & D_FLAG) ESI -= 2; else ESI += 2; }
+static void
+lods_adj_l_a16(void) { if (cpu_state.flags & D_FLAG) SI -= 4; else SI += 4; }
+static void
+lods_adj_l_a32(void) { if (cpu_state.flags & D_FLAG) ESI -= 4; else ESI += 4; }
+
+/*
+ * LODS - Load String
+ * Loads from [seg:SI/ESI] into AL/AX/EAX, then adjusts SI/ESI by ±size based on DF.
+ */
+uint32_t
+ropLODS_b(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
+{
+    int seg_base = ireg_seg_base(op_ea_seg);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_read(block, ir, op_ea_seg);
+
+    if (op_32 & 0x200) {
+        uop_MEM_LOAD_REG(ir, IREG_AL, seg_base, IREG_ESI);
+        uop_CALL_FUNC(ir, lods_adj_b_a32);
+    } else {
+        uop_AND_IMM(ir, IREG_eaaddr, IREG_ESI, 0xffff);
+        uop_MEM_LOAD_REG(ir, IREG_AL, seg_base, IREG_eaaddr);
+        uop_CALL_FUNC(ir, lods_adj_b_a16);
+    }
+
+    return op_pc;
+}
+
+uint32_t
+ropLODS_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
+{
+    int seg_base = ireg_seg_base(op_ea_seg);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_read(block, ir, op_ea_seg);
+
+    if (op_32 & 0x200) {
+        uop_MEM_LOAD_REG(ir, IREG_AX, seg_base, IREG_ESI);
+        uop_CALL_FUNC(ir, lods_adj_w_a32);
+    } else {
+        uop_AND_IMM(ir, IREG_eaaddr, IREG_ESI, 0xffff);
+        uop_MEM_LOAD_REG(ir, IREG_AX, seg_base, IREG_eaaddr);
+        uop_CALL_FUNC(ir, lods_adj_w_a16);
+    }
+
+    return op_pc;
+}
+
+uint32_t
+ropLODS_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
+{
+    int seg_base = ireg_seg_base(op_ea_seg);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_read(block, ir, op_ea_seg);
+
+    if (op_32 & 0x200) {
+        uop_MEM_LOAD_REG(ir, IREG_EAX, seg_base, IREG_ESI);
+        uop_CALL_FUNC(ir, lods_adj_l_a32);
+    } else {
+        uop_AND_IMM(ir, IREG_eaaddr, IREG_ESI, 0xffff);
+        uop_MEM_LOAD_REG(ir, IREG_EAX, seg_base, IREG_eaaddr);
+        uop_CALL_FUNC(ir, lods_adj_l_a16);
+    }
+
+    return op_pc;
+}
