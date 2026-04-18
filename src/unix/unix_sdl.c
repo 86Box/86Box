@@ -16,8 +16,11 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
+#include <86box/ini.h>
+#include <86box/config.h>
 #include <86box/unix_osd.h>
 #include <86box/unix_sdl.h>
+#include "unix_sdl_shader.h"
 
 #define RENDERER_FULL_SCREEN 1
 #define RENDERER_HARDWARE    2
@@ -53,8 +56,6 @@ int                 resize_pending    = 0;
 int                 resize_w          = 0;
 int                 resize_h          = 0;
 static void        *pixeldata;
-
-extern void RenderImGui(void);
 static void
 sdl_integer_scale(double *d, double *g)
 {
@@ -86,6 +87,7 @@ sdl_stretch(int *w, int *h, int *x, int *y)
     double hsr;
     int    real_sdl_w;
     int    real_sdl_h;
+    int    scale_mode;
 
     SDL_GL_GetDrawableSize(sdl_win, &real_sdl_w, &real_sdl_h);
 
@@ -94,8 +96,9 @@ sdl_stretch(int *w, int *h, int *x, int *y)
     gw  = (double) *w;
     gh  = (double) *h;
     hsr = hw / hh;
+    scale_mode = video_gl_input_scale_mode;
 
-    switch (video_fullscreen_scale) {
+    switch (scale_mode) {
         case FULLSCR_SCALE_FULL:
         default:
             *w = real_sdl_w;
@@ -105,7 +108,7 @@ sdl_stretch(int *w, int *h, int *x, int *y)
             break;
         case FULLSCR_SCALE_43:
         case FULLSCR_SCALE_KEEPRATIO:
-            if (video_fullscreen_scale == FULLSCR_SCALE_43)
+            if (scale_mode == FULLSCR_SCALE_43)
                 gsr = 4.0 / 3.0;
             else
                 gsr = gw / gh;
@@ -124,7 +127,11 @@ sdl_stretch(int *w, int *h, int *x, int *y)
             *y = (int) dy;
             break;
         case FULLSCR_SCALE_INT:
-            gsr = gw / gh;
+        case FULLSCR_SCALE_INT43:
+            if (scale_mode == FULLSCR_SCALE_INT43)
+                gsr = 4.0 / 3.0;
+            else
+                gsr = gw / gh;
             if (gsr <= hsr) {
                 dw = hh * gsr;
                 dh = hh;
@@ -152,7 +159,7 @@ sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
     params.w = w;
     params.h = h;
 
-    if (!(!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) || (monitor_index >= 1))
+    if (!(!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || !sdl_shader_active()) || (monitor_index >= 1))
         for (int row = 0; row < h; ++row)
             video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
@@ -169,12 +176,10 @@ void
 sdl_real_blit(SDL_Rect *r_src)
 {
     SDL_Rect r_dst;
-    int      ret;
     int      winx;
     int      winy;
 
     SDL_GL_GetDrawableSize(sdl_win, &winx, &winy);
-    SDL_RenderClear(sdl_render);
 
     r_dst   = *r_src;
     r_dst.x = r_dst.y = 0;
@@ -186,14 +191,8 @@ sdl_real_blit(SDL_Rect *r_src)
         r_dst.h *= ((float) winy / (float) r_dst.h);
     }
 
-    ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
-    if (ret)
-        fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
-
-    // give the osd an opportunity to draw itself
-    osd_present();
-
-    SDL_RenderPresent(sdl_render);
+    sdl_shader_blit(sdl_win, pixeldata, r_src->w, r_src->h,
+                    r_dst.x, r_dst.y, r_dst.w, r_dst.h);
 }
 
 void
@@ -201,7 +200,7 @@ sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
 
-    if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || !sdl_shader_active()) {
         r_src.x = x;
         r_src.y = y;
         r_src.w = w;
@@ -223,7 +222,6 @@ sdl_blit(int x, int y, int w, int h)
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, pixeldata, 2048 * 4);
     blitreq = 0;
 
     sdl_real_blit(&r_src);
@@ -248,11 +246,7 @@ sdl_destroy_window(void)
 static void
 sdl_destroy_texture(void)
 {
-    /* SDL_DestroyRenderer also automatically destroys all associated textures. */
-    if (sdl_render != NULL) {
-        SDL_DestroyRenderer(sdl_render);
-        sdl_render = NULL;
-    }
+    sdl_shader_close();
 }
 
 void
@@ -319,25 +313,14 @@ sdl_select_best_hw_driver(void)
 void
 sdl_reinit_texture(void)
 {
-    osd_deinit();
-    sdl_destroy_texture();
-
-    if (sdl_flags & RENDERER_HARDWARE) {
-        sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
-    } else
-        sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
-
-    sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
-                                SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
-    osd_init();
+    /* Always-GL: nothing to reinit, shader context persists. */
 }
 
 void
 sdl_set_fs(int fs)
 {
     SDL_LockMutex(sdl_mutex);
-    SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+    SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN : 0);
     SDL_SetRelativeMouseMode((SDL_bool) mouse_capture);
 
     sdl_fs = fs;
@@ -441,6 +424,17 @@ sdl_init_common(int flags)
     }
     if ((vid_resize < 2) && window_remember) {
         SDL_SetWindowSize(sdl_win, window_w, window_h);
+    }
+
+    {
+        const char *sp = config_get_string("GL3 Shaders", "shader0", "");
+        if (sp && sp[0])
+            sdl_shader_init(sdl_win, sp);
+        /* Always need a GL context. Passthrough if no shader loaded. */
+        if (!sdl_shader_active())
+            sdl_shader_init_passthrough(sdl_win);
+        SDL_ShowCursor(SDL_FALSE);
+        osd_init();
     }
 
     /* Make sure we get a clean exit. */

@@ -44,6 +44,7 @@ endif()
 
 add_library(ui OBJECT
     unix_sdl.c
+    unix_sdl_shader.c
     unix_osd.c
     unix_cdrom.c
 )
@@ -59,6 +60,11 @@ else()
 endif()
 target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
 target_link_libraries(ui ${CMAKE_DL_LIBS})
+
+find_library(GLESV2_LIBRARY GLESv2)
+if(GLESV2_LIBRARY)
+    target_link_libraries(86Box ${GLESV2_LIBRARY})
+endif()
 
 if(APPLE)
     target_sources(plat PRIVATE macOSXGlue.m)
