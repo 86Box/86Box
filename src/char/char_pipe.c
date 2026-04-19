@@ -442,7 +442,7 @@ char_pipe_init(const device_t *info)
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
-    dev->port = char_attach(((info->flags & DEVICE_LPT) && !device_get_config_int("lpt_mode")) ? CHAR_LPT_LAPLINK : 0,
+    dev->port = char_attach(((info->flags & DEVICE_LPT) && !device_get_config_int("lpt_mode")) ? CHAR_LPT_NIBBLE : 0,
                             char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
     dev->log  = char_log_open(dev->port, "Pipe");
     char_pipe_log(dev->log, "init(%s)\n", path);
