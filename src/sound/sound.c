@@ -137,6 +137,7 @@ static const SOUND_CARD sound_cards[] = {
     { &adlib_device                 },
     { &soundmasterplus_device       },
     { &voicemasterkey_device        },
+    { &soundmaster_device           },
     { &isadacr0_device              },
     { &isadacr1_device              },
     { &soundman_device              },
