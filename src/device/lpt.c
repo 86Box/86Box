@@ -98,15 +98,23 @@ lpt_char_read_data(void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    int     state = 0;
-    uint8_t prev  = dev->char_read;
-    while (dev->port.chardev.read(&dev->char_read, sizeof(dev->char_read), dev->port.chardev.priv)) {
-        state |= (!(prev & 0x08) && (dev->char_read & 0x08)) ? 2 : 1;
-        prev   = dev->char_read;
+    /* It's less likely that we get more than one byte at a time,
+       but modern 64-bit CPUs give us a free transition check for 8. */
+    uint8_t buf[8] = { 0 };
+    size_t  read   = dev->port.chardev.read(buf, sizeof(buf), dev->port.chardev.priv);
+    int     period = 100;
+    if (read > 0) {
+        uint64_t masked = AS_U64(buf[0]) & 0x0808080808080808ULL;
+        uint64_t prev   = (masked << 8) | (dev->char_read & 0x08);
+        if (~prev & masked)
+            lpt_irq(dev, 1);
+        dev->char_read = buf[read - 1];
+#ifdef DROP_EMULATION_SPEED_INSTEAD
+        if (dev->enable_irq)
+#endif
+            period = 2;
     }
-    if (state & 2)
-        lpt_irq(dev, 1);
-    timer_advance_u64(&dev->char_in_timer, (uint64_t) ((state ? 2.0 : 20.0) * (double) TIMER_USEC));
+    timer_advance_u64(&dev->char_in_timer, TIMER_USEC * period);
 }
 
 static uint8_t
@@ -115,7 +123,10 @@ lpt_char_read_status(void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     if (dev->port.chardev.flags & CHAR_LPT_NIBBLE) {
-        lpt_char_read_data(dev);
+#ifdef DROP_EMULATION_SPEED_INSTEAD
+        if (!dev->enable_irq)
+            lpt_char_read_data(dev);
+#endif
         return (dev->char_read << 3) ^ (CHAR_RAW_STATUS(0) >> 8);
     } else if (dev->port.chardev.status) {
         return CHAR_RAW_STATUS(dev->port.chardev.status(dev->port.chardev.priv)) >> 8;
