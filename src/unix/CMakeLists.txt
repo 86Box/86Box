@@ -45,9 +45,28 @@ endif()
 add_library(ui OBJECT
     unix_sdl.c
     unix_sdl_shader.c
-    unix_osd.c
     unix_cdrom.c
 )
+
+option(USE_IMGUI "Use ImGui-based OSD (requires GLES2)" OFF)
+
+if(USE_IMGUI)
+    target_sources(ui PRIVATE unix_osd_new.cpp)
+    target_sources(ui PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/imgui/imgui.cpp
+        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_draw.cpp
+        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_tables.cpp
+        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_widgets.cpp
+        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_impl_sdl2.cpp
+        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_impl_opengl3.cpp
+    )
+    target_include_directories(ui PRIVATE ${CMAKE_SOURCE_DIR}/src/imgui)
+    target_compile_definitions(ui PUBLIC USE_IMGUI)
+    target_compile_definitions(ui PRIVATE IMGUI_IMPL_OPENGL_ES2)
+    target_compile_definitions(plat PUBLIC USE_IMGUI)
+else()
+    target_sources(ui PRIVATE unix_osd.c)
+endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(ui PRIVATE linux_cdrom_ioctl.c)
 else()
@@ -64,6 +83,11 @@ target_link_libraries(ui ${CMAKE_DL_LIBS})
 find_library(GLESV2_LIBRARY GLESv2)
 if(GLESV2_LIBRARY)
     target_link_libraries(86Box ${GLESV2_LIBRARY})
+    include(FindPkgConfig)
+    pkg_check_modules(GLESV2_PKG glesv2)
+    if(GLESV2_PKG_FOUND)
+        target_include_directories(ui PRIVATE ${GLESV2_PKG_INCLUDE_DIRS})
+    endif()
 endif()
 
 if(APPLE)
