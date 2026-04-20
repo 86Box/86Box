@@ -129,6 +129,9 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
     // host_x86_MOV32_REG_REG(block, REG_ECX, uop->imm_data);
 #    else
+    /* Align RSP to 16: entry RSP%16=8 (after CALL from JIT block), two PUSHes
+       leave it at 8; subtract 8 more to satisfy the SysV ABI before calling C. */
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x8);
     host_x86_MOV32_REG_REG(block, REG_EDI, REG_ECX);
 #    endif
     if (size == 1 && !is_float) {
@@ -150,6 +153,8 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     }
 #    if _WIN64
     host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+#    else
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x8);
 #    endif
     host_x86_POP(block, REG_RDX);
     host_x86_POP(block, REG_RAX);
