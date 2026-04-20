@@ -39,6 +39,7 @@ typedef struct csm_s {
     uint8_t ay_extended_mode;
     uint8_t ay_extended_bank;
     uint8_t dma_running;
+    uint8_t dma_pulse;
     uint16_t dma_interval;
     uint16_t dma_count;
 

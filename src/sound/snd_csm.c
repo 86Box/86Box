@@ -86,13 +86,20 @@ csm_dma_poll(void *priv)
 
     int dma_data;
 
-    timer_advance_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.5587)));
+    timer_advance_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.1418)));
+
+    if (csm->dma_pulse == 0)
+        csm->dma_pulse = 1;
+    else {
+        csm->dma_pulse = 0;
+        return;
+    }
 
     csm_update(csm);
 
     dma_data = dma_channel_read(csm->dma);
 
-    if ((dma_data & 0xff) == DMA_NODATA)
+    if (dma_data == DMA_NODATA)
         csm->pcm_sample = 0x80;
     else
         csm->pcm_sample = (dma_data & 0xff);
@@ -100,8 +107,12 @@ csm_dma_poll(void *priv)
     csm_log(csm->log, "DMA Playback sample val = %02X\n", csm->pcm_sample);
 
     if (dma_data & DMA_OVER) {
-        if (!(csm->psg.regs[15] & 0x40))
+        if (!(csm->psg.regs[15] & 0x40)) {
             picint(1 << csm->irq);
+            /* Non-autoinit DMA, disable DMA timer */
+            csm->dma_running = 0;
+            timer_disable(&csm->dma_timer);
+        }
     }
 
 }
@@ -133,6 +144,7 @@ csm_mode_bits_changed(csm_t *csm)
         csm->enable_dma = 1;
     csm_log(csm->log, "SoundMaster DAC DMA is now %sabled\n", csm->enable_dma ? "En" : "Dis");
     if ((csm->psg.regs[7] & 0x04) || !csm->enable_dma) {
+        csm->dma_running = 0;
         timer_disable(&csm->dma_timer);
         csm_log(csm->log, "Soundmaster DMA timer stop\n");
     } else if (((csm->psg.regs[7] & 0x04) == 0x00) && csm->enable_dma) {
@@ -140,7 +152,9 @@ csm_mode_bits_changed(csm_t *csm)
         csm_log(csm->log, "Soundmaster DMA timer start\n");
         if (csm->dma_interval == 0)
             csm->dma_interval = 1;
-        timer_set_delay_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.5587)));
+        csm->dma_pulse = 0;
+        timer_set_delay_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.1418)));
+        csm_log(csm->log, "SoundMaster DMA timing = %f uS\n", (16 * csm->dma_interval) * 0.1418);
     }
 }
 
@@ -263,10 +277,15 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                         ay->regs[7] = data;
                     else
                         ay->regs_bankb[7] = data;
-                    if (!csm->ay_extended_bank) {
+                    if (!csm->ay_extended_mode) {
                         ayumi_set_mixer(&ay->chip, 0, data & 1, (data >> 3) & 1, (ay->regs[8] >> 4) & 1);
                         ayumi_set_mixer(&ay->chip, 1, (data >> 1) & 1, (data >> 4) & 1, (ay->regs[9] >> 4) & 1);
                         ayumi_set_mixer(&ay->chip, 2, (data >> 2) & 1, (data >> 5) & 1, (ay->regs[10] >> 4) & 1);
+                        csm_mode_bits_changed(csm);
+                    } else if (!csm->ay_extended_bank) {
+                        ayumi_set_mixer(&ay->chip, 0, data & 1, (data >> 3) & 1, (ay->regs[8] >> 5) & 1);
+                        ayumi_set_mixer(&ay->chip, 1, (data >> 1) & 1, (data >> 4) & 1, (ay->regs[9] >> 5) & 1);
+                        ayumi_set_mixer(&ay->chip, 2, (data >> 2) & 1, (data >> 5) & 1, (ay->regs[10] >> 5) & 1);
                         csm_mode_bits_changed(csm);
                     }
                     break;
