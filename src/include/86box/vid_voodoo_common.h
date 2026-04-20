@@ -754,6 +754,8 @@ typedef struct voodoo_t {
     uint8_t fifo_thread_run;
     uint8_t render_thread_run[4];
 
+    uint32_t vram_max;
+
     uint8_t *vram;
     uint8_t *changedvram;
 
