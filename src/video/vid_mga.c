@@ -6868,9 +6868,10 @@ mystique_init(const device_t *info)
     mystique->pci_regs[0x2e] = mystique->bios_rom.rom[0x7ffa];
     mystique->pci_regs[0x2f] = mystique->bios_rom.rom[0x7ffb];
 
-    mystique->svga.miscout   = 1;
-    mystique->pci_regs[0x41] = 0x01; /* vgaboot = 1 */
-    mystique->pci_regs[0x43] = 0x40; /* biosen = 1 */
+    mystique->svga.miscout    = 1;
+    mystique->svga.adv_flags |= FLAG_PANNING_ATI;
+    mystique->pci_regs[0x41]  = 0x01; /* vgaboot = 1 */
+    mystique->pci_regs[0x43]  = 0x40; /* biosen = 1 */
 
     for (uint16_t c = 0; c < 256; c++) {
         dither5[c][0][0] = c >> 3;
