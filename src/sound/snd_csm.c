@@ -86,7 +86,7 @@ csm_dma_poll(void *priv)
 
     int dma_data;
 
-    timer_advance_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.1418)));
+    timer_advance_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.1318) * csm->dma_mult));
 
     if (csm->dma_pulse == 0)
         csm->dma_pulse = 1;
@@ -109,12 +109,11 @@ csm_dma_poll(void *priv)
     if (dma_data & DMA_OVER) {
         if (!(csm->psg.regs[15] & 0x40)) {
             picint(1 << csm->irq);
-            /* Non-autoinit DMA, disable DMA timer */
-            csm->dma_running = 0;
-            timer_disable(&csm->dma_timer);
         }
+        /* Non-autoinit DMA, disable DMA timer */
+        csm->dma_running = 0;
+        timer_disable(&csm->dma_timer);
     }
-
 }
 
 static void
@@ -138,7 +137,8 @@ csm_mode_bits_changed(csm_t *csm)
     csm->psg.chip.channels[2].pan_left = (b & 0x80) ? vol_left : 0.0;
     csm->psg.chip.channels[2].pan_right = (b & 0x80) ? vol_right : 0.0;
 
-    if ((csm->psg.regs[15] & 0x20) == 0x20)
+    /* DMA cannot function with the channel C output used for PSG or with a very small value in the period register */
+    if (((csm->psg.regs[15] & 0x20) == 0x20) || ((csm->psg.regs[15] & 0x80) == 0x80) || (csm->dma_interval <= 1))
         csm->enable_dma = 0;
     else
         csm->enable_dma = 1;
@@ -153,8 +153,9 @@ csm_mode_bits_changed(csm_t *csm)
         if (csm->dma_interval == 0)
             csm->dma_interval = 1;
         csm->dma_pulse = 0;
-        timer_set_delay_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.1418)));
-        csm_log(csm->log, "SoundMaster DMA timing = %f uS\n", (16 * csm->dma_interval) * 0.1418);
+        csm->dma_mult = ((csm->psg.regs[10] & 0x10) || (csm->psg.regs[10] == 0)) ? 1 : 2;
+        timer_set_delay_u64(&csm->dma_timer, (uint64_t) ((double) TIMER_USEC * ((16 * csm->dma_interval) * 0.1318) * csm->dma_mult));
+        csm_log(csm->log, "SoundMaster DMA timing = %f uS\n", (16 * csm->dma_interval) * 0.1318 * csm->dma_mult);
     }
 }
 
