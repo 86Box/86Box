@@ -119,6 +119,12 @@ csm_dma_poll(void *priv)
 static void
 csm_mode_bits_changed(csm_t *csm)
 {
+    /* Broderbund games don't seem to write to port B to switch back to PSG mode after DMA sample playback
+       so there is another unknown mechanism that returns the Sound Master to this mode. The games do write
+       a value of 0 to the tone period register which makes a good heuristic for switching back to PSG mode */
+    if (csm->dma_interval <= 1)
+        csm->psg.regs[15] |= 0x80;
+
     uint8_t a = (csm->psg.regs[7] & 0x40) ? csm->psg.regs[14] : 0x88;
     uint8_t b = (csm->psg.regs[7] & 0x80) ? csm->psg.regs[15] : 0xf0;
 
@@ -129,7 +135,7 @@ csm_mode_bits_changed(csm_t *csm)
     double vol_left = (a & 0xf) / 15.0;
     double vol_right = (a >> 4) / 15.0;
 
-    // massage Ayumi's private parts in the appropriate way
+    // update Ayumi's channel pan values
     csm->psg.chip.channels[0].pan_left = (b & 0x10) ? vol_left : 0.0;
     csm->psg.chip.channels[0].pan_right = vol_right;
     csm->psg.chip.channels[1].pan_left = vol_left;
