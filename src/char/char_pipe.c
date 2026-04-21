@@ -64,6 +64,7 @@ typedef struct {
     int          reconnect : 1;
     int          server    : 1;
 #ifdef _WIN32
+    int    connected     : 1;
     int    block_connect : 1;
     char   path[257]; /* "The entire pipe name string can be up to 256 characters long." */
     HANDLE fd;
@@ -311,8 +312,11 @@ retry:
         BOOL result = PeekNamedPipe(dev->fd, NULL, len, NULL, &ret, NULL);
         if (result && (ret > 0))
             result = ReadFile(dev->fd, buf, MIN(len, ret), &ret, NULL);
-        if (!result && !dev->server) {
+        if (result && !dev->connected) {
+            dev->connected = 1;
+        } else if (!result && (!dev->server || dev->connected)) {
             char_pipe_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
+            dev->connected = 0;
             char_pipe_disconnect(dev, 1);
             if (!dev->block_connect && !connect)
 #else
@@ -348,10 +352,13 @@ char_pipe_write(uint8_t *buf, size_t len, void *priv)
     if (connect)
         char_pipe_connect(dev, 0);
 retry:
-    if (CHAR_FD_VALID(dev->fd) && !WriteFile(dev->fd, buf, len, &ret, NULL)) {
-        ret = 0;
-        if (!dev->server) {
+    if (CHAR_FD_VALID(dev->fd)) {
+        BOOL result = WriteFile(dev->fd, buf, len, &ret, NULL);
+        if (result && !dev->connected) {
+            dev->connected = 1;
+        } else if (!result && (!dev->server || dev->connected)) {
             char_pipe_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
+            dev->connected = 0;
             char_pipe_disconnect(dev, 2);
             if (!dev->block_connect && !connect)
 #else
