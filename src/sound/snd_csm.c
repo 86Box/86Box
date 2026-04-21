@@ -61,8 +61,8 @@ csm_update(csm_t *csm)
         ayumi_remove_dc(&csm->psg.chip);
 
         double pcm_scaled = (csm->pcm_sample - 128) / 128.0;
-        csm->buffer[csm->pos << 1] = (csm->psg.chip.left + pcm_scaled) * 16000;
-        csm->buffer[(csm->pos << 1) + 1] = (csm->psg.chip.right + pcm_scaled) * 16000;
+        csm->buffer[csm->pos << 1] = (csm->psg.chip.left + pcm_scaled) * 12000;
+        csm->buffer[(csm->pos << 1) + 1] = (csm->psg.chip.right + pcm_scaled) * 12000;
     }
 }
 
