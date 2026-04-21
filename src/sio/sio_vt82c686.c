@@ -86,7 +86,7 @@ vt82c686_lpt_handler(vt82c686_t *dev)
 
     lpt_set_ext(dev->lpt, !!(dev->regs[0x10] & 0x80));
 
-    switch (dev->regs[0x10] & 0x03) {
+    switch (dev->regs[0x02] & 0x03) {
         case 0x01:
             lpt_set_epp(dev->lpt, !!(dev->regs[0x10] & 0x20));
             lpt_set_ecp(dev->lpt, 1);
