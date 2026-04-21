@@ -61,22 +61,22 @@ typedef struct {
     char_port_t *port;
     int          mode;
     uint32_t     last_connect_attempt;
-    int          reconnect : 1;
-    int          server    : 1;
+    unsigned int reconnect : 1;
+    unsigned int server    : 1;
 #ifdef _WIN32
-    int    connected     : 1;
-    int    block_connect : 1;
-    char   path[257]; /* "The entire pipe name string can be up to 256 characters long." */
-    HANDLE fd;
+    unsigned int connected     : 1;
+    unsigned int block_connect : 1;
+    char         path[257]; /* "The entire pipe name string can be up to 256 characters long." */
+    HANDLE       fd;
 #else
-    int    block_connect_in  : 1;
-    int    block_connect_out : 1;
-    int    direction         : 1;
-    size_t path_len;
-    char  *path_in;
-    char  *path_out;
-    int    fd_in;
-    int    fd_out;
+    unsigned int block_connect_in  : 1;
+    unsigned int block_connect_out : 1;
+    unsigned int direction         : 1;
+    size_t       path_len;
+    char        *path_in;
+    char        *path_out;
+    int          fd_in;
+    int          fd_out;
 #endif
 } char_pipe_t;
 
@@ -143,7 +143,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
     char msg[1024];
 #ifdef _WIN32
     /* Connect or create pipe. */
-    char fmt[512];
+    char  fmt[512];
     DWORD create_err = 0;
     if (dev->mode != CHAR_PIPE_MODE_CLIENT) {
         dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
@@ -237,8 +237,8 @@ client:
         if (CHAR_FD_VALID(*target))
             continue;
 
-        const char *path = ((i ^ !!dev->direction) == 0) ? dev->path_out : dev->path_in;
-        int create_err   = 0;
+        const char *path       = ((i ^ dev->direction) == 0) ? dev->path_out : dev->path_in;
+        int         create_err = 0;
         if (CHAR_FD_VALID(out_test_fd)) {
             /* Reuse file descriptor from earlier test. */
             *target     = out_test_fd;

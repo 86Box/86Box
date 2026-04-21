@@ -77,22 +77,22 @@ typedef struct {
 
     FILE *prev_log;
 #ifdef _WIN32
-    HANDLE     fd_in;
-    HANDLE     fd_out;
-    int        prev_in_mode_valid  : 1;
-    int        prev_out_mode_valid : 1;
-    DWORD      prev_in_mode;
-    DWORD      prev_out_mode;
-    char      *prev_title;
-    ATOMIC_INT buf_in_valid;
-    uint8_t    buf_in;
-    thread_t  *thread_in;
-    event_t   *event_in;
+    HANDLE       fd_in;
+    HANDLE       fd_out;
+    unsigned int prev_in_mode_valid  : 1;
+    unsigned int prev_out_mode_valid : 1;
+    DWORD        prev_in_mode;
+    DWORD        prev_out_mode;
+    char        *prev_title;
+    ATOMIC_INT   buf_in_valid;
+    uint8_t      buf_in;
+    thread_t    *thread_in;
+    event_t     *event_in;
 #else
     int            fd_in;
     int            fd_out;
-    int            prev_config_valid : 1;
-    int            prev_flags_valid  : 1;
+    unsigned int   prev_config_valid : 1;
+    unsigned int   prev_flags_valid  : 1;
     struct termios prev_config;
     int            prev_flags;
 #endif
@@ -368,7 +368,7 @@ char_stdio_init(const device_t *info)
                                                           "clear;"            /* suppress background task indicator (zsh prints it to stdout) */
                                                           "cat>\"$PTY\";"     /* pipe from stdin to pty */
                                                           "exec kill $!";     /* stop script once the write connection is broken */
-                            char env[3][2048];
+                            char               env[3][2048];
                             snprintf(env[0], sizeof(env[0]), "PTY=%s", pty);
                             snprintf(env[1], sizeof(env[1]), "VMNAME=%s", vm_name);
                             snprintf(env[2], sizeof(env[2]), "PORT=%s", dev->port->name);
