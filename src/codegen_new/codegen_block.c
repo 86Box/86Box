@@ -435,13 +435,15 @@ codegen_delete_block(codeblock_t *block)
 void
 codegen_delete_random_block(int required_mem_block)
 {
-    int block_nr = rand() & BLOCK_MASK;
+    static int evict_probe = 0;
+    int block_nr = evict_probe & BLOCK_MASK;
 
     while (1) {
         if (block_nr && block_nr != block_current) {
             codeblock_t *block = &codeblock[block_nr];
 
             if (block->valid && (!required_mem_block || block->head_mem_block)) {
+                evict_probe = (block_nr + 1) & BLOCK_MASK;
                 delete_block(block);
                 return;
             }
