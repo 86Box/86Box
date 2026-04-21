@@ -299,17 +299,29 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                         ay->regs_bankb[8] = data;
                     if (!csm->ay_extended_mode)
                         ayumi_set_volume(&ay->chip, 0, data & 0xf);
+                    /* Right-shift volume values for Ayumi */
+                    else if (!csm->ay_extended_bank && (data >= 0x02))
+                        ayumi_set_volume(&ay->chip, 0, (data >> 1) & 0xf);
+                    else if (!csm->ay_extended_bank)
+                        ayumi_set_volume(&ay->chip, 0, data & 0xf);
                     if (!csm->ay_extended_mode)
                         ayumi_set_mixer(&ay->chip, 0, ay->regs[7] & 1, (ay->regs[7] >> 3) & 1, (data >> 4) & 1);
                     else if (!csm->ay_extended_bank)
                         ayumi_set_mixer(&ay->chip, 0, ay->regs[7] & 1, (ay->regs[7] >> 3) & 1, (data >> 5) & 1);
                     break;
                 case 9:
-                    if (!csm->ay_extended_bank)
+                    if (!csm->ay_extended_mode)
                         ay->regs[9] = data & 0x1f;
+                    else if (!csm->ay_extended_bank)
+                        ay->regs[9] = data & 0x2f;
                     else
                         ay->regs_bankb[9] = data;
                     if (!csm->ay_extended_mode)
+                        ayumi_set_volume(&ay->chip, 1, data & 0xf);
+                    /* Right-shift volume values for Ayumi */
+                    else if (!csm->ay_extended_bank && (data >= 0x02))
+                        ayumi_set_volume(&ay->chip, 1, (data >> 1) & 0xf);
+                    else if (!csm->ay_extended_bank)
                         ayumi_set_volume(&ay->chip, 1, data & 0xf);
                     if (!csm->ay_extended_mode)
                         ayumi_set_mixer(&ay->chip, 1, (ay->regs[7] >> 1) & 1, (ay->regs[7] >> 4) & 1, (data >> 4) & 1);
@@ -317,11 +329,18 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                         ayumi_set_mixer(&ay->chip, 1, (ay->regs[7] >> 1) & 1, (ay->regs[7] >> 4) & 1, (data >> 5) & 1);
                     break;
                 case 10:
-                    if (!csm->ay_extended_bank)
+                    if (!csm->ay_extended_mode)
                         ay->regs[10] = data & 0x1f;
+                    else if (!csm->ay_extended_bank)
+                        ay->regs[10] = data & 0x2f;
                     else
                         ay->regs_bankb[10] = data;
                     if (!csm->ay_extended_mode)
+                        ayumi_set_volume(&ay->chip, 2, data & 0xf);
+                    /* Right-shift volume values for Ayumi */
+                    else if (!csm->ay_extended_bank && (data >= 0x02))
+                        ayumi_set_volume(&ay->chip, 2, (data >> 1) & 0xf);
+                    else if (!csm->ay_extended_bank)
                         ayumi_set_volume(&ay->chip, 2, data & 0xf);
                     if (!csm->ay_extended_mode)
                         ayumi_set_mixer(&ay->chip, 2, (ay->regs[7] >> 2) & 1, (ay->regs[7] >> 5) & 1, (data >> 4) & 1);
