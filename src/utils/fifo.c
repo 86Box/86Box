@@ -529,8 +529,10 @@ fifo_init(int len)
 
     if (fifo == NULL)
         fatal("FIFO%i: Failed to allocate memory for the FIFO\n", len);
-    else
+    else {
         ((fifo_t *) fifo)->len = len;
+        fifo_reset(fifo);
+    }
 
     return fifo;
 }

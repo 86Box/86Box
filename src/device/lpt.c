@@ -150,7 +150,7 @@ lpt_char_epp_request_read(uint8_t is_addr, void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     lpt_char_update_control(dev, (dev->port.lpt.control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
-    dev->port.chardev.read(&dev->dat, sizeof(dev->dat), dev->port.chardev.priv);
+    dev->port.chardev.read(&dev->in_dat, sizeof(dev->in_dat), dev->port.chardev.priv);
 }
 
 void
@@ -495,6 +495,8 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
                 dev->state = LPT_STATE_IDLE;
             }
+            if (((dev->ecr & 0xe0) > 0x20) && ((val & 0xe0) <= 0x20)) /* reset FIFO when transitioning to standard or PS/2 mode */
+                fifo_reset(dev->fifo);
             if (dev->ext_regs[0x02] & 0x80)
                 dev->ecr        = val;
             else  switch (val & 0xe0) {
@@ -540,7 +542,7 @@ lpt_write_to_fifo(void *priv, const uint8_t val)
 
     if (dev->ecp) {
         if (((dev->ecr & 0xe0) == 0x20) && (lpt_get_ctrl_raw(dev) & 0x20))
-            dev->dat = val;
+            dev->in_dat = val;
         else if (((dev->ecr & 0xe0) == 0x40) && !fifo_get_full(dev->fifo))
             fifo_write_evt_tagged(0x01, val, dev->fifo);
         else if (((dev->ecr & 0xe0) == 0xc0) && !fifo_get_full(dev->fifo))
@@ -557,7 +559,7 @@ lpt_write_to_fifo(void *priv, const uint8_t val)
         }
     } else {
         if (dev->ext && (lpt_get_ctrl_raw(dev) & 0x20))
-            dev->dat = val;
+            dev->in_dat = val;
     }
 }
 
@@ -566,7 +568,7 @@ lpt_write_to_dat(void *priv, const uint8_t val)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    dev->dat = val;
+    dev->in_dat = val;
 }
 
 static uint8_t
@@ -636,12 +638,20 @@ lpt_read(const uint16_t port, void *priv)
                                !fifo_get_empty(dev->fifo)) {
                         uint8_t tag = 0x00;
                         ret = fifo_read_evt_tagged(&tag, dev->fifo);
+                    } else if ((dev->ecr & 0xe0) == 0xe0) {
+                        /* The Windows Direct Cable Connection driver (at least ptilink.sys 1.1.0.0)
+                           has a bug where it reads data instead of cnfgB in configuration mode while
+                           probing the ECP FIFO. This is undefined, and reading FF makes it give up
+                           on ECP due to the invalid FIFO width; hardware probably reads 00, which is
+                           wrong (16-bit width) but safe, as the returned width is used only during
+                           the FIFO size test (actual operation always uses 8-bit insb/outsb instead). */
+                        ret = 0x00;
                     }
                 } else
-                    ret = dev->dat;
+                    ret = (lpt_get_ctrl_raw(dev) & 0x20) ? dev->in_dat : dev->dat;
             } else {
                 /* DTR */
-                ret = dev->dat;
+                ret = (lpt_get_ctrl_raw(dev) & 0x20) ? dev->in_dat : dev->dat;
             }
             break;
 
@@ -659,7 +669,7 @@ lpt_read(const uint16_t port, void *priv)
             if (lpt_is_epp(dev)) {
                 if (dev->dt && dev->dt->epp_request_read && dev->dt->priv)
                     dev->dt->epp_request_read(1, dev->dt->priv);
-                ret = dev->dat;
+                ret = dev->in_dat;
             }
             break;
 
@@ -667,7 +677,7 @@ lpt_read(const uint16_t port, void *priv)
             if (lpt_is_epp(dev)) {
                 if (dev->dt && dev->dt->epp_request_read && dev->dt->priv)
                     dev->dt->epp_request_read(0, dev->dt->priv);
-                ret = dev->dat;
+                ret = dev->in_dat;
             }
             break;
 
