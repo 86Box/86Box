@@ -366,7 +366,6 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                         ayumi_set_envelope(&ay->chip, (ay->regs[12] >> 8) | ay->regs[11]);
                     break;
                 case 13:
-                    /* TODO: Check chip type here! */
                     if ((data & 0xa0) == 0xa0) {
                         csm_log(csm->log, "CSM AY8930 extended mode\n");
                         if (!csm->ay_extended_mode)
@@ -436,15 +435,10 @@ csm_read(uint16_t addr, void *priv)
                 case 11:
                 case 12:
                 case 13:
-                    // YM2149 returns unmasked internal buffer for direct read-after-write
-                    if (ay->type == 1 && ay->last_written >= 0)
-                        ret = ay->last_written;
-                    else {
                     if (!csm->ay_extended_bank || ay->index == 0x0d)
                         ret = ay->regs[ay->index];
                     else
                         ret = ay->regs_bankb[ay->index];
-                    }
                     break;
                 case 14:
                     /* Should ouptut mode just return FFh on read? */
@@ -498,12 +492,11 @@ csm_device_init(UNUSED(const device_t *info))
     uint16_t base_addr = device_get_config_int("addr");
     csm->dma = device_get_config_int("dma");
     csm->irq = device_get_config_int("irq");
-    int psg_type = device_get_config_int("psg");
 
     csm->log = log_open("SoundMaster");
 
-    csm->psg.type = psg_type;
-    ayumi_configure(&csm->psg.chip, psg_type, 1789773, 48000);
+    csm->psg.type = 0; /* Always use the AY-3-8910 type */
+    ayumi_configure(&csm->psg.chip, 0, 1789773, 48000);
     csm->psg.regs[15] = 0xe0;
     csm_mode_bits_changed(csm);
 
@@ -535,7 +528,7 @@ csm_device_close(void *priv)
 static const device_config_t soundmaster_config[] = {
     {
         .name        = "addr",
-        .description = "Base address",
+        .description = "Address",
         .type        = CONFIG_SELECTION,
         .selection   = {
             { .description = "220h", .value = 0x220 },
@@ -548,7 +541,7 @@ static const device_config_t soundmaster_config[] = {
     },
     {
         .name        = "dma",
-        .description = "DMA channel",
+        .description = "DMA",
         .type        = CONFIG_SELECTION,
         .selection   = {
             { .description = "none", .value = 0 },
@@ -560,27 +553,13 @@ static const device_config_t soundmaster_config[] = {
     },
     {
         .name        = "irq",
-        .description = "IRQ channel",
+        .description = "IRQ",
         .type        = CONFIG_SELECTION,
         .selection   = {
             { .description = "none", .value = 0 },
             { .description = "3",    .value = 3 },
             { .description = "7",    .value = 7 },
             { .description = ""                 }
-        },
-        .default_int = 0
-    },
-    {
-        .name        = "psg",
-        .description = "Synthesizer",
-        .type        = CONFIG_SELECTION,
-        .selection   = {
-            { .description = "AY-3-8910", .value = 0 },
-            { .description = "YM2149",    .value = 1 },
-#if 0
-            { .description = "AY8930",    .value = 2 },
-#endif
-            { .description = ""                      }
         },
         .default_int = 0
     },
