@@ -50,12 +50,30 @@ int
 fifo_get_count(void *priv)
 {
     const fifo_t *fifo = (fifo_t *) priv;
-    int           ret  = fifo->len;
+    int           ret;
 
     if (fifo->end == fifo->start)
         ret = fifo->full ? fifo->len : 0;
+    else if (fifo->end > fifo->start)
+        ret = fifo->end - fifo->start;
     else
-        ret = abs(fifo->end - fifo->start);
+        ret = fifo->len + fifo->end - fifo->start;
+
+    return ret;
+}
+
+int
+fifo_get_remaining(void *priv)
+{
+    const fifo_t *fifo = (fifo_t *) priv;
+    int           ret;
+
+    if (fifo->end == fifo->start)
+        ret = fifo->full ? 0 : fifo->len;
+    else if (fifo->end > fifo->start)
+        ret = fifo->len - fifo->end + fifo->start;
+    else
+        ret = fifo->start - fifo->end;
 
     return ret;
 }
