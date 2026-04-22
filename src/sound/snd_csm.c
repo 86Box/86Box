@@ -28,12 +28,41 @@
 #include <86box/io.h>
 #include <86box/sound.h>
 #include "ayumi/ayumi.h"
-#include <86box/snd_csm.h>
 #include <86box/plat_unused.h>
 #include <86box/pic.h>
 #include <86box/dma.h>
+#include <86box/log.h>
+#include <86box/timer.h>
 
-#define ENABLE_CSM_LOG 1
+typedef struct ay_3_89x0_s {
+    int     type;
+    int     last_written;
+    uint8_t index;
+    uint8_t regs[16];
+    uint8_t regs_bankb[16];
+    struct  ayumi chip;
+} ay_3_89x0_t;
+
+typedef struct csm_s {
+    ay_3_89x0_t psg;
+    uint8_t     pcm_sample;
+
+    uint8_t irq;
+    uint8_t dma;
+    uint8_t enable_dma;
+    uint8_t ay_extended_mode;
+    uint8_t ay_extended_bank;
+    uint8_t dma_running;
+    uint8_t dma_pulse;
+    uint8_t dma_mult;
+    uint16_t dma_interval;
+
+    pc_timer_t dma_timer;
+
+    int16_t buffer[SOUNDBUFLEN * 10];
+    int     pos;
+    void *  log; /* New logging system */
+} csm_t;
 
 #ifdef ENABLE_CSM_LOG
 int csm_do_log = ENABLE_CSM_LOG;
@@ -103,8 +132,6 @@ csm_dma_poll(void *priv)
         csm->pcm_sample = 0x80;
     else
         csm->pcm_sample = (dma_data & 0xff);
-
-    csm_log(csm->log, "DMA Playback sample val = %02X\n", csm->pcm_sample);
 
     if (dma_data & DMA_OVER) {
         if (!(csm->psg.regs[15] & 0x40)) {
@@ -252,7 +279,6 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                         if (csm->dma_interval == 0)
                             csm->dma_interval = 1;
                     }
-                    csm_log(csm->log, "SoundMaster DMA interval %i, regs = %02X/%02X\n", csm->dma_interval, ay->regs[5], ay->regs[4]);
                     break;
                 case 5:
                     if (!csm->ay_extended_mode)
@@ -267,7 +293,6 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                         if (csm->dma_interval == 0)
                             csm->dma_interval = 1;
                     }
-                    csm_log(csm->log, "SoundMaster DMA interval %i, regs = %02X/%02X\n", csm->dma_interval, ay->regs[5], ay->regs[4]);
                     break;
                 case 6:
                     if (!csm->ay_extended_mode)
