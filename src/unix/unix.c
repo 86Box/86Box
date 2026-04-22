@@ -1508,8 +1508,9 @@ main(int argc, char **argv)
         static int osd_first_key_pressed = 0;
         static int flag_osd_open = 0;
 
-        while (SDL_PollEvent(&event))
-        {
+        if (!SDL_WaitEventTimeout(&event, 1))
+            goto check_flags;
+        do {
             if (flag_osd_open == 1)
             {
                 // route almost everything to the OSD
@@ -1721,8 +1722,9 @@ main(int argc, char **argv)
                     }
                 }
             }
-        }
+        } while (SDL_PollEvent(&event));
 
+check_flags:
         if (blitreq) {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
