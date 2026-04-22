@@ -746,7 +746,7 @@ jega_load_font(const char *fn, void *priv)
 }
 
 static void
-jega_commoninit(const device_t *info, void *priv, int vga)
+jega_common_init(const device_t *info, void *priv, int vga)
 {
     jega_t *jega = (jega_t *) priv;
     jega->is_vga = vga;
@@ -795,7 +795,7 @@ jega_standalone_init(const device_t *info)
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     jega_load_font(JEGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(info, jega, 0);
+    jega_common_init(info, jega, 0);
 
     return jega;
 }
@@ -809,7 +809,7 @@ jvga_standalone_init(const device_t *info)
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     jega_load_font(JVGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(info, jega, 1);
+    jega_common_init(info, jega, 1);
 
     return jega;
 }
@@ -1026,7 +1026,7 @@ if386jega_init(const device_t *info)
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
     jega_load_font(JEGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(info, jega, 0);
+    jega_common_init(info, jega, 0);
 
     io_sethandler(0x0063, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);
     io_sethandler(0x0065, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);

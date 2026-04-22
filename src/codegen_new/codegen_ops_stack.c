@@ -13,6 +13,7 @@
 #include "codegen_ir.h"
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
+#include "codegen_ops_jit_wrappers.h"
 #include "codegen_ops_misc.h"
 
 uint32_t
@@ -388,7 +389,7 @@ ropPUSHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUS
         return 0;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
     uop_AND_IMM(ir, IREG_flags, IREG_flags, 0x7fd5);
     uop_OR_IMM(ir, IREG_flags, IREG_flags, 0x0002);
@@ -406,7 +407,7 @@ ropPUSHFD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNU
         return 0;
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
 
     uop_AND_IMM(ir, IREG_flags, IREG_flags, 0x7fd5);
     uop_OR_IMM(ir, IREG_flags, IREG_flags, 0x0002);

@@ -13,6 +13,7 @@
 #include "codegen_ir.h"
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
+#include "codegen_ops_jit_wrappers.h"
 #include "codegen_ops_misc.h"
 
 uint32_t
@@ -276,7 +277,7 @@ rebuild_c(ir_data_t *ir)
     }
 
     if (needs_rebuild) {
-        uop_CALL_FUNC(ir, flags_rebuild_c);
+        uop_CALL_FUNC(ir, jit_flags_rebuild_c);
     }
 }
 
@@ -578,21 +579,21 @@ ropLxS(LSS, &cpu_state.seg_ss)
 uint32_t
 ropCLC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_AND_IMM(ir, IREG_flags, IREG_flags, ~C_FLAG);
     return op_pc;
 }
 uint32_t
 ropCMC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_XOR_IMM(ir, IREG_flags, IREG_flags, C_FLAG);
     return op_pc;
 }
 uint32_t
 ropSTC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_OR_IMM(ir, IREG_flags, IREG_flags, C_FLAG);
     return op_pc;
 }
