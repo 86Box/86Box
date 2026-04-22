@@ -2960,12 +2960,12 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 if ((feature == 0) || ((cdb[1] & 3) < 2)) {
                     /* Persistent and current. */
                     b[2] = (0 << 2) | 0x02 | 0x01;
-                    b[3] = 8;
+                    int max_profiles = cdrom_is_dvd(dev->drv->type) ? 2 : 1;
+                    b[3] = max_profiles * 4;
 
                     alloc_length += 4;
                     b += 4;
 
-                    int max_profiles = cdrom_is_dvd(dev->drv->type) ? 2 : 1;
                     for (uint8_t i = 0; i < max_profiles; i++) {
                         b[0] = (profiles[i] >> 8) & 0xff;
                         b[1] = profiles[i] & 0xff;

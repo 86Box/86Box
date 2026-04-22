@@ -71,10 +71,11 @@ typedef struct {
 #ifndef _WIN32
     const
 #endif
-        char *path;
-    int       reconnect     : 1;
-    int       block_connect : 1;
-    uint32_t  last_connect_attempt;
+        char    *path;
+    unsigned int reconnect         : 1;
+    unsigned int block_connect     : 1;
+    unsigned int prev_config_valid : 1;
+    uint32_t     last_connect_attempt;
 #ifdef _WIN32
     HANDLE fd;
     DCB    prev_config;
@@ -89,7 +90,6 @@ typedef struct {
     struct termios config;
 #    endif
 #endif
-    int prev_config_valid : 1;
 } char_serial_t;
 
 #ifdef _WIN32

@@ -63,6 +63,8 @@ typedef struct lpt_t {
     int           enable_irq;
     lpt_device_t *dt;
     char_port_t   port;
+    uint8_t       char_read;
+    uint8_t       char_write;
 #ifdef FIFO_H
     fifo16_t *    fifo;
 #else
@@ -70,7 +72,7 @@ typedef struct lpt_t {
 #endif
 
     pc_timer_t    fifo_out_timer;
-    pc_timer_t    ll_in_timer;
+    pc_timer_t    char_in_timer;
 } lpt_t;
 #endif /* _TIMER_H_ */
 

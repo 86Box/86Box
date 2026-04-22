@@ -100,7 +100,7 @@ typedef struct {
     int          type;
     uint8_t      data_tx;
     uint8_t      data_rx;
-    int          data_read : 1;
+    unsigned int data_read : 1;
     uint32_t     control;
     uint32_t     status;
 } char_loopback_t;

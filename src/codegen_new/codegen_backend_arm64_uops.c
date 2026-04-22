@@ -1167,6 +1167,12 @@ codegen_MOV(codeblock_t *block, uop_t *uop)
         host_arm64_FMOV_D_D(block, dest_reg, src_reg);
     } else if (REG_IS_Q(dest_size) && REG_IS_Q(src_size)) {
         host_arm64_FMOV_D_D(block, dest_reg, src_reg);
+    } else if (REG_IS_W(dest_size) && REG_IS_L(src_size)) {
+        host_arm64_BFI(block, dest_reg, src_reg, 0, 16);
+    } else if (REG_IS_B(dest_size) && REG_IS_L(src_size)) {
+        host_arm64_BFI(block, dest_reg, src_reg, 0, 8);
+    } else if (REG_IS_B(dest_size) && REG_IS_W(src_size)) {
+        host_arm64_BFI(block, dest_reg, src_reg, 0, 8);
     } else
         fatal("MOV %x %x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 

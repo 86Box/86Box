@@ -61,21 +61,22 @@ typedef struct {
     char_port_t *port;
     int          mode;
     uint32_t     last_connect_attempt;
-    int          reconnect : 1;
-    int          server    : 1;
+    unsigned int reconnect : 1;
+    unsigned int server    : 1;
 #ifdef _WIN32
-    int    block_connect : 1;
-    char   path[257]; /* "The entire pipe name string can be up to 256 characters long." */
-    HANDLE fd;
+    unsigned int connected     : 1;
+    unsigned int block_connect : 1;
+    char         path[257]; /* "The entire pipe name string can be up to 256 characters long." */
+    HANDLE       fd;
 #else
-    int    block_connect_in  : 1;
-    int    block_connect_out : 1;
-    int    direction         : 1;
-    size_t path_len;
-    char  *path_in;
-    char  *path_out;
-    int    fd_in;
-    int    fd_out;
+    unsigned int block_connect_in  : 1;
+    unsigned int block_connect_out : 1;
+    unsigned int direction         : 1;
+    size_t       path_len;
+    char        *path_in;
+    char        *path_out;
+    int          fd_in;
+    int          fd_out;
 #endif
 } char_pipe_t;
 
@@ -142,7 +143,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
     char msg[1024];
 #ifdef _WIN32
     /* Connect or create pipe. */
-    char fmt[512];
+    char  fmt[512];
     DWORD create_err = 0;
     if (dev->mode != CHAR_PIPE_MODE_CLIENT) {
         dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
@@ -236,8 +237,8 @@ client:
         if (CHAR_FD_VALID(*target))
             continue;
 
-        const char *path = ((i ^ !!dev->direction) == 0) ? dev->path_out : dev->path_in;
-        int create_err   = 0;
+        const char *path       = ((i ^ dev->direction) == 0) ? dev->path_out : dev->path_in;
+        int         create_err = 0;
         if (CHAR_FD_VALID(out_test_fd)) {
             /* Reuse file descriptor from earlier test. */
             *target     = out_test_fd;
@@ -311,8 +312,11 @@ retry:
         BOOL result = PeekNamedPipe(dev->fd, NULL, len, NULL, &ret, NULL);
         if (result && (ret > 0))
             result = ReadFile(dev->fd, buf, MIN(len, ret), &ret, NULL);
-        if (!result && !dev->server) {
+        if (result && !dev->connected) {
+            dev->connected = 1;
+        } else if (!result && (!dev->server || dev->connected)) {
             char_pipe_log(dev->log, "ReadFile failed (%08X)\n", GetLastError());
+            dev->connected = 0;
             char_pipe_disconnect(dev, 1);
             if (!dev->block_connect && !connect)
 #else
@@ -348,10 +352,13 @@ char_pipe_write(uint8_t *buf, size_t len, void *priv)
     if (connect)
         char_pipe_connect(dev, 0);
 retry:
-    if (CHAR_FD_VALID(dev->fd) && !WriteFile(dev->fd, buf, len, &ret, NULL)) {
-        ret = 0;
-        if (!dev->server) {
+    if (CHAR_FD_VALID(dev->fd)) {
+        BOOL result = WriteFile(dev->fd, buf, len, &ret, NULL);
+        if (result && !dev->connected) {
+            dev->connected = 1;
+        } else if (!result && (!dev->server || dev->connected)) {
             char_pipe_log(dev->log, "WriteFile failed (%08X)\n", GetLastError());
+            dev->connected = 0;
             char_pipe_disconnect(dev, 2);
             if (!dev->block_connect && !connect)
 #else
@@ -442,7 +449,7 @@ char_pipe_init(const device_t *info)
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
-    dev->port = char_attach(((info->flags & DEVICE_LPT) && !device_get_config_int("lpt_mode")) ? CHAR_LPT_LAPLINK : 0,
+    dev->port = char_attach(((info->flags & DEVICE_LPT) && !device_get_config_int("lpt_mode")) ? CHAR_LPT_NIBBLE : 0,
                             char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
     dev->log  = char_log_open(dev->port, "Pipe");
     char_pipe_log(dev->log, "init(%s)\n", path);

@@ -652,4 +652,9 @@ SettingsFloppyCDROM::on_comboBoxCDROMType_activated(int)
 
     auto idx = ui->tableViewCDROM->selectionModel()->currentIndex();
     setCDROMSpeed(ui->tableViewCDROM->model(), idx.siblingAtColumn(1), speed);
+
+    setCDROMBus(ui->tableViewCDROM->model(),
+                ui->tableViewCDROM->selectionModel()->currentIndex(),
+                ui->comboBoxBus->currentData().toUInt(), type,
+                ui->comboBoxChannel->currentData().toUInt());
 }

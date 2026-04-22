@@ -58,7 +58,7 @@ typedef struct {
     char_port_t *port;
     FILE        *file_in;
     FILE        *file_out;
-    int          loop_in : 1;
+    unsigned int loop_in : 1;
 } char_file_t;
 
 static size_t

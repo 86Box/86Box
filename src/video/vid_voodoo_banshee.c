@@ -3495,6 +3495,7 @@ banshee_init_common(const device_t *info, const char *fn, int has_sgram, int typ
     banshee->voodoo               = voodoo_2d3d_card_init(voodoo_type);
     banshee->voodoo->priv         = banshee;
     banshee->voodoo->vram         = banshee->svga.vram;
+    banshee->voodoo->vram_max     = banshee->svga.vram_max;
     banshee->voodoo->changedvram  = banshee->svga.changedvram;
     banshee->voodoo->fb_mem       = banshee->svga.vram;
     banshee->voodoo->fb_mask      = banshee->svga.vram_mask;
