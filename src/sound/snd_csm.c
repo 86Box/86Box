@@ -300,7 +300,7 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                     if (!csm->ay_extended_mode)
                         ay->regs[8] = data & 0x1f;
                     else if (!csm->ay_extended_bank)
-                        ay->regs[8] = data & 0x2f;
+                        ay->regs[8] = data & 0x3f;
                     else
                         ay->regs_bankb[8] = data;
                     if (!csm->ay_extended_mode)
@@ -319,7 +319,7 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                     if (!csm->ay_extended_mode)
                         ay->regs[9] = data & 0x1f;
                     else if (!csm->ay_extended_bank)
-                        ay->regs[9] = data & 0x2f;
+                        ay->regs[9] = data & 0x3f;
                     else
                         ay->regs_bankb[9] = data;
                     if (!csm->ay_extended_mode)
@@ -338,7 +338,7 @@ csm_write(uint16_t addr, uint8_t data, void *priv)
                     if (!csm->ay_extended_mode)
                         ay->regs[10] = data & 0x1f;
                     else if (!csm->ay_extended_bank)
-                        ay->regs[10] = data & 0x2f;
+                        ay->regs[10] = data & 0x3f;
                     else
                         ay->regs_bankb[10] = data;
                     if (!csm->ay_extended_mode)
