@@ -161,6 +161,7 @@ mac_signidentity() {
 	echo "-s -"
 }
 mac_notarize() {
+	is_mac || return 0
 	if keychain_name=$(mac_keychain)
 	then
 		if [ -n "$keychain_name" ]
@@ -172,8 +173,13 @@ mac_notarize() {
 				if [ -n "$keychain_path" ]
 				then
 					echo [-] Notarizing with profile [$keychain_profile] in keychain [$keychain_name]
-					xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
-					return $?
+					if xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
+					then
+						echo [-] Notarization submission successful
+						return 0
+					else
+						err="Notarization submission failed"
+					fi
 				else
 					err="File path for keychain [$keychain_name] not found"
 				fi
@@ -575,11 +581,12 @@ then
 		fi
 
 		# Notarize the compressed app bundle.
-		mac_notarize "$zip_name"
+		status=0
+		mac_notarize "$zip_name" || status=50
 
 		# All good.
 		echo [-] Universal build of [$package_name] for [$arch] with flags [$cmake_flags] successful
-		exit 0
+		exit $status
 	fi
 
 	# Switch into the correct architecture if required.
@@ -1295,10 +1302,7 @@ fi
 
 # Notarize the compressed app bundle if we're on macOS.
 status=0
-if is_mac
-then
-	mac_notarize "$zip_name" || status=50
-fi
+mac_notarize "$zip_name" || status=50
 
 # All good.
 echo [-] Build of [$package_name] for [$arch] with flags [$cmake_flags] successful
