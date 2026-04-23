@@ -108,7 +108,7 @@ tx_setup_wait:
         default:
             break;
     }
-    lpt_log("[R] PTI %02X = %02X (status %02X)\n", cmd, dev->char_pti_readout, dev->char_pti_readout << 3);
+    lpt_log("[R] PTI %02X = %02X (status %02X)\n", mode, dev->char_pti_readout, dev->char_pti_readout << 3);
 }
 
 static void
