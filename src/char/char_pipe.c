@@ -449,8 +449,22 @@ char_pipe_init(const device_t *info)
     dev->reconnect = !!device_get_config_int("reconnect");
 
     /* Attach character device. */
-    dev->port = char_attach(((info->flags & DEVICE_LPT) && !device_get_config_int("lpt_mode")) ? CHAR_LPT_NIBBLE : 0,
-                            char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
+    uint32_t flags = 0;
+    if (info->flags & DEVICE_LPT) {
+        switch (device_get_config_int("lpt_mode")) {
+            case 0:
+                flags |= CHAR_LPT_NIBBLE;
+                break;
+
+            case 2:
+                flags |= CHAR_LPT_PTI;
+                break;
+
+            default:
+                break;
+        }
+    }
+    dev->port = char_attach(flags, char_pipe_read, char_pipe_write, char_pipe_status, NULL, NULL, dev);
     dev->log  = char_log_open(dev->port, "Pipe");
     char_pipe_log(dev->log, "init(%s)\n", path);
 
@@ -469,12 +483,13 @@ char_pipe_init(const device_t *info)
 static const device_config_t char_pipe_config[] = {
     {
         .name         = "lpt_mode",
-        .description  = "Parallel port mode",
+        .description  = "Parallel cable",
         .type         = CONFIG_SELECTION,
-        .default_int  = 0,
+        .default_int  = 2,
         .selection    = {
-            { .description = "Unidirectional/LapLink", .value = 0 },
-            //{ .description = "Bidirectional",          .value = 1 },
+            { .description = "LapLink (4-bit)", .value = 0 },
+            //{ .description = "Bidirectional (8-bit)",          .value = 1 },
+            { .description = "DirectParallel FAST",    .value = 2 },
             { NULL                                                }
         }
     },

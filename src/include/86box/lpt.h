@@ -65,6 +65,8 @@ typedef struct lpt_t {
     char_port_t   port;
     uint8_t       char_read;
     uint8_t       char_write;
+    uint8_t       char_pti_mode;
+    uint8_t       char_pti_readout;
 #ifdef FIFO_H
     fifo16_t *    fifo;
 #else
