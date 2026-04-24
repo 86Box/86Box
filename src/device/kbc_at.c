@@ -2262,7 +2262,7 @@ read_p1(atkbc_t *dev)
     if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA))
         ret             = machine_get_p1(0xff);
     else
-        ret             = machine_get_p1(dev->p1) | (dev->p1 & 0x03);
+        ret             = machine_get_p1(dev->p1 & 0xfc) | (dev->p1 & 0x03);
 
     dev->p1 = ((dev->p1 + 1) & 0x03) | (dev->p1 & 0xfc);
 
@@ -2280,8 +2280,10 @@ kbc_at_process_cmd(void *priv)
 
     if (dev->status & STAT_CD) {
         /* Controller command. */
-        dev->wantdata  = 0;
-        dev->state     = STATE_MAIN_IBF;
+        uint8_t cur_state = dev->state;
+
+        dev->wantdata     = 0;
+        dev->state        = STATE_MAIN_IBF;
 
         /* Clear the keyboard controller queue. */
         kbc_at_queue_reset(dev);
@@ -2360,7 +2362,7 @@ kbc_at_process_cmd(void *priv)
                 kbc_at_log("ATkbc: self-test\n");
 
                 if (machine_has_flags_ex(MACHINE_PS2_KBC)) {
-                    if (dev->state != STATE_RESET) {
+                    if (cur_state != STATE_RESET) {
                         kbc_at_log("ATkbc: self-test reinitialization\n");
                         dev->p1 |= 0xff;
                         write_p2(dev, 0x4b);
@@ -2380,7 +2382,7 @@ kbc_at_process_cmd(void *priv)
                     dev->mem[0x29] = 0x0b;
                     dev->mem[0x30] = 0x0b;
                 } else {
-                    if (dev->state != STATE_RESET) {
+                    if (cur_state != STATE_RESET) {
                         kbc_at_log("ATkbc: self-test reinitialization\n");
                         dev->p1 |= 0xff;
                         write_p2(dev, 0xcf);
@@ -2772,7 +2774,7 @@ kbc_at_reset(void *priv)
     dev->command_phase = 0;
 
     /* Video Type is now handled in the machine P1 handler. */
-    dev->p1 = 0xf0;
+    dev->p1 = 0xff;
     kbc_at_log("ATkbc: P1 = %02x\n", dev->p1);
 
     /* Disabled both the keyboard and auxiliary ports. */
