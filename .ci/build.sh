@@ -638,13 +638,6 @@ then
 		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
 		sudo sed -i -e 's/port:libproxy//g' "$wget_portfile"
 
-		# Work around assimp failing to build with newer zlib. Upstream issue as of writing.
-		sudo "$macports/bin/port" install zlib
-		for header in "$macports/include/minizip/"*.h
-		do
-			sudo ln -s "$header" "$macports/include/" 2>/dev/null
-		done
-
 		while :
 		do
 			# Attempt to install dependencies.
