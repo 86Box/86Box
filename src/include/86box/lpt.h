@@ -55,18 +55,16 @@ typedef struct lpt_t {
     uint8_t       cfg_regs_enabled;
     uint8_t       inst;
     uint8_t       eir;
-    uint8_t       pad;
+    uint8_t       enable_irq;
     uint8_t       ext_regs[8];
     uint16_t      addr;
     uint16_t      id;
-    uint16_t      pad0[2];
-    int           enable_irq;
-    lpt_device_t *dt;
-    char_port_t   port;
     uint8_t       char_read;
     uint8_t       char_write;
     uint8_t       char_pti_mode;
     uint8_t       char_pti_readout;
+    lpt_device_t *dt;
+    char_port_t   port;
 #ifdef FIFO_H
     fifo16_t *    fifo;
 #else
