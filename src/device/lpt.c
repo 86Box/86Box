@@ -157,7 +157,7 @@ lpt_char_read_data(void *priv)
     /* It's less likely that we get more than one byte at a time,
        but modern 64-bit CPUs give us a free transition check for 8. */
     uint8_t buf[8] = { 0 };
-    int     input  = (dev->ext || dev->epp || (dev->ecp && (dev->ecr & 0xe0))) && (dev->ctrl & 0x20) && /* bidirectional input */
+    int     input  = (dev->ext || dev->epp || (dev->ecp && (dev->ecr & 0xe0))) && (dev->ctrl & 0x20) && /* bidirectional/ECP input */
                      !((dev->char_pti_mode == 0xe1) && ((dev->ctrl & 0x0c) != 0x04)); /* PTI bidirectional receive not in progress (SelectIn || !nInit) */
     size_t  read;
     if (input) {
@@ -194,11 +194,11 @@ lpt_char_read_data(void *priv)
                 for (size_t i = 0; i < read; i++)
                     lpt_write_to_fifo(dev, buf[i]);
                 if (dev->char_pti_mode == 0xe1) {
-                    /* PTI bidirectional receive: signal that a byte was received, accounting for BUSY inversion. */
+                    /* PTI bidirectional receive: signal that a byte was received. */
                     if (dev->ctrl & 0x02)
-                        buf[read - 1] |= 0x10;
+                        buf[read - 1] |= 0x10; /* D4 -> !nBusy */
                     else
-                        buf[read - 1] &= ~0x10;
+                        buf[read - 1] &= ~0x10; /* !D4 -> nBusy */
                 }
                 period = 1;
             } else {
@@ -244,12 +244,11 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
             if ((dev->char_pti_mode & 0x10) && dev->port.chardev.write)
                 dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv);
 
-            /* Move on to the next byte, accounting for BUSY inversion.
-               This means both transmit complete and receive pending. */
+            /* Move on to the next byte. This means both transmit complete and receive pending. */
             if (val & 0x02)
-                dev->char_read &= ~0x10;
+                dev->char_read &= ~0x10; /* !D4 -> nBusy */
             else
-                dev->char_read |= 0x10;
+                dev->char_read |= 0x10; /* D4 -> !nBusy */
         }
     } else {
         lpt_char_update_control(dev, (dev->port.lpt.control & ~0xff00) | ((uint16_t) val << 8));
