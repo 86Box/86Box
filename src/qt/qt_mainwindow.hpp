@@ -204,7 +204,8 @@ private:
     friend class RendererStack;         // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 
-    QLabel *caps_label, *scroll_label, *num_label, *kana_label;
+    QString toolbar_text;
+    QLabel *toolbar_label, *caps_label, *scroll_label, *num_label, *kana_label;
     QIcon   caps_icon, scroll_icon, num_icon, kana_icon;
     QIcon   caps_icon_off, scroll_icon_off, num_icon_off, kana_icon_off;
 
