@@ -91,7 +91,7 @@ rx_setup_wait:
             break;
 
         case 0xe5:
-            lpt_log("[W] PTI reset\n");
+            lpt_log("[W] PTI 4-bit mode\n");
             break;
 
         case 0xf1:
@@ -122,8 +122,8 @@ lpt_char_write_data(uint8_t val, void *priv)
     if ((dev->port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) {
         /* PTI command mode. */
         lpt_char_pti_mode(dev, val);
-    } else if ((((dev->char_pti_mode & 0xef) == 0xe1) && (dev->ctrl & 0x08)) || (dev->char_pti_mode == 0xf3)) {
-        /* PTI bidirectional modes and ECP transmit: don't send more status updates until the receiver is set up. */
+    } else if (((dev->char_pti_mode & 0xed) == 0xe1) && (dev->ctrl & 0x08)) {
+        /* PTI bidirectional/ECP modes: stop sending status updates until the receiver is set up (SelectIn goes low). */
         lpt_log("Not writing byte %02X due to status hold (ctrl=%02X ecr=%02X)\n", val, dev->ctrl, dev->ecr);
     } else if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) || (dev->char_pti_mode == 0xf1)) { /* PTI bidirectional transmit */
         /* Store data for strobe. */
