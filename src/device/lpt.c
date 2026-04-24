@@ -120,10 +120,12 @@ lpt_char_write_data(uint8_t val, void *priv)
     dev->char_spin_count = 0;
 
     if ((dev->port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) {
-        /* PTI command mode. */
+        /* PTI command mode. (SelectIn|nInit|autofd) */
         lpt_char_pti_mode(dev, val);
     } else if (((dev->char_pti_mode & 0xed) == 0xe1) && (dev->ctrl & 0x08)) {
-        /* PTI bidirectional/ECP modes: stop sending status updates until the receiver is set up (SelectIn goes low). */
+        /* PTI bidirectional/ECP modes: stop sending status updates until the receiver
+           is set up (SelectIn goes low). This ensures the status we've sent upon
+           entering a mode isn't overwritten by the E5 written after exiting command mode. */
         lpt_log("Not writing byte %02X due to status hold (ctrl=%02X ecr=%02X)\n", val, dev->ctrl, dev->ecr);
     } else if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) || (dev->char_pti_mode == 0xf1)) { /* PTI bidirectional transmit */
         /* Store data for strobe. */
