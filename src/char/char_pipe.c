@@ -487,10 +487,10 @@ static const device_config_t char_pipe_config[] = {
         .type         = CONFIG_SELECTION,
         .default_int  = 2,
         .selection    = {
-            { .description = "LapLink (4-bit)", .value = 0 },
-            //{ .description = "Bidirectional (8-bit)",          .value = 1 },
-            { .description = "DirectParallel FAST",    .value = 2 },
-            { NULL                                                }
+            { .description = "Unidirectional (8-bit) / LapLink (4-bit)", .value = 0 },
+            //{ .description = "Bidirectional (8-bit)",                    .value = 1 },
+            { .description = "DirectParallel FAST",                      .value = 2 },
+            { NULL                                                                  }
         }
     },
     {
