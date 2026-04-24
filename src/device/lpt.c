@@ -23,6 +23,8 @@
 #include <86box/machine.h>
 #include <86box/plat_fallthrough.h>
 
+#define LPT_SPINLOOP_THRESHOLD 125
+
 static int    next_inst               = 0;
 static int    lpt_3bc_used            = 0;
 
@@ -270,7 +272,7 @@ lpt_char_read_status(void *priv)
            - Linux PLIP >=1.1.20: 500 spins with 1us wait
                          <1.1.20: 4 jiffies (40ms?)
            - Crynwr DOS PLIP: 137ms */
-        if (++dev->char_spin_count >= 125) {
+        if (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD) {
             dev->char_spin_count = 0;
             lpt_char_read_data(dev);
         }
@@ -624,6 +626,9 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             } else
                 fallthrough;
         case 0x0400:
+            /* Reset status read spin loop counter. */
+            dev->char_spin_count = 0;
+
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -844,6 +849,9 @@ lpt_read(const uint16_t port, void *priv)
             } else
                 fallthrough;
         case 0x0400:
+            /* Reset status read spin loop counter. */
+            dev->char_spin_count = 0;
+
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -877,6 +885,12 @@ lpt_read(const uint16_t port, void *priv)
             break;
 
         case 0x0402: case 0x0406:
+            /* Also perform the status spin loop check on ECR reads. */
+            if (timer_is_enabled(&dev->char_in_timer) && (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD)) {
+                dev->char_spin_count = 0;
+                lpt_char_read_data(dev);
+            }
+
             ret = dev->ret_ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
             if (fifo_get_full(dev->fifo))
                 ret |= 0x02;
