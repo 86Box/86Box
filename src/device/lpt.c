@@ -23,6 +23,8 @@
 #include <86box/machine.h>
 #include <86box/plat_fallthrough.h>
 
+#define LPT_SPINLOOP_THRESHOLD 125
+
 static int    next_inst               = 0;
 static int    lpt_3bc_used            = 0;
 
@@ -120,10 +122,12 @@ lpt_char_write_data(uint8_t val, void *priv)
     dev->char_spin_count = 0;
 
     if ((dev->port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) {
-        /* PTI command mode. */
+        /* PTI command mode. (SelectIn|nInit|autofd) */
         lpt_char_pti_mode(dev, val);
     } else if (((dev->char_pti_mode & 0xed) == 0xe1) && (dev->ctrl & 0x08)) {
-        /* PTI bidirectional/ECP modes: stop sending status updates until the receiver is set up (SelectIn goes low). */
+        /* PTI bidirectional/ECP modes: stop sending status updates until the receiver
+           is set up (SelectIn goes low). This ensures the status we've sent upon
+           entering a mode isn't overwritten by the E5 written after exiting command mode. */
         lpt_log("Not writing byte %02X due to status hold (ctrl=%02X ecr=%02X)\n", val, dev->ctrl, dev->ecr);
     } else if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) || (dev->char_pti_mode == 0xf1)) { /* PTI bidirectional transmit */
         /* Store data for strobe. */
@@ -153,7 +157,7 @@ lpt_char_read_data(void *priv)
     /* It's less likely that we get more than one byte at a time,
        but modern 64-bit CPUs give us a free transition check for 8. */
     uint8_t buf[8] = { 0 };
-    int     input  = (dev->ext || dev->epp || (dev->ecp && (dev->ecr & 0xe0))) && (dev->ctrl & 0x20) && /* bidirectional input */
+    int     input  = (dev->ext || dev->epp || (dev->ecp && (dev->ecr & 0xe0))) && (dev->ctrl & 0x20) && /* bidirectional/ECP input */
                      !((dev->char_pti_mode == 0xe1) && ((dev->ctrl & 0x0c) != 0x04)); /* PTI bidirectional receive not in progress (SelectIn || !nInit) */
     size_t  read;
     if (input) {
@@ -190,11 +194,11 @@ lpt_char_read_data(void *priv)
                 for (size_t i = 0; i < read; i++)
                     lpt_write_to_fifo(dev, buf[i]);
                 if (dev->char_pti_mode == 0xe1) {
-                    /* PTI bidirectional receive: signal that a byte was received, accounting for BUSY inversion. */
+                    /* PTI bidirectional receive: signal that a byte was received. */
                     if (dev->ctrl & 0x02)
-                        buf[read - 1] |= 0x10;
+                        buf[read - 1] |= 0x10; /* D4 -> !nBusy */
                     else
-                        buf[read - 1] &= ~0x10;
+                        buf[read - 1] &= ~0x10; /* !D4 -> nBusy */
                 }
                 period = 1;
             } else {
@@ -240,12 +244,11 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
             if ((dev->char_pti_mode & 0x10) && dev->port.chardev.write)
                 dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv);
 
-            /* Move on to the next byte, accounting for BUSY inversion.
-               This means both transmit complete and receive pending. */
+            /* Move on to the next byte. This means both transmit complete and receive pending. */
             if (val & 0x02)
-                dev->char_read &= ~0x10;
+                dev->char_read &= ~0x10; /* !D4 -> nBusy */
             else
-                dev->char_read |= 0x10;
+                dev->char_read |= 0x10; /* D4 -> !nBusy */
         }
     } else {
         lpt_char_update_control(dev, (dev->port.lpt.control & ~0xff00) | ((uint16_t) val << 8));
@@ -268,7 +271,7 @@ lpt_char_read_status(void *priv)
            - Linux PLIP >=1.1.20: 500 spins with 1us wait
                          <1.1.20: 4 jiffies (40ms?)
            - Crynwr DOS PLIP: 137ms */
-        if (++dev->char_spin_count >= 125) {
+        if (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD) {
             dev->char_spin_count = 0;
             lpt_char_read_data(dev);
         }
@@ -622,6 +625,9 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             } else
                 fallthrough;
         case 0x0400:
+            /* Reset status read spin loop counter. */
+            dev->char_spin_count = 0;
+
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -842,6 +848,9 @@ lpt_read(const uint16_t port, void *priv)
             } else
                 fallthrough;
         case 0x0400:
+            /* Reset status read spin loop counter. */
+            dev->char_spin_count = 0;
+
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -875,6 +884,12 @@ lpt_read(const uint16_t port, void *priv)
             break;
 
         case 0x0402: case 0x0406:
+            /* Also perform the status spin loop check on ECR reads. */
+            if (timer_is_enabled(&dev->char_in_timer) && (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD)) {
+                dev->char_spin_count = 0;
+                lpt_char_read_data(dev);
+            }
+
             ret = dev->ret_ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
             if (fifo_get_full(dev->fifo))
                 ret |= 0x02;

@@ -432,8 +432,8 @@ char_pipe_init(const device_t *info)
         path++;
     if (path[0]) {
         snprintf(dev->path, sizeof(dev->path), !strnicmp(path, ".\\pipe\\", 7) ? "\\\\%s" : "\\\\.\\pipe\\%s", path); /* add \\.\pipe\ prefix if not present */
-        for (int i = 2; dev->path[i]; i++) {                                                                          /* convert forward slashes to backslashes */
-            if (dev->path[i] == '/')
+        for (int i = 10; dev->path[i]; i++) {
+            if (dev->path[i] == '/') /* convert forward slashes to backslashes */
                 dev->path[i] = '\\';
         }
     }
@@ -487,10 +487,10 @@ static const device_config_t char_pipe_config[] = {
         .type         = CONFIG_SELECTION,
         .default_int  = 2,
         .selection    = {
-            { .description = "LapLink (4-bit)", .value = 0 },
-            //{ .description = "Bidirectional (8-bit)",          .value = 1 },
-            { .description = "DirectParallel FAST",    .value = 2 },
-            { NULL                                                }
+            { .description = "Unidirectional (8-bit) / LapLink (4-bit)", .value = 0 },
+            //{ .description = "Bidirectional (8-bit)",                    .value = 1 },
+            { .description = "DirectParallel FAST",                      .value = 2 },
+            { NULL                                                                  }
         }
     },
     {
