@@ -84,10 +84,10 @@ lpt_char_pti_mode(lpt_t *dev, uint8_t mode)
             lpt_log("[W] PTI ECP receive mode\n");
             dev->char_pti_readout = 0x1;
 rx_setup_wait:
-            /* Tell the transmitter to set up (!nFault) but not send data just yet (!Select). */
+            /* Tell the transmitter to set up (!nFault|!nBusy) but not send data just yet (!Select). */
             if (dev->port.chardev.write) {
                 lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
-                uint8_t buf = 0xe0;
+                uint8_t buf = 0xf0;
                 dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
             }
             break;
@@ -150,7 +150,7 @@ lpt_char_strobe(uint8_t old, uint8_t val, void *priv)
 }
 
 static void
-lpt_char_read_data(void *priv)
+lpt_char_callback(void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
@@ -162,7 +162,7 @@ lpt_char_read_data(void *priv)
     size_t  read;
     if (input) {
         if (dev->char_pti_mode == 0xe1) { /* PTI bidirectional receive in progress (!SelectIn && nInit) */
-            /* Only read if a receive has been strobed and is pending. */
+            /* Only read if a receive has been strobed and is pending. (autofd ^ !nBusy) */
             read = !(dev->ctrl & 0x02) ^ !(dev->char_read & 0x10);
         } else if (dev->ecp && (dev->ecr & 0xc0)) { /* ECP receive */
             read = fifo_get_remaining(dev->fifo);
@@ -176,6 +176,7 @@ lpt_char_read_data(void *priv)
     }
     int period = 100;
     if (LIKELY(read > 0)) {
+        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
         read = dev->port.chardev.read(buf, read, dev->port.chardev.priv);
         if (read > 0) {
             lpt_log("Read %cb: %02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X",
@@ -216,7 +217,20 @@ lpt_char_read_data(void *priv)
     } else if (input) {
         period = 1;
     }
-    timer_advance_u64(&dev->char_in_timer, TIMER_USEC * period);
+
+    /* PTI bidirectional mode: flush a write that has been strobed and is pending. */
+    if ((dev->char_pti_mode == 0xf1) && ((dev->ctrl & 0x0c) == 0x04) && (!!(dev->ctrl & 0x02) ^ !(dev->char_read & 0x10))) {
+        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+        if (dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv)) {
+            /* Move on to the next byte. */
+            if (dev->ctrl & 0x02)
+                dev->char_read &= ~0x10; /* !D4 -> nBusy */
+            else
+                dev->char_read |= 0x10; /* D4 -> !nBusy */
+        }
+    }
+
+    timer_advance_u64(&dev->char_timer, TIMER_USEC * period);
 }
 
 static void
@@ -230,25 +244,20 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
     if ((dev->port.chardev.flags & CHAR_LPT_PTI) && ((val & 0x0f) == 0x0e)) { /* PTI command mode (SelectIn|nInit|autofd) */
         lpt_char_pti_mode(dev, dev->dat);
     } else if ((dev->char_pti_mode & 0xef) == 0xe1) { /* PTI bidirectional modes */
-        /* Tell the other end to begin bidirectional transfer (Select) once SelectIn goes low. */
+        /* Tell the other end to begin bidirectional transfer (Select|!nBusy) once SelectIn goes low. */
         if ((dev->ctrl & 0x08) && !(val & 0x08)) {
             lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
-            uint8_t buf = 0xe2 | (dev->char_pti_mode & 0x10);
+            uint8_t buf = 0xf2;
             dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
         }
 
         /* Strobe data on autofd edge if !SelectIn && nInit. */
         if (((dev->ctrl & 0x0c) == 0x04) && ((dev->ctrl ^ val) & 0x02)) {
-            lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
-            /* Send byte when in transmit mode. */
-            if ((dev->char_pti_mode & 0x10) && dev->port.chardev.write)
-                dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv);
-
-            /* Move on to the next byte. This means both transmit complete and receive pending. */
-            if (val & 0x02)
-                dev->char_read &= ~0x10; /* !D4 -> nBusy */
-            else
+            /* Signal that the read/write operation is pending. */
+            if (!!(val & 0x02) ^ !(dev->char_pti_mode & 0x10))
                 dev->char_read |= 0x10; /* D4 -> !nBusy */
+            else
+                dev->char_read &= ~0x10; /* !D4 -> nBusy */
         }
     } else {
         lpt_char_update_control(dev, (dev->port.lpt.control & ~0xff00) | ((uint16_t) val << 8));
@@ -273,7 +282,7 @@ lpt_char_read_status(void *priv)
            - Crynwr DOS PLIP: 137ms */
         if (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD) {
             dev->char_spin_count = 0;
-            lpt_char_read_data(dev);
+            lpt_char_callback(dev);
         }
         return (dev->char_read << 3) ^ (CHAR_RAW_STATUS(0) >> 8);
     } else if (dev->port.chardev.status) {
@@ -332,7 +341,7 @@ lpt_devices_init(void)
                     lpt
                 );
                 if (lpt->port.chardev.read)
-                    timer_set_delay_u64(&lpt->char_in_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
+                    timer_set_delay_u64(&lpt->char_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
             }
         }
     }
@@ -369,7 +378,7 @@ lpt_devices_close(void)
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
         if (lpt_ports[i].lpt)
-            timer_disable(&lpt_ports[i].lpt->char_in_timer);
+            timer_disable(&lpt_ports[i].lpt->char_timer);
     }
 }
 
@@ -885,9 +894,9 @@ lpt_read(const uint16_t port, void *priv)
 
         case 0x0402: case 0x0406:
             /* Also perform the status spin loop check on ECR reads. */
-            if (timer_is_enabled(&dev->char_in_timer) && (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD)) {
+            if (timer_is_enabled(&dev->char_timer) && (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD)) {
                 dev->char_spin_count = 0;
-                lpt_char_read_data(dev);
+                lpt_char_callback(dev);
             }
 
             ret = dev->ret_ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
@@ -1103,7 +1112,7 @@ lpt_port_zero(lpt_t *dev)
     temp.dt             = dev->dt;
     temp.fifo           = dev->fifo;
     temp.fifo_out_timer = dev->fifo_out_timer;
-    temp.char_in_timer  = dev->char_in_timer;
+    temp.char_timer     = dev->char_timer;
 
     if (lpt_ports[dev->id].enabled)
         lpt_port_remove(dev);
@@ -1116,7 +1125,7 @@ lpt_port_zero(lpt_t *dev)
     dev->dt             = temp.dt;
     dev->fifo           = temp.fifo;
     dev->fifo_out_timer = temp.fifo_out_timer;
-    dev->char_in_timer  = temp.char_in_timer;
+    dev->char_timer     = temp.char_timer;
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))
         dev->ext = 1;
@@ -1132,7 +1141,7 @@ lpt_close(void *priv)
         dev->fifo       = NULL;
 
         timer_disable(&dev->fifo_out_timer);
-        timer_disable(&dev->char_in_timer);
+        timer_disable(&dev->char_timer);
     }
 
     if (lpt1 == dev)
@@ -1204,7 +1213,7 @@ lpt_init(const device_t *info)
 
         dev->fifo                = NULL;
         memset(&dev->fifo_out_timer, 0x00, sizeof(pc_timer_t));
-        memset(&dev->char_in_timer, 0x00, sizeof(pc_timer_t));
+        memset(&dev->char_timer, 0x00, sizeof(pc_timer_t));
 
         lpt_port_zero(dev);
 
@@ -1252,7 +1261,7 @@ lpt_init(const device_t *info)
             fifo_set_priv(dev->fifo, dev);
 
             timer_add(&dev->fifo_out_timer, lpt_fifo_out_callback, dev, 0);
-            timer_add(&dev->char_in_timer, lpt_char_read_data, dev, 0);
+            timer_add(&dev->char_timer, lpt_char_callback, dev, 0);
         }
     }
 
