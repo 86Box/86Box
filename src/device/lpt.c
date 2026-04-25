@@ -174,7 +174,7 @@ lpt_char_callback(void *priv)
     } else { /* 4-bit receive */
         read = sizeof(buf);
     }
-    int period = 100;
+    uint64_t latch = TIMER_USEC * 100;
     if (LIKELY(read > 0)) {
         lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
         read = dev->port.chardev.read(buf, read, dev->port.chardev.priv);
@@ -195,13 +195,16 @@ lpt_char_callback(void *priv)
                 for (size_t i = 0; i < read; i++)
                     lpt_write_to_fifo(dev, buf[i]);
                 if (dev->char_pti_mode == 0xe1) {
-                    /* PTI bidirectional receive: signal that a byte was received. */
+                    /* PTI bidirectional receive: signal that the read operation has completed. */
                     if (dev->ctrl & 0x02)
-                        buf[read - 1] |= 0x10; /* D4 -> !nBusy */
+                        buf[read - 1] |= 0x10; /* D4 == !nBusy */
                     else
-                        buf[read - 1] &= ~0x10; /* !D4 -> nBusy */
+                        buf[read - 1] &= ~0x10; /* !D4 == nBusy */
                 }
-                period = 1;
+                if (dev->ecp && (dev->ecr & 0xc0))
+                    latch = (uint64_t) ((1000000.0 / 2500000.0) * (double) (TIMER_USEC * read));
+                else
+                    latch = TIMER_USEC * 2 * read;
             } else {
                 uint64_t masked = AS_U64(buf[0]) & 0x0808080808080808ULL;
                 uint64_t prev   = (masked << 8) | (dev->char_read & 0x08);
@@ -210,27 +213,27 @@ lpt_char_callback(void *priv)
     #ifdef DROP_EMULATION_SPEED_INSTEAD
                 if (dev->enable_irq)
     #endif
-                    period = 2;
+                    latch = TIMER_USEC * 2;
             }
             dev->char_read = buf[read - 1];
         }
     } else if (input) {
-        period = 1;
+        latch = TIMER_USEC;
     }
 
     /* PTI bidirectional mode: flush a write that has been strobed and is pending. */
     if ((dev->char_pti_mode == 0xf1) && ((dev->ctrl & 0x0c) == 0x04) && (!!(dev->ctrl & 0x02) ^ !(dev->char_read & 0x10))) {
         lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
         if (dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv)) {
-            /* Move on to the next byte. */
+            /* Signal that the write operation has completed. */
             if (dev->ctrl & 0x02)
-                dev->char_read &= ~0x10; /* !D4 -> nBusy */
+                dev->char_read &= ~0x10; /* !D4 == nBusy */
             else
-                dev->char_read |= 0x10; /* D4 -> !nBusy */
+                dev->char_read |= 0x10; /* D4 == !nBusy */
         }
     }
 
-    timer_advance_u64(&dev->char_timer, TIMER_USEC * period);
+    timer_advance_u64(&dev->char_timer, latch);
 }
 
 static void
@@ -255,9 +258,9 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
         if (((dev->ctrl & 0x0c) == 0x04) && ((dev->ctrl ^ val) & 0x02)) {
             /* Signal that the read/write operation is pending. */
             if (!!(val & 0x02) ^ !(dev->char_pti_mode & 0x10))
-                dev->char_read |= 0x10; /* D4 -> !nBusy */
+                dev->char_read |= 0x10; /* D4 == !nBusy */
             else
-                dev->char_read &= ~0x10; /* !D4 -> nBusy */
+                dev->char_read &= ~0x10; /* !D4 == nBusy */
         }
     } else {
         lpt_char_update_control(dev, (dev->port.lpt.control & ~0xff00) | ((uint16_t) val << 8));
