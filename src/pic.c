@@ -688,7 +688,6 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     uint8_t b;
     uint8_t slaves = 0;
     uint16_t w;
-    uint16_t lines = level ? 0x0000 : num;
     pic_t   *dev;
 
     /*
@@ -709,14 +708,13 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 
             if (raise) {
                 num &= ~b;
-                lines &= ~b;
-                if (pic.at && (i == 2)) {
+                if (pic.at && (i == 2))
                     num |= (1 << 9);
-                    lines |= (1 << 9);
-                }
             }
         }
     }
+
+    uint16_t lines = level ? 0x0000 : num;
 
     if (!slaves)
         max = 8;

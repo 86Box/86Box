@@ -307,7 +307,7 @@ ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, in
                                 val = (val >> 8) | (val << 8);
                         }
                         if ((cmd <= 2) || (cmd == 4) || (cmd == 6)) {
-                            if (dev->accel.cmd & 0x08) {
+                            if ((dev->accel.cmd & 0x08) && (pixcnt == 8)) {
                                 if (val & 0x02)
                                     nibble |= 0x08;
                                 if (val & 0x04)
@@ -351,7 +351,7 @@ ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, in
             } else
                 pixelxfer = val;
 
-            if (dev->accel.input)
+            if (dev->accel.input || dev->accel.input3 || dev->accel.output3)
                 ibm8514_accel_start(pixcnt >> 1, 1, monoxfer & 0xff, pixelxfer & 0xff, svga, len);
             else
                 ibm8514_accel_start(pixcnt, 1, monoxfer & 0xffff, pixelxfer & 0xffff, svga, len);
@@ -616,7 +616,12 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                     else {
                         if (ibm8514_cpu_dest(svga))
                             break;
-                        ibm8514_accel_out_pixtrans(svga, port, val, len);
+
+                        if (dev->accel.output3) {
+                            ibm8514_accel_out_pixtrans(svga, port, val & 0xff, len);
+                            ibm8514_accel_out_pixtrans(svga, port, (val >> 8) & 0xff, len);
+                        } else
+                            ibm8514_accel_out_pixtrans(svga, port, val, len);
                     }
                 }
             } else {
@@ -634,7 +639,12 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
                     else {
                         if (ibm8514_cpu_dest(svga))
                             break;
-                        ibm8514_accel_out_pixtrans(svga, port, val, len);
+
+                        if (dev->accel.output3) {
+                            ibm8514_accel_out_pixtrans(svga, port, val & 0xff, len);
+                            ibm8514_accel_out_pixtrans(svga, port, (val >> 8) & 0xff, len);
+                        } else
+                            ibm8514_accel_out_pixtrans(svga, port, val, len);
                     }
                 }
             } else {
@@ -917,7 +927,7 @@ ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
                 if (len == 2) {
                     cmd = (dev->accel.cmd >> 13);
                     READ_PIXTRANS_WORD(dev->accel.cx, 0);
-                    if (dev->accel.input) {
+                    if (dev->accel.input || dev->accel.input3) {
                         ibm8514_accel_out_pixtrans(svga, port, temp & 0xff, len);
                         if (dev->accel.odd_in) { /*WORDs on odd destination scan lengths.*/
                             dev->accel.odd_in = 0;
@@ -1508,7 +1518,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
         case 1: /*Draw line*/
             if (!cpu_input) {
-                dev->accel.output = 0;
                 dev->accel.x_count = 0;
 
                 dev->accel.cx = dev->accel.cur_x;
@@ -1531,7 +1540,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             if (dev->accel.cmd & 0x08) {
                                 if (and3) {
                                     dev->accel.sy += and3;
-                                    dev->accel.output = 1;
                                     switch (dev->accel.cmd & 0xe0) {
                                         case 0x00:
                                             dev->accel.cx -= and3;
@@ -2032,8 +2040,10 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 dev->accel.x_count = 0;
                 dev->accel.output = 0;
                 dev->accel.output2 = 0;
+                dev->accel.output3 = 0;
                 dev->accel.input = 0;
                 dev->accel.input2 = 0;
+                dev->accel.input3 = 0;
                 dev->accel.odd_in = 0;
 
                 dev->accel.cx = dev->accel.cur_x;
@@ -2102,10 +2112,15 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                     } else {
                         if (dev->accel.cmd & 0x1000) {
                             if (dev->accel.cmd & 0x200) {
-                                if (dev->accel.cmd & 0x04) {
-                                    dev->accel.output = 1;
-                                    dev->accel.sx -= 2;
+                                if (dev->accel.cmd & 0x40) {
+                                    dev->accel.output3 = 1;
+                                } else {
+                                    if (dev->accel.cmd & 0x04) {
+                                        dev->accel.output = 1;
+                                        dev->accel.sx -= 2;
+                                    }
                                 }
+
                             }
                         }
                     }
@@ -2118,12 +2133,17 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                     if (!(dev->accel.cmd & 0x02)) {
                         if (dev->accel.cmd & 0x1000) {
                             if (dev->accel.cmd & 0x200) {
-                                if (!(dev->accel.sx & 1) && !(dev->accel.cmd & 0x04)) {
-                                    dev->accel.input = 1;
-                                } else if (dev->accel.cmd & 0x04) {
-                                    dev->accel.input2 = 1;
-                                    dev->accel.sx -= 2;
+                                if (dev->accel.cmd & 0x40) {
+                                    dev->accel.input3 = 1;
+                                } else {
+                                    if (!(dev->accel.sx & 1) && !(dev->accel.cmd & 0x04)) {
+                                        dev->accel.input = 1;
+                                    } else if (dev->accel.cmd & 0x04) {
+                                        dev->accel.input2 = 1;
+                                        dev->accel.sx -= 2;
+                                    }
                                 }
+
                             }
                         }
                     }
@@ -2136,7 +2156,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 }
             }
 
-            ibm8514_log("Rectangle %d: full=%04x, odd=%d, c(%d,%d), frgdmix=%d, bkgdmix=%d, xcount=%d, and3=%d, len(%d,%d), CURX=%d, Width=%d, pixcntl=%d, mix_dat=%08x, count=%d, cpu_data=%08x, cpu_input=%d.\n", cmd, dev->accel.cmd, dev->accel.input, dev->accel.cx, dev->accel.cy, frgd_mix, bkgd_mix, dev->accel.x_count, and3, dev->accel.sx, dev->accel.sy, dev->accel.cur_x, dev->accel.maj_axis_pcnt, pixcntl, mix_dat, count, cpu_dat, cpu_input);
+            ibm8514_log("Rectangle %d: flags=%04x, odd=%d, c(%d,%d), frgdmix=%d, bkgdmix=%d, xcount=%d, and3=%d, len(%d,%d), CURX=%d, Width=%d, pixcntl=%d, mix_dat=%08x, count=%d, cpu_data=%08x, cpu_input=%d.\n", cmd, dev->accel.cmd, dev->accel.input, dev->accel.cx, dev->accel.cy, frgd_mix, bkgd_mix, dev->accel.x_count, and3, dev->accel.sx, dev->accel.sy, dev->accel.cur_x, dev->accel.maj_axis_pcnt, pixcntl, mix_dat, count, cpu_dat, cpu_input);
 
             if (dev->accel.cmd & 0x08) { /*Vectored Rectangle*/
                 if (cpu_input) {
@@ -2362,7 +2382,11 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                             cpu_dat >>= 8;
 
                         dev->accel.sx--;
-                        dev->accel.x_count++;
+                        if (ibm8514_cpu_src(svga) || !cpu_input) {
+                            if ((dev->accel.cmd & 0x02) && !(dev->accel.cmd & 0x1000))
+                                dev->accel.x_count++;
+                        }
+
                         if (dev->accel.sx < 0) {
                             dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
                             dev->accel.x_count = 0;
