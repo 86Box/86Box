@@ -605,6 +605,9 @@ voodoo_readl(uint32_t addr, void *priv)
             case SST_cmdFifoDepth:
                 temp = voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd;
                 break;
+            case SST_cmdFifoHoles:
+                temp = (uint32_t) voodoo->cmdfifo_holecount;
+                break;
 
             default:
                 voodoo_log("voodoo_readl  : bad addr %08X\n", addr);
@@ -626,6 +629,40 @@ voodoo_writew(uint32_t addr, uint16_t val, void *priv)
 
     if ((addr & 0xc00000) == 0x400000) /*Framebuffer*/
         voodoo_queue_command(voodoo, addr | FIFO_WRITEW_FB, val);
+}
+
+static void
+voodoo_cmdfifo_write(voodoo_t *voodoo, uint32_t fifo_addr, uint32_t val)
+{
+    *(uint32_t *) &voodoo->fb_mem[fifo_addr] = val;
+
+    if (fifo_addr == voodoo->cmdfifo_base && !voodoo->cmdfifo_holecount) {
+        voodoo->cmdfifo_amin = fifo_addr;
+        voodoo->cmdfifo_amax = fifo_addr;
+        voodoo->cmdfifo_depth_wr++;
+        voodoo_wake_fifo_thread(voodoo);
+    } else if (voodoo->cmdfifo_holecount) {
+        voodoo->cmdfifo_holecount--;
+        if (!voodoo->cmdfifo_holecount) {
+            voodoo->cmdfifo_depth_wr += ((voodoo->cmdfifo_amax - voodoo->cmdfifo_amin) >> 2);
+            voodoo->cmdfifo_amin = voodoo->cmdfifo_amax;
+            voodoo_wake_fifo_thread(voodoo);
+        }
+    } else if (fifo_addr == voodoo->cmdfifo_amax + 4) {
+        voodoo->cmdfifo_amin = fifo_addr;
+        voodoo->cmdfifo_amax = fifo_addr;
+        voodoo->cmdfifo_depth_wr++;
+        voodoo_wake_fifo_thread(voodoo);
+    } else {
+        /* Out-of-order write: the driver pre-writes the first word of a
+           JSR substream before the JSR header, and can write just past
+           the base before the base word itself. Re-anchor the span at
+           the base and count the gap as holes. */
+        if (fifo_addr < voodoo->cmdfifo_amin)
+            voodoo->cmdfifo_amin = voodoo->cmdfifo_base - 4;
+        voodoo->cmdfifo_amax      = fifo_addr;
+        voodoo->cmdfifo_holecount = ((voodoo->cmdfifo_amax - voodoo->cmdfifo_amin) >> 2) - 1;
+    }
 }
 
 static void
@@ -651,22 +688,12 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
     {
         voodoo_queue_command(voodoo, addr | FIFO_WRITEL_FB, val);
     } else if ((addr & 0x200000) && (voodoo->fbiInit7 & FBIINIT7_CMDFIFO_ENABLE)) {
+        uint32_t fifo_addr = (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask;
+
 #if 0
         voodoo_log("Write CMDFIFO %08x(%08x) %08x  %08x\n", addr, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask, val, (voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask);
 #endif
-        *(uint32_t *) &voodoo->fb_mem[(voodoo->cmdfifo_base + (addr & 0x3fffc)) & voodoo->fb_mask] = val;
-        voodoo->cmdfifo_depth_wr++;
-
-        /* Voodoo1: use higher CMDFIFO threshold to reduce wake frequency */
-        if (voodoo->type == VOODOO_1) {
-            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
-                voodoo_wake_fifo_thread(voodoo);
-        }
-        /* Other cards (Voodoo2, Banshee, Voodoo3, ...) keep the original behavior */
-        else {
-            if ((voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd) < 20)
-                voodoo_wake_fifo_thread(voodoo);
-        }
+        voodoo_cmdfifo_write(voodoo, fifo_addr, val);
     } else
         switch (addr & 0x3fc) {
             case SST_intrCtrl:
@@ -915,6 +942,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
             case SST_cmdFifoDepth:
                 voodoo->cmdfifo_depth_rd = 0;
                 voodoo->cmdfifo_depth_wr = val & 0xffff;
+                break;
+            case SST_cmdFifoHoles:
+                voodoo->cmdfifo_holecount = val & 0xffff;
                 break;
 
             default:
