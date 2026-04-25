@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-04-25 15:00+0000\n"
+"Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
 "Language: vi-VN\n"
@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "Loại máy:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 và 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Khác)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (hiệu điện thế đơn)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (hiệu điện thế kép)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Lặt vặt khác"
 
 msgid "Machine:"
 msgstr "Mẫu máy:"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "Bộ điều khiển CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Giao diện Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Giao diện MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Giao diện MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Bộ điều khiển IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Bộ điều khiển IDE (hai kênh)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Bộ điều khiển IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Bộ điều khiển IDE PC/AT (hai kênh)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE PC/AT (chỉ có đầu cắm chính)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "XTIDE PS/2 AT (1.1.5) (chỉ có đầu cắm chính)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (giao diện cắm thứ 3 và 4)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (giao diện cắm thứ 3 và 4)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (giao diện cắm thứ 3 và 4)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Bộ điều khiển McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Bộ điều khiển IDE thứ ba"
@@ -3015,10 +3015,10 @@ msgid "Monitor EDID"
 msgstr "EDID của màn hình"
 
 msgid "Export…"
-msgstr "Xuất khẩu…"
+msgstr "Xuất ra file…"
 
 msgid "Export EDID"
-msgstr "Xuất khẩu EDID"
+msgstr "Xuất ra file EDID"
 
 msgid "EDID file \"%ls\" is too large."
 msgstr "Tệp EDID \"%ls\" quá lớn."
@@ -3030,16 +3030,16 @@ msgid "OpenGL input stretch mode"
 msgstr "Chế độ kéo giãn đầu vào của OpenGL"
 
 msgid "Color scheme"
-msgstr "Bảng màu"
+msgstr "Kiểu giao diện"
 
 msgid "Light"
-msgstr "Ánh sáng"
+msgstr "Sáng"
 
 msgid "Dark"
 msgstr "Tối"
 
 msgid "Force interpretation"
-msgstr "Buộc giải thích"
+msgstr "Buộc thông dịch"
 
 msgid "Allow recompilation"
 msgstr "Cho phép biên dịch lại"
@@ -3063,7 +3063,7 @@ msgid "Raw"
 msgstr "Thô"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Dùng mô phỏng EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Thiết bị đầu ra âm thanh:"
