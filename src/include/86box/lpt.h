@@ -73,7 +73,7 @@ typedef struct lpt_t {
 #endif
 
     pc_timer_t    fifo_out_timer;
-    pc_timer_t    char_in_timer;
+    pc_timer_t    char_timer;
 } lpt_t;
 #endif /* _TIMER_H_ */
 
