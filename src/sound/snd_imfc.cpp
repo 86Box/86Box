@@ -122,6 +122,7 @@ enum DataParty : uint8_t {
 
 static void Intel8253_TimerEvent(const uint32_t val);
 static void Intel8253_TimerEvent2(const uint32_t val);
+static void CallInterruptHandler();
 
 enum CARD_MODE : uint8_t {
 	MUSIC_MODE = 0,
@@ -252,7 +253,16 @@ typedef struct pic_timer {
 	pc_timer_t timer; /* 86Box timer. */
 } pic_timer;
 
+typedef struct mfc_timer {
+        std::function<void()> callback;
+        uint32_t val;
+        double interval_miliseconds;
+
+        pc_timer_t timer; /* 86Box timer. */
+} mfc_timer;
+
 static std::vector<std::shared_ptr<pic_timer>> pic_timers;
+static std::vector<std::shared_ptr<mfc_timer>> mfc_timers;
 
 void PIC_RemoveEvents(std::function<void(uint32_t)> func)
 {
@@ -265,12 +275,31 @@ void PIC_RemoveEvents(std::function<void(uint32_t)> func)
 	}
 }
 
+void MFC_RemoveEvents(std::function<void()> func)
+{
+        for (int i = 0; i < mfc_timers.size(); i++) {
+                auto& cur = mfc_timers[i];
+                if (cur->callback.target<void(*)()>() == func.target<void(*)()>()) {
+                        timer_disable(&cur->timer);
+                        mfc_timers.erase(mfc_timers.begin() + i);
+                }
+        }
+}
+
 void pic_timer_callback(void* priv)
 {
 	pic_timer* timer = (pic_timer*) priv;
 
 	timer->callback(timer->val);
 	timer_on_auto(&timer->timer, timer->interval_miliseconds * 1000.0);
+}
+
+void mfc_timer_callback(void* p)
+{
+        mfc_timer* timer = (mfc_timer*) p;
+
+        timer->callback();
+        timer_on_auto(&timer->timer, timer->interval_miliseconds * 1000.0);
 }
 
 void PIC_AddEvent(std::function<void(uint32_t)> func, double interval_miliseconds, uint32_t val)
@@ -284,6 +313,18 @@ void PIC_AddEvent(std::function<void(uint32_t)> func, double interval_milisecond
 	pclog("PIC_AddEvent: func: 0x%016tX @ %f miliseconds\n", func.target<void(*)(uint32_t)>(), interval_miliseconds);
 #endif
 	pic_timers.push_back(timer);
+}
+
+void MFC_AddEvent(std::function<void()> func, double interval_miliseconds, uint32_t val)
+{
+        std::shared_ptr<mfc_timer> timer(new mfc_timer{func, val, interval_miliseconds, { 0 }});
+        timer_add(&timer->timer, mfc_timer_callback, timer.get(), 0);
+        timer_on_auto(&timer->timer, timer->interval_miliseconds * 1000.0);
+#if 0
+    // TODO
+        pclog("MFC_AddEvent: func: 0x%016tX @ %f miliseconds\n", func.target<void(*)()>(), interval_miliseconds);
+#endif
+        mfc_timers.push_back(timer);
 }
 
 enum class io_width_t : uint8_t {
@@ -5460,10 +5501,10 @@ private:
 	std::atomic_bool keepRunning               = {};
 	std::atomic<bool> m_finishedBootupSequence = {};
 	thread_t* m_mainThread                     = nullptr;
-	thread_t* m_interruptThread                = nullptr;
+	//thread_t* m_interruptThread                = nullptr;
 	std::thread::id m_mainThreadId             = {};
-	std::thread::id m_interruptThreadId        = {};
-	event_t* m_interruptEvent                  = nullptr;
+	//std::thread::id m_interruptThreadId        = {};
+	//event_t* m_interruptEvent                  = nullptr;
 
 	// memory allocation on the IMF
 	// ROM
@@ -5551,19 +5592,19 @@ private:
 		return std::this_thread::get_id() == m_mainThreadId;
 	}
 
-	bool currentThreadIsInterruptThread() const
-	{
-		return std::this_thread::get_id() == m_interruptThreadId;
-	}
+	//bool currentThreadIsInterruptThread() const
+	//{
+	//	return std::this_thread::get_id() == m_interruptThreadId;
+	//}
 
 	const char* getCurrentThreadName()
 	{
 		if (currentThreadIsMainThread()) {
 			return "MAIN";
 		}
-		if (currentThreadIsInterruptThread()) {
-			return "INTERRUPT";
-		}
+		//if (currentThreadIsInterruptThread()) {
+		//	return "INTERRUPT";
+		//}
 		return "DOSBOX";
 	}
 
@@ -7384,41 +7425,6 @@ private:
 		// word_FFFD = &interruptHandler;
 		reset_ym2151();
 		reset_midi_device();
-	}
-
-	// ROM Address: 0x0C09
-	void interruptHandler()
-	{
-		// log("IMFC: interruptHandler() - start");
-		thread_wait_mutex(m_hardwareMutex);
-		const uint8_t midiStatus = m_midi.readPort2();
-		thread_release_mutex(m_hardwareMutex);
-		if ((midiStatus & 2) != 0) {
-			readMidiInPortDuringInterruptHandler();
-		} else if (((m_midiTransmitReceiveFlag & 1) != 0) &&
-		           ((midiStatus & 1) == 0)) {
-			writeMidiOutPortDuringInterruptHandler();
-		} else {
-			// clang-format off
-
-			/* FIXME -- YM-2151 interrupt handling currently missing
- 			thread_wait_mutex(m_hardwareMutex);
-			// m_ya2151.register_w(0x14); // select clock
-			// manipulation/status register uint8_t yaStatus =
-			// m_ya2151.status_r();
-			const uint8_t yaStatus = 0;
-			// m_ya2151.data_w(m_ym2151_IRQ_stuff);
-			thread_release_mutex(m_hardwareMutex);
-			if ((yaStatus & 3) != 0) {
-				process_ya2151_interrupts_callInInterruptHandler(
-				        yaStatus & 3);
-			} else { */
-				sendOrReceiveNextValueToFromSystemDuringInterruptHandler();
-			// }
-			// clang-format on
-		}
-		enableInterrupts();
-		// log("IMFC: interruptHandler() - end");
 	}
 
 	// ROM Address: 0x0C3F
@@ -13105,10 +13111,10 @@ public:
 	          m_irqTriggerImf(
 	                  "TriggerImfIrq",
 	                  [this]() {
-		                  thread_set_event(m_interruptEvent);
+		                  //thread_set_event(m_interruptEvent);
 	                  } /*callbackOnLowToHigh*/,
 	                  [this]() {
-		                  thread_reset_event(m_interruptEvent);
+		                  //thread_reset_event(m_interruptEvent);
 	                  } /*callbackOnToHighToLow*/),
 	          m_tsr("TSR"),
 	          // initialize all the internal structures
@@ -13220,9 +13226,10 @@ public:
 		// now start the main program
 		keepRunning        = true;
 		m_hardwareMutex    = thread_create_mutex();
-		m_interruptEvent   = thread_create_event();
+		//m_interruptEvent   = thread_create_event();
 		m_mainThread       = thread_create_named(imfMainThreadStart, this, "imfc-main");
-		m_interruptThread  = thread_create_named(imfInterruptThreadStart, this, "imfc-interrupt");
+		//m_interruptThread  = thread_create_named(imfInterruptThreadStart, this, "imfc-interrupt");
+		MFC_AddEvent(CallInterruptHandler, 0.02, 0);
 
 		// wait until we're ready to receive data... it's a workaround
 		// for now, but well....
@@ -13246,10 +13253,10 @@ public:
 		((MusicFeatureCard*)data)->threadMainStart();
 	}
 
-	static void imfInterruptThreadStart(void* data)
-	{
-		((MusicFeatureCard*)data)->threadInterruptStart();
-	}
+	//static void imfInterruptThreadStart(void* data)
+	//{
+	//	((MusicFeatureCard*)data)->threadInterruptStart();
+	//}
 
 	void threadMainStart()
 	{
@@ -13258,17 +13265,17 @@ public:
 		coldStart();
 	}
 
-	void threadInterruptStart()
-	{
-		m_interruptThreadId = std::this_thread::get_id();
-		log_debug("IMFC: processor interrupt thread started");
-		while (keepRunning.load()) {
-			thread_wait_event(m_interruptEvent, -1);
-			if (!keepRunning.load())
-				break;
-			interruptHandler();
-		}
-	}
+	//void threadInterruptStart()
+	//{
+	//	m_interruptThreadId = std::this_thread::get_id();
+	//	log_debug("IMFC: processor interrupt thread started");
+	//	while (keepRunning.load()) {
+	//		thread_wait_event(m_interruptEvent, -1);
+	//		if (!keepRunning.load())
+	//			break;
+	//		interruptHandler();
+	//	}
+	//}
 
 	uint8_t readPortPIU0(const io_port_t, const io_width_t)
 	{
@@ -13424,6 +13431,41 @@ public:
                 m_timer.timerEvent2(val);
         }
 
+        // ROM Address: 0x0C09
+        void interruptHandler()
+        {
+                // log("IMFC: interruptHandler() - start");
+                thread_wait_mutex(m_hardwareMutex);
+                const uint8_t midiStatus = m_midi.readPort2();
+                thread_release_mutex(m_hardwareMutex);
+                if ((midiStatus & 2) != 0) {
+                        readMidiInPortDuringInterruptHandler();
+                } else if (((m_midiTransmitReceiveFlag & 1) != 0) &&
+                           ((midiStatus & 1) == 0)) {
+                        writeMidiOutPortDuringInterruptHandler();
+                } else {
+                        // clang-format off
+
+                        /* FIXME -- YM-2151 interrupt handling currently missing
+                        thread_wait_mutex(m_hardwareMutex);
+                        // m_ya2151.register_w(0x14); // select clock
+                        // manipulation/status register uint8_t yaStatus =
+                        // m_ya2151.status_r();
+                        const uint8_t yaStatus = 0;
+                        // m_ya2151.data_w(m_ym2151_IRQ_stuff);
+                        thread_release_mutex(m_hardwareMutex);
+                        if ((yaStatus & 3) != 0) {
+                                process_ya2151_interrupts_callInInterruptHandler(
+                                        yaStatus & 3);
+                        } else { */
+                                sendOrReceiveNextValueToFromSystemDuringInterruptHandler();
+                        // }
+                        // clang-format on
+                }
+                enableInterrupts();
+                // log("IMFC: interruptHandler() - end");
+        }
+
 	~MusicFeatureCard()
 	{
 		using namespace std::chrono_literals;
@@ -13431,9 +13473,10 @@ public:
 		//LOG_MSG("IMFC: Shutting down");
 
 		keepRunning = false;
+		MFC_RemoveEvents(CallInterruptHandler);
 
 		// Wake the interrupt thread so it can see keepRunning==false
-		thread_set_event(m_interruptEvent);
+		//thread_set_event(m_interruptEvent);
 
 		// Remove access to the IO ports
         io_removehandler(host_port, 0x10,
@@ -13445,9 +13488,9 @@ public:
 		std::this_thread::sleep_for(20ms);
 
 		thread_wait(m_mainThread);
-		thread_wait(m_interruptThread);
+		//thread_wait(m_interruptThread);
 		thread_close_mutex(m_hardwareMutex);
-		thread_destroy_event(m_interruptEvent);
+		//thread_destroy_event(m_interruptEvent);
 	}
 };
 
@@ -13566,6 +13609,11 @@ static void Intel8253_TimerEvent(const uint32_t val)
 static void Intel8253_TimerEvent2(const uint32_t val)
 {
         imfc->onTimerEvent2(val);
+}
+
+static void CallInterruptHandler()
+{
+	imfc->interruptHandler();
 }
 
 #if 0
