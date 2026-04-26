@@ -91,6 +91,19 @@ voodoo_tmu_texture_mask(const voodoo_t *voodoo, int tmu)
     return voodoo_tmu_texture_size_bytes(voodoo, tmu) - 1;
 }
 
+static int
+voodoo_tlod_uses_multibase(const voodoo_t *voodoo, int tmu)
+{
+    if (!(voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+        return 0;
+
+    /* Voodoo2 games can leave the upper TLOD nibble dirty; don't treat that as multibase mode. */
+    if (voodoo->type == VOODOO_2 && (voodoo->params.tLOD[tmu] & 0xf0000000))
+        return 0;
+
+    return 1;
+}
+
 void
 voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
 {
@@ -114,7 +127,7 @@ voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
         height >>= 1;
         shift--;
         tex_lod++;
-        if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR)
+        if (voodoo_tlod_uses_multibase(voodoo, tmu))
             base = voodoo->params.texBaseAddr1[tmu];
     }
 
@@ -155,7 +168,7 @@ voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
                     tex_lod++;
                 }
 
-                if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR) {
+                if (voodoo_tlod_uses_multibase(voodoo, tmu)) {
                     switch (tex_lod) {
                         case 0:
                             base = voodoo->params.texBaseAddr[tmu];
@@ -229,7 +242,7 @@ voodoo_recalc_tex3(voodoo_t *voodoo, int tmu)
     voodoo_texture_log("TMU %i:    %08x\n", tmu, voodoo->params.textureMode[tmu]);
 #endif
     for (lod = 0; lod <= LOD_MAX + 1; lod++) {
-        if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR) {
+        if (voodoo_tlod_uses_multibase(voodoo, tmu)) {
             switch (tex_lod) {
                 case 0:
                     base = voodoo->params.texBaseAddr[tmu];
@@ -300,7 +313,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
     } else
         palette_checksum = 0;
 
-    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && voodoo_tlod_uses_multibase(voodoo, tmu))
         addr = params->texBaseAddr1[tmu];
     else
         addr = params->texBaseAddr[tmu];
@@ -336,7 +349,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
 
     c = voodoo->texture_last_removed;
 
-    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR))
+    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD) && voodoo_tlod_uses_multibase(voodoo, tmu))
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr1[tmu];
     else
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr[tmu];
