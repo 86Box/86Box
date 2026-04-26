@@ -963,11 +963,22 @@ static void
 voodoo_recalcmapping(voodoo_set_t *set)
 {
     if (set->nr_cards == 2) {
+        uint32_t snoop_addr = 0;
+
+        if (set->voodoos[0]->type == VOODOO_2 && set->voodoos[1]->type == VOODOO_2 &&
+            (set->voodoos[1]->initEnable & (1 << 23)))
+            snoop_addr = set->voodoos[1]->initEnable & 0xff000000;
+
+        int snoop_active = snoop_addr && set->voodoos[0]->pci_enable &&
+                           set->voodoos[0]->memBaseAddr == snoop_addr;
+        if (!snoop_active)
+            mem_mapping_disable(&set->snoop_mapping);
+
         if (set->voodoos[0]->pci_enable && set->voodoos[0]->memBaseAddr) {
-            if (set->voodoos[0]->type == VOODOO_2 && set->voodoos[1]->initEnable & (1 << 23)) {
+            if (snoop_active) {
                 voodoo_log("voodoo_recalcmapping (pri) with snoop : memBaseAddr %08X\n", set->voodoos[0]->memBaseAddr);
                 mem_mapping_disable(&set->voodoos[0]->mapping);
-                mem_mapping_set_addr(&set->snoop_mapping, set->voodoos[0]->memBaseAddr, 0x01000000);
+                mem_mapping_set_addr(&set->snoop_mapping, snoop_addr, 0x01000000);
             } else if (set->voodoos[1]->pci_enable && (set->voodoos[0]->memBaseAddr == set->voodoos[1]->memBaseAddr)) {
                 voodoo_log("voodoo_recalcmapping (pri) (sec) same addr : memBaseAddr %08X\n", set->voodoos[0]->memBaseAddr);
                 mem_mapping_disable(&set->voodoos[0]->mapping);
@@ -985,8 +996,12 @@ voodoo_recalcmapping(voodoo_set_t *set)
         }
 
         if (set->voodoos[1]->pci_enable && set->voodoos[1]->memBaseAddr) {
-            voodoo_log("voodoo_recalcmapping (sec) : memBaseAddr %08X\n", set->voodoos[1]->memBaseAddr);
-            mem_mapping_set_addr(&set->voodoos[1]->mapping, set->voodoos[1]->memBaseAddr, 0x01000000);
+            if (snoop_active && set->voodoos[1]->memBaseAddr == snoop_addr) {
+                mem_mapping_disable(&set->voodoos[1]->mapping);
+            } else {
+                voodoo_log("voodoo_recalcmapping (sec) : memBaseAddr %08X\n", set->voodoos[1]->memBaseAddr);
+                mem_mapping_set_addr(&set->voodoos[1]->mapping, set->voodoos[1]->memBaseAddr, 0x01000000);
+            }
         } else {
             voodoo_log("voodoo_recalcmapping (sec) : disabled\n");
             mem_mapping_disable(&set->voodoos[1]->mapping);
