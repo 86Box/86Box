@@ -196,6 +196,7 @@ voodoo_recalc(voodoo_t *voodoo)
 
         default:
             fatal("voodoo_recalc : unknown draw buffer\n");
+            break;
     }
 
     voodoo->block_width = ((voodoo->fbiInit1 >> 4) & 15) * 2;
@@ -1230,6 +1231,12 @@ voodoo_card_init(const device_t *info)
     int type         = (int) device_get_bios_local(info, device_get_config_bios("type"));
     voodoo->type     = type & 0x0f;
     voodoo->board_id = ((type >> 8) & 0x0f);
+    voodoo->trexInit0[0] = TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ADDRESS_18;
+    voodoo->trexInit0[1] = TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ADDRESS_18;
+    if (voodoo->texture_size >= 4) {
+        voodoo->trexInit0[0] |= TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ENABLE;
+        voodoo->trexInit0[1] |= TREXINIT0_TEXTURE_MEMORY_SECOND_RAS_ENABLE;
+    }
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;

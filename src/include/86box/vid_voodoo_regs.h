@@ -223,6 +223,7 @@ enum {
     SST_texBaseAddr2  = 0x314,
     SST_texBaseAddr38 = 0x318,
 
+    SST_trexInit0 = 0x31c,
     SST_trexInit1 = 0x320,
 
     SST_nccTable0_Y0 = 0x324,

@@ -348,6 +348,7 @@ typedef struct voodoo_t {
 
     int rgb_sel;
 
+    uint32_t trexInit0[2];
     uint32_t trexInit1[2];
 
     uint32_t tmuConfig;
