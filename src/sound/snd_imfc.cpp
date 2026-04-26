@@ -1,4 +1,23 @@
 /*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          IBM Music Feature Card Emulation.
+ *
+ * Authors: Cacodemon345
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *          win2kgamer
+ *
+ *          Copyright 2023 Cacodemon345
+ *          Copyright 2025-2026 Jasmine Iwanek.
+ *          Copyright 2026 win2kgamer
+ */
+
+/*
  * SPDX-FileCopyrightText:  2023-2026 The DOSBox Staging Team
  * SPDX-FileCopyrightText:  2017-2020  Loris Chiocca
  * SPDX-FileCopyrightText:  1999-2000  Daisuke Nagano <breeze.nagano@nifty.ne.jp>
@@ -277,7 +296,7 @@ void PIC_RemoveEvents(std::function<void(uint32_t)> func)
 
 void MFC_RemoveEvents(std::function<void()> func)
 {
-        for (int i = 0; i < mfc_timers.size(); i++) {
+        for (size_t i = 0; i < mfc_timers.size(); i++) {
                 auto& cur = mfc_timers[i];
                 if (cur->callback.target<void(*)()>() == func.target<void(*)()>()) {
                         timer_disable(&cur->timer);
@@ -5501,10 +5520,7 @@ private:
 	std::atomic_bool keepRunning               = {};
 	std::atomic<bool> m_finishedBootupSequence = {};
 	thread_t* m_mainThread                     = nullptr;
-	//thread_t* m_interruptThread                = nullptr;
 	std::thread::id m_mainThreadId             = {};
-	//std::thread::id m_interruptThreadId        = {};
-	//event_t* m_interruptEvent                  = nullptr;
 
 	// memory allocation on the IMF
 	// ROM
@@ -5592,19 +5608,11 @@ private:
 		return std::this_thread::get_id() == m_mainThreadId;
 	}
 
-	//bool currentThreadIsInterruptThread() const
-	//{
-	//	return std::this_thread::get_id() == m_interruptThreadId;
-	//}
-
 	const char* getCurrentThreadName()
 	{
 		if (currentThreadIsMainThread()) {
 			return "MAIN";
 		}
-		//if (currentThreadIsInterruptThread()) {
-		//	return "INTERRUPT";
-		//}
 		return "DOSBOX";
 	}
 
@@ -13111,10 +13119,8 @@ public:
 	          m_irqTriggerImf(
 	                  "TriggerImfIrq",
 	                  [this]() {
-		                  //thread_set_event(m_interruptEvent);
 	                  } /*callbackOnLowToHigh*/,
 	                  [this]() {
-		                  //thread_reset_event(m_interruptEvent);
 	                  } /*callbackOnToHighToLow*/),
 	          m_tsr("TSR"),
 	          // initialize all the internal structures
@@ -13226,9 +13232,7 @@ public:
 		// now start the main program
 		keepRunning        = true;
 		m_hardwareMutex    = thread_create_mutex();
-		//m_interruptEvent   = thread_create_event();
 		m_mainThread       = thread_create_named(imfMainThreadStart, this, "imfc-main");
-		//m_interruptThread  = thread_create_named(imfInterruptThreadStart, this, "imfc-interrupt");
 		MFC_AddEvent(CallInterruptHandler, 0.02, 0);
 
 		// wait until we're ready to receive data... it's a workaround
@@ -13253,29 +13257,12 @@ public:
 		((MusicFeatureCard*)data)->threadMainStart();
 	}
 
-	//static void imfInterruptThreadStart(void* data)
-	//{
-	//	((MusicFeatureCard*)data)->threadInterruptStart();
-	//}
-
 	void threadMainStart()
 	{
 		m_mainThreadId = std::this_thread::get_id();
 		log_debug("IMFC: processor main thread started");
 		coldStart();
 	}
-
-	//void threadInterruptStart()
-	//{
-	//	m_interruptThreadId = std::this_thread::get_id();
-	//	log_debug("IMFC: processor interrupt thread started");
-	//	while (keepRunning.load()) {
-	//		thread_wait_event(m_interruptEvent, -1);
-	//		if (!keepRunning.load())
-	//			break;
-	//		interruptHandler();
-	//	}
-	//}
 
 	uint8_t readPortPIU0(const io_port_t, const io_width_t)
 	{
@@ -13475,9 +13462,6 @@ public:
 		keepRunning = false;
 		MFC_RemoveEvents(CallInterruptHandler);
 
-		// Wake the interrupt thread so it can see keepRunning==false
-		//thread_set_event(m_interruptEvent);
-
 		// Remove access to the IO ports
         io_removehandler(host_port, 0x10,
                          imfc_read, nullptr, nullptr,
@@ -13488,9 +13472,7 @@ public:
 		std::this_thread::sleep_for(20ms);
 
 		thread_wait(m_mainThread);
-		//thread_wait(m_interruptThread);
 		thread_close_mutex(m_hardwareMutex);
-		//thread_destroy_event(m_interruptEvent);
 	}
 };
 
