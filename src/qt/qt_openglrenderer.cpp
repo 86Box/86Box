@@ -868,6 +868,9 @@ OpenGLRenderer::initialize()
         if (!context->makeCurrent(this))
             throw opengl_init_error(tr("Couldn't switch to OpenGL context."));
 
+        if (glGetInteger(GL_DRAW_BUFFER) == GL_NONE)
+            glDrawBuffer(GL_BACK);
+        
         auto version = context->format().version();
 
         if (version.first < 3)
@@ -1134,6 +1137,9 @@ OpenGLRenderer::finalize()
 
     context->makeCurrent(this);
 
+    if (glGetInteger(GL_DRAW_BUFFER) == GL_NONE)
+        glDrawBuffer(GL_BACK);
+
     delete_texture(&scene_texture);
 
     if (active_shader) {
@@ -1158,6 +1164,9 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         return;
 
     context->makeCurrent(this);
+
+    if (glGetInteger(GL_DRAW_BUFFER) == GL_NONE)
+        glDrawBuffer(GL_BACK);
 
     if (source.width() != w || source.height() != h) {
         glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
@@ -1229,6 +1238,9 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
         return;
 
     context->makeCurrent(this);
+
+    if (glGetInteger(GL_DRAW_BUFFER) == GL_NONE)
+        glDrawBuffer(GL_BACK);
 
     glw.glViewport(
         destination.x(),
