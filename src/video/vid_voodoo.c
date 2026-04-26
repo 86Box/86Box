@@ -484,6 +484,10 @@ voodoo_readl(uint32_t addr, void *priv)
                 }
                 break;
 
+            case SST_intrCtrl:
+                temp = voodoo->intrCtrl & VOODOO_INTRCTRL_READ_MASK;
+                break;
+
             case SST_fbzColorPath:
                 voodoo_flush(voodoo);
                 temp = voodoo->params.fbzColorPath;
@@ -558,7 +562,7 @@ voodoo_readl(uint32_t addr, void *priv)
                     temp = voodoo->fbiInit2;
                 break;
             case SST_fbiInit3:
-                temp = voodoo->fbiInit3 | (1 << 10) | (2 << 8);
+                temp = voodoo->fbiInit3;
                 break;
 
             case SST_vRetrace:
@@ -699,7 +703,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
     } else
         switch (addr & 0x3fc) {
             case SST_intrCtrl:
-                fatal("intrCtrl write %08x\n", val);
+                if (val & VOODOO_INTRCTRL_INTERRUPT_ACTIVE)
+                    voodoo->intrCtrl &= ~VOODOO_INTRCTRL_PENDING_MASK;
+                voodoo->intrCtrl = (voodoo->intrCtrl & ~VOODOO_INTRCTRL_ENABLE_MASK) | (val & VOODOO_INTRCTRL_ENABLE_MASK);
                 break;
             
             case SST_userIntrCMD:
@@ -933,7 +939,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 break;
 
             case SST_cmdFifoRdPtr:
-                voodoo->cmdfifo_rp = val;
+                voodoo->cmdfifo_rp = val & ~3u;
                 break;
             case SST_cmdFifoAMin:
                 voodoo->cmdfifo_amin = val;
@@ -1227,12 +1233,33 @@ voodoo_card_init(const device_t *info)
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;
+            /* Seed SST-1 power-on defaults (sst1/init/initvg/sst1init.h). These
+               are what the fbiInit registers read before the guest writes them;
+               Glide reads them during board detection (fbiConfig, VGA passthru). */
+            voodoo->fbiInit0 = 0x00000410; /* SST_FBIINIT0_DEFAULT */
+            voodoo->fbiInit1 = 0x00201102; /* SST_FBIINIT1_DEFAULT */
+            voodoo->fbiInit2 = 0x80000040; /* SST_FBIINIT2_DEFAULT */
+            voodoo->fbiInit3 = 0x001e4000; /* SST_FBIINIT3_DEFAULT */
+            voodoo->fbiInit4 = 0x00000001; /* SST_FBIINIT4_DEFAULT */
             break;
         case VOODOO_SB50:
             voodoo->dual_tmus = 1;
+            /* Same SST-1 defaults as VOODOO_1 (SB50 is a 2-TMU SST-1). */
+            voodoo->fbiInit0 = 0x00000410;
+            voodoo->fbiInit1 = 0x00201102;
+            voodoo->fbiInit2 = 0x80000040;
+            voodoo->fbiInit3 = 0x001e4000;
+            voodoo->fbiInit4 = 0x00000001;
             break;
         case VOODOO_2:
             voodoo->dual_tmus = 1;
+            /* Seed CVG power-on defaults (cvg/init/sst1init.h). */
+            voodoo->fbiInit0 = 0x00001c10;
+            voodoo->fbiInit1 = 0x00201102;
+            voodoo->fbiInit2 = 0x80000040;
+            voodoo->fbiInit3 = 0x001E4040;
+            voodoo->fbiInit4 = 0x00000001;
+            voodoo->fbiInit5 = 0x08408000;
             break;
 
         default:
@@ -1269,7 +1296,6 @@ voodoo_card_init(const device_t *info)
     timer_add(&voodoo->timer, voodoo_callback, voodoo, 1);
 
     voodoo->svga     = svga_get_pri();
-    voodoo->fbiInit0 = 0;
 
     voodoo->wake_fifo_thread         = thread_create_event();
     voodoo->wake_render_thread[0]    = thread_create_event();
@@ -1540,7 +1566,14 @@ voodoo_init(const device_t *info)
                 tmuConfig = 1 | (3 << 6);
             break;
         case VOODOO_2:
-            tmuConfig = 1 | (3 << 6);
+            /* tmuConfig for dual-TMU Voodoo2.
+             * Derived from MAME voodoo_2_device::device_start():
+             *   bit  0       = TMU0 present
+             *   bit  4       = Voodoo2 base flag (hardware-defined, undocumented)
+             *   bits 7:6 = 3 = TMU1 present (chipmask bit 2 always set on V2)
+             *   bit 11       = Voodoo2-only capability flag
+             * Yields 0x8d1. */
+            tmuConfig = 1 | (1 << 4) | (3 << 6) | (1 << 11);
             break;
 
         default:
