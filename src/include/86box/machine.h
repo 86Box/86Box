@@ -1363,7 +1363,7 @@ extern int             machine_at_atc7020bxii_init(const machine_t *);
 extern int             machine_at_m773_init(const machine_t *);
 
 /* VIA Apollo Pro */
-extern int             machine_at_apas3_init(const machine_t *);
+extern int             machine_at_vim863s_init(const machine_t *);
 
 /* VIA Apollo Pro 133 */
 extern int             machine_at_p6bap_init(const machine_t *);

@@ -22570,11 +22570,11 @@ const machine_t machines[] = {
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name              = "[VIA Apollo Pro] PC Partner APAS3",
-        .internal_name     = "apas3",
+        .name              = "[VIA Apollo Pro] PC Partner VIM863S",
+        .internal_name     = "vim863s",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_VIA_APOLLO_PRO,
-        .init              = machine_at_apas3_init,
+        .init              = machine_at_vim863s_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -22590,7 +22590,8 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Creative Vibra 16XV */
+        /* Machine has internal video: Creative Vibra 16XV */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -22612,7 +22613,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &sb_vibra16xv_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
