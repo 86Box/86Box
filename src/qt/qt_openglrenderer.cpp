@@ -71,6 +71,8 @@ extern bool cpu_thread_running;
 
 static GLfloat matrix[] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
 
+const GLenum buffers[]{ GL_BACK_LEFT, GL_BACK_RIGHT };
+
 extern int video_filter_method;
 extern int video_vsync;
 extern int video_focus_dim;
@@ -868,19 +870,17 @@ OpenGLRenderer::initialize()
         if (!context->makeCurrent(this))
             throw opengl_init_error(tr("Couldn't switch to OpenGL context."));
 
-        int draw_buffer = GL_NONE;
-        glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-        if (draw_buffer == GL_NONE) {
-            const GLenum buffers[]{ GL_BACK_LEFT };
-            glw.glDrawBuffers(1, buffers);
-        }
-        
         auto version = context->format().version();
 
         if (version.first < 3)
             throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current version is %1.%2").arg(version.first).arg(version.second));
 
         glw.initializeOpenGLFunctions();
+
+        int draw_buffer = GL_NONE;
+        glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
+        if (draw_buffer == GL_NONE)
+            glw.glDrawBuffers(2, buffers);
 
         glw.glClearColor(0, 0, 0, 1);
 
@@ -1143,10 +1143,8 @@ OpenGLRenderer::finalize()
 
     int draw_buffer = GL_NONE;
     glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-    if (draw_buffer == GL_NONE) {
-        const GLenum buffers[]{ GL_BACK_LEFT };
-        glw.glDrawBuffers(1, buffers);
-    }
+    if (draw_buffer == GL_NONE)
+        glw.glDrawBuffers(2, buffers);
 
     delete_texture(&scene_texture);
 
@@ -1175,10 +1173,8 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     int draw_buffer = GL_NONE;
     glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-    if (draw_buffer == GL_NONE) {
-        const GLenum buffers[]{ GL_BACK_LEFT };
-        glw.glDrawBuffers(1, buffers);
-    }
+    if (draw_buffer == GL_NONE)
+        glw.glDrawBuffers(2, buffers);
 
     if (source.width() != w || source.height() != h) {
         glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
@@ -1253,10 +1249,8 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 
     int draw_buffer = GL_NONE;
     glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-    if (draw_buffer == GL_NONE) {
-        const GLenum buffers[]{ GL_BACK_LEFT };
-        glw.glDrawBuffers(1, buffers);
-    }
+    if (draw_buffer == GL_NONE)
+        glw.glDrawBuffers(2, buffers);
 
     glw.glViewport(
         destination.x(),
