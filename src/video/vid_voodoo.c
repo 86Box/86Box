@@ -179,7 +179,9 @@ voodoo_recalc(voodoo_t *voodoo)
             break;
 
         default:
-            fatal("voodoo_recalc : unknown lfb source\n");
+            /* Reserved LFB read selects should behave like an unmapped buffer, not abort the card. */
+            voodoo->fb_read_offset = voodoo->fb_mask + 1;
+            break;
     }
 
     switch (voodoo->params.fbzMode & FBZ_DRAW_MASK) {
