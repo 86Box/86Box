@@ -870,8 +870,10 @@ OpenGLRenderer::initialize()
 
         int draw_buffer = GL_NONE;
         glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-        if (draw_buffer == GL_NONE)
-            glw.glDrawBuffer(GL_BACK);
+        if (draw_buffer == GL_NONE) {
+            const GLenum buffers[]{ GL_BACK };
+            glw.glDrawBuffers(1, GL_buffers);
+        }
         
         auto version = context->format().version();
 
@@ -1141,8 +1143,10 @@ OpenGLRenderer::finalize()
 
     int draw_buffer = GL_NONE;
     glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-    if (draw_buffer == GL_NONE)
-        glw.glDrawBuffer(GL_BACK);
+    if (draw_buffer == GL_NONE) {
+        const GLenum buffers[]{ GL_BACK };
+        glw.glDrawBuffers(1, GL_buffers);
+    }
 
     delete_texture(&scene_texture);
 
@@ -1171,8 +1175,10 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     int draw_buffer = GL_NONE;
     glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-    if (draw_buffer == GL_NONE)
-        glw.glDrawBuffer(GL_BACK);
+    if (draw_buffer == GL_NONE) {
+        const GLenum buffers[]{ GL_BACK };
+        glw.glDrawBuffers(1, GL_buffers);
+    }
 
     if (source.width() != w || source.height() != h) {
         glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
@@ -1247,8 +1253,10 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
 
     int draw_buffer = GL_NONE;
     glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
-    if (draw_buffer == GL_NONE)
-        glw.glDrawBuffer(GL_BACK);
+    if (draw_buffer == GL_NONE) {
+        const GLenum buffers[]{ GL_BACK };
+        glw.glDrawBuffers(1, GL_buffers);
+    }
 
     glw.glViewport(
         destination.x(),
