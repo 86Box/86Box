@@ -95,8 +95,15 @@ typedef enum {
 
 extern const device_t      lpt_dac_device;
 extern const device_t      lpt_dac_stereo_device;
+extern const device_t      lpt_dac_ftl_device;
+extern const device_t      lpt_dac_soundjr_device;
 
 extern const device_t      dss_device;
+
+extern const device_t      lpt_adlipt_device;
+extern const device_t      lpt_opl3_device;
+extern const device_t      lpt_cms_device;
+extern const device_t      lpt_tnd_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 

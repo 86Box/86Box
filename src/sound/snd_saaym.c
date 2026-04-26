@@ -24,6 +24,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/sound.h>
 #include <86box/snd_cms.h>
 #include <86box/snd_saaym.h>
 #include <86box/sound.h>
