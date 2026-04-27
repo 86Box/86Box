@@ -1933,7 +1933,16 @@ gd54xx_recalctimings(svga_t *svga)
     } else if (svga->gdcreg[5] & 0x40)
         svga->render = svga_render_8bpp_lowres;
 
-    svga->memaddr_latch |= ((svga->crtc[0x1b] & 0x01) << 16) | ((svga->crtc[0x1b] & 0xc) << 15);
+    svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) |
+                            ((svga->crtc[0x1b] & 0x01) << 16);
+    if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5420)
+        svga->memaddr_latch |= ((svga->crtc[0x1b] & 0x04) << 15);
+    if ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5426) ||
+        (svga->crtc[0x27] >= CIRRUS_ID_CLGD5428))
+        svga->memaddr_latch |= ((svga->crtc[0x1b] & 0x08) << 15);
+    if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5430)
+        svga->memaddr_latch |= ((svga->crtc[0x1d] & 0x80) << 12);
+    svga->memaddr_latch  += ((svga->crtc[8] & 0x60) >> 5);
 
     if (gd54xx->ramdac.ctrl & 0x80) {
         if (gd54xx->ramdac.ctrl & 0x40) {
