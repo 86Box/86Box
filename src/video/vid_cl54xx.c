@@ -1260,8 +1260,16 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                         svga->fullchange = 3;
-                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) +
-                                           ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) |
+                                                ((svga->crtc[0x1b] & 0x01) << 16);
+                        if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5420)
+                            svga->memaddr_latch |= ((svga->crtc[0x1b] & 0x04) << 15);
+                        if ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5426) ||
+                            (svga->crtc[0x27] >= CIRRUS_ID_CLGD5428))
+                            svga->memaddr_latch |= ((svga->crtc[0x1b] & 0x08) << 15);
+                        if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5430)
+                            svga->memaddr_latch |= ((svga->crtc[0x1d] & 0x80) << 12);
+                        svga->memaddr_latch  += ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
