@@ -67,3 +67,31 @@ CMakeLists.txt.user
 
 # Jetbrains CLion
 .idea
+docs/perf-artifacts/*
+tools/win98-*
+
+docs/rage128*
+docs/reference/*
+V4_4500_AGP_SD_1.18.rom
+docs/videoco*
+scripts/win9*
+research/solo1*
+appimage-x86_*
+scripts/dynarec/*
+scripts/build-and-sign.sh
+scripts/clean-build-and-sign.sh
+scripts/setup-and-build.sh
+scripts/test-with-vm.sh
+
+# Local perf/tooling artifacts (keep source clean for upstream PRs)
+docs/perf-artifacts/**
+docs/rage128-pro/artifacts/**
+research/**
+appimage-x86_64-cross/**
+scripts/dynarec/**/*.log
+scripts/dynarec/**/*.txt
+scripts/dynarec/**/*.csv
+scripts/dynarec/**/*.trace
+scripts/dynarec/.analyze-s03a-log.bin
+*.trace
+*.dtrace

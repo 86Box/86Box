@@ -2,6 +2,8 @@
 
 #    include <inttypes.h>
 #    include <stdint.h>
+#    include <stdlib.h>
+#    include <string.h>
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
@@ -46,6 +48,7 @@
 #    define OPCODE_ADDX_IMM           (0x91 << OPCODE_SHIFT)
 #    define OPCODE_ADR                (0x10 << OPCODE_SHIFT)
 #    define OPCODE_B                  (0x14 << OPCODE_SHIFT)
+#    define OPCODE_BL                 (0x94 << OPCODE_SHIFT)
 #    define OPCODE_BCOND              (0x54 << OPCODE_SHIFT)
 #    define OPCODE_CBNZ               (0xb5 << OPCODE_SHIFT)
 #    define OPCODE_CBZ                (0xb4 << OPCODE_SHIFT)
@@ -61,6 +64,7 @@
 #    define OPCODE_AND_IMM            (0x024 << 23)
 #    define OPCODE_ANDS_IMM           (0x0e4 << 23)
 #    define OPCODE_EOR_IMM            (0x0a4 << 23)
+#    define OPCODE_MOVN_W             (0x025 << 23)
 #    define OPCODE_MOVK_W             (0x0e5 << 23)
 #    define OPCODE_MOVK_X             (0x1e5 << 23)
 #    define OPCODE_MOVZ_W             (0x0a5 << 23)
@@ -126,6 +130,7 @@
 #    define OPCODE_FABS_D             (0x1e60c000)
 #    define OPCODE_FADD_D             (0x1e602800)
 #    define OPCODE_FADD_V2S           (0x0e20d400)
+#    define OPCODE_FADDP_V2S          (0x2e20d400)
 #    define OPCODE_FCMEQ_V2S          (0x0e20e400)
 #    define OPCODE_FCMGE_V2S          (0x2e20e400)
 #    define OPCODE_FCMGT_V2S          (0x2ea0e400)
@@ -186,12 +191,15 @@
 #    define OPCODE_SQXTN_V8B_8H       (0x0e214800)
 #    define OPCODE_SQXTUN_V8B_8H      (0x2e212800)
 #    define OPCODE_SQXTN_V4H_4S       (0x0e614800)
+#    define OPCODE_XTN_V8B_8H         (0x0e212800)
+#    define OPCODE_XTN_V4H_4S         (0x0e612800)
 #    define OPCODE_SHL_VD             (0x0f005400)
 #    define OPCODE_SHL_VQ             (0x4f005400)
 #    define OPCODE_SHRN               (0x0f008400)
 #    define OPCODE_SMULL_V4S_4H       (0x0e60c000)
 #    define OPCODE_SSHR_VD            (0x0f000400)
 #    define OPCODE_SSHR_VQ            (0x4f000400)
+#    define OPCODE_SRSHR_VQ           (0x4f302400)
 #    define OPCODE_STR_REG            (0xb8206800)
 #    define OPCODE_STRB_REG           (0x38206800)
 #    define OPCODE_STRH_REG           (0x78206800)
@@ -207,6 +215,7 @@
 #    define OPCODE_UQSUB_V4H          (0x2e602c00)
 #    define OPCODE_UQXTN_V8B_8H       (0x2e214800)
 #    define OPCODE_UQXTN_V4H_4S       (0x2e614800)
+#    define OPCODE_URHADD_V8B         (0x2e201400)
 #    define OPCODE_USHR_VD            (0x2f000400)
 #    define OPCODE_USHR_VQ            (0x6f000400)
 #    define OPCODE_ZIP1_V8B           (0x0e003800)
@@ -251,17 +260,6 @@
 
 #    define DUP_ELEMENT(element)      ((element) << 19)
 
-/*Returns true if offset fits into 19 bits*/
-static int
-offset_is_19bit(int offset)
-{
-    if (offset >= (1 << (18 + 2)))
-        return 0;
-    if (offset < -(1 << (18 + 2)))
-        return 0;
-    return 1;
-}
-
 /*Returns true if offset fits into 26 bits*/
 static int
 offset_is_26bit(int offset)
@@ -273,10 +271,42 @@ offset_is_26bit(int offset)
     return 1;
 }
 
+/* Decode signed byte displacement from a B.cond immediate field. */
+static inline int
+bcond_offset_bytes(uint32_t opcode)
+{
+    int imm19 = (int) ((opcode >> 5) & 0x7ffff);
+
+    if (imm19 & (1 << 18))
+        imm19 |= ~0x7ffff;
+    return imm19 << 2;
+}
+
+/* Decode signed byte displacement from a TBZ/TBNZ immediate field. */
+static inline int
+tbxz_offset_bytes(uint32_t opcode)
+{
+    int imm14 = (int) ((opcode >> 5) & 0x3fff);
+
+    if (imm14 & (1 << 13))
+        imm14 |= ~0x3fff;
+    return imm14 << 2;
+}
+
 static inline int
 imm_is_imm16(uint32_t imm_data)
 {
     if (!(imm_data & 0xffff0000) || !(imm_data & 0x0000ffff))
+        return 1;
+    return 0;
+}
+
+static inline int
+imm_is_movn16(uint32_t imm_data)
+{
+    /* MOVN can materialize a 32-bit immediate in one instruction when one halfword is
+       all ones, because non-selected halfwords are also filled with ones. */
+    if ((imm_data & 0xffff0000u) == 0xffff0000u || (imm_data & 0x0000ffffu) == 0x0000ffffu)
         return 1;
     return 0;
 }
@@ -316,6 +346,7 @@ codegen_alloc(codeblock_t *block, int size)
     if (block_pos >= (BLOCK_MAX - size))
         codegen_allocate_new_block(block);
 }
+
 
 void
 host_arm64_ADD_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint32_t imm_data)
@@ -581,8 +612,54 @@ host_arm64_BVS_(codeblock_t *block)
 void
 host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
 {
-    int offset = (uintptr_t) dest - (uintptr_t) opcode;
-    *opcode |= OFFSET26(offset);
+    uint32_t *cond_opcode        = opcode - 1;
+    uint32_t  branch_insn        = *opcode;
+    uint32_t  cond_insn          = *cond_opcode;
+    int       offset26           = (int) ((uintptr_t) dest - (uintptr_t) opcode);
+    int       is_bcond_template  = 0;
+    int       is_tbxz_template   = 0;
+
+    /* Most branch patch sites come from B.cond-skip + B templates emitted by
+       host_arm64_B??_ helpers. Only collapse/track when we see that exact
+       template shape to avoid touching unrelated neighboring instructions. */
+    if (((branch_insn & 0xfc000000u) == OPCODE_B) &&
+        ((cond_insn & 0xff000010u) == OPCODE_BCOND) &&
+        (bcond_offset_bytes(cond_insn) == 8)) {
+        uint8_t *cond_src = (uint8_t *) cond_opcode;
+
+        is_bcond_template = 1;
+        if (codegen_allocator_can_branch_imm19(cond_src, dest)) {
+            uint32_t inv_cond = cond_insn & 0xf;
+            uint32_t cond     = inv_cond ^ 1u;
+            int      offset19 = (int) ((uintptr_t) dest - (uintptr_t) cond_opcode);
+
+            *cond_opcode = OPCODE_BCOND | (cond & 0xfu) | OFFSET19(offset19);
+            *opcode      = OPCODE_NOP;
+            return;
+        }
+    }
+
+    /* Apply the same guarded template collapse to TBZ/TBNZ skip+branch forms,
+       which are used by a subset of ARM64 uop patch paths (e.g., tag tests). */
+    if (((branch_insn & 0xfc000000u) == OPCODE_B) &&
+        ((cond_insn & 0x7e000000u) == OPCODE_TBZ) &&
+        (tbxz_offset_bytes(cond_insn) == 8)) {
+        uint8_t *cond_src = (uint8_t *) cond_opcode;
+
+        is_tbxz_template = 1;
+        if (codegen_allocator_can_branch_imm14(cond_src, dest)) {
+            uint32_t flipped  = cond_insn ^ (1u << 24);
+            int      offset14 = (int) ((uintptr_t) dest - (uintptr_t) cond_opcode);
+
+            *cond_opcode = (flipped & ~0x0007ffe0u) | OFFSET14(offset14);
+            *opcode      = OPCODE_NOP;
+            return;
+        }
+    }
+
+    *opcode = OPCODE_B | OFFSET26(offset26);
+    (void) is_bcond_template;
+    (void) is_tbxz_template;
 }
 
 void
@@ -594,8 +671,34 @@ host_arm64_BR(codeblock_t *block, int addr_reg)
 void
 host_arm64_BEQ(codeblock_t *block, void *dest)
 {
-    uint32_t *opcode = host_arm64_BEQ_(block);
-    host_arm64_branch_set_offset(opcode, dest);
+    uint8_t *branch_src;
+    int      is_local;
+
+    /* Prefer direct B.EQ when imm19-reachable, then bridge via inverse
+       conditional + B(imm26), and preserve MOVX+BR fallback for far targets. */
+    codegen_alloc(block, 24);
+    branch_src = &block_write_data[block_pos];
+    is_local   = codegen_allocator_contains_host_ptr(dest);
+
+    if (codegen_allocator_can_branch_imm19(branch_src, dest)) {
+        intptr_t offset = (intptr_t) ((uint8_t *) dest - branch_src);
+        codegen_addlong(block, OPCODE_BCOND | COND_EQ | OFFSET19(offset));
+        return;
+    }
+
+    if (codegen_allocator_can_branch_imm26(branch_src + 4, dest)) {
+        intptr_t offset;
+
+        codegen_addlong(block, OPCODE_BCOND | COND_NE | OFFSET19(8));
+        offset = (intptr_t) ((uint8_t *) dest - &block_write_data[block_pos]);
+        codegen_addlong(block, OPCODE_B | OFFSET26(offset));
+        return;
+    }
+
+    codegen_addlong(block, OPCODE_BCOND | COND_NE | OFFSET19(12));
+    host_arm64_MOVX_IMM(block, REG_X16, (uint64_t) dest);
+    host_arm64_BR(block, REG_X16);
+    (void) is_local;
 }
 
 void
@@ -607,18 +710,32 @@ host_arm64_BIC_REG_V(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_r
 void
 host_arm64_CBNZ(codeblock_t *block, int reg, uintptr_t dest)
 {
-    int offset;
+    uint8_t *cbnz_src;
+    void    *dst_ptr = (void *) dest;
+    int      is_local;
+    intptr_t offset;
 
-    codegen_alloc(block, 4);
-    offset = dest - (uintptr_t) &block_write_data[block_pos];
-    if (offset_is_19bit(offset)) {
+    codegen_alloc(block, 12);
+    cbnz_src = &block_write_data[block_pos];
+    is_local = codegen_allocator_contains_host_ptr(dst_ptr);
+
+    if (codegen_allocator_can_branch_imm19(cbnz_src, dst_ptr)) {
+        offset = (intptr_t) ((uint8_t *) dst_ptr - cbnz_src);
         codegen_addlong(block, OPCODE_CBNZ | OFFSET19(offset) | Rt(reg));
-    } else {
-        codegen_alloc(block, 12);
-        codegen_addlong(block, OPCODE_CBZ | OFFSET19(8) | Rt(reg));
-        offset = (uintptr_t) dest - (uintptr_t) &block_write_data[block_pos];
-        codegen_addlong(block, OPCODE_B | OFFSET26(offset));
+        return;
     }
+
+    if (codegen_allocator_can_branch_imm26(cbnz_src + 4, dst_ptr)) {
+        codegen_addlong(block, OPCODE_CBZ | OFFSET19(8) | Rt(reg));
+        offset = (intptr_t) ((uint8_t *) dst_ptr - &block_write_data[block_pos]);
+        codegen_addlong(block, OPCODE_B | OFFSET26(offset));
+        return;
+    }
+
+    codegen_addlong(block, OPCODE_CBZ | OFFSET19(12) | Rt(reg));
+    host_arm64_MOVX_IMM(block, REG_X16, (uint64_t) dest);
+    host_arm64_BR(block, REG_X16);
+    (void) is_local;
 }
 
 void
@@ -729,6 +846,12 @@ host_arm64_INS_D(codeblock_t *block, int dst_reg, int src_reg, int dst_index, in
 }
 
 void
+host_arm64_INS_S(codeblock_t *block, int dst_reg, int src_reg, int dst_index, int src_index)
+{
+    codegen_addlong(block, OPCODE_INS_S | Rd(dst_reg) | Rn(src_reg) | ((dst_index & 3) << 19) | ((src_index & 3) << 13));
+}
+
+void
 host_arm64_EOR_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint32_t imm_data)
 {
     uint32_t imm_encoding = host_arm64_find_imm(imm_data);
@@ -766,6 +889,11 @@ void
 host_arm64_FADD_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_FADD_V2S | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_FADDP_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_FADDP_V2S | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 void
 host_arm64_FCMEQ_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
@@ -1249,6 +1377,16 @@ host_arm64_SQXTN_V4H_4S(codeblock_t *block, int dst_reg, int src_reg)
 {
     codegen_addlong(block, OPCODE_SQXTN_V4H_4S | Rd(dst_reg) | Rn(src_reg));
 }
+void
+host_arm64_XTN_V8B_8H(codeblock_t *block, int dst_reg, int src_reg)
+{
+    codegen_addlong(block, OPCODE_XTN_V8B_8H | Rd(dst_reg) | Rn(src_reg));
+}
+void
+host_arm64_XTN_V4H_4S(codeblock_t *block, int dst_reg, int src_reg)
+{
+    codegen_addlong(block, OPCODE_XTN_V4H_4S | Rd(dst_reg) | Rn(src_reg));
+}
 
 void
 host_arm64_SHL_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
@@ -1286,6 +1424,13 @@ host_arm64_SSHR_V2D(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
     if (shift > 64)
         fatal("host_arm_SSHR_V2D : shift > 64\n");
     codegen_addlong(block, OPCODE_SSHR_VQ | Rd(dst_reg) | Rn(src_n_reg) | SHIFT_IMM_V2D(64 - shift));
+}
+void
+host_arm64_SRSHR_V4S(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
+{
+    if (shift > 32)
+        fatal("host_arm_SRSHR_V4S : shift > 32\n");
+    codegen_addlong(block, OPCODE_SRSHR_VQ | Rd(dst_reg) | Rn(src_n_reg) | SHIFT_IMM_V2S(32 - shift));
 }
 
 void
@@ -1455,6 +1600,11 @@ host_arm64_UQXTN_V4H_4S(codeblock_t *block, int dst_reg, int src_reg)
 {
     codegen_addlong(block, OPCODE_UQXTN_V4H_4S | Rd(dst_reg) | Rn(src_reg));
 }
+void
+host_arm64_URHADD_V8B(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_URHADD_V8B | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
 
 void
 host_arm64_USHR_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
@@ -1514,9 +1664,24 @@ host_arm64_ZIP2_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_re
     codegen_addlong(block, OPCODE_ZIP2_V2S | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 
+
 void
 host_arm64_call(codeblock_t *block, void *dst_addr)
 {
+    uint8_t *branch_src;
+    int      is_local;
+
+    /* Prefer direct BL for local in-range JIT targets; otherwise preserve
+       existing absolute MOVX+BLR fallback for correctness. */
+    codegen_alloc(block, 4);
+    branch_src = &block_write_data[block_pos];
+    is_local   = codegen_allocator_contains_host_ptr(dst_addr);
+    if (is_local && codegen_allocator_can_branch_imm26(branch_src, dst_addr)) {
+        intptr_t offset = (intptr_t) ((uint8_t *) dst_addr - branch_src);
+        codegen_addlong(block, OPCODE_BL | OFFSET26(offset));
+        return;
+    }
+
     host_arm64_MOVX_IMM(block, REG_X16, (uint64_t) dst_addr);
     host_arm64_BLR(block, REG_X16);
 }
@@ -1524,6 +1689,21 @@ host_arm64_call(codeblock_t *block, void *dst_addr)
 void
 host_arm64_jump(codeblock_t *block, uintptr_t dst_addr)
 {
+    uint8_t *branch_src;
+    void    *dst_ptr = (void *) dst_addr;
+    int      is_local;
+
+    /* Prefer direct B for local in-range JIT targets; otherwise preserve
+       existing absolute MOVX+BR fallback for correctness. */
+    codegen_alloc(block, 4);
+    branch_src = &block_write_data[block_pos];
+    is_local   = codegen_allocator_contains_host_ptr(dst_ptr);
+    if (is_local && codegen_allocator_can_branch_imm26(branch_src, dst_ptr)) {
+        intptr_t offset = (intptr_t) ((uint8_t *) dst_ptr - branch_src);
+        codegen_addlong(block, OPCODE_B | OFFSET26(offset));
+        return;
+    }
+
     host_arm64_MOVX_IMM(block, REG_X16, (uint64_t) dst_addr);
     host_arm64_BR(block, REG_X16);
 }
@@ -1531,9 +1711,21 @@ host_arm64_jump(codeblock_t *block, uintptr_t dst_addr)
 void
 host_arm64_mov_imm(codeblock_t *block, int reg, uint32_t imm_data)
 {
+    uint32_t imm_encoding;
+
+    /* Fast-path constants that fit a single MOVZ lane update. */
     if (imm_is_imm16(imm_data))
         host_arm64_MOVZ_IMM(block, reg, imm_data);
-    else {
+    /* Use MOVN for one-lane "all ones" patterns to avoid MOVZ+MOVK. */
+    else if (imm_is_movn16(imm_data)) {
+        int hw = ((imm_data & 0xffff0000u) == 0xffff0000u) ? 0 : 1;
+        uint32_t movn_imm = hw ? ((~imm_data >> 16) & 0xffffu) : ((~imm_data) & 0xffffu);
+        codegen_addlong(block, OPCODE_MOVN_W | MOV_WIDE_HW(hw) | IMM16(movn_imm) | Rd(reg));
+    } else if ((imm_encoding = host_arm64_find_imm(imm_data)) != 0) {
+        /* Logical-immediate encoding emits one ORR-immediate from WZR. */
+        codegen_addlong(block, OPCODE_ORR_IMM | Rd(reg) | Rn(REG_WZR) | IMM_LOGICAL(imm_encoding));
+    } else {
+        /* Conservative fallback preserves existing behavior when no single-op form exists. */
         host_arm64_MOVZ_IMM(block, reg, imm_data & 0xffff);
         host_arm64_MOVK_IMM(block, reg, imm_data & 0xffff0000);
     }

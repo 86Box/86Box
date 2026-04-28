@@ -1,6 +1,9 @@
 #ifndef _CODEGEN_ALLOCATOR_H_
 #define _CODEGEN_ALLOCATOR_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
 /*The allocator handles all allocation of executable memory. Since the two-pass
   recompiler design makes applying hard limits to codeblock size difficult, the
   allocator allows memory to be provided as and when required.
@@ -31,6 +34,20 @@ void codegen_allocator_free(struct mem_block_t *block);
 uint8_t *codeblock_allocator_get_ptr(struct mem_block_t *block);
 /*Cache clean memory block list*/
 void codegen_allocator_clean_blocks(struct mem_block_t *block);
+
+/* Branch classification helpers:
+   - codegen_allocator_contains_host_ptr(): tells whether a host pointer targets
+     the JIT allocator arena (candidate for direct local branch).
+   - codegen_allocator_can_branch_imm14(): validates AArch64 TBZ/TBNZ immediate
+     branch range/alignment from a source instruction address to target.
+   - codegen_allocator_can_branch_imm19(): validates AArch64 CBZ/CBNZ immediate
+     branch range/alignment from a source instruction address to target.
+   - codegen_allocator_can_branch_imm26(): validates AArch64 B/BL immediate
+     branch range/alignment from a source instruction address to target. */
+bool codegen_allocator_contains_host_ptr(const void *p);
+bool codegen_allocator_can_branch_imm14(const uint8_t *src_insn_addr, const void *dst);
+bool codegen_allocator_can_branch_imm19(const uint8_t *src_insn_addr, const void *dst);
+bool codegen_allocator_can_branch_imm26(const uint8_t *src_insn_addr, const void *dst);
 
 extern int codegen_allocator_usage;
 
