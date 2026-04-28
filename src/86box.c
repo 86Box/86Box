@@ -2061,7 +2061,7 @@ pc_run(void)
 
         /*
          * Use real sample duration for title speed percent so delayed timer
-         * callbacks do not create false dip/rebound spikes in telemetry.
+         * callbacks do not create false dip/rebound spikes in speed reporting.
          */
         numerator     = (int64_t) fps * 100000LL;
         speed_percent = (int) ((numerator + ((int64_t) elapsed_ms * target_fps / 2)) /
