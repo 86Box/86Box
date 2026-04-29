@@ -203,8 +203,11 @@ SettingsHarddisks::restore()
 }
 
 void
-SettingsHarddisks::save()
+SettingsHarddisks::save(int soft)
 {
+    if (soft)
+        return;
+
     memset(hdd, 0, sizeof(hdd));
 
     auto *model = ui->tableView->model();

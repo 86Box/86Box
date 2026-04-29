@@ -274,8 +274,11 @@ SettingsNetwork::restore()
 }
 
 void
-SettingsNetwork::save()
+SettingsNetwork::save(int soft)
 {
+    if (soft)
+        return;
+
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *cbox = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
 #ifdef HAS_VDE

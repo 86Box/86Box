@@ -120,8 +120,21 @@ SettingsDisplay::changed()
 }
 
 void
-SettingsDisplay::save()
+SettingsDisplay::save(int soft)
 {
+    video_grayscale = ui->comboBoxScreenType->currentData().toInt();
+    video_graytype  = ui->comboBoxConversionType->currentData().toInt();
+
+    update_overscan = 1;
+
+    enable_overscan  = ui->checkBoxOverscan->isChecked() ? 1 : 0;
+    vid_cga_contrast = ui->checkBoxContrast->isChecked() ? 1 : 0;
+
+    invert_display = ui->checkBoxInverted->isChecked() ? 1 : 0;
+
+    if (soft)
+        goto end;
+
     // TODO
 #if 0
     for (uint8_t i = 0; i < GFXCARD_MAX; ++i) {
@@ -142,16 +155,7 @@ SettingsDisplay::save()
 
     strncpy(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
 
-    video_grayscale         = ui->comboBoxScreenType->currentData().toInt();
-    video_graytype          = ui->comboBoxConversionType->currentData().toInt();
-
-    update_overscan         = 1;
-
-    enable_overscan         = ui->checkBoxOverscan->isChecked() ? 1 : 0;
-    vid_cga_contrast        = ui->checkBoxContrast->isChecked() ? 1 : 0;
-
-    invert_display          = ui->checkBoxInverted->isChecked() ? 1 : 0;
-
+end:
     for (int i = 0; i < MONITORS_NUM; i++)
         cgapal_rebuild_monitor(i);
 }

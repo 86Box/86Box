@@ -251,19 +251,19 @@ Settings::~Settings()
 }
 
 void
-Settings::save()
+Settings::save(int soft)
 {
-    machine->save();
-    display->save();
-    input->save();
-    sound->save();
-    network->save();
-    ports->save();
-    storageControllers->save();
-    harddisks->save();
-    floppyCdrom->save();
-    otherRemovable->save();
-    otherPeripherals->save();
+    machine->save(soft);
+    display->save(soft);
+    input->save(soft);
+    sound->save(soft);
+    network->save(soft);
+    ports->save(soft);
+    storageControllers->save(soft);
+    harddisks->save(soft);
+    floppyCdrom->save(soft);
+    otherRemovable->save(soft);
+    otherPeripherals->save(soft);
 }
 
 void
@@ -297,7 +297,7 @@ Settings::accept()
             return;
         }
     } else if (changed && !(changed & SETTINGS_REQUIRE_HARD_RESET) && !settings_only) {
-        save();
+        save(1);
         config_changed = 2;
         main_window->emitVmmSignal();
         lpt_devices_reset();

@@ -105,18 +105,21 @@ SettingsSound::restore()
 }
 
 void
-SettingsSound::save()
+SettingsSound::save(int soft)
 {
+    midi_output_device_current = ui->comboBoxMidiOut->currentData().toInt();
+
+    midi_input_device_current = ui->comboBoxMidiIn->currentData().toInt();
+
+    if (soft)
+        return;
+
     for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
         QComboBox *cbox       = findChild<QComboBox *>(QString("comboBoxSoundCard%1").arg(i + 1));
         sound_card_current[i] = cbox->currentData().toInt();
     }
 
     fm_driver = ui->comboBoxFM->currentData().toInt();
-
-    midi_output_device_current = ui->comboBoxMidiOut->currentData().toInt();
-
-    midi_input_device_current = ui->comboBoxMidiIn->currentData().toInt();
 
     mpu401_standalone_enable = ui->checkBoxMPU401->isChecked() ? 1 : 0;
 

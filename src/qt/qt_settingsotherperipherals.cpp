@@ -253,8 +253,11 @@ SettingsOtherPeripherals::restore()
 }
 
 void
-SettingsOtherPeripherals::save()
+SettingsOtherPeripherals::save(int soft)
 {
+    if (soft)
+        return;
+
     /* Other peripherals category */
     isartc_type            = ui->comboBoxRTC->currentData().toInt();
     bugger_enabled         = ui->checkBoxISABugger->isChecked() ? 1 : 0;

@@ -126,8 +126,11 @@ SettingsInput::restore()
 }
 
 void
-SettingsInput::save()
+SettingsInput::save(int soft)
 {
+    if (soft)
+        return;
+
     keyboard_type = ui->comboBoxKeyboard->currentData().toInt();
     mouse_type    = ui->comboBoxMouse->currentData().toInt();
 

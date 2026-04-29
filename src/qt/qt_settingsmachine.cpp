@@ -201,8 +201,11 @@ SettingsMachine::restore()
 }
 
 void
-SettingsMachine::save()
+SettingsMachine::save(int soft)
 {
+    if (soft)
+        return;
+
     machine                  = ui->comboBoxMachine->currentData().toInt();
     cpu_f                    = const_cast<cpu_family_t *>(&cpu_families[ui->comboBoxCPU->currentData().toInt()]);
     cpu                      = ui->comboBoxSpeed->currentData().toInt();

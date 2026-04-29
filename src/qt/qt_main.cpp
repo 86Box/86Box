@@ -723,7 +723,7 @@ main(int argc, char *argv[])
         }
         Settings settings;
         if (settings.exec() == QDialog::Accepted) {
-            settings.save();
+            settings.save(0);
             config_save();
         }
         return 0;

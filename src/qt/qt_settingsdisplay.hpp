@@ -20,7 +20,7 @@ public:
 
     int  changed();
 
-    void save();
+    void save(int soft);
 
 public slots:
     void onCurrentMachineChanged(int machineId);
