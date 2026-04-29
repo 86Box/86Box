@@ -35,10 +35,10 @@ enum {
 };
 
 typedef struct {
-    const uint8_t  data_tx;
-    const uint8_t  data_rx;
-    const uint32_t control;
-    const uint32_t status;
+    uint8_t  data_tx;
+    uint8_t  data_rx;
+    uint32_t control;
+    uint32_t status;
 } char_loopback_bits_t;
 
 static const struct {
@@ -187,11 +187,6 @@ char_loopback_init(const device_t *info)
 {
     char_loopback_t *dev = (char_loopback_t *) calloc(1, sizeof(char_loopback_t));
 
-    /* Attach character device. */
-    dev->port = char_attach(0, char_loopback_read, char_loopback_write, char_loopback_status, char_loopback_control, NULL, dev);
-    dev->log  = char_log_open(dev->port, "Loopback");
-    char_loopback_log(dev->log, "init()\n");
-
     /* Get configuration. */
     if (info->config && !strcmp(info->config[0].name, "type"))
         dev->type = device_get_config_int(info->config[0].name);
@@ -199,6 +194,29 @@ char_loopback_init(const device_t *info)
         dev->type = LOOPBACK_TYPE_SERIAL;
     if (dev->type >= (sizeof(char_loopback_types) / sizeof(char_loopback_types[0])))
         dev->type = 0;
+
+    /* Determine the required callbacks for this device type. */
+    char_loopback_bits_t have;
+    for (int i = 0; char_loopback_types[dev->type].bits[i].data_tx || char_loopback_types[dev->type].bits[i].control; i++) {
+        if (char_loopback_types[dev->type].bits[i].data_tx)
+            have.data_tx = 1;
+        if (char_loopback_types[dev->type].bits[i].data_rx)
+            have.data_rx = 1;
+        if (char_loopback_types[dev->type].bits[i].control)
+            have.control = 1;
+        if (char_loopback_types[dev->type].bits[i].status)
+            have.status = 1;
+    }
+
+    /* Attach character device. */
+    dev->port = char_attach(0,
+        have.data_rx ? char_loopback_read : NULL,
+        have.data_tx ? char_loopback_write : NULL,
+        have.status ? char_loopback_status : NULL,
+        have.control ? char_loopback_control : NULL,
+        NULL, dev);
+    dev->log  = char_log_open(dev->port, "Loopback");
+    char_loopback_log(dev->log, "init()\n");
 
     return dev;
 }
