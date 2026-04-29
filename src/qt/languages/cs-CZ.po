@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-04-27 21:00+0000\n"
+"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
@@ -177,7 +177,6 @@ msgstr "Převod na odstíny šedi:"
 msgid "Average"
 msgstr "Průměr"
 
-#, fuzzy
 msgid "Overscan"
 msgstr "Přesah obrazu"
 
@@ -356,19 +355,19 @@ msgid "Machine type:"
 msgstr "Typ počítače:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (sokety 168 a 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (ostatní)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Soket 7 (jednonapěťový)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Soket 7 (dvojnapěťový)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Ostatní"
 
 msgid "Machine:"
 msgstr "Počítač:"
@@ -530,43 +529,43 @@ msgid "CD-ROM controller:"
 msgstr "Řadič CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Rozhraní Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Rozhraní MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Rozhraní MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Řadič IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Řadič IDE (dvoukanálový)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Řadič IDE pro PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Řadič IDE pro PC/AT (dvoukanálový)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE pro PC/AT (pouze primární kanál)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "AT XTIDE pro PS/2 (1.1.5) (pouze primární kanál)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terciární a kvartérní kanál)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terciární a kvartérní kanál)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terciární a kvartérní kanál)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Řadič McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Třetí řadič IDE"
@@ -1972,7 +1971,7 @@ msgid "BIOS Language"
 msgstr "Jazyk BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Varianta"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Rozšiřující jednotka IBM 5161"
@@ -2648,11 +2647,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Ochranný klíč pro Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback adaptér"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Zařízení průchodu sériového portu"
+msgstr "Průchod sériového portu"
 
 msgid "Passthrough Mode"
 msgstr "Režim průchodu"
@@ -2742,10 +2740,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Obecné rozšíření paměti PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Obecné hodiny reálného času MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (externí zařízení)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nebylo možné nalézt písma pro jehličkovou tiskárnu"
@@ -2811,10 +2809,10 @@ msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulátor"
 
 msgid "Input"
-msgstr ""
+msgstr "Vstup"
 
 msgid "Key bindings"
 msgstr "Nastavení kláves"
@@ -3066,7 +3064,7 @@ msgid "Raw"
 msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Povolit emulaci EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Výstupní zvukové zařízení:"

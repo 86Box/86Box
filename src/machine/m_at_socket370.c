@@ -319,11 +319,11 @@ machine_at_m773_init(const machine_t *model)
 
 /* VIA Apollo Pro */
 int
-machine_at_apas3_init(const machine_t *model)
+machine_at_vim863s_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/apas3/V0218SAG.BIN",
+    ret = bios_load_linear("roms/machines/vim863s/V0218SAG.BIN",
                            0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -339,6 +339,9 @@ machine_at_apas3_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine)->available())
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&via_apro_device);
     device_add(&via_vt82c586b_device);
