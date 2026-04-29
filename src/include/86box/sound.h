@@ -224,6 +224,9 @@ extern const device_t gus_v37_device;
 extern const device_t gus_max_device;
 extern const device_t gus_ace_device;
 
+/* IBM Music Feature Card */
+extern const device_t imfc_device;
+
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
 
