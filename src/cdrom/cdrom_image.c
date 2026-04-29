@@ -541,15 +541,15 @@ index_file_close(track_index_t *idx)
     if ((idx == NULL) || (idx->file == NULL))
         return;
 
+    if (idx->file->close != NULL)
+        idx->file->close(idx->file);
+
     image_log(idx->file->log, "Log closed\n");
 
     if (idx->file->log != NULL) {
         log_close(idx->file->log);
         idx->file->log = NULL;
     }
-
-    if (idx->file->close != NULL)
-        idx->file->close(idx->file);
 
     idx->file = NULL;
 }
