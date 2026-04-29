@@ -104,14 +104,6 @@ typedef struct _viso_entry_ {
 
     struct {
         uint8_t is_dir : 1;
-#ifndef _WIN32 /* POSIX attributes reported by MinGW don't really make sense because it's Windows */
-        uint8_t is_dev : 1;
-        dev_t   dev;
-        mode_t  mode;
-        nlink_t nlink;
-        uid_t   uid;
-        gid_t   gid;
-#endif
         uint32_t size;
 #ifdef st_birthtime /* hack: assume the platform remaps st_birthtime at header level */
         time_t birthtime;
@@ -583,30 +575,6 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
 
                 q = p++; /* save Rock Ridge flags location for later */
 
-#ifndef _WIN32
-                *q |= 0x01; /* PX = POSIX attributes */
-                *p++ = 'P';
-                *p++ = 'X';
-                *p++ = 36; /* length */
-                *p++ = 1;  /* version */
-
-                VISO_LBE_32(p, entry->stats.mode);  /* mode */
-                VISO_LBE_32(p, entry->stats.nlink); /* number of links */
-                VISO_LBE_32(p, entry->stats.uid);   /* owner UID */
-                VISO_LBE_32(p, entry->stats.gid);   /* owner GID */
-
-                if (entry->stats.is_dev) {
-                    *q |= 0x02; /* PN = POSIX device */
-                    *p++ = 'P';
-                    *p++ = 'N';
-                    *p++ = 20; /* length */
-                    *p++ = 1;  /* version */
-
-                    uint64_t dev = entry->stats.dev; /* avoid warning if <= 32 bits */
-                    VISO_LBE_32(p, dev >> 32);       /* device number (high 32 bits) */
-                    VISO_LBE_32(p, dev);             /* device number (low 32 bits) */
-                }
-#endif
                 int times =
 #ifdef st_birthtime
                     (VISO_TIME_VALID(entry->stats.birthtime) << 0) | /* creation */
@@ -680,17 +648,7 @@ viso_fill_stats(viso_entry_t *entry, plat_dir_t *context, int format)
 {
     if (plat_dir_is_dir(context)) {
         entry->stats.is_dir = 1;
-    }
-#ifndef _WIN32
-    else if (UNLIKELY(plat_dir_is_char(context) || plat_dir_is_block(context))) {
-        entry->stats.size   = 0;
-        if (LIKELY(format & VISO_FORMAT_RR)) {
-            entry->stats.is_dev = 1;
-            entry->stats.dev    = plat_dir_get_dev(context);
-        }
-    }
-#endif
-    else {
+    } else {
         /* Clamp file size to 4 GB - 1 byte. */
         uint64_t size = plat_dir_get_size(context);
         entry->stats.size = MIN(size, (uint32_t) -1);
@@ -701,12 +659,6 @@ viso_fill_stats(viso_entry_t *entry, plat_dir_t *context, int format)
         entry->stats.ctime = plat_dir_get_ctime(context);
 #ifdef st_birthtime
         entry->stats.birthtime = plat_dir_get_birthtime(context);
-#endif
-#ifndef _WIN32
-        entry->stats.mode  = plat_dir_get_mode(context);
-        entry->stats.nlink = plat_dir_get_nlink(context);
-        entry->stats.uid   = plat_dir_get_uid(context);
-        entry->stats.gid   = plat_dir_get_gid(context);
 #endif
     }
 }
