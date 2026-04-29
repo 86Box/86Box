@@ -905,11 +905,14 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         /* Open directory for listing. */
         int    have_dir       = plat_dir_open(&context, dir->path);
         size_t children_count = 3; /* include terminator, . and .. */
+        if (UNLIKELY(dir == viso->root_dir)) {
+            /* Handle root directory. */
+            if (have_dir && plat_dir_is_dir(&context))
+                viso_fill_stats(dir, &context, viso->format); /* populate stats */
+            else
+                goto end; /* not a directory */
+        }
         if (LIKELY(have_dir)) {
-            /* Populate stats if this is the root directory. */
-            if (UNLIKELY(dir == viso->root_dir))
-                viso_fill_stats(dir, &context, viso->format);
-
             /* Determine the entry array size. */
             children_count += plat_dir_count_children(&context);
         }
