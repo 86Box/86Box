@@ -1034,7 +1034,7 @@ next_dir:
         /* Fill volume descriptor. */
         p = data;
         if (!(viso->format & VISO_FORMAT_ISO))
-            VISO_LBE_32(p, ftello64(viso->tf.fp) / viso->sector_size);    /* sector offset (HSF only) */
+            VISO_LBE_32(p, ftello64(viso->tf.fp) / viso->sector_size);      /* sector offset (HSF only) */
         *p++ = 1 + i;                                                       /* type */
         memcpy(p, (viso->format & VISO_FORMAT_ISO) ? "CD001" : "CDROM", 5); /* standard ID */
         p += 5;
@@ -1042,9 +1042,10 @@ next_dir:
         *p++ = 0; /* unused */
 
         if (i) {
-            viso_write_wstring((uint16_t *) p, EMU_NAME_W, 16, VISO_CHARSET_A); /* system ID */
-            p += 32;
             uint16_t wtemp[16];
+            viso_convert_utf8(wtemp, EMU_NAME, 16);
+            viso_write_wstring((uint16_t *) p, wtemp, 16, VISO_CHARSET_A); /* system ID */
+            p += 32;
             viso_convert_utf8(wtemp, basename, 16);
             viso_write_wstring((uint16_t *) p, wtemp, 16, VISO_CHARSET_D); /* volume ID */
             p += 32;
@@ -1082,20 +1083,24 @@ next_dir:
 
         int copyright_abstract_len = (viso->format & VISO_FORMAT_ISO) ? 37 : 32;
         if (i) {
-            viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_D); /* volume set ID */
+            uint16_t wtemp[64];
+            wtemp[0] = 0;
+            viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_D); /* volume set ID */
             p += 128;
-            viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_A); /* publisher ID */
+            viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* publisher ID */
             p += 128;
-            viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_A); /* data preparer ID */
+            viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* data preparer ID */
             p += 128;
-            viso_write_wstring((uint16_t *) p, EMU_NAME_W L" " EMU_VERSION_W L" VIRTUAL ISO", 64, VISO_CHARSET_A); /* application ID */
+            viso_convert_utf8(wtemp, EMU_NAME " " EMU_VERSION " VIRTUAL ISO", 64);
+            viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* application ID */
             p += 128;
-            viso_write_wstring((uint16_t *) p, L"", copyright_abstract_len >> 1, VISO_CHARSET_D); /* copyright file ID */
+            wtemp[0] = 0;
+            viso_write_wstring((uint16_t *) p, wtemp, copyright_abstract_len >> 1, VISO_CHARSET_D); /* copyright file ID */
             p += copyright_abstract_len;
-            viso_write_wstring((uint16_t *) p, L"", copyright_abstract_len >> 1, VISO_CHARSET_D); /* abstract file ID */
+            viso_write_wstring((uint16_t *) p, wtemp, copyright_abstract_len >> 1, VISO_CHARSET_D); /* abstract file ID */
             p += copyright_abstract_len;
             if (viso->format & VISO_FORMAT_ISO) {
-                viso_write_wstring((uint16_t *) p, L"", 18, VISO_CHARSET_D); /* bibliography file ID (ISO only) */
+                viso_write_wstring((uint16_t *) p, wtemp, 18, VISO_CHARSET_D); /* bibliography file ID (ISO only) */
                 p += 37;
             }
         } else {
