@@ -30,7 +30,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
-#include <wchar.h>
 #include <86box/86box.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
@@ -188,11 +187,11 @@ viso_pwrite(const void *ptr, const uint64_t offset, const size_t size,
 }
 
 static size_t
-viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
+viso_convert_utf8(uint16_t *dest, const char *src, ssize_t buf_size)
 {
-    uint32_t c;
-    wchar_t *p = dest;
-    size_t   next;
+    uint64_t  c;
+    uint16_t *p = dest;
+    size_t    next;
 
     while (buf_size-- > 0) {
         /* Interpret source codepoint. */
@@ -212,9 +211,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
             while ((next-- > 0) && ((*src & 0xc0) == 0x80))
                 c = (c << 6) | (*src++ & 0x3f);
 
-            /* Convert codepoints >= U+10000 to UTF-16 surrogate pairs.
-               This has to be done here because wchar_t on some platforms
-               (Windows) is not wide enough to store such high codepoints. */
+            /* Convert codepoints >= U+10000 to UTF-16 surrogate pairs. */
             if (c >= 0x10000) {
                 if ((c <= 0x10ffff) && (buf_size-- > 0)) {
                     /* Encode surrogate pair. */
@@ -238,7 +235,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
     return p - dest;
 }
 
-#define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter, bounds_chk)        \
+#define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter)                    \
     static void                                                                     \
     func(dst_type *dest, const src_type *src, ssize_t buf_size, int charset)        \
     {                                                                               \
@@ -315,7 +312,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
                                                                                     \
                 default:                                                            \
                     /* Not valid for D or A, but valid for filenames. */            \
-                    if ((charset < VISO_CHARSET_FN) || (bounds_chk))                \
+                    if (charset < VISO_CHARSET_FN)                                  \
                         c = '_';                                                    \
                     break;                                                          \
             }                                                                       \
@@ -324,8 +321,8 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
             *dest++ = converter(c);                                                 \
         }                                                                           \
     }
-VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, , 0)
-VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, wchar_t, cpu_to_be16, c > 0xffff)
+VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, )
+VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, uint16_t, cpu_to_be16)
 
 static int
 viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries)
@@ -416,34 +413,38 @@ viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
 }
 
 static size_t
-viso_fill_fn_joliet(uint8_t *data, const viso_entry_t *entry, size_t max_len) /* note: receives and returns byte sizes */
+viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /* note: receives and returns byte sizes */
 {
     /* Decode filename as UTF-8. */
-    size_t  len = strlen(entry->basename);
-    wchar_t utf8dec[len + 1];
+    size_t   len = strlen(entry->basename);
+    uint16_t utf8dec[len + 1];
     len = viso_convert_utf8(utf8dec, entry->basename, len + 1);
 
     /* Trim decoded filename to max_len if needed. */
     max_len /= 2;
     if (len > max_len) {
-        viso_write_wstring((uint16_t *) data, utf8dec, max_len, VISO_CHARSET_FN);
+        viso_write_wstring(data, utf8dec, max_len, VISO_CHARSET_FN);
 
         /* Relocate extension if the original name exceeds the maximum length. */
         if (!entry->stats.is_dir) { /* do this on files only */
-            const wchar_t *ext = wcsrchr(utf8dec, L'.');
+            uint16_t *ext = &utf8dec[len];
+            while (ext-- > utf8dec) {
+                if (*ext == '.')
+                    break;
+            }
             if (ext > utf8dec) {
-                len = wcslen(ext);
+                len = utf8dec + len - ext;
                 if (len > max_len)
                     len = max_len;
                 else if ((len < max_len) && ((((uint16_t *) data)[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00)))
                     max_len--; /* don't break an UTF-16 pair */
-                viso_write_wstring(((uint16_t *) data) + (max_len - len), ext, len, VISO_CHARSET_FN);
+                viso_write_wstring(&data[max_len - len], ext, len, VISO_CHARSET_FN);
             }
         }
 
         return max_len * 2;
     } else {
-        viso_write_wstring((uint16_t *) data, utf8dec, len, VISO_CHARSET_FN);
+        viso_write_wstring(data, utf8dec, len, VISO_CHARSET_FN);
         return len * 2;
     }
 }
@@ -656,7 +657,7 @@ pad_susp:
         case VISO_DIR_JOLIET:
             q = p++; /* save file ID length location for later */
 
-            *q = viso_fill_fn_joliet(p, entry, 254 - (p - data));
+            *q = viso_fill_fn_joliet((uint16_t *) p, entry, 254 - (p - data));
             p += *q;
 
             if (!(*q & 1)) /* padding for even file ID lengths */
@@ -1091,7 +1092,7 @@ next_dir:
         if (i) {
             viso_write_wstring((uint16_t *) p, EMU_NAME_W, 16, VISO_CHARSET_A); /* system ID */
             p += 32;
-            wchar_t wtemp[16];
+            uint16_t wtemp[16];
             viso_convert_utf8(wtemp, basename, 16);
             viso_write_wstring((uint16_t *) p, wtemp, 16, VISO_CHARSET_D); /* volume ID */
             p += 32;
@@ -1344,7 +1345,7 @@ next_dir:
                 data[pt_temp] = 1;
                 *p            = 0x00;
             } else if (i & 2) { /* ...or Joliet... */
-                data[pt_temp] = viso_fill_fn_joliet(p, dir, 255);
+                data[pt_temp] = viso_fill_fn_joliet((uint16_t *) p, dir, 255);
             } else { /* ...or short name */
                 data[pt_temp] = strlen(dir->name_short);
                 memcpy(p, dir->name_short, data[pt_temp]);
