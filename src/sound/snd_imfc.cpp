@@ -101,6 +101,7 @@ extern "C"
 #include <86box/device.h>
 #include <86box/sound.h>
 #include <86box/thread.h>
+#include <86box/plat.h>
 
 extern double cpuclock;
 }
@@ -5520,7 +5521,7 @@ private:
 	std::atomic_bool keepRunning               = {};
 	std::atomic<bool> m_finishedBootupSequence = {};
 	thread_t* m_mainThread                     = nullptr;
-	std::thread::id m_mainThreadId             = {};
+	//std::thread::id m_mainThreadId             = {};
 
 	// memory allocation on the IMF
 	// ROM
@@ -5603,16 +5604,16 @@ private:
 
 	void RegisterIoHandlers(const io_port_t port);
 
-	bool currentThreadIsMainThread() const
-	{
-		return std::this_thread::get_id() == m_mainThreadId;
-	}
+	//bool currentThreadIsMainThread() const
+	//{
+	//	return std::this_thread::get_id() == m_mainThreadId;
+	//}
 
 	const char* getCurrentThreadName()
 	{
-		if (currentThreadIsMainThread()) {
-			return "MAIN";
-		}
+		//if (currentThreadIsMainThread()) {
+		//	return "MAIN";
+		//}
 		return "DOSBOX";
 	}
 
@@ -6011,7 +6012,7 @@ private:
 			// reenable
 			MUSIC_MODE_LOOP_read_System_And_Dispatch();
 			logSuccess();
-			std::this_thread::sleep_for(1ms);
+			plat_delay_ms(1);
 		}
 	}
 
@@ -13238,7 +13239,7 @@ public:
 		// wait until we're ready to receive data... it's a workaround
 		// for now, but well....
 		while (!m_finishedBootupSequence) {
-			std::this_thread::sleep_for(1ms);
+			plat_delay_ms(1);
 		}
 
 		// We're read to receive data, so register the IO handlers
@@ -13259,7 +13260,7 @@ public:
 
 	void threadMainStart()
 	{
-		m_mainThreadId = std::this_thread::get_id();
+		//m_mainThreadId = std::this_thread::get_id();
 		log_debug("IMFC: processor main thread started");
 		coldStart();
 	}
@@ -13469,7 +13470,7 @@ public:
                          this);
 
 		// Give the threads a small bit of time to gracefully complete
-		std::this_thread::sleep_for(20ms);
+		plat_delay_ms(20);
 
 		thread_wait(m_mainThread);
 		thread_close_mutex(m_hardwareMutex);
