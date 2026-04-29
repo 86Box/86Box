@@ -1119,6 +1119,10 @@ extern int             machine_at_i430vx_init(const machine_t *);
 extern int             machine_at_nupro592_init(const machine_t *);
 extern int             machine_at_tx97_init(const machine_t *);
 extern int             machine_at_tx97xv_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  txp4x_device;
+#endif
+extern int             machine_at_txp4x_init(const machine_t *);
 extern void            machine_at_optiplex_21152_init(void);
 extern int             machine_at_optiplexgn_init(const machine_t *);
 extern int             machine_at_tomahawk_init(const machine_t *);
@@ -1359,7 +1363,7 @@ extern int             machine_at_atc7020bxii_init(const machine_t *);
 extern int             machine_at_m773_init(const machine_t *);
 
 /* VIA Apollo Pro */
-extern int             machine_at_apas3_init(const machine_t *);
+extern int             machine_at_vim863s_init(const machine_t *);
 
 /* VIA Apollo Pro 133 */
 extern int             machine_at_p6bap_init(const machine_t *);

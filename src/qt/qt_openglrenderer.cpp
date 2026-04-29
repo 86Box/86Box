@@ -71,6 +71,8 @@ extern bool cpu_thread_running;
 
 static GLfloat matrix[] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
 
+const GLenum buffers[]{ GL_BACK_LEFT, GL_BACK_RIGHT };
+
 extern int video_filter_method;
 extern int video_vsync;
 extern int video_focus_dim;
@@ -875,6 +877,11 @@ OpenGLRenderer::initialize()
 
         glw.initializeOpenGLFunctions();
 
+        int draw_buffer = GL_NONE;
+        glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
+        if (draw_buffer == GL_NONE)
+            glw.glDrawBuffers(2, buffers);
+
         glw.glClearColor(0, 0, 0, 1);
 
         glw.glClear(GL_COLOR_BUFFER_BIT);
@@ -1134,6 +1141,11 @@ OpenGLRenderer::finalize()
 
     context->makeCurrent(this);
 
+    int draw_buffer = GL_NONE;
+    glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
+    if (draw_buffer == GL_NONE)
+        glw.glDrawBuffers(2, buffers);
+
     delete_texture(&scene_texture);
 
     if (active_shader) {
@@ -1158,6 +1170,11 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         return;
 
     context->makeCurrent(this);
+
+    int draw_buffer = GL_NONE;
+    glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
+    if (draw_buffer == GL_NONE)
+        glw.glDrawBuffers(2, buffers);
 
     if (source.width() != w || source.height() != h) {
         glw.glBindTexture(GL_TEXTURE_2D, scene_texture.id);
@@ -1229,6 +1246,11 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
         return;
 
     context->makeCurrent(this);
+
+    int draw_buffer = GL_NONE;
+    glw.glGetIntegerv(GL_DRAW_BUFFER, &draw_buffer);
+    if (draw_buffer == GL_NONE)
+        glw.glDrawBuffers(2, buffers);
 
     glw.glViewport(
         destination.x(),
