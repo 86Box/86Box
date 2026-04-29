@@ -777,10 +777,11 @@ endblit()
     blitmx_contention--;
     blitmx.unlock();
     if (blitmx_contention > 0) {
-        // a deadlock has been observed on linux when toggling via video_toggle_option
-        // because the mutex is typically unfair on linux
-        // => sleep if there's contention
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        /*
+         * Keep contention handoff cooperative without injecting a fixed 1 ms stall
+         * into emulation cadence.
+         */
+        std::this_thread::yield();
     }
 }
 } /*extern "C" */

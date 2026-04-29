@@ -16,7 +16,8 @@
 #include "codegen_ops_3dnow.h"
 #include "codegen_ops_helpers.h"
 
-#define ropParith(func)                                                                            \
+
+#define ropParith(func, opid)                                                                      \
     uint32_t rop##func(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode),                  \
                        uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)                          \
     {                                                                                              \
@@ -42,14 +43,16 @@
     }
 
 // clang-format off
-ropParith(PFADD)
-ropParith(PFCMPEQ)
-ropParith(PFCMPGE)
-ropParith(PFCMPGT)
-ropParith(PFMAX)
-ropParith(PFMIN)
-ropParith(PFMUL)
-ropParith(PFSUB)
+ropParith(PFADD, 0x9e)
+ropParith(PFCMPEQ, 0xb0)
+ropParith(PFCMPGE, 0x90)
+ropParith(PFCMPGT, 0xa0)
+ropParith(PFMAX, 0xa4)
+ropParith(PFMIN, 0x94)
+ropParith(PFMUL, 0xb4)
+ropParith(PFSUB, 0x9a)
+ropParith(PMULHRW, 0xb7)
+ropParith(PAVGUSB, 0xbf)
     // clang-format on
 
 uint32_t ropPF2ID(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
@@ -67,8 +70,111 @@ uint32_t ropPF2ID(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uin
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_read(block, ir, target_seg);
+        /* PF2ID depends only on source, so memory operand can load directly into dst. */
+        uop_MEM_LOAD_REG(ir, IREG_MM(dest_reg), ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PF2ID(ir, IREG_MM(dest_reg), IREG_MM(dest_reg));
+    }
+
+    codegen_mark_code_present(block, cs + op_pc + 1, 1);
+    return op_pc + 2;
+}
+
+uint32_t
+ropPF2IW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    int dest_reg = (fetchdat >> 3) & 7;
+
+    uop_MMX_ENTER(ir);
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    if ((fetchdat & 0xc0) == 0xc0) {
+        int src_reg = fetchdat & 7;
+        uop_PF2IW(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_MM(src_reg));
+    } else {
+        x86seg *target_seg;
+
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_read(block, ir, target_seg);
         uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);
-        uop_PF2ID(ir, IREG_MM(dest_reg), IREG_temp0_Q);
+        uop_PF2IW(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);
+    }
+
+    codegen_mark_code_present(block, cs + op_pc + 1, 1);
+    return op_pc + 2;
+}
+
+uint32_t
+ropPFACC(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    int dest_reg = (fetchdat >> 3) & 7;
+
+    uop_MMX_ENTER(ir);
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    if ((fetchdat & 0xc0) == 0xc0) {
+        int src_reg = fetchdat & 7;
+        uop_PFACC(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_MM(src_reg));
+    } else {
+        x86seg *target_seg;
+
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_read(block, ir, target_seg);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PFACC(ir, IREG_MM(dest_reg), IREG_MM(dest_reg), IREG_temp0_Q);
+    }
+
+    codegen_mark_code_present(block, cs + op_pc + 1, 1);
+    return op_pc + 2;
+}
+
+uint32_t
+ropPFNACC(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    int dest_reg = (fetchdat >> 3) & 7;
+
+    uop_MMX_ENTER(ir);
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    /* Snapshot dst before writeback so backend lowering stays alias-safe for ModRM reg overlap. */
+    uop_MOV(ir, IREG_temp1_Q, IREG_MM(dest_reg));
+    if ((fetchdat & 0xc0) == 0xc0) {
+        int src_reg      = fetchdat & 7;
+        int src_reg_ireg = (src_reg == dest_reg) ? IREG_temp1_Q : IREG_MM(src_reg);
+        uop_PFNACC(ir, IREG_MM(dest_reg), IREG_temp1_Q, src_reg_ireg);
+    } else {
+        x86seg *target_seg;
+
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_read(block, ir, target_seg);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PFNACC(ir, IREG_MM(dest_reg), IREG_temp1_Q, IREG_temp0_Q);
+    }
+
+    codegen_mark_code_present(block, cs + op_pc + 1, 1);
+    return op_pc + 2;
+}
+
+uint32_t
+ropPFPNACC(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    int dest_reg = (fetchdat >> 3) & 7;
+
+    uop_MMX_ENTER(ir);
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    /* Snapshot dst before writeback so backend lowering stays alias-safe for ModRM reg overlap. */
+    uop_MOV(ir, IREG_temp1_Q, IREG_MM(dest_reg));
+    if ((fetchdat & 0xc0) == 0xc0) {
+        int src_reg      = fetchdat & 7;
+        int src_reg_ireg = (src_reg == dest_reg) ? IREG_temp1_Q : IREG_MM(src_reg);
+        uop_PFPNACC(ir, IREG_MM(dest_reg), IREG_temp1_Q, src_reg_ireg);
+    } else {
+        x86seg *target_seg;
+
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_read(block, ir, target_seg);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PFPNACC(ir, IREG_MM(dest_reg), IREG_temp1_Q, IREG_temp0_Q);
     }
 
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
@@ -115,8 +221,9 @@ ropPI2FD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_read(block, ir, target_seg);
-        uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);
-        uop_PI2FD(ir, IREG_MM(dest_reg), IREG_temp0_Q);
+        /* PI2FD depends only on source, so memory operand can load directly into dst. */
+        uop_MEM_LOAD_REG(ir, IREG_MM(dest_reg), ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PI2FD(ir, IREG_MM(dest_reg), IREG_MM(dest_reg));
     }
 
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
@@ -124,7 +231,7 @@ ropPI2FD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 }
 
 uint32_t
-ropPFRCPIT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPI2FW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -132,7 +239,58 @@ ropPFRCPIT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
         int src_reg = fetchdat & 7;
-        uop_MOV(ir, IREG_MM(dest_reg), IREG_MM(src_reg));
+        uop_PI2FW(ir, IREG_MM(dest_reg), IREG_MM(src_reg));
+    } else {
+        x86seg *target_seg;
+
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_read(block, ir, target_seg);
+        /* PI2FW depends only on source, so memory operand can load directly into dst. */
+        uop_MEM_LOAD_REG(ir, IREG_MM(dest_reg), ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PI2FW(ir, IREG_MM(dest_reg), IREG_MM(dest_reg));
+    }
+
+    codegen_mark_code_present(block, cs + op_pc + 1, 1);
+    return op_pc + 2;
+}
+
+uint32_t
+ropPSWAPD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    int dest_reg = (fetchdat >> 3) & 7;
+
+    uop_MMX_ENTER(ir);
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    if ((fetchdat & 0xc0) == 0xc0) {
+        int src_reg = fetchdat & 7;
+        uop_PSWAPD(ir, IREG_MM(dest_reg), IREG_MM(src_reg));
+    } else {
+        x86seg *target_seg;
+
+        uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_read(block, ir, target_seg);
+        /* PSWAPD consumes source only; direct dst load trims one temporary. */
+        uop_MEM_LOAD_REG(ir, IREG_MM(dest_reg), ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PSWAPD(ir, IREG_MM(dest_reg), IREG_MM(dest_reg));
+    }
+
+    codegen_mark_code_present(block, cs + op_pc + 1, 1);
+    return op_pc + 2;
+}
+
+uint32_t
+ropPFRCPIT(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    int dest_reg = (fetchdat >> 3) & 7;
+
+    uop_MMX_ENTER(ir);
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    if ((fetchdat & 0xc0) == 0xc0) {
+        int src_reg = fetchdat & 7;
+        if (src_reg != dest_reg)
+            uop_MOV(ir, IREG_MM(dest_reg), IREG_MM(src_reg));
     } else {
         x86seg *target_seg;
 
@@ -161,8 +319,9 @@ ropPFRCP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_read(block, ir, target_seg);
-        uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);
-        uop_PFRCP(ir, IREG_MM(dest_reg), IREG_temp0_Q);
+        /* Scalar reciprocal uses only lane 0; load directly into dst to reduce temp pressure. */
+        uop_MEM_LOAD_REG(ir, IREG_MM(dest_reg), ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PFRCP(ir, IREG_MM(dest_reg), IREG_MM(dest_reg));
     }
 
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
@@ -184,8 +343,9 @@ ropPFRSQRT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         codegen_check_seg_read(block, ir, target_seg);
-        uop_MEM_LOAD_REG(ir, IREG_temp0_Q, ireg_seg_base(target_seg), IREG_eaaddr);
-        uop_PFRSQRT(ir, IREG_MM(dest_reg), IREG_temp0_Q);
+        /* Scalar inverse-sqrt uses only lane 0; load directly into dst to reduce temp pressure. */
+        uop_MEM_LOAD_REG(ir, IREG_MM(dest_reg), ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_PFRSQRT(ir, IREG_MM(dest_reg), IREG_MM(dest_reg));
     }
 
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
@@ -193,7 +353,7 @@ ropPFRSQRT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
 }
 
 uint32_t
-ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_MMX_ENTER(ir);
 

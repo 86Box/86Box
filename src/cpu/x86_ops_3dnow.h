@@ -515,7 +515,6 @@ op3DNOW_a16(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
     cpu_state.pc++;
-
     return x86_opcodes_3DNOW[opcode](0);
 }
 static int
@@ -530,6 +529,5 @@ op3DNOW_a32(uint32_t fetchdat)
     if (cpu_state.abrt)
         return 1;
     cpu_state.pc++;
-
     return x86_opcodes_3DNOW[opcode](0);
 }

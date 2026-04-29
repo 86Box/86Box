@@ -331,6 +331,7 @@ extern int writelnum;
 /* emulator % */
 int fps;
 int framecount;
+static uint32_t fps_sample_elapsed_ms = 1000;
 
 extern int CPUID;
 extern int output;
@@ -2049,7 +2050,22 @@ pc_run(void)
     }
 
     if (title_update) {
+        int      speed_percent;
+        int      target_fps;
+        uint32_t elapsed_ms;
+        int64_t  numerator;
+
         mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
+        target_fps    = force_10ms ? 100 : 1000;
+        elapsed_ms    = fps_sample_elapsed_ms ? fps_sample_elapsed_ms : 1;
+
+        /*
+         * Use real sample duration for title speed percent so delayed timer
+         * callbacks do not create false dip/rebound spikes in speed reporting.
+         */
+        numerator     = (int64_t) fps * 100000LL;
+        speed_percent = (int) ((numerator + ((int64_t) elapsed_ms * target_fps / 2)) /
+                               ((int64_t) elapsed_ms * target_fps));
 #ifdef SCREENSHOT_MODE
         if (force_10ms)
             fps = ((fps + 2) / 5) * 5;
@@ -2061,7 +2077,7 @@ pc_run(void)
          * mouse_msg[] stores suffixes only on macOS (see update_mouse_msg).
          * Build the title without passing non-ASCII chars through swprintf.
          */
-        swprintf(temp, sizeof_w(temp), L"%i%%", fps / (force_10ms ? 1 : 10));
+        swprintf(temp, sizeof_w(temp), L"%i%%", speed_percent);
         if (mouse_msg[mouse_msg_idx][0]) {
             wcsncat(temp, L" - ", sizeof_w(temp) - wcslen(temp) - 1);
             wcsncat(temp, mouse_msg[mouse_msg_idx], sizeof_w(temp) - wcslen(temp) - 1);
@@ -2069,7 +2085,7 @@ pc_run(void)
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */
         dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);
 #else
-        swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps / (force_10ms ? 1 : 10));
+        swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], speed_percent);
         ui_window_title(temp);
 #endif
         title_update = 0;
@@ -2080,6 +2096,14 @@ pc_run(void)
 void
 pc_onesec(void)
 {
+    static uint32_t last_sample_ms = 0;
+    uint32_t        now_ms         = plat_get_ticks();
+
+    fps_sample_elapsed_ms = last_sample_ms ? (now_ms - last_sample_ms) : 1000;
+    if (!fps_sample_elapsed_ms)
+        fps_sample_elapsed_ms = 1;
+    last_sample_ms = now_ms;
+
     fps        = framecount;
     framecount = 0;
 

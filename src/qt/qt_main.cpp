@@ -442,49 +442,55 @@ main_thread_fn()
     plat_set_thread_name(nullptr, "main_thread");
     framecountx = 0;
     // title_update = 1;
-    uint64_t old_time = elapsed_timer.elapsed();
-    int      drawits = frames = 0;
+    qint64 old_ns = elapsed_timer.nsecsElapsed();
+    qint64 debt_ns;
+    const qint64 quantum_ns  = force_10ms ? 10000000LL : 1000000LL;
+    const qint64 max_debt_ns = 50000000LL;
+    frames                   = 0;
+    debt_ns                  = 0;
     is_cpu_thread             = 1;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
-        const uint64_t new_time = elapsed_timer.elapsed();
+        const qint64 new_ns = elapsed_timer.nsecsElapsed();
+        debt_ns += (new_ns - old_ns);
+        old_ns = new_ns;
+        if (debt_ns > max_debt_ns)
+            debt_ns = max_debt_ns;
 #ifdef USE_GDBSTUB
-        if (gdbstub_next_asap && (drawits <= 0))
-            drawits = force_10ms ? 10 : 1;
-        else
+        if (gdbstub_next_asap && (debt_ns < quantum_ns))
+            debt_ns = quantum_ns;
 #endif
-            drawits += static_cast<int>(new_time - old_time);
-        old_time = new_time;
-        if ((drawits > 0 || fast_forward) && !dopause) {
-            /* Yes, so run frames now. */
-            do {
+        if (((debt_ns >= quantum_ns) || fast_forward) && !dopause) {
+            /*
+             * Pace with one pc_run() per scheduler pass.
+             * We intentionally avoid burst catch-up (multi-frame loop) because it can
+             * overshoot after dips and amplify <100/>100 speed oscillation.
+             */
 #ifdef USE_INSTRUMENT
-                uint64_t start_time = elapsed_timer.nsecsElapsed();
+            uint64_t start_time = elapsed_timer.nsecsElapsed();
 #endif
-                /* Run a block of code. */
-                pc_run();
+            pc_run();
 
 #ifdef USE_INSTRUMENT
-                if (instru_enabled) {
-                    uint64_t elapsed_us       = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
-                    uint64_t total_elapsed_ms = (uint64_t) ((double) tsc / cpu_s->rspeed * 1000);
-                    printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
-                    if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
-                        break;
-                }
+            if (instru_enabled) {
+                uint64_t elapsed_us       = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
+                uint64_t total_elapsed_ms = (uint64_t) ((double) tsc / cpu_s->rspeed * 1000);
+                printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
+                if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
+                    debt_ns = 0;
+            }
 #endif
-                /* Every 2 emulated seconds we save the machine status. */
-                if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
-                    qt_nvr_save();
-                    nvr_dosave = 0;
-                    frames     = 0;
-                }
-                
-                drawits -= force_10ms ? 10 : 1;
-                if (drawits > 50 || fast_forward)
-                    drawits = 0;
+            /* Every 2 emulated seconds we save the machine status. */
+            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
+                qt_nvr_save();
+                nvr_dosave = 0;
+                frames     = 0;
+            }
 
-            } while (drawits > 0);
+            if (!fast_forward && debt_ns >= quantum_ns)
+                debt_ns -= quantum_ns;
+            else
+                debt_ns = 0;
         } else {
             /* Just so we dont overload the host OS. */
 
