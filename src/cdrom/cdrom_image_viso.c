@@ -436,7 +436,7 @@ viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /
                 len = utf8dec + len - ext;
                 if (len > max_len)
                     len = max_len;
-                else if ((len < max_len) && ((((uint16_t *) data)[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00)))
+                else if ((len < max_len) && ((data[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00)))
                     max_len--; /* don't break an UTF-16 pair */
                 viso_write_wstring(&data[max_len - len], ext, len, VISO_CHARSET_FN);
             }
