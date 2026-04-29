@@ -5521,7 +5521,6 @@ private:
 	std::atomic_bool keepRunning               = {};
 	std::atomic<bool> m_finishedBootupSequence = {};
 	thread_t* m_mainThread                     = nullptr;
-	//std::thread::id m_mainThreadId             = {};
 
 	// memory allocation on the IMF
 	// ROM
@@ -5604,16 +5603,8 @@ private:
 
 	void RegisterIoHandlers(const io_port_t port);
 
-	//bool currentThreadIsMainThread() const
-	//{
-	//	return std::this_thread::get_id() == m_mainThreadId;
-	//}
-
 	const char* getCurrentThreadName()
 	{
-		//if (currentThreadIsMainThread()) {
-		//	return "MAIN";
-		//}
 		return "DOSBOX";
 	}
 
@@ -13260,7 +13251,6 @@ public:
 
 	void threadMainStart()
 	{
-		//m_mainThreadId = std::this_thread::get_id();
 		log_debug("IMFC: processor main thread started");
 		coldStart();
 	}

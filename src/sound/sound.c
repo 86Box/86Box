@@ -118,9 +118,7 @@ static const SOUND_CARD sound_cards[] = {
     { &adgold_device                },
     { &soundmaster_device           },
     { &cms_device                   },
-#ifdef USE_IMFC
     { &imfc_device                  },
-#endif /* USE_IMFC */
     { &ssi2001_device               },
     { &thunderboard_device          },
     { &mmb_device                   },
