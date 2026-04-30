@@ -968,7 +968,7 @@ ropMOVS_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
 
     if (op_32 & 0x200) {
         uop_MEM_LOAD_REG(ir, IREG_temp0, seg_base_src, IREG_ESI);
-        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_EDI, IREG_temp0_L);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_EDI, IREG_temp0);
         uop_CALL_FUNC(ir, stos_adj_l_a32);
         uop_CALL_FUNC(ir, lods_adj_l_a32);
     } else {
