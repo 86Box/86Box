@@ -607,29 +607,27 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv
     slirp->sock_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
 
-    if (!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem")) {
-        /* Send a gratuitous ARP here to make SLiRP work properly with SLIP connections. */
+    const char *nic_name = network_card_get_internal_name(net_cards_conf[net_card_current].device_num);
+    if (!strcmp(nic_name, "modem") || !strcmp(nic_name, "plip")) {
+        /* Send a gratuitous ARP here to make SLiRP work properly with SLIP/PLIP connections. */
         struct arphdr_local arphdr;
         /* ARP part. */
-        arphdr.ar_hrd      = bswap16(1);
-        arphdr.ar_pro      = bswap16(0x0800);
-        arphdr.ar_hln      = 6;
-        arphdr.ar_pln      = 4;
-        arphdr.ar_op       = bswap16(1);
+        arphdr.ar_hrd = htons(1);
+        arphdr.ar_pro = htons(0x0800);
+        arphdr.ar_hln = 6;
+        arphdr.ar_pln = 4;
+        arphdr.ar_op  = htons(1);
         memcpy(&arphdr.ar_sha, mac_addr, 6);
         memcpy(&arphdr.ar_tha, mac_addr, 6);
-        arphdr.ar_sip      = dhcp.s_addr;
-        arphdr.ar_tip      = dhcp.s_addr;
+        arphdr.ar_sip = dhcp.s_addr;
+        arphdr.ar_tip = dhcp.s_addr;
 
         /* Ethernet header part. */
-        arphdr.h_proto     = bswap16(0x0806);
+        arphdr.h_proto = htons(0x0806);
         memset(arphdr.h_dest, 0xff, 6);
         memset(arphdr.h_source, 0x52, 6);
-        arphdr.h_source[2] = 0x0a;
-        arphdr.h_source[3] = 0x00;
-        arphdr.h_source[4] = slirp_card_num;
-        arphdr.h_source[5] = 2;
-        slirp_input(slirp->slirp, (const uint8_t *)&arphdr, sizeof(struct arphdr_local));
+        AS_U32(arphdr.h_source[2]) = host.s_addr;
+        slirp_input(slirp->slirp, (const uint8_t *) &arphdr, sizeof(struct arphdr_local));
     }
 
     slirp_log("SLiRP: creating thread...\n");
