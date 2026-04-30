@@ -332,8 +332,7 @@ lpt_devices_init(void)
             if (lpt->port.attached) {
                 /* Attach character device shim. */
                 lpt->port.lpt.control = -1; /* force update on first control write */
-                device_context_inst(device, i + 1);
-                lpt_attach(
+                lpt_attach_ex(i,
                     lpt->port.chardev.write ? lpt_char_write_data : NULL,
                     (lpt->port.chardev.control || (lpt->port.chardev.flags & (CHAR_LPT_USESTROBE | CHAR_LPT_PTI))) ? lpt_char_write_ctrl : NULL,
                     (lpt->port.chardev.write && (lpt->port.chardev.flags & CHAR_LPT_USESTROBE)) ? lpt_char_strobe : NULL,
@@ -351,16 +350,21 @@ lpt_devices_init(void)
 }
 
 void *
-lpt_attach(void    (*write_data)(uint8_t val, void *priv),
-           void    (*write_ctrl)(uint8_t val, void *priv),
-           void    (*strobe)(uint8_t old, uint8_t val,void *priv),
-           uint8_t (*read_status)(void *priv),
-           uint8_t (*read_ctrl)(void *priv),
-           void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
-           void    (*epp_request_read)(uint8_t is_addr, void *priv),
-           void    *priv)
+lpt_attach_ex(int     port,
+              void    (*write_data)(uint8_t val, void *priv),
+              void    (*write_ctrl)(uint8_t val, void *priv),
+              void    (*strobe)(uint8_t old, uint8_t val, void *priv),
+              uint8_t (*read_status)(void *priv),
+              uint8_t (*read_ctrl)(void *priv),
+              void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
+              void    (*epp_request_read)(uint8_t is_addr, void *priv),
+              void    *priv)
 {
-    int port                        = device_get_instance() - 1;
+    if (lpt_ports[port].lpt) {
+        if (lpt_ports[port].lpt->port.attached)
+            return NULL;
+        lpt_ports[port].lpt->port.attached = 1;
+    }
 
     lpt_devs[port].write_data       = write_data;
     lpt_devs[port].write_ctrl       = write_ctrl;
@@ -380,8 +384,11 @@ lpt_devices_close(void)
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
-        if (lpt_ports[i].lpt)
+        if (lpt_ports[i].lpt) {
+            lpt_ports[i].lpt->port.attached = 0;
+
             timer_disable(&lpt_ports[i].lpt->char_timer);
+        }
     }
 }
 
