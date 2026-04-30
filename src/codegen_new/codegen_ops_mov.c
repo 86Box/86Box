@@ -975,7 +975,7 @@ ropMOVS_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
         uop_AND_IMM(ir, IREG_temp1, IREG_ESI, 0xffff);
         uop_AND_IMM(ir, IREG_eaaddr, IREG_EDI, 0xffff);
         uop_MEM_LOAD_REG(ir, IREG_temp0, seg_base_src, IREG_temp1);
-        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_eaaddr, IREG_temp0_L);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_eaaddr, IREG_temp0);
         uop_CALL_FUNC(ir, stos_adj_l_a16);
         uop_CALL_FUNC(ir, lods_adj_l_a16);
     }
