@@ -844,7 +844,7 @@ ropSTOS_b(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
     int seg_base = ireg_seg_base(&cpu_state.seg_es);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    codegen_check_seg_read(block, ir, &cpu_state.seg_es);
+    codegen_check_seg_write(block, ir, &cpu_state.seg_es);
 
     if (op_32 & 0x200) {
         uop_MEM_STORE_REG(ir, seg_base, IREG_EDI, IREG_AL);
@@ -864,7 +864,7 @@ ropSTOS_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
     int seg_base = ireg_seg_base(&cpu_state.seg_es);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    codegen_check_seg_read(block, ir, &cpu_state.seg_es);
+    codegen_check_seg_write(block, ir, &cpu_state.seg_es);
 
     if (op_32 & 0x200) {
         uop_MEM_STORE_REG(ir, seg_base, IREG_EDI, IREG_AX);
@@ -884,7 +884,7 @@ ropSTOS_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
     int seg_base = ireg_seg_base(&cpu_state.seg_es);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-    codegen_check_seg_read(block, ir, &cpu_state.seg_es);
+    codegen_check_seg_write(block, ir, &cpu_state.seg_es);
 
     if (op_32 & 0x200) {
         uop_MEM_STORE_REG(ir, seg_base, IREG_EDI, IREG_EAX);
@@ -897,3 +897,86 @@ ropSTOS_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
 
     return op_pc;
 }
+
+/*
+ * MOVS - Move String
+ * Moves AL/AX/EAX from [seg:SI/ESI] to [es:DI/EDI], then adjusts SI/ESI and DI/EDI by ±size based on DF.
+ */
+uint32_t
+ropMOVS_b(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
+{
+    int seg_base_src = ireg_seg_base(op_ea_seg);
+    int seg_base_dst = ireg_seg_base(&cpu_state.seg_es);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_write(block, ir, &cpu_state.seg_es);
+
+    if (op_32 & 0x200) {
+        uop_MEM_LOAD_REG(ir, IREG_temp0_B, seg_base_src, IREG_ESI);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_EDI, IREG_temp0_B);
+        uop_CALL_FUNC(ir, stos_adj_b_a32);
+        uop_CALL_FUNC(ir, lods_adj_b_a32);
+    } else {
+        uop_AND_IMM(ir, IREG_temp1, IREG_ESI, 0xffff);
+        uop_AND_IMM(ir, IREG_eaaddr, IREG_EDI, 0xffff);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_B, seg_base_src, IREG_temp1);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_eaaddr, IREG_temp0_B);
+        uop_CALL_FUNC(ir, stos_adj_b_a16);
+        uop_CALL_FUNC(ir, lods_adj_b_a16);
+    }
+
+    return op_pc;
+}
+
+uint32_t
+ropMOVS_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
+{
+    int seg_base_src = ireg_seg_base(op_ea_seg);
+    int seg_base_dst = ireg_seg_base(&cpu_state.seg_es);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_write(block, ir, &cpu_state.seg_es);
+
+    if (op_32 & 0x200) {
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, seg_base_src, IREG_ESI);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_EDI, IREG_temp0_W);
+        uop_CALL_FUNC(ir, stos_adj_w_a32);
+        uop_CALL_FUNC(ir, lods_adj_w_a32);
+    } else {
+        uop_AND_IMM(ir, IREG_temp1, IREG_ESI, 0xffff);
+        uop_AND_IMM(ir, IREG_eaaddr, IREG_EDI, 0xffff);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, seg_base_src, IREG_temp1);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_eaaddr, IREG_temp0_W);
+        uop_CALL_FUNC(ir, stos_adj_w_a16);
+        uop_CALL_FUNC(ir, lods_adj_w_a16);
+    }
+
+    return op_pc;
+}
+
+uint32_t
+ropMOVS_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), uint32_t op_32, uint32_t op_pc)
+{
+    int seg_base_src = ireg_seg_base(op_ea_seg);
+    int seg_base_dst = ireg_seg_base(&cpu_state.seg_es);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_write(block, ir, &cpu_state.seg_es);
+
+    if (op_32 & 0x200) {
+        uop_MEM_LOAD_REG(ir, IREG_temp0_L, seg_base_src, IREG_ESI);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_EDI, IREG_temp0_L);
+        uop_CALL_FUNC(ir, stos_adj_l_a32);
+        uop_CALL_FUNC(ir, lods_adj_l_a32);
+    } else {
+        uop_AND_IMM(ir, IREG_temp1, IREG_ESI, 0xffff);
+        uop_AND_IMM(ir, IREG_eaaddr, IREG_EDI, 0xffff);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_L, seg_base_src, IREG_temp1);
+        uop_MEM_STORE_REG(ir, seg_base_dst, IREG_eaaddr, IREG_temp0_L);
+        uop_CALL_FUNC(ir, stos_adj_l_a16);
+        uop_CALL_FUNC(ir, lods_adj_l_a16);
+    }
+
+    return op_pc;
+}
+
