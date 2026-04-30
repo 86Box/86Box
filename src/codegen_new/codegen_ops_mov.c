@@ -909,6 +909,7 @@ ropMOVS_b(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
     int seg_base_dst = ireg_seg_base(&cpu_state.seg_es);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_read(block, ir, op_ea_seg);
     codegen_check_seg_write(block, ir, &cpu_state.seg_es);
 
     if (op_32 & 0x200) {
@@ -935,6 +936,7 @@ ropMOVS_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
     int seg_base_dst = ireg_seg_base(&cpu_state.seg_es);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_read(block, ir, op_ea_seg);
     codegen_check_seg_write(block, ir, &cpu_state.seg_es);
 
     if (op_32 & 0x200) {
@@ -961,6 +963,7 @@ ropMOVS_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint
     int seg_base_dst = ireg_seg_base(&cpu_state.seg_es);
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    codegen_check_seg_read(block, ir, op_ea_seg);
     codegen_check_seg_write(block, ir, &cpu_state.seg_es);
 
     if (op_32 & 0x200) {
