@@ -18268,7 +18268,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
+            /* The BIOS does not support Cyrix CPU's. */
+            .block       = CPU_BLOCK(CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX),
             .min_bus     = 60000000,
             .max_bus     = 66666667,
             .min_voltage = 2700,
