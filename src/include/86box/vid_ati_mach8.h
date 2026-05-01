@@ -31,6 +31,8 @@ typedef struct mach_t {
     mem_mapping_t mmio_linear_mapping;
     mem_mapping_t banked_mapping;
 
+    void *log;
+
     int mca_bus;
     int pci_bus;
     int vlb_bus;
