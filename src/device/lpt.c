@@ -345,6 +345,7 @@ lpt_devices_init(void)
                 if (lpt->port.chardev.read)
                     timer_set_delay_u64(&lpt->char_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
             }
+            lpt->port.attached = 1; /* overwrite magic value as we're a dropdown device */
         }
     }
 }
@@ -361,9 +362,10 @@ lpt_attach_ex(int     port,
               void    *priv)
 {
     if (lpt_ports[port].lpt) {
-        if (lpt_ports[port].lpt->port.attached)
+        int attached = lpt_ports[port].lpt->port.attached;
+        lpt_ports[port].lpt->port.attached = 2; /* magic value for making external devices ineligible to soft reset (overwritten later if this is a dropdown device) */
+        if (attached)
             return NULL;
-        lpt_ports[port].lpt->port.attached = 1;
     }
 
     lpt_devs[port].write_data       = write_data;

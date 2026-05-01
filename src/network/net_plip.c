@@ -79,9 +79,6 @@ typedef struct plip_t {
     netcard_t *card;
 } plip_t;
 
-static void plip_receive_packet(plip_t *dev);
-
-#define ENABLE_PLIP_LOG 2
 #ifdef ENABLE_PLIP_LOG
 int plip_do_log = ENABLE_PLIP_LOG;
 
