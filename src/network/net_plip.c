@@ -129,7 +129,7 @@ plip_write_data(uint8_t val, void *priv)
 
     switch (dev->state) {
         case PLIP_START:
-            if (val == 0x08) { /* D3/ACK wakes us up */
+            if (val == 0x08) { /* D3==nAck wakes us up */
                 plip_log(2, "PLIP: ACK wakeup\n");
                 dev->state  = PLIP_TX_LEN_LSB_LOW;
                 dev->status = 0x08;
@@ -139,7 +139,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_LEN_LSB_LOW:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             dev->tx_len = val & 0xf;
             plip_log(2, "PLIP: tx_len = %04X (1/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_LSB_HIGH;
@@ -148,7 +148,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_LEN_LSB_HIGH:
             if (val & 0x10)
-                return; /* D4/BUSY not low yet */
+                return; /* !D4==nBusy not asserted yet */
             dev->tx_len |= (val & 0xf) << 4;
             plip_log(2, "PLIP: tx_len = %04X (2/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_MSB_LOW;
@@ -157,7 +157,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_LEN_MSB_LOW:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             dev->tx_len |= (val & 0xf) << 8;
             plip_log(2, "PLIP: tx_len = %04X (3/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_MSB_HIGH;
@@ -166,7 +166,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_LEN_MSB_HIGH:
             if (val & 0x10)
-                return; /* D4/BUSY not low yet */
+                return; /* !D4==nBusy not asserted yet */
             dev->tx_len |= (val & 0xf) << 12;
             plip_log(2, "PLIP: tx_len = %04X (4/4)\n", dev->tx_len);
 
@@ -182,7 +182,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_DATA_LOW:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             dev->tx_pkt[dev->tx_ptr] = val & 0x0f;
             plip_log(2, "PLIP: tx_pkt[%d] = %02X (1/2)\n", dev->tx_ptr, dev->tx_pkt[dev->tx_ptr]);
             dev->state = PLIP_TX_DATA_HIGH;
@@ -191,7 +191,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_DATA_HIGH:
             if (val & 0x10)
-                return; /* D4/BUSY not low yet */
+                return; /* !D4==nBusy not asserted yet */
             dev->tx_pkt[dev->tx_ptr] |= (val & 0x0f) << 4;
             plip_log(2, "PLIP: tx_pkt[%d] = %02X (2/2)\n", dev->tx_ptr, dev->tx_pkt[dev->tx_ptr]);
             dev->tx_checksum_calc += dev->tx_pkt[dev->tx_ptr++];
@@ -206,7 +206,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_CHECKSUM_LOW:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             dev->tx_checksum = val & 0x0f;
             plip_log(2, "PLIP: tx_checksum = %02X (1/2)\n", dev->tx_checksum);
             dev->state = PLIP_TX_CHECKSUM_HIGH;
@@ -215,7 +215,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_TX_CHECKSUM_HIGH:
             if (val & 0x10)
-                return; /* D4/BUSY not low yet */
+                return; /* !D4==nBusy not asserted yet */
             dev->tx_checksum |= (val & 0x0f) << 4;
             plip_log(2, "PLIP: tx_checksum = %02X (2/2)\n", dev->tx_checksum);
 
@@ -242,7 +242,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_LEN_LSB_LOW:
             if (!(val & 0x01))
-                return; /* D3/ACK not high yet */
+                return; /* D4==!nBusy not asserted yet */
             plip_log(2, "PLIP: rx_len = %04X (1/4)\n", dev->rx_len);
             dev->status = (dev->rx_len & 0x0f) << 3;
             dev->state  = PLIP_RX_LEN_LSB_HIGH;
@@ -250,7 +250,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_LEN_LSB_HIGH:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             plip_log(2, "PLIP: rx_len = %04X (2/4)\n", dev->rx_len);
             dev->status = ((dev->rx_len >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
@@ -259,7 +259,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_LEN_MSB_LOW:
             if (val & 0x10)
-                return; /* D4/BUSY not low yet */
+                return; /* !D4==nBusy not asserted yet */
             plip_log(2, "PLIP: rx_len = %04X (3/4)\n", dev->rx_len);
             dev->status = ((dev->rx_len >> 8) & 0x0f) << 3;
             dev->state  = PLIP_RX_LEN_MSB_HIGH;
@@ -267,7 +267,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_LEN_MSB_HIGH:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             plip_log(2, "PLIP: rx_len = %04X (4/4)\n", dev->rx_len);
             dev->status = ((dev->rx_len >> 12) & 0x0f) << 3;
             dev->status |= 0x80;
@@ -279,7 +279,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_DATA_LOW:
             if (val & 0x10)
-                return; /* D4/BUSY not low yet */
+                return; /* !D4==nBusy not asserted yet */
             plip_log(2, "PLIP: rx_pkt[%d] = %02X (1/2)\n", dev->rx_ptr, dev->rx_pkt[dev->rx_ptr]);
             dev->status = (dev->rx_pkt[dev->rx_ptr] & 0x0f) << 3;
             dev->state  = PLIP_RX_DATA_HIGH;
@@ -287,7 +287,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_DATA_HIGH:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             plip_log(2, "PLIP: rx_pkt[%d] = %02X (2/2)\n", dev->rx_ptr, dev->rx_pkt[dev->rx_ptr]);
             dev->status = ((dev->rx_pkt[dev->rx_ptr] >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
@@ -302,7 +302,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_CHECKSUM_LOW:
             if (val & 0x10)
-                return; /* D4/BUSY not low yet */
+                return; /* !D4==nBusy not asserted yet */
             plip_log(2, "PLIP: rx_checksum = %02X (1/2)\n", dev->rx_checksum);
             dev->status = (dev->rx_checksum & 0x0f) << 3;
             dev->state  = PLIP_RX_CHECKSUM_HIGH;
@@ -310,7 +310,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_CHECKSUM_HIGH:
             if (!(val & 0x10))
-                return; /* D4/BUSY not high yet */
+                return; /* D4==!nBusy not asserted yet */
             plip_log(2, "PLIP: rx_checksum = %02X (2/2)\n", dev->rx_checksum);
             dev->status = ((dev->rx_checksum >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
@@ -326,7 +326,7 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_END:
             if (val == 0x00) { /* written after TX or RX is done */
                 plip_log(2, "PLIP: end\n");
-                dev->status = 0x80;
+                dev->status = 0x80; /* nBusy */
                 dev->state  = PLIP_START;
 
                 timer_set_delay_u64(&dev->rx_timer, ISACONST); /* for DOS */
@@ -389,7 +389,7 @@ plip_receive_packet(plip_t *dev)
     plip_log(2, "PLIP: receiving %d-byte packet\n", dev->rx_len);
 
     /* Set up to receive a packet. */
-    dev->status = 0xc7; /* DOS expects exactly 0xc7, while Linux masks the 7 off */
+    dev->status = 0xc7; /* Linux expects dsr == nBusy|nAck, DOS expects that and reserved[2:0] */
     dev->state  = PLIP_RX_LEN_LSB_LOW;
 
     /* Engage timeout timer. */
