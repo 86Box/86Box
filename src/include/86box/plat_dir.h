@@ -163,6 +163,7 @@ plat_dir_read(plat_dir_t *context)
 #    define plat_dir_get_name(context)      ((context)->data.cFileName)
 #    define plat_dir_get_size(context)      (((uint64_t) (context)->data.nFileSizeHigh << 32) | (context)->data.nFileSizeLow)
 #    define plat_dir_convert_time(ft)       (((((uint64_t) ft.dwHighDateTime << 32) | ft.dwLowDateTime) - 116444736000000000ULL) / 10000000ULL)
+#    define PLAT_DIR_HAS_BIRTHTIME          1
 #    define plat_dir_get_birthtime(context) (plat_dir_convert_time((context)->data.ftCreationTime))
 #    define plat_dir_get_mtime(context)     (plat_dir_convert_time((context)->data.ftLastWriteTime))
 #    define plat_dir_get_atime(context)     (plat_dir_convert_time((context)->data.ftLastAccessTime))
@@ -390,6 +391,7 @@ plat_dir_read(plat_dir_t *context)
 
 #    define plat_dir_get_name(context)      ((context)->data.name)
 #    define plat_dir_get_size(context)      (LIKELY((context)->data.datalength != NULL) ? *(context)->data.datalength : 0)
+#    define PLAT_DIR_HAS_BIRTHTIME          1
 #    define plat_dir_get_birthtime(context) (LIKELY((context)->data.crtime != NULL) ? (context)->data.crtime->tv_sec : 0)
 #    define plat_dir_get_mtime(context)     (LIKELY((context)->data.mtime != NULL) ? (context)->data.mtime->tv_sec : 0)
 #    define plat_dir_get_atime(context)     (LIKELY((context)->data.atime != NULL) ? (context)->data.atime->tv_sec : 0)
@@ -500,7 +502,8 @@ plat_dir_read(plat_dir_t *context)
 
 #    define plat_dir_get_name(context) ((context)->data->d_name)
 #    define plat_dir_get_size(context) (plat_dir_stat((context))->st_size)
-#    ifdef st_birthtime
+#    ifdef st_birthtime /* hack: assume the platform remaps st_birthtime at header level */
+#        define PLAT_DIR_HAS_BIRTHTIME          1
 #        define plat_dir_get_birthtime(context) (plat_dir_stat((context))->st_birthtime)
 #    else
 #        define plat_dir_get_birthtime(context) (0)

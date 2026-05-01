@@ -105,7 +105,7 @@ typedef struct _viso_entry_ {
     struct {
         uint8_t is_dir : 1;
         uint32_t size;
-#ifdef st_birthtime /* hack: assume the platform remaps st_birthtime at header level */
+#ifdef PLAT_DIR_HAS_BIRTHTIME
         time_t birthtime;
 #endif
         time_t mtime;
@@ -576,7 +576,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
                 q = p++; /* save Rock Ridge flags location for later */
 
                 int times =
-#ifdef st_birthtime
+#ifdef PLAT_DIR_HAS_BIRTHTIME
                     (VISO_TIME_VALID(entry->stats.birthtime) << 0) | /* creation */
 #endif
                     (VISO_TIME_VALID(entry->stats.mtime) << 1) | /* modify */
@@ -591,7 +591,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
                     *p++ = 1; /* version */
 
                     *p++ = times; /* flags */
-#ifdef st_birthtime
+#ifdef PLAT_DIR_HAS_BIRTHTIME
                     if (times & (1 << 0))
                         p += viso_fill_time(p, entry->stats.birthtime, viso->format, 0); /* creation */
 #endif
@@ -657,7 +657,7 @@ viso_fill_stats(viso_entry_t *entry, plat_dir_t *context, int format)
     if (LIKELY(format & VISO_FORMAT_RR)) {
         entry->stats.atime = plat_dir_get_atime(context);
         entry->stats.ctime = plat_dir_get_ctime(context);
-#ifdef st_birthtime
+#ifdef PLAT_DIR_HAS_BIRTHTIME
         entry->stats.birthtime = plat_dir_get_birthtime(context);
 #endif
     }
@@ -818,7 +818,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         goto end;
 
         /* Open temporary file. */
-#ifdef ENABLE_IMAGE_VISO_LOG
+#ifdef IMAGE_VISO_LOG
     strcpy(viso->tf.fn, "viso-debug.iso");
 #else
     plat_tempfile(viso->tf.fn, "viso", ".tmp");
@@ -1575,7 +1575,7 @@ next_entry:
     /* We no longer need the temporary file; close and delete it. */
     fclose(viso->tf.fp);
     viso->tf.fp = NULL;
-#ifndef ENABLE_IMAGE_VISO_LOG
+#ifndef IMAGE_VISO_LOG
     remove(nvr_path(viso->tf.fn));
 #endif
 
