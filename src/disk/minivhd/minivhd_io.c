@@ -263,7 +263,7 @@ mvhd_sparse_read(MVHDMeta *vhdm, uint32_t offset, int num_sectors, void *out_buf
                 read_sect_bitmap(vhdm, blk);
                 if (mvhd_fseeko64(vhdm->f, (uint64_t)sib * MVHD_SECTOR_SIZE, SEEK_CUR) == -1)
                     vhdm->error = 1;
-            } else {
+            } else if (vhdm->block_offset[blk] != MVHD_SPARSE_BLK) {
                 addr = (((int64_t) vhdm->block_offset[blk]) + vhdm->bitmap.sector_count + sib) *
                        MVHD_SECTOR_SIZE;
                 if (mvhd_fseeko64(vhdm->f, addr, SEEK_SET) == -1)
