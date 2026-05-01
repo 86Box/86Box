@@ -183,6 +183,7 @@ canProcessUiEventsInCurrentState()
     return !cpu_thread_run || dopause || has_modal_widget || has_settings_open;
 }
 
+#ifdef Q_OS_WINDOWS
 static void
 processEventsOnlyWhenPausedOrModal()
 {
@@ -190,6 +191,7 @@ processEventsOnlyWhenPausedOrModal()
         return;
     QApplication::processEvents(QEventLoop::ExcludeUserInputEvents | QEventLoop::ExcludeSocketNotifiers);
 }
+#endif
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
