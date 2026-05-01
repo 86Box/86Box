@@ -1194,8 +1194,21 @@ load_ports(void)
         lpt_ports[c].enabled = !!ini_section_get_int(cat, temp, (c == 0) ? 1 : 0);
 
         sprintf(temp, "lpt%d_device", c + 1);
-        p                    = ini_section_get_string(cat, temp, "none");
-        lpt_ports[c].device  = char_get_from_internal_name(!strcmp(p, "lpt_loopback") ? "loopback" : p, DEVICE_LPT);
+        p = ini_section_get_string(cat, temp, "none");
+        if (!strcmp(p, "plip")) {
+            /* Migrate old separate LPT PLIP device. */
+            int plip_num = network_card_get_from_internal_name(p);
+            for (int d = 0; d < NET_CARD_MAX; d++) {
+                if (net_cards_conf[d].device_num == plip_num) {
+                    sprintf(temp, "%s #%i", plip_device.name, d + 1);
+                    ini_set_int(config, temp, "port", c);
+                    break;
+                }
+            }
+            lpt_ports[c].device = 0;
+        } else {
+            lpt_ports[c].device = char_get_from_internal_name(!strcmp(p, "lpt_loopback") ? "loopback" : p, DEVICE_LPT);
+        }
     }
 
 #if 0

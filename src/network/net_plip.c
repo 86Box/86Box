@@ -81,8 +81,7 @@ typedef struct plip_t {
 
 static void plip_receive_packet(plip_t *dev);
 
-plip_t *instance;
-
+#define ENABLE_PLIP_LOG 2
 #ifdef ENABLE_PLIP_LOG
 int plip_do_log = ENABLE_PLIP_LOG;
 
@@ -400,7 +399,8 @@ plip_receive_packet(plip_t *dev)
     timer_set_delay_u64(&dev->timeout_timer, 1000000 * TIMER_USEC);
 
     /* Wake the other end up. */
-    lpt_irq(dev->lpt, 1);
+    if (dev->lpt)
+        lpt_irq(dev->lpt, 1);
 }
 
 /* This timer defers a call to plip_receive_packet to
@@ -427,7 +427,7 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
         return 0;
     }
 
-    if (!(dev->rx_pkt = calloc(1, io_len))) /* unlikely */
+    if (UNLIKELY(!(dev->rx_pkt = calloc(1, io_len))))
         fatal("PLIP: unable to allocate rx_pkt\n");
 
     /* Copy this packet to our buffer. */
@@ -441,13 +441,14 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 }
 
 static void *
-plip_lpt_init(const device_t *info)
+plip_init(const device_t *info)
 {
     plip_t *dev = (plip_t *) calloc(1, sizeof(plip_t));
 
-    plip_log(1, "PLIP: lpt_init()\n");
+    plip_log(1, "PLIP: init()\n");
 
-    dev->lpt  = lpt_attach(plip_write_data, plip_write_ctrl, NULL, plip_read_status, NULL, NULL, NULL, dev);
+    dev->lpt  = lpt_attach_ex(device_get_config_int("port"), plip_write_data, plip_write_ctrl, NULL, plip_read_status, NULL, NULL, NULL, dev);
+    dev->card = network_attach(dev, dev->mac, plip_rx, NULL);
 
     memset(dev->mac, 0xfc, 6); /* static MAC used by Linux; just a placeholder */
 
@@ -456,60 +457,53 @@ plip_lpt_init(const device_t *info)
     timer_add(&dev->rx_timer, rx_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
-    instance = dev;
-
     return dev;
-}
-
-static void *
-plip_net_init(UNUSED(const device_t *info))
-{
-    plip_log(1, "PLIP: net_init()");
-
-    if (!instance) {
-        plip_log(1, " (not attached to LPT)\n");
-        return NULL;
-    }
-
-    plip_log(1, " (attached to LPT)\n");
-    instance->card = network_attach(instance, instance->mac, plip_rx, NULL);
-
-    return instance;
 }
 
 static void
 plip_close(void *priv)
 {
-    if (instance->card) {
-        netcard_close(instance->card);
-    }
-    free(priv);
+    plip_t *dev = (plip_t *) priv;
+
+    plip_log(1, "PLIP: close()\n");
+
+    if (dev->card)
+        netcard_close(dev->card);
+
+    free(dev);
 }
 
-const device_t lpt_plip_device = {
-    .name          = "Parallel Line Internet Protocol (LPT)",
-    .internal_name = "plip",
-    .flags         = DEVICE_LPT,
-    .local         = 0,
-    .init          = plip_lpt_init,
-    .close         = plip_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
+static const device_config_t plip_config[] = {
+    {
+        .name           = "port",
+        .description    = "Parallel Port",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "LPT1", .value = 0 },
+            { .description = "LPT2", .value = 1 },
+            { .description = "LPT3", .value = 2 },
+            { .description = "LPT4", .value = 3 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t plip_device = {
     .name          = "Parallel Line Internet Protocol",
     .internal_name = "plip",
-    .flags         = DEVICE_LPT,
+    .flags         = 0,
     .local         = 0,
-    .init          = plip_net_init,
-    .close         = NULL,
+    .init          = plip_init,
+    .close         = plip_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = plip_config
 };
