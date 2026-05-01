@@ -234,3 +234,7 @@ endif()
 set(CMAKE_TOP_LEVEL_PROCESSED TRUE)
 
 add_subdirectory(src)
+
+if(WIN32)
+    target_link_libraries(86Box ucrt)
+endif()
