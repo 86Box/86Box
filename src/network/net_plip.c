@@ -129,7 +129,7 @@ plip_write_data(uint8_t val, void *priv)
 
     switch (dev->state) {
         case PLIP_START:
-            if (val == 0x08) { /* D3==nAck wakes us up */
+            if (val & 0x08) { /* D3==nAck wakes us up */
                 plip_log(2, "PLIP: ACK wakeup\n");
                 dev->state  = PLIP_TX_LEN_LSB_LOW;
                 dev->status = 0x08;
@@ -377,14 +377,8 @@ plip_receive_packet(plip_t *dev)
         return;
     }
 
-    if (!dev->rx_pkt || !dev->rx_len) { /* unpause RX queue if there's no packet to receive */
+    if (!dev->rx_pkt || !dev->rx_len) /* unpause RX queue if there's no packet to receive */
         return;
-    }
-
-    if (!(dev->ctrl & 0x10)) { /* checking this is essential to avoid collisions */
-        plip_log(3, "PLIP: cannot receive, interrupts are off\n");
-        return;
-    }
 
     plip_log(2, "PLIP: receiving %d-byte packet\n", dev->rx_len);
 
