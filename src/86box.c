@@ -344,6 +344,7 @@ char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
 char  global_cfg_path[1024]; /* full path of config file */
 FILE *stdlog = NULL;  /* file to log output to */
+void (*pclog_hook)(const char *) = NULL; /* optional UI log hook */
 #if 0
 int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
 int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
@@ -424,6 +425,8 @@ pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
         seen = 0;
         strcpy(buff, temp);
         fprintf(stdlog, "%s", temp);
+        if (pclog_hook)
+            pclog_hook(temp);
     }
 
     fflush(stdlog);
@@ -471,6 +474,8 @@ always_log(const char *fmt, ...)
 
     vsprintf(temp, fmt, ap);
     fprintf(stdlog, "%s", temp);
+    if (pclog_hook)
+        pclog_hook(temp);
     fflush(stdlog);
     va_end(ap);
 }
@@ -583,6 +588,8 @@ warning(const char *fmt, ...)
 
     vsprintf(temp, fmt, ap);
     fprintf(stdlog, "%s", temp);
+    if (pclog_hook)
+        pclog_hook(temp);
     fflush(stdlog);
     va_end(ap);
 

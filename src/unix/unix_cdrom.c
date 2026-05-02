@@ -136,7 +136,7 @@ plat_cdrom_ui_update(uint8_t id, UNUSED(uint8_t reload))
 void
 cdrom_mount(uint8_t id, char *fn)
 {
-    int ret = cdrom_load( &(cdrom[id]), fn, 0);
+    cdrom_load(&(cdrom[id]), fn, 0);
 
     plat_cdrom_ui_update(id, 0);
 
@@ -147,6 +147,7 @@ void
 mo_eject(uint8_t id)
 {
     mo_t *dev = (mo_t *) mo_drives[id].priv;
+    if (!dev) return;
 
     mo_disk_close(dev);
     if (mo_drives[id].bus_type) {
@@ -164,6 +165,7 @@ void
 mo_mount(uint8_t id, char *fn, uint8_t wp)
 {
     mo_t *dev = (mo_t *) mo_drives[id].priv;
+    if (!dev) return;
 
     mo_disk_close(dev);
     mo_drives[id].read_only = wp;
@@ -180,6 +182,7 @@ void
 mo_reload(uint8_t id)
 {
     mo_t *dev = (mo_t *) mo_drives[id].priv;
+    if (!dev) return;
 
     mo_disk_reload(dev);
     if (strlen(mo_drives[id].image_path) == 0) {
@@ -197,6 +200,7 @@ void
 rdisk_eject(uint8_t id)
 {
     rdisk_t *dev = (rdisk_t *) rdisk_drives[id].priv;
+    if (!dev) return;
 
     rdisk_disk_close(dev);
     if (rdisk_drives[id].bus_type) {
@@ -215,6 +219,7 @@ void
 rdisk_mount(uint8_t id, char *fn, uint8_t wp)
 {
     rdisk_t *dev = (rdisk_t *) rdisk_drives[id].priv;
+    if (!dev) return;
 
     rdisk_disk_close(dev);
     rdisk_drives[id].read_only = wp;
@@ -231,6 +236,7 @@ void
 rdisk_reload(uint8_t id)
 {
     rdisk_t *dev = (rdisk_t *) rdisk_drives[id].priv;
+    if (!dev) return;
 
     rdisk_disk_reload(dev);
     if (strlen(rdisk_drives[id].image_path) == 0) {
@@ -249,6 +255,7 @@ void
 tape_eject(uint8_t id)
 {
     tape_t *dev = (tape_t *) tape_drives[id].priv;
+    if (!dev) return;
 
     tape_disk_close(dev);
     if (tape_drives[id].bus_type) {
@@ -267,6 +274,7 @@ void
 tape_mount(uint8_t id, char *fn, uint8_t wp)
 {
     tape_t *dev = (tape_t *) tape_drives[id].priv;
+    if (!dev) return;
 
     tape_disk_close(dev);
     tape_drives[id].read_only = wp;
@@ -283,6 +291,7 @@ void
 tape_reload(uint8_t id)
 {
     tape_t *dev = (tape_t *) tape_drives[id].priv;
+    if (!dev) return;
 
     tape_disk_reload(dev);
     if (strlen(tape_drives[id].image_path) == 0) {
