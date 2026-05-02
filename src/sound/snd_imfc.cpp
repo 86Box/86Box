@@ -13225,7 +13225,7 @@ public:
 		keepRunning        = true;
 		m_hardwareMutex    = thread_create_mutex();
 		m_mainThread       = thread_create_named(imfMainThreadStart, this, "imfc-main");
-		MFC_AddEvent(CallInterruptHandler, 0.02, 0);
+		MFC_AddEvent(CallInterruptHandler, 0.5, 0);
 
 		// wait until we're ready to receive data... it's a workaround
 		// for now, but well....
