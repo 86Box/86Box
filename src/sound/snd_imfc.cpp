@@ -2283,6 +2283,7 @@ enum CounterMode : uint8_t {
 	COUNTERMODE_INVALID,
 	COUNTERMODE_MODE2,
 	COUNTERMODE_MODE3,
+	COUNTERMODE_MODE4
 };
 
 enum CounterReadSource : uint8_t {
@@ -2319,6 +2320,23 @@ struct CounterData {
 			IMF_LOG("%s has been assigned a new COUNTER of value %i",
 			        m_name.c_str(),
 			        m_counter);
+			m_nextWriteTarget = COUNTERWRITETARGET_BYTE1;
+			m_runningCounter  = m_counter;
+			break;
+		}
+	}
+	void writeCounterByteSwapped(uint8_t val)
+	{
+		switch (m_nextWriteTarget) {
+		case COUNTERWRITETARGET_BYTE1:
+			m_tmpWrite        = val;
+			m_nextWriteTarget = COUNTERWRITETARGET_BYTE2;
+			break;
+			case COUNTERWRITETARGET_BYTE2:
+			m_counter = val << 8 | m_tmpWrite;
+			//pclog("%s has been assigned a new COUNTER of value %i\n",
+			//	m_name.c_str(),
+			//	m_counter);
 			m_nextWriteTarget = COUNTERWRITETARGET_BYTE1;
 			m_runningCounter  = m_counter;
 			break;
@@ -2362,9 +2380,8 @@ private:
 		// PIC_AddEvent takes milliseconds as argument
 		// the counter0 has a resolution of 2 microseconds
 		PIC_AddEvent(Intel8253_TimerEvent, 0.002, 0); // FIXME
-        // counter1 has a resolution of 0.5 microseconds, use 0.05 uS to allow the fractional
-        // component of the count to be applied
-        PIC_AddEvent(Intel8253_TimerEvent2, 0.00005, 0); // FIXME
+		// counter1 has a resolution of 0.5 microseconds
+		PIC_AddEvent(Intel8253_TimerEvent2, 0.0005, 0); // FIXME
 	}
 
 public:
@@ -2402,7 +2419,7 @@ public:
 	void writePortCNTR0(uint8_t val)
 	{
 		IMF_LOG("writePortCNTR0 / value=0x%X", val);
-		m_counter0.writeCounterByte(val);
+		m_counter0.writeCounterByteSwapped(val);
 	}
 
 	uint8_t readPortCNTR1()
@@ -2415,7 +2432,7 @@ public:
 	void writePortCNTR1(uint8_t val)
 	{
 		IMF_LOG("writePortCNTR1 / value=0x%X", val);
-		m_counter1.writeCounterByte(val);
+		m_counter1.writeCounterByteSwapped(val);
 	}
 
 	uint8_t readPortCNTR2()
@@ -2428,13 +2445,7 @@ public:
 	void writePortCNTR2(uint8_t val)
 	{
 		IMF_LOG("writePortCNTR2 / value=0x%X", val);
-		m_counter2.writeCounterByte(val);
-                /* High byte of counter 2 is the fractional component of the timer value */
-                int fraction = ((m_counter2.m_counter >> 8) & 0xff);
-                int whole = (m_counter2.m_counter & 0xff);
-                double temp = whole + ((double) fraction / 255);
-                temp *= 10;
-                m_counter2.m_counter = (int) temp;
+		m_counter2.writeCounterByteSwapped(val);
 	}
 
 	static uint8_t readPortTCWR()
@@ -2462,29 +2473,46 @@ public:
 			// to high-order bits) 010(Mode2) 0(binary)
 			m_counter0.m_counterMode = COUNTERMODE_MODE2;
 			IMF_LOG("counter0 is now set to MODE2", "");
+		} else if (val == 0x38) {
+			// Sets counter 0 for mode 4 and the 16-bit binary
+			// counter 0x38 = 00(Set mode of counter 0) 11(low-order
+			// to high-order bits) 100 (Mode4) 0(binary)
+			m_counter0.m_counterMode = COUNTERMODE_MODE4;
 		} else if (val == 0x74) {
 			// Sets counter 1 for mode 2 and the 16-bit binary
 			// counter 0x74 = 01(Set mode of counter 1) 11(low-order
 			// to high-order bits) 010(Mode2) 0(binary)
 			m_counter1.m_counterMode = COUNTERMODE_MODE2;
 			IMF_LOG("counter1 is now set to MODE2", "");
+		} else if (val == 0x78) {
+			// Sets counter 1 for mode 4 and the 16-bit binary
+			// counter 0x78 = 01(Set mode of counter 1) 11(low-order
+			// to high-order bits) 100(Mode4) 0(binary)
+			m_counter1.m_counterMode = COUNTERMODE_MODE4;
+			IMF_LOG("counter1 is now set to MODE4", "");
 		} else if (val == 0xB6) {
 			// Sets counter 2 for mode 3 and the 16-bit binary
 			// counter 0xB6 = 10(Set mode of counter 2) 11(low-order
 			// to high-order bits) 011(Mode3) 0(binary)
 			m_counter2.m_counterMode = COUNTERMODE_MODE3;
 			IMF_LOG("counter2 is now set to MODE3", "");
+		} else if (val == 0xB8) {
+			// Sets counter 2 for mode 4 and the 16-bit binary
+			// counter 0xB8 = 10(Set mode of counter 2) 11(low-order
+			// to high-order bits) 100(Mode4) 0(binary)
+			m_counter2.m_counterMode = COUNTERMODE_MODE4;
+			IMF_LOG("counter2 is now set to MODE4", "");
 		} else if (val == 0x00) {
 			// Latches the contents of counter 0 to the register
-			m_counter0.m_latchedCounter = m_counter0.m_counter; // FIXME
+			m_counter0.m_latchedCounter = m_counter0.m_runningCounter; // FIXME
 			m_counter0.m_nextReadSource = COUNTERREADSOURCE_LATCH_1;
 		} else if (val == 0x40) {
 			// Latches the contents of counter 1 to the register
-			m_counter1.m_latchedCounter = m_counter1.m_counter; // FIXME
+			m_counter1.m_latchedCounter = m_counter1.m_runningCounter; // FIXME
 			m_counter1.m_nextReadSource = COUNTERREADSOURCE_LATCH_1;
 		} else if (val == 0x80) {
 			// Latches the contents of counter 2 to the register
-			m_counter2.m_latchedCounter = m_counter2.m_counter; // FIXME
+			m_counter2.m_latchedCounter = m_counter2.m_runningCounter; // FIXME
 			m_counter2.m_nextReadSource = COUNTERREADSOURCE_LATCH_1;
 		} else {
 			IMF_LOG("writePortTCWR: Unsupported command 0x%X", val);
@@ -2519,7 +2547,8 @@ public:
 					        m_name.c_str());
 				}
 				m_timerA.setValue(true);
-				m_counter0.m_runningCounter = m_counter0.m_counter;
+				if (m_counter0.m_counterMode != COUNTERMODE_MODE4)
+					m_counter0.m_runningCounter = m_counter0.m_counter;
 				// IMF_LOG("m_counter0.m_runningCounter -> %i",
 				// m_counter0.m_runningCounter);
 				// IMF_LOG("m_timerA.OUT is going HIGH");
@@ -2542,7 +2571,8 @@ public:
                         } else {
                                 // End of Counter 2 decrements Counter 1
                                 m_counter1.m_runningCounter--;
-                                m_counter2.m_runningCounter = m_counter2.m_counter;
+				if (m_counter2.m_counterMode != COUNTERMODE_MODE4)
+	                                m_counter2.m_runningCounter = m_counter2.m_counter;
                                 // IMF_LOG("m_counter2.m_runningCounter -> %i",
                                 // m_counter2.m_runningCounter);
                         }
@@ -2571,7 +2601,8 @@ public:
                                                 m_name.c_str());
                                 }
                                 m_timerB.setValue(true);
-                                m_counter1.m_runningCounter = m_counter1.m_counter;
+				if (m_counter1.m_counterMode != COUNTERMODE_MODE4)
+	                                m_counter1.m_runningCounter = m_counter1.m_counter;
                                 // IMF_LOG("m_counter1.m_runningCounter -> %i",
                                 // m_counter1.m_runningCounter);
                                 // IMF_LOG("m_timerB.OUT is going HIGH");
