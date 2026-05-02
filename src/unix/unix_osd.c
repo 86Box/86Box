@@ -402,10 +402,22 @@ void osd_present(int fb_w, int fb_h)
         draw_file_selector(osd_sw_render, "SELECT MO IMAGE", files, file_count, file_selected, scroll_offset, max_visible);
     }
 
-    /* Upload the software-rendered surface to GL via the shader overlay. */
+    /* Shader builds upload through the GL overlay path; shader-off builds composite in unix_sdl.c. */
+#if USE_SDL_SHADER_PIPELINE
     SDL_LockSurface(osd_surface);
     sdl_shader_draw_overlay(osd_surface->pixels, osd_surface->w, osd_surface->h);
     SDL_UnlockSurface(osd_surface);
+#endif
+}
+
+int osd_is_visible(void)
+{
+    return osd_is_open;
+}
+
+SDL_Surface *osd_get_surface(void)
+{
+    return osd_surface;
 }
 
 int osd_handle(SDL_Event event)

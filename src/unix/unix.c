@@ -1483,12 +1483,12 @@ main(int argc, char **argv)
     } else
         fprintf(stderr, "libedit not found, line editing will be limited.\n");
     mousemutex = SDL_CreateMutex();
+
+    if (start_in_fullscreen)
+        video_fullscreen = 1;
+
     sdl_initho();
 
-    if (start_in_fullscreen) {
-        video_fullscreen = 1;
-        sdl_set_fs(1);
-    }
     /* Fire up the machine. */
     pc_reset_hard_init();
 

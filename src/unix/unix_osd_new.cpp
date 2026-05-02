@@ -1098,6 +1098,16 @@ void osd_present(int fb_w, int fb_h)
     ImGui_ImplOpenGL3_RenderDrawData(dd);
 }
 
+int osd_is_visible(void)
+{
+    return osd_visible ? 1 : 0;
+}
+
+SDL_Surface *osd_get_surface(void)
+{
+    return NULL;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Stubs for status bar icons (not yet implemented)                   */
 /* ------------------------------------------------------------------ */

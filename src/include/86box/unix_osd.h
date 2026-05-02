@@ -18,6 +18,8 @@ extern int osd_handle(SDL_Event event);
 
 // draw the osd interface, if it's open
 extern void osd_present(int fb_w, int fb_h);
+extern int osd_is_visible(void);
+extern SDL_Surface *osd_get_surface(void);
 
 // future ui
 extern void osd_ui_sb_update_icon_state(int tag, int state);
