@@ -61,10 +61,8 @@ typedef struct plip_t {
     pc_timer_t rx_timer;
     pc_timer_t timeout_timer;
     uint8_t    status;
-    uint8_t    ctrl;
 
     uint8_t   state;
-    uint8_t   ack;
     uint8_t   tx_checksum;
     uint8_t   tx_checksum_calc;
     uint8_t  *tx_pkt;
@@ -132,7 +130,7 @@ plip_write_data(uint8_t val, void *priv)
             if (val & 0x08) { /* D3==nAck wakes us up */
                 plip_log(2, "PLIP: ACK wakeup\n");
                 dev->state  = PLIP_TX_LEN_LSB_LOW;
-                dev->status = 0x08;
+                dev->status = 0x08; /* nFault */
                 break;
             }
             return;
@@ -143,7 +141,7 @@ plip_write_data(uint8_t val, void *priv)
             dev->tx_len = val & 0xf;
             plip_log(2, "PLIP: tx_len = %04X (1/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_LSB_HIGH;
-            dev->status &= ~0x88;
+            dev->status &= ~0x88; /* clear nFault|nBusy */
             break;
 
         case PLIP_TX_LEN_LSB_HIGH:
@@ -152,7 +150,7 @@ plip_write_data(uint8_t val, void *priv)
             dev->tx_len |= (val & 0xf) << 4;
             plip_log(2, "PLIP: tx_len = %04X (2/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_MSB_LOW;
-            dev->status |= 0x80;
+            dev->status |= 0x80; /* toggling nBusy from now on */
             break;
 
         case PLIP_TX_LEN_MSB_LOW:
@@ -171,7 +169,7 @@ plip_write_data(uint8_t val, void *priv)
             plip_log(2, "PLIP: tx_len = %04X (4/4)\n", dev->tx_len);
 
             /* We have the length, allocate a packet. */
-            if (!(dev->tx_pkt = calloc(1, dev->tx_len))) /* unlikely */
+            if (UNLIKELY(!(dev->tx_pkt = calloc(1, dev->tx_len))))
                 fatal("PLIP: unable to allocate tx_pkt\n");
             dev->tx_ptr           = 0;
             dev->tx_checksum_calc = 0;
@@ -242,7 +240,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_RX_LEN_LSB_LOW:
             if (!(val & 0x01))
-                return; /* D4==!nBusy not asserted yet */
+                return; /* D0==nFault not asserted yet */
             plip_log(2, "PLIP: rx_len = %04X (1/4)\n", dev->rx_len);
             dev->status = (dev->rx_len & 0x0f) << 3;
             dev->state  = PLIP_RX_LEN_LSB_HIGH;
@@ -351,9 +349,7 @@ plip_write_ctrl(uint8_t val, void *priv)
 
     plip_log(3, "PLIP: write_ctrl(%02X)\n", val);
 
-    dev->ctrl = val;
-
-    if (val & 0x10) /* for Linux */
+    if (val & 0x10) /* ackIntEn set by Linux after operation, by DOS on driver init */
         timer_set_delay_u64(&dev->rx_timer, ISACONST);
 }
 
