@@ -55,26 +55,26 @@ enum {
 };
 
 typedef struct plip_t {
-    uint8_t mac[6];
-
     void      *lpt;
+    netcard_t *card;
+    uint8_t    mac[6];
+    uint8_t    status;
+    uint8_t    state;
+
+    uint8_t  rx_checksum;
+    uint8_t  rx_return_state;
+    uint16_t rx_len;
+    uint16_t rx_ptr;
+    uint8_t  tx_checksum;
+    uint8_t  tx_checksum_calc;
+    uint16_t tx_len;
+    uint16_t tx_ptr;
+
     pc_timer_t rx_timer;
     pc_timer_t timeout_timer;
-    uint8_t    status;
 
-    uint8_t   state;
-    uint8_t   tx_checksum;
-    uint8_t   tx_checksum_calc;
-    uint8_t  *tx_pkt;
-    uint16_t  tx_len;
-    uint16_t  tx_ptr;
-
-    uint8_t   *rx_pkt;
-    uint8_t    rx_checksum;
-    uint8_t    rx_return_state;
-    uint16_t   rx_len;
-    uint16_t   rx_ptr;
-    netcard_t *card;
+    uint8_t rx_pkt[NET_MAX_FRAME];
+    uint8_t tx_pkt[NET_MAX_FRAME];
 } plip_t;
 
 #ifdef ENABLE_PLIP_LOG
@@ -100,20 +100,11 @@ timeout_timer(void *priv)
 {
     plip_t *dev = (plip_t *) priv;
 
-    plip_log(1, "PLIP: timeout at state %d status %02X\n", dev->state, dev->status);
+    plip_log(1, "PLIP: Timeout at state %02X status %02X\n", dev->state, dev->status);
 
     /* Throw everything out the window. */
     dev->state  = PLIP_START;
-    dev->status = 0x80;
-
-    if (dev->tx_pkt) {
-        free(dev->tx_pkt);
-        dev->tx_pkt = NULL;
-    }
-    if (dev->rx_pkt) {
-        free(dev->rx_pkt);
-        dev->rx_pkt = NULL;
-    }
+    dev->status = 0x80; /* nBusy */
 
     timer_disable(&dev->timeout_timer);
 }
@@ -128,7 +119,7 @@ plip_write_data(uint8_t val, void *priv)
     switch (dev->state) {
         case PLIP_START:
             if (val & 0x08) { /* D3==nAck wakes us up */
-                plip_log(2, "PLIP: ACK wakeup\n");
+                plip_log(2, "PLIP: nAck wakeup\n");
                 dev->state  = PLIP_TX_LEN_LSB_LOW;
                 dev->status = 0x08; /* nFault */
                 break;
@@ -139,7 +130,6 @@ plip_write_data(uint8_t val, void *priv)
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
             dev->tx_len = val & 0xf;
-            plip_log(2, "PLIP: tx_len = %04X (1/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_LSB_HIGH;
             dev->status &= ~0x88; /* clear nFault|nBusy */
             break;
@@ -148,7 +138,6 @@ plip_write_data(uint8_t val, void *priv)
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
             dev->tx_len |= (val & 0xf) << 4;
-            plip_log(2, "PLIP: tx_len = %04X (2/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_MSB_LOW;
             dev->status |= 0x80; /* toggling nBusy from now on */
             break;
@@ -157,7 +146,6 @@ plip_write_data(uint8_t val, void *priv)
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
             dev->tx_len |= (val & 0xf) << 8;
-            plip_log(2, "PLIP: tx_len = %04X (3/4)\n", dev->tx_len);
             dev->state = PLIP_TX_LEN_MSB_HIGH;
             dev->status &= ~0x80;
             break;
@@ -166,11 +154,9 @@ plip_write_data(uint8_t val, void *priv)
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
             dev->tx_len |= (val & 0xf) << 12;
-            plip_log(2, "PLIP: tx_len = %04X (4/4)\n", dev->tx_len);
+            plip_log(2, "PLIP: tx_len = %04X\n", dev->tx_len);
 
-            /* We have the length, allocate a packet. */
-            if (UNLIKELY(!(dev->tx_pkt = calloc(1, dev->tx_len))))
-                fatal("PLIP: unable to allocate tx_pkt\n");
+            /* Begin transmitting data. */
             dev->tx_ptr           = 0;
             dev->tx_checksum_calc = 0;
 
@@ -181,8 +167,8 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_TX_DATA_LOW:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            dev->tx_pkt[dev->tx_ptr] = val & 0x0f;
-            plip_log(2, "PLIP: tx_pkt[%d] = %02X (1/2)\n", dev->tx_ptr, dev->tx_pkt[dev->tx_ptr]);
+            if (LIKELY(dev->tx_ptr) < sizeof(dev->tx_pkt))
+                dev->tx_pkt[dev->tx_ptr] = val & 0x0f;
             dev->state = PLIP_TX_DATA_HIGH;
             dev->status &= ~0x80;
             break;
@@ -190,9 +176,14 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_TX_DATA_HIGH:
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
-            dev->tx_pkt[dev->tx_ptr] |= (val & 0x0f) << 4;
-            plip_log(2, "PLIP: tx_pkt[%d] = %02X (2/2)\n", dev->tx_ptr, dev->tx_pkt[dev->tx_ptr]);
-            dev->tx_checksum_calc += dev->tx_pkt[dev->tx_ptr++];
+            if (LIKELY(dev->tx_ptr) < sizeof(dev->tx_pkt)) {
+                dev->tx_pkt[dev->tx_ptr] |= val << 4;
+                dev->tx_checksum_calc    += dev->tx_pkt[dev->tx_ptr];
+                plip_log(2, "PLIP: tx_pkt[%d] = %02X\n", dev->tx_ptr, dev->tx_pkt[dev->tx_ptr]);
+            } else {
+                plip_log(2, "PLIP: tx_pkt[%d] = overflow\n", dev->tx_ptr);
+            }
+            dev->tx_ptr++;
 
             /* Are we done yet? */
             if (dev->tx_ptr < dev->tx_len) /* no, receive another byte */
@@ -206,7 +197,6 @@ plip_write_data(uint8_t val, void *priv)
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
             dev->tx_checksum = val & 0x0f;
-            plip_log(2, "PLIP: tx_checksum = %02X (1/2)\n", dev->tx_checksum);
             dev->state = PLIP_TX_CHECKSUM_HIGH;
             dev->status &= ~0x80;
             break;
@@ -215,7 +205,7 @@ plip_write_data(uint8_t val, void *priv)
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
             dev->tx_checksum |= (val & 0x0f) << 4;
-            plip_log(2, "PLIP: tx_checksum = %02X (2/2)\n", dev->tx_checksum);
+            plip_log(2, "PLIP: tx_checksum = %02X\n", dev->tx_checksum);
 
             /* Verify checksum. */
             if (dev->tx_checksum_calc == dev->tx_checksum) {
@@ -223,15 +213,13 @@ plip_write_data(uint8_t val, void *priv)
                 memcpy(dev->mac, dev->tx_pkt + 6, 6);
 
                 /* Transmit packet. */
-                plip_log(2, "PLIP: transmitting %d-byte packet\n", dev->tx_len);
+                plip_log(1, "PLIP: Transmitting %d-byte packet\n", dev->tx_len);
                 network_tx(dev->card, dev->tx_pkt, dev->tx_len);
             } else {
-                plip_log(1, "PLIP: checksum error: expected %02X, got %02X\n", dev->tx_checksum_calc, dev->tx_checksum);
+                plip_log(1, "PLIP: Transmit checksum error, expected %02X got %02X\n", dev->tx_checksum_calc, dev->tx_checksum);
             }
 
             /* We're done with this packet. */
-            free(dev->tx_pkt);
-            dev->tx_pkt = NULL;
             dev->tx_len = 0;
 
             dev->state = PLIP_END;
@@ -241,7 +229,6 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_LEN_LSB_LOW:
             if (!(val & 0x01))
                 return; /* D0==nFault not asserted yet */
-            plip_log(2, "PLIP: rx_len = %04X (1/4)\n", dev->rx_len);
             dev->status = (dev->rx_len & 0x0f) << 3;
             dev->state  = PLIP_RX_LEN_LSB_HIGH;
             break;
@@ -249,7 +236,6 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_LEN_LSB_HIGH:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            plip_log(2, "PLIP: rx_len = %04X (2/4)\n", dev->rx_len);
             dev->status = ((dev->rx_len >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
             dev->state = PLIP_RX_LEN_MSB_LOW;
@@ -258,7 +244,6 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_LEN_MSB_LOW:
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
-            plip_log(2, "PLIP: rx_len = %04X (3/4)\n", dev->rx_len);
             dev->status = ((dev->rx_len >> 8) & 0x0f) << 3;
             dev->state  = PLIP_RX_LEN_MSB_HIGH;
             break;
@@ -266,10 +251,11 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_LEN_MSB_HIGH:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            plip_log(2, "PLIP: rx_len = %04X (4/4)\n", dev->rx_len);
+            plip_log(2, "PLIP: rx_len = %04X\n", dev->rx_len);
             dev->status = ((dev->rx_len >> 12) & 0x0f) << 3;
             dev->status |= 0x80;
 
+            /* Begin receiving data. */
             dev->rx_ptr      = 0;
             dev->rx_checksum = 0;
             dev->state       = PLIP_RX_DATA_LOW;
@@ -278,7 +264,6 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_DATA_LOW:
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
-            plip_log(2, "PLIP: rx_pkt[%d] = %02X (1/2)\n", dev->rx_ptr, dev->rx_pkt[dev->rx_ptr]);
             dev->status = (dev->rx_pkt[dev->rx_ptr] & 0x0f) << 3;
             dev->state  = PLIP_RX_DATA_HIGH;
             break;
@@ -286,7 +271,7 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_DATA_HIGH:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            plip_log(2, "PLIP: rx_pkt[%d] = %02X (2/2)\n", dev->rx_ptr, dev->rx_pkt[dev->rx_ptr]);
+            plip_log(2, "PLIP: rx_pkt[%d] = %02X\n", dev->rx_ptr, dev->rx_pkt[dev->rx_ptr]);
             dev->status = ((dev->rx_pkt[dev->rx_ptr] >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
             dev->rx_checksum += dev->rx_pkt[dev->rx_ptr++];
@@ -301,7 +286,6 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_CHECKSUM_LOW:
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
-            plip_log(2, "PLIP: rx_checksum = %02X (1/2)\n", dev->rx_checksum);
             dev->status = (dev->rx_checksum & 0x0f) << 3;
             dev->state  = PLIP_RX_CHECKSUM_HIGH;
             break;
@@ -309,13 +293,11 @@ plip_write_data(uint8_t val, void *priv)
         case PLIP_RX_CHECKSUM_HIGH:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            plip_log(2, "PLIP: rx_checksum = %02X (2/2)\n", dev->rx_checksum);
+            plip_log(2, "PLIP: rx_checksum = %02X\n", dev->rx_checksum);
             dev->status = ((dev->rx_checksum >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
 
             /* We're done with this packet. */
-            free(dev->rx_pkt);
-            dev->rx_pkt = NULL;
             dev->rx_len = 0;
 
             dev->state = PLIP_END;
@@ -323,7 +305,7 @@ plip_write_data(uint8_t val, void *priv)
 
         case PLIP_END:
             if (val == 0x00) { /* written after TX or RX is done */
-                plip_log(2, "PLIP: end\n");
+                plip_log(2, "PLIP: End of packet\n");
                 dev->status = 0x80; /* nBusy */
                 dev->state  = PLIP_START;
 
@@ -366,26 +348,26 @@ plip_read_status(void *priv)
 static void
 plip_receive_packet(plip_t *dev)
 {
-    /* At least the Linux driver supports being interrupted
-       in the PLIP_TX_LEN_LSB_LOW state, but let's be safe. */
+    /* Stop if we have nothing to receive. */
+    if (!dev->rx_len)
+        return;
+
+    /* Stop if we're already transmitting or receiving. */
     if (dev->state > PLIP_START) {
-        plip_log(3, "PLIP: cannot receive, operation already in progress\n");
+        plip_log(2, "PLIP: Cannot receive, operation already in progress\n");
         return;
     }
 
-    if (!dev->rx_pkt || !dev->rx_len) /* unpause RX queue if there's no packet to receive */
-        return;
-
-    plip_log(2, "PLIP: receiving %d-byte packet\n", dev->rx_len);
+    plip_log(1, "PLIP: Receiving %d-byte packet\n", dev->rx_len);
 
     /* Set up to receive a packet. */
-    dev->status = 0xc7; /* Linux expects dsr == nBusy|nAck, DOS expects that and reserved[2:0] */
+    dev->status = 0xc7; /* Linux expects nBusy|nAck|!PError|!Select|!nFault, DOS also |reserved[2:0] */
     dev->state  = PLIP_RX_LEN_LSB_LOW;
 
     /* Engage timeout timer. */
     timer_set_delay_u64(&dev->timeout_timer, 1000000 * TIMER_USEC);
 
-    /* Wake the other end up. */
+    /* Wake the guest driver up. */
     if (dev->lpt)
         lpt_irq(dev->lpt, 1);
 }
@@ -407,21 +389,18 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 {
     plip_t *dev = (plip_t *) priv;
 
-    plip_log(2, "PLIP: incoming %d-byte packet\n", io_len);
-
-    if (dev->rx_pkt) { /* shouldn't really happen with the RX queue paused */
-        plip_log(3, "PLIP: already have a packet to receive");
+    if (dev->rx_len) {
+        plip_log(2, "PLIP: Incoming %d-byte packet declined\n", io_len);
         return 0;
     }
 
-    if (UNLIKELY(!(dev->rx_pkt = calloc(1, io_len))))
-        fatal("PLIP: unable to allocate rx_pkt\n");
+    plip_log(2, "PLIP: Incoming %d-byte packet accepted\n", io_len);
 
     /* Copy this packet to our buffer. */
-    dev->rx_len = io_len;
+    dev->rx_len = MIN(io_len, sizeof(dev->rx_pkt));
     memcpy(dev->rx_pkt, buf, dev->rx_len);
 
-    /* Dispatch this packet immediately if we're doing nothing. */
+    /* Start receiving this packet immediately if we're doing nothing. */
     plip_receive_packet(dev);
 
     return 1;
@@ -439,7 +418,7 @@ plip_init(const device_t *info)
 
     memset(dev->mac, 0xfc, 6); /* static MAC used by Linux; just a placeholder */
 
-    dev->status = 0x80;
+    dev->status = 0x80; /* nBusy */
 
     timer_add(&dev->rx_timer, rx_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
