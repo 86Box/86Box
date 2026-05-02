@@ -878,6 +878,9 @@ extern int             machine_at_itoxstar_init(const machine_t *);
 
 /* STPC Consumer-II */
 extern int             machine_at_arb1423c_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  arb1479_device;
+#endif
 extern int             machine_at_arb1479_init(const machine_t *);
 extern int             machine_at_iach488_init(const machine_t *);
 

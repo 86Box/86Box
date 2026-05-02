@@ -106,16 +106,98 @@ machine_at_arb1423c_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t arb1479_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "arb1479",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 7 (040201) - Revision 1.0 (AR-B1479A)",
+                .internal_name = "arb1479a10",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/arb1479/A1479Av10.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 7 (040201) - Revision 1.01 (AR-B1479A)",
+                .internal_name = "arb1479",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/arb1479/1479A.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 7 (040201) - Revision 1.0 (AR-B1479B)",
+                .internal_name = "arb1479b10",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/arb1479/A1479Bv10.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 7 (040201) - Revision 1.01 (AR-B1479B)",
+                .internal_name = "arb1479b101",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/arb1479/1479b.rom", "" }
+            },
+            {
+                .name          = "Phoenix - AwardBIOS v6.00PG - Revision 1.2 (AR-B1479D)",
+                .internal_name = "arb1479d12",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/arb1479/W1479D.v12", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t arb1479_device = {
+    .name          = "Acrosser AR-B1479",
+    .internal_name = "arb1479_device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = arb1479_config
+};
+
 int
 machine_at_arb1479_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/arb1479/1479A.rom",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 

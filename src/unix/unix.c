@@ -52,6 +52,7 @@
 #include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/cdrom.h>
 #include <86box/plat_dynld.h>
 #include <86box/thread.h>
 #include <86box/device.h>
@@ -1296,7 +1297,7 @@ unix_executeLine(char *line)
         } else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 2) {
             floppy_eject(atoi(xargv[1]));
         } else if (strncasecmp(xargv[0], "cdeject", 7) == 0 && cmdargc >= 2) {
-            cdrom_mount(atoi(xargv[1]), "");
+            cdrom_eject(atoi(xargv[1]));
         } else if (strncasecmp(xargv[0], "moeject", 7) == 0 && cmdargc >= 2) {
             mo_eject(atoi(xargv[1]));
         } else if (strncasecmp(xargv[0], "carteject", 9) == 0 && cmdargc >= 2) {
@@ -1482,12 +1483,12 @@ main(int argc, char **argv)
     } else
         fprintf(stderr, "libedit not found, line editing will be limited.\n");
     mousemutex = SDL_CreateMutex();
+
+    if (start_in_fullscreen)
+        video_fullscreen = 1;
+
     sdl_initho();
 
-    if (start_in_fullscreen) {
-        video_fullscreen = 1;
-        sdl_set_fs(1);
-    }
     /* Fire up the machine. */
     pc_reset_hard_init();
 
