@@ -12501,7 +12501,7 @@ const machine_t machines[] = {
             /* 32 MB soldered SDRAM, neither upgradable nor other known configurations exist. */
             .min  = 32768,
             .max  = 32768,
-            .step = 0
+            .step = 32768
         },
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
