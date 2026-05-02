@@ -55,6 +55,7 @@ extern "C" {
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/renderdefs.h>
+#include <86box/debug_snapshot.h>
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -70,6 +71,12 @@ extern bool cpu_thread_running;
 extern bool fast_forward;
 };
 
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QListWidget>
+#include <QVBoxLayout>
 #include <QGuiApplication>
 #include <QWindow>
 #include <QTimer>
@@ -2262,6 +2269,7 @@ MainWindow::updateUiPauseState()
     ui->actionPause->setIcon(pause_icon);
     ui->actionPause->setToolTip(tooltip_text);
     ui->actionPause->setText(menu_text);
+    ui->actionDump_VM_Debug_Snapshot->setEnabled(dopause != 0);
     emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState) dopause));
 }
 
@@ -2398,6 +2406,135 @@ MainWindow::on_actionMCA_devices_triggered()
 {
     if (const auto dlg = new MCADeviceList(this))
         dlg->exec();
+}
+
+void
+MainWindow::on_actionDump_VM_Debug_Snapshot_triggered()
+{
+    const char *dir = debug_snapshot_dump_now();
+    if (dir)
+        emit statusBarMessage(tr("VM debug snapshot saved to: %1").arg(QString::fromLocal8Bit(dir)));
+    else
+        emit statusBarMessage(tr("VM debug snapshot failed (VM must be paused)."));
+}
+
+void
+MainWindow::on_actionConfigure_Snapshot_Providers_triggered()
+{
+    enum {
+        SnapshotItemCore = 1,
+        SnapshotItemDevice,
+        SnapshotItemCustom
+    };
+
+    int device_count = device_debug_snapshot_provider_count();
+    int custom_count = debug_snapshot_provider_count();
+
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("VM Snapshot Contents"));
+    dlg.setMinimumWidth(430);
+
+    auto *list = new QListWidget(&dlg);
+
+    auto *coreLabel = new QListWidgetItem("--- Core Data ---", list);
+    coreLabel->setFlags(coreLabel->flags() & ~(Qt::ItemIsSelectable | Qt::ItemIsEnabled));
+    coreLabel->setBackground(QBrush(QColor(240, 240, 240)));
+
+    for (int i = 0; i < DEBUG_SNAPSHOT_OPT_COUNT; i++) {
+        auto *item = new QListWidgetItem(QString::fromUtf8(debug_snapshot_option_name(i)), list);
+        item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+        item->setCheckState(debug_snapshot_option_enabled(i) ? Qt::Checked : Qt::Unchecked);
+        item->setData(Qt::UserRole, SnapshotItemCore);
+        item->setData(Qt::UserRole + 1, i);
+    }
+
+    auto *devLabel = new QListWidgetItem("--- Active Device Dumps ---", list);
+    devLabel->setFlags(devLabel->flags() & ~(Qt::ItemIsSelectable | Qt::ItemIsEnabled));
+    devLabel->setBackground(QBrush(QColor(240, 240, 240)));
+
+    if (device_count > 0) {
+        for (int i = 0; i < device_count; i++) {
+            auto *item = new QListWidgetItem(QString::fromUtf8(device_debug_snapshot_provider_name(i)), list);
+            item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+            item->setCheckState(device_debug_snapshot_provider_enabled(i) ? Qt::Checked : Qt::Unchecked);
+            item->setData(Qt::UserRole, SnapshotItemDevice);
+            item->setData(Qt::UserRole + 1, i);
+        }
+    } else {
+        auto *item = new QListWidgetItem(tr("No active devices expose detailed snapshot data"), list);
+        item->setFlags(item->flags() & ~(Qt::ItemIsSelectable | Qt::ItemIsEnabled));
+    }
+
+    if (custom_count > 0) {
+        auto *customLabel = new QListWidgetItem("--- Custom Providers ---", list);
+        customLabel->setFlags(customLabel->flags() & ~(Qt::ItemIsSelectable | Qt::ItemIsEnabled));
+        customLabel->setBackground(QBrush(QColor(240, 240, 240)));
+
+        for (int i = 0; i < custom_count; i++) {
+            auto *item = new QListWidgetItem(QString::fromUtf8(debug_snapshot_provider_name(i)), list);
+            item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+            item->setCheckState(debug_snapshot_provider_enabled(i) ? Qt::Checked : Qt::Unchecked);
+            item->setData(Qt::UserRole, SnapshotItemCustom);
+            item->setData(Qt::UserRole + 1, i);
+        }
+    }
+
+    auto *selectAll  = new QPushButton(tr("Select all"), &dlg);
+    auto *selectNone = new QPushButton(tr("Select none"), &dlg);
+    auto *buttons    = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dlg);
+
+    connect(selectAll, &QPushButton::clicked, [list]() {
+        for (int i = 0; i < list->count(); i++) {
+            auto *item = list->item(i);
+            if (item->flags() & Qt::ItemIsUserCheckable)
+                item->setCheckState(Qt::Checked);
+        }
+    });
+    connect(selectNone, &QPushButton::clicked, [list]() {
+        for (int i = 0; i < list->count(); i++) {
+            auto *item = list->item(i);
+            if (item->flags() & Qt::ItemIsUserCheckable)
+                item->setCheckState(Qt::Unchecked);
+        }
+    });
+    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    auto *btnRow = new QHBoxLayout;
+    btnRow->addWidget(selectAll);
+    btnRow->addWidget(selectNone);
+    btnRow->addStretch();
+    btnRow->addWidget(buttons);
+
+    auto *layout = new QVBoxLayout(&dlg);
+    layout->addWidget(new QLabel(tr("Select data to include in the next VM debug snapshot:"), &dlg));
+    layout->addWidget(list);
+    layout->addLayout(btnRow);
+
+    if (dlg.exec() == QDialog::Accepted) {
+        for (int i = 0; i < list->count(); i++) {
+            auto *item = list->item(i);
+            if (item->flags() & Qt::ItemIsUserCheckable) {
+                int type    = item->data(Qt::UserRole).toInt();
+                int idx     = item->data(Qt::UserRole + 1).toInt();
+                int enabled = item->checkState() == Qt::Checked ? 1 : 0;
+
+                switch (type) {
+                    case SnapshotItemCore:
+                        debug_snapshot_option_set_enabled(idx, enabled);
+                        break;
+                    case SnapshotItemDevice:
+                        device_debug_snapshot_provider_set_enabled(idx, enabled);
+                        break;
+                    case SnapshotItemCustom:
+                        debug_snapshot_provider_set_enabled(idx, enabled);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
 }
 
 void
