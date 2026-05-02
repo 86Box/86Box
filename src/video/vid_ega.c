@@ -29,7 +29,9 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/path.h>
 #include <86box/device.h>
+#include <86box/debug_snapshot.h>
 #include <86box/video.h>
 #include <86box/vid_ati_eeprom.h>
 #include <86box/vid_ega.h>
@@ -1596,6 +1598,102 @@ ega_set_type(void *priv, uint32_t local)
     }
 }
 
+static void
+ega_debug_snapshot_write_u8_array(FILE *f, const char *name, const uint8_t *data, int count)
+{
+    fprintf(f, "%s=", name);
+    for (int i = 0; i < count; i++)
+        fprintf(f, "%02X%s", (unsigned) data[i], (i + 1) < count ? " " : "\r\n");
+}
+
+static void
+ega_debug_snapshot(void *w_ptr, void *priv)
+{
+    debug_snapshot_writer_t *w   = (debug_snapshot_writer_t *) w_ptr;
+    ega_t                   *ega = (ega_t *) priv;
+    char                     path[1024];
+    FILE                    *f;
+
+    if (!w || !ega)
+        return;
+
+    path_append_filename(path, w->devices_dir, "ega.txt");
+    f = fopen(path, "wb");
+    if (f) {
+        fprintf(f, "[EGA]\r\n");
+        fprintf(f, "actual_type=%d\r\n", ega->actual_type);
+        fprintf(f, "chipset=%d\r\n", ega->chipset);
+        fprintf(f, "mono_display=%d\r\n", ega->mono_display);
+        fprintf(f, "vram_limit=%08X\r\n", (unsigned) ega->vram_limit);
+        fprintf(f, "vrammask=%08X\r\n", (unsigned) ega->vrammask);
+        fprintf(f, "miscout=%02X\r\n", (unsigned) ega->miscout);
+        fprintf(f, "crtcreg=%02X\r\n", (unsigned) ega->crtcreg);
+        fprintf(f, "seqaddr=%02X\r\n", (unsigned) ega->seqaddr);
+        fprintf(f, "gdcaddr=%02X\r\n", (unsigned) ega->gdcaddr);
+        fprintf(f, "attraddr=%02X\r\n", (unsigned) ega->attraddr);
+        fprintf(f, "attrff=%02X\r\n", (unsigned) ega->attrff);
+        fprintf(f, "attr_palette_enable=%02X\r\n", (unsigned) ega->attr_palette_enable);
+        fprintf(f, "status=%02X\r\n", (unsigned) ega->status);
+
+        fprintf(f, "\r\n[REGISTERS]\r\n");
+        ega_debug_snapshot_write_u8_array(f, "CRTC[00..18]", ega->crtc, 0x19);
+        ega_debug_snapshot_write_u8_array(f, "SEQ[00..04]", ega->seqregs, 0x05);
+        ega_debug_snapshot_write_u8_array(f, "GDC[00..08]", ega->gdcreg, 0x09);
+        ega_debug_snapshot_write_u8_array(f, "ATTR[00..14]", ega->attrregs, 0x15);
+        ega_debug_snapshot_write_u8_array(f, "EGAPAL[00..0F]", ega->egapal, 0x10);
+
+        fprintf(f, "\r\n[STATE]\r\n");
+        fprintf(f, "memaddr=%08X\r\n", (unsigned) ega->memaddr);
+        fprintf(f, "memaddr_latch=%08X\r\n", (unsigned) ega->memaddr_latch);
+        fprintf(f, "memaddr_backup=%08X\r\n", (unsigned) ega->memaddr_backup);
+        fprintf(f, "cca=%08X\r\n", (unsigned) ega->cca);
+        fprintf(f, "cursoraddr=%08X\r\n", (unsigned) ega->cursoraddr);
+        fprintf(f, "rowoffset=%04X\r\n", (unsigned) ega->rowoffset);
+        fprintf(f, "scanline=%04X\r\n", (unsigned) ega->scanline);
+        fprintf(f, "displine=%04X\r\n", (unsigned) ega->displine);
+        fprintf(f, "vc=%04X\r\n", (unsigned) ega->vc);
+        fprintf(f, "real_vc=%04X\r\n", (unsigned) ega->real_vc);
+        fprintf(f, "linepos=%04X\r\n", (unsigned) ega->linepos);
+        fprintf(f, "vslines=%04X\r\n", (unsigned) ega->vslines);
+        fprintf(f, "dispon=%04X\r\n", (unsigned) ega->dispon);
+        fprintf(f, "hdisp_on=%04X\r\n", (unsigned) ega->hdisp_on);
+        fprintf(f, "vtotal=%04X\r\n", (unsigned) ega->vtotal);
+        fprintf(f, "dispend=%04X\r\n", (unsigned) ega->dispend);
+        fprintf(f, "vsyncstart=%04X\r\n", (unsigned) ega->vsyncstart);
+        fprintf(f, "vblankstart=%04X\r\n", (unsigned) ega->vblankstart);
+        fprintf(f, "split=%04X\r\n", (unsigned) ega->split);
+        fprintf(f, "hdisp=%04X\r\n", (unsigned) ega->hdisp);
+        fprintf(f, "htotal=%04X\r\n", (unsigned) ega->htotal);
+        fprintf(f, "scrollcache=%04X\r\n", (unsigned) ega->scrollcache);
+        fprintf(f, "linecountff=%04X\r\n", (unsigned) ega->linecountff);
+        fprintf(f, "oddeven=%04X\r\n", (unsigned) ega->oddeven);
+        fprintf(f, "lowres=%04X\r\n", (unsigned) ega->lowres);
+        fprintf(f, "interlace=%04X\r\n", (unsigned) ega->interlace);
+        fprintf(f, "linedbl=%04X\r\n", (unsigned) ega->linedbl);
+        fprintf(f, "lindebl=%04X\r\n", (unsigned) ega->lindebl);
+        fprintf(f, "vres=%04X\r\n", (unsigned) ega->vres);
+        fprintf(f, "vidclock=%04X\r\n", (unsigned) ega->vidclock);
+
+        fprintf(f, "\r\n[DERIVED]\r\n");
+        fprintf(f, "start_addr=%04X\r\n", (unsigned) (((uint32_t) ega->crtc[0x0c] << 8) | ega->crtc[0x0d]));
+        fprintf(f, "cursor_start=%04X\r\n", (unsigned) (((uint32_t) ega->crtc[0x0e] << 8) | ega->crtc[0x0f]));
+        fprintf(f, "offset=%02X\r\n", (unsigned) ega->crtc[0x13]);
+        fprintf(f, "vertical_displayed=%02X\r\n", (unsigned) ega->crtc[0x12]);
+        fprintf(f, "max_scanline=%02X\r\n", (unsigned) (ega->crtc[0x09] & 0x1f));
+        fprintf(f, "line_compare_raw=%02X\r\n", (unsigned) ega->crtc[0x18]);
+
+        fclose(f);
+    }
+
+    path_append_filename(path, w->devices_dir, "ega_vram.bin");
+    f = fopen(path, "wb");
+    if (f) {
+        if (ega->vram && ega->vram_limit)
+            fwrite(ega->vram, 1, ega->vram_limit, f);
+        fclose(f);
+    }
+}
+
 static void *
 ega_standalone_init(const device_t *info)
 {
@@ -1891,7 +1989,8 @@ const device_t ega_device = {
     .available     = ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
-    .config        = ega_ibm_config
+    .config        = ega_ibm_config,
+    .debug_snapshot = ega_debug_snapshot
 };
 
 const device_t cpqega_device = {
@@ -1905,7 +2004,8 @@ const device_t cpqega_device = {
     .available     = cpqega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
-    .config        = ega_config
+    .config        = ega_config,
+    .debug_snapshot = ega_debug_snapshot
 };
 
 const device_t sega_device = {
@@ -1919,7 +2019,8 @@ const device_t sega_device = {
     .available     = sega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
-    .config        = ega_config
+    .config        = ega_config,
+    .debug_snapshot = ega_debug_snapshot
 };
 
 const device_t atiega800p_device = {
@@ -1933,7 +2034,8 @@ const device_t atiega800p_device = {
     .available     = atiega800p_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
-    .config        = atiega800p_config
+    .config        = atiega800p_config,
+    .debug_snapshot = ega_debug_snapshot
 };
 
 const device_t iskra_ega_device = {
@@ -1947,7 +2049,8 @@ const device_t iskra_ega_device = {
     .available     = iskra_ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
-    .config        = ega_config
+    .config        = ega_config,
+    .debug_snapshot = ega_debug_snapshot
 };
 
 const device_t et2000_device = {
@@ -1961,5 +2064,6 @@ const device_t et2000_device = {
     .available     = et2000_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
-    .config        = ega_config
+    .config        = ega_config,
+    .debug_snapshot = ega_debug_snapshot
 };
