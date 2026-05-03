@@ -54,7 +54,7 @@ pssj_write(uint16_t port, uint8_t val, void *priv)
             pssj->enable = (val & 4) && (pssj->ctrl & 3);
             if (!pssj->enable)
                 timer_disable(&pssj->timer_count);
-            sn74689_set_extra_divide(&pssj->sn76489, val & 0x40);
+            sn76489_set_extra_divide(&pssj->sn76489, val & 0x40);
             if (!(val & 8)) {
                 pssj->irq = 0;
                 picintc(1 << 7);

@@ -14,7 +14,7 @@
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2025 Miran Grca.
- *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2026 Jasmine Iwanek.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -31,10 +31,11 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_opl.h>
+#include <86box/snd_adlib.h>
 #include <86box/plat_unused.h>
 
 #ifdef ENABLE_ADLIB_LOG
-int adlib_do_log = ENABLE_ADLIB_LOG;
+uint8_t adlib_do_log = ENABLE_ADLIB_LOG;
 
 static void
 adlib_log(const char *fmt, ...)
@@ -51,18 +52,12 @@ adlib_log(const char *fmt, ...)
 #    define adlib_log(fmt, ...)
 #endif
 
-typedef struct adlib_s {
-    fm_drv_t opl;
-
-    uint8_t pos_regs[8];
-} adlib_t;
-
-static void
+void
 adlib_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    adlib_t *adlib = (adlib_t *) priv;
+    adlib_t *const adlib = (adlib_t *) priv;
 
-    const int32_t *opl_buf = adlib->opl.update(adlib->opl.priv);
+    const int32_t *const opl_buf = adlib->opl.update(adlib->opl.priv);
 
     for (int c = 0; c < len * 2; c++)
         buffer[c] += opl_buf[c];
@@ -73,7 +68,7 @@ adlib_get_buffer(int32_t *buffer, int len, void *priv)
 uint8_t
 adlib_mca_read(const uint16_t port, void *priv)
 {
-    const adlib_t *adlib = (adlib_t *) priv;
+    const adlib_t *const adlib = (adlib_t *) priv;
 
     adlib_log("adlib_mca_read: port=%04x\n", port);
 
@@ -81,9 +76,9 @@ adlib_mca_read(const uint16_t port, void *priv)
 }
 
 void
-adlib_mca_write(const uint16_t port, uint8_t val, void *priv)
+adlib_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
-    adlib_t *adlib = (adlib_t *) priv;
+    adlib_t *const adlib = (adlib_t *) priv;
 
     if (port < 0x102)
         return;
@@ -97,7 +92,7 @@ adlib_mca_write(const uint16_t port, uint8_t val, void *priv)
                                  adlib->opl.read, NULL, NULL,
                                  adlib->opl.write, NULL, NULL,
                                  adlib->opl.priv);
-            if (!(adlib->pos_regs[2] & 1) && (val & 1))
+            else if (!(adlib->pos_regs[2] & 1) && (val & 1))
                 io_sethandler(0x0388, 0x0002,
                               adlib->opl.read, NULL, NULL,
                               adlib->opl.write, NULL, NULL,
@@ -113,7 +108,7 @@ adlib_mca_write(const uint16_t port, uint8_t val, void *priv)
 uint8_t
 adlib_mca_feedb(void *priv)
 {
-    const adlib_t *adlib = (adlib_t *) priv;
+    const adlib_t *const adlib = (adlib_t *) priv;
 
     return (adlib->pos_regs[2] & 1);
 }
@@ -121,7 +116,7 @@ adlib_mca_feedb(void *priv)
 void *
 adlib_init(UNUSED(const device_t *info))
 {
-    adlib_t *adlib = calloc(1, sizeof(adlib_t));
+    adlib_t *const adlib = calloc(1, sizeof(adlib_t));
 
     adlib_log("adlib_init\n");
     fm_driver_get(FM_YM3812, &adlib->opl);
@@ -136,7 +131,7 @@ adlib_init(UNUSED(const device_t *info))
 void *
 adlib_mca_init(const device_t *info)
 {
-    adlib_t *adlib = adlib_init(info);
+    adlib_t *const adlib = adlib_init(info);
 
     io_removehandler(0x0388, 0x0002,
                      adlib->opl.read, NULL, NULL,
@@ -156,7 +151,10 @@ adlib_mca_init(const device_t *info)
 void
 adlib_close(void *priv)
 {
-    adlib_t *adlib = (adlib_t *) priv;
+    adlib_t *const adlib = (adlib_t *) priv;
+
+    adlib_log("adlib_close\n");
+
     free(adlib);
 }
 

@@ -1,3 +1,21 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          C/MS emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2026 Jasmine Iwanek.
+ */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,9 +26,28 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/sound.h>
 #include <86box/snd_cms.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+
+#ifdef ENABLE_CMS_LOG
+uint8_t cms_do_log = ENABLE_CMS_LOG;
+
+static void
+cms_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (cms_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define cms_log(fmt, ...)
+#endif
 
 void
 cms_update(cms_t *cms)
@@ -22,13 +59,13 @@ cms_update(cms_t *cms)
         for (uint8_t c = 0; c < 4; c++) {
             switch (cms->noisetype[c >> 1][c & 1]) {
                 case 0:
-                    cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK / 256;
+                    cms->noisefreq[c >> 1][c & 1] = CMS_MASTER_CLOCK / 256;
                     break;
                 case 1:
-                    cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK / 512;
+                    cms->noisefreq[c >> 1][c & 1] = CMS_MASTER_CLOCK / 512;
                     break;
                 case 2:
-                    cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK / 1024;
+                    cms->noisefreq[c >> 1][c & 1] = CMS_MASTER_CLOCK / 1024;
                     break;
                 case 3:
                     cms->noisefreq[c >> 1][c & 1] = cms->freq[c >> 1][(c & 1) * 3];
@@ -75,9 +112,9 @@ cms_update(cms_t *cms)
 }
 
 void
-cms_get_buffer(int32_t *buffer, int len, void *priv)
+cms_get_buffer(int32_t *buffer, const int len, void *priv)
 {
-    cms_t *cms = (cms_t *) priv;
+    cms_t *const cms = (cms_t *) priv;
 
     cms_update(cms);
 
@@ -88,53 +125,47 @@ cms_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
-cms_write(uint16_t addr, uint8_t val, void *priv)
+cms_write(uint16_t port, uint8_t val, void *priv)
 {
-    cms_t *cms = (cms_t *) priv;
-    int    voice;
-    int    chip = (addr & 2) >> 1;
+    cms_t        *const cms = (cms_t *) priv;
+    uint8_t       voice;
+    const uint8_t chip = (port & 2) >> 1;
 
-    switch (addr & 0xf) {
-        case 0x1: /* SAA #1 Register Select Port */
-            cms->addrs[0] = val & 31;
+    cms_log("cms_write: port=%04x val=%02x\n", port, val);
+
+    switch (port & 0x0f) {
+        case 0x01: /* SAA #1 Register Select Port */
+            cms->ports[0] = val & 31;
             break;
-        case 0x3: /* SAA #2 Register Select Port */
-            cms->addrs[1] = val & 31;
+        case 0x03: /* SAA #2 Register Select Port */
+            cms->ports[1] = val & 31;
             break;
 
-        case 0x0: /* SAA #1 Data Port */
-        case 0x2: /* SAA #2 Data Port */
+        case 0x00: /* SAA #1 Data Port */
+        case 0x02: /* SAA #2 Data Port */
             cms_update(cms);
-            cms->regs[chip][cms->addrs[chip] & 31] = val;
-            switch (cms->addrs[chip] & 31) {
-                case 0x00:
-                case 0x01:
-                case 0x02: /*Volume*/
-                case 0x03:
-                case 0x04:
-                case 0x05:
-                    voice                    = cms->addrs[chip] & 7;
-                    cms->vol[chip][voice][0] = val & 0xf;
+            {
+            const uint8_t reg = cms->ports[chip] & 31;
+            cms->regs[chip][cms->ports[chip] & 31] = val;
+            switch (reg) {
+                case 0x00 ... 0x05: /*Volume*/
+//                    voice                    = cms->ports[chip] & 7;
+                    voice                    = reg & 7;
+                    cms->vol[chip][voice][0] = val & 0x0f;
                     cms->vol[chip][voice][1] = val >> 4;
                     break;
-                case 0x08:
-                case 0x09:
-                case 0x0A: /*Frequency*/
-                case 0x0B:
-                case 0x0C:
-                case 0x0D:
-                    voice                   = cms->addrs[chip] & 7;
+                case 0x08 ... 0x0D: /*Frequency*/
+//                    voice                   = cms->ports[chip] & 7;
+                    voice                    = reg & 7;
                     cms->latch[chip][voice] = (cms->latch[chip][voice] & 0x700) | val;
-                    cms->freq[chip][voice]  = (MASTER_CLOCK / 512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
+                    cms->freq[chip][voice]  = (CMS_MASTER_CLOCK / 512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
                     break;
-                case 0x10:
-                case 0x11:
-                case 0x12: /*Octave*/
-                    voice                       = (cms->addrs[chip] & 3) << 1;
+                case 0x10 ... 0x12: /*Octave*/
+                    voice                       = (reg & 3) << 1;
                     cms->latch[chip][voice]     = (cms->latch[chip][voice] & 0xFF) | ((val & 7) << 8);
                     cms->latch[chip][voice + 1] = (cms->latch[chip][voice + 1] & 0xFF) | ((val & 0x70) << 4);
-                    cms->freq[chip][voice]      = (MASTER_CLOCK / 512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
-                    cms->freq[chip][voice + 1]  = (MASTER_CLOCK / 512 << (cms->latch[chip][voice + 1] >> 8)) / (511 - (cms->latch[chip][voice + 1] & 255));
+                    cms->freq[chip][voice]      = (CMS_MASTER_CLOCK / 512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
+                    cms->freq[chip][voice + 1]  = (CMS_MASTER_CLOCK / 512 << (cms->latch[chip][voice + 1] >> 8)) / (511 - (cms->latch[chip][voice + 1] & 255));
                     break;
                 case 0x16: /*Noise*/
                     cms->noisetype[chip][0] = val & 3;
@@ -144,10 +175,11 @@ cms_write(uint16_t addr, uint8_t val, void *priv)
                 default:
                     break;
             }
+            }
             break;
 
-        case 0x6: /* GameBlaster Write Port */
-        case 0x7: /* GameBlaster Write Port */
+        case 0x06: /* GameBlaster Write Port */
+        case 0x07: /* GameBlaster Write Port */
             cms->latched_data = val;
             break;
 
@@ -157,42 +189,60 @@ cms_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 uint8_t
-cms_read(uint16_t addr, void *priv)
+cms_read(const uint16_t port, void *priv)
 {
     const cms_t *cms = (cms_t *) priv;
+    uint8_t      ret = 0xff;
 
-    switch (addr & 0xf) {
-        case 0x1: /* SAA #1 Register Select Port */
-            return cms->addrs[0];
-        case 0x3: /* SAA #2 Register Select Port */
-            return cms->addrs[1];
-        case 0x4: /* GameBlaster Read port (Always returns 0x7F) */
-            return 0x7f;
-        case 0xa: /* GameBlaster Read Port */
-        case 0xb: /* GameBlaster Read Port */
-            return cms->latched_data;
+    switch (port & 0x0f) {
+        case 0x01: /* SAA #1 Register Select Port */
+            ret = cms->ports[0];
+            break;
+        case 0x03: /* SAA #2 Register Select Port */
+            ret = cms->ports[1];
+            break;
+        case 0x04: /* GameBlaster Read port (Always returns 0x7F) */
+            ret = 0x7f;
+            break;
+        case 0x0a: /* GameBlaster Read Port */
+        case 0x0b: /* GameBlaster Read Port */
+            ret = cms->latched_data;
+            break;
 
         default:
             break;
     }
-    return 0xff;
+
+    cms_log("cms_read: port=%04x ret=%02x\n", port, ret);
+
+    return ret;
 }
 
 void *
 cms_init(UNUSED(const device_t *info))
 {
-    cms_t *cms = calloc(1, sizeof(cms_t));
+    cms_t *const cms = calloc(1, sizeof(cms_t));
 
-    uint16_t addr = device_get_config_hex16("base");
-    io_sethandler(addr, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
+    cms_log("cms_init\n");
+
+    uint16_t port = device_get_config_hex16("base");
+
+    io_sethandler(port, 0x0010,
+                  cms_read, NULL, NULL,
+                  cms_write, NULL, NULL,
+                  cms);
+
     sound_add_handler(cms_get_buffer, cms);
+
     return cms;
 }
 
 void
 cms_close(void *priv)
 {
-    cms_t *cms = (cms_t *) priv;
+    cms_t *const cms = (cms_t *) priv;
+
+    cms_log("cms_close\n");
 
     free(cms);
 }

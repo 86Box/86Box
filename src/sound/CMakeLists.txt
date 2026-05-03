@@ -24,11 +24,14 @@ add_library(snd OBJECT
     snd_resid.cpp
     midi.c
     snd_speaker.c
-    snd_pssj.c
+    snd_lpt_adlipt.c
+    snd_lpt_cms.c
     snd_lpt_dac.c
+    snd_lpt_dss.c
+    snd_lpt_tndlpt.c
+    snd_pssj.c
     snd_ac97_codec.c
     snd_ac97_via.c
-    snd_lpt_dss.c
     snd_ps1.c
     snd_adlib.c
     snd_adlibgold.c

@@ -1,3 +1,22 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          SN76489 PSG / Tandy Sound emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2026 Jasmine Iwanek.
+ */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,6 +24,7 @@
 #include <time.h>
 #include <wchar.h>
 
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
@@ -12,9 +32,27 @@
 #include <86box/snd_sn76489.h>
 #include <86box/plat_unused.h>
 
-int sn76489_mute;
+#ifdef ENABLE_SN76489_LOG
+uint8_t sn76489_do_log = ENABLE_SN76489_LOG;
 
-static float volslog[16] = {
+static void
+sn76489_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (sn76489_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define sn76489_log(fmt, ...)
+#endif
+
+uint8_t sn76489_mute;
+
+static const float volslog[16] = {
     0.00000f, 0.59715f, 0.75180f, 0.94650f,
     1.19145f, 1.50000f, 1.88835f, 2.37735f,
     2.99295f, 3.76785f, 4.74345f, 5.97165f,
@@ -22,59 +60,70 @@ static float volslog[16] = {
 };
 
 static int
-sn76489_check_tap_2(sn76489_t *sn76489)
+sn76489_check_tap_2(const sn76489_t *sn76489)
 {
-   int ret = ((sn76489->shift >> sn76489->white_noise_tap_2) & 1);
+   const int ret = ((sn76489->shift >> sn76489->white_noise_tap_2) & 1);
 
    return (sn76489->type == SN76496) ? ret : !ret;
 }
 
 static void
-sn76489_update(sn76489_t *sn76489)
+sn76489_update(sn76489_t *const sn76489)
 {
+    const double psgconst = sn76489->psgconst;
+    const int    type     = sn76489->type;
+
     for (; sn76489->pos < sound_pos_global; sn76489->pos++) {
         int16_t result = 0;
 
+        /* Tone Channels */
         for (uint8_t c = 1; c < 4; c++) {
+            const float vol = volslog[sn76489->vol[c]];
             if (sn76489->latch[c] > 256)
-                result += (int16_t) (volslog[sn76489->vol[c]] * sn76489->stat[c]);
+                result += (int16_t) (vol * sn76489->stat[c]);
             else
-                result += (int16_t) (volslog[sn76489->vol[c]] * 127);
+                result += (int16_t) (vol * 127);
 
-            sn76489->count[c] -= (256 * sn76489->psgconst);
+            sn76489->count[c] -= (256 * psgconst);
             while (sn76489->count[c] < 0) {
                 sn76489->count[c] += sn76489->latch[c];
                 sn76489->stat[c] = -sn76489->stat[c];
             }
         }
+
+        /* Noise Channel */
         result += (((sn76489->shift & 1) ^ 1) * 127 * volslog[sn76489->vol[0]] * 2);
 
-        sn76489->count[0] -= (512 * sn76489->psgconst);
+        sn76489->count[0] -= (512 * psgconst);
         while ((sn76489->count[0] < 0) && sn76489->latch[0]) {
             sn76489->count[0] += (sn76489->latch[0] * 4);
-            if (!(sn76489->noise & 4)) {
-                if ((sn76489->shift >> sn76489->white_noise_tap_1) & 1) {
-                    sn76489->shift >>= 1;
-                    sn76489->shift |= sn76489->feedback_mask;
-                } else
-                    sn76489->shift >>= 1;
+
+            /* LFSR Logic */
+            const uint8_t is_white = sn76489->noise & 4;
+            const uint8_t tap1     = (sn76489->shift >> sn76489->white_noise_tap_1) & 1;
+
+            uint8_t feedback;
+
+            if (!is_white) {
+                feedback = tap1;
             } else {
-                if (((sn76489->shift >> sn76489->white_noise_tap_1) & 1) ^ sn76489_check_tap_2(sn76489)) {
-                    sn76489->shift >>= 1;
-                    sn76489->shift |= sn76489->feedback_mask;
-                } else
-                    sn76489->shift >>= 1;
+                feedback = tap1 ^ sn76489_check_tap_2(sn76489);
+            }
+
+            sn76489->shift >>= 1;
+            if (feedback) {
+                sn76489->shift |= sn76489->feedback_mask;
             }
         }
 
-        sn76489->buffer[sn76489->pos] = (sn76489->type == NCR8496) ? -result : result;
+        sn76489->buffer[sn76489->pos] = (type == NCR8496) ? -result : result;
     }
 }
 
 static void
 sn76489_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    sn76489_t *sn76489 = (sn76489_t *) priv;
+    sn76489_t *const sn76489 = (sn76489_t *) priv;
 
     sn76489_update(sn76489);
 
@@ -86,11 +135,13 @@ sn76489_get_buffer(int32_t *buffer, int len, void *priv)
     sn76489->pos = 0;
 }
 
-static void
+void
 sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
 {
-    sn76489_t *sn76489 = (sn76489_t *) priv;
-    int        freq;
+    sn76489_t *const sn76489 = (sn76489_t *) priv;
+    int              freq;
+
+    sn76489_log("sn76489_write: data=%02x\n", data);
 
     sn76489_update(sn76489);
 
@@ -186,7 +237,7 @@ sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
 }
 
 void
-sn74689_set_extra_divide(sn76489_t *sn76489, int enable)
+sn76489_set_extra_divide(sn76489_t *sn76489, uint8_t enable)
 {
     sn76489->extra_divide = enable;
 }
@@ -194,6 +245,8 @@ sn74689_set_extra_divide(sn76489_t *sn76489, int enable)
 void
 sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int freq)
 {
+    sn76489_log("sn76489_init: base=%04x, type=%d, freq=%d\n", base, type, freq);
+
     sound_add_handler(sn76489_get_buffer, sn76489);
 
     if (type == SN76496) {
@@ -222,13 +275,17 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
 
     sn76489_mute = 0;
 
-    io_sethandler(base, size, NULL, NULL, NULL, sn76489_write, NULL, NULL, sn76489);
+    if (base != 0x0000)
+        io_sethandler(base, size,
+                      NULL, NULL, NULL,
+                      sn76489_write, NULL, NULL,
+                      sn76489);
 }
 
 void *
 sn76489_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
+    sn76489_t *const sn76489 = calloc(1, sizeof(sn76489_t));
 
     sn76489_init(sn76489, 0x00c0, 0x0008, SN76496, 3579545);
 
@@ -238,7 +295,7 @@ sn76489_device_init(UNUSED(const device_t *info))
 void *
 ncr8496_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
+    sn76489_t *const sn76489 = calloc(1, sizeof(sn76489_t));
 
     sn76489_init(sn76489, 0x00c0, 0x0008, NCR8496, 3579545);
 
@@ -248,7 +305,7 @@ ncr8496_device_init(UNUSED(const device_t *info))
 void *
 tndy_device_init(UNUSED(const device_t *info))
 {
-    sn76489_t *sn76489 = calloc(1, sizeof(sn76489_t));
+    sn76489_t *const sn76489 = calloc(1, sizeof(sn76489_t));
 
     uint16_t addr = device_get_config_hex16("base");
 
@@ -260,7 +317,9 @@ tndy_device_init(UNUSED(const device_t *info))
 void
 sn76489_device_close(void *priv)
 {
-    sn76489_t *sn76489 = (sn76489_t *) priv;
+    sn76489_t *const sn76489 = (sn76489_t *) priv;
+
+    sn76489_log("sn76489_device_close\n");
 
     free(sn76489);
 }
@@ -291,7 +350,7 @@ static const device_config_t tndy_config[] = {
 };
 
 const device_t sn76489_device = {
-    .name          = "TI SN74689 PSG",
+    .name          = "TI SN76489 PSG",
     .internal_name = "sn76489",
     .flags         = 0,
     .local         = 0,
