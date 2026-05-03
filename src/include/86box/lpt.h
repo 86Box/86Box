@@ -77,9 +77,16 @@ typedef struct lpt_t {
 } lpt_t;
 #endif /* _TIMER_H_ */
 
+enum {
+    LPT_PORT_DETACHED = 0,
+    LPT_PORT_HOTPLUGGABLE,
+    LPT_PORT_NOTHOTPLUGGABLE
+};
+
 typedef struct lpt_port_s {
     uint8_t       enabled;
 
+    uint8_t       attached;
     int           device;
 
     lpt_t        *lpt;

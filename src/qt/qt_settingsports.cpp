@@ -79,7 +79,7 @@ SettingsPorts::changed()
         auto *cbox     = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
         if (cbox != NULL) {
-            if (lpt_ports[i].lpt && (lpt_ports[i].lpt->port.attached == 2))
+            if (lpt_ports[i].attached >= LPT_PORT_NOTHOTPLUGGABLE)
                 has_changed  |= (lpt_ports[i].device != cbox->currentData().toInt());
             else
                 soft_changed |= (lpt_ports[i].device != cbox->currentData().toInt());
