@@ -29,7 +29,6 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
-#include <86box/path.h>
 #include <86box/device.h>
 #include <86box/debug_snapshot.h>
 #include <86box/video.h>
@@ -86,14 +85,12 @@ cga_debug_snapshot(void *w_ptr, void *priv)
 {
     debug_snapshot_writer_t *w   = (debug_snapshot_writer_t *) w_ptr;
     cga_t                   *cga = (cga_t *) priv;
-    char                     path[1024];
     FILE                    *f;
 
     if (!w || !cga)
         return;
 
-    path_append_filename(path, w->devices_dir, "cga.txt");
-    f = fopen(path, "wb");
+    f = debug_snapshot_fopen_write(w->devices_dir, "cga.txt");
     if (f) {
         fprintf(f, "[CGA]\r\n");
         fprintf(f, "vram_bytes=%u\r\n", DEVICE_VRAM);
@@ -136,8 +133,7 @@ cga_debug_snapshot(void *w_ptr, void *priv)
         fclose(f);
     }
 
-    path_append_filename(path, w->devices_dir, "cga_vram.bin");
-    f = fopen(path, "wb");
+    f = debug_snapshot_fopen_write(w->devices_dir, "cga_vram.bin");
     if (f) {
         fwrite(cga->vram, 1, DEVICE_VRAM, f);
         fclose(f);

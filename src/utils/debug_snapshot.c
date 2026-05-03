@@ -23,6 +23,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifndef _WIN32
+#    include <fcntl.h>
+#    include <sys/stat.h>
+#    include <sys/types.h>
+#    include <unistd.h>
+#endif
 
 #include <86box/86box.h>
 #include <86box/path.h>
@@ -91,8 +97,8 @@ debug_snapshot_register_provider(const char *name, debug_snapshot_provider_fn fn
 {
     if (provider_count >= MAX_PROVIDERS)
         return;
-    strncpy(providers[provider_count].name, name,
-            sizeof(providers[provider_count].name) - 1);
+    snprintf(providers[provider_count].name,
+             sizeof(providers[provider_count].name), "%s", name ? name : "");
     providers[provider_count].fn      = fn;
     providers[provider_count].priv    = priv;
     providers[provider_count].enabled = 1;
@@ -171,9 +177,65 @@ debug_snapshot_option_set_enabled(int idx, int enabled)
 static FILE *
 open_in_dir(const char *dir, const char *filename)
 {
+    return debug_snapshot_fopen_write(dir, filename);
+}
+
+FILE *
+debug_snapshot_fopen_write(const char *dir, const char *filename)
+{
     char path[1024];
+
+    if (!dir || !filename || !filename[0])
+        return NULL;
+    if (strchr(filename, '/') || strchr(filename, '\\'))
+        return NULL;
+
     path_append_filename(path, dir, filename);
-    return fopen(path, "wb");
+
+#ifdef _WIN32
+    return plat_fopen(path, "wb");
+#else
+    int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (fd < 0)
+        return NULL;
+    FILE *f = fdopen(fd, "wb");
+    if (!f)
+        close(fd);
+    return f;
+#endif
+}
+
+void
+debug_snapshot_sanitize_component(char *dest, size_t dest_size, const char *src)
+{
+    size_t pos = 0;
+
+    if (!dest || !dest_size)
+        return;
+
+    if (!src || !src[0])
+        src = "unknown";
+
+    while (*src && pos + 1 < dest_size) {
+        unsigned char ch = (unsigned char) *src++;
+
+        if ((ch >= 'A' && ch <= 'Z') ||
+            (ch >= 'a' && ch <= 'z') ||
+            (ch >= '0' && ch <= '9') ||
+            ch == '_' || ch == '-' || ch == '.')
+            dest[pos++] = (char) ch;
+        else
+            dest[pos++] = '_';
+    }
+
+    if (!pos) {
+        snprintf(dest, dest_size, "%s", "unknown");
+        return;
+    }
+
+    dest[pos] = '\0';
+    if (!strcmp(dest, ".") || !strcmp(dest, ".."))
+        snprintf(dest, dest_size, "%s", "unknown");
 }
 
 /* Simple hex dump: 16 bytes per row, annotated with ASCII. */
@@ -238,7 +300,7 @@ write_manifest(const char *snap_dir, const char *timestamp)
 
     /* Extract config file leaf name from full cfg_path. */
     char cfg_copy[1024];
-    strncpy(cfg_copy, cfg_path, sizeof(cfg_copy) - 1);
+    snprintf(cfg_copy, sizeof(cfg_copy), "%s", cfg_path);
     fprintf(f, "config_name=%s\r\n", path_get_filename(cfg_copy));
 
     fprintf(f, "\r\n[FILES]\r\n");
@@ -410,10 +472,19 @@ debug_snapshot_dump_now(void)
         return NULL;
 
     /* Build timestamp string. */
-    time_t     now = time(NULL);
-    struct tm *tm  = localtime(&now);
+    time_t    now = time(NULL);
+    struct tm time_buf;
+    struct tm *tm;
     char       ts_dir[32];   /* snapshot_YYYYMMDD_HHMMSS */
     char       ts_human[32]; /* YYYY-MM-DD HH:MM:SS      */
+#ifdef _WIN32
+    tm = (localtime_s(&time_buf, &now) == 0) ? &time_buf : NULL;
+#else
+    tm = localtime_r(&now, &time_buf);
+#endif
+    if (!tm)
+        return NULL;
+
     strftime(ts_dir,   sizeof(ts_dir),   "snapshot_%Y%m%d_%H%M%S", tm);
     strftime(ts_human, sizeof(ts_human), "%Y-%m-%d %H:%M:%S",      tm);
 
@@ -446,8 +517,8 @@ debug_snapshot_dump_now(void)
 
     /* Call device snapshots and registered providers. */
     debug_snapshot_writer_t w;
-    strncpy(w.dir,         snap_dir,    sizeof(w.dir) - 1);
-    strncpy(w.devices_dir, devices_dir, sizeof(w.devices_dir) - 1);
+    snprintf(w.dir,         sizeof(w.dir),         "%s", snap_dir);
+    snprintf(w.devices_dir, sizeof(w.devices_dir), "%s", devices_dir);
 
     device_debug_snapshot(&w,
                           debug_snapshot_option_enabled(DEBUG_SNAPSHOT_OPT_DEVICE_LIST),
@@ -458,6 +529,6 @@ debug_snapshot_dump_now(void)
             providers[i].fn(&w, providers[i].priv);
     }
 
-    strncpy(last_snap_dir, snap_dir, sizeof(last_snap_dir) - 1);
+    snprintf(last_snap_dir, sizeof(last_snap_dir), "%s", snap_dir);
     return last_snap_dir;
 }

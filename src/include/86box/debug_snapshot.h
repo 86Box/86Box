@@ -49,6 +49,11 @@ extern const char *debug_snapshot_option_name(int idx);
 extern int         debug_snapshot_option_enabled(int idx);
 extern void        debug_snapshot_option_set_enabled(int idx, int enabled);
 
+/* Snapshot file/path helpers. */
+extern FILE       *debug_snapshot_fopen_write(const char *dir, const char *filename);
+extern void        debug_snapshot_sanitize_component(char *dest, size_t dest_size,
+                                                     const char *src);
+
 /* Category flags for UI grouping */
 #define SNAPSHOT_CAT_CORE    0 /* cpu.txt, ram640.bin, io_trace.txt, devices.txt (always active) */
 #define SNAPSHOT_CAT_DEVICE  1 /* Device-specific data (toggleable) */

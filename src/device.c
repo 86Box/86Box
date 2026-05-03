@@ -1221,12 +1221,10 @@ device_debug_snapshot_provider_set_enabled(int idx, int enabled)
 void
 device_debug_snapshot(debug_snapshot_writer_t *w, int include_list, int include_details)
 {
-    char path[1024];
     FILE *f = NULL;
 
     if (include_list) {
-        path_append_filename(path, w->devices_dir, "devices.txt");
-        f = fopen(path, "wb");
+        f = debug_snapshot_fopen_write(w->devices_dir, "devices.txt");
         if (f) {
             fprintf(f, "[DEVICES]\r\n");
             fprintf(f, "count=%d\r\n\r\n", DEVICE_MAX);
@@ -1248,14 +1246,15 @@ device_debug_snapshot(debug_snapshot_writer_t *w, int include_list, int include_
         }
 
         if (include_details && devices[c]->debug_snapshot && device_priv[c] && device_debug_snapshot_enabled[c]) {
-            const char *internal = devices[c]->internal_name ? devices[c]->internal_name : "unknown";
+            char internal[256];
             char dev_dir[1024];
+            debug_snapshot_sanitize_component(internal, sizeof(internal), devices[c]->internal_name);
             path_append_filename(dev_dir, w->devices_dir, internal);
             plat_dir_create(dev_dir);
 
             debug_snapshot_writer_t dev_w;
-            strncpy(dev_w.dir,         w->dir,    sizeof(dev_w.dir) - 1);
-            strncpy(dev_w.devices_dir, dev_dir,   sizeof(dev_w.devices_dir) - 1);
+            snprintf(dev_w.dir,         sizeof(dev_w.dir),         "%s", w->dir);
+            snprintf(dev_w.devices_dir, sizeof(dev_w.devices_dir), "%s", dev_dir);
             devices[c]->debug_snapshot(&dev_w, device_priv[c]);
         }
     }
