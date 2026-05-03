@@ -363,6 +363,10 @@ plip_receive_packet(plip_t *dev)
     /* Stop if we're already transmitting or receiving. */
     if (dev->state > PLIP_START) {
         plip_log(dev->log, 2, "Cannot receive %d-byte packet, operation already in progress\n", dev->rx_len);
+
+        /* Re-dispatch IRQ if ackIntEn was toggled on while we're waiting for a response to PLIP_RX_LEN_LSB_LOW. (Linux) */
+        if ((dev->status & 0x40) && dev->lpt)
+            lpt_irq(dev->lpt, 1);
         return;
     }
 
