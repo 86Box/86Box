@@ -920,6 +920,9 @@ lpt_read(const uint16_t port, void *priv)
                 ret |= 0x01;
             else
                 ret &= ~0x01;
+
+            if (dev->state == LPT_STATE_IDLE)
+                ret = (ret | 0x03) & 0xfb;
             break;
 
         case 0x0403: case 0x0407:
