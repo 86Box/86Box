@@ -145,6 +145,11 @@ static void Intel8253_TimerEvent(const uint32_t val);
 static void Intel8253_TimerEvent2(const uint32_t val);
 static void CallInterruptHandler();
 
+int midiin_r;
+int midiin_w;
+int midiin_sysex;
+uint8_t midiin_queue[256];
+
 enum CARD_MODE : uint8_t {
 	MUSIC_MODE = 0,
 	THRU_MODE  = 1,
@@ -5420,8 +5425,14 @@ public:
 
 	static uint8_t readPort1()
 	{
-		// This doesn't do anything for now
-		return 0;
+		uint8_t ret;
+		ret = midiin_queue[midiin_r];
+		if (midiin_r != midiin_w) {
+			midiin_r++;
+			midiin_r &= 0xff;
+		}
+		pclog("MIDI port read, val = %02X\n", ret);
+		return ret;
 	}
 
 	// MIDI_PORT_2 = 0x11
@@ -5482,7 +5493,10 @@ public:
 				bit7: ^DSR Input Pin State
 			*/
 			// clang-format on
-			return 1 /* TxRDY */;
+			if (midiin_r != midiin_w)
+				return 3; /* TxRDY + RxRDY */
+			else
+				return 1 /* TxRDY */;
 		}
 		return 0;
 	}
@@ -6033,7 +6047,7 @@ private:
 		while (keepRunning.load()) {
 			// log_debug("DEBUG: heartbeat in MUSIC_MODE_LOOP %i",
 			// debug_count++);
-			// MUSIC_MODE_LOOP_read_MidiIn_And_Dispatch(); //FIXME:
+			MUSIC_MODE_LOOP_read_MidiIn_And_Dispatch(); //FIXME:
 			// reenable
 			MUSIC_MODE_LOOP_read_System_And_Dispatch();
 			logSuccess();
@@ -13783,11 +13797,43 @@ void IMFC_AddConfigSection(const ConfigPtr& conf)
 }
 #endif
 
+static void
+imfc_input_msg(void *priv, uint8_t *msg, uint32_t len)
+{
+    if (midiin_sysex)
+        return;
+    for (uint32_t i = 0; i < len; i++) {
+        midiin_queue[midiin_w++] = msg[i];
+        midiin_w &= 0xff;
+    }
+}
+
+static int
+imfc_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
+{
+    if (abort) {
+        midiin_sysex = 0;
+        return 0;
+    }
+    midiin_sysex = 1;
+    for (uint32_t i = 0; i < len; i++) {
+        if (midiin_r == midiin_w)
+            return (int) (len -i);
+        midiin_queue[midiin_w++] = buffer[i];
+        midiin_w &= 0xff;
+    }
+    midiin_sysex = 0;
+    return 0;
+}
+
 void*
 imfc_card_init(const device_t *info)
 {
     imfc = std::make_unique<MusicFeatureCard>(device_get_config_hex16("base"), device_get_config_int("irq"));
     wavetable_add_handler(imfc_get_buffer, imfc.get());
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, imfc_input_msg, imfc_input_sysex, imfc.get());
+
     return imfc.get();
 }
 
@@ -13831,6 +13877,17 @@ static const device_config_t imfc_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
 	{ .name = "", .description = "", .type = CONFIG_END }
