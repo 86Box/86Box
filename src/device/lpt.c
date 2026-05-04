@@ -491,7 +491,9 @@ lpt_fifo_out_callback(void *priv)
                 if (ret & DMA_OVER)
                     /* Internal flag to indicate we have finished the DMA reads. */
                     dev->dma_stat = 0x08;
-            }
+            } else
+                /* Clear bit 2 in order to make it clear we're waiting for DMA. */
+                dev->fifo_stat &= 0xfb;
 
             timer_advance_u64(&dev->fifo_out_timer,
                               (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
@@ -669,9 +671,8 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                 if (((dev->ecr & 0x0c) != 0x08) && ((val & 0x0c) == 0x08)) { /* transition to dmaEn && !serviceIntr */
                     dev->dma_stat = 0x00;
                     dev->state = LPT_STATE_READ_DMA;
-                } else if ((val & 0x0c) != 0x08) { /* !dmaEn || serviceIntr */
+                } else if ((val & 0x0c) != 0x08) /* !dmaEn || serviceIntr */
                     dev->state = LPT_STATE_WRITE_FIFO;
-                }
                 if (((dev->char_pti_mode & 0xef) == 0xe3) && dev->port.chardev.write) {
                     /* PTI ECP modes: tell the other end to begin ECP transfer (Select).
                        There's a control write (nInit|ackIntEn) right before this ECR
@@ -913,18 +914,20 @@ lpt_read(const uint16_t port, void *priv)
                 lpt_char_callback(dev);
             }
 
-            ret = dev->ret_ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
-            if (fifo_get_full(dev->fifo))
-                ret |= 0x02;
-            else
-                ret &= ~0x02;
-            if (fifo_get_empty(dev->fifo))
-                ret |= 0x01;
-            else
-                ret &= ~0x01;
+            ret = (dev->ret_ecr & 0xfc);
 
-            if (dev->state == LPT_STATE_IDLE)
-                ret = (ret | 0x03) & 0xfb;
+            if ((dev->ecr & 0xe0) > 0x20) {
+                ret |= dev->fifo_stat | (dev->dma_stat & 0x04);
+                if (fifo_get_full(dev->fifo))
+                    ret |= 0x02;
+                else
+                    ret &= ~0x02;
+                if (fifo_get_empty(dev->fifo))
+                    ret |= 0x01;
+                else
+                    ret &= ~0x01;
+            } else
+                ret |= 0x01;
             break;
 
         case 0x0403: case 0x0407:
