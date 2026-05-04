@@ -102,6 +102,7 @@ extern "C"
 #include <86box/sound.h>
 #include <86box/thread.h>
 #include <86box/plat.h>
+#include <86box/midi.h>
 
 extern double cpuclock;
 }
@@ -7743,6 +7744,7 @@ private:
 				m_midiOut_CommandInProgress = 0;
 			}
 		}
+		midi_raw_out_byte(midiData);
 
 		/* FIXME: remove when midi out and timeouts are done
 
