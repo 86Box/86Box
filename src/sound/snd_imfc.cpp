@@ -102,6 +102,7 @@ extern "C"
 #include <86box/sound.h>
 #include <86box/thread.h>
 #include <86box/plat.h>
+#include <86box/midi.h>
 
 extern double cpuclock;
 }
@@ -143,6 +144,11 @@ enum DataParty : uint8_t {
 static void Intel8253_TimerEvent(const uint32_t val);
 static void Intel8253_TimerEvent2(const uint32_t val);
 static void CallInterruptHandler();
+
+int midiin_r;
+int midiin_w;
+int midiin_sysex;
+uint8_t midiin_queue[256];
 
 enum CARD_MODE : uint8_t {
 	MUSIC_MODE = 0,
@@ -3042,6 +3048,8 @@ public:
 			               : 0x00);
 		}
 		// IMF_LOG("%s: readPortPIU2 -> value=0x%X", m_name.c_str(), val);
+		/* The VAPI driver included with MusicPrinterPlus relies on a reserved bit being set */
+		val |= 0x02;
 		return val;
 	}
 	void writePortPIU2(uint8_t val)
@@ -5417,8 +5425,13 @@ public:
 
 	static uint8_t readPort1()
 	{
-		// This doesn't do anything for now
-		return 0;
+		uint8_t ret;
+		ret = midiin_queue[midiin_r];
+		if (midiin_r != midiin_w) {
+			midiin_r++;
+			midiin_r &= 0xff;
+		}
+		return ret;
 	}
 
 	// MIDI_PORT_2 = 0x11
@@ -5479,7 +5492,10 @@ public:
 				bit7: ^DSR Input Pin State
 			*/
 			// clang-format on
-			return 1 /* TxRDY */;
+			if (midiin_r != midiin_w)
+				return 3; /* TxRDY + RxRDY */
+			else
+				return 1 /* TxRDY */;
 		}
 		return 0;
 	}
@@ -6030,7 +6046,7 @@ private:
 		while (keepRunning.load()) {
 			// log_debug("DEBUG: heartbeat in MUSIC_MODE_LOOP %i",
 			// debug_count++);
-			// MUSIC_MODE_LOOP_read_MidiIn_And_Dispatch(); //FIXME:
+			MUSIC_MODE_LOOP_read_MidiIn_And_Dispatch(); //FIXME:
 			// reenable
 			MUSIC_MODE_LOOP_read_System_And_Dispatch();
 			logSuccess();
@@ -7741,6 +7757,7 @@ private:
 				m_midiOut_CommandInProgress = 0;
 			}
 		}
+		midi_raw_out_byte(midiData);
 
 		/* FIXME: remove when midi out and timeouts are done
 
@@ -13779,11 +13796,43 @@ void IMFC_AddConfigSection(const ConfigPtr& conf)
 }
 #endif
 
+static void
+imfc_input_msg(void *priv, uint8_t *msg, uint32_t len)
+{
+    if (midiin_sysex)
+        return;
+    for (uint32_t i = 0; i < len; i++) {
+        midiin_queue[midiin_w++] = msg[i];
+        midiin_w &= 0xff;
+    }
+}
+
+static int
+imfc_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
+{
+    if (abort) {
+        midiin_sysex = 0;
+        return 0;
+    }
+    midiin_sysex = 1;
+    for (uint32_t i = 0; i < len; i++) {
+        if (midiin_r == midiin_w)
+            return (int) (len -i);
+        midiin_queue[midiin_w++] = buffer[i];
+        midiin_w &= 0xff;
+    }
+    midiin_sysex = 0;
+    return 0;
+}
+
 void*
 imfc_card_init(const device_t *info)
 {
     imfc = std::make_unique<MusicFeatureCard>(device_get_config_hex16("base"), device_get_config_int("irq"));
     wavetable_add_handler(imfc_get_buffer, imfc.get());
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, imfc_input_msg, imfc_input_sysex, imfc.get());
+
     return imfc.get();
 }
 
@@ -13827,6 +13876,17 @@ static const device_config_t imfc_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
 	{ .name = "", .description = "", .type = CONFIG_END }
