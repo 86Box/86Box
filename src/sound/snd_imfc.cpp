@@ -5431,7 +5431,6 @@ public:
 			midiin_r++;
 			midiin_r &= 0xff;
 		}
-		pclog("MIDI port read, val = %02X\n", ret);
 		return ret;
 	}
 
