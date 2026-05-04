@@ -3042,6 +3042,8 @@ public:
 			               : 0x00);
 		}
 		// IMF_LOG("%s: readPortPIU2 -> value=0x%X", m_name.c_str(), val);
+		/* The VAPI driver included with MusicPrinterPlus relies on a reserved bit being set */
+		val |= 0x02;
 		return val;
 	}
 	void writePortPIU2(uint8_t val)
