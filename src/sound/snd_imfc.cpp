@@ -115,9 +115,6 @@ extern double cpuclock;
 constexpr uint8_t AVAILABLE_MIDI_CHANNELS = 16;
 constexpr uint8_t AVAILABLE_INSTRUMENTS   = 8;
 
-constexpr uint8_t MinIrqAddress = 2;
-constexpr uint8_t MaxIrqAddress = 7;
-
 #if IMFC_VERBOSE_LOGGING
 mutex_t* m_loggerMutex = nullptr;
 template <typename... Args>
@@ -1563,11 +1560,6 @@ public:
 		polyMonoMode              = get_and_check_range(0, 1);
 		pmdController             = get_and_check_range(0, 4);
 		reserved1                 = get_and_check_range(0, UINT8_MAX);
-
-		// One off check for detune's signed range
-                // PLAYREC sends invalid detune values when opening some music files. Log this instead of asserting.
-                if ((detune < -64) || (detune >= 63))
-                    pclog("IMFC: Detune value out of range! val = %i\n", detune);
 
 		return data_ptr;
 	}
@@ -13158,10 +13150,8 @@ public:
 	                  nullptr /*callbackOnToHighToLow*/),
 	          m_irqTriggerImf(
 	                  "TriggerImfIrq",
-	                  [this]() {
-	                  } /*callbackOnLowToHigh*/,
-	                  [this]() {
-	                  } /*callbackOnToHighToLow*/),
+	                  nullptr /*callbackOnLowToHigh*/,
+	                  nullptr /*callbackOnToHighToLow*/),
 	          m_tsr("TSR"),
 	          // initialize all the internal structures
 	          m_bufferFromMidiInState("bufferFromMidiInState", 2048),
@@ -13637,13 +13627,6 @@ static void CallInterruptHandler()
 	imfc->interruptHandler();
 }
 
-#if 0
-static void IMFC_Mixer_Callback(const int requested_frames)
-{
-	imfc->mixerCallback(requested_frames);
-}
-#endif
-
 static void
 imfc_get_buffer(int32_t *buffer, int len, void *priv)
 {
@@ -13652,148 +13635,16 @@ imfc_get_buffer(int32_t *buffer, int len, void *priv)
     imfc_card->mixerCallback(len, buffer);;
 }
 
-#if 0
-void IMFC_Init()
-{
-	const auto section = get_section("imfc");
-	if (!section->GetBool("imfc")) {
-		return;
-	}
-
-	MIXER_LockMixerThread();
-
+//TODO
 #if IMFC_VERBOSE_LOGGING
 	m_loggerMutex = thread_create_mutex();
 #endif
 
-	// The emulation requires playback at 44.1 KHz to match the pitch of
-	// original hardware.
-	constexpr uint16_t imfc_sampling_rate_hz = 44100;
-
-	// Register the Audio channel
-	auto channel = MIXER_AddChannel(IMFC_Mixer_Callback,
-	                                imfc_sampling_rate_hz,
-	                                ChannelName::IbmMusicFeatureCard,
-	                                {ChannelFeature::Stereo,
-	                                 ChannelFeature::ReverbSend,
-	                                 ChannelFeature::ChorusSend,
-	                                 ChannelFeature::Synthesizer});
-
-	// Default volume scalar adjusted to match hardware line-out levels
-	// recorded by Pierre: Ref: https://www.youtube.com/watch?v=WHVWDi15AIw
-	constexpr auto volume_scalar = 2.1f;
-	channel->Set0dbScalar(volume_scalar);
-
-	// The filter parameters have been tweaked by analysing hardware
-	// line-out recordings by Pierre: Ref:
-	// https://www.youtube.com/watch?v=WHVWDi15AIw. The results are
-	// virtually indistinguishable from the real thing by ear and spectrum
-	// analysis.
-	//
-	auto enable_filter = [&]() {
-		constexpr auto Order        = 2;
-		constexpr auto CutoffFreqHz = 3500;
-
-		channel->ConfigureLowPassFilter(Order, CutoffFreqHz);
-		channel->SetLowPassFilter(FilterState::On);
-	};
-
-	const std::string filter_choice = section->GetString("imfc_filter");
-
-	if (const auto maybe_bool = parse_bool_setting(filter_choice)) {
-		if (*maybe_bool) {
-			enable_filter();
-		} else {
-			channel->SetLowPassFilter(FilterState::Off);
-		}
-	} else if (!channel->TryParseAndSetCustomFilter(filter_choice)) {
-		NOTIFY_DisplayWarning(Notification::Source::Console,
-		                      "IMFC",
-		                      "PROGRAM_CONFIG_INVALID_SETTING",
-		                      "imfc_filter",
-		                      filter_choice.c_str(),
-		                      "on");
-
-		set_section_property_value("imfc", "imfc_filter", "on");
-		enable_filter();
-	}
-
-	const auto port = static_cast<io_port_t>(section->GetHex("imfc_base"));
-
-	const auto irq = clamp(static_cast<uint8_t>(section->GetInt("imfc_irq")),
-	                       MinIrqAddress,
-	                       MaxIrqAddress);
-
-	imfc = std::make_unique<MusicFeatureCard>(std::move(channel), port, irq);
-
-	MIXER_UnlockMixerThread();
-}
-
-void IMFC_Destroy()
-{
-	if (!imfc) {
-		return;
-	}
-
-	MIXER_LockMixerThread();
-	imfc = {};
-
+//TODO
 #if IMFC_VERBOSE_LOGGING
 	assert(m_loggerMutex);
 	thread_close_mutex(m_loggerMutex);
 	m_loggerMutex = nullptr;
-#endif
-	MIXER_UnlockMixerThread();
-}
-
-static void notify_imfc_setting_updated([[maybe_unused]] SectionProp& section,
-                                        [[maybe_unused]] const std::string& prop_name)
-{
-	IMFC_Destroy();
-	IMFC_Init();
-}
-
-static void init_imfc_config_settings(SectionProp& secprop)
-{
-	constexpr auto when_idle = Property::Changeable::WhenIdle;
-
-	const auto bool_prop = secprop.AddBool("imfc", when_idle, false);
-	assert(bool_prop);
-	bool_prop->SetHelp("Enable the IBM Music Feature Card ('off' by default).");
-
-	const auto hex_prop = secprop.AddHex("imfc_base", when_idle, 0x2A20);
-	assert(hex_prop);
-	hex_prop->SetValues({"2A20", "2A30"});
-	hex_prop->SetHelp(
-	        "The IO base address of the IBM Music Feature Card ('2A20' by default).\n"
-	        "Possible values: 2A20, 2A30");
-
-	const auto int_prop = secprop.AddInt("imfc_irq", when_idle, 3);
-	assert(int_prop);
-	int_prop->SetValues({"2", "3", "4", "5", "6", "7"});
-	int_prop->SetHelp(
-	        "The IRQ number of the IBM Music Feature Card (3 by default).\n"
-	        "Possible values: 2, 3, 4, 5, 6, 7");
-
-	const auto str_prop = secprop.AddString("imfc_filter", when_idle, "on");
-	assert(str_prop);
-	str_prop->SetHelp(
-	        "Filter for the IBM Music Feature Card output ('on' by default). Possible values:\n"
-	        "\n"
-	        "  on:        Filter the output (default).\n"
-	        "  off:       Don't filter the output.\n"
-	        "  <custom>:  Custom filter definition; see 'sb_filter' for details.");
-}
-
-void IMFC_AddConfigSection(const ConfigPtr& conf)
-{
-	assert(conf);
-
-	auto section = conf->AddSection("imfc");
-	section->AddUpdateHandler(notify_imfc_setting_updated);
-
-	init_imfc_config_settings(*section);
-}
 #endif
 
 static void
