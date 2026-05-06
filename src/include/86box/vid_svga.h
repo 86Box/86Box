@@ -272,6 +272,7 @@ typedef struct svga_t {
     uint8_t color_2bpp;
     uint8_t ksc5601_sbyte_mask;
     uint8_t ksc5601_udc_area_msb[2];
+    uint8_t oldcrtc11;
 
     int      ksc5601_swap_mode;
     uint16_t ksc5601_english_font_type;
@@ -310,6 +311,10 @@ typedef struct svga_t {
 
     /* Pointer to monitor */
     monitor_t *monitor;
+
+    char svga_internal_name[128];
+    uint8_t vertirq_state;
+    uint8_t vertirq_enabled;
 
     /* Enable LUT mapping of >= 24 bpp modes. */
     int lut_map;

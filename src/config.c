@@ -715,6 +715,7 @@ load_video(void)
     da2_standalone_enabled           = !!ini_section_get_int(cat, "da2", 0);
     show_second_monitors             = !!ini_section_get_int(cat, "show_second_monitors", 1);
     video_fullscreen_scale_maximized = !!ini_section_get_int(cat, "video_fullscreen_scale_maximized", 0);
+    vga_irq_enabled                  = !!ini_section_get_int(cat, "vga_irq_enabled", 1);
 
     vid_cga_comp_brightness = ini_section_get_int(cat, "vid_cga_comp_brightness", 0);
     vid_cga_comp_sharpness  = ini_section_get_int(cat, "vid_cga_comp_sharpness", 0);
@@ -3203,6 +3204,11 @@ save_video(void)
         ini_section_delete_var(cat, "video_fullscreen_scale_maximized");
     else
         ini_section_set_int(cat, "video_fullscreen_scale_maximized", video_fullscreen_scale_maximized);
+
+    if (vga_irq_enabled == 1) 
+        ini_section_delete_var(cat, "vga_irq_enabled");
+    else
+        ini_section_set_int(cat, "vga_irq_enabled", vga_irq_enabled);
 
     ini_delete_section_if_empty(config, cat);
 }

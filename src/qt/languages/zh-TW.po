@@ -3070,3 +3070,6 @@ msgstr "音訊輸出裝置:"
 
 msgid "System Default"
 msgstr "系統預設"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

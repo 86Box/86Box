@@ -3072,3 +3072,6 @@ msgstr "오디오 출력 장치:"
 
 msgid "System Default"
 msgstr "시스템 기본값"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

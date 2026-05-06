@@ -194,6 +194,7 @@ int      voodoo_enabled                         = 0;              /* (C) video o
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
 int      da2_standalone_enabled                 = 0;              /* (C) video option */
+int      vga_irq_enabled                        = 0;              /* (C) video option */
 uint32_t mem_size                               = 0;              /* (C) memory size (Installed on
                                                                          system board)*/
 uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */

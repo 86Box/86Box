@@ -3177,3 +3177,6 @@ msgstr "Dispositivo di uscita audio:"
 
 msgid "System Default"
 msgstr "Predefinito del sistema"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

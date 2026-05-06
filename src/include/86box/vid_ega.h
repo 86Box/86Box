@@ -147,6 +147,7 @@ typedef struct ega_t {
     void *     priv_parent;
 
     uint8_t    alt_addr; /* 0 for 0x3XX range, 1 for 0x2XX range */
+    uint8_t    vertirq_state;
 } ega_t;
 #endif
 

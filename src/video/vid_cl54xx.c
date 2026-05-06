@@ -29,6 +29,7 @@
 #include <86box/mca.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/machine.h>
@@ -534,8 +535,16 @@ gd54xx_vga_vsync_enabled(gd54xx_t *gd54xx)
 static void
 gd54xx_update_irqs(gd54xx_t *gd54xx)
 {
-    if (!gd54xx->pci)
+    if (!gd54xx->pci) {
+        if (!vga_irq_enabled)
+            return;
+
+        if ((gd54xx->vblank_irq > 0) && gd54xx_vga_vsync_enabled(gd54xx))
+            picint(1 << 2);
+        else
+            picintc(1 << 2);
         return;
+    }
 
     if ((gd54xx->vblank_irq > 0) && gd54xx_vga_vsync_enabled(gd54xx))
         pci_set_irq(gd54xx->pci_slot, PCI_INTA, &gd54xx->irq_state);
@@ -1298,7 +1307,7 @@ gd54xx_in(uint16_t addr, void *priv)
 
     switch (addr) {
         case 0x3c2:
-            ret = svga_in(addr, svga);
+            ret = svga_in(addr, svga) & ~0x80;
             ret |= gd54xx->vblank_irq > 0 ? 0x80 : 0x00;
             break;
 
@@ -4502,6 +4511,9 @@ gd54xx_init(const device_t *info)
                   gd54xx_recalctimings, gd54xx_in, gd54xx_out,
                   gd54xx_hwcursor_draw, NULL);
     }
+    /* Disable the common VSync handler unconditionally. At least all non-PCI cards are able to do VSync interrupts. */
+    svga->vertirq_enabled = 0;
+
     svga->vblank_start = gd54xx_vblank_start;
     svga->ven_write    = gd54xx_write_modes45;
     if ((vram == 1) || (vram >= 256 && vram <= 1024))

@@ -3070,3 +3070,6 @@ msgstr "音声出力デバイス:"
 
 msgid "System Default"
 msgstr "システム既定値"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""
