@@ -13150,10 +13150,8 @@ public:
 	                  nullptr /*callbackOnToHighToLow*/),
 	          m_irqTriggerImf(
 	                  "TriggerImfIrq",
-	                  [this]() {
-	                  } /*callbackOnLowToHigh*/,
-	                  [this]() {
-	                  } /*callbackOnToHighToLow*/),
+	                  nullptr /*callbackOnLowToHigh*/,
+	                  nullptr /*callbackOnToHighToLow*/),
 	          m_tsr("TSR"),
 	          // initialize all the internal structures
 	          m_bufferFromMidiInState("bufferFromMidiInState", 2048),
