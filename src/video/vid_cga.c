@@ -30,6 +30,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/debug_snapshot.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
@@ -69,6 +70,75 @@ static uint8_t interp_lut[2][256][256];
 static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 void cga_recalctimings(cga_t *cga);
+
+static void
+cga_debug_snapshot_write_u8_array(FILE *f, const char *name, const uint8_t *data, int count)
+{
+    fprintf(f, "%s=", name);
+    for (int i = 0; i < count; i++)
+        fprintf(f, "%s%02X", i ? " " : "", data[i]);
+    fprintf(f, "\r\n");
+}
+
+static void
+cga_debug_snapshot(void *w_ptr, void *priv)
+{
+    debug_snapshot_writer_t *w   = (debug_snapshot_writer_t *) w_ptr;
+    cga_t                   *cga = (cga_t *) priv;
+    FILE                    *f;
+
+    if (!w || !cga)
+        return;
+
+    f = debug_snapshot_fopen_write(w->devices_dir, "cga.txt");
+    if (f) {
+        fprintf(f, "[CGA]\r\n");
+        fprintf(f, "vram_bytes=%u\r\n", DEVICE_VRAM);
+        fprintf(f, "revision=%d\r\n", cga->revision);
+        fprintf(f, "composite=%d\r\n", cga->composite);
+        fprintf(f, "snow_enabled=%d\r\n", cga->snow_enabled);
+        fprintf(f, "rgb_type=%d\r\n", cga->rgb_type);
+        fprintf(f, "double_type=%d\r\n", cga->double_type);
+
+        fprintf(f, "\r\n[REGISTERS]\r\n");
+        fprintf(f, "crtcreg=%02X\r\n", cga->crtcreg & 0xff);
+        cga_debug_snapshot_write_u8_array(f, "CRTC[00..1F]", cga->crtc, CGA_NUM_CRTC_REGS);
+        fprintf(f, "cgamode=%02X\r\n", cga->cgamode);
+        fprintf(f, "cgacol=%02X\r\n", cga->cgacol);
+        fprintf(f, "cgastat=%02X\r\n", cga->cgastat);
+        fprintf(f, "lp_strobe=%02X\r\n", cga->lp_strobe);
+
+        fprintf(f, "\r\n[STATE]\r\n");
+        fprintf(f, "memaddr=%04X\r\n", cga->memaddr);
+        fprintf(f, "memaddr_backup=%04X\r\n", cga->memaddr_backup);
+        fprintf(f, "fontbase=%d\r\n", cga->fontbase);
+        fprintf(f, "linepos=%d\r\n", cga->linepos);
+        fprintf(f, "displine=%d\r\n", cga->displine);
+        fprintf(f, "scanline=%d\r\n", cga->scanline);
+        fprintf(f, "vc=%d\r\n", cga->vc);
+        fprintf(f, "cgadispon=%d\r\n", cga->cgadispon);
+        fprintf(f, "cursorvisible=%d\r\n", cga->cursorvisible);
+        fprintf(f, "cursoron=%d\r\n", cga->cursoron);
+        fprintf(f, "cgablink=%d\r\n", cga->cgablink);
+        fprintf(f, "vsynctime=%d\r\n", cga->vsynctime);
+        fprintf(f, "vadj=%d\r\n", cga->vadj);
+        fprintf(f, "oddeven=%d\r\n", cga->oddeven);
+        fprintf(f, "firstline=%d\r\n", cga->firstline);
+        fprintf(f, "lastline=%d\r\n", cga->lastline);
+        fprintf(f, "drawcursor=%d\r\n", cga->drawcursor);
+        fprintf(f, "fullchange=%d\r\n", cga->fullchange);
+        fprintf(f, "dispontime=%llu\r\n", (unsigned long long) cga->dispontime);
+        fprintf(f, "dispofftime=%llu\r\n", (unsigned long long) cga->dispofftime);
+
+        fclose(f);
+    }
+
+    f = debug_snapshot_fopen_write(w->devices_dir, "cga_vram.bin");
+    if (f) {
+        fwrite(cga->vram, 1, DEVICE_VRAM, f);
+        fclose(f);
+    }
+}
 
 static void
 cga_update_latch(cga_t *cga)
@@ -952,7 +1022,8 @@ const device_t cga_device = {
     .available     = NULL,
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
-    .config        = cga_config
+    .config        = cga_config,
+    .debug_snapshot = cga_debug_snapshot
 };
 
 const device_t cga_pravetz_device = {
@@ -966,5 +1037,6 @@ const device_t cga_pravetz_device = {
     .available     = NULL,
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
-    .config        = cga_config
+    .config        = cga_config,
+    .debug_snapshot = cga_debug_snapshot
 };

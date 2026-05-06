@@ -181,6 +181,9 @@ typedef struct _device_ {
     const char *alias;
     const char *machine;
     const device_config_t *config;
+
+    /* Optional debug snapshot callback (called when VM is paused). */
+    void (*debug_snapshot)(void *w, void *priv);
 } device_t;
 
 typedef struct device_context_t {
@@ -222,6 +225,13 @@ extern void  device_get_name(const device_t *dev, int bus, char *name);
 extern int   device_has_config(const device_t *dev);
 
 extern const char *device_get_bios_name(const device_t *dev, const char *internal_name);
+
+struct debug_snapshot_writer_t;
+extern int         device_debug_snapshot_provider_count(void);
+extern const char *device_debug_snapshot_provider_name(int idx);
+extern int         device_debug_snapshot_provider_enabled(int idx);
+extern void        device_debug_snapshot_provider_set_enabled(int idx, int enabled);
+extern void        device_debug_snapshot(struct debug_snapshot_writer_t *w, int include_list, int include_details);
 extern uint8_t     device_get_bios_type(const device_t *dev, const char *internal_name);
 extern uint8_t     device_get_bios_num_files(const device_t *dev, const char *internal_name);
 extern uint32_t    device_get_bios_local(const device_t *dev, const char *internal_name);

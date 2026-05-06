@@ -138,6 +138,8 @@ private slots:
     void getTitle_(wchar_t *title);
 
     void on_actionMCA_devices_triggered();
+    void on_actionDump_VM_Debug_Snapshot_triggered();
+    void on_actionConfigure_Snapshot_Providers_triggered();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;

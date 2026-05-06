@@ -51,10 +51,12 @@
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/mem.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/debug_snapshot.h>
 
 #define DEVICE_MAX 256 /* max # of devices */
 
@@ -63,6 +65,7 @@ static void            *device_priv[DEVICE_MAX];
 static device_context_t device_current;
 static device_context_t device_prev;
 static void            *device_common_priv;
+static uint8_t          device_debug_snapshot_enabled[DEVICE_MAX];
 
 #ifdef ENABLE_DEVICE_LOG
 int device_do_log = ENABLE_DEVICE_LOG;
@@ -87,6 +90,7 @@ void
 device_init(void)
 {
     memset(devices, 0x00, sizeof(devices));
+    memset(device_debug_snapshot_enabled, 0x01, sizeof(device_debug_snapshot_enabled));
 }
 
 void
@@ -1143,5 +1147,118 @@ const device_t device_internal = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .debug_snapshot = NULL
 };
+
+static int
+device_debug_snapshot_slot_from_index(int idx)
+{
+    int n = 0;
+
+    for (int c = 0; c < DEVICE_MAX; c++) {
+        if (!devices[c] || !device_priv[c] || !devices[c]->debug_snapshot)
+            continue;
+
+        if (n == idx)
+            return c;
+        n++;
+    }
+
+    return -1;
+}
+
+int
+device_debug_snapshot_provider_count(void)
+{
+    int count = 0;
+
+    for (int c = 0; c < DEVICE_MAX; c++) {
+        if (devices[c] && device_priv[c] && devices[c]->debug_snapshot)
+            count++;
+    }
+
+    return count;
+}
+
+const char *
+device_debug_snapshot_provider_name(int idx)
+{
+    static char name[256];
+    int         c = device_debug_snapshot_slot_from_index(idx);
+
+    if (c < 0)
+        return "";
+
+    snprintf(name, sizeof(name), "%s (%s)",
+             devices[c]->name ? devices[c]->name : "unknown",
+             devices[c]->internal_name ? devices[c]->internal_name : "unknown");
+    return name;
+}
+
+int
+device_debug_snapshot_provider_enabled(int idx)
+{
+    int c = device_debug_snapshot_slot_from_index(idx);
+
+    if (c < 0)
+        return 0;
+
+    return device_debug_snapshot_enabled[c];
+}
+
+void
+device_debug_snapshot_provider_set_enabled(int idx, int enabled)
+{
+    int c = device_debug_snapshot_slot_from_index(idx);
+
+    if (c < 0)
+        return;
+
+    device_debug_snapshot_enabled[c] = enabled ? 1 : 0;
+}
+
+void
+device_debug_snapshot(debug_snapshot_writer_t *w, int include_list, int include_details)
+{
+    FILE *f = NULL;
+
+    if (include_list) {
+        f = debug_snapshot_fopen_write(w->devices_dir, "devices.txt");
+        if (f) {
+            fprintf(f, "[DEVICES]\r\n");
+            fprintf(f, "count=%d\r\n\r\n", DEVICE_MAX);
+        }
+    }
+
+    for (int c = 0; c < DEVICE_MAX; c++) {
+        if (!devices[c])
+            continue;
+        if (f) {
+            fprintf(f, "[DEVICE_%d]\r\n", c);
+            fprintf(f, "name=%s\r\n", devices[c]->name ? devices[c]->name : "unknown");
+            fprintf(f, "internal_name=%s\r\n", devices[c]->internal_name ? devices[c]->internal_name : "");
+            fprintf(f, "flags=%08X\r\n", (unsigned) devices[c]->flags);
+            fprintf(f, "has_priv=%d\r\n", device_priv[c] != NULL ? 1 : 0);
+            fprintf(f, "has_debug_snapshot=%d\r\n", devices[c]->debug_snapshot != NULL ? 1 : 0);
+            fprintf(f, "debug_snapshot_enabled=%d\r\n", device_debug_snapshot_enabled[c] ? 1 : 0);
+            fprintf(f, "\r\n");
+        }
+
+        if (include_details && devices[c]->debug_snapshot && device_priv[c] && device_debug_snapshot_enabled[c]) {
+            char internal[256];
+            char dev_dir[1024];
+            debug_snapshot_sanitize_component(internal, sizeof(internal), devices[c]->internal_name);
+            path_append_filename(dev_dir, w->devices_dir, internal);
+            plat_dir_create(dev_dir);
+
+            debug_snapshot_writer_t dev_w;
+            snprintf(dev_w.dir,         sizeof(dev_w.dir),         "%s", w->dir);
+            snprintf(dev_w.devices_dir, sizeof(dev_w.devices_dir), "%s", dev_dir);
+            devices[c]->debug_snapshot(&dev_w, device_priv[c]);
+        }
+    }
+
+    if (f)
+        fclose(f);
+}
