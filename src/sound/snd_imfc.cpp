@@ -1561,11 +1561,6 @@ public:
 		pmdController             = get_and_check_range(0, 4);
 		reserved1                 = get_and_check_range(0, UINT8_MAX);
 
-		// One off check for detune's signed range
-                // PLAYREC sends invalid detune values when opening some music files. Log this instead of asserting.
-                if ((detune < -64) || (detune >= 63))
-                    pclog("IMFC: Detune value out of range! val = %i\n", detune);
-
 		return data_ptr;
 	}
 
