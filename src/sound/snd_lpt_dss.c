@@ -22,7 +22,6 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "cpu.h"
 #include <86box/86box.h>
 #include <86box/filters.h>
 #include <86box/timer.h>
@@ -32,14 +31,15 @@
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
 
-typedef struct dss_t {
+typedef struct dss_s {
     void *lpt;
 
     uint8_t  fifo[16];
-    uint16_t read_idx;
-    uint16_t write_idx;
+    uint8_t read_idx;
+    uint8_t write_idx;
 
     uint8_t dac_val;
+
     uint8_t status;
 
     pc_timer_t timer;
@@ -47,6 +47,12 @@ typedef struct dss_t {
     int16_t  buffer[SOUNDBUFLEN];
     uint16_t pos;
 } dss_t;
+
+static uint8_t
+dss_fifo_level(const dss_t *dss)
+{
+    return (uint8_t) (dss->write_idx - dss->read_idx);
+}
 
 static void
 dss_update(dss_t *const dss)
@@ -62,7 +68,7 @@ dss_update_status(dss_t *dss)
 
     dss->status &= ~0x40;
 
-    if ((dss->write_idx - dss->read_idx) >= 16)
+    if (dss_fifo_level(dss) >= 16)
         dss->status |= 0x40;
 
     if ((old & 0x40) && !(dss->status & 0x40))
@@ -74,7 +80,7 @@ dss_write_data(uint8_t val, void *priv)
 {
     dss_t *const dss = (dss_t *) priv;
 
-    if ((dss->write_idx - dss->read_idx) < 16) {
+    if (dss_fifo_level(dss) < 16) {
         dss->fifo[dss->write_idx & 15] = val;
         dss->write_idx++;
         dss_update_status(dss);
@@ -120,8 +126,9 @@ dss_callback(void *priv)
 
     dss_update(dss);
 
-    if ((dss->write_idx - dss->read_idx) > 0) {
-        dss->dac_val = dss->fifo[dss->read_idx & 15];
+    if (dss_fifo_level(dss) > 0) {
+        uint8_t idx = dss->read_idx & 15;
+        dss->dac_val = dss->fifo[idx];
         dss->read_idx++;
         dss_update_status(dss);
     }
