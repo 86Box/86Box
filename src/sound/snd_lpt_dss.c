@@ -35,9 +35,9 @@
 typedef struct dss_t {
     void *lpt;
 
-    uint8_t fifo[16];
-    uint8_t read_idx;
-    uint8_t write_idx;
+    uint8_t  fifo[16];
+    uint16_t read_idx;
+    uint16_t write_idx;
 
     uint8_t dac_val;
     uint8_t status;
