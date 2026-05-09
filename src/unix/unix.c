@@ -1838,7 +1838,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     const char *args[] = {NULL, NULL, NULL, NULL, "/bin/sh", "-c", cmd, NULL};
     if (title) {
         /* Set arguments for xdg-terminal-exec. */
-        int len = strlen(title) + 10;
+        int len = strlen(title) + 9;
         args[1] = malloc(len);
         snprintf((char *) args[1], len, "--title=%s", title);
         len = strlen(usr_path) + 7;
