@@ -30,13 +30,13 @@
 #include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/fifo.h>
+#include <86box/fifo8.h>
 
 typedef struct dss_s {
     void *lpt;
 
-    uint8_t  fifo[16];
-    uint8_t read_idx;
-    uint8_t write_idx;
+    Fifo8   dss_fifo;
 
     uint8_t dac_val;
 
@@ -47,12 +47,6 @@ typedef struct dss_s {
     int16_t  buffer[SOUNDBUFLEN];
     uint16_t pos;
 } dss_t;
-
-static uint8_t
-dss_fifo_level(const dss_t *dss)
-{
-    return (uint8_t) (dss->write_idx - dss->read_idx);
-}
 
 static void
 dss_update(dss_t *const dss)
@@ -68,7 +62,7 @@ dss_update_status(dss_t *dss)
 
     dss->status &= ~0x40;
 
-    if (dss_fifo_level(dss) >= 16)
+    if (fifo8_is_full(&dss->dss_fifo))
         dss->status |= 0x40;
 
     if ((old & 0x40) && !(dss->status & 0x40))
@@ -80,9 +74,8 @@ dss_write_data(uint8_t val, void *priv)
 {
     dss_t *const dss = (dss_t *) priv;
 
-    if (dss_fifo_level(dss) < 16) {
-        dss->fifo[dss->write_idx & 15] = val;
-        dss->write_idx++;
+    if (!fifo8_is_full(&dss->dss_fifo)) {
+        fifo8_push(&dss->dss_fifo, val);
         dss_update_status(dss);
     }
 }
@@ -126,10 +119,8 @@ dss_callback(void *priv)
 
     dss_update(dss);
 
-    if (dss_fifo_level(dss) > 0) {
-        uint8_t idx = dss->read_idx & 15;
-        dss->dac_val = dss->fifo[idx];
-        dss->read_idx++;
+    if (!fifo8_is_empty(&dss->dss_fifo)) {
+        dss->dac_val = fifo8_pop(&dss->dss_fifo);
         dss_update_status(dss);
     }
 
@@ -145,6 +136,7 @@ dss_init(UNUSED(const device_t *info))
 
     sound_add_handler(dss_get_buffer, dss);
     timer_add(&dss->timer, dss_callback, dss, 1);
+    fifo8_create(&dss->dss_fifo, 16);
 
     return dss;
 }
@@ -153,6 +145,7 @@ dss_close(void *priv)
 {
     dss_t *const dss = (dss_t *) priv;
 
+    fifo8_destroy(&dss->dss_fifo);
     free(dss);
 }
 
