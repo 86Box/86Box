@@ -1154,7 +1154,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     /* Take advantage of macOS displaying the script name in the title bar. */
     auto titleq = QString::fromUtf8(title);
 #ifndef Q_OS_WINDOWS
-    char buf[256];
+    char buf[PATH_MAX];
 #endif
 #ifdef Q_OS_MACOS
     auto idx = titleq.lastIndexOf('\n');
