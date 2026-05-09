@@ -1189,7 +1189,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     /* Set up terminal execution if requested. */
     if (!titleq.isEmpty()) {
         auto titlew = titleq.toStdWString();
-        process->setCreateProcessArgumentsModifier([titleq, titlew] (QProcess::CreateProcessArguments *args) {
+        process->setCreateProcessArgumentsModifier([titlew] (QProcess::CreateProcessArguments *args) {
             args->flags |= CREATE_NEW_CONSOLE;
             args->startupInfo->dwFlags &= ~STARTF_USESTDHANDLES;
             args->startupInfo->lpTitle = (wchar_t *) titlew.c_str();
