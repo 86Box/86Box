@@ -1139,7 +1139,7 @@ static int
 have_env_var(const char *var, const char *cmp = NULL)
 {
     const char *val = getenv(var);
-    return val && val[0] && (!cmp || !strnicmp(val, cmp, strlen(cmp)));
+    return val && ((!cmp && val[0]) || !strnicmp(val, cmp, strlen(cmp)));
 }
 #endif
 
@@ -1172,9 +1172,13 @@ plat_run_command(const char *cmd, const char **env, const char *title)
 #ifndef Q_OS_WINDOWS
         titleq.isNull() &&
 #endif
-        env && *env && *env[0]) { /* set environment variables for direct execution */
+        env && *env) { /* set environment variables for direct execution */
         auto envq = QProcessEnvironment::systemEnvironment();
-        while (*env && *env[0]) {
+        while (*env) {
+            if (!*env[0]) {
+                env++;
+                continue;
+            }
             auto varq = QString::fromUtf8(*env++);
             auto idx = varq.indexOf('=');
             if (idx > 0)
@@ -1215,12 +1219,14 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         f.write(titleq.toUtf8());
         f.write("'\n");
     }
-    if (!titleq.isNull() && env && *env && *env[0]) { /* set environment variables for terminal execution */
+    if (!titleq.isNull() && env && *env) { /* set environment variables for terminal execution */
         f.write("export");
-        while (*env && *env[0]) {
-            f.write(" '");
-            f.write(QString::fromUtf8(*env++).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
-            f.write("'");
+        while (*env) {
+            if (!*env[0]) {
+                env++;
+                continue;
+            }
+            f.write(QString::fromUtf8(*env++).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral(" '")).append(QStringLiteral("'")).toUtf8());
         }
         f.write("\n");
     }
