@@ -73,17 +73,17 @@ typedef struct net_switch_hostaddr_t {
     struct net_switch_hostaddr_t *next;
     net_switch_sockaddr_t         addr;
     net_switch_sockaddr_t         addr_tx;
-    int                              socket_tx;
+    int                           socket_tx;
 } net_switch_hostaddr_t;
 
 typedef struct net_switch_t {
-    int                       socket_rx;
+    int                    socket_rx;
     net_switch_hostaddr_t *hostaddrs;
-    uint16_t                  port_out;
+    uint16_t               port_out;
 
+    uint8_t        promisc;
     uint8_t        secret_enabled;
     uint8_t        secret_hash[32];
-    uint8_t        promisc;
     union {
         uint8_t  mac_addr[6];
         uint64_t mac_addr_u64;
@@ -395,8 +395,7 @@ net_switch_thread(void *priv)
                         send_len = orig_len + sizeof(netswitch->secret_hash);
 
                         /* Build header with secret hash */
-                        uint8_t *hdr = augmented;
-                        memcpy(hdr, netswitch->secret_hash, sizeof(netswitch->secret_hash));
+                        memcpy(augmented, netswitch->secret_hash, sizeof(netswitch->secret_hash));
                         memcpy(augmented + sizeof(netswitch->secret_hash),
                                netswitch->pkt_tx_v[i].data, orig_len);
                     }
@@ -405,16 +404,12 @@ net_switch_thread(void *priv)
 #define MAC_FORMAT_ARGS(p) (p)[6], (p)[7], (p)[8], (p)[9], (p)[10], (p)[11], (p)[0], (p)[1], (p)[2], (p)[3], (p)[4], (p)[5]
                     netswitch_log("Network Switch: sending %d-byte packet " MAC_FORMAT "\n",
                                   netswitch->pkt_tx_v[i].len,
-                                  MAC_FORMAT_ARGS(&netswitch->pkt_tx_v[i].data[netswitch->secret_enabled]));
+                                  MAC_FORMAT_ARGS(netswitch->pkt_tx_v[i].data));
 
                     /* Send through all known host interfaces. */
                     for (net_switch_hostaddr_t *hostaddr = netswitch->hostaddrs; hostaddr; hostaddr = hostaddr->next)
-                        if (netswitch->secret_enabled)
-                            sendto(hostaddr->socket_tx, (char *) augmented, send_len, 0,
-                                   &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
-                        else
-                            sendto(hostaddr->socket_tx, (char *) netswitch->pkt_tx_v[i].data,
-                                   send_len, 0, &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
+                        sendto(hostaddr->socket_tx, (char *) (netswitch->secret_enabled ? augmented : netswitch->pkt_tx_v[i].data),
+                               send_len, 0, &hostaddr->addr_tx.sa, sizeof(hostaddr->addr_tx.sa));
                 }
             }
             netswitch->during_tx = 0;
@@ -462,7 +457,7 @@ net_switch_thread(void *priv)
                 }
             }
 
-            if ((AS_U64(netswitch->pkt.data[netswitch->secret_enabled + 6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
+            if ((AS_U64(netswitch->pkt.data[6]) & le64_to_cpu(0xffffffffffffULL)) == netswitch->mac_addr_u64) {
                 /* A packet we've sent has looped back, drop it. */
             } else if (!(net_cards_conf[netswitch->card->card_num].link_state & NET_LINK_DOWN) && (netswitch->promisc || /* promiscuous mode? */
                        (netswitch->pkt.data[0] & 1) || /* broadcast packet? */
@@ -501,13 +496,11 @@ net_switch_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char
     netswitch->card = (netcard_t *) card;
     netswitch->promisc = !!netcard->promisc_mode;
 
-    if (netcard->secret[0] != '\0') {
+    netswitch->secret_enabled = (netcard->secret[0] != '\0');
+    if (netswitch->secret_enabled) {
         uint8_t temp[sizeof(netswitch->secret_hash)];
         net_switch_secret_hash((const char *) netcard->secret, (uint8_t *) temp);
         memcpy(netswitch->secret_hash, temp, sizeof(netswitch->secret_hash));
-        netswitch->secret_enabled = sizeof(netswitch->secret_hash);
-    } else {
-        netswitch->secret_enabled = 0;
     }
 
     /* Initialize receive socket. */
