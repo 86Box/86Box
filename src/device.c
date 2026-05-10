@@ -229,7 +229,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
     if (!config_find_section(ctx->name)) {
         /* Find and migrate old config sections. */
         void *old_sec;
-        char  old_name[2048] = { 0 };
+        char  old_name[2048];
         for (int i = 0; section_migrations[i].new; i++) {
             if (!strcmp(dev->name, section_migrations[i].new)) {
                 if (inst) {
