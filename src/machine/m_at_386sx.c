@@ -134,7 +134,7 @@ static const device_config_t pbl300sx_config[] = {
 };
 
 const device_t pbl300sx_device = {
-    .name          = "Packard Bell PB300/PB320",
+    .name          = "Packard Bell PB300",
     .internal_name = "pbl300sx",
     .flags         = 0,
     .local         = 0,

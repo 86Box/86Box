@@ -1246,7 +1246,7 @@ static const device_config_t bravoms586_config[] = {
 };
 
 const device_t bravoms586_device = {
-    .name          = "AST Bravo MS/MS-T/MS-L (Rattler)",
+    .name          = "AST Bravo MS",
     .internal_name = "bravoms586",
     .flags         = 0,
     .local         = 0,
