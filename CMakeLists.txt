@@ -158,11 +158,21 @@ else()
 endif()
 
 if(WIN32)
-    set(QT ON)
+    option(QT "Qt GUI" ON)
     option(CPPTHREADS "C++11 threads" OFF)
 else()
     option(QT "Qt GUI" ON)
     option(CPPTHREADS "C++11 threads" ON)
+endif()
+
+if(WIN32 AND NOT QT)
+    # The SDL frontend uses the console subsystem so `main()` is the entry point.
+    set(CMAKE_WIN32_EXECUTABLE OFF CACHE BOOL "Build a Windows GUI executable" FORCE)
+endif()
+
+if(WIN32 AND STATIC_BUILD AND NOT QT)
+    # FluidSynth pulls in SDL3 - disable for now
+    set(FLUIDSYNTH OFF CACHE BOOL "FluidSynth" FORCE)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")

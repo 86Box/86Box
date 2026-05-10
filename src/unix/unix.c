@@ -11,21 +11,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <sys/time.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <dlfcn.h>
 #include <wchar.h>
-#include <pwd.h>
 #include <stdatomic.h>
-#include <spawn.h>
+
+#ifdef _WIN32
+#    include <direct.h>
+#    include <windows.h>
+#else
+#    include <sys/time.h>
+#    include <sys/mman.h>
+#    include <sys/ioctl.h>
+#    include <fcntl.h>
+#    include <unistd.h>
+#    include <dlfcn.h>
+#    include <pwd.h>
+#    include <spawn.h>
+#endif
 
 /* Block device ioctl headers */
 #ifdef __linux__
@@ -67,8 +73,10 @@
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
 
-#define __USE_GNU 1 /* shouldn't be done, yet it is */
-#include <pthread.h>
+#ifndef _WIN32
+#    define __USE_GNU 1 /* shouldn't be done, yet it is */
+#    include <pthread.h>
+#endif
 
 extern SDL_Window         *sdl_win;
 
@@ -216,7 +224,27 @@ void *
 dynld_module(const char *name, dllimp_t *table)
 {
     dllimp_t *imp;
-    void     *modhandle = dlopen(name, RTLD_LAZY | RTLD_GLOBAL);
+
+#ifdef _WIN32
+    HMODULE modhandle = LoadLibraryA(name);
+
+    if (modhandle == NULL)
+        return NULL;
+
+    for (imp = table; imp->name != NULL; imp++) {
+        FARPROC func = GetProcAddress(modhandle, imp->name);
+
+        if (func == NULL) {
+            FreeLibrary(modhandle);
+            return NULL;
+        }
+
+        *(void **) imp->func = (void *) func;
+    }
+
+    return (void *) modhandle;
+#else
+    void *modhandle = dlopen(name, RTLD_LAZY | RTLD_GLOBAL);
 
     if (modhandle) {
         for (imp = table; imp->name != NULL; imp++) {
@@ -228,12 +256,33 @@ dynld_module(const char *name, dllimp_t *table)
     }
 
     return modhandle;
+#endif
 }
 
 #define TMPFILE_BUFSIZE 1024  // Assumed max buffer size
 void
 plat_tempfile(char *bufp, char *prefix, char *suffix)
 {
+#ifdef _WIN32
+    SYSTEMTIME t;
+    size_t     used = 0;
+
+    if (prefix != NULL)
+        used = snprintf(bufp, TMPFILE_BUFSIZE, "%s-", prefix);
+    else if (TMPFILE_BUFSIZE > 0)
+        bufp[0] = '\0';
+
+    GetLocalTime(&t);
+
+    if (used < TMPFILE_BUFSIZE) {
+        snprintf(bufp + used, TMPFILE_BUFSIZE - used,
+                 "%04u%02u%02u-%02u%02u%02u-%03u%s",
+                 (unsigned int) t.wYear, (unsigned int) t.wMonth,
+                 (unsigned int) t.wDay, (unsigned int) t.wHour,
+                 (unsigned int) t.wMinute, (unsigned int) t.wSecond,
+                 (unsigned int) t.wMilliseconds, suffix);
+    }
+#else
     struct tm     *calendertime;
     struct timeval t;
     time_t         curtime;
@@ -255,25 +304,41 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
                  calendertime->tm_hour, calendertime->tm_min, calendertime->tm_sec,
                  (int32_t)(t.tv_usec / 1000), suffix);
     }
+#endif
 }
 #undef TMPFILE_BUFSIZE
 
 int
 plat_getcwd(char *bufp, int max)
 {
+#ifdef _WIN32
+    return _getcwd(bufp, max) != NULL;
+#else
     return getcwd(bufp, max) != 0;
+#endif
 }
 
 int
 plat_chdir(char *str)
 {
+#ifdef _WIN32
+    return _chdir(str);
+#else
     return chdir(str);
+#endif
 }
 
 void
 dynld_close(void *handle)
 {
+    if (handle == NULL)
+        return;
+
+#ifdef _WIN32
+    FreeLibrary((HMODULE) handle);
+#else
     dlclose(handle);
+#endif
 }
 
 wchar_t *
@@ -308,8 +373,20 @@ plat_get_string(int i)
             return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
         case STRING_HW_NOT_AVAILABLE_VIDEO:
             return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
+        case STRING_HW_NOT_AVAILABLE_VIDEO2:
+            return L"Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.";
+        case STRING_HW_NOT_AVAILABLE_DEVICE:
+            return L"Device \"%hs\" is not available due to missing ROMs. Ignoring the device.";
         case STRING_HW_NOT_AVAILABLE_TITLE:
             return L"Hardware not available";
+        case STRING_NET_ERROR:
+            return L"Failed to initialize network driver";
+        case STRING_NET_ERROR_DESC:
+            return L"The network configuration will be switched to the null driver";
+        case STRING_ESCP_ERROR_TITLE:
+            return L"Unable to find Dot-Matrix fonts";
+        case STRING_ESCP_ERROR_DESC:
+            return L"TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.";
         case STRING_MONITOR_SLEEP:
             return L"Monitor in sleep mode";
         case STRING_EDID_TOO_LARGE:
@@ -317,6 +394,42 @@ plat_get_string(int i)
     }
     return L"";
 }
+
+#ifdef _WIN32
+size_t
+mbstoc16s(uint16_t dst[], const char src[], int len)
+{
+    if (src == NULL || len < 0)
+        return 0;
+
+    size_t ret = MultiByteToWideChar(CP_UTF8, 0, src, -1,
+                                     (LPWSTR) dst, dst == NULL ? 0 : len);
+
+    return ret ? ret : (size_t) -1;
+}
+
+size_t
+c16stombs(char dst[], const uint16_t src[], int len)
+{
+    if (src == NULL || len < 0)
+        return 0;
+
+    size_t ret = WideCharToMultiByte(CP_UTF8, 0, (LPCWCH) src, -1,
+                                     dst, dst == NULL ? 0 : len, NULL, NULL);
+
+    return ret ? ret : (size_t) -1;
+}
+
+void
+plat_get_system_directory(char *outbuf)
+{
+    if (outbuf == NULL)
+        return;
+
+    GetSystemWindowsDirectoryA(outbuf, MAX_PATH);
+    path_normalize(outbuf);
+}
+#endif
 
 FILE *
 plat_fopen(const char *path, const char *mode)
@@ -333,13 +446,27 @@ plat_fopen64(const char *path, const char *mode)
 int
 path_abs(char *path)
 {
+#ifdef _WIN32
+    return (path[1] == ':') || (path[0] == '\\') || (path[0] == '/') || (strstr(path, "ioctl://") == path);
+#else
     return path[0] == '/';
+#endif
 }
 
 void
-path_normalize(UNUSED(char *path))
+path_normalize(char *path)
 {
-    /* No-op. */
+#ifdef _WIN32
+    if (strstr(path, "ioctl://") != path) {
+        while (*path != '\0') {
+            if (*path == '\\')
+                *path = '/';
+            path++;
+        }
+    }
+#else
+    (void) path;
+#endif
 }
 
 void
@@ -448,7 +575,9 @@ plat_is_block_device(const char *path)
     struct stat stats;
     if (stat(path, &stats) < 0)
         return 0;
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+#if defined(_WIN32)
+    return 0;
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
     /* BSD systems use character devices for disk access, not block devices */
     return S_ISCHR(stats.st_mode) ? 1 : 0;
 #else
@@ -515,12 +644,20 @@ plat_get_block_device_size(const char *path)
 int
 plat_dir_create(char *path)
 {
+#ifdef _WIN32
+    return _mkdir(path);
+#else
     return mkdir(path, S_IRWXU);
+#endif
 }
 
 void *
 plat_mmap(size_t size, uint8_t executable)
 {
+#ifdef _WIN32
+    return VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE,
+                        executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+#else
 #if defined __APPLE__ && defined MAP_JIT
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
 #elif defined(PROT_MPROTECT)
@@ -528,13 +665,19 @@ plat_mmap(size_t size, uint8_t executable)
 #else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #endif
-    return (ret < 0) ? NULL : ret;
+    return (ret == MAP_FAILED) ? NULL : ret;
+#endif
 }
 
 void
 plat_munmap(void *ptr, size_t size)
 {
+#ifdef _WIN32
+    (void) size;
+    VirtualFree(ptr, 0, MEM_RELEASE);
+#else
     munmap(ptr, size);
+#endif
 }
 
 uint64_t
@@ -907,9 +1050,37 @@ plat_pause(int p)
 }
 
 #define TMP_PATH_BUFSIZE 1024
+
+static int
+build_subdir_path(char *outbuf, size_t len, const char *base_path, const char *subdir)
+{
+    int written = snprintf(outbuf, len, "%s%s", base_path, subdir);
+
+    if ((written < 0) || ((size_t) written >= len)) {
+        if (len > 0)
+            outbuf[0] = '\0';
+        return 0;
+    }
+
+    return 1;
+}
+
 void
 plat_init_rom_paths(void)
 {
+#ifdef _WIN32
+    char global_data_path[TMP_PATH_BUFSIZE] = {0};
+    char global_rom_path[TMP_PATH_BUFSIZE]  = {0};
+
+    plat_get_global_data_dir(global_data_path, sizeof(global_data_path));
+    if (build_subdir_path(global_rom_path, sizeof(global_rom_path), global_data_path, "roms")) {
+        if (!plat_dir_check(global_rom_path))
+            plat_dir_create(global_rom_path);
+        rom_add_path(global_rom_path);
+    }
+
+    rom_add_path("roms/");
+#else
 #ifndef __APPLE__
     const char *xdg_data_home = getenv("XDG_DATA_HOME");
     if (xdg_data_home) {
@@ -981,11 +1152,25 @@ plat_init_rom_paths(void)
     getDefaultROMPath(default_rom_path);
     rom_add_path(default_rom_path);
 #endif
+#endif
 }
 
 void
 plat_init_asset_paths(void)
 {
+#ifdef _WIN32
+    char global_data_path[TMP_PATH_BUFSIZE] = {0};
+    char global_asset_path[TMP_PATH_BUFSIZE] = {0};
+
+    plat_get_global_data_dir(global_data_path, sizeof(global_data_path));
+    if (build_subdir_path(global_asset_path, sizeof(global_asset_path), global_data_path, "assets")) {
+        if (!plat_dir_check(global_asset_path))
+            plat_dir_create(global_asset_path);
+        asset_add_path(global_asset_path);
+    }
+
+    asset_add_path("assets/");
+#else
 #ifndef __APPLE__
     const char *xdg_data_home = getenv("XDG_DATA_HOME");
     if (xdg_data_home) {
@@ -1057,6 +1242,7 @@ plat_init_asset_paths(void)
     getDefaultROMPath(default_asset_path);
     asset_add_path(default_asset_path);
 #endif
+#endif
 }
 #undef TMP_PATH_BUFSIZE
 
@@ -1069,14 +1255,32 @@ plat_get_global_config_dir(char *outbuf, const size_t len)
 void
 plat_get_global_data_dir(char *outbuf, const size_t len)
 {
+    if (len == 0)
+        return;
+
     if (portable_mode) {
         strncpy(outbuf, exe_path, len);
     } else {
+#ifdef _WIN32
+        const char *appdata = getenv("LOCALAPPDATA");
+
+        if (!appdata || !build_subdir_path(outbuf, len, appdata, "/" EMU_NAME))
+            strncpy(outbuf, exe_path, len);
+        else if (!plat_dir_check(outbuf))
+            plat_dir_create(outbuf);
+#else
         char *prefPath = SDL_GetPrefPath(NULL, EMU_NAME);
-        strncpy(outbuf, prefPath, len);
-        SDL_free(prefPath);
+
+        if (prefPath != NULL) {
+            strncpy(outbuf, prefPath, len);
+            SDL_free(prefPath);
+        } else {
+            strncpy(outbuf, exe_path, len);
+        }
+#endif
     }
 
+    outbuf[len - 1] = '\0';
     path_slash(outbuf);
 }
 
@@ -1414,6 +1618,9 @@ unix_executeLine(char *line)
 void
 monitor_thread(UNUSED(void *param))
 {
+#ifdef _WIN32
+    (void) param;
+#else
 #ifndef USE_CLI
     if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
         char  *line = NULL;
@@ -1443,6 +1650,7 @@ monitor_thread(UNUSED(void *param))
         }
     }
 #endif
+#endif
 }
 
 extern int gfxcard[GFXCARD_MAX];
@@ -1450,7 +1658,7 @@ int
 main(int argc, char **argv)
 {
     SDL_Event event;
-    void     *libedithandle;
+    void     *libedithandle = NULL;
     int      ret = 0;
 
     SDL_Init(0);
@@ -1472,6 +1680,7 @@ main(int argc, char **argv)
         fprintf(stderr, "Failed to create blit mutex: %s", SDL_GetError());
         return -1;
     }
+#ifndef _WIN32
     libedithandle = dlopen(LIBEDIT_LIBRARY, RTLD_LOCAL | RTLD_LAZY);
     if (libedithandle) {
         f_readline    = dlsym(libedithandle, "readline");
@@ -1482,6 +1691,7 @@ main(int argc, char **argv)
         f_rl_callback_handler_remove = dlsym(libedithandle, "rl_callback_handler_remove");
     } else
         fprintf(stderr, "libedit not found, line editing will be limited.\n");
+#endif
     mousemutex = SDL_CreateMutex();
 
     if (start_in_fullscreen)
@@ -1756,6 +1966,19 @@ check_flags:
     return 0;
 }
 
+#ifdef _WIN32
+int WINAPI
+WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, int show)
+{
+    (void) instance;
+    (void) previous;
+    (void) command_line;
+    (void) show;
+
+    return main(__argc, __argv);
+}
+#endif
+
 char *
 plat_vidapi_name(UNUSED(int i))
 {
@@ -1780,6 +2003,10 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
 void
 plat_set_thread_name(void *thread, const char *name)
 {
+#ifdef _WIN32
+    (void) thread;
+    (void) name;
+#else
 #ifdef __APPLE__
     if (thread) /* macOS pthread can only set self's name */
         return;
@@ -1801,6 +2028,7 @@ plat_set_thread_name(void *thread, const char *name)
 #else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif
+#endif
 }
 
 /* Converts the numeric language ID to a language code string */
@@ -1814,6 +2042,11 @@ plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 int
 plat_run_command(const char *cmd, const char **env, const char *title)
 {
+#ifdef _WIN32
+    (void) env;
+    (void) title;
+    return system(cmd) == 0;
+#else
     /* Append environment variables to the existing environment. */
     extern char **environ;
     const  char **new_env = NULL;
@@ -1888,6 +2121,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     if (new_env)
         free(new_env);
     return ret;
+#endif
 }
 
 void

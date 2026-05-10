@@ -20,12 +20,22 @@
 
 add_library(plat OBJECT
     unix.c
-    unix_netsocket.c
     ../qt/sdl_joystick.c
 )
 
+if(WIN32)
+    target_sources(plat PRIVATE ../qt/win_netsocket.c)
+    target_link_libraries(86Box ws2_32)
+else()
+    target_sources(plat PRIVATE unix_netsocket.c)
+endif()
+
 if (NOT CPPTHREADS)
-    target_sources(plat PRIVATE unix_thread.c)
+    if(WIN32)
+        target_sources(plat PRIVATE ../qt/win_thread.c)
+    else()
+        target_sources(plat PRIVATE unix_thread.c)
+    endif()
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
