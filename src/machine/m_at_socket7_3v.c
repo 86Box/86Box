@@ -526,7 +526,7 @@ static const device_config_t thor_config[] = {
 };
 
 const device_t thor_device = {
-    .name          = "Intel Advanced/ATX (Thor)",
+    .name          = "Intel Advanced/ATX",
     .internal_name = "thor",
     .flags         = 0,
     .local         = 0,
@@ -802,7 +802,7 @@ static const device_config_t monaco_config[] = {
 };
 
 const device_t monaco_device = {
-    .name          = "Intel Advanced/MA (Monaco)",
+    .name          = "Intel Advanced/MA",
     .internal_name = "monaco",
     .flags         = 0,
     .local         = 0,
@@ -1459,7 +1459,7 @@ static const device_config_t c5sbm2_config[] = {
 };
 
 const device_t c5sbm2_device = {
-    .name          = "Chaintech 5SBM/5SBM2 (M103)",
+    .name          = "Chaintech 5SBM2",
     .internal_name = "5sbm2",
     .flags         = 0,
     .local         = 0,

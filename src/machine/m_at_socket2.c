@@ -88,7 +88,7 @@ static const device_config_t pb410a_config[] = {
 };
 
 const device_t pb410a_device = {
-    .name          = "Packard Bell PB410/PB410A/PB420/PB420T",
+    .name          = "Packard Bell PB410A",
     .internal_name = "pb410a",
     .flags         = 0,
     .local         = 0,

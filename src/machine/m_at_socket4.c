@@ -398,7 +398,7 @@ static const device_config_t batman_config[] = {
 };
 
 const device_t batman_device = {
-    .name          = "Intel Premiere/PCI (Batman)",
+    .name          = "Intel Premiere/PCI",
     .internal_name = "batman",
     .flags         = 0,
     .local         = 0,

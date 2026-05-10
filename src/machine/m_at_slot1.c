@@ -149,7 +149,7 @@ static const device_config_t p6kdi_config[] = {
 };
 
 const device_t p6kdi_device = {
-    .name          = "Advanced Integration Research (AIR) P6KDI",
+    .name          = "AIR P6KDI",
     .internal_name = "p6kdi",
     .flags         = 0,
     .local         = 0,

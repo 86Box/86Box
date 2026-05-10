@@ -426,7 +426,7 @@ static const device_config_t laserxt_config[] = {
 
 const device_t laserxt_device = {
     .name          = "VTech Laser Turbo XT",
-    .internal_name = "laserxt",
+    .internal_name = "ltxt",
     .flags         = 0,
     .local         = 0,
     .init          = lxt_init,
@@ -490,8 +490,8 @@ static const device_config_t lxt3_config[] = {
 };
 
 const device_t lxt3_device = {
-    .name          = "VTech Laser Turbo XT",
-    .internal_name = "laserxt",
+    .name          = "VTech Laser XT3",
+    .internal_name = "lxt3",
     .flags         = 0,
     .local         = 1,
     .init          = lxt_init,

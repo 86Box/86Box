@@ -179,10 +179,28 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Multitech PC-500 / Franklin PC 8000", .new = "Multitech PC-500" }, /* 6.0 pre-release */
         { .old = "Multitech PC-500 plus", .new = "Multitech PC-500+" },
         { .old = "Multitech PC-700 / Siemens SICOMP PC 16 05", .new = "Multitech PC-700" }, /* 6.0 pre-release */
+        { .old = "Vendex 888T", .new = "Vendex HeadStart Turbo 888-XT" },
+        { .old = "VTech Laser Turbo XT", .new = "VTech Laser XT3" },
+        { .old = "PS/1 2011", .new = "IBM PS/1 model 2011" },
+        { .old = "IBM XT Model 286", .new = "IBM XT model 286" },
         { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300" },
         { .old = "Packard Bell PB300/PB320", .new = "Packard Bell PB300" }, /* 6.0 pre-release */
+        { .old = "DataExpert SX495", .new = "DataExpert OPTI-495SX" },
+        { .old = "Packard Bell PB410/PB410A/PB420/PB420T", .new = "Packard Bell PB410A" }, /* 6.0 pre-release */
+        { .old = "Intel Premiere/PCI (Batman)", .new = "Intel Premiere/PCI" },
+        { .old = "Intel Premiere/PCI II (Plato)", .new = "Intel Premiere/PCI II" },
+        { .old = "Intel Advanced/ZP (Zappa)", .new = "Intel Advanced/ZP" },
         { .old = "AST Bravo MS P/90", .new = "AST Bravo MS" },
         { .old = "AST Bravo MS/MS-T/MS-L (Rattler)", .new = "AST Bravo MS" }, /* 6.0 pre-release */
+        { .old = "Intel Advanced/ATX (Thor)", .new = "Intel Advanced/ATX" },
+        { .old = "Intel Advanced/MA (Monaco)", .new = "Intel Advanced/MA" },
+        { .old = "Chaintech 5SBM/5SBM2 (M103)", .new = "Chaintech 5SBM2" },
+        { .old = "Intel CU430HX (Cumberland)", .new = "Intel CU430HX" },
+        { .old = "Intel TC430HX (Tucson)", .new = "Intel TC430HX" },
+        { .old = "LG IBM Multinet x52 (MSI MS-5136)", .new = "LG IBM Multinet x52" },
+        { .old = "Intel AN430TX (Anchorage)", .new = "Intel AN430TX" },
+        { .old = "Intel VS440FX (Venus)", .new = "Intel VS440FX" },
+        { .old = "Advanced Integration Research (AIR) P6KDI", .new = "AIR P6KDI" }, /* 6.0 pre-release */
         { .old = "DTK PII-151B (MiniMicro) Floppy Drive Controller", .new = "DTK PII-151B (MiniMicro) FDC" },
         { .old = "DTK PII-158B (MiniMicro4) Floppy Drive Controller", .new = "DTK PII-158B (MiniMicro4) FDC" },
         { .old = "Monster FDC Floppy Drive Controller", .new = "Monster FDC" },

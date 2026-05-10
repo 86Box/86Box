@@ -197,7 +197,7 @@ static const device_config_t ibmxt286_config[] = {
 };
 
 const device_t ibmxt286_device = {
-    .name          = "IBM XT Model 286",
+    .name          = "IBM XT model 286",
     .internal_name = "ibmxt286",
     .flags         = 0,
     .local         = 0,

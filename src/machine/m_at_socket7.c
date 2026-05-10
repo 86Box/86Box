@@ -266,7 +266,7 @@ static const device_config_t cu430hx_config[] = {
 };
 
 const device_t cu430hx_device = {
-    .name          = "Intel CU430HX (Cumberland)",
+    .name          = "Intel CU430HX",
     .internal_name = "cu430hx",
     .flags         = 0,
     .local         = 0,
@@ -392,7 +392,7 @@ static const device_config_t tc430hx_config[] = {
 };
 
 const device_t tc430hx_device = {
-    .name          = "Intel TC430HX (Tucson)",
+    .name          = "Intel TC430HX",
     .internal_name = "tc430hx",
     .flags         = 0,
     .local         = 0,
@@ -1101,7 +1101,7 @@ static const device_config_t lgibmx52_config[] = {
 };
 
 const device_t lgibmx52_device = {
-    .name          = "LG IBM Multinet x52 (MSI MS-5136)",
+    .name          = "LG IBM Multinet x52",
     .internal_name = "lgibmx52",
     .flags         = 0,
     .local         = 0,
@@ -1855,7 +1855,7 @@ static const device_config_t an430tx_config[] = {
 };
 
 const device_t an430tx_device = {
-    .name          = "Intel AN430TX (Anchorage)",
+    .name          = "Intel AN430TX",
     .internal_name = "an430tx",
     .flags         = 0,
     .local         = 0,

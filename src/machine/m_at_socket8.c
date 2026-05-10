@@ -404,7 +404,7 @@ static const device_config_t vs440fx_config[] = {
 };
 
 const device_t vs440fx_device = {
-    .name          = "Intel VS440FX (Venus)",
+    .name          = "Intel VS440FX",
     .internal_name = "vs440fx",
     .flags         = 0,
     .local         = 0,

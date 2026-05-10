@@ -137,7 +137,7 @@ static const device_config_t plato_config[] = {
 };
 
 const device_t plato_device = {
-    .name          = "Intel Premiere/PCI II (Plato)",
+    .name          = "Intel Premiere/PCI II",
     .internal_name = "plato",
     .flags         = 0,
     .local         = 0,
@@ -746,7 +746,7 @@ static const device_config_t zappa_config[] = {
 };
 
 const device_t zappa_device = {
-    .name          = "Intel Advanced/ZP (Zappa)",
+    .name          = "Intel Advanced/ZP",
     .internal_name = "zappa",
     .flags         = 0,
     .local         = 0,

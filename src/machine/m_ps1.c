@@ -343,7 +343,7 @@ static const device_config_t ps1_2011_config[] = {
 };
 
 const device_t ps1_2011_device = {
-    .name          = "PS/1 2011",
+    .name          = "IBM PS/1 model 2011",
     .internal_name = "ibmps1es",
     .flags         = 0,
     .local         = 0,
