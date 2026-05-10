@@ -1463,8 +1463,12 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 /* http://the.earth.li/~tfm/oldpage/sb_mixer.html - 0x10, 0x20, 0x80. */
                 const uint8_t temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) |
                                      ((sb->dsp.sb_irq401) ? 4 : 0);
-                if (sb->dsp.sb_type >= SBAWE32_DSP_412)
+                if (sb->dsp.sb_type >= SB16_DSP_411)
                     ret = temp | 0x80;
+                else if (sb->dsp.sb_type == SB16_DSP_405)
+                    ret = temp | 0x20;
+                else if (sb->dsp.sb_type == SB16_DSP_404)
+                    ret = temp | 0x10;
                 else
                     ret = temp | 0x40;
                 break;
