@@ -58,7 +58,6 @@
 #include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
-#include <86box/cdrom.h>
 #include <86box/plat_dynld.h>
 #include <86box/thread.h>
 #include <86box/device.h>
@@ -72,6 +71,8 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
+
+#include "sdl_monitor.h"
 
 #ifndef _WIN32
 #    define __USE_GNU 1 /* shouldn't be done, yet it is */
@@ -95,8 +96,8 @@ extern int      title_set;
 extern wchar_t  sdl_win_title[512];
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
-static int      exit_event         = 0;
-static int      fullscreen_pending = 0;
+int      exit_event         = 0;
+int      fullscreen_pending = 0;
 
 // Two keys to be pressed together to open the OSD, variables to make them configurable in future
 static uint16_t osd_open_first_key = SDL_SCANCODE_RCTRL;
@@ -1007,25 +1008,6 @@ ui_sb_set_ready(UNUSED(int ready))
     /* No-op. */
 }
 
-// From musl.
-char *
-local_strsep(char **str, const char *sep)
-{
-    char *s = *str;
-    char *end;
-
-    if (!s)
-        return NULL;
-    end = s + strcspn(s, sep);
-    if (*end)
-        *end++ = 0;
-    else
-        end = 0;
-    *str = end;
-
-    return s;
-}
-
 void
 plat_pause(int p)
 {
@@ -1341,316 +1323,11 @@ process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, char **xargv, int c
     return err;
 }
 
-char *(*f_readline)(const char *)          = NULL;
-int (*f_add_history)(const char *)         = NULL;
-void (*f_rl_callback_handler_remove)(void) = NULL;
-
-#ifdef __APPLE__
-#    define LIBEDIT_LIBRARY "libedit.dylib"
-#else
-#    define LIBEDIT_LIBRARY "libedit.so"
-#endif
-
 uint32_t
 timer_onesec(uint32_t interval, UNUSED(void *param))
 {
     pc_onesec();
     return interval;
-}
-
-void
-unix_executeLine(char *line)
-{
-    if (line) {
-        char *xargv[512];
-        int   cmdargc = 0;
-        char *linecpy, *linespn;
-
-        linecpy = linespn = strdup(line);
-        linecpy[strcspn(linecpy, "\r\n")] = 0;
-
-        if (!linecpy) {
-            return;
-        }
-
-        if (f_add_history)
-            f_add_history(linecpy);
-
-        memset(xargv, 0, sizeof(xargv));
-        while (1) {
-            xargv[cmdargc++] = local_strsep(&linespn, " ");
-            if (xargv[cmdargc - 1] == NULL || cmdargc >= 512)
-                break;
-        }
-        cmdargc--;
-        if (strncasecmp(xargv[0], "help", 4) == 0) {
-            printf(
-                "fddload <id> <filename> <wp> - Load floppy disk image into drive <id>.\n"
-                "cdload <id> <filename> - Load CD-ROM image into drive <id>.\n"
-                "rdiskload <id> <filename> <wp> - Load removable disk image into removable disk drive <id>.\n"
-                "cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
-                "moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
-                "tapeload <id> <filename> <wp> - Load tape image into tape drive <id>.\n\n"
-                "fddeject <id> - eject disk from floppy drive <id>.\n"
-                "cdeject <id> - eject disc from CD-ROM drive <id>.\n"
-                "rdiskeject <id> - eject removable disk image from removable disk drive <id>.\n"
-                "carteject <id> - eject cartridge from drive <id>.\n"
-                "moeject <id> - eject image from MO drive <id>.\n\n"
-                "tapeeject <id> - eject image from tape drive <id>.\n\n"
-                "hardreset - hard reset the emulated system.\n"
-                "pause - pause the the emulated system.\n"
-                "fastfwd - toggle fast forward.\n"
-                "screenshot - save a screenshot.\n"
-                "fullscreen - toggle fullscreen.\n"
-                "version - print version and license information.\n"
-                "exit - exit " EMU_NAME ".\n");
-        } else if (strncasecmp(xargv[0], "exit", 4) == 0) {
-            exit_event = 1;
-        } else if (strncasecmp(xargv[0], "version", 7) == 0) {
-#    ifndef EMU_GIT_HASH
-#        define EMU_GIT_HASH "0000000"
-#    endif
-
-#    if defined(__aarch64__) || defined(_M_ARM64)
-#        define ARCH_STR "arm64"
-#    elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
-#        define ARCH_STR "x86_64"
-#    else
-#        define ARCH_STR "unknown arch"
-#    endif
-
-#    ifdef USE_DYNAREC
-#        ifdef USE_NEW_DYNAREC
-#            define DYNAREC_STR "new dynarec"
-#        else
-#            define DYNAREC_STR "old dynarec"
-#        endif
-#    else
-#        define DYNAREC_STR "no dynarec"
-#    endif
-
-            printf(
-                "%s v%s [%s] [%s, %s]\n\n"
-                "An emulator of old computers\n"
-                "Authors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), "
-                "Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), "
-                "Tiseno100, reenigne, and others.\n"
-                "With previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n"
-                "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
-                EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
-        } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
-            video_fullscreen   = video_fullscreen ? 0 : 1;
-            fullscreen_pending = 1;
-        } else if (strncasecmp(xargv[0], "screenshot", 10) == 0) {
-            startblit();
-            ++monitors[0].mon_screenshots_raw;
-            endblit();
-            device_force_redraw();
-        } else if (strncasecmp(xargv[0], "pause", 5) == 0) {
-            plat_pause(dopause ^ 1);
-            printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
-        } else if (strncasecmp(xargv[0], "fastfwd", 7) == 0) {
-            fast_forward ^= 1;
-            printf("%s", fast_forward ? "Fast forward on.\n" : "Fast forward off.\n");
-        } else if (strncasecmp(xargv[0], "hardreset", 9) == 0) {
-            pc_reset_hard();
-        } else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3) {
-            uint8_t id;
-            bool    err = false;
-            char    fn[PATH_MAX];
-
-            if (!xargv[2] || !xargv[1]) {
-                free(linecpy);
-                return;
-            }
-            id = atoi(xargv[1]);
-            memset(fn, 0, sizeof(fn));
-            if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
-                int curarg = 2;
-
-                for (curarg = 2; curarg < cmdargc; curarg++) {
-                    if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
-                        err = true;
-                        fprintf(stderr, "Path name too long.\n");
-                    }
-                    else
-                    {
-                        strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
-                        if (fn[strlen(fn) - 1] == '\''
-                            || fn[strlen(fn) - 1] == '"') {
-                            break;
-                        }
-                        strcat(fn, " ");
-                    }
-                }
-            } else {
-                if (strlen(xargv[2]) < PATH_MAX) {
-                    strncpy(fn, xargv[2], PATH_MAX-1);
-                } else {
-                    fprintf(stderr, "Path name too long.\n");
-                }
-            }
-            if (!err) {
-
-                if (fn[strlen(fn) - 1] == '\''
-                    || fn[strlen(fn) - 1] == '"')
-                    fn[strlen(fn) - 1] = '\0';
-                printf("Inserting disc into CD-ROM drive %hhu: %s\n", id, fn);
-                cdrom_mount(id, fn);
-            }
-        } else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 2) {
-            floppy_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "cdeject", 7) == 0 && cmdargc >= 2) {
-            cdrom_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "moeject", 7) == 0 && cmdargc >= 2) {
-            mo_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "carteject", 9) == 0 && cmdargc >= 2) {
-            cartridge_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "rdiskeject", 10) == 0 && cmdargc >= 2) {
-            rdisk_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "tapeeject", 9) == 0 && cmdargc >= 2) {
-            tape_eject(atoi(xargv[1]));
-        } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
-            uint8_t id;
-            uint8_t wp;
-            bool    err = false;
-            char    fn[PATH_MAX];
-
-            memset(fn, 0, sizeof(fn));
-
-            if (!xargv[2] || !xargv[1]) {
-                free(linecpy);
-                return;
-            }
-            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
-            if (!err) {
-                if (fn[strlen(fn) - 1] == '\''
-                    || fn[strlen(fn) - 1] == '"')
-                    fn[strlen(fn) - 1] = '\0';
-                printf("Inserting disk into floppy drive %c: %s\n", id + 'A', fn);
-                floppy_mount(id, fn, wp);
-            }
-        } else if (strncasecmp(xargv[0], "moload", 6) == 0 && cmdargc >= 4) {
-            uint8_t id;
-            uint8_t wp;
-            bool    err = false;
-            char    fn[PATH_MAX];
-
-            memset(fn, 0, sizeof(fn));
-
-            if (!xargv[2] || !xargv[1]) {
-                free(linecpy);
-                return;
-            }
-            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
-            if (!err) {
-                if (fn[strlen(fn) - 1] == '\''
-                    || fn[strlen(fn) - 1] == '"')
-                    fn[strlen(fn) - 1] = '\0';
-                printf("Inserting into mo drive %hhu: %s\n", id, fn);
-                mo_mount(id, fn, wp);
-            }
-        } else if (strncasecmp(xargv[0], "cartload", 8) == 0 && cmdargc >= 4) {
-            uint8_t id;
-            uint8_t wp;
-            bool    err = false;
-            char    fn[PATH_MAX];
-
-            memset(fn, 0, sizeof(fn));
-
-            if (!xargv[2] || !xargv[1]) {
-                free(linecpy);
-                return;
-            }
-            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
-            if (!err) {
-                if (fn[strlen(fn) - 1] == '\''
-                    || fn[strlen(fn) - 1] == '"')
-                    fn[strlen(fn) - 1] = '\0';
-                printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
-                cartridge_mount(id, fn, wp);
-            }
-        } else if (strncasecmp(xargv[0], "rdiskload", 9) == 0 && cmdargc >= 4) {
-            uint8_t id;
-            uint8_t wp;
-            bool    err = false;
-            char    fn[PATH_MAX];
-
-            memset(fn, 0, sizeof(fn));
-
-            if (!xargv[2] || !xargv[1]) {
-                free(linecpy);
-                return;
-            }
-            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
-            if (!err) {
-                if (fn[strlen(fn) - 1] == '\''
-                    || fn[strlen(fn) - 1] == '"')
-                    fn[strlen(fn) - 1] = '\0';
-                printf("Inserting disk into removable disk drive %c: %s\n", id + 'A', fn);
-                rdisk_mount(id, fn, wp);
-            }
-        } else if (strncasecmp(xargv[0], "tapeload", 8) == 0 && cmdargc >= 4) {
-            uint8_t id;
-            uint8_t wp;
-            bool    err = false;
-            char    fn[PATH_MAX];
-
-            memset(fn, 0, sizeof(fn));
-
-            if (!xargv[2] || !xargv[1]) {
-                free(linecpy);
-                return;
-            }
-            err = process_media_commands_3(&id, fn, &wp, xargv, cmdargc);
-            if (!err) {
-                if (fn[strlen(fn) - 1] == '\''
-                    || fn[strlen(fn) - 1] == '"')
-                    fn[strlen(fn) - 1] = '\0';
-                printf("Inserting disk into tape drive %c: %s\n", id + 'A', fn);
-                tape_mount(id, fn, wp);
-            }
-        }
-        free(linecpy);
-    }
-}
-
-void
-monitor_thread(UNUSED(void *param))
-{
-#ifdef _WIN32
-    (void) param;
-#else
-#ifndef USE_CLI
-    if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
-        char  *line = NULL;
-        size_t n;
-
-        printf(EMU_NAME " monitor console.\n");
-        while (!exit_event)
-        {
-            if (feof(stdin))
-                break;
-
-#ifdef ENABLE_READLINE
-            if (f_readline)
-                line = f_readline("(" EMU_NAME ") ");
-            else {
-#endif
-                printf("(" EMU_NAME ") ");
-                (void) !getline(&line, &n, stdin);
-#ifdef ENABLE_READLINE
-            }
-#endif
-
-            unix_executeLine(line);
-
-            free(line);
-            line = NULL;
-        }
-    }
-#endif
-#endif
 }
 
 extern int gfxcard[GFXCARD_MAX];
@@ -1680,18 +1357,9 @@ main(int argc, char **argv)
         fprintf(stderr, "Failed to create blit mutex: %s", SDL_GetError());
         return -1;
     }
-#ifndef _WIN32
-    libedithandle = dlopen(LIBEDIT_LIBRARY, RTLD_LOCAL | RTLD_LAZY);
-    if (libedithandle) {
-        f_readline    = dlsym(libedithandle, "readline");
-        f_add_history = dlsym(libedithandle, "add_history");
-        if (!f_readline) {
-            fprintf(stderr, "readline in libedit not found, line editing will be limited.\n");
-        }
-        f_rl_callback_handler_remove = dlsym(libedithandle, "rl_callback_handler_remove");
-    } else
-        fprintf(stderr, "libedit not found, line editing will be limited.\n");
-#endif
+
+    monitor_init();
+
     mousemutex = SDL_CreateMutex();
 
     if (start_in_fullscreen)
@@ -1961,8 +1629,7 @@ check_flags:
     SDL_DestroyMutex(blitmtx);
     SDL_DestroyMutex(mousemutex);
     SDL_Quit();
-    if (f_rl_callback_handler_remove)
-        f_rl_callback_handler_remove();
+    monitor_close();
     return 0;
 }
 
