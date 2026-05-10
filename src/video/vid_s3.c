@@ -63,6 +63,7 @@
 #define ROM_WINNER1000_805             "roms/video/s3/W1000ISA 01.03.00-B.BIN"
 #define ROM_PARADISE_BAHAMAS64         "roms/video/s3/bahamas64.bin"
 #define ROM_PHOENIX_VISION864          "roms/video/s3/86c864p.bin"
+#define ROM_DEC_VISION864              "roms/video/s3/S3_864_DEC_PCXAG-AL_19941117.bin"
 #define ROM_DIAMOND_STEALTH64_964      "roms/video/s3/964_107h.rom"
 #define ROM_PHOENIX_TRIO32             "roms/video/s3/86c732p.bin"
 #define ROM_SPEA_MIRAGE_P64            "roms/video/s3/S3_764VL_SPEAMirageP64VL_ver5_03.BIN"
@@ -93,6 +94,7 @@ enum {
     S3_PHOENIX_TRIO64,
     S3_PHOENIX_TRIO64_ONBOARD,
     S3_PHOENIX_VISION864,
+    S3_DEC_VISION864,
     S3_DIAMOND_STEALTH64_764,
     S3_SPEA_MIRAGE_86C801,
     S3_SPEA_MIRAGE_86C805,
@@ -11435,6 +11437,11 @@ s3_init(const device_t *info)
             else
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb);
             break;
+        case S3_DEC_VISION864:
+            bios_fn = ROM_DEC_VISION864;
+            chip    = S3_VISION864;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+            break;
         case S3_NUMBER9_9FX_531:
             bios_fn = ROM_NUMBER9_9FX_531;
             chip    = S3_VISION868;
@@ -11988,6 +11995,7 @@ s3_init(const device_t *info)
 
         case S3_PARADISE_BAHAMAS64:
         case S3_PHOENIX_VISION864:
+        case S3_DEC_VISION864:
         case S3_MIROCRYSTAL20SD_864: /*BIOS 3.xx has a SDAC ramdac.*/
             svga->decode_mask = (8 << 20) - 1;
             if (s3->card_type == S3_PARADISE_BAHAMAS64)
@@ -12943,6 +12951,16 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .size          = 32768,
                 .flags         = 0,
                 .files         = { ROM_PHOENIX_VISION864, "" }
+            },
+            {
+                .name          = "DIGITAL PCXAG-AL S3-864 PCI",
+                .internal_name = "dec_vision864_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DEC_VISION864,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DEC_VISION864, "" }
             },
             { .files_no = 0 }
         },
