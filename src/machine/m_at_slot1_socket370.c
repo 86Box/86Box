@@ -147,7 +147,7 @@ machine_at_prosignias31x_bx_init(const machine_t *model)
     hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -221,7 +221,7 @@ machine_at_p6bat_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }

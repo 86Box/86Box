@@ -312,7 +312,7 @@ machine_at_m773_init(const machine_t *model)
     hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -383,7 +383,7 @@ machine_at_p6bap_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -422,7 +422,7 @@ machine_at_6via90ap_init(const machine_t *model)
     hwm_values.temperatures[2] = 0;  /* unused */
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
+        device_add(machine_get_snd_device(machine)); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
 
     return ret;
 }
@@ -461,7 +461,7 @@ machine_at_cuv4xls_init(const machine_t *model)
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }

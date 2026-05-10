@@ -33,6 +33,7 @@
 #include <86box/nvr.h>
 #include <86box/sio.h>
 #include <86box/sound.h>
+#include <86box/snd_ac97.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/plat_unused.h>
@@ -19480,7 +19481,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &wm9701a_device, /* on daughtercard */
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -22762,7 +22763,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &alc100_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },

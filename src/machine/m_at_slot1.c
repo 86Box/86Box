@@ -744,12 +744,12 @@ machine_at_como_init(const machine_t *model)
 
     device_add(&i440ex_device);
     device_add(&piix4e_device);
-    device_add_params(&fdc37m60x_device, (void*)(FDC37XXX2 | FDC37C93X_NO_NVR | FDC37XXXX_370));
+    device_add_params(&fdc37m60x_device, (void *) (FDC37XXX2 | FDC37C93X_NO_NVR | FDC37XXXX_370));
     device_add(&intel_flash_bxt_device);
     device_add(&lm78_device);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cs4235_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
