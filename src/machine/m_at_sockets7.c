@@ -216,7 +216,7 @@ static const device_config_t g5x_config[] = {
 
 const device_t g5x_device = {
     .name          = "Gigabyte GA-5AX",
-    .internal_name = "g5x_device",
+    .internal_name = "5ax",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -337,7 +337,7 @@ static const device_config_t delhi3_config[] = {
 
 const device_t delhi3_device = {
     .name          = "TriGem Delhi-III",
-    .internal_name = "delhi3_device",
+    .internal_name = "delhi3",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

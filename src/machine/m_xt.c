@@ -171,7 +171,7 @@ static const device_config_t ibmpc_config[] = {
 
 const device_t ibmpc_device = {
     .name          = "IBM PC (1981)",
-    .internal_name = "ibmpc_device",
+    .internal_name = "ibmpc",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -341,7 +341,7 @@ static const device_config_t ibmpc82_config[] = {
 
 const device_t ibmpc82_device = {
     .name          = "IBM PC (1982)",
-    .internal_name = "ibmpc82_device",
+    .internal_name = "ibmpc82",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -528,7 +528,7 @@ static const device_config_t ibmxt_config[] = {
 
 const device_t ibmxt_device = {
     .name          = "IBM XT (1982)",
-    .internal_name = "ibmxt_device",
+    .internal_name = "ibmxt",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -706,7 +706,7 @@ static const device_config_t ibmxt86_config[] = {
 
 const device_t ibmxt86_device = {
     .name          = "IBM XT (1986)",
-    .internal_name = "ibmxt86_device",
+    .internal_name = "ibmxt86",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -933,7 +933,7 @@ static const device_config_t dtk_config[] = {
 
 const device_t dtk_device = {
     .name          = "DTK PIM-TB10-Z",
-    .internal_name = "dtk_device",
+    .internal_name = "dtk",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1137,7 +1137,7 @@ static const device_config_t jukopc_config[] = {
 
 const device_t jukopc_device = {
     .name          = "Juko ST",
-    .internal_name = "jukopc_device",
+    .internal_name = "jukopc",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1258,7 +1258,7 @@ static const device_config_t pc500_config[] = {
 
 const device_t pc500_device = {
     .name          = "Multitech PC-500 / Franklin PC 8000",
-    .internal_name = "pc500_device",
+    .internal_name = "pc500",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1377,7 +1377,7 @@ static const device_config_t pc500plus_config[] = {
 
 const device_t pc500plus_device = {
     .name          = "Multitech PC-500+",
-    .internal_name = "pc500plus_device",
+    .internal_name = "pc500plus",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1455,7 +1455,7 @@ static const device_config_t pc700_config[] = {
 
 const device_t pc700_device = {
     .name           = "Multitech PC-700 / Siemens SICOMP PC 16 05",
-    .internal_name  = "pc700_device",
+    .internal_name  = "pc700",
     .flags          = 0,
     .local          = 0,
     .init           = NULL,
@@ -1741,7 +1741,7 @@ static const device_config_t to16_config[] = {
 
 const device_t to16_device = {
     .name          = "Thomson TO16",
-    .internal_name = "to16_device",
+    .internal_name = "to16",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1826,7 +1826,7 @@ static const device_config_t vendex_config[] = {
 
 const device_t vendex_device = {
     .name          = "Vendex 888T",
-    .internal_name = "vendex_device",
+    .internal_name = "vendex",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

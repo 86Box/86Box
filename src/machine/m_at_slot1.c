@@ -150,7 +150,7 @@ static const device_config_t p6kdi_config[] = {
 
 const device_t p6kdi_device = {
     .name          = "Advanced Integration Research (AIR) P6KDI",
-    .internal_name = "p6kdi_device",
+    .internal_name = "p6kdi",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -321,7 +321,7 @@ static const device_config_t lx6_config[] = {
 
 const device_t lx6_device = {
     .name          = "ABIT AB-LX6",
-    .internal_name = "lx6_device",
+    .internal_name = "lx6",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -705,7 +705,7 @@ static const device_config_t como_config[] = {
 
 const device_t como_device = {
     .name          = "TriGem Como",
-    .internal_name = "como_device",
+    .internal_name = "como",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -887,7 +887,7 @@ static const device_config_t bx6_config[] = {
 
 const device_t bx6_device = {
     .name          = "ABIT AB-BX6",
-    .internal_name = "bx6_device",
+    .internal_name = "bx6",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1057,7 +1057,7 @@ static const device_config_t ax6bc_config[] = {
 
 const device_t ax6bc_device = {
     .name          = "AOpen AX6BC",
-    .internal_name = "ax6bc_device",
+    .internal_name = "ax6bc",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1154,7 +1154,7 @@ static const device_config_t ga686_config[] = {
 
 const device_t ga686_device = {
     .name          = "Gigabyte GA-686BX",
-    .internal_name = "ga686_device",
+    .internal_name = "686bx",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1273,7 +1273,7 @@ static const device_config_t ms6119_config[] = {
 
 const device_t ms6119_device = {
     .name          = "MSI MS-6119",
-    .internal_name = "ms6119_device",
+    .internal_name = "ms6119",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1458,7 +1458,7 @@ static const device_config_t p6sba_config[] = {
 
 const device_t p6sba_device = {
     .name          = "Supermicro P6SBA",
-    .internal_name = "p6sba_device",
+    .internal_name = "p6sba",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1548,7 +1548,7 @@ static const device_config_t s1846_config[] = {
 
 const device_t s1846_device = {
     .name          = "Tyan Tsunami ATX",
-    .internal_name = "s1846_device",
+    .internal_name = "s1846",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1650,7 +1650,7 @@ static const device_config_t vei8_config[] = {
 
 const device_t vei8_device = {
     .name          = "MiTAC/Trigon 6110Zu",
-    .internal_name = "vei8_device",
+    .internal_name = "vei8",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1920,7 +1920,7 @@ static const device_config_t ms6199va_config[] = {
 
 const device_t ms6199va_device = {
     .name          = "MSI MS-6199VA",
-    .internal_name = "ms6199va_device",
+    .internal_name = "ms6199va",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

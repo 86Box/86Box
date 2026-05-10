@@ -541,7 +541,7 @@ static const device_config_t ms6318_config[] = {
 
 const device_t ms6318_device = {
     .name          = "MSI MS-6318",
-    .internal_name = "ms6318_device",
+    .internal_name = "ms6318",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

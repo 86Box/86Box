@@ -172,7 +172,7 @@ static const device_config_t arb1479_config[] = {
 
 const device_t arb1479_device = {
     .name          = "Acrosser AR-B1479",
-    .internal_name = "arb1479_device",
+    .internal_name = "arb1479",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

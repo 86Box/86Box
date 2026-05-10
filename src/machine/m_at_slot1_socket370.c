@@ -96,7 +96,7 @@ static const device_config_t prosignias31x_config[] = {
 
 const device_t prosignias31x_device = {
     .name          = "ECS P6BXT-A+",
-    .internal_name = "prosignias31x_device",
+    .internal_name = "prosignias31x_bx",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
