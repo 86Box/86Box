@@ -1252,7 +1252,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         if (process->waitForStarted() && process->waitForFinished())
             return 1;
 #    else
-        /* Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
+        /* Build terminal list, prioritizing the detected desktop environment's own terminal.
+           Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
         QStringList terminals;
         if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
             terminals.prepend(QStringLiteral("konsole"));
@@ -1280,10 +1281,11 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             terminals.prepend(QStringLiteral("lxterminal"));
         else
             terminals << QStringLiteral("lxterminal");
-        terminals.prepend(QStringLiteral("x-terminal-emulator"));
-        terminals.prepend(QStringLiteral("xdg-terminal-exec"));
-        terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt");
+        terminals.prepend(QStringLiteral("x-terminal-emulator")); /* priority 2 (Debian alternatives system) */
+        terminals.prepend(QStringLiteral("xdg-terminal-exec")); /* priority 1 (still a proposal with limited adoption as of writing) */
+        terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt"); /* priority last */
 
+        /* Try executing terminals. */
         for (const auto &terminal : terminals) {
             process->setProgram(terminal);
             QStringList args;
