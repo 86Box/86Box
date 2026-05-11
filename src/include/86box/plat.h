@@ -31,8 +31,6 @@ enum {
     STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
     STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
     STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
-    STRING_INVALID_CONFIG,            /* "Invalid configuration" */
-    STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
     STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
     STRING_NET_ERROR_DESC,            /* "The network configuration will be switched..." */
     STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found" */

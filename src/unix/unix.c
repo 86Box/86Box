@@ -286,10 +286,6 @@ plat_get_string(int i)
             return "Press CTRL-END to release mouse";
         case STRING_MOUSE_RELEASE_MMB:
             return "Press CTRL-END or middle button to release mouse";
-        case STRING_INVALID_CONFIG:
-            return "Invalid configuration";
-        case STRING_NO_ST506_ESDI_CDROM:
-            return "MFM/RLL or ESDI CD-ROM drives never existed";
         case STRING_PCAP_ERROR_NO_DEVICES:
             return "No PCap devices found";
         case STRING_PCAP_ERROR_INVALID_DEVICE:
