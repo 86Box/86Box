@@ -1214,9 +1214,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         return 0;
     f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
     if (!titleq.isEmpty()) {
-        titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''"));
         f.write("printf '\e]0;%s\a' '");
-        f.write(titleq.toUtf8());
+        f.write(titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
         f.write("'\n");
     }
     if (!titleq.isNull() && env && *env) { /* set environment variables for terminal execution */
