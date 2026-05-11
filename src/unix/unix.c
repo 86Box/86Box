@@ -28,7 +28,6 @@
 #    include <sys/ioctl.h>
 #    include <fcntl.h>
 #    include <unistd.h>
-#    include <dlfcn.h>
 #    include <pwd.h>
 #    include <spawn.h>
 #endif
@@ -58,7 +57,6 @@
 #include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
-#include <86box/plat_dynld.h>
 #include <86box/thread.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
@@ -221,45 +219,6 @@ typedef struct sdl_blit_params {
 sdl_blit_params params  = { 0, 0, 0, 0 };
 int             blitreq = 0;
 
-void *
-dynld_module(const char *name, dllimp_t *table)
-{
-    dllimp_t *imp;
-
-#ifdef _WIN32
-    HMODULE modhandle = LoadLibraryA(name);
-
-    if (modhandle == NULL)
-        return NULL;
-
-    for (imp = table; imp->name != NULL; imp++) {
-        FARPROC func = GetProcAddress(modhandle, imp->name);
-
-        if (func == NULL) {
-            FreeLibrary(modhandle);
-            return NULL;
-        }
-
-        *(void **) imp->func = (void *) func;
-    }
-
-    return (void *) modhandle;
-#else
-    void *modhandle = dlopen(name, RTLD_LAZY | RTLD_GLOBAL);
-
-    if (modhandle) {
-        for (imp = table; imp->name != NULL; imp++) {
-            if ((*(void **) imp->func = dlsym(modhandle, imp->name)) == NULL) {
-                dlclose(modhandle);
-                return NULL;
-            }
-        }
-    }
-
-    return modhandle;
-#endif
-}
-
 #define TMPFILE_BUFSIZE 1024  // Assumed max buffer size
 void
 plat_tempfile(char *bufp, char *prefix, char *suffix)
@@ -326,19 +285,6 @@ plat_chdir(char *str)
     return _chdir(str);
 #else
     return chdir(str);
-#endif
-}
-
-void
-dynld_close(void *handle)
-{
-    if (handle == NULL)
-        return;
-
-#ifdef _WIN32
-    FreeLibrary((HMODULE) handle);
-#else
-    dlclose(handle);
 #endif
 }
 

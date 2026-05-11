@@ -24,10 +24,16 @@ add_library(plat OBJECT
 )
 
 if(WIN32)
-    target_sources(plat PRIVATE ../qt/win_netsocket.c)
+    target_sources(plat PRIVATE
+        ../qt/win_netsocket.c
+        ../qt/win_dynld.c
+    )
     target_link_libraries(86Box ws2_32)
 else()
-    target_sources(plat PRIVATE unix_netsocket.c)
+    target_sources(plat PRIVATE
+        unix_netsocket.c
+        unix_dynld.c
+    )
 endif()
 
 if (NOT CPPTHREADS)
