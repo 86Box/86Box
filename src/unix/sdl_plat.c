@@ -268,6 +268,12 @@ plat_get_exe_name(char *s, int size)
 }
 
 void
+plat_get_global_config_dir(char *outbuf, const size_t len)
+{
+    return plat_get_global_data_dir(outbuf, len);
+}
+
+void
 plat_get_vmm_dir(char *outbuf, const size_t len)
 {
     // Return empty string. SDL 86Box does not have a VM manager

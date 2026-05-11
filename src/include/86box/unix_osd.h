@@ -1,8 +1,6 @@
 #ifndef _UNIX_OSD_H
 #define _UNIX_OSD_H
 
-#include <SDL.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,4 +30,3 @@ extern void osd_ui_sb_update_icon_wp(int tag, int state);
 #endif
 
 #endif /*_UNIX_OSD_H*/
-
