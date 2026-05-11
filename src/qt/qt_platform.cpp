@@ -1139,7 +1139,7 @@ static int
 have_env_var(const char *var, const char *cmp = NULL)
 {
     const char *val = getenv(var);
-    return val && ((!cmp && val[0]) || !strnicmp(val, cmp, strlen(cmp)));
+    return val && (cmp ? !strnicmp(val, cmp, strlen(cmp)) : val[0]);
 }
 #endif
 
@@ -1149,7 +1149,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     auto process = new QProcess();
     process->setInputChannelMode(QProcess::ForwardedInputChannel);
     process->setProcessChannelMode(QProcess::ForwardedChannels);
-    process->setWorkingDirectory(usr_path);
+    process->setWorkingDirectory(QString::fromUtf8(usr_path));
 
     /* Take advantage of macOS displaying the script name in the title bar. */
     auto titleq = QString::fromUtf8(title);
@@ -1201,7 +1201,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     }
 
     /* Execute command. */
-    process->setProgram(getenv("ComSpec"));
+    process->setProgram(QString::fromUtf8(getenv("ComSpec")));
     process->setNativeArguments(QString::fromUtf8(cmd).prepend(QStringLiteral("/c ")));
     return process->startDetached();
 #else
