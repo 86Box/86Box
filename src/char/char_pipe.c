@@ -212,6 +212,7 @@ client:
 
                 snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path_out, strerror(err));
                 ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                dev->path_out[dev->path_len] = prev;
                 goto errmsg;
             }
         }
