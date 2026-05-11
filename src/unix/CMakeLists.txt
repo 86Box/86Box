@@ -87,10 +87,10 @@ else()
     target_sources(ui PRIVATE dummy_floppy_ioctl.c)
 endif()
 target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
-target_compile_definitions(ui PRIVATE USE_SDL_SHADER_PIPELINE=$<BOOL:${USE_SDL_SHADER}>)
 target_link_libraries(ui ${CMAKE_DL_LIBS})
 
 if(USE_SDL_SHADER)
+    target_compile_definitions(ui PRIVATE USE_SDL_SHADER_PIPELINE)
     find_library(GLESV2_LIBRARY GLESv2)
     find_path(GLESV2_INCLUDE_DIR GLES2/gl2.h)
 
