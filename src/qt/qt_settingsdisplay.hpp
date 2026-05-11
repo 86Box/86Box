@@ -62,6 +62,8 @@ private:
     int                  machineId                = 0;
     int                  videoCard[VIDEOCARD_MAX] = { 0, 0 };
 
+    QString previousEDIDPath;
+
     void updateDisplay();
 
     int cga_hue, cga_saturation, cga_sharpness, cga_brightness, cga_contrast;
