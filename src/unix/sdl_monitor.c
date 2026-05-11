@@ -339,9 +339,7 @@ monitor_execute_line(char *line)
 void
 monitor_thread(UNUSED(void *param))
 {
-#ifdef _WIN32
-    (void) param;
-#elif !defined(USE_CLI)
+#if !defined(WIN32) && !defined(USE_CLI)
     if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
         char  *line = NULL;
         size_t n;
