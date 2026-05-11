@@ -1146,7 +1146,7 @@ load_ports(void)
             cat2 = ini_find_section(config, temp);
         }
         int old_mode = ini_section_get_int(cat2, "mode", -1);
-        if (old_mode >= 3) { /* passthrough (4 on v5.3 Windows, 3 otherwise) */
+        if (old_mode >= 3) { /* passthrough (4 on 5.3 Windows due to enum mistake, 3 otherwise) */
             sprintf(temp, "Serial Passthrough (COM) #%i", c + 1);
             ini_rename_section(cat2, temp);
             ini_section_delete_var(cat2, "mode");
