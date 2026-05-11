@@ -4,6 +4,10 @@
 
 #include <SDL.h>
 
+#ifdef _WIN32
+#    include <windows.h>
+#endif
+
 #include <86box/86box.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -593,14 +597,9 @@ check_flags:
 
 #ifdef _WIN32
 int WINAPI
-WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, int show)
+WinMain(UNUSED(HINSTANCE instance), UNUSED(HINSTANCE previous), UNUSED(LPSTR command_line), UNUSED(int show))
 {
-    (void) instance;
-    (void) previous;
-    (void) command_line;
-    (void) show;
-
-    return main(__argc, __argv);
+    return main(__argc, __argv); // :')
 }
 #endif
 
