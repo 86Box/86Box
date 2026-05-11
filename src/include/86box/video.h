@@ -156,6 +156,7 @@ typedef struct monitor_t {
     int                      mon_vid_type;
     atomic_bool              mon_interlace;
     atomic_bool              mon_composite;
+    atomic_bool              mon_dpms;
     struct blit_data_struct *mon_blit_data_ptr;
 } monitor_t;
 

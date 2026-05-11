@@ -306,8 +306,6 @@ plat_get_string(int i)
             return "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
         case STRING_HW_NOT_AVAILABLE_TITLE:
             return "Hardware not available";
-        case STRING_MONITOR_SLEEP:
-            return "Monitor in sleep mode";
         case STRING_EDID_TOO_LARGE:
             return "EDID file \"%s\" is too large.";
     }
