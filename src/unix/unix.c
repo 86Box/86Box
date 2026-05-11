@@ -53,8 +53,6 @@
 #include <86box/rom.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
-#include <86box/config.h>
-#include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
@@ -79,9 +77,6 @@
 
 extern SDL_Window         *sdl_win;
 
-static int      first_use = 1;
-static uint64_t StartingTime;
-static uint64_t Frequency;
 int             rctrl_is_lalt;
 int             update_icons;
 int             kbd_req_capture;
@@ -268,79 +263,6 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
 }
 #undef TMPFILE_BUFSIZE
 
-int
-plat_getcwd(char *bufp, int max)
-{
-#ifdef _WIN32
-    return _getcwd(bufp, max) != NULL;
-#else
-    return getcwd(bufp, max) != 0;
-#endif
-}
-
-int
-plat_chdir(char *str)
-{
-#ifdef _WIN32
-    return _chdir(str);
-#else
-    return chdir(str);
-#endif
-}
-
-wchar_t *
-plat_get_string(int i)
-{
-    switch (i) {
-        case STRING_MOUSE_CAPTURE:
-            return L"Click to capture mouse";
-        case STRING_MOUSE_RELEASE:
-            return L"Press CTRL-END to release mouse";
-        case STRING_MOUSE_RELEASE_MMB:
-            return L"Press CTRL-END or middle button to release mouse";
-        case STRING_INVALID_CONFIG:
-            return L"Invalid configuration";
-        case STRING_NO_ST506_ESDI_CDROM:
-            return L"MFM/RLL or ESDI CD-ROM drives never existed";
-        case STRING_PCAP_ERROR_NO_DEVICES:
-            return L"No PCap devices found";
-        case STRING_PCAP_ERROR_INVALID_DEVICE:
-            return L"Invalid PCap device";
-        case STRING_GHOSTSCRIPT_ERROR_DESC:
-            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case STRING_PCAP_ERROR_DESC:
-            return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
-        case STRING_GHOSTSCRIPT_ERROR_TITLE:
-            return L"Unable to initialize Ghostscript";
-        case STRING_GHOSTPCL_ERROR_TITLE:
-            return L"Unable to initialize GhostPCL";
-        case STRING_GHOSTPCL_ERROR_DESC:
-            return L"libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
-        case STRING_HW_NOT_AVAILABLE_MACHINE:
-            return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
-        case STRING_HW_NOT_AVAILABLE_VIDEO:
-            return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
-        case STRING_HW_NOT_AVAILABLE_VIDEO2:
-            return L"Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.";
-        case STRING_HW_NOT_AVAILABLE_DEVICE:
-            return L"Device \"%hs\" is not available due to missing ROMs. Ignoring the device.";
-        case STRING_HW_NOT_AVAILABLE_TITLE:
-            return L"Hardware not available";
-        case STRING_NET_ERROR:
-            return L"Failed to initialize network driver";
-        case STRING_NET_ERROR_DESC:
-            return L"The network configuration will be switched to the null driver";
-        case STRING_ESCP_ERROR_TITLE:
-            return L"Unable to find Dot-Matrix fonts";
-        case STRING_ESCP_ERROR_DESC:
-            return L"TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.";
-        case STRING_MONITOR_SLEEP:
-            return L"Monitor in sleep mode";
-        case STRING_EDID_TOO_LARGE:
-            return L"EDID file \"%ls\" is too large.";
-    }
-    return L"";
-}
 
 #ifdef _WIN32
 size_t
@@ -378,18 +300,6 @@ plat_get_system_directory(char *outbuf)
 }
 #endif
 
-FILE *
-plat_fopen(const char *path, const char *mode)
-{
-    return fopen(path, mode);
-}
-
-FILE *
-plat_fopen64(const char *path, const char *mode)
-{
-    return fopen(path, mode);
-}
-
 int
 path_abs(char *path)
 {
@@ -414,106 +324,6 @@ path_normalize(char *path)
 #else
     (void) path;
 #endif
-}
-
-void
-path_slash(char *path)
-{
-    if (path[strlen(path) - 1] != '/') {
-        strcat(path, "/");
-    }
-    path_normalize(path);
-}
-
-const char *
-path_get_slash(char *path)
-{
-    char *ret = "";
-
-    if (path[strlen(path) - 1] != '/')
-        ret =  "/";
-
-    return ret;
-}
-
-void
-plat_put_backslash(char *s)
-{
-    int c = strlen(s) - 1;
-
-    if (s[c] != '/')
-        s[c] = '/';
-}
-
-/* Return the last element of a pathname. */
-char *
-path_get_basename(const char *path)
-{
-    int c = (int) strlen(path);
-
-    while (c > 0) {
-        if (path[c] == '/')
-            return ((char *) &path[c + 1]);
-        c--;
-    }
-
-    return ((char *) path);
-}
-char *
-path_get_filename(char *s)
-{
-    int c = strlen(s) - 1;
-
-    while (c > 0) {
-        if (s[c] == '/' || s[c] == '\\')
-            return (&s[c + 1]);
-        c--;
-    }
-
-    return s;
-}
-
-char *
-path_get_extension(char *s)
-{
-    int c = strlen(s) - 1;
-
-    if (c <= 0)
-        return s;
-
-    while (c && s[c] != '.')
-        c--;
-
-    if (!c)
-        return (&s[strlen(s)]);
-
-    return (&s[c + 1]);
-}
-
-void
-path_append_filename(char *dest, const char *s1, const char *s2)
-{
-    strcpy(dest, s1);
-    path_slash(dest);
-    strcat(dest, s2);
-}
-
-int
-plat_dir_check(char *path)
-{
-    struct stat stats;
-    if (stat(path, &stats) < 0)
-        return 0;
-    return S_ISDIR(stats.st_mode);
-}
-
-int
-plat_file_check(const char *path)
-{
-    struct stat stats;
-    if (stat(path, &stats) < 0)
-        return 0;
-    return !S_ISDIR(stats.st_mode);
 }
 
 int
@@ -588,15 +398,6 @@ plat_get_block_device_size(const char *path)
 #endif
 }
 
-int
-plat_dir_create(char *path)
-{
-#ifdef _WIN32
-    return _mkdir(path);
-#else
-    return mkdir(path, S_IRWXU);
-#endif
-}
 
 void *
 plat_mmap(size_t size, uint8_t executable)
@@ -625,79 +426,6 @@ plat_munmap(void *ptr, size_t size)
 #else
     munmap(ptr, size);
 #endif
-}
-
-uint64_t
-plat_timer_read(void)
-{
-    return SDL_GetPerformanceCounter();
-}
-
-static uint64_t
-plat_get_ticks_common(void)
-{
-    uint64_t EndingTime;
-    uint64_t ElapsedMicroseconds;
-
-    if (first_use) {
-        Frequency    = SDL_GetPerformanceFrequency();
-        StartingTime = SDL_GetPerformanceCounter();
-        first_use    = 0;
-    }
-    EndingTime          = SDL_GetPerformanceCounter();
-    ElapsedMicroseconds = ((EndingTime - StartingTime) * 1000000) / Frequency;
-
-    return ElapsedMicroseconds;
-}
-
-uint32_t
-plat_get_ticks(void)
-{
-    return (uint32_t) (plat_get_ticks_common() / 1000);
-}
-
-void
-plat_remove(char *path)
-{
-    remove(path);
-}
-
-void
-plat_delay_ms(uint32_t count)
-{
-    SDL_Delay(count);
-}
-
-void
-path_get_dirname(char *dest, const char *path)
-{
-    int   c = (int) strlen(path);
-    char *ptr = (char *) path;
-
-    while (c > 0) {
-        if (path[c] == '/' || path[c] == '\\') {
-            ptr = (char *) &path[c];
-            break;
-        }
-        c--;
-    }
-
-    /* Copy to destination. */
-    while (path < ptr)
-        *dest++ = *path++;
-    *dest = '\0';
-}
-
-int
-stricmp(const char *s1, const char *s2)
-{
-    return strcasecmp(s1, s2);
-}
-
-int
-strnicmp(const char *s1, const char *s2, size_t n)
-{
-    return strncasecmp(s1, s2, n);
 }
 
 volatile int cpu_thread_run = 1;
@@ -809,30 +537,6 @@ do_stop(void)
 }
 
 
-void
-plat_get_exe_name(char *s, int size)
-{
-    char *basepath = SDL_GetBasePath();
-
-    snprintf(s, size, "%s%s", basepath, basepath[strlen(basepath) - 1] == '/' ? EMU_NAME : "/" EMU_NAME);
-}
-
-void
-plat_power_off(void)
-{
-    confirm_exit_cmdl = 0;
-    hdd_image_sync_all();
-    nvr_save();
-    config_save();
-
-    /* Deduct a sufficiently large number of cycles that no instructions will
-       run before the main thread is terminated */
-    cycles -= 99999999;
-
-    cpu_thread_run = 0;
-}
-
-
 extern void sdl_blit(int x, int y, int w, int h);
 
 typedef struct mouseinputdata {
@@ -845,30 +549,6 @@ typedef struct mouseinputdata {
 SDL_mutex *mousemutex;
 int        real_sdl_w;
 int        real_sdl_h;
-
-
-void
-plat_pause(int p)
-{
-    static wchar_t oldtitle[512];
-    wchar_t        title[512];
-
-    if ((!!p) == dopause)
-        return;
-
-    if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
-        nvr_time_sync();
-
-    do_pause(p);
-    if (p) {
-        wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
-        wcscpy(title, oldtitle);
-        wcscat(title, L" - PAUSED");
-        ui_window_title(title);
-    } else {
-        ui_window_title(oldtitle);
-    }
-}
 
 #define TMP_PATH_BUFSIZE 1024
 
@@ -1114,14 +794,6 @@ plat_get_temp_dir(char *outbuf, uint8_t len)
     }
     strncpy(outbuf, tmpdir, len);
     path_slash(outbuf);
-}
-
-void
-plat_get_vmm_dir(char *outbuf, const size_t len)
-{
-    // Return empty string. SDL 86Box does not have a VM manager
-    if (len > 0)
-        outbuf[0] = 0;
 }
 
 uint32_t
@@ -1447,27 +1119,6 @@ WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, int show)
 }
 #endif
 
-char *
-plat_vidapi_name(UNUSED(int i))
-{
-    return "default";
-}
-
-/* Converts the language code string to a numeric language ID */
-int
-plat_language_code(UNUSED(char *langcode))
-{
-    /* or maybe not */
-    return 0;
-}
-
-void
-plat_get_cpu_string(char *outbuf, uint8_t len) {
-    char cpu_string[] = "Unknown";
-
-    strncpy(outbuf, cpu_string, len);
-}
-
 void
 plat_set_thread_name(void *thread, const char *name)
 {
@@ -1497,14 +1148,6 @@ plat_set_thread_name(void *thread, const char *name)
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif
 #endif
-}
-
-/* Converts the numeric language ID to a language code string */
-void
-plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
-{
-    /* or maybe not */
-    return;
 }
 
 int

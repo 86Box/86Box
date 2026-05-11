@@ -20,6 +20,7 @@
 
 add_library(plat OBJECT
     unix.c
+    sdl_plat.c
     ../qt/sdl_joystick.c
 )
 
