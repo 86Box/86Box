@@ -64,6 +64,7 @@ add_library(ui OBJECT
     unix_sdl.c
     unix_cdrom.c
     sdl_monitor.c
+    sdl_ui.c
 )
 
 if(USE_SDL_SHADER)
