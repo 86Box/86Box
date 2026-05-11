@@ -37,8 +37,10 @@ extern int             blitreq;
 
 SDL_Window         *sdl_win     = NULL;
 SDL_Renderer       *sdl_render  = NULL;
+#ifndef USE_SDL_SHADER_PIPELINE
 static SDL_Texture *sdl_tex     = NULL;
 static SDL_Texture *sdl_osd_tex = NULL;
+#endif
 int                 sdl_w       = SCREEN_RES_X;
 int                 sdl_h       = SCREEN_RES_Y;
 static int          sdl_fs;
