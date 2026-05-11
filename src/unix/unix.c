@@ -1285,44 +1285,6 @@ plat_get_vmm_dir(char *outbuf, const size_t len)
         outbuf[0] = 0;
 }
 
-bool
-process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, char **xargv, int cmdargc)
-{
-    bool err = false;
-
-    *id      = atoi(xargv[1]);
-
-    if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
-        for (int curarg = 2; curarg < cmdargc; curarg++) {
-            if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
-                err = true;
-                fprintf(stderr, "Path name too long.\n");
-            }
-            strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
-            if (fn[strlen(fn) - 1] == '\''
-                || fn[strlen(fn) - 1] == '"') {
-                if (curarg + 1 < cmdargc) {
-                    *wp = atoi(xargv[curarg + 1]);
-                }
-                break;
-            }
-            strcat(fn, " ");
-        }
-    } else {
-        if (strlen(xargv[2]) < PATH_MAX) {
-            strcpy(fn, xargv[2]);
-            *wp = atoi(xargv[3]);
-        } else {
-            fprintf(stderr, "Path name too long.\n");
-            err = true;
-        }
-    }
-    if (fn[strlen(fn) - 1] == '\''
-        || fn[strlen(fn) - 1] == '"')
-        fn[strlen(fn) - 1] = '\0';
-    return err;
-}
-
 uint32_t
 timer_onesec(uint32_t interval, UNUSED(void *param))
 {

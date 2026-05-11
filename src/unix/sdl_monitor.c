@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <limits.h>
+#include <unistd.h>
 
 #include <86box/86box.h>
 #include <86box/plat.h>
