@@ -1838,11 +1838,29 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     const char *args[] = {NULL, NULL, NULL, NULL, "/bin/sh", "-c", cmd, NULL};
     if (title) {
         /* Set arguments for xdg-terminal-exec. */
-        int len = strlen(title) + 9;
-        args[1] = malloc(len);
-        snprintf((char *) args[1], len, "--title=%s", title);
-        len = strlen(usr_path) + 7;
-        args[2] = malloc(len);
+        int   len       = (strlen(title) * 3) + 9;
+        char *title_buf = (char *) malloc(len);
+        int   c         = snprintf(title_buf, len, "--title=");
+        char *title_val = &title_buf[c];
+        int   bracket   = 0;
+        for (int i = 0; title[i]; i++) {
+            if (title[i] == '\n') {
+                if (bracket)
+                    title_buf[c++] = ']';
+                else
+                    bracket = 1;
+                title_buf[c++] = ' ';
+                title_buf[c++] = '[';
+            } else {
+                title_buf[c++] = title[i];
+            }
+        }
+        if (bracket)
+            title_buf[c++] = ']';
+        title_buf[c] = '\0';
+        args[1]      = title_buf;
+        len          = strlen(usr_path) + 7;
+        args[2]      = malloc(len);
         snprintf((char *) args[2], len, "--dir=%s", usr_path);
         args[3] = "--";
 
@@ -1851,17 +1869,17 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         static const char *terminals[] = {"xdg-terminal-exec", "x-terminal-emulator", "xterm", "urxvt", "rxvt"};
         for (int i = 0; (i < (sizeof(terminals) / sizeof(terminals[0]))) && !ret; i++) {
             args[0] = terminals[i];
-            ret = !posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ);
+            ret     = !posix_spawnp(&pid, args[0], NULL, NULL, (char * const *) args, new_env ? (char * const *) new_env : (char * const *) environ);
             if (len) {
                 /* Set arguments for other terminals. */
                 len = 0;
-                free((void *) args[1]);
                 free((void *) args[2]);
                 args[1] = "-T";
-                args[2] = title;
+                args[2] = title_val;
                 args[3] = "-e";
             }
         }
+        free(title_buf);
     } else {
         /* Execute command directly. */
         ret = !posix_spawn(&pid, args[4], NULL, NULL, (char * const *) &args[4], new_env ? (char * const *) new_env : (char * const *) environ);
