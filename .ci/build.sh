@@ -928,7 +928,7 @@ then
 	then
 		git -C "$prefix" clean -dfx
 		git -C "$prefix" reset --hard HEAD
-		for retry in 0 1 2 3 4
+		for retry in 0 5 10 20 40
 		do
 			sleep $retry
 			git -C "$prefix" pull && break
@@ -937,7 +937,7 @@ then
 	fi
 else
 	rm -rf "$prefix"
-	for retry in 0 1 2 3 4
+	for retry in 0 5 10 20 40
 	do
 		sleep $retry
 		git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" "$prefix" && break
