@@ -354,13 +354,13 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
         /* Add tail to the filename if this is not the first run. */
         int tail_len = -1;
         if (i) {
-            tail_len = sprintf(tail, "~%d", i);
-            strcpy(&data[MIN(name_copy_len, 8 - tail_len)], tail);
+            tail_len = snprintf(tail, sizeof(tail), "~%d", i);
+            memcpy(&data[MIN(name_copy_len, 8 - tail_len)], tail, (size_t) tail_len + 1);
         }
 
         /* Add extension to the filename if present. */
         if (ext[0])
-            strcat(data, ext);
+            memcpy(data + strlen(data), ext, strlen(ext) + 1);
 
         /* Go through files in this directory to make sure this filename is unique. */
         for (size_t j = 0; entries[j] != entry; j++) {
@@ -489,7 +489,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 
     /* Convert timestamp */
     if (longform) {
-        p += sprintf((char *)p, "%04u%02u%02u%02u%02u%02u00",
+        p += snprintf((char *)p, 17, "%04u%02u%02u%02u%02u%02u00",
                      1900 + (unsigned)time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
                      time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
     } else {
@@ -803,7 +803,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
     char n[1024]        = { 0 };
 
-    sprintf(n, "CD-ROM %i VISO ", id + 1);
+    snprintf(n, sizeof(n), "CD-ROM %i VISO ", id + 1);
     viso->tf.log        = log_open(n);
 
     image_viso_log(viso->tf.log, "init()\n");
@@ -819,7 +819,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Open temporary file. */
 #ifdef IMAGE_VISO_LOG
-    strcpy(viso->tf.fn, "viso-debug.iso");
+    memcpy(viso->tf.fn, "viso-debug.iso", sizeof("viso-debug.iso"));
 #else
     plat_tempfile(viso->tf.fn, "viso", ".tmp");
 #endif
@@ -846,7 +846,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     last_entry = dir = last_dir = viso->root_dir = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + 1);
     if (!dir)
         goto end;
-    strcpy(dir->path, dirname);
+    memcpy(dir->path, dirname, dir_path_len + 1);
     dir->parent = dir; /* for the root's path table and .. entries */
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
@@ -894,7 +894,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
             memcpy(&entry->stats, !children_count ? &dir->stats : &dir->parent->stats, sizeof(entry->stats));
 
             /* Set basename. */
-            strcpy(entry->name_short, !children_count ? "." : "..");
+            memcpy(entry->name_short, !children_count ? "." : "..", !children_count ? 2 : 3);
 
             image_viso_log(viso->tf.log, "[%08X] %s => %s\n", entry,
                            dir->path, entry->name_short);
@@ -910,7 +910,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                 if (entry == NULL)
                     break;
                 entry->parent = dir;
-                strcpy(entry->path, path);
+                memcpy(entry->path, path, strlen(path) + 1);
                 entry->basename = &entry->path[context.path_dir_len + 1];
 
                 /* Populate stats. */
@@ -1205,7 +1205,7 @@ next_dir:
         *p++ = 0x00; /* reserved */
         *p++ = 0x00;
         VISO_SKIP(p, 24);
-        strncpy((char *) (p - 24), EMU_NAME, 24); /* ID string */
+        memcpy((char *) (p - 24), EMU_NAME, MIN(strlen(EMU_NAME), 24)); /* ID string */
         *p++ = 0x00;                              /* checksum */
         *p++ = 0x00;
         *p++ = 0x55; /* key bytes */
