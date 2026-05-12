@@ -237,6 +237,7 @@ start_tx:
                 }
                 return;
             }
+            plip_log(dev->log, 2, "rx_len = %04X\n", dev->rx_len);
             dev->status = (dev->rx_len & 0x0f) << 3;
             dev->state  = PLIP_RX_LEN_LSB_HIGH;
             break;
@@ -259,7 +260,6 @@ start_tx:
         case PLIP_RX_LEN_MSB_HIGH:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            plip_log(dev->log, 2, "rx_len = %04X\n", dev->rx_len);
             dev->status = ((dev->rx_len >> 12) & 0x0f) << 3;
             dev->status |= 0x80;
 
@@ -272,6 +272,7 @@ start_tx:
         case PLIP_RX_DATA_LOW:
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
+            plip_log(dev->log, 2, "rx_pkt[%d] = %02X\n", dev->rx_ptr, dev->rx_pkt[dev->rx_ptr]);
             dev->status = (dev->rx_pkt[dev->rx_ptr] & 0x0f) << 3;
             dev->state  = PLIP_RX_DATA_HIGH;
             break;
@@ -279,7 +280,6 @@ start_tx:
         case PLIP_RX_DATA_HIGH:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            plip_log(dev->log, 2, "rx_pkt[%d] = %02X\n", dev->rx_ptr, dev->rx_pkt[dev->rx_ptr]);
             dev->status = ((dev->rx_pkt[dev->rx_ptr] >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
             dev->rx_checksum += dev->rx_pkt[dev->rx_ptr++];
@@ -294,6 +294,7 @@ start_tx:
         case PLIP_RX_CHECKSUM_LOW:
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
+            plip_log(dev->log, 2, "rx_checksum = %02X\n", dev->rx_checksum);
             dev->status = (dev->rx_checksum & 0x0f) << 3;
             dev->state  = PLIP_RX_CHECKSUM_HIGH;
             break;
@@ -301,7 +302,6 @@ start_tx:
         case PLIP_RX_CHECKSUM_HIGH:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            plip_log(dev->log, 2, "rx_checksum = %02X\n", dev->rx_checksum);
             dev->status = ((dev->rx_checksum >> 4) & 0x0f) << 3;
             dev->status |= 0x80;
 
