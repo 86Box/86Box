@@ -36,6 +36,10 @@
 #include "unix_sdl_shader.h"
 #endif
 
+extern "C" {
+#include "sdl_monitor.h"
+}
+
 /* ------------------------------------------------------------------ */
 /*  Extern interface to SDL environment                                */
 /* ------------------------------------------------------------------ */
@@ -43,7 +47,6 @@ extern "C" {
 extern SDL_Window  *sdl_win;
 extern SDL_Renderer *sdl_render;
 extern wchar_t      sdl_win_title[512];
-extern void         unix_executeLine(char *line);
 }
 
 /* ------------------------------------------------------------------ */
@@ -379,7 +382,7 @@ static void run_cmd(const char *cmd)
 {
     char *buf = strdup(cmd);
     if (buf) {
-        unix_executeLine(buf);
+        monitor_execute_line(buf);
         free(buf);
     }
 }
