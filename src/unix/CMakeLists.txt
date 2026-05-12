@@ -58,19 +58,19 @@ option(USE_IMGUI "Use ImGui-based OSD" OFF)
 if(USE_IMGUI)
     target_sources(ui PRIVATE unix_osd_new.cpp)
     target_sources(ui PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/imgui/imgui.cpp
-        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_draw.cpp
-        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_tables.cpp
-        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_widgets.cpp
-        ${CMAKE_SOURCE_DIR}/src/imgui/imgui_impl_sdl2.cpp
+        imgui/imgui.cpp
+        imgui/imgui_draw.cpp
+        imgui/imgui_tables.cpp
+        imgui/imgui_widgets.cpp
+        imgui/imgui_impl_sdl2.cpp
     )
     if(USE_SDL_SHADER)
-        target_sources(ui PRIVATE ${CMAKE_SOURCE_DIR}/src/imgui/imgui_impl_opengl3.cpp)
+        target_sources(ui PRIVATE imgui/imgui_impl_opengl3.cpp)
         target_compile_definitions(ui PRIVATE IMGUI_IMPL_OPENGL_ES2)
     else()
-        target_sources(ui PRIVATE ${CMAKE_SOURCE_DIR}/src/imgui/imgui_impl_sdlrenderer2.cpp)
+        target_sources(ui PRIVATE imgui/imgui_impl_sdlrenderer2.cpp)
     endif()
-    target_include_directories(ui PRIVATE ${CMAKE_SOURCE_DIR}/src/imgui)
+    target_include_directories(ui PRIVATE imgui)
     target_compile_definitions(ui PUBLIC USE_IMGUI)
     target_compile_definitions(plat PUBLIC USE_IMGUI)
 else()
