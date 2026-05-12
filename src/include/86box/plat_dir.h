@@ -222,9 +222,6 @@ typedef struct {
 static inline uint32_t
 plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
 {
-    /* Clear existing data. */
-    memset(&context->data, 0, sizeof(context->data));
-
     /* Return size for this attribute buffer. */
     uint32_t ret = AS_U32(buf[0]);
     buf += sizeof(uint32_t);
@@ -233,70 +230,93 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     context->data.returned = (attribute_set_t *) buf;
     buf += sizeof(attribute_set_t);
     attrgroup_t attrs = context->data.returned->commonattr;
-    uint32_t error = 0;
-    if (attrs & ATTR_CMN_ERROR) {
-        error = AS_U32(buf[0]);
+    if (UNLIKELY(attrs & ATTR_CMN_ERROR))
         buf += sizeof(uint32_t);
-    }
     if (LIKELY(attrs & ATTR_CMN_NAME)) {
         context->data.name = (char *) &buf[((attrreference_t *) buf)->attr_dataoffset];
         buf += sizeof(attrreference_t);
+    } else {
+        context->data.name = NULL;
     }
 
-    /* Stop if an error was returned in the mandatory attributes. */
-    if (UNLIKELY(error))
-        return ret;
-
-    /* Set the rest of the attributes. */
+    /* Set common attributes. */
     if (LIKELY(attrs & ATTR_CMN_OBJTYPE)) {
         context->data.objtype = (fsobj_type_t *) buf;
         buf += sizeof(fsobj_type_t);
+    } else {
+        context->data.objtype = NULL;
     }
     if (LIKELY(attrs & ATTR_CMN_CRTIME)) {
         context->data.crtime = (struct timespec *) buf;
         buf += sizeof(struct timespec);
+    } else {
+        context->data.crtime = NULL;
     }
     if (LIKELY(attrs & ATTR_CMN_MODTIME)) {
         context->data.mtime = (struct timespec *) buf;
         buf += sizeof(struct timespec);
+    } else {
+        context->data.mtime = NULL;
     }
     if (LIKELY(attrs & ATTR_CMN_CHGTIME)) {
         context->data.ctime = (struct timespec *) buf;
         buf += sizeof(struct timespec);
+    } else {
+        context->data.ctime = NULL;
     }
     if (LIKELY(attrs & ATTR_CMN_ACCTIME)) {
         context->data.atime = (struct timespec *) buf;
         buf += sizeof(struct timespec);
+    } else {
+        context->data.atime = NULL;
     }
     if (LIKELY(attrs & ATTR_CMN_OWNERID)) {
         context->data.uid = (uid_t *) buf;
         buf += sizeof(uid_t);
+    } else {
+        context->data.uid = NULL;
     }
     if (LIKELY(attrs & ATTR_CMN_GRPID)) {
         context->data.gid = (gid_t *) buf;
         buf += sizeof(gid_t);
+    } else {
+        context->data.gid = NULL;
     }
     if (LIKELY(attrs & ATTR_CMN_ACCESSMASK)) {
         context->data.mode = (uint32_t *) buf;
         buf += sizeof(uint32_t);
+    } else {
+        context->data.mode = NULL;
     }
+
+    /* Set directory attributes. */
     attrs = context->data.returned->dirattr;
     if (attrs & ATTR_DIR_ENTRYCOUNT) {
         context->data.entrycount = (uint32_t *) buf;
         buf += sizeof(uint32_t);
+    } else {
+        context->data.entrycount = NULL;
     }
+
+    /* Set file attributes. */
     attrs = context->data.returned->fileattr;
     if (attrs & ATTR_FILE_LINKCOUNT) {
         context->data.linkcount = (uint32_t *) buf;
         buf += sizeof(uint32_t);
+    } else {
+        context->data.linkcount = NULL;
     }
     if (attrs & ATTR_FILE_DEVTYPE) {
         context->data.devtype = (uint32_t *) buf;
         buf += sizeof(uint32_t);
+    } else {
+        context->data.devtype = NULL;
     }
     if (attrs & ATTR_FILE_DATALENGTH) {
         context->data.datalength = (off_t *) buf;
         buf += sizeof(off_t);
+    } else {
+        context->data.datalength = NULL;
     }
 
     return ret;
