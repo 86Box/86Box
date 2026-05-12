@@ -4601,7 +4601,7 @@ const machine_t machines[] = {
     },
     /* Has AMI 'B' KBC firmware. */
     {
-        .name              = "[GC103] TriGem 286M",
+        .name              = "[GC103] TriGem VULCAN-II",
         .internal_name     = "tg286m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_GC103,
@@ -4645,7 +4645,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "TriGem TG-286M", "" }
     },
     /* Has Phoenix MultiKey/42 KBC firmware. */
     {
@@ -5037,7 +5037,7 @@ const machine_t machines[] = {
        do not currently have a picture of the motherboard.
        In the code, we actually give it the AMI PS/2 controller. */
     {
-        .name              = "[SCAT] Goldstar GDC-212M",
+        .name              = "[SCAT] GoldStar GDC-212M",
         .internal_name     = "gdc212m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_SCAT,
@@ -13016,7 +13016,7 @@ const machine_t machines[] = {
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430LX] Intel Premiere/PCI",
+        .name              = "[i430LX] Intel Premiere/PCI ED",
         .internal_name     = "revenge",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -16822,7 +16822,7 @@ const machine_t machines[] = {
     },
     /* Unknown PS/2 KBC. */
     {
-        .name              = "[i430HX] Radisys EPC-2102",
+        .name              = "[i430HX] RadiSys EPC-2102",
         .internal_name     = "epc2102",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -16918,7 +16918,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &ymf701_device,
         .net_device               = NULL,
-        .aliases                  = { "Sony Vaio PCV-70", "Sony Vaio PCV-100", "Sony Vaio PCV-120", "" }
+        .aliases                  = { "Sony Vaio PCV-70", "Sony Vaio PCV-100", "Sony Vaio PCV-120", "Intel Agate", "Intel AG430HX", "" }
     },
     /* [TEST] The board doesn't seem to have a KBC at all, which probably means it's an on-chip one on the PC87306 SIO.
        A list on a Danish site shows the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
@@ -17310,7 +17310,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Hannibal+" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -17457,7 +17457,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &sb_vibra16c_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Tiger Eye", "Intel TE430VX", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
