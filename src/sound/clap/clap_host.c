@@ -212,7 +212,8 @@ scan_dir_for_claps(const char *dir, clap_plugin_info_t **infos, int *count)
 
             clap_plugin_info_t *pi = &(*infos)[total];
             memset(pi, 0, sizeof(*pi));
-            strncpy(pi->library_path, path, sizeof(pi->library_path) - 1);
+            memcpy(pi->library_path, path, sizeof(pi->library_path) - 1);
+            pi->library_path[sizeof(pi->library_path) - 1] = '\0';
             if (desc->id)          strncpy(pi->id,          desc->id,          sizeof(pi->id) - 1);
             if (desc->name)        strncpy(pi->name,        desc->name,        sizeof(pi->name) - 1);
             if (desc->description) strncpy(pi->description, desc->description, sizeof(pi->description) - 1);
@@ -287,7 +288,8 @@ scan_dir_for_claps(const char *dir, clap_plugin_info_t **infos, int *count)
 
             clap_plugin_info_t *pi = &(*infos)[total];
             memset(pi, 0, sizeof(*pi));
-            strncpy(pi->library_path, path, sizeof(pi->library_path) - 1);
+            memcpy(pi->library_path, path, sizeof(pi->library_path) - 1);
+            pi->library_path[sizeof(pi->library_path) - 1] = '\0';
             if (desc->id)          strncpy(pi->id,          desc->id,          sizeof(pi->id) - 1);
             if (desc->name)        strncpy(pi->name,        desc->name,        sizeof(pi->name) - 1);
             if (desc->description) strncpy(pi->description, desc->description, sizeof(pi->description) - 1);

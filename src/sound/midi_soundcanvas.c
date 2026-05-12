@@ -195,9 +195,9 @@ find_sc_plugin(const char *rom_path, int model_index,
     }
 
     if (found >= 0) {
-        strncpy(lib_path_out, infos[found].library_path, lib_sz - 1);
+        memcpy(lib_path_out, infos[found].library_path, lib_sz - 1);
         lib_path_out[lib_sz - 1] = '\0';
-        strncpy(plugin_id_out, infos[found].id, id_sz - 1);
+        memcpy(plugin_id_out, infos[found].id, id_sz - 1);
         plugin_id_out[id_sz - 1] = '\0';
     }
 
