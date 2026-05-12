@@ -63,6 +63,7 @@ typedef struct lpt_t {
     uint8_t       char_write;
     uint8_t       char_pti_mode;
     uint8_t       char_pti_readout;
+    uint32_t      char_control;
     unsigned int  char_spin_count;
     lpt_device_t *dt;
     char_port_t   port;

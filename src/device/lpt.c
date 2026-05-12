@@ -55,8 +55,8 @@ lpt_log(const char *fmt, ...)
 static inline void
 lpt_char_update_control(lpt_t *dev, uint32_t flags)
 {
-    if (dev->port.chardev.control && (dev->port.lpt.control != flags)) {
-        dev->port.lpt.control = flags;
+    if (dev->port.chardev.control && (dev->char_control != flags)) {
+        dev->char_control = flags;
         dev->port.chardev.control(CHAR_RAW_CONTROL(flags), dev->port.chardev.priv);
     }
 }
@@ -86,7 +86,7 @@ lpt_char_pti_mode(lpt_t *dev, uint8_t mode)
 rx_setup_wait:
             /* Tell the transmitter to set up (!nFault|!nBusy) but not send data just yet (!Select). */
             if (dev->port.chardev.write) {
-                lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+                lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
                 uint8_t buf = 0xf0;
                 dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
             }
@@ -133,7 +133,7 @@ lpt_char_write_data(uint8_t val, void *priv)
         /* Store data for strobe. */
         dev->char_write = val;
     } else {
-        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
         dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
     }
 }
@@ -144,7 +144,7 @@ lpt_char_strobe(uint8_t old, uint8_t val, void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) && !(val & 0x01) && (old & 0x01)) {
-        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
         dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv);
     }
 }
@@ -176,7 +176,7 @@ lpt_char_callback(void *priv)
     }
     uint64_t latch = TIMER_USEC * 100;
     if (LIKELY(read > 0)) {
-        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
         read = dev->port.chardev.read(buf, read, dev->port.chardev.priv);
         if (read > 0) {
             lpt_log("Read %cb: %02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X",
@@ -223,7 +223,7 @@ lpt_char_callback(void *priv)
 
     /* PTI bidirectional mode: flush a write that has been strobed and is pending. */
     if ((dev->char_pti_mode == 0xf1) && ((dev->ctrl & 0x0c) == 0x04) && (!!(dev->ctrl & 0x02) ^ !(dev->char_read & 0x10))) {
-        lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
         if (dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv)) {
             /* Signal that the write operation has completed. */
             if (dev->ctrl & 0x02)
@@ -249,7 +249,7 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
     } else if ((dev->char_pti_mode & 0xef) == 0xe1) { /* PTI bidirectional modes */
         /* Tell the other end to begin bidirectional transfer (Select|!nBusy) once SelectIn goes low. */
         if ((dev->ctrl & 0x08) && !(val & 0x08)) {
-            lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+            lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
             uint8_t buf = 0xf2;
             dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
         }
@@ -263,7 +263,7 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
                 dev->char_read &= ~0x10; /* !D4 == nBusy */
         }
     } else {
-        lpt_char_update_control(dev, (dev->port.lpt.control & ~0xff00) | ((uint16_t) val << 8));
+        lpt_char_update_control(dev, (dev->char_control & ~0xff00) | ((uint16_t) val << 8));
         if (dev->port.chardev.write)
             lpt_char_strobe(dev->ctrl, val, dev);
     }
@@ -300,7 +300,7 @@ lpt_char_epp_write_data(uint8_t is_addr, uint8_t val, void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    lpt_char_update_control(dev, (dev->port.lpt.control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
+    lpt_char_update_control(dev, (dev->char_control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
     dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
 }
 
@@ -309,7 +309,7 @@ lpt_char_epp_request_read(uint8_t is_addr, void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    lpt_char_update_control(dev, (dev->port.lpt.control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
+    lpt_char_update_control(dev, (dev->char_control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
     dev->port.chardev.read(&dev->in_dat, sizeof(dev->in_dat), dev->port.chardev.priv);
 }
 
@@ -331,7 +331,7 @@ lpt_devices_init(void)
             char_init(&lpt->port, device, i + 1);
             if (lpt->port.attached) {
                 /* Attach character device shim. */
-                lpt->port.lpt.control = -1; /* force update on first control write */
+                lpt->char_control = -1; /* force update on first control write */
                 lpt_attach_ex(i,
                     lpt->port.chardev.write ? lpt_char_write_data : NULL,
                     (lpt->port.chardev.control || (lpt->port.chardev.flags & (CHAR_LPT_USESTROBE | CHAR_LPT_PTI))) ? lpt_char_write_ctrl : NULL,
@@ -677,7 +677,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                     /* PTI ECP modes: tell the other end to begin ECP transfer (Select).
                        There's a control write (nInit|ackIntEn) right before this ECR
                        write, but we're not taking any chances with code block boundaries. */
-                    lpt_char_update_control(dev, dev->port.lpt.control & ~CHAR_LPT_EPP);
+                    lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
                     uint8_t buf = 0xe2;
                     dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
                     dev->char_pti_mode = 0x00;

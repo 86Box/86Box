@@ -125,9 +125,7 @@ typedef struct {
             uint8_t  stop_bits;
         } com;
         struct {
-            uint32_t control;
-            uint8_t  data_write;
-            uint8_t  data_read;
+            uint8_t dummy;
         } lpt;
     };
 } char_port_t;
