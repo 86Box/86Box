@@ -10133,7 +10133,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "AOpen Vi15G" }
+        .aliases                  = { "AOpen Vi15G", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
@@ -12837,14 +12837,14 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal video: Cirrus Logic GD5430 */
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -12933,7 +12933,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
