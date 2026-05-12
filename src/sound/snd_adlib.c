@@ -53,13 +53,13 @@ adlib_log(const char *fmt, ...)
 #endif
 
 void
-adlib_get_buffer(int32_t *buffer, int len, void *priv)
+adlib_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     adlib_t *const adlib = (adlib_t *) priv;
 
     const int32_t *const opl_buf = adlib->opl.update(adlib->opl.priv);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += opl_buf[c];
 
     adlib->opl.reset_buffer(adlib->opl.priv);

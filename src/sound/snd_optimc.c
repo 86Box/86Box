@@ -227,7 +227,7 @@ optimc_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 }
 
 static void
-opti930_get_buffer(int32_t *buffer, int len, void *priv)
+opti930_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
@@ -237,7 +237,7 @@ opti930_get_buffer(int32_t *buffer, int len, void *priv)
     /* wss part */
     opti930_update_mastervol(optimc);
     ad1848_update(&optimc->ad1848);
-    for (int c = 0; c < len * 2; c++) {
+    for (uint16_t c = 0; c < len * 2; c++) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -255,7 +255,7 @@ opti930_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 static void
-optimc_get_buffer(int32_t *buffer, int len, void *priv)
+optimc_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
@@ -264,7 +264,7 @@ optimc_get_buffer(int32_t *buffer, int len, void *priv)
 
     /* wss part */
     ad1848_update(&optimc->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (optimc->ad1848.buffer[c] / 2);
 
     optimc->ad1848.pos = 0;
@@ -848,7 +848,7 @@ opti930_passwd_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-opti931_passwd_write(uint16_t addr, uint8_t val, void *priv)
+opti931_passwd_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     optimc_t      *optimc           = (optimc_t *) priv;
 
@@ -992,7 +992,6 @@ static void *
 optimc_init(const device_t *info)
 {
     optimc_t *optimc = calloc(1, sizeof(optimc_t));
-    uint8_t c;
     double  attenuation;
 
     optimc->type = info->local & 0xFF;
@@ -1171,7 +1170,7 @@ optimc_init(const device_t *info)
     if (optimc->type == OPTI_930)
         optimc->sb->dsp.sb_timeo = 211;
 
-    for (c = 0; c < 32; c++) {
+    for (uint8_t c = 0; c < 32; c++) {
         attenuation = 0.0;
         if (c & 0x01)
             attenuation -= 1.5;

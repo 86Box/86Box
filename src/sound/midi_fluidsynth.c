@@ -37,7 +37,8 @@ typedef struct fluidsynth {
     int               sound_font;
 
     thread_t *thread_h;
-    event_t  *event, *start_event;
+    event_t  *event;
+    event_t  *start_event;
     int       buf_size;
     float    *buffer;
     int16_t  *buffer_int16;
@@ -177,7 +178,9 @@ fluidsynth_init(UNUSED(const device_t *info))
 #elif defined _WIN32
     if (!sound_font || sound_font[0] == 0) {
         // FluidSynth 2.5.x and later supports DLS without libinstpatch.
-        int major, minor, patch;
+        int major;
+        int minor;
+        int patch;
         fluid_version(&major, &minor, &patch);
         if ((major == 2 && minor >= 5) || (major >= 3)) {
             plat_get_system_directory(path);

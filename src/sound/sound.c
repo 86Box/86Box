@@ -44,7 +44,7 @@ typedef struct {
 } SOUND_CARD;
 
 typedef struct {
-    void (*get_buffer)(int32_t *buffer, int len, void *priv);
+    void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv);
     void *priv;
 } sound_handler_t;
 
@@ -549,7 +549,7 @@ sound_init(void)
 }
 
 void
-sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void *priv)
+sound_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
     if (sound_handlers_num >= NUM_SOUND_HANDLERS) {
         sound_log("sound_add_handler: handler table full, dropping registration\n");
@@ -562,7 +562,7 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void
 }
 
 void
-music_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void *priv)
+music_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
     if (music_handlers_num >= NUM_MUSIC_HANDLERS) {
         sound_log("music_add_handler: handler table full, dropping registration\n");
@@ -575,7 +575,7 @@ music_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void
 }
 
 void
-wavetable_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void *priv)
+wavetable_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
     if (wavetable_handlers_num >= NUM_WAVETABLE_HANDLERS) {
         sound_log("wavetable_add_handler: handler table full, dropping registration\n");

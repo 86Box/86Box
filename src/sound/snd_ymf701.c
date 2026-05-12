@@ -147,13 +147,13 @@ ymf701_wss_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-ymf701_get_buffer(int32_t *buffer, int len, void *priv)
+ymf701_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ymf701_t *ymf701 = (ymf701_t *) priv;
 
     /* wss part */
     ad1848_update(&ymf701->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (ymf701->ad1848.buffer[c] / 2);
 
     ymf701->ad1848.pos = 0;

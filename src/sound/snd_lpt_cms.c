@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
+
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -48,11 +48,13 @@ cmslpt_log(const char *fmt, ...)
 #endif
 
 typedef struct cmslpt_s {
-    void      *lpt;
-    cms_t     *cms;
-    uint8_t    control;
-    uint8_t    data_latch;
-    uint8_t    status;
+    void  *lpt;
+    cms_t *cms;
+
+    uint8_t control;
+    uint8_t data_latch;
+    uint8_t status;
+
     pc_timer_t ready_timer;
 } cmslpt_t;
 
@@ -70,7 +72,7 @@ static void
 cmslpt_write_ctrl(const uint8_t val, void *priv)
 {
     cmslpt_t *const cms_lpt = (cmslpt_t *) priv;
-    const uint8_t prev = cms_lpt->control;
+    const uint8_t   prev    = cms_lpt->control;
 
     cmslpt_log("cmslpt_write_ctrl: val=%02x\n", val);
 

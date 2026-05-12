@@ -60,15 +60,15 @@ extern int wavetable_pos_global;
 extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 int len, void *priv),
+                                                 uint16_t len, void *priv),
                               void *priv);
 
 extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 int len, void *priv),
+                                                 uint16_t len, void *priv),
                               void *priv);
 
 extern void wavetable_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                     int len, void *priv),
+                                                     uint16_t len, void *priv),
                                   void *priv);
 
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,

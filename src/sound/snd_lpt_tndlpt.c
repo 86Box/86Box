@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <wchar.h>
+
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -50,9 +50,11 @@ tndlpt_log(const char *fmt, ...)
 typedef struct tndlpt_s {
     void      *lpt;
     sn76489_t *sn76489;
-    uint8_t    control;
-    uint8_t    data_latch;
-    uint8_t    status;
+
+    uint8_t control;
+    uint8_t data_latch;
+    uint8_t status;
+
     pc_timer_t ready_timer;
 } tndlpt_t;
 

@@ -149,7 +149,7 @@ dac_get_buffer(int32_t *const buffer, const int len, void *priv)
 
     dac_update(lpt_dac);
 
-    for (int c = 0; c < len; c++) {
+    for (uint16_t c = 0; c < len; c++) {
         buffer[c * 2] += dac_iir(DAC_CHANNEL_LEFT, lpt_dac->buffer[DAC_CHANNEL_LEFT][c]);
         buffer[c * 2 + 1] += dac_iir(DAC_CHANNEL_RIGHT, lpt_dac->buffer[DAC_CHANNEL_RIGHT][c]);
     }

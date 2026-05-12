@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 
 #include <86box/86box.h>
 #include <86box/filters.h>
@@ -36,7 +35,7 @@
 typedef struct dss_s {
     void *lpt;
 
-    Fifo8   dss_fifo;
+    Fifo8 dss_fifo;
 
     uint8_t dac_val;
 
@@ -95,13 +94,13 @@ dss_read_status(void *priv)
 }
 
 static void
-dss_get_buffer(int32_t *buffer, int len, void *priv)
+dss_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
-    dss_t  *const dss = (dss_t *) priv;
+    dss_t *const dss = (dss_t *) priv;
 
     dss_update(dss);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         int16_t fval = dss_iir((float) dss->buffer[c >> 1]);
         float val  = fval;
 

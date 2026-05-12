@@ -191,7 +191,7 @@ static int16_t
 ad1816_process_alaw(uint8_t byte)
 {
     byte ^= 0x55;
-    int           dec = ((byte & 0x0f) << 4);;
+    int           dec = ((byte & 0x0f) << 4);
     const int     seg = (int) ((byte & 0x70) >> 4);
     switch (seg) {
         default:
@@ -355,7 +355,7 @@ ad1816_poll(void *priv)
 }
 
 static void
-ad1816_get_buffer(int32_t *buffer, int len, void *priv)
+ad1816_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ad1816_t *ad1816 = (ad1816_t *) priv;
 
@@ -365,7 +365,7 @@ ad1816_get_buffer(int32_t *buffer, int len, void *priv)
 
     ad1816_update_mastervol(ad1816);
     ad1816_update(ad1816);
-    for (int c = 0; c < len * 2; c++) {
+    for (uint16_t c = 0; c < len * 2; c++) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -763,7 +763,7 @@ ad1816_irq_poll(void *priv)
 }
 
 static void *
-ad1816_init(const device_t *info)
+ad1816_init(UNUSED(const device_t *info))
 {
     ad1816_t *ad1816 = calloc(1, sizeof(ad1816_t));
     uint8_t c;

@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
+
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -33,7 +33,6 @@
 
 #ifdef ENABLE_ADLIPT_LOG
 uint8_t adlipt_do_log = ENABLE_ADLIPT_LOG;
-
 static void
 adlipt_log(const char *fmt, ...)
 {
@@ -50,11 +49,13 @@ adlipt_log(const char *fmt, ...)
 #endif
 
 typedef struct adlipt_s {
-    void      *lpt;
-    adlib_t   *adlib;
-    uint8_t    control;
-    uint8_t    data_latch;
-    uint8_t    status;
+    void    *lpt;
+    adlib_t *adlib;
+
+    uint8_t control;
+    uint8_t data_latch;
+    uint8_t status;
+
     pc_timer_t ready_timer;
 } adlipt_t;
 
@@ -95,7 +96,7 @@ adlipt_write_ctrl(const uint8_t val, void *priv)
     if ((prev & 0x04) && !(val & 0x04)) {
         adlib_t *const adlib = adlipt->adlib;
         const int is_addr = val & 0x01;
-        uint16_t addr;
+        uint16_t  addr;
 
         /* PP_NOT_SELECT (bit3) set => low bank (OPL2) at 0x388/0x389.
            PP_NOT_SELECT cleared => high bank (OPL3) at 0x38A/0x38B. */

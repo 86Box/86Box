@@ -218,7 +218,7 @@ ymf71x_wss_read(uint16_t addr, void *priv)
 }
 
 static void
-ymf71x_wss_write(uint16_t addr, uint8_t val, void *priv)
+ymf71x_wss_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
     uint8_t   port   = addr - ymf71x->cur_wss_addr;
@@ -611,7 +611,7 @@ ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
 }
 
 static void
-ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
+ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
@@ -620,7 +620,7 @@ ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
     /* Don't play audio if the WSS Playback analog or digital sections are powered down */
     if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x04)) && (!(ymf71x->regs[0x13] & 0x04)) ) {
         ad1848_update(&ymf71x->ad1848);
-        for (int c = 0; c < len * 2; c += 2) {
+        for (uint16_t c = 0; c < len * 2; c += 2) {
             double out_l = 0.0;
             double out_r = 0.0;
             double bass_treble;

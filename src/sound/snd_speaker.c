@@ -84,14 +84,15 @@ speaker_update(void)
 }
 
 void
-speaker_get_buffer(int32_t *buffer, int len, UNUSED(void *priv))
+speaker_get_buffer(int32_t *buffer, uint16_t len, UNUSED(void *priv))
 {
-    double val_l, val_r;
+    double val_l;
+    double val_r;
 
     speaker_update();
 
     if (!speaker_mute) {
-        for (int c = 0; c < len * 2; c += 2) {
+        for (uint16_t c = 0; c < len * 2; c += 2) {
             val_l = val_r = (double) speaker_buffer[c >> 1];
             /* Apply PC speaker volume and filters */
             if (filter_pc_speaker != NULL) {

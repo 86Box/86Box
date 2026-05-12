@@ -58,13 +58,13 @@ typedef struct opl2board_device_t {
 } opl2board_device_t;
 
 static void
-opl2board_device_get_buffer(int32_t *buffer, int len, void *priv)
+opl2board_device_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     opl2board_device_t *serial = (opl2board_device_t *) priv;
 
     const int32_t *opl_buf = serial->opl.update(serial->opl.priv);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += opl_buf[c];
 
     serial->opl.reset_buffer(serial->opl.priv);

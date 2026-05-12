@@ -121,14 +121,14 @@ sn76489_update(sn76489_t *const sn76489)
 }
 
 static void
-sn76489_get_buffer(int32_t *buffer, int len, void *priv)
+sn76489_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     sn76489_t *const sn76489 = (sn76489_t *) priv;
 
     sn76489_update(sn76489);
 
     if (!sn76489_mute) {
-        for (int c = 0; c < len * 2; c++)
+        for (uint16_t c = 0; c < len * 2; c++)
             buffer[c] += sn76489->buffer[c >> 1];
     }
 
