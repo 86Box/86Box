@@ -8821,7 +8821,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5426_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Tulip TC38", "" }
     },
     /* Has Award KBC firmware. */
     {
@@ -10005,7 +10005,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK(CPU_Cx5x86),
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 40000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
@@ -10053,7 +10053,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 40000000,
             .min_voltage = 3300,
             .max_voltage = 5000,
@@ -10101,7 +10101,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 50000000,
             .min_voltage = 3300,
             .max_voltage = 5000,
@@ -10199,7 +10199,7 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 25000000,
             .max_bus     = 40000000,
-            .min_voltage = 5000,
+            .min_voltage = 3300,
             .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
@@ -12080,12 +12080,12 @@ const machine_t machines[] = {
         .vid_device               = &tgui9440_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Epson ActionPC 5500", "Epson Endeavor II", "TriGem SanJose" "TriGem TG486AP", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
-        .name              = "[UMC 8881] Epson ActionTower 8400",
+        .name              = "[UMC 8881] Epson ActionTower 7x00",
         .internal_name     = "actiontower8400",
         .type              = MACHINE_TYPE_486_S3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
@@ -12129,7 +12129,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Epson ActionTower 7300", "Epson ActionTower 7500", "Epson ActionTower 8400", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
@@ -17310,7 +17310,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Intel Hannibal+" }
+        .aliases                  = { "Intel Hannibal+", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
