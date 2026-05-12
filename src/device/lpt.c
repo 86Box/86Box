@@ -820,7 +820,7 @@ lpt_read(const uint16_t port, void *priv)
                         /* The Windows Direct Cable Connection driver (at least ptilink.sys 1.1.0.0)
                            has a bug where it reads data instead of cnfgA in configuration mode while
                            probing the ECP FIFO. This is undefined, and the code doesn't like it if
-                           the FIFO width is not 8 bits, so hardware must be aliasing cnfgA to data. */
+                           impID is not 1 (8-bit FIFO), so hardware must be aliasing cnfgA to data. */
                         ret = dev->cnfga_readout;
                     }
                 } else
