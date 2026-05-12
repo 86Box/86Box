@@ -205,6 +205,18 @@ if(OPL4ML)
     target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 endif()
 
+if(SOUNDCANVAS)
+    target_compile_definitions(snd PRIVATE USE_SOUNDCANVAS)
+    target_sources(snd PRIVATE
+        midi_soundcanvas.c
+        clap/clap_event_list.c
+        clap/clap_host.c
+    )
+    if(NOT WIN32)
+        target_link_libraries(86Box dl)
+    endif()
+endif()
+
 if(SOFTMODEM)
     target_compile_definitions(snd PRIVATE USE_SOFTMODEM)
 endif()
