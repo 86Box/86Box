@@ -465,7 +465,7 @@ load_machine(void)
                 if (machine != -1) {
                     migrate_from = p;
                     if (machine_migrations[i].new_bios)
-                        config_set_string(machine_get_device(machine)->name, "bios", machine_migrations[i].new_bios);
+                        ini_set_string(config, machine_get_device(machine)->name, "bios", machine_migrations[i].new_bios);
                 }
                 break;
             }
