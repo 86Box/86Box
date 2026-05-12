@@ -489,16 +489,16 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 
     /* Convert timestamp */
     if (longform) {
-        p += snprintf((char *)p, 17, "%04u%02u%02u%02u%02u%02u00",
-                     1900 + (unsigned)time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
-                     time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
+        p += snprintf((char *) p, 17, "%04u%02u%02u%02u%02u%02u00",
+                      1900 + (unsigned) time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
+                      time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
     } else {
-        *p++ = (uint8_t)time_s->tm_year;    /* year since 1900 */
-        *p++ = (uint8_t)(1 + time_s->tm_mon); /* month */
-        *p++ = (uint8_t)time_s->tm_mday;    /* day */
-        *p++ = (uint8_t)time_s->tm_hour;    /* hour */
-        *p++ = (uint8_t)time_s->tm_min;     /* minute */
-        *p++ = (uint8_t)time_s->tm_sec;     /* second */
+        *p++ = (uint8_t) time_s->tm_year;      /* year since 1900 */
+        *p++ = (uint8_t) (1 + time_s->tm_mon); /* month */
+        *p++ = (uint8_t) time_s->tm_mday;      /* day */
+        *p++ = (uint8_t) time_s->tm_hour;      /* hour */
+        *p++ = (uint8_t) time_s->tm_min;       /* minute */
+        *p++ = (uint8_t) time_s->tm_sec;       /* second */
     }
     if (format & VISO_FORMAT_ISO)
         *p++ = tz_offset; /* timezone (ISO only) */
@@ -837,16 +837,15 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     const viso_entry_t  *eltorito_entry = NULL;
     int                  len;
     int                  eltorito_others_present = 0;
-    size_t               dir_path_len;
     uint64_t             eltorito_offset = 0;
     uint8_t              eltorito_type   = 0;
 
     /* Fill root directory entry. */
-    dir_path_len = strlen(dirname);
-    last_entry = dir = last_dir = viso->root_dir = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + 1);
+    size_t dir_path_buf_size = strlen(dirname) + 1;
+    last_entry = dir = last_dir = viso->root_dir = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_buf_size);
     if (!dir)
         goto end;
-    memcpy(dir->path, dirname, dir_path_len + 1);
+    memcpy(dir->path, dirname, dir_path_buf_size);
     dir->parent = dir; /* for the root's path table and .. entries */
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
@@ -890,11 +889,13 @@ viso_init(const uint8_t id, const char *dirname, int *error)
             if (!children_count)
                 dir->first_child = entry;
 
-            /* Copy stats the current directory or parent directory. */
+            /* Copy stats from the current directory or parent directory. */
             memcpy(&entry->stats, !children_count ? &dir->stats : &dir->parent->stats, sizeof(entry->stats));
 
             /* Set basename. */
-            memcpy(entry->name_short, !children_count ? "." : "..", !children_count ? 2 : 3);
+            entry->name_short[0] = '.';
+            if (children_count)
+                entry->name_short[1] = '.';
 
             image_viso_log(viso->tf.log, "[%08X] %s => %s\n", entry,
                            dir->path, entry->name_short);
@@ -905,12 +906,13 @@ viso_init(const uint8_t id, const char *dirname, int *error)
             while (plat_dir_read(&context)) {
                 /* Add and fill entry. */
                 const char *path = plat_dir_get_path(&context);
-                entry = dir_entries[children_count++] =
-                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + strlen(path) + 1);
+                size_t path_buf_size = strlen(path) + 1;
+                entry = dir_entries[children_count] =
+                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size);
                 if (entry == NULL)
-                    break;
+                    continue;
                 entry->parent = dir;
-                memcpy(entry->path, path, strlen(path) + 1);
+                memcpy(entry->path, path, path_buf_size);
                 entry->basename = &entry->path[context.path_dir_len + 1];
 
                 /* Populate stats. */
@@ -964,10 +966,10 @@ have_eltorito_entry:
                 /* Set short filename and skip this file if it couldn't be disambiguated. */
                 if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
                     free(entry);
-                    children_count--;
                     continue;
                 }
 
+                children_count++;
                 image_viso_log(viso->tf.log, "[%08X] %s => [%-12s] %s\n", entry,
                                dir->path, entry->name_short, entry->basename);
             }
@@ -1195,7 +1197,7 @@ next_dir:
     /* Handle El Torito boot catalog. */
     if (eltorito_entry) {
         /* Write a pointer to this boot catalog to the boot descriptor. */
-        *((uint32_t *) data) = cpu_to_le32(ftello64(viso->tf.fp) / viso->sector_size);
+        AS_U32(data[0]) = cpu_to_le32(ftello64(viso->tf.fp) / viso->sector_size);
         viso_pwrite(data, eltorito_offset, 4, 1, viso->tf.fp);
 
         /* Fill boot catalog validation entry. */
@@ -1204,9 +1206,9 @@ next_dir:
         *p++ = 0x00; /* platform */
         *p++ = 0x00; /* reserved */
         *p++ = 0x00;
-        VISO_SKIP(p, 24);
-        memcpy((char *) (p - 24), EMU_NAME, MIN(strlen(EMU_NAME), 24)); /* ID string */
-        *p++ = 0x00;                              /* checksum */
+        viso_write_string(p, EMU_NAME, 24, VISO_CHARSET_ANY); /* ID string */
+        p += 24;
+        *p++ = 0x00; /* checksum */
         *p++ = 0x00;
         *p++ = 0x55; /* key bytes */
         *p++ = 0xaa;
