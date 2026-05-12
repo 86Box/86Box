@@ -474,8 +474,8 @@ plat_dir_open(plat_dir_t *context, const char *path)
     }
 
     /* Represent the base directory as a synthetic '.' entry. d_type is left
-     * DT_UNKNOWN (zeroed by memset) since stats is already valid and all
-     * plat_dir_is_* macros fall through to the stat path when d_type is unknown. */
+       DT_UNKNOWN (zeroed by memset) since stats is already valid and all
+       plat_dir_is_* macros fall through to the stat path when d_type is unknown. */
     memset(&context->root_data, 0, sizeof(context->root_data));
     strcpy(context->root_data.d_name, ".");
     context->data = &context->root_data;
@@ -518,7 +518,7 @@ static inline int
 plat_dir_read(plat_dir_t *context)
 {
     context->path[context->path_dir_len] = '\0';
-    context->stats_valid                 = 0xff;
+    context->stats_valid                 = (uint8_t) -1;
     struct dirent *data;
     while ((data = readdir(context->find))) {
         if (plat_dir_is_special_entry(data->d_name))
