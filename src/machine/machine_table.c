@@ -10089,7 +10089,7 @@ const machine_t machines[] = {
     },
     /* Has AMIKey-2 'H' keyboard BIOS. */
     {
-        .name              = "[SiS 471] AOpen Vi15G",
+        .name              = "[SiS 471] Acer Vi15G",
         .internal_name     = "vi15g",
         .type              = MACHINE_TYPE_486_S3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
@@ -10133,7 +10133,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AOpen Vi15G" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
