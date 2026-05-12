@@ -12,40 +12,38 @@
  *
  *          Copyright 2025-2026 Jasmine Iwanek.
  */
+#ifdef ENABLE_ADLIPT_LOG
 #include <stdarg.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
-#include <86box/io.h>
-#include <86box/mca.h>
 #include <86box/sound.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_adlib.h>
 #include <86box/timer.h>
 #include <86box/lpt.h>
-#include <86box/snd_opl.h>
-#include <86box/plat_unused.h>
+#include <86box/log.h>
 
 #ifdef ENABLE_ADLIPT_LOG
 uint8_t adlipt_do_log = ENABLE_ADLIPT_LOG;
 static void
-adlipt_log(const char *fmt, ...)
+adlipt_log(void *priv, const char *fmt, ...)
 {
     va_list ap;
 
     if (adlipt_do_log) {
         va_start(ap, fmt);
-        pclog_ex(fmt, ap);
+        log_out(priv, fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define adlipt_log(fmt, ...)
+#    define adlipt_log(priv, fmt, ...)
 #endif
 
 typedef struct adlipt_s {
@@ -57,6 +55,8 @@ typedef struct adlipt_s {
     uint8_t status;
 
     pc_timer_t ready_timer;
+
+    void *log;
 } adlipt_t;
 
 static void
@@ -64,7 +64,7 @@ adlipt_write_data(const uint8_t val, void *priv)
 {
     adlipt_t *const adlipt = (adlipt_t *) priv;
 
-    adlipt_log("adlipt_write_data: val=%02x\n", val);
+    adlipt_log(adlipt->log, "write_data: val=%02x\n", val);
 
     adlipt->data_latch = val;
 }
@@ -83,7 +83,7 @@ adlipt_write_ctrl(const uint8_t val, void *priv)
 #endif
     const int select = (val & 0x08) >> 3;
 
-    adlipt_log("adlipt_write_ctrl: val=%02x (STROBE=%d AUTOFD=%d INIT=%d SELECT=%d)\n",
+    adlipt_log(adlipt->log, "write_ctrl: val=%02x (STROBE=%d AUTOFD=%d INIT=%d SELECT=%d)\n",
                val, strobe, autofeed, init, select);
 
     adlipt->control = val;
@@ -105,7 +105,7 @@ adlipt_write_ctrl(const uint8_t val, void *priv)
         else
             addr = is_addr ? 0x38A : 0x38B;
 
-        adlipt_log("adlipt_write_ctrl: INIT->0 trigger OPL write. Addr=%04x Data=%02x Control=%02x\n",
+        adlipt_log(adlipt->log, "write_ctrl: INIT->0 trigger OPL write. Addr=%04x Data=%02x Control=%02x\n",
                    addr, adlipt->data_latch, val);
 
         adlib->opl.write(addr, adlipt->data_latch, adlib->opl.priv);
@@ -118,7 +118,7 @@ adlipt_ready_cb(void *priv)
     adlipt_t *const adlipt = (adlipt_t *) priv;
 
     adlipt->status |= 0x40; /* ready */
-    adlipt_log("adlipt_ready_cb: status=0x%02x\n", adlipt->status);
+    adlipt_log(adlipt->log, "ready_cb: status=0x%02x\n", adlipt->status);
     lpt_irq(adlipt->lpt, 1);
 }
 
@@ -128,16 +128,16 @@ adlipt_read_status(void *priv)
     const adlipt_t *const adlipt = (adlipt_t *) priv;
 
     const uint8_t ret = (adlipt->status & 0xf8) | 0x0f;
-    adlipt_log("adlipt_read_status: returning 0x%02x\n", ret);
+    adlipt_log(adlipt->log, "read_status: returning 0x%02x\n", ret);
     return ret;
 }
 
 static void
-adlipt_reset_opl(adlipt_t *adlipt)
+adlipt_reset_opl(const adlipt_t *adlipt)
 {
     adlib_t *const adlib = adlipt->adlib;
 
-    adlipt_log("adlipt_reset_opl: resetting OPL registers\n");
+    adlipt_log(adlipt->log, "Resetting OPL registers\n");
 
     for (uint16_t i = 0; i < 256; i++) {
         /* Clear register i (OPL2 range) */
@@ -149,13 +149,15 @@ adlipt_reset_opl(adlipt_t *adlipt)
         adlib->opl.write(0x38B, 0, adlib->opl.priv);
     }
 
-    adlipt_log("adlipt_reset_opl: OPL chip reset complete\n");
+    adlipt_log(adlipt->log, "OPL chip reset complete\n");
 }
 
 static void *
 adlipt_init(const device_t *info)
 {
     adlipt_t *const adlipt = calloc(1, sizeof(adlipt_t));
+    const int      use_opl3 = info && (info->local == 1);
+
     adlipt->lpt = lpt_attach(adlipt_write_data,
                              adlipt_write_ctrl,
                              NULL,
@@ -165,16 +167,16 @@ adlipt_init(const device_t *info)
                              NULL,
                              adlipt);
 
-    adlipt_log("adlipt_init\n");
+    adlipt->log = log_open("ADLIPT");
+    adlipt_log(adlipt->log, "Init mode=%s requested_fm=%s\n",
+               use_opl3 ? "OPL3LPT" : "adlipt/OPL2LPT",
+               use_opl3 ? "YMF262" : "YM3812");
 
     adlipt->adlib = calloc(1, sizeof(adlib_t));
 
-    int use_opl3 = 0;
-    if (info && info->local == 1)
-        use_opl3 = 1;
-
     if (!fm_driver_get(use_opl3 ? FM_YMF262 : FM_YM3812, &adlipt->adlib->opl)) {
         /* Fallback to OPL2 if requested driver not available. */
+        adlipt_log(adlipt->log, "Requested FM driver unavailable, falling back to YM3812\n");
         fm_driver_get(FM_YM3812, &adlipt->adlib->opl);
     }
 
@@ -196,7 +198,9 @@ adlipt_close(void *priv)
 {
     adlipt_t *const adlipt = (adlipt_t *) priv;
 
-    adlipt_log("adlipt_close\n");
+    adlipt_log(adlipt->log, "Close\n");
+    if (adlipt->log)
+        log_close(adlipt->log);
 
     if (adlipt->adlib) {
         adlipt_reset_opl(adlipt);

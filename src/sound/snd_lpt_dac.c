@@ -16,6 +16,9 @@
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2025-2026 Jasmine Iwanek.
  */
+#ifdef ENABLE_LPT_DAC_LOG
+#include <stdarg.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +31,25 @@
 #include <86box/lpt.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/log.h>
+
+#ifdef ENABLE_LPT_DAC_LOG
+uint8_t lpt_dac_do_log = ENABLE_LPT_DAC_LOG;
+
+static void
+lpt_dac_log(void *priv, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (lpt_dac_do_log) {
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define lpt_dac_log(priv, fmt, ...)
+#endif
 
 enum {
     DAC_TYPE_COVOX   = 0,
@@ -62,10 +84,10 @@ typedef struct lpt_dac_s {
 static void
 dac_update(lpt_dac_t *const lpt_dac)
 {
-    float vol = (lpt_dac->type == DAC_TYPE_SOUNDJR) ? lpt_dac->gain : 1.0f;
+    const float vol = (lpt_dac->type == DAC_TYPE_SOUNDJR) ? lpt_dac->gain : 1.0f;
 
-    const int16_t sample_l = (int8_t) (lpt_dac->dac_val_l ^ 0x80) * 0x40 * vol;
-    const int16_t sample_r = (int8_t) (lpt_dac->dac_val_r ^ 0x80) * 0x40 * vol;
+    const int16_t sample_l = (int16_t) ((int8_t) (lpt_dac->dac_val_l ^ 0x80) * 0x40 * vol);
+    const int16_t sample_r = (int16_t) ((int8_t) (lpt_dac->dac_val_r ^ 0x80) * 0x40 * vol);
 
     for (; lpt_dac->pos < sound_pos_global; lpt_dac->pos++) {
         lpt_dac->buffer[DAC_CHANNEL_LEFT][lpt_dac->pos] = sample_l;
@@ -78,12 +100,16 @@ dac_write_data(const uint8_t val, void *priv)
 {
     lpt_dac_t *const lpt_dac = (lpt_dac_t *) priv;
 
-    if (lpt_dac->channel == DAC_CHANNEL_RIGHT)
+    if (lpt_dac->channel == DAC_CHANNEL_RIGHT) {
         lpt_dac->dac_val_r = val;
-    else if (lpt_dac->channel == DAC_CHANNEL_LEFT)
+        lpt_dac_log(lpt_dac->log, "write_data: 0x%02x to right channel (channel=%u)\n", val, lpt_dac->channel);
+    } else if (lpt_dac->channel == DAC_CHANNEL_LEFT) {
         lpt_dac->dac_val_l = val;
-    else
+        lpt_dac_log(lpt_dac->log, "write_data: 0x%02x to left channel (channel=%u)\n", val, lpt_dac->channel);
+    } else {
         lpt_dac->dac_val_l = lpt_dac->dac_val_r = val;
+        lpt_dac_log(lpt_dac->log, "write_data: 0x%02x to both channels (channel=%u)\n", val, lpt_dac->channel);
+    }
 
     dac_update(lpt_dac);
 }
@@ -93,8 +119,16 @@ dac_strobe(UNUSED(const uint8_t old), const uint8_t val, void *priv)
 {
     lpt_dac_t *const lpt_dac = (lpt_dac_t *) priv;
 
-    if (lpt_dac->type == DAC_TYPE_STEREO)
+    if (lpt_dac->type == DAC_TYPE_STEREO) {
+        const uint8_t new_channel = val & 0x01;
+
+#ifdef ENABLE_LPT_DAC_LOG
         lpt_dac->channel = val & 0x01;
+        lpt_dac_log(lpt_dac->log, "strobe: ctrl %02x->%02x channel %u->%u\n",
+                    old, val, lpt_dac->channel, new_channel);
+#endif
+        lpt_dac->channel = new_channel;
+    }
 }
 
 static void
@@ -102,22 +136,28 @@ dac_write_ctrl(const uint8_t val, void *priv)
 {
     lpt_dac_t *const lpt_dac = (lpt_dac_t *) priv;
 
+    lpt_dac_log(lpt_dac->log, "write_ctrl: 0x%02x\n", val);
+
     if ((lpt_dac->type == DAC_TYPE_FTL) || (lpt_dac->type == DAC_TYPE_SOUNDJR))
         lpt_dac->ctrl = val;
 
     if (lpt_dac->type == DAC_TYPE_SOUNDJR) {
         /* SoundJr volume is bits 1, 2 & 3 of the Control Register.
            We extract them to get a value 0-7. */
-        uint8_t vol_bits = (val >> 1) & 0x07;
+        const uint8_t vol_bits = (val >> 1) & 0x07;
 
         /* Map 0-7 to a gain multiplier. */
         lpt_dac->gain = (float) vol_bits / 7.0f;
 
+        lpt_dac_log(lpt_dac->log, "SoundJr vol_bits=%u gain=%f\n", vol_bits, lpt_dac->gain);
+
         dac_update(lpt_dac);
     }
 
-    if (lpt_dac->type == DAC_TYPE_STEREO)
+    if (lpt_dac->type == DAC_TYPE_STEREO) {
         lpt_dac->channel = val & 0x01;
+        lpt_dac_log(lpt_dac->log, "Channel set to %u\n", lpt_dac->channel);
+    }
 }
 
 static uint8_t
@@ -143,15 +183,18 @@ dac_read_status(void *priv)
 }
 
 static void
-dac_get_buffer(int32_t *const buffer, const int len, void *priv)
+dac_get_buffer(int32_t *const buffer, const uint16_t len, void *priv)
 {
     lpt_dac_t *const lpt_dac = (lpt_dac_t *) priv;
 
     dac_update(lpt_dac);
 
     for (uint16_t c = 0; c < len; c++) {
-        buffer[c * 2] += dac_iir(DAC_CHANNEL_LEFT, lpt_dac->buffer[DAC_CHANNEL_LEFT][c]);
-        buffer[c * 2 + 1] += dac_iir(DAC_CHANNEL_RIGHT, lpt_dac->buffer[DAC_CHANNEL_RIGHT][c]);
+        const int32_t filtered_left = (int32_t) dac_iir(DAC_CHANNEL_LEFT, lpt_dac->buffer[DAC_CHANNEL_LEFT][c]);
+        const int32_t filtered_right = (int32_t) dac_iir(DAC_CHANNEL_RIGHT, lpt_dac->buffer[DAC_CHANNEL_RIGHT][c]);
+
+        buffer[c * 2] += filtered_left;
+        buffer[c * 2 + 1] += filtered_right;
     }
     lpt_dac->pos = 0;
 }
@@ -168,9 +211,24 @@ dac_init(const device_t *info)
     else
         lpt_dac->channel = DAC_CHANNEL_BOTH;
 
-    lpt_dac->lpt = lpt_attach(dac_write_data, dac_write_ctrl, dac_strobe, dac_read_status, NULL, NULL, NULL, lpt_dac);
+    lpt_dac->lpt = lpt_attach(dac_write_data,
+                              dac_write_ctrl,
+                              dac_strobe,
+                              dac_read_status,
+                              NULL,
+                              NULL,
+                              NULL,
+                              lpt_dac);
 
     sound_add_handler(dac_get_buffer, lpt_dac);
+
+    lpt_dac->log = log_open("LPT DAC");
+    lpt_dac_log(lpt_dac->log, "Init device=%s channel=%u\n",
+                (lpt_dac->type == DAC_TYPE_COVOX) ? "Covox" :
+                (lpt_dac->type == DAC_TYPE_STEREO) ? "Stereo DAC" :
+                (lpt_dac->type == DAC_TYPE_FTL) ? "FTL Sound Adapter" :
+                                                  "SoundJr",
+                lpt_dac->channel);
 
     return lpt_dac;
 }
@@ -180,6 +238,9 @@ dac_close(void *priv)
 {
     lpt_dac_t *const lpt_dac = (lpt_dac_t *) priv;
 
+    lpt_dac_log(lpt_dac->log, "Close\n");
+    if (lpt_dac->log)
+        log_close(lpt_dac->log);
     free(lpt_dac);
 }
 
