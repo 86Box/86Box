@@ -1,10 +1,16 @@
-/* ImGui OSD for 86Box SDL2/GLES2. Renders into FBO so shaders apply. */
+/* ImGui OSD for 86Box SDL2. Uses either the stock SDL_Renderer or OpenGL3 backend. */
+#ifdef USE_SDL_SHADER_PIPELINE
 #include <GLES2/gl2.h>
+#endif
 #include <SDL.h>
 
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
+#ifdef USE_SDL_SHADER_PIPELINE
 #include "imgui_impl_opengl3.h"
+#else
+#include "imgui_impl_sdlrenderer2.h"
+#endif
 
 #include <cstdio>
 #include <cstring>
@@ -26,13 +32,16 @@
 #include <86box/version.h>
 #include <86box/unix_sdl.h>
 #include <86box/unix_osd.h>
+#ifdef USE_SDL_SHADER_PIPELINE
 #include "unix_sdl_shader.h"
+#endif
 
 /* ------------------------------------------------------------------ */
 /*  Extern interface to SDL environment                                */
 /* ------------------------------------------------------------------ */
 extern "C" {
 extern SDL_Window  *sdl_win;
+extern SDL_Renderer *sdl_render;
 extern wchar_t      sdl_win_title[512];
 extern void         unix_executeLine(char *line);
 }
@@ -86,6 +95,48 @@ static bool        log_scroll_pending = false;
 
 static void show_main_menu(void);
 static bool FocusedButton(const char *label, bool focused);
+
+static bool osd_backend_init(void)
+{
+#ifdef USE_SDL_SHADER_PIPELINE
+    SDL_GLContext ctx = sdl_shader_get_context();
+    if (!ctx)
+        return false;
+
+    SDL_GL_MakeCurrent(sdl_win, ctx);
+
+    if (!ImGui_ImplSDL2_InitForOpenGL(sdl_win, ctx))
+        return false;
+
+    if (!ImGui_ImplOpenGL3_Init("#version 100")) {
+        ImGui_ImplSDL2_Shutdown();
+        return false;
+    }
+#else
+    if (sdl_render == nullptr)
+        return false;
+
+    if (!ImGui_ImplSDL2_InitForSDLRenderer(sdl_win, sdl_render))
+        return false;
+
+    if (!ImGui_ImplSDLRenderer2_Init(sdl_render)) {
+        ImGui_ImplSDL2_Shutdown();
+        return false;
+    }
+#endif
+
+    return true;
+}
+
+static void osd_backend_shutdown(void)
+{
+#ifdef USE_SDL_SHADER_PIPELINE
+    ImGui_ImplOpenGL3_Shutdown();
+#else
+    ImGui_ImplSDLRenderer2_Shutdown();
+#endif
+    ImGui_ImplSDL2_Shutdown();
+}
 
 static void osd_log_push(const char *line)
 {
@@ -384,12 +435,6 @@ void osd_init(void)
     if (imgui_inited)
         return;
 
-    SDL_GLContext ctx = sdl_shader_get_context();
-    if (!ctx)
-        return;
-
-    SDL_GL_MakeCurrent(sdl_win, ctx);
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
@@ -399,8 +444,10 @@ void osd_init(void)
 
     setup_retro_style();
 
-    ImGui_ImplSDL2_InitForOpenGL(sdl_win, ctx);
-    ImGui_ImplOpenGL3_Init("#version 100");
+    if (!osd_backend_init()) {
+        ImGui::DestroyContext();
+        return;
+    }
 
     log_mutex = SDL_CreateMutex();
     pclog_hook = osd_log_push;
@@ -416,8 +463,7 @@ void osd_deinit(void)
     pclog_hook = nullptr;
     if (log_mutex) { SDL_DestroyMutex(log_mutex); log_mutex = nullptr; }
 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    osd_backend_shutdown();
     ImGui::DestroyContext();
     imgui_inited = false;
 }
@@ -1033,6 +1079,7 @@ void osd_present(int fb_w, int fb_h)
     if (!osd_visible || !imgui_inited)
         return;
 
+#ifdef USE_SDL_SHADER_PIPELINE
     SDL_GLContext ctx = sdl_shader_get_context();
     if (!ctx)
         return;
@@ -1096,6 +1143,39 @@ void osd_present(int fb_w, int fb_h)
     ImDrawData *dd = ImGui::GetDrawData();
     flip_draw_data_y(dd);
     ImGui_ImplOpenGL3_RenderDrawData(dd);
+#else
+    (void)fb_w;
+    (void)fb_h;
+
+    if (sdl_render == nullptr)
+        return;
+
+    ImGui_ImplSDLRenderer2_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    bool still_open = true;
+    switch (current_view) {
+        case VIEW_MENU:
+            still_open = draw_menu();
+            break;
+        case VIEW_LOG:
+            still_open = draw_log();
+            break;
+        case VIEW_CD_FOLDER:
+            still_open = draw_folder_browser();
+            break;
+        default:
+            still_open = draw_file_selector();
+            break;
+    }
+
+    if (!still_open)
+        pending_close = true;
+
+    ImGui::Render();
+    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_render);
+#endif
 }
 
 int osd_is_visible(void)
