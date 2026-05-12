@@ -2545,14 +2545,14 @@ pas16_update(pas16_t *pas16)
 }
 
 void
-pas_get_buffer(int32_t *buffer, int len, void *priv)
+pas_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t *          pas16   = (pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     double             bass_treble;
 
     pas16_update(pas16);
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l;
         double out_r;
 
@@ -2602,7 +2602,7 @@ pas_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
-pasplus_get_buffer(int32_t *buffer, int len, void *priv)
+pasplus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t *          pas16   = (pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
@@ -2610,7 +2610,7 @@ pasplus_get_buffer(int32_t *buffer, int len, void *priv)
 
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = pas16->dsp.buffer[c];
         double out_r = pas16->dsp.buffer[c + 1];
 
@@ -2661,14 +2661,14 @@ pasplus_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
-pasplus_get_music_buffer(int32_t *buffer, int len, void *priv)
+pasplus_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     const pas16_t *    pas16   = (const pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     const int32_t *    opl_buf = pas16->opl.update(pas16->opl.priv);
     double             bass_treble;
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 7.7171630859375;
         double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 7.7171630859375;
 
@@ -2780,7 +2780,7 @@ pasplus_filter_pc_speaker(int channel, double *buffer, void *priv)
 }
 
 void
-pas16_get_buffer(int32_t *buffer, int len, void *priv)
+pas16_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t *            pas16 =  (pas16_t *) priv;
     const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
@@ -2788,7 +2788,7 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
 
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = (pas16->dsp.buffer[c] * mixer->sb_l) / 3.0;
         double out_r = (pas16->dsp.buffer[c + 1] * mixer->sb_r) / 3.0;
 
@@ -2839,7 +2839,7 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
-pas_get_music_buffer(int32_t *buffer, int len, void *priv)
+pas_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t             *pas16    = (pas16_t *) priv;
     const int32_t       *opl_buf  = pas16->opl.update(pas16->opl.priv);
@@ -2847,7 +2847,7 @@ pas_get_music_buffer(int32_t *buffer, int len, void *priv)
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     double               bass_treble;
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         /* Two chips for LEFT and RIGHT channels.
            Each chip stores data into the LEFT channel only (no sample alternating.) */
         double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 7.7171630859375;
@@ -2892,14 +2892,14 @@ pas_get_music_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
-pas16_get_music_buffer(int32_t *buffer, int len, void *priv)
+pas16_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     const pas16_t *      pas16   = (const pas16_t *) priv;
     const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
     const int32_t *      opl_buf = pas16->opl.update(pas16->opl.priv);
     double               bass_treble;
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
         double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
 
@@ -3017,7 +3017,7 @@ pas16_speed_changed(void *priv)
 }
 
 static void *
-pas_init(const device_t *info)
+pas_init(UNUSED(const device_t *info))
 {
     pas16_t *pas16 = calloc(1, sizeof(pas16_t));
 

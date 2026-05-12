@@ -212,7 +212,8 @@ typedef struct azt2316a_t {
     uint16_t cur_wss_addr;
     uint16_t cur_mpu401_addr;
 
-    int cur_irq, cur_dma;
+    int cur_irq;
+    int cur_dma;
     int cur_wss_enabled;
     int cur_wss_irq;
     int cur_wss_dma;
@@ -299,7 +300,7 @@ azt2316a_wss_read(uint16_t addr, void *priv)
 }
 
 static void
-azt2316a_wss_write(uint16_t addr, uint8_t val, void *priv)
+azt2316a_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     azt2316a_t *azt2316a  = (azt2316a_t *) priv;
     int         interrupt = 0;
@@ -1424,13 +1425,13 @@ aztpr16_wss_mode(uint8_t mode, void *priv)
 }
 
 static void
-azt2316a_get_buffer(int32_t *buffer, int len, void *priv)
+azt2316a_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
     /* wss part */
     ad1848_update(&azt2316a->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (azt2316a->ad1848.buffer[c] / 2);
 
     azt2316a->ad1848.pos = 0;
@@ -1934,10 +1935,9 @@ azt_init(const device_t *info)
         azt2316a->ad1848.regs[26] = read_eeprom[10]; /* CS4231 Mic */
 
         /* Set up CD volume table */
-        uint8_t c;
         double  attenuation;
 
-        for (c = 0; c < 32; c++) {
+        for (uint8_t c = 0; c < 32; c++) {
             attenuation = 12.0;
             if (c & 0x01)
                 attenuation -= 1.5;
@@ -1995,10 +1995,9 @@ azt_init(const device_t *info)
         azt2316a->ad1848.regs[7]  = 0x08;  /* WSS DAC R */
 
         /* Set up CD volume table */
-        uint8_t c;
         double  attenuation;
 
-        for (c = 0; c < 32; c++) {
+        for (uint8_t c = 0; c < 32; c++) {
             attenuation = 12.0;
             if (c & 0x01)
                 attenuation -= 1.5;

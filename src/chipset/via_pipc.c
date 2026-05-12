@@ -916,7 +916,7 @@ pipc_sb_handlers(pipc_t *dev, uint8_t modem)
 }
 
 static void
-pipc_sb_get_buffer(int32_t *buffer, int len, void *priv)
+pipc_sb_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
 

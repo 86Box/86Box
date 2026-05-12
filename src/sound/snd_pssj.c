@@ -180,13 +180,13 @@ pssj_callback(void *priv)
 }
 
 static void
-pssj_get_buffer(int32_t *buffer, int len, void *priv)
+pssj_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pssj_t *pssj = (pssj_t *) priv;
 
     pssj_update(pssj);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += pssj->buffer[c >> 1];
 
     pssj->pos = 0;

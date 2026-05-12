@@ -250,7 +250,8 @@ enum MidiDataPacketState : uint8_t {
 };
 
 typedef struct AudioFrame {
-	float outl, outr;
+	float outl;
+	float outr;
 
 	constexpr float& operator[](const size_t i) noexcept {
 		assert(i < 2);
@@ -13628,7 +13629,7 @@ static void CallInterruptHandler()
 }
 
 static void
-imfc_get_buffer(int32_t *buffer, int len, void *priv)
+imfc_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     MusicFeatureCard *imfc_card = (MusicFeatureCard *) priv;
 

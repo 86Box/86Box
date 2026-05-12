@@ -179,7 +179,7 @@ sensation_visdac_update(sensation_t *dev)
 }
 
 static uint32_t
-sensation_visdac_dmaread(sensation_t *dev, int channel)
+sensation_visdac_dmaread(sensation_t *dev, UNUSED(int channel))
 {
     uint32_t ret = 0;
 
@@ -1066,20 +1066,18 @@ sensation_mma_timer_poll(void *priv)
 
 
 static void
-sensation_get_buffer(int32_t *buffer, int len, void *priv)
+sensation_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     sensation_t *dev = (sensation_t *) priv;
     int16_t *mma_buffer = calloc(len * 2, sizeof(int16_t));
     if (mma_buffer == NULL)
         fatal("mma_buffer = NULL");
 
-    int c;
-
     int32_t *opl_buf = dev->opl.update(dev->opl.priv);
     sensation_mma_update(dev);
     sensation_visdac_update(dev);
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         mma_buffer[c] = (dev->mma_buffer[0][c >> 1] * dev->wave_vol_l) / 32768.0;
         mma_buffer[c + 1] = (dev->mma_buffer[1][c >> 1] * dev->wave_vol_r) / 32768.0;
 
@@ -1148,7 +1146,7 @@ sensation_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 }
 
 void *
-sensation_init(const device_t *info)
+sensation_init(UNUSED(const device_t *info))
 {
     sensation_t *dev = calloc(1, sizeof(sensation_t));
 
@@ -1178,9 +1176,8 @@ sensation_init(const device_t *info)
         midi_in_handler(1, sensation_input_msg, sensation_input_sysex, dev);
 
     /* Calculate attenuation values for the 6-bit volume control */
-    int c;
     double attenuation;
-    for (c = 0; c < 64; c++) {
+    for (uint8_t c = 0; c < 64; c++) {
         attenuation = -31.5;
         if (c & 0x01)
             attenuation += 0.5;
