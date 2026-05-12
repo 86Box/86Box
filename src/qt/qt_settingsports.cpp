@@ -86,7 +86,10 @@ SettingsPorts::changed()
         }
         if (checkBox != NULL)
             has_changed  |= (lpt_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
-        soft_changed  |= lpt_device_cfg_changed[i];
+        if (lpt_ports[i].attached >= LPT_PORT_NOTHOTPLUGGABLE)
+            has_changed |= lpt_device_cfg_changed[i];
+        else
+            soft_changed |= lpt_device_cfg_changed[i];
     }
 
     for (int i = 0; i < SERIAL_MAX_UI; i++) {
