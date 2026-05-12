@@ -181,6 +181,9 @@ add_library(ui STATIC
     qt_singlekeyseqedit.cpp
     qt_singlekeyseqedit.hpp
 
+    qt_dirfield.cpp
+    qt_dirfield.hpp
+    qt_dirfield.ui
     qt_filefield.cpp
     qt_filefield.hpp
     qt_filefield.ui
