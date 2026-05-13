@@ -497,10 +497,17 @@ static const device_config_t char_pipe_config[] = {
     {
         .name           = "path",
         .description    = "Pipe path",
+#ifdef _WIN32
         .type           = CONFIG_STRING,
         .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
+#else
+        .type           = CONFIG_FNAME,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = "FIFO (*.*)|*",
+#endif
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
