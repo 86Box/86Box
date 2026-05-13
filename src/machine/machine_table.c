@@ -20819,7 +20819,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "QDI P6I440EX/MATX" }
+        .aliases                  = { "QDI P6I440EX/MATX", "" }
     },
 
     /* Has a SMC FDC37M60x Super I/O chip with on-chip KBC with AMIKey-2 KBC
