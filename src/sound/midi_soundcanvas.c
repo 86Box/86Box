@@ -30,10 +30,13 @@
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>
+#include <86box/mem.h>
 #include <86box/midi.h>
 #include <86box/thread.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/path.h>
+#include <86box/rom.h>
 #include <86box/log.h>
 
 #include "clap/clap_host.h"
@@ -150,7 +153,7 @@ str_icontains(const char *haystack, const char *needle)
 /*  Find best matching CLAP plugin for a model                        */
 /* ------------------------------------------------------------------ */
 static int
-find_sc_plugin(const char *rom_path, int model_index,
+find_sc_plugin(UNUSED(const char *rom_path), int model_index,
                char *lib_path_out, size_t lib_sz,
                char *plugin_id_out, size_t id_sz)
 {
@@ -158,8 +161,21 @@ find_sc_plugin(const char *rom_path, int model_index,
     int  count = 0;
     int  found = -1;
     soundcanvas_t *data = &scdev;
+    char temp[1024] = { 0 };
 
-    clap_host_enumerate_plugins(rom_path, &infos, &count);
+    clap_host_enumerate_plugins(NULL, &infos, &count); /* Check system CLAP directories */
+
+    if (count == 0) { /* Check roms/plugins */
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, "plugins/");
+            scanvas_log(data->log, "Checking ROM path %s for CLAP plugins\n", temp);
+            clap_host_enumerate_plugins(temp, &infos, &count);
+            scanvas_log(data->log, "ROM path %s contains %i CLAP plugins\n", temp, count);
+            if (count > 0)
+                break;
+
+        }
+    }
 
     scanvas_log(data->log, "CLAP plugin count: %i\n", count);
 
@@ -340,6 +356,7 @@ soundcanvas_available(void)
     /* Check if any SC-55 CLAP plugin is discoverable */
     clap_plugin_info_t *infos = NULL;
     int count = 0;
+    char temp[1024] = { 0 };
 
     clap_host_enumerate_plugins(NULL, &infos, &count);
 
@@ -349,6 +366,24 @@ soundcanvas_available(void)
             str_icontains(infos[i].name, "sc55")) {
             found = 1;
             break;
+        }
+    }
+
+    if (found == 0) {
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, "plugins/");
+
+            pclog("Checking ROM path %s for CLAP plugins\n", temp);
+
+            clap_host_enumerate_plugins(temp, &infos, &count);
+
+            for (int i = 0; i < count; i++) {
+                if (str_icontains(infos[i].name, "sc-55") ||
+                    str_icontains(infos[i].name, "sc55")) {
+                    found = 1;
+                    break;
+                }
+            }
         }
     }
 
@@ -373,13 +408,8 @@ soundcanvas_init(UNUSED(const device_t *info))
     int model_idx = (model_cfg > 0 && model_cfg <= (int)NUM_MODELS)
                   ? model_cfg - 1 : -1;
 
-    /* ROM directory from config or environment */
-    const char *rom_path = device_get_config_string("rom_path");
-    if (!rom_path || rom_path[0] == '\0')
-        rom_path = getenv("SOUNDCANVAS_ROM_PATH");
-
     /* Find matching CLAP plugin */
-    if (!find_sc_plugin(rom_path, model_idx, lib_path, sizeof(lib_path),
+    if (!find_sc_plugin(NULL, model_idx, lib_path, sizeof(lib_path),
                         plugin_id, sizeof(plugin_id))) {
         scanvas_log(data->log, "Sound Canvas: No SC-55 CLAP plugin found.\n");
         return NULL;
@@ -514,17 +544,6 @@ static const device_config_t soundcanvas_config[] = {
             { .description = "SC-55mk2 v1.01",  .value = 6 },
             { .description = ""                            }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "rom_path",
-        .description    = "CLAP Plugin Directory",
-        .type           = CONFIG_DNAME,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
