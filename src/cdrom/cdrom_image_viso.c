@@ -448,7 +448,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
     time_t epoch      = 0;
 
 #ifdef _WIN32
-    if (localtime_s(&time_s_buf, &time) == 0)
+    if (LIKELY(!localtime_s(&time_s_buf, &time)))
         time_s = &time_s_buf;
 #else
     time_s = localtime_r(&time, &time_s_buf);
@@ -457,7 +457,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
     if (UNLIKELY(!time_s)) {
         /* localtime may return NULL if time is negative or out of range */
 #ifdef _WIN32
-        if (localtime_s(&time_s_buf, &epoch) == 0)
+        if (LIKELY(!localtime_s(&time_s_buf, &epoch)))
             time_s = &time_s_buf;
 #else
         time_s = localtime_r(&epoch, &time_s_buf);
@@ -466,19 +466,19 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
             fatal("VISO: localtime fallback to epoch failed\n");
 
         /* Force year clamping for out-of-range times */
-        if (time < (longform ? -62135596800LL : -2208988800LL)) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
+        if (UNLIKELY(time < (UNLIKELY(longform) ? -62135596800LL : -2208988800LL))) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
             time_s->tm_year = -1901;
-        else if (time > (longform ? 253402300799LL : 5869583999LL)) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
+        else if (UNLIKELY(time > (UNLIKELY(longform) ? 253402300799LL : 5869583999LL))) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
             time_s->tm_year = 8100;
     }
 
     /* Clamp year within supported ranges */
-    if (UNLIKELY(time_s->tm_year < (longform ? -1900 : 0))) {
-        time_s->tm_year = longform ? -1900 : 0;
+    if (UNLIKELY(time_s->tm_year < (UNLIKELY(longform) ? -1900 : 0))) {
+        time_s->tm_year = UNLIKELY(longform) ? -1900 : 0;
         time_s->tm_mon = time_s->tm_hour = time_s->tm_min = time_s->tm_sec = 0;
         time_s->tm_mday                                                    = 1;
-    } else if (UNLIKELY(time_s->tm_year > (longform ? 8099 : 255))) {
-        time_s->tm_year = longform ? 8099 : 255;
+    } else if (UNLIKELY(time_s->tm_year > (UNLIKELY(longform) ? 8099 : 255))) {
+        time_s->tm_year = UNLIKELY(longform) ? 8099 : 255;
         time_s->tm_mon  = 11;
         time_s->tm_mday = 31;
         time_s->tm_hour = 23;
@@ -486,7 +486,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
     }
 
     /* Convert timestamp */
-    if (longform) {
+    if (UNLIKELY(longform)) {
         p += snprintf((char *) p, 17, "%04u%02u%02u%02u%02u%02u00",
                       1900 + (unsigned) time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
                       time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
@@ -498,7 +498,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
         *p++ = (uint8_t) time_s->tm_min;       /* minute */
         *p++ = (uint8_t) time_s->tm_sec;       /* second */
     }
-    if (format & VISO_FORMAT_ISO)
+    if (LIKELY(format & VISO_FORMAT_ISO))
         *p++ = tz_offset; /* timezone (ISO only) */
 
     return p - data;
