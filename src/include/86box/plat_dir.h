@@ -162,7 +162,7 @@ plat_dir_read(plat_dir_t *context)
 
 #    define plat_dir_get_name(context)      ((context)->data.cFileName)
 #    define plat_dir_get_size(context)      (((uint64_t) (context)->data.nFileSizeHigh << 32) | (context)->data.nFileSizeLow)
-#    define plat_dir_convert_time(ft)       (((((uint64_t) ft.dwHighDateTime << 32) | ft.dwLowDateTime) - 116444736000000000ULL) / 10000000ULL)
+#    define plat_dir_convert_time(ft)       (((((uint64_t) (ft).dwHighDateTime << 32) | (ft).dwLowDateTime) - 116444736000000000ULL) / 10000000ULL)
 #    define PLAT_DIR_HAS_BIRTHTIME          1
 #    define plat_dir_get_birthtime(context) (plat_dir_convert_time((context)->data.ftCreationTime))
 #    define plat_dir_get_mtime(context)     (plat_dir_convert_time((context)->data.ftLastWriteTime))
@@ -176,7 +176,7 @@ plat_dir_read(plat_dir_t *context)
 #        define plat_dir_get_dev(context)   (0)
 #    endif
 #    define plat_dir_is_file(context)       (!((context)->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-#    define plat_dir_is_dir(context)        (!!((context)->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+#    define plat_dir_is_dir(context)        (!plat_dir_is_file((context)))
 #    define plat_dir_is_symlink(context)    (((context)->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && ((context)->data.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
 #    define plat_dir_is_char(context)       (0)
 #    define plat_dir_is_block(context)      (0)
