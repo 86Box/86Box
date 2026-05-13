@@ -133,6 +133,7 @@ lpt_char_write_data(uint8_t val, void *priv)
         /* Store data for strobe. */
         dev->char_write = val;
     } else {
+        /* Write data immediately. */
         lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
         dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
     }
@@ -143,6 +144,7 @@ lpt_char_strobe(uint8_t old, uint8_t val, void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
+    /* Write data on trailing edge. */
     if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) && !(val & 0x01) && (old & 0x01)) {
         lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
         dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv);
@@ -210,9 +212,9 @@ lpt_char_callback(void *priv)
                 uint64_t prev   = (masked << 8) | (dev->char_read & 0x08);
                 if (~prev & masked)
                     lpt_irq(dev, 1);
-    #ifdef DROP_EMULATION_SPEED_INSTEAD
+#ifdef DROP_EMULATION_SPEED_INSTEAD
                 if (dev->enable_irq)
-    #endif
+#endif
                     latch = TIMER_USEC * 2;
             }
             dev->char_read = buf[read - 1];
