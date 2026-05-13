@@ -79,7 +79,7 @@ sdl_integer_scale(double *d, double *g)
 static void
 sdl_get_output_size(int *w, int *h)
 {
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     SDL_GL_GetDrawableSize(sdl_win, w, h);
 #else
     if (sdl_render && SDL_GetRendererOutputSize(sdl_render, w, h) == 0)
@@ -173,7 +173,7 @@ sdl_blit_invalid(int x, int y, int w, int h)
     if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
         return 1;
 
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     return !sdl_shader_active();
 #else
     return (sdl_render == NULL) || (sdl_tex == NULL);
@@ -220,7 +220,7 @@ sdl_real_blit(SDL_Rect *r_src)
         r_dst.h *= ((float) winy / (float) r_dst.h);
     }
 
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     sdl_shader_blit(sdl_win, pixeldata, r_src->w, r_src->h,
                     r_dst.x, r_dst.y, r_dst.w, r_dst.h);
 #else
@@ -232,11 +232,11 @@ sdl_real_blit(SDL_Rect *r_src)
     if (SDL_UpdateTexture(sdl_tex, &src_rect, pixeldata, 2048 * (int) sizeof(uint32_t)) < 0)
         return;
 
-    osd_present(r_src->w, r_src->h);
-
     SDL_SetRenderDrawColor(sdl_render, 0, 0, 0, 255);
     SDL_RenderClear(sdl_render);
     SDL_RenderCopy(sdl_render, sdl_tex, &src_rect, &r_dst);
+
+    osd_present(r_src->w, r_src->h);
 
     if (osd_is_visible()) {
         SDL_Surface *osd_surface = osd_get_surface();
@@ -302,7 +302,7 @@ sdl_destroy_window(void)
 static void
 sdl_destroy_texture(void)
 {
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     sdl_shader_close();
 #else
     if (sdl_osd_tex != NULL) {
@@ -328,6 +328,8 @@ sdl_close(void)
 
     /* Unregister our renderer! */
     video_setblit(NULL);
+
+    osd_deinit();
 
     if (sdl_enabled)
         sdl_enabled = 0;
@@ -384,11 +386,13 @@ sdl_select_best_hw_driver(void)
 void
 sdl_reinit_texture(void)
 {
-#if USE_SDL_SHADER_PIPELINE
-    /* Always-GL: nothing to reinit, shader context persists. */
-#else
+#ifndef USE_SDL_SHADER_PIPELINE
     if (pixeldata == NULL)
         return;
+
+#ifdef USE_IMGUI
+    osd_deinit();
+#endif
 
     sdl_destroy_texture();
 
@@ -410,6 +414,10 @@ sdl_reinit_texture(void)
     }
 
     SDL_SetTextureBlendMode(sdl_osd_tex, SDL_BLENDMODE_BLEND);
+
+#ifdef USE_IMGUI
+    osd_init();
+#endif
 #endif
 }
 
@@ -417,7 +425,7 @@ void
 sdl_set_fs(int fs)
 {
     SDL_LockMutex(sdl_mutex);
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN : 0);
 #else
     SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -494,7 +502,7 @@ sdl_init_common(int flags)
     SDL_version ver;
     Uint32      window_flags = (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0);
 
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     window_flags |= SDL_WINDOW_OPENGL;
 #endif
 
@@ -513,7 +521,7 @@ sdl_init_common(int flags)
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
 
     if (flags & RENDERER_HARDWARE) {
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
         if (flags & RENDERER_OPENGL) {
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, "OpenGL");
         } else
@@ -534,7 +542,7 @@ sdl_init_common(int flags)
         SDL_SetWindowSize(sdl_win, window_w, window_h);
     }
 
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     {
         const char *sp = config_get_string("GL3 Shaders", "shader0", "");
         if (sp && sp[0])

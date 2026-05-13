@@ -114,6 +114,7 @@ extern const device_t xta_st50x_device;           /* ST-50X */
 extern const device_t xta_st50x_pc5086_device;    /* ST-50X (PC5086) */
 
 extern const device_t xtide_device;            /* xtide_xt */
+extern const device_t jride_device;            /* jride_pcjr */
 extern const device_t xtide_at_device;         /* xtide_at */
 extern const device_t xtide_at_2ch_device;     /* xtide_at_2ch */
 extern const device_t xtide_acculogic_device;  /* xtide_ps2 */

@@ -403,7 +403,7 @@ void osd_present(int fb_w, int fb_h)
     }
 
     /* Shader builds upload through the GL overlay path; shader-off builds composite in unix_sdl.c. */
-#if USE_SDL_SHADER_PIPELINE
+#ifdef USE_SDL_SHADER_PIPELINE
     SDL_LockSurface(osd_surface);
     sdl_shader_draw_overlay(osd_surface->pixels, osd_surface->w, osd_surface->h);
     SDL_UnlockSurface(osd_surface);

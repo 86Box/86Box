@@ -571,7 +571,8 @@ ide_hd_identify(const ide_t *ide)
     ide->buffer[50] = 0x4000;
     ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 
-    if ((ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63)) {
+    if (ide->is_jride || (ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63)) {
+        /* JR-IDE requires IDENTIFY word 49 bit 9 even for small CHS-only geometries. */
         ide->buffer[49] = (1 << 9);
         ide_log("LBA supported\n");
 
@@ -945,6 +946,7 @@ ide_zero(int d)
     dev->channel                       = d;
     dev->type                          = IDE_NONE;
     dev->hdd_num                       = -1;
+    dev->is_jride                      = 0;
     dev->tf->atastat                   = DRDY_STAT | DSC_STAT;
     dev->service                       = 0;
     dev->board                         = d >> 1;
@@ -1400,6 +1402,44 @@ ide_write_data(ide_t *ide, const uint16_t val)
             }
         }
     }
+}
+
+static ide_t *
+ide_get_current_device(void *priv)
+{
+    const ide_board_t *dev = (const ide_board_t *) priv;
+
+    if (dev == NULL)
+        return NULL;
+
+    return ide_drives[dev->cur_dev];
+}
+
+uint8_t *
+ide_get_pio_buffer(void *priv)
+{
+    ide_t *ide = ide_get_current_device(priv);
+
+    if ((ide == NULL) || (ide->type == IDE_NONE) || (ide->type & IDE_SHADOW) || (ide->buffer == NULL))
+        return NULL;
+
+    return (uint8_t *) ide->buffer;
+}
+
+void
+ide_complete_pio_buffer_write(void *priv)
+{
+    ide_t    *ide    = ide_get_current_device(priv);
+    uint8_t  *buffer = NULL;
+    uint16_t  value;
+
+    if ((ide == NULL) || !(ide->tf->atastat & DRQ_STAT) ||
+        ((buffer = ide_get_pio_buffer(priv)) == NULL))
+        return;
+
+    ide->tf->pos = 510;
+    value        = (uint16_t) buffer[510] | ((uint16_t) buffer[511] << 8);
+    ide_write_data(ide, value);
 }
 
 void
@@ -2022,6 +2062,18 @@ ide_read_data(ide_t *ide)
     }
 
     return ret;
+}
+
+void
+ide_complete_pio_buffer_read(void *priv)
+{
+    ide_t *ide = ide_get_current_device(priv);
+
+    if ((ide == NULL) || !(ide->tf->atastat & DRQ_STAT) || (ide_get_pio_buffer(priv) == NULL))
+        return;
+
+    ide->tf->pos = 510;
+    (void) ide_read_data(ide);
 }
 
 static uint8_t
@@ -3156,6 +3208,7 @@ void *
 ide_xtide_init(void)
 {
     ide_board_init(0, -1, 0, 0, 0, 0);
+    ide_xtide_set_is_jride(0);
 
     return ide_boards[0];
 }
@@ -3164,6 +3217,17 @@ void
 ide_xtide_close(void)
 {
     ide_board_close(0);
+}
+
+void
+ide_xtide_set_is_jride(int is_jride)
+{
+    for (int channel = 0; channel < 2; channel++) {
+        ide_t *ide = ide_drives[channel];
+
+        if (ide != NULL)
+            ide->is_jride = is_jride;
+    }
 }
 
 void

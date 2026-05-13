@@ -4601,7 +4601,7 @@ const machine_t machines[] = {
     },
     /* Has AMI 'B' KBC firmware. */
     {
-        .name              = "[GC103] TriGem 286M",
+        .name              = "[GC103] TriGem VULCAN-II",
         .internal_name     = "tg286m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_GC103,
@@ -4645,7 +4645,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "TriGem TG-286M", "" }
     },
     /* Has Phoenix MultiKey/42 KBC firmware. */
     {
@@ -5037,7 +5037,7 @@ const machine_t machines[] = {
        do not currently have a picture of the motherboard.
        In the code, we actually give it the AMI PS/2 controller. */
     {
-        .name              = "[SCAT] Goldstar GDC-212M",
+        .name              = "[SCAT] GoldStar GDC-212M",
         .internal_name     = "gdc212m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_SCAT,
@@ -8821,7 +8821,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5426_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Tulip TC38", "" }
     },
     /* Has Award KBC firmware. */
     {
@@ -10005,7 +10005,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK(CPU_Cx5x86),
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 40000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
@@ -10053,7 +10053,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 40000000,
             .min_voltage = 3300,
             .max_voltage = 5000,
@@ -10089,7 +10089,7 @@ const machine_t machines[] = {
     },
     /* Has AMIKey-2 'H' keyboard BIOS. */
     {
-        .name              = "[SiS 471] AOpen Vi15G",
+        .name              = "[SiS 471] Acer Vi15G",
         .internal_name     = "vi15g",
         .type              = MACHINE_TYPE_486_S3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
@@ -10101,7 +10101,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 50000000,
             .min_voltage = 3300,
             .max_voltage = 5000,
@@ -10133,7 +10133,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AOpen Vi15G", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
@@ -10199,7 +10199,7 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 25000000,
             .max_bus     = 40000000,
-            .min_voltage = 5000,
+            .min_voltage = 3300,
             .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
@@ -12080,12 +12080,12 @@ const machine_t machines[] = {
         .vid_device               = &tgui9440_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Epson ActionPC 5500", "Epson Endeavor II", "TriGem SanJose" "TriGem TG486AP", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
-        .name              = "[UMC 8881] Epson ActionTower 8400",
+        .name              = "[UMC 8881] Epson ActionTower 7x00",
         .internal_name     = "actiontower8400",
         .type              = MACHINE_TYPE_486_S3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
@@ -12129,7 +12129,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Epson ActionTower 7300", "Epson ActionTower 7500", "Epson ActionTower 8400", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
@@ -12837,14 +12837,14 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal video: Cirrus Logic GD5430 */
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -12933,7 +12933,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
@@ -13016,7 +13016,7 @@ const machine_t machines[] = {
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430LX] Intel Premiere/PCI",
+        .name              = "[i430LX] Intel Premiere/PCI ED",
         .internal_name     = "revenge",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -16822,7 +16822,7 @@ const machine_t machines[] = {
     },
     /* Unknown PS/2 KBC. */
     {
-        .name              = "[i430HX] Radisys EPC-2102",
+        .name              = "[i430HX] RadiSys EPC-2102",
         .internal_name     = "epc2102",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -16918,7 +16918,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &ymf701_device,
         .net_device               = NULL,
-        .aliases                  = { "Sony Vaio PCV-70", "Sony Vaio PCV-100", "Sony Vaio PCV-120", "" }
+        .aliases                  = { "Sony Vaio PCV-70", "Sony Vaio PCV-100", "Sony Vaio PCV-120", "Intel Agate", "Intel AG430HX", "" }
     },
     /* [TEST] The board doesn't seem to have a KBC at all, which probably means it's an on-chip one on the PC87306 SIO.
        A list on a Danish site shows the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
@@ -17310,7 +17310,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Hannibal+", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -17457,7 +17457,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &sb_vibra16c_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Tiger Eye", "Intel TE430VX", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */

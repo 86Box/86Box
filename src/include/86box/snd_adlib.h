@@ -24,6 +24,6 @@ typedef struct adlib_s {
     uint8_t  pos_regs[8];
 } adlib_t;
 
-extern void adlib_get_buffer(int32_t *buffer, const int len, void *priv);
+extern void adlib_get_buffer(int32_t *buffer, const uint16_t len, void *priv);
 
 #endif /*SOUND_ADLIB_H*/

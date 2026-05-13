@@ -508,13 +508,12 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
 void
 control_change(uint8_t midi_channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
 {
-    int i = 0;
     switch (id) {
         case 10:
             /* Change stereo panning */
             if (midi_channel != DRUM_CHANNEL) {
                 opl4_midi->midi_channel_data[midi_channel].panpot = (value - 0x40) >> 3;
-                for (i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+                for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
                     if (opl4_midi->voice_data[i].is_active && opl4_midi->voice_data[i].midi_channel == &opl4_midi->midi_channel_data[midi_channel]) {
                         update_pan(&opl4_midi->voice_data[i], opl4_midi);
                     }
@@ -527,9 +526,7 @@ control_change(uint8_t midi_channel, uint8_t id, uint8_t value, opl4_midi_t *opl
 void
 pitch_wheel(uint8_t midi_channel, uint16_t value, opl4_midi_t *opl4_midi)
 {
-    int i = 0;
-
-    for (i = 0; i < 24; i++) {
+    for (uint8_t i = 0; i < 24; i++) {
         if (opl4_midi->voice_data[i].is_active && opl4_midi->voice_data[i].midi_channel == &opl4_midi->midi_channel_data[midi_channel]) {
             update_pitch(&opl4_midi->voice_data[i], value, opl4_midi);
         }

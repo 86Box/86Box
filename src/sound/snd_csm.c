@@ -96,13 +96,13 @@ csm_update(csm_t *csm)
 }
 
 void
-csm_get_buffer(int32_t *buffer, int len, void *priv)
+csm_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     csm_t *csm = (csm_t *) priv;
 
     csm_update(csm);
 
-    for (int c = 0; c < len * 2 ; c++)
+    for (uint16_t c = 0; c < len * 2 ; c++)
         buffer[c] += csm->buffer[c];
 
     csm->pos = 0;

@@ -12,48 +12,52 @@
  *
  *          Copyright 2025-2026 Jasmine Iwanek.
  */
+#ifdef ENABLE_CMSLPT_LOG
 #include <stdarg.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
-#define HAVE_STDARG_H
+
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/lpt.h>
-#include <86box/io.h>
 #include <86box/sound.h>
 #include <86box/snd_cms.h>
-#include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/log.h>
 
 #ifdef ENABLE_CMSLPT_LOG
 uint8_t cmslpt_do_log = ENABLE_CMSLPT_LOG;
 
 static void
-cmslpt_log(const char *fmt, ...)
+cmslpt_log(void *priv, const char *fmt, ...)
 {
     va_list ap;
 
     if (cmslpt_do_log) {
         va_start(ap, fmt);
-        pclog_ex(fmt, ap);
+        log_out(priv, fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define cmslpt_log(fmt, ...)
+#    define cmslpt_log(priv, fmt, ...)
 #endif
 
 typedef struct cmslpt_s {
-    void      *lpt;
-    cms_t     *cms;
-    uint8_t    control;
-    uint8_t    data_latch;
-    uint8_t    status;
+    void  *lpt;
+    cms_t *cms;
+
+    uint8_t control;
+    uint8_t data_latch;
+    uint8_t status;
+
     pc_timer_t ready_timer;
+
+    void *log;
 } cmslpt_t;
 
 static void
@@ -61,7 +65,7 @@ cmslpt_write_data(const uint8_t val, void *priv)
 {
     cmslpt_t *const cms_lpt = (cmslpt_t *) priv;
 
-    cmslpt_log("cmslpt_write_data: val=%02x\n", val);
+    cmslpt_log(cms_lpt->log, "write_data: val=%02x\n", val);
 
     cms_lpt->data_latch = val;
 }
@@ -70,9 +74,9 @@ static void
 cmslpt_write_ctrl(const uint8_t val, void *priv)
 {
     cmslpt_t *const cms_lpt = (cmslpt_t *) priv;
-    const uint8_t prev = cms_lpt->control;
+    const uint8_t   prev    = cms_lpt->control;
 
-    cmslpt_log("cmslpt_write_ctrl: val=%02x\n", val);
+    cmslpt_log(cms_lpt->log, "write_ctrl: val=%02x\n", val);
 
     cms_lpt->control = val;
     if ((prev & 0x04) && !(val & 0x04)) {
@@ -91,17 +95,22 @@ cmslpt_write_ctrl(const uint8_t val, void *priv)
            - 0x07 (0111): SAA #2 data    (bit3=0, bit2=1, bit1=1, bit0=1) */
 
         /* Decode A0 from bit 0 (inverted): bit0=0->addr port, bit0=1->data port */
-        const uint16_t port_offset = (val & 0x01) ? 0 : 1;  /* 1->port 0 (data), 0->port 1 (addr) */
+        const uint16_t port_offset   = (val & 0x01) ? 0 : 1; /* 1->port 0 (data), 0->port 1 (addr) */
+        const uint8_t  saa1_selected = (val & 0x08) && !(val & 0x02);
+        const uint8_t  saa2_selected = (val & 0x02) && !(val & 0x08);
 
         /* Decode chip select from bits 1 and 3 */
-        if ((val & 0x08) && !(val & 0x02)) {
+        if (saa1_selected) {
             /* First chip: bit3=1, bit1=0 */
-            cmslpt_log("cmslpt: Writing to SAA #1 port %d, data=%02x\n", port_offset, cms_lpt->data_latch);
+            cmslpt_log(cms_lpt->log, "Writing to SAA #1 port %d, data=%02x\n", port_offset, cms_lpt->data_latch);
             cms_write(port_offset, cms_lpt->data_latch, cms_lpt->cms);
-        } else if ((val & 0x02) && !(val & 0x08)) {
+        } else if (saa2_selected) {
             /* Second chip: bit1=1, bit3=0 */
-            cmslpt_log("cmslpt: Writing to SAA #2 port %d, data=%02x\n", 2 + port_offset, cms_lpt->data_latch);
+            cmslpt_log(cms_lpt->log, "Writing to SAA #2 port %d, data=%02x\n", 2 + port_offset, cms_lpt->data_latch);
             cms_write(2 + port_offset, cms_lpt->data_latch, cms_lpt->cms);
+        } else {
+            cmslpt_log(cms_lpt->log, "write_ctrl: ignoring write, no chip selected (control=%02x data=%02x)\n",
+                       val, cms_lpt->data_latch);
         }
     }
 }
@@ -112,11 +121,12 @@ cmslpt_ready_cb(void *priv)
     cmslpt_t *const cms_lpt = (cmslpt_t *) priv;
 
     cms_lpt->status |= 0x40; /* ready */
+    cmslpt_log(cms_lpt->log, "ready_cb: status=0x%02x\n", cms_lpt->status);
     lpt_irq(cms_lpt->lpt, 1);
 }
 
 static uint8_t
-cmslpt_read_status(UNUSED(void *priv))
+cmslpt_read_status(void *priv)
 {
     const cmslpt_t *const cms_lpt = (cmslpt_t *) priv;
 
@@ -136,7 +146,8 @@ cmslpt_init(UNUSED(const device_t *info))
                              NULL,
                              cmslpt);
 
-    cmslpt_log("cmslpt_init\n");
+    cmslpt->log = log_open("CMSLPT");
+    cmslpt_log(cmslpt->log, "Init\n");
 
     cmslpt->cms = calloc(1, sizeof(cms_t));
     
@@ -154,7 +165,9 @@ cmslpt_close(void *priv)
 {
     cmslpt_t *const cms_lpt = (cmslpt_t *) priv;
 
-    cmslpt_log("cmslpt_close\n");
+    cmslpt_log(cms_lpt->log, "Close\n");
+    if (cms_lpt->log)
+        log_close(cms_lpt->log);
 
     if (cms_lpt->cms)
         free(cms_lpt->cms);

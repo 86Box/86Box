@@ -149,7 +149,7 @@ sb_log(const char *fmt, ...)
 
 /* SB 1, 1.5, MCV, and 2 do not have a mixer, so signal is hardwired. */
 static void
-sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
+sb_get_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
 {
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
@@ -160,7 +160,7 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
     if (sb->cms_enabled)
         cms_update(&sb->cms);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -200,7 +200,7 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
 }
 
 static void
-sb_get_music_buffer_sb2(int32_t *buffer, int len, void *priv)
+sb_get_music_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
 {
     const sb_t              *sb      = (const sb_t *) priv;
     const sb_ct1335_mixer_t *mixer   = &sb->mixer_sb2;
@@ -208,7 +208,7 @@ sb_get_music_buffer_sb2(int32_t *buffer, int len, void *priv)
 
     opl_buf = sb->opl.update(sb->opl.priv);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -251,14 +251,14 @@ sb2_filter_cd_audio(UNUSED(int channel), double *buffer, void *priv)
 }
 
 void
-sb_get_buffer_sbpro(int32_t *buffer, const int len, void *priv)
+sb_get_buffer_sbpro(int32_t *buffer, const uint16_t len, void *priv)
 {
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
     sb_dsp_update(&sb->dsp);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -283,7 +283,7 @@ sb_get_buffer_sbpro(int32_t *buffer, const int len, void *priv)
 }
 
 void
-sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
+sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv)
 {
     sb_t                    *sb       = (sb_t *) priv;
     const sb_ct1345_mixer_t *mixer    = &sb->mixer_sbpro;
@@ -301,7 +301,7 @@ sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv)
 
     sb_dsp_update(&sb->dsp);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         out_l = 0.0;
         out_r = 0.0;
 
@@ -344,7 +344,7 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
 }
 
 static void
-sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
+sb_get_buffer_sb16_awe32(int32_t *buffer, uint16_t len, void *priv)
 {
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
@@ -352,7 +352,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 
     sb_dsp_update(&sb->dsp);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -414,7 +414,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 }
 
 static void
-sb_get_music_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
+sb_get_music_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *priv)
 {
     sb_t                    *sb          = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer       = &sb->mixer_sb16;
@@ -514,13 +514,13 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
 }
 
 static void
-sb_get_wavetable_buffer_goldfinch(int32_t *buffer, const int len, void *priv)
+sb_get_wavetable_buffer_goldfinch(int32_t *buffer, const uint16_t len, void *priv)
 {
     goldfinch_t *goldfinch = (goldfinch_t *) priv;
 
     emu8k_update(&goldfinch->emu8k);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -535,7 +535,7 @@ sb_get_wavetable_buffer_goldfinch(int32_t *buffer, const int len, void *priv)
 }
 
 static void
-sb_get_wavetable_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
+sb_get_wavetable_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *priv)
 {
     sb_t                    *sb    = (sb_t *) priv;
     const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
@@ -543,7 +543,7 @@ sb_get_wavetable_buffer_sb16_awe32(int32_t *buffer, const int len, void *priv)
 
     emu8k_update(&sb->emu8k);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -677,7 +677,7 @@ sb16_awe32_filter_pc_speaker(int channel, double *buffer, void *priv)
 }
 
 void
-sb_get_buffer_ess(int32_t *buffer, int len, void *priv)
+sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 {
     sb_t              *ess   = (sb_t *) priv;
     const ess_mixer_t *mixer = &ess->mixer_ess;
@@ -709,7 +709,7 @@ sb_get_buffer_ess(int32_t *buffer, int len, void *priv)
 }
 
 void
-sb_get_music_buffer_ess(int32_t *buffer, int len, void *priv)
+sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 {
     sb_t              *ess     = (sb_t *) priv;
     const ess_mixer_t *mixer   = &ess->mixer_ess;
@@ -719,7 +719,7 @@ sb_get_music_buffer_ess(int32_t *buffer, int len, void *priv)
 
     opl_buf = ess->opl.update(ess->opl.priv);
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         out_l = 0.0;
         out_r = 0.0;
 

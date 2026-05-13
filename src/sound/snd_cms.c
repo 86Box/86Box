@@ -112,13 +112,13 @@ cms_update(cms_t *cms)
 }
 
 void
-cms_get_buffer(int32_t *buffer, const int len, void *priv)
+cms_get_buffer(int32_t *buffer, const uint16_t len, void *priv)
 {
     cms_t *const cms = (cms_t *) priv;
 
     cms_update(cms);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += cms->buffer[c];
 
     cms->pos = 0;
@@ -149,13 +149,17 @@ cms_write(uint16_t port, uint8_t val, void *priv)
             cms->regs[chip][cms->ports[chip] & 31] = val;
             switch (reg) {
                 case 0x00 ... 0x05: /*Volume*/
-//                    voice                    = cms->ports[chip] & 7;
+#if 0
+                    voice                    = cms->ports[chip] & 7;
+#endif
                     voice                    = reg & 7;
                     cms->vol[chip][voice][0] = val & 0x0f;
                     cms->vol[chip][voice][1] = val >> 4;
                     break;
                 case 0x08 ... 0x0D: /*Frequency*/
-//                    voice                   = cms->ports[chip] & 7;
+#if 0
+                    voice                   = cms->ports[chip] & 7;
+#endif
                     voice                    = reg & 7;
                     cms->latch[chip][voice] = (cms->latch[chip][voice] & 0x700) | val;
                     cms->freq[chip][voice]  = (CMS_MASTER_CLOCK / 512 << (cms->latch[chip][voice] >> 8)) / (511 - (cms->latch[chip][voice] & 255));
