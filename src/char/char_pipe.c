@@ -506,7 +506,7 @@ static const device_config_t char_pipe_config[] = {
         .type           = CONFIG_FNAME,
         .default_string = NULL,
         .default_int    = 1,
-        .file_filter    = "FIFO (*.*)|*",
+        .file_filter    = "FIFO / terminal (*.*)|*.*",
 #endif
         .spinner        = { 0 },
         .selection      = { { 0 } },
