@@ -51,19 +51,17 @@
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
-#define VISO_LBE_16(p, x)                       \
-    {                                           \
-        *((uint16_t *) (p)) = cpu_to_le16((x)); \
-        (p) += 2;                               \
-        *((uint16_t *) (p)) = cpu_to_be16((x)); \
-        (p) += 2;                               \
+#define VISO_LBE_16(p, x)                \
+    {                                    \
+        AS_U16(p[0]) = cpu_to_le16((x)); \
+        AS_U16(p[2]) = cpu_to_be16((x)); \
+        (p) += 4;                        \
     }
-#define VISO_LBE_32(p, x)                       \
-    {                                           \
-        *((uint32_t *) (p)) = cpu_to_le32((x)); \
-        (p) += 4;                               \
-        *((uint32_t *) (p)) = cpu_to_be32((x)); \
-        (p) += 4;                               \
+#define VISO_LBE_32(p, x)                \
+    {                                    \
+        AS_U32(p[0]) = cpu_to_le32((x)); \
+        AS_U32(p[4]) = cpu_to_be32((x)); \
+        (p) += 8;                        \
     }
 
 #define VISO_SECTOR_SIZE COOKED_SECTOR_SIZE
@@ -360,7 +358,7 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
 
         /* Add extension to the filename if present. */
         if (ext[0])
-            memcpy(data + strlen(data), ext, strlen(ext) + 1);
+            memcpy(&data[strlen(data)], ext, strlen(ext) + 1);
 
         /* Go through files in this directory to make sure this filename is unique. */
         for (size_t j = 0; entries[j] != entry; j++) {
@@ -456,7 +454,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
     time_s = localtime_r(&time, &time_s_buf);
 #endif
 
-    if (!time_s) {
+    if (UNLIKELY(!time_s)) {
         /* localtime may return NULL if time is negative or out of range */
 #ifdef _WIN32
         if (localtime_s(&time_s_buf, &epoch) == 0)
@@ -464,7 +462,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 #else
         time_s = localtime_r(&epoch, &time_s_buf);
 #endif
-        if (!time_s)
+        if (UNLIKELY(!time_s))
             fatal("VISO: localtime fallback to epoch failed\n");
 
         /* Force year clamping for out-of-range times */
@@ -475,11 +473,11 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
     }
 
     /* Clamp year within supported ranges */
-    if (time_s->tm_year < (longform ? -1900 : 0)) {
+    if (UNLIKELY(time_s->tm_year < (longform ? -1900 : 0))) {
         time_s->tm_year = longform ? -1900 : 0;
         time_s->tm_mon = time_s->tm_hour = time_s->tm_min = time_s->tm_sec = 0;
         time_s->tm_mday                                                    = 1;
-    } else if (time_s->tm_year > (longform ? 8099 : 255)) {
+    } else if (UNLIKELY(time_s->tm_year > (longform ? 8099 : 255))) {
         time_s->tm_year = longform ? 8099 : 255;
         time_s->tm_mon  = 11;
         time_s->tm_mday = 31;
@@ -1024,7 +1022,7 @@ next_dir:
 
     /* Get root directory basename for the volume ID. */
     const char *basename = path_get_filename(viso->root_dir->path);
-    if (!basename || (basename[0] == '\0'))
+    if (!basename || !basename[0])
         basename = EMU_NAME;
 
     /* Determine whether or not we're working with 2 volume descriptors
@@ -1086,7 +1084,7 @@ next_dir:
         int copyright_abstract_len = (viso->format & VISO_FORMAT_ISO) ? 37 : 32;
         if (i) {
             uint16_t wtemp[64];
-            wtemp[0] = 0;
+            wtemp[0] = '\0';
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_D); /* volume set ID */
             p += 128;
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* publisher ID */
@@ -1096,7 +1094,7 @@ next_dir:
             viso_convert_utf8(wtemp, EMU_NAME " " EMU_VERSION " VIRTUAL ISO", 64);
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* application ID */
             p += 128;
-            wtemp[0] = 0;
+            wtemp[0] = '\0';
             viso_write_wstring((uint16_t *) p, wtemp, copyright_abstract_len >> 1, VISO_CHARSET_D); /* copyright file ID */
             p += copyright_abstract_len;
             viso_write_wstring((uint16_t *) p, wtemp, copyright_abstract_len >> 1, VISO_CHARSET_D); /* abstract file ID */
@@ -1125,7 +1123,7 @@ next_dir:
         }
 
         len = viso_fill_time(p, now, viso->format, 1); /* volume created */
-        memcpy(p + len, p, len);                       /* volume modified */
+        memcpy(&p[len], p, len);                       /* volume modified */
         p += len * 2;
         VISO_SKIP(p, len * 2); /* volume expires/effective */
 
@@ -1258,8 +1256,8 @@ next_dir:
         uint64_t pt_start = ftello64(viso->tf.fp);
 
         /* Write this table's sector offset to the corresponding volume descriptor. */
-        uint32_t pt_temp     = pt_start / viso->sector_size;
-        *((uint32_t *) data) = (i & 1) ? cpu_to_be32(pt_temp) : cpu_to_le32(pt_temp);
+        uint32_t pt_temp = pt_start / viso->sector_size;
+        AS_U32(data[0])  = (i & 1) ? cpu_to_be32(pt_temp) : cpu_to_le32(pt_temp);
         viso_pwrite(data, viso->pt_meta_offsets[i >> 1] + 8 + (8 * (i & 1)), 4, 1, viso->tf.fp);
 
         /* Go through directories. */
@@ -1284,7 +1282,7 @@ next_dir:
             /* Fill path table entry. */
             p = data;
             if (!(viso->format & VISO_FORMAT_ISO)) {
-                *((uint32_t *) p) = 0; /* extent location (filled in later) */
+                AS_U32(p[0]) = 0; /* extent location (filled in later) */
                 p += 4;
                 *p++ = 0; /* extended attribute length */
                 p++;      /* skip ID length for now */
@@ -1292,11 +1290,11 @@ next_dir:
                 p++;      /* skip ID length for now */
                 *p++ = 0; /* extended attribute length */
                 dir->pt_offsets[i] += p - data;
-                *((uint32_t *) p) = 0; /* extent location (filled in later) */
+                AS_U32(p[0]) = 0; /* extent location (filled in later) */
                 p += 4;
             }
 
-            *((uint16_t *) p) = (i & 1) ? cpu_to_be16(dir->parent->pt_idx) : cpu_to_le16(dir->parent->pt_idx); /* parent directory number */
+            AS_U16(p[0]) = (i & 1) ? cpu_to_be16(dir->parent->pt_idx) : cpu_to_le16(dir->parent->pt_idx); /* parent directory number */
             p += 2;
 
             pt_temp = 5 * !(viso->format & VISO_FORMAT_ISO); /* directory ID length at offset 0 for ISO, 5 for HSF */
