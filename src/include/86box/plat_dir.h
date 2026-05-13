@@ -239,10 +239,10 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     if (UNLIKELY(attrs & ATTR_CMN_ERROR))
         buf += sizeof(uint32_t);
     if (LIKELY(attrs & ATTR_CMN_NAME)) {
-        context->data.name = (char *) &buf[((attrreference_t *) buf)->attr_dataoffset];
+        context->data.name = (const char *) &buf[((attrreference_t *) buf)->attr_dataoffset];
         buf += sizeof(attrreference_t);
     } else {
-        context->data.name = NULL;
+        context->data.name = "";
     }
 
     /* Set common attributes. */
