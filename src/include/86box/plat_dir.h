@@ -168,11 +168,13 @@ plat_dir_read(plat_dir_t *context)
 #    define plat_dir_get_mtime(context)     (plat_dir_convert_time((context)->data.ftLastWriteTime))
 #    define plat_dir_get_atime(context)     (plat_dir_convert_time((context)->data.ftLastAccessTime))
 #    define plat_dir_get_ctime(context)     (0)
-#    define plat_dir_get_mode(context)      (0)
-#    define plat_dir_get_nlink(context)     (0)
-#    define plat_dir_get_uid(context)       (0)
-#    define plat_dir_get_gid(context)       (0)
-#    define plat_dir_get_dev(context)       (0)
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
+#        define plat_dir_get_mode(context)  (0)
+#        define plat_dir_get_nlink(context) (0)
+#        define plat_dir_get_uid(context)   (0)
+#        define plat_dir_get_gid(context)   (0)
+#        define plat_dir_get_dev(context)   (0)
+#    endif
 #    define plat_dir_is_file(context)       (!((context)->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 #    define plat_dir_is_dir(context)        (!!((context)->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 #    define plat_dir_is_symlink(context)    (((context)->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && ((context)->data.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
@@ -208,12 +210,16 @@ typedef struct {
         struct timespec *mtime;
         struct timespec *ctime;
         struct timespec *atime;
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
         uid_t           *uid;
         gid_t           *gid;
         uint32_t        *mode;
+#    endif
         uint32_t        *entrycount;
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
         uint32_t        *linkcount;
         uint32_t        *devtype;
+#    endif
         off_t           *datalength;
     } data;
     uint32_t dir_entrycount;
@@ -270,6 +276,7 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     } else {
         context->data.atime = NULL;
     }
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
     if (LIKELY(attrs & ATTR_CMN_OWNERID)) {
         context->data.uid = (uid_t *) buf;
         buf += sizeof(uid_t);
@@ -288,6 +295,7 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     } else {
         context->data.mode = NULL;
     }
+#    endif
 
     /* Set directory attributes. */
     attrs = context->data.returned->dirattr;
@@ -300,6 +308,7 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
 
     /* Set file attributes. */
     attrs = context->data.returned->fileattr;
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
     if (attrs & ATTR_FILE_LINKCOUNT) {
         context->data.linkcount = (uint32_t *) buf;
         buf += sizeof(uint32_t);
@@ -312,6 +321,7 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     } else {
         context->data.devtype = NULL;
     }
+#    endif
     if (attrs & ATTR_FILE_DATALENGTH) {
         context->data.datalength = (off_t *) buf;
         buf += sizeof(off_t);
@@ -348,9 +358,18 @@ plat_dir_open(plat_dir_t *context, const char *path)
     context->attr_list.commonattr  = ATTR_CMN_RETURNED_ATTRS | ATTR_CMN_NAME | ATTR_CMN_ERROR |
                                      ATTR_CMN_OBJTYPE |
                                      ATTR_CMN_CRTIME | ATTR_CMN_MODTIME | ATTR_CMN_CHGTIME | ATTR_CMN_ACCTIME |
-                                     ATTR_CMN_OWNERID | ATTR_CMN_GRPID | ATTR_CMN_ACCESSMASK;
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
+                                     ATTR_CMN_OWNERID | ATTR_CMN_GRPID | ATTR_CMN_ACCESSMASK
+#    else
+                                     0
+#    endif
+                                     ;
     context->attr_list.dirattr     = ATTR_DIR_ENTRYCOUNT;
-    context->attr_list.fileattr    = ATTR_FILE_LINKCOUNT | ATTR_FILE_DEVTYPE | ATTR_FILE_DATALENGTH;
+    context->attr_list.fileattr    = 
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
+                                     ATTR_FILE_LINKCOUNT | ATTR_FILE_DEVTYPE |
+#    endif
+                                     ATTR_FILE_DATALENGTH;
 
     /* Get attributes for the base directory separately, as . and .. are not included in getattrlistbulk. */
     if (fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0)) {
@@ -416,11 +435,13 @@ plat_dir_read(plat_dir_t *context)
 #    define plat_dir_get_mtime(context)     (LIKELY((context)->data.mtime != NULL) ? (context)->data.mtime->tv_sec : 0)
 #    define plat_dir_get_atime(context)     (LIKELY((context)->data.atime != NULL) ? (context)->data.atime->tv_sec : 0)
 #    define plat_dir_get_ctime(context)     (LIKELY((context)->data.ctime != NULL) ? (context)->data.ctime->tv_sec : 0)
-#    define plat_dir_get_mode(context)      (LIKELY((context)->data.mode != NULL) ? *(context)->data.mode : 0)
-#    define plat_dir_get_nlink(context)     (LIKELY((context)->data.linkcount != NULL) ? *(context)->data.linkcount : 0)
-#    define plat_dir_get_uid(context)       (LIKELY((context)->data.uid != NULL) ? *(context)->data.uid : 0)
-#    define plat_dir_get_gid(context)       (LIKELY((context)->data.gid != NULL) ? *(context)->data.gid : 0)
-#    define plat_dir_get_dev(context)       (LIKELY((context)->data.devtype != NULL) ? *(context)->data.devtype : 0)
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
+#        define plat_dir_get_mode(context)  (LIKELY((context)->data.mode != NULL) ? *(context)->data.mode : 0)
+#        define plat_dir_get_nlink(context) (LIKELY((context)->data.linkcount != NULL) ? *(context)->data.linkcount : 0)
+#        define plat_dir_get_uid(context)   (LIKELY((context)->data.uid != NULL) ? *(context)->data.uid : 0)
+#        define plat_dir_get_gid(context)   (LIKELY((context)->data.gid != NULL) ? *(context)->data.gid : 0)
+#        define plat_dir_get_dev(context)   (LIKELY((context)->data.devtype != NULL) ? *(context)->data.devtype : 0)
+#    endif
 #    define plat_dir_is_file(context)       (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VREG) : 0)
 #    define plat_dir_is_dir(context)        (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VDIR) : 0)
 #    define plat_dir_is_symlink(context)    (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VLNK) : 0)
@@ -540,11 +561,13 @@ plat_dir_read(plat_dir_t *context)
 #    define plat_dir_get_mtime(context) (plat_dir_stat((context))->st_mtime)
 #    define plat_dir_get_atime(context) (plat_dir_stat((context))->st_atime)
 #    define plat_dir_get_ctime(context) (plat_dir_stat((context))->st_ctime)
-#    define plat_dir_get_mode(context)  (plat_dir_stat((context))->st_mode)
-#    define plat_dir_get_nlink(context) (plat_dir_stat((context))->st_nlink)
-#    define plat_dir_get_uid(context)   (plat_dir_stat((context))->st_uid)
-#    define plat_dir_get_gid(context)   (plat_dir_stat((context))->st_gid)
-#    define plat_dir_get_dev(context)   (plat_dir_stat((context))->st_rdev)
+#    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
+#        define plat_dir_get_mode(context)  (plat_dir_stat((context))->st_mode)
+#        define plat_dir_get_nlink(context) (plat_dir_stat((context))->st_nlink)
+#        define plat_dir_get_uid(context)   (plat_dir_stat((context))->st_uid)
+#        define plat_dir_get_gid(context)   (plat_dir_stat((context))->st_gid)
+#        define plat_dir_get_dev(context)   (plat_dir_stat((context))->st_rdev)
+#    endif
 
 #    define plat_dir_is_file_stat(context)    (S_ISREG(plat_dir_stat((context))->st_mode))
 #    define plat_dir_is_dir_stat(context)     (S_ISDIR(plat_dir_stat((context))->st_mode))
