@@ -225,7 +225,7 @@ typedef struct {
     uint32_t dir_entrycount;
 } plat_dir_t;
 
-static inline uint32_t
+static uint32_t
 plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
 {
     /* Return size for this attribute buffer. */
