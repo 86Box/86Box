@@ -462,11 +462,13 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 #else
         time_s = localtime_r(&epoch, &time_s_buf);
 #endif
-        if (UNLIKELY(!time_s))
-            fatal("VISO: localtime fallback to epoch failed\n");
 
         /* Force year clamping for out-of-range times */
-        if (UNLIKELY(time < (UNLIKELY(longform) ? -62135596800LL : -2208988800LL))) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
+        if (UNLIKELY(!time_s)) {
+            memset(&time_s_buf, 0, sizeof(time_s_buf));
+            time_s          = &time_s_buf;
+            time_s->tm_year = -1901;
+        } else if (UNLIKELY(time < (UNLIKELY(longform) ? -62135596800LL : -2208988800LL))) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
             time_s->tm_year = -1901;
         else if (UNLIKELY(time > (UNLIKELY(longform) ? 253402300799LL : 5869583999LL))) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
             time_s->tm_year = 8100;
@@ -635,9 +637,13 @@ pad_susp:
     }
 
     if (UNLIKELY((p - data) > 255))
+#ifdef ENABLE_VISO_LOG
         fatal("VISO: Directory record overflow (%" PRIuPTR ") on entry %08" PRIXPTR "\n", (uintptr_t) (p - data), (uintptr_t) entry);
-
-    data[0] = p - data; /* length */
+#else
+        data[0] = 255;
+#endif
+    else
+        data[0] = p - data; /* length */
     return data[0];
 }
 
