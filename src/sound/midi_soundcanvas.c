@@ -104,8 +104,6 @@ static soundcanvas_t scdev;
 /*  Logging                                                           */
 /* ------------------------------------------------------------------ */
 
-#define ENABLE_SCANVAS_LOG 1
-
 #ifdef ENABLE_SCANVAS_LOG
 int scanvas_do_log = ENABLE_SCANVAS_LOG;
 
@@ -160,8 +158,10 @@ find_sc_plugin(UNUSED(const char *rom_path), int model_index,
     clap_plugin_info_t *infos = NULL;
     int  count = 0;
     int  found = -1;
-    soundcanvas_t *data = &scdev;
     char temp[1024] = { 0 };
+    #ifdef ENABLE_SCANVAS_LOG
+    soundcanvas_t *data = &scdev;
+    #endif
 
     clap_host_enumerate_plugins(NULL, &infos, &count); /* Check system CLAP directories */
 
@@ -372,8 +372,6 @@ soundcanvas_available(void)
     if (found == 0) {
         for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, "plugins/");
-
-            pclog("Checking ROM path %s for CLAP plugins\n", temp);
 
             clap_host_enumerate_plugins(temp, &infos, &count);
 
