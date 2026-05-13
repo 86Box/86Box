@@ -236,14 +236,20 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     context->data.returned = (attribute_set_t *) buf;
     buf += sizeof(attribute_set_t);
     attrgroup_t attrs = context->data.returned->commonattr;
-    if (UNLIKELY(attrs & ATTR_CMN_ERROR))
+    if (UNLIKELY(attrs & ATTR_CMN_ERROR)) {
+        memset(&context->data, 0, sizeof(context->data)); /* for fail-fast case below */
         buf += sizeof(uint32_t);
+    }
     if (LIKELY(attrs & ATTR_CMN_NAME)) {
         context->data.name = (const char *) &buf[((attrreference_t *) buf)->attr_dataoffset];
         buf += sizeof(attrreference_t);
     } else {
         context->data.name = "";
     }
+
+    /* Stop if an error was returned. */
+    if (UNLIKELY(attrs & ATTR_CMN_ERROR))
+        return ret;
 
     /* Set common attributes. */
     if (LIKELY(attrs & ATTR_CMN_OBJTYPE)) {
