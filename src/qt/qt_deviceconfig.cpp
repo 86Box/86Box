@@ -45,7 +45,6 @@ extern "C" {
 #include <86box/rom.h>
 }
 
-#include "qt_dirfield.hpp"
 #include "qt_filefield.hpp"
 #include "qt_models_common.hpp"
 #include "qt_util.hpp"
@@ -345,14 +344,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 #endif
                     fileField->setFilter(tr(description.toUtf8().constData()) % util::DlgFilter(extensionList) % tr("All files") % util::DlgFilter({ "*" }, true));
                     this->ui->formLayout->addRow(tr(config->description), fileField);
-                    break;
-                }
-            case CONFIG_DNAME:
-                {
-                    auto *dirField = new DirField(this);
-                    dirField->setObjectName(config->name);
-                    dirField->setDirName(selected);
-                    this->ui->formLayout->addRow(tr(config->description), dirField);
                     break;
                 }
             case CONFIG_STRING:
