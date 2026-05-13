@@ -1214,7 +1214,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         return 0;
     f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
     if (!titleq.isEmpty()) {
-        f.write("printf '\e]0;%s\a' '");
+        f.write("printf '\\e]0;%s\\a' '");
         f.write(titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
         f.write("'\n");
     }
