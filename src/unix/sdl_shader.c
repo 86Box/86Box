@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "unix_sdl_shader.h"
+#include "sdl_shader.h"
 
 static SDL_GLContext gl_ctx;
 static GLuint        prog;
