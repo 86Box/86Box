@@ -326,6 +326,7 @@ lpt_devices_init(void)
             continue;
 
         memset(&lpt->port, 0, sizeof(lpt->port));
+        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
         if (lpt_ports[i].device) {
             lpt->port.type = CHAR_PORT_LPT;
             snprintf(lpt->port.name, sizeof(lpt->port.name), "LPT%i", i + 1);
@@ -347,9 +348,10 @@ lpt_devices_init(void)
                 if (lpt->port.chardev.read)
                     timer_set_delay_u64(&lpt->char_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
             }
-            lpt_ports[i].attached = LPT_PORT_HOTPLUGGABLE; /* we're hotpluggable unless further lpt_attach attempts are made */
-        } else {
-            lpt_ports[i].attached = LPT_PORT_DETACHED;
+
+            /* This port is hotunpluggable if the device allows it, unless further lpt_attach attempts are made. */
+            if ((device->flags & DEVICE_HOTPLUG_OUT) && (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
+                lpt_ports[i].hotunplug = CHAR_PORT_HOTUNPLUG;
         }
     }
 }
@@ -365,11 +367,11 @@ lpt_attach_ex(int     port,
               void    (*epp_request_read)(uint8_t is_addr, void *priv),
               void    *priv)
 {
-    /* Make sure this port becomes non-hotpluggable if a hotpluggable dropdown
-       device and a non-hotpluggable external device are both trying to claim it. */
-    uint8_t attached         = lpt_ports[port].attached;
-    lpt_ports[port].attached = LPT_PORT_NOTHOTPLUGGABLE;
-    if (attached)
+    /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
+       device and a non-hotunpluggable external device are both trying to claim it. */
+    uint8_t hotunplug         = lpt_ports[port].hotunplug;
+    lpt_ports[port].hotunplug = CHAR_PORT_NOHOTUNPLUG;
+    if (hotunplug != CHAR_PORT_DETACHED)
         return NULL;
 
     lpt_devs[port].write_data       = write_data;
@@ -401,7 +403,7 @@ lpt_devices_close(void)
 void
 lpt_devices_reset(void)
 {
-    device_close_by_flags(DEVICE_LPT);
+    device_close_by_flags(DEVICE_LPT | DEVICE_HOTPLUG_OUT);
 
     lpt_devices_close();
 

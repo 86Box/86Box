@@ -214,7 +214,7 @@ adlipt_close(void *priv)
 const device_t lpt_adlipt_device = {
     .name          = "AdLib-on-LPT (adlipt/OPL2LPT)",
     .internal_name = "lpt_adlipt",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG_IN,
     .local         = 0,
     .init          = adlipt_init,
     .close         = adlipt_close,
@@ -228,7 +228,7 @@ const device_t lpt_adlipt_device = {
 const device_t lpt_opl3_device = {
     .name          = "AdLib-on-LPT (OPL3LPT)",
     .internal_name = "lpt_opl3",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG_IN,
     .local         = 1,
     .init          = adlipt_init,
     .close         = adlipt_close,

@@ -34,7 +34,7 @@
 static const device_t char_none_device = {
     .name          = "None",
     .internal_name = "none",
-    .flags         = DEVICE_COM | DEVICE_LPT,
+    .flags         = DEVICE_COM | DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = NULL,
     .close         = NULL,

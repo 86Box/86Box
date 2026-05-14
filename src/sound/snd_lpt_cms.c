@@ -179,7 +179,7 @@ cmslpt_close(void *priv)
 const device_t lpt_cms_device = {
     .name          = "Creative Music System-on-LPT (CMSLPT)",
     .internal_name = "lpt_cms",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG_IN,
     .local         = 0,
     .init          = cmslpt_init,
     .close         = cmslpt_close,

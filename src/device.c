@@ -514,7 +514,7 @@ void
 device_close_by_flags(uint32_t match_flags)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if ((devices[c] != NULL) && (devices[c]->flags & match_flags)) {
+        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags)) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
