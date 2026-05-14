@@ -19,7 +19,7 @@
 #
 
 add_library(plat OBJECT
-    unix.c
+    sdl_main.c
     sdl_plat.c
     ../qt/sdl_joystick.c
 )
@@ -65,8 +65,8 @@ option(USE_SDL_SHADER "Build SDL GLES2 shader pipeline" OFF)
 option(USE_IMGUI      "Use ImGui-based OSD"             OFF)
 
 add_library(ui OBJECT
-    unix_sdl.c
-    unix_cdrom.c
+    sdl.c
+    sdl_cdrom.c
     sdl_monitor.c
     sdl_ui.c
 )
@@ -81,7 +81,7 @@ if(USE_SDL_SHADER)
         message(FATAL_ERROR "USE_SDL_SHADER=ON requires GLESv2 and GLES2/gl2.h; use -DUSE_SDL_SHADER=OFF to build without the shader pipeline")
     endif()
 
-    target_sources(ui PRIVATE unix_sdl_shader.c)
+    target_sources(ui PRIVATE sdl_shader.c)
 
     target_link_libraries(86Box ${GLESV2_LIBRARY})
     target_include_directories(ui PRIVATE ${GLESV2_INCLUDE_DIR})
@@ -89,7 +89,7 @@ endif()
 
 if(USE_IMGUI)
     target_compile_definitions(ui PRIVATE USE_IMGUI)
-    target_sources(ui PRIVATE unix_osd_new.cpp)
+    target_sources(ui PRIVATE sdl_osd.cpp)
 
     add_library(imgui OBJECT
         imgui/imgui.cpp
@@ -109,7 +109,7 @@ if(USE_IMGUI)
     target_include_directories(ui PRIVATE imgui)
     target_link_libraries(86Box imgui)
 else()
-    target_sources(ui PRIVATE unix_osd.c)
+    target_sources(ui PRIVATE sdl_osd_old.c)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")

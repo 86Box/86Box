@@ -33,7 +33,7 @@
 #include <86box/unix_sdl.h>
 #include <86box/unix_osd.h>
 #ifdef USE_SDL_SHADER_PIPELINE
-#include "unix_sdl_shader.h"
+#include "sdl_shader.h"
 #endif
 
 extern "C" {

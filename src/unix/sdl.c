@@ -20,7 +20,7 @@
 #include <86box/config.h>
 #include <86box/unix_osd.h>
 #include <86box/unix_sdl.h>
-#include "unix_sdl_shader.h"
+#include "sdl_shader.h"
 
 #define RENDERER_FULL_SCREEN 1
 #define RENDERER_HARDWARE    2
