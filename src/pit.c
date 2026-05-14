@@ -556,6 +556,9 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
     int    t   = (addr & 3);
     ctr_t *ctr;
 
+    if ((dev != NULL) && !dev->io_write_enabled)
+        return;
+
     if ((dev->flags & (PIT_8254 | PIT_EXT_IO))) {
         pit_log("[%04X:%08X] pit_write(%04X, %02X, %016" PRIX64 ")\n",
                 CS, cpu_state.pc, addr, val, (uint64_t) (uintptr_t) priv);
@@ -738,6 +741,9 @@ pit_read(uint16_t addr, void *priv)
     int     t = (addr & 3);
     ctr_t  *ctr;
 
+    if ((dev != NULL) && !dev->io_read_enabled)
+        return 0xff;
+
     switch (addr & 3) {
         case 3: /* Control. */
             /* This is 8254-only, 8253 returns 0x00. */
@@ -902,6 +908,9 @@ pit_reset(pit_t *dev)
 {
     memset(dev, 0, sizeof(pit_t));
 
+    dev->io_read_enabled  = 1;
+    dev->io_write_enabled = 1;
+
     dev->clock = 0;
 
     for (uint8_t i = 0; i < NUM_COUNTERS; i++)
@@ -909,6 +918,16 @@ pit_reset(pit_t *dev)
 
     /* Disable speaker gate. */
     dev->counters[2].gate = 0;
+}
+
+void
+pit_set_io_enabled(pit_t *dev, uint8_t read_enabled, uint8_t write_enabled)
+{
+    if (dev == NULL)
+        return;
+
+    dev->io_read_enabled  = !!read_enabled;
+    dev->io_write_enabled = !!write_enabled;
 }
 
 void

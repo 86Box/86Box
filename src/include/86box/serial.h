@@ -134,6 +134,8 @@ extern serial_t *serial_attach_ex_2(int port,
                                   void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
                                   void *priv);
 
+extern serial_t *serial_get_device(int port);
+
 #define serial_attach(port, rcr_callback, dev_write, priv) \
         serial_attach_ex(port, rcr_callback, dev_write, NULL, NULL, priv);
 

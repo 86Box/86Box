@@ -162,6 +162,8 @@ typedef struct fdc_t {
     pc_timer_t watchdog_timer;
 } fdc_t;
 
+extern fdc_t *fdd_fdc;
+
 extern void fdc_remove(fdc_t *fdc);
 extern void fdc_poll(fdc_t *fdc);
 extern void fdc_abort(fdc_t *fdc);

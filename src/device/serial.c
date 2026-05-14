@@ -52,6 +52,7 @@ void    serial_update_ints(serial_t *dev);
 
 static int             next_inst = 0;
 static serial_device_t serial_devices[SERIAL_MAX];
+static serial_t       *serial_ports[SERIAL_MAX];
 
 static void            serial_xmit_d_empty_evt(void *priv);
 
@@ -916,6 +917,15 @@ serial_attach_ex_2(int port,
     return sd->serial;
 }
 
+serial_t *
+serial_get_device(int port)
+{
+    if ((port < 0) || (port >= SERIAL_MAX))
+        return NULL;
+
+    return serial_ports[port];
+}
+
 static void
 serial_speed_changed(void *priv)
 {
@@ -928,6 +938,9 @@ static void
 serial_close(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
+
+    if ((dev->inst < SERIAL_MAX) && (serial_ports[dev->inst] == dev))
+        serial_ports[dev->inst] = NULL;
 
     if (dev->sd || dev->char_port.type) {
         if (dev->sd)
@@ -986,6 +999,7 @@ serial_init(const device_t *info)
     if (com_ports[next_inst].enabled || (info->local & 0xFFF00000)) {
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
+        serial_ports[next_inst] = dev;
         memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
         dev->sd         = &(serial_devices[next_inst]);
         dev->sd->serial = dev;

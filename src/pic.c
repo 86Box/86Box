@@ -276,6 +276,18 @@ pic_reset(void)
 
     shadow  = 0;
     pic_pci = 0;
+    pic_set_io_enabled(&pic, 1, 1);
+    pic_set_io_enabled(&pic2, 1, 1);
+}
+
+void
+pic_set_io_enabled(pic_t *dev, uint8_t read_enabled, uint8_t write_enabled)
+{
+    if (dev == NULL)
+        return;
+
+    dev->io_read_enabled  = !!read_enabled;
+    dev->io_write_enabled = !!write_enabled;
 }
 
 void
@@ -454,6 +466,12 @@ pic_read(uint16_t addr, void *priv)
 {
     pic_t *dev = (pic_t *) priv;
 
+    if (dev == NULL)
+        return 0xff;
+
+    if (!dev->io_read_enabled)
+        return 0xff;
+
     if (shadow) {
         /* VIA PIC shadow read */
         if (addr & 0x0001)
@@ -504,6 +522,9 @@ static void
 pic_write(uint16_t addr, uint8_t val, void *priv)
 {
     pic_t *dev = (pic_t *) priv;
+
+    if ((dev == NULL) || !dev->io_write_enabled)
+        return;
 
     pic_log("pic_write(%04X, %02X, %08X)\n", addr, val, priv);
 

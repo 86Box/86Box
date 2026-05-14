@@ -74,6 +74,8 @@ typedef struct PIT {
     uint64_t   pit_const;
 
     void *dev_priv;
+    uint8_t io_read_enabled;
+    uint8_t io_write_enabled;
 } pit_t;
 
 extern pit_t *ext_pit;
@@ -158,6 +160,8 @@ extern void pit_nmi_timer_ps2(int new_out, int old_out, void *priv);
 
 extern void pit_set_clock(uint32_t clock);
 extern void pit_handler(int set, uint16_t base, int size, void *priv);
+extern void pit_set_io_enabled(pit_t *dev, uint8_t read_enabled,
+                               uint8_t write_enabled);
 
 extern uint8_t pit_read_reg(void *priv, uint8_t reg);
 

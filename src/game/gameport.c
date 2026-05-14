@@ -48,6 +48,8 @@ typedef struct g_axis_t {
 typedef struct _gameport_ {
     uint16_t                    addr;
     uint8_t                     len;
+    uint8_t                     read_enabled;
+    uint8_t                     write_enabled;
     struct _joystick_instance_ *joystick;
     struct _gameport_          *next;
 } gameport_t;
@@ -183,6 +185,7 @@ int             gameport_instance_id = 0;
 /* Linked list of active game ports. Only the top port responds to reads
    or writes, and ports at the standard 200h location are prioritized. */
 static gameport_t *active_gameports = NULL;
+static gameport_t *gameport_instances[GAMEPORT_MAX] = { NULL, NULL };
 
 const char *
 joystick_get_name(int js)
@@ -278,7 +281,7 @@ gameport_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
     joystick_instance_t *joystick = dev->joystick;
 
     /* Respond only if a joystick is present and this port is at the top of the active ports list. */
-    if (!joystick || (active_gameports != dev))
+    if (!joystick || !dev->write_enabled || (active_gameports != dev))
         return;
 
     /* Read all axes. */
@@ -300,7 +303,7 @@ gameport_read(UNUSED(uint16_t addr), void *priv)
     joystick_instance_t *joystick = dev->joystick;
 
     /* Respond only if a joystick is present and this port is at the top of the active ports list. */
-    if (!joystick || (active_gameports != dev))
+    if (!joystick || !dev->read_enabled || (active_gameports != dev))
         return 0xff;
 
     /* Merge axis state with button state. */
@@ -336,6 +339,27 @@ gameport_update_joystick_type(uint8_t gp)
         joystick_instance[gp]->intf = joysticks[joystick_type[gp]].joystick;
         joystick_instance[gp]->dat  = joystick_instance[gp]->intf->init();
     }
+}
+
+void *
+gameport_get_instance(int port)
+{
+    if ((port < 0) || (port >= GAMEPORT_MAX))
+        return NULL;
+
+    return gameport_instances[port];
+}
+
+void
+gameport_set_io_enabled(void *priv, uint8_t read_enabled, uint8_t write_enabled)
+{
+    gameport_t *dev = (gameport_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    dev->read_enabled  = !!read_enabled;
+    dev->write_enabled = !!write_enabled;
 }
 
 void
@@ -439,6 +463,15 @@ gameport_init(const device_t *info)
     }
 
     dev->joystick = joystick_instance[joy_insn];
+    dev->read_enabled = 1;
+    dev->write_enabled = 1;
+
+    for (uint8_t slot = 0; slot < GAMEPORT_MAX; slot++) {
+        if (gameport_instances[slot] == NULL) {
+            gameport_instances[slot] = dev;
+            break;
+        }
+    }
 
     /* Map game port to the default address. Not applicable on PnP-only ports. */
     dev->len = (info->local >> 16) & 0xff;
@@ -515,6 +548,13 @@ gameport_close(void *priv)
 
         free(joystick_instance[joy_insn]);
         joystick_instance[joy_insn] = NULL;
+    }
+
+    for (uint8_t slot = 0; slot < GAMEPORT_MAX; slot++) {
+        if (gameport_instances[slot] == dev) {
+            gameport_instances[slot] = NULL;
+            break;
+        }
     }
 
     free(dev);

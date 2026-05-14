@@ -22,6 +22,7 @@ add_library(mch OBJECT
     m_xt_t1000.c
     m_xt_xi8088.c
     m_pcjr.c
+    m_pcjx.c
     m_amstrad.c
     m_europc.c
     m_elt.c

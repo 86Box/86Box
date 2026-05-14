@@ -47,6 +47,7 @@ typedef struct sn76489_s {
     uint8_t   firstdat;
     sn_type_t type;
     uint8_t   extra_divide;
+    uint8_t   io_write_enabled;
 
     int16_t  buffer[SOUNDBUFLEN];
     uint16_t pos;
@@ -55,7 +56,9 @@ typedef struct sn76489_s {
 } sn76489_t;
 
 extern void sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int freq);
+extern sn76489_t *sn76489_get_device(int index);
 extern void sn76489_write(uint16_t port, uint8_t data, void *priv);
+extern void sn76489_set_io_enabled(sn76489_t *sn76489, uint8_t write_enabled);
 extern void sn76489_set_extra_divide(sn76489_t *sn76489, uint8_t enable);
 
 #endif /*SOUND_SN76489_H*/

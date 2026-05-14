@@ -591,6 +591,14 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     if ((port >= 0xa0) && (port <= 0xa7))
         port = 0xa0;
 
+    if ((port >= 0x60) && (port <= 0x63) && (pcjr->pcjx_video != NULL) &&
+        !pcjr->pcjx_60_io_enabled)
+        return;
+
+    if ((port == 0xa0) && (pcjr->pcjx_video != NULL) &&
+        !pcjr->pcjx_a0_io_enabled)
+        return;
+
     switch (port) {
         case 0x60:
             pcjr->pa = val;
@@ -643,6 +651,14 @@ kbd_read(uint16_t port, void *priv)
 
     if ((port >= 0xa0) && (port <= 0xa7))
         port = 0xa0;
+
+    if ((port >= 0x60) && (port <= 0x63) && (pcjr->pcjx_video != NULL) &&
+        !pcjr->pcjx_60_io_enabled)
+        return 0xff;
+
+    if ((port == 0xa0) && (pcjr->pcjx_video != NULL) &&
+        !pcjr->pcjx_a0_io_enabled)
+        return 0xff;
 
     switch (port) {
         case 0x60:
@@ -864,17 +880,22 @@ const device_t pcjr_device = {
 };
 
 int
-machine_pcjr_init(UNUSED(const machine_t *model))
+machine_pcjr_common_init_with_video(const char *bios_path, uint32_t bios_address,
+                                    int bios_size, const char *font_path,
+                                    const device_t *video_device,
+                                    void (*video_init)(pcjr_t *pcjr))
 {
     pcjr_t *pcjr;
 
     int ret;
 
-    ret = bios_load_linear("roms/machines/ibmpcjr/bios.rom",
-                           0x000f0000, 65536, 0);
+    ret = bios_load_linear(bios_path, bios_address, bios_size, 0);
 
     if (bios_only || !ret)
         return ret;
+
+    if ((font_path != NULL) && !rom_present(font_path))
+        return 0;
 
     pcjr = calloc(1, sizeof(pcjr_t));
 
@@ -889,6 +910,8 @@ machine_pcjr_init(UNUSED(const machine_t *model))
 #else
     pcjr->option_ir    = 0;
 #endif
+    pcjr->pcjx_60_io_enabled = 1;
+    pcjr->pcjx_a0_io_enabled = 1;
 
     is_pcjr = 1;
 
@@ -900,10 +923,10 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     /* Initialize the video controller. */
     video_reset(gfxcard[0]);
     video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
-    device_context(&pcjr_device);
-    pcjr_vid_init(pcjr);
+    device_context(video_device);
+    video_init(pcjr);
     device_context_restore();
-    device_add_ex(&pcjr_device, pcjr);
+    device_add_ex(video_device, pcjr);
 
     /* Initialize the keyboard. */
     keyboard_scan   = 1;
@@ -947,4 +970,20 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     standalone_gameport_type = &gameport_201_device;
 
     return ret;
+}
+
+int
+machine_pcjr_common_init(const char *bios_path, uint32_t bios_address,
+                         int bios_size, const char *font_path)
+{
+    return machine_pcjr_common_init_with_video(bios_path, bios_address,
+                                               bios_size, font_path,
+                                               &pcjr_device, pcjr_vid_init);
+}
+
+int
+machine_pcjr_init(UNUSED(const machine_t *model))
+{
+    return machine_pcjr_common_init("roms/machines/ibmpcjr/bios.rom",
+                                    0x000f0000, 65536, NULL);
 }

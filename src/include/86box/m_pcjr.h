@@ -24,6 +24,8 @@
 #define DOUBLE_INTERPOLATE_SRGB   2
 #define DOUBLE_INTERPOLATE_LINEAR 3
 
+typedef struct pcjx_video_s pcjx_video_t;
+
 typedef struct pcjr_s {
     /* Video Controller stuff. */
     mem_mapping_t mapping;
@@ -58,6 +60,7 @@ typedef struct pcjr_s {
     int           composite;
     int           apply_hd;
     int           double_type;
+    pcjx_video_t *pcjx_video;
 
     /* Keyboard Controller stuff. */
     int        latched;
@@ -70,12 +73,16 @@ typedef struct pcjr_s {
     uint8_t    option_modem;
     uint8_t    option_fdc;
     uint8_t    option_ir;
+    uint8_t    pcjx_60_io_enabled;
+    uint8_t    pcjx_a0_io_enabled;
 
     pc_timer_t send_delay_timer;
 
 } pcjr_t; 
 
 void pcjr_recalc_timings(pcjr_t *pcjr);
+void pcjx_recalc_timings(pcjr_t *pcjr);
 
 // Note: This is a temporary solution until the pcjr video is made its own gfx card
 void pcjr_vid_init(pcjr_t *pcjr);
+void pcjx_vid_init(pcjr_t *pcjr);

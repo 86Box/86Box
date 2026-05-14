@@ -66,6 +66,8 @@ add_library(vid OBJECT
 
     # PCJr/Tandy
     vid_pcjr.c
+    vid_pcjx.c
+    vid_pcjx_host.c
     vid_tandy.c
     vid_mda.c
 

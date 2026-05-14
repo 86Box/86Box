@@ -49,6 +49,8 @@ typedef struct pic {
     uint8_t     has_slaves;
     uint8_t     flags;
     uint8_t     edge_lines;
+    uint8_t     io_read_enabled;
+    uint8_t     io_write_enabled;
     uint8_t     pad;
     uint32_t    lines[8];
     uint32_t    at;
@@ -73,6 +75,8 @@ extern void pic_set_shadow(int sh);
 extern int  pic_get_pci_flag(void);
 extern void pic_set_pci_flag(int pci);
 extern void pic_set_pci(void);
+extern void pic_set_io_enabled(pic_t *dev, uint8_t read_enabled,
+                               uint8_t write_enabled);
 extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
 extern void pic_init(void);

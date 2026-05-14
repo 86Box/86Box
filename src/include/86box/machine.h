@@ -1407,8 +1407,12 @@ extern int             machine_xt_m240_init(const machine_t *);
 /* m_pcjr.c */
 #ifdef EMU_DEVICE_H
 extern const device_t  pcjr_device;
+extern const device_t  pcjx_device;
 #endif
 extern int             machine_pcjr_init(const machine_t *);
+
+/* m_pcjx.c */
+extern int             machine_pcjx_init(const machine_t *);
 
 /* m_ps1.c */
 #ifdef EMU_DEVICE_H

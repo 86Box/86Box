@@ -52,6 +52,8 @@ sn76489_log(const char *fmt, ...)
 
 uint8_t sn76489_mute;
 
+static sn76489_t *sn76489_devices[4];
+
 static const float volslog[16] = {
     0.00000f, 0.59715f, 0.75180f, 0.94650f,
     1.19145f, 1.50000f, 1.88835f, 2.37735f,
@@ -140,6 +142,9 @@ sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
 {
     sn76489_t *const sn76489 = (sn76489_t *) priv;
     int              freq;
+
+    if ((sn76489 == NULL) || !sn76489->io_write_enabled)
+        return;
 
     sn76489_log("sn76489_write: data=%02x\n", data);
 
@@ -242,6 +247,24 @@ sn76489_set_extra_divide(sn76489_t *sn76489, uint8_t enable)
     sn76489->extra_divide = enable;
 }
 
+sn76489_t *
+sn76489_get_device(int index)
+{
+    if ((index < 0) || (index >= (int) (sizeof(sn76489_devices) / sizeof(sn76489_devices[0]))))
+        return NULL;
+
+    return sn76489_devices[index];
+}
+
+void
+sn76489_set_io_enabled(sn76489_t *sn76489, uint8_t write_enabled)
+{
+    if (sn76489 == NULL)
+        return;
+
+    sn76489->io_write_enabled = !!write_enabled;
+}
+
 void
 sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int freq)
 {
@@ -272,6 +295,14 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
     sn76489->shift    = sn76489->feedback_mask;
     sn76489->type     = type;
     sn76489->psgconst = (((double) freq / 64.0) / (double) FREQ_48000);
+    sn76489->io_write_enabled = 1;
+
+    for (size_t slot = 0; slot < (sizeof(sn76489_devices) / sizeof(sn76489_devices[0])); slot++) {
+        if (sn76489_devices[slot] == NULL) {
+            sn76489_devices[slot] = sn76489;
+            break;
+        }
+    }
 
     sn76489_mute = 0;
 
@@ -320,6 +351,13 @@ sn76489_device_close(void *priv)
     sn76489_t *const sn76489 = (sn76489_t *) priv;
 
     sn76489_log("sn76489_device_close\n");
+
+    for (size_t slot = 0; slot < (sizeof(sn76489_devices) / sizeof(sn76489_devices[0])); slot++) {
+        if (sn76489_devices[slot] == sn76489) {
+            sn76489_devices[slot] = NULL;
+            break;
+        }
+    }
 
     free(sn76489);
 }
