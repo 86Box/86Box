@@ -348,6 +348,7 @@ lpt_devices_init(void)
                 );
                 if (lpt->char_port.chardev.read)
                     timer_set_delay_u64(&lpt->char_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
+                lpt_char_update_control(lpt, (lpt->char_control & ~0xff00) | ((uint16_t) lpt->ctrl << 8));
             }
 
             /* This port is hotunpluggable if the device allows it, unless further lpt_attach attempts are made. */
