@@ -98,9 +98,9 @@ typedef struct {
 #endif
 } char_stdio_t;
 
-#ifdef _WIN32
-static int stdio_claimed = 0;
+static const char *stdio_claimed_by = NULL;
 
+#ifdef _WIN32
 static void
 char_stdio_stdin_thread(void *priv)
 {
@@ -243,7 +243,7 @@ char_stdio_close(void *priv)
         char_stdio_log(dev->log, "Output restore SetConsoleMode failed (%08X)\n", GetLastError());
 
     /* Release console. */
-    stdio_claimed = 0;
+    stdio_claimed_by = NULL;
     if (dev->prev_title) { /* reset title */
         SetConsoleTitle(dev->prev_title);
         free(dev->prev_title);
@@ -254,9 +254,11 @@ char_stdio_close(void *priv)
     if (dev->prev_flags_valid && CHAR_FD_VALID(dev->fd_out) && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
         char_stdio_log(dev->log, "Restore F_SETFL failed (%d)\n", errno);
 
-    /* Terminate pseudoterminal if we have one. */
-    if (CHAR_FD_VALID(dev->fd_out) && (dev->fd_out != STDOUT_FILENO))
-        close(dev->fd_out);
+    /* Release console. */
+    if (dev->fd_out == STDOUT_FILENO)
+        stdio_claimed_by = NULL;
+    else if (CHAR_FD_VALID(dev->fd_out))
+        close(dev->fd_out); /* terminate pseudoterminal */
 #endif
 
     log_close(dev->log);
@@ -274,21 +276,33 @@ char_stdio_init(const device_t *info)
     dev->log  = char_log_open(dev->port, "StdIO");
     char_stdio_log(dev->log, "init()\n");
 
-#ifdef _WIN32
     /* Check if another instance has already claimed the console. */
     char msg[2048];
-    if (stdio_claimed) {
-        char_stdio_log(dev->log, "Windows console already claimed\n");
+#ifndef _WIN32
+    int mode = device_get_config_int("mode");
+    if (mode == CHAR_STDIO_MODE_STDIO)
+#endif
+    {
+        if (stdio_claimed_by) {
+            char_stdio_log(dev->log, "Standard input/output already claimed by %s\n", stdio_claimed_by);
 
-        snprintf(msg, sizeof(msg), "%s: Only one virtual console can be used on Windows", dev->port->name);
-        ui_msgbox(MBX_INFO | MBX_ANSI, msg);
+            snprintf(msg, sizeof(msg), "%s: Virtual console already in use by %s", dev->port->name, stdio_claimed_by);
+            ui_msgbox(MBX_INFO | MBX_ANSI, msg);
 
-        dev->fd_in = dev->fd_out = INVALID_HANDLE_VALUE;
-        char_update_status(dev->port);
-        return dev;
+            dev->fd_in = dev->fd_out =
+#ifdef _WIN32
+                INVALID_HANDLE_VALUE
+#else
+                -1
+#endif
+                ;
+            char_update_status(dev->port);
+            return dev;
+        }
+        stdio_claimed_by = dev->port->name;
     }
-    stdio_claimed = 1;
 
+#ifdef _WIN32
     /* Set file descriptors. */
     dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
     if (!CHAR_FD_VALID(dev->fd_in)) {
@@ -331,10 +345,8 @@ char_stdio_init(const device_t *info)
             char_stdio_log(dev->log, "Output SetConsoleMode failed (%08X)\n", GetLastError());
     }
 #else
-    int mode = device_get_config_int("mode");
     if (mode != CHAR_STDIO_MODE_STDIO) {
         /* Create pseudoterminal. */
-        char msg[2048];
         int  err;
         dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
         fcntl(dev->fd_out, F_SETFD, FD_CLOEXEC); /* required for any commands we run to properly detach from the pty when it's closed */
