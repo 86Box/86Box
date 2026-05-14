@@ -321,12 +321,13 @@ lpt_devices_init(void)
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
+        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
+
         lpt_t *lpt = lpt_ports[i].lpt;
         if (!lpt)
             continue;
 
         memset(&lpt->port, 0, sizeof(lpt->port));
-        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
         if (lpt_ports[i].device) {
             lpt->port.type = CHAR_PORT_LPT;
             snprintf(lpt->port.name, sizeof(lpt->port.name), "LPT%i", i + 1);
