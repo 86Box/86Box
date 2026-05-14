@@ -339,7 +339,7 @@ monitor_execute_line(char *line)
 void
 monitor_thread(UNUSED(void *param))
 {
-#if !defined(WIN32) && !defined(USE_CLI)
+#if !defined(USE_CLI)
     if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
         char  *line = NULL;
         size_t n;
@@ -350,19 +350,21 @@ monitor_thread(UNUSED(void *param))
                 break;
 
 #    ifdef ENABLE_READLINE
-            if (f_readline)
+            if (f_readline) {
                 line = f_readline("(" EMU_NAME ") ");
-            else {
+                monitor_execute_line(line);
+                free(line);
+            } else {
 #    endif
+                char tmp[1024] = { 0 };
+
                 printf("(" EMU_NAME ") ");
-                (void) !getline(&line, &n, stdin);
+                line = fgets(tmp, sizeof(tmp), stdin);
+
+                monitor_execute_line(line);
 #    ifdef ENABLE_READLINE
             }
 #    endif
-
-            monitor_execute_line(line);
-
-            free(line);
             line = NULL;
         }
     }
