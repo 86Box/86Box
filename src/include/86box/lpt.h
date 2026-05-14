@@ -66,12 +66,12 @@ typedef struct lpt_t {
     uint32_t      char_control;
     unsigned int  char_spin_count;
     lpt_device_t *dt;
-    char_port_t   port;
 #ifdef FIFO_H
     fifo16_t *    fifo;
 #else
     void *        fifo;
 #endif
+    char_port_t   char_port;
 
     pc_timer_t    fifo_out_timer;
     pc_timer_t    char_timer;
