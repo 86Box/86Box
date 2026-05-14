@@ -3,8 +3,9 @@
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
-#include <86box/unix_osd.h>
 #include <86box/version.h>
+
+#include "sdl_osd.h"
 
 int
 ui_msgbox(int flags, void *message)

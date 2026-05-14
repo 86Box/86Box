@@ -30,8 +30,10 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
-#include <86box/unix_sdl.h>
-#include <86box/unix_osd.h>
+
+#include "sdl_render.h"
+#include "sdl_osd.h"
+
 #ifdef USE_SDL_SHADER_PIPELINE
 #include "sdl_shader.h"
 #endif

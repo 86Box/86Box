@@ -13,8 +13,6 @@
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
-#include <86box/unix_sdl.h>
-#include <86box/unix_osd.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/version.h>
@@ -23,6 +21,8 @@
 #include <86box/gdbstub.h>
 
 #include "sdl_monitor.h"
+#include "sdl_render.h"
+#include "sdl_osd.h"
 
 extern SDL_Window         *sdl_win;
 

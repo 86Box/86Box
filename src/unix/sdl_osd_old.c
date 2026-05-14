@@ -19,12 +19,12 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
-#include <86box/unix_sdl.h>
-#include <86box/unix_osd.h>
-#include <86box/unix_osd_font.h>
 
-#include "unix_sdl_shader.h"
+#include "sdl_shader.h"
 #include "sdl_monitor.h"
+#include "sdl_render.h"
+#include "sdl_osd.h"
+#include "sdl_osd_font.h"
 
 static int SCREEN_W = 640;
 static int SCREEN_H = 480;

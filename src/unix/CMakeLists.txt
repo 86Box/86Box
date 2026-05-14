@@ -65,7 +65,7 @@ option(USE_SDL_SHADER "Build SDL GLES2 shader pipeline" OFF)
 option(USE_IMGUI      "Use ImGui-based OSD"             OFF)
 
 add_library(ui OBJECT
-    sdl.c
+    sdl_render.c
     sdl_cdrom.c
     sdl_monitor.c
     sdl_ui.c
