@@ -394,7 +394,7 @@ lpt_devices_close(void)
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
         if (lpt_ports[i].lpt) {
-            lpt_ports[i].lpt->port.attached = 0;
+            memset(&lpt_ports[i].lpt->port, 0x00, sizeof(lpt_ports[i].lpt->port));
 
             timer_disable(&lpt_ports[i].lpt->char_timer);
         }
