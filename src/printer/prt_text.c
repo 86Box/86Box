@@ -496,6 +496,9 @@ prnt_close(void *priv)
         free(dev->page);
     }
 
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
+
     free(dev);
 }
 

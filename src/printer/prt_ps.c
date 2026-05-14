@@ -638,6 +638,9 @@ ps_close(void *priv)
         ghostscript_handle = NULL;
     }
 
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
+
     free(dev);
 }
 
