@@ -1766,6 +1766,7 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the serial ports. */
     /* note: SLIP COM side has to be initialized before the network side */
     serial_standalone_init();
+    serial_devices_init();
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
@@ -1963,6 +1964,7 @@ pc_close(UNUSED(thread_t *ptr))
     timer_close();
 
     lpt_devices_close();
+    serial_devices_close();
 
     for (uint8_t i = 0; i < FDD_NUM; i++)
         fdd_close(i);

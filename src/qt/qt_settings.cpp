@@ -37,6 +37,7 @@ extern "C" {
 #include <86box/fdd.h>
 #include <86box/hdd.h>
 #include <86box/lpt.h>
+#include <86box/serial.h>
 #include <86box/midi.h>
 }
 
@@ -301,6 +302,7 @@ Settings::accept()
         config_changed = 2;
         main_window->emitVmmSignal();
         lpt_devices_reset();
+        serial_devices_reset();
         midi_config_changed();
 
         video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
