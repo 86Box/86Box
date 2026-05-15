@@ -430,7 +430,8 @@ sdl_set_fs(int fs)
 #else
     SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 #endif
-    SDL_SetRelativeMouseMode((SDL_bool) mouse_capture);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+    mouse_capture = 1;
 
     sdl_fs = fs;
 
