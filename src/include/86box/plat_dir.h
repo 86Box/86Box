@@ -489,7 +489,7 @@ typedef struct {
     size_t         path_len;
     DIR           *find;
     struct dirent *data;
-    struct dirent  root_data;
+    struct dirent  base_data;
     struct stat    stats;
     uint8_t        stats_valid;
 } plat_dir_t;
@@ -518,9 +518,10 @@ plat_dir_open(plat_dir_t *context, const char *path)
     /* Represent the base directory as a synthetic '.' entry. d_type is left
        DT_UNKNOWN (zeroed by memset) since stats is already valid and all
        plat_dir_is_* macros fall through to the stat path when d_type is unknown. */
-    memset(&context->root_data, 0, sizeof(context->root_data));
-    strcpy(context->root_data.d_name, ".");
-    context->data = &context->root_data;
+    memset(&context->base_data, 0, sizeof(context->base_data));
+    strcpy(context->base_data.d_name, ".");
+    context->data = &context->base_data;
+
     return 1;
 }
 
@@ -536,8 +537,8 @@ plat_dir_rewind(plat_dir_t *context)
 {
     rewinddir(context->find);
     context->path[context->path_dir_len] = '\0';
-    context->data                        = &context->root_data;
-    context->stats_valid                 = 1;
+    context->data                        = &context->base_data;
+    context->stats_valid                 = !stat(context->path, &context->stats);
     return 1;
 }
 
