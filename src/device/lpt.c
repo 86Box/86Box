@@ -30,7 +30,7 @@ static int    lpt_3bc_used            = 0;
 
 static lpt_t *lpt1;
 
-lpt_port_t    lpt_ports[PARALLEL_MAX];
+lpt_port_t    lpt_ports[PARALLEL_MAX] = { 0 };
 
 lpt_device_t  lpt_devs[PARALLEL_MAX];
 
@@ -319,6 +319,10 @@ void
 lpt_devices_init(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone. */
+        if (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
+            continue;
+
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
         lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
@@ -392,6 +396,10 @@ void
 lpt_devices_close(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone. */
+        if (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
+            continue;
+
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
         if (lpt_ports[i].lpt) {
