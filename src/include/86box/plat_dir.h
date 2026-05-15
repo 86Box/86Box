@@ -446,6 +446,14 @@ plat_dir_read(plat_dir_t *context)
     /* Fill attributes for this entry and move on to the next one. */
     context->attr_ptr += plat_dir_fill_attributes(context, context->attr_ptr);
     context->attr_remain--;
+
+    /* If this entry is a symlink, follow it and fill the target's attributes instead. */
+    if (LIKELY(context->data.objtype != NULL) && (*context->data.objtype == VLNK)) {
+        uint8_t buf[4096];
+        if (!getattrlistat(context->find, context->data.name, &context->attr_list, buf, sizeof(buf), 0))
+            plat_dir_fill_attributes(context, buf);
+    }
+
     return 1;
 }
 
