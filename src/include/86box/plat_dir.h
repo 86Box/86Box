@@ -93,7 +93,7 @@ plat_dir_open(plat_dir_t *context, const char *path)
     snprintf(context->path, context->path_len, "%s\\*", path);
 
     /* First entry is always . so we pre-load it for the default entry behavior. */
-    context->find = FindFirstFileA(context->path, &context->data);
+    context->find = FindFirstFileExA(context->path, FindExInfoBasic, &context->data, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
     if (context->find == INVALID_HANDLE_VALUE) {
         free(context->path);
         return 0;
