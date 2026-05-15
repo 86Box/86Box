@@ -111,7 +111,6 @@ typedef struct serial_device_s {
     void    (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t lcr);
     void    (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
     void     *priv;
-    serial_t *serial;
 } serial_device_t;
 
 typedef struct serial_port_s {

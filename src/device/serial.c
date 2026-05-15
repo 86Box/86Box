@@ -895,7 +895,7 @@ serial_attach_ex(int port,
     sd->lcr_callback             = lcr_callback;
     sd->priv                     = priv;
 
-    return sd->serial;
+    return com_ports[port].serial;
 }
 
 serial_t *
@@ -921,7 +921,7 @@ serial_attach_ex_2(int port,
     sd->lcr_callback             = NULL;
     sd->priv                     = priv;
 
-    return sd->serial;
+    return com_ports[port].serial;
 }
 
 void
@@ -1052,7 +1052,6 @@ serial_init(const device_t *info)
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
         dev->sd         = &(serial_devices[next_inst]);
-        dev->sd->serial = dev;
 
         com_ports[next_inst].serial    = dev;
         com_ports[next_inst].hotunplug = CHAR_PORT_DETACHED;
