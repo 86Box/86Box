@@ -421,10 +421,11 @@ plat_dir_count_children(plat_dir_t *context)
         context->dir_entrycount = 0;
         lseek(context->find, 0, SEEK_SET);
         struct attrlist attr_list = { .commonattr = ATTR_CMN_RETURNED_ATTRS | ATTR_CMN_NAME };
+        uint8_t buf[4096];
         int entries;
-        while ((entries = getattrlistbulk(context->find, &attr_list, context->attr_buf, context->attr_len, 0)) > 0)
+        while ((entries = getattrlistbulk(context->find, &attr_list, buf, sizeof(buf), 0)) > 0)
             context->dir_entrycount += entries;
-        plat_dir_rewind(context);
+        lseek(context->find, 0, SEEK_SET);
     }
     return context->dir_entrycount;
 }
