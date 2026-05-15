@@ -543,8 +543,10 @@ plat_dir_rewind(plat_dir_t *context)
 {
     rewinddir(context->find);
     context->path[context->path_dir_len] = '\0';
-    context->data                        = &context->base_data;
-    context->stats_valid                 = !stat(context->path, &context->stats);
+    if (context->data != &context->base_data) {
+        context->data        = &context->base_data;
+        context->stats_valid = !stat(context->path, &context->stats);
+    }
     return 1;
 }
 
