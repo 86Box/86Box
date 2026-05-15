@@ -338,6 +338,22 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     return ret;
 }
 
+static void
+plat_dir_read_base(plat_dir_t *context)
+{
+    /* Get base directory attributes, including the child count. */
+    context->attr_list.dirattr |= ATTR_DIR_ENTRYCOUNT;
+    fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0);
+    plat_dir_fill_attributes(context, context->attr_buf);
+    context->data.name = ".";
+
+    /* Save the base directory's child count, or a sentinel value if it was not reported. */
+    context->dir_entrycount = context->data.entrycount ? *context->data.entrycount : (uint32_t) -1;
+
+    /* Don't get child count for child directories. */
+    context->attr_list.dirattr &= ~ATTR_DIR_ENTRYCOUNT;
+}
+
 static inline int
 plat_dir_open(plat_dir_t *context, const char *path)
 {
@@ -370,7 +386,6 @@ plat_dir_open(plat_dir_t *context, const char *path)
                                      0
 #    endif
                                      ;
-    context->attr_list.dirattr     = ATTR_DIR_ENTRYCOUNT;
     context->attr_list.fileattr    = 
 #    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
                                      ATTR_FILE_LINKCOUNT | ATTR_FILE_DEVTYPE |
@@ -378,19 +393,7 @@ plat_dir_open(plat_dir_t *context, const char *path)
                                      ATTR_FILE_DATALENGTH;
 
     /* Get attributes for the base directory separately, as . and .. are not included in getattrlistbulk. */
-    if (fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0)) {
-        free(context->path);
-        free(context->attr_buf);
-        return 0;
-    }
-    plat_dir_fill_attributes(context, context->attr_buf);
-    context->data.name = ".";
-
-    /* Save the base directory's child count. */
-    context->dir_entrycount = *context->data.entrycount;
-
-    /* We don't need the entry count for child directories. */
-    context->attr_list.dirattr &= ~ATTR_DIR_ENTRYCOUNT;
+    plat_dir_read_base(context);
 
     return 1;
 }
@@ -406,12 +409,28 @@ plat_dir_close(plat_dir_t *context)
 static inline int
 plat_dir_rewind(plat_dir_t *context)
 {
-    return lseek(context->find, 0, SEEK_SET) == 0;
+    if (!lseek(context->find, 0, SEEK_SET)) {
+        context->attr_remain = 0;
+        plat_dir_read_base(context);
+        return 1;
+    }
+    return 0;
 }
 
 static inline size_t
 plat_dir_count_children(plat_dir_t *context)
 {
+    if (context->dir_entrycount == (uint32_t) -1) {
+        /* Undocumented behavior: ATTR_DIR_ENTRYCOUNT is not reported by some
+           filesystems, such as SMB shares. Count children manually if so. */
+        context->dir_entrycount = 0;
+        lseek(context->find, 0, SEEK_SET);
+        struct attrlist attr_list = { .commonattr = ATTR_CMN_RETURNED_ATTRS | ATTR_CMN_NAME };
+        int entries;
+        while ((entries = getattrlistbulk(context->find, &attr_list, context->attr_buf, context->attr_len, 0)) > 0)
+            context->dir_entrycount += entries;
+        plat_dir_rewind(context);
+    }
     return context->dir_entrycount;
 }
 
