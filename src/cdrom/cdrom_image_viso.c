@@ -468,7 +468,8 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
             memset(&time_s_buf, 0, sizeof(time_s_buf));
             time_s          = &time_s_buf;
             time_s->tm_year = -1901;
-        } else if (UNLIKELY(time < (UNLIKELY(longform) ? -62135596800LL : -2208988800LL))) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
+        }
+        if (UNLIKELY(time < (UNLIKELY(longform) ? -62135596800LL : -2208988800LL))) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
             time_s->tm_year = -1901;
         else if (UNLIKELY(time > (UNLIKELY(longform) ? 253402300799LL : 5869583999LL))) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
             time_s->tm_year = 8100;
