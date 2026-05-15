@@ -68,7 +68,7 @@ extern int            closedir(DIR *);
 #    include <dirent.h>
 #endif
 
-#define plat_dir_is_special_entry(fn) (((fn)[0] == '.') && (((fn)[1] == '\0') || (((fn)[1] == '.') && ((fn)[2] == '\0'))))
+#define plat_dir_is_special_entry(fn) (((fn)[0] == '.') && (!(fn)[1] || (((fn)[1] == '.') && !(fn)[2])))
 
 #ifdef _WIN32
 #    ifndef FILE_ATTRIBUTE_DIRECTORY
@@ -151,13 +151,11 @@ static inline int
 plat_dir_read(plat_dir_t *context)
 {
     context->path[context->path_dir_len] = '\0';
-    while (1) {
-        if (!FindNextFileA(context->find, &context->data))
-            return 0;
-        else if (plat_dir_is_special_entry(context->data.cFileName))
-            continue;
-        return 1;
+    while (FindNextFileA(context->find, &context->data)) {
+        if (!plat_dir_is_special_entry(context->data.cFileName))
+            return 1;
     }
+    return 0;
 }
 
 #    define plat_dir_get_name(context)      ((context)->data.cFileName)
@@ -379,11 +377,9 @@ plat_dir_open(plat_dir_t *context, const char *path)
     context->attr_list.bitmapcount = ATTR_BIT_MAP_COUNT;
     context->attr_list.commonattr  = ATTR_CMN_RETURNED_ATTRS | ATTR_CMN_NAME | ATTR_CMN_ERROR |
                                      ATTR_CMN_OBJTYPE |
-                                     ATTR_CMN_CRTIME | ATTR_CMN_MODTIME | ATTR_CMN_CHGTIME | ATTR_CMN_ACCTIME |
+                                     ATTR_CMN_CRTIME | ATTR_CMN_MODTIME | ATTR_CMN_CHGTIME | ATTR_CMN_ACCTIME
 #    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
-                                     ATTR_CMN_OWNERID | ATTR_CMN_GRPID | ATTR_CMN_ACCESSMASK
-#    else
-                                     0
+                                     | ATTR_CMN_OWNERID | ATTR_CMN_GRPID | ATTR_CMN_ACCESSMASK
 #    endif
                                      ;
     context->attr_list.fileattr    = 
