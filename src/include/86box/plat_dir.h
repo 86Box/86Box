@@ -404,12 +404,11 @@ plat_dir_close(plat_dir_t *context)
 static inline int
 plat_dir_rewind(plat_dir_t *context)
 {
-    if (!lseek(context->find, 0, SEEK_SET)) {
-        context->attr_remain = 0;
-        plat_dir_read_base(context);
-        return 1;
-    }
-    return 0;
+    if (lseek(context->find, 0, SEEK_SET))
+        return 0;
+    context->attr_remain = 0;
+    plat_dir_read_base(context);
+    return 1;
 }
 
 static inline size_t
