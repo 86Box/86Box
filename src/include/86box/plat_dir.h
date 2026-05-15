@@ -147,13 +147,35 @@ plat_dir_count_children(plat_dir_t *context)
     return ret;
 }
 
+static const char *plat_dir_get_path(plat_dir_t *context);
+
 static inline int
 plat_dir_read(plat_dir_t *context)
 {
     context->path[context->path_dir_len] = '\0';
     while (FindNextFileA(context->find, &context->data)) {
-        if (!plat_dir_is_special_entry(context->data.cFileName))
-            return 1;
+        if (!plat_dir_is_special_entry(context->data.cFileName)) {
+            /* If this entry is a symlink, follow it and fill the target's attributes instead. */
+            if ((context->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (context->data.dwReserved0 == IO_REPARSE_TAG_SYMLINK)) {
+                HANDLE file = CreateFileA(plat_dir_get_path(context), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+                if (file != INVALID_HANDLE_VALUE) {
+                    char buf[4096];
+                    if (UNLIKELY(GetFinalPathNameByHandleA(file, buf, sizeof(buf), FILE_NAME_NORMALIZED | VOLUME_NAME_DOS) <= 0))
+                        buf[0] = '\0';
+                    CloseHandle(file);
+                    if (LIKELY(buf[0])) {
+                        HANDLE find = FindFirstFileExA(buf, FindExInfoBasic, &context->data, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+                        if (LIKELY(find != INVALID_HANDLE_VALUE)) {
+                            FindClose(find);
+                            return 1;
+                        }
+                    }
+
+                }
+            } else {
+                return 1;
+            }
+        }
     }
     return 0;
 }
@@ -626,7 +648,7 @@ plat_dir_read(plat_dir_t *context)
 #    define plat_dir_is_system(context) (plat_dir_is_char((context)) || plat_dir_is_block((context)) || plat_dir_is_socket((context)))
 #endif
 
-static inline const char *
+static const char *
 plat_dir_get_path(plat_dir_t *context)
 {
     if (context->path[context->path_dir_len])
