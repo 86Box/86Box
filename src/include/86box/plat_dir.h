@@ -175,7 +175,6 @@ plat_dir_read(plat_dir_t *context)
 #    endif
 #    define plat_dir_is_file(context)       (!((context)->data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 #    define plat_dir_is_dir(context)        (!plat_dir_is_file((context)))
-#    define plat_dir_is_symlink(context)    (((context)->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && ((context)->data.dwReserved0 == IO_REPARSE_TAG_SYMLINK))
 #    define plat_dir_is_char(context)       (0)
 #    define plat_dir_is_block(context)      (0)
 #    define plat_dir_is_pipe(context)       (0)
@@ -473,7 +472,6 @@ plat_dir_read(plat_dir_t *context)
 #    endif
 #    define plat_dir_is_file(context)       (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VREG) : 0)
 #    define plat_dir_is_dir(context)        (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VDIR) : 0)
-#    define plat_dir_is_symlink(context)    (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VLNK) : 0)
 #    define plat_dir_is_char(context)       (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VCHR) : 0)
 #    define plat_dir_is_block(context)      (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VBLK) : 0)
 #    define plat_dir_is_pipe(context)       (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VFIFO) : 0)
@@ -601,7 +599,6 @@ plat_dir_read(plat_dir_t *context)
 
 #    define plat_dir_is_file_stat(context)    (S_ISREG(plat_dir_stat((context))->st_mode))
 #    define plat_dir_is_dir_stat(context)     (S_ISDIR(plat_dir_stat((context))->st_mode))
-#    define plat_dir_is_symlink_stat(context) (S_ISLNK(plat_dir_stat((context))->st_mode))
 #    define plat_dir_is_char_stat(context)    (S_ISCHR(plat_dir_stat((context))->st_mode))
 #    define plat_dir_is_block_stat(context)   (S_ISBLK(plat_dir_stat((context))->st_mode))
 #    define plat_dir_is_pipe_stat(context)    (S_ISFIFO(plat_dir_stat((context))->st_mode))
@@ -610,7 +607,6 @@ plat_dir_read(plat_dir_t *context)
 #    if defined(DT_UNKNOWN) && defined(DT_REG) && defined(DT_DIR)
 #        define plat_dir_is_file(context)    (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_file_stat((context)) : ((context)->data->d_type == DT_REG))
 #        define plat_dir_is_dir(context)     (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_dir_stat((context)) : ((context)->data->d_type == DT_DIR))
-#        define plat_dir_is_symlink(context) (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_symlink_stat((context)) : ((context)->data->d_type == DT_LNK))
 #        define plat_dir_is_char(context)    (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_char_stat((context)) : ((context)->data->d_type == DT_CHR))
 #        define plat_dir_is_block(context)   (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_block_stat((context)) : ((context)->data->d_type == DT_BLK))
 #        define plat_dir_is_pipe(context)    (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_pipe_stat((context)) : ((context)->data->d_type == DT_FIFO))
@@ -618,7 +614,6 @@ plat_dir_read(plat_dir_t *context)
 #    else
 #        define plat_dir_is_file    plat_dir_is_file_stat
 #        define plat_dir_is_dir     plat_dir_is_dir_stat
-#        define plat_dir_is_symlink plat_dir_is_symlink_stat
 #        define plat_dir_is_char    plat_dir_is_char_stat
 #        define plat_dir_is_block   plat_dir_is_block_stat
 #        define plat_dir_is_pipe    plat_dir_is_pipe_stat
