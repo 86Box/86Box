@@ -48,6 +48,7 @@ extern "C" {
 #include "qt_filefield.hpp"
 #include "qt_models_common.hpp"
 #include "qt_util.hpp"
+#include "qt_preferences.hpp"
 #ifdef Q_OS_WINDOWS
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
@@ -136,6 +137,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
     auto         *device_context = static_cast<device_context_t *>(dc);
     const auto   *config         = static_cast<const _device_config_ *>(c);
     const QString blank          = "";
+    const QString colon          = (Preferences::languageIdToCode(lang_id).startsWith("fr-") ? " :" : ":");
     int           bios           = -1;
     int           p;
     int           q;
@@ -188,7 +190,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     auto *cbox = new QCheckBox();
                     cbox->setObjectName(config->name);
                     cbox->setChecked(value > 0);
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     break;
                 }
 #ifdef USE_RTMIDI
@@ -207,7 +209,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         if (i == value)
                             currentIndex = i;
                     }
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
@@ -226,7 +228,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         if (i == value)
                             currentIndex = i;
                     }
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
@@ -249,7 +251,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         if (sel->value == value)
                             currentIndex = row;
                     }
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     if (!strcmp(config->name, "memory")) {
                         cbox_memory = cbox;
@@ -290,7 +292,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 
                     bios_rows = rows;
                     if (rows > 1)
-                        this->ui->formLayout->addRow(tr(config->description), cbox);
+                        this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
 
                     bios = currentIndex;
                     cbox->setCurrentIndex(currentIndex);
@@ -308,7 +310,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     if (config->spinner.step > 0)
                         spinBox->setSingleStep(config->spinner.step);
                     spinBox->setValue(value);
-                    this->ui->formLayout->addRow(tr(config->description), spinBox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), spinBox);
                     break;
                 }
             case CONFIG_FNAME:
@@ -343,7 +345,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         extensionList[i] = re.match(extensionList[i]).captured(1);
 #endif
                     fileField->setFilter(tr(description.toUtf8().constData()) % util::DlgFilter(extensionList) % tr("All files") % util::DlgFilter({ "*" }, true));
-                    this->ui->formLayout->addRow(tr(config->description), fileField);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), fileField);
                     break;
                 }
             case CONFIG_STRING:
@@ -352,7 +354,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     lineEdit->setObjectName(config->name);
                     lineEdit->setCursor(Qt::IBeamCursor);
                     lineEdit->setText(selected);
-                    this->ui->formLayout->addRow(tr(config->description), lineEdit);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), lineEdit);
                     break;
                 }
             case CONFIG_SERPORT:
@@ -378,7 +380,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                             currentIndex = row;
                     }
 
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
@@ -411,7 +413,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     });
                     hboxLayout->addWidget(lineEdit);
                     hboxLayout->addWidget(generateButton);
-                    this->ui->formLayout->addRow(tr(config->description), hboxLayout);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), hboxLayout);
                     break;
                 }
         }
