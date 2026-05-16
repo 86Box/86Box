@@ -626,6 +626,9 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
     else if (device == nullptr)
         return "";
     else {
+        if (internalName == nullptr)
+            internalName = device->internal_name;
+
         char        temp[512];
         const char *tempbus;
         if (bus == 1) {
