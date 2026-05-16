@@ -278,11 +278,10 @@ lxt_init(const device_t *info)
     dev->is_lxt3 = info->local;
 
     for (int i = 0; i < ems_boards; i++) {
-        sprintf(conf_str, "ems_%i_enable", i + 1);
-        ems_en[i]  = device_get_config_int(conf_str);
-
         sprintf(conf_str, "ems_%i_base", i + 1);
         ems_io[i]  = device_get_config_hex16(conf_str);
+
+        ems_en[i]  = (ems_io[i] != 0x0000);
 
         sprintf(conf_str, "ems_%i_mem_size", i + 1);
         ems_mem[i] = device_get_config_int(conf_str) << 10;
@@ -399,28 +398,6 @@ static const device_config_t laserxt_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    {
-        .name           = "ems_1_enable",
-        .description    = "Enable EMS 1",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "ems_2_enable",
-        .description    = "Enable EMS 2",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -472,17 +449,6 @@ static const device_config_t lxt3_config[] = {
             .max  = 1024,
             .step =   32
         },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "ems_1_enable",
-        .description    = "Enable EMS",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
