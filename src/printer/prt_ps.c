@@ -44,21 +44,6 @@
 #define GS_ARG_ENCODING_UTF8 1
 #define gs_error_Quit        -101
 
-#ifdef _WIN32
-#    define PATH_GHOSTSCRIPT_DLL "gsdll64.dll"
-#    define PATH_GHOSTPCL_DLL    "gpcl6dll64.dll"
-#elif defined __APPLE__
-#    define PATH_GHOSTSCRIPT_DLL "libgs.dylib"
-#    define PATH_GHOSTPCL_DLL    "libgpcl6.9.54.dylib"
-#else
-#    define PATH_GHOSTSCRIPT_DLL      "libgs.so.10"
-#    define PATH_GHOSTSCRIPT_DLL_ALT1 "libgs.so.9"
-#    define PATH_GHOSTSCRIPT_DLL_ALT2 "libgs.so"
-#    define PATH_GHOSTPCL_DLL         "libgpcl6.so.10"
-#    define PATH_GHOSTPCL_DLL_ALT1    "libgpcl6.so.9"
-#    define PATH_GHOSTPCL_DLL_ALT2    "libgpcl6.so"
-#endif
-
 #define POSTSCRIPT_BUFFER_LENGTH 65536
 
 enum {
@@ -532,16 +517,19 @@ ps_init(const device_t *info)
 
     if (dev->lang != LANG_RAW) {
         /* Try loading the DLL. */
-        ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
-#ifdef PATH_GHOSTSCRIPT_DLL_ALT1
-        if (ghostscript_handle == NULL) {
-            ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT1, ghostscript_imports);
-#    ifdef PATH_GHOSTSCRIPT_DLL_ALT2
-            if (ghostscript_handle == NULL)
-                ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT2, ghostscript_imports);
-#    endif
-        }
+        static const char *ghostscript_libs[] = {
+#ifdef _WIN32
+            "gsdll64.dll", "libgs-10.dll", "libgs-9.dll"
+#elif defined(__APPLE__)
+            "libgs.dylib"
+#else
+            "libgs.so.10", "libgs.so.9", "libgs.so"
 #endif
+        };
+        for (int i = 0; i < (sizeof(ghostscript_libs) / sizeof(ghostscript_libs[0])); i++) {
+            if ((ghostscript_handle = dynld_module(ghostscript_libs[i], ghostscript_imports)))
+                break;
+        }
 
         if (ghostscript_handle == NULL) {
             ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
@@ -584,16 +572,19 @@ pcl_init(const device_t *info)
 
     if (dev->lang != LANG_RAW) {
         /* Try loading the DLL. */
-        ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL, ghostscript_imports);
-#ifdef PATH_GHOSTPCL_DLL_ALT1
-        if (ghostscript_handle == NULL) {
-            ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT1, ghostscript_imports);
-#    ifdef PATH_GHOSTPCL_DLL_ALT2
-            if (ghostscript_handle == NULL)
-                ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT2, ghostscript_imports);
-#    endif
-        }
+        static const char *ghostpcl_libs[] = {
+#ifdef _WIN32
+            "gpcl6dll64.dll", "libgpcl6-10.dll", "libgpcl6-9.dll"
+#elif defined(__APPLE__)
+            "libgpcl6.dylib", "libgpcl6.9.dylib", "libgpcl6.9.54.dylib"
+#else
+            "libgpcl6.so.10", "libgpcl6.so.9", "libgpcl6.so"
 #endif
+        };
+        for (int i = 0; i < (sizeof(ghostpcl_libs) / sizeof(ghostpcl_libs[0])); i++) {
+            if ((ghostscript_handle = dynld_module(ghostpcl_libs[i], ghostscript_imports)))
+                break;
+        }
 
         if (ghostscript_handle == NULL) {
             ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTPCL_ERROR_TITLE), plat_get_string(STRING_GHOSTPCL_ERROR_DESC));
