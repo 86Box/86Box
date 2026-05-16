@@ -71,6 +71,7 @@
     <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
+    <addaction name="actionAuto_capture_mouse"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="separator"/>
     <addaction name="actionUpdate_mouse_every_CPU_frame"/>
@@ -316,6 +317,14 @@
    </property>
    <property name="text">
     <string>&amp;Keyboard requires capture</string>
+   </property>
+  </action>
+  <action name="actionAuto_capture_mouse">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Auto capture mouse</string>
    </property>
   </action>
   <action name="actionRight_CTRL_is_left_ALT">

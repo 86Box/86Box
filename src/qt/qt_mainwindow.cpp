@@ -476,6 +476,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
+    ui->actionAuto_capture_mouse->setChecked(auto_capture_mouse);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
     ui->actionResizable_window->setChecked(vid_resize == 1);
     ui->actionRemember_size_and_position->setChecked(window_remember);
@@ -770,6 +771,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     if (!vnc_enabled)
         video_setblit(qt_blit);
+
+
+connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this]() {
+    static bool first_capture_done = false;
+
+    if (first_capture_done)
+        return;
+
+    if (!auto_capture_mouse)
+        return;
+
+    first_capture_done = true;
+
+    QTimer::singleShot(100, this, [this]() {
+        if (!mouse_capture)
+            emit setMouseCapture(true);
+    });
+});
 
     if (start_in_fullscreen) {
         connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this]() {
@@ -1181,6 +1200,13 @@ MainWindow::on_actionKeyboard_requires_capture_triggered()
 }
 
 void
+MainWindow::on_actionAuto_capture_mouse_triggered()
+{
+    auto_capture_mouse ^= 1;
+    config_changed = 1;
+}
+
+void
 MainWindow::on_actionRight_CTRL_is_left_ALT_triggered()
 {
     rctrl_is_lalt ^= 1;
@@ -1189,6 +1215,7 @@ MainWindow::on_actionRight_CTRL_is_left_ALT_triggered()
 void
 MainWindow::on_actionHard_Reset_triggered()
 {
+	recapture_after_reset = mouse_capture;
     if (confirm_reset) {
         QMessageBox questionbox(QMessageBox::Icon::Question, EMU_NAME, tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::Yes | QMessageBox::No, this);
         const auto chkbox    = new QCheckBox(tr("Don't show this message again"));
@@ -1206,12 +1233,25 @@ MainWindow::on_actionHard_Reset_triggered()
     }
     config_changed = 2;
     pc_reset_hard();
+
+QTimer::singleShot(500, this, [this]() {
+    if (recapture_after_reset)
+        emit setMouseCapture(true);
+});
+
 }
 
 void
 MainWindow::on_actionCtrl_Alt_Del_triggered()
 {
+    recapture_after_reset = mouse_capture;
+
     pc_send_cad();
+
+    QTimer::singleShot(500, this, [this]() {
+        if (recapture_after_reset)
+            emit setMouseCapture(true);
+    });
 }
 
 void

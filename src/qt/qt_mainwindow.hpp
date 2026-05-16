@@ -93,6 +93,7 @@ private slots:
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
+    void on_actionAuto_capture_mouse_triggered();
     void on_actionResizable_window_triggered(bool checked);
     void on_action0_5x_triggered();
     void on_action1x_triggered();
@@ -173,6 +174,7 @@ private:
     Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
+    bool recapture_after_reset = false;
 
     void updateShortcuts();
     void processKeyboardInput(bool down, uint32_t keycode);

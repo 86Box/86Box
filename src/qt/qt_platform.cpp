@@ -158,8 +158,9 @@ int          fixed_size_x    = 640;
 int          fixed_size_y    = 480;
 int          rctrl_is_lalt   = 0;
 int          update_icons    = 1;
-int          kbd_req_capture = 0;
-int          hide_status_bar = 0;
+int          kbd_req_capture     = 0;
+int          auto_capture_mouse  = 0;
+int          hide_status_bar     = 0;
 int          hide_tool_bar   = 0;
 
 int

@@ -19,6 +19,9 @@ msgstr "&Действие"
 msgid "&Keyboard requires capture"
 msgstr "&Клавиатура требует захвата"
 
+msgid "&Auto capture mouse"
+msgstr "&Автозахват мыши"
+
 msgid "&Right CTRL is left ALT"
 msgstr "П&равый CTRL - это левый ALT"
 

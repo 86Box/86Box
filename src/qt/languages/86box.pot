@@ -12,6 +12,9 @@ msgstr ""
 msgid "&Keyboard requires capture"
 msgstr ""
 
+msgid "&Auto capture mouse"
+msgstr ""
+
 msgid "&Right CTRL is left ALT"
 msgstr ""
 

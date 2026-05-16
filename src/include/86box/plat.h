@@ -116,6 +116,7 @@ extern int      rctrl_is_lalt;
 extern int      update_icons;
 
 extern int kbd_req_capture;
+extern int auto_capture_mouse;
 extern int hide_status_bar;
 extern int hide_tool_bar;
 extern int fullscreen_ui_visible;

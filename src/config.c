@@ -353,8 +353,9 @@ load_general(void)
 
     sound_gain = ini_section_get_int(cat, "sound_gain", 0);
 
-    kbd_req_capture = ini_section_get_int(cat, "kbd_req_capture", 0);
-    hide_status_bar = ini_section_get_int(cat, "hide_status_bar", 0);
+    kbd_req_capture    = ini_section_get_int(cat, "kbd_req_capture", 0);
+    auto_capture_mouse = ini_section_get_int(cat, "auto_capture_mouse", 0);
+    hide_status_bar    = ini_section_get_int(cat, "hide_status_bar", 0);
     hide_tool_bar   = ini_section_get_int(cat, "hide_tool_bar", 0);
     sound_muted     = ini_section_get_int(cat, "sound_muted", 0);
 
@@ -2616,6 +2617,7 @@ config_load(void)
         cpu   = 0;
 
         kbd_req_capture      = 0;
+        auto_capture_mouse   = 0;
         hide_status_bar      = 0;
         hide_tool_bar        = 0;
         scale                = 1;
@@ -2958,6 +2960,8 @@ save_general(void)
         ini_section_set_int(cat, "kbd_req_capture", kbd_req_capture);
     else
         ini_section_delete_var(cat, "kbd_req_capture");
+
+    ini_section_set_int(cat, "auto_capture_mouse", auto_capture_mouse);
 
     if (hide_status_bar != 0)
         ini_section_set_int(cat, "hide_status_bar", hide_status_bar);
