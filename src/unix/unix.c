@@ -1787,6 +1787,8 @@ plat_set_thread_name(void *thread, const char *name)
 #elif defined(__NetBSD__)
     char truncated[64];
 #elif defined(__HAIKU__)
+    if (thread) /* BeOS threads can only easily set self's name */
+        return;
     char truncated[32];
 #else
     char truncated[16];
@@ -1798,6 +1800,8 @@ plat_set_thread_name(void *thread, const char *name)
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, "%s");
 #elif defined(__HAIKU__)
     rename_thread(find_thread(NULL), truncated);
+#elif defined(__OpenBSD__)
+    pthread_set_name_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif
