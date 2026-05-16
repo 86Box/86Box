@@ -1060,9 +1060,8 @@ plat_set_thread_name(void *thread, const char *name)
     }
 
     if (pSetThreadDescription) {
-        size_t  len = strlen(name) + 1;
-        wchar_t wname[2048];
-        mbstowcs(wname, name, (len >= 1024) ? 1024 : len);
+        wchar_t wname[1024];
+        mbstowcs(wname, name, (sizeof(wname) / sizeof(wname[0])) - 1);
         pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
     }
 #else
@@ -1072,11 +1071,15 @@ plat_set_thread_name(void *thread, const char *name)
     char truncated[64];
 #    elif defined(Q_OS_NETBSD)
     char truncated[64];
+#    elif defined(__HAIKU__)
+    if (thread) /* BeOS threads can only easily set self's name */
+        return;
+    char truncated[32];
 #    else
     char truncated[16];
 #    endif
     strncpy(truncated, name, sizeof(truncated) - 1);
-#    if defined(Q_OS_DARWIN)
+#    ifdef Q_OS_DARWIN
     pthread_setname_np(truncated);
 #    elif defined(Q_OS_NETBSD)
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, (void *) "%s");
