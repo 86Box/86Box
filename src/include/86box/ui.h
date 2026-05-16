@@ -21,10 +21,6 @@
 extern "C" {
 #endif
 
-#ifdef USE_WX
-#    define RENDER_FPS 30 /* default render speed */
-#endif
-
 /* Message Box functions. */
 #define MBX_INFO        1
 #define MBX_ERROR       2

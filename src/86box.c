@@ -111,13 +111,6 @@
 #include <86box/nv/vid_nv_rivatimer.h>
 #include <86box/vfio.h>
 
-// Disable c99-designator to avoid the warnings about int ng
-#ifdef __clang__
-#    if __has_warning("-Wunused-but-set-variable")
-#        pragma clang diagnostic ignored "-Wunused-but-set-variable"
-#    endif
-#endif
-
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
 int          dopause = 1;  /* system is paused */
@@ -134,9 +127,6 @@ int dump_on_exit        = 0; /* (O) dump regs on exit */
 int start_in_fullscreen = 0; /* (O) start in fullscreen */
 #ifdef _WIN32
 int force_debug = 0; /* (O) force debug output */
-#endif
-#ifdef USE_WX
-int video_fps = RENDER_FPS; /* (O) render speed in fps */
 #endif
 int settings_only     = 0; /* (O) show only the settings dialog */
 int confirm_exit_cmdl = 1; /* (O) do not ask for confirmation on quit if set to 0 */
@@ -787,9 +777,6 @@ pc_init(int argc, char *argv[])
     time_t           now;
     int              c;
     int              lvmp = 0;
-#ifdef ENABLE_NG
-    int ng = 0;
-#endif
 #ifdef _WIN32
     uint32_t *uid;
     uint32_t *shwnd;
