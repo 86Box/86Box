@@ -354,6 +354,8 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     lineEdit->setObjectName(config->name);
                     lineEdit->setCursor(Qt::IBeamCursor);
                     lineEdit->setText(selected);
+                    lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+                    lineEdit->setMinimumWidth(150);
                     this->ui->formLayout->addRow(tr(config->description).append(colon), lineEdit);
                     break;
                 }
