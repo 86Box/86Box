@@ -71,18 +71,20 @@ machine_at_prox1332_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/prox1332/D30B3AC1.BIN",
-                           0x000e0000, 131072, 0);
+    ret = bios_load_linear("roms/machines/prox1332/BIOS.ROM",
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
         return ret;
 
     machine_at_common_init(model);
 
-    device_add_params(&fdc37c669_device, (void *) FDC37C6XX_370);
+    // device_add_params(&fdc37c669_device, (void *) FDC37C6XX_370);
+    device_add_params(&fdc37c669_device, (void *) FDC37C6XX_IDE_PRI);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ali6117d_device);
-    device_add(&sst_flash_29ee010_device);
+    // device_add(&sst_flash_29ee010_device);
+    device_add_params(&amd_flash_am29f016d_device, (void *) (uintptr_t) AMD_FLAG_LEGACY);
 
     return ret;
 }
