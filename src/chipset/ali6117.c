@@ -15,6 +15,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define HAVE_STDARG_H
@@ -80,7 +81,6 @@ static uint32_t ali6117_modes[32][13] = {
 // clang-format on
 };
 
-#define ENABLE_ALI6117_LOG 1
 #ifdef ENABLE_ALI6117_LOG
 int ali6117_do_log = ENABLE_ALI6117_LOG;
 
