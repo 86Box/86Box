@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-16 15:51+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
 "Language: ja-JP\n"
@@ -368,7 +368,7 @@ msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr ""
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "その他"
 
 msgid "Machine:"
 msgstr "マシン:"
@@ -1970,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "BIOS言語"
 
 msgid "Variant"
-msgstr ""
+msgstr "バリアント"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161拡張ユニット"
@@ -2811,7 +2811,7 @@ msgid "Emulator"
 msgstr ""
 
 msgid "Input"
-msgstr ""
+msgstr "入力"
 
 msgid "Key bindings"
 msgstr "キーバインド"
