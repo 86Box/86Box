@@ -378,9 +378,9 @@ net_pcap_prepare(netdev_t *list)
 #elif defined(__APPLE__)
     libpcap_handle = dynld_module("libpcap.dylib", pcap_imports);
 #else
-    static const char *libs[] = {"libpcap.so.1", "libpcap.so.0", "libpcap.so.0.8", "libpcap.so"};
-    for (i = 0; i < (sizeof(libs) / sizeof(libs[0])); i++) {
-        if ((libpcap_handle = dynld_module(libs[i], pcap_imports)))
+    static const char *libpcap_libs[] = {"libpcap.so.1", "libpcap.so.0", "libpcap.so.0.8", "libpcap.so"};
+    for (i = 0; i < (sizeof(libpcap_libs) / sizeof(libpcap_libs[0])); i++) {
+        if ((libpcap_handle = dynld_module(libpcap_libs[i], pcap_imports)))
             break;
     }
 #endif
