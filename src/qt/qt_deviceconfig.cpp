@@ -444,12 +444,12 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     bios_rows    = 0;
 
     DeviceConfig dc(settings);
-    dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
+    dc.setWindowTitle(tr("%1 Device Configuration").arg(DeviceName(device, device->internal_name, -1)));
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
 
-    const auto device_label = new QLabel(tr(device->name));
+    const auto device_label = new QLabel(DeviceName(device, device->internal_name, -1));
     device_label->setAlignment(Qt::AlignCenter);
     dc.ui->formLayout->addRow(device_label);
     const auto line = new QFrame;
