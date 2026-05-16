@@ -248,7 +248,9 @@ static uint32_t
 plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
 {
     /* Return size for this attribute buffer. */
+    pclog("plat_dir: fill_attributes");
     uint32_t ret = AS_U32(buf[0]);
+    pclog(" len %d\n", (unsigned int) ret);
     buf += sizeof(uint32_t);
 
     /* Set mandatory attributes. */
@@ -257,12 +259,14 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     attrgroup_t attrs = context->data.returned->commonattr;
     if (UNLIKELY(attrs & ATTR_CMN_ERROR)) {
         memset(&context->data, 0, sizeof(context->data)); /* for fail-fast case below */
+        pclog("plat_dir: fill_attributes failed (%d)\n", (unsigned int) AS_U32(buf[0]));
         buf += sizeof(uint32_t);
     }
     if (LIKELY(attrs & ATTR_CMN_NAME)) {
         context->data.name = (const char *) &buf[((attrreference_t *) buf)->attr_dataoffset];
         buf += sizeof(attrreference_t);
     } else {
+        pclog("plat_dir: no name somehow\n");
         context->data.name = "";
     }
 
@@ -360,14 +364,21 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
 static void
 plat_dir_read_base(plat_dir_t *context)
 {
+    pclog("plat_dir: read_base(%s)\n", context->path);
+
     /* Get base directory attributes, including the child count. */
     context->attr_list.dirattr |= ATTR_DIR_ENTRYCOUNT;
-    fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0);
-    plat_dir_fill_attributes(context, context->attr_buf);
+    if (!fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0)) {
+        plat_dir_fill_attributes(context, context->attr_buf);
+    } else {
+        pclog("plat_dir: fgetattrlist failed\n");
+        memset(&context->data, 0, sizeof(context->data));
+    }
     context->data.name = ".";
 
     /* Save the base directory's child count, or a sentinel value if it was not reported. */
     context->dir_entrycount = context->data.entrycount ? *context->data.entrycount : (uint32_t) -1;
+    pclog("plat_dir: entry count %d\n", context->dir_entrycount);
 
     /* Don't get child count for child directories. */
     context->attr_list.dirattr &= ~ATTR_DIR_ENTRYCOUNT;
@@ -378,18 +389,25 @@ plat_dir_open(plat_dir_t *context, const char *path)
 {
     /* Open directory for reading. */
     context->find = open(path, O_RDONLY, 0);
-    if (context->find == -1)
+    if (context->find == -1) {
+        pclog("plat_dir: open(%s) failed\n", path);
         return 0;
+    }
+    pclog("plat_dir: open(%s) ok\n", path);
 
     /* Initialize path buffer. */
     context->path_dir_len = strlen(path);
     context->path_len     = context->path_dir_len + PATH_MAX + 2;
     context->path         = (char *) malloc(context->path_len);
+    if (!context->path)
+        fatal("plat_dir: malloc path for %s failed\n", path);
     strcpy(context->path, path);
 
     /* Initialize attribute buffer. */
     context->attr_len    = 131072;
     context->attr_buf    = (uint8_t *) malloc(context->attr_len);
+    if (!context->attr_buf)
+        fatal("plat_dir: malloc attr_buf for %s failed\n", path);
     context->attr_ptr    = NULL;
     context->attr_remain = 0;
 
@@ -418,9 +436,11 @@ plat_dir_open(plat_dir_t *context, const char *path)
 static inline void
 plat_dir_close(plat_dir_t *context)
 {
+    pclog("plat_dir: close(%s)\n", context->path);
     close(context->find);
     free(context->path);
     free(context->attr_buf);
+    pclog("plat_dir: all freed\n");
 }
 
 static inline int
@@ -436,18 +456,24 @@ plat_dir_rewind(plat_dir_t *context)
 static inline size_t
 plat_dir_count_children(plat_dir_t *context)
 {
+    pclog("plat_dir: count_children(%s)", context->path);
     if (context->dir_entrycount == (uint32_t) -1) {
         /* Undocumented behavior: ATTR_DIR_ENTRYCOUNT is not reported by some
            filesystems, such as SMB shares. Count children manually if so. */
+        pclog(" = manual\n");
         context->dir_entrycount = 0;
         lseek(context->find, 0, SEEK_SET);
         struct attrlist attr_list = { .commonattr = ATTR_CMN_RETURNED_ATTRS | ATTR_CMN_NAME };
         uint8_t buf[4096];
         int entries;
-        while ((entries = getattrlistbulk(context->find, &attr_list, buf, sizeof(buf), 0)) > 0)
+        while ((entries = getattrlistbulk(context->find, &attr_list, buf, sizeof(buf), 0)) > 0) {
+            pclog("plat_dir: batch with %d entries\n", entries);
             context->dir_entrycount += entries;
+        }
         lseek(context->find, 0, SEEK_SET);
+        pclog("plat_dir: manual result");
     }
+    pclog(" = %d\n", (unsigned int) context->dir_entrycount);
     return context->dir_entrycount;
 }
 
@@ -465,14 +491,18 @@ plat_dir_read(plat_dir_t *context)
     context->path[context->path_dir_len] = '\0';
 
     /* Fill attributes for this entry and move on to the next one. */
-    context->attr_ptr += plat_dir_fill_attributes(context, context->attr_ptr);
+    uint32_t ret = plat_dir_fill_attributes(context, context->attr_ptr);
+    pclog("plat_dir: read(%s, %s) = %d\n", context->path, context->data.name ? context->data.name : "[NULL]", ret);
+    context->attr_ptr += ret;
     context->attr_remain--;
 
     /* If this entry is a symlink, follow it and fill the target's attributes instead. */
     if (LIKELY(context->data.objtype != NULL) && (*context->data.objtype == VLNK)) {
+        pclog("plat_dir: following symlink\n");
         uint8_t buf[4096];
         if (!getattrlistat(context->find, context->data.name, &context->attr_list, buf, sizeof(buf), 0))
             plat_dir_fill_attributes(context, buf);
+        else pclog("plat_dir: follow symlink failed\n");
     }
 
     return 1;
@@ -657,6 +687,7 @@ plat_dir_get_path(plat_dir_t *context)
         return context->path;
     size_t len = context->path_dir_len + strlen(plat_dir_get_name(context)) + 2;
     if (len > context->path_len) {
+        pclog("plat_dir: reallocating path from %d to %d\n", (unsigned int) context->path_len, (unsigned int) len);
         free(context->path);
         context->path     = (char *) malloc(len);
         context->path_len = len;
@@ -668,6 +699,7 @@ plat_dir_get_path(plat_dir_t *context)
         "/"
 #endif
         "%s", plat_dir_get_name(context));
+    pclog("plat_dir: get_path() = %s\n", context->path);
     return context->path;
 }
 
