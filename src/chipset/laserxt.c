@@ -348,6 +348,21 @@ static const device_config_t laserxt_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "ems_1_mem_size",
+        .description    = "EMS 1 Memory Size",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner = {
+            .min  =    0,
+            .max  =  512,
+            .step =   32
+        },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "ems_2_base",
         .description    = "EMS 2 Address",
         .type           = CONFIG_HEX16,
@@ -366,21 +381,6 @@ static const device_config_t laserxt_config[] = {
             { .description = "0x2E8",    .value = 0x2e8 },
             { .description = ""                         }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "ems_1_mem_size",
-        .description    = "EMS 1 Memory Size",
-        .type           = CONFIG_SPINNER,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner = {
-            .min  =    0,
-            .max  =  512,
-            .step =   32
-        },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
