@@ -533,8 +533,8 @@ ps_init(const device_t *info)
 
         if (ghostscript_handle == NULL) {
             ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
-            } else {
-                if (gsapi_revision(&rev, sizeof(rev)) == 0) {
+        } else {
+            if (gsapi_revision(&rev, sizeof(rev)) == 0) {
                 pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
             } else {
                 dynld_close(ghostscript_handle);
