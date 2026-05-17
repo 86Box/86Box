@@ -2029,6 +2029,12 @@ pc_run(void)
         target_fps    = force_10ms ? 100 : 1000;
         elapsed_ms    = fps_sample_elapsed_ms ? fps_sample_elapsed_ms : 1;
 
+#ifdef SCREENSHOT_MODE
+        if (force_10ms)
+            fps = ((fps + 2) / 5) * 5;
+        else
+            fps = ((fps + 20) / 50) * 50;
+#endif
         /*
          * Use real sample duration for title speed percent so delayed timer
          * callbacks do not create false dip/rebound spikes in speed reporting.
@@ -2036,17 +2042,12 @@ pc_run(void)
         numerator     = (int64_t) fps * 100000LL;
         speed_percent = (int) ((numerator + ((int64_t) elapsed_ms * target_fps / 2)) /
                                ((int64_t) elapsed_ms * target_fps));
-#ifdef SCREENSHOT_MODE
-        if (force_10ms)
-            fps = ((fps + 2) / 5) * 5;
-        else
-            fps = ((fps + 20) / 50) * 50;
-#endif
+
+        snprintf(temp, sizeof(temp), mouse_msg[mouse_msg_idx], speed_percent);
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */
         dispatch_async_f(dispatch_get_main_queue(), strdup((const char *) temp), _ui_window_title);
 #else
-        snprintf(temp, sizeof(temp), mouse_msg[mouse_msg_idx], speed_percent);
         ui_window_title(temp);
 #endif
         title_update = 0;
