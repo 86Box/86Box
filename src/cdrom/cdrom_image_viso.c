@@ -379,7 +379,7 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
 static size_t
 viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
 {
-    /* Trim filename to max_len if needed. */
+    /* Trim filename to max_len if required. */
     size_t len = strlen(entry->basename);
     if (len > max_len) {
         viso_write_string(data, entry->basename, max_len, VISO_CHARSET_FN);
@@ -410,7 +410,7 @@ viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /
     uint16_t utf8dec[len + 1];
     len = viso_convert_utf8(utf8dec, entry->basename, len + 1);
 
-    /* Trim decoded filename to max_len if needed. */
+    /* Trim decoded filename to max_len if required. */
     max_len /= 2;
     if (len > max_len) {
         viso_write_wstring(data, utf8dec, max_len, VISO_CHARSET_FN);
@@ -732,7 +732,7 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
                     return -1;
             }
 
-            /* Fill remainder with 00 bytes if needed. */
+            /* Fill remainder with 00 bytes if required. */
             if (read < sector_remain)
                 memset(buffer + read, 0x00, sector_remain - read);
         }
@@ -876,7 +876,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
             children_count += plat_dir_count_children(&context);
         }
 
-        /* Grow array if needed. */
+        /* Grow array if required. */
         if (children_count > dir_entries_len) {
             viso_entry_t **new_dir_entries = (viso_entry_t **) calloc(children_count, sizeof(viso_entry_t *));
             if (LIKELY(new_dir_entries != NULL)) {
@@ -1403,7 +1403,7 @@ next_dir:
                 /* Fill directory record. */
                 viso_fill_dir_record(data, entry, viso, dir_type);
 
-                /* Entries cannot cross sector boundaries, so pad to the next sector if needed. */
+                /* Entries cannot cross sector boundaries, so pad to the next sector if required. */
                 write = viso->sector_size - (ftello64(viso->tf.fp) % viso->sector_size);
                 if (write < data[0]) {
                     p = data + (viso->sector_size * 2) - write;
