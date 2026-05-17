@@ -608,9 +608,8 @@ enter_pause(void)
         }
     }
 
-    if (pSetProcessInformation) {
+    if (pSetProcessInformation)
         pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &state, sizeof(state));
-    }
 }
 
 void
@@ -630,9 +629,8 @@ exit_pause(void)
         }
     }
 
-    if (pSetProcessInformation) {
+    if (pSetProcessInformation)
         pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &state, sizeof(state));
-    }
 }
 #endif
 
@@ -657,11 +655,10 @@ plat_pause(int p)
         nvr_time_sync();
 
 #ifdef Q_OS_WINDOWS
-    if (p) {
+    if (p)
         enter_pause();
-    } else {
+    else
         exit_pause();
-    }
 #endif
 
     do_pause(p);
