@@ -154,6 +154,7 @@ extern const device_t char_serial_passthrough_com_device;
 extern const device_t char_pipe_com_device;
 extern const device_t char_pipe_lpt_device;
 extern const device_t char_file_com_device;
+extern const device_t char_file_lpt_device;
 extern const device_t char_stdio_com_device;
 extern const device_t char_loopback_com_device;
 extern const device_t char_loopback_lpt_device;
