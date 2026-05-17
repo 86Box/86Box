@@ -1215,7 +1215,7 @@ svga_recalctimings(svga_t *svga)
 
     /* Inform the user interface of any DPMS mode changes. */
     if (svga->dpms) {
-        if (!svga->dpms_ui) {
+        if (!svga->monitor->mon_dpms) {
             /* Make sure to black out the entire screen to avoid lingering image. */
             int y_add   = enable_overscan ? svga->monitor->mon_overscan_y : 0;
             int x_add   = enable_overscan ? svga->monitor->mon_overscan_x : 0;
@@ -1225,13 +1225,10 @@ svga_recalctimings(svga_t *svga)
             memset(svga->monitor->target_buffer->dat, 0, (size_t) svga->monitor->target_buffer->w * svga->monitor->target_buffer->h * 4);
             video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
             video_wait_for_buffer_monitor(svga->monitor_index);
-            svga->dpms_ui = 1;
-            ui_sb_set_text(plat_get_string(STRING_MONITOR_SLEEP));
+            svga->monitor->mon_dpms = 1;
         }
-    } else if (svga->dpms_ui) {
-        svga->dpms_ui = 0;
-        ui_sb_set_text(NULL);
-    }
+    } else if (svga->monitor->mon_dpms)
+        svga->monitor->mon_dpms = 0;
 
     if (enable_overscan && (svga->monitor->mon_overscan_x != old_monitor_overscan_x || svga->monitor->mon_overscan_y != old_monitor_overscan_y))
         video_force_resize_set_monitor(1, svga->monitor_index);
@@ -1779,8 +1776,8 @@ svga_close(svga_t *svga)
     free(svga->changedvram);
     free(svga->vram);
 
-    if (svga->dpms_ui)
-        ui_sb_set_text(NULL);
+    if ((svga->monitor != NULL) && (svga->monitor->mon_dpms))
+        svga->monitor->mon_dpms = 0;
 
     svga_pri = NULL;
 }
