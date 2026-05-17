@@ -100,7 +100,9 @@ typedef struct xtide_t {
 
     char nvr_path[64];
 
+#ifdef ENABLE_XTIDE_LOG
     void   *log;
+#endif
 } xtide_t;
 
 static void
@@ -436,8 +438,10 @@ jride_close(void *priv)
     if (xtide->ide_board)
         ide_xtide_close();
 
+#ifdef ENABLE_XTIDE_LOG
     if (xtide->log)
         log_close(xtide->log);
+#endif
 
     free(xtide);
 }
@@ -453,7 +457,9 @@ jride_init(const device_t *info)
     const char *bios_sel = device_get_config_bios("bios");
     const char *bios_file = device_get_bios_file(info, bios_sel, 0);
 
+#ifdef ENABLE_XTIDE_LOG
     xtide->log = log_open("XTIDE-jrIDE");
+#endif
 
     /* Load the 8KB flash ROM image.  rom_init() adds the mapping to the global list
      * with read-only handlers; we then replace those handlers with the jrIDE-specific
