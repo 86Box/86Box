@@ -120,7 +120,7 @@ machine_at_prox1332_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add_params(&fdc37c669_device, (void *) FDC37C6XX_370);
+    device_add_params(&fdc37c669_device, (void *) (FDC37C6XX_370 | FDC37C6XX_IDE_PRI));
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ali6117d_device);
     device_add(&sst_flash_29ee010_device);
