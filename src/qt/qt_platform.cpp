@@ -1279,6 +1279,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             terminals.prepend(QStringLiteral("lxterminal"));
         else
             terminals << QStringLiteral("lxterminal");
+        terminals.prepend(QStringLiteral("kitty")); /* priority 3 (non-DE terminal likely to be willingly installed by user) */
         terminals.prepend(QStringLiteral("x-terminal-emulator")); /* priority 2 (Debian alternatives system) */
         terminals.prepend(QStringLiteral("xdg-terminal-exec")); /* priority 1 (still a proposal with limited adoption as of writing) */
         terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt"); /* priority last */
