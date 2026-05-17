@@ -33,6 +33,7 @@
 
 #include "sdl_render.h"
 #include "sdl_osd.h"
+#include "sdl_osd_explorer.h"
 
 #ifdef USE_SDL_SHADER_PIPELINE
 #include "sdl_shader.h"
@@ -83,6 +84,8 @@ static int       menu_sel       = -1;
 static int       file_sel       = 0;
 static bool      file_list_focus_pending = false;
 static bool      mouse_was_captured = false;
+static SdlOsdExplorer      explorer;
+static SdlOsdExplorerConfig explorer_config;
 
 static char      files[OSD_FILE_CAPACITY][OSD_PATH_CAPACITY];
 static int       file_count     = 0;
@@ -389,6 +392,24 @@ static void mount_selected(void)
     pclog_toggle_suppr();
 }
 
+static void mount_path(const char *path)
+{
+    char msg[OSD_PATH_CAPACITY + 32];
+    snprintf(msg, sizeof(msg), "Loading: %s", path);
+    osd_log_push(msg);
+    pclog_toggle_suppr();
+    switch (current_view) {
+        case VIEW_FILE_FLOPPY: floppy_mount(0, (char *) path, 0);   break;
+        case VIEW_FILE_CD:     cdrom_mount(0, (char *) path);        break;
+        case VIEW_FILE_RDISK:  rdisk_mount(0, (char *) path, 0);     break;
+        case VIEW_FILE_CART:   cartridge_mount(0, (char *) path, 0); break;
+        case VIEW_FILE_MO:     mo_mount(0, (char *) path, 0);        break;
+        case VIEW_CD_FOLDER:   cdrom_mount(0, (char *) path);        break;
+        default: pclog_toggle_suppr(); return;
+    }
+    pclog_toggle_suppr();
+}
+
 static void run_cmd(const char *cmd)
 {
     char *buf = strdup(cmd);
@@ -605,6 +626,36 @@ static void show_main_menu(void)
     menu_normalize_selection();
 }
 
+static const char *view_title(OsdView v)
+{
+    switch (v) {
+        case VIEW_FILE_FLOPPY: return "Select Floppy Image";
+        case VIEW_FILE_CD:     return "Select CD-ROM Image";
+        case VIEW_FILE_RDISK:  return "Select Removable Disk Image";
+        case VIEW_FILE_CART:   return "Select Cartridge";
+        case VIEW_FILE_MO:     return "Select MO Image";
+        case VIEW_CD_FOLDER:   return "Mount Folder as CD-ROM";
+        default:               return "Select File";
+    }
+}
+
+static const char *view_accept_label(OsdView v)
+{
+    return (v == VIEW_CD_FOLDER) ? "Mount" : "Load";
+}
+
+static void open_browser(OsdView view)
+{
+    explorer_config.title            = view_title(view);
+    explorer_config.accept_label     = view_accept_label(view);
+    explorer_config.mode             = (view == VIEW_CD_FOLDER) ? SdlOsdExplorerMode::Directory : SdlOsdExplorerMode::File;
+    explorer_config.extension_globs  = exts_for_view(view);
+    explorer_config.initial_path     = nullptr;
+
+    explorer.Open(explorer_config);
+    current_view = view;
+}
+
 static void activate_menu_item(int idx, bool *close_osd)
 {
     const MenuItem &mi = menu_items[idx];
@@ -623,11 +674,11 @@ static void activate_menu_item(int idx, bool *close_osd)
 
     if (mi.view == VIEW_LOG)
         log_scroll_pending = true;
-    else if (mi.view == VIEW_CD_FOLDER)
-        open_cd_folder_browser();
     else
-        load_files(mi.view);
-    current_view = mi.view;
+        open_browser(mi.view);
+
+    if (mi.view == VIEW_LOG)
+        current_view = mi.view;
 }
 
 /* ------------------------------------------------------------------ */
@@ -929,16 +980,17 @@ static bool draw_folder_browser(void)
 /* ------------------------------------------------------------------ */
 /*  Draw: File selector                                                */
 /* ------------------------------------------------------------------ */
-static const char *view_title(OsdView v)
+static bool draw_browser(void)
 {
-    switch (v) {
-        case VIEW_FILE_FLOPPY: return "Select Floppy Image";
-        case VIEW_FILE_CD:     return "Select CD-ROM Image";
-        case VIEW_FILE_RDISK:  return "Select Removable Disk Image";
-        case VIEW_FILE_CART:   return "Select Cartridge";
-        case VIEW_FILE_MO:     return "Select MO Image";
-        default:               return "Select File";
-    }
+    SdlOsdExplorerResult result = explorer.Draw();
+    if (result.type == SdlOsdExplorerResultType::Accepted) {
+        mount_path(result.path.data());
+        current_view       = VIEW_LOG;
+        log_scroll_pending = true;
+    } else if (result.type == SdlOsdExplorerResultType::Cancelled)
+        show_main_menu();
+
+    return true;
 }
 
 static bool draw_file_selector(void)
@@ -1133,10 +1185,15 @@ void osd_present(int fb_w, int fb_h)
             still_open = draw_log();
             break;
         case VIEW_CD_FOLDER:
-            still_open = draw_folder_browser();
+        case VIEW_FILE_FLOPPY:
+        case VIEW_FILE_CD:
+        case VIEW_FILE_RDISK:
+        case VIEW_FILE_CART:
+        case VIEW_FILE_MO:
+            still_open = draw_browser();
             break;
         default:
-            still_open = draw_file_selector();
+            still_open = draw_menu();
             break;
     }
 
@@ -1170,10 +1227,15 @@ void osd_present(int fb_w, int fb_h)
             still_open = draw_log();
             break;
         case VIEW_CD_FOLDER:
-            still_open = draw_folder_browser();
+        case VIEW_FILE_FLOPPY:
+        case VIEW_FILE_CD:
+        case VIEW_FILE_RDISK:
+        case VIEW_FILE_CART:
+        case VIEW_FILE_MO:
+            still_open = draw_browser();
             break;
         default:
-            still_open = draw_file_selector();
+            still_open = draw_menu();
             break;
     }
 
