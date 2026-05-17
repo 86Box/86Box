@@ -8,15 +8,28 @@
 
 #include <86box/86box.h>
 #include <86box/plat.h>
+#include <86box/plat_dynld.h>
 #include <86box/cdrom.h>
 #include <86box/version.h>
 #include <86box/video.h>
 
 #include "sdl_monitor.h"
 
+#if ENABLE_READLINE
 static char *(*f_readline)(const char *)          = NULL;
 static int (*f_add_history)(const char *)         = NULL;
 static void (*f_rl_callback_handler_remove)(void) = NULL;
+
+static void *libedit_handle       = NULL;
+static dllimp_t libedit_imports[] = {
+    // clang-format off
+    { "readline",                   &f_readline },
+    { "add_history",                &f_add_history },
+    { "rl_callback_handler_remove", &f_rl_callback_handler_remove },
+    { NULL, NULL }
+    // clang-format on
+};
+#endif
 
 extern int exit_event, fullscreen_pending;
 extern bool fast_forward;
@@ -24,26 +37,26 @@ extern bool fast_forward;
 void
 monitor_init(void)
 {
-#if !defined(_WIN32) && ENABLE_READLINE
-    libedithandle = dlopen(LIBEDIT_LIBRARY, RTLD_LOCAL | RTLD_LAZY);
+#if ENABLE_READLINE
+    libedit_handle = dynld_module(LIBEDIT_LIBRARY, libedit_imports);
 
-    if (libedithandle) {
-        f_readline    = dlsym(libedithandle, "readline");
-        f_add_history = dlsym(libedithandle, "add_history");
-        f_rl_callback_handler_remove = dlsym(libedithandle, "rl_callback_handler_remove");
+    if (!libedit_handle) {
+        f_readline                   = NULL;
+        f_add_history                = NULL;
+        f_rl_callback_handler_remove = NULL;
 
-        if (!f_readline)
-            fprintf(stderr, "readline in libedit not found, line editing will be limited.\n");
-    } else
-        fprintf(stderr, "libedit not found, line editing will be limited.\n");
+        fprintf(stderr, "sdl_monitor: couldn't load " LIBEDIT_LIBRARY ", line editing will be limited.\n");
+    }
 #endif
 }
 
 void
 monitor_close(void)
 {
+#if ENABLE_READLINE
     if (f_rl_callback_handler_remove)
         f_rl_callback_handler_remove();
+#endif
 }
 
 static bool
@@ -120,8 +133,10 @@ monitor_execute_line(char *line)
             return;
         }
 
+#if ENABLE_READLINE
         if (f_add_history)
             f_add_history(linecpy);
+#endif
 
         memset(xargv, 0, sizeof(xargv));
         while (1) {
@@ -342,7 +357,6 @@ monitor_thread(UNUSED(void *param))
 #if !defined(USE_CLI)
     if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
         char  *line = NULL;
-        size_t n;
 
         printf(EMU_NAME " monitor console.\n");
         while (!exit_event) {

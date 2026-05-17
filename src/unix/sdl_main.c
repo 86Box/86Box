@@ -297,8 +297,7 @@ int
 main(int argc, char **argv)
 {
     SDL_Event event;
-    void     *libedithandle = NULL;
-    int      ret = 0;
+    int       ret = 0;
 
     SDL_Init(0);
     ret = pc_init(argc, argv);
