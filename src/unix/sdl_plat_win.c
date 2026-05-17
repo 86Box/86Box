@@ -199,7 +199,53 @@ plat_set_thread_name(void *thread, const char *name)
 int
 plat_run_command(const char *cmd, const char **env, const char *title)
 {
-    return 0;
+    /* Set up direct or console execution. */
+    STARTUPINFOA si        = { .cb = sizeof(STARTUPINFOA) };
+    DWORD flags            = 0;
+    if (title) {
+        flags |= CREATE_NEW_CONSOLE;
+        if (title[0])
+            si.lpTitle = (char *) title;
+    } else {
+        si.dwFlags   |= STARTF_USESTDHANDLES;
+        si.hStdInput  = GetStdHandle(STD_INPUT_HANDLE); 
+        si.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+        si.hStdError  = GetStdHandle(STD_ERROR_HANDLE);
+    }
+
+    /* Build command line arguments. */
+    size_t len  = strlen(cmd) + 4;
+    char  *args = (char *) malloc(len);
+    snprintf(args, len, "/c %s", cmd);
+
+    /* Append environment variables to the existing environment. */
+    char *new_env = NULL;
+    if (env) {
+        char *existing_env = GetEnvironmentStrings();
+        size_t  c          = 0;
+        while (existing_env[c++])
+            while (existing_env[c++]);
+        size_t d = 0;
+        while (env[d])
+            d += strlen(env[d]) + 1;
+        len     = c + d;
+        new_env = (char *) malloc(len);
+        memcpy(new_env, existing_env, --c);
+        FreeEnvironmentStrings(existing_env);
+        for (d = 0; env[d]; d++) {
+            strncpy(&new_env[c], env[d], len - c);
+            c += strlen(env[d]) + 1;
+        }
+        new_env[c] = '\0';
+    }
+
+    /* Execute command. */
+    PROCESS_INFORMATION pi  = { 0 };
+    int                 ret = !!CreateProcessA(getenv("ComSpec"), args, NULL, NULL, FALSE, flags, new_env, usr_path, &si, &pi);
+    free(args);
+    if (new_env)
+        free(new_env);
+    return ret;
 }
 
 /*
