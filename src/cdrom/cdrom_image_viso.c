@@ -878,8 +878,10 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Grow array if needed. */
         if (children_count > dir_entries_len) {
-            viso_entry_t **new_dir_entries = (viso_entry_t **) realloc(dir_entries, children_count * sizeof(viso_entry_t *));
-            if (new_dir_entries) {
+            viso_entry_t **new_dir_entries = (viso_entry_t **) calloc(children_count, sizeof(viso_entry_t *));
+            if (LIKELY(new_dir_entries != NULL)) {
+                if (LIKELY(dir_entries != NULL))
+                    free(dir_entries);
                 dir_entries     = new_dir_entries;
                 dir_entries_len = children_count;
             } else {
