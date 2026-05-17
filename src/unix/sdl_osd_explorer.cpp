@@ -9,8 +9,6 @@
 
 #include "imgui.h"
 
-#define USE_SDL_OSD_EXPLORER_OLD_STYLE
-
 namespace {
 
 constexpr size_t kPathCapacity = 1024;
