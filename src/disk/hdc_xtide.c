@@ -31,7 +31,6 @@
  *          Copyright 2017-2018 Fred N. van Kempen.
  *          Copyright 2025-2026 Jasmine Iwanek.
  */
-#define ENABLE_XTIDE_LOG 1
 #ifdef ENABLE_XTIDE_LOG
 #include <stdarg.h>
 #endif
