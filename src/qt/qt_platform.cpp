@@ -1252,8 +1252,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         /* Build terminal list, prioritizing the detected desktop environment's own terminal.
            Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
         QStringList terminals;
-        if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("KDE_FULL_SESSION") ||
-            have_env_var("XDG_CURRENT_DESKTOP", "TDE") || have_env_var("XDG_CURRENT_DESKTOP", "Trinity") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("TDE_FULL_SESSION"))
+        int is_trinity = have_env_var("XDG_CURRENT_DESKTOP", "TDE") || have_env_var("XDG_CURRENT_DESKTOP", "Trinity") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("TDE_FULL_SESSION");
+        if (is_trinity || have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("KDE_FULL_SESSION"))
             terminals.prepend(QStringLiteral("konsole"));
         else
             terminals << QStringLiteral("konsole");
@@ -1287,12 +1287,20 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         for (const auto &terminal : terminals) {
             process->setProgram(terminal);
             QStringList args;
-            if (terminal == QStringLiteral("xdg-terminal-exec"))
-                args << QString("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
-            else if (terminal == QStringLiteral("gnome-terminal"))
+            if (terminal == QStringLiteral("xdg-terminal-exec")) {
+                args << QStringLiteral("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
+            } else if (terminal == QStringLiteral("gnome-terminal")) {
                 args << QStringLiteral("--");
-            else
+            } else {
+                if (terminal == QStringLiteral("konsole")) {
+                    /* Hide script name in the title bar. */
+                    if (is_trinity)
+                        args << QStringLiteral("-T") << QStringLiteral(EMU_NAME);
+                    else
+                        args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
+                }
                 args << QStringLiteral("-e");
+            }
             process->setArguments(args << script);
             if (process->startDetached())
                 return 1;
