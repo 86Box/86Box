@@ -14,6 +14,7 @@
  */
 #include <QDebug>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QStringBuilder>
 #include <QLineEdit>
 
@@ -60,6 +61,14 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
         videoCard[i] = gfxcard[i];
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+    connect(ui->lineEditCustomEDID, &FileField::fileSelected, [this](const QString &fileName) {
+        QFileInfo edidFile(fileName);
+        if (edidFile.isFile() && edidFile.size() > 256) {
+            QMessageBox::critical(this, "EDID", tr("EDID file \"%s\" is too large.").replace("%s", "%1").arg(fileName));
+            this->ui->lineEditCustomEDID->setFileName(this->previousEDIDPath);
+        } else
+            this->previousEDIDPath = fileName;
+    });
 
     ui->comboBoxScreenType->addItem(tr("RGB Color"), 0);
     ui->comboBoxScreenType->addItem(tr("RGB Grayscale"), 1);
@@ -222,6 +231,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     ui->radioButtonCustom->setChecked(monitor_edid == 1);
     ui->lineEditCustomEDID->setFileName(monitor_edid_path);
     ui->lineEditCustomEDID->setEnabled(monitor_edid == 1);
+    previousEDIDPath = ui->lineEditCustomEDID->fileName();
 }
 
 void

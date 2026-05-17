@@ -18,9 +18,10 @@
 #include <86box/version.h>
 #include <86box/ini.h>
 #include <86box/config.h>
-#include <86box/unix_osd.h>
-#include <86box/unix_sdl.h>
-#include "unix_sdl_shader.h"
+
+#include "sdl_render.h"
+#include "sdl_osd.h"
+#include "sdl_shader.h"
 
 #define RENDERER_FULL_SCREEN 1
 #define RENDERER_HARDWARE    2
@@ -430,7 +431,8 @@ sdl_set_fs(int fs)
 #else
     SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 #endif
-    SDL_SetRelativeMouseMode((SDL_bool) mouse_capture);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+    mouse_capture = 1;
 
     sdl_fs = fs;
 
@@ -612,30 +614,21 @@ plat_resize(int w, int h, UNUSED(int monitor_index))
     SDL_UnlockMutex(sdl_mutex);
 }
 
-wchar_t    sdl_win_title[512] = { L'8', L'6', L'B', L'o', L'x', 0 };
+char    sdl_win_title[512] = EMU_NAME;
 SDL_mutex *titlemtx           = NULL;
 
 void
 ui_window_title_real(void)
 {
-    char *res;
-    if (sizeof(wchar_t) == 1) {
-        SDL_SetWindowTitle(sdl_win, (char *) sdl_win_title);
-        return;
-    }
-    res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char *) sdl_win_title, wcslen(sdl_win_title) * sizeof(wchar_t) + sizeof(wchar_t));
-    if (res) {
-        SDL_SetWindowTitle(sdl_win, res);
-        SDL_free((void *) res);
-    }
+    SDL_SetWindowTitle(sdl_win, sdl_win_title);
     title_set = 0;
 }
 extern SDL_threadID eventthread;
 
 /* Only activate threading path on macOS, otherwise it will softlock Xorg.
    Wayland doesn't seem to have this issue. */
-wchar_t *
-ui_window_title(wchar_t *str)
+char *
+ui_window_title(char *str)
 {
     if (!str)
         return sdl_win_title;
@@ -644,13 +637,13 @@ ui_window_title(wchar_t *str)
 #endif
     {
         memset(sdl_win_title, 0, sizeof(sdl_win_title));
-        wcsncpy(sdl_win_title, str, 512);
+        strncpy(sdl_win_title, str, sizeof(sdl_win_title) - 1);
         ui_window_title_real();
         return str;
     }
 #ifdef __APPLE__
     memset(sdl_win_title, 0, sizeof(sdl_win_title));
-    wcsncpy(sdl_win_title, str, 512);
+    strncpy(sdl_win_title, str, sizeof(sdl_win_title) - 1);
     title_set = 1;
 #endif
     return str;

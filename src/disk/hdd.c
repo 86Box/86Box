@@ -48,22 +48,11 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "none"))
         return HDD_BUS_DISABLED;
 
-    if (!strcmp(str, "mfm")) {
-        if (cdrom) {
-no_cdrom:
-            ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_INVALID_CONFIG), plat_get_string(STRING_NO_ST506_ESDI_CDROM));
-            return 0;
-        }
-
+    if (!strcmp(str, "mfm") && !cdrom)
         return HDD_BUS_MFM;
-    }
 
-    if (!strcmp(str, "esdi")) {
-        if (cdrom)
-            goto no_cdrom;
-
+    if (!strcmp(str, "esdi") && !cdrom)
         return HDD_BUS_ESDI;
-    }
 
     if (!strcmp(str, "ide"))
         return HDD_BUS_IDE;
@@ -77,38 +66,28 @@ no_cdrom:
     if (!strcmp(str, "scsi"))
         return HDD_BUS_SCSI;
     
-    if (!strcmp(str, "mitsumi"))
+    if (!strcmp(str, "mitsumi") && cdrom)
         return CDROM_BUS_MITSUMI;
 
-    if (!strcmp(str, "mke"))
+    if (!strcmp(str, "mke") && cdrom)
         return CDROM_BUS_MKE;
 
-    return 0;
+    return HDD_BUS_DISABLED;
 }
 
 char *
-hdd_bus_to_string(int bus, UNUSED(int cdrom))
+hdd_bus_to_string(int bus, int cdrom)
 {
     char *s = "none";
 
     switch (bus) {
         default:
-        if (cdrom) {
-            switch (bus) {
-                case CDROM_BUS_MITSUMI:
-                    s = "mitsumi";
-                    break;
-                case CDROM_BUS_MKE:
-                    s = "mke";
-                    break;
-            }
-            break;
-        }
         case HDD_BUS_DISABLED:
             break;
 
         case HDD_BUS_MFM:
-            s = "mfm";
+            if (!cdrom)
+                s = "mfm";
             break;
 
         case HDD_BUS_XTA:
@@ -116,7 +95,8 @@ hdd_bus_to_string(int bus, UNUSED(int cdrom))
             break;
 
         case HDD_BUS_ESDI:
-            s = "esdi";
+            if (!cdrom)
+                s = "esdi";
             break;
 
         case HDD_BUS_IDE:
@@ -129,6 +109,16 @@ hdd_bus_to_string(int bus, UNUSED(int cdrom))
 
         case HDD_BUS_SCSI:
             s = "scsi";
+            break;
+
+        case CDROM_BUS_MITSUMI:
+            if (cdrom)
+                s = "mitsumi";
+            break;
+
+        case CDROM_BUS_MKE:
+            if (cdrom)
+                s = "mke";
             break;
     }
 

@@ -30,12 +30,9 @@ extern "C" {
 #define MBX_QMARK       0x10
 #define MBX_WARNING     0x20
 #define MBX_FATAL       0x40
-#define MBX_ANSI        0x80
-#define MBX_LINKS       0x100
-#define MBX_DONTASK     0x200
 
-extern int ui_msgbox(int flags, void *message);
-extern int ui_msgbox_header(int flags, void *header, void *message);
+extern int ui_msgbox(int flags, char *message);
+extern int ui_msgbox_header(int flags, char *header, char *message);
 
 /* Status Bar functions. */
 #define SB_ICON_WIDTH 24
@@ -51,22 +48,21 @@ extern int ui_msgbox_header(int flags, void *header, void *message);
 #define SB_SOUND      0x90
 #define SB_TEXT       0xA0
 
-extern wchar_t *ui_window_title(wchar_t *s);
-extern void     ui_hard_reset_completed(void);
-extern void     ui_init_monitor(int monitor_index);
-extern void     ui_deinit_monitor(int monitor_index);
-extern void     ui_sb_set_ready(int ready);
-extern void     ui_sb_update_panes(void);
-extern void     ui_sb_update_text(void);
-extern void     ui_sb_update_tip(int meaning);
-extern void     ui_sb_update_icon(int tag, int active);
-extern void     ui_sb_update_icon_write(int tag, int write);
-extern void     ui_sb_update_icon_state(int tag, int state);
-extern void     ui_sb_update_icon_wp(int tag, int state);
-extern void     ui_sb_set_text_w(wchar_t *wstr);
-extern void     ui_sb_set_text(char *str);
-extern void     ui_sb_bugui(char *str);
-extern void     ui_sb_mt32lcd(char *str);
+extern char *ui_window_title(char *s);
+extern void  ui_hard_reset_completed(void);
+extern void  ui_init_monitor(int monitor_index);
+extern void  ui_deinit_monitor(int monitor_index);
+extern void  ui_sb_set_ready(int ready);
+extern void  ui_sb_update_panes(void);
+extern void  ui_sb_update_text(void);
+extern void  ui_sb_update_tip(int meaning);
+extern void  ui_sb_update_icon(int tag, int active);
+extern void  ui_sb_update_icon_write(int tag, int write);
+extern void  ui_sb_update_icon_state(int tag, int state);
+extern void  ui_sb_update_icon_wp(int tag, int state);
+extern void  ui_sb_set_text(char *str);
+extern void  ui_sb_bugui(char *str);
+extern void  ui_sb_mt32lcd(char *str);
 
 extern void     ui_update_force_interpreter(void);
 

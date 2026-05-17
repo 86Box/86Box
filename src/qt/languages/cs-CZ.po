@@ -768,17 +768,17 @@ msgstr "Základní sektorové obrazy"
 msgid "Surface images"
 msgstr "Obrazy povrchu"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Počítač \"%hs\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/machines\". Konfigurace se přepne na jiný dostupný počítač."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Počítač \"%s\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/machines\". Konfigurace se přepne na jiný dostupný počítač."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Video adaptér \"%hs\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/video\". Konfigurace se přepne na jiný dostupný adaptér."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Video adaptér \"%s\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/video\". Konfigurace se přepne na jiný dostupný adaptér."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Video adaptér 2 \"%hs\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/video\". Druhá grafická karta se zakáže."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Video adaptér 2 \"%s\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/video\". Druhá grafická karta se zakáže."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Zařízení \"%hs\" není dostupné, jelikož chybí obraz jeho paměti ROM. Zařízení je ignorováno."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Zařízení \"%s\" není dostupné, jelikož chybí obraz jeho paměti ROM. Zařízení je ignorováno."
 
 msgid "Machine"
 msgstr "Počítač"
@@ -3021,8 +3021,8 @@ msgstr "Exportovat…"
 msgid "Export EDID"
 msgstr "Exportovat EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Soubor EDID \"%ls\" je příliš velký."
+msgid "EDID file \"%s\" is too large."
+msgstr "Soubor EDID \"%s\" je příliš velký."
 
 msgid "OpenGL input scale"
 msgstr "Měřítko vstupu OpenGL"

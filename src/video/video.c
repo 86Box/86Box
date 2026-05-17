@@ -812,6 +812,7 @@ video_monitor_init(int index)
     monitors[index].mon_cga_palette                      = calloc(1, sizeof(int));
     monitors[index].mon_force_resize                     = 1;
     monitors[index].mon_vid_type                         = VIDEO_FLAG_TYPE_NONE;
+    monitors[index].mon_dpms                             = 0;
     atomic_init(&doresize_monitors[index], 0);
     atomic_init(&monitors[index].mon_screenshots, 0);
     atomic_init(&monitors[index].mon_screenshots_clipboard, 0);

@@ -768,17 +768,17 @@ msgstr "Imatges bàsiques de sector"
 msgid "Surface images"
 msgstr "Imatges de superfície"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "La màquina \"%hs\" no està disponible a causa de les ROMs faltants al directori roms/machines. Canviant a una màquina disponible."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "La màquina \"%s\" no està disponible a causa de les ROMs faltants al directori roms/machines. Canviant a una màquina disponible."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "La tarjeta de vídeo \"%hs\" no està disponible a causa de les ROMs faltants al directori roms/video. Canviant a una tarjeta de video disponible."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "La tarjeta de vídeo \"%s\" no està disponible a causa de les ROMs faltants al directori roms/video. Canviant a una tarjeta de video disponible."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "La tarjeta de vídeo 2 \"%hs\" no està disponible a causa de les ROMs faltants al directori roms/video. Desactivant la segona targeta de vídeo."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "La tarjeta de vídeo 2 \"%s\" no està disponible a causa de les ROMs faltants al directori roms/video. Desactivant la segona targeta de vídeo."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "El dispositiu \"%hs\" no està disponible a causa de les ROMs faltants. Ignorant el dispositiu."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "El dispositiu \"%s\" no està disponible a causa de les ROMs faltants. Ignorant el dispositiu."
 
 msgid "Machine"
 msgstr "Màquina"
@@ -3019,8 +3019,8 @@ msgstr "Exporta…"
 msgid "Export EDID"
 msgstr "Exporta l'EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "El fitxer EDID \"%ls\" és massa gran."
+msgid "EDID file \"%s\" is too large."
+msgstr "El fitxer EDID \"%s\" és massa gran."
 
 msgid "OpenGL input scale"
 msgstr "Escala de entrada de l'OpenGL"

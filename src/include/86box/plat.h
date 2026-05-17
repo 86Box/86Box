@@ -31,8 +31,6 @@ enum {
     STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
     STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
     STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
-    STRING_INVALID_CONFIG,            /* "Invalid configuration" */
-    STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
     STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
     STRING_NET_ERROR_DESC,            /* "The network configuration will be switched..." */
     STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found" */
@@ -41,16 +39,15 @@ enum {
     STRING_GHOSTSCRIPT_ERROR_TITLE,   /* "Unable to initialize Ghostscript" */
     STRING_GHOSTSCRIPT_ERROR_DESC,    /* "gsdll32.dll/gsdll64.dll/libgs is required..." */
     STRING_HW_NOT_AVAILABLE_TITLE,    /* "Hardware not available" */
-    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%hs\" is not available..." */
-    STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
+    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%s\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%s\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%s\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%s\" is not available..." */
     STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
     STRING_GHOSTPCL_ERROR_DESC,       /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
     STRING_ESCP_ERROR_TITLE,          /* "Unable to find Dot-Matrix fonts" */
     STRING_ESCP_ERROR_DESC,           /* "TrueType fonts in the \"roms/printer/fonts\" directory..." */
-    STRING_EDID_TOO_LARGE,            /* "EDID file \"%ls\" is too large (%lld bytes)." */
+    STRING_EDID_TOO_LARGE,            /* "EDID file \"%s\" is too large (%lld bytes)." */
 };
 
 /* The Win32 API uses _wcsicmp. */
@@ -160,7 +157,7 @@ extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height
 extern int      plat_run_command(const char *cmd, const char **env, const char *title);
 
 /* Resource management. */
-extern wchar_t *plat_get_string(int id);
+extern char *plat_get_string(int id);
 
 /* Emulator start/stop support functions. */
 extern void do_start(void);

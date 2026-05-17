@@ -768,17 +768,17 @@ msgstr "Basissectorimages"
 msgid "Surface images"
 msgstr "Oppervlakte-images"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Machine \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Er wordt overgeschakeld naar een beschikbare machine."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Machine \"%s\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Er wordt overgeschakeld naar een beschikbare machine."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Videokaart \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. Er wordt overgeschakeld naar een beschikbare videokaart."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Videokaart \"%s\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. Er wordt overgeschakeld naar een beschikbare videokaart."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Videokaart #2 \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. De tweede videokaart wordt uitgeschakeld."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Videokaart #2 \"%s\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. De tweede videokaart wordt uitgeschakeld."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Het apparaat \"%hs\" is niet beschikbaar door ontbrekende ROMs. Het apparaat wordt genegeerd."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Het apparaat \"%s\" is niet beschikbaar door ontbrekende ROMs. Het apparaat wordt genegeerd."
 
 msgid "Machine"
 msgstr "Machine"
@@ -3019,8 +3019,8 @@ msgstr "Exporteren…"
 msgid "Export EDID"
 msgstr "EDID exporteren"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Het EDID-bestand \"%ls\" is te groot."
+msgid "EDID file \"%s\" is too large."
+msgstr "Het EDID-bestand \"%s\" is te groot."
 
 msgid "OpenGL input scale"
 msgstr "Invoerschaal van OpenGL"

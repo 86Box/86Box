@@ -769,17 +769,17 @@ msgstr "Εικόνες βασικού τόμου"
 msgid "Surface images"
 msgstr "Εικόνες επιφάνειας"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Το σύστημα \"%hs\" δεν είναι διαθέσιμο λόγω έλλειψης των ROMs στον κατάλογο roms/machines. Αλλάξτε σε διαθέσιμο σύστημα."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Το σύστημα \"%s\" δεν είναι διαθέσιμο λόγω έλλειψης των ROMs στον κατάλογο roms/machines. Αλλάξτε σε διαθέσιμο σύστημα."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Η κάρτα γραφικών \"%hs\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Η κάρτα γραφικών \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Η κάρτα γραφικών #2 \"%hs\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Η κάρτα γραφικών #2 \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Η συσκευή \"%hs\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs. Παράκαμψη συσκευής."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Η συσκευή \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs. Παράκαμψη συσκευής."
 
 msgid "Machine"
 msgstr "Σύστημα"
@@ -3081,8 +3081,8 @@ msgstr "Εξαγωγή…"
 msgid "Export EDID"
 msgstr "Εξαγωγή EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Το αρχείο EDID \"%ls\" είναι πολύ μεγάλο."
+msgid "EDID file \"%s\" is too large."
+msgstr "Το αρχείο EDID \"%s\" είναι πολύ μεγάλο."
 
 msgid "OpenGL input scale"
 msgstr "Κλίμακα εισόδου OpenGL"

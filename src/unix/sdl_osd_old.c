@@ -19,10 +19,12 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
-#include <86box/unix_sdl.h>
-#include <86box/unix_osd.h>
-#include <86box/unix_osd_font.h>
-#include "unix_sdl_shader.h"
+
+#include "sdl_shader.h"
+#include "sdl_monitor.h"
+#include "sdl_render.h"
+#include "sdl_osd.h"
+#include "sdl_osd_font.h"
 
 static int SCREEN_W = 640;
 static int SCREEN_H = 480;
@@ -40,12 +42,8 @@ static int BOX_H = 160;
 extern SDL_Window         *sdl_win;
 extern SDL_mutex          *sdl_mutex;
 
-// interface back to main unix monitor implementation
-extern void unix_executeLine(char *line);
-
 // interface to the currently set window title, this can't be seen normally in a fullscreen setup
-extern wchar_t sdl_win_title[512];
-char sdl_win_title_mb[512] = "";
+extern char sdl_win_title[512];
 
 /* Private software renderer for OSD drawing (no dependency on main window renderer). */
 static SDL_Surface  *osd_surface  = NULL;
@@ -181,8 +179,7 @@ void draw_menu(SDL_Renderer *renderer, int selected)
 
     draw_text(renderer, "MAIN MENU", x0 + 20, y0 + 5, (SDL_Color){255,255,255,255});
 
-    wcstombs(sdl_win_title_mb, sdl_win_title, 256);
-    draw_text(renderer, sdl_win_title_mb, x0 + 120, y0 + 5, (SDL_Color){255,255,255,255});
+    draw_text(renderer, sdl_win_title, x0 + 120, y0 + 5, (SDL_Color){255,255,255,255});
 
     for (int i = 0; i < MENU_ITEMS; i++)
     {
@@ -354,7 +351,7 @@ static void osd_cmd_run(char *c)
 {
     char *l = calloc(strlen(c)+2, 1);
     strcpy(l, c);
-    unix_executeLine(l);
+    monitor_execute_line(l);
     free(l);
 }
 
@@ -592,7 +589,7 @@ int osd_handle(SDL_Event event)
                         if (state == STATE_FILESELECT_MO)
                             sprintf(cmd, "moload 0 %s 0", files[file_selected]);
 
-                        unix_executeLine(cmd);
+                        monitor_execute_line(cmd);
                         state = STATE_MENU;
                     }
                         return 0;

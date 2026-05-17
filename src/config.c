@@ -1689,7 +1689,7 @@ load_hard_disks(void)
 
 #if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
         if (*p != '\0')
-            config_log("HDD%d: %ls\n", c, hdd[c].fn);
+            config_log("HDD%d: %s\n", c, hdd[c].fn);
 #endif
 
         sprintf(temp, "hdd_%02i_vhd_blocksize", c + 1);
@@ -1781,7 +1781,7 @@ load_floppy_and_cdrom_drives(void)
 
 #if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
         if (*p != '\0')
-            config_log("Floppy%d: %ls\n", c, floppyfns[c]);
+            config_log("Floppy%d: %s\n", c, floppyfns[c]);
 #endif
 
         sprintf(temp, "fdd_%02i_turbo", c + 1);
@@ -1954,7 +1954,7 @@ load_floppy_and_cdrom_drives(void)
 
 #if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
         if (*p != '\0')
-            config_log("CD-ROM%d: %ls\n", c, cdrom[c].image_path);
+            config_log("CD-ROM%d: %s\n", c, cdrom[c].image_path);
 #endif
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
