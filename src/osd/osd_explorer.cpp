@@ -726,19 +726,15 @@ OsdExplorer::BuildAcceptedPath(std::filesystem::path *path) const
     if (config_.mode == OsdExplorerMode::Directory) {
 #ifdef USE_SDL_OSD_EXPLORER_OLD_STYLE
         if (const Entry *entry = SelectedDirectoryEntry()) {
-            if (entry->kind == EntryKind::Directory || entry->kind == EntryKind::Drive) {
-                *path = entry->path;
-                return true;
-            }
-        }
 #else
         if (const Entry *entry = SelectedVisibleEntry()) {
+#endif
             if (entry->kind == EntryKind::Directory || entry->kind == EntryKind::Drive) {
                 *path = entry->path;
                 return true;
             }
         }
-#endif
+
         if (!current_path_.empty()) {
             *path = current_path_;
             return true;
@@ -748,19 +744,14 @@ OsdExplorer::BuildAcceptedPath(std::filesystem::path *path) const
 
 #ifdef USE_SDL_OSD_EXPLORER_OLD_STYLE
     if (const Entry *entry = SelectedFileEntry()) {
-        if (entry->kind == EntryKind::File) {
-            *path = entry->path;
-            return true;
-        }
-    }
 #else
     if (const Entry *entry = SelectedVisibleEntry()) {
+#endif
         if (entry->kind == EntryKind::File) {
             *path = entry->path;
             return true;
         }
     }
-#endif
 
     return false;
 }
