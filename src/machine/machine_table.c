@@ -6975,7 +6975,7 @@ const machine_t machines[] = {
     },
     /* Has built-in KBC firmware which is genuine AMI 'H' (AMIKEY-2). */
     {
-        .name              = "[ALi M6117] Kontron MOPS/386A",
+        .name              = "[ALi M6117] JUMPtec MOPS/386A",
         .internal_name     = "mops386a",
         .type              = MACHINE_TYPE_M6117,
         .chipset           = MACHINE_CHIPSET_ALI_M6117,
@@ -7019,7 +7019,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Kontron MOPS/386A", "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
