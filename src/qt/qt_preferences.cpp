@@ -198,6 +198,8 @@ Preferences::save()
     emulator->save();
     input->save();
     key_bindings->save();
+
+    main_window->updateMouseStrings();
 }
 
 void

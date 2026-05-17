@@ -339,6 +339,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
         ui_update_force_interpreter();
+        updateMouseStrings();
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
@@ -1047,6 +1048,13 @@ MainWindow::updateShortcuts()
     accID = FindAccelerator("force_interpretation");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionForce_interpretation->setShortcut(seq);
+}
+
+void
+MainWindow::updateMouseStrings()
+{
+    mouseStringCaptured = tr(mouse_get_buttons() > 2 ? "Press %1 to release mouse" : "Press %1 or middle button to release mouse").arg(QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText));
+    mouseStringUncaptured = tr("Click to capture mouse");
 }
 
 void
