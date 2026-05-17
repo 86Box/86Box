@@ -1288,12 +1288,11 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             QStringList args;
             if (terminal == QStringLiteral("xdg-terminal-exec"))
                 args << QString("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
-            else if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
-                args << QStringLiteral("-e");
-            else
+            else if (terminal == QStringLiteral("gnome-terminal"))
                 args << QStringLiteral("--");
-            args << script;
-            process->setArguments(args);
+            else
+                args << QStringLiteral("-e");
+            process->setArguments(args << script);
             if (process->startDetached())
                 return 1;
         }
