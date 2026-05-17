@@ -1252,8 +1252,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         /* Build terminal list, prioritizing the detected desktop environment's own terminal.
            Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
         QStringList terminals;
-        int is_trinity = have_env_var("XDG_CURRENT_DESKTOP", "TDE") || have_env_var("XDG_CURRENT_DESKTOP", "Trinity") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("TDE_FULL_SESSION");
-        if (is_trinity || have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("KDE_FULL_SESSION"))
+        int is_kde = have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("KDE_FULL_SESSION");
+        if (is_kde || have_env_var("XDG_CURRENT_DESKTOP", "TDE") || have_env_var("XDG_CURRENT_DESKTOP", "Trinity") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("TDE_FULL_SESSION"))
             terminals.prepend(QStringLiteral("konsole"));
         else
             terminals << QStringLiteral("konsole");
@@ -1294,11 +1294,11 @@ plat_run_command(const char *cmd, const char **env, const char *title)
                 args << QStringLiteral("--");
             } else {
                 if (terminal == QStringLiteral("konsole")) {
-                    /* Hide script name in the title bar. */
-                    if (is_trinity)
-                        args << QStringLiteral("-T") << QStringLiteral(EMU_NAME);
-                    else
+                    /* Hide script name in the Konsole title bar. */
+                    if (is_kde)
                         args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
+                    else
+                        args << QStringLiteral("-T") << QStringLiteral(EMU_NAME); /* Trinity only, no effect on KDE */
                 }
                 args << QStringLiteral("-e");
             }
