@@ -250,13 +250,14 @@ plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
     /* Return size for this attribute buffer. */
     pclog("plat_dir: fill_attributes");
     uint32_t ret = AS_U32(buf[0]);
-    pclog(" len %d\n", (unsigned int) ret);
+    pclog(" len %d", (unsigned int) ret);
     buf += sizeof(uint32_t);
 
     /* Set mandatory attributes. */
     context->data.returned = (attribute_set_t *) buf;
     buf += sizeof(attribute_set_t);
     attrgroup_t attrs = context->data.returned->commonattr;
+    pclog(" common %08X\n", (unsigned int) attrs);
     if (UNLIKELY(attrs & ATTR_CMN_ERROR)) {
         memset(&context->data, 0, sizeof(context->data)); /* for fail-fast case below */
         pclog("plat_dir: fill_attributes failed (%d)\n", (unsigned int) AS_U32(buf[0]));
