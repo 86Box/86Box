@@ -594,10 +594,11 @@ static dllimp_t kernel32_imports[]                                              
 static void
 enter_pause(void)
 {
-    PROCESS_POWER_THROTTLING_STATE state {};
-    state.Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
-    state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
-    state.StateMask   = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    static PROCESS_POWER_THROTTLING_STATE low_state = {
+        .Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+        .ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+        .StateMask   = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION
+    };
 
     if (!kernel32_handle) {
         kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
@@ -609,16 +610,17 @@ enter_pause(void)
     }
 
     if (pSetProcessInformation)
-        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &state, sizeof(state));
+        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &low_state, sizeof(low_state));
 }
 
 void
 exit_pause(void)
 {
-    PROCESS_POWER_THROTTLING_STATE state {};
-    state.Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
-    state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
-    state.StateMask   = 0;
+    static PROCESS_POWER_THROTTLING_STATE high_state = {
+        .Version     = PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+        .ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION,
+        .StateMask   = 0
+    };
 
     if (!kernel32_handle) {
         kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
@@ -630,7 +632,7 @@ exit_pause(void)
     }
 
     if (pSetProcessInformation)
-        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &state, sizeof(state));
+        pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &high_state, sizeof(high_state));
 }
 #endif
 
