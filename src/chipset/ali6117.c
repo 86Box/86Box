@@ -33,7 +33,7 @@
 
 typedef struct ali6117_t {
     uint32_t local;
-    uint8_t  have_ide;
+    uint8_t  has_ide;
 
     /* Main registers (port 22h/23h) */
     uint8_t unlocked;
@@ -462,6 +462,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                     switch (val) {
                         /* Half PIT clock. */
                         case 0x0:
+                        default:
                             cpu_set_isa_speed(7159091);
                             break;
 
@@ -492,9 +493,6 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                         case 0x7:
                             cpu_set_isa_speed((int) round(cpu_busspeed / 6.0));
-                            break;
-
-                        default:
                             break;
                     }
                     break;
@@ -530,7 +528,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x3c:
                     val &= 0x8f;
-                    if (dev->have_ide) {
+                    if (dev->has_ide) {
                         ide_pri_disable();
                         ide_set_base(1, (val & 0x01) ? 0x170 : 0x1f0);
                         ide_set_side(1, (val & 0x01) ? 0x376 : 0x3f6);
@@ -693,7 +691,7 @@ ali6117_init(const device_t *info)
     dev->local = info->local;
 
     if (!(dev->local & 0x08))
-        dev->have_ide = !!device_add(&ide_isa_device);
+        dev->has_ide = !!device_add(&ide_isa_device);
 
     ali6117_setup(dev);
 
