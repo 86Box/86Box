@@ -6971,7 +6971,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Hand386", "Pocket 386", "" }
     },
     /* Has built-in KBC firmware which is genuine AMI 'H' (AMIKEY-2). */
     {
