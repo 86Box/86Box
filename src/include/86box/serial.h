@@ -140,7 +140,7 @@ extern serial_t *serial_attach_ex_2(int port,
         serial_attach_ex(port, rcr_callback, dev_write, NULL, NULL, priv);
 
 extern void      serial_devices_init(void);
-extern void      serial_devices_close(void);
+extern void      serial_devices_close(int soft);
 extern void      serial_devices_reset(void);
 extern void      serial_remove(serial_t *dev);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);

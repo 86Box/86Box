@@ -393,12 +393,13 @@ lpt_attach_ex(int     port,
 }
 
 void
-lpt_devices_close(void)
+lpt_devices_close(int hotplug)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
-        /* Leave non-hotunpluggable ports and their devices alone. */
-        if (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
+        /* Leave non-hotunpluggable ports and their devices alone in a hotplug operation. */
+        if (hotplug && (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
             continue;
+        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
 
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
@@ -415,7 +416,7 @@ lpt_devices_reset(void)
 {
     device_close_by_flags(DEVICE_LPT | DEVICE_HOTPLUG_OUT);
 
-    lpt_devices_close();
+    lpt_devices_close(1);
 
     lpt_devices_init();
 }

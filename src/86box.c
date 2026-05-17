@@ -1649,7 +1649,8 @@ pc_reset_hard_close(void)
     /* Turn off timer processing to avoid potential segmentation faults. */
     timer_close();
 
-    lpt_devices_close();
+    lpt_devices_close(0);
+    serial_devices_close(0);
 
     nvr_save();
     nvr_close();
@@ -1950,8 +1951,8 @@ pc_close(UNUSED(thread_t *ptr))
     /* Turn off timer processing to avoid potential segmentation faults. */
     timer_close();
 
-    lpt_devices_close();
-    serial_devices_close();
+    lpt_devices_close(0);
+    serial_devices_close(0);
 
     for (uint8_t i = 0; i < FDD_NUM; i++)
         fdd_close(i);

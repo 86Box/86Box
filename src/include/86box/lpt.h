@@ -150,7 +150,7 @@ extern void *              lpt_attach_ex(int     port,
                                          void    (*epp_request_read)(uint8_t is_addr, void *priv),
                                          void    *priv);
 #define lpt_attach(...) lpt_attach_ex(device_get_instance() - 1, __VA_ARGS__)
-extern void                lpt_devices_close(void);
+extern void                lpt_devices_close(int soft);
 extern void                lpt_devices_reset(void);
 
 extern void                lpt_set_next_inst(int ni);

@@ -957,12 +957,13 @@ serial_devices_init(void)
 }
 
 void
-serial_devices_close(void)
+serial_devices_close(int hotplug)
 {
     for (uint8_t i = 0; i < SERIAL_MAX; i++) {
-        /* Leave non-hotunpluggable ports and their devices alone. */
-        if (com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
+        /* Leave non-hotunpluggable ports and their devices alone in a hotplug operation. */
+        if (hotplug && (com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
             continue;
+        com_ports[i].hotunplug = CHAR_PORT_DETACHED;
 
         memset(&(serial_devices[i]), 0, sizeof(serial_device_t));
 
@@ -976,7 +977,7 @@ serial_devices_reset(void)
 {
     device_close_by_flags(DEVICE_COM | DEVICE_HOTPLUG_OUT);
 
-    serial_devices_close();
+    serial_devices_close(1);
 
     serial_devices_init();
 }
