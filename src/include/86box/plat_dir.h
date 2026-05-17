@@ -362,8 +362,10 @@ plat_dir_read_base(plat_dir_t *context)
 {
     /* Get base directory attributes, including the child count. */
     context->attr_list.dirattr |= ATTR_DIR_ENTRYCOUNT;
-    fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0);
-    plat_dir_fill_attributes(context, context->attr_buf);
+    if (!fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0))
+        plat_dir_fill_attributes(context, context->attr_buf);
+    else
+        memset(&context->data, 0, sizeof(context->data));
     context->data.name = ".";
 
     /* Save the base directory's child count, or a sentinel value if it was not reported. */
