@@ -2881,9 +2881,9 @@ mem_reset(void)
     mem_init_ram_mapping(&ram_low_mapping, 0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024);
 
     if (mem_size > 1024) {
-        if (cpu_16bitbus && !is6117 && mem_size > 16256)
+        if (cpu_16bitbus && !is6117 && (mem_size > 16256))
             mem_init_ram_mapping(&ram_high_mapping, 0x100000, (16256 - 1024) * 1024);
-        else if (cpu_16bitbus && is6117 && mem_size > 65408)
+        else if (cpu_16bitbus && is6117 && (mem_size > 65408))
             mem_init_ram_mapping(&ram_high_mapping, 0x100000, (65408 - 1024) * 1024);
         else
            mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);

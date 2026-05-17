@@ -158,6 +158,7 @@ ali6117_bank_addr(const ali6117_t *dev, const uint32_t phys, uint32_t *bank, uin
     uint32_t col   = 0x00000000;
     uint32_t m_row = 0x00000000;
     uint32_t m_col = 0x00000000;
+    uint32_t b_col = 0x00000000;
 
     switch (dev->regs[0x10] & 0xf8) {
         default:
@@ -174,11 +175,12 @@ ali6117_bank_addr(const ali6117_t *dev, const uint32_t phys, uint32_t *bank, uin
                     (((phys >> 1) & 0x01) << 8) |
                     (((phys >> 10) & 0x03) << 9);
             m_row = (1 << ali6117_modes[dev->mode][5 + (*bank * 2)]) - 1;
-            m_col = (1 << ali6117_modes[dev->mode][6 + (*bank * 2)]) - 1;
+            b_col = ali6117_modes[dev->mode][6 + (*bank * 2)];
+            m_col = (1 << b_col) - 1;
             if (m_row > 0) {
                 row  &= m_row;
                 col  &= m_col;
-                *addr = (row << 11) | col | (phys & 0x01);
+                *addr = (row << (b_col + 1)) | (col << 1) | (phys & 0x01);
                 /* For easier array access. */
                 (*bank)++;
             } else {
@@ -197,11 +199,12 @@ ali6117_bank_addr(const ali6117_t *dev, const uint32_t phys, uint32_t *bank, uin
                     (((phys >> 1) & 0x01) << 8) |
                     (((phys >> 10) & 0x07) << 9);
             m_row = (1 << ali6117_modes[dev->mode][5 + (*bank * 2)]) - 1;
-            m_col = (1 << ali6117_modes[dev->mode][6 + (*bank * 2)]) - 1;
+            b_col = ali6117_modes[dev->mode][6 + (*bank * 2)];
+            m_col = (1 << b_col) - 1;
             if (m_row > 0) {
                 row  &= m_row;
                 col  &= m_col;
-                *addr = (row << 12) | col | (phys & 0x01);
+                *addr = (row << (b_col + 1)) | (col << 1) | (phys & 0x01);
                 /* For easier array access. */
                 (*bank)++;
             } else {
@@ -400,6 +403,8 @@ ali6117_bank_recalc(ali6117_t *dev)
     } else {
         ali6117_log("ALI6117: No ROM mapping at: %08X-%08X\n",
                     0x01000000 - rom_sz, 0x01000000 - 1);
+        mem_set_mem_state_both(0x01000000 - 0x00020000, 0x00020000,
+                               MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     }
 
     if (is_flash)
@@ -615,8 +620,6 @@ ali6117_reg_read(uint16_t addr, void *priv)
         ret = dev->reg_offset;
     else {
         ret = dev->regs[dev->reg_offset];
-        if (dev->reg_offset == 0x10)
-            ret = (ret & 0x0f) | 0x10;
         ali6117_log("ALI6117: reg_read(%02X) = %02X\n", dev->reg_offset, ret);
     }
 
