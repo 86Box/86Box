@@ -12,7 +12,6 @@
  *
  *          Copyright 2022 RichardG.
  */
-#define IMAGE_VISO_LOG 1
 #ifndef _LARGEFILE_SOURCE
 #    define _LARGEFILE_SOURCE
 #endif
@@ -652,7 +651,6 @@ pad_susp:
 static void
 viso_fill_stats(viso_entry_t *entry, plat_dir_t *context, int format)
 {
-    pclog("VISO: filling stats...");
     if (plat_dir_is_dir(context)) {
         entry->stats.is_dir = 1;
     } else {
@@ -668,7 +666,6 @@ viso_fill_stats(viso_entry_t *entry, plat_dir_t *context, int format)
         entry->stats.birthtime = plat_dir_get_birthtime(context);
 #endif
     }
-    pclog(" filled\n");
 }
 
 static int
