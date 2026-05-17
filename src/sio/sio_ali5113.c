@@ -36,7 +36,7 @@ typedef struct ali5113_t {
     int       locked;
     int       cur_reg;
     fdc_t    *fdc;
-    serial_t *uart[2];
+    serial_t *uart[3];
     lpt_t    *lpt;
 } ali5113_t;
 
