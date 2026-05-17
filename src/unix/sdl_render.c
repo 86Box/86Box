@@ -556,7 +556,7 @@ sdl_init_common(int flags)
             sdl_shader_init_passthrough(sdl_win);
     }
 #endif
-    SDL_ShowCursor(SDL_FALSE);
+
     osd_init();
 
     /* Make sure we get a clean exit. */
@@ -602,6 +602,7 @@ plat_mouse_capture(int on)
 {
     SDL_LockMutex(sdl_mutex);
     SDL_SetRelativeMouseMode((SDL_bool) on);
+    SDL_ShowCursor((SDL_bool) !on);
     mouse_capture = on;
     SDL_UnlockMutex(sdl_mutex);
 }
