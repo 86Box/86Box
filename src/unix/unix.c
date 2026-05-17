@@ -84,7 +84,7 @@ bool            fast_forward = false;
 int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
-extern wchar_t  sdl_win_title[512];
+extern char     sdl_win_title[512];
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
@@ -276,46 +276,46 @@ dynld_close(void *handle)
     dlclose(handle);
 }
 
-wchar_t *
+char *
 plat_get_string(int i)
 {
     switch (i) {
         case STRING_MOUSE_CAPTURE:
-            return L"Click to capture mouse";
+            return "Click to capture mouse";
         case STRING_MOUSE_RELEASE:
-            return L"Press CTRL-END to release mouse";
+            return "Press CTRL-END to release mouse";
         case STRING_MOUSE_RELEASE_MMB:
-            return L"Press CTRL-END or middle button to release mouse";
+            return "Press CTRL-END or middle button to release mouse";
         case STRING_INVALID_CONFIG:
-            return L"Invalid configuration";
+            return "Invalid configuration";
         case STRING_NO_ST506_ESDI_CDROM:
-            return L"MFM/RLL or ESDI CD-ROM drives never existed";
+            return "MFM/RLL or ESDI CD-ROM drives never existed";
         case STRING_PCAP_ERROR_NO_DEVICES:
-            return L"No PCap devices found";
+            return "No PCap devices found";
         case STRING_PCAP_ERROR_INVALID_DEVICE:
-            return L"Invalid PCap device";
+            return "Invalid PCap device";
         case STRING_GHOSTSCRIPT_ERROR_DESC:
-            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+            return "libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
         case STRING_PCAP_ERROR_DESC:
-            return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
+            return "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case STRING_GHOSTSCRIPT_ERROR_TITLE:
-            return L"Unable to initialize Ghostscript";
+            return "Unable to initialize Ghostscript";
         case STRING_GHOSTPCL_ERROR_TITLE:
-            return L"Unable to initialize GhostPCL";
+            return "Unable to initialize GhostPCL";
         case STRING_GHOSTPCL_ERROR_DESC:
-            return L"libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
+            return "libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
         case STRING_HW_NOT_AVAILABLE_MACHINE:
-            return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
+            return "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
         case STRING_HW_NOT_AVAILABLE_VIDEO:
-            return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
+            return "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
         case STRING_HW_NOT_AVAILABLE_TITLE:
-            return L"Hardware not available";
+            return "Hardware not available";
         case STRING_MONITOR_SLEEP:
-            return L"Monitor in sleep mode";
+            return "Monitor in sleep mode";
         case STRING_EDID_TOO_LARGE:
-            return L"EDID file \"%ls\" is too large.";
+            return "EDID file \"%s\" is too large.";
     }
-    return L"";
+    return "";
 }
 
 FILE *
@@ -637,7 +637,7 @@ path_get_dirname(char *dest, const char *path)
 }
 
 void
-ui_sb_set_text_w(UNUSED(wchar_t *wstr))
+ui_sb_set_text(UNUSED(char *str))
 {
     /* No-op. */
 }
@@ -763,23 +763,19 @@ do_stop(void)
 }
 
 int
-ui_msgbox(int flags, void *message)
+ui_msgbox(int flags, char *message)
 {
     return ui_msgbox_header(flags, NULL, message);
 }
 
 int
-ui_msgbox_header(int flags, void *header, void *message)
+ui_msgbox_header(int flags, char *header, char *message)
 {
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
-    if (!header) {
-        if (flags & MBX_ANSI)
-            header = (void *) EMU_NAME;
-        else
-            header = (void *) EMU_NAME_W;
-    }
+    if (!header)
+        header = EMU_NAME;
 
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
@@ -795,25 +791,11 @@ ui_msgbox_header(int flags, void *header, void *message)
     else
         msgflags |= SDL_MESSAGEBOX_INFORMATION;
     msgdata.flags = msgflags;
-    if (flags & MBX_ANSI) {
-        int button      = 0;
-        msgdata.title   = header;
-        msgdata.message = message;
-        SDL_ShowMessageBox(&msgdata, &button);
-        return button;
-    } else {
-        int   button    = 0;
-        char *res       = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char *) message, wcslen(message) * sizeof(wchar_t) + sizeof(wchar_t));
-        char *res2      = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char *) header, wcslen(header) * sizeof(wchar_t) + sizeof(wchar_t));
-        msgdata.message = res;
-        msgdata.title   = res2;
-        SDL_ShowMessageBox(&msgdata, &button);
-        free(res);
-        free(res2);
-        return button;
-    }
-
-    return 0;
+    int button      = 0;
+    msgdata.title   = header;
+    msgdata.message = message;
+    SDL_ShowMessageBox(&msgdata, &button);
+    return button;
 }
 
 void
@@ -886,8 +868,8 @@ local_strsep(char **str, const char *sep)
 void
 plat_pause(int p)
 {
-    static wchar_t oldtitle[512];
-    wchar_t        title[512];
+    static char oldtitle[512];
+    char        title[512];
 
     if ((!!p) == dopause)
         return;
@@ -897,9 +879,9 @@ plat_pause(int p)
 
     do_pause(p);
     if (p) {
-        wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
-        wcscpy(title, oldtitle);
-        wcscat(title, L" - PAUSED");
+        strncpy(oldtitle, ui_window_title(NULL), sizeof(oldtitle) - 1);
+        strcpy(title, oldtitle);
+        strcat(title, " - PAUSED");
         ui_window_title(title);
     } else {
         ui_window_title(oldtitle);
@@ -1458,7 +1440,7 @@ main(int argc, char **argv)
     if (ret == 0)
         return 0;
     if (!pc_init_roms()) {
-        ui_msgbox_header(MBX_FATAL, L"No ROMs found.", EMU_NAME_W L" could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
+        ui_msgbox_header(MBX_FATAL, "No ROMs found.", EMU_NAME " could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
         return 6;
     }

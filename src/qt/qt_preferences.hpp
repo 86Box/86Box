@@ -46,7 +46,7 @@ protected:
     static CustomTranslator                *translator;
     static QTranslator                     *qtTranslator;
     static QVector<QPair<QString, QString>> languages;
-    static QMap<int, std::wstring>          translatedstrings;
+    static QMap<int, QByteArray>            translatedstrings;
 protected slots:
     void accept() override;
 

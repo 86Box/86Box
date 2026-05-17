@@ -15,8 +15,8 @@
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
 
-/* Windows and Termux needs the POSIX re-implementations */
-#if defined(_WIN32) || defined(__TERMUX__)
+/* Windows (non-MinGW) and Termux need the POSIX re-implementations */
+#if (defined(_WIN32) && !defined(__MINGW32__)) || defined(__TERMUX__)
 #    ifdef _MAX_FNAME
 #        define MAXNAMLEN _MAX_FNAME
 #    else
@@ -28,11 +28,7 @@ struct dirent {
     long           d_ino;
     unsigned short d_reclen;
     unsigned short d_off;
-#    ifdef UNICODE
-    wchar_t d_name[MAXNAMLEN + 1];
-#    else
-    char d_name[MAXNAMLEN + 1];
-#    endif
+    char           d_name[MAXNAMLEN + 1];
 };
 #    define d_namlen d_reclen
 
@@ -42,11 +38,7 @@ typedef struct DIR_t {
     long  handle; /* open handle to Win32 system */
     short sts;    /* last known status code */
     char *dta;    /* internal work data */
-#    ifdef UNICODE
-    wchar_t dir[MAXDIRLEN + 1]; /* open dir */
-#    else
-    char dir[MAXDIRLEN + 1]; /* open dir */
-#    endif
+    char  dir[MAXDIRLEN + 1]; /* open dir */
     struct dirent dent; /* actual directory entry */
 } DIR;
 
@@ -64,7 +56,7 @@ extern int            closedir(DIR *);
 
 #    define rewinddir(dirp) seekdir(dirp, 0L)
 #else
-/* On linux and macOS, use the standard functions and types */
+/* On MinGW, Linux and macOS, use the standard functions and types */
 #    include <dirent.h>
 #endif
 

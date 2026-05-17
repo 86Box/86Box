@@ -352,7 +352,7 @@ int efscrnsz_y = SCREEN_RES_Y;
 
 __thread int is_cpu_thread = 0;
 
-static wchar_t mouse_msg[3][200];
+static char mouse_msg[3][200];
 
 static ATOMIC_INT do_pause_ack = 0;
 static ATOMIC_INT pause_ack = 0;
@@ -506,7 +506,7 @@ fatal(const char *fmt, ...)
 
     do_pause(2);
 
-    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+    ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
@@ -548,7 +548,7 @@ fatal_ex(const char *fmt, va_list ap)
 
     do_pause(2);
 
-    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+    ui_msgbox(MBX_ERROR | MBX_FATAL, temp);
 
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
@@ -589,7 +589,7 @@ warning(const char *fmt, ...)
 
     do_pause(2);
 
-    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+    ui_msgbox(MBX_ERROR, temp);
 
     fflush(stdlog);
 
@@ -621,7 +621,7 @@ warning_ex(const char *fmt, va_list ap)
 
     do_pause(2);
 
-    ui_msgbox(MBX_ERROR | MBX_ANSI, temp);
+    ui_msgbox(MBX_ERROR, temp);
 
     fflush(stdlog);
 
@@ -746,7 +746,7 @@ pc_show_usage(void)
             "\nA config file can be specified. If none is, the default file will be used.\n");
 
 #ifdef _WIN32
-    ui_msgbox(MBX_ANSI | MBX_INFO, p);
+    ui_msgbox(MBX_INFO, p);
 #else
     always_log("%s", p);
 #endif
@@ -1235,8 +1235,8 @@ usage:
     else
         strcpy(temp, "unknown");
 
-    pclog("#\n# %ls v%ls logfile, created %s\n#\n",
-          EMU_NAME_W, EMU_VERSION_FULL_W, temp);
+    pclog("#\n# %s v%s logfile, created %s\n#\n",
+          EMU_NAME, EMU_VERSION_FULL, temp);
 
     if (portable_mode) {
         pclog("# Portable mode enabled.\n");
@@ -1264,7 +1264,7 @@ usage:
         start_vmm = 0;
 #ifdef __APPLE__
         if (!strncmp(exe_path, "/private/var/folders/", 21)) {
-            ui_msgbox_header(MBX_FATAL, L"App Translocation", EMU_NAME_W L" cannot determine the emulated machine's location due to a macOS security feature. Please move the " EMU_NAME_W L" app to another folder (not /Applications), or make a copy of it and open that copy instead.");
+            ui_msgbox_header(MBX_FATAL, "App Translocation", EMU_NAME " cannot determine the emulated machine's location due to a macOS security feature. Please move the " EMU_NAME " app to another folder (not /Applications), or make a copy of it and open that copy instead.");
             return 0;
         }
 #endif
@@ -1418,13 +1418,13 @@ pc_init_roms(void)
 int
 pc_init_modules(void)
 {
-    int     c;
-    wchar_t temp[512];
-    char    tempc[512];
+    int  c;
+    char temp[512];
+    char tempc[512];
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
-        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname(machine));
+        snprintf(temp, sizeof(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_MACHINE), machine_getname(machine));
         c       = 0;
         machine = -1;
         while (machine_get_internal_name_ex(c) != NULL) {
@@ -1446,7 +1446,7 @@ pc_init_modules(void)
     if (!video_card_available(gfxcard[0])) {
         memset(tempc, 0, sizeof(tempc));
         device_get_name(video_card_getdevice(gfxcard[0]), 0, tempc);
-        swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO), tempc);
+        snprintf(temp, sizeof(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO), tempc);
         c = 0;
         while (video_get_internal_name(c) != NULL) {
             gfxcard[0] = -1;
@@ -1467,9 +1467,9 @@ pc_init_modules(void)
     // TODO
     for (uint8_t i = 1; i < GFXCARD_MAX; i ++) {
         if (!video_card_available(gfxcard[i])) {
-            char tempc[512] = { 0 };
+            memset(tempc, 0, sizeof(tempc));
             device_get_name(video_card_getdevice(gfxcard[i]), 0, tempc);
-            swprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO2), tempc);
+            snprintf(temp, sizeof_w(temp), plat_get_string(STRING_HW_NOT_AVAILABLE_VIDEO2), tempc);
             ui_msgbox_header(MBX_INFO, plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE), temp);
             gfxcard[i] = 0;
         }
@@ -1868,58 +1868,31 @@ void
 update_mouse_msg(void)
 {
 #ifdef USE_SDL_UI
-    wchar_t  wcpufamily[2048];
-    wchar_t  wcpu[2048];
-    wchar_t  wmachine[2048];
-    wchar_t *wcp;
-
-    mbstowcs(wmachine, machine_getname(machine), strlen(machine_getname(machine)) + 1);
+    char  cpufamily[128];
+    char *cp;
 
     if (!cpu_override)
-        mbstowcs(wcpufamily, cpu_f->name, strlen(cpu_f->name) + 1);
+        strncpy(cpufamily, cpu_f->name, sizeof(cpufamily) - 1);
     else
-        swprintf(wcpufamily, sizeof_w(wcpufamily), L"[U] %hs", cpu_f->name);
+        snprintf(cpufamily, sizeof(cpufamily), "[U] %s", cpu_f->name);
 
-    wcp = wcschr(wcpufamily, L'(');
-    if (wcp) /* remove parentheses */
-        *(wcp - 1) = L'\0';
-    mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name) + 1);
-    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-             EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
+    cp = strchr(cpufamily, '(');
+    if (cp) /* remove parentheses */
+        *(cp - 1) = '\0';
+    snprintf(mouse_msg[0], sizeof(mouse_msg[0]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
              plat_get_string(STRING_MOUSE_CAPTURE));
-    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-             EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
+    snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
              (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
-    swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls",
-             EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu);
+    snprintf(mouse_msg[2], sizeof(mouse_msg[2]), "%s v%s - %%i%%%% - %s - %s/%s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name);
 #else
-#ifdef __APPLE__
-    /*
-     * On macOS, BSD swprintf fails (returns -1) when the format string
-     * or a %ls argument contains non-ASCII wide characters (e.g. the
-     * native key symbols ⌘ U+2318, ⌫ U+232B) and the C locale is
-     * active.  Store just the message suffixes here; the title update
-     * path in pc_render_monitor_dispatch() builds the full string
-     * without swprintf.
-     */
-    wcsncpy(mouse_msg[0], plat_get_string(STRING_MOUSE_CAPTURE), sizeof_w(mouse_msg[0]) - 1);
-    mouse_msg[0][sizeof_w(mouse_msg[0]) - 1] = L'\0';
-
-    {
-        wchar_t *rel = (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE)
-                                                  : plat_get_string(STRING_MOUSE_RELEASE_MMB);
-        wcsncpy(mouse_msg[1], rel, sizeof_w(mouse_msg[1]) - 1);
-        mouse_msg[1][sizeof_w(mouse_msg[1]) - 1] = L'\0';
-    }
-
-    mouse_msg[2][0] = L'\0';
-#else
-    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%%i%%%% - %ls",
+    snprintf(mouse_msg[0], sizeof(mouse_msg[0]), "%%i%%%% - %s",
              plat_get_string(STRING_MOUSE_CAPTURE));
-    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%%i%%%% - %ls",
+    snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%%i%%%% - %s",
              (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
-    wcsncpy(mouse_msg[2], L"%i%%", sizeof_w(mouse_msg[2]));
-#endif
+    strncpy(mouse_msg[2], "%i%%", sizeof(mouse_msg[2]));
 #endif
 }
 
@@ -1994,7 +1967,7 @@ pc_close(UNUSED(thread_t *ptr))
 static void
 _ui_window_title(void *s)
 {
-    ui_window_title((wchar_t *) s);
+    ui_window_title((char *) s);
     free(s);
 }
 #endif
@@ -2011,8 +1984,8 @@ ack_pause(void)
 void
 pc_run(void)
 {
-    int     mouse_msg_idx;
-    wchar_t temp[200];
+    int  mouse_msg_idx;
+    char temp[200];
 
     /* Trigger a hard reset if one is pending. */
     if (hard_reset_pending) {
@@ -2056,6 +2029,12 @@ pc_run(void)
         target_fps    = force_10ms ? 100 : 1000;
         elapsed_ms    = fps_sample_elapsed_ms ? fps_sample_elapsed_ms : 1;
 
+#ifdef SCREENSHOT_MODE
+        if (force_10ms)
+            fps = ((fps + 2) / 5) * 5;
+        else
+            fps = ((fps + 20) / 50) * 50;
+#endif
         /*
          * Use real sample duration for title speed percent so delayed timer
          * callbacks do not create false dip/rebound spikes in speed reporting.
@@ -2063,26 +2042,12 @@ pc_run(void)
         numerator     = (int64_t) fps * 100000LL;
         speed_percent = (int) ((numerator + ((int64_t) elapsed_ms * target_fps / 2)) /
                                ((int64_t) elapsed_ms * target_fps));
-#ifdef SCREENSHOT_MODE
-        if (force_10ms)
-            fps = ((fps + 2) / 5) * 5;
-        else
-            fps = ((fps + 20) / 50) * 50;
-#endif
+
+        snprintf(temp, sizeof(temp), mouse_msg[mouse_msg_idx], speed_percent);
 #ifdef __APPLE__
-        /*
-         * mouse_msg[] stores suffixes only on macOS (see update_mouse_msg).
-         * Build the title without passing non-ASCII chars through swprintf.
-         */
-        swprintf(temp, sizeof_w(temp), L"%i%%", speed_percent);
-        if (mouse_msg[mouse_msg_idx][0]) {
-            wcsncat(temp, L" - ", sizeof_w(temp) - wcslen(temp) - 1);
-            wcsncat(temp, mouse_msg[mouse_msg_idx], sizeof_w(temp) - wcslen(temp) - 1);
-        }
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */
-        dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);
+        dispatch_async_f(dispatch_get_main_queue(), strdup((const char *) temp), _ui_window_title);
 #else
-        swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], speed_percent);
         ui_window_title(temp);
 #endif
         title_update = 0;

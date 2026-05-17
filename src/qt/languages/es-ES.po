@@ -768,17 +768,17 @@ msgstr "Imágenes básicas de sector"
 msgid "Surface images"
 msgstr "Imágenes de superficie"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "La máquina \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una máquina disponible."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "La máquina \"%s\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una máquina disponible."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "La tarjeta de vídeo \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/video. Cambiando a una tarjeta de vídeo disponible."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "La tarjeta de vídeo \"%s\" no está disponible debido a ROMs faltantes en el directorio roms/video. Cambiando a una tarjeta de vídeo disponible."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "La tarjeta de vídeo 2 \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/video. Deshabilitanto la segunda tarjeta de vídeo."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "La tarjeta de vídeo 2 \"%s\" no está disponible debido a ROMs faltantes en el directorio roms/video. Deshabilitanto la segunda tarjeta de vídeo."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "El dispositivo \"%hs\" no está disponible debido a ROMs faltantes. Ignorando el dispositivo."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "El dispositivo \"%s\" no está disponible debido a ROMs faltantes. Ignorando el dispositivo."
 
 msgid "Machine"
 msgstr "Máquina"
@@ -3018,8 +3018,8 @@ msgstr "Exportar…"
 msgid "Export EDID"
 msgstr "Exportar el EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "El archivo EDID \"%ls\" es demasiado grande."
+msgid "EDID file \"%s\" is too large."
+msgstr "El archivo EDID \"%s\" es demasiado grande."
 
 msgid "OpenGL input scale"
 msgstr "Escala de entrada de OpenGL"

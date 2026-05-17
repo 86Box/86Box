@@ -769,17 +769,17 @@ msgstr "Ảnh sector cơ bản"
 msgid "Surface images"
 msgstr "Ảnh bề mặt"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Mẫu máy \"%hs\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/machines. Hãy chọn mẫu máy khác."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Mẫu máy \"%s\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/machines. Hãy chọn mẫu máy khác."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Card đồ họa \"%hs\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/video. Hãy chọn card đồ họa khác."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Card đồ họa \"%s\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/video. Hãy chọn card đồ họa khác."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Card đồ họa 2 \"%hs\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Vô hiệu hóa card đồ họa thứ hai."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Card đồ họa 2 \"%s\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Vô hiệu hóa card đồ họa thứ hai."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Thiết bị \"%hs\" không giả lập được do thiếu file ROM. Bỏ qua thiết bị."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Thiết bị \"%s\" không giả lập được do thiếu file ROM. Bỏ qua thiết bị."
 
 msgid "Machine"
 msgstr "Mẫu máy"
@@ -3020,8 +3020,8 @@ msgstr "Xuất ra file…"
 msgid "Export EDID"
 msgstr "Xuất ra file EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Tệp EDID \"%ls\" quá lớn."
+msgid "EDID file \"%s\" is too large."
+msgstr "Tệp EDID \"%s\" quá lớn."
 
 msgid "OpenGL input scale"
 msgstr "Độ phân giải đầu vào của OpenGL"

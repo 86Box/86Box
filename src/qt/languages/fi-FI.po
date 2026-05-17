@@ -769,17 +769,17 @@ msgstr "Perussektorilevykuvat"
 msgid "Surface images"
 msgstr "Pintalevykuvat"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Konetta \"%hs\" ei voida käyttää, koska roms/machines-hakemistosta puuttuu ROM-tiedostoja. Vaihdetaan käyttökelpoiseen koneeseen."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Konetta \"%s\" ei voida käyttää, koska roms/machines-hakemistosta puuttuu ROM-tiedostoja. Vaihdetaan käyttökelpoiseen koneeseen."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Näytönohjainta \"%hs\" ei voida käyttää, koska roms/video-hakemistosta puuttuu ROM-tiedostoja. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Näytönohjainta \"%s\" ei voida käyttää, koska roms/video-hakemistosta puuttuu ROM-tiedostoja. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Toista näytönohjainta \"%hs\" ei voida käyttää, koska roms/video-hakemistosta puuttuu ROM-tiedostoja. Toinen näytönohjain poistetaan käytöstä."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Toista näytönohjainta \"%s\" ei voida käyttää, koska roms/video-hakemistosta puuttuu ROM-tiedostoja. Toinen näytönohjain poistetaan käytöstä."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Laitetta \"%hs\" ei voida käyttää puuttuvien ROM-tiedostojen vuoksi. Laite jätetään huomiotta."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Laitetta \"%s\" ei voida käyttää puuttuvien ROM-tiedostojen vuoksi. Laite jätetään huomiotta."
 
 msgid "Machine"
 msgstr "Tietokone"
@@ -3020,8 +3020,8 @@ msgstr "Vie…"
 msgid "Export EDID"
 msgstr "Vie EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "EDID-tiedosto \"%ls\" on liian suuri."
+msgid "EDID file \"%s\" is too large."
+msgstr "EDID-tiedosto \"%s\" on liian suuri."
 
 msgid "OpenGL input scale"
 msgstr "OpenGL-syötteen skaalaus"

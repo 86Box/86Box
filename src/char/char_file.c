@@ -166,7 +166,7 @@ char_file_init(const device_t *info)
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
         if (!dev->file_out) {
             snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
-            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+            ui_msgbox(MBX_ERROR, msg);
         }
     } else {
         char_file_log(dev->log, "No output file specified\n");
@@ -186,7 +186,7 @@ char_file_init(const device_t *info)
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
         if (!dev->file_in) {
             snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
-            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+            ui_msgbox(MBX_ERROR, msg);
         }
     } else {
         char_file_log(dev->log, "No input file specified\n");

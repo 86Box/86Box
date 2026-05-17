@@ -482,7 +482,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     card->byte_period     = NET_PERIOD_10M;
 
     char net_drv_error[NET_DRV_ERRBUF_SIZE];
-    wchar_t tempmsg[NET_DRV_ERRBUF_SIZE * 2];
+    char tempmsg[NET_DRV_ERRBUF_SIZE * 2];
 
     for (int i = 0; i < NET_QUEUE_COUNT; i++) {
         network_queue_init(&card->queues[i]);
@@ -533,7 +533,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
             // We're here because of a failure
-            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:\n\n%s\n\n%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
+            snprintf(tempmsg, sizeof(tempmsg), "%s:\n\n%s\n\n%s", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
             ui_msgbox(MBX_ERROR, tempmsg);
             net_cards_conf[net_card_current].net_type = NET_TYPE_NONE;
         }

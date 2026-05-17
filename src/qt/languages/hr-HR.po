@@ -771,17 +771,17 @@ msgstr "BOsnovne sektorske slike"
 msgid "Surface images"
 msgstr "Površinske slike"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Sistem \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Sistem \"%s\" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Video kartica \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Video kartica \"%s\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Video kartica 2 \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Isključivanje druge video karice."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Video kartica 2 \"%s\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Isključivanje druge video karice."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Uređaj \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi. Ignoriranje uređaja."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Uređaj \"%s\" nije dostupan jer ne postoje potrebni ROM-ovi. Ignoriranje uređaja."
 
 msgid "Machine"
 msgstr "Sistem"
@@ -3022,8 +3022,8 @@ msgstr "Izvoz…"
 msgid "Export EDID"
 msgstr "Izvoz EDID-a"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "EDID datoteka \"%ls\" je prevelika."
+msgid "EDID file \"%s\" is too large."
+msgstr "EDID datoteka \"%s\" je prevelika."
 
 msgid "OpenGL input scale"
 msgstr "Ulazna skala OpenGL-a"

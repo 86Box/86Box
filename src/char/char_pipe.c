@@ -184,7 +184,7 @@ client:
                     goto errmsg;
                 }
                 if (startup)
-                    ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                    ui_msgbox(MBX_ERROR, msg);
                 else
                     char_pipe_log(dev->log, "%s\n", msg);
             }
@@ -211,7 +211,7 @@ client:
                 char_pipe_log(dev->log, "PTY open failed (%d)\n", err);
 
                 snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path_out, strerror(err));
-                ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                ui_msgbox(MBX_ERROR, msg);
                 dev->path_out[dev->path_len] = prev;
                 goto errmsg;
             }
@@ -270,7 +270,7 @@ client:
             for (int j = 0; j <= 1; j++) {
                 snprintf(msg, sizeof(msg), (j == 0) ? "%s: Could not connect to %s: %s" : "%s: Could not create %s: %s", dev->port->name, path, strerror(err));
                 if (startup)
-                    ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+                    ui_msgbox(MBX_ERROR, msg);
                 else
                     char_pipe_log(dev->log, "%s\n", msg);
                 err = create_err;
@@ -291,7 +291,7 @@ errmsg:
     char_pipe_disconnect(dev, 0); /* just update status */
     if (msg[0]) {
         if (startup)
-            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+            ui_msgbox(MBX_ERROR, msg);
         else
             char_pipe_log(dev->log, "%s\n", msg);
     }
