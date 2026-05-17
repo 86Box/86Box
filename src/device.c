@@ -318,8 +318,8 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
         return NULL;
 
     if (!device_available(dev)) {
-        wchar_t temp[512] = { 0 };
-        swprintf(temp, sizeof_w(temp),
+        char temp[512] = { 0 };
+        snprintf(temp, sizeof(temp),
                  plat_get_string(STRING_HW_NOT_AVAILABLE_DEVICE),
                  dev->name);
         ui_msgbox_header(MBX_INFO,
@@ -514,7 +514,7 @@ void
 device_close_by_flags(uint32_t match_flags)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if ((devices[c] != NULL) && (devices[c]->flags & match_flags)) {
+        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags)) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);

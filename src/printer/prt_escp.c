@@ -2253,6 +2253,9 @@ escp_close(void *priv)
         free(dev->page);
     }
 
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
+
     FT_Done_Face(dev->fontface);
     free(dev);
 }
@@ -2328,7 +2331,7 @@ static const device_config_t lpt_prt_escp_config[] = {
 const device_t lpt_prt_escp_device = {
     .name          = "Generic ESC/P 2 Dot-Matrix Printer",
     .internal_name = "dot_matrix",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = escp_init,
     .close         = escp_close,

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-16 15:51+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
 "Language: ja-JP\n"
@@ -368,7 +368,7 @@ msgid "[1996] Socket 7 (Dual Voltage)"
 msgstr ""
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "その他"
 
 msgid "Machine:"
 msgstr "マシン:"
@@ -769,17 +769,17 @@ msgstr "ベーシック セクター イメージ"
 msgid "Surface images"
 msgstr "サーフェス イメージ"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "roms/machines ディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "roms/machines ディレクトリにROMがないため、マシン「%s」は使用できません。使用可能なマシンに切り替えます。"
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%s」は使用できません。使用可能なビデオカードに切り替えます。"
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%hs」は使用できません。2枚目のビデオカードを無効にします。"
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%s」は使用できません。2枚目のビデオカードを無効にします。"
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "ROMがないため、デバイス「%hs」は使用できません。装置を無視する。"
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "ROMがないため、デバイス「%s」は使用できません。装置を無視する。"
 
 msgid "Machine"
 msgstr "マシン"
@@ -1970,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "BIOS言語"
 
 msgid "Variant"
-msgstr ""
+msgstr "バリアント"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161拡張ユニット"
@@ -2811,7 +2811,7 @@ msgid "Emulator"
 msgstr ""
 
 msgid "Input"
-msgstr ""
+msgstr "入力"
 
 msgid "Key bindings"
 msgstr "キーバインド"
@@ -3020,8 +3020,8 @@ msgstr "エクスポート…"
 msgid "Export EDID"
 msgstr "EDIDのエクスポート"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "EDIDファイル「%ls」が大きすぎます。"
+msgid "EDID file \"%s\" is too large."
+msgstr "EDIDファイル「%s」が大きすぎます。"
 
 msgid "OpenGL input scale"
 msgstr "OpenGLの入力スケール"

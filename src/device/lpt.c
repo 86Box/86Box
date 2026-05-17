@@ -30,7 +30,7 @@ static int    lpt_3bc_used            = 0;
 
 static lpt_t *lpt1;
 
-lpt_port_t    lpt_ports[PARALLEL_MAX];
+lpt_port_t    lpt_ports[PARALLEL_MAX] = { 0 };
 
 lpt_device_t  lpt_devs[PARALLEL_MAX];
 
@@ -55,9 +55,9 @@ lpt_log(const char *fmt, ...)
 static inline void
 lpt_char_update_control(lpt_t *dev, uint32_t flags)
 {
-    if (dev->port.chardev.control && (dev->char_control != flags)) {
+    if (dev->char_port.chardev.control && (dev->char_control != flags)) {
         dev->char_control = flags;
-        dev->port.chardev.control(CHAR_RAW_CONTROL(flags), dev->port.chardev.priv);
+        dev->char_port.chardev.control(CHAR_RAW_CONTROL(flags), dev->char_port.chardev.priv);
     }
 }
 
@@ -85,10 +85,10 @@ lpt_char_pti_mode(lpt_t *dev, uint8_t mode)
             dev->char_pti_readout = 0x1;
 rx_setup_wait:
             /* Tell the transmitter to set up (!nFault|!nBusy) but not send data just yet (!Select). */
-            if (dev->port.chardev.write) {
+            if (dev->char_port.chardev.write) {
                 lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
                 uint8_t buf = 0xf0;
-                dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
+                dev->char_port.chardev.write(&buf, sizeof(buf), dev->char_port.chardev.priv);
             }
             break;
 
@@ -121,7 +121,7 @@ lpt_char_write_data(uint8_t val, void *priv)
     /* Reset status read spin loop counter. */
     dev->char_spin_count = 0;
 
-    if ((dev->port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) {
+    if ((dev->char_port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) {
         /* PTI command mode. (SelectIn|nInit|autofd) */
         lpt_char_pti_mode(dev, val);
     } else if (((dev->char_pti_mode & 0xed) == 0xe1) && (dev->ctrl & 0x08)) {
@@ -129,12 +129,13 @@ lpt_char_write_data(uint8_t val, void *priv)
            is set up (SelectIn goes low). This ensures the status we've sent upon
            entering a mode isn't overwritten by the E5 written after exiting command mode. */
         lpt_log("Not writing byte %02X due to status hold (ctrl=%02X ecr=%02X)\n", val, dev->ctrl, dev->ecr);
-    } else if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) || (dev->char_pti_mode == 0xf1)) { /* PTI bidirectional transmit */
+    } else if ((dev->char_port.chardev.flags & CHAR_LPT_USESTROBE) || (dev->char_pti_mode == 0xf1)) { /* PTI bidirectional transmit */
         /* Store data for strobe. */
         dev->char_write = val;
     } else {
+        /* Write data immediately. */
         lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
-        dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
+        dev->char_port.chardev.write(&val, sizeof(val), dev->char_port.chardev.priv);
     }
 }
 
@@ -143,9 +144,10 @@ lpt_char_strobe(uint8_t old, uint8_t val, void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    if ((dev->port.chardev.flags & CHAR_LPT_USESTROBE) && !(val & 0x01) && (old & 0x01)) {
+    /* Write data on trailing edge. */
+    if ((dev->char_port.chardev.flags & CHAR_LPT_USESTROBE) && !(val & 0x01) && (old & 0x01)) {
         lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
-        dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv);
+        dev->char_port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->char_port.chardev.priv);
     }
 }
 
@@ -177,7 +179,7 @@ lpt_char_callback(void *priv)
     uint64_t latch = TIMER_USEC * 100;
     if (LIKELY(read > 0)) {
         lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
-        read = dev->port.chardev.read(buf, read, dev->port.chardev.priv);
+        read = dev->char_port.chardev.read(buf, read, dev->char_port.chardev.priv);
         if (read > 0) {
             lpt_log("Read %cb: %02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X",
                 input ? '8': '4',
@@ -210,9 +212,9 @@ lpt_char_callback(void *priv)
                 uint64_t prev   = (masked << 8) | (dev->char_read & 0x08);
                 if (~prev & masked)
                     lpt_irq(dev, 1);
-    #ifdef DROP_EMULATION_SPEED_INSTEAD
+#ifdef DROP_EMULATION_SPEED_INSTEAD
                 if (dev->enable_irq)
-    #endif
+#endif
                     latch = TIMER_USEC * 2;
             }
             dev->char_read = buf[read - 1];
@@ -224,7 +226,7 @@ lpt_char_callback(void *priv)
     /* PTI bidirectional mode: flush a write that has been strobed and is pending. */
     if ((dev->char_pti_mode == 0xf1) && ((dev->ctrl & 0x0c) == 0x04) && (!!(dev->ctrl & 0x02) ^ !(dev->char_read & 0x10))) {
         lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
-        if (dev->port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->port.chardev.priv)) {
+        if (dev->char_port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->char_port.chardev.priv)) {
             /* Signal that the write operation has completed. */
             if (dev->ctrl & 0x02)
                 dev->char_read &= ~0x10; /* !D4 == nBusy */
@@ -244,14 +246,14 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
     /* Reset status read spin loop counter. */
     dev->char_spin_count = 0;
 
-    if ((dev->port.chardev.flags & CHAR_LPT_PTI) && ((val & 0x0f) == 0x0e)) { /* PTI command mode (SelectIn|nInit|autofd) */
+    if ((dev->char_port.chardev.flags & CHAR_LPT_PTI) && ((val & 0x0f) == 0x0e)) { /* PTI command mode (SelectIn|nInit|autofd) */
         lpt_char_pti_mode(dev, dev->dat);
     } else if ((dev->char_pti_mode & 0xef) == 0xe1) { /* PTI bidirectional modes */
         /* Tell the other end to begin bidirectional transfer (Select|!nBusy) once SelectIn goes low. */
         if ((dev->ctrl & 0x08) && !(val & 0x08)) {
             lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
             uint8_t buf = 0xf2;
-            dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
+            dev->char_port.chardev.write(&buf, sizeof(buf), dev->char_port.chardev.priv);
         }
 
         /* Strobe data on autofd edge if !SelectIn && nInit. */
@@ -264,7 +266,7 @@ lpt_char_write_ctrl(uint8_t val, void *priv)
         }
     } else {
         lpt_char_update_control(dev, (dev->char_control & ~0xff00) | ((uint16_t) val << 8));
-        if (dev->port.chardev.write)
+        if (dev->char_port.chardev.write)
             lpt_char_strobe(dev->ctrl, val, dev);
     }
 }
@@ -274,9 +276,9 @@ lpt_char_read_status(void *priv)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    if ((dev->port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) { /* PTI command mode */
+    if ((dev->char_port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) { /* PTI command mode */
         return dev->char_pti_readout << 3;
-    } else if (dev->port.chardev.flags & (CHAR_LPT_NIBBLE | CHAR_LPT_PTI)) {
+    } else if (dev->char_port.chardev.flags & (CHAR_LPT_NIBBLE | CHAR_LPT_PTI)) {
         /* Trigger a read outside the timer if the guest appears to be waiting for a
            response by spin-looping status reads. Strictest loop limits for reference:
            - Windows DCC (ptilink.sys 1.1.0.0): 4096 spins with 1us wait
@@ -288,8 +290,8 @@ lpt_char_read_status(void *priv)
             lpt_char_callback(dev);
         }
         return (dev->char_read << 3) ^ (CHAR_RAW_STATUS(0) >> 8);
-    } else if (dev->port.chardev.status) {
-        return CHAR_RAW_STATUS(dev->port.chardev.status(dev->port.chardev.priv)) >> 8;
+    } else if (dev->char_port.chardev.status) {
+        return CHAR_RAW_STATUS(dev->char_port.chardev.status(dev->char_port.chardev.priv)) >> 8;
     } else {
         return 0xff;
     }
@@ -301,7 +303,7 @@ lpt_char_epp_write_data(uint8_t is_addr, uint8_t val, void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     lpt_char_update_control(dev, (dev->char_control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
-    dev->port.chardev.write(&val, sizeof(val), dev->port.chardev.priv);
+    dev->char_port.chardev.write(&val, sizeof(val), dev->char_port.chardev.priv);
 }
 
 static void
@@ -310,44 +312,52 @@ lpt_char_epp_request_read(uint8_t is_addr, void *priv)
     lpt_t *dev = (lpt_t *) priv;
 
     lpt_char_update_control(dev, (dev->char_control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
-    dev->port.chardev.read(&dev->in_dat, sizeof(dev->in_dat), dev->port.chardev.priv);
+    dev->char_port.chardev.read(&dev->in_dat, sizeof(dev->in_dat), dev->char_port.chardev.priv);
 }
 
 void
 lpt_devices_init(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone. */
+        if (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
+            continue;
+
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
+
+        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
 
         lpt_t *lpt = lpt_ports[i].lpt;
         if (!lpt)
             continue;
 
-        memset(&lpt->port, 0, sizeof(lpt->port));
+        memset(&lpt->char_port, 0x00, sizeof(lpt->char_port));
         if (lpt_ports[i].device) {
-            lpt->port.type = CHAR_PORT_LPT;
-            snprintf(lpt->port.name, sizeof(lpt->port.name), "LPT%i", i + 1);
+            lpt->char_port.type = CHAR_PORT_LPT;
+            snprintf(lpt->char_port.name, sizeof(lpt->char_port.name), "LPT%i", i + 1);
             const device_t *device = char_get_device(lpt_ports[i].device);
-            char_init(&lpt->port, device, i + 1);
-            if (lpt->port.attached) {
+            char_init(&lpt->char_port, device, i + 1);
+            if (lpt->char_port.attached) {
                 /* Attach character device shim. */
                 lpt->char_control = -1; /* force update on first control write */
                 lpt_attach_ex(i,
-                    lpt->port.chardev.write ? lpt_char_write_data : NULL,
-                    (lpt->port.chardev.control || (lpt->port.chardev.flags & (CHAR_LPT_USESTROBE | CHAR_LPT_PTI))) ? lpt_char_write_ctrl : NULL,
-                    (lpt->port.chardev.write && (lpt->port.chardev.flags & CHAR_LPT_USESTROBE)) ? lpt_char_strobe : NULL,
-                    (lpt->port.chardev.status || (lpt->port.chardev.flags & (CHAR_LPT_NIBBLE | CHAR_LPT_PTI))) ? lpt_char_read_status : NULL,
+                    lpt->char_port.chardev.write ? lpt_char_write_data : NULL,
+                    (lpt->char_port.chardev.control || (lpt->char_port.chardev.flags & (CHAR_LPT_USESTROBE | CHAR_LPT_PTI))) ? lpt_char_write_ctrl : NULL,
+                    (lpt->char_port.chardev.write && (lpt->char_port.chardev.flags & CHAR_LPT_USESTROBE)) ? lpt_char_strobe : NULL,
+                    (lpt->char_port.chardev.status || (lpt->char_port.chardev.flags & (CHAR_LPT_NIBBLE | CHAR_LPT_PTI))) ? lpt_char_read_status : NULL,
                     NULL, /* read_ctrl */
-                    lpt->port.chardev.write ? lpt_char_epp_write_data : NULL,
-                    lpt->port.chardev.read ? lpt_char_epp_request_read : NULL,
+                    lpt->char_port.chardev.write ? lpt_char_epp_write_data : NULL,
+                    lpt->char_port.chardev.read ? lpt_char_epp_request_read : NULL,
                     lpt
                 );
-                if (lpt->port.chardev.read)
+                if (lpt->char_port.chardev.read)
                     timer_set_delay_u64(&lpt->char_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
+                lpt_char_update_control(lpt, (lpt->char_control & ~0xff00) | ((uint16_t) lpt->ctrl << 8));
             }
-            lpt_ports[i].attached = LPT_PORT_HOTPLUGGABLE; /* we're hotpluggable unless further lpt_attach attempts are made */
-        } else {
-            lpt_ports[i].attached = LPT_PORT_DETACHED;
+
+            /* This port is hotunpluggable if the device allows it, unless further lpt_attach attempts are made. */
+            if ((device->flags & DEVICE_HOTPLUG_OUT) && (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
+                lpt_ports[i].hotunplug = CHAR_PORT_HOTUNPLUG;
         }
     }
 }
@@ -363,11 +373,11 @@ lpt_attach_ex(int     port,
               void    (*epp_request_read)(uint8_t is_addr, void *priv),
               void    *priv)
 {
-    /* Make sure this port becomes non-hotpluggable if a hotpluggable dropdown
-       device and a non-hotpluggable external device are both trying to claim it. */
-    uint8_t attached         = lpt_ports[port].attached;
-    lpt_ports[port].attached = LPT_PORT_NOTHOTPLUGGABLE;
-    if (attached)
+    /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
+       device and a non-hotunpluggable external device are both trying to claim it. */
+    uint8_t hotunplug         = lpt_ports[port].hotunplug;
+    lpt_ports[port].hotunplug = CHAR_PORT_NOHOTUNPLUG;
+    if (hotunplug != CHAR_PORT_DETACHED)
         return NULL;
 
     lpt_devs[port].write_data       = write_data;
@@ -383,13 +393,18 @@ lpt_attach_ex(int     port,
 }
 
 void
-lpt_devices_close(void)
+lpt_devices_close(int hotplug)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone in a hotplug operation. */
+        if (hotplug && (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
+            continue;
+        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
+
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
         if (lpt_ports[i].lpt) {
-            lpt_ports[i].lpt->port.attached = 0;
+            memset(&lpt_ports[i].lpt->char_port, 0x00, sizeof(lpt_ports[i].lpt->char_port));
 
             timer_disable(&lpt_ports[i].lpt->char_timer);
         }
@@ -399,9 +414,9 @@ lpt_devices_close(void)
 void
 lpt_devices_reset(void)
 {
-    device_close_by_flags(DEVICE_LPT);
+    device_close_by_flags(DEVICE_LPT | DEVICE_HOTPLUG_OUT);
 
-    lpt_devices_close();
+    lpt_devices_close(1);
 
     lpt_devices_init();
 }
@@ -673,13 +688,13 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                     dev->state = LPT_STATE_READ_DMA;
                 } else if ((val & 0x0c) != 0x08) /* !dmaEn || serviceIntr */
                     dev->state = LPT_STATE_WRITE_FIFO;
-                if (((dev->char_pti_mode & 0xef) == 0xe3) && dev->port.chardev.write) {
+                if (((dev->char_pti_mode & 0xef) == 0xe3) && dev->char_port.chardev.write) {
                     /* PTI ECP modes: tell the other end to begin ECP transfer (Select).
                        There's a control write (nInit|ackIntEn) right before this ECR
                        write, but we're not taking any chances with code block boundaries. */
                     lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
                     uint8_t buf = 0xe2;
-                    dev->port.chardev.write(&buf, sizeof(buf), dev->port.chardev.priv);
+                    dev->char_port.chardev.write(&buf, sizeof(buf), dev->char_port.chardev.priv);
                     dev->char_pti_mode = 0x00;
                 }
                 if (!timer_is_enabled(&dev->fifo_out_timer))

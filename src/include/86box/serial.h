@@ -111,12 +111,14 @@ typedef struct serial_device_s {
     void    (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t lcr);
     void    (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
     void     *priv;
-    serial_t *serial;
 } serial_device_t;
 
 typedef struct serial_port_s {
     uint8_t enabled;
+    uint8_t hotunplug;
     int     device;
+
+    serial_t *serial;
 } serial_port_t;
 
 extern serial_port_t com_ports[SERIAL_MAX];
@@ -137,6 +139,9 @@ extern serial_t *serial_attach_ex_2(int port,
 #define serial_attach(port, rcr_callback, dev_write, priv) \
         serial_attach_ex(port, rcr_callback, dev_write, NULL, NULL, priv);
 
+extern void      serial_devices_init(void);
+extern void      serial_devices_close(int soft);
+extern void      serial_devices_reset(void);
 extern void      serial_remove(serial_t *dev);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
 extern void      serial_irq(serial_t *dev, uint8_t irq);

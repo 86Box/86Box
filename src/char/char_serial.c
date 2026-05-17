@@ -179,7 +179,7 @@ static const struct {
 #    endif
 #endif
     { 0 }
-    // clang-format on
+// clang-format on
 };
 
 static void char_serial_port_config(void *priv);
@@ -331,7 +331,7 @@ char_serial_connect(char_serial_t *dev, int startup)
 errmsg:
     char_serial_disconnect(dev);
     if (startup)
-        ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+        ui_msgbox(MBX_ERROR, msg);
     else
         char_serial_log(dev->log, "%s\n", msg);
     return 0;
@@ -592,16 +592,9 @@ char_serial_port_config(void *priv)
     } else {
         char_serial_log(dev->log, "Specific baud TCSETS2 failed (%d)\n", errno);
     }
-#    elif B38400 == 38400 /* BSDs (including macOS) where cfset*speed take a specific baud rate */
+#    elif !defined(USE_LINUX_TERMIOS) && (B38400 == 38400) /* BSDs (including macOS) where cfset*speed take a specific baud rate */
     if (!cfsetispeed(&dev->config, dev->port->com.baud) && !cfsetospeed(&dev->config, dev->port->com.baud)) {
-#        ifdef TCSETS2
-        if (!ioctl(dev->fd, TCSETS2, &dev->config))
-#        elif defined(USE_LINUX_TERMIOS)
-        if (!ioctl(dev->fd, TCSETS, &dev->config))
-#        else
-        if (!tcsetattr(dev->fd, TCSANOW, &dev->config))
-#        endif
-        {
+        if (!tcsetattr(dev->fd, TCSANOW, &dev->config)) {
             char_serial_log(dev->log, "Specific baud configuration successful\n");
             return;
         } else {
@@ -612,7 +605,7 @@ char_serial_port_config(void *priv)
     }
 #    endif
 
-    /* Failed or we're not in a specific baud rate platform, try using the closest common baud rate. */
+    /* Failed (or specific baud rates aren't supported by the platform), try using the closest common baud rate. */
 #    ifdef CBAUD
     dev->config.c_cflag &= ~CBAUD;
 #    endif
@@ -810,7 +803,7 @@ static const device_config_t char_serial_config[] = {
 const device_t char_serial_passthrough_com_device = {
     .name          = "Serial Passthrough (COM)",
     .internal_name = "serial_passthrough",
-    .flags         = DEVICE_COM,
+    .flags         = DEVICE_COM | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = char_serial_init,
     .close         = char_serial_close,

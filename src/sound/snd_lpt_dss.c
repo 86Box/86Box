@@ -217,7 +217,7 @@ dss_close(void *priv)
 const device_t dss_device = {
     .name          = "Disney Sound Source",
     .internal_name = "dss",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG_IN,
     .local         = 0,
     .init          = dss_init,
     .close         = dss_close,

@@ -496,6 +496,9 @@ prnt_close(void *priv)
         free(dev->page);
     }
 
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
+
     free(dev);
 }
 
@@ -525,7 +528,7 @@ static const device_config_t lpt_prt_text_config[] = {
 const device_t lpt_prt_text_device = {
     .name          = "Generic Text Printer",
     .internal_name = "text_prt",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = prnt_init,
     .close         = prnt_close,

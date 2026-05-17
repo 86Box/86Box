@@ -87,58 +87,46 @@ plat_remove(char *path)
  * String localization
  */
 
-wchar_t *
+char *
 plat_get_string(int i)
 {
     switch (i) {
         case STRING_MOUSE_CAPTURE:
-            return L"Click to capture mouse";
+            return "Click to capture mouse";
         case STRING_MOUSE_RELEASE:
-            return L"Press CTRL-END to release mouse";
+            return "Press CTRL-END to release mouse";
         case STRING_MOUSE_RELEASE_MMB:
-            return L"Press CTRL-END or middle button to release mouse";
+            return "Press CTRL-END or middle button to release mouse";
         case STRING_INVALID_CONFIG:
-            return L"Invalid configuration";
+            return "Invalid configuration";
         case STRING_NO_ST506_ESDI_CDROM:
-            return L"MFM/RLL or ESDI CD-ROM drives never existed";
+            return "MFM/RLL or ESDI CD-ROM drives never existed";
         case STRING_PCAP_ERROR_NO_DEVICES:
-            return L"No PCap devices found";
+            return "No PCap devices found";
         case STRING_PCAP_ERROR_INVALID_DEVICE:
-            return L"Invalid PCap device";
+            return "Invalid PCap device";
         case STRING_GHOSTSCRIPT_ERROR_DESC:
-            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+            return "libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
         case STRING_PCAP_ERROR_DESC:
-            return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
+            return "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case STRING_GHOSTSCRIPT_ERROR_TITLE:
-            return L"Unable to initialize Ghostscript";
+            return "Unable to initialize Ghostscript";
         case STRING_GHOSTPCL_ERROR_TITLE:
-            return L"Unable to initialize GhostPCL";
+            return "Unable to initialize GhostPCL";
         case STRING_GHOSTPCL_ERROR_DESC:
-            return L"libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
+            return "libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
         case STRING_HW_NOT_AVAILABLE_MACHINE:
-            return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
+            return "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
         case STRING_HW_NOT_AVAILABLE_VIDEO:
-            return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
-        case STRING_HW_NOT_AVAILABLE_VIDEO2:
-            return L"Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.";
-        case STRING_HW_NOT_AVAILABLE_DEVICE:
-            return L"Device \"%hs\" is not available due to missing ROMs. Ignoring the device.";
+            return "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
         case STRING_HW_NOT_AVAILABLE_TITLE:
-            return L"Hardware not available";
-        case STRING_NET_ERROR:
-            return L"Failed to initialize network driver";
-        case STRING_NET_ERROR_DESC:
-            return L"The network configuration will be switched to the null driver";
-        case STRING_ESCP_ERROR_TITLE:
-            return L"Unable to find Dot-Matrix fonts";
-        case STRING_ESCP_ERROR_DESC:
-            return L"TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.";
+            return "Hardware not available";
         case STRING_MONITOR_SLEEP:
-            return L"Monitor in sleep mode";
+            return "Monitor in sleep mode";
         case STRING_EDID_TOO_LARGE:
-            return L"EDID file \"%ls\" is too large.";
+            return "EDID file \"%s\" is too large.";
     }
-    return L"";
+    return "";
 }
 
 /* Converts the language code string to a numeric language ID */
@@ -346,8 +334,8 @@ plat_power_off(void)
 void
 plat_pause(int p)
 {
-    static wchar_t oldtitle[512];
-    wchar_t        title[512];
+    static char oldtitle[512];
+    char        title[512];
 
     if ((!!p) == dopause)
         return;
@@ -357,15 +345,14 @@ plat_pause(int p)
 
     do_pause(p);
     if (p) {
-        wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
-        wcscpy(title, oldtitle);
-        wcscat(title, L" - PAUSED");
+        strncpy(oldtitle, ui_window_title(NULL), sizeof(oldtitle) - 1);
+        strcpy(title, oldtitle);
+        strcat(title, " - PAUSED");
         ui_window_title(title);
     } else {
         ui_window_title(oldtitle);
     }
 }
-
 
 char *
 plat_vidapi_name(UNUSED(int i))

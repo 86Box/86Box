@@ -36,7 +36,7 @@
 #include <86box/serial.h>
 #include <86box/mouse.h>
 
-serial_port_t com_ports[SERIAL_MAX];
+serial_port_t com_ports[SERIAL_MAX] = { 0 };
 
 enum {
     SERIAL_INT_LSR       = 1,
@@ -880,10 +880,14 @@ serial_attach_ex(int port,
                  void (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t data_bits),
                  void *priv)
 {
-    serial_device_t *sd = &serial_devices[port];
-
-    if (!sd->serial)
+    /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
+       device and a non-hotunpluggable external device are both trying to claim it. */
+    uint8_t hotunplug         = com_ports[port].hotunplug;
+    com_ports[port].hotunplug = CHAR_PORT_NOHOTUNPLUG;
+    if (hotunplug != CHAR_PORT_DETACHED)
         return NULL;
+
+    serial_device_t *sd = &serial_devices[port];
 
     sd->rcr_callback             = rcr_callback;
     sd->dev_write                = dev_write;
@@ -891,20 +895,24 @@ serial_attach_ex(int port,
     sd->lcr_callback             = lcr_callback;
     sd->priv                     = priv;
 
-    return sd->serial;
+    return com_ports[port].serial;
 }
 
 serial_t *
 serial_attach_ex_2(int port,
-                 void (*rcr_callback)(struct serial_s *serial, void *priv),
-                 void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
-                 void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
-                 void *priv)
+                   void (*rcr_callback)(struct serial_s *serial, void *priv),
+                   void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
+                   void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
+                   void *priv)
 {
-    serial_device_t *sd = &serial_devices[port];
-
-    if (!sd->serial)
+    /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
+       device and a non-hotunpluggable external device are both trying to claim it. */
+    uint8_t hotunplug         = com_ports[port].hotunplug;
+    com_ports[port].hotunplug = CHAR_PORT_NOHOTUNPLUG;
+    if (hotunplug != CHAR_PORT_DETACHED)
         return NULL;
+
+    serial_device_t *sd = &serial_devices[port];
 
     sd->rcr_callback             = rcr_callback;
     sd->dtr_callback             = dtr_callback;
@@ -913,7 +921,65 @@ serial_attach_ex_2(int port,
     sd->lcr_callback             = NULL;
     sd->priv                     = priv;
 
-    return sd->serial;
+    return com_ports[port].serial;
+}
+
+void
+serial_devices_init(void)
+{
+    for (uint8_t i = 0; i < SERIAL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone. */
+        if (com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
+            continue;
+
+        memset(&(serial_devices[i]), 0, sizeof(serial_device_t));
+
+        com_ports[i].hotunplug = CHAR_PORT_DETACHED;
+
+        serial_t *serial = com_ports[i].serial;
+        if (!serial)
+            continue;
+
+        memset(&serial->char_port, 0, sizeof(serial->char_port));
+        if (com_ports[i].device) {
+            serial->char_port.type = CHAR_PORT_COM;
+            snprintf(serial->char_port.name, sizeof(serial->char_port.name), "COM%i", i + 1);
+            const device_t *device = char_get_device(com_ports[i].device);
+            char_init(&serial->char_port, device, i + 1);
+
+            if (serial->char_port.chardev.control)
+                serial->char_port.chardev.control((serial->mctrl & 0x03) | (serial->lcr & 0x40), serial->char_port.chardev.priv);
+
+            /* This port is hotunpluggable if the device allows it, unless further serial_attach attempts are made. */
+            com_ports[i].hotunplug = (device->flags & DEVICE_HOTPLUG_OUT) ? CHAR_PORT_HOTUNPLUG : CHAR_PORT_NOHOTUNPLUG;
+        }
+    }
+}
+
+void
+serial_devices_close(int hotplug)
+{
+    for (uint8_t i = 0; i < SERIAL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone in a hotplug operation. */
+        if (hotplug && (com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
+            continue;
+        com_ports[i].hotunplug = CHAR_PORT_DETACHED;
+
+        memset(&(serial_devices[i]), 0, sizeof(serial_device_t));
+
+        if (com_ports[i].serial)
+            memset(&com_ports[i].serial->char_port, 0, sizeof(char_port_t));
+    }
+}
+
+void
+serial_devices_reset(void)
+{
+    device_close_by_flags(DEVICE_COM | DEVICE_HOTPLUG_OUT);
+
+    serial_devices_close(1);
+
+    serial_devices_init();
 }
 
 static void
@@ -986,18 +1052,10 @@ serial_init(const device_t *info)
     if (com_ports[next_inst].enabled || (info->local & 0xFFF00000)) {
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
-        memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));
         dev->sd         = &(serial_devices[next_inst]);
-        dev->sd->serial = dev;
 
-        memset(&dev->char_port, 0, sizeof(dev->char_port));
-        if (com_ports[next_inst].device) {
-            dev->char_port.type = CHAR_PORT_COM;
-            snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%i", next_inst + 1);
-            char_init(&dev->char_port, char_get_device(com_ports[next_inst].device), next_inst + 1);
-            if (dev->char_port.attached)
-                dev->sd->serial = NULL; /* other devices can no longer attach to this port */
-        }
+        com_ports[next_inst].serial    = dev;
+        com_ports[next_inst].hotunplug = CHAR_PORT_DETACHED;
 
         if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;

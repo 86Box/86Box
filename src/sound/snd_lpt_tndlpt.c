@@ -155,7 +155,7 @@ tndlpt_init(UNUSED(const device_t *info))
 const device_t lpt_tnd_device = {
     .name          = "Tandy-on-LPT (TNDLPT)",
     .internal_name = "lpt_tndlpt",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG_IN,
     .local         = 0,
     .init          = tndlpt_init,
     .close         = tndlpt_close,

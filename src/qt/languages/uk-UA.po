@@ -770,17 +770,17 @@ msgstr "Прості посекторні образи"
 msgid "Surface images"
 msgstr "Образ поверхні"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Системна плата «%hs» недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Системна плата «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Відеокарта «%hs» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Відеокарта «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Відеокарта 2 «%hs» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Відключення другої відеокарти."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Відеокарта 2 «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Відключення другої відеокарти."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Пристрій «%hs» недоступний через відсутність файлу його ПЗУ. Ігнорування пристрою."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Пристрій «%s» недоступний через відсутність файлу його ПЗУ. Ігнорування пристрою."
 
 msgid "Machine"
 msgstr "Комп'ютер"
@@ -3021,8 +3021,8 @@ msgstr "Експорт…"
 msgid "Export EDID"
 msgstr "Експорт EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Файл EDID «%ls» занадто великий."
+msgid "EDID file \"%s\" is too large."
+msgstr "Файл EDID «%s» занадто великий."
 
 msgid "OpenGL input scale"
 msgstr "Шкала введення OpenGL"

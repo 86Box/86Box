@@ -35,7 +35,7 @@ bool            fast_forward = false;
 int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
-extern wchar_t  sdl_win_title[512];
+extern char     sdl_win_title[512];
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 int      exit_event         = 0;
@@ -305,7 +305,7 @@ main(int argc, char **argv)
     if (ret == 0)
         return 0;
     if (!pc_init_roms()) {
-        ui_msgbox_header(MBX_FATAL, L"No ROMs found.", EMU_NAME_W L" could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
+        ui_msgbox_header(MBX_FATAL, "No ROMs found.", EMU_NAME " could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
         return 6;
     }

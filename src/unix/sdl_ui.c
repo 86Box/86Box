@@ -8,23 +8,19 @@
 #include "sdl_osd.h"
 
 int
-ui_msgbox(int flags, void *message)
+ui_msgbox(int flags, char *message)
 {
     return ui_msgbox_header(flags, NULL, message);
 }
 
 int
-ui_msgbox_header(int flags, void *header, void *message)
+ui_msgbox_header(int flags, char *header, char *message)
 {
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
-    if (!header) {
-        if (flags & MBX_ANSI)
-            header = (void *) EMU_NAME;
-        else
-            header = (void *) EMU_NAME_W;
-    }
+    if (!header)
+        header = EMU_NAME;
 
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
@@ -39,26 +35,12 @@ ui_msgbox_header(int flags, void *header, void *message)
         msgflags |= SDL_MESSAGEBOX_WARNING;
     else
         msgflags |= SDL_MESSAGEBOX_INFORMATION;
-    msgdata.flags = msgflags;
-    if (flags & MBX_ANSI) {
-        int button      = 0;
-        msgdata.title   = header;
-        msgdata.message = message;
-        SDL_ShowMessageBox(&msgdata, &button);
-        return button;
-    } else {
-        int   button    = 0;
-        char *res       = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char *) message, wcslen(message) * sizeof(wchar_t) + sizeof(wchar_t));
-        char *res2      = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char *) header, wcslen(header) * sizeof(wchar_t) + sizeof(wchar_t));
-        msgdata.message = res;
-        msgdata.title   = res2;
-        SDL_ShowMessageBox(&msgdata, &button);
-        free(res);
-        free(res2);
-        return button;
-    }
-
-    return 0;
+    msgdata.flags   = msgflags;
+    int button      = 0;
+    msgdata.title   = header;
+    msgdata.message = message;
+    SDL_ShowMessageBox(&msgdata, &button);
+    return button;
 }
 
 void
@@ -104,7 +86,7 @@ ui_sb_update_text(void)
 }
 
 void
-ui_sb_set_text_w(UNUSED(wchar_t *wstr))
+ui_sb_set_text(UNUSED(char *wstr))
 {
     /* No-op. */
 }

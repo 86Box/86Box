@@ -24,6 +24,12 @@
 #endif
 #define CHAR_RECONNECT_MS 500
 
+enum { /* port hotunpluggability tracking */
+       CHAR_PORT_DETACHED = 0,
+       CHAR_PORT_HOTUNPLUG,
+       CHAR_PORT_NOHOTUNPLUG
+};
+
 enum { /* device flags */
        CHAR_LPT_USESTROBE = 0x1, /* only issue SPP write when STROBE is asserted */
        CHAR_LPT_NIBBLE    = 0x2, /* use nibble/4-bit/LapLink system for bidirectional communication over SPP */
@@ -148,6 +154,7 @@ extern const device_t char_serial_passthrough_com_device;
 extern const device_t char_pipe_com_device;
 extern const device_t char_pipe_lpt_device;
 extern const device_t char_file_com_device;
+extern const device_t char_file_lpt_device;
 extern const device_t char_stdio_com_device;
 extern const device_t char_loopback_com_device;
 extern const device_t char_loopback_lpt_device;

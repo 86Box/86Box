@@ -769,17 +769,17 @@ msgstr "Grundläggande sektoravbildningar"
 msgid "Surface images"
 msgstr "Ytavbildningar"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Maskinen \"%hs\" är inte tillgänglig på grund av saknade ROM-avbildningar i mappen roms/machines. Byter till en tillgänglig maskin."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Maskinen \"%s\" är inte tillgänglig på grund av saknade ROM-avbildningar i mappen roms/machines. Byter till en tillgänglig maskin."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Bildskärmskortet \"%hs\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Byter till ett tillgängligt bildskärmskort."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Bildskärmskortet \"%s\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Byter till ett tillgängligt bildskärmskort."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Bildskärmskort #2 \"%hs\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Avaktiverar det andra bildskärmskortet."
+msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+msgstr "Bildskärmskort #2 \"%s\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Avaktiverar det andra bildskärmskortet."
 
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Enheten \"%hs\" är inte tillgänglig på grund av saknade ROM-avbildningar. Ignorerar enheten."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Enheten \"%s\" är inte tillgänglig på grund av saknade ROM-avbildningar. Ignorerar enheten."
 
 msgid "Machine"
 msgstr "Maskin"
@@ -3020,8 +3020,8 @@ msgstr "Exportera…"
 msgid "Export EDID"
 msgstr "Exportera EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "EDID-filen \"%ls\" är för stor."
+msgid "EDID file \"%s\" is too large."
+msgstr "EDID-filen \"%s\" är för stor."
 
 msgid "OpenGL input scale"
 msgstr "Inmatningsskala för OpenGL"

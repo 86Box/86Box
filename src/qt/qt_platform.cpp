@@ -639,10 +639,6 @@ exit_pause(void)
 void
 plat_pause(int p)
 {
-    static wchar_t oldtitle[512];
-    wchar_t        title[1024];
-    wchar_t        paused_msg[512];
-
     if (!cpu_thread_running && p == 1) {
         p = 2;
     }
@@ -672,15 +668,11 @@ plat_pause(int p)
     if (p) {
         if (mouse_capture)
             plat_mouse_capture(0);
-
-        wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
-        wcscpy(title, oldtitle);
-        paused_msg[QObject::tr(" - PAUSED").toWCharArray(paused_msg)] = 0;
-        wcscat(title, paused_msg);
-        ui_window_title(title);
-    } else {
-        ui_window_title(oldtitle);
     }
+
+    QString title      = main_window->getTitle();
+    QString pausedText = QObject::tr(" - PAUSED");
+    emit main_window->setTitle(p ? title.append(pausedText) : title.left(title.indexOf(pausedText)));
 
 #ifdef DISCORD
     discord_update_activity(dopause);
@@ -832,42 +824,43 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #    define LIB_NAME_PCAP "libpcap"
 #endif
 
-QMap<int, std::wstring> Preferences::translatedstrings;
+QMap<int, QByteArray> Preferences::translatedstrings;
 
 void
 Preferences::reloadStrings()
 {
     translatedstrings.clear();
-    translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE]             = QCoreApplication::translate("", "Press %1 to release mouse").arg(QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)).toStdWString();
-    translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QCoreApplication::translate("", "Press %1 or middle button to release mouse").arg(QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)).toStdWString();
-    translatedstrings[STRING_INVALID_CONFIG]            = QCoreApplication::translate("", "Invalid configuration").toStdWString();
-    translatedstrings[STRING_NO_ST506_ESDI_CDROM]       = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
-    translatedstrings[STRING_PCAP_ERROR_NO_DEVICES]     = QCoreApplication::translate("", "No PCap devices found").toStdWString();
-    translatedstrings[STRING_PCAP_ERROR_INVALID_DEVICE] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
-    translatedstrings[STRING_PCAP_ERROR_DESC]           = QCoreApplication::translate("", "Make sure %1 is installed and that you are on a %1-compatible network connection.").arg(LIB_NAME_PCAP).toStdWString();
-    translatedstrings[STRING_GHOSTSCRIPT_ERROR_TITLE]   = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
-    translatedstrings[STRING_GHOSTSCRIPT_ERROR_DESC]    = QCoreApplication::translate("", "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.").arg(LIB_NAME_GS).toStdWString();
-    translatedstrings[STRING_GHOSTPCL_ERROR_TITLE]      = QCoreApplication::translate("", "Unable to initialize GhostPCL").toStdWString();
-    translatedstrings[STRING_GHOSTPCL_ERROR_DESC]       = QCoreApplication::translate("", "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.").arg(LIB_NAME_GPCL).toStdWString();
-    translatedstrings[STRING_HW_NOT_AVAILABLE_MACHINE]  = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
-    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO]    = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
-    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO2]   = QCoreApplication::translate("", "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toStdWString();
-    translatedstrings[STRING_HW_NOT_AVAILABLE_DEVICE]   = QCoreApplication::translate("", "Device \"%hs\" is not available due to missing ROMs. Ignoring the device.").toStdWString();
-    translatedstrings[STRING_HW_NOT_AVAILABLE_TITLE]    = QCoreApplication::translate("", "Hardware not available").toStdWString();
-    translatedstrings[STRING_MONITOR_SLEEP]             = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
-    translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
-    translatedstrings[STRING_NET_ERROR_DESC]            = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
-    translatedstrings[STRING_ESCP_ERROR_TITLE]          = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts").toStdWString();
-    translatedstrings[STRING_ESCP_ERROR_DESC]           = QCoreApplication::translate("", "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.").toStdWString();
-    translatedstrings[STRING_EDID_TOO_LARGE]            = QCoreApplication::translate("", "EDID file \"%ls\" is too large.").toStdWString();
+    translatedstrings[STRING_MOUSE_CAPTURE]             = QCoreApplication::translate("", "Click to capture mouse").toUtf8();
+    translatedstrings[STRING_MOUSE_RELEASE]             = QCoreApplication::translate("", "Press %1 to release mouse").arg(QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)).toUtf8();
+    translatedstrings[STRING_MOUSE_RELEASE_MMB]         = QCoreApplication::translate("", "Press %1 or middle button to release mouse").arg(QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText)).toUtf8();
+    translatedstrings[STRING_INVALID_CONFIG]            = QCoreApplication::translate("", "Invalid configuration").toUtf8();
+    translatedstrings[STRING_NO_ST506_ESDI_CDROM]       = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toUtf8();
+    translatedstrings[STRING_PCAP_ERROR_NO_DEVICES]     = QCoreApplication::translate("", "No PCap devices found").toUtf8();
+    translatedstrings[STRING_PCAP_ERROR_INVALID_DEVICE] = QCoreApplication::translate("", "Invalid PCap device").toUtf8();
+    translatedstrings[STRING_PCAP_ERROR_DESC]           = QCoreApplication::translate("", "Make sure %1 is installed and that you are on a %1-compatible network connection.").arg(LIB_NAME_PCAP).toUtf8();
+    translatedstrings[STRING_GHOSTSCRIPT_ERROR_TITLE]   = QCoreApplication::translate("", "Unable to initialize Ghostscript").toUtf8();
+    translatedstrings[STRING_GHOSTSCRIPT_ERROR_DESC]    = QCoreApplication::translate("", "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.").arg(LIB_NAME_GS).toUtf8();
+    translatedstrings[STRING_GHOSTPCL_ERROR_TITLE]      = QCoreApplication::translate("", "Unable to initialize GhostPCL").toUtf8();
+    translatedstrings[STRING_GHOSTPCL_ERROR_DESC]       = QCoreApplication::translate("", "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.").arg(LIB_NAME_GPCL).toUtf8();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_MACHINE]  = QCoreApplication::translate("", "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toUtf8();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO]    = QCoreApplication::translate("", "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toUtf8();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO2]   = QCoreApplication::translate("", "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toUtf8();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_DEVICE]   = QCoreApplication::translate("", "Device \"%s\" is not available due to missing ROMs. Ignoring the device.").toUtf8();
+    translatedstrings[STRING_HW_NOT_AVAILABLE_TITLE]    = QCoreApplication::translate("", "Hardware not available").toUtf8();
+    translatedstrings[STRING_MONITOR_SLEEP]             = QCoreApplication::translate("", "Monitor in sleep mode").toUtf8();
+    translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver").toUtf8();
+    translatedstrings[STRING_NET_ERROR_DESC]            = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toUtf8();
+    translatedstrings[STRING_ESCP_ERROR_TITLE]          = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts").toUtf8();
+    translatedstrings[STRING_ESCP_ERROR_DESC]           = QCoreApplication::translate("", "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.").toUtf8();
+    translatedstrings[STRING_EDID_TOO_LARGE]            = QCoreApplication::translate("", "EDID file \"%s\" is too large.").toUtf8();
 }
 
-wchar_t *
+char *
 plat_get_string(int i)
 {
     if (Preferences::translatedstrings.empty())
         Preferences::reloadStrings();
+
     return Preferences::translatedstrings[i].data();
 }
 
@@ -1060,9 +1053,8 @@ plat_set_thread_name(void *thread, const char *name)
     }
 
     if (pSetThreadDescription) {
-        size_t  len = strlen(name) + 1;
-        wchar_t wname[2048];
-        mbstowcs(wname, name, (len >= 1024) ? 1024 : len);
+        wchar_t wname[1024];
+        mbstowcs(wname, name, (sizeof(wname) / sizeof(wname[0])) - 1);
         pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
     }
 #else
@@ -1072,11 +1064,15 @@ plat_set_thread_name(void *thread, const char *name)
     char truncated[64];
 #    elif defined(Q_OS_NETBSD)
     char truncated[64];
+#    elif defined(__HAIKU__)
+    if (thread) /* BeOS threads can only easily set self's name */
+        return;
+    char truncated[32];
 #    else
     char truncated[16];
 #    endif
     strncpy(truncated, name, sizeof(truncated) - 1);
-#    if defined(Q_OS_DARWIN)
+#    ifdef Q_OS_DARWIN
     pthread_setname_np(truncated);
 #    elif defined(Q_OS_NETBSD)
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated, (void *) "%s");
@@ -1214,23 +1210,24 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         return 0;
     f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
     if (!titleq.isEmpty()) {
-        f.write("printf '\e]0;%s\a' '");
+        f.write("printf '\\e]0;%s\\a' '");
         f.write(titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
         f.write("'\n");
     }
-    if (!titleq.isNull() && env && *env) { /* set environment variables for terminal execution */
-        f.write("export");
-        while (*env) {
-            if (!*env[0]) {
-                env++;
-                continue;
+    if (!titleq.isNull()) {
+        if (env && *env) { /* set environment variables for terminal execution */
+            f.write("export");
+            while (*env) {
+                if (!*env[0]) {
+                    env++;
+                    continue;
+                }
+                f.write(QString::fromUtf8(*env++).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral(" '")).append(QStringLiteral("'")).toUtf8());
             }
-            f.write(QString::fromUtf8(*env++).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral(" '")).append(QStringLiteral("'")).toUtf8());
+            f.write("\n");
         }
-        f.write("\n");
-    }
-    if (!titleq.isNull())
         f.write("clear\n");
+    }
     f.write(cmd);
     f.write("\n");
     f.close();
