@@ -339,8 +339,9 @@ MainWindow::MainWindow(QWidget *parent)
         int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
         int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
-        while (QApplication::overrideCursor())
-            QApplication::restoreOverrideCursor();
+        if (mouse_input_mode >= 1 && QApplication::overrideCursor())
+            while (QApplication::overrideCursor())
+                QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
         ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);
 #else
