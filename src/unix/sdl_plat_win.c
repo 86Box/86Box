@@ -221,20 +221,22 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     /* Append environment variables to the existing environment. */
     char *new_env = NULL;
     if (env) {
-        char *existing_env = GetEnvironmentStrings();
-        size_t  c          = 0;
+        char  *existing_env = GetEnvironmentStrings();
+        size_t c            = 0;
         while (existing_env[c++])
             while (existing_env[c++]);
-        size_t d = 0;
+        len   = c;
+        int d = 0;
         while (env[d])
-            d += strlen(env[d]) + 1;
-        len     = c + d;
+            len += strlen(env[d++]) + 1;
         new_env = (char *) malloc(len);
         memcpy(new_env, existing_env, --c);
         FreeEnvironmentStrings(existing_env);
         for (d = 0; env[d]; d++) {
-            strncpy(&new_env[c], env[d], len - c);
-            c += strlen(env[d]) + 1;
+            if (env[d][0]) {
+                strncpy(&new_env[c], env[d], len - c);
+                c += strlen(env[d]) + 1;
+            }
         }
         new_env[c] = '\0';
     }
