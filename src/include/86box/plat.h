@@ -31,8 +31,6 @@ enum {
     STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
     STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
     STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
-    STRING_INVALID_CONFIG,            /* "Invalid configuration" */
-    STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
     STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
     STRING_NET_ERROR_DESC,            /* "The network configuration will be switched..." */
     STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found" */
@@ -45,7 +43,6 @@ enum {
     STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%s\" is not available..." */
     STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%s\" is not available..." */
     STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%s\" is not available..." */
-    STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
     STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
     STRING_GHOSTPCL_ERROR_DESC,       /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
     STRING_ESCP_ERROR_TITLE,          /* "Unable to find Dot-Matrix fonts" */
