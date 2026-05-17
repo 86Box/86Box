@@ -30,11 +30,17 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
-#include <86box/unix_sdl.h>
-#include <86box/unix_osd.h>
+
+#include "sdl_render.h"
+#include "sdl_osd.h"
+
 #ifdef USE_SDL_SHADER_PIPELINE
-#include "unix_sdl_shader.h"
+#include "sdl_shader.h"
 #endif
+
+extern "C" {
+#include "sdl_monitor.h"
+}
 
 /* ------------------------------------------------------------------ */
 /*  Extern interface to SDL environment                                */
@@ -43,7 +49,6 @@ extern "C" {
 extern SDL_Window  *sdl_win;
 extern SDL_Renderer *sdl_render;
 extern char         sdl_win_title[512];
-extern void         unix_executeLine(char *line);
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,6 +98,15 @@ static bool        log_scroll_pending = false;
 
 static void show_main_menu(void);
 static bool FocusedButton(const char *label, bool focused);
+
+static void normalize_slashes(char *path)
+{
+    while (*path != '\0') {
+        if (*path == '\\')
+            *path = '/';
+        path++;
+    }
+}
 
 static bool osd_backend_init(void)
 {
@@ -237,13 +251,13 @@ static void scan_dir_recursive(char path[], size_t path_len, const char *const *
     if (!visited.insert(key).second)
         return; /* already visited (symlink / bind-mount) */
 
-    struct dirent **nl;
-    int n = scandir(path, &nl, nullptr, alphasort);
-    if (n < 0)
+    DIR *dir = opendir(path);
+    if (!dir)
         return;
 
-    for (int i = 0; i < n; i++) {
-        const char *name = nl[i]->d_name;
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        const char *name = entry->d_name;
         if (file_count < OSD_FILE_CAPACITY && name[0] != '.') {
             int added = snprintf(path + path_len, OSD_PATH_CAPACITY - path_len,
                                  "/%s", name);
@@ -259,9 +273,9 @@ static void scan_dir_recursive(char path[], size_t path_len, const char *const *
             }
             path[path_len] = '\0';
         }
-        free(nl[i]);
     }
-    free(nl);
+
+    closedir(dir);
 }
 
 static void load_files(OsdView view)
@@ -298,11 +312,13 @@ static bool  cd_folder_pending = false;
 static void load_cd_folders(void)
 {
     cd_folder_count = 0;
-    struct dirent **nl;
-    int n = scandir(cd_folder_path, &nl, nullptr, alphasort);
-    if (n < 0) return;
-    for (int i = 0; i < n; i++) {
-        const char *name = nl[i]->d_name;
+    DIR *dir = opendir(cd_folder_path);
+    if (!dir)
+        return;
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        const char *name = entry->d_name;
         if (name[0] != '.') {
             char tmp[OSD_PATH_CAPACITY];
             snprintf(tmp, sizeof(tmp), "%s/%s", cd_folder_path, name);
@@ -312,9 +328,9 @@ static void load_cd_folders(void)
                 cd_folder_count++;
             }
         }
-        free(nl[i]);
     }
-    free(nl);
+
+    closedir(dir);
 }
 
 static void cd_folder_go_up(void)
@@ -343,9 +359,9 @@ static void cd_folder_enter(int idx)
 
 static void open_cd_folder_browser(void)
 {
-    char *rp = realpath(".", NULL); /* allocating form; no PATH_MAX constraint */
-    snprintf(cd_folder_path, sizeof(cd_folder_path), "%s", rp ? rp : "/");
-    free(rp);
+    if (!plat_getcwd(cd_folder_path, sizeof(cd_folder_path)))
+        snprintf(cd_folder_path, sizeof(cd_folder_path), ".");
+    normalize_slashes(cd_folder_path);
     cd_folder_pending = true;
     load_cd_folders();
 }
@@ -377,7 +393,7 @@ static void run_cmd(const char *cmd)
 {
     char *buf = strdup(cmd);
     if (buf) {
-        unix_executeLine(buf);
+        monitor_execute_line(buf);
         free(buf);
     }
 }
