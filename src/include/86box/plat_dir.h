@@ -463,7 +463,7 @@ plat_dir_read(plat_dir_t *context)
     context->attr_remain--;
 
     /* If this entry is a symlink, follow it and fill the target's attributes instead. */
-    if (LIKELY(context->data.objtype != NULL) && (*context->data.objtype == VLNK)) {
+    if (LIKELY(context->data.objtype) && (*context->data.objtype == VLNK)) {
         uint8_t buf[4096];
         if (!getattrlistat(context->find, context->data.name, &context->attr_list, buf, sizeof(buf), 0))
             plat_dir_fill_attributes(context, buf);
@@ -473,25 +473,25 @@ plat_dir_read(plat_dir_t *context)
 }
 
 #    define plat_dir_get_name(context)      ((context)->data.name)
-#    define plat_dir_get_size(context)      (LIKELY((context)->data.datalength != NULL) ? *(context)->data.datalength : 0)
+#    define plat_dir_get_size(context)      (LIKELY((context)->data.datalength) ? *(context)->data.datalength : 0)
 #    define PLAT_DIR_HAS_BIRTHTIME          1
-#    define plat_dir_get_birthtime(context) (LIKELY((context)->data.crtime != NULL) ? (context)->data.crtime->tv_sec : 0)
-#    define plat_dir_get_mtime(context)     (LIKELY((context)->data.mtime != NULL) ? (context)->data.mtime->tv_sec : 0)
-#    define plat_dir_get_atime(context)     (LIKELY((context)->data.atime != NULL) ? (context)->data.atime->tv_sec : 0)
-#    define plat_dir_get_ctime(context)     (LIKELY((context)->data.ctime != NULL) ? (context)->data.ctime->tv_sec : 0)
+#    define plat_dir_get_birthtime(context) (LIKELY((context)->data.crtime) ? (context)->data.crtime->tv_sec : 0)
+#    define plat_dir_get_mtime(context)     (LIKELY((context)->data.mtime) ? (context)->data.mtime->tv_sec : 0)
+#    define plat_dir_get_atime(context)     (LIKELY((context)->data.atime) ? (context)->data.atime->tv_sec : 0)
+#    define plat_dir_get_ctime(context)     (LIKELY((context)->data.ctime) ? (context)->data.ctime->tv_sec : 0)
 #    ifdef PLAT_DIR_EXTRA_ATTRIBUTES
-#        define plat_dir_get_mode(context)  (LIKELY((context)->data.mode != NULL) ? *(context)->data.mode : 0)
-#        define plat_dir_get_nlink(context) (LIKELY((context)->data.linkcount != NULL) ? *(context)->data.linkcount : 0)
-#        define plat_dir_get_uid(context)   (LIKELY((context)->data.uid != NULL) ? *(context)->data.uid : 0)
-#        define plat_dir_get_gid(context)   (LIKELY((context)->data.gid != NULL) ? *(context)->data.gid : 0)
-#        define plat_dir_get_dev(context)   (LIKELY((context)->data.devtype != NULL) ? *(context)->data.devtype : 0)
+#        define plat_dir_get_mode(context)  (LIKELY((context)->data.mode) ? *(context)->data.mode : 0)
+#        define plat_dir_get_nlink(context) (LIKELY((context)->data.linkcount) ? *(context)->data.linkcount : 0)
+#        define plat_dir_get_uid(context)   (LIKELY((context)->data.uid) ? *(context)->data.uid : 0)
+#        define plat_dir_get_gid(context)   (LIKELY((context)->data.gid) ? *(context)->data.gid : 0)
+#        define plat_dir_get_dev(context)   (LIKELY((context)->data.devtype) ? *(context)->data.devtype : 0)
 #    endif
-#    define plat_dir_is_file(context)       (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VREG) : 0)
-#    define plat_dir_is_dir(context)        (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VDIR) : 0)
-#    define plat_dir_is_char(context)       (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VCHR) : 0)
-#    define plat_dir_is_block(context)      (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VBLK) : 0)
-#    define plat_dir_is_pipe(context)       (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VFIFO) : 0)
-#    define plat_dir_is_socket(context)     (LIKELY((context)->data.objtype != NULL) ? (*(context)->data.objtype == VSOCK) : 0)
+#    define plat_dir_is_file(context)       (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VREG) : 0)
+#    define plat_dir_is_dir(context)        (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VDIR) : 0)
+#    define plat_dir_is_char(context)       (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VCHR) : 0)
+#    define plat_dir_is_block(context)      (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VBLK) : 0)
+#    define plat_dir_is_pipe(context)       (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VFIFO) : 0)
+#    define plat_dir_is_socket(context)     (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VSOCK) : 0)
 #    define plat_dir_is_hidden(context)     (plat_dir_get_name((context))[0] == '.')
 #    define plat_dir_is_system(context)     (plat_dir_is_char((context)) || plat_dir_is_block((context)) || plat_dir_is_socket((context)))
 #else

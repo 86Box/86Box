@@ -860,7 +860,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     plat_dir_t     context;
     viso_entry_t **dir_entries     = NULL;
     size_t         dir_entries_len = 0;
-    while (LIKELY(dir != NULL)) {
+    while (LIKELY(dir)) {
         /* Open directory for listing. */
         int    have_dir       = plat_dir_open(&context, dir->path);
         size_t children_count = 3; /* include terminator, . and .. */
@@ -879,8 +879,8 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         /* Grow array if required. */
         if (children_count > dir_entries_len) {
             viso_entry_t **new_dir_entries = (viso_entry_t **) calloc(children_count, sizeof(viso_entry_t *));
-            if (LIKELY(new_dir_entries != NULL)) {
-                if (LIKELY(dir_entries != NULL))
+            if (LIKELY(new_dir_entries)) {
+                if (LIKELY(dir_entries))
                     free(dir_entries);
                 dir_entries     = new_dir_entries;
                 dir_entries_len = children_count;
@@ -1274,7 +1274,7 @@ next_dir:
         /* Go through directories. */
         dir             = viso->root_dir;
         uint16_t pt_idx = 1;
-        while (LIKELY(dir != NULL)) {
+        while (LIKELY(dir)) {
             /* Ignore . and .. pseudo-directories, and hide the El Torito
                boot code directory if no other files are present in it. */
             if ((dir->name_short[0] == '.' && (dir->name_short[1] == '\0' || (dir->name_short[1] == '.' && dir->name_short[2] == '\0'))) || (dir == eltorito_dir)) {
@@ -1356,7 +1356,7 @@ next_dir:
 
         /* Go through directories. */
         dir = viso->root_dir;
-        while (LIKELY(dir != NULL)) {
+        while (LIKELY(dir)) {
             /* Hide the El Torito boot code directory if no other files are present in it. */
             if (UNLIKELY(dir == eltorito_dir)) {
                 dir = dir->next_dir;
@@ -1389,7 +1389,7 @@ next_dir:
 
             /* Go through entries in this directory. */
             entry = dir->first_child;
-            while (LIKELY(entry != NULL)) {
+            while (LIKELY(entry)) {
                 /* Skip the El Torito boot code entry if present, or hide the
                    boot code directory if no other files are present in it. */
                 if (UNLIKELY((entry == eltorito_entry) || (entry == eltorito_dir)))
@@ -1485,7 +1485,7 @@ next_entry:
             size_t orig_entry_map_size = viso->entry_map_size;
             viso->entry_map_size       = 0;
             entry                      = viso->root_dir;
-            while (LIKELY(entry != NULL)) {
+            while (LIKELY(entry)) {
                 if (!entry->stats.is_dir) {
                     viso->entry_map_size += entry->stats.size / viso->sector_size;
                     if (entry->stats.size % viso->sector_size)
@@ -1512,7 +1512,7 @@ next_entry:
     viso_entry_t *prev_entry   = viso->root_dir;
     viso_entry_t **entry_map_p = viso->entry_map;
     entry                      = prev_entry->next;
-    while (LIKELY(entry != NULL)) {
+    while (LIKELY(entry)) {
         /* Skip this entry if it corresponds to a directory. */
         if (entry->stats.is_dir) {
             /* Deallocate directory entries to save some memory. */
