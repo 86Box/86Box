@@ -1219,7 +1219,10 @@ plat_run_command(const char *cmd, const char **env, const char *title)
                     env++;
                     continue;
                 }
-                f.write(QString::fromUtf8(*env++).replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral(" '")).append(QStringLiteral("'")).toUtf8());
+                auto varq = QString::fromUtf8(*env++);
+                if (!varq.contains('='))
+                    varq.append('=');
+                f.write(varq.replace(QStringLiteral("'"), QStringLiteral("'\\''")).prepend(QStringLiteral(" '")).append(QStringLiteral("'")).toUtf8());
             }
             f.write("\n");
         }
