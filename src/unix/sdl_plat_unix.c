@@ -426,10 +426,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         while (environ[c])
             c++;
         int d = 0;
-        while (env[d]) {
-            if (env[d][0])
-                d++;
-        }
+        while (env[d])
+            d++;
         new_env = (const char **) malloc((c + d + 1) * sizeof(char *));
         for (c = 0; environ[c]; c++)
             new_env[c] = environ[c];
