@@ -155,7 +155,7 @@ smram_recalc_all(int ret)
     if (ret) {
         while (temp_smram != NULL) {
             if (temp_smram->old_size != 0x00000000)
-                mem_mapping_recalc(temp_smram->old_host_base, temp_smram->old_size);
+                mem_mapping_recalc(temp_smram->old_host_base, temp_smram->old_size, 0x00000000);
             temp_smram->old_host_base = temp_smram->old_size = 0x00000000;
 
             next       = temp_smram->next;
@@ -167,7 +167,7 @@ smram_recalc_all(int ret)
 
     while (temp_smram != NULL) {
         if (temp_smram->size != 0x00000000)
-            mem_mapping_recalc(temp_smram->host_base, temp_smram->size);
+            mem_mapping_recalc(temp_smram->host_base, temp_smram->size, 0x00000000);
 
         next       = temp_smram->next;
         temp_smram = next;

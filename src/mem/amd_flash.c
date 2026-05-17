@@ -36,7 +36,6 @@ typedef struct am29f016d_t {
     uint8_t       dirty;
 
     uint32_t      size;
-    uint32_t      mask;
 
     uint8_t       array[0x00200000];
 
@@ -89,8 +88,6 @@ am29f016d_calc_addr(const am29f016d_t *dev, uint32_t addr)
 
     return ret;
 }
-
-int log_suppr = 0;
 
 static uint8_t
 am29f016d_read(uint32_t addr, void *priv)
@@ -207,9 +204,6 @@ am29f016d_read(uint32_t addr, void *priv)
             break;
     }
 
-    if (!log_suppr)
-        pclog("[R08] %08X (%08X) = %02X\n", addr, calc, ret);
-
     return ret;
 }
 
@@ -223,20 +217,15 @@ am29f016d_readw(uint32_t addr, void *priv)
     switch (dev->state) {
         default:
             ret = 0xffff;
-            pclog("[X16] %08X (%08X) = FFFF\n", addr, calc);
             break;
         case AMD_STATE_READ_ARRAY:
             ret = *(uint16_t *) &dev->array[calc];
-            pclog("[R16] %08X (%08X) = %04X\n", addr, calc, ret);
             break;
         case AMD_STATE_AUTOSELECT:
         case AMD_STATE_CFI_QUERY:
         case AMD_STATE_READ_STATUS:
-            log_suppr = 0;
             ret = am29f016d_read(addr, priv) |
                   (am29f016d_read(addr + 1, priv) << 8);
-            log_suppr = 1;
-            pclog("[r16] %08X (%08X) = %04X\n", addr, calc, ret);
             break;
     }
 
@@ -273,9 +262,6 @@ am29f016d_write(uint32_t addr, uint8_t val, void *priv)
 {
     am29f016d_t *  dev  = (am29f016d_t *) priv;
     const uint32_t calc = am29f016d_calc_addr(dev, addr);
-
-    if (!log_suppr)
-        pclog("[W08] %08X (%08X) = %02X\n", addr, calc, val);
 
     switch (dev->cycle) {
         default:
@@ -403,15 +389,11 @@ am29f016d_writew(uint32_t addr, uint16_t val, void *priv)
     const uint32_t calc = am29f016d_calc_addr(dev, addr);
 
     if ((dev->cycle == 0) && (dev->state == AMD_STATE_PROGRAM)) {
-        pclog("[W16] %08X (%08X) = %04X\n", addr, calc, val);
         *(uint16_t *) &(dev->array[calc]) = val;
         dev->state = AMD_STATE_READ_ARRAY;
     } else {
-        pclog("[w16] %08X (%08X) = %04X\n", addr, calc, val);
-        log_suppr = 1;
         am29f016d_write(addr, val & 0xff, priv);
         am29f016d_write(addr + 1, val >> 8, priv);
-        log_suppr = 0;
     }
 }
 
@@ -460,14 +442,14 @@ static void
 am29f016d_add_mappings(am29f016d_t *dev)
 {
     const uint32_t fbase     = 0x00200000 - (biosmask + 1);
-    uint32_t       high_base = cpu_16bitbus ? (is6117 ? 0x03e00000 : 0x00e00000) : 0xffe00000;
+    uint32_t       high_base = cpu_16bitbus ? 0x00e00000 : 0xffe00000;
     const uint32_t high_size = dev->legacy ? 0x00020000 : 0x00200000;
     void *         priv     = dev->legacy ? (dev->array + fbase) : dev->array;
 
     memcpy(&dev->array[fbase], rom, biosmask + 1);
 
     if (dev->legacy) {
-        high_base = cpu_16bitbus ? (is6117 ? 0x03fe0000 : 0x00fe0000) : 0xfffe0000;
+        high_base = cpu_16bitbus ? 0x00fe0000 : 0xfffe0000;
 
         io_sethandler(0x0050, 0x0001,
                       am29f16d_ctrl_in,  NULL, NULL,

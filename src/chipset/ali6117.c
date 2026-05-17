@@ -109,8 +109,13 @@ ali6117_recalcmapping(ali6117_t *dev)
     shadowbios       = 0;
     shadowbios_write = 0;
 
-    ali6117_log("ALI6117: Shadowing for A0000-BFFFF (reg 12 bit 1) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
-    mem_set_mem_state(0xa0000, 0x20000, (dev->regs[0x12] & 0x02) ? (MEM_WRITE_INTERNAL | MEM_READ_INTERNAL) : (MEM_WRITE_EXTANY | MEM_READ_EXTANY));
+    if ((dev->local == 0x08) || !(dev->regs[0x3c] & 0x08)) {
+        ali6117_log("ALI6117: Shadowing for A0000-BFFFF (reg 12 bit 1) = off\n");
+        mem_set_mem_state(0xa0000, 0x20000, MEM_WRITE_EXTERNAL | MEM_READ_EXTERNAL);
+    } else {
+        ali6117_log("ALI6117: Shadowing for A0000-BFFFF (reg 12 bit 1) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
+        mem_set_mem_state(0xa0000, 0x20000, (dev->regs[0x12] & 0x02) ? (MEM_WRITE_INTERNAL | MEM_READ_INTERNAL) : (MEM_WRITE_EXTANY | MEM_READ_EXTANY));
+    }
 
     for (uint8_t reg = 0; reg <= 1; reg++) {
         for (uint8_t bitpair = 0; bitpair <= 3; bitpair++) {
@@ -207,8 +212,6 @@ ali6117_bank_addr(const ali6117_t *dev, const uint32_t phys, uint32_t *bank, uin
     }
 }
 
-int suppr_log = 0;
-
 static uint8_t
 ali6117_read_ram(uint32_t addr, void *priv)
 {
@@ -226,9 +229,6 @@ ali6117_read_ram(uint32_t addr, void *priv)
         ret = ram[low + baddr];
     }
 
-    if (!suppr_log)
-        pclog("[R08] %08X (%08X:%08X) = %02X\n", addr, bank, baddr, ret);
-
     return ret;
 }
 
@@ -241,14 +241,10 @@ ali6117_read_ramw(uint32_t addr, void *priv)
     uint32_t bank  = 0xffffffff;
     uint32_t baddr = 0xffffffff;
 
-    if (addr & 0x00000001) {
-        suppr_log = 1;
+    if (addr & 0x00000001)
         ret = ali6117_read_ram(addr, priv) |
               (ali6117_read_ram(addr + 1, priv) << 8);
-        suppr_log = 0;
-
-        pclog("[r16] %08X (%08X:%08X) = %04X\n", addr, bank, baddr, ret);
-    } else {
+    else {
         ali6117_bank_addr(dev, addr, &bank, &baddr);
 
         if (bank != 0xffffffff) {
@@ -256,8 +252,6 @@ ali6117_read_ramw(uint32_t addr, void *priv)
                                                (ali6117_modes[dev->mode][bank - 1] << 10);
             ret = *(uint16_t *) &(ram[low + baddr]);
         }
-
-        pclog("[R16] %08X (%08X:%08X) = %04X\n", addr, bank, baddr, ret);
     }
 
     return ret;
@@ -278,9 +272,6 @@ ali6117_write_ram(uint32_t addr, uint8_t val, void *priv)
                                            (ali6117_modes[dev->mode][bank - 1] << 10);
         ram[low + baddr] = val;
     }
-
-    if (!suppr_log)
-        pclog("[W08] %08X (%08X:%08X) = %02X\n", addr, bank, baddr, val);
 }
 
 static void
@@ -292,12 +283,8 @@ ali6117_write_ramw(uint32_t addr, uint16_t val, void *priv)
     uint32_t baddr = 0xffffffff;
 
     if (addr & 0x00000001) {
-        suppr_log = 1;
         ali6117_write_ram(addr, val & 0xff, priv);
         ali6117_write_ram(addr + 1, val >> 8, priv);
-        suppr_log = 0;
-
-        pclog("[w16] %08X (%08X:%08X) = %04X\n", addr, bank, baddr, val);
     } else {
         ali6117_bank_addr(dev, addr, &bank, &baddr);
 
@@ -306,9 +293,7 @@ ali6117_write_ramw(uint32_t addr, uint16_t val, void *priv)
                                                (ali6117_modes[dev->mode][bank - 1] << 10);
             *(uint16_t *) &(ram[low + baddr]) = val;
         }
-
-        pclog("[W16] %08X (%08X:%08X) = %04X\n", addr, bank, baddr, val);
-}
+    }
 }
 
 static void
@@ -326,6 +311,7 @@ ali6117_default_mapping(ali6117_t *dev)
     mem_mapping_enable(&ram_low_mapping);
     mem_mapping_enable(&ram_mid_mapping);
     mem_mapping_enable(&ram_high_mapping);
+
     if (mem_size > 1024)
         mem_set_mem_state_both(0x00100000, (mem_size << 10) - 0x00100000,
                                MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
@@ -334,21 +320,28 @@ ali6117_default_mapping(ali6117_t *dev)
 static void
 ali6117_bank_recalc(ali6117_t *dev)
 {
-    uint8_t mode     = (dev->regs[0x10] >> 4) |
-                       ((dev->regs[0x10] & 0x08) << 1);
+    uint8_t mode      = (dev->regs[0x10] >> 4) |
+                        ((dev->regs[0x10] & 0x08) << 1);
+    uint32_t is_m6117 = (dev->local != 0x08);
 
-    if (dev->local == 0x08)
+    if (!is_m6117)
         mode &= 0x0f;
 
-    uint32_t max_mem = (dev->local == 0x08) ? 0x01000000 : 0x04000000;
-    uint32_t rom_sz  = (dev->regs[0x10] & 0x01) ? 0x00020000 : 0x00010000;
+    uint32_t max_mem  = (dev->local == 0x08) ? 0x01000000 : 0x04000000;
+    uint32_t rom_sz   = (dev->regs[0x10] & 0x01) ? 0x00020000 : 0x00010000;
+    uint32_t mb_16    = (ali6117_modes[mode][0] >= 16384);
+    uint32_t dram_on  = dev->regs[0x20] & 0x80;
+    uint32_t mb15_on  = is_m6117 && !(dev->regs[0x10] & 0x04);
+    uint32_t hole     = !dram_on || !mb_16 || !mb15_on;
+    uint32_t is_flash = dev->regs[0x20] & 0x04;
 
     mem_set_mem_state_both(0x00100000, (max_mem - 0x00100000),
                            MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
 
-    switch (mode) {
+    if (dram_on)  switch (mode) {
         case 0x1e:
-            pclog("32 MB %s mapping\n", (dev->mode == mode) ? "default" : "banked");
+            ali6117_log("ALI6117: 32 MB %s mapping\n",
+                        (dev->mode == mode) ? "default" : "banked");
             if (dev->mode == mode)
                 ali6117_default_mapping(dev);
             else {
@@ -359,34 +352,61 @@ ali6117_bank_recalc(ali6117_t *dev)
             }
             break;
         case 0x1f:
-            pclog("64 MB %s mapping\n", (dev->mode == mode) ? "default" : "banked");
+            ali6117_log("ALI6117: 64 MB %s mapping\n",
+                        (dev->mode == mode) ? "default" : "banked");
             if (dev->mode == mode)
                 ali6117_default_mapping(dev);
             else {
                 ali6117_banked_mapping(dev);
-                mem_mapping_set_addr(&dev->ram_mapping, 0x00000000, 0x03fe0000);
+                mem_mapping_set_addr(&dev->ram_mapping, 0x00000000, 0x04000000);
                 mem_set_mem_state_both(0x00100000, 0x03f00000,
                                        MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
             }
             break;
         default:
-            pclog("Default mapping\n");
+            ali6117_log("ALI6117: Default mapping (%5i kB)\n", ali6117_modes[mode][0]);
             ali6117_default_mapping(dev);
             break;
+    } else {
+        ali6117_log("ALI6117: Mapping with DRAM controller disabled\n");
+        mem_set_mem_state_both(0x00000000, 0x000a0000,
+                       MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
     }
 
-    mem_set_mem_state_both(0x00000000, 0x000a0000,
-                           MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    if (dram_on) {
+        mem_set_mem_state_both(0x00000000, 0x000a0000,
+                               MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 
-    mem_set_mem_state_both(max_mem - rom_sz, rom_sz,
-                           MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+        ali6117_log("ALI6117: 15-16 MB on-board memory %sabled\n",
+                    mb15_on ? "en" : "dis");
+        if (!mb15_on)
+            mem_set_mem_state_both(0x00f00000, 0x00100000,
+                                   MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    }
 
-    if ((dev->local != 0x08) && (dev->regs[0x10] & 0x04)) {
-        mem_set_mem_state_both(0x00f00000, 0x00100000,
-                               MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-        mem_set_mem_state_both(0x01000000 - rom_sz, rom_sz,
+    if (hole) {
+        if (is_flash) {
+            ali6117_log("ALI6117: Flash mapping at: %08X-%08X\n",
+                        0x01000000 - rom_sz, 0x01000000 - 1);
+            mem_set_mem_state_both(0x01000000 - rom_sz, rom_sz,
+                                   MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+        } else {
+            ali6117_log("ALI6117: ROM mapping at: %08X-%08X\n",
+                        0x01000000 - rom_sz, 0x01000000 - 1);
+            mem_set_mem_state_both(0x01000000 - rom_sz, rom_sz,
+                                   MEM_READ_EXTANY | MEM_WRITE_DISABLED);
+        }
+    } else {
+        ali6117_log("ALI6117: No ROM mapping at: %08X-%08X\n",
+                    0x01000000 - rom_sz, 0x01000000 - 1);
+    }
+
+    if (is_flash)
+        mem_set_mem_state_both(max_mem - rom_sz, rom_sz,
                                MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-    }
+    else
+        mem_set_mem_state_both(max_mem - rom_sz, rom_sz,
+                               MEM_READ_EXTANY | MEM_WRITE_DISABLED);
 
     flushmmucache();
 }
@@ -481,6 +501,8 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x20:
                     val &= 0xbf;
                     refresh_at_enable = !(dev->regs[0x10] & 0x02) || !!(val & 0x80);
+                    dev->regs[dev->reg_offset] = val;
+                    ali6117_bank_recalc(dev);
                     break;
 
                 case 0x31:
@@ -511,6 +533,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                     ide_set_base(1, (val & 0x01) ? 0x170 : 0x1f0);
                     ide_set_side(1, (val & 0x01) ? 0x376 : 0x3f6);
                     ide_pri_enable();
+
+                    dev->regs[dev->reg_offset] = val;
+                    ali6117_recalcmapping(dev);
                     break;
 
                 case 0x44:
@@ -627,6 +652,7 @@ ali6117_reset(void *priv)
     refresh_at_enable = 1;
 
     ali6117_bank_recalc(dev);
+    ali6117_recalcmapping(dev);
 }
 
 static void

@@ -623,6 +623,8 @@ extern int             machine_at_wd76c10_init(const machine_t *);
 /* m_at_m6117.c */
 /* ALi M6117D */
 extern int             machine_at_pja511m_init(const machine_t *);
+extern int             machine_at_icop6021_init(const machine_t *);
+extern int             machine_at_mops386a_init(const machine_t *);
 extern int             machine_at_prox1332_init(const machine_t *);
 
 /* m_at_486slc.c */
