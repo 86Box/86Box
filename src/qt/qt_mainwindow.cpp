@@ -1631,12 +1631,17 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         if (event->type() == QEvent::WindowBlocked) {
             window_blocked = true;
             curdopause     = dopause;
+            mouse_was_captured = (mouse_capture != 0);
             plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
-            emit setMouseCapture(false);
+            if (mouse_was_captured)
+                emit setMouseCapture(false);
             releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
             window_blocked = false;
             plat_pause(curdopause);
+            if (mouse_was_captured) {
+                emit setMouseCapture(true);
+            }
         }
     }
 
