@@ -60,6 +60,7 @@
 #define FDC_FLAG_QUA            0x80000  /* Is Quaternary */
 #define FDC_FLAG_SMC661         0x100000 /* SM(s)C FDC37C661 - different TDR enhanced mode */
 #define FDC_FLAG_5550           0x200000 /* IBM Multistation 5550 */
+#define FDC_FLAG_NO_TDR         0x400000 /* Has no tape drive register */
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -276,6 +277,7 @@ extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;
 extern const device_t fdc_at_nsc_device;
+extern const device_t fdc_at_nsc_pc87310_device;
 extern const device_t fdc_at_nsc_dp8473_device;
 extern const device_t fdc_ps2_device;
 extern const device_t fdc_ps2_mca_device;
