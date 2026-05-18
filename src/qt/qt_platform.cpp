@@ -1252,7 +1252,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         /* Build terminal list, prioritizing the detected desktop environment's own terminal.
            Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
         QStringList terminals;
-        if (have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("KDE_FULL_SESSION"))
+        int is_kde = have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("KDE_FULL_SESSION");
+        if (is_kde || have_env_var("XDG_CURRENT_DESKTOP", "TDE") || have_env_var("XDG_CURRENT_DESKTOP", "Trinity") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("TDE_FULL_SESSION"))
             terminals.prepend(QStringLiteral("konsole"));
         else
             terminals << QStringLiteral("konsole");
@@ -1262,11 +1263,11 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             terminals.prepend(QStringLiteral("gnome-terminal"));
         else
             terminals << QStringLiteral("gnome-terminal");
-        if (have_env_var("XDG_CURRENT_DESKTOP", "MATE") || have_env_var("DESKTOP_SESSION", "MATE"))
+        if (have_env_var("XDG_CURRENT_DESKTOP", "MATE") || have_env_var("DESKTOP_SESSION", "MATE") || have_env_var("MATE_DESKTOP_SESSION_ID"))
             terminals.prepend(QStringLiteral("mate-terminal"));
         else
             terminals << QStringLiteral("mate-terminal");
-        if (have_env_var("XDG_CURRENT_DESKTOP", "XFCE") || have_env_var("DESKTOP_SESSION", "xfce"))
+        if (have_env_var("XDG_CURRENT_DESKTOP", "XFCE") || have_env_var("DESKTOP_SESSION", "xfce") || have_env_var("DESKTOP_SESSION", "xfce4") || have_env_var("DESKTOP_SESSION", "Xfce Session"))
             terminals.prepend(QStringLiteral("xfce4-terminal"));
         else
             terminals << QStringLiteral("xfce4-terminal");
@@ -1278,6 +1279,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             terminals.prepend(QStringLiteral("lxterminal"));
         else
             terminals << QStringLiteral("lxterminal");
+        terminals.prepend(QStringLiteral("kitty")); /* priority 3 (non-DE terminal likely to be willingly installed by user) */
         terminals.prepend(QStringLiteral("x-terminal-emulator")); /* priority 2 (Debian alternatives system) */
         terminals.prepend(QStringLiteral("xdg-terminal-exec")); /* priority 1 (still a proposal with limited adoption as of writing) */
         terminals << QStringLiteral("xterm") << QStringLiteral("urxvt") << QStringLiteral("rxvt"); /* priority last */
@@ -1286,14 +1288,21 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         for (const auto &terminal : terminals) {
             process->setProgram(terminal);
             QStringList args;
-            if (terminal == QStringLiteral("xdg-terminal-exec"))
-                args << QString("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
-            else if (!terminal.endsWith(QStringLiteral("-terminal")) || (terminal == QStringLiteral("xfce4-terminal")))
-                args << QStringLiteral("-e");
-            else
+            if (terminal == QStringLiteral("xdg-terminal-exec")) {
+                args << QStringLiteral("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
+            } else if (terminal == QStringLiteral("gnome-terminal")) {
                 args << QStringLiteral("--");
-            args << script;
-            process->setArguments(args);
+            } else {
+                if (terminal == QStringLiteral("konsole")) {
+                    /* Hide script name in the Konsole title bar. */
+                    if (is_kde)
+                        args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
+                    else
+                        args << QStringLiteral("-T") << QStringLiteral(EMU_NAME); /* Trinity only, no effect on KDE */
+                }
+                args << QStringLiteral("-e");
+            }
+            process->setArguments(args << script);
             if (process->startDetached())
                 return 1;
         }

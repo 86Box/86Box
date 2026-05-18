@@ -491,10 +491,8 @@ int osd_open(SDL_Event event)
     osd_visible  = true;
     show_main_menu();
 
-    mouse_was_captured = (SDL_GetRelativeMouseMode() == SDL_TRUE);
-    if (mouse_was_captured)
-        plat_mouse_capture(0);
-    SDL_ShowCursor(SDL_TRUE);
+    mouse_was_captured = mouse_capture;
+    plat_mouse_capture(0);
 
     /* Prevent stale ESC from firing on re-open. */
     if (imgui_inited)
@@ -509,11 +507,8 @@ int osd_close(SDL_Event event)
     osd_visible = false;
 
     /* Restore mouse capture if it was active before OSD opened. */
-    if (mouse_was_captured) {
-        plat_mouse_capture(1);
-        mouse_was_captured = false;
-    }
-    SDL_ShowCursor(SDL_FALSE);
+    plat_mouse_capture(mouse_was_captured);
+    mouse_was_captured = false;
 
     return 1;
 }
