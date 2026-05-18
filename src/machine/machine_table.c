@@ -3778,7 +3778,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Commodore PC 40", "NBI 4200", "" }
+        .aliases                  = { "Commodore PC 40", "Commodore PC-900-II", "NBI 4200", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -6242,7 +6242,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "DTK PPM-1660C", "DTK PPM-2060C", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
