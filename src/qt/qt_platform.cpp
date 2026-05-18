@@ -1289,17 +1289,16 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             process->setProgram(terminal);
             QStringList args;
             if (terminal == QStringLiteral("xdg-terminal-exec")) {
-                args << QStringLiteral("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
+                args << QStringLiteral("--title=" EMU_NAME) << QStringLiteral("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
             } else if (terminal == QStringLiteral("gnome-terminal")) {
                 args << QStringLiteral("--");
             } else {
-                if (terminal == QStringLiteral("konsole")) {
-                    /* Hide script name in the Konsole title bar. */
-                    if (is_kde)
-                        args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
-                    else
-                        args << QStringLiteral("-T") << QStringLiteral(EMU_NAME); /* Trinity only, no effect on KDE */
-                }
+                /* Hide script name in the Konsole title bar. */
+                int is_konsole = (terminal == QStringLiteral("konsole"));
+                if (is_konsole && is_kde) /* KDE konsole */
+                    args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
+                else if (is_konsole || (terminal == QStringLiteral("x-terminal-emulator"))) /* Trinity konsole (no effect on KDE konsole) */
+                    args << QStringLiteral("-T") << QStringLiteral(EMU_NAME);
                 args << QStringLiteral("-e");
             }
             process->setArguments(args << script);
