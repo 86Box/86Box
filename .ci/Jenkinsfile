@@ -19,7 +19,7 @@
 def repository = ['https://github.com/86Box/86Box.git', scm.userRemoteConfigs[0].url]
 def commitBrowser = ['https://github.com/86Box/86Box/commit/%s', null]
 def branch = ['master', scm.branches[0].name]
-def buildType = ['release', 'alpha']
+def buildType = ['beta', 'alpha']
 def tarballFlags = ['', '-t']
 def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
