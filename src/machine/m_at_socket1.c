@@ -72,7 +72,7 @@ machine_at_cs4031_init(const machine_t *model)
     return ret;
 }
 
-/* OPTi 381 */
+/* OPTi 481 */
 int
 machine_at_ga486l_init(const machine_t *model)
 {
@@ -86,7 +86,30 @@ machine_at_ga486l_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti381_device);
+    device_add(&opti481_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_vantage4865c_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vantage4865c/nmc27c512-69cc9b5ad7639879340132.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti481_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
