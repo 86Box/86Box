@@ -356,16 +356,16 @@ msgid "Machine type:"
 msgstr "マシンタイプ:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 および 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (その他)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (単一電圧)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (デュアル電圧)"
 
 msgid "Miscellaneous"
 msgstr "その他"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi インターフェイス"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic インターフェイス"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic インターフェイス (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDEコントローラ"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE コントローラー (デュアルチャネル)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE コントローラー"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE コントローラー (デュアルチャネル)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (プライマリのみ)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (プライマリのみ)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (ターシャリおよびクォータナリ)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (ターシャリおよびクォータナリ)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (ターシャリおよびクォータナリ)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE コントローラー"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三IDEコントローラー"
@@ -2645,7 +2645,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "サベージクエスト用プロテクションドングル"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "ループバックプラグ"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2739,10 +2739,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "汎用PC/ATメモリ拡張カード"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "汎用 MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (外部デバイス)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "ドットマトリクスフォントが見つかりません"
@@ -2808,7 +2808,7 @@ msgid "Could not load file %1"
 msgstr "ファイル %1 をロードできませんでした"
 
 msgid "Emulator"
-msgstr ""
+msgstr "エミュレーター"
 
 msgid "Input"
 msgstr "入力"
@@ -3063,7 +3063,7 @@ msgid "Raw"
 msgstr "生"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "EDC/ECC エミュレーションを使用"
 
 msgid "Audio output device:"
 msgstr "音声出力デバイス:"

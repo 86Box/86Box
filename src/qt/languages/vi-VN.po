@@ -1970,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "Ngôn ngữ BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Biến thể"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Bộ mở rộng IBM 5161"
@@ -2645,7 +2645,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle bảo vệ cho Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Phích cắm vòng lặp"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2739,10 +2739,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Mở rộng bộ nhớ chung qua PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "RTC MM58167 chung"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (thiết bị bên ngoài)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Không tìm thấy phông chữ ma trận chấm"
@@ -2808,10 +2808,10 @@ msgid "Could not load file %1"
 msgstr "Không thể nạp tập tin %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Trình giả lập"
 
 msgid "Input"
-msgstr ""
+msgstr "Đầu vào"
 
 msgid "Key bindings"
 msgstr "Phím nóng"

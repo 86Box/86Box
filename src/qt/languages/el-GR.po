@@ -356,16 +356,16 @@ msgid "Machine type:"
 msgstr "Τύπος συστήματος:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Υποδοχή 168 και 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
 msgstr "[1994] i486 (Ανάμεικτα)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Υποδοχή 7 (μονή τάση)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Υποδοχή 7 (διπλή τάση)"
 
 msgid "Miscellaneous"
 msgstr "Διάφορα"

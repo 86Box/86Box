@@ -50,6 +50,7 @@ typedef struct {
 
 int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int  sound_pos_global                   = 0;
+static int sound_buf_len                = SOUNDBUFLEN;
 int  music_pos_global                   = 0;
 int  wavetable_pos_global               = 0;
 int  sound_gain                         = 0;
@@ -433,12 +434,14 @@ sound_realloc_buffers(void)
         outbuffer_ex_int16 = NULL;
     }
 
+    const int buf_len = sound_sample_rate / 50;
+
     if (sound_is_float) {
-        outbuffer_ex = calloc(SOUNDBUFLEN * 2, sizeof(float));
-        memset(outbuffer_ex, 0x00, SOUNDBUFLEN * 2 * sizeof(float));
+        outbuffer_ex = calloc(buf_len * 2, sizeof(float));
+        memset(outbuffer_ex, 0x00, buf_len * 2 * sizeof(float));
     } else {
-        outbuffer_ex_int16 = calloc(SOUNDBUFLEN * 2, sizeof(int16_t));
-        memset(outbuffer_ex_int16, 0x00, SOUNDBUFLEN * 2 * sizeof(int16_t));
+        outbuffer_ex_int16 = calloc(buf_len * 2, sizeof(int16_t));
+        memset(outbuffer_ex_int16, 0x00, buf_len * 2 * sizeof(int16_t));
     }
 }
 
@@ -500,9 +503,11 @@ sound_init(void)
     outbuffer_w_ex       = NULL;
     outbuffer_w_ex_int16 = NULL;
 
+    const int init_buf_len = sound_sample_rate / 50;
+
     outbuffer = NULL;
-    outbuffer = calloc(SOUNDBUFLEN * 2, sizeof(int32_t));
-    memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
+    outbuffer = calloc(init_buf_len * 2, sizeof(int32_t));
+    memset(outbuffer, 0x00, init_buf_len * 2 * sizeof(int32_t));
 
     outbuffer_m = NULL;
     outbuffer_m = calloc(MUSICBUFLEN * 2, sizeof(int32_t));
@@ -615,14 +620,14 @@ sound_poll(UNUSED(void *priv))
     midi_poll();
 
     sound_pos_global++;
-    if (sound_pos_global == SOUNDBUFLEN) {
-        memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
+    if (sound_pos_global == sound_buf_len) {
+        memset(outbuffer, 0x00, sound_buf_len * 2 * sizeof(int32_t));
 
         for (uint8_t c = 0; c < handler_count; c++)
             if (sound_handlers[c].get_buffer != NULL)
-                sound_handlers[c].get_buffer(outbuffer, SOUNDBUFLEN, sound_handlers[c].priv);
+                sound_handlers[c].get_buffer(outbuffer, sound_buf_len, sound_handlers[c].priv);
 
-        for (uint32_t c = 0; c < SOUNDBUFLEN * 2; c++) {
+        for (uint32_t c = 0; c < (uint32_t) (sound_buf_len * 2); c++) {
             if (sound_is_float)
                 outbuffer_ex[c] = ((float) outbuffer[c]) / (float) 32768.0;
             else {
@@ -736,7 +741,9 @@ wavetable_poll(UNUSED(void *priv))
 void
 sound_speed_changed(void)
 {
-    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
+    sound_buf_len = sound_sample_rate / 50;
+
+    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
 
     music_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) MUSIC_FREQ));
 
