@@ -335,7 +335,7 @@ audio_close(void *priv)
 }
 
 static track_file_t *
-audio_init(const uint8_t id, const char *filename, int *error)
+audio_init(const uint8_t id, const char *filename, UNUSED(int bom), int *error)
 {
     track_file_t *tf    = (track_file_t *) calloc(sizeof(track_file_t), 1);
     audio_file_t *audio = (audio_file_t *) calloc(sizeof(audio_file_t), 1);
@@ -351,13 +351,15 @@ audio_init(const uint8_t id, const char *filename, int *error)
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
     strncpy(tf->fn, filename, sizeof(tf->fn) - 1);
-#if 0 /* was ifdef _WIN32, fails with UTF-8 paths */
-    wchar_t filename_w[4096];
-    mbstowcs(filename_w, filename, 4096);
-    audio->file = sf_wchar_open(filename_w, SFM_READ, &audio->info);
-#else
-    audio->file = sf_open(filename, SFM_READ, &audio->info);
+#ifdef _WIN32
+    /* Compromise solution for handling both CP1252 and UTF-8 BOM encoded cuesheets. */
+    if (!bom) {
+        wchar_t filename_w[4096];
+        mbstowcs(filename_w, filename, (sizeof(filename_w) / sizeof(filename_w[0])) - 1);
+        audio->file = sf_wchar_open(filename_w, SFM_READ, &audio->info);
+    } else
 #endif
+        audio->file = sf_open(filename, SFM_READ, &audio->info);
 
     if (audio->file == NULL) {
         image_log(tf->log, "Audio file open error: %s\n", sf_strerror(audio->file));
@@ -1538,8 +1540,9 @@ image_load_cue(cd_image_t *img, const char *cuefile)
         return 0;
 
     /* Skip the UTF-8 BOM, if any. */
-    if ((fread(buf, 1, 3, fp) < 3) ||
-        (uint8_t) buf[0] != 0xEF || (uint8_t) buf[1] != 0xBB || (uint8_t) buf[2] != 0xBF)
+    int bom = (fread(buf, 1, 3, fp) >= 3) &&
+              ((uint8_t) buf[0] == 0xef) && ((uint8_t) buf[1] == 0xbb) && ((uint8_t) buf[2] == 0xbf);
+    if (!bom)
         rewind(fp);
 
     int            success = 0;
@@ -1614,7 +1617,7 @@ image_load_cue(cd_image_t *img, const char *cuefile)
                     path_append_filename(filename, pathname, ansi);
                 else
                     strcpy(filename, ansi);
-                tf = audio_init(img->dev->id, filename, &error);
+                tf = audio_init(img->dev->id, filename, bom, &error);
             }
             if (error) {
                 if (tf != NULL) {
