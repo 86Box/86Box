@@ -244,6 +244,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     /* Execute command. */
     PROCESS_INFORMATION pi  = { 0 };
     int                 ret = !!CreateProcessA(getenv("ComSpec"), args, NULL, NULL, FALSE, flags, new_env, usr_path, &si, &pi);
+
     free(args);
     if (new_env)
         free(new_env);
