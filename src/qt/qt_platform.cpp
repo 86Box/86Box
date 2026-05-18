@@ -1252,7 +1252,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         /* Build terminal list, prioritizing the detected desktop environment's own terminal.
            Derived from xdg-utils/scripts/xdg-utils-common.in:detectDE */
         QStringList terminals;
-        int is_kde = have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("KDE_FULL_SESSION");
+        bool is_kde = have_env_var("XDG_CURRENT_DESKTOP", "KDE") || have_env_var("KDE_FULL_SESSION");
         if (is_kde || have_env_var("XDG_CURRENT_DESKTOP", "TDE") || have_env_var("XDG_CURRENT_DESKTOP", "Trinity") || have_env_var("DESKTOP_SESSION", "trinity") || have_env_var("TDE_FULL_SESSION"))
             terminals.prepend(QStringLiteral("konsole"));
         else
@@ -1294,10 +1294,10 @@ plat_run_command(const char *cmd, const char **env, const char *title)
                 args << QStringLiteral("--");
             } else {
                 /* Hide script name in the Konsole title bar. */
-                int is_konsole = (terminal == QStringLiteral("konsole"));
+                bool is_konsole = (terminal == QStringLiteral("konsole"));
                 if (is_konsole && is_kde) /* KDE konsole */
                     args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
-                else if (is_konsole || (terminal == QStringLiteral("x-terminal-emulator"))) /* Trinity konsole (no effect on KDE konsole) */
+                else if (is_konsole || (terminal == QStringLiteral("x-terminal-emulator"))) /* Trinity Konsole (no effect on KDE Konsole) */
                     args << QStringLiteral("-T") << QStringLiteral(EMU_NAME);
                 args << QStringLiteral("-e");
             }
