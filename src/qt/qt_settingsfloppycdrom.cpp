@@ -291,7 +291,7 @@ SettingsFloppyCDROM::changed()
     for (int i = 0; i < CDROM_NUM; i++) {
         has_changed  |= (cdrom[i].bus_type        != model->index(i, 0).data(Qt::UserRole).toUInt());
         has_changed  |= (cdrom[i].res             != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
-        has_changed  |= (cdrom[i].speed           != model->index(i, 1).data(Qt::UserRole).toUInt());
+        has_changed  |= cdrom[i].speed && (cdrom[i].speed != model->index(i, 1).data(Qt::UserRole).toUInt());
         has_changed  |= (cdrom_get_type(i)        != model->index(i, 2).data(Qt::UserRole).toInt());
         soft_changed |= (cdrom[i].no_check        != inc[i]);
     }

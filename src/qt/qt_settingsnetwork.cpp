@@ -260,7 +260,7 @@ SettingsNetwork::changed()
         if (temp_host_dev_name[0] == 0x00)
             strncpy(temp_host_dev_name, "none", 5);
         temp_host_dev_name[sizeof(temp_host_dev_name) - 1] = 0x00;
-        has_changed |= strcmp(temp_host_dev_name, net_cards_conf[i].host_dev_name);
+        has_changed |= strcmp(temp_host_dev_name, net_cards_conf[i].host_dev_name[0] ? net_cards_conf[i].host_dev_name : "none");
         has_changed |= strcmp(temp_secret,        net_cards_conf[i].secret);
         has_changed |= strcmp(temp_nrs_hostname,  net_cards_conf[i].nrs_hostname);
     }
