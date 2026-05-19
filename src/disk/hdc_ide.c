@@ -746,6 +746,29 @@ ide_get_sector(ide_t *ide)
     }
 }
 
+/*
+ * Return the last sector offset for the current register values
+ */
+static off64_t
+ide_get_last_sector(ide_t *ide)
+{
+    uint32_t heads;
+    uint32_t sectors;
+    uint32_t add     = (ide->tf->secount ? ide->tf->secount : 256) - 1;
+
+    if (ide->tf->lba)
+        return (off64_t) ide->lba_addr + (off64_t) add;
+    else {
+        heads   = ide->cfg_hpc;
+        sectors = ide->cfg_spt;
+
+        uint8_t sector = ide->tf->sector ? (ide->tf->sector - 1) : 0;
+
+        return (((((off64_t) ide->tf->cylinder * heads) + (off64_t) ide->tf->head) * sectors) +
+                (off64_t) sector) + (off64_t) add;
+    }
+}
+
 static off64_t
 ide_get_sector_format(ide_t *ide)
 {
@@ -2405,7 +2428,9 @@ ide_callback(void *priv)
             if (ide->type == IDE_ATAPI) {
                 ide_set_signature(ide);
                 err = ABRT_ERR;
-            } else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            } else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                       (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                       (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 if (ide->do_initial_read) {
@@ -2438,7 +2463,9 @@ ide_callback(void *priv)
             if ((ide->type == IDE_ATAPI) || ide_boards[ide->board]->force_ata3 || (bm == NULL)) {
                 ide_log("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
                 err = ABRT_ERR;
-            } else if (!ide->tf->lba && (ide->cfg_spt == 0)) {
+            } else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                       (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                       (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num))) {
                 ide_log("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
                 err = IDNF_ERR;
             } else {
@@ -2490,7 +2517,9 @@ ide_callback(void *priv)
                mand error. */
             if ((ide->type == IDE_ATAPI) || !ide->blocksize)
                 err = ABRT_ERR;
-            else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                     (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                     (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 if (ide->do_initial_read) {
@@ -2527,7 +2556,9 @@ ide_callback(void *priv)
 #endif
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
-            else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                     (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                     (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
@@ -2552,7 +2583,9 @@ ide_callback(void *priv)
             if ((ide->type == IDE_ATAPI) || ide_boards[ide->board]->force_ata3 || (bm == NULL)) {
                 ide_log("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
                 err = ABRT_ERR;
-            } else if (!ide->tf->lba && (ide->cfg_spt == 0)) {
+            } else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                       (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                       (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num))) {
                 ide_log("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
                 err = IDNF_ERR;
             } else {
@@ -2603,7 +2636,9 @@ ide_callback(void *priv)
                mand error. */
             if ((ide->type == IDE_ATAPI) || !ide->blocksize)
                 err = ABRT_ERR;
-            else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                     (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                     (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
