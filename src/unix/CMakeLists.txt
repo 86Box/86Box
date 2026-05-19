@@ -89,7 +89,7 @@ endif()
 
 if(USE_IMGUI)
     target_compile_definitions(ui PRIVATE USE_IMGUI)
-    target_sources(ui PRIVATE sdl_osd.cpp)
+    target_sources(ui PRIVATE sdl_osd.cpp sdl_osd_explorer.cpp)
 
     add_library(imgui OBJECT
         imgui/imgui.cpp
