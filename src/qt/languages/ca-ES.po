@@ -355,19 +355,19 @@ msgid "Machine type:"
 msgstr "Tipus de màquina:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (sòcol 168 i 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (miscel·lani)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Sòcol 7 (voltatge únic)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Sòcol 7 (doble voltatge)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Miscel·lani"
 
 msgid "Machine:"
 msgstr "Màquina:"
@@ -529,43 +529,43 @@ msgid "CD-ROM controller:"
 msgstr "Controladora de CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Interfície Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Interfície MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Interfície MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Controladora IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Controlador IDE (doble canal)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Controlador IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Controlador IDE PC/AT (doble canal)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (només primari)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (només primari)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terciari i quaternari)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terciari i quaternari)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terciari i quaternari)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Controlador McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciari"
@@ -1969,7 +1969,7 @@ msgid "BIOS Language"
 msgstr "Idioma de la BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unitat d'expansió IBM 5161"
@@ -2644,7 +2644,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle de protecció per a Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Connector de bucle local"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2738,10 +2738,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Expansió genèrica PC/AT de memòria"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "RTC MM58167 genèric"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (dispositiu extern)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "No fou possible trobar els tipus de lletra matricials"
@@ -2807,10 +2807,10 @@ msgid "Could not load file %1"
 msgstr "Error en carregar el fitxer %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulador"
 
 msgid "Input"
-msgstr ""
+msgstr "Entrada"
 
 msgid "Key bindings"
 msgstr "Dreceres de teclat"
@@ -3062,7 +3062,7 @@ msgid "Raw"
 msgstr "En brut"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Utilitza l'emulació EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Dispositiu de sortida de so:"

@@ -357,19 +357,19 @@ msgid "Machine type:"
 msgstr "Тип машини:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 і 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (різне)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (одна напруга)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (подвійна напруга)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Різне"
 
 msgid "Machine:"
 msgstr "Системна плата:"
@@ -531,43 +531,43 @@ msgid "CD-ROM controller:"
 msgstr "Контролер CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Інтерфейс Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Інтерфейс MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Інтерфейс MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Контролер IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Контролер IDE (двоканальний)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Контролер IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Контролер IDE PC/AT (двоканальний)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (лише первинний)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (лише первинний)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (третинний і четвертинний)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (третинний і четвертинний)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (третинний і четвертинний)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Контролер McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Третинний контролер IDE"
@@ -1971,7 +1971,7 @@ msgid "BIOS Language"
 msgstr "Мова BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Варіант"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Блок розширення IBM 5161"
@@ -2646,7 +2646,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Ключовий захист для Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Петльовий штекер"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2740,10 +2740,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Загальне розширення пам'яті PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Універсальний MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (зовнішній пристрій)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Неможливо знайти матричні шрифти"
@@ -2809,10 +2809,10 @@ msgid "Could not load file %1"
 msgstr "Не вдалося завантажити файл %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Емулятор"
 
 msgid "Input"
-msgstr ""
+msgstr "Вхід"
 
 msgid "Key bindings"
 msgstr "Прив'язки клавіш"
@@ -3064,7 +3064,7 @@ msgid "Raw"
 msgstr "Сирий"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Використовувати емуляцію EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Пристрій виведення звуку:"

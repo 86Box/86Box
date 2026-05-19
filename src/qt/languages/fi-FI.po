@@ -362,10 +362,10 @@ msgid "[1994] i486 (Miscellaneous)"
 msgstr "[1994] i486 (Sekalaiset)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (yksijännite)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (kaksoisjännite)"
 
 msgid "Miscellaneous"
 msgstr "Sekalaiset"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi-liitäntä"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic-liitäntä"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic-liitäntä (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE-ohjain"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE-ohjain (kaksikanavainen)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE -ohjain"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE -ohjain (kaksikanavainen)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (vain ensisijainen)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (vain ensisijainen)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (kolmas ja neljäs)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (kolmas ja neljäs)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (kolmas ja neljäs)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE-ohjain"
 
 msgid "Tertiary IDE Controller"
 msgstr "Kolmas IDE-ohjain"
@@ -1781,10 +1781,10 @@ msgid "No MCA devices."
 msgstr "Ei MCA-laitteita."
 
 msgid "MiB"
-msgstr ""
+msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Adapter 1"
 msgstr "Sovitin 1"
@@ -1970,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "BIOS-kieli"
 
 msgid "Variant"
-msgstr ""
+msgstr "Muunnelma"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161-laajennusyksikkö"
@@ -2042,37 +2042,37 @@ msgid "Output Gain"
 msgstr "Lähtötaso"
 
 msgid "Chorus"
-msgstr ""
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr ""
+msgstr "Chorus-äänet"
 
 msgid "Chorus Level"
-msgstr ""
+msgstr "Chorus-taso"
 
 msgid "Chorus Speed"
-msgstr ""
+msgstr "Chorus-nopeus"
 
 msgid "Chorus Depth"
-msgstr ""
+msgstr "Chorus-syvyys"
 
 msgid "Chorus Waveform"
-msgstr ""
+msgstr "Chorus-aaltomuoto"
 
 msgid "Reverb"
 msgstr "Jälkikaiunta"
 
 msgid "Reverb Room Size"
-msgstr ""
+msgstr "Kaiun huonekoko"
 
 msgid "Reverb Damping"
-msgstr ""
+msgstr "Kaiun vaimennus"
 
 msgid "Reverb Width"
-msgstr ""
+msgstr "Kaiun leveys"
 
 msgid "Reverb Level"
-msgstr ""
+msgstr "Kaiun taso"
 
 msgid "Interpolation Method"
 msgstr "Interpolointimenetelmä"
@@ -2087,7 +2087,7 @@ msgid "Reversed stereo"
 msgstr "Käänteinen stereo"
 
 msgid "Nice ramp"
-msgstr ""
+msgstr "Pehmeä liuku"
 
 msgid "Hz"
 msgstr "Hz"
@@ -2480,7 +2480,7 @@ msgid "Composite"
 msgstr "Komposiitti"
 
 msgid "True color"
-msgstr ""
+msgstr "True color"
 
 msgid "Old"
 msgstr "Vanha"
@@ -2645,7 +2645,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Questin suojausdongle"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-liitin"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2739,10 +2739,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Yleinen PC/AT-muistilaajennus"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Yleinen MM58167-reaaliaikakello"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (ulkoinen laite)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Pistematriisifontteja ei löydy"
@@ -2886,10 +2886,10 @@ msgid "Hostname:"
 msgstr "Isäntänimi:"
 
 msgid "ISA RAM:"
-msgstr ""
+msgstr "ISA RAM:"
 
 msgid "ISA ROM:"
-msgstr ""
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Tyhjennä NVRAM"

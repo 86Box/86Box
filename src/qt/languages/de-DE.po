@@ -364,7 +364,7 @@ msgid "[1995] Socket 7 (Single Voltage)"
 msgstr "[1995] Socket 7 (Einfache Spannung)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Sockel 7 (Dual-Voltage)"
 
 msgid "Miscellaneous"
 msgstr "Verschiedenes"
@@ -529,43 +529,43 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROM-Controller:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi-Schnittstelle"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic-Schnittstelle"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic-Schnittstelle (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE-Controller"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE-Controller (Dual-Channel)"
 
 msgid "PC/AT IDE Controller"
 msgstr "PC/AT IDE-Controller"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT-IDE-Controller (Dual-Channel)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (nur primär)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (nur primär)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (tertiär und quartär)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (tertiär und quartär)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (tertiär und quartär)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE-Controller"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiärer IDE-Controller"
@@ -1969,7 +1969,7 @@ msgid "BIOS Language"
 msgstr "BIOS-Sprache"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variante"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Erweiterungseinheit"
@@ -2738,10 +2738,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generische PC/AT-Speichererweiterung"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Generische MM58167-Echtzeituhr"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (externes Gerät)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nadel-Schriften konnten nicht gefunden werden"
@@ -2807,10 +2807,10 @@ msgid "Could not load file %1"
 msgstr "Datei %1 konnte nicht geladen werden"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Eingang"
 
 msgid "Key bindings"
 msgstr "Tastenbelegungen"

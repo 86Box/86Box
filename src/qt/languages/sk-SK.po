@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "Typ počítača:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 a 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (rôzne)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (jedno napätie)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (dvojité napätie)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Rôzne"
 
 msgid "Machine:"
 msgstr "Počítač:"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "Radič CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Rozhranie Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Rozhranie MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Rozhranie MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Radič IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Radič IDE (dvojkanálový)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Radič IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Radič IDE PC/AT (dvojkanálový)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (iba primárny)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (iba primárny)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terciárny a kvartérny)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terciárny a kvartérny)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terciárny a kvartérny)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Radič McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tretí radič IDE"
@@ -1970,7 +1970,7 @@ msgid "BIOS Language"
 msgstr "Jazyk BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Rozširujúca jednotka IBM 5161"
@@ -2645,7 +2645,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Ochranný kľúč pre Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Slučková zástrčka"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2739,10 +2739,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Všeobecné rozšírenie pamäte PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Generický MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (externé zariadenie)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nastala chyba pri hľadaní ihličkových písem"
@@ -2808,10 +2808,10 @@ msgid "Could not load file %1"
 msgstr "Nebolo možné načítať súbor %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulátor"
 
 msgid "Input"
-msgstr ""
+msgstr "Vstup"
 
 msgid "Key bindings"
 msgstr "Nastavenie klávesov"
@@ -3063,7 +3063,7 @@ msgid "Raw"
 msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Použiť emuláciu EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Výstupné zvukové zariadenie:"
