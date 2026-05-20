@@ -478,7 +478,7 @@ static int
 ide_get_max(const ide_t *ide, const int type)
 {
     const int       ata_4     = ide_is_ata4(ide_boards[ide->board]);
-    const int       max[2][4] = { { 3, -1, -1, -1 }, { 4, 2, 2, 5 } };
+    const int       max[2][4] = { { 3, -1, -1, -1 }, { 4, -1, 2, 5 } };
     int             ret;
 
     if (ide->type == IDE_ATAPI)
@@ -588,19 +588,16 @@ ide_hd_identify(const ide_t *ide)
         ide->buffer[53] = 1;
 
         if (ide->params_specified) {
-            ide->buffer[54] = (full_size / ide->cfg_hpc) / ide->cfg_spt;
+            if (full_size <= 16514064)
+                ide->buffer[54] = (full_size / ide->cfg_hpc) / ide->cfg_spt;
+            else
+                ide->buffer[54] = (16514064 / ide->cfg_hpc) / ide->cfg_spt;
             ide->buffer[55] = ide->cfg_hpc;
             ide->buffer[56] = ide->cfg_spt;
         } else {
-            if (full_size <= 16514064) {
-                ide->buffer[54] = d_tracks;
-                ide->buffer[55] = d_hpc;
-                ide->buffer[56] = d_spt;
-            } else {
-                ide->buffer[54] = 16383;
-                ide->buffer[55] = 16;
-                ide->buffer[56] = 63;
-            }
+            ide->buffer[54] = ide->buffer[1];
+            ide->buffer[55] = ide->buffer[3];
+            ide->buffer[56] = ide->buffer[6];
         }
 
         full_size = ((uint64_t) ide->buffer[54]) * ((uint64_t) ide->buffer[55]) *
@@ -660,7 +657,7 @@ ide_identify(ide_t *ide)
 
     if (ide_boards[ide->board]->bit32)
         ide->buffer[48] |= 1; /*Dword transfers supported*/
-    ide->buffer[51] = ide_get_timings(ide, TIMINGS_PIO);
+    ide->buffer[51] = ide_get_timings(ide, TIMINGS_PIO) << 8;
     ide->buffer[53] &= 0xfff9;
     ide->buffer[52] = ide->buffer[62] = ide->buffer[63] = ide->buffer[64] = 0x0000;
     ide->buffer[65] = ide->buffer[66] = ide_get_timings(ide, TIMINGS_DMA);
