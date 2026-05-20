@@ -3070,3 +3070,6 @@ msgstr "Ljudutdataenhet:"
 
 msgid "System Default"
 msgstr "Systemstandard"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

@@ -3069,3 +3069,6 @@ msgstr "音频输出设备:"
 
 msgid "System Default"
 msgstr "系统默认"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

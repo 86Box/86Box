@@ -3070,3 +3070,6 @@ msgstr "Thiết bị đầu ra âm thanh:"
 
 msgid "System Default"
 msgstr "Mặc định hệ thống"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

@@ -3069,3 +3069,6 @@ msgstr "Dispositiu de sortida de so:"
 
 msgid "System Default"
 msgstr "Per defecte del sistema"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""
