@@ -779,7 +779,7 @@ msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/vid
 msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%s」は使用できません。2枚目のビデオカードを無効にします。"
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
-msgstr "ROMがないため、デバイス「%s」は使用できません。装置を無視する。"
+msgstr "ROMがないため、デバイス「%s」は使用できません。デバイスを無視します。"
 
 msgid "Machine"
 msgstr "マシン"
@@ -1019,7 +1019,7 @@ msgid "New machine"
 msgstr "新しいマシン"
 
 msgid "&Check for updates…"
-msgstr "アップデートを確認中(&C)…"
+msgstr "アップデートを確認(&C)…"
 
 msgid "Exit"
 msgstr "終了"
@@ -1748,7 +1748,7 @@ msgid "Couldn't create OpenGL context."
 msgstr "OpenGLコンテキストを作成できませんでした。"
 
 msgid "Couldn't switch to OpenGL context."
-msgstr "OpenGLコンテキストに切り替えられなかった。"
+msgstr "OpenGLコンテキストに切り替えられませんでした。"
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です"
@@ -1763,13 +1763,13 @@ msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) 
 msgstr "<html><head/><body><p>メディアイメージ（CD-ROM、フロッピーなど）を選択するとき、オープンダイアログは86Box設定ファイルと同じディレクトリで開始します。この設定は、おそらく macOS でのみ違いがあります。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
-msgstr "このマシンは移動されたかコピーされた可能性がある。"
+msgstr "このマシンは移動またはコピーされた可能性があります。"
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "ネットワーク機能を正しく動作させるために、86Boxはこのマシンが移動されたかコピーされたかを知る必要があります。\n\n「コピーした」を選択してください。"
+msgstr "ネットワーク機能を正しく動作させるために、86Boxはこのマシンが移動されたかコピーされたかを知る必要があります。\n\n不明な場合は、「コピーした」を選択してください。"
 
 msgid "I Moved It"
-msgstr "動かした"
+msgstr "移動した"
 
 msgid "I Copied It"
 msgstr "コピーした"
@@ -1778,7 +1778,7 @@ msgid "86Box Monitor #%1"
 msgstr "86Box モニター%1"
 
 msgid "No MCA devices."
-msgstr "MCAデバイスはない。"
+msgstr "MCAデバイスはありません。"
 
 msgid "MiB"
 msgstr "MiB"
@@ -2895,7 +2895,7 @@ msgid "&Wipe NVRAM"
 msgstr "NVRAMを消去する(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "これによって、仮想マシン内の「nvr」サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン「%1」のすべてのNVRAM内容を削除してもよろしいですか？"
+msgstr "これにより、仮想マシン内の「nvr」サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン「%1」のすべてのNVRAM内容を削除してもよろしいですか？"
 
 msgid "Success"
 msgstr "成功"
@@ -2916,7 +2916,7 @@ msgid "Unknown Status"
 msgstr "不明な状態"
 
 msgid "No Machines Found!"
-msgstr "マシンが検出されません！"
+msgstr "マシンが見つかりません！"
 
 msgid "Check for updates on startup"
 msgstr "起動時にアップデートを確認する"
@@ -2958,7 +2958,7 @@ msgid "<b>Build %1</b> is now available."
 msgstr "<b>ビルド %1</b> が現在利用可能です。"
 
 msgid "Would you like to visit the download page?"
-msgstr "ダウンロードページをご覧になりたいですか？"
+msgstr "ダウンロードページを開きますか？"
 
 msgid "Visit download page"
 msgstr "ダウンロードページをご覧ください"
