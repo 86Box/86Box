@@ -136,6 +136,8 @@ private slots:
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);
 
     void on_actionMCA_devices_triggered();
+    void on_actionDump_VM_Debug_Snapshot_triggered();
+    void on_actionConfigure_Snapshot_Providers_triggered();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;

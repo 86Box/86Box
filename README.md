@@ -73,6 +73,34 @@ Building
 ---------
 For instructions on how to build 86Box from source, see the [build guide](https://86box.readthedocs.io/en/latest/dev/buildguide.html).
 
+VM debug snapshots
+------------------
+
+This development branch includes a VM debug snapshot facility intended to make paused emulator state easier to inspect and share during debugging.
+
+When the VM is paused, use the VM debug snapshot action to create a timestamped directory under the VM path:
+
+```
+debug_snapshots/snapshot_YYYYMMDD_HHMMSS/
+```
+
+The snapshot contents can be configured from the snapshot contents dialog. The currently selectable core data is:
+
+* CPU registers and bytes around CS:IP
+* Conventional RAM dump, capped at 640 KB and reduced automatically when the configured machine RAM is smaller
+* Recent I/O port trace
+* Active device list
+* Detailed dumps for active devices that expose snapshot support
+
+The manifest records the configured RAM size and the exact number of conventional RAM bytes written, so machines with less than 640 KB are represented accurately.
+
+Detailed device snapshot support is currently implemented for:
+
+* IBM EGA and compatible EGA variants, producing `ega.txt` and `ega_vram.bin`
+* IBM CGA and Pravetz VDC-2, producing `cga.txt` and `cga_vram.bin`
+
+The mechanism is intentionally extensible. Devices can opt in by filling the optional `debug_snapshot` callback in their `device_t` definition. Once a device exposes that callback and is active in the VM, it appears automatically in the snapshot contents dialog and can be enabled or disabled by the user.
+
 Licensing
 ---------
 

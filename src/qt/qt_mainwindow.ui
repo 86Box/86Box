@@ -120,6 +120,9 @@
     <addaction name="actionBegin_trace"/>
     <addaction name="actionEnd_trace"/>
     <addaction name="separator"/>
+    <addaction name="actionDump_VM_Debug_Snapshot"/>
+    <addaction name="actionConfigure_Snapshot_Providers"/>
+    <addaction name="separator"/>
     <addaction name="actionMCA_devices"/>
     <addaction name="separator"/>
     <addaction name="actionOpen_printer_tray"/>
@@ -979,6 +982,25 @@
    </property>
    <property name="toolTip">
     <string>Fast forward</string>
+   </property>
+  </action>
+  <action name="actionDump_VM_Debug_Snapshot">
+   <property name="text">
+    <string>Dump VM debug snapshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Dump VM debug snapshot while paused</string>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionConfigure_Snapshot_Providers">
+   <property name="text">
+    <string>Configure snapshot providers...</string>
+   </property>
+   <property name="toolTip">
+    <string>Enable or disable optional device providers for VM debug snapshots</string>
    </property>
   </action>
  </widget>
