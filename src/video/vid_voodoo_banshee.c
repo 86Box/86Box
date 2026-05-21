@@ -533,7 +533,9 @@ banshee_render_16bpp_tiled(svga_t *svga)
     uint32_t   addr;
     int        drawn = 0;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (banshee->vidProcCfg & VIDPROCCFG_HALF_MODE)

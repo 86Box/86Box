@@ -234,6 +234,11 @@ jega_render_text(void *priv)
                                               &jega->ega.memaddr;
     uint8_t   mask           = jega->is_vga ? jega->vga.svga.dac_mask : 0xff;
 
+    if (((*displine + *y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[*displine + *y_add] == NULL))
+        return;
+
     if (*firstline_draw == 2000)
         *firstline_draw = *displine;
     *lastline_draw = *displine;

@@ -106,7 +106,9 @@ ibm_rgb528_render_4bpp(svga_t *svga)
     uint8_t                    swap_nib  = ramdac->indexed_data[0x72] & 0x21;
     uint8_t                    vram_size = ramdac->indexed_data[0x70] & 0x03;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
@@ -184,7 +186,9 @@ ibm_rgb528_render_8bpp(svga_t *svga)
     uint8_t                    swap_word = ramdac->indexed_data[0x72] & 0x10;
     uint8_t                    vram_size = ramdac->indexed_data[0x70] & 0x03;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
@@ -261,7 +265,9 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
     uint8_t                    vram_size = ramdac->indexed_data[0x70] & 0x01;
     uint8_t                    temp;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (b555_565 && (b16_dcol != 0x01))
@@ -380,7 +386,9 @@ ibm_rgb528_render_24bpp(svga_t *svga)
     uint8_t                    b6bit_lin = ramdac->indexed_data[0x07] & 0x80;
     uint8_t                    temp;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
@@ -470,7 +478,9 @@ ibm_rgb528_render_32bpp(svga_t *svga)
     uint8_t                    b6bit_lin = ramdac->indexed_data[0x07] & 0x80;
     uint8_t                    temp;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
