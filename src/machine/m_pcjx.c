@@ -259,20 +259,20 @@ pcjx_mapper_in(uint16_t port, void *priv)
     return status;
 }
 
-static int
+static uint8_t
 pcjx_block_has_config(uint8_t index)
 {
     return (index < PCJX_MAPPER_BLOCKS) && (pcjx_block_configs[index].andreg1 != 0);
 }
 
-static int
+static uint8_t
 pcjx_decode_block_range(const pcjx_block_state_t *block, uint32_t *base,
-                        uint32_t *size, int *can_read, int *can_write)
+                        uint32_t *size, uint8_t *can_read, uint8_t *can_write)
 {
     uint8_t  mask;
-    uint32_t first_segment = 0xffffffff;
-    uint32_t last_segment  = 0;
-    uint32_t segment_count = 0;
+    uint8_t  first_segment = 0xff;
+    uint8_t  last_segment  = 0;
+    uint8_t  segment_count = 0;
 
     if (!(block->reg1 & 0x80) || !(block->reg1 & 0x20))
         return 0;
@@ -283,11 +283,11 @@ pcjx_decode_block_range(const pcjx_block_state_t *block, uint32_t *base,
         return 0;
 
     mask = (block->reg2 & 0x1f) ^ 0x1f;
-    for (uint32_t segment = 0; segment < 32; segment++) {
+    for (uint8_t segment = 0; segment < 32; segment++) {
         if ((mask & block->reg1) != (mask & segment))
             continue;
 
-        if (first_segment == 0xffffffff)
+        if (first_segment == 0xff)
             first_segment = segment;
         last_segment = segment;
         segment_count++;
@@ -301,7 +301,7 @@ pcjx_decode_block_range(const pcjx_block_state_t *block, uint32_t *base,
     return 1;
 }
 
-static int
+static uint8_t
 pcjx_decode_io_block(const pcjx_block_state_t *block,
                      const pcjx_block_config_t *config, uint16_t port)
 {
@@ -325,7 +325,7 @@ pcjx_decode_io_block(const pcjx_block_state_t *block,
     return 1;
 }
 
-static int
+static uint8_t
 pcjx_block_has_state(const pcjx_t *pcjx, uint8_t index)
 {
     return (pcjx != NULL) && ((pcjx->blocks[index].reg1 != 0) ||
@@ -475,7 +475,7 @@ pcjx_decode_serial_port(const pcjx_t *pcjx, uint8_t *irq)
     if ((pcjx == NULL) || (irq == NULL) || !pcjx_block_has_state(pcjx, 0x89))
         return 0x0000;
 
-    for (size_t port_index = 0; port_index < (sizeof(pcjx_serial_ports) / sizeof(pcjx_serial_ports[0])); port_index++) {
+    for (uint8_t port_index = 0; port_index < (sizeof(pcjx_serial_ports) / sizeof(pcjx_serial_ports[0])); port_index++) {
         if (!pcjx_decode_io_block(&pcjx->blocks[0x89], &pcjx_block_configs[0x89],
                                   pcjx_serial_ports[port_index].port))
             continue;
@@ -562,7 +562,7 @@ pcjx_decode_parallel_port(const pcjx_t *pcjx, uint8_t *irq)
     if ((pcjx == NULL) || (irq == NULL) || !pcjx_block_has_state(pcjx, 0x88))
         return 0x0000;
 
-    for (size_t port_index = 0; port_index < (sizeof(pcjx_parallel_ports) / sizeof(pcjx_parallel_ports[0])); port_index++) {
+    for (uint8_t port_index = 0; port_index < (sizeof(pcjx_parallel_ports) / sizeof(pcjx_parallel_ports[0])); port_index++) {
         if (!pcjx_decode_io_block(&pcjx->blocks[0x88], &pcjx_block_configs[0x88],
                                   pcjx_parallel_ports[port_index].port))
             continue;
@@ -694,8 +694,8 @@ pcjx_apply_system_rom(const pcjx_t *pcjx)
     const pcjx_block_state_t *block = &pcjx->blocks[0x00];
     uint32_t                  base  = 0;
     uint32_t                  size  = 0;
-    int                       can_read;
-    int                       can_write;
+    uint8_t                   can_read;
+    uint8_t                   can_write;
 
     pcjx_clear_range(bios_mapping.base, bios_mapping.size);
     mem_mapping_disable(&bios_mapping);
@@ -719,8 +719,8 @@ pcjx_apply_font_window(pcjx_t *pcjx)
     const pcjx_block_state_t *block = &pcjx->blocks[0x07];
     uint32_t                  base  = 0;
     uint32_t                  size  = 0;
-    int                       can_read;
-    int                       can_write;
+    uint8_t                   can_read;
+    uint8_t                   can_write;
 
     pcjx_clear_range(pcjx->font_mapping.base, pcjx->font_mapping.size);
     mem_mapping_disable(&pcjx->font_mapping);
@@ -748,8 +748,8 @@ pcjx_apply_main_ram(pcjx_t *pcjx)
     uint32_t                  base           = 0;
     uint32_t                  size           = 0;
     uint32_t                  configured_ram = pcjx_configured_ram_size();
-    int                       can_read;
-    int                       can_write;
+    uint8_t                   can_read;
+    uint8_t                   can_write;
 
     pcjx_clear_range(ram_low_mapping.base, ram_low_mapping.size);
     pcjx_clear_range(pcjx->exmem_mapping.base, pcjx->exmem_mapping.size);
@@ -787,8 +787,8 @@ pcjx_apply_video_window(pcjx_t *pcjx)
     const pcjx_block_state_t *block = &pcjx->blocks[0x09];
     uint32_t                  base  = 0;
     uint32_t                  size  = 0;
-    int                       can_read  = 0;
-    int                       can_write = 0;
+    uint8_t                   can_read  = 0;
+    uint8_t                   can_write = 0;
 
     if (pcjx->pcjr == NULL)
         return;
@@ -808,8 +808,8 @@ pcjx_apply_video_window_2(pcjx_t *pcjx)
     const pcjx_block_state_t *block = &pcjx->blocks[0x0a];
     uint32_t                  base  = 0;
     uint32_t                  size  = 0;
-    int                       can_read;
-    int                       can_write;
+    uint8_t                   can_read;
+    uint8_t                   can_write;
 
     if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write)) {
         pcjx_video_apply_second_window(&pcjx->video, 0, 0, 0, 0);
@@ -923,7 +923,7 @@ static uint8_t
 pcjx_rtc_in(uint16_t port, void *priv)
 {
     const pcjx_t *pcjx   = (const pcjx_t *) priv;
-    uint16_t offset = port - PCJX_RTC_BASE_PORT;
+    uint8_t offset = (uint8_t) (port - PCJX_RTC_BASE_PORT);
 
     if (offset < 0x0d)
         return pcjx->rtc_latch[offset];
@@ -935,7 +935,7 @@ static void
 pcjx_rtc_out(uint16_t port, uint8_t value, void *priv)
 {
     pcjx_t  *pcjx   = (pcjx_t *) priv;
-    uint16_t offset = port - PCJX_RTC_BASE_PORT;
+    uint8_t offset = (uint8_t) (port - PCJX_RTC_BASE_PORT);
 
     if (offset < 0x0d) {
         pcjx->rtc_latch[offset] = value;

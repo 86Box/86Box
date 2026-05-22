@@ -53,7 +53,7 @@ static uint8_t crtcmask[32] = {
 static void vid_get_effective_render_mode(const pcjr_t *pcjr, uint8_t *mode1,
                                           uint8_t *mode2);
 static uint16_t vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1,
-                                              int ho_s);
+                                              uint16_t ho_s);
 
 static pcjx_video_t *
 vid_attached(pcjr_t *pcjr)
@@ -154,7 +154,7 @@ vid_get_extended_render_width(const pcjr_t *pcjr)
 }
 
 static uint16_t
-vid_get_render_width(const pcjr_t *pcjr, int ho_s)
+vid_get_render_width(const pcjr_t *pcjr, uint16_t ho_s)
 {
     uint8_t mode1;
 
@@ -193,7 +193,7 @@ vid_get_h_overscan_size_for_mode(uint8_t mode1)
 }
 
 static uint16_t
-vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1, int ho_s)
+vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1, uint16_t ho_s)
 {
     if (vid_mode_uses_hires(mode1))
         return (pcjr->crtc[1] << 3) + ho_s;
@@ -477,9 +477,9 @@ static void
 vid_blit_v_overscan(pcjr_t *pcjr)
 {
     uint8_t            cols = (pcjr->array[2] & 0xf) + 16;
-    int                y0   = pcjr->firstline;
-    int                y    = pcjr->lastline + 8;
-    int                h    = 8;
+    uint16_t           y0   = pcjr->firstline;
+    uint16_t           y    = pcjr->lastline + 8;
+    uint8_t            h    = 8;
     uint16_t           ho_s = vid_get_h_overscan_size(pcjr);
     uint8_t            i;
     uint16_t           x;
@@ -515,17 +515,17 @@ vid_blit_v_overscan(pcjr_t *pcjr)
 }
 
 static void
-vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
+vid_render(pcjr_t *pcjr, uint16_t line, uint16_t ho_s, int16_t ho_d)
 {
     uint16_t cursoraddr   = (pcjr->crtc[15] | (pcjr->crtc[14] << 8)) & 0x3fff;
-    int      drawcursor;
+    uint8_t  drawcursor;
     uint8_t  chr;
     uint8_t  attr;
     uint16_t dat;
-    int      cols[4];
+    uint8_t  cols[4];
     uint16_t offset       = 0;
     uint16_t mask         = 0x1fff;
-    int      x;
+    uint8_t  x;
 
     cols[0]        = (pcjr->array[2] & 0xf) + 16;
 
@@ -551,7 +551,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
     switch ((pcjr->array[0] & 0x13) | ((pcjr->array[3] & 0x08) << 5)) {
         case 0x13: /*320x200x16*/
             for (x = 0; x < pcjr->crtc[1]; x++) {
-                int ef_x = (x << 3) + ho_d;
+                uint16_t ef_x = (x << 3) + ho_d;
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
@@ -567,7 +567,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
             break;
         case 0x12: /*160x200x16*/
             for (x = 0; x < pcjr->crtc[1]; x++) {
-                int ef_x = (x << 4) + ho_d;
+                uint16_t ef_x = (x << 4) + ho_d;
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
@@ -587,7 +587,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
             break;
         case 0x03: /*640x200x4*/
             for (x = 0; x < pcjr->crtc[1]; x++) {
-                int ef_x = (x << 3) + ho_d;
+                uint16_t ef_x = (x << 3) + ho_d;
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
                 pcjr->memaddr++;
@@ -601,7 +601,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
             break;
         case 0x01: /*80 column text*/
             for (x = 0; x < pcjr->crtc[1]; x++) {
-                int ef_x = (x << 3) + ho_d;
+                uint16_t ef_x = (x << 3) + ho_d;
                 chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
                 attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 drawcursor = ((pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron);
@@ -626,7 +626,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
             break;
         case 0x00: /*40 column text*/
             for (x = 0; x < pcjr->crtc[1]; x++) {
-                int ef_x = (x << 4) + ho_d;
+                uint16_t ef_x = (x << 4) + ho_d;
                 chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
                 attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 drawcursor = ((pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron);
@@ -658,7 +658,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
             cols[2] = pcjr->array[2 + 16] + 16;
             cols[3] = pcjr->array[3 + 16] + 16;
             for (x = 0; x < pcjr->crtc[1]; x++) {
-                int ef_x = (x << 4) + ho_d;
+                uint16_t ef_x = (x << 4) + ho_d;
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
@@ -672,7 +672,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
             cols[0] = pcjr->array[0 + 16] + 16;
             cols[1] = pcjr->array[1 + 16] + 16;
             for (x = 0; x < pcjr->crtc[1]; x++) {
-                int ef_x = (x << 4) + ho_d;
+                uint16_t ef_x = (x << 4) + ho_d;
                 dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
                       pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
                 pcjr->memaddr++;
@@ -689,7 +689,7 @@ vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
 }
 
 static void
-vid_render_dispatch(pcjr_t *pcjr, int line, int ho_s, int ho_d)
+vid_render_dispatch(pcjr_t *pcjr, uint16_t line, uint16_t ho_s, int16_t ho_d)
 {
     pcjx_video_t *video;
 
@@ -707,7 +707,7 @@ vid_render_dispatch(pcjr_t *pcjr, int line, int ho_s, int ho_d)
 }
 
 static void
-vid_render_blank(pcjr_t *pcjr, int line, int ho_s)
+vid_render_blank(pcjr_t *pcjr, uint16_t line, uint16_t ho_s)
 {
     uint8_t            mode1;
     const pcjx_video_t *video;
@@ -735,7 +735,7 @@ vid_render_blank(pcjr_t *pcjr, int line, int ho_s)
 }
 
 static void
-vid_render_process(pcjr_t *pcjr, int line, int ho_s)
+vid_render_process(pcjr_t *pcjr, uint16_t line, uint16_t ho_s)
 {
     uint16_t x;
     uint8_t mode1;
@@ -799,7 +799,7 @@ vid_poll(void *priv)
     int16_t       raw_render_ho_d;
     int16_t       render_l;
     int16_t       render_ho_d;
-    int           old_ma;
+    uint16_t      old_ma;
     int16_t       stable_blit_x = 0;
     int16_t       stable_blit_y = 0;
     uint8_t       extended_render_active = vid_is_extended_render_active(pcjr);
@@ -1124,7 +1124,7 @@ const device_t pcjx_device = {
 void
 pcjx_vid_init(pcjr_t *pcjr)
 {
-    int display_type;
+    uint8_t display_type;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
 

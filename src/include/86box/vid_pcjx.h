@@ -108,11 +108,11 @@ void pcjx_video_get_display_position(const pcjx_video_t *video,
 uint8_t pcjx_video_consume_timings_dirty(pcjx_video_t *video);
 uint8_t pcjx_video_consume_change_requested(pcjx_video_t *video);
 void pcjx_video_apply_first_window(pcjx_video_t *video, uint32_t base,
-                                   uint32_t size, int can_read,
-                                   int can_write);
+                                   uint32_t size, uint8_t can_read,
+                                   uint8_t can_write);
 void pcjx_video_apply_second_window(pcjx_video_t *video, uint32_t base,
-                                    uint32_t size, int can_read,
-                                    int can_write);
+                                    uint32_t size, uint8_t can_read,
+                                    uint8_t can_write);
 void pcjx_video_set_font_rom(pcjx_video_t *video, const uint8_t *font_rom,
                              uint32_t font_rom_size);
 void pcjx_video_set_gate_array_io_mask(pcjx_video_t *video, uint8_t io_mask);
@@ -129,8 +129,8 @@ uint8_t pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
                                        int16_t *blit_y, uint16_t *frame_width,
                                        uint16_t *frame_height);
 uint16_t pcjx_video_extended_render_width(const pcjx_video_t *video);
-uint8_t pcjx_video_render_extended(pcjx_video_t *video, int line, int ho_d);
-uint8_t pcjx_video_render_line(pcjx_video_t *video, int line, int ho_s, int ho_d);
+uint8_t pcjx_video_render_extended(pcjx_video_t *video, uint16_t line, int16_t ho_d);
+uint8_t pcjx_video_render_line(pcjx_video_t *video, uint16_t line, uint16_t ho_s, int16_t ho_d);
 uint8_t pcjx_video_needs_combined_render(const pcjx_video_t *video);
 uint8_t pcjx_video_combine_pixels(const pcjx_video_t *video, uint8_t pixel1,
                                   uint8_t pixel2);
