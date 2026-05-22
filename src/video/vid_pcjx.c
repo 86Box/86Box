@@ -8,12 +8,16 @@
  *
  *          IBM PCjx video.
  */
+#ifdef ENABLE_PCJX_VIDEO_LOG
+#include <stdarg.h>
+#endif
 #include <stdint.h>
 #include <string.h>
 
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/log.h>
 #include <86box/timer.h>
 #include <86box/mem.h>
 #include <86box/pic.h>
@@ -37,6 +41,45 @@ static uint8_t pcjx_video_effective_mode_viewport(const pcjx_video_t *video);
 static uint8_t pcjx_video_columns(const pcjx_video_t *video);
 static uint16_t pcjx_video_cursoraddr(const pcjx_video_t *video);
 static void pcjx_video_waitstates(void);
+
+#ifdef ENABLE_PCJX_VIDEO_LOG
+uint8_t pcjx_video_do_log = ENABLE_PCJX_VIDEO_LOG;
+
+static void
+pcjx_video_log(void *priv, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (pcjx_video_do_log) {
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define pcjx_video_log(priv, fmt, ...)
+#endif
+
+static void
+pcjx_video_log_window(const pcjx_video_t *video, const char *name,
+                      uint32_t base, uint32_t size, uint8_t can_read,
+                      uint8_t can_write)
+{
+    if (video == NULL)
+        return;
+
+    if (size == 0) {
+        pcjx_video_log(video->log,
+                       "[%04X:%08X] %s disabled read=%u write=%u\n",
+                       CS, cpu_state.pc, name, can_read, can_write);
+        return;
+    }
+
+    pcjx_video_log(video->log,
+                   "[%04X:%08X] %s base=%05X size=%05X read=%u write=%u\n",
+                   CS, cpu_state.pc, name, (unsigned int) base,
+                   (unsigned int) size, can_read, can_write);
+}
 
 static int16_t
 pcjx_video_converter_hstart(const pcjx_video_t *video)
@@ -154,6 +197,10 @@ pcjx_video_notify_display_restart(pcjx_video_t *video)
         return;
 
     video->display_restart_pending = 1;
+    pcjx_video_log(video->log,
+                   "Display restart latched memaddr=%04X conv=(%d,%d)\n",
+                   video->host.memaddr, video->raster.conv_x,
+                   video->raster.conv_y);
     pcjx_video_reset_raster_state(video);
 }
 
@@ -165,6 +212,9 @@ pcjx_video_apply_pending_display_restart(pcjx_video_t *video)
 
     pcjx_video_reset_extended_graphics_state(video);
     video->display_restart_pending = 0;
+    pcjx_video_log(video->log,
+                   "Display restart applied memaddr=%04X\n",
+                   video->host.memaddr);
 }
 
 static uint8_t
@@ -829,6 +879,10 @@ pcjx_video_apply_gate_array_reg(pcjx_video_t *video, uint8_t viewport, uint8_t r
             break;
     }
 
+    pcjx_video_log(video->log,
+                   "[%04X:%08X] gate[%u] reg[%02X] = %02X\n",
+                   CS, cpu_state.pc, viewport, reg & 0x1f, val);
+
     if (sync_active)
         pcjx_video_sync_active_view(video);
 }
@@ -855,20 +909,34 @@ pcjx_video_gate_array_status(const pcjx_video_t *video)
 void
 pcjx_video_set_gate_array_io_mask(pcjx_video_t *video, uint8_t io_mask)
 {
+    uint8_t old_mask;
+
     if (video == NULL)
         return;
 
+    old_mask = video->gate_io_mask;
     video->gate_io_mask = io_mask & 0x03;
+    if (old_mask != video->gate_io_mask)
+        pcjx_video_log(video->log,
+                       "[%04X:%08X] gate_io_mask=%02X\n",
+                       CS, cpu_state.pc, video->gate_io_mask);
 }
 
 void
 pcjx_video_set_control_io_mask(pcjx_video_t *video, uint8_t io_mask)
 {
+    uint8_t old_mask;
+
     if (video == NULL)
         return;
 
+    old_mask = video->control_io_mask;
     video->control_io_mask = io_mask & (PCJX_VIDEO_IO_PAGE2 | PCJX_VIDEO_IO_EX |
                                         PCJX_VIDEO_IO_PAGE1 | PCJX_VIDEO_IO_CRTC);
+    if (old_mask != video->control_io_mask)
+        pcjx_video_log(video->log,
+                       "[%04X:%08X] control_io_mask=%02X\n",
+                       CS, cpu_state.pc, video->control_io_mask);
 }
 
 void
@@ -883,6 +951,10 @@ pcjx_video_set_font_rom(pcjx_video_t *video, const uint8_t *font_rom,
         video->font_rom_mask = font_rom_size - 1;
     else
         video->font_rom_mask = 0;
+
+    pcjx_video_log(video->log, "Font ROM size=%05X mask=%05X\n",
+                   (unsigned int) font_rom_size,
+                   (unsigned int) video->font_rom_mask);
 }
 
 static void
@@ -942,6 +1014,10 @@ pcjx_video_apply_extended_reg(pcjx_video_t *video, uint8_t reg, uint8_t val)
         default:
             break;
     }
+
+    pcjx_video_log(video->log,
+                   "[%04X:%08X] ex reg[%02X] = %02X\n",
+                   CS, cpu_state.pc, reg & 0x07, val);
 }
 
 static uint8_t
@@ -1123,6 +1199,10 @@ pcjx_video_init(pcjx_video_t *video, uint32_t program_size)
     pcjx_video_reset_extended_graphics_state(video);
     pcjx_video_reset_raster_state(video);
 
+#ifdef ENABLE_PCJX_VIDEO_LOG
+    video->log = log_open("PCjx video");
+#endif
+
     mem_mapping_add(&video->first_window_mapping, 0, 0,
                     pcjx_first_window_read, NULL, NULL,
                     pcjx_first_window_write, NULL, NULL,
@@ -1134,13 +1214,22 @@ pcjx_video_init(pcjx_video_t *video, uint32_t program_size)
                     pcjx_second_window_write, NULL, NULL,
                     NULL, 0, video);
     mem_mapping_disable(&video->second_window_mapping);
+
+    pcjx_video_log(video->log, "Init program_size=%05X\n",
+                   (unsigned int) program_size);
 }
 
 void
 pcjx_video_close(pcjx_video_t *video)
 {
+    if (video == NULL)
+        return;
+
+    pcjx_video_log(video->log, "Close\n");
     pcjx_video_clear_first_window(video);
     pcjx_video_clear_mapping(&video->second_window_mapping);
+    if (video->log)
+        log_close(video->log);
 }
 
 void
@@ -1152,12 +1241,17 @@ pcjx_video_apply_first_window(pcjx_video_t *video, uint32_t base,
     if ((video == NULL) || (video->program_size == 0))
         return;
 
-    if ((size != 0x8000) || !can_read || !can_write)
+    if ((size != 0x8000) || !can_read || !can_write) {
+        pcjx_video_log_window(video, "first window", base, size,
+                              can_read, can_write);
         return;
+    }
 
     mem_mapping_set_addr(&video->first_window_mapping, base, size);
     mem_mapping_enable(&video->first_window_mapping);
     mem_set_mem_state_both(base, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    pcjx_video_log_window(video, "first window", base, size,
+                          can_read, can_write);
 }
 
 void
@@ -1170,12 +1264,17 @@ pcjx_video_apply_second_window(pcjx_video_t *video, uint32_t base,
         return;
 
     /* The current PCjr-derived core only exposes one 32 KiB render backing store. */
-    if ((size != 0x8000) || !can_read || !can_write)
+    if ((size != 0x8000) || !can_read || !can_write) {
+        pcjx_video_log_window(video, "second window", base, size,
+                              can_read, can_write);
         return;
+    }
 
     mem_mapping_set_addr(&video->second_window_mapping, base, size);
     mem_mapping_enable(&video->second_window_mapping);
     mem_set_mem_state_both(base, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    pcjx_video_log_window(video, "second window", base, size,
+                          can_read, can_write);
 }
 
 uint8_t
@@ -2044,6 +2143,9 @@ pcjx_video_write_gate_array_view(pcjx_video_t *video, uint8_t viewport, uint8_t 
             video->gate.index[0]   = val;
             video->gate.status_index = val;
             video->gate.latched[0] = 1;
+            pcjx_video_log(video->log,
+                           "[%04X:%08X] gate[0] index=%02X\n",
+                           CS, cpu_state.pc, val);
         } else {
             video->gate.latched[0] = 0;
             pcjx_video_apply_gate_array_reg(video, 0, video->gate.index[0], val);
@@ -2055,6 +2157,9 @@ pcjx_video_write_gate_array_view(pcjx_video_t *video, uint8_t viewport, uint8_t 
         video->gate.index[1]   = val;
         video->gate.status_index = val;
         video->gate.latched[1] = 1;
+        pcjx_video_log(video->log,
+                       "[%04X:%08X] gate[1] index=%02X\n",
+                       CS, cpu_state.pc, val);
     } else {
         video->gate.latched[1] = 0;
         pcjx_video_apply_gate_array_reg(video, 1, video->gate.index[1], val);
@@ -2298,8 +2403,12 @@ pcjx_video_out(pcjx_video_t *video, uint16_t addr, uint8_t val)
         case 0x3d5:
         case 0x3d6:
         case 0x3d7:
-            if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_CRTC))
+            if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_CRTC)) {
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X = %02X (blocked CRTC)\n",
+                               CS, cpu_state.pc, addr, val);
                 return 1;
+            }
             break;
 
         default:
@@ -2311,22 +2420,35 @@ pcjx_video_out(pcjx_video_t *video, uint16_t addr, uint8_t val)
             return pcjx_video_write_gate_array(video, val);
 
         case 0x3d9:
-            if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_PAGE2))
+            if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_PAGE2)) {
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X = %02X (blocked page2)\n",
+                               CS, cpu_state.pc, addr, val);
                 return 1;
+            }
             video->page_reg[1] = val;
             pcjx_video_reset_extended_graphics_state(video);
             pcjx_video_sync_active_view(video);
+            pcjx_video_log(video->log,
+                           "[%04X:%08X] [W] %04X = %02X (page2)\n",
+                           CS, cpu_state.pc, addr, val);
             return 1;
 
         case 0x3dd:
             if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_EX)) {
                 video->ex.latched = 0;
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X = %02X (blocked ex)\n",
+                               CS, cpu_state.pc, addr, val);
                 return 1;
             }
 
             if (!video->ex.latched) {
                 video->ex.index   = val;
                 video->ex.latched = 1;
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] ex index=%02X\n",
+                               CS, cpu_state.pc, val);
             } else {
                 video->ex.latched = 0;
                 pcjx_video_apply_extended_reg(video, video->ex.index, val);
@@ -2334,11 +2456,18 @@ pcjx_video_out(pcjx_video_t *video, uint16_t addr, uint8_t val)
             return 1;
 
         case 0x3df:
-            if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_PAGE1))
+            if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_PAGE1)) {
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X = %02X (blocked page1)\n",
+                               CS, cpu_state.pc, addr, val);
                 return 1;
+            }
             video->page_reg[0] = val;
             pcjx_video_reset_extended_graphics_state(video);
             pcjx_video_sync_active_view(video);
+            pcjx_video_log(video->log,
+                           "[%04X:%08X] [W] %04X = %02X (page1)\n",
+                           CS, cpu_state.pc, addr, val);
             return 1;
 
         default:
@@ -2367,6 +2496,9 @@ pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val)
         case 0x3d7:
             if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_CRTC)) {
                 *val = 0xff;
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [R] %04X = %02X (blocked CRTC)\n",
+                               CS, cpu_state.pc, addr, *val);
                 return 1;
             }
             break;
@@ -2379,6 +2511,9 @@ pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val)
         gate_mask = pcjx_video_gate_active_mask(video);
         if (gate_mask == 0) {
             *val = 0xff;
+            pcjx_video_log(video->log,
+                           "[%04X:%08X] [R] %04X = %02X (blocked gate)\n",
+                           CS, cpu_state.pc, addr, *val);
             return 1;
         }
 
@@ -2389,6 +2524,9 @@ pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val)
 
         (void) pcjx_video_gate_status_viewport(gate_mask);
         *val = pcjx_video_gate_array_status(video);
+        pcjx_video_log(video->log,
+                       "[%04X:%08X] [R] %04X = %02X (gate status)\n",
+                       CS, cpu_state.pc, addr, *val);
         return 1;
     }
 
@@ -2396,11 +2534,17 @@ pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val)
         if (!pcjx_video_control_io_enabled(video, PCJX_VIDEO_IO_EX)) {
             video->ex.latched = 0;
             *val              = 0xff;
+            pcjx_video_log(video->log,
+                           "[%04X:%08X] [R] %04X = %02X (blocked ex)\n",
+                           CS, cpu_state.pc, addr, *val);
             return 1;
         }
 
         video->ex.latched = 0;
         *val              = pcjx_video_read_extended_reg(video);
+        pcjx_video_log(video->log,
+                       "[%04X:%08X] [R] %04X = %02X (ex reg)\n",
+                       CS, cpu_state.pc, addr, *val);
         return 1;
     }
 
@@ -2672,10 +2816,12 @@ static void
 vid_out(uint16_t addr, uint8_t val, void *priv)
 {
     pcjr_t  *pcjr = (pcjr_t *) priv;
+    pcjx_video_t *video;
     uint8_t  old;
 
     vid_sync_from_pcjr(pcjr);
-    if (pcjx_video_out(vid_attached(pcjr), addr, val)) {
+    video = vid_attached(pcjr);
+    if (pcjx_video_out(video, addr, val)) {
         vid_apply_pending(pcjr);
         return;
     }
@@ -2686,6 +2832,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d4:
         case 0x3d6:
             pcjr->crtcreg = val & 0x1f;
+            if (video != NULL)
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X = %02X (crtc index)\n",
+                               CS, cpu_state.pc, addr, pcjr->crtcreg);
             return;
 
         case 0x3d1:
@@ -2694,6 +2844,11 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d7:
             old                        = pcjr->crtc[pcjr->crtcreg];
             pcjr->crtc[pcjr->crtcreg]  = val & crtcmask[pcjr->crtcreg];
+            if (video != NULL)
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X reg[%02X] = %02X\n",
+                               CS, cpu_state.pc, addr, pcjr->crtcreg,
+                               pcjr->crtc[pcjr->crtcreg]);
             if (pcjr->crtcreg == 2)
                 overscan_x = vid_get_h_overscan_size(pcjr);
             if (old != val) {
@@ -2717,6 +2872,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
                     update_cga16_color(val, pcjr->array[2] & 0x0f);
             }
             pcjr->array_ff = !pcjr->array_ff;
+            if (video != NULL)
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X = %02X (pcjr array)\n",
+                               CS, cpu_state.pc, addr, val);
             break;
 
         case 0x3df:
@@ -2724,6 +2883,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             pcjr->pa        = val;
             pcjr->addr_mode = val >> 6;
             recalc_address(pcjr);
+            if (video != NULL)
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [W] %04X = %02X (memctrl)\n",
+                               CS, cpu_state.pc, addr, val);
             break;
 
         default:
@@ -2735,10 +2898,12 @@ static uint8_t
 vid_in(uint16_t addr, void *priv)
 {
     pcjr_t  *pcjr = (pcjr_t *) priv;
+    const pcjx_video_t *video;
     uint8_t  ret  = 0xff;
 
     vid_sync_from_pcjr(pcjr);
-    if (pcjx_video_in(vid_attached(pcjr), addr, &ret))
+    video = vid_attached_const(pcjr);
+    if (pcjx_video_in((pcjx_video_t *) video, addr, &ret))
         return ret;
 
     switch (addr) {
@@ -2747,6 +2912,10 @@ vid_in(uint16_t addr, void *priv)
         case 0x3d4:
         case 0x3d6:
             ret = pcjr->crtcreg;
+            if (video != NULL)
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [R] %04X = %02X (crtc index)\n",
+                               CS, cpu_state.pc, addr, ret);
             break;
 
         case 0x3d1:
@@ -2754,12 +2923,20 @@ vid_in(uint16_t addr, void *priv)
         case 0x3d5:
         case 0x3d7:
             ret = pcjr->crtc[pcjr->crtcreg];
+            if (video != NULL)
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [R] %04X = %02X (crtc reg[%02X])\n",
+                               CS, cpu_state.pc, addr, ret, pcjr->crtcreg);
             break;
 
         case 0x3da:
             pcjr->array_ff = 0;
             pcjr->status  ^= 0x10;
             ret            = pcjr->status;
+            if (video != NULL)
+                pcjx_video_log(video->log,
+                               "[%04X:%08X] [R] %04X = %02X (pcjr status)\n",
+                               CS, cpu_state.pc, addr, ret);
             break;
 
         default:

@@ -9,6 +9,9 @@
  *          Early machine bring-up for the IBM PCjx.
  */
 
+#ifdef ENABLE_PCJX_LOG
+#include <stdarg.h>
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +24,7 @@
 #include <86box/io.h>
 #include <86box/gameport.h>
 #include <86box/lpt.h>
+#include <86box/log.h>
 #include <86box/m_pcjr.h>
 #include <86box/machine.h>
 #include <86box/fdd.h>
@@ -32,6 +36,8 @@
 #include <86box/sound.h>
 #include <86box/snd_sn76489.h>
 #include <86box/vid_pcjx.h>
+
+#include "cpu.h"
 
 #define PCJX_BASE_ROM_PATH     "roms/machines/ibmpcjx/BASE.ROM"
 #include <86box/serial.h>
@@ -68,6 +74,7 @@ typedef struct pcjx_s {
     mem_mapping_t      font_mapping;
     pcjx_video_t       video;
     uint8_t           *font_rom;
+    void              *log;
     uint8_t            status_base1_rom;
     uint8_t            status_base2_rom;
     uint8_t            status_ex_video;
@@ -76,6 +83,44 @@ typedef struct pcjx_s {
     time_t             rtc_time;
     time_t             rtc_host_time;
 } pcjx_t;
+
+#ifdef ENABLE_PCJX_LOG
+uint8_t pcjx_do_log = ENABLE_PCJX_LOG;
+
+static void
+pcjx_log(void *priv, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (pcjx_do_log) {
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define pcjx_log(priv, fmt, ...)
+#endif
+
+static void
+pcjx_log_mapping(const pcjx_t *pcjx, const char *name, uint32_t base,
+                 uint32_t size, uint8_t can_read, uint8_t can_write)
+{
+    if (pcjx == NULL)
+        return;
+
+    if (size == 0) {
+        pcjx_log(pcjx->log,
+                 "[%04X:%08X] %s disabled read=%u write=%u\n",
+                 CS, cpu_state.pc, name, can_read, can_write);
+        return;
+    }
+
+    pcjx_log(pcjx->log,
+             "[%04X:%08X] %s base=%05X size=%05X read=%u write=%u\n",
+             CS, cpu_state.pc, name, (unsigned int) base,
+             (unsigned int) size, can_read, can_write);
+}
 
 static const pcjx_block_config_t pcjx_block_configs[PCJX_MAPPER_BLOCKS] = {
     [0x00] = { 0203, 0003, 0074, 0040, 00, 00, 0 },
@@ -255,6 +300,9 @@ pcjx_mapper_in(uint16_t port, void *priv)
         status ^= 0x40;
     if (pcjx->status_ex_video)
         status ^= 0x80;
+
+    pcjx_log(pcjx->log, "[%04X:%08X] [R] %04X = %02X (mapper status)\n",
+             CS, cpu_state.pc, port, status);
 
     return status;
 }
@@ -665,6 +713,14 @@ pcjx_sync_video_io(pcjx_t *pcjx)
     pcjx_apply_fdc_io_gate(pcjx, fdc_io_enabled);
     pcjx_apply_serial_io_gate(serial_port, serial_irq_line);
     pcjx_apply_parallel_io_gate(lpt_port, lpt_irq);
+
+    pcjx_log(pcjx->log,
+             "[%04X:%08X] io gate=%02X ctrl=%02X pic=%u pit=%u ppi=%u a0=%u sound=%u joy_r=%u joy_w=%u fdc=%u serial=%04X irq=%u lpt=%04X irq=%u\n",
+             CS, cpu_state.pc, gate_io_mask, control_io_mask,
+             pic_io_enabled, pit_io_enabled, ppi_io_enabled, a0_io_enabled,
+             sound_io_enabled, joystick_read_enabled, joystick_write_enabled,
+             fdc_io_enabled, (unsigned int) serial_port, serial_irq_line,
+             (unsigned int) lpt_port, lpt_irq);
 }
 
 static void
@@ -700,17 +756,22 @@ pcjx_apply_system_rom(const pcjx_t *pcjx)
     pcjx_clear_range(bios_mapping.base, bios_mapping.size);
     mem_mapping_disable(&bios_mapping);
 
-    if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write))
+    if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write)) {
+        pcjx_log_mapping(pcjx, "system ROM", 0, 0, 0, 0);
         return;
+    }
 
-    if (!can_read)
+    if (!can_read) {
+        pcjx_log_mapping(pcjx, "system ROM", base, size, can_read, can_write);
         return;
+    }
 
     mem_mapping_set_addr(&bios_mapping, base, size);
     mem_mapping_enable(&bios_mapping);
     mem_set_mem_state_both(base, size,
                            MEM_READ_ROMCS |
                                (can_write ? MEM_WRITE_ROMCS : MEM_WRITE_DISABLED));
+    pcjx_log_mapping(pcjx, "system ROM", base, size, can_read, can_write);
 }
 
 static void
@@ -725,11 +786,15 @@ pcjx_apply_font_window(pcjx_t *pcjx)
     pcjx_clear_range(pcjx->font_mapping.base, pcjx->font_mapping.size);
     mem_mapping_disable(&pcjx->font_mapping);
 
-    if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write))
+    if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write)) {
+        pcjx_log_mapping(pcjx, "font window", 0, 0, 0, 0);
         return;
+    }
 
-    if (!can_read)
+    if (!can_read) {
+        pcjx_log_mapping(pcjx, "font window", base, size, can_read, can_write);
         return;
+    }
 
     if (size > PCJX_FONT_ROM_SIZE)
         size = PCJX_FONT_ROM_SIZE;
@@ -739,6 +804,7 @@ pcjx_apply_font_window(pcjx_t *pcjx)
     mem_set_mem_state_both(base, size,
                            MEM_READ_ROMCS |
                                (can_write ? MEM_WRITE_ROMCS : MEM_WRITE_DISABLED));
+    pcjx_log_mapping(pcjx, "font window", base, size, can_read, can_write);
 }
 
 static void
@@ -755,20 +821,27 @@ pcjx_apply_main_ram(pcjx_t *pcjx)
     pcjx_clear_range(pcjx->exmem_mapping.base, pcjx->exmem_mapping.size);
     mem_mapping_disable(&pcjx->exmem_mapping);
 
-    if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write))
+    if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write)) {
+        pcjx_log_mapping(pcjx, "main RAM", 0, 0, 0, 0);
         return;
+    }
 
-    if ((base != 0) || !can_read || !can_write)
+    if ((base != 0) || !can_read || !can_write) {
+        pcjx_log_mapping(pcjx, "main RAM", base, size, can_read, can_write);
         return;
+    }
 
     if (size > configured_ram)
         size = configured_ram;
-    if (size == 0)
+    if (size == 0) {
+        pcjx_log_mapping(pcjx, "main RAM", base, size, can_read, can_write);
         return;
+    }
 
     mem_mapping_set_addr(&ram_low_mapping, 0, size);
     mem_mapping_set_exec(&ram_low_mapping, ram);
     mem_set_mem_state_both(0, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    pcjx_log_mapping(pcjx, "main RAM", 0, size, can_read, can_write);
 
     if (configured_ram > size) {
         uint32_t extra_size = configured_ram - size;
@@ -778,6 +851,8 @@ pcjx_apply_main_ram(pcjx_t *pcjx)
         mem_mapping_enable(&pcjx->exmem_mapping);
         mem_set_mem_state_both(size, extra_size,
                                MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+        pcjx_log_mapping(pcjx, "extended RAM", size, extra_size,
+                         can_read, can_write);
     }
 }
 
@@ -800,6 +875,7 @@ pcjx_apply_video_window(pcjx_t *pcjx)
         base = size = 0;
 
     pcjx_video_apply_first_window(&pcjx->video, base, size, can_read, can_write);
+    pcjx_log_mapping(pcjx, "video window 1", base, size, can_read, can_write);
 }
 
 static void
@@ -813,10 +889,12 @@ pcjx_apply_video_window_2(pcjx_t *pcjx)
 
     if (!pcjx_decode_block_range(block, &base, &size, &can_read, &can_write)) {
         pcjx_video_apply_second_window(&pcjx->video, 0, 0, 0, 0);
+        pcjx_log_mapping(pcjx, "video window 2", 0, 0, 0, 0);
         return;
     }
 
     pcjx_video_apply_second_window(&pcjx->video, base, size, can_read, can_write);
+    pcjx_log_mapping(pcjx, "video window 2", base, size, can_read, can_write);
 }
 
 static void
@@ -878,6 +956,10 @@ pcjx_store_mapper_reg1(pcjx_t *pcjx, uint8_t value)
 
     config = &pcjx_block_configs[pcjx->mapper_index];
     pcjx->blocks[pcjx->mapper_index].reg1 = (uint8_t) ((value & config->andreg1) | config->orreg1);
+    pcjx_log(pcjx->log,
+             "[%04X:%08X] mapper[%02X].reg1 raw=%02X stored=%02X\n",
+             CS, cpu_state.pc, pcjx->mapper_index, value,
+             pcjx->blocks[pcjx->mapper_index].reg1);
 }
 
 static void
@@ -890,6 +972,10 @@ pcjx_store_mapper_reg2(pcjx_t *pcjx, uint8_t value)
 
     config = &pcjx_block_configs[pcjx->mapper_index];
     pcjx->blocks[pcjx->mapper_index].reg2 = (uint8_t) ((value & config->andreg2) | config->orreg2);
+    pcjx_log(pcjx->log,
+             "[%04X:%08X] mapper[%02X].reg2 raw=%02X stored=%02X\n",
+             CS, cpu_state.pc, pcjx->mapper_index, value,
+             pcjx->blocks[pcjx->mapper_index].reg2);
     pcjx_apply_block(pcjx, pcjx->mapper_index);
 }
 
@@ -903,6 +989,9 @@ pcjx_mapper_out(uint16_t port, uint8_t value, void *priv)
 
     switch (pcjx->mapper_phase) {
         case 0:
+            pcjx_log(pcjx->log,
+                     "[%04X:%08X] [W] %04X = %02X (mapper index)\n",
+                     CS, cpu_state.pc, port, value);
             pcjx->mapper_index = value;
             pcjx->mapper_phase = 1;
             break;
@@ -924,11 +1013,15 @@ pcjx_rtc_in(uint16_t port, void *priv)
 {
     const pcjx_t *pcjx   = (const pcjx_t *) priv;
     uint8_t offset = (uint8_t) (port - PCJX_RTC_BASE_PORT);
+    uint8_t value = 0;
 
     if (offset < 0x0d)
-        return pcjx->rtc_latch[offset];
+        value = pcjx->rtc_latch[offset];
 
-    return 0;
+    pcjx_log(pcjx->log, "[%04X:%08X] [R] %04X = %02X (rtc[%02X])\n",
+             CS, cpu_state.pc, port, value, offset);
+
+    return value;
 }
 
 static void
@@ -936,6 +1029,9 @@ pcjx_rtc_out(uint16_t port, uint8_t value, void *priv)
 {
     pcjx_t  *pcjx   = (pcjx_t *) priv;
     uint8_t offset = (uint8_t) (port - PCJX_RTC_BASE_PORT);
+
+    pcjx_log(pcjx->log, "[%04X:%08X] [W] %04X = %02X (rtc[%02X])\n",
+             CS, cpu_state.pc, port, value, offset);
 
     if (offset < 0x0d) {
         pcjx->rtc_latch[offset] = value;
@@ -967,18 +1063,26 @@ pcjx_extension_init(UNUSED(const device_t *info))
     if (pcjx == NULL)
         return NULL;
 
+#ifdef ENABLE_PCJX_LOG
+    pcjx->log = log_open("PCjx");
+#endif
+
     pcjx->pcjr           = (pcjr_t *) device_get_priv(&pcjx_device);
     pcjx->status_ex_video = 1;
     pcjx->rtc_time       = time(NULL);
     pcjx->rtc_host_time  = pcjx->rtc_time;
 
     if (pcjx->pcjr == NULL) {
+        if (pcjx->log)
+            log_close(pcjx->log);
         free(pcjx);
         return NULL;
     }
 
     pcjx->font_rom = calloc(1, PCJX_FONT_ROM_SIZE);
     if (pcjx->font_rom == NULL) {
+        if (pcjx->log)
+            log_close(pcjx->log);
         free(pcjx);
         return NULL;
     }
@@ -986,6 +1090,8 @@ pcjx_extension_init(UNUSED(const device_t *info))
     if (!rom_load_linear(PCJX_FONT_ROM_PATH, 0, PCJX_FONT_ROM_SIZE, 0,
                          pcjx->font_rom)) {
         free(pcjx->font_rom);
+        if (pcjx->log)
+            log_close(pcjx->log);
         free(pcjx);
         return NULL;
     }
@@ -1010,6 +1116,9 @@ pcjx_extension_init(UNUSED(const device_t *info))
     if (pcjx->pcjr != NULL)
         pcjx->pcjr->pcjx_video = &pcjx->video;
 
+    pcjx_log(pcjx->log, "Init program_size=%05X font_size=%05X\n",
+             (unsigned int) program_size, (unsigned int) PCJX_FONT_ROM_SIZE);
+
     io_sethandler(PCJX_MAPPER_PORT, 1,
                   pcjx_mapper_in, NULL, NULL,
                   pcjx_mapper_out, NULL, NULL,
@@ -1027,7 +1136,12 @@ pcjx_extension_close(void *priv)
 {
     pcjx_t *pcjx = (pcjx_t *) priv;
 
-    if ((pcjx != NULL) && (pcjx->pcjr != NULL) && (pcjx->pcjr->pcjx_video == &pcjx->video))
+    if (pcjx == NULL)
+        return;
+
+    pcjx_log(pcjx->log, "Close\n");
+
+    if ((pcjx->pcjr != NULL) && (pcjx->pcjr->pcjx_video == &pcjx->video))
         pcjx->pcjr->pcjx_video = NULL;
 
     pcjx_video_close(&pcjx->video);
@@ -1044,6 +1158,8 @@ pcjx_extension_close(void *priv)
                      pcjx_rtc_out, NULL, NULL,
                      pcjx);
     free(pcjx->font_rom);
+    if (pcjx->log)
+        log_close(pcjx->log);
     free(pcjx);
 }
 
