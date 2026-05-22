@@ -100,6 +100,9 @@ typedef struct pcjx_video_s {
     uint16_t      display_restart_logged_latched;
     uint16_t      display_restart_logged_applied_latched;
     uint16_t      display_restart_logged_applied_live;
+    uint16_t      gate_status_log_cs;
+    uint32_t      gate_status_log_pc;
+    uint32_t      gate_status_log_mask;
     const uint8_t *font_rom;
     void          *log;
     pcjx_video_host_state_t host;

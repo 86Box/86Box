@@ -84,6 +84,32 @@ pcjx_video_log_window(const pcjx_video_t *video, const char *name,
                    (unsigned int) size, can_read, can_write);
 }
 
+static uint8_t
+pcjx_video_should_log_gate_status(pcjx_video_t *video, uint8_t status)
+{
+    uint32_t status_bit;
+
+    if (video == NULL)
+        return 0;
+
+    if ((video->gate_status_log_cs != CS) ||
+        (video->gate_status_log_pc != cpu_state.pc)) {
+        video->gate_status_log_cs   = CS;
+        video->gate_status_log_pc   = cpu_state.pc;
+        video->gate_status_log_mask = 0;
+    }
+
+    if (status >= 32)
+        return 1;
+
+    status_bit = 1u << status;
+    if (video->gate_status_log_mask & status_bit)
+        return 0;
+
+    video->gate_status_log_mask |= status_bit;
+    return 1;
+}
+
 static int16_t
 pcjx_video_converter_hstart(const pcjx_video_t *video)
 {
@@ -2523,9 +2549,11 @@ pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val)
 
         (void) pcjx_video_gate_status_viewport(gate_mask);
         *val = pcjx_video_gate_array_status(video);
-        pcjx_video_log(video->log,
-                       "[%04X:%08X] [R] %04X = %02X (gate status)\n",
-                       CS, cpu_state.pc, addr, *val);
+        if (pcjx_video_should_log_gate_status(video, *val)) {
+            pcjx_video_log(video->log,
+                           "[%04X:%08X] [R] %04X = %02X (gate status)\n",
+                           CS, cpu_state.pc, addr, *val);
+        }
         return 1;
     }
 

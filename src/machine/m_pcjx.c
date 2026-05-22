@@ -71,6 +71,7 @@ typedef struct pcjx_s {
     pcjr_t            *pcjr;
     uint8_t            mapper_index;
     uint8_t            mapper_phase;
+    uint8_t            mapper_status_log_valid;
     pcjx_block_state_t blocks[PCJX_MAPPER_BLOCKS];
     mem_mapping_t      exmem_mapping;
     mem_mapping_t      font_mapping;
@@ -80,6 +81,9 @@ typedef struct pcjx_s {
     uint8_t            status_base1_rom;
     uint8_t            status_base2_rom;
     uint8_t            status_ex_video;
+    uint8_t            mapper_status_log_value;
+    uint16_t           mapper_status_log_cs;
+    uint32_t           mapper_status_log_pc;
     uint8_t            rtc_latch[0x0d];
     uint8_t            rtc_write_mode;
     time_t             rtc_time;
@@ -122,6 +126,26 @@ pcjx_log_mapping(const pcjx_t *pcjx, const char *name, uint32_t base,
              "[%04X:%08X] %s base=%05X size=%05X read=%u write=%u\n",
              CS, cpu_state.pc, name, (unsigned int) base,
              (unsigned int) size, can_read, can_write);
+}
+
+static uint8_t
+pcjx_should_log_mapper_status(pcjx_t *pcjx, uint8_t status)
+{
+    if (pcjx == NULL)
+        return 0;
+
+    if (!pcjx->mapper_status_log_valid ||
+        (pcjx->mapper_status_log_cs != CS) ||
+        (pcjx->mapper_status_log_pc != cpu_state.pc) ||
+        (pcjx->mapper_status_log_value != status)) {
+        pcjx->mapper_status_log_valid = 1;
+        pcjx->mapper_status_log_cs    = CS;
+        pcjx->mapper_status_log_pc    = cpu_state.pc;
+        pcjx->mapper_status_log_value = status;
+        return 1;
+    }
+
+    return 0;
 }
 
 static const pcjx_block_config_t pcjx_block_configs[PCJX_MAPPER_BLOCKS] = {
@@ -303,8 +327,10 @@ pcjx_mapper_in(uint16_t port, void *priv)
     if (pcjx->status_ex_video)
         status ^= 0x80;
 
-    pcjx_log(pcjx->log, "[%04X:%08X] [R] %04X = %02X (mapper status)\n",
-             CS, cpu_state.pc, port, status);
+    if (pcjx_should_log_mapper_status(pcjx, status)) {
+        pcjx_log(pcjx->log, "[%04X:%08X] [R] %04X = %02X (mapper status)\n",
+                 CS, cpu_state.pc, port, status);
+    }
 
     return status;
 }
