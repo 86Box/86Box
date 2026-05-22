@@ -120,12 +120,6 @@ pcjx_video_converter_vsync_start(const pcjx_video_t *video)
     return pcjx_video_is_extended_active(video) ? 500 : 200;
 }
 
-static int16_t
-pcjx_video_converter_vsync_end(const pcjx_video_t *video)
-{
-    return pcjx_video_is_extended_active(video) ? 700 : 300;
-}
-
 static void
 pcjx_video_reset_converter_position(pcjx_video_t *video)
 {
@@ -203,11 +197,12 @@ pcjx_video_notify_display_restart(pcjx_video_t *video)
         return;
 
     video->display_restart_pending = 1;
+    video->display_restart_memaddr = video->host.memaddr;
     video->raster.first_visible_valid = 0;
     video->raster.restart_pending     = 1;
     pcjx_video_log(video->log,
                    "Display restart latched memaddr=%04X conv=(%d,%d)\n",
-                   video->host.memaddr, video->raster.conv_x,
+                   video->display_restart_memaddr, video->raster.conv_x,
                    video->raster.conv_y);
 }
 
@@ -220,8 +215,8 @@ pcjx_video_apply_pending_display_restart(pcjx_video_t *video)
     pcjx_video_reset_extended_graphics_state(video);
     video->display_restart_pending = 0;
     pcjx_video_log(video->log,
-                   "Display restart applied memaddr=%04X\n",
-                   video->host.memaddr);
+                   "Display restart applied latched=%04X live=%04X\n",
+                   video->display_restart_memaddr, video->host.memaddr);
 }
 
 static uint8_t
@@ -712,7 +707,6 @@ pcjx_video_complete_scanline(pcjx_video_t *video)
     int16_t hsync_start;
     int16_t hsync_end;
     int16_t vsync_start;
-    int16_t vsync_end;
 
     if (video == NULL)
         return;
@@ -720,7 +714,6 @@ pcjx_video_complete_scanline(pcjx_video_t *video)
     hsync_start = pcjx_video_converter_hsync_start(video);
     hsync_end   = pcjx_video_converter_hsync_end(video);
     vsync_start = pcjx_video_converter_vsync_start(video);
-    vsync_end   = pcjx_video_converter_vsync_end(video);
 
     if (video->raster.conv_x < hsync_start)
         video->raster.conv_x = hsync_start;
@@ -737,8 +730,6 @@ pcjx_video_complete_scanline(pcjx_video_t *video)
     else
         video->raster.vsync_count = 0;
 
-    if (video->raster.conv_y >= vsync_end)
-        video->raster.restart_pending = 1;
 }
 
 static void
