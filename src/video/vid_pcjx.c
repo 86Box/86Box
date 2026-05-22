@@ -38,6 +38,63 @@ static uint8_t pcjx_video_columns(const pcjx_video_t *video);
 static uint16_t pcjx_video_cursoraddr(const pcjx_video_t *video);
 static void pcjx_video_waitstates(void);
 
+static int16_t
+pcjx_video_converter_hstart(const pcjx_video_t *video)
+{
+    return pcjx_video_is_extended_active(video) ? 0 : -0x30;
+}
+
+static int16_t
+pcjx_video_converter_vstart(const pcjx_video_t *video)
+{
+    (void) video;
+
+    return -1;
+}
+
+static int16_t
+pcjx_video_converter_hsync_start(const pcjx_video_t *video)
+{
+    (void) video;
+
+    return 600;
+}
+
+static int16_t
+pcjx_video_converter_hsync_end(const pcjx_video_t *video)
+{
+    (void) video;
+
+    return 1000;
+}
+
+static int16_t
+pcjx_video_converter_vsync_start(const pcjx_video_t *video)
+{
+    return pcjx_video_is_extended_active(video) ? 500 : 200;
+}
+
+static int16_t
+pcjx_video_converter_vsync_end(const pcjx_video_t *video)
+{
+    return pcjx_video_is_extended_active(video) ? 700 : 300;
+}
+
+static void
+pcjx_video_reset_converter_position(pcjx_video_t *video)
+{
+    if (video == NULL)
+        return;
+
+    video->raster.conv_x               = pcjx_video_converter_hstart(video);
+    video->raster.conv_y               = pcjx_video_converter_vstart(video);
+    video->raster.conv_line_start_x    = video->raster.conv_x;
+    video->raster.conv_line_start_y    = video->raster.conv_y;
+    video->raster.first_visible_conv_x = video->raster.conv_x;
+    video->raster.first_visible_conv_y = video->raster.conv_y;
+    video->raster.vsync_count          = 0;
+}
+
 static void
 pcjx_video_reset_raster_state(pcjx_video_t *video)
 {
@@ -50,6 +107,7 @@ pcjx_video_reset_raster_state(pcjx_video_t *video)
     video->raster.line_start_y        = 0;
     video->raster.first_visible_x     = 0;
     video->raster.first_visible_y     = 0;
+    pcjx_video_reset_converter_position(video);
     video->raster.first_visible_valid = 0;
     video->raster.restart_pending     = 1;
 }
@@ -503,10 +561,12 @@ pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
     if (video == NULL)
         return;
 
-    video->raster.line_start_x = raw_draw_x;
-    video->raster.line_start_y = raw_draw_y;
-    video->raster.draw_x = raw_draw_x;
-    video->raster.draw_y = raw_draw_y;
+    video->raster.conv_line_start_x = video->raster.conv_x;
+    video->raster.conv_line_start_y = video->raster.conv_y;
+    video->raster.line_start_x      = raw_draw_x;
+    video->raster.line_start_y      = raw_draw_y;
+    video->raster.draw_x            = raw_draw_x;
+    video->raster.draw_y            = raw_draw_y;
 
     if (!visible)
         return;
@@ -514,11 +574,24 @@ pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
     if (!video->raster.first_visible_valid) {
         video->raster.first_visible_x     = raw_draw_x;
         video->raster.first_visible_y     = raw_draw_y;
+        video->raster.first_visible_conv_x = video->raster.conv_line_start_x;
+        video->raster.first_visible_conv_y = video->raster.conv_line_start_y;
         video->raster.first_visible_valid = 1;
     }
 
+    video->raster.line_start_x = (int16_t) (video->raster.first_visible_x +
+                                            (video->raster.conv_line_start_x -
+                                             video->raster.first_visible_conv_x));
+    video->raster.line_start_y = (int16_t) (video->raster.first_visible_y +
+                                            (video->raster.conv_line_start_y -
+                                             video->raster.first_visible_conv_y));
+    video->raster.draw_x       = video->raster.line_start_x;
+    video->raster.draw_y       = video->raster.line_start_y;
+
     if (video->raster.restart_pending) {
-        pcjx_video_correct_display_position(video, raw_draw_x, raw_draw_y);
+        pcjx_video_correct_display_position(video,
+                                           video->raster.line_start_x,
+                                           video->raster.line_start_y);
         video->raster.restart_pending = 0;
     }
 }
@@ -531,6 +604,8 @@ pcjx_video_begin_visible_raster(pcjx_video_t *video)
 
     video->raster.draw_x = video->raster.line_start_x;
     video->raster.draw_y = video->raster.line_start_y;
+    video->raster.conv_x = video->raster.conv_line_start_x;
+    video->raster.conv_y = video->raster.conv_line_start_y;
 }
 
 static void
@@ -540,6 +615,7 @@ pcjx_video_advance_raster_cell(pcjx_video_t *video, uint8_t cell_width)
         return;
 
     video->raster.draw_x = (int16_t) (video->raster.draw_x + cell_width);
+    video->raster.conv_x = (int16_t) (video->raster.conv_x + cell_width);
 }
 
 static void
@@ -557,6 +633,42 @@ pcjx_video_advance_raster_span(pcjx_video_t *video, uint8_t cells,
 
     span = (uint16_t) (cells * cell_width);
     video->raster.draw_x = (int16_t) (video->raster.draw_x + span);
+    video->raster.conv_x = (int16_t) (video->raster.conv_x + span);
+}
+
+static void
+pcjx_video_complete_scanline(pcjx_video_t *video)
+{
+    int16_t hsync_start;
+    int16_t hsync_end;
+    int16_t vsync_start;
+    int16_t vsync_end;
+
+    if (video == NULL)
+        return;
+
+    hsync_start = pcjx_video_converter_hsync_start(video);
+    hsync_end   = pcjx_video_converter_hsync_end(video);
+    vsync_start = pcjx_video_converter_vsync_start(video);
+    vsync_end   = pcjx_video_converter_vsync_end(video);
+
+    if (video->raster.conv_x < hsync_start)
+        video->raster.conv_x = hsync_start;
+    if (video->raster.conv_x < hsync_end)
+        video->raster.conv_x = hsync_end;
+
+    if (video->raster.conv_x >= hsync_end) {
+        video->raster.conv_x = pcjx_video_converter_hstart(video);
+        video->raster.conv_y++;
+    }
+
+    if (video->raster.conv_y >= vsync_start)
+        video->raster.vsync_count++;
+    else
+        video->raster.vsync_count = 0;
+
+    if (video->raster.conv_y >= vsync_end)
+        video->raster.restart_pending = 1;
 }
 
 static void
@@ -571,25 +683,29 @@ pcjx_video_get_render_position(const pcjx_video_t *video,
     if (render_y != NULL)
         *render_y = raw_draw_y;
 
-    if ((video == NULL) || !video->display.initialized)
+    if (video == NULL)
+        return;
+
+    if (render_x != NULL)
+        *render_x = video->raster.line_start_x;
+    if (render_y != NULL)
+        *render_y = video->raster.line_start_y;
+
+    if (!video->display.initialized || !video->raster.first_visible_valid)
         return;
 
     if (render_x != NULL) {
-        if (video->raster.first_visible_valid)
-            *render_x = (int16_t) (video->display.start_x +
-                                   (raw_draw_x - video->raster.first_visible_x));
-        else
-            *render_x = video->display.start_x;
+        *render_x = (int16_t) (video->display.start_x +
+                               (video->raster.conv_line_start_x -
+                                video->raster.first_visible_conv_x));
     }
 
     if (render_y == NULL)
         return;
 
-    if (video->raster.first_visible_valid)
-        *render_y = (int16_t) (video->display.start_y +
-                               (raw_draw_y - video->raster.first_visible_y));
-    else
-        *render_y = video->display.start_y;
+    *render_y = (int16_t) (video->display.start_y +
+                           (video->raster.conv_line_start_y -
+                            video->raster.first_visible_conv_y));
 }
 
 uint8_t
@@ -3020,19 +3136,19 @@ vid_poll(void *priv)
         scanline_old  = pcjr->scanline;
         if (!extended_render_active && ((pcjr->crtc[8] & 3) == 3))
             pcjr->scanline = (pcjr->scanline << 1) & 7;
+        if (video != NULL)
+            pcjx_video_begin_scanline(video, raw_render_ho_d,
+                                      raw_render_l, (uint8_t) pcjr->dispon);
         if (pcjr->dispon) {
             if (pcjr->displine < pcjr->firstline) {
                 pcjr->firstline = pcjr->displine;
                 video_wait_for_buffer();
             }
 
-            if (video != NULL) {
-                pcjx_video_begin_scanline(video, raw_render_ho_d,
-                                          raw_render_l, 1);
+            if (video != NULL)
                 pcjx_video_get_render_position(video, raw_render_ho_d,
                                                raw_render_l, &render_ho_d,
                                                &render_l);
-            }
             pcjr->lastline = pcjr->displine;
             switch (pcjr->double_type) {
                 default:
@@ -3071,6 +3187,9 @@ vid_poll(void *priv)
                 vid_render_process(pcjr, render_l, ho_s);
                 break;
         }
+
+        if (video != NULL)
+            pcjx_video_complete_scanline(video);
 
         pcjr->scanline = scanline_old;
         if (pcjr->vc == pcjr->crtc[7] && !pcjr->scanline)

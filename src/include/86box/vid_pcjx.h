@@ -73,6 +73,13 @@ typedef struct pcjx_video_raster_state_s {
     int16_t line_start_y;
     int16_t first_visible_x;
     int16_t first_visible_y;
+    int16_t conv_x;
+    int16_t conv_y;
+    int16_t conv_line_start_x;
+    int16_t conv_line_start_y;
+    int16_t first_visible_conv_x;
+    int16_t first_visible_conv_y;
+    uint16_t vsync_count;
     uint8_t first_visible_valid;
     uint8_t restart_pending;
 } pcjx_video_raster_state_t;
