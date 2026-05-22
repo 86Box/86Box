@@ -94,6 +94,7 @@ typedef struct pcjx_video_s {
     uint8_t       control_io_mask;
     uint8_t       timings_dirty;
     uint8_t       change_requested;
+    uint8_t       display_restart_pending;
     const uint8_t *font_rom;
     pcjx_video_host_state_t host;
     pcjx_gate_array_t gate;

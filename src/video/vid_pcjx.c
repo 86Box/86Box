@@ -150,8 +150,21 @@ pcjx_video_reset_extended_graphics_state(pcjx_video_t *video)
 void
 pcjx_video_notify_display_restart(pcjx_video_t *video)
 {
-    pcjx_video_reset_extended_graphics_state(video);
+    if (video == NULL)
+        return;
+
+    video->display_restart_pending = 1;
     pcjx_video_reset_raster_state(video);
+}
+
+static void
+pcjx_video_apply_pending_display_restart(pcjx_video_t *video)
+{
+    if ((video == NULL) || !video->display_restart_pending)
+        return;
+
+    pcjx_video_reset_extended_graphics_state(video);
+    video->display_restart_pending = 0;
 }
 
 static uint8_t
@@ -1516,6 +1529,8 @@ pcjx_video_begin_non_extended_display(pcjx_video_t *video,
     if (video == NULL)
         return;
 
+    pcjx_video_apply_pending_display_restart(video);
+
     for (uint8_t viewport = 0; viewport < 2; viewport++) {
         if (video->graphics.valid[viewport])
             continue;
@@ -1820,6 +1835,8 @@ pcjx_video_begin_extended_display(pcjx_video_t *video, uint16_t start_memaddr)
 {
     if (video == NULL)
         return;
+
+    pcjx_video_apply_pending_display_restart(video);
 
     if (!video->ex_text.valid && !video->ex_graphics_valid)
         video->ex_text.framecount++;
