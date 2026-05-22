@@ -200,10 +200,15 @@ pcjx_video_notify_display_restart(pcjx_video_t *video)
     video->display_restart_memaddr = video->host.memaddr;
     video->raster.first_visible_valid = 0;
     video->raster.restart_pending     = 1;
-    pcjx_video_log(video->log,
-                   "Display restart latched memaddr=%04X conv=(%d,%d)\n",
-                   video->display_restart_memaddr, video->raster.conv_x,
-                   video->raster.conv_y);
+    if (!(video->display_restart_log_state & 0x01) ||
+        (video->display_restart_logged_latched != video->display_restart_memaddr)) {
+        video->display_restart_logged_latched = video->display_restart_memaddr;
+        video->display_restart_log_state |= 0x01;
+        pcjx_video_log(video->log,
+                       "Display restart latched memaddr=%04X conv=(%d,%d)\n",
+                       video->display_restart_memaddr, video->raster.conv_x,
+                       video->raster.conv_y);
+    }
 }
 
 static void
@@ -214,9 +219,16 @@ pcjx_video_apply_pending_display_restart(pcjx_video_t *video)
 
     pcjx_video_reset_extended_graphics_state(video);
     video->display_restart_pending = 0;
-    pcjx_video_log(video->log,
-                   "Display restart applied latched=%04X live=%04X\n",
-                   video->display_restart_memaddr, video->host.memaddr);
+    if (!(video->display_restart_log_state & 0x02) ||
+        (video->display_restart_logged_applied_latched != video->display_restart_memaddr) ||
+        (video->display_restart_logged_applied_live != video->host.memaddr)) {
+        video->display_restart_logged_applied_latched = video->display_restart_memaddr;
+        video->display_restart_logged_applied_live    = video->host.memaddr;
+        video->display_restart_log_state |= 0x02;
+        pcjx_video_log(video->log,
+                       "Display restart applied latched=%04X live=%04X\n",
+                       video->display_restart_memaddr, video->host.memaddr);
+    }
 }
 
 static uint8_t
