@@ -58,10 +58,10 @@ typedef struct pcjx_extended_text_state_s {
 } pcjx_extended_text_state_t;
 
 typedef struct pcjx_display_position_s {
-    int      start_x;
-    int      start_y;
-    int      pending_x;
-    int      pending_y;
+    int16_t  start_x;
+    int16_t  start_y;
+    int16_t  pending_x;
+    int16_t  pending_y;
     uint8_t  pending_count;
     uint8_t  initialized;
 } pcjx_display_position_t;

@@ -418,8 +418,8 @@ static void
 pcjx_video_correct_display_position(pcjx_video_t *video, int new_start_x,
                                     int new_start_y)
 {
-    int dx;
-    int dy;
+    uint16_t dx;
+    uint16_t dy;
 
     if (video == NULL)
         return;
@@ -487,11 +487,11 @@ pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
                                    int *blit_y, int *frame_width,
                                    int *frame_height)
 {
-    int render_y_bias;
-    int raw_blit_y;
-    int stable_x;
-    int stable_y;
-    int extended_active;
+    int16_t render_y_bias;
+    int16_t raw_blit_y;
+    int     stable_x;
+    int     stable_y;
+    uint8_t extended_active;
 
     if (video == NULL)
         return 0;
