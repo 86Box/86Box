@@ -1071,14 +1071,6 @@ pcjx_video_b800_write(pcjx_video_t *video, uint32_t addr, uint8_t val)
         return;
 
     offset = addr & 0x3fff;
-    if (pcjx_video_renderer_uses_secondary(video)) {
-        uint32_t vram2_offset = (pcjx_video_secondary_crt_base(video) + offset) & 0xffff;
-
-        video->vram2[vram2_offset] = val;
-        pcjx_video_mark_changed(video);
-        return;
-    }
-
     if (video->program_size == 0)
         return;
 
@@ -1094,9 +1086,6 @@ pcjx_video_b800_read(const pcjx_video_t *video, uint32_t addr)
         return 0xff;
 
     offset = addr & 0x3fff;
-    if (pcjx_video_renderer_uses_secondary(video))
-        return video->vram2[(pcjx_video_secondary_crt_base(video) + offset) & 0xffff];
-
     if (video->program_size == 0)
         return 0xff;
 
