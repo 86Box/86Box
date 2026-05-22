@@ -69,6 +69,9 @@ typedef struct pcjx_display_position_s {
 typedef struct pcjx_video_raster_state_s {
     int16_t draw_x;
     int16_t draw_y;
+    int16_t line_start_x;
+    int16_t line_start_y;
+    int16_t first_visible_x;
     int16_t first_visible_y;
     uint8_t first_visible_valid;
     uint8_t restart_pending;
@@ -105,13 +108,6 @@ void pcjx_video_reset_extended_graphics_state(pcjx_video_t *video);
 void pcjx_video_notify_display_restart(pcjx_video_t *video);
 void pcjx_video_init(pcjx_video_t *video, uint32_t program_size);
 void pcjx_video_close(pcjx_video_t *video);
-void pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
-                               int16_t raw_draw_y, uint8_t visible);
-void pcjx_video_get_render_position(const pcjx_video_t *video,
-                                    int16_t raw_draw_x,
-                                    int16_t raw_draw_y,
-                                    int16_t *render_x,
-                                    int16_t *render_y);
 void pcjx_video_set_host_state(pcjx_video_t *video,
                                const pcjx_video_host_state_t *state);
 void pcjx_video_get_host_state(const pcjx_video_t *video,

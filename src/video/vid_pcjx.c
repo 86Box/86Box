@@ -6,16 +6,23 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          IBM PCjx video-side helpers.
+ *          IBM PCjx video.
  */
 #include <stdint.h>
 #include <string.h>
 
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
 #include <86box/timer.h>
-#include <86box/video.h>
 #include <86box/mem.h>
+#include <86box/pic.h>
+#include <86box/pit.h>
+#include <86box/video.h>
+#include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
 #include <86box/vid_pcjx.h>
+#include <86box/m_pcjr.h>
 
 #include "cpu.h"
 
@@ -39,6 +46,9 @@ pcjx_video_reset_raster_state(pcjx_video_t *video)
 
     video->raster.draw_x              = 0;
     video->raster.draw_y              = 0;
+    video->raster.line_start_x        = 0;
+    video->raster.line_start_y        = 0;
+    video->raster.first_visible_x     = 0;
     video->raster.first_visible_y     = 0;
     video->raster.first_visible_valid = 0;
     video->raster.restart_pending     = 1;
@@ -486,13 +496,15 @@ pcjx_video_correct_display_position(pcjx_video_t *video, int16_t new_start_x,
         video->display.pending_count = 2;
 }
 
-void
+static void
 pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
                           int16_t raw_draw_y, uint8_t visible)
 {
     if (video == NULL)
         return;
 
+    video->raster.line_start_x = raw_draw_x;
+    video->raster.line_start_y = raw_draw_y;
     video->raster.draw_x = raw_draw_x;
     video->raster.draw_y = raw_draw_y;
 
@@ -500,6 +512,7 @@ pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
         return;
 
     if (!video->raster.first_visible_valid) {
+        video->raster.first_visible_x     = raw_draw_x;
         video->raster.first_visible_y     = raw_draw_y;
         video->raster.first_visible_valid = 1;
     }
@@ -510,7 +523,43 @@ pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
     }
 }
 
-void
+static void
+pcjx_video_begin_visible_raster(pcjx_video_t *video)
+{
+    if (video == NULL)
+        return;
+
+    video->raster.draw_x = video->raster.line_start_x;
+    video->raster.draw_y = video->raster.line_start_y;
+}
+
+static void
+pcjx_video_advance_raster_cell(pcjx_video_t *video, uint8_t cell_width)
+{
+    if ((video == NULL) || (cell_width == 0))
+        return;
+
+    video->raster.draw_x = (int16_t) (video->raster.draw_x + cell_width);
+}
+
+static void
+pcjx_video_advance_raster_span(pcjx_video_t *video, uint8_t cells,
+                               uint8_t cell_width)
+{
+    uint16_t span;
+
+    if (video == NULL)
+        return;
+
+    pcjx_video_begin_visible_raster(video);
+    if ((cells == 0) || (cell_width == 0))
+        return;
+
+    span = (uint16_t) (cells * cell_width);
+    video->raster.draw_x = (int16_t) (video->raster.draw_x + span);
+}
+
+static void
 pcjx_video_get_render_position(const pcjx_video_t *video,
                                int16_t raw_draw_x,
                                int16_t raw_draw_y,
@@ -525,8 +574,13 @@ pcjx_video_get_render_position(const pcjx_video_t *video,
     if ((video == NULL) || !video->display.initialized)
         return;
 
-    if (render_x != NULL)
-        *render_x = video->display.start_x;
+    if (render_x != NULL) {
+        if (video->raster.first_visible_valid)
+            *render_x = (int16_t) (video->display.start_x +
+                                   (raw_draw_x - video->raster.first_visible_x));
+        else
+            *render_x = video->display.start_x;
+    }
 
     if (render_y == NULL)
         return;
@@ -559,7 +613,8 @@ pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
                      video->raster.first_visible_y :
                      (int16_t) (firstline + 8 + pcjx_video_render_y_bias(video));
 
-    stable_x = video->raster.first_visible_valid ? video->raster.draw_x : render_ho_d;
+    stable_x = video->raster.first_visible_valid ?
+                   video->raster.first_visible_x : render_ho_d;
     stable_y = pcjx_video_frame_blit_y(video, raw_draw_y, double_type);
     if (video->display.initialized) {
         stable_x = video->display.start_x;
@@ -1503,7 +1558,7 @@ pcjx_video_resolve_cell_pixel(const pcjx_video_t *video,
 }
 
 static void
-pcjx_video_render_non_extended_cells(const pcjx_video_t *video, uint16_t line,
+pcjx_video_render_non_extended_cells(pcjx_video_t *video, uint16_t line,
                                      int16_t ho_d, uint8_t cell_width,
                                      uint8_t superimpose_mode,
                                      uint8_t enable1, uint8_t enable2,
@@ -1515,6 +1570,7 @@ pcjx_video_render_non_extended_cells(const pcjx_video_t *video, uint16_t line,
         return;
 
     columns = pcjx_video_columns(video);
+    pcjx_video_begin_visible_raster(video);
 
     for (uint8_t column = 0; column < columns; column++) {
         uint8_t primary_cell[16];
@@ -1544,6 +1600,8 @@ pcjx_video_render_non_extended_cells(const pcjx_video_t *video, uint16_t line,
             buffer32->line[line][cell_x + pixel] =
                 (video->gate.palette[color & 0x0f] & 0x0f) + 16;
         }
+
+        pcjx_video_advance_raster_cell(video, cell_width);
     }
 }
 
@@ -1612,6 +1670,7 @@ pcjx_video_render_line(pcjx_video_t *video, uint16_t line, uint16_t ho_s, int16_
 
     if ((!enable1 && (superimpose_mode == 0x00)) ||
         (!enable2 && (superimpose_mode == 0x01))) {
+        pcjx_video_advance_raster_span(video, columns, cell_width);
         pcjx_video_advance_viewport_line(video, 0, columns);
         pcjx_video_advance_viewport_line(video, 1, columns);
         video->host.memaddr = (uint16_t) (start_memaddr + columns);
@@ -2031,6 +2090,7 @@ pcjx_video_render_extended(pcjx_video_t *video, uint16_t line, int16_t ho_d)
     uint8_t  blink_phase;
     uint8_t  graphics_mode;
     uint8_t  prev_drawcursor = 0;
+    uint8_t  cell_width;
     uint8_t  columns;
     uint16_t width;
 
@@ -2047,6 +2107,7 @@ pcjx_video_render_extended(pcjx_video_t *video, uint16_t line, int16_t ho_d)
     scanline      = pcjx_video_extended_text_scanline(video);
     blink_phase   = pcjx_video_extended_text_blink_phase(video);
     graphics_mode = pcjx_video_extended_graphics_mode(video);
+    cell_width    = graphics_mode ? 16 : 9;
     pcjx_video_begin_extended_display(video, start_memaddr);
 
     state.base_memaddr = start_memaddr;
@@ -2059,6 +2120,7 @@ pcjx_video_render_extended(pcjx_video_t *video, uint16_t line, int16_t ho_d)
     hline(buffer32, 0, line, width + ho_d, (video->gate.border_color & 0x0f) + 16);
     video->last_color = video->gate.border_color & 0x0f;
     if (!pcjx_video_extended_video_enabled(video)) {
+        pcjx_video_advance_raster_span(video, columns, cell_width);
         if (graphics_mode) {
             pcjx_video_tick_extended_graphics_state(video, columns);
             video->host.memaddr = video->ex_graphics_gma;
@@ -2067,11 +2129,14 @@ pcjx_video_render_extended(pcjx_video_t *video, uint16_t line, int16_t ho_d)
         return 1;
     }
 
-    for (uint8_t column = 0; column < columns; column++)
+    pcjx_video_begin_visible_raster(video);
+    for (uint8_t column = 0; column < columns; column++) {
         prev_drawcursor = pcjx_video_render_extended_cell(video, line, ho_d,
                                                           column, graphics_mode,
                                                           &state,
                                                           prev_drawcursor);
+        pcjx_video_advance_raster_cell(video, cell_width);
+    }
 
     if (graphics_mode) {
         pcjx_video_tick_extended_graphics_state(video, columns);
@@ -2207,4 +2272,1087 @@ pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val)
     }
 
     return 0;
+}
+
+static video_timings_t timing_dram = { VIDEO_BUS, 0, 0, 0, 0, 0, 0 };
+
+static uint8_t crtcmask[32] = {
+    0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
+    0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
+    0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+static void vid_get_effective_render_mode(const pcjr_t *pcjr, uint8_t *mode1,
+                                          uint8_t *mode2);
+static uint16_t vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1,
+                                              uint16_t ho_s);
+
+static pcjx_video_t *
+vid_attached(pcjr_t *pcjr)
+{
+    if (pcjr == NULL)
+        return NULL;
+
+    return pcjr->pcjx_video;
+}
+
+static const pcjx_video_t *
+vid_attached_const(const pcjr_t *pcjr)
+{
+    if (pcjr == NULL)
+        return NULL;
+
+    return pcjr->pcjx_video;
+}
+
+static void
+vid_sync_from_pcjr(const pcjr_t *pcjr)
+{
+    pcjx_video_t           *video;
+    pcjx_video_host_state_t state;
+
+    video = (pcjr != NULL) ? pcjr->pcjx_video : NULL;
+    if (video == NULL)
+        return;
+
+    memset(&state, 0, sizeof(state));
+    memcpy(state.crtc, pcjr->crtc, sizeof(state.crtc));
+    state.status        = pcjr->status;
+    state.memaddr       = pcjr->memaddr;
+    state.scanline      = (uint8_t) pcjr->scanline;
+    state.blink         = (uint8_t) pcjr->blink;
+    state.cursorvisible = (uint8_t) pcjr->cursorvisible;
+    state.cursoron      = (uint8_t) pcjr->cursoron;
+    pcjx_video_set_host_state(video, &state);
+}
+
+static void
+vid_sync_to_pcjr(pcjr_t *pcjr)
+{
+    const pcjx_video_t     *video;
+    pcjx_video_host_state_t state;
+
+    video = vid_attached_const(pcjr);
+    if (video == NULL)
+        return;
+
+    pcjx_video_get_host_state(video, &state);
+    pcjr->memaddr = state.memaddr;
+}
+
+static void
+vid_apply_pending(pcjr_t *pcjr)
+{
+    pcjx_video_t *video;
+
+    video = vid_attached(pcjr);
+    if (video == NULL)
+        return;
+
+    if (pcjx_video_consume_timings_dirty(video))
+        pcjx_recalc_timings(pcjr);
+    if (pcjx_video_consume_change_requested(video))
+        pcjr->fullchange = changeframecount;
+}
+
+static void
+vid_notify_display_restart(pcjr_t *pcjr)
+{
+    pcjx_video_t *video;
+
+    vid_sync_from_pcjr(pcjr);
+    video = vid_attached(pcjr);
+    if (video != NULL)
+        pcjx_video_notify_display_restart(video);
+}
+
+static uint8_t
+vid_mode_uses_hires(uint8_t mode1)
+{
+    return !!(mode1 & 0x01);
+}
+
+static uint8_t
+vid_is_extended_render_active(const pcjr_t *pcjr)
+{
+    return pcjx_video_is_extended_active(vid_attached_const(pcjr));
+}
+
+static uint16_t
+vid_get_extended_render_width(const pcjr_t *pcjr)
+{
+    vid_sync_from_pcjr(pcjr);
+    return pcjx_video_extended_render_width(vid_attached_const(pcjr));
+}
+
+static uint16_t
+vid_get_render_width(const pcjr_t *pcjr, uint16_t ho_s)
+{
+    uint8_t mode1;
+
+    if (vid_is_extended_render_active(pcjr))
+        return vid_get_extended_render_width(pcjr);
+
+    vid_get_effective_render_mode(pcjr, &mode1, NULL);
+    return vid_get_render_width_for_mode(pcjr, mode1, ho_s);
+}
+
+static void
+vid_get_effective_render_mode(const pcjr_t *pcjr, uint8_t *mode1,
+                              uint8_t *mode2)
+{
+    const pcjx_video_t *video;
+
+    video = vid_attached_const(pcjr);
+    if (video != NULL) {
+        pcjx_video_get_effective_render_mode(video, mode1, mode2);
+        return;
+    }
+
+    if (mode1 != NULL)
+        *mode1 = (pcjr != NULL) ? pcjr->array[0] : 0;
+    if (mode2 != NULL)
+        *mode2 = (pcjr != NULL) ? pcjr->array[3] : 0;
+}
+
+static uint16_t
+vid_get_h_overscan_size_for_mode(uint8_t mode1)
+{
+    if (vid_mode_uses_hires(mode1))
+        return 128;
+
+    return 256;
+}
+
+static uint16_t
+vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1, uint16_t ho_s)
+{
+    if (vid_mode_uses_hires(mode1))
+        return (pcjr->crtc[1] << 3) + ho_s;
+
+    return (pcjr->crtc[1] << 4) + ho_s;
+}
+
+static int16_t
+vid_get_h_overscan_delta_for_mode(const pcjr_t *pcjr, uint8_t mode1,
+                                  uint8_t mode2)
+{
+    int16_t def  = 0x2c;
+    int16_t coef = 16;
+    int16_t ret;
+
+    switch ((mode1 & 0x13) | ((mode2 & 0x08) << 5)) {
+        case 0x13:
+        case 0x03:
+            def  = 0x56;
+            coef = 8;
+            break;
+        case 0x01:
+            def  = 0x5a;
+            coef = 8;
+            break;
+        case 0x02:
+        case 0x102:
+            def = 0x2b;
+            break;
+        case 0x12:
+        case 0x00:
+        default:
+            break;
+    }
+
+    ret = def - pcjr->crtc[0x02];
+
+    if (ret < -8)
+        ret = -8;
+
+    if (ret > 8)
+        ret = 8;
+
+    return (int16_t) (ret * coef);
+}
+
+static void
+recalc_address(pcjr_t *pcjr)
+{
+    uint8_t masked_memctrl = pcjr->memctrl;
+
+    if (mem_size < 128)
+        masked_memctrl &= ~0x24;
+
+    if ((pcjr->memctrl & 0xc0) == 0xc0) {
+        pcjr->vram  = &ram[(masked_memctrl & 0x06) << 14];
+        pcjr->b8000 = &ram[(masked_memctrl & 0x30) << 11];
+    } else {
+        pcjr->vram  = &ram[(masked_memctrl & 0x07) << 14];
+        pcjr->b8000 = &ram[(masked_memctrl & 0x38) << 11];
+    }
+}
+
+void
+pcjx_recalc_timings(pcjr_t *pcjr)
+{
+    double  _dispontime;
+    double  _dispofftime;
+    double  disptime;
+    uint8_t mode1;
+
+    if (vid_is_extended_render_active(pcjr)) {
+        double pixel_scale = pcjx_video_timing_scale(vid_attached_const(pcjr));
+
+        disptime    = (pcjr->crtc[0] + 1) * pixel_scale;
+        _dispontime = pcjr->crtc[1] * pixel_scale;
+    } else {
+        vid_get_effective_render_mode(pcjr, &mode1, NULL);
+
+        if (vid_mode_uses_hires(mode1)) {
+            disptime    = pcjr->crtc[0] + 1;
+            _dispontime = pcjr->crtc[1];
+        } else {
+            disptime    = (pcjr->crtc[0] + 1) << 1;
+            _dispontime = pcjr->crtc[1] << 1;
+        }
+    }
+
+    _dispofftime = disptime - _dispontime;
+    _dispontime *= CGACONST;
+    _dispofftime *= CGACONST;
+    pcjr->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    pcjr->dispofftime = (uint64_t) (int64_t) (_dispofftime);
+}
+
+static uint16_t
+vid_get_h_overscan_size(pcjr_t *pcjr)
+{
+    uint8_t mode1;
+
+    if (vid_is_extended_render_active(pcjr))
+        return 0;
+
+    vid_get_effective_render_mode(pcjr, &mode1, NULL);
+
+    return vid_get_h_overscan_size_for_mode(mode1);
+}
+
+static void
+vid_out(uint16_t addr, uint8_t val, void *priv)
+{
+    pcjr_t  *pcjr = (pcjr_t *) priv;
+    uint8_t  old;
+
+    vid_sync_from_pcjr(pcjr);
+    if (pcjx_video_out(vid_attached(pcjr), addr, val)) {
+        vid_apply_pending(pcjr);
+        return;
+    }
+
+    switch (addr) {
+        case 0x3d0:
+        case 0x3d2:
+        case 0x3d4:
+        case 0x3d6:
+            pcjr->crtcreg = val & 0x1f;
+            return;
+
+        case 0x3d1:
+        case 0x3d3:
+        case 0x3d5:
+        case 0x3d7:
+            old                        = pcjr->crtc[pcjr->crtcreg];
+            pcjr->crtc[pcjr->crtcreg]  = val & crtcmask[pcjr->crtcreg];
+            if (pcjr->crtcreg == 2)
+                overscan_x = vid_get_h_overscan_size(pcjr);
+            if (old != val) {
+                if ((pcjr->crtcreg < 0xe) || (pcjr->crtcreg > 0x10)) {
+                    pcjr->fullchange = changeframecount;
+                    pcjx_recalc_timings(pcjr);
+                }
+            }
+            return;
+
+        case 0x3da:
+            if (!pcjr->array_ff)
+                pcjr->array_index = val & 0x1f;
+            else {
+                if (pcjr->array_index & 0x10)
+                    val &= 0x0f;
+                pcjr->array[pcjr->array_index & 0x1f] = val;
+                if ((pcjr->array_index & 0x1f) == 0x02)
+                    update_cga16_color(pcjr->array[0], val & 0x0f);
+                else if (!(pcjr->array_index & 0x1f))
+                    update_cga16_color(val, pcjr->array[2] & 0x0f);
+            }
+            pcjr->array_ff = !pcjr->array_ff;
+            break;
+
+        case 0x3df:
+            pcjr->memctrl   = val;
+            pcjr->pa        = val;
+            pcjr->addr_mode = val >> 6;
+            recalc_address(pcjr);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static uint8_t
+vid_in(uint16_t addr, void *priv)
+{
+    pcjr_t  *pcjr = (pcjr_t *) priv;
+    uint8_t  ret  = 0xff;
+
+    vid_sync_from_pcjr(pcjr);
+    if (pcjx_video_in(vid_attached(pcjr), addr, &ret))
+        return ret;
+
+    switch (addr) {
+        case 0x3d0:
+        case 0x3d2:
+        case 0x3d4:
+        case 0x3d6:
+            ret = pcjr->crtcreg;
+            break;
+
+        case 0x3d1:
+        case 0x3d3:
+        case 0x3d5:
+        case 0x3d7:
+            ret = pcjr->crtc[pcjr->crtcreg];
+            break;
+
+        case 0x3da:
+            pcjr->array_ff = 0;
+            pcjr->status  ^= 0x10;
+            ret            = pcjr->status;
+            break;
+
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+static void
+pcjx_waitstates(void)
+{
+    static const uint8_t ws_array[16] = { 0, 1, 1, 1, 2, 2, 2, 3,
+                                          3, 3, 4, 4, 4, 5, 5, 5 };
+    uint8_t ws;
+
+    ws      = ws_array[cycles & 0xf];
+    cycles -= ws;
+}
+
+static void
+vid_write(uint32_t addr, uint8_t val, void *priv)
+{
+    pcjr_t       *pcjr  = (pcjr_t *) priv;
+    pcjx_video_t *video;
+
+    if (pcjr->memctrl == -1)
+        return;
+
+    pcjx_waitstates();
+
+    video = vid_attached(pcjr);
+    if (video != NULL) {
+        pcjx_video_b800_write(video, addr, val);
+        vid_apply_pending(pcjr);
+        return;
+    }
+
+    pcjr->b8000[addr & 0x3fff] = val;
+}
+
+static uint8_t
+vid_read(uint32_t addr, void *priv)
+{
+    const pcjr_t       *pcjr  = (const pcjr_t *) priv;
+    const pcjx_video_t *video;
+
+    if (pcjr->memctrl == -1)
+        return 0xff;
+
+    pcjx_waitstates();
+
+    video = vid_attached_const(pcjr);
+    if (video != NULL)
+        return pcjx_video_b800_read(video, addr);
+
+    return pcjr->b8000[addr & 0x3fff];
+}
+
+static int16_t
+vid_get_h_overscan_delta(pcjr_t *pcjr)
+{
+    uint8_t mode1;
+    uint8_t mode2;
+
+    if (vid_is_extended_render_active(pcjr))
+        return 0;
+
+    vid_get_effective_render_mode(pcjr, &mode1, &mode2);
+    return vid_get_h_overscan_delta_for_mode(pcjr, mode1, mode2);
+}
+
+static void
+vid_blit_v_overscan(pcjr_t *pcjr)
+{
+    uint8_t             cols = (pcjr->array[2] & 0xf) + 16;
+    uint16_t            y0   = pcjr->firstline;
+    uint16_t            y    = pcjr->lastline + 8;
+    uint8_t             h    = 8;
+    uint16_t            ho_s = vid_get_h_overscan_size(pcjr);
+    uint8_t             i;
+    uint16_t            x;
+    uint8_t             mode1;
+    const pcjx_video_t *video;
+
+    if (pcjr->double_type > DOUBLE_NONE) {
+        y0 <<= 1;
+        y  <<= 1;
+
+        h <<= 1;
+    }
+
+    video = vid_attached_const(pcjr);
+    if (video != NULL)
+        cols = pcjx_video_blank_color(video) + 16;
+
+    vid_get_effective_render_mode(pcjr, &mode1, NULL);
+    x = vid_get_render_width(pcjr, ho_s);
+
+    for (i = 0; i < h; i++) {
+        hline(buffer32, 0, y0 + i, x, cols);
+        hline(buffer32, 0, y + i, x, cols);
+
+        if (pcjr->composite) {
+            Composite_Process(mode1, 0, x >> 2, buffer32->line[y0 + i]);
+            Composite_Process(mode1, 0, x >> 2, buffer32->line[y + i]);
+        } else {
+            video_process_8(x, y0 + i);
+            video_process_8(x, y + i);
+        }
+    }
+}
+
+static void
+vid_render(pcjr_t *pcjr, uint16_t line, uint16_t ho_s, int16_t ho_d)
+{
+    uint16_t cursoraddr = (pcjr->crtc[15] | (pcjr->crtc[14] << 8)) & 0x3fff;
+    uint8_t  drawcursor;
+    uint8_t  chr;
+    uint8_t  attr;
+    uint16_t dat;
+    uint8_t  cols[4];
+    uint16_t offset = 0;
+    uint16_t mask   = 0x1fff;
+    uint8_t  x;
+
+    cols[0] = (pcjr->array[2] & 0xf) + 16;
+
+    if (pcjr->array[0] & 1)
+        hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, cols[0]);
+    else
+        hline(buffer32, 0, line, (pcjr->crtc[1] << 4) + ho_s, cols[0]);
+
+    switch (pcjr->addr_mode) {
+        case 0:
+            offset = 0;
+            mask   = 0x3fff;
+            break;
+        case 1:
+            offset = (pcjr->scanline & 1) * 0x2000;
+            break;
+        case 3:
+            offset = (pcjr->scanline & 3) * 0x2000;
+            break;
+        default:
+            break;
+    }
+    switch ((pcjr->array[0] & 0x13) | ((pcjr->array[3] & 0x08) << 5)) {
+        case 0x13:
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                uint16_t ef_x = (x << 3) + ho_d;
+
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                buffer32->line[line][ef_x] = buffer32->line[line][ef_x + 1] =
+                    pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 2] = buffer32->line[line][ef_x + 3] =
+                    pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 4] = buffer32->line[line][ef_x + 5] =
+                    pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 6] = buffer32->line[line][ef_x + 7] =
+                    pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
+            }
+            break;
+        case 0x12:
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                uint16_t ef_x = (x << 4) + ho_d;
+
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                buffer32->line[line][ef_x] = buffer32->line[line][ef_x + 1] =
+                buffer32->line[line][ef_x + 2] = buffer32->line[line][ef_x + 3] =
+                    pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 4] = buffer32->line[line][ef_x + 5] =
+                    buffer32->line[line][ef_x + 6] = buffer32->line[line][ef_x + 7] =
+                        pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 8] = buffer32->line[line][ef_x + 9] =
+                buffer32->line[line][ef_x + 10] = buffer32->line[line][ef_x + 11] =
+                    pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 12] = buffer32->line[line][ef_x + 13] =
+                buffer32->line[line][ef_x + 14] = buffer32->line[line][ef_x + 15] =
+                    pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
+            }
+            break;
+        case 0x03:
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                uint16_t ef_x = (x << 3) + ho_d;
+
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                pcjr->memaddr++;
+                for (uint8_t c = 0; c < 8; c++) {
+                    chr = (dat >> 7) & 1;
+                    chr |= ((dat >> 14) & 2);
+                    buffer32->line[line][ef_x + c] = pcjr->array[(chr & pcjr->array[1] & 0x0f) + 16] + 16;
+                    dat <<= 1;
+                }
+            }
+            break;
+        case 0x01:
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                uint16_t ef_x = (x << 3) + ho_d;
+
+                chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                drawcursor = (pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron;
+                if (pcjr->array[3] & 4) {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
+                        cols[1] = cols[0];
+                } else {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                }
+                if (pcjr->scanline & 8)
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + c] = cols[0];
+                else
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + c] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                if (drawcursor)
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + c] ^= 15;
+                pcjr->memaddr++;
+            }
+            break;
+        case 0x00:
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                uint16_t ef_x = (x << 4) + ho_d;
+
+                chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                drawcursor = (pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron;
+                if (pcjr->array[3] & 4) {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
+                        cols[1] = cols[0];
+                } else {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                }
+                pcjr->memaddr++;
+                if (pcjr->scanline & 8)
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + (c << 1)] =
+                        buffer32->line[line][ef_x + (c << 1) + 1] = cols[0];
+                else
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + (c << 1)] =
+                        buffer32->line[line][ef_x + (c << 1) + 1] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                if (drawcursor)
+                    for (uint8_t c = 0; c < 16; c++)
+                        buffer32->line[line][ef_x + c] ^= 15;
+            }
+            break;
+        case 0x02:
+            cols[0] = pcjr->array[0 + 16] + 16;
+            cols[1] = pcjr->array[1 + 16] + 16;
+            cols[2] = pcjr->array[2 + 16] + 16;
+            cols[3] = pcjr->array[3 + 16] + 16;
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                uint16_t ef_x = (x << 4) + ho_d;
+
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                for (uint8_t c = 0; c < 8; c++) {
+                    buffer32->line[line][ef_x + (c << 1)] = buffer32->line[line][ef_x + (c << 1) + 1] = cols[dat >> 14];
+                    dat <<= 2;
+                }
+            }
+            break;
+        case 0x102:
+            cols[0] = pcjr->array[0 + 16] + 16;
+            cols[1] = pcjr->array[1 + 16] + 16;
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                uint16_t ef_x = (x << 4) + ho_d;
+
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                for (uint8_t c = 0; c < 16; c++) {
+                    buffer32->line[line][ef_x + c] = cols[dat >> 15];
+                    dat <<= 1;
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void
+vid_render_dispatch(pcjr_t *pcjr, uint16_t line, uint16_t ho_s, int16_t ho_d)
+{
+    pcjx_video_t *video;
+
+    video = vid_attached(pcjr);
+    if (video != NULL) {
+        vid_sync_from_pcjr(pcjr);
+        if (pcjx_video_render_line(video, line, ho_s, ho_d)) {
+            vid_sync_to_pcjr(pcjr);
+            return;
+        }
+        vid_sync_to_pcjr(pcjr);
+    }
+
+    vid_render(pcjr, line, ho_s, ho_d);
+}
+
+static void
+vid_render_blank(pcjr_t *pcjr, uint16_t line, uint16_t ho_s)
+{
+    uint8_t             mode1;
+    const pcjx_video_t *video;
+
+    video = vid_attached_const(pcjr);
+    if (video != NULL) {
+        hline(buffer32, 0, line, vid_get_render_width(pcjr, ho_s),
+              pcjx_video_blank_color(video) + 16);
+        return;
+    }
+
+    vid_get_effective_render_mode(pcjr, &mode1, NULL);
+
+    if (pcjr->array[3] & 4) {
+        if (pcjr->array[0] & 1)
+            hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, (pcjr->array[2] & 0xf) + 16);
+        else
+            hline(buffer32, 0, line, (pcjr->crtc[1] << 4) + ho_s, (pcjr->array[2] & 0xf) + 16);
+    } else {
+        if (pcjr->array[0] & 1)
+            hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, pcjr->array[0 + 16] + 16);
+        else
+            hline(buffer32, 0, line, (pcjr->crtc[1] << 4) + ho_s, pcjr->array[0 + 16] + 16);
+    }
+}
+
+static void
+vid_render_process(pcjr_t *pcjr, uint16_t line, uint16_t ho_s)
+{
+    uint16_t x;
+    uint8_t  mode1;
+
+    vid_get_effective_render_mode(pcjr, &mode1, NULL);
+    x = vid_get_render_width(pcjr, ho_s);
+
+    if (vid_is_extended_render_active(pcjr))
+        video_process_8(x, line);
+    else if (pcjr->composite)
+        Composite_Process(mode1, 0, x >> 2, buffer32->line[line]);
+    else
+        video_process_8(x, line);
+}
+
+static void
+vid_poll(void *priv)
+{
+    pcjr_t       *pcjr = (pcjr_t *) priv;
+    pcjx_video_t *video;
+    uint16_t      x;
+    uint16_t      xs_temp;
+    uint16_t      ys_temp;
+    uint8_t       oldvc;
+    uint8_t       scanline_old;
+    int16_t       l = pcjr->displine + 8;
+    uint16_t      ho_s = vid_get_h_overscan_size(pcjr);
+    int16_t       ho_d = (int16_t) (vid_get_h_overscan_delta(pcjr) + (ho_s / 2));
+    int16_t       raw_render_l;
+    int16_t       raw_render_ho_d;
+    int16_t       render_l;
+    int16_t       render_ho_d;
+    uint16_t      old_ma;
+    uint8_t       extended_render_active = vid_is_extended_render_active(pcjr);
+
+    video           = vid_attached(pcjr);
+    raw_render_l    = (int16_t) (l + pcjx_video_render_y_bias(video));
+    raw_render_ho_d = (int16_t) (ho_d + pcjx_video_render_x_bias(video));
+    render_l        = raw_render_l;
+    render_ho_d     = raw_render_ho_d;
+
+    if (!pcjr->linepos) {
+        timer_advance_u64(&pcjr->timer, pcjr->dispofftime);
+        pcjr->status &= ~1;
+        pcjr->linepos = 1;
+        scanline_old  = pcjr->scanline;
+        if (!extended_render_active && ((pcjr->crtc[8] & 3) == 3))
+            pcjr->scanline = (pcjr->scanline << 1) & 7;
+        if (pcjr->dispon) {
+            if (pcjr->displine < pcjr->firstline) {
+                pcjr->firstline = pcjr->displine;
+                video_wait_for_buffer();
+            }
+
+            if (video != NULL) {
+                pcjx_video_begin_scanline(video, raw_render_ho_d,
+                                          raw_render_l, 1);
+                pcjx_video_get_render_position(video, raw_render_ho_d,
+                                               raw_render_l, &render_ho_d,
+                                               &render_l);
+            }
+            pcjr->lastline = pcjr->displine;
+            switch (pcjr->double_type) {
+                default:
+                    vid_render_dispatch(pcjr, render_l << 1, ho_s, render_ho_d);
+                    vid_render_blank(pcjr, (render_l << 1) + 1, ho_s);
+                    break;
+                case DOUBLE_NONE:
+                    vid_render_dispatch(pcjr, render_l, ho_s, render_ho_d);
+                    break;
+                case DOUBLE_SIMPLE:
+                    old_ma = pcjr->memaddr;
+                    vid_render_dispatch(pcjr, render_l << 1, ho_s, render_ho_d);
+                    pcjr->memaddr = old_ma;
+                    vid_render_dispatch(pcjr, (render_l << 1) + 1, ho_s, render_ho_d);
+                    break;
+            }
+        } else switch (pcjr->double_type) {
+            default:
+                vid_render_blank(pcjr, render_l << 1, ho_s);
+                break;
+            case DOUBLE_NONE:
+                vid_render_blank(pcjr, render_l, ho_s);
+                break;
+            case DOUBLE_SIMPLE:
+                vid_render_blank(pcjr, render_l << 1, ho_s);
+                vid_render_blank(pcjr, (render_l << 1) + 1, ho_s);
+                break;
+        }
+
+        switch (pcjr->double_type) {
+            default:
+                vid_render_process(pcjr, render_l << 1, ho_s);
+                vid_render_process(pcjr, (render_l << 1) + 1, ho_s);
+                break;
+            case DOUBLE_NONE:
+                vid_render_process(pcjr, render_l, ho_s);
+                break;
+        }
+
+        pcjr->scanline = scanline_old;
+        if (pcjr->vc == pcjr->crtc[7] && !pcjr->scanline)
+            pcjr->status |= 8;
+        pcjr->displine++;
+        if (pcjr->displine >= 360)
+            pcjr->displine = 0;
+    } else {
+        timer_advance_u64(&pcjr->timer, pcjr->dispontime);
+        if (pcjr->dispon)
+            pcjr->status |= 1;
+        pcjr->linepos = 0;
+        if (pcjr->vsynctime) {
+            pcjr->vsynctime--;
+            if (!pcjr->vsynctime)
+                pcjr->status &= ~8;
+        }
+        if ((pcjr->scanline == (pcjr->crtc[11] & 31)) ||
+            (((pcjr->crtc[8] & 3) == 3) &&
+             (pcjr->scanline == ((pcjr->crtc[11] & 31) >> 1))))
+            pcjr->cursorvisible = 0;
+        if (pcjr->vadj) {
+            pcjr->scanline++;
+            pcjr->scanline &= 31;
+            pcjr->memaddr = pcjr->memaddr_backup;
+            pcjr->vadj--;
+            if (!pcjr->vadj) {
+                pcjr->dispon = 1;
+                pcjr->memaddr = pcjr->memaddr_backup =
+                    (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
+                pcjr->scanline = 0;
+                vid_notify_display_restart(pcjr);
+            }
+        } else if ((pcjr->scanline == pcjr->crtc[9]) ||
+                   (((pcjr->crtc[8] & 3) == 3) &&
+                    (pcjr->scanline == (pcjr->crtc[9] >> 1)))) {
+            pcjr->memaddr_backup = pcjr->memaddr;
+            pcjr->scanline       = 0;
+            oldvc                = pcjr->vc;
+            pcjr->vc++;
+            pcjr->vc &= 127;
+            if (pcjr->vc == pcjr->crtc[6])
+                pcjr->dispon = 0;
+            if (oldvc == pcjr->crtc[4]) {
+                pcjr->vc   = 0;
+                pcjr->vadj = pcjr->crtc[5];
+                if (!pcjr->vadj)
+                    pcjr->dispon = 1;
+                if (!pcjr->vadj)
+                    pcjr->memaddr = pcjr->memaddr_backup =
+                        (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
+                if (!pcjr->vadj)
+                    vid_notify_display_restart(pcjr);
+                if ((pcjr->crtc[10] & 0x60) == 0x20)
+                    pcjr->cursoron = 0;
+                else
+                    pcjr->cursoron = pcjr->blink & 16;
+            }
+            if (pcjr->vc == pcjr->crtc[7]) {
+                pcjr->dispon    = 0;
+                pcjr->displine  = 0;
+                pcjr->vsynctime = 16;
+                picint(1 << 5);
+                vid_notify_display_restart(pcjr);
+                if (pcjr->crtc[7]) {
+                    int16_t blit_x                     = 0;
+                    int16_t blit_y                     = 0;
+                    uint8_t use_video_ext_frame_blit  = 0;
+                    uint8_t use_exact_frame_geometry  = 0;
+
+                    x = vid_get_render_width(pcjr, ho_s);
+                    pcjr->lastline++;
+
+                    if (video != NULL) {
+                        use_video_ext_frame_blit = pcjx_video_get_frame_blit_geometry(
+                            video, pcjr->firstline, raw_render_ho_d,
+                            pcjr->double_type, &blit_x, &blit_y, &xs_temp,
+                            &ys_temp);
+                        use_exact_frame_geometry = use_video_ext_frame_blit &&
+                                                   pcjx_video_is_extended_active(video);
+                    }
+                    if (!use_video_ext_frame_blit) {
+                        xs_temp = x;
+                        ys_temp = (pcjr->lastline - pcjr->firstline) << 1;
+                    }
+
+                    if ((xs_temp > 0) && (ys_temp > 0)) {
+                        uint16_t actual_ys = ys_temp;
+
+                        if (!use_video_ext_frame_blit) {
+                            if (xs_temp < 64)
+                                xs_temp = 656;
+                            if (ys_temp < 32)
+                                ys_temp = 400;
+                            if (!enable_overscan)
+                                xs_temp -= ho_s;
+                        }
+
+                        if ((xs_temp != xsize) || (ys_temp != ysize) ||
+                            video_force_resize_get()) {
+                            xsize = xs_temp;
+                            ysize = ys_temp;
+
+                            set_screen_size(
+                                xsize,
+                                ysize + ((!use_exact_frame_geometry &&
+                                          enable_overscan) ?
+                                             32 :
+                                             0));
+
+                            if (video_force_resize_get())
+                                video_force_resize_set(0);
+                        }
+
+                        if (!use_video_ext_frame_blit)
+                            vid_blit_v_overscan(pcjr);
+
+                        if (pcjr->double_type > DOUBLE_NONE) {
+                            if (use_video_ext_frame_blit) {
+                                cga_blit_memtoscreen(blit_x, blit_y, xsize,
+                                                     actual_ys,
+                                                     pcjr->double_type);
+                            } else if (enable_overscan) {
+                                cga_blit_memtoscreen(0, pcjr->firstline << 1,
+                                                     xsize, actual_ys + 32,
+                                                     pcjr->double_type);
+                            } else if (pcjr->apply_hd) {
+                                cga_blit_memtoscreen(
+                                    ho_s / 2,
+                                    (pcjr->firstline << 1) + 16,
+                                    xsize, actual_ys, pcjr->double_type);
+                            } else {
+                                cga_blit_memtoscreen(
+                                    ho_d,
+                                    (pcjr->firstline << 1) + 16,
+                                    xsize, actual_ys, pcjr->double_type);
+                            }
+                        } else {
+                            if (use_video_ext_frame_blit) {
+                                video_blit_memtoscreen(
+                                    blit_x, blit_y, xsize,
+                                    use_exact_frame_geometry ? actual_ys :
+                                                               (actual_ys >> 1));
+                            } else if (enable_overscan) {
+                                video_blit_memtoscreen(0, pcjr->firstline,
+                                                       xsize,
+                                                       (actual_ys >> 1) + 16);
+                            } else if (pcjr->apply_hd) {
+                                video_blit_memtoscreen(ho_s / 2,
+                                                       pcjr->firstline + 8,
+                                                       xsize, actual_ys >> 1);
+                            } else {
+                                video_blit_memtoscreen(ho_d,
+                                                       pcjr->firstline + 8,
+                                                       xsize, actual_ys >> 1);
+                            }
+                        }
+                    }
+
+                    frames++;
+                    video_res_x = xsize;
+                    video_res_y = ysize;
+                }
+                pcjr->firstline = 1000;
+                pcjr->lastline  = 0;
+                pcjr->blink++;
+            }
+        } else {
+            pcjr->scanline++;
+            pcjr->scanline &= 31;
+            pcjr->memaddr = pcjr->memaddr_backup;
+        }
+        if ((pcjr->scanline == (pcjr->crtc[10] & 31)) ||
+            (((pcjr->crtc[8] & 3) == 3) &&
+             (pcjr->scanline == ((pcjr->crtc[10] & 31) >> 1))))
+            pcjr->cursorvisible = 1;
+    }
+}
+
+static void
+speed_changed(void *priv)
+{
+    pcjr_t *pcjr = (pcjr_t *) priv;
+
+    pcjx_recalc_timings(pcjr);
+}
+
+static const device_config_t pcjx_config[] = {
+    {
+        .name           = "display_type",
+        .description    = "Display type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = PCJR_RGB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "RGB",            .value = PCJR_RGB          },
+            { .description = "Composite",      .value = PCJR_COMPOSITE    },
+            { .description = "RGB (no brown)", .value = PCJR_RGB_NO_BROWN },
+            { .description = "RGB (IBM 5153)", .value = PCJR_RGB_IBM_5153 },
+            { .description = ""                                           }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "double_type",
+        .description    = "Line doubling type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DOUBLE_NONE,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "None",                 .value = DOUBLE_NONE               },
+            { .description = "Simple doubling",      .value = DOUBLE_SIMPLE             },
+            { .description = "sRGB interpolation",   .value = DOUBLE_INTERPOLATE_SRGB   },
+            { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "apply_hd",
+        .description    = "Apply overscan deltas",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+const device_t pcjx_device = {
+    .name          = "IBM PCjx (Video)",
+    .internal_name = "pcjx",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = speed_changed,
+    .force_redraw  = NULL,
+    .config        = pcjx_config
+};
+
+void
+pcjx_vid_init(pcjr_t *pcjr)
+{
+    uint8_t display_type;
+
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
+
+    pcjr->memctrl = -1;
+    if (mem_size < 128)
+        pcjr->memctrl &= ~0x24;
+
+    display_type    = device_get_config_int("display_type");
+    pcjr->composite = (display_type == PCJR_COMPOSITE);
+    pcjr->apply_hd  = device_get_config_int("apply_hd");
+    overscan_x      = 256;
+    overscan_y      = 32;
+
+    mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
+                    vid_read, NULL, NULL,
+                    vid_write, NULL, NULL, NULL, 0, pcjr);
+    io_sethandler(0x03d0, 16,
+                  vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
+    timer_add(&pcjr->timer, vid_poll, pcjr, 1);
+
+    if (pcjr->composite)
+        cga_palette = 0;
+    else
+        cga_palette = (display_type << 1);
+    cgapal_rebuild();
+
+    pcjr->double_type = device_get_config_int("double_type");
+    cga_interpolate_init();
+
+    monitors[monitor_index_global].mon_composite = !!pcjr->composite;
 }
