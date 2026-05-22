@@ -481,7 +481,7 @@ pcjx_video_get_display_position(const pcjx_video_t *video, int *start_x,
 }
 
 int
-pcjx_video_get_frame_blit_geometry(pcjx_video_t *video,
+pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
                                    int firstline, int render_ho_d,
                                    int double_type, int *blit_x,
                                    int *blit_y, int *frame_width,
@@ -491,9 +491,12 @@ pcjx_video_get_frame_blit_geometry(pcjx_video_t *video,
     int raw_blit_y;
     int stable_x;
     int stable_y;
+    int extended_active;
 
-    if ((video == NULL) || pcjx_video_is_extended_active(video))
+    if (video == NULL)
         return 0;
+
+    extended_active = pcjx_video_is_extended_active(video);
 
     render_y_bias = pcjx_video_render_y_bias(video);
     if (double_type > 0)
@@ -509,9 +512,9 @@ pcjx_video_get_frame_blit_geometry(pcjx_video_t *video,
     if (blit_x != NULL)
         *blit_x = stable_x;
     if (frame_width != NULL)
-        *frame_width = 640;
+        *frame_width = extended_active ? 720 : 640;
     if (frame_height != NULL)
-        *frame_height = 400;
+        *frame_height = extended_active ? 525 : 400;
 
     if (blit_y == NULL)
         return 1;

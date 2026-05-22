@@ -939,6 +939,7 @@ vid_poll(void *priv)
                     int blit_x              = 0;
                     int blit_y              = 0;
                     int use_video_ext_frame_blit = 0;
+                    int use_exact_frame_geometry = 0;
 
                     x = vid_get_render_width(pcjr, ho_s);
                     pcjr->lastline++;
@@ -951,6 +952,8 @@ vid_poll(void *priv)
                         use_video_ext_frame_blit = pcjx_video_get_frame_blit_geometry(
                             video, pcjr->firstline, render_ho_d, pcjr->double_type,
                             &blit_x, &blit_y, &xs_temp, &ys_temp);
+                        use_exact_frame_geometry = use_video_ext_frame_blit &&
+                                                   pcjx_video_is_extended_active(video);
                     }
                     if (!use_video_ext_frame_blit) {
                         xs_temp = x;
@@ -973,7 +976,7 @@ vid_poll(void *priv)
                             xsize = xs_temp;
                             ysize = ys_temp;
 
-                            set_screen_size(xsize, ysize + (enable_overscan ? 32 : 0));
+                            set_screen_size(xsize, ysize + ((!use_exact_frame_geometry && enable_overscan) ? 32 : 0));
 
                             if (video_force_resize_get())
                                 video_force_resize_set(0);
@@ -1008,7 +1011,7 @@ vid_poll(void *priv)
                         } else {
                             if (use_video_ext_frame_blit) {
                                 video_blit_memtoscreen(blit_x, blit_y,
-                                                       xsize, actual_ys >> 1);
+                                                       xsize, use_exact_frame_geometry ? actual_ys : (actual_ys >> 1));
                             } else if (video != NULL) {
                                 video_blit_memtoscreen(stable_blit_x,
                                                        stable_blit_y,

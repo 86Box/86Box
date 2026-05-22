@@ -123,7 +123,7 @@ void pcjx_video_get_effective_render_mode(const pcjx_video_t *video,
 int pcjx_video_render_x_bias(const pcjx_video_t *video);
 int pcjx_video_render_y_bias(const pcjx_video_t *video);
 double pcjx_video_timing_scale(const pcjx_video_t *video);
-int pcjx_video_get_frame_blit_geometry(pcjx_video_t *video,
+int pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
                                        int firstline, int render_ho_d,
                                        int double_type, int *blit_x,
                                        int *blit_y, int *frame_width,
