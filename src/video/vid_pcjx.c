@@ -8,6 +8,9 @@
  *
  *          IBM PCjx video.
  */
+
+#define ENABLE_PCJX_VIDEO_LOG 1
+
 #ifdef ENABLE_PCJX_VIDEO_LOG
 #include <stdarg.h>
 #endif

@@ -9,6 +9,8 @@
  *          Early machine bring-up for the IBM PCjx.
  */
 
+#define ENABLE_PCJX_LOG 1
+
 #ifdef ENABLE_PCJX_LOG
 #include <stdarg.h>
 #endif
