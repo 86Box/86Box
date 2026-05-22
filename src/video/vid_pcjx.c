@@ -1344,33 +1344,10 @@ pcjx_video_primary_crt_base(const pcjx_video_t *video)
     return base & (video->program_size - 1);
 }
 
-static uint8_t
-pcjx_video_viewport_uses_program_memory(const pcjx_video_t *video, uint8_t viewport)
-{
-    if (video == NULL)
-        return 0;
-
-    if ((viewport & 0x01) == 0)
-        return 1;
-
-    return !!(video->gate.mode2[1] & 0x10);
-}
-
 static uint32_t
 pcjx_video_viewport_readtop(const pcjx_video_t *video, uint8_t viewport)
 {
-    if (pcjx_video_viewport_uses_program_memory(video, viewport)) {
-        if ((viewport & 0x01) == 0)
-            return pcjx_video_primary_crt_base(video);
-
-        if (video->program_size == 0)
-            return 0;
-
-        return ((uint32_t) (video->page_reg[1] & 0x03) << 14) &
-               (video->program_size - 1);
-    }
-
-    if (viewport == 0)
+    if ((video == NULL) || ((viewport & 0x01) == 0))
         return pcjx_video_primary_crt_base(video);
 
     return pcjx_video_secondary_crt_base(video);
@@ -1383,7 +1360,7 @@ pcjx_video_viewport_read_byte(const pcjx_video_t *video, uint8_t viewport,
     if (video == NULL)
         return 0;
 
-    if (pcjx_video_viewport_uses_program_memory(video, viewport)) {
+    if ((viewport & 0x01) == 0) {
         if (video->program_size == 0)
             return 0;
 

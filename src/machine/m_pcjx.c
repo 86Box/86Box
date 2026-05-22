@@ -195,6 +195,7 @@ static uint8_t
 pcjx_font_read(uint32_t addr, void *priv)
 {
     const pcjx_t *pcjx = (const pcjx_t *) priv;
+    uint32_t      offset;
 
     if ((pcjx == NULL) || (pcjx->font_rom == NULL))
         return 0xff;
@@ -203,7 +204,50 @@ pcjx_font_read(uint32_t addr, void *priv)
     if (addr >= (pcjx->font_mapping.base + pcjx->font_mapping.size))
         return 0xff;
 
-    return pcjx->font_rom[(addr - pcjx->font_mapping.base) & PCJX_FONT_ROM_MASK];
+    offset = (addr - pcjx->font_mapping.base) & 0x3ffff;
+
+    /* The JX font window is not fully linear: 0x88000-0x8FFFF aliases a
+       narrow CG1 slice, which the BIOS uses while building graphics text. */
+    if ((offset >= 0x8000) && (offset <= 0xffff))
+        offset = 0x8000 | (offset & 0x07ff);
+
+    return pcjx->font_rom[offset & PCJX_FONT_ROM_MASK];
+}
+
+static void
+pcjx_font_write(uint32_t addr, uint8_t val, void *priv)
+{
+    pcjx_t  *pcjx = (pcjx_t *) priv;
+    uint32_t offset;
+
+    if ((pcjx == NULL) || (pcjx->font_rom == NULL))
+        return;
+    if (addr < pcjx->font_mapping.base)
+        return;
+    if (addr >= (pcjx->font_mapping.base + pcjx->font_mapping.size))
+        return;
+
+    offset = (addr - pcjx->font_mapping.base) & 0x3ffff;
+    if ((offset < 0x8000) || (offset > 0xffff))
+        return;
+
+    pcjx->font_rom[(0x8000 | (offset & 0x07ff)) & PCJX_FONT_ROM_MASK] = val;
+}
+
+static void
+pcjx_font_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    pcjx_font_write(addr, (uint8_t) (val & 0xff), priv);
+    pcjx_font_write(addr + 1, (uint8_t) (val >> 8), priv);
+}
+
+static void
+pcjx_font_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    pcjx_font_write(addr, (uint8_t) (val & 0xff), priv);
+    pcjx_font_write(addr + 1, (uint8_t) ((val >> 8) & 0xff), priv);
+    pcjx_font_write(addr + 2, (uint8_t) ((val >> 16) & 0xff), priv);
+    pcjx_font_write(addr + 3, (uint8_t) ((val >> 24) & 0xff), priv);
 }
 
 static uint16_t
@@ -1156,7 +1200,7 @@ pcjx_extension_init(UNUSED(const device_t *info))
 
     mem_mapping_add(&pcjx->font_mapping, 0, 0,
                     pcjx_font_read, pcjx_font_readw, pcjx_font_readl,
-                    NULL, NULL, NULL,
+                    pcjx_font_write, pcjx_font_writew, pcjx_font_writel,
                     pcjx->font_rom, MEM_MAPPING_EXTERNAL, pcjx);
     mem_mapping_disable(&pcjx->font_mapping);
 
