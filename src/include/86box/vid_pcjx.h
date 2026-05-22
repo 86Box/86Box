@@ -66,6 +66,14 @@ typedef struct pcjx_display_position_s {
     uint8_t  initialized;
 } pcjx_display_position_t;
 
+typedef struct pcjx_video_raster_state_s {
+    int16_t draw_x;
+    int16_t draw_y;
+    int16_t first_visible_y;
+    uint8_t first_visible_valid;
+    uint8_t restart_pending;
+} pcjx_video_raster_state_t;
+
 typedef struct pcjx_video_s {
     mem_mapping_t first_window_mapping;
     mem_mapping_t second_window_mapping;
@@ -83,6 +91,7 @@ typedef struct pcjx_video_s {
     pcjx_text_state_t text;
     pcjx_extended_text_state_t ex_text;
     pcjx_display_position_t display;
+    pcjx_video_raster_state_t raster;
     pcjx_graphics_state_t graphics;
     uint16_t      ex_graphics_gma;
     uint16_t      ex_graphics_gma_base;
@@ -96,15 +105,17 @@ void pcjx_video_reset_extended_graphics_state(pcjx_video_t *video);
 void pcjx_video_notify_display_restart(pcjx_video_t *video);
 void pcjx_video_init(pcjx_video_t *video, uint32_t program_size);
 void pcjx_video_close(pcjx_video_t *video);
+void pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
+                               int16_t raw_draw_y, uint8_t visible);
+void pcjx_video_get_render_position(const pcjx_video_t *video,
+                                    int16_t raw_draw_x,
+                                    int16_t raw_draw_y,
+                                    int16_t *render_x,
+                                    int16_t *render_y);
 void pcjx_video_set_host_state(pcjx_video_t *video,
                                const pcjx_video_host_state_t *state);
 void pcjx_video_get_host_state(const pcjx_video_t *video,
                                pcjx_video_host_state_t *state);
-void pcjx_video_update_display_position(pcjx_video_t *video,
-                                                     int16_t raw_start_x,
-                                                     int16_t raw_start_y);
-void pcjx_video_get_display_position(const pcjx_video_t *video,
-                                                 int16_t *start_x, int16_t *start_y);
 uint8_t pcjx_video_consume_timings_dirty(pcjx_video_t *video);
 uint8_t pcjx_video_consume_change_requested(pcjx_video_t *video);
 void pcjx_video_apply_first_window(pcjx_video_t *video, uint32_t base,

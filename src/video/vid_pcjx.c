@@ -32,6 +32,19 @@ static uint16_t pcjx_video_cursoraddr(const pcjx_video_t *video);
 static void pcjx_video_waitstates(void);
 
 static void
+pcjx_video_reset_raster_state(pcjx_video_t *video)
+{
+    if (video == NULL)
+        return;
+
+    video->raster.draw_x              = 0;
+    video->raster.draw_y              = 0;
+    video->raster.first_visible_y     = 0;
+    video->raster.first_visible_valid = 0;
+    video->raster.restart_pending     = 1;
+}
+
+static void
 pcjx_video_reset_graphics_state(pcjx_video_t *video)
 {
     if (video == NULL)
@@ -70,6 +83,7 @@ void
 pcjx_video_notify_display_restart(pcjx_video_t *video)
 {
     pcjx_video_reset_extended_graphics_state(video);
+    pcjx_video_reset_raster_state(video);
 }
 
 static uint8_t
@@ -405,6 +419,17 @@ pcjx_video_render_y_bias(const pcjx_video_t *video)
     return (video != NULL) ? 2 : 0;
 }
 
+static int16_t
+pcjx_video_frame_blit_y(const pcjx_video_t *video, int16_t draw_y,
+                        uint8_t double_type)
+{
+    if ((video != NULL) && !pcjx_video_is_extended_active(video) &&
+        (double_type > 0))
+        return (int16_t) (draw_y << 1);
+
+    return draw_y;
+}
+
 double
 pcjx_video_timing_scale(const pcjx_video_t *video)
 {
@@ -462,22 +487,55 @@ pcjx_video_correct_display_position(pcjx_video_t *video, int16_t new_start_x,
 }
 
 void
-pcjx_video_update_display_position(pcjx_video_t *video, int16_t raw_start_x,
-                                   int16_t raw_start_y)
+pcjx_video_begin_scanline(pcjx_video_t *video, int16_t raw_draw_x,
+                          int16_t raw_draw_y, uint8_t visible)
 {
-    pcjx_video_correct_display_position(video, raw_start_x, raw_start_y);
+    if (video == NULL)
+        return;
+
+    video->raster.draw_x = raw_draw_x;
+    video->raster.draw_y = raw_draw_y;
+
+    if (!visible)
+        return;
+
+    if (!video->raster.first_visible_valid) {
+        video->raster.first_visible_y     = raw_draw_y;
+        video->raster.first_visible_valid = 1;
+    }
+
+    if (video->raster.restart_pending) {
+        pcjx_video_correct_display_position(video, raw_draw_x, raw_draw_y);
+        video->raster.restart_pending = 0;
+    }
 }
 
 void
-pcjx_video_get_display_position(const pcjx_video_t *video, int16_t *start_x,
-                                int16_t *start_y)
+pcjx_video_get_render_position(const pcjx_video_t *video,
+                               int16_t raw_draw_x,
+                               int16_t raw_draw_y,
+                               int16_t *render_x,
+                               int16_t *render_y)
 {
-    if (start_x != NULL)
-        *start_x = ((video != NULL) && video->display.initialized) ?
-                       video->display.start_x : 0;
-    if (start_y != NULL)
-        *start_y = ((video != NULL) && video->display.initialized) ?
-                       video->display.start_y : 0;
+    if (render_x != NULL)
+        *render_x = raw_draw_x;
+    if (render_y != NULL)
+        *render_y = raw_draw_y;
+
+    if ((video == NULL) || !video->display.initialized)
+        return;
+
+    if (render_x != NULL)
+        *render_x = video->display.start_x;
+
+    if (render_y == NULL)
+        return;
+
+    if (video->raster.first_visible_valid)
+        *render_y = (int16_t) (video->display.start_y +
+                               (raw_draw_y - video->raster.first_visible_y));
+    else
+        *render_y = video->display.start_y;
 }
 
 uint8_t
@@ -487,8 +545,7 @@ pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
                                    int16_t *blit_y, uint16_t *frame_width,
                                    uint16_t *frame_height)
 {
-    int16_t render_y_bias;
-    int16_t raw_blit_y;
+    int16_t raw_draw_y;
     int16_t stable_x;
     int16_t stable_y;
     uint8_t extended_active;
@@ -498,16 +555,17 @@ pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
 
     extended_active = pcjx_video_is_extended_active(video);
 
-    render_y_bias = pcjx_video_render_y_bias(video);
-    if (double_type > 0)
-        raw_blit_y = (firstline << 1) + 16 + (render_y_bias << 1);
-    else
-        raw_blit_y = firstline + 8 + render_y_bias;
+    raw_draw_y = video->raster.first_visible_valid ?
+                     video->raster.first_visible_y :
+                     (int16_t) (firstline + 8 + pcjx_video_render_y_bias(video));
 
-    stable_x = render_ho_d;
-    stable_y = raw_blit_y;
-    if (video->display.initialized)
-        pcjx_video_get_display_position(video, &stable_x, &stable_y);
+    stable_x = video->raster.first_visible_valid ? video->raster.draw_x : render_ho_d;
+    stable_y = pcjx_video_frame_blit_y(video, raw_draw_y, double_type);
+    if (video->display.initialized) {
+        stable_x = video->display.start_x;
+        stable_y = pcjx_video_frame_blit_y(video, video->display.start_y,
+                                           double_type);
+    }
 
     if (blit_x != NULL)
         *blit_x = stable_x;
@@ -879,6 +937,7 @@ pcjx_video_init(pcjx_video_t *video, uint32_t program_size)
     memset(video, 0, sizeof(*video));
     video->program_size = program_size;
     pcjx_video_reset_extended_graphics_state(video);
+    pcjx_video_reset_raster_state(video);
 
     mem_mapping_add(&video->first_window_mapping, 0, 0,
                     pcjx_first_window_read, NULL, NULL,

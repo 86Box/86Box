@@ -752,37 +752,6 @@ vid_render_process(pcjr_t *pcjr, uint16_t line, uint16_t ho_s)
 }
 
 static void
-vid_get_stabilized_render_position(pcjr_t *pcjr, pcjx_video_t *video,
-                                   int16_t raw_render_l, int16_t raw_render_ho_d,
-                                   int16_t *render_l, int16_t *render_ho_d)
-{
-    int16_t start_x;
-    int16_t start_y;
-
-    if (render_l != NULL)
-        *render_l = raw_render_l;
-    if (render_ho_d != NULL)
-        *render_ho_d = raw_render_ho_d;
-
-    if ((pcjr == NULL) || (video == NULL) || !video->display.initialized ||
-        (pcjr->firstline == 1000) || (pcjr->displine < pcjr->firstline))
-        return;
-
-    pcjx_video_get_display_position(video, &start_x, &start_y);
-
-    if (render_ho_d != NULL)
-        *render_ho_d = start_x;
-
-    if (render_l == NULL)
-        return;
-
-    if (pcjr->double_type > DOUBLE_NONE)
-        *render_l = (start_y >> 1) + (pcjr->displine - pcjr->firstline);
-    else
-        *render_l = start_y + (pcjr->displine - pcjr->firstline);
-}
-
-static void
 vid_poll(void *priv)
 {
     pcjr_t       *pcjr = (pcjr_t *) priv;
@@ -800,8 +769,6 @@ vid_poll(void *priv)
     int16_t       render_l;
     int16_t       render_ho_d;
     uint16_t      old_ma;
-    int16_t       stable_blit_x = 0;
-    int16_t       stable_blit_y = 0;
     uint8_t       extended_render_active = vid_is_extended_render_active(pcjr);
 
     video          = vid_attached(pcjr);
@@ -820,23 +787,16 @@ vid_poll(void *priv)
         if (pcjr->dispon) {
             if (pcjr->displine < pcjr->firstline) {
                 pcjr->firstline = pcjr->displine;
-                if (video != NULL) {
-                    int16_t raw_start_y;
-
-                    if (pcjr->double_type > DOUBLE_NONE)
-                        raw_start_y = (int16_t) (raw_render_l << 1);
-                    else
-                        raw_start_y = raw_render_l;
-
-                    pcjx_video_update_display_position(video, raw_render_ho_d,
-                                                       raw_start_y);
-                }
                 video_wait_for_buffer();
             }
 
-            vid_get_stabilized_render_position(pcjr, video, raw_render_l,
-                                               raw_render_ho_d, &render_l,
-                                               &render_ho_d);
+            if (video != NULL) {
+                pcjx_video_begin_scanline(video, raw_render_ho_d,
+                                          raw_render_l, 1);
+                pcjx_video_get_render_position(video, raw_render_ho_d,
+                                               raw_render_l, &render_ho_d,
+                                               &render_l);
+            }
             pcjr->lastline = pcjr->displine;
             switch (pcjr->double_type) {
                 default:
@@ -945,13 +905,9 @@ vid_poll(void *priv)
                     x = vid_get_render_width(pcjr, ho_s);
                     pcjr->lastline++;
 
-                    if (video != NULL)
-                        pcjx_video_get_display_position(video, &stable_blit_x,
-                                                        &stable_blit_y);
-
                     if (video != NULL) {
                         use_video_ext_frame_blit = pcjx_video_get_frame_blit_geometry(
-                            video, pcjr->firstline, render_ho_d, pcjr->double_type,
+                            video, pcjr->firstline, raw_render_ho_d, pcjr->double_type,
                             &blit_x, &blit_y, &xs_temp, &ys_temp);
                         use_exact_frame_geometry = use_video_ext_frame_blit &&
                                                    pcjx_video_is_extended_active(video);
@@ -991,11 +947,6 @@ vid_poll(void *priv)
                                 cga_blit_memtoscreen(blit_x, blit_y,
                                                      xsize, actual_ys,
                                                      pcjr->double_type);
-                            } else if (video != NULL) {
-                                cga_blit_memtoscreen(stable_blit_x,
-                                                     stable_blit_y,
-                                                     xsize, actual_ys,
-                                                     pcjr->double_type);
                             } else if (enable_overscan) {
                                 cga_blit_memtoscreen(0, pcjr->firstline << 1,
                                                      xsize, actual_ys + 32,
@@ -1013,10 +964,6 @@ vid_poll(void *priv)
                             if (use_video_ext_frame_blit) {
                                 video_blit_memtoscreen(blit_x, blit_y,
                                                        xsize, use_exact_frame_geometry ? actual_ys : (actual_ys >> 1));
-                            } else if (video != NULL) {
-                                video_blit_memtoscreen(stable_blit_x,
-                                                       stable_blit_y,
-                                                       xsize, actual_ys >> 1);
                             } else if (enable_overscan) {
                                 video_blit_memtoscreen(0, pcjr->firstline,
                                                        xsize, (actual_ys >> 1) + 16);
