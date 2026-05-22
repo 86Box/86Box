@@ -25,9 +25,9 @@
 #define PCJX_VIDEO_IO_CRTC  0x08
 
 static void pcjx_video_sync_active_view(pcjx_video_t *video);
-static int pcjx_video_renderer_uses_secondary(const pcjx_video_t *video);
-static int pcjx_video_effective_mode_viewport(const pcjx_video_t *video);
-static int pcjx_video_columns(const pcjx_video_t *video);
+static uint8_t pcjx_video_renderer_uses_secondary(const pcjx_video_t *video);
+static uint8_t pcjx_video_effective_mode_viewport(const pcjx_video_t *video);
+static uint8_t pcjx_video_columns(const pcjx_video_t *video);
 static uint16_t pcjx_video_cursoraddr(const pcjx_video_t *video);
 static void pcjx_video_waitstates(void);
 
@@ -81,7 +81,7 @@ pcjx_video_gate_active_mask(const pcjx_video_t *video)
     return video->gate_io_mask & 0x03;
 }
 
-static int
+static uint8_t
 pcjx_video_gate_status_viewport(uint8_t gate_mask)
 {
     if (gate_mask & 0x01)
@@ -90,7 +90,7 @@ pcjx_video_gate_status_viewport(uint8_t gate_mask)
     return 1;
 }
 
-static int
+static uint8_t
 pcjx_video_control_io_enabled(const pcjx_video_t *video, uint8_t mask)
 {
     if (video == NULL)
@@ -108,7 +108,7 @@ pcjx_video_font_byte(const pcjx_video_t *video, uint32_t offset)
     return video->font_rom[offset & video->font_rom_mask];
 }
 
-int
+uint8_t
 pcjx_video_is_extended_active(const pcjx_video_t *video)
 {
     if (video == NULL)
@@ -117,7 +117,7 @@ pcjx_video_is_extended_active(const pcjx_video_t *video)
     return !!(video->gate.palette_mask[1] & 0x80);
 }
 
-static int
+static uint8_t
 pcjx_video_extended_graphics_mode(const pcjx_video_t *video)
 {
     if (video == NULL)
@@ -126,7 +126,7 @@ pcjx_video_extended_graphics_mode(const pcjx_video_t *video)
     return !!(video->ex.regs[2] & 0x02);
 }
 
-static int
+static uint8_t
 pcjx_video_extended_video_enabled(const pcjx_video_t *video)
 {
     if (video == NULL)
@@ -135,7 +135,7 @@ pcjx_video_extended_video_enabled(const pcjx_video_t *video)
     return !!(video->ex.regs[2] & 0x08);
 }
 
-static int
+static uint8_t
 pcjx_video_columns(const pcjx_video_t *video)
 {
     return (video != NULL) ? video->host.crtc[1] : 0;
@@ -153,17 +153,17 @@ pcjx_video_cursoraddr(const pcjx_video_t *video)
 static void
 pcjx_video_waitstates(void)
 {
-    static const int ws_array[16] = { 0, 1, 1, 1, 2, 2, 2, 3,
-                                      3, 3, 4, 4, 4, 5, 5, 5 };
+    static const uint8_t ws_array[16] = { 0, 1, 1, 1, 2, 2, 2, 3,
+                                          3, 3, 4, 4, 4, 5, 5, 5 };
 
     cycles -= ws_array[cycles & 0xf];
 }
 
-int
+uint16_t
 pcjx_video_extended_render_width(const pcjx_video_t *video)
 {
-    int cell_width;
-    int columns;
+    uint8_t cell_width;
+    uint8_t columns;
 
     if (video == NULL)
         return 0;
@@ -185,7 +185,7 @@ pcjx_video_mark_changed(pcjx_video_t *video)
 static void
 pcjx_video_mark_renderer_changed(pcjx_video_t *video)
 {
-    int viewport;
+    uint8_t viewport;
 
     if (video == NULL)
         return;
@@ -197,7 +197,7 @@ pcjx_video_mark_renderer_changed(pcjx_video_t *video)
 }
 
 static void
-pcjx_video_sync_registers(pcjx_video_t *video, int viewport)
+pcjx_video_sync_registers(pcjx_video_t *video, uint8_t viewport)
 {
     if (video == NULL)
         return;
@@ -207,8 +207,8 @@ pcjx_video_sync_registers(pcjx_video_t *video, int viewport)
     pcjx_video_mark_renderer_changed(video);
 }
 
-static int
-pcjx_video_viewport_output_enabled(const pcjx_video_t *video, int viewport)
+static uint8_t
+pcjx_video_viewport_output_enabled(const pcjx_video_t *video, uint8_t viewport)
 {
     if (video == NULL)
         return 1;
@@ -216,7 +216,7 @@ pcjx_video_viewport_output_enabled(const pcjx_video_t *video, int viewport)
     return !!(video->gate.mode1[viewport] & 0x08);
 }
 
-int
+uint8_t
 pcjx_video_needs_combined_render(const pcjx_video_t *video)
 {
     uint8_t superimpose_mode;
@@ -279,12 +279,12 @@ pcjx_video_combine_pixels(const pcjx_video_t *video, uint8_t pixel1,
     return pixel1;
 }
 
-static int
+static uint8_t
 pcjx_video_renderer_uses_secondary(const pcjx_video_t *video)
 {
     uint8_t superimpose_mode;
-    int     enable1;
-    int     enable2;
+    uint8_t enable1;
+    uint8_t enable2;
 
     if (video == NULL)
         return 0;
@@ -308,7 +308,7 @@ pcjx_video_renderer_uses_secondary(const pcjx_video_t *video)
     return 0;
 }
 
-static int
+static uint8_t
 pcjx_video_effective_mode_viewport(const pcjx_video_t *video)
 {
     uint8_t superimpose_mode;
@@ -351,10 +351,10 @@ pcjx_video_get_host_state(const pcjx_video_t *video,
     *state = video->host;
 }
 
-int
+uint8_t
 pcjx_video_consume_timings_dirty(pcjx_video_t *video)
 {
-    int timings_dirty;
+    uint8_t timings_dirty;
 
     if (video == NULL)
         return 0;
@@ -364,10 +364,10 @@ pcjx_video_consume_timings_dirty(pcjx_video_t *video)
     return timings_dirty;
 }
 
-int
+uint8_t
 pcjx_video_consume_change_requested(pcjx_video_t *video)
 {
-    int change_requested;
+    uint8_t change_requested;
 
     if (video == NULL)
         return 0;
@@ -381,7 +381,7 @@ void
 pcjx_video_get_effective_render_mode(const pcjx_video_t *video,
                                      uint8_t *mode1, uint8_t *mode2)
 {
-    int viewport;
+    uint8_t viewport;
 
     if ((mode1 == NULL) && (mode2 == NULL))
         return;
@@ -393,13 +393,13 @@ pcjx_video_get_effective_render_mode(const pcjx_video_t *video,
         *mode2 = (video != NULL) ? video->gate.mode2[viewport] : 0;
 }
 
-int
+int8_t
 pcjx_video_render_x_bias(const pcjx_video_t *video)
 {
     return (video != NULL) ? 48 : 0;
 }
 
-int
+int8_t
 pcjx_video_render_y_bias(const pcjx_video_t *video)
 {
     return (video != NULL) ? 2 : 0;
@@ -415,8 +415,8 @@ pcjx_video_timing_scale(const pcjx_video_t *video)
 }
 
 static void
-pcjx_video_correct_display_position(pcjx_video_t *video, int new_start_x,
-                                    int new_start_y)
+pcjx_video_correct_display_position(pcjx_video_t *video, int16_t new_start_x,
+                                    int16_t new_start_y)
 {
     uint16_t dx;
     uint16_t dy;
@@ -462,15 +462,15 @@ pcjx_video_correct_display_position(pcjx_video_t *video, int new_start_x,
 }
 
 void
-pcjx_video_update_display_position(pcjx_video_t *video, int raw_start_x,
-                                   int raw_start_y)
+pcjx_video_update_display_position(pcjx_video_t *video, int16_t raw_start_x,
+                                   int16_t raw_start_y)
 {
     pcjx_video_correct_display_position(video, raw_start_x, raw_start_y);
 }
 
 void
-pcjx_video_get_display_position(const pcjx_video_t *video, int *start_x,
-                                int *start_y)
+pcjx_video_get_display_position(const pcjx_video_t *video, int16_t *start_x,
+                                int16_t *start_y)
 {
     if (start_x != NULL)
         *start_x = ((video != NULL) && video->display.initialized) ?
@@ -480,17 +480,17 @@ pcjx_video_get_display_position(const pcjx_video_t *video, int *start_x,
                        video->display.start_y : 0;
 }
 
-int
+uint8_t
 pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
-                                   int firstline, int render_ho_d,
-                                   int double_type, int *blit_x,
-                                   int *blit_y, int *frame_width,
-                                   int *frame_height)
+                                   int16_t firstline, int16_t render_ho_d,
+                                   uint8_t double_type, int16_t *blit_x,
+                                   int16_t *blit_y, uint16_t *frame_width,
+                                   uint16_t *frame_height)
 {
     int16_t render_y_bias;
     int16_t raw_blit_y;
-    int     stable_x;
-    int     stable_y;
+    int16_t stable_x;
+    int16_t stable_y;
     uint8_t extended_active;
 
     if (video == NULL)
@@ -534,10 +534,10 @@ pcjx_video_secondary_crt_base(const pcjx_video_t *video)
 }
 
 static void
-pcjx_video_apply_gate_array_reg(pcjx_video_t *video, int viewport, uint8_t reg,
+pcjx_video_apply_gate_array_reg(pcjx_video_t *video, uint8_t viewport, uint8_t reg,
                                 uint8_t val)
 {
-    int sync_active = 0;
+    uint8_t sync_active = 0;
 
     if (video == NULL)
         return;
@@ -790,7 +790,7 @@ pcjx_video_b800_read(const pcjx_video_t *video, uint32_t addr)
 static void
 pcjx_video_sync_active_view(pcjx_video_t *video)
 {
-    int register_viewport;
+    uint8_t register_viewport;
 
     if (video == NULL)
         return;
@@ -944,13 +944,13 @@ pcjx_video_blank_color(const pcjx_video_t *video)
     return video->gate.border_color & 0x0f;
 }
 
-static int
+static uint8_t
 pcjx_video_mode_uses_hires(uint8_t mode1)
 {
     return !!(mode1 & 0x01);
 }
 
-static int
+static uint8_t
 pcjx_video_cell_width(const pcjx_video_t *video, uint8_t superimpose_mode)
 {
     if (video == NULL)
@@ -977,8 +977,8 @@ pcjx_video_primary_crt_base(const pcjx_video_t *video)
     return base & (video->program_size - 1);
 }
 
-static int
-pcjx_video_viewport_uses_program_memory(const pcjx_video_t *video, int viewport)
+static uint8_t
+pcjx_video_viewport_uses_program_memory(const pcjx_video_t *video, uint8_t viewport)
 {
     if (video == NULL)
         return 0;
@@ -990,7 +990,7 @@ pcjx_video_viewport_uses_program_memory(const pcjx_video_t *video, int viewport)
 }
 
 static uint32_t
-pcjx_video_viewport_readtop(const pcjx_video_t *video, int viewport)
+pcjx_video_viewport_readtop(const pcjx_video_t *video, uint8_t viewport)
 {
     if (pcjx_video_viewport_uses_program_memory(video, viewport)) {
         if ((viewport & 0x01) == 0)
@@ -1010,7 +1010,7 @@ pcjx_video_viewport_readtop(const pcjx_video_t *video, int viewport)
 }
 
 static uint8_t
-pcjx_video_viewport_read_byte(const pcjx_video_t *video, int viewport,
+pcjx_video_viewport_read_byte(const pcjx_video_t *video, uint8_t viewport,
                               uint32_t offset)
 {
     if (video == NULL)
@@ -1027,7 +1027,7 @@ pcjx_video_viewport_read_byte(const pcjx_video_t *video, int viewport,
 }
 
 static void
-pcjx_video_fill_raw_pixels(uint8_t *pixels, int width, uint8_t color)
+pcjx_video_fill_raw_pixels(uint8_t *pixels, uint8_t width, uint8_t color)
 {
     if ((pixels == NULL) || (width <= 0))
         return;
@@ -1036,10 +1036,10 @@ pcjx_video_fill_raw_pixels(uint8_t *pixels, int width, uint8_t color)
 }
 
 typedef struct pcjx_video_text_render_state_t {
-    int      blink_phase;
+    uint8_t  blink_phase;
     uint8_t  mode1;
     uint8_t  mode2;
-    int      ra;
+    uint8_t  ra;
     uint8_t  cursor;
 } pcjx_video_text_render_state_t;
 
@@ -1047,7 +1047,7 @@ typedef struct pcjx_video_viewport_render_state_t {
     uint16_t text_memaddr;
     uint16_t graphics_gma;
     uint16_t cursoraddr;
-    int      blink_phase;
+    uint8_t  blink_phase;
     uint8_t  graphics_gra;
     uint8_t  text_ra;
 } pcjx_video_viewport_render_state_t;
@@ -1055,21 +1055,21 @@ typedef struct pcjx_video_viewport_render_state_t {
 typedef struct pcjx_video_extended_text_render_state_t {
     uint16_t base_memaddr;
     uint16_t cursoraddr;
-    int      blink_phase;
+    uint8_t  blink_phase;
     uint8_t  scanline;
 } pcjx_video_extended_text_render_state_t;
 
 typedef struct pcjx_video_extended_render_state_t {
     uint16_t base_memaddr;
     uint16_t cursoraddr;
-    int      blink_phase;
+    uint8_t  blink_phase;
     uint8_t  scanline;
     uint16_t graphics_gma;
     uint8_t  graphics_gra;
 } pcjx_video_extended_render_state_t;
 
 static void
-pcjx_video_render_raw_text_25(const pcjx_video_t *video, int viewport,
+pcjx_video_render_raw_text_25(const pcjx_video_t *video, uint8_t viewport,
                               uint16_t memaddr,
                               const pcjx_video_text_render_state_t *state,
                               uint8_t *pixels)
@@ -1104,12 +1104,12 @@ pcjx_video_render_raw_text_25(const pcjx_video_t *video, int viewport,
         glyph = pcjx_video_font_byte(video, glyph_addr | ((uint32_t) state->ra << 1));
 
     if (pcjx_video_mode_uses_hires(state->mode1)) {
-        for (int pixel = 0; pixel < 8; pixel++, glyph <<= 1)
+        for (uint8_t pixel = 0; pixel < 8; pixel++, glyph <<= 1)
             pixels[pixel] = (glyph & 0x80) ? fg : bg;
         return;
     }
 
-    for (int pixel = 0; pixel < 8; pixel++, glyph <<= 1) {
+    for (uint8_t pixel = 0; pixel < 8; pixel++, glyph <<= 1) {
         uint8_t color = (glyph & 0x80) ? fg : bg;
 
         pixels[pixel << 1]       = color;
@@ -1172,12 +1172,12 @@ pcjx_video_render_raw_text_kanji(const pcjx_video_t *video, uint16_t memaddr,
         glyph = pcjx_video_font_byte(video, glyph_addr | ((uint32_t) state->ra << 1));
 
     if (pcjx_video_mode_uses_hires(state->mode1)) {
-        for (int pixel = 0; pixel < 8; pixel++, glyph <<= 1)
+        for (uint8_t pixel = 0; pixel < 8; pixel++, glyph <<= 1)
             pixels[pixel] = (glyph & 0x80) ? fg : bg;
         return;
     }
 
-    for (int pixel = 0; pixel < 8; pixel++, glyph <<= 1) {
+    for (uint8_t pixel = 0; pixel < 8; pixel++, glyph <<= 1) {
         uint8_t color = (glyph & 0x80) ? fg : bg;
 
         pixels[pixel << 1]       = color;
@@ -1186,8 +1186,8 @@ pcjx_video_render_raw_text_kanji(const pcjx_video_t *video, uint16_t memaddr,
 }
 
 static void
-pcjx_video_render_raw_graphics(const pcjx_video_t *video, int viewport,
-                               uint16_t gma, int graphics_row,
+pcjx_video_render_raw_graphics(const pcjx_video_t *video, uint8_t viewport,
+                               uint16_t gma, uint8_t graphics_row,
                                uint8_t mode1, uint8_t mode2,
                                uint8_t *pixels)
 {
@@ -1195,8 +1195,8 @@ pcjx_video_render_raw_graphics(const pcjx_video_t *video, int viewport,
     uint32_t voff;
     uint8_t  d1;
     uint8_t  d2;
-    int      colors;
-    int      graphics_bank;
+    uint8_t  colors;
+    uint8_t  graphics_bank;
 
     readtop = pcjx_video_viewport_readtop(video, viewport);
     graphics_bank = graphics_row & (pcjx_video_mode_uses_hires(mode1) ? 0x03 : 0x01);
@@ -1219,9 +1219,9 @@ pcjx_video_render_raw_graphics(const pcjx_video_t *video, int viewport,
 
     switch (colors) {
         case 1:
-            for (int pixel = 0; pixel < 8; pixel++, d1 <<= 1)
+            for (uint8_t pixel = 0; pixel < 8; pixel++, d1 <<= 1)
                 pixels[pixel] = (d1 & 0x80) >> 7;
-            for (int pixel = 0; pixel < 8; pixel++, d2 <<= 1)
+            for (uint8_t pixel = 0; pixel < 8; pixel++, d2 <<= 1)
                 pixels[pixel + 8] = (d2 & 0x80) >> 7;
             return;
 
@@ -1242,20 +1242,20 @@ pcjx_video_render_raw_graphics(const pcjx_video_t *video, int viewport,
 
         default:
             if (pcjx_video_mode_uses_hires(mode1)) {
-                for (int pixel = 0; pixel < 8; pixel++, d1 <<= 1, d2 <<= 1)
+                for (uint8_t pixel = 0; pixel < 8; pixel++, d1 <<= 1, d2 <<= 1)
                     pixels[pixel] = (uint8_t) (((d1 & 0x80) >> 7) | ((d2 & 0x80) >> 6));
                 return;
             }
 
-            for (int pixel = 0; pixel < 4; pixel++, d1 <<= 2) {
+            for (uint8_t pixel = 0; pixel < 4; pixel++, d1 <<= 2) {
                 uint8_t color = (d1 & 0xc0) >> 6;
 
                 pixels[pixel << 1]       = color;
                 pixels[(pixel << 1) + 1] = color;
             }
-            for (int pixel = 0; pixel < 4; pixel++, d2 <<= 2) {
+            for (uint8_t pixel = 0; pixel < 4; pixel++, d2 <<= 2) {
                 uint8_t color = (d2 & 0xc0) >> 6;
-                int     base  = 8 + (pixel << 1);
+                uint8_t base  = 8 + (pixel << 1);
 
                 pixels[base]     = color;
                 pixels[base + 1] = color;
@@ -1265,7 +1265,7 @@ pcjx_video_render_raw_graphics(const pcjx_video_t *video, int viewport,
 }
 
 static uint16_t
-pcjx_video_graphics_gma(pcjx_video_t *video, int viewport,
+pcjx_video_graphics_gma(pcjx_video_t *video, uint8_t viewport,
                         uint16_t start_memaddr, uint8_t mode1)
 {
     if (video == NULL)
@@ -1286,7 +1286,7 @@ pcjx_video_begin_non_extended_display(pcjx_video_t *video,
     if (video == NULL)
         return;
 
-    for (int viewport = 0; viewport < 2; viewport++) {
+    for (uint8_t viewport = 0; viewport < 2; viewport++) {
         if (video->graphics.valid[viewport])
             continue;
 
@@ -1298,10 +1298,10 @@ pcjx_video_begin_non_extended_display(pcjx_video_t *video,
 }
 
 static void
-pcjx_video_tick_graphics_state(pcjx_video_t *video, int viewport,
-                               uint8_t mode1, int columns)
+pcjx_video_tick_graphics_state(pcjx_video_t *video, uint8_t viewport,
+                               uint8_t mode1, uint8_t columns)
 {
-    int repeat_count;
+    uint8_t  repeat_count;
     uint16_t next_gma;
 
     if (video == NULL)
@@ -1324,8 +1324,8 @@ pcjx_video_tick_graphics_state(pcjx_video_t *video, int viewport,
 }
 
 static void
-pcjx_video_advance_viewport_line(pcjx_video_t *video, int viewport,
-                                 int columns)
+pcjx_video_advance_viewport_line(pcjx_video_t *video, uint8_t viewport,
+                                 uint8_t columns)
 {
     uint8_t mode1;
 
@@ -1339,14 +1339,14 @@ pcjx_video_advance_viewport_line(pcjx_video_t *video, int viewport,
 }
 
 static void
-pcjx_video_render_raw_cell(const pcjx_video_t *video, int viewport,
+pcjx_video_render_raw_cell(const pcjx_video_t *video, uint8_t viewport,
                            const pcjx_video_viewport_render_state_t *state,
-                           int column, uint8_t *pixels)
+                           uint8_t column, uint8_t *pixels)
 {
     pcjx_video_text_render_state_t text_state;
-    uint16_t      text_memaddr;
-    uint8_t       mode1;
-    uint8_t       mode2;
+    uint16_t text_memaddr;
+    uint8_t  mode1;
+    uint8_t  mode2;
 
     if ((video == NULL) || (state == NULL) || (pixels == NULL))
         return;
@@ -1385,9 +1385,9 @@ pcjx_video_render_raw_cell(const pcjx_video_t *video, int viewport,
 static uint8_t
 pcjx_video_resolve_cell_pixel(const pcjx_video_t *video,
                               uint8_t superimpose_mode,
-                              int enable1, int enable2,
+                              uint8_t enable1, uint8_t enable2,
                               const uint8_t *primary_cell,
-                              const uint8_t *secondary_cell, int pixel)
+                              const uint8_t *secondary_cell, uint8_t pixel)
 {
     uint8_t pixel1;
     uint8_t pixel2;
@@ -1445,19 +1445,19 @@ pcjx_video_resolve_cell_pixel(const pcjx_video_t *video,
 
 static void
 pcjx_video_render_non_extended_cells(const pcjx_video_t *video, int line,
-                                     int ho_d, int cell_width,
-                                     int superimpose_mode,
-                                     int enable1, int enable2,
+                                     int ho_d, uint8_t cell_width,
+                                     uint8_t superimpose_mode,
+                                     uint8_t enable1, uint8_t enable2,
                                      const pcjx_video_viewport_render_state_t *viewport_state)
 {
-    int columns;
+    uint8_t columns;
 
     if ((video == NULL) || (viewport_state == NULL))
         return;
 
     columns = pcjx_video_columns(video);
 
-    for (int column = 0; column < columns; column++) {
+    for (uint8_t column = 0; column < columns; column++) {
         uint8_t primary_cell[16];
         uint8_t secondary_cell[16];
         int     cell_x;
@@ -1473,7 +1473,7 @@ pcjx_video_render_non_extended_cells(const pcjx_video_t *video, int line,
                                        column, secondary_cell);
 
         cell_x = ho_d + (column * cell_width);
-        for (int pixel = 0; pixel < cell_width; pixel++) {
+        for (uint8_t pixel = 0; pixel < cell_width; pixel++) {
             uint8_t color = pcjx_video_resolve_cell_pixel(video,
                                                           (uint8_t) superimpose_mode,
                                                           enable1,
@@ -1488,22 +1488,22 @@ pcjx_video_render_non_extended_cells(const pcjx_video_t *video, int line,
     }
 }
 
-int
+uint8_t
 pcjx_video_render_line(pcjx_video_t *video, int line, int ho_s, int ho_d)
 {
     uint16_t start_memaddr;
     uint16_t cursoraddr;
     uint8_t  superimpose_mode;
-    int      blink_phase;
-    int      enable1;
-    int      enable2;
-    int      columns;
+    uint8_t  blink_phase;
+    uint8_t  enable1;
+    uint8_t  enable2;
+    uint8_t  columns;
     uint16_t text_memaddr;
     uint16_t graphics_memaddr[2];
     uint8_t  text_ra;
     pcjx_video_viewport_render_state_t viewport_state[2];
-    int      cell_width;
-    int      render_width;
+    uint8_t  cell_width;
+    uint16_t render_width;
 
     if (video == NULL)
         return 0;
@@ -1610,7 +1610,7 @@ pcjx_video_extended_text_scanline(const pcjx_video_t *video)
     return (uint8_t) (video->host.scanline & 0x1f);
 }
 
-static int
+static uint8_t
 pcjx_video_extended_text_blink_phase(const pcjx_video_t *video)
 {
     if (video == NULL)
@@ -1620,17 +1620,17 @@ pcjx_video_extended_text_blink_phase(const pcjx_video_t *video)
 }
 
 static void
-pcjx_video_fill_extended_cell(int line, int ef_x, int width, uint8_t color)
+pcjx_video_fill_extended_cell(int line, int ef_x, uint8_t width, uint8_t color)
 {
-    for (int pixel = 0; pixel < width; pixel++)
+    for (uint8_t pixel = 0; pixel < width; pixel++)
         buffer32->line[line][ef_x + pixel] = color + 16;
 }
 
 static void
 pcjx_video_decode_extended_text_attr(const pcjx_video_t *video, uint8_t attr,
-                                     int blink_phase, uint8_t *bg,
+                                     uint8_t blink_phase, uint8_t *bg,
                                      uint8_t *fg, uint8_t *line_color,
-                                     int *hidechar)
+                                     uint8_t *hidechar)
 {
     if ((video == NULL) || (bg == NULL) || (fg == NULL) ||
         (line_color == NULL) || (hidechar == NULL))
@@ -1677,10 +1677,10 @@ static void
 pcjx_video_render_extended_text_glyph(int line, int ef_x, uint8_t attr,
                                       uint8_t glyph, uint8_t bg, uint8_t fg)
 {
-    int     shift;
+    uint8_t shift;
 
     shift = (attr & 0x02) ? 0 : 1;
-    for (int pixel = 0; pixel < 8; pixel++) {
+    for (uint8_t pixel = 0; pixel < 8; pixel++) {
         uint8_t color = (glyph & (1 << (7 - pixel))) ? fg : bg;
 
         buffer32->line[line][ef_x + pixel + shift] = color + 16;
@@ -1719,7 +1719,7 @@ pcjx_video_extended_text_glyph_addr(const pcjx_video_t *video, uint16_t memaddr,
 
 static uint8_t
 pcjx_video_extended_text_glyph_row(const pcjx_video_t *video,
-                                   uint32_t glyph_addr, int scanline)
+                                   uint32_t glyph_addr, uint8_t scanline)
 {
     if ((scanline < 2) || (scanline >= 18))
         return 0x00;
@@ -1728,11 +1728,11 @@ pcjx_video_extended_text_glyph_row(const pcjx_video_t *video,
                                 glyph_addr | ((uint32_t) (scanline - 2) << 1));
 }
 
-static int
+static uint8_t
 pcjx_video_render_extended_text_cell(const pcjx_video_t *video, int line,
                                      int ho_d, uint16_t memaddr,
                                      const pcjx_video_extended_text_render_state_t *state,
-                                     int prev_drawcursor)
+                                     uint8_t prev_drawcursor)
 {
     uint32_t      voff;
     uint8_t       chr;
@@ -1742,10 +1742,10 @@ pcjx_video_render_extended_text_cell(const pcjx_video_t *video, int line,
     uint8_t       bg;
     uint8_t       fg;
     uint8_t       line_color;
-    int           hidechar = 0;
-    int           drawcursor;
-    int           ef_x;
-    int           render_cursor;
+    uint8_t       hidechar = 0;
+    uint8_t       drawcursor;
+    int16_t       ef_x;
+    uint8_t       render_cursor;
 
     if ((video == NULL) || (state == NULL))
         return 0;
@@ -1776,7 +1776,7 @@ pcjx_video_render_extended_text_cell(const pcjx_video_t *video, int line,
 
     if (render_cursor) {
         if (!(video->ex.regs[5] & 0x80) && (video->ex.regs[2] & 0x01)) {
-            for (int pixel = 0; pixel < 9; pixel++)
+            for (uint8_t pixel = 0; pixel < 9; pixel++)
                 buffer32->line[line][ef_x + pixel] ^= 0x0f;
         } else
             pcjx_video_fill_extended_cell(line, ef_x, 9, fg);
@@ -1786,7 +1786,7 @@ pcjx_video_render_extended_text_cell(const pcjx_video_t *video, int line,
 }
 
 static void
-pcjx_video_write_gate_array_view(pcjx_video_t *video, int viewport, uint8_t val)
+pcjx_video_write_gate_array_view(pcjx_video_t *video, uint8_t viewport, uint8_t val)
 {
     if (viewport == 0) {
         if (!video->gate.latched[0]) {
@@ -1810,7 +1810,7 @@ pcjx_video_write_gate_array_view(pcjx_video_t *video, int viewport, uint8_t val)
     }
 }
 
-static int
+static uint8_t
 pcjx_video_write_gate_array(pcjx_video_t *video, uint8_t val)
 {
     uint8_t gate_mask;
@@ -1835,7 +1835,7 @@ pcjx_video_render_extended_graphics_word_unicolor(const pcjx_video_t *video,
 {
     uint8_t base_color = (video->ex.regs[5] & 0x40) ? 8 : 0;
 
-    for (int pixel = 0; pixel < 16; pixel++, data <<= 1)
+    for (uint8_t pixel = 0; pixel < 16; pixel++, data <<= 1)
         buffer32->line[line][ef_x + pixel] = (((data & 0x8000) ? 7 : 0) | base_color) + 16;
 }
 
@@ -1844,7 +1844,7 @@ pcjx_video_render_extended_graphics_word_2color(const pcjx_video_t *video,
                                                 int line, int ef_x,
                                                 uint16_t data)
 {
-    for (int pixel = 0; pixel < 16; pixel++, data <<= 1)
+    for (uint8_t pixel = 0; pixel < 16; pixel++, data <<= 1)
         buffer32->line[line][ef_x + pixel] = (video->ex.palette[(data >> 15) & 0x01] & 0x0f) + 16;
 }
 
@@ -1853,7 +1853,7 @@ pcjx_video_render_extended_graphics_word_4color(const pcjx_video_t *video,
                                                 int line, int ef_x,
                                                 uint16_t data)
 {
-    for (int pixel = 0; pixel < 16; pixel += 2, data <<= 2) {
+    for (uint8_t pixel = 0; pixel < 16; pixel += 2, data <<= 2) {
         uint8_t color = video->ex.palette[(data >> 14) & 0x03] & 0x0f;
 
         buffer32->line[line][ef_x + pixel]     = color + 16;
@@ -1882,14 +1882,14 @@ pcjx_video_render_extended_graphics_word(const pcjx_video_t *video, int line,
 
 static void
 pcjx_video_render_extended_graphics_cell(const pcjx_video_t *video, int line,
-                                         int ho_d, int column,
+                                         int ho_d, uint8_t column,
                                          uint16_t graphics_gma,
                                          uint8_t graphics_gra)
 {
     uint32_t bank_base;
     uint32_t voff;
     uint16_t data;
-    int      ef_x;
+    int16_t  ef_x;
 
     if (video == NULL)
         return;
@@ -1903,11 +1903,11 @@ pcjx_video_render_extended_graphics_cell(const pcjx_video_t *video, int line,
     pcjx_video_render_extended_graphics_word(video, line, ef_x, data);
 }
 
-static int
+static uint8_t
 pcjx_video_render_extended_cell(const pcjx_video_t *video, int line, int ho_d,
-                                int column, int graphics_mode,
+                                uint8_t column, uint8_t graphics_mode,
                                 const pcjx_video_extended_render_state_t *state,
-                                int prev_drawcursor)
+                                uint8_t prev_drawcursor)
 {
     pcjx_video_extended_text_render_state_t text_state;
 
@@ -1942,7 +1942,7 @@ pcjx_video_extended_graphics_gma(pcjx_video_t *video, uint16_t start_memaddr)
 }
 
 static void
-pcjx_video_tick_extended_graphics_state(pcjx_video_t *video, int columns)
+pcjx_video_tick_extended_graphics_state(pcjx_video_t *video, uint8_t columns)
 {
     uint16_t next_gma;
 
@@ -1962,18 +1962,18 @@ pcjx_video_tick_extended_graphics_state(pcjx_video_t *video, int columns)
 }
 
 
-int
+uint8_t
 pcjx_video_render_extended(pcjx_video_t *video, int line, int ho_d)
 {
     pcjx_video_extended_render_state_t state;
     uint16_t start_memaddr;
     uint16_t cursoraddr;
     uint8_t  scanline;
-    int      blink_phase;
-    int      graphics_mode;
-    int      prev_drawcursor = 0;
-    int      columns;
-    int width;
+    uint8_t  blink_phase;
+    uint8_t  graphics_mode;
+    uint8_t  prev_drawcursor = 0;
+    uint8_t  columns;
+    uint16_t width;
 
     if (!pcjx_video_is_extended_active(video))
         return 0;
@@ -2008,7 +2008,7 @@ pcjx_video_render_extended(pcjx_video_t *video, int line, int ho_d)
         return 1;
     }
 
-    for (int column = 0; column < columns; column++)
+    for (uint8_t column = 0; column < columns; column++)
         prev_drawcursor = pcjx_video_render_extended_cell(video, line, ho_d,
                                                           column, graphics_mode,
                                                           &state,
@@ -2026,7 +2026,7 @@ pcjx_video_render_extended(pcjx_video_t *video, int line, int ho_d)
     return 1;
 }
 
-int
+uint8_t
 pcjx_video_out(pcjx_video_t *video, uint16_t addr, uint8_t val)
 {
     if (video == NULL)
@@ -2091,7 +2091,7 @@ pcjx_video_out(pcjx_video_t *video, uint16_t addr, uint8_t val)
     return 0;
 }
 
-int
+uint8_t
 pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val)
 {
     uint8_t gate_mask;

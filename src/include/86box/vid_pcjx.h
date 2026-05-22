@@ -8,10 +8,10 @@ typedef struct pcjx_video_host_state_s {
     uint8_t  crtc[32];
     uint8_t  status;
     uint16_t memaddr;
-    int      scanline;
-    int      blink;
-    int      cursorvisible;
-    int      cursoron;
+    uint8_t  scanline;
+    uint8_t  blink;
+    uint8_t  cursorvisible;
+    uint8_t  cursoron;
 } pcjx_video_host_state_t;
 
 typedef struct pcjx_gate_array_s {
@@ -101,12 +101,12 @@ void pcjx_video_set_host_state(pcjx_video_t *video,
 void pcjx_video_get_host_state(const pcjx_video_t *video,
                                pcjx_video_host_state_t *state);
 void pcjx_video_update_display_position(pcjx_video_t *video,
-                                        int raw_start_x,
-                                        int raw_start_y);
+                                                     int16_t raw_start_x,
+                                                     int16_t raw_start_y);
 void pcjx_video_get_display_position(const pcjx_video_t *video,
-                                     int *start_x, int *start_y);
-int pcjx_video_consume_timings_dirty(pcjx_video_t *video);
-int pcjx_video_consume_change_requested(pcjx_video_t *video);
+                                                 int16_t *start_x, int16_t *start_y);
+uint8_t pcjx_video_consume_timings_dirty(pcjx_video_t *video);
+uint8_t pcjx_video_consume_change_requested(pcjx_video_t *video);
 void pcjx_video_apply_first_window(pcjx_video_t *video, uint32_t base,
                                    uint32_t size, int can_read,
                                    int can_write);
@@ -117,25 +117,25 @@ void pcjx_video_set_font_rom(pcjx_video_t *video, const uint8_t *font_rom,
                              uint32_t font_rom_size);
 void pcjx_video_set_gate_array_io_mask(pcjx_video_t *video, uint8_t io_mask);
 void pcjx_video_set_control_io_mask(pcjx_video_t *video, uint8_t io_mask);
-int pcjx_video_is_extended_active(const pcjx_video_t *video);
+uint8_t pcjx_video_is_extended_active(const pcjx_video_t *video);
 void pcjx_video_get_effective_render_mode(const pcjx_video_t *video,
                                           uint8_t *mode1, uint8_t *mode2);
-int pcjx_video_render_x_bias(const pcjx_video_t *video);
-int pcjx_video_render_y_bias(const pcjx_video_t *video);
+int8_t pcjx_video_render_x_bias(const pcjx_video_t *video);
+int8_t pcjx_video_render_y_bias(const pcjx_video_t *video);
 double pcjx_video_timing_scale(const pcjx_video_t *video);
-int pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
-                                       int firstline, int render_ho_d,
-                                       int double_type, int *blit_x,
-                                       int *blit_y, int *frame_width,
-                                       int *frame_height);
-int pcjx_video_extended_render_width(const pcjx_video_t *video);
-int pcjx_video_render_extended(pcjx_video_t *video, int line, int ho_d);
-int pcjx_video_render_line(pcjx_video_t *video, int line, int ho_s, int ho_d);
-int pcjx_video_needs_combined_render(const pcjx_video_t *video);
+uint8_t pcjx_video_get_frame_blit_geometry(const pcjx_video_t *video,
+                                       int16_t firstline, int16_t render_ho_d,
+                                       uint8_t double_type, int16_t *blit_x,
+                                       int16_t *blit_y, uint16_t *frame_width,
+                                       uint16_t *frame_height);
+uint16_t pcjx_video_extended_render_width(const pcjx_video_t *video);
+uint8_t pcjx_video_render_extended(pcjx_video_t *video, int line, int ho_d);
+uint8_t pcjx_video_render_line(pcjx_video_t *video, int line, int ho_s, int ho_d);
+uint8_t pcjx_video_needs_combined_render(const pcjx_video_t *video);
 uint8_t pcjx_video_combine_pixels(const pcjx_video_t *video, uint8_t pixel1,
                                   uint8_t pixel2);
 uint8_t pcjx_video_blank_color(const pcjx_video_t *video);
 void pcjx_video_b800_write(pcjx_video_t *video, uint32_t addr, uint8_t val);
 uint8_t pcjx_video_b800_read(const pcjx_video_t *video, uint32_t addr);
-int  pcjx_video_out(pcjx_video_t *video, uint16_t addr, uint8_t val);
-int  pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val);
+uint8_t pcjx_video_out(pcjx_video_t *video, uint16_t addr, uint8_t val);
+uint8_t pcjx_video_in(pcjx_video_t *video, uint16_t addr, uint8_t *val);

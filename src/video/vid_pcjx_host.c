@@ -52,8 +52,8 @@ static uint8_t crtcmask[32] = {
 
 static void vid_get_effective_render_mode(const pcjr_t *pcjr, uint8_t *mode1,
                                           uint8_t *mode2);
-static int vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1,
-                                         int ho_s);
+static uint16_t vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1,
+                                              int ho_s);
 
 static pcjx_video_t *
 vid_attached(pcjr_t *pcjr)
@@ -87,10 +87,10 @@ vid_sync_from_pcjr(const pcjr_t *pcjr)
     memcpy(state.crtc, pcjr->crtc, sizeof(state.crtc));
     state.status        = pcjr->status;
     state.memaddr       = pcjr->memaddr;
-    state.scanline      = pcjr->scanline;
-    state.blink         = pcjr->blink;
-    state.cursorvisible = pcjr->cursorvisible;
-    state.cursoron      = pcjr->cursoron;
+    state.scanline      = (uint8_t) pcjr->scanline;
+    state.blink         = (uint8_t) pcjr->blink;
+    state.cursorvisible = (uint8_t) pcjr->cursorvisible;
+    state.cursoron      = (uint8_t) pcjr->cursoron;
     pcjx_video_set_host_state(video, &state);
 }
 
@@ -134,26 +134,26 @@ vid_notify_display_restart(pcjr_t *pcjr)
         pcjx_video_notify_display_restart(video);
 }
 
-static int
+static uint8_t
 vid_mode_uses_hires(uint8_t mode1)
 {
     return !!(mode1 & 0x01);
 }
 
-static int
+static uint8_t
 vid_is_extended_render_active(const pcjr_t *pcjr)
 {
     return pcjx_video_is_extended_active(vid_attached_const(pcjr));
 }
 
-static int
+static uint16_t
 vid_get_extended_render_width(const pcjr_t *pcjr)
 {
     vid_sync_from_pcjr(pcjr);
     return pcjx_video_extended_render_width(vid_attached_const(pcjr));
 }
 
-static int
+static uint16_t
 vid_get_render_width(const pcjr_t *pcjr, int ho_s)
 {
     uint8_t mode1;
@@ -183,7 +183,7 @@ vid_get_effective_render_mode(const pcjr_t *pcjr, uint8_t *mode1,
         *mode2 = (pcjr != NULL) ? pcjr->array[3] : 0;
 }
 
-static int
+static uint16_t
 vid_get_h_overscan_size_for_mode(uint8_t mode1)
 {
     if (vid_mode_uses_hires(mode1))
@@ -192,7 +192,7 @@ vid_get_h_overscan_size_for_mode(uint8_t mode1)
     return 256;
 }
 
-static int
+static uint16_t
 vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1, int ho_s)
 {
     if (vid_mode_uses_hires(mode1))
@@ -201,13 +201,13 @@ vid_get_render_width_for_mode(const pcjr_t *pcjr, uint8_t mode1, int ho_s)
     return (pcjr->crtc[1] << 4) + ho_s;
 }
 
-static int
+static int16_t
 vid_get_h_overscan_delta_for_mode(const pcjr_t *pcjr, uint8_t mode1,
                                   uint8_t mode2)
 {
-    int def  = 0x2c;
-    int coef = 16;
-    int ret;
+    int16_t def  = 0x2c;
+    int16_t coef = 16;
+    int16_t ret;
 
     switch ((mode1 & 0x13) | ((mode2 & 0x08) << 5)) {
         case 0x13: /*320x200x16*/
@@ -238,7 +238,7 @@ vid_get_h_overscan_delta_for_mode(const pcjr_t *pcjr, uint8_t mode1,
     if (ret > 8)
         ret = 8;
 
-    return ret * coef;
+    return (int16_t) (ret * coef);
 }
 
 static void
@@ -293,7 +293,7 @@ pcjx_recalc_timings(pcjr_t *pcjr)
     pcjr->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
-static int
+static uint16_t
 vid_get_h_overscan_size(pcjr_t *pcjr)
 {
     uint8_t mode1;
@@ -413,8 +413,9 @@ vid_in(uint16_t addr, void *priv)
 static void
 pcjx_waitstates(void)
 {
-    int ws_array[16] = { 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5 };
-    int ws;
+    static const uint8_t ws_array[16] = { 0, 1, 1, 1, 2, 2, 2, 3,
+                                          3, 3, 4, 4, 4, 5, 5, 5 };
+    uint8_t ws;
 
     ws = ws_array[cycles & 0xf];
     cycles -= ws;
@@ -459,7 +460,7 @@ vid_read(uint32_t addr, void *priv)
     return pcjr->b8000[addr & 0x3fff];
 }
 
-static int
+static int16_t
 vid_get_h_overscan_delta(pcjr_t *pcjr)
 {
     uint8_t mode1;
@@ -475,13 +476,13 @@ vid_get_h_overscan_delta(pcjr_t *pcjr)
 static void
 vid_blit_v_overscan(pcjr_t *pcjr)
 {
-    int                cols = (pcjr->array[2] & 0xf) + 16;
+    uint8_t            cols = (pcjr->array[2] & 0xf) + 16;
     int                y0   = pcjr->firstline;
     int                y    = pcjr->lastline + 8;
     int                h    = 8;
-    int                ho_s = vid_get_h_overscan_size(pcjr);
-    int                i;
-    int                x;
+    uint16_t           ho_s = vid_get_h_overscan_size(pcjr);
+    uint8_t            i;
+    uint16_t           x;
     uint8_t            mode1;
     const pcjx_video_t *video;
 
@@ -736,7 +737,7 @@ vid_render_blank(pcjr_t *pcjr, int line, int ho_s)
 static void
 vid_render_process(pcjr_t *pcjr, int line, int ho_s)
 {
-    int x;
+    uint16_t x;
     uint8_t mode1;
 
     vid_get_effective_render_mode(pcjr, &mode1, NULL);
@@ -752,11 +753,11 @@ vid_render_process(pcjr_t *pcjr, int line, int ho_s)
 
 static void
 vid_get_stabilized_render_position(pcjr_t *pcjr, pcjx_video_t *video,
-                                   int raw_render_l, int raw_render_ho_d,
-                                   int *render_l, int *render_ho_d)
+                                   int16_t raw_render_l, int16_t raw_render_ho_d,
+                                   int16_t *render_l, int16_t *render_ho_d)
 {
-    int start_x;
-    int start_y;
+    int16_t start_x;
+    int16_t start_y;
 
     if (render_l != NULL)
         *render_l = raw_render_l;
@@ -786,26 +787,26 @@ vid_poll(void *priv)
 {
     pcjr_t       *pcjr = (pcjr_t *) priv;
     pcjx_video_t *video;
-    int           x;
-    int           xs_temp;
-    int           ys_temp;
-    int           oldvc;
-    int           scanline_old;
-    int           l = pcjr->displine + 8;
-    int           ho_s = vid_get_h_overscan_size(pcjr);
-    int           ho_d = vid_get_h_overscan_delta(pcjr) + (ho_s / 2);
-    int           raw_render_l;
-    int           raw_render_ho_d;
-    int           render_l;
-    int           render_ho_d;
+    uint16_t      x;
+    uint16_t      xs_temp;
+    uint16_t      ys_temp;
+    uint8_t       oldvc;
+    uint8_t       scanline_old;
+    int16_t       l = pcjr->displine + 8;
+    uint16_t      ho_s = vid_get_h_overscan_size(pcjr);
+    int16_t       ho_d = (int16_t) (vid_get_h_overscan_delta(pcjr) + (ho_s / 2));
+    int16_t       raw_render_l;
+    int16_t       raw_render_ho_d;
+    int16_t       render_l;
+    int16_t       render_ho_d;
     int           old_ma;
-    int           stable_blit_x = 0;
-    int           stable_blit_y = 0;
-    int           extended_render_active = vid_is_extended_render_active(pcjr);
+    int16_t       stable_blit_x = 0;
+    int16_t       stable_blit_y = 0;
+    uint8_t       extended_render_active = vid_is_extended_render_active(pcjr);
 
     video          = vid_attached(pcjr);
-    raw_render_l   = l + pcjx_video_render_y_bias(video);
-    raw_render_ho_d = ho_d + pcjx_video_render_x_bias(video);
+    raw_render_l   = (int16_t) (l + pcjx_video_render_y_bias(video));
+    raw_render_ho_d = (int16_t) (ho_d + pcjx_video_render_x_bias(video));
     render_l       = raw_render_l;
     render_ho_d    = raw_render_ho_d;
 
@@ -820,10 +821,10 @@ vid_poll(void *priv)
             if (pcjr->displine < pcjr->firstline) {
                 pcjr->firstline = pcjr->displine;
                 if (video != NULL) {
-                    int raw_start_y;
+                    int16_t raw_start_y;
 
                     if (pcjr->double_type > DOUBLE_NONE)
-                        raw_start_y = raw_render_l << 1;
+                        raw_start_y = (int16_t) (raw_render_l << 1);
                     else
                         raw_start_y = raw_render_l;
 
@@ -936,10 +937,10 @@ vid_poll(void *priv)
                 picint(1 << 5);
                 vid_notify_display_restart(pcjr);
                 if (pcjr->crtc[7]) {
-                    int blit_x              = 0;
-                    int blit_y              = 0;
-                    int use_video_ext_frame_blit = 0;
-                    int use_exact_frame_geometry = 0;
+                    int16_t blit_x              = 0;
+                    int16_t blit_y              = 0;
+                    uint8_t use_video_ext_frame_blit = 0;
+                    uint8_t use_exact_frame_geometry = 0;
 
                     x = vid_get_render_width(pcjr, ho_s);
                     pcjr->lastline++;
@@ -961,7 +962,7 @@ vid_poll(void *priv)
                     }
 
                     if ((xs_temp > 0) && (ys_temp > 0)) {
-                        int actual_ys = ys_temp;
+                        uint16_t actual_ys = ys_temp;
 
                         if (!use_video_ext_frame_blit) {
                             if (xs_temp < 64)
