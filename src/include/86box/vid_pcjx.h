@@ -82,8 +82,6 @@ typedef struct pcjx_video_raster_state_s {
     uint16_t vsync_count;
     uint8_t first_visible_valid;
     uint8_t restart_pending;
-    uint8_t vsync_pending;
-    uint8_t frame_pending;
 } pcjx_video_raster_state_t;
 
 typedef struct pcjx_video_s {
