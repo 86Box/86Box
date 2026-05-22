@@ -199,12 +199,16 @@ pcjx_video_notify_display_restart(pcjx_video_t *video)
     if (video == NULL)
         return;
 
+    if (video->display_restart_pending)
+        return;
+
     video->display_restart_pending = 1;
+    video->raster.first_visible_valid = 0;
+    video->raster.restart_pending     = 1;
     pcjx_video_log(video->log,
                    "Display restart latched memaddr=%04X conv=(%d,%d)\n",
                    video->host.memaddr, video->raster.conv_x,
                    video->raster.conv_y);
-    pcjx_video_reset_raster_state(video);
 }
 
 static void
