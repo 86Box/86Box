@@ -391,7 +391,7 @@ ems_readb(uint32_t addr, void *priv)
     ret = *(uint8_t *) (dev->addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
-        isamem_log("EMS readb(%06x) = %02x\n", addr & 0x3fff, ret);
+        isamem_log(dev->log, "EMS readb(%06x) = %02x\n", addr & 0x3fff, ret);
 #endif
 
     return ret;
@@ -408,7 +408,7 @@ ems_readw(uint32_t addr, void *priv)
     ret = *(uint16_t *) (dev->addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
-        isamem_log("EMS readw(%06x) = %04x\n", addr & 0x3fff, ret);
+        isamem_log(dev->log, "EMS readw(%06x) = %04x\n", addr & 0x3fff, ret);
 #endif
 
     return ret;
@@ -423,7 +423,7 @@ ems_writeb(uint32_t addr, uint8_t val, void *priv)
     /* Write the data. */
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
-        isamem_log("EMS writeb(%06x, %02x)\n", addr & 0x3fff, val);
+        isamem_log(dev->log, "EMS writeb(%06x, %02x)\n", addr & 0x3fff, val);
 #endif
     *(uint8_t *) (dev->addr + (addr & 0x3fff)) = val;
 }
@@ -437,7 +437,7 @@ ems_writew(uint32_t addr, uint16_t val, void *priv)
     /* Write the data. */
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
-        isamem_log("EMS writew(%06x, %04x)\n", addr & 0x3fff, val);
+        isamem_log(dev->log, "EMS writew(%06x, %04x)\n", addr & 0x3fff, val);
 #endif
     *(uint16_t *) (dev->addr + (addr & 0x3fff)) = val;
 }
