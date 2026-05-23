@@ -123,6 +123,8 @@
 #define READ_Y_LOW          (READ_Y | READ_LOW)
 #define READ_Y_HIGH         (READ_Y | READ_HIGH)
 
+#define MOUSE_BUS_BOOSTER   0x100
+
 #define FLAG_INPORT         (1 << 0)
 #define FLAG_ENABLED        (1 << 1)
 #define FLAG_HOLD           (1 << 2)
@@ -611,15 +613,21 @@ bm_init(const device_t *info)
 {
     mouse_t *dev;
     int      hz;
+    int      is_booster;
 
     dev = (mouse_t *) calloc(1, sizeof(mouse_t));
+    is_booster = !!(info->local & MOUSE_BUS_BOOSTER);
 
     if ((info->local & ~MOUSE_TYPE_ONBOARD) == MOUSE_TYPE_INPORT)
         dev->flags = FLAG_INPORT;
     else
         dev->flags = 0;
 
-    if (info->local & MOUSE_TYPE_ONBOARD) {
+    if (is_booster) {
+        dev->base = 0x023c;
+        dev->irq  = device_get_config_int("irq");
+        dev->bn   = 2;
+    } else if (info->local & MOUSE_TYPE_ONBOARD) {
         dev->base = 0x023c;
         dev->irq  = -1;
         dev->bn   = 2;
@@ -655,7 +663,7 @@ bm_init(const device_t *info)
                                     default state of the 8255: all ports
                                     are set to input */
 
-        hz = device_get_config_int("hz");
+        hz = is_booster ? 45 : device_get_config_int("hz");
         if (hz > 0)
             dev->period = (1000000.0 / (double) hz);
 
@@ -810,6 +818,29 @@ static const device_config_t ms_config[] = {
   // clang-format on
 };
 
+static const device_config_t booster_config[] = {
+    // clang-format off
+        {
+                .name           = "irq",
+                .description    = "IRQ",
+                .type           = CONFIG_SELECTION,
+                .default_string = NULL,
+                .default_int    = 2,
+                .file_filter    = NULL,
+                .spinner        = { 0 },
+                .selection      = {
+                        { .description = "IRQ 2", .value = 2 },
+                        { .description = "IRQ 3", .value = 3 },
+                        { .description = "IRQ 4", .value = 4 },
+                        { .description = "IRQ 5", .value = 5 },
+                        { .description = ""                  }
+                },
+                .bios           = { { 0 } }
+        },
+        { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
 const device_t mouse_logibus_device = {
     .name          = "Logitech/Microsoft Bus Mouse",
     .internal_name = "logibus",
@@ -836,6 +867,20 @@ const device_t mouse_logibus_onboard_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+const device_t mouse_pcjr_booster_device = {
+    .name          = "PCjr Booster Mouse",
+    .internal_name = "pcjr_booster_mouse",
+    .flags         = DEVICE_ISA | DEVICE_SIDECAR,
+    .local         = MOUSE_TYPE_LOGIBUS | MOUSE_BUS_BOOSTER,
+    .init          = bm_init,
+    .close         = bm_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = booster_config
 };
 
 const device_t mouse_msinport_device = {

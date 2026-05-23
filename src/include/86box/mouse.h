@@ -64,6 +64,7 @@ extern void           *mouse_ps2_init(const device_t *);
 
 extern const device_t mouse_logibus_device;
 extern const device_t mouse_logibus_onboard_device;
+extern const device_t mouse_pcjr_booster_device;
 extern const device_t mouse_msinport_device;
 #    ifdef USE_GENIBUS
 extern const device_t mouse_genibus_device;
