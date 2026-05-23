@@ -388,7 +388,7 @@ char_stdio_init(const device_t *info)
                             /* Determine command to execute. */
                             const char *cmd;
                             if (mode == CHAR_STDIO_MODE_TERM) {
-                                cmd = "sh -c \"$PIPECMD\"";
+                                cmd = "sh -c \"$PIPECMD\";reset;clear";
                             } else {
                                 cmd = device_get_config_string("command");
                                 if (!cmd || !cmd[0]) {
