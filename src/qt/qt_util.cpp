@@ -102,7 +102,7 @@ setWin11RoundedCorners(WId hwnd, bool enable)
 #endif
 
 QString
-DlgFilter(std::initializer_list<QString> extensions, bool last)
+DlgFilter(QStringList extensions, bool last)
 {
     QStringList temp;
 
@@ -124,25 +124,11 @@ DlgFilter(std::initializer_list<QString> extensions, bool last)
 }
 
 QString
-DlgFilter(QStringList extensions, bool last)
+DlgFilter(std::initializer_list<QString> extensions, bool last)
 {
-    QStringList temp;
+    QStringList temp(extensions);
 
-    for (auto ext : extensions) {
-#ifdef Q_OS_UNIX
-        if (ext == "*") {
-            temp.append("*");
-            continue;
-        }
-        temp.append("*." % ext.toUpper());
-#endif
-        temp.append("*." % ext);
-    }
-
-#ifdef Q_OS_UNIX
-    temp.removeDuplicates();
-#endif
-    return " (" % temp.join(' ') % ")" % (!last ? ";;" : "");
+    return DlgFilter(temp, last);
 }
 
 QString
