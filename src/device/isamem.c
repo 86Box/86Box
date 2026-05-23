@@ -334,6 +334,81 @@ iab_eeprom_update(memdev_t *dev, uint16_t start_kb, uint16_t length_kb)
     iab_eeprom_set_word(dev, IAB_EEPROM_WORD_BOARD_ID, 0x0286);
 }
 
+static uint8_t ems_in(uint16_t port, void *priv);
+static void    ems_out(uint16_t port, uint8_t val, void *priv);
+
+static uint8_t
+iab_window_from_port(const memdev_t *dev, uint16_t port)
+{
+    return (uint8_t) (((uint16_t) (port - dev->base_addr[0]) >> 14) & 0x03);
+}
+
+static uint8_t
+iab_offset_from_port(const memdev_t *dev, uint16_t port)
+{
+    return (uint8_t) ((uint16_t) (port - dev->base_addr[0]) & 0x0f);
+}
+
+static uint8_t
+iab_eeprom_word_from_port(const memdev_t *dev, uint16_t port)
+{
+    return (uint8_t) ((iab_window_from_port(dev, port) << 4) | iab_offset_from_port(dev, port));
+}
+
+static uint8_t
+iab_in(uint16_t port, void *priv)
+{
+    memdev_t *dev = (memdev_t *) priv;
+    uint8_t   window;
+    uint8_t   offset;
+
+    window = iab_window_from_port(dev, port);
+    offset = iab_offset_from_port(dev, port);
+
+    if (offset < 2)
+        return ems_in(port, &(dev->ems[window]));
+
+    return (uint8_t) iab_eeprom_get_word(dev, iab_eeprom_word_from_port(dev, port));
+}
+
+static uint16_t
+iab_inw(uint16_t port, void *priv)
+{
+    const memdev_t *dev = (memdev_t *) priv;
+
+    return iab_eeprom_get_word(dev, iab_eeprom_word_from_port(dev, port));
+}
+
+static void
+iab_out(uint16_t port, uint8_t val, void *priv)
+{
+    memdev_t *dev = (memdev_t *) priv;
+    uint8_t   window;
+    uint8_t   offset;
+    uint8_t   word_index;
+    uint16_t  word_value;
+
+    window = iab_window_from_port(dev, port);
+    offset = iab_offset_from_port(dev, port);
+
+    if (offset < 2) {
+        ems_out(port, val, &(dev->ems[window]));
+        return;
+    }
+
+    word_index = iab_eeprom_word_from_port(dev, port);
+    word_value = iab_eeprom_get_word(dev, word_index);
+    iab_eeprom_set_word(dev, word_index, (uint16_t) ((word_value & 0xff00) | val));
+}
+
+static void
+iab_outw(uint16_t port, uint16_t val, void *priv)
+{
+    memdev_t *dev = (memdev_t *) priv;
+
+    iab_eeprom_set_word(dev, iab_eeprom_word_from_port(dev, port), val);
+}
+
 /* Why this convoluted setup with the mem_dev stuff when it's much simpler
    to just pass the exec pointer as p as well, and then just use that. */
 /* Read one byte from onboard RAM. */
@@ -996,7 +1071,10 @@ isamem_init(const device_t *info)
             mem_mapping_disable(&dev->ems[i].mapping);
 
             /* Set up an I/O port handler. */
-            if (dev->board != ISAMEM_LOTECH_EMS_CARD)
+            if (dev->board == ISAMEM_ABOVEBOARD_CARD)
+                io_sethandler(dev->base_addr[0] + (EMS_PGSIZE * i), 0x10,
+                              iab_in, iab_inw, NULL, iab_out, iab_outw, NULL, dev);
+            else if (dev->board != ISAMEM_LOTECH_EMS_CARD)
                 io_sethandler(dev->base_addr[0] + (EMS_PGSIZE * i), 2,
                               ems_in, NULL, NULL, ems_out, NULL, NULL, &(dev->ems[i]));
 
