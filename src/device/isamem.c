@@ -588,6 +588,20 @@ isamem_init(const device_t *info)
             break;
 
         case ISAMEM_ABOVEBOARD_CARD: /* Intel AboveBoard */
+            dev->base_addr[0]   = device_get_config_hex16("base");
+            dev->total_size     = device_get_config_int("size");
+            dev->start_addr     = device_get_config_int("start");
+            tot                 = device_get_config_int("length");
+            if (tot > dev->total_size)
+                tot = dev->total_size;
+            dev->frame_addr[0]  = device_get_config_hex20("frame");
+            dev->flags         |= FLAG_EMS;
+            if (device_get_config_int("width") == 16)
+                dev->flags     |= FLAG_WIDE;
+            if (!!device_get_config_int("speed"))
+                dev->flags     |= FLAG_FAST;
+            break;
+
         case ISAMEM_BRAT_CARD:       /* BocaRAM/AT */
             dev->base_addr[0]   = device_get_config_hex16("base");
             dev->total_size     = device_get_config_int("size");
@@ -595,7 +609,7 @@ isamem_init(const device_t *info)
                 dev->start_addr = device_get_config_int("start");
             dev->frame_addr[0]  = device_get_config_hex20("frame");
             dev->flags         |= FLAG_EMS;
-            if (!!device_get_config_int("width"))
+            if (device_get_config_int("width") == 16)
                 dev->flags     |= FLAG_WIDE;
             if (!!device_get_config_int("speed"))
                 dev->flags     |= FLAG_FAST;
@@ -2146,6 +2160,7 @@ static const device_config_t iab_config[] = {
         .selection      = {
             { .description = "208H", .value = 0x0208 },
             { .description = "218H", .value = 0x0218 },
+            { .description = "248H", .value = 0x0248 },
             { .description = "258H", .value = 0x0258 },
             { .description = "268H", .value = 0x0268 },
             { .description = "2A8H", .value = 0x02A8 },
@@ -2160,13 +2175,19 @@ static const device_config_t iab_config[] = {
         .description    = "Frame Address",
         .type           = CONFIG_HEX20,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 0xD0000,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
             { .description = "Disabled", .value = 0x00000 },
             { .description = "C000H",    .value = 0xC0000 },
+            { .description = "C400H",    .value = 0xC4000 },
+            { .description = "C800H",    .value = 0xC8000 },
+            { .description = "CC00H",    .value = 0xCC000 },
             { .description = "D000H",    .value = 0xD0000 },
+            { .description = "D400H",    .value = 0xD4000 },
+            { .description = "D800H",    .value = 0xD8000 },
+            { .description = "DC00H",    .value = 0xDC000 },
             { .description = "E000H",    .value = 0xE0000 },
             { .description = ""                           }
         },
@@ -2196,9 +2217,9 @@ static const device_config_t iab_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Standard",   .value = 0 },
-            { .description = "High-Speed", .value = 1 },
-            { .description = ""                       }
+            { .description = "Standard (150ns)",   .value = 0 },
+            { .description = "High-Speed (120ns)", .value = 1 },
+            { .description = ""                               }
         },
         .bios           = { { 0 } }
     },
@@ -2207,12 +2228,42 @@ static const device_config_t iab_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SPINNER,
         .default_string = NULL,
-        .default_int    = 128,
+        .default_int    = 2048,
         .file_filter    = NULL,
         .spinner        = {
             .min  =    0,
-            .max  = 8192,
+            .max  = 14336,
             .step =  128
+        },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "start",
+        .description    = "Start Address",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min  =     0,
+            .max  = 14336,
+            .step =   128
+        },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "length",
+        .description    = "Contiguous Size",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min  =     0,
+            .max  = 14336,
+            .step =   128
         },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
