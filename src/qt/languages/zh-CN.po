@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-22 14:01+0000\n"
+"PO-Revision-Date: 2026-05-24 12:01+0000\n"
 "Last-Translator: Canadew <chun-awa@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -65,7 +65,7 @@ msgid "Re&nderer"
 msgstr "渲染器(&N)"
 
 msgid "&Qt (Software)"
-msgstr "Qt (软件)(&Q)"
+msgstr "Qt (软渲)(&Q)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
@@ -1764,7 +1764,9 @@ msgid "Error initializing OpenGL"
 msgstr "初始化 OpenGL 时出错"
 
 msgid "\nFalling back to software rendering."
-msgstr "\n回到软件渲染。"
+msgstr ""
+"\n"
+"退回到软件渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>选择媒体镜像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
@@ -2292,10 +2294,10 @@ msgid "Font"
 msgstr "字体"
 
 msgid "Bilinear filtering"
-msgstr "双线性滤波"
+msgstr "双线性过滤"
 
 msgid "Video chroma-keying"
-msgstr "视频色键透明处理"
+msgstr "视频色键抠像"
 
 msgid "Dithering"
 msgstr "抖动"
