@@ -72,13 +72,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifdef ENABLE_ISAMEM_LOG
 #include <stdarg.h>
+#endif
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#define HAVE_STDARG_H
+//#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include <86box/io.h>
