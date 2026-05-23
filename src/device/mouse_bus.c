@@ -79,6 +79,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/mouse.h>
+#include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/plat_unused.h>
 #include <86box/random.h>
@@ -125,13 +126,25 @@
 
 #define MOUSE_BUS_BOOSTER   0x100
 
+#define BOOSTER_RTC_DIGITS   13
+#define BOOSTER_RTC_NONE     0xff
+
 #define FLAG_INPORT         (1 << 0)
 #define FLAG_ENABLED        (1 << 1)
 #define FLAG_HOLD           (1 << 2)
 #define FLAG_TIMER_INT      (1 << 3)
 #define FLAG_DATA_INT       (1 << 4)
+#define FLAG_BOOSTER        (1 << 5)
 
 static const uint8_t periods[4] = { 30, 50, 100, 200 };
+
+typedef struct booster_rtc {
+    uint8_t    digits[BOOSTER_RTC_DIGITS];
+    uint8_t    data_latch;
+    uint8_t    selected;
+    uint8_t    dirty;
+    pc_timer_t timer;
+} booster_rtc_t;
 
 /* Our mouse device. */
 typedef struct mouse {
@@ -154,9 +167,211 @@ typedef struct mouse {
     int toggle_counter;
     int timer_enabled;
 
+    booster_rtc_t rtc;
+
     double     period;
     pc_timer_t timer; /* mouse event timer */
 } mouse_t;
+
+static void
+booster_rtc_ensure_time_seeded(void)
+{
+    struct tm tm;
+
+    nvr_time_get(&tm);
+    if ((tm.tm_mon >= 0) && (tm.tm_mon <= 11) && (tm.tm_mday >= 1) && (tm.tm_year >= 80))
+        return;
+
+    if (time_sync & TIME_SYNC_ENABLED) {
+        nvr_time_sync();
+        return;
+    }
+
+    memset(&tm, 0x00, sizeof(tm));
+    tm.tm_mday = 1;
+    tm.tm_year = 80;
+    nvr_time_set(&tm);
+}
+
+static void
+booster_rtc_load_digits(mouse_t *dev)
+{
+    struct tm tm;
+    int       year;
+    int       month;
+
+    booster_rtc_ensure_time_seeded();
+    nvr_time_get(&tm);
+
+    year  = (tm.tm_year + 1900) % 100;
+    month = tm.tm_mon + 1;
+
+    dev->rtc.digits[0]  = (uint8_t) (tm.tm_sec % 10);
+    dev->rtc.digits[1]  = (uint8_t) (tm.tm_sec / 10);
+    dev->rtc.digits[2]  = (uint8_t) (tm.tm_min % 10);
+    dev->rtc.digits[3]  = (uint8_t) (tm.tm_min / 10);
+    dev->rtc.digits[4]  = (uint8_t) (tm.tm_hour % 10);
+    dev->rtc.digits[5]  = (uint8_t) (tm.tm_hour / 10);
+    dev->rtc.digits[6]  = (uint8_t) (tm.tm_wday % 7);
+    dev->rtc.digits[7]  = (uint8_t) (tm.tm_mday % 10);
+    dev->rtc.digits[8]  = (uint8_t) (tm.tm_mday / 10);
+    dev->rtc.digits[9]  = (uint8_t) (month % 10);
+    dev->rtc.digits[10] = (uint8_t) (month / 10);
+    dev->rtc.digits[11] = (uint8_t) (year % 10);
+    dev->rtc.digits[12] = (uint8_t) (year / 10);
+}
+
+static void
+booster_rtc_commit(mouse_t *dev)
+{
+    struct tm tm;
+    int       year;
+    int       month;
+
+    year  = ((dev->rtc.digits[12] & 0x0f) * 10) + (dev->rtc.digits[11] & 0x0f);
+    month = ((dev->rtc.digits[10] & 0x01) * 10) + (dev->rtc.digits[9] & 0x0f);
+
+    memset(&tm, 0x00, sizeof(tm));
+    tm.tm_sec  = ((dev->rtc.digits[1] & 0x07) * 10) + (dev->rtc.digits[0] & 0x0f);
+    tm.tm_min  = ((dev->rtc.digits[3] & 0x07) * 10) + (dev->rtc.digits[2] & 0x0f);
+    tm.tm_hour = ((dev->rtc.digits[5] & 0x03) * 10) + (dev->rtc.digits[4] & 0x0f);
+    tm.tm_wday = (dev->rtc.digits[6] & 0x07);
+    tm.tm_mday = ((dev->rtc.digits[8] & 0x03) * 10) + (dev->rtc.digits[7] & 0x0f);
+    tm.tm_mon  = month ? (month - 1) : 0;
+    tm.tm_year = (year < 80) ? (year + 100) : year;
+
+    nvr_time_set(&tm);
+    dev->rtc.dirty = 0;
+}
+
+static int
+booster_rtc_read_index(uint8_t val)
+{
+    uint8_t index;
+
+    if ((val & 0x0f) != 0x05)
+        return -1;
+
+    index = val >> 4;
+    if (index >= BOOSTER_RTC_DIGITS)
+        return -1;
+
+    return index;
+}
+
+static int
+booster_rtc_write_index(uint8_t val)
+{
+    uint8_t index;
+
+    if ((val & 0x0d) != 0x01)
+        return -1;
+
+    index = val >> 4;
+    if (index >= BOOSTER_RTC_DIGITS)
+        return -1;
+
+    return index;
+}
+
+static int
+booster_rtc_read_active(const mouse_t *dev)
+{
+    return ((dev->flags & FLAG_BOOSTER) && (dev->config_val == 0x91) && (dev->rtc.selected != BOOSTER_RTC_NONE));
+}
+
+static int
+booster_rtc_write_active(const mouse_t *dev)
+{
+    return ((dev->flags & FLAG_BOOSTER) && (dev->config_val == 0x90));
+}
+
+static void
+booster_rtc_timer(void *priv)
+{
+    mouse_t *dev = (mouse_t *) priv;
+
+    timer_advance_u64(&dev->rtc.timer, (uint64_t) (1000000ULL * TIMER_USEC));
+
+    if (is_pcjr)
+        rtc_tick();
+}
+
+static int
+booster_lt_control_read(mouse_t *dev, uint8_t *value)
+{
+    uint8_t rtc_index;
+
+    if (!booster_rtc_read_active(dev))
+        return 0;
+
+    booster_rtc_load_digits(dev);
+    rtc_index   = dev->rtc.selected;
+    *value      = dev->rtc.digits[rtc_index] & 0x0f;
+    dev->rtc.selected = BOOSTER_RTC_NONE;
+
+    return 1;
+}
+
+static void
+booster_lt_signature_write(mouse_t *dev, uint8_t val)
+{
+    int rtc_index;
+
+    dev->sig_val = val;
+    if (!(dev->flags & FLAG_BOOSTER))
+        return;
+
+    if (booster_rtc_write_active(dev)) {
+        rtc_index = booster_rtc_write_index(val);
+        if (rtc_index >= 0) {
+            dev->rtc.selected = (uint8_t) rtc_index;
+            if ((val & 0x0f) == 0x03) {
+                dev->rtc.digits[rtc_index] = dev->rtc.data_latch & 0x0f;
+                dev->rtc.dirty             = 1;
+            }
+            return;
+        }
+
+        if ((val & 0x0f) == 0x00)
+            dev->rtc.selected = BOOSTER_RTC_NONE;
+        return;
+    }
+
+    rtc_index = booster_rtc_read_index(val);
+    if (rtc_index >= 0)
+        dev->rtc.selected = (uint8_t) rtc_index;
+    else if ((val & 0x0f) == 0x00)
+        dev->rtc.selected = BOOSTER_RTC_NONE;
+}
+
+static int
+booster_lt_control_write(mouse_t *dev, uint8_t val)
+{
+    if (!booster_rtc_write_active(dev))
+        return 0;
+
+    dev->rtc.data_latch = val & 0x0f;
+    return 1;
+}
+
+static void
+booster_lt_config_write(mouse_t *dev, uint8_t val)
+{
+    if (!(dev->flags & FLAG_BOOSTER))
+        return;
+
+    if ((dev->config_val == 0x90) && (val == 0x91) && dev->rtc.dirty)
+        booster_rtc_commit(dev);
+
+    if (val == 0x90) {
+        booster_rtc_load_digits(dev);
+        dev->rtc.dirty    = 0;
+        dev->rtc.selected = BOOSTER_RTC_NONE;
+    } else if (val == 0x91) {
+        dev->rtc.selected = BOOSTER_RTC_NONE;
+    }
+}
 
 #ifdef ENABLE_MOUSE_BUS_LOG
 int bm_do_log = ENABLE_MOUSE_BUS_LOG;
@@ -213,11 +428,13 @@ lt_read(uint16_t port, void *priv)
             value = dev->sig_val;
             break;
         case BUSM_PORT_CONTROL:
-            value = dev->control_val;
-            dev->control_val |= 0x0F;
-            /* If the conditions are right, simulate the flakiness of the correct IRQ bit. */
-            if (dev->flags & FLAG_TIMER_INT)
-                dev->control_val = (dev->control_val & ~IRQ_MASK) | (random_generate() & IRQ_MASK);
+            if (!booster_lt_control_read(dev, &value)) {
+                value = dev->control_val;
+                dev->control_val |= 0x0F;
+                /* If the conditions are right, simulate the flakiness of the correct IRQ bit. */
+                if (dev->flags & FLAG_TIMER_INT)
+                    dev->control_val = (dev->control_val & ~IRQ_MASK) | (random_generate() & IRQ_MASK);
+            }
             break;
         case BUSM_PORT_CONFIG:
             /* Read from config port returns control_val in the upper 4 bits when enabled,
@@ -301,9 +518,12 @@ lt_write(uint16_t port, uint8_t val, void *priv)
             bm_log("ERROR: Unsupported write to port 0x%04x (value = 0x%02x)\n", port, val);
             break;
         case BUSM_PORT_SIGNATURE:
-            dev->sig_val = val;
+            booster_lt_signature_write(dev, val);
             break;
         case BUSM_PORT_CONTROL:
+            if (booster_lt_control_write(dev, val))
+                break;
+
             dev->control_val = val | 0x0F;
 
             if (!(val & DISABLE_IRQ))
@@ -356,6 +576,8 @@ lt_write(uint16_t port, uint8_t val, void *priv)
              * input to output.
              */
             if (val & DEVICE_ACTIVE) {
+                booster_lt_config_write(dev, val);
+
                 /* Mode set/reset - enable this */
                 dev->config_val = val;
                 if (dev->timer_enabled)
@@ -365,7 +587,7 @@ lt_write(uint16_t port, uint8_t val, void *priv)
                 dev->control_val = 0x0F & ~IRQ_MASK;
             } else {
                 /* Single bit set/reset */
-                bit = 1 << ((val >> 1) & 0x07); /* Bits 3-1 specify the target bit */
+                bit = (uint8_t) (1u << ((val >> 1) & 0x07)); /* Bits 3-1 specify the target bit */
                 if (val & 1)
                     dev->control_val |= bit; /* Set */
                 else
@@ -623,6 +845,9 @@ bm_init(const device_t *info)
     else
         dev->flags = 0;
 
+    if (is_booster)
+        dev->flags |= FLAG_BOOSTER;
+
     if (is_booster) {
         dev->base = 0x023c;
         dev->irq  = device_get_config_int("irq");
@@ -645,9 +870,19 @@ bm_init(const device_t *info)
     dev->current_b                  = 0;
     dev->command_val                = 0; /* command byte */
     dev->toggle_counter             = 0; /* signature byte / IRQ bit toggle */
+    dev->rtc.data_latch             = 0;
+    dev->rtc.selected               = BOOSTER_RTC_NONE;
+    dev->rtc.dirty                  = 0;
     dev->period                     = 0.0;
 
     timer_add(&dev->timer, bm_timer, dev, 0);
+
+    if (is_booster && is_pcjr) {
+        booster_rtc_ensure_time_seeded();
+        booster_rtc_load_digits(dev);
+        timer_add(&dev->rtc.timer, booster_rtc_timer, dev, 0);
+        timer_set_delay_u64(&dev->rtc.timer, (uint64_t) (1000000ULL * TIMER_USEC));
+    }
 
     if (dev->flags & FLAG_INPORT) {
         dev->control_val = 0; /* the control port value */
