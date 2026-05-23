@@ -84,6 +84,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/nvr.h>
 #include <86box/ui.h>
 #include <86box/plat.h>
 #include <86box/isamem.h>
@@ -127,6 +128,27 @@
 #define EMS_LOTECH_MAXSIZE     (4096 << 10) /* max EMS memory size for lotech cards */
 #define EMS_PGSIZE             (16 << 10)   /* one page is this big */
 #define EMS_MAXPAGE            4            /* number of viewport pages */
+
+#define IAB_EEPROM_WORD_COUNT  64
+#define IAB_EEPROM_IMAGE_SIZE  (IAB_EEPROM_WORD_COUNT * sizeof(uint16_t))
+
+#define IAB_EEPROM_MAGIC       0x4142
+#define IAB_EEPROM_VERSION     0x0001
+
+enum {
+    IAB_EEPROM_WORD_MAGIC = 0,
+    IAB_EEPROM_WORD_VERSION,
+    IAB_EEPROM_WORD_SERIAL_LO,
+    IAB_EEPROM_WORD_SERIAL_HI,
+    IAB_EEPROM_WORD_FLAGS,
+    IAB_EEPROM_WORD_SIZE_KB,
+    IAB_EEPROM_WORD_START_KB,
+    IAB_EEPROM_WORD_LENGTH_KB,
+    IAB_EEPROM_WORD_BASE_ADDR,
+    IAB_EEPROM_WORD_FRAME_LO,
+    IAB_EEPROM_WORD_FRAME_HI,
+    IAB_EEPROM_WORD_BOARD_ID,
+};
 
 #define EXTRAM_CONVENTIONAL    0
 #define EXTRAM_HIGH            1
@@ -176,6 +198,9 @@ typedef struct memdev_t {
 
     uint8_t *ram; /* allocated RAM buffer */
 
+    char     eeprom_fn[32];
+    uint8_t  eeprom_image[IAB_EEPROM_IMAGE_SIZE];
+
     ext_ram_t ext_ram[3]; /* structures for the mappings */
 
     mem_mapping_t low_mapping;  /* mapping for low mem */
@@ -201,6 +226,106 @@ isamem_log(const char *fmt, ...)
 #else
 #    define isamem_log(fmt, ...)
 #endif
+
+static uint16_t
+iab_eeprom_get_word(const memdev_t *dev, uint8_t index)
+{
+    uint16_t ret = 0xffff;
+
+    if (index < IAB_EEPROM_WORD_COUNT) {
+        ret = dev->eeprom_image[index << 1];
+        ret |= ((uint16_t) dev->eeprom_image[(index << 1) + 1]) << 8;
+    }
+
+    return ret;
+}
+
+static void
+iab_eeprom_set_word(memdev_t *dev, uint8_t index, uint16_t value)
+{
+    if (index < IAB_EEPROM_WORD_COUNT) {
+        dev->eeprom_image[index << 1]       = value & 0xff;
+        dev->eeprom_image[(index << 1) + 1] = value >> 8;
+    }
+}
+
+static uint32_t
+iab_default_serial(int inst)
+{
+    return 860000u + (uint32_t) inst;
+}
+
+static void
+iab_eeprom_seed(memdev_t *dev, int inst)
+{
+    const uint32_t serial = iab_default_serial(inst);
+
+    memset(dev->eeprom_image, 0xff, sizeof(dev->eeprom_image));
+
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_MAGIC, IAB_EEPROM_MAGIC);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_VERSION, IAB_EEPROM_VERSION);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_SERIAL_LO, serial & 0xffff);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_SERIAL_HI, serial >> 16);
+}
+
+static int
+iab_eeprom_valid(const memdev_t *dev)
+{
+    return (iab_eeprom_get_word(dev, IAB_EEPROM_WORD_MAGIC) == IAB_EEPROM_MAGIC) &&
+           (iab_eeprom_get_word(dev, IAB_EEPROM_WORD_VERSION) == IAB_EEPROM_VERSION);
+}
+
+static void
+iab_eeprom_load(memdev_t *dev, int inst)
+{
+    FILE *fp = NULL;
+
+    snprintf(dev->eeprom_fn, sizeof(dev->eeprom_fn), "iab_%i.nvr", inst);
+
+    fp = nvr_fopen(dev->eeprom_fn, "rb");
+    if (fp != NULL) {
+        if (fread(dev->eeprom_image, 1, sizeof(dev->eeprom_image), fp) != sizeof(dev->eeprom_image))
+            memset(dev->eeprom_image, 0xff, sizeof(dev->eeprom_image));
+        fclose(fp);
+    } else {
+        memset(dev->eeprom_image, 0xff, sizeof(dev->eeprom_image));
+    }
+
+    if (!iab_eeprom_valid(dev))
+        iab_eeprom_seed(dev, inst);
+
+    if ((iab_eeprom_get_word(dev, IAB_EEPROM_WORD_SERIAL_LO) == 0xffff &&
+         iab_eeprom_get_word(dev, IAB_EEPROM_WORD_SERIAL_HI) == 0xffff) ||
+        (iab_eeprom_get_word(dev, IAB_EEPROM_WORD_SERIAL_LO) == 0x0000 &&
+         iab_eeprom_get_word(dev, IAB_EEPROM_WORD_SERIAL_HI) == 0x0000)) {
+        const uint32_t serial = iab_default_serial(inst);
+
+        iab_eeprom_set_word(dev, IAB_EEPROM_WORD_SERIAL_LO, serial & 0xffff);
+        iab_eeprom_set_word(dev, IAB_EEPROM_WORD_SERIAL_HI, serial >> 16);
+    }
+}
+
+static void
+iab_eeprom_update(memdev_t *dev, uint16_t start_kb, uint16_t length_kb)
+{
+    uint16_t flags = 0;
+
+    if (dev->flags & FLAG_WIDE)
+        flags |= 0x0001;
+    if (dev->flags & FLAG_FAST)
+        flags |= 0x0002;
+    if (dev->flags & FLAG_EMS)
+        flags |= 0x0004;
+
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_FLAGS, flags);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_SIZE_KB, dev->total_size);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_START_KB, start_kb);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_LENGTH_KB, length_kb);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_BASE_ADDR, dev->base_addr[0]);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_FRAME_LO, dev->frame_addr[0] & 0xffff);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_FRAME_HI, dev->frame_addr[0] >> 16);
+    iab_eeprom_set_word(dev, IAB_EEPROM_WORD_BOARD_ID, 0x0286);
+}
 
 /* Why this convoluted setup with the mem_dev stuff when it's much simpler
    to just pass the exec pointer as p as well, and then just use that. */
@@ -587,19 +712,25 @@ isamem_init(const device_t *info)
             dev->frame_addr[0] = 0xe0000;
             break;
 
-        case ISAMEM_ABOVEBOARD_CARD: /* Intel AboveBoard */
+        case ISAMEM_ABOVEBOARD_CARD: /* Intel AboveBoard Plus/286 */
             dev->base_addr[0]   = device_get_config_hex16("base");
             dev->total_size     = device_get_config_int("size");
+            if (dev->total_size < 512)
+                dev->total_size = 512;
+            if (dev->total_size > 2048)
+                dev->total_size = 2048;
             dev->start_addr     = device_get_config_int("start");
             tot                 = device_get_config_int("length");
             if (tot > dev->total_size)
                 tot = dev->total_size;
             dev->frame_addr[0]  = device_get_config_hex20("frame");
+            iab_eeprom_load(dev, device_get_instance());
             dev->flags         |= FLAG_EMS;
             if (device_get_config_int("width") == 16)
                 dev->flags     |= FLAG_WIDE;
             if (!!device_get_config_int("speed"))
                 dev->flags     |= FLAG_FAST;
+            iab_eeprom_update(dev, (uint16_t) dev->start_addr, (uint16_t) tot);
             break;
 
         case ISAMEM_BRAT_CARD:       /* BocaRAM/AT */
@@ -898,6 +1029,15 @@ static void
 isamem_close(void *priv)
 {
     memdev_t *dev = (memdev_t *) priv;
+
+    if (dev->eeprom_fn[0] != 0x00) {
+        FILE *fp = nvr_fopen(dev->eeprom_fn, "wb");
+
+        if (fp != NULL) {
+            (void) fwrite(dev->eeprom_image, 1, sizeof(dev->eeprom_image), fp);
+            fclose(fp);
+        }
+    }
 
     if (dev->ram != NULL)
         free(dev->ram);
@@ -2154,7 +2294,7 @@ static const device_config_t iab_config[] = {
         .description    = "Address",
         .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 0x0258,
+        .default_int    = 0x0268,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
@@ -2195,7 +2335,7 @@ static const device_config_t iab_config[] = {
     },
     {
         .name           = "width",
-        .description    = "I/O Width",
+        .description    = "Bus Width",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 8,
@@ -2231,9 +2371,9 @@ static const device_config_t iab_config[] = {
         .default_int    = 2048,
         .file_filter    = NULL,
         .spinner        = {
-            .min  =    0,
-            .max  = 14336,
-            .step =  128
+            .min  =  512,
+            .max  = 2048,
+            .step =  512
         },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
@@ -2262,7 +2402,7 @@ static const device_config_t iab_config[] = {
         .file_filter    = NULL,
         .spinner        = {
             .min  =     0,
-            .max  = 14336,
+            .max  =  2048,
             .step =   128
         },
         .selection      = { { 0 } },
@@ -2273,7 +2413,7 @@ static const device_config_t iab_config[] = {
 };
 
 static const device_t iab_device = {
-    .name          = "Intel AboveBoard",
+    .name          = "Intel AboveBoard Plus/286",
     .internal_name = "iab",
     .flags         = DEVICE_ISA,
     .local         = ISAMEM_ABOVEBOARD_CARD,
