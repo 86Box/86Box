@@ -89,6 +89,7 @@
 #define ISARTC_VENDEX   4
 #define ISARTC_MPLUS2   5
 #define ISARTC_RTC58167 6
+#define ISARTC_JRHOTSHOT 7
 #define ISARTC_MM58167  10
 
 #define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B.ROM"  /* Generic 58167, AST or EV-170 */
@@ -115,6 +116,8 @@ typedef struct rtcdev_t {
     int8_t    year; /* register for YEAR value */
     int8_t    century; /* register for CENTURY value */
     char      pad[2];
+    uint8_t   control;
+    uint8_t   dirty;
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
@@ -594,6 +597,146 @@ rtc58167_write(uint16_t port, uint8_t val, void *priv)
 
 /************************************************************************
  *                                                                      *
+ *            Driver for the jrHOTSHOT RTC.                             *
+ *                                                                      *
+ ************************************************************************/
+
+#define JRHS_REG_HSEC   0
+#define JRHS_REG_HOUR   1
+#define JRHS_REG_MIN    2
+#define JRHS_REG_SEC    3
+#define JRHS_REG_MONTH  4
+#define JRHS_REG_DAY    5
+#define JRHS_REG_YEAR   6
+#define JRHS_REG_COUNT  7
+
+#define JRHS_BASE       0x0220
+#define JRHS_CTRL       0x0231
+#define JRHS_MODE_RUN   0x0c
+#define JRHS_MODE_SET   0x04
+
+static void
+jrhotshot_time_get(nvr_t *nvr, struct tm *tm)
+{
+    memset(tm, 0x00, sizeof(*tm));
+
+    tm->tm_sec   = nvr->regs[JRHS_REG_SEC];
+    tm->tm_min   = nvr->regs[JRHS_REG_MIN];
+    tm->tm_hour  = nvr->regs[JRHS_REG_HOUR];
+    tm->tm_mday  = nvr->regs[JRHS_REG_DAY];
+    tm->tm_mon   = nvr->regs[JRHS_REG_MONTH] - 1;
+    tm->tm_year  = nvr->regs[JRHS_REG_YEAR];
+    tm->tm_isdst = -1;
+
+    (void) mktime(tm);
+}
+
+static void
+jrhotshot_time_set(nvr_t *nvr, const struct tm *tm)
+{
+    nvr->regs[JRHS_REG_HSEC]  = 0;
+    nvr->regs[JRHS_REG_HOUR]  = (uint8_t) tm->tm_hour;
+    nvr->regs[JRHS_REG_MIN]   = (uint8_t) tm->tm_min;
+    nvr->regs[JRHS_REG_SEC]   = (uint8_t) tm->tm_sec;
+    nvr->regs[JRHS_REG_MONTH] = (uint8_t) (tm->tm_mon + 1);
+    nvr->regs[JRHS_REG_DAY]   = (uint8_t) tm->tm_mday;
+    nvr->regs[JRHS_REG_YEAR]  = (uint8_t) tm->tm_year;
+}
+
+static void
+jrhotshot_reset(nvr_t *nvr)
+{
+    rtcdev_t *dev = (rtcdev_t *) nvr->data;
+
+    memset(nvr->regs, 0x00, JRHS_REG_COUNT);
+    dev->control = JRHS_MODE_RUN;
+    dev->dirty   = 0;
+}
+
+static void
+jrhotshot_start(nvr_t *nvr)
+{
+    struct tm tm;
+
+    if (time_sync || nvr->is_new) {
+        nvr_time_get(&tm);
+        jrhotshot_time_set(nvr, &tm);
+    } else {
+        jrhotshot_time_get(nvr, &tm);
+        nvr_time_set(&tm);
+    }
+}
+
+static void
+jrhotshot_tick(nvr_t *nvr)
+{
+    rtcdev_t *dev = (rtcdev_t *) nvr->data;
+    struct tm  tm;
+
+    if (dev->control == JRHS_MODE_SET)
+        return;
+
+    nvr_time_get(&tm);
+    jrhotshot_time_set(nvr, &tm);
+}
+
+static uint8_t
+jrhotshot_read(uint16_t port, void *priv)
+{
+    rtcdev_t *dev = (rtcdev_t *) priv;
+    uint16_t  reg = port - dev->base_addr;
+
+    cycles -= ISA_CYCLES(4);
+
+    if (port == JRHS_CTRL)
+        return dev->control;
+
+    if (reg >= JRHS_REG_COUNT)
+        return 0xff;
+
+    if (reg == JRHS_REG_HSEC)
+        return (uint8_t) (dev->nvr.onesec_cnt % 100);
+
+    return dev->nvr.regs[reg];
+}
+
+static void
+jrhotshot_write(uint16_t port, uint8_t val, void *priv)
+{
+    rtcdev_t *dev = (rtcdev_t *) priv;
+    uint16_t  reg = port - dev->base_addr;
+    struct tm tm;
+    uint8_t   prev_control;
+
+    cycles -= ISA_CYCLES(4);
+
+    if (port == JRHS_CTRL) {
+        prev_control = dev->control;
+        dev->control = val;
+
+        if ((prev_control != JRHS_MODE_SET) && (val == JRHS_MODE_SET)) {
+            nvr_time_get(&tm);
+            jrhotshot_time_set(&dev->nvr, &tm);
+            dev->dirty = 0;
+        } else if ((prev_control == JRHS_MODE_SET) && (val == JRHS_MODE_RUN) && dev->dirty) {
+            jrhotshot_time_get(&dev->nvr, &tm);
+            nvr_time_set(&tm);
+            dev->dirty = 0;
+            nvr_dosave = 1;
+        }
+
+        return;
+    }
+
+    if ((dev->control != JRHS_MODE_SET) || (reg >= JRHS_REG_COUNT) || (reg == JRHS_REG_HSEC))
+        return;
+
+    dev->nvr.regs[reg] = val;
+    dev->dirty         = 1;
+}
+
+/************************************************************************
+ *                                                                      *
  *            Generic code for all supported chips.                     *
  *                                                                      *
  ************************************************************************/
@@ -613,6 +756,8 @@ isartc_init(const device_t *info)
     dev->irq      = -1;
     dev->year     = -1;
     dev->century  = -1;
+    dev->control  = JRHS_MODE_RUN;
+    dev->dirty    = 0;
     dev->nvr.data = dev;
     dev->nvr.size = 16;
 
@@ -692,6 +837,17 @@ isartc_init(const device_t *info)
             dev->century     = MM67_AL_SEC;     /* century, NON STANDARD */
             break;
 
+        case ISARTC_JRHOTSHOT: /* jrHOTSHOT RTC */
+            dev->base_addr   = JRHS_BASE;
+            dev->base_addrsz = JRHS_REG_COUNT;
+            dev->f_rd        = jrhotshot_read;
+            dev->f_wr        = jrhotshot_write;
+            dev->nvr.size    = JRHS_REG_COUNT;
+            dev->nvr.reset   = jrhotshot_reset;
+            dev->nvr.start   = jrhotshot_start;
+            dev->nvr.tick    = jrhotshot_tick;
+            break;
+
         default:
             break;
     }
@@ -705,6 +861,9 @@ isartc_init(const device_t *info)
     /* Set up an I/O port handler. */
     io_sethandler(dev->base_addr, dev->base_addrsz,
                   dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+    if (dev->board == ISARTC_JRHOTSHOT)
+        io_sethandler(JRHS_CTRL, 1,
+                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
     /* Hook into the NVR backend. */
     dev->nvr.fn  = (char *) info->internal_name;
@@ -724,6 +883,9 @@ isartc_close(void *priv)
 
     io_removehandler(dev->base_addr, dev->base_addrsz,
                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+    if (dev->board == ISARTC_JRHOTSHOT)
+        io_removehandler(JRHS_CTRL, 1,
+                         dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
     free(dev);
 }
@@ -1041,6 +1203,20 @@ const device_t rtc58167_device = {
     .config        = NULL
 };
 
+static const device_t jrhotshot_rtc_device = {
+    .name          = "jrHOTSHOT RTC",
+    .internal_name = "jrhotshot_rtc",
+    .flags         = DEVICE_ISA | DEVICE_SIDECAR,
+    .local         = ISARTC_JRHOTSHOT,
+    .init          = isartc_init,
+    .close         = isartc_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 static const struct {
     const device_t *dev;
 } boards[] = {
@@ -1052,6 +1228,7 @@ static const struct {
     { &a6pak_device    },
     { &mplus2_device   },
     { &mm58167_device  },
+    { &jrhotshot_rtc_device },
     { NULL             }
     // clang-format on
 };
