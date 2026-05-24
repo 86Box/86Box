@@ -878,7 +878,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Grow array if required. */
         if (children_count > dir_entries_len) {
-            viso_entry_t **new_dir_entries = (viso_entry_t **) calloc(children_count + 1, sizeof(viso_entry_t *));
+            viso_entry_t **new_dir_entries = (viso_entry_t **) malloc((children_count + 1) * sizeof(viso_entry_t *));
             if (LIKELY(new_dir_entries)) {
                 if (LIKELY(dir_entries))
                     free(dir_entries);
