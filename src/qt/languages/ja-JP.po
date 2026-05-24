@@ -742,8 +742,8 @@ msgstr "テープイメージ"
 msgid "Image %1"
 msgstr "イメージ %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Boxで使用可能なROMイメージが見つかりません。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、roms ディレクトリに解凍してください。"
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1で使用可能なROMイメージが見つかりません。\n\nROMセットを<a href=\"%2\">ダウンロード</a>して、roms ディレクトリに解凍してください。"
 
 msgid "(empty)"
 msgstr "(空)"

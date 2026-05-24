@@ -741,8 +741,8 @@ msgstr "Imágenes de cinta"
 msgid "Image %1"
 msgstr "Imagen %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=\"https://github.com/86Box/roms/releases/latest\">descargue</a> un conjunte de ROMs y extráigalo en el directorio \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=\"%2\">descargue</a> un conjunte de ROMs y extráigalo en el directorio \"roms\"."
 
 msgid "(empty)"
 msgstr "(vacío)"

@@ -742,8 +742,8 @@ msgstr "Ảnh băng"
 msgid "Image %1"
 msgstr "Ảnh %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box không tìm được bản ROM nào.\n\nVui lòng <a href=\"https://github.com/86Box/roms/releases/latest\">tải về</a> bộ ROM và trích xuất về thư mục \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 không tìm được bản ROM nào.\n\nVui lòng <a href=\"%2\">tải về</a> bộ ROM và trích xuất về thư mục \"roms\"."
 
 msgid "(empty)"
 msgstr "(trống trơn)"

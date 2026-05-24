@@ -741,7 +741,7 @@ msgstr ""
 msgid "Image %1"
 msgstr ""
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr ""
 
 msgid "(empty)"

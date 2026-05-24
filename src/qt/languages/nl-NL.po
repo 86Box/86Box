@@ -741,8 +741,8 @@ msgstr "Bandimagebestand"
 msgid "Image %1"
 msgstr "Image %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box kon geen bruikbare ROM imagebestanden vinden.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 kon geen bruikbare ROM imagebestanden vinden.\n\n<a href=\"%2\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
 
 msgid "(empty)"
 msgstr "(leeg)"

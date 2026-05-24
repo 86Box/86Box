@@ -742,8 +742,8 @@ msgstr "Imagens de fita"
 msgid "Image %1"
 msgstr "Imagem %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=\"https://github.com/86Box/roms/releases/latest\">baixe</a> um conjunto de ROMs e extraia-o para o diretório \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "O %1 não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=\"%2\">baixe</a> um conjunto de ROMs e extraia-o para o diretório \"roms\"."
 
 msgid "(empty)"
 msgstr "(vazio)"

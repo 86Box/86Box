@@ -742,8 +742,8 @@ msgstr "테이프 이미지"
 msgid "Image %1"
 msgstr "이미지 %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box에서 사용 가능한 ROM 이미지를 찾을 수 없습니다.\n\nROM 세트를<a href=\"https://github.com/86Box/roms/releases/latest\">다운로드</a> 후 \"roms\" 디렉토리에 압축을 풀어 주세요."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1에서 사용 가능한 ROM 이미지를 찾을 수 없습니다.\n\nROM 세트를<a href=\"%2\">다운로드</a> 후 \"roms\" 디렉토리에 압축을 풀어 주세요."
 
 msgid "(empty)"
 msgstr "(비었음)"

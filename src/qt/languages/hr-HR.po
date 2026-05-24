@@ -744,8 +744,8 @@ msgstr "Trakaške slike"
 msgid "Image %1"
 msgstr "Slika %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=\"https://github.com/86Box/roms/releases/latest\"></a> sknite paket s ROM datotekama i ekstrahirajte paket u mapu \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=\"%2\"></a> sknite paket s ROM datotekama i ekstrahirajte paket u mapu \"roms\"."
 
 msgid "(empty)"
 msgstr "(prazno)"

@@ -743,8 +743,8 @@ msgstr "Образи магнітної стрічки"
 msgid "Image %1"
 msgstr "Образ %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"https://github.com/86Box/roms/releases/latest\">завантажте</a> набір ПЗУ і витягніть його в каталог «roms»."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"%2\">завантажте</a> набір ПЗУ і витягніть його в каталог «roms»."
 
 msgid "(empty)"
 msgstr "(порожньо)"

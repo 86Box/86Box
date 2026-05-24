@@ -741,8 +741,8 @@ msgstr "Band-avbildningar"
 msgid "Image %1"
 msgstr "Avbildning %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box kunde inte hitta några användbara ROM-avbildningar.\n\nVänligen <a href=\"https://github.com/86Box/roms/releases/latest\">ladda ner</a> en ROM-uppsättning och extrahera den till mappen \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 kunde inte hitta några användbara ROM-avbildningar.\n\nVänligen <a href=\"%2\">ladda ner</a> en ROM-uppsättning och extrahera den till mappen \"roms\"."
 
 msgid "(empty)"
 msgstr "(tom)"

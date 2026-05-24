@@ -741,8 +741,8 @@ msgstr "Εικόνες ταινίας"
 msgid "Image %1"
 msgstr "Εικόνα %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "Το 86Box δεν μπόρεσε να εντοπίσει καμία ROM.\n\nΠαρακαλώ <a href=\"https://github.com/86Box/roms/releases/latest\">κατεβάστε</a> το πακέτο ROM και εξάγετέ το στον κατάλογο \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "Το %1 δεν μπόρεσε να εντοπίσει καμία ROM.\n\nΠαρακαλώ <a href=\"%2\">κατεβάστε</a> το πακέτο ROM και εξάγετέ το στον κατάλογο \"roms\"."
 
 msgid "(empty)"
 msgstr "(κενό)"

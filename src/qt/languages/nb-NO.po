@@ -742,8 +742,8 @@ msgstr "Båndfiler"
 msgid "Image %1"
 msgstr "Diskfil %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box fant ingen brukbare ROM-filer.\n\nVennligst <a href=\"https://github.com/86Box/roms/releases/latest\">last ned</a> et ROM-sett og pakk det ut i \"roms\"-mappen."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 fant ingen brukbare ROM-filer.\n\nVennligst <a href=\"%2\">last ned</a> et ROM-sett og pakk det ut i \"roms\"-mappen."
 
 msgid "(empty)"
 msgstr "(tom)"

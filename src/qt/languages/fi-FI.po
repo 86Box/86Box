@@ -742,8 +742,8 @@ msgstr "Nauhamediat"
 msgid "Image %1"
 msgstr "Levykuva %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\"-hakemistoon."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"%2\">ladata</a> ROM-paketin ja purkaa sen \"roms\"-hakemistoon."
 
 msgid "(empty)"
 msgstr "(tyhjä)"

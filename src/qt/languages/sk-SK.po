@@ -741,8 +741,8 @@ msgstr "Páskové obrazy"
 msgid "Image %1"
 msgstr "Obraz %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box nenašiel žiadne použiteľné imidž pamätí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stiahnite</a> sadu obrazov ROM a extrahujte ju do zložky \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 nenašiel žiadne použiteľné imidž pamätí ROM.\n\n<a href=\"%2\">Stiahnite</a> sadu obrazov ROM a extrahujte ju do zložky \"roms\"."
 
 msgid "(empty)"
 msgstr "(prázdne)"

@@ -742,8 +742,8 @@ msgstr "Образы магнитной ленты"
 msgid "Image %1"
 msgstr "Образ %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог «roms»."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста, <a href=\"%2\">скачайте</a> набор ПЗУ и извлеките его в каталог «roms»."
 
 msgid "(empty)"
 msgstr "(пусто)"

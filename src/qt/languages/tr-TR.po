@@ -741,8 +741,8 @@ msgstr "Teyp görüntüleri"
 msgid "Image %1"
 msgstr "%1 Görüntüsü"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box kullanılabilir hiçbir ROM dosyası bulamadı.\n\nLütfen bir ROM seti <a href=\"https://github.com/86Box/roms/releases/latest\">indirip</a> \"roms\" klasörüne çıkarın."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 kullanılabilir hiçbir ROM dosyası bulamadı.\n\nLütfen bir ROM seti <a href=\"%2\">indirip</a> \"roms\" klasörüne çıkarın."
 
 msgid "(empty)"
 msgstr "(boş)"
