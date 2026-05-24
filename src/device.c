@@ -800,7 +800,7 @@ device_get_name(const device_t *dev, int bus, char *name)
                 strcat(name, tname + strlen(sbus) + 1);
             /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI",
                the "-ISA" from "AMD PCnet-ISA" or the " PCI" from "CMD PCI-064x". */
-            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
+            else if ((fbus < &tname[2]) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
                 strcat(name, tname);
             else {
                 strncat(name, tname, fbus - tname - 1);
