@@ -317,26 +317,31 @@ VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, uint16_t, cpu_to_be16)
 static int
 viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries)
 {
+    /* Trim leading dots. */
+    const char *basename = entry->basename;
+    while (basename[0] == '.')
+        basename++;
+
     /* Get name and extension length. */
-    const char *ext_pos = strrchr(entry->basename, '.');
+    const char *ext_pos = strrchr(basename, '.');
     int         name_len;
     int         ext_len;
     if (ext_pos) {
-        name_len = ext_pos - entry->basename;
+        name_len = ext_pos - basename;
         ext_len  = strlen(ext_pos);
     } else {
-        name_len = strlen(entry->basename);
+        name_len = strlen(basename);
         ext_len  = 0;
     }
 
     /* Copy name. */
     int name_copy_len = MIN(8, name_len);
-    viso_write_string((uint8_t *) data, entry->basename, name_copy_len, VISO_CHARSET_D);
+    viso_write_string((uint8_t *) data, basename, name_copy_len, VISO_CHARSET_D);
     data[name_copy_len] = '\0';
 
     /* Copy extension to temporary buffer. */
     char ext[5]     = { 0 };
-    int  force_tail = (name_len > 8) || (ext_len == 1);
+    int  force_tail = (name_len > 8) || (ext_len == 1) || (basename != entry->basename);
     if (ext_len > 1) {
         ext[0] = '.';
         if (ext_len > 4) {
