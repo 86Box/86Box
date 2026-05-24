@@ -83,9 +83,6 @@ typedef struct mach_t {
     uint8_t overscan_g_col_24;
     uint8_t overscan_r_col_24;
     uint16_t fifo_test_data[16];
-    uint8_t old_on1;
-    uint8_t old_on2;
-    int     crt_resolution;
 
     struct {
         uint8_t  line_idx;

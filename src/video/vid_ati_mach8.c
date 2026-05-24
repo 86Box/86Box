@@ -2773,23 +2773,43 @@ ati_render_32bpp(svga_t *svga)
 static void
 mach_set_crt_params(ibm8514_t *dev)
 {
-    dev->h_total = dev->htotal + 1;
-    if (dev->h_total <= 8) /*Default to 1024x768 87hz 8514/A htotal timings if it goes to 0.*/
-        dev->h_total = 0x9e;
+    if (dev->htotal)
+        dev->h_total = dev->htotal + 1;
 
     dev->hdisp = (dev->hdisped + 1) << 3;
+    if (dev->hdisp == 8)
+        dev->hdisp = 1024;
 
     dev->vdisp = (dev->v_disp + 1) >> 1;
+    if (dev->vdisp == 0)
+        dev->vdisp = 768;
+
     if ((dev->vdisp == 478) || (dev->vdisp == 598) || (dev->vdisp == 766) || (dev->vdisp == 898) || (dev->vdisp == 1022))
         dev->vdisp += 2;
 
-    dev->v_total = dev->v_total_reg + 1;
-    if (dev->v_total == 1)
-        dev->v_total = 0x0669;
+    if (dev->v_total_reg)
+        dev->v_total = dev->v_total_reg + 1;
+    else {
+        if (dev->accel.advfunc_cntl & 0x04) {
+            if (dev->h_total == 0x9e)
+                dev->v_total = 0x0669;
+        } else {
+            if (dev->h_total == 0x64)
+                dev->v_total = 0x0419;
+        }
+    }
 
-    dev->v_syncstart = dev->v_sync_start + 1;
-    if (dev->v_syncstart == 1)
-        dev->v_syncstart = 0x0601;
+    if (dev->v_sync_start)
+        dev->v_syncstart = dev->v_sync_start + 1;
+    else {
+        if (dev->accel.advfunc_cntl & 0x04) {
+            if (dev->h_total == 0x9e)
+                dev->v_syncstart = 0x0601;
+        } else {
+            if (dev->h_total == 0x64)
+                dev->v_syncstart = 0x03d7;
+        }
+    }
 }
 
 /*The situation is the following:
@@ -2800,299 +2820,202 @@ static void
 mach_set_resolution(mach_t *mach, svga_t *svga)
 {
     ibm8514_t    *dev = (ibm8514_t *) svga->dev8514;
-    int hdisp[5] = { 640, 800, 1024, 1280, -1 };
-    int vdisp[5] = { 480, 600, 768, 1024, -1 };
 
     mach_set_crt_params(dev);
 
     mach->accel.clock_sel_mode = 0;
 
-    mach_log(mach->log, "ATI Mode: on=%d, set=%02x, dispcntl=%02x, h_total=%d, hdisp=%d, vdisp=%d, v_total=%04x, v_syncstart=%04x, hsync_start=%d, hsync_width=%d, clocksel=%02x, advancedcntl=%02x.\n", dev->on, mach->shadow_set & 0x03, dev->disp_cntl, dev->h_total, dev->hdisp, dev->vdisp, dev->v_total, dev->v_syncstart, dev->hsync_start, dev->hsync_width, mach->accel.clock_sel & 0xff, dev->accel.advfunc_cntl & 0x05);
-    if ((dev->disp_cntl >> 5) == 1) { /*Enable the 8514/A subsystem and set modes according to the shadow sets if needed.*/
-        switch (mach->shadow_set & 0x03) {
-            case 0x00:
-                svga_recalctimings(svga);
-                break;
-
-            case 0x01:
-                if (!(dev->accel.advfunc_cntl & 0x04)) {
-                    dev->hdisp = hdisp[0];
-                    dev->vdisp = vdisp[0];
-                    if (ATI_8514A_ULTRA) {
-                        dev->h_total = (mach->eeprom.data[0x11] & 0xff) + 1;
-                        dev->v_total = mach->eeprom.data[0x0d] + 1;
-                        dev->v_syncstart = mach->eeprom.data[9] + 1;
-                        mach->accel.clock_sel_mode = (mach->eeprom.data[4] & 0xff) << 2;
-                    } else {
-                        mach_log(mach->log, "Mach: EEPROM 640x480: %04x.\n", mach->eeprom.data[7]);
-                        switch (mach->eeprom.data[7] & 0xff) {
-                            case 0x00: /*640x480 60Hz Non-interlaced*/
-                            default:
-                                dev->h_total = 0x64;
-                                dev->v_total = 0x0419;
-                                dev->v_syncstart = 0x03d7;
-                                mach->accel.clock_sel_mode = 0x50;
-                                break;
-                            case 0x01: /*640x480 72Hz Non-interlaced*/
-                                dev->h_total = 0x6a;
-                                dev->v_total = 0x040c;
-                                dev->v_syncstart = 0x03d1;
-                                mach->accel.clock_sel_mode = 0x24;
-                                break;
-                            case 0x03: /*640x480 72Hz Non-interlaced Alt*/
-                                dev->h_total = 0x71;
-                                dev->v_total = 0x04ca;
-                                dev->v_syncstart = 0x0422;
-                                mach->accel.clock_sel_mode = 0x6c;
-                                break;
-                        }
-                    }
-                }
-                svga_recalctimings(svga);
-                break;
-            case 0x02:
-                if (dev->accel.advfunc_cntl & 0x04) {
-                    dev->hdisp = hdisp[2];
-                    dev->vdisp = vdisp[2];
-                    if (ATI_8514A_ULTRA) {
-                        dev->h_total = ((mach->eeprom.data[0x11] >> 8) & 0xff) + 1;
-                        dev->v_total = mach->eeprom.data[0x0c] + 1;
-                        dev->v_syncstart = mach->eeprom.data[8] + 1;
-                        mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
-                    } else {
-                        mach_log(mach->log, "Mach: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
-                        switch (mach->eeprom.data[9] & 0xff) {
-                            case 0x00: /*1024x768 76Hz Non-interlaced*/
-                                dev->h_total = 0xa3;
-                                dev->v_total = 0x064b;
-                                dev->v_syncstart = 0x060c;
-                                mach->accel.clock_sel_mode = 0x2c;
-                                break;
-                            case 0x01: /*1024x768 87Hz Interlaced*/
-                            default:
-                                dev->h_total = 0x9e;
-                                dev->v_total = 0x0669;
-                                dev->v_syncstart = 0x0601;
-                                mach->accel.clock_sel_mode = 0x1c;
-                                break;
-                            case 0x02: /*1024x768 60Hz Non-interlaced*/
-                                dev->h_total = 0xa8;
-                                dev->v_total = 0x064a;
-                                dev->v_syncstart = 0x0603;
-                                mach->accel.clock_sel_mode = 0x3c;
-                                break;
-                            case 0x04: /*1024x768 70Hz Non-interlaced*/
-                                dev->h_total = 0xa6;
-                                dev->v_total = 0x064a;
-                                dev->v_syncstart = 0x0603;
-                                mach->accel.clock_sel_mode = 0x38;
-                                break;
-                            case 0x08: /*1024x768 72Hz Non-interlaced*/
-                                dev->h_total = 0xa1;
-                                dev->v_total = 0x064a;
-                                dev->v_syncstart = 0x0603;
-                                mach->accel.clock_sel_mode = 0x38;
-                                break;
-                            case 0x82: /*1024x768 66Hz Non-interlaced*/
-                                dev->h_total = 0xac;
-                                dev->v_total = 0x065c;
-                                dev->v_syncstart = 0x060b;
-                                mach->accel.clock_sel_mode = 0x38;
-                                break;
-                        }
-                    }
-                }
-                svga_recalctimings(svga);
-                break;
-
-            default:
-                break;
-        }
-    } else if ((dev->disp_cntl >> 5) != 0) { /*Reset 8514/A to defaults if needed.*/
-        if ((dev->hdisp == hdisp[0]) && (dev->vdisp == vdisp[0])) {
-res_640x480:
-            if (ATI_8514A_ULTRA) {
-                dev->h_total = (mach->eeprom.data[0x11] & 0xff) + 1;
-                dev->v_total = mach->eeprom.data[0x0d] + 1;
-                dev->v_syncstart = mach->eeprom.data[9] + 1;
+    mach_log("ATI Mode: on=%d, set=%02x, disp_cntl=%02x, h_total=%02x, hdisp=%d, realh=%d, vdisp=%d, realv=%d, v_total=%04x, v_syncstart=%04x, hsync_start=%d, hsync_width=%d, clocksel=%02x, advancedcntl=%02x, shadow_cntl=%02x.\n", dev->on, mach->shadow_set & 0x03, dev->disp_cntl, dev->h_total, dev->hdisp, (dev->hdisped + 1) << 3, dev->vdisp, (dev->v_disp + 1) >> 1, dev->v_total, dev->v_syncstart, dev->hsync_start, dev->hsync_width, mach->accel.clock_sel & 0xff, dev->accel.advfunc_cntl & 0x05, mach->shadow_cntl);
+    if (ATI_8514A_ULTRA) {
+        if (((dev->hdisp == 1024) && (dev->vdisp == 768) && !(dev->accel.advfunc_cntl & 0x04) && !(mach->accel.clock_sel & 0x01)) ||
+            ((dev->hdisp == 640) && (dev->vdisp == 480) && (mach->accel.clock_sel & 0x01))) {
+            dev->hdisp = 640;
+            dev->vdisp = 480;
+            if (!(mach->accel.clock_sel & 0xfe))
                 mach->accel.clock_sel_mode = (mach->eeprom.data[4] & 0xff) << 2;
-            } else {
-                mach_log(mach->log, "Mach Reset: EEPROM 640x480: %04x.\n", mach->eeprom.data[7]);
-                switch (mach->eeprom.data[7] & 0xff) {
-                    case 0x00: /*640x480 60Hz Non-interlaced*/
-                    default:
-                        dev->h_total = 0x64;
-                        dev->v_total = 0x0419;
-                        dev->v_syncstart = 0x03d7;
-                        mach->accel.clock_sel_mode = 0x50;
-                        break;
-                    case 0x01: /*640x480 72Hz Non-interlaced*/
-                        dev->h_total = 0x6a;
-                        dev->v_total = 0x040c;
-                        dev->v_syncstart = 0x03d1;
-                        mach->accel.clock_sel_mode = 0x24;
-                        break;
-                    case 0x03: /*640x480 72Hz Non-interlaced Alternate*/
-                        dev->h_total = 0x71;
-                        dev->v_total = 0x04ca;
-                        dev->v_syncstart = 0x0422;
-                        mach->accel.clock_sel_mode = 0x6c;
-                        break;
-                }
-            }
-        } else if ((dev->hdisp == hdisp[1]) && (dev->vdisp == vdisp[1])) {
-            if (ATI_8514A_ULTRA) {
-                dev->h_total = (mach->eeprom.data[0x1e] & 0xff) + 1;
-                dev->v_total = mach->eeprom.data[0x1a] + 1;
-                dev->v_syncstart = mach->eeprom.data[0x18] + 1;
+
+            mach_log("640x480: EEPROM11=%02x, EEPROMD=%04x, EEPROM9=%04x, EEPROM4=%02x.\n", mach->eeprom.data[0x11] & 0xff, mach->eeprom.data[0x0d], mach->eeprom.data[9], mach->eeprom.data[4] & 0xff);
+        } else if ((dev->hdisp == 800) && (dev->vdisp == 600)) {
+            if (!(mach->accel.clock_sel & 0xfe))
                 mach->accel.clock_sel_mode = (mach->eeprom.data[0x14] & 0xff) << 2;
-            } else {
-                mach_log(mach->log, "Mach Reset: EEPROM 800x600: %04x.\n", mach->eeprom.data[8]);
-                switch (mach->eeprom.data[8] & 0xff) {
-                    case 0x01: /*800x600 95Hz Interlaced*/
-                        dev->h_total = 0x85;
-                        dev->v_total = 0x0581;
-                        dev->v_syncstart = 0x04c3;
-                        mach->accel.clock_sel_mode = 0x0c;
-                        break;
-                    case 0x02: /*800x600 89Hz Interlaced*/
-                        dev->h_total = 0x85;
-                        dev->v_total = 0x0581;
-                        dev->v_syncstart = 0x04c3;
-                        mach->accel.clock_sel_mode = 0x7c;
-                        break;
-                    case 0x04: /*800x600 56Hz Non-interlaced*/
-                    default:
-                        dev->h_total = 0x80;
-                        dev->v_total = 0x04e1;
-                        dev->v_syncstart = 0x04b1;
-                        mach->accel.clock_sel_mode = 0x0c;
-                        break;
-                    case 0x0c: /*800x600 60Hz Non-interlaced*/
-                        dev->h_total = 0x84;
-                        dev->v_total = 0x04e4;
-                        dev->v_syncstart = 0x04b4;
-                        mach->accel.clock_sel_mode = 0x30;
-                        break;
-                    case 0x14: /*800x600 70Hz Non-interlaced*/
-                        dev->h_total = 0x7e;
-                        dev->v_total = 0x04f4;
-                        dev->v_syncstart = 0x04c1;
-                        mach->accel.clock_sel_mode = 0x1c;
-                        break;
-                    case 0x34: /*800x600 72Hz Non-interlaced*/
-                        dev->h_total = 0x83;
-                        dev->v_total = 0x0532;
-                        dev->v_syncstart = 0x04f9;
-                        mach->accel.clock_sel_mode = 0x10;
-                        break;
-                    case 0xa0: /*800x600 76Hz Non-interlaced*/
-                        dev->h_total = 0x87;
-                        dev->v_total = 0x0566;
-                        dev->v_syncstart = 0x04fb;
-                        mach->accel.clock_sel_mode = 0x14;
-                        break;
-                }
-            }
-        } else if ((dev->hdisp == hdisp[2]) && (dev->vdisp == vdisp[2])) {
-            if (ATI_8514A_ULTRA) {
-                dev->h_total = ((mach->eeprom.data[0x11] >> 8) & 0xff) + 1;
-                dev->v_total = mach->eeprom.data[0x0c] + 1;
-                dev->v_syncstart = mach->eeprom.data[8] + 1;
+
+            mach_log("800x600: EEPROM1E=%02x, EEPROM1A=%04x, EEPROM18=%04x, EEPROM14=%02x.\n", mach->eeprom.data[0x1e] & 0xff, mach->eeprom.data[0x1a], mach->eeprom.data[0x18], mach->eeprom.data[0x14] & 0xff);
+        } else if (((dev->hdisp == 1024) && (dev->vdisp == 768)) ||
+            ((dev->hdisp == 640) && (dev->vdisp == 480) &&
+            (dev->accel.advfunc_cntl & 0x04))) {
+            dev->hdisp = 1024;
+            dev->vdisp = 768;
+            if (!(mach->accel.clock_sel & 0xfe))
                 mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
-            } else {
-                mach_log(mach->log, "Mach Reset: EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
-                switch (mach->eeprom.data[9] & 0xff) {
-                    case 0x00: /*1024x768 76Hz Non-interlaced*/
-                        dev->h_total = 0xa3;
-                        dev->v_total = 0x064b;
-                        dev->v_syncstart = 0x060c;
-                        mach->accel.clock_sel_mode = 0x2c;
-                        break;
-                    case 0x01: /*1024x768 87Hz Interlaced*/
-                    default:
-                        dev->h_total = 0x9e;
-                        dev->v_total = 0x0669;
-                        dev->v_syncstart = 0x0601;
-                        mach->accel.clock_sel_mode = 0x1c;
-                        break;
-                    case 0x02: /*1024x768 60Hz Non-interlaced*/
-                        dev->h_total = 0xa8;
-                        dev->v_total = 0x064a;
-                        dev->v_syncstart = 0x0603;
-                        mach->accel.clock_sel_mode = 0x3c;
-                        break;
-                    case 0x04: /*1024x768 70Hz Non-interlaced*/
-                        dev->h_total = 0xa6;
-                        dev->v_total = 0x064a;
-                        dev->v_syncstart = 0x0603;
-                        mach->accel.clock_sel_mode = 0x38;
-                        break;
-                    case 0x08: /*1024x768 72Hz Non-interlaced*/
-                        dev->h_total = 0xa1;
-                        dev->v_total = 0x064a;
-                        dev->v_syncstart = 0x0603;
-                        mach->accel.clock_sel_mode = 0x38;
-                        break;
-                    case 0x82: /*1024x768 66Hz Non-interlaced*/
-                        dev->h_total = 0xac;
-                        dev->v_total = 0x065c;
-                        dev->v_syncstart = 0x060b;
-                        mach->accel.clock_sel_mode = 0x38;
-                        break;
-                }
-            }
-            if (!(dev->accel.advfunc_cntl & 0x04)) {
+        }
+        svga_recalctimings(svga);
+    } else {
+        if (!(mach->shadow_cntl & 0x3f)) {
+            if (((dev->hdisp == 640) && (dev->vdisp == 480) && ((dev->disp_cntl & 0x60) == 0x20)) ||
+                ((dev->hdisp == 1024) && (dev->vdisp == 768) && !(dev->accel.advfunc_cntl & 0x04) && ((dev->disp_cntl & 0x60) >= 0x40))) {
                 dev->hdisp = 640;
                 dev->vdisp = 480;
-                goto res_640x480;
-            }
-        } else if ((dev->hdisp == hdisp[3]) && (dev->vdisp == vdisp[3])) {
-            if (ATI_8514A_ULTRA) {
-                dev->h_total = ((mach->eeprom.data[0x1e] >> 8) & 0xff) + 1;
-                dev->v_total = mach->eeprom.data[0x33] + 1;
-                dev->v_syncstart = mach->eeprom.data[0x31] + 1;
-                mach->accel.clock_sel_mode = ((mach->eeprom.data[0x14] >> 8) & 0xff) << 2;
-            } else {
-                mach_log(mach->log, "Mach Reset: EEPROM 1280x1024: %04x.\n", mach->eeprom.data[0x0a]);
-                switch (mach->eeprom.data[0x0a] & 0xff) {
-                    case 0x81: /*1280x1024 87Hz Interlaced*/
-                    default:
-                        dev->h_total = 0xc8;
-                        dev->v_total = 0x08f9;
-                        dev->v_syncstart = 0x0862;
-                        mach->accel.clock_sel_mode = 0x2c;
-                        break;
-                    case 0x82: /*1024x768 95Hz Interlaced*/
-                        dev->h_total = 0xc8;
-                        dev->v_total = 0x0839;
-                        dev->v_syncstart = 0x0812;
-                        mach->accel.clock_sel_mode = 0x2c;
-                        break;
-                    case 0x83: /*1024x768 60Hz Non-interlaced*/
-                        dev->h_total = 0xd7;
-                        dev->v_total = 0x0852;
-                        dev->v_syncstart = 0x801;
-                        mach->accel.clock_sel_mode = 0x28;
-                        break;
-                    case 0x84: /*1024x768 70Hz Non-interlaced*/
-                        dev->h_total = 0xd3;
-                        dev->v_total = 0x0852;
-                        dev->v_syncstart = 0x801;
-                        mach->accel.clock_sel_mode = 0x04;
-                        break;
-                    case 0x85: /*1024x768 75Hz Non-interlaced*/
-                        dev->h_total = 0xd0;
-                        dev->v_total = 0x0852;
-                        dev->v_syncstart = 0x819;
-                        mach->accel.clock_sel_mode = 0x20;
-                        break;
+                mach_log("EEPROM 640x480: %04x.\n", mach->eeprom.data[7]);
+                if (!(mach->accel.clock_sel & 0xfe)) {
+                    switch (mach->eeprom.data[7] & 0xff) {
+                        case 0x00: /*640x480 60Hz Non-interlaced*/
+                        default:
+                            dev->h_total = 0x64;
+                            dev->v_total = 0x0419;
+                            dev->v_syncstart = 0x03d7;
+                            mach->accel.clock_sel_mode = 0x50;
+                            break;
+                        case 0x01: /*640x480 72Hz Non-interlaced*/
+                            dev->h_total = 0x6a;
+                            dev->v_total = 0x040c;
+                            dev->v_syncstart = 0x03d1;
+                            mach->accel.clock_sel_mode = 0x24;
+                            break;
+                        case 0x03: /*640x480 72Hz Non-interlaced Alternate*/
+                            dev->h_total = 0x71;
+                            dev->v_total = 0x04ca;
+                            dev->v_syncstart = 0x0422;
+                            mach->accel.clock_sel_mode = 0x6c;
+                            break;
+                    }
+                }
+            } else if ((dev->hdisp == 800) && (dev->vdisp == 600)) {
+                mach_log("EEPROM 800x600: %04x.\n", mach->eeprom.data[8]);
+                if (!(mach->accel.clock_sel & 0xfe)) {
+                    switch (mach->eeprom.data[8] & 0xff) {
+                        case 0x01: /*800x600 95Hz Interlaced*/
+                            dev->h_total = 0x85;
+                            dev->v_total = 0x0581;
+                            dev->v_syncstart = 0x04c3;
+                            mach->accel.clock_sel_mode = 0x0c;
+                            break;
+                        case 0x02: /*800x600 89Hz Interlaced*/
+                            dev->h_total = 0x85;
+                            dev->v_total = 0x0581;
+                            dev->v_syncstart = 0x04c3;
+                            mach->accel.clock_sel_mode = 0x7c;
+                            break;
+                        case 0x04: /*800x600 56Hz Non-interlaced*/
+                        default:
+                            dev->h_total = 0x80;
+                            dev->v_total = 0x04e1;
+                            dev->v_syncstart = 0x04b1;
+                            mach->accel.clock_sel_mode = 0x0c;
+                            break;
+                        case 0x0c: /*800x600 60Hz Non-interlaced*/
+                            dev->h_total = 0x84;
+                            dev->v_total = 0x04e4;
+                            dev->v_syncstart = 0x04b4;
+                            mach->accel.clock_sel_mode = 0x30;
+                            break;
+                        case 0x14: /*800x600 70Hz Non-interlaced*/
+                            dev->h_total = 0x7e;
+                            dev->v_total = 0x04f4;
+                            dev->v_syncstart = 0x04c1;
+                            mach->accel.clock_sel_mode = 0x1c;
+                            break;
+                        case 0x34: /*800x600 72Hz Non-interlaced*/
+                            dev->h_total = 0x83;
+                            dev->v_total = 0x0532;
+                            dev->v_syncstart = 0x04f9;
+                            mach->accel.clock_sel_mode = 0x10;
+                            break;
+                        case 0xa0: /*800x600 76Hz Non-interlaced*/
+                            dev->h_total = 0x87;
+                            dev->v_total = 0x0566;
+                            dev->v_syncstart = 0x04fb;
+                            mach->accel.clock_sel_mode = 0x14;
+                            break;
+                    }
+                }
+            } else if (((dev->hdisp == 1024) && (dev->vdisp == 768)) ||
+                    ((dev->hdisp == 640) && (dev->vdisp == 480) &&
+                    (dev->accel.advfunc_cntl & 0x04))) {
+                dev->hdisp = 1024;
+                dev->vdisp = 768;
+                mach_log("EEPROM 1024x768: %04x.\n", mach->eeprom.data[9]);
+                if (!(mach->accel.clock_sel & 0xfe)) {
+                    switch (mach->eeprom.data[9] & 0xff) {
+                        case 0x00: /*1024x768 76Hz Non-interlaced*/
+                            dev->h_total = 0xa3;
+                            dev->v_total = 0x064b;
+                            dev->v_syncstart = 0x060c;
+                            mach->accel.clock_sel_mode = 0x2c;
+                            break;
+                        case 0x01: /*1024x768 87Hz Interlaced*/
+                        default:
+                            dev->h_total = 0x9e;
+                            dev->v_total = 0x0669;
+                            dev->v_syncstart = 0x0601;
+                            mach->accel.clock_sel_mode = 0x1c;
+                            break;
+                        case 0x02: /*1024x768 60Hz Non-interlaced*/
+                            dev->h_total = 0xa8;
+                            dev->v_total = 0x064a;
+                            dev->v_syncstart = 0x0603;
+                            mach->accel.clock_sel_mode = 0x3c;
+                            break;
+                        case 0x04: /*1024x768 70Hz Non-interlaced*/
+                            dev->h_total = 0xa6;
+                            dev->v_total = 0x064a;
+                            dev->v_syncstart = 0x0603;
+                            mach->accel.clock_sel_mode = 0x38;
+                            break;
+                        case 0x08: /*1024x768 72Hz Non-interlaced*/
+                            dev->h_total = 0xa1;
+                            dev->v_total = 0x064a;
+                            dev->v_syncstart = 0x0603;
+                            mach->accel.clock_sel_mode = 0x38;
+                            break;
+                        case 0x82: /*1024x768 66Hz Non-interlaced*/
+                            dev->h_total = 0xac;
+                            dev->v_total = 0x065c;
+                            dev->v_syncstart = 0x060b;
+                            mach->accel.clock_sel_mode = 0x38;
+                            break;
+                    }
+                }
+            } else if ((dev->hdisp == 1280) && (dev->vdisp == 1024)) {
+                mach_log("EEPROM 1280x1024: %04x.\n", mach->eeprom.data[0x0a]);
+                if (!(mach->accel.clock_sel & 0xfe)) {
+                    switch (mach->eeprom.data[0x0a] & 0xff) {
+                        case 0x81: /*1280x1024 87Hz Interlaced*/
+                        default:
+                            dev->h_total = 0xc8;
+                            dev->v_total = 0x08f9;
+                            dev->v_syncstart = 0x0862;
+                            mach->accel.clock_sel_mode = 0x2c;
+                            break;
+                        case 0x82: /*1280x1024 95Hz Interlaced*/
+                            dev->h_total = 0xc8;
+                            dev->v_total = 0x0839;
+                            dev->v_syncstart = 0x0812;
+                            mach->accel.clock_sel_mode = 0x2c;
+                            break;
+                        case 0x83: /*1280x1024 60Hz Non-interlaced*/
+                            dev->h_total = 0xd7;
+                            dev->v_total = 0x0852;
+                            dev->v_syncstart = 0x801;
+                            mach->accel.clock_sel_mode = 0x28;
+                            break;
+                        case 0x84: /*1280x1024 70Hz Non-interlaced*/
+                            dev->h_total = 0xd3;
+                            dev->v_total = 0x0852;
+                            dev->v_syncstart = 0x801;
+                            mach->accel.clock_sel_mode = 0x04;
+                            break;
+                        case 0x85: /*1280x1024 75Hz Non-interlaced*/
+                            dev->h_total = 0xd0;
+                            dev->v_total = 0x0852;
+                            dev->v_syncstart = 0x819;
+                            mach->accel.clock_sel_mode = 0x20;
+                            break;
+                    }
                 }
             }
+            svga_recalctimings(svga);
         }
-        svga_recalctimings(svga);
-    } else /*No change (type 0).*/
-        svga_recalctimings(svga);
+    }
 }
 
 static int
@@ -3234,7 +3157,7 @@ ati8514_recalctimings(svga_t *svga)
     ibm8514_t    *dev  = (ibm8514_t *) svga->dev8514;
     int           _8514_modes = 0;
 
-    mach_log(mach->log,"ON=%d, vgahdisp=%d.\n", dev->on, svga->hdisp);
+    mach_log(mach->log, "ON=%d, vgahdisp=%d.\n", dev->on, svga->hdisp);
     if (dev->on) {
         dev->interlace                  = dev->disp_cntl_interlace;
         dev->pitch                      = dev->ext_pitch;
@@ -3296,9 +3219,10 @@ ati8514_recalctimings(svga_t *svga)
         }
         dev->accel_bpp = 8;
         svga->render8514 = ibm8514_render_8bpp;
-
-    } else
+    } else {
         dev->mode = VGA_MODE;
+        mach_log(mach->log, "VGA Mode, cntl=%02x.\n", mach->shadow_cntl);
+    }
 }
 
 static void
@@ -3627,13 +3551,12 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
     switch (port) {
         case 0x2e8:
-            mach_log(mach->log,"HTOTAL=%04x, len=%d, set=%x, ATI mode bit=%x.\n", val, len, mach->shadow_set & 0x03, mach->accel.clock_sel & 0x01);
-            if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                if (!(mach->shadow_cntl & 0x04) && val)
+            mach_log("HTOTAL=%04x, len=%d, ATI mode bit=%x, set=%x, shadow cntl=%02x.\n", val, len, mach->accel.clock_sel & 0x01, mach->shadow_set & 0x03, mach->shadow_cntl);
+            if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) {
+                if (!(mach->shadow_cntl & 0x04)) {
                     dev->htotal = val;
-
-                mach_set_crt_params(dev);
-                svga_recalctimings(svga);
+                    mach_set_resolution(mach, svga);
+                }
             }
             break;
 
@@ -3641,47 +3564,41 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
                 if (!(mach->shadow_cntl & 0x04)) {
                     WRITE8(port, dev->hsync_start, val);
+                    mach_set_resolution(mach, svga);
                 }
-                mach_set_crt_params(dev);
-                svga_recalctimings(svga);
             }
             break;
 
         case 0xee8:
             if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                if (!(mach->shadow_cntl & 0x04) && val) {
+                if (!(mach->shadow_cntl & 0x04)) {
                     WRITE8(port, dev->hsync_width, val);
+                    mach_set_resolution(mach, svga);
                 }
-                mach_set_crt_params(dev);
-                svga_recalctimings(svga);
             }
             break;
 
         case 0x6e8:
             if (len == 2) {
-                mach_log(mach->log,"HDISP and HTOTAL=%04x, len=%d, set=%x, ATI mode bit=%x.\n", val, len, mach->shadow_set & 0x03, mach->accel.clock_sel & 0x01);
+                mach_log("HDISP and HTOTAL=%04x, len=%d, ATI mode bit=%x, set=%x, shadow cntl=%02x.\n", val, len, mach->accel.clock_sel & 0x01, mach->shadow_set & 0x03, mach->shadow_cntl);
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if ((!(mach->shadow_cntl & 0x04)) && ((val >> 8) & 0xff))
+                    if (!(mach->shadow_cntl & 0x04))
                         dev->htotal = (val >> 8) & 0xff;
 
                     if (!(mach->shadow_cntl & 0x08)) {
-                        if (val & 0xff) {
-                            WRITE8(port, dev->hdisped, val);
-                        }
+                        dev->hdisped = val & 0xff;
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
+
+                    if (!(mach->shadow_cntl & 0x0c))
+                        mach_set_resolution(mach, svga);
                 }
             } else {
-                mach_log(mach->log,"HDISP and HTOTAL=%02x, len=%d, set=%x, ATI mode bit=%x.\n", val, len, mach->shadow_set & 0x03, mach->accel.clock_sel & 0x01);
+                mach_log("HDISP and HTOTAL=%02x, len=%d, ATI mode bit=%x, set=%x, shadow cntl=%02x.\n", val, len, mach->accel.clock_sel & 0x01, mach->shadow_set & 0x03, mach->shadow_cntl);
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
                     if (!(mach->shadow_cntl & 0x08)) {
-                        if (val & 0xff) {
-                            WRITE8(port, dev->hdisped, val);
-                        }
+                        dev->hdisped = val;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
             }
             mach_log(mach->log,"[%04X:%08X]: ATI 8514/A: (0x%04x): hdisp=0x%02x, shadowcntl=%02x, shadowset=%02x.\n",
@@ -3690,13 +3607,12 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
 
         case 0x6e9:
             if (len == 1) {
-                mach_log(mach->log,"HDISP and HTOTAL+1=%02x, len=%d, set=%x, ATI mode bit=%x.\n", val, len, mach->shadow_set & 0x03, mach->accel.clock_sel & 0x01);
+                mach_log("HDISP and HTOTAL+1=%02x, len=%d, ATI mode bit=%x, set=%x.\n", val, len, mach->accel.clock_sel & 0x01, mach->shadow_set & 0x03);
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x04) && val) {
+                    if (!(mach->shadow_cntl & 0x04)) {
                         dev->htotal = val;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
             }
             break;
@@ -3704,21 +3620,19 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x12e8:
             if (len == 2) {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x10) && val) {
+                    if (!(mach->shadow_cntl & 0x10)) {
                         dev->v_total_reg = val;
                         dev->v_total_reg &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
             } else {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x10) && val) {
+                    if (!(mach->shadow_cntl & 0x10)) {
                         WRITE8(port, dev->v_total_reg, val);
                         dev->v_total_reg &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
             }
             mach_log(mach->log,"[%04X:%08X]: ATI 8514/A: (0x%04x): hdisp=0x%02x.\n", CS, cpu_state.pc, port, val);
@@ -3727,12 +3641,11 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x12e9:
             if (len == 1) {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) {
-                    if (!(mach->shadow_cntl & 0x10) && ((val >> 8) & 0xff)) { /*For 8514/A mode, take the shadow sets into account.*/
+                    if (!(mach->shadow_cntl & 0x10)) {
                         WRITE8(port, dev->v_total_reg, val >> 8);
                         dev->v_total_reg &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
                 mach_log(mach->log,"[%04X:%08X]: ATI 8514/A: (0x%04x): hdisp=0x%02x.\n", CS, cpu_state.pc, port, val);
             }
@@ -3741,35 +3654,32 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x16e8:
             if (len == 2) {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x20) && val) {
+                    if (!(mach->shadow_cntl & 0x20)) {
                         dev->v_disp = val;
                         dev->v_disp &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
                 mach_log(mach->log,"ATI 8514/A: V_DISP write 16E8=%d, vdisp2=%d.\n", dev->v_disp, dev->v_disp2);
                 mach_log(mach->log,"ATI 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
             } else {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x20) && val) {
+                    if (!(mach->shadow_cntl & 0x20)) {
                         WRITE8(port, dev->v_disp, val);
                         dev->v_disp &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
             }
             break;
         case 0x16e9:
             if (len == 1) {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x20) && ((val >> 8) & 0xff)) {
+                    if (!(mach->shadow_cntl & 0x20)) {
                         WRITE8(port, dev->v_disp, val >> 8);
                         dev->v_disp &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
                 mach_log(mach->log,"ATI 8514/A: V_DISP write 16E8=%d, vdisp2=%d.\n", dev->v_disp, dev->v_disp2);
                 mach_log(mach->log,"ATI 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
@@ -3779,35 +3689,32 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x1ae8:
             if (len == 2) {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x10) && val) {
+                    if (!(mach->shadow_cntl & 0x10)) {
                         dev->v_sync_start = val;
                         dev->v_sync_start &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
                 mach_log(mach->log,"ATI 8514/A: V_SYNCSTART write 1AE8 = %d\n", dev->v_syncstart);
                 mach_log(mach->log,"ATI 8514/A: (0x%04x): vsyncstart=0x%02x.\n", port, val);
             } else {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x10) && val) {
+                    if (!(mach->shadow_cntl & 0x10)) {
                         WRITE8(port, dev->v_sync_start, val);
                         dev->v_sync_start &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
             }
             break;
         case 0x1ae9:
             if (len == 1) {
                 if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) { /*For 8514/A mode, take the shadow sets into account.*/
-                    if (!(mach->shadow_cntl & 0x10) && ((val >> 8) & 0xff)) {
+                    if (!(mach->shadow_cntl & 0x10)) {
                         WRITE8(port, dev->v_sync_start, val >> 8);
                         dev->v_sync_start &= 0x1fff;
+                        mach_set_resolution(mach, svga);
                     }
-                    mach_set_crt_params(dev);
-                    svga_recalctimings(svga);
                 }
                 mach_log(mach->log,"ATI 8514/A: V_SYNCSTART write 1AE8 = %d\n", dev->v_syncstart);
                 mach_log(mach->log,"ATI 8514/A: (0x%04x): vsyncstart=0x%02x.\n", port, val);
@@ -3817,19 +3724,20 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x1ee8:
         case 0x1ee9:
             if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) {
-                mach_set_crt_params(dev);
-                svga_recalctimings(svga);
+                if (!(mach->shadow_cntl & 0x10)) {
+                    mach_set_resolution(mach, svga);
+                }
             }
             break;
 
         case 0x22e8:
             if ((mach->accel.clock_sel & 0x01) || !dev->on || dev->ext_mode_inc) {
-                dev->disp_cntl = val;
                 if (!(mach->shadow_cntl & 0x01)) {
+                    dev->disp_cntl = val;
                     dev->disp_cntl_interlace = !!(val & 0x10);
                     dev->disp_cntl_double_scan = !!(val & 0x08);
+                    mach_set_resolution(mach, svga);
                 }
-                svga_recalctimings(svga);
             }
 
             mach_log(mach->log,"ATI 8514/A: DISP_CNTL write %04x=%02x, written=%02x, interlace=%02x, shadowset=%02x, shadowcntl=%02x.\n",
@@ -3878,6 +3786,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                      CS, cpu_state.pc, port, val & 0x01, dev->on, dev->accel.advfunc_cntl & 0x04, dev->hdisp, dev->vdisp, mach->regs[0xb0] & 0x20, dev->accel_bpp, dev->ext_mode_inc, dev->disp_change);
 
             mach_log(mach->log,"Vendor IBM mode set %s resolution.\n", (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
+
             if (ATI_MACH32) {
                 if (dev->disp_change) {
                     mach_set_resolution(mach, svga);
@@ -4267,8 +4176,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 if (ATI_MACH32)
                     mach->misc = val;
             } else {
-                if (ATI_MACH32)
+                if (ATI_MACH32) {
                     WRITE8(port, mach->misc, val);
+                }
             }
             mach->misc &= 0xfff0;
             break;
@@ -4315,7 +4225,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             else {
                 WRITE8(port, mach->shadow_cntl, val);
             }
-            mach_log(mach->log,"ATI 8514/A: (0x%04x) val=%02x.\n", port, val);
+            mach_log("ATI 8514/A: (0x%04x) val=%02x, len=%d.\n", port, val, len);
             break;
 
         case 0x4aee:
@@ -4377,11 +4287,11 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             }
             mach_log(mach->log,"ATI 8514/A: (0x%04x) val=0x%02x, len=%d.\n", port, val, len);
             if ((mach->shadow_set & 0x03) == 0x00)
-                mach_log(mach->log,"Primary CRT register set.\n");
+                mach_log("Primary CRT register set.\n");
             else if ((mach->shadow_set & 0x03) == 0x01)
-                mach_log(mach->log,"CRT Shadow Set 1: 640x480.\n");
+                mach_log("CRT Shadow Set 1: 640x480.\n");
             else if ((mach->shadow_set & 0x03) == 0x02)
-                mach_log(mach->log,"CRT Shadow Set 2: 1024x768.\n");
+                mach_log("CRT Shadow Set 2: 1024x768.\n");
             break;
 
         case 0x5eee:
@@ -5479,6 +5389,7 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
         case 0x46ee:
         case 0x46ef:
             READ8(port, mach->shadow_cntl);
+            mach_log("Shadow Cntl temp=%04x, oddevenport=%d.\n", temp, port & 1);
             break;
 
         case 0x4aee:
@@ -7804,7 +7715,7 @@ mach8_init(const device_t *info)
         dev->changedvram = calloc((dev->vram_size >> 12) + 1, 1);
         dev->vram_mask   = dev->vram_size - 1;
         video_inform(VIDEO_FLAG_TYPE_8514, &timing_gfxultra_isa);
-        mach->config1 = 0x01 | 0x08 | 0x80;
+        mach->config1 = 0x01 | 0x08;
         if (dev->vram_amount >= 1024)
             mach->config1 |= 0x20;
 
@@ -7887,13 +7798,6 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     dev->ext_crt_pitch = 0x80;
     dev->accel_bpp = 8;
     dev->rowoffset = 0x80;
-    dev->hdisped = 0x7f;
-    dev->v_disp = 0x05ff;
-    dev->htotal = 0x9d;
-    dev->v_total_reg = 0x0668;
-    dev->v_sync_start = 0x0600;
-    dev->disp_cntl = 0x33;
-    mach->accel.clock_sel = 0x1c;
     dev->accel.cmd_back = 1;
     dev->mode = IBM_MODE;
     mach->accel.src_y_dir = 0x01;
@@ -7905,7 +7809,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     mach->accel.cmd_type = -2;
     mach->mca_bus = !!(dev->type & DEVICE_MCA);
 
-    mach->config1 = 0x08 | 0x80;
+    mach->config1 = 0x08;
 
     if (mach->mca_bus)
         mach->config1 |= 0x04;
