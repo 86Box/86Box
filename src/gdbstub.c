@@ -47,8 +47,8 @@
 #include <86box/thread.h>
 #include <86box/gdbstub.h>
 
-#define FAST_RESPONSE(s)         \
-    strcpy(client->response, s); \
+#define FAST_RESPONSE(s)                          \
+    memcpy(client->response, s, sizeof(s) - 1);  \
     client->response_pos = sizeof(s) - 1;
 #define FAST_RESPONSE_HEX(s) gdbstub_client_respond_hex(client, (uint8_t *) s, sizeof(s));
 
@@ -602,10 +602,11 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
     }
 
 #ifdef ENABLE_GDBSTUB_LOG
-    char logbuf[256], *p = logbuf + sprintf(logbuf, "GDB Stub: Setting register %d to ", index);
+    char logbuf[256];
+    int  logpos = snprintf(logbuf, sizeof(logbuf), "GDB Stub: Setting register %d to ", index);
     for (int i = width - 1; i >= 0; i--)
-        p += sprintf(p, "%02X", buf[i]);
-    sprintf(p, "\n");
+        logpos += snprintf(logbuf + logpos, sizeof(logbuf) - logpos, "%02X", buf[i]);
+    snprintf(logbuf + logpos, sizeof(logbuf) - logpos, "\n");
     gdbstub_log(logbuf);
 #endif
 
@@ -804,8 +805,8 @@ gdbstub_client_packet(gdbstub_client_t *client)
         case '?': /* stop reason */
             /* Respond with a stop reply packet if one is present. */
             if (stop_reason_len) {
-                strcpy(client->response, stop_reason);
-                client->response_pos = strlen(client->response);
+                memcpy(client->response, stop_reason, stop_reason_len);
+                client->response_pos = stop_reason_len;
             }
             break;
 
@@ -1149,24 +1150,24 @@ e00:
                                 gdbstub_client_respond_hex(client, (uint8_t *) client->packet, client->packet_pos);
                                 gdbstub_client_respond_partial(client);
                             }
-                            client->packet_pos = sprintf(client->packet, "%04X:", j + i);
+                            client->packet_pos = snprintf(client->packet, sizeof(client->packet), "%04X:", j + i);
                         }
                         /* Act according to I/O operation width. */
                         switch (l) {
                             case 'd':
                             case 'l':
-                                client->packet_pos += sprintf(&client->packet[client->packet_pos], " %08X", inl(j + i));
+                                client->packet_pos += snprintf(&client->packet[client->packet_pos], sizeof(client->packet) - client->packet_pos, " %08X", inl(j + i));
                                 i += 4;
                                 break;
 
                             case 'w':
-                                client->packet_pos += sprintf(&client->packet[client->packet_pos], " %04X", inw(j + i));
+                                client->packet_pos += snprintf(&client->packet[client->packet_pos], sizeof(client->packet) - client->packet_pos, " %04X", inw(j + i));
                                 i += 2;
                                 break;
 
                             case 'b':
                             case '\0':
-                                client->packet_pos += sprintf(&client->packet[client->packet_pos], " %02X", inb(j + i));
+                                client->packet_pos += snprintf(&client->packet[client->packet_pos], sizeof(client->packet) - client->packet_pos, " %02X", inb(j + i));
                                 i++;
                                 break;
 
@@ -1420,7 +1421,7 @@ gdbstub_cpu_exec(int32_t cycs)
             stop_reason[stop_reason_len++] = 'c';
             stop_reason[stop_reason_len++] = 'h';
             stop_reason[stop_reason_len++] = ':';
-            stop_reason_len += sprintf(&stop_reason[stop_reason_len], "%X;", watch_addr);
+            stop_reason_len += snprintf(&stop_reason[stop_reason_len], sizeof(stop_reason) - stop_reason_len, "%X;", watch_addr);
         } else if (gdbstub_step >= GDBSTUB_BREAK_SW) {
             stop_reason[stop_reason_len++] = (gdbstub_step == GDBSTUB_BREAK_SW) ? 's' : 'h';
             stop_reason[stop_reason_len++] = 'w';
@@ -1470,7 +1471,7 @@ gdbstub_cpu_exec(int32_t cycs)
                 thread_reset_event(client->response_event);
 
                 /* Write stop reason response. */
-                strcpy(client->response, stop_reason);
+                memcpy(client->response, stop_reason, stop_reason_len);
                 client->response_pos = stop_reason_len;
                 gdbstub_client_respond(client);
             } else {
@@ -1815,7 +1816,7 @@ gdbstub_init(void)
     int                port      = 12345;
     struct sockaddr_in bind_addr = {
         .sin_family = AF_INET,
-        .sin_addr   = { .s_addr = INADDR_ANY },
+        .sin_addr   = { .s_addr = htonl(INADDR_LOOPBACK) },
         .sin_port   = htons(port)
     };
     if (bind(gdbstub_socket, (struct sockaddr *) &bind_addr, sizeof(bind_addr)) == -1) {
