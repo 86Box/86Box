@@ -483,17 +483,17 @@ msgstr "Styrspak 3…"
 msgid "Joystick 4…"
 msgstr "Styrspak 4…"
 
-msgid "Sound card #1:"
-msgstr "Ljudkort #1:"
+msgid "Sound card 1:"
+msgstr "Ljudkort 1:"
 
-msgid "Sound card #2:"
-msgstr "Ljudkort #2:"
+msgid "Sound card 2:"
+msgstr "Ljudkort 2:"
 
-msgid "Sound card #3:"
-msgstr "Ljudkort #3:"
+msgid "Sound card 3:"
+msgstr "Ljudkort 3:"
 
-msgid "Sound card #4:"
-msgstr "Ljudkort #4:"
+msgid "Sound card 4:"
+msgstr "Ljudkort 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Enhet för MIDI-utdata:"

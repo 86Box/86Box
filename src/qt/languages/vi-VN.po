@@ -484,16 +484,16 @@ msgstr "Cần điều khiển 3…"
 msgid "Joystick 4…"
 msgstr "Cần điều khiển 4…"
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr "Card âm thanh 1:"
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr "Card âm thanh 2:"
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr "Card âm thanh 3:"
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr "Card âm thanh 4:"
 
 msgid "MIDI Out Device:"

@@ -483,16 +483,16 @@ msgstr "3. Oyun Kolu…"
 msgid "Joystick 4…"
 msgstr "4. Oyun Kolu…"
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr "1. Ses Kartı:"
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr "2. Ses Kartı:"
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr "3. Ses Kartı:"
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr "4. Ses Kartı:"
 
 msgid "MIDI Out Device:"

@@ -477,16 +477,16 @@ msgstr ""
 msgid "Joystick 4…"
 msgstr ""
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr ""
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr ""
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr ""
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr ""
 
 msgid "MIDI Out Device:"
