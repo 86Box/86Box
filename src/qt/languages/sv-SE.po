@@ -864,8 +864,10 @@ msgstr "KB"
 msgid "Default"
 msgstr "Standard"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 vänteläge(n)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n vänteläge"
+msgstr[1] "%n väntelägen"
 
 msgid "Type"
 msgstr "Typ"
@@ -1143,14 +1145,23 @@ msgstr "Väntar"
 msgid "Powered Off"
 msgstr "Avstängd"
 
+#, fuzzy
 msgid "%n running"
-msgstr "%n körs"
+msgid_plural "%n running"
+msgstr[0] "%n körs"
+msgstr[1] "%n körs"
 
+#, fuzzy
 msgid "%n paused"
-msgstr "%n pausad"
+msgid_plural "%n paused"
+msgstr[0] "%n pausad"
+msgstr[1] "%n pausade"
 
+#, fuzzy
 msgid "%n waiting"
-msgstr "%n väntar"
+msgid_plural "%n waiting"
+msgstr[0] "%n väntar"
+msgstr[1] "%n väntar"
 
 msgid "%1 total"
 msgstr "%1 sammanlagt"
@@ -1180,7 +1191,9 @@ msgid "Use regular expressions in search box"
 msgstr "Använd vanliga uttryck i sökfältet"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n maskin(er) är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n maskin är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
+msgstr[1] "%n maskiner är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
 
 msgid "Add new system wizard"
 msgstr "Guiden Lägg till nytt system"
@@ -3003,7 +3016,9 @@ msgid "%1 VM Manager"
 msgstr "%1 VM-hanterare"
 
 msgid "%n disk(s)"
-msgstr "%n disk(ar)"
+msgid_plural "%n disks"
+msgstr[0] "%n disk"
+msgstr[1] "%n diskar"
 
 msgid "Unknown Status"
 msgstr "Ökänd status"

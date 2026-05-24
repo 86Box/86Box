@@ -865,8 +865,10 @@ msgstr "Kt"
 msgid "Default"
 msgstr "Oletus"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 odotustilaa"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n odotustila"
+msgstr[1] "%n odotustilaa"
 
 msgid "Type"
 msgstr "Tyyppi"
@@ -1144,14 +1146,23 @@ msgstr "Odottaa"
 msgid "Powered Off"
 msgstr "Sammutettu"
 
+#, fuzzy
 msgid "%n running"
-msgstr "%n käynnissä"
+msgid_plural "%n running"
+msgstr[0] "%n käynnissä"
+msgstr[1] "%n käynnissä"
 
+#, fuzzy
 msgid "%n paused"
-msgstr "%n pysäytetty"
+msgid_plural "%n paused"
+msgstr[0] "%n pysäytetty"
+msgstr[1] "%n pysäytetty"
 
+#, fuzzy
 msgid "%n waiting"
-msgstr "%n odottaa"
+msgid_plural "%n waiting"
+msgstr[0] "%n odottaa"
+msgstr[1] "%n odottaa"
 
 msgid "%1 total"
 msgstr "yhteensä %1"
@@ -1180,8 +1191,11 @@ msgstr "Valittua määritystä ei voitu avata: %1"
 msgid "Use regular expressions in search box"
 msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
+#, fuzzy
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] ""
+msgstr[1] "%n konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
 
 msgid "Add new system wizard"
 msgstr "Koneenlisäysohjelma"
@@ -3000,7 +3014,9 @@ msgid "%1 VM Manager"
 msgstr "%1 - virtuaalikoneiden hallinta"
 
 msgid "%n disk(s)"
-msgstr "%n levy(ä)"
+msgid_plural "%n disks"
+msgstr[0] "%n levy"
+msgstr[1] "%n levyä"
 
 msgid "Unknown Status"
 msgstr "Tuntematon tila"

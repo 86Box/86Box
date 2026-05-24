@@ -864,8 +864,12 @@ msgstr "KB"
 msgid "Default"
 msgstr "Východiskové"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 čakací stav(y)"
+#, fuzzy
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n čakací stav"
+msgstr[1] "%n čakacíe stavy"
+msgstr[2] "%n čakacích stavov"
 
 msgid "Type"
 msgstr "Typ"
@@ -1143,14 +1147,26 @@ msgstr "Čeká"
 msgid "Powered Off"
 msgstr "Vypnuté"
 
+#, fuzzy
 msgid "%n running"
-msgstr "%n beží"
+msgid_plural "%n running"
+msgstr[0] "%n beží"
+msgstr[1] "%n bežía"
+msgstr[2] "%n beží"
 
+#, fuzzy
 msgid "%n paused"
-msgstr "%n pozostavené"
+msgid_plural "%n paused"
+msgstr[0] "%n pozostavený"
+msgstr[1] "%n pozostavených"
+msgstr[2] "%n pozostavených"
 
+#, fuzzy
 msgid "%n waiting"
-msgstr "%n čeká"
+msgid_plural "%n waiting"
+msgstr[0] "%n čeká"
+msgstr[1] "%n čekájú"
+msgstr[2] "%n čeká"
 
 msgid "%1 total"
 msgstr "%1 celkom"
@@ -1180,7 +1196,10 @@ msgid "Use regular expressions in search box"
 msgstr "Použiť v poli vyhľadávania regulárne výrazy"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n počítač(ov) je stále aktívnych. Naozaj chcete ukončiť správcu virtuálnych počítačov?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n počítač je stále aktívny. Naozaj chcete ukončiť správcu virtuálnych počítačov?"
+msgstr[1] "%n počítače sú stále aktívne. Naozaj chcete ukončiť správcu virtuálnych počítačov?"
+msgstr[2] "%n počítačov je stále aktívnych. Naozaj chcete ukončiť správcu virtuálnych počítačov?"
 
 msgid "Add new system wizard"
 msgstr "Sprievodca pridávaním nového systému"
@@ -3004,7 +3023,10 @@ msgid "%1 VM Manager"
 msgstr "Správca virtuálnych počítačov %1"
 
 msgid "%n disk(s)"
-msgstr "%n disk(ov)"
+msgid_plural "%n disks"
+msgstr[0] "%n disk"
+msgstr[1] "%n disky"
+msgstr[2] "%n diskov"
 
 msgid "Unknown Status"
 msgstr "Neznámy stav"

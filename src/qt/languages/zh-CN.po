@@ -865,8 +865,9 @@ msgstr "KB"
 msgid "Default"
 msgstr "默认"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 等待状态 (WS)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n 等待状态 (WS)"
 
 msgid "Type"
 msgstr "类型"
@@ -1152,13 +1153,16 @@ msgid "Powered Off"
 msgstr "已关机"
 
 msgid "%n running"
-msgstr "%n 正在运行"
+msgid_plural "%n running"
+msgstr[0] "%n 正在运行"
 
 msgid "%n paused"
-msgstr "%n 已暂停"
+msgid_plural "%n paused"
+msgstr[0] "%n 已暂停"
 
 msgid "%n waiting"
-msgstr "%n 等待中"
+msgid_plural "%n waiting"
+msgstr[0] "%n 等待中"
 
 msgid "%1 total"
 msgstr "%1 总计"
@@ -1188,7 +1192,8 @@ msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgid_plural "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"
@@ -3011,7 +3016,8 @@ msgid "%1 VM Manager"
 msgstr "%1 虚拟机管理器"
 
 msgid "%n disk(s)"
-msgstr "%n 磁盘"
+msgid_plural "%n disks"
+msgstr[0] "%n 磁盘"
 
 msgid "Unknown Status"
 msgstr "未知状态"

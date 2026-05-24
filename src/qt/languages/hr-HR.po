@@ -867,8 +867,11 @@ msgstr "KB"
 msgid "Default"
 msgstr "Standard"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 stanje čekanja"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n stanje čekanja"
+msgstr[1] "%n stanja čekanja"
+msgstr[2] "%n stanja čekanja"
 
 msgid "Type"
 msgstr "Tip"
@@ -1146,14 +1149,26 @@ msgstr "Čeka"
 msgid "Powered Off"
 msgstr "Isključen"
 
+#, fuzzy
 msgid "%n running"
-msgstr "%n se ppokreće"
+msgid_plural "%n running"
+msgstr[0] "%n se ppokreće"
+msgstr[1] "%n se ppokreće"
+msgstr[2] "%n se ppokreće"
 
+#, fuzzy
 msgid "%n paused"
-msgstr "%n pauziranih"
+msgid_plural "%n paused"
+msgstr[0] "%n pauziranih"
+msgstr[1] "%n pauziranih"
+msgstr[2] "%n pauziranih"
 
+#, fuzzy
 msgid "%n waiting"
-msgstr "%n čeka"
+msgid_plural "%n waiting"
+msgstr[0] "%n čeka"
+msgstr[1] "%n čekaju"
+msgstr[2] "%n čeka"
 
 msgid "%1 total"
 msgstr "%1 ukupno"
@@ -1183,7 +1198,10 @@ msgid "Use regular expressions in search box"
 msgstr "U polju za pretraživanje koristite regularne izraze"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "Broj trenutno aktivnih računala je %n. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n računalo je trenutno aktivno. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
+msgstr[1] "%n računala su trenutno aktivna. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
+msgstr[2] "%n računala je trenutno aktivnih. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
 
 msgid "Add new system wizard"
 msgstr "Čarobnjak za dodavanje novog sistema"
@@ -3002,7 +3020,10 @@ msgid "%1 VM Manager"
 msgstr "Upravitelj virtualnih sistema programa %1"
 
 msgid "%n disk(s)"
-msgstr "%n disk(ova)"
+msgid_plural "%n disks"
+msgstr[0] "%n disk"
+msgstr[1] "%n diska"
+msgstr[2] "%n diskova"
 
 msgid "Unknown Status"
 msgstr "Nepoznat status"

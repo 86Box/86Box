@@ -865,8 +865,9 @@ msgstr "KB"
 msgid "Default"
 msgstr "Mặc định"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 trạng thái chờ"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n trạng thái chờ"
 
 msgid "Type"
 msgstr "Loại"
@@ -1145,13 +1146,16 @@ msgid "Powered Off"
 msgstr "Đã tắt máy"
 
 msgid "%n running"
-msgstr "%n đang chạy"
+msgid_plural "%n running"
+msgstr[0] "%n đang chạy"
 
 msgid "%n paused"
-msgstr "%n đã tạm dừng"
+msgid_plural "%n paused"
+msgstr[0] "%n đã tạm dừng"
 
 msgid "%n waiting"
-msgstr "%n đang chờ"
+msgid_plural "%n waiting"
+msgstr[0] "%n đang chờ"
 
 msgid "%1 total"
 msgstr "%1 tổng"
@@ -1181,7 +1185,8 @@ msgid "Use regular expressions in search box"
 msgstr "Dùng regex trong hộp tìm kiếm"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
 
 msgid "Add new system wizard"
 msgstr "Thêm trình thuật sĩ hệ thống mới"
@@ -3000,7 +3005,8 @@ msgid "%1 VM Manager"
 msgstr "Trình quản lý máy ảo %1"
 
 msgid "%n disk(s)"
-msgstr "%n đĩa"
+msgid_plural "%n disks"
+msgstr[0] "%n đĩa"
 
 msgid "Unknown Status"
 msgstr "Trạng thái không biết"

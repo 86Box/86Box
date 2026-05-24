@@ -865,8 +865,9 @@ msgstr "KB"
 msgid "Default"
 msgstr "既定値"
 
-msgid "%1 Wait state(s)"
-msgstr "%1つのウェイト ステート"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%1つのウェイト ステート"
 
 msgid "Type"
 msgstr "タイプ"
@@ -1145,13 +1146,16 @@ msgid "Powered Off"
 msgstr "電源オフ"
 
 msgid "%n running"
-msgstr "%n 実行中"
+msgid_plural "%n running"
+msgstr[0] "%n 実行中"
 
 msgid "%n paused"
-msgstr "%n 停止した"
+msgid_plural "%n paused"
+msgstr[0] "%n 停止した"
 
 msgid "%n waiting"
-msgstr "%n 待機中"
+msgid_plural "%n waiting"
+msgstr[0] "%n 待機中"
 
 msgid "%1 total"
 msgstr "%1 は総数です"
@@ -1181,7 +1185,8 @@ msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
 
 msgid "Add new system wizard"
 msgstr "新しいシステムを追加するためのウィザード"
@@ -3004,7 +3009,8 @@ msgid "%1 VM Manager"
 msgstr "%1 VMマネージャー"
 
 msgid "%n disk(s)"
-msgstr "%n ディスク"
+msgid_plural "%n disks"
+msgstr[0] "%n ディスク"
 
 msgid "Unknown Status"
 msgstr "不明な状態"

@@ -869,8 +869,9 @@ msgstr "KB"
 msgid "Default"
 msgstr "預設"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 等待狀態 (WS)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n 等待狀態 (WS)"
 
 msgid "Type"
 msgstr "類型"
@@ -1149,13 +1150,16 @@ msgid "Powered Off"
 msgstr "電源關閉"
 
 msgid "%n running"
-msgstr "%n 執行中"
+msgid_plural "%n running"
+msgstr[0] "%n 執行中"
 
 msgid "%n paused"
-msgstr "%n 已暫停"
+msgid_plural "%n paused"
+msgstr[0] "%n 已暫停"
 
 msgid "%n waiting"
-msgstr "%n 等待中"
+msgid_plural "%n waiting"
+msgstr[0] "%n 等待中"
 
 msgid "%1 total"
 msgstr "%1 總計"
@@ -1185,7 +1189,8 @@ msgid "Use regular expressions in search box"
 msgstr "在搜尋欄中使用正規表示式"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
 
 msgid "Add new system wizard"
 msgstr "新增系統精靈"
@@ -3015,7 +3020,8 @@ msgid "%1 VM Manager"
 msgstr "%1 虛擬機器管理員"
 
 msgid "%n disk(s)"
-msgstr "%n 磁碟"
+msgid_plural "%n disks"
+msgstr[0] "%n 磁碟"
 
 msgid "Unknown Status"
 msgstr "狀態不明"

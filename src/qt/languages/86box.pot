@@ -864,8 +864,9 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-msgid "%1 Wait state(s)"
-msgstr ""
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] ""
 
 msgid "Type"
 msgstr ""
@@ -1144,13 +1145,16 @@ msgid "Powered Off"
 msgstr ""
 
 msgid "%n running"
-msgstr ""
+msgid_plural "%n running"
+msgstr[0] ""
 
 msgid "%n paused"
-msgstr ""
+msgid_plural "%n paused"
+msgstr[0] ""
 
 msgid "%n waiting"
-msgstr ""
+msgid_plural "%n waiting"
+msgstr[0] ""
 
 msgid "%1 total"
 msgstr ""
@@ -1180,7 +1184,8 @@ msgid "Use regular expressions in search box"
 msgstr ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr ""
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] ""
 
 msgid "Add new system wizard"
 msgstr ""
@@ -2998,7 +3003,8 @@ msgid "%1 VM Manager"
 msgstr ""
 
 msgid "%n disk(s)"
-msgstr ""
+msgid_plural "%n disks"
+msgstr[0] ""
 
 msgid "Unknown Status"
 msgstr ""

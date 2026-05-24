@@ -865,8 +865,9 @@ msgstr "KB"
 msgid "Default"
 msgstr "기본값"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 대기 상태"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n 대기 상태"
 
 msgid "Type"
 msgstr "형식"
@@ -1145,13 +1146,16 @@ msgid "Powered Off"
 msgstr "전원이 꺼져 있습니다"
 
 msgid "%n running"
-msgstr "%n 실행 중입니다"
+msgid_plural "%n running"
+msgstr[0] "%n 실행 중입니다"
 
 msgid "%n paused"
-msgstr "%n 일시 중지되었습니다"
+msgid_plural "%n paused"
+msgstr[0] "%n 일시 중지되었습니다"
 
 msgid "%n waiting"
-msgstr "%n 대기 중입니다"
+msgid_plural "%n waiting"
+msgstr[0] "%n 대기 중입니다"
 
 msgid "%1 total"
 msgstr "%1 총계"
@@ -1181,7 +1185,8 @@ msgid "Use regular expressions in search box"
 msgstr "검색 상자에 정규 표현식 사용"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "현재 %n대의 머신이 활성화되어 있습니다. 가상 머신 관리자를 종료하시겠습니까?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "현재 %n대의 머신이 활성화되어 있습니다. 가상 머신 관리자를 종료하시겠습니까?"
 
 msgid "Add new system wizard"
 msgstr "새로운 시스템을 추가하는 마법사"
@@ -3002,7 +3007,8 @@ msgid "%1 VM Manager"
 msgstr "%1 가상 머신 관리자"
 
 msgid "%n disk(s)"
-msgstr "%n 디스크"
+msgid_plural "%n disks"
+msgstr[0] "%n 디스크"
 
 msgid "Unknown Status"
 msgstr "알 수 없는 상태"

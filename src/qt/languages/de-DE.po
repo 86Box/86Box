@@ -864,8 +864,10 @@ msgstr "KB"
 msgid "Default"
 msgstr "Standard"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 Wartezustände"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n Wartezuständ"
+msgstr[1] "%n Wartezustände"
 
 msgid "Type"
 msgstr "Typ"
@@ -1143,14 +1145,23 @@ msgstr "Wartend"
 msgid "Powered Off"
 msgstr "Ausgeschaltet"
 
+#, fuzzy
 msgid "%n running"
-msgstr "%n laufend"
+msgid_plural "%n running"
+msgstr[0] "%n laufend"
+msgstr[1] "%n laufend"
 
+#, fuzzy
 msgid "%n paused"
-msgstr "%n pausiert"
+msgid_plural "%n paused"
+msgstr[0] "%n pausiert"
+msgstr[1] "%n pausiert"
 
+#, fuzzy
 msgid "%n waiting"
-msgstr "%n wartend"
+msgid_plural "%n waiting"
+msgstr[0] "%n wartend"
+msgstr[1] "%n wartend"
 
 msgid "%1 total"
 msgstr "%1 insgesamt"
@@ -1180,7 +1191,9 @@ msgid "Use regular expressions in search box"
 msgstr "Benutze reguläre Ausdrücke in der Suche"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n Maschinen sind aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n Maschine ist aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
+msgstr[1] "%n Maschinen sind aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
 
 msgid "Add new system wizard"
 msgstr "Assistent für ein neues System"
@@ -3003,7 +3016,9 @@ msgid "%1 VM Manager"
 msgstr "%1 VM Manager"
 
 msgid "%n disk(s)"
-msgstr "%n Festplatte(n)"
+msgid_plural "%n disks"
+msgstr[0] "%n Festplatte"
+msgstr[1] "%n Festplatten"
 
 msgid "Unknown Status"
 msgstr "Unbekannter Status"

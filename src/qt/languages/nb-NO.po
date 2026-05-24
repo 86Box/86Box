@@ -865,8 +865,10 @@ msgstr "KB"
 msgid "Default"
 msgstr "Standard"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 ventetilstand(er)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n ventetilstand"
+msgstr[1] "%n ventetilstander"
 
 msgid "Type"
 msgstr "Type"
@@ -1144,14 +1146,23 @@ msgstr "Venter"
 msgid "Powered Off"
 msgstr "Slått av"
 
+#, fuzzy
 msgid "%n running"
-msgstr "%n kjørende"
+msgid_plural "%n running"
+msgstr[0] "%n kjørende"
+msgstr[1] "%n kjørende"
 
+#, fuzzy
 msgid "%n paused"
-msgstr "%n satt på pause"
+msgid_plural "%n paused"
+msgstr[0] "%n satt på pause"
+msgstr[1] "%n satt på pause"
 
+#, fuzzy
 msgid "%n waiting"
-msgstr "%n venter"
+msgid_plural "%n waiting"
+msgstr[0] "%n venter"
+msgstr[1] "%n venter"
 
 msgid "%1 total"
 msgstr "%1 totalt"
@@ -1181,7 +1192,9 @@ msgid "Use regular expressions in search box"
 msgstr "Bruk regulære uttrykk i søkeboksen"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n maskin(er) er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n maskin er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
+msgstr[1] "%n maskiner er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
 
 msgid "Add new system wizard"
 msgstr "Legg til ny system-veiviser"
@@ -3000,7 +3013,9 @@ msgid "%1 VM Manager"
 msgstr "%1 VM-håndtering"
 
 msgid "%n disk(s)"
-msgstr "%n disk(er)"
+msgid_plural "%n disks"
+msgstr[0] "%n disk"
+msgstr[1] "%n disker"
 
 msgid "Unknown Status"
 msgstr "Ukjent status"
