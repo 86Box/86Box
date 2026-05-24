@@ -863,7 +863,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     while (LIKELY(dir)) {
         /* Open directory for listing. */
         int    have_dir       = plat_dir_open(&context, dir->path);
-        size_t children_count = 3; /* include terminator, . and .. */
+        size_t children_count = 2; /* include . and .. (terminator is the +1 when allocating) */
         if (UNLIKELY(dir == viso->root_dir)) {
             /* Handle root directory. */
             if (have_dir && plat_dir_is_dir(&context))
@@ -878,7 +878,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Grow array if required. */
         if (children_count > dir_entries_len) {
-            viso_entry_t **new_dir_entries = (viso_entry_t **) calloc(children_count, sizeof(viso_entry_t *));
+            viso_entry_t **new_dir_entries = (viso_entry_t **) calloc(children_count + 1, sizeof(viso_entry_t *));
             if (LIKELY(new_dir_entries)) {
                 if (LIKELY(dir_entries))
                     free(dir_entries);
@@ -913,6 +913,18 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         /* Iterate through this directory's children again, making the entries. */
         if (have_dir) {
             while (plat_dir_read(&context)) {
+                /* Grow array if the original size is inaccurate. */
+                if (UNLIKELY(children_count >= dir_entries_len)) {
+                    size_t         new_entries_len = children_count + 1;
+                    viso_entry_t **new_dir_entries = (viso_entry_t **) realloc(dir_entries, (new_entries_len + 1) * sizeof(viso_entry_t *));
+                    if (LIKELY(new_dir_entries)) {
+                        dir_entries     = new_dir_entries;
+                        dir_entries_len = new_entries_len;
+                    } else {
+                        break;
+                    }
+                }
+
                 /* Add and fill entry. */
                 const char *path = plat_dir_get_path(&context);
                 size_t path_buf_size = strlen(path) + 1;
