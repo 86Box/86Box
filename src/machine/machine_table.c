@@ -18473,7 +18473,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -18495,7 +18495,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
