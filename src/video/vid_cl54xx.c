@@ -4284,6 +4284,10 @@ gd54xx_init(const device_t *info)
     const char *romfn1 = NULL;
     const char *romfn2 = NULL;
 
+    const uint64_t bios_flags = (info->local == CIRRUS_ID_USE_CONFIG_BIOS) ?
+                                device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                0x0000000000000000ULL;
+
     gd54xx->pci   = !!(info->flags & DEVICE_PCI);
     gd54xx->vlb   = !!(info->flags & DEVICE_VLB);
     gd54xx->mca   = !!(info->flags & DEVICE_MCA);
@@ -4455,6 +4459,8 @@ gd54xx_init(const device_t *info)
         else
             vram = device_get_config_int("memory");
 
+        video_clamp_vram(bios_flags, &vram);
+
         gd54xx->vram_size = vram << 10;
     } else {
         if (id <= CIRRUS_ID_CLGD5428) {
@@ -4469,12 +4475,17 @@ gd54xx_init(const device_t *info)
             else
                 vram = device_get_config_int("memory");
 
+            video_clamp_vram(bios_flags, &vram);
+
             gd54xx->vram_size = vram << 10;
         } else {
             if ((id == CIRRUS_ID_CLGD5436) && (local & 0x200) && (local & 0x1000))
                 vram = 1;
             else
                 vram              = device_get_config_int("memory");
+
+            video_clamp_vram(bios_flags, &vram);
+
             gd54xx->vram_size = vram << 20;
         }
     }

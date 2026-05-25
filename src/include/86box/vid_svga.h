@@ -120,7 +120,6 @@ typedef struct svga_t {
     int x_add;
     int y_add;
     int pan;
-    int vram_display_mask;
     int vidclock;
     int dots_per_clock;
     int hwcursor_on;
@@ -155,6 +154,7 @@ typedef struct svga_t {
       For the example memory map, decode_mask would be 4MB-1 (4MB address space), vram_max would be 2MB
       (present video memory only responds to first 2MB), vram_mask would be 1MB-1 (video memory wraps at 1MB)
     */
+    uint32_t  vram_display_mask;
     uint32_t  decode_mask;
     uint32_t  vram_max;
     uint32_t  vram_mask;
