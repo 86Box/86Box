@@ -441,7 +441,7 @@ use_stdout:
             err = errno;
             char_stdio_log(dev->log, "posix_openpt failed (%d)\n", err);
 errmsg:
-            snprintf(msg, sizeof(msg), "%s: Could not create pseudoterminal: %s", dev->port->name, strerror(err));
+            snprintf(msg, sizeof(msg), "%s: Could not create terminal: %s", dev->port->name, strerror(err));
             ui_msgbox(MBX_ERROR, msg);
             close(dev->fd_out);
             dev->fd_out = -1;
