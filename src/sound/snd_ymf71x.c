@@ -153,10 +153,13 @@ ymf71x_config_write(uint16_t addr, uint8_t val, void *priv)
     if (addr == 0xA79) {
         if ((ymf71x->configidx == 0x21) && (val & 0x01)) {
             ymf71x_log(ymf71x->log, "Enable internal RAM write\n");
+            if (ymf71x->ramwrite_enable == 0)
+                ymf71x->ram_addr = 0;
             ymf71x->ramwrite_enable = 1;
         }
-        if ((ymf71x->configidx == 0x21) && (val == 0x00)) {
+        if ((ymf71x->configidx == 0x21) && ((val & 0x01) == 0x00) && ymf71x->ramwrite_enable) {
             ymf71x_log(ymf71x->log, "Disable internal RAM write\n");
+            ymf71x->ramwrite_enable = 0;
             isapnp_update_card_rom(ymf71x->pnp_card, &ymf71x->ram_data[0], 512);
         }
         if ((ymf71x->configidx == 0x20) && (ymf71x->ramwrite_enable == 0x01)) {
