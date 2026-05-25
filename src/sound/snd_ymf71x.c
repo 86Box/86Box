@@ -162,6 +162,13 @@ ymf71x_config_write(uint16_t addr, uint8_t val, void *priv)
             ymf71x->ramwrite_enable = 0;
             isapnp_update_card_rom(ymf71x->pnp_card, &ymf71x->ram_data[0], 512);
         }
+        if ((ymf71x->configidx == 0x21) && (val & 0x02)) {
+            ymf71x_log(ymf71x->log, "Disable PnP key\n");
+            isapnp_enable_card(ymf71x->pnp_card, ISAPNP_CARD_NO_KEY);
+        } else if ((ymf71x->configidx == 0x21) && ((val & 0x02) == 0x00)) {
+            ymf71x_log(ymf71x->log, "Enable PnP key\n");
+            isapnp_enable_card(ymf71x->pnp_card, ISAPNP_CARD_ENABLE);
+        }
         if ((ymf71x->configidx == 0x20) && (ymf71x->ramwrite_enable == 0x01)) {
             ymf71x_log(ymf71x->log, "Write to internal RAM addr %04X, val %02X\n", ymf71x->ram_addr, val);
             ymf71x->ram_data[ymf71x->ram_addr++] = val;
