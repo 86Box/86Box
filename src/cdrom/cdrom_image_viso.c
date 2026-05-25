@@ -638,7 +638,7 @@ pad_susp:
     }
 
     if (UNLIKELY((p - data) > 255))
-#ifdef ENABLE_VISO_LOG
+#ifdef IMAGE_VISO_LOG
         fatal("VISO: Directory record overflow (%" PRIuPTR ") on entry %08" PRIXPTR "\n", (uintptr_t) (p - data), (uintptr_t) entry);
 #else
         data[0] = 255;
@@ -769,7 +769,7 @@ viso_close(void *priv)
     /* De-allocate everything. */
     if (tf->fp)
         fclose(tf->fp);
-#ifdef ENABLE_VISO_LOG
+#ifdef IMAGE_VISO_LOG
     if (stricmp(path_get_extension(viso->tf.fn), "iso"))
 #endif
         remove(nvr_path(viso->tf.fn));
@@ -1599,7 +1599,7 @@ next_entry:
     /* We no longer need the temporary file; close and delete it. */
     fclose(viso->tf.fp);
     viso->tf.fp = NULL;
-#ifdef ENABLE_VISO_LOG
+#ifdef IMAGE_VISO_LOG
     if (stricmp(path_get_extension(viso->tf.fn), "iso"))
 #endif
         remove(nvr_path(viso->tf.fn));
