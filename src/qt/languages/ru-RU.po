@@ -884,79 +884,79 @@ msgid "Generic paddle controller(s)"
 msgstr "Стандартный контроллер-колесо"
 
 msgid "2-axis, 1-button joystick(s)"
-msgstr "2-осевой, 1-кнопочный джойстик"
+msgstr "Джойстик (2 оси и 1 кнопка)"
 
 msgid "2-axis, 2-button joystick(s)"
-msgstr "2-осевой, 2-кнопочный джойстик"
+msgstr "Джойстик (2 оси и 2 кнопки)"
 
 msgid "2-axis, 3-button joystick"
-msgstr "2-осевой, 3-кнопочный джойстик"
+msgstr "Джойстик (2 оси и 3 кнопки)"
 
 msgid "2-axis, 4-button joystick"
-msgstr "2-осевой, 4-кнопочный джойстик"
+msgstr "Джойстик (2 оси и 4 кнопки)"
 
 msgid "2-axis, 6-button joystick"
-msgstr "2-осевой, 6-кнопочный джойстик"
+msgstr "Джойстик (2 оси и 6 кнопок)"
 
 msgid "2-axis, 8-button joystick"
-msgstr "2-осевой, 8-кнопочный джойстик"
+msgstr "Джойстик (2 оси и 8 кнопок)"
 
 msgid "3-axis, 2-button joystick"
-msgstr "3-осевой, 2-кнопочный джойстик"
+msgstr "Джойстик (3 оси и 2 кнопки)"
 
 msgid "3-axis, 3-button joystick"
-msgstr "3-осевой, 3-кнопочный джойстик"
+msgstr "Джойстик (3 оси и 3 кнопки)"
 
 msgid "3-axis, 4-button joystick"
-msgstr "3-осевой, 4-кнопочный джойстик"
+msgstr "Джойстик (3 оси и 4 кнопки)"
 
 msgid "4-axis, 2-button joystick"
-msgstr "4-осевой, 2-кнопочный джойстик"
+msgstr "Джойстик (4 оси и 2 кнопки)"
 
 msgid "4-axis, 3-button joystick"
-msgstr "4-осевой, 3-кнопочный джойстик"
+msgstr "Джойстик (4 оси и 3 кнопки)"
 
 msgid "4-axis, 4-button joystick"
-msgstr "4-осевой, 4-кнопочный джойстик"
+msgstr "Джойстик (4 оси и 4 кнопки)"
 
 msgid "2-button gamepad(s)"
-msgstr "2-кнопочный геймпад"
+msgstr "Геймпад (2 кнопки)"
 
 msgid "3-button gamepad"
-msgstr "3-кнопочный геймпад"
+msgstr "Геймпад (3 кнопки)"
 
 msgid "4-button gamepad"
-msgstr "4-кнопочный геймпад"
+msgstr "Геймпад (4 кнопки)"
 
 msgid "6-button gamepad"
-msgstr "6-кнопочный геймпад"
+msgstr "Геймпад (6 кнопки)"
 
 msgid "2-button flight yoke"
-msgstr "2-кнопочный штурвал"
+msgstr "Штурвал (2 кнопки)"
 
 msgid "3-button flight yoke"
-msgstr "3-кнопочный штурвал"
+msgstr "Штурвал (3 кнопки)"
 
 msgid "4-button flight yoke"
-msgstr "4-кнопочный штурвал"
+msgstr "Штурвал (4 кнопки)"
 
 msgid "2-button flight yoke with throttle"
-msgstr "2-кнопочный штурвал с дросселем"
+msgstr "Штурвал (2 кнопки и рычаг газа)"
 
 msgid "3-button flight yoke with throttle"
-msgstr "3-кнопочный штурвал с дросселем"
+msgstr "Штурвал (3 кнопки и рычаг газа)"
 
 msgid "4-button flight yoke with throttle"
-msgstr "4-кнопочный штурвал с дросселем"
+msgstr "Штурвал (4 кнопки и рычаг газа)"
 
 msgid "Steering wheel (3-axis, 2-button)"
-msgstr "Руль (3-осевой, 2-кнопочный)"
+msgstr "Руль (3 оси и 2 кнопки)"
 
 msgid "Steering wheel (3-axis, 3-button)"
-msgstr "Руль (3-осевой, 3-кнопочный)"
+msgstr "Руль (3 оси и 3 кнопки)"
 
 msgid "Steering wheel (3-axis, 4-button)"
-msgstr "Руль (3-осевой, 4-кнопочный)"
+msgstr "Руль (3 оси и 4 кнопки)"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 с адаптером"
