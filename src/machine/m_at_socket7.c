@@ -1806,7 +1806,7 @@ machine_at_ma23c_init(const machine_t *model)
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&nec_mate_unk_device);
-    device_add_params(&fdc37c67x_device, (void *) (FDC37XXX2 | FDC37XXXX_370));
+    device_add_params(&fdc37c67x_device, (void *) (FDC37XXX5 | FDC37XXXX_370));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
