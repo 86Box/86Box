@@ -11387,10 +11387,6 @@ s3_init(const device_t *info)
                 s3->eeprom_data[0x08] = 0xa604;
                 break;
             case S3_ELSAWIN2KPROX:
-                s3->eeprom_data[0x02] = 0x094a;
-                s3->eeprom_data[0x07] = 0xf424;
-                s3->eeprom_data[0x08] = 0xf424;
-                break;
             case S3_ELSAWIN2KPROX_964:
                 s3->eeprom_data[0x02] = 0x094a;
                 s3->eeprom_data[0x07] = 0xf424;
