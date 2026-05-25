@@ -884,8 +884,8 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
     const ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) priv;
 
     svga->interlace = !!(ramdac->indexed_data[0x071] & 0x20);
-    //pclog("MiscClockControl idx002=%02x, SystemClockControl idx008=%02x, Misc2 idx071=%02x, Misc1 idx070=%02x, Misc4 idx073=%02x.\n",
-    //      ramdac->indexed_data[0x002], ramdac->indexed_data[0x008], ramdac->indexed_data[0x071], ramdac->indexed_data[0x070], ramdac->indexed_data[0x073]);
+    //pclog("MiscClockControl idx002=%02x, SystemClockControl idx008=%02x, Misc2 idx071=%02x, Misc1 idx070=%02x, Misc4 idx073=%02x, bpp=%d.\n",
+    //      ramdac->indexed_data[0x002], ramdac->indexed_data[0x008], ramdac->indexed_data[0x071], ramdac->indexed_data[0x070], ramdac->indexed_data[0x073], svga->bpp);
 
     if (ramdac->indexed_data[0x071] & 0x01) {
         if ((ramdac->indexed_data[0x070] & 0x03) == 0x03) {
@@ -898,13 +898,13 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
                     svga->clock_multiplier = 1;
                     break;
                 case 0x02:
-                    svga->clock_multiplier = 2;
-                    break;
-                case 0x03:
                     svga->clock_multiplier = 3;
                     break;
+                case 0x03:
+                    svga->clock_multiplier = 7;
+                    break;
                 case 0x04:
-                    svga->clock_multiplier = 4;
+                    svga->clock_multiplier = 15;
                     break;
             }
         } else if ((ramdac->indexed_data[0x070] & 0x03) == 0x01) {
@@ -918,13 +918,13 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
                     svga->clock_multiplier = 1;
                     break;
                 case 0x02:
-                    svga->clock_multiplier = 2;
-                    break;
-                case 0x03:
                     svga->clock_multiplier = 3;
                     break;
+                case 0x03:
+                    svga->clock_multiplier = 7;
+                    break;
                 case 0x04:
-                    svga->clock_multiplier = 4;
+                    svga->clock_multiplier = 15;
                     break;
             }
         }

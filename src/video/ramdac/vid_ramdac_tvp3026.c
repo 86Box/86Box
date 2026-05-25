@@ -520,40 +520,32 @@ tvp3026_recalctimings(void *priv, svga_t *svga)
 
     svga->interlace = !!(ramdac->ccr & 0x40);
     /* TODO: Figure out gamma correction for 15/16 bpp color. */
-    svga->lut_map = !!((svga->bpp >= 15 && (svga->bpp != 24)) && (ramdac->true_color & 0xf0) != 0x00);
+    svga->lut_map = !!(((svga->bpp >= 15) && (svga->bpp != 24)) && (ramdac->true_color & 0xf0) != 0x00);
     svga->clock_multiplier = 0;
+    svga->multiplexing_rate = 0;
 
-    //pclog("RAMDAC CLOCKSEL=%02x, MCR=%02x, LoopMCLK=%02x, Latch=%02x.\n", ramdac->clock_sel, ramdac->mcr, ramdac->mclk, ramdac->latch_cntl);
-
-    if (!(ramdac->clock_sel & 0x70)) {
-        if (ramdac->mcr != 0x98) {
-            switch ((ramdac->clock_sel >> 4) & 7) {
-                case 0:
+    if (ramdac->mcr != 0x98) {
+        switch (svga->bpp) {
+            case 8:
+                if (ramdac->mcr & 0x08) {
+                    if (ramdac->mclk & 0x01)
+                        svga->clock_multiplier = 1;
+                    if (ramdac->clock_sel & 0x70)
+                        svga->multiplexing_rate = 1;
+                }
+                break;
+            case 15:
+            case 16:
+            case 32:
+                if (!(ramdac->clock_sel & 0x70) && (ramdac->loop.n & 0x40))
                     svga->clock_multiplier = 1;
-                    break;
-                case 1:
-                    svga->clock_multiplier = 2;
-                    break;
-                case 2:
-                    svga->clock_multiplier = 4;
-                    break;
-                case 3:
-                    svga->clock_multiplier = 8;
-                    break;
-                case 4:
-                    svga->clock_multiplier = 16;
-                    break;
-                case 5:
-                    svga->clock_multiplier = 32;
-                    break;
-                case 6:
-                    svga->clock_multiplier = 64;
-                    break;
-                case 7:
-                default:
-                    svga->clock_multiplier = 0;
-                    break;
-            }
+                else if ((ramdac->clock_sel & 0x70) && !(ramdac->loop.n & 0x40))
+                    svga->clock_multiplier = 1;
+                else if ((svga->bpp == 32) && (ramdac->latch_cntl & 0x01) && (ramdac->loop.n & 0x40))
+                    svga->clock_multiplier = 1;
+                break;
+            default:
+                break;
         }
     }
 }

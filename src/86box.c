@@ -490,7 +490,13 @@ fatal(const char *fmt, ...)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
     fflush(stdlog);
     va_end(ap);
 
@@ -499,10 +505,6 @@ fatal(const char *fmt, ...)
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
 #endif
-
-    /* Make sure the message does not have a trailing newline. */
-    if ((sp = strchr(temp, '\n')) != NULL)
-        *sp = '\0';
 
     do_pause(2);
 
@@ -533,7 +535,13 @@ fatal_ex(const char *fmt, va_list ap)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
     fflush(stdlog);
 
     nvr_save();
@@ -541,10 +549,6 @@ fatal_ex(const char *fmt, va_list ap)
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
 #endif
-
-    /* Make sure the message does not have a trailing newline. */
-    if ((sp = strchr(temp, '\n')) != NULL)
-        *sp = '\0';
 
     do_pause(2);
 
@@ -577,15 +581,17 @@ warning(const char *fmt, ...)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
-    if (pclog_hook)
-        pclog_hook(temp);
-    fflush(stdlog);
-    va_end(ap);
 
     /* Make sure the message does not have a trailing newline. */
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
+    if (pclog_hook)
+        pclog_hook(temp);
+    fflush(stdlog);
+    va_end(ap);
 
     do_pause(2);
 
@@ -612,12 +618,15 @@ warning_ex(const char *fmt, va_list ap)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
-    fflush(stdlog);
 
     /* Make sure the message does not have a trailing newline. */
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
+
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
+    fflush(stdlog);
 
     do_pause(2);
 
