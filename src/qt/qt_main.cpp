@@ -449,7 +449,6 @@ main_thread_fn()
     frames                   = 0;
     debt_ns                  = 0;
     is_cpu_thread             = 1;
-    plat_set_thread_qos_high();
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
         const qint64 new_ns = elapsed_timer.nsecsElapsed();

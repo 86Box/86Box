@@ -579,16 +579,14 @@ plat_munmap(void *ptr, size_t size)
 extern bool cpu_thread_running;
 
 #ifdef Q_OS_WINDOWS
-/* SetThreadDescription was added in 14393 and SetProcessInformation and SetThreadInformation in 8. Revisit if we ever start requiring 10. */
+/* SetThreadDescription was added in 14393 and SetProcessInformation in 8. Revisit if we ever start requiring 10. */
 static void *kernel32_handle                                                                                                                                                = NULL;
 static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription)                                                                                   = NULL;
 static HRESULT(WINAPI *pSetProcessInformation)(HANDLE hProcess, PROCESS_INFORMATION_CLASS ProcessInformationClass, LPVOID ProcessInformation, DWORD ProcessInformationSize) = NULL;
-static HRESULT(WINAPI *pSetThreadInformation)(HANDLE hThread, THREAD_INFORMATION_CLASS ThreadInformationClass, LPVOID ThreadInformation, DWORD ThreadInformationSize)       = NULL;
 static dllimp_t kernel32_imports[]                                                                                                                                          = {
     // clang-format off
     { "SetThreadDescription",  &pSetThreadDescription  },
     { "SetProcessInformation", &pSetProcessInformation },
-    { "SetThreadInformation",  &pSetThreadInformation  },
     { NULL,                    NULL                    }
     // clang-format on
 };
@@ -608,7 +606,6 @@ enter_pause(void)
             kernel32_handle        = kernel32_imports; /* store dummy pointer to avoid trying again */
             pSetThreadDescription  = NULL;
             pSetProcessInformation = NULL;
-            pSetThreadInformation  = NULL;
         }
     }
 
@@ -631,7 +628,6 @@ exit_pause(void)
             kernel32_handle        = kernel32_imports; /* store dummy pointer to avoid trying again */
             pSetThreadDescription  = NULL;
             pSetProcessInformation = NULL;
-            pSetThreadInformation  = NULL;
         }
     }
 
@@ -639,33 +635,6 @@ exit_pause(void)
         pSetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, (LPVOID) &high_state, sizeof(high_state));
 }
 #endif
-
-void
-plat_set_thread_qos_high(void)
-{
-#ifdef Q_OS_WINDOWS
-    THREAD_POWER_THROTTLING_STATE state {};
-    state.Version = THREAD_POWER_THROTTLING_CURRENT_VERSION;
-    state.ControlMask = THREAD_POWER_THROTTLING_EXECUTION_SPEED;
-    state.StateMask = 0;
-
-    if (!kernel32_handle) {
-        kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
-        if (!kernel32_handle) {
-            kernel32_handle        = kernel32_imports; /* store dummy pointer to avoid trying again */
-            pSetThreadDescription  = NULL;
-            pSetProcessInformation = NULL;
-            pSetThreadInformation  = NULL;
-        }
-    }
-    
-    if (pSetThreadInformation) {
-        pSetThreadInformation(GetCurrentThread(), ThreadPowerThrottling, (LPVOID) &state, sizeof(state));
-    }
-#elif defined __APPLE__
-    pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
-#endif
-}
 
 void
 plat_pause(int p)
@@ -1076,7 +1045,6 @@ plat_set_thread_name(void *thread, const char *name)
             kernel32_handle        = kernel32_imports; /* store dummy pointer to avoid trying again */
             pSetThreadDescription  = NULL;
             pSetProcessInformation = NULL;
-            pSetThreadInformation  = NULL;
         }
     }
 
