@@ -324,8 +324,8 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
 
     /* Get name and extension length. */
     const char *ext_pos = strrchr(basename, '.');
-    int         name_len;
-    int         ext_len;
+    size_t      name_len;
+    size_t      ext_len;
     if (ext_pos) {
         name_len = ext_pos - basename;
         ext_len  = strlen(ext_pos);
