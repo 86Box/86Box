@@ -104,11 +104,11 @@ typedef struct _viso_entry_ {
         uint8_t is_dir : 1;
         uint32_t size;
 #ifdef PLAT_DIR_HAS_BIRTHTIME
-        time_t birthtime;
+        int64_t birthtime;
 #endif
-        time_t mtime;
-        time_t atime;
-        time_t ctime;
+        int64_t mtime;
+        int64_t atime;
+        int64_t ctime;
     } stats;
 
     struct _viso_entry_ *parent, *next, *next_dir, *first_child;
@@ -132,7 +132,8 @@ typedef struct {
 
 static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
 static const char rr_edesc[] = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
-static int8_t     tz_offset  = 0;
+static int        tz_offset_sec = 0;
+static int8_t     tz_offset_iso = 0;
 
 #ifdef IMAGE_VISO_LOG
 int image_viso_do_log = IMAGE_VISO_LOG;
@@ -445,69 +446,63 @@ viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /
 }
 
 static int
-viso_fill_time(uint8_t *data, time_t time, int format, int longform)
+viso_fill_time(uint8_t *data, int64_t time, int format, int longform)
 {
-    uint8_t   *p      = data;
-    struct tm time_s_buf;
-    struct tm *time_s = NULL;
-    time_t epoch      = 0;
+    /* Get time. */
+    time += tz_offset_sec;
+    int64_t secs = time % 86400;
+    int64_t days = time / 86400;
+    if (UNLIKELY(secs < 0)) {
+        secs += 86400;
+        days -= 1;
+    }
+    int hour = secs / 3600;
+    int min  = (secs % 3600) / 60;
+    int sec  = secs % 60;
+    int csec = 0;
 
-#ifdef _WIN32
-    if (LIKELY(!localtime_s(&time_s_buf, &time)))
-        time_s = &time_s_buf;
-#else
-    time_s = localtime_r(&time, &time_s_buf);
-#endif
+    /* Get date.
+       Based on: https://howardhinnant.github.io/date_algorithms.html#civil_from_days */
+    days += 719468;
+    int64_t era  = (LIKELY(days >= 0) ? days : (days - 146096)) / 146097;
+    int64_t doe  = days - (era * 146097);
+    int64_t yoe  = (doe - (doe / 1460) + (doe / 36524) - (doe / 146096)) / 365;
+    int64_t doy  = doe - ((365 * yoe) + (yoe / 4) - (yoe / 100));
+    int64_t mp   = ((5 * doy) + 2) / 153;
+    int     day  = doy - (((153 * mp) + 2) / 5) + 1;
+    int     mon  = mp + ((mp < 10) ? 3 : -9);
+    int     year = yoe + (era * 400) + (mon <= 2);
 
-    if (UNLIKELY(!time_s)) {
-        /* localtime may return NULL if time is negative or out of range */
-#ifdef _WIN32
-        if (LIKELY(!localtime_s(&time_s_buf, &epoch)))
-            time_s = &time_s_buf;
-#else
-        time_s = localtime_r(&epoch, &time_s_buf);
-#endif
-
-        /* Force year clamping for out-of-range times */
-        if (UNLIKELY(!time_s)) {
-            memset(&time_s_buf, 0, sizeof(time_s_buf));
-            time_s          = &time_s_buf;
-            time_s->tm_year = -1901;
-        }
-        if (UNLIKELY(time < (UNLIKELY(longform) ? -62135596800LL : -2208988800LL))) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
-            time_s->tm_year = -1901;
-        else if (UNLIKELY(time > (UNLIKELY(longform) ? 253402300799LL : 5869583999LL))) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
-            time_s->tm_year = 8100;
+    /* Clamp to supported ranges. */
+    if (UNLIKELY(year < (UNLIKELY(longform) ? 0 : 1900))) {
+        year = UNLIKELY(longform) ? 0 : 1900;
+        mon  = day = 1;
+        hour = min = sec = 0;
+    } else if (UNLIKELY(year > (UNLIKELY(longform) ? 9999 : 2155))) {
+        year = UNLIKELY(longform) ? 9999 : 2155;
+        mon  = 12;
+        day  = 31;
+        hour = 23;
+        min  = sec = 59;
+        csec = 99;
     }
 
-    /* Clamp year within supported ranges */
-    if (UNLIKELY(time_s->tm_year < (UNLIKELY(longform) ? -1900 : 0))) {
-        time_s->tm_year = UNLIKELY(longform) ? -1900 : 0;
-        time_s->tm_mon = time_s->tm_hour = time_s->tm_min = time_s->tm_sec = 0;
-        time_s->tm_mday                                                    = 1;
-    } else if (UNLIKELY(time_s->tm_year > (UNLIKELY(longform) ? 8099 : 255))) {
-        time_s->tm_year = UNLIKELY(longform) ? 8099 : 255;
-        time_s->tm_mon  = 11;
-        time_s->tm_mday = 31;
-        time_s->tm_hour = 23;
-        time_s->tm_min = time_s->tm_sec = 59;
-    }
-
-    /* Convert timestamp */
+    /* Generate timestamp. */
+    uint8_t *p = data;
     if (UNLIKELY(longform)) {
-        p += snprintf((char *) p, 17, "%04u%02u%02u%02u%02u%02u00",
-                      1900 + (unsigned) time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
-                      time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
+        p += 16;
+        snprintf((char *) data, p - data + 1, "%04u%02u%02u%02u%02u%02u%02u",
+                 year, mon, day, hour, min, sec, csec);
     } else {
-        *p++ = (uint8_t) time_s->tm_year;      /* year since 1900 */
-        *p++ = (uint8_t) (1 + time_s->tm_mon); /* month */
-        *p++ = (uint8_t) time_s->tm_mday;      /* day */
-        *p++ = (uint8_t) time_s->tm_hour;      /* hour */
-        *p++ = (uint8_t) time_s->tm_min;       /* minute */
-        *p++ = (uint8_t) time_s->tm_sec;       /* second */
+        *p++ = (uint8_t) (year - 1900); /* year since 1900 */
+        *p++ = (uint8_t) mon;           /* month */
+        *p++ = (uint8_t) day;           /* day */
+        *p++ = (uint8_t) hour;          /* hour */
+        *p++ = (uint8_t) min;           /* minute */
+        *p++ = (uint8_t) sec;           /* second */
     }
     if (LIKELY(format & VISO_FORMAT_ISO))
-        *p++ = tz_offset; /* timezone (ISO only) */
+        *p++ = tz_offset_iso; /* timezone (ISO only) */
 
     return p - data;
 }
@@ -596,7 +591,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
                     *p++ = 2; /* length (added to later) */
                     *p++ = 1; /* version */
 
-                    *p++ = times; /* flags */
+                    *p++ = times; /* flags (implementation note: longform times are broken in Linux <6.16) */
 #ifdef PLAT_DIR_HAS_BIRTHTIME
                     if (times & (1 << 0))
                         p += viso_fill_time(p, entry->stats.birthtime, viso->format, 0); /* creation */
@@ -1041,11 +1036,12 @@ next_dir:
     struct tm now_tm;
     if (viso->format & VISO_FORMAT_ISO) { /* timezones are ISO only */
 #ifdef _WIN32
-        gmtime_s(&now_tm, &now);  // Windows: output first param, input second
+        gmtime_s(&now_tm, &now);  /* Windows: output first param, input second */
 #else
-        gmtime_r(&now, &now_tm);  // POSIX: input first param, output second
+        gmtime_r(&now, &now_tm);  /* POSIX: input first param, output second */
 #endif
-        tz_offset = (now - mktime(&now_tm)) / (3600 / 4);
+        tz_offset_sec = now - mktime(&now_tm);
+        tz_offset_iso = tz_offset_sec / 900; /* 15-minute interval */
     }
 
     /* Get root directory basename for the volume ID. */
