@@ -3175,9 +3175,9 @@ msgstr "Nepodarilo sa otvoriť MDS súbor \"%s\"."
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "Nepodarilo sa otvoriť obraz CD-ROM disku \"%s\"."
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
-"Nepodarilo sa načítať obraz „%s“: nenašla sa knižnica mdsx.so, ktorá je "
+"Nepodarilo sa načítať obraz „%s“: nenašla sa knižnica %1, ktorá je "
 "potrebná na podporu obrazov vo Daemon Tools formátoch MDS v2 a MDX."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."

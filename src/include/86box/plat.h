@@ -42,6 +42,12 @@ enum {
     STRING_GHOSTPCL_ERROR,            /* "Unable to initialize GhostPCL..." */
     STRING_ESCP_ERROR,                /* "Unable to find Dot-Matrix fonts..." */
     STRING_EDID_TOO_LARGE,            /* "EDID file \"%s\" is too large (%lld bytes)." */
+    STRING_CDROM_OPEN_ISO_ERROR,      /* "Unable to open image or folder \"%s\"" */
+    STRING_CDROM_OPEN_CUE_ERROR,      /* "Unable to open Cue sheet \"%s\"" */
+    STRING_CDROM_OPEN_MDS_ERROR,      /* "Unable to open MDS file \"%s\"" */
+    STRING_CDROM_LOAD_IMAGE_ERROR,    /* "Unable to load CD-ROM image: %s" */
+    STRING_CDROM_LOAD_MDSX_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
+    STRING_CDROM_DVD_IN_CD_DRIVE,     /* "DVD image \"%s\" in a CD-only drive..." */
 };
 
 /* The Win32 API uses _wcsicmp. */

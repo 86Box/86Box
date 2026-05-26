@@ -3157,8 +3157,8 @@ msgstr "无法打开 MDS 文件 \"%s\"。"
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "无法加载 CD-ROM 映像 \"%s\"。"
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr "无法加载映像 \"%s\"：缺少 mdsx.so，这是 Daemon Tools MDS v2和 MDX "
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr "无法加载映像 \"%s\"：缺少 %1，这是 Daemon Tools MDS v2和 MDX "
 "映像支持所必需的。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."

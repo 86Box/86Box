@@ -119,6 +119,18 @@ plat_get_string(int i)
             return "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.";
         case STRING_EDID_TOO_LARGE:
             return "EDID file \"%s\" is too large.";
+        case STRING_CDROM_OPEN_ISO_ERROR:
+            return "Unable to open image or folder \"%s\".";
+        case STRING_CDROM_OPEN_CUE_ERROR:
+            return "Unable to open cue sheet \"%s\".";
+        case STRING_CDROM_OPEN_MDS_ERROR:
+            return "Unable to open MDS file \"%s\".";
+        case STRING_CDROM_LOAD_IMAGE_ERROR:
+            return "Unable to load CD-ROM image \"%s\".";
+        case STRING_CDROM_LOAD_MDSX_ERROR:
+            return "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support.";
+        case STRING_CDROM_DVD_IN_CD_DRIVE:
+            return "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.";
     }
     return "";
 }

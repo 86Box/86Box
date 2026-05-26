@@ -3171,9 +3171,9 @@ msgstr "Nie udało się otworzyć pliku MDS „%s”."
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "Nie udało się wczytać obrazu CD-ROM „%s”."
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
-"Nie udało się wczytać obrazu „%s”: brakuje mdsx.so, potrzebnego do obsługi "
+"Nie udało się wczytać obrazu „%s”: brakuje %1, potrzebnego do obsługi "
 "obrazów Daemon Tools MDS v2 i MDX."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."

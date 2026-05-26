@@ -3167,7 +3167,7 @@ msgstr "MDS-fil \"%s\" kunde ej öppnas."
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "CD-ROM-avbildning \"%s\" kunde ej öppnas."
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 "Avbildning \"%s\" kunde ej laddas: mdsx.so saknas, vilket krävs för stöd för "
 "Daemon Tools MDS v2 och MDX-avbildningar."

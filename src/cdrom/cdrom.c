@@ -1358,13 +1358,8 @@ cdrom_get_from_name(const char *s)
     }
 
     if (!found) {
-        if (strcmp(s, "none")) {
-            sprintf(n, "WARNING: CD-ROM \"%s\" not found - contact 86Box support\n", s);
-            pclog("%s", n);
-            ui_msgbox_header(MBX_WARNING,
-                             plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
-                             n);
-        }
+        if (strcmp(s, "none"))
+            warning("WARNING: CD-ROM \"%s\" not found - contact 86Box support\n", s);
         c = -1;
     }
 
@@ -3035,7 +3030,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
             if (cdrom_is_dvd(dev->type))
                 dev->cd_status      = CD_STATUS_DVD;
             else {
-                warning("DVD image \"%s\" in a CD-only drive, reporting as empty\n", fn);
+                warning(plat_get_string(STRING_CDROM_DVD_IN_CD_DRIVE), fn);
                 dev->cd_status      = CD_STATUS_DVD_REJECTED;
             }
         } else

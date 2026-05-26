@@ -3159,10 +3159,10 @@ msgstr "MDSファイル「%s」を開けません。"
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "CD-ROMイメージ「%s」を読み込めません。"
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 "画像「%s」を読み込めません：Daemon Tools MDS v2 および MDX "
-"イメージのサポートに必要な mdsx.so が見つかりません。"
+"イメージのサポートに必要な %1 が見つかりません。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVDイメージ「%s」は、DVDメディアに対応していないドライブに挿入されたため、無"

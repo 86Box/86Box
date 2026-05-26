@@ -3214,10 +3214,10 @@ msgstr "MDS dosyası \"%s\" açılamıyor."
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "CD-ROM görüntüsü \"%s\" yüklenemiyor."
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 "Görüntü \"%s\" yüklenemiyor: Daemon Tools MDS v2 ve MDX görüntü desteği için "
-"zorunlu olan mdsx.so eksik."
+"zorunlu olan %1 eksik."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

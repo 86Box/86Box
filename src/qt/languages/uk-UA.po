@@ -3173,7 +3173,7 @@ msgstr "Неможливо відкрити файл MDS «%s»."
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "Неможливо завантажити образ CD-ROM «%s»."
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 "Неможливо завантажити образ «%s»: відсутня бібліотека %1, необхідна для "
 "підтримки образів Daemon Tools MDS v2 та MDX."

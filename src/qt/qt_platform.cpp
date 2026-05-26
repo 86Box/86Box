@@ -817,10 +817,16 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #    define LIB_NAME_GS   "gsdll64.dll"
 #    define LIB_NAME_GPCL "gpcl6dll64.dll"
 #    define LIB_NAME_PCAP "Npcap"
+#    define LIB_NAME_MDSX "mdsx.dll"
 #else
 #    define LIB_NAME_GS   "libgs"
 #    define LIB_NAME_GPCL "libgpcl6"
 #    define LIB_NAME_PCAP "libpcap"
+#    ifdef __APPLE__
+#        define LIB_NAME_MDSX "mdsx.dylib"
+#    else
+#        define LIB_NAME_MDSX "mdsx.so"
+#    endif
 #endif
 
 QMap<int, QByteArray> Preferences::translatedstrings;
@@ -843,6 +849,12 @@ Preferences::reloadStrings()
     translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.").toUtf8();
     translatedstrings[STRING_ESCP_ERROR]                = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.").toUtf8();
     translatedstrings[STRING_EDID_TOO_LARGE]            = QCoreApplication::translate("", "EDID file \"%s\" is too large.").toUtf8();
+    translatedstrings[STRING_CDROM_OPEN_ISO_ERROR]      = QCoreApplication::translate("", "Unable to open image or folder \"%s\".").toUtf8();
+    translatedstrings[STRING_CDROM_OPEN_CUE_ERROR]      = QCoreApplication::translate("", "Unable to open cue sheet \"%s\".").toUtf8();
+    translatedstrings[STRING_CDROM_OPEN_MDS_ERROR]      = QCoreApplication::translate("", "Unable to open MDS file \"%s\".").toUtf8();
+    translatedstrings[STRING_CDROM_LOAD_IMAGE_ERROR]    = QCoreApplication::translate("", "Unable to load CD-ROM image \"%s\".").toUtf8();
+    translatedstrings[STRING_CDROM_LOAD_MDSX_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support.").arg(LIB_NAME_MDSX).toUtf8();
+    translatedstrings[STRING_CDROM_DVD_IN_CD_DRIVE]     = QCoreApplication::translate("", "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.").toUtf8();
 }
 
 char *
