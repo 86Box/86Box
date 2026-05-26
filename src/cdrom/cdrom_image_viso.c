@@ -689,8 +689,10 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 
         /* Handle sector. */
         if (sector < viso->metadata_sectors) {
-            /* Copy metadata. */
-            memcpy(buffer, viso->metadata + seek, sector_remain);
+            /* Copy metadata with bounds check to prevent out-of-bounds read. */
+            size_t metadata_size = viso->metadata_sectors * viso->sector_size;
+            size_t safe_remain   = ((size_t) seek + sector_remain <= metadata_size) ? sector_remain : 0;
+            memcpy(buffer, viso->metadata + seek, safe_remain);
         } else {
             size_t read = 0;
 
