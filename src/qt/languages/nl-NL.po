@@ -3069,3 +3069,6 @@ msgstr "Audio-uitvoerapparaat:"
 
 msgid "System Default"
 msgstr "Systeemstandaard"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

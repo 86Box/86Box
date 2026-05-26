@@ -318,6 +318,10 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     } else {
                         ega->fullchange = changeframecount;
                         ega_recalctimings(ega);
+                        if (!(ega->crtc[0x11] & 0x10)) {
+                            ega->vertirq_state = 0;
+                            picintc(1 << 2);
+                        }
                     }
                 }
             }
@@ -844,6 +848,16 @@ ega_dot_poll(void *priv)
 }
 
 void
+ega_handle_reset(void* priv)
+{
+    ega_t* ega = priv;
+
+    ega->crtc[0x11] |= 0x20;
+    ega->vertirq_state = 0;
+    picintc(1 << 2);
+}
+
+void
 ega_poll(void *priv)
 {
     ega_t   *ega = (ega_t *) priv;
@@ -990,6 +1004,10 @@ ega_poll(void *priv)
 #endif
 //            x = ega->hdisp;
 
+            if (!ega->vertirq_state && (ega->crtc[0x11] & 0x30) == 0x10) {
+                ega->vertirq_state = 1;
+                picint(1 << 2);
+            }
             if (ega->interlace && !ega->oddeven)
                 ega->lastline++;
             if (ega->interlace && ega->oddeven)
@@ -1565,6 +1583,8 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
     ega->crtc[0] = 63;
     ega->crtc[6] = 255;
 
+    ega->crtc[0x11] = 0x20;
+
     ega->render_override = NULL;
 
     timer_add(&ega->timer, ega_poll, ega, 1);
@@ -1887,7 +1907,7 @@ const device_t ega_device = {
     .local         = EGA_IBM,
     .init          = ega_standalone_init,
     .close         = ega_close,
-    .reset         = NULL,
+    .reset         = ega_handle_reset,
     .available     = ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
@@ -1901,7 +1921,7 @@ const device_t cpqega_device = {
     .local         = EGA_COMPAQ,
     .init          = ega_standalone_init,
     .close         = ega_close,
-    .reset         = NULL,
+    .reset         = ega_handle_reset,
     .available     = cpqega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
@@ -1915,7 +1935,7 @@ const device_t sega_device = {
     .local         = EGA_SUPEREGA,
     .init          = ega_standalone_init,
     .close         = ega_close,
-    .reset         = NULL,
+    .reset         = ega_handle_reset,
     .available     = sega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
@@ -1929,7 +1949,7 @@ const device_t atiega800p_device = {
     .local         = EGA_ATI800P,
     .init          = ega_standalone_init,
     .close         = ega_close,
-    .reset         = NULL,
+    .reset         = ega_handle_reset,
     .available     = atiega800p_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
@@ -1943,7 +1963,7 @@ const device_t iskra_ega_device = {
     .local         = EGA_ISKRA,
     .init          = ega_standalone_init,
     .close         = ega_close,
-    .reset         = NULL,
+    .reset         = ega_handle_reset,
     .available     = iskra_ega_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
@@ -1957,7 +1977,7 @@ const device_t et2000_device = {
     .local         = EGA_TSENG,
     .init          = ega_standalone_init,
     .close         = ega_close,
-    .reset         = NULL,
+    .reset         = ega_handle_reset,
     .available     = et2000_standalone_available,
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,

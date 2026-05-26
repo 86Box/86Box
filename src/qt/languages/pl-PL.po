@@ -3070,3 +3070,6 @@ msgstr "Urządzenie wyjściowe dźwięku:"
 
 msgid "System Default"
 msgstr "Domyślne ustawienie systemowe"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""

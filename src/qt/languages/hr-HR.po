@@ -3072,3 +3072,6 @@ msgstr "Uređaj za izlaz zvuka:"
 
 msgid "System Default"
 msgstr "Zadana postavka operativnog sustava"
+
+msgid "(S)VGA ISA/VLB/MCA VSync interrupt"
+msgstr ""
