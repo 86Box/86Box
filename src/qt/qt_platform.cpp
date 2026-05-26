@@ -1291,14 +1291,19 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             if (terminal == QStringLiteral("xdg-terminal-exec")) {
                 args << QStringLiteral("--title=" EMU_NAME) << QStringLiteral("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
             } else if (terminal == QStringLiteral("gnome-terminal")) {
-                args << QStringLiteral("--");
+                /* Really old versions will ignore -t and print a warning. */
+                args << QStringLiteral("-t") << QStringLiteral(EMU_NAME) << QStringLiteral("--");
             } else {
                 /* Hide script name in the Konsole title bar. */
                 bool is_konsole = (terminal == QStringLiteral("konsole"));
                 if (is_konsole && is_kde) /* KDE konsole */
                     args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
-                else if (is_konsole || (terminal == QStringLiteral("x-terminal-emulator"))) /* Trinity Konsole (no effect on KDE Konsole) */
+                else if (is_konsole || /* Trinity Konsole (no effect on KDE Konsole) */
+                         (terminal == QStringLiteral("x-terminal-emulator")) ||
+                         (terminal == QStringLiteral("xterm")) || terminal.endsWith(QStringLiteral("rxvt")))
                     args << QStringLiteral("-T") << QStringLiteral(EMU_NAME);
+                else if (terminal == QStringLiteral("mate-terminal"))
+                    args << QStringLiteral("-t") << QStringLiteral(EMU_NAME);
                 args << QStringLiteral("-e");
             }
             process->setArguments(args << script);
