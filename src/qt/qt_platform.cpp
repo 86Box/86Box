@@ -1211,6 +1211,11 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         f.write(titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
         f.write("'\n");
     }
+#    ifdef Q_OS_MACOS
+    f.write("cd '");
+    f.write(QString(process->workingDirectory()).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
+    f.write("'\n. /etc/bashrc_Apple_Terminal\nupdate_terminal_cwd\n");
+#    endif
     if (!titleq.isNull()) {
         if (env && *env) { /* set environment variables for terminal execution */
             f.write("export");
@@ -1226,8 +1231,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             }
             f.write("\n");
         }
-        f.write("clear\n");
     }
+    f.write("clear\n");
     f.write(cmd);
     f.write("\n");
     f.close();
@@ -1241,8 +1246,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             return 1;
     } else {
 #    ifdef Q_OS_MACOS
-        /* This (and AppleScript which requires user consent) opens an interactive shell and types the path in, so
-           we can't control the working directory displayed in the title bar, nor the lack of auto-exit by default. */
+        /* We can't control the lack of auto-exit by default. */
         process->setProgram(QStringLiteral("open"));
         process->setArguments(QStringList() << QStringLiteral("-b") << QStringLiteral("com.apple.Terminal") << script);
         process->start();
